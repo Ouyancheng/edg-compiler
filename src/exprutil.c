@@ -5820,6 +5820,9 @@ template has the right number of parameters.
   for (;ptp != NULL && arg_operand != NULL;
        ptp = ptp->next, arg_operand = arg_operand->next) {
     /* Try to match up the parameter type and the argument type. */
+    /* Note that there's no support in the ARM for the concept of handling
+       references and array and function types specially here.  It just
+       seems to make sense. */
     param_type = ptp->type;
     arg_type = arg_operand->operand.type;
     if (is_reference_type(param_type)) {
@@ -5829,8 +5832,38 @@ template has the right number of parameters.
       if (is_an_rvalue(&arg_operand->operand)) goto done;
       /* Drop the reference type. */
       param_type = type_pointed_to(param_type);
+      /* Check the top-level type qualifiers. */
+      if (type_qualifiers_match(param_type, arg_type)) {
+        /* The qualifiers are the same: okay. */
+      } else if (any_qualifier_missing(param_type, arg_type)) {
+        /* There are some type qualifiers on the argument type that do not
+           appear on the parameter type, so some type qualifiers are being
+           dropped.  That will be dealt with (successfully or not) by
+           matches_template_type. */
+      } else {
+        /* Some type qualifiers are being added.  That's okay.
+           This is a case like
+             template <class T> void f(const T &p) {}
+             void m() {int i; f(i);}
+           Drop the extra qualifiers from the parameter type to allow
+           the matching to proceed.  The easiest way to drop them is
+           to drop all qualifiers from both the parameter and argument
+           types.  We know all the qualifiers that appear on both lists
+           would be discarded by matches_template_type anyway.
+           Again, there's no real support for this in the ARM, but it seems
+           to make sense. */
+        arg_type = skip_typerefs(arg_type);
+        param_type = skip_typerefs(param_type);
+      }  /* if */
     } else {
       /* Not a reference. */
+      /* The argument would be converted to an rvalue and would lose its
+         top-level type qualifiers. */
+      arg_type = skip_typerefs(arg_type);
+      /* Top-level type qualifiers on the parameter type are also not important
+         (this is not supported by the ARM, but it matches the handling in
+         determine_arg_match_level). */
+      param_type = skip_typerefs(param_type);
       /* Do the array-->pointer and function-->pointer transformations. */
       if (is_array_type(arg_type)) {
         arg_type = make_pointer_type(array_element_type(arg_type));
@@ -5964,7 +5997,7 @@ is set to NULL.
   a_boolean                some_require_std_conversion;
   a_boolean                some_do_not_require_std_conversion;
   a_boolean                any_function_templates;
-  a_symbol_ptr             instance_symbol;
+  a_symbol_ptr             instance_symbol, best_instance_symbol;
 
   db_enter(4, "select_best_candidate_functions");
   *undecidable_because_of_error = FALSE;
@@ -6037,16 +6070,21 @@ end_exact_test:;
                                                    source_pos,
                                                    &instance_symbol)) {
           /* The template function can be made to match the operands
-             we have. */
+             we have.  Remember the matching template.  Don't change
+             cfp->function_symbol yet because there might be more than
+             one template that matches and we want the template symbol
+             in the ambiguity message. */
+          best_cfp = cfp;
+          best_instance_symbol = instance_symbol;
           cfp->in_best_match_set = TRUE;
-          cfp->function_symbol = instance_symbol;
-          cfp->is_function_template = FALSE;
           number_in_best_match_set++;
         }  /* if */
       }  /* if */
     }  /* for */
     if (number_in_best_match_set == 1) {
       /* Exactly one function template matches. */
+      best_cfp->function_symbol = best_instance_symbol;
+      best_cfp->is_function_template = FALSE;
       goto create_final_list;
     } else if (number_in_best_match_set > 1) {
       /* More than one function template matches.  Ambiguity. */
