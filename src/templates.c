@@ -1518,6 +1518,7 @@ templ_sym).
   rp->special_kind = templ_rout->special_kind;
   rp->opname_kind = templ_rout->opname_kind;
   rp->is_inline = templ_rout->is_inline;
+  rp->is_instantiation = TRUE;
   set_source_corresp(&rp->source_corresp, sym);
   rp->source_corresp.name_linkage = templ_rout->source_corresp.name_linkage;
   /* Add it to the file scope routines list. */
