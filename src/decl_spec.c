@@ -5013,6 +5013,12 @@ Returns TRUE if there is an error in the specifiers.
                       */
                       tp = NULL;
                     }  /* if */
+                  } else if (!is_class_struct_union_type(tp) &&
+                             !is_template_param_type(tp)) {
+                    /* This can happen in template instantiations of
+                           friend T;
+                       with T e.g. substituted by "long". */
+                    tp = NULL;
                   }  /* if */
                 }  /* if */
                 if (tp == NULL) {
