@@ -313,7 +313,7 @@ Install the keywords in the symbol table.
   /* EDG-specific token for Infinity constant. */
   enter_keyword((a_token_kind)tok_infinity, "__INFINITY__");
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
-  if (fixed_point_allowed) {
+  if (fixed_point_enabled) {
     enter_keyword((a_token_kind)tok_fract, "_Fract");
     enter_keyword((a_token_kind)tok_accum, "_Accum");
     enter_keyword((a_token_kind)tok_sat, "_Sat");

@@ -177,7 +177,7 @@ EXTERN a_stdc_pragma_value
 			   of the cx_limited_range state, which is set using
 			   the STDC CX_LIMITED_RANGE pragma. */
 
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
 
 EXTERN a_stdc_pragma_value
 		curr_fx_full_precision_state;
@@ -197,7 +197,7 @@ EXTERN a_stdc_pragma_value
 			   fx_accum_overflow state, which is set using the
 			   STDC FX_ACCUM_OVERFLOW pragma. */
 
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
 
 #if UPC_EXTENSIONS_ALLOWED
 
@@ -520,12 +520,12 @@ extern a_boolean bool_type_used_in_primary_IL(void);
 
 extern a_type_ptr bool_type(void);
 
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
 extern a_type_ptr fixed_point_type(a_fixed_point_precision  precision,
                                    a_boolean                is_unsigned,
                                    a_boolean                is_fract,
                                    a_boolean                saturating);
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
 
 extern a_type_ptr float_type(a_float_kind kind);
 
@@ -622,12 +622,12 @@ extern void skip_common_type_qualifiers(a_type_ptr  *type1,
 /*
 Helper macro for is_simple_scalar_assignment below.
 */
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
 #define or_is_simple_fixed_point_assignment(op)                             \
   || (op) == (an_expr_operator_kind)eok_fxassign
-#else /* !FIXED_POINT_EXTENSIONS_ALLOWED */
+#else /* !FIXED_POINT_ALLOWED */
 #define or_is_simple_fixed_point_assignment(op) /* Nothing */
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
 
 /*
 Macro that is TRUE if the given operator kind is a simple (i.e., not

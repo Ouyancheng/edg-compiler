@@ -539,7 +539,7 @@ EXTERN an_integer_kind
 			   large enough to hold a pointer value.  Initialized
 			   to the default value but reconfigurable. */
 
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
 /*
 Fixed-point types:
 */
@@ -603,7 +603,7 @@ EXTERN a_targ_alignment
 #endif /* VAR_INITIALIZERS */
 		                                                          ;
 
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
 
 /*
 Float types:

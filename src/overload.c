@@ -5867,10 +5867,10 @@ See 4.9.6.1 in the standard for printf, 4.9.6.2 for scanf.
 #if LONG_LONG_ALLOWED
   a_boolean           ll_size;
 #endif /* LONG_LONG_ALLOWED */
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
   char                type_char;
   a_boolean           is_fract_type;
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
   a_boolean           suppress_assignment = FALSE;
 
   *weakly_typed = FALSE;
@@ -5983,9 +5983,9 @@ after_precision:;
        decimal.  Determine the required type.  For most (but not all)
        scanf cases, "pointer to" will be added afterwards. */
     *indirect = add_pointer = is_scanf;
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
     type_char = *fmt_string;
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
     switch (*fmt_string++) {
       case 'd':
       case 'i':
@@ -6056,7 +6056,7 @@ after_precision:;
           required_type = integer_type((an_integer_kind)ik_unsigned_int);
         }  /* if */
         break;
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
       case 'r':
       case 'R':
         is_fract_type = TRUE;
@@ -6078,7 +6078,7 @@ after_precision:;
                                        /*saturating=*/FALSE);
         }
         break;
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
       case 'a':  /* Added in C99. */
       case 'A':  /* Added in C99. */
       case 'f':

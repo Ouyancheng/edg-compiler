@@ -41,10 +41,10 @@ static a_type_ptr canonical_signed_int_types[(int)ik_last];
 static a_type_ptr canonical_microsoft_sized_int_types[(int)ik_last];
 static a_type_ptr canonical_microsoft_sized_signed_int_types[(int)ik_last];
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
 static a_type_ptr canonical_fixed_point_types[(int)fpp_last][/*is_unsigned*/2]
                                              [/*is_fract*/2][/*saturating*/2];
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
 static a_type_ptr canonical_float_types[(int)fk_last];
 #if C99_IL_EXTENSIONS_SUPPORTED
 static a_type_ptr canonical_complex_types[(int)fk_last];
@@ -1237,7 +1237,7 @@ is set to point to the first created type.
         }  /* if */
       }  /* if */
       break;
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
     case tk_fixed_point:
       set_builtin_type_corresp(
         &canonical_fixed_point_types[(int)type->variant.fixed_point.precision]
@@ -1246,7 +1246,7 @@ is set to point to the first created type.
                                     [type->variant.fixed_point.saturating],
         type);
       break;
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
     case tk_float:
       set_builtin_type_corresp(
                       &canonical_float_types[type->variant.float_kind], type);
@@ -2244,11 +2244,11 @@ is in fact valid.
           (routine->fp_contract != corresp_routine->fp_contract ||
            routine->fenv_access != corresp_routine->fenv_access ||
            routine->cx_limited_range != corresp_routine->cx_limited_range
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
            || routine->fx_full_precision != corresp_routine->fx_full_precision
            || routine->fx_fract_overflow != corresp_routine->fx_fract_overflow
            || routine->fx_accum_overflow != corresp_routine->fx_accum_overflow
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
                                                                          )) ||
          scp->access != corresp_scp->access ||
          (scp->name_linkage != corresp_scp->name_linkage &&

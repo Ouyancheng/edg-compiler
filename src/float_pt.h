@@ -77,7 +77,7 @@ extern void conv_mantissa_to_floating_point(
 				a_boolean			*err,
 				a_boolean			*inexact);
 
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
 
 extern a_boolean mantissa_is_zero(a_mantissa_ptr	mp);
 
@@ -88,7 +88,7 @@ extern void load_hex_fp_value(an_internal_float_value	*float_value,
 			      a_boolean			*is_negative,
 			      a_boolean			restore_implicit_bit);
 
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
 
 extern a_host_fp_value fetch_host_fp_value(
 				a_float_kind            kind,

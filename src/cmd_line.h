@@ -219,9 +219,9 @@ typedef enum /*an_option_kind*/ {
   optk_upc_strict_access,
   optk_upc_threads,
 #endif /* UPC_EXTENSIONS_ALLOWED */
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
   optk_fixed_point,
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
 #if NAMED_ADDRESS_SPACES_ALLOWED
   optk_named_address_spaces,
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
@@ -689,14 +689,14 @@ EXTERN a_boolean
 			   (int []){1, 2, 3}, should be accepted. */
 
 EXTERN a_boolean
-		fixed_point_allowed
+		fixed_point_enabled
 #if VAR_INITIALIZERS
 		                    =
-#if FIXED_POINT_EXTENSIONS_ALLOWED
-		                      DEFAULT_FIXED_POINT_ALLOWED
-#else /* !FIXED_POINT_EXTENSIONS_ALLOWED */
+#if FIXED_POINT_ALLOWED
+		                      DEFAULT_FIXED_POINT_ENABLED
+#else /* !FIXED_POINT_ALLOWED */
 		                      FALSE
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
 #endif /* VAR_INITIALIZERS */
                                                                  ;
 			/* TRUE if the fixed-point extensions of ISO TR 18037
@@ -704,11 +704,11 @@ EXTERN a_boolean
 
 #if NAMED_ADDRESS_SPACES_ALLOWED
 EXTERN a_boolean
-		named_address_spaces_allowed
+		named_address_spaces_enabled
 #if VAR_INITIALIZERS
-		                             = DEFAULT_NAMED_ADDRESS_SPACES_ALLOWED
+		                  = DEFAULT_NAMED_ADDRESS_SPACES_ENABLED
 #endif /* VAR_INITIALIZERS */
-                                                                         ;
+                                                                        ;
 			/* TRUE if the extension of ISO TR 18037 (aka.
 			   "Embedded C") for named address spaces should be
 			    accepted. */

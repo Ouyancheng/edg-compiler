@@ -1414,7 +1414,7 @@ point are related by inheritance.
          find_base_class_of(class_2, class_1) != NULL;
 }  /* related_ptr_to_members */
 
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
 
 static void convert_to_or_from_fixed_point_constant(
                                                 a_constant_ptr  src,
@@ -1443,7 +1443,7 @@ constant.
   *did_not_fold = !conversion_done;
 }  /* convert_to_or_from_fixed_point_constant */
 
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
 
 #if !RECORD_CONSTANT_EXPRESSIONS_IN_IL
 /*ARGSUSED*/ /* <-- maintain_expression is unused in that case. */
@@ -1586,12 +1586,12 @@ to the constant is maintained, by adding a cast if necessary.
           conv_integer_to_float(constant, &new_constant,
                                 &err_code, &err_severity);
           break;
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
         case tk_fixed_point:
           conv_integer_to_fixed_point(constant, &new_constant,
                                       &err_code, &err_severity);
           break;
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
         case tk_pointer:
           /* Converting integer to pointer. */
           conv_integer_to_pointer(constant, &new_constant, is_implicit_cast,
@@ -1629,12 +1629,12 @@ to the constant is maintained, by adding a cast if necessary.
                               &err_code, &err_severity,
                               &depends_on_fp_mode);
           break;
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
         case tk_fixed_point:
           conv_float_to_fixed_point(constant, &new_constant,
                                     &err_code, &err_severity);
           break;
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
         default:
           unexpected_condition_str("type_change_constant: float to bad type");
       }  /* switch */
@@ -1659,12 +1659,12 @@ to the constant is maintained, by adding a cast if necessary.
                               &err_code, &err_severity,
                               &depends_on_fp_mode);
           break;
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
         case tk_fixed_point:
           convert_to_or_from_fixed_point_constant(constant, &new_constant,
                                                   did_not_fold);
           break;
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
         default:
           unexpected_condition_str(
                                 "type_change_constant: imaginary to bad type");
@@ -1689,12 +1689,12 @@ to the constant is maintained, by adding a cast if necessary.
                               &err_code, &err_severity,
                               &depends_on_fp_mode);
           break;
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
         case tk_fixed_point:
           convert_to_or_from_fixed_point_constant(constant, &new_constant,
                                                   did_not_fold);
           break;
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
         default:
           unexpected_condition_str(
                                   "type_change_constant: complex to bad type");
@@ -1702,12 +1702,12 @@ to the constant is maintained, by adding a cast if necessary.
       break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
     case tk_fixed_point:
       convert_to_or_from_fixed_point_constant(constant, &new_constant,
                                               did_not_fold);
       break;
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
 
     case tk_pointer:
       /* Converting from pointer. */
@@ -1843,10 +1843,10 @@ Return TRUE if the constant is an integer, fixed-point, or floating zero.
       !constant->implicit_cast) {
     is_zero = (cmplit_integer_constant(constant,
                                        (a_host_large_integer)0) == 0);
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
   } else if (constant->kind == (a_constant_repr_kind)ck_fixed_point) {
     is_zero = fxp_value_is_zero(&constant->variant.fixed_point_value);
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
   } else if (constant->kind == (a_constant_repr_kind)ck_float
 #if C99_IL_EXTENSIONS_SUPPORTED
              || constant->kind == (a_constant_repr_kind)ck_imaginary
@@ -2223,12 +2223,12 @@ the reason is that the constant is a template parameter constant).
        not fold unary operations involving these constants. */
     *did_not_fold = TRUE;  
 #endif /* UPC_EXTENSIONS_ALLOWED */ 
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
   } else if (constant->kind == (a_constant_repr_kind)ck_fixed_point) {
     /* Unary operators applied to fixed-point constants are not currently
        folded. */
     *did_not_fold = TRUE;
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
   } else {
     clear_constant(result, (a_constant_repr_kind)ck_error);
     result->type = result_type;
@@ -2522,9 +2522,9 @@ if not, return *err_code set to the proper error code.
   operand_type = skip_typerefs(operand_type);
 #if CHECKING
   if (operand_type->kind != (a_type_kind)tk_integer
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
       && operand_type->kind != (a_type_kind)tk_fixed_point
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
                                                           ) {
     internal_error("check_shift_count: operand_type not integer");
   } else if (operand_type->size == 0) {
@@ -2903,7 +2903,7 @@ Do the logical "or" (||) operation on integers, floats, and pointers.
 #endif /* DEBUG */
 }  /* do_lor */
 
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
 
 static void do_fxadd(a_constant        *constant_1,
 		     a_constant        *constant_2,
@@ -2940,7 +2940,7 @@ Do the addition operation on all types of fixed-point values.
 #endif /* DEBUG */
 }  /* do_fxadd */
 
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
 
 static void do_fadd(a_constant        *constant_1,
 		    a_constant        *constant_2,
@@ -4260,14 +4260,14 @@ as the position for any diagnostics issued.
                                  result, constant_context, evaluated_context,
                                  did_not_fold, template_constant, err_pos);
 #endif /* UPC_EXTENSIONS_ALLOWED */
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
   } else if (op != eok_fxadd &&
              (constant_1->kind == (a_constant_repr_kind)ck_fixed_point ||
               constant_2->kind == (a_constant_repr_kind)ck_fixed_point)) {
     /* Binary operators applied to fixed-point constants are not currently
        folded. */
     *did_not_fold = TRUE;
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
   } else {
     clear_constant(result, (a_constant_repr_kind)ck_error);
     result->type = result_type;
@@ -4411,11 +4411,11 @@ as the position for any diagnostics issued.
           do_fcompare(constant_1, op, constant_2, result);
           break;
 
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
         case eok_fxadd:
           do_fxadd(constant_1, constant_2, result, &err_code, &err_severity);
           break;
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
 #if C99_IL_EXTENSIONS_SUPPORTED
         case eok_xadd:
           do_xadd(constant_1, constant_2, result, &err_code, &err_severity,

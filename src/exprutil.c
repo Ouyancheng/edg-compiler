@@ -3291,7 +3291,7 @@ If both fkind_1 and fkind_2 are fk_last, then fk_last is returned.
 }  /* promoted_float_kind */
 
 
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
 
 static a_type_ptr fixed_point_result_type(a_type_ptr  type_1,
                                           a_type_ptr  type_2)
@@ -3343,7 +3343,7 @@ type (i.e., a non-floating-point arithmetic type).
   return result;
 }  /* fixed_point_result_type */
 
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
 
 static a_type_ptr determine_arithmetic_conversions_full(
                                                  an_operand *operand_1,
@@ -3409,15 +3409,15 @@ routine is called and returns TRUE, this routine should not be called.
       {
         result_type = float_type(result_fkind);
       }  /* if */
-#if FIXED_POINT_EXTENSIONS_ALLOWED
-    } else if (fixed_point_allowed && (is_fixed_point_type(type_1) ||
+#if FIXED_POINT_ALLOWED
+    } else if (fixed_point_enabled && (is_fixed_point_type(type_1) ||
                                        is_fixed_point_type(type_2))) {
       /* At least one of the operands has a fixed-point type, and the other
          does not have a floating-point type.  The result will have a fixed-
          point type, but no conversion is to be applied to the operands,
          except to turn an unsigned operand into a signed operand. */
       result_type = fixed_point_result_type(type_1, type_2);
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
     } else {
       /* Neither operand has a floating-point or fixed-point type; do the
          integral promotions on both operands and try to get the result
@@ -4240,7 +4240,7 @@ operator position (for errors).  Return FALSE if there is an error.
   return okay;
 }  /* check_ptr_to_member_operands_for_compatibility */
 
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
 
 void check_mixed_integer_fixed_point_arithmetic(
                                             an_operand             *operand_1,
@@ -4340,17 +4340,17 @@ converting a fixed-point value to a floating-point type.  (Such a warning
 is suggested by TR 18037.)
 */
 #define warn_on_fixed_point_to_floating_point_conversion(operand, type)      \
-  if (fixed_point_allowed && is_fixed_point_type((operand)->type) &&         \
+  if (fixed_point_enabled && is_fixed_point_type((operand)->type) &&         \
       is_floating_type((type))) {                                            \
     pos_warning(ec_implicit_fixed_point_to_floating_point_conversion,        \
                 &(operand)->position);                                       \
   }  /* if */
 
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
 
-#if !FIXED_POINT_EXTENSIONS_ALLOWED
+#if !FIXED_POINT_ALLOWED
 /*ARGSUSED*/  /* <-- op not used in that case. */
-#endif /* !FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* !FIXED_POINT_ALLOWED */
 void change_binary_operand_types(a_type_ptr             type,
                                  an_operand             *operand_1,
                                  an_operand             *operand_2,
@@ -4367,31 +4367,31 @@ operands are unlikely to have a useful effect (e.g., when adding an integer
 to a fixed-point operand).
 */
 {
-#if FIXED_POINT_EXTENSIONS_ALLOWED
-  if (fixed_point_allowed && is_fixed_point_type(type)) {
+#if FIXED_POINT_ALLOWED
+  if (fixed_point_enabled && is_fixed_point_type(type)) {
     /* Fixed-point arithmetic does not promote the operands to a
        common type if the result has fixed-point type (as opposed
        to floating-point type). */
     adjust_fixed_point_binary_operands(operand_1, operand_2, op);
   } else
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
   /* Do not insert code here. */
   {
     if (!is_error_type(type)) {
       if (operand_1 != NULL && !same_entities(operand_1->type, type)) {
         /* Cast operand 1 to match the desired type. */
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
         warn_on_fixed_point_to_floating_point_conversion(operand_1, type);
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
         cast_operand(type, operand_1, /*check_cast_access=*/TRUE,
                      /*is_implicit_cast=*/TRUE, /*is_reinterpret_cast=*/FALSE,
                      /*reinterpret_semantics=*/FALSE);
       }  /* if */
       if (operand_2 != NULL && !same_entities(operand_2->type, type)) {
         /* Cast operand 2 to match the desired type. */
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
         warn_on_fixed_point_to_floating_point_conversion(operand_2, type);
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
         cast_operand(type, operand_2, /*check_cast_access=*/TRUE,
                      /*is_implicit_cast=*/TRUE, /*is_reinterpret_cast=*/FALSE,
                      /*reinterpret_semantics=*/FALSE);
@@ -4665,13 +4665,13 @@ to an error operand.
     /* If the operand has a type of error, an error message has already been
        issued. */
     okay = FALSE;
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
   } else if (is_fixed_point_type(operand->type)) {
     /* Fixed-point types are acceptable. */
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
   } else if (!is_integral_or_enum_type(operand->type)) {
     an_error_code  error_code;
-    if (fixed_point_allowed) {
+    if (fixed_point_enabled) {
       error_code =
           enum_type_is_integral ? ec_expr_not_integral_or_fixed_point
                                 : ec_expr_not_integral_or_enum_or_fixed_point;
@@ -5170,7 +5170,7 @@ type is an error type, return eok_error.
       }  /* switch */
       break;
 
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
     case tk_fixed_point:
       switch (token) {
 	case tok_plus:
@@ -5235,7 +5235,7 @@ type is an error type, return eok_error.
 	                   "which_binary_operator: bad fixed-point operator");
       }  /* switch */
       break;
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
 
     case tk_float:
       switch (token) {
@@ -5696,7 +5696,7 @@ operand.
     case eok_fpre_incr:
     case eok_ppost_incr:
     case eok_ppre_incr:
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
     case eok_fxpost_decr:
     case eok_fxpre_decr:
     case eok_fxpost_incr:
@@ -5706,7 +5706,7 @@ operand.
     case eok_fxsubtract_assign:
     case eok_fxmultiply_assign:
     case eok_fxdivide_assign:
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
     case eok_va_start:
     case eok_va_arg:
     case eok_va_end:

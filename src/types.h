@@ -57,9 +57,9 @@ extern a_boolean is_enum_type(a_type_ptr tp);
 extern a_boolean is_integral_or_enum_type(a_type_ptr tp);
 extern a_boolean is_bool_type(a_type_ptr tp);
 extern a_boolean is_character_type(a_type_ptr tp);
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
 extern a_boolean is_fixed_point_type(a_type_ptr tp);
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
 extern a_boolean is_floating_type(a_type_ptr tp);
 #if C99_IL_EXTENSIONS_SUPPORTED
 extern a_boolean is_real_floating_type(a_type_ptr tp);

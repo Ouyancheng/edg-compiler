@@ -340,7 +340,7 @@ static a_stdc_pragma_value
 			   emitted in file scope (stdc_pv_default if none was
 			   emitted so far). */
 
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
 static a_stdc_pragma_value
 		curr_default_fx_full_precision;
 			/* The value of the last STDC FX_FULL_PRECISION pragma
@@ -358,7 +358,7 @@ static a_stdc_pragma_value
 			/* The value of the last STDC FX_ACCUM_OVERFLOW pragma
 			   emitted in file scope (stdc_pv_default if none was
 			   emitted so far). */
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
 
 #if UPC_EXTENSIONS_ALLOWED
 static a_upc_access_method
@@ -1951,7 +1951,7 @@ or "DEFAULT").
         curr_default_cx_limited_range = value;
       }  /* if */
       break;
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
     case stdc_pk_fx_full_precision:
       write_str("FX_FULL_PRECISION ");
       if (innermost_function_scope == NULL) {
@@ -1970,7 +1970,7 @@ or "DEFAULT").
         curr_default_fx_accum_overflow = value;
       }  /* if */
       break;
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
     default:
       unexpected_condition_str("dump_stdc_pragma: bad kind");
       break;
@@ -1978,9 +1978,9 @@ or "DEFAULT").
   switch (value) {
     case stdc_pv_off: write_str("OFF"); break;
     case stdc_pv_on: write_str("ON"); break;
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
     case stdc_pv_sat: write_str("SAT"); break;
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
     case stdc_pv_default: write_str("DEFAULT"); break;
     default: unexpected_condition_str("dump_stdc_pragma: bad value"); break;
   }  /* switch */
@@ -3945,9 +3945,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           dump_adding_indirection(operand_1);
           goto done_with_unary_operation;
         case eok_inegate:
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
         case eok_fxnegate:
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
         case eok_fnegate:
 #if C99_IL_EXTENSIONS_SUPPORTED
         case eok_xnegate:
@@ -4016,9 +4016,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           is_unary = TRUE;
           opstr = "~";
           break;
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
         case eok_fxpost_incr:
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
         case eok_fpost_incr:
         case eok_ipost_incr:
         case eok_ppost_incr:
@@ -4034,9 +4034,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           end_adjust_bit_field_value(expr);
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
           goto done_with_unary_operation;
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
         case eok_fxpre_incr:
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
         case eok_ipre_incr:
         case eok_fpre_incr:
         case eok_ppre_incr:
@@ -4052,9 +4052,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           end_adjust_bit_field_value(expr);
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
           goto done_with_unary_operation;
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
         case eok_fxpost_decr:
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
         case eok_fpost_decr:
         case eok_ipost_decr:
         case eok_ppost_decr:
@@ -4070,9 +4070,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           end_adjust_bit_field_value(expr);
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
           goto done_with_unary_operation;
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
         case eok_fxpre_decr:
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
         case eok_ipre_decr:
         case eok_fpre_decr:
         case eok_ppre_decr:
@@ -4108,9 +4108,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           goto done_with_unary_operation;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         case eok_iadd:
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
         case eok_fxadd:
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
         case eok_fadd:
 #if C99_IL_EXTENSIONS_SUPPORTED
         case eok_xadd:
@@ -4122,9 +4122,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           opstr = "+";
           break;
         case eok_isubtract:
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
         case eok_fxsubtract:
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
         case eok_fsubtract:
 #if C99_IL_EXTENSIONS_SUPPORTED
         case eok_xsubtract:
@@ -4136,9 +4136,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           opstr = "-";
           break;
         case eok_imultiply:
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
         case eok_fxmultiply:
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
         case eok_fmultiply:
 #if C99_IL_EXTENSIONS_SUPPORTED
         case eok_xmultiply:
@@ -4157,9 +4157,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           }  /* if */
           /*FALLTHROUGH*/
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
         case eok_fxdivide:
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
         case eok_fdivide:
 #if C99_IL_EXTENSIONS_SUPPORTED
         case eok_xdivide:
@@ -4169,9 +4169,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           break;
         case eok_peq:
         case eok_ieq:
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
         case eok_fxeq:
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
         case eok_feq:
 #if C99_IL_EXTENSIONS_SUPPORTED
         case eok_xeq:
@@ -4180,9 +4180,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           break;
         case eok_pne:
         case eok_ine:
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
         case eok_fxne:
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
         case eok_fne:
 #if C99_IL_EXTENSIONS_SUPPORTED
         case eok_xne:
@@ -4193,9 +4193,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           pointer_comparison = TRUE;
           /* Fall-through into following code. */
         case eok_igt:
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
         case eok_fxgt:
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
         case eok_fgt:
           opstr = ">";
           break;
@@ -4203,9 +4203,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           pointer_comparison = TRUE;
           /* Fall-through into following code. */
         case eok_ilt:
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
         case eok_fxlt:
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
         case eok_flt:
           opstr = "<";
           break;
@@ -4213,9 +4213,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           pointer_comparison = TRUE;
           /* Fall-through into following code. */
         case eok_ige:
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
         case eok_fxge:
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
         case eok_fge:
           opstr = ">=";
           break;
@@ -4223,9 +4223,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           pointer_comparison = TRUE;
           /* Fall-through into following code. */
         case eok_ile:
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
         case eok_fxle:
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
         case eok_fle:
           opstr = "<=";
           break;
@@ -4242,9 +4242,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           opstr = "%";
           break;
         case eok_iassign:
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
         case eok_fxassign:
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
         case eok_fassign:
 #if C99_IL_EXTENSIONS_SUPPORTED
         case eok_xassign:
@@ -4254,9 +4254,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           opstr = "=";
           goto process_assignment;
         case eok_imultiply_assign:
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
         case eok_fxmultiply_assign:
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
         case eok_fmultiply_assign:
 #if C99_IL_EXTENSIONS_SUPPORTED
         case eok_xmultiply_assign:
@@ -4264,9 +4264,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           opstr = "*=";
           goto process_assignment;
         case eok_idivide_assign:
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
         case eok_fxdivide_assign:
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
         case eok_fdivide_assign:
 #if C99_IL_EXTENSIONS_SUPPORTED
         case eok_xdivide_assign:
@@ -4288,9 +4288,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
 #endif /* SUNCC */
           goto process_assignment;
         case eok_iadd_assign:
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
         case eok_fxadd_assign:
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
         case eok_fadd_assign:
 #if C99_IL_EXTENSIONS_SUPPORTED
         case eok_xadd_assign:
@@ -4299,9 +4299,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           opstr = "+=";
           goto process_assignment;
         case eok_isubtract_assign:
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
         case eok_fxsubtract_assign:
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
         case eok_fsubtract_assign:
 #if C99_IL_EXTENSIONS_SUPPORTED
         case eok_xsubtract_assign:
@@ -8015,7 +8015,7 @@ if this routine has a body (dump nothing if it has no body).
           dump_stdc_pragma((a_stdc_pragma_value)stdc_pk_cx_limited_range,
                            rout->cx_limited_range);
         }  /* if */
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
         /* Generate any needed fixed-point pragma. */
         if (rout->fx_full_precision != (a_stdc_pragma_value)stdc_pv_none &&
             rout->fx_full_precision != curr_default_fx_full_precision) {
@@ -8032,7 +8032,7 @@ if this routine has a body (dump nothing if it has no body).
           dump_stdc_pragma((a_stdc_pragma_value)stdc_pk_fx_accum_overflow,
                            rout->fx_accum_overflow);
         }  /* if */
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
         if (rout->upc_access_method !=
                                 (a_upc_access_method)upc_access_unspecified &&

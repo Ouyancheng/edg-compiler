@@ -55,10 +55,10 @@ static a_type_ptr signed_int_types[(int)ik_last];
 static a_type_ptr microsoft_sized_int_types[(int)ik_last];
 static a_type_ptr microsoft_sized_signed_int_types[(int)ik_last];
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
 static a_type_ptr fixed_point_types[(int)fpp_last][/*is_unsigned*/2]
                                    [/*is_fract*/2][/*saturating*/2];
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
 static a_type_ptr float_types[(int)fk_last];
 #if C99_IL_EXTENSIONS_SUPPORTED
 static a_type_ptr complex_types[(int)fk_last];
@@ -1021,7 +1021,7 @@ Dump the contents of the indicated type entry, for debug purposes.
           if (tp->variant.integer.enum_type) fputs(" enum", f_debug);
         }  /* if */
         break;
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
       case tk_fixed_point:
         {
           a_fixed_point_precision  prec = tp->variant.fixed_point.precision;
@@ -1036,7 +1036,7 @@ Dump the contents of the indicated type entry, for debug purposes.
                                                        " _Fract" : " _Accum");
         }
         break;
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
 #if C99_IL_EXTENSIONS_SUPPORTED
       case tk_complex:
       case tk_imaginary:
@@ -1772,9 +1772,9 @@ Dump a string identifying a constant-representation kind, for debug purposes.
   switch (kind) {
     case ck_error:          s = "ck_error";		break;
     case ck_integer:        s = "ck_integer";		break;
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
     case ck_fixed_point:    s = "ck_fixed_point";	break;
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
     case ck_string:         s = "ck_string";		break;
     case ck_float:          s = "ck_float";		break;
     case ck_address:        s = "ck_address";		break;
@@ -4372,7 +4372,7 @@ to refine the hash value developed in hash_constant.
     case tk_integer:
       hash_value = type->variant.integer.int_kind + 53;
       break;
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
     case tk_fixed_point:
       hash_value = type->variant.fixed_point.saturating +
                    type->variant.fixed_point.is_fract_type*2 +
@@ -4380,7 +4380,7 @@ to refine the hash value developed in hash_constant.
                    type->variant.fixed_point.precision*8 +
                    131;
       break;
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
 #if C99_IL_EXTENSIONS_SUPPORTED
     case tk_imaginary:
     case tk_complex:
@@ -4468,12 +4468,12 @@ Return the hash value for the indicated constant.
       /* Integer.  Use the constant itself as the hash value. */
       hash_value = (a_constant_hash_value)value_of_integer_constant(cp,&ovflo);
       break;
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
     case ck_fixed_point:
       /* Fixed-point constant: Use a host-dependent hash-function. */
       hash_value = fxp_hash(&cp->variant.fixed_point_value);
       break;
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
     case ck_string:
       /* String.  Hash all the characters. */
       hash_value = 100;
@@ -4867,11 +4867,11 @@ nonidentical.
             cp1->null_keyword != cp2->null_keyword) eq = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
         break;
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
       case ck_fixed_point:
         eq = (cmp_fixed_point_constants(cp1, cp2) == 0);
         break;
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
       case ck_string:
         if (cp1->variant.string.length == cp2->variant.string.length) {
           eq = 
@@ -5225,9 +5225,9 @@ region).
   switch (cp->kind) {
     case ck_error:
     case ck_integer:
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
     case ck_fixed_point:
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
     case ck_float:
 #if C99_IL_EXTENSIONS_SUPPORTED
     case ck_imaginary:
@@ -6720,7 +6720,7 @@ Make or find a type entry for a bool type and return a pointer to it.
   return pit;
 }  /* bool_type */
 
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
 
 a_type_ptr fixed_point_type(a_fixed_point_precision  precision,
                             a_boolean                is_unsigned,
@@ -6757,7 +6757,7 @@ _Fract fixed-point type variant; otherwise, return an _Accum type.
   return *p_result;
 }  /* fixed_point_type */
 
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
 
 a_type_ptr float_type(a_float_kind kind)
 /*
@@ -9637,7 +9637,7 @@ to TRUE.  *source_pos gives the source position for errors.
         assignment_case = TRUE;
         break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
       /* These are currently used only in C modes. */
       case eok_fxnegate:
       case eok_fxpost_incr:
@@ -9661,7 +9661,7 @@ to TRUE.  *source_pos gives the source position for errors.
       case eok_fxdivide_assign:
         unexpected_condition_str("fixed-point operators not implemented");
         break;
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
 #if C99_IL_EXTENSIONS_SUPPORTED
       /* These are used only in C mode.  If they are added for GNU C++
          mode, bear in mind that determine_arithmetic_conversions does
@@ -11860,7 +11860,7 @@ to TRUE if a warning about the expression doing nothing should be suppressed.
     case eok_ipre_decr:
     case eok_fpre_decr:
     case eok_ppre_decr:
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
     case eok_fxpost_incr:
     case eok_fxpost_decr:
     case eok_fxpre_incr:
@@ -11870,7 +11870,7 @@ to TRUE if a warning about the expression doing nothing should be suppressed.
     case eok_fxsubtract_assign:
     case eok_fxmultiply_assign:
     case eok_fxdivide_assign:
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
     case eok_iassign:
     case eok_fassign:
     case eok_passign:
@@ -15961,9 +15961,9 @@ in il_init.)
       pch_array_saved_var_array_elem(microsoft_sized_int_types),
       pch_array_saved_var_array_elem(microsoft_sized_signed_int_types),
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
       pch_array_saved_var_array_elem(fixed_point_types),
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
 #if C99_IL_EXTENSIONS_SUPPORTED
       pch_array_saved_var_array_elem(complex_types),
       pch_array_saved_var_array_elem(imaginary_types),
@@ -15978,11 +15978,11 @@ in il_init.)
       pch_saved_var_array_elem(curr_fp_contract_state),
       pch_saved_var_array_elem(curr_fenv_access_state),
       pch_saved_var_array_elem(curr_cx_limited_range_state),
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
       pch_saved_var_array_elem(curr_fx_full_precision_state),
       pch_saved_var_array_elem(curr_fx_fract_overflow_state),
       pch_saved_var_array_elem(curr_fx_accum_overflow_state),
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
       pch_saved_var_array_elem(curr_seq_number_lookup_entry),
       /* Don't save seq_number_lookup_table because it points to general
          memory. */
@@ -16012,9 +16012,9 @@ in il_init.)
   register_trans_unit_array(microsoft_sized_int_types);
   register_trans_unit_array(microsoft_sized_signed_int_types);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
   register_trans_unit_array(fixed_point_types);
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
   register_trans_unit_array(float_types);
 #if C99_IL_EXTENSIONS_SUPPORTED
   register_trans_unit_array(complex_types);
@@ -16040,11 +16040,11 @@ in il_init.)
   register_trans_unit_variable(curr_fp_contract_state);
   register_trans_unit_variable(curr_fenv_access_state);
   register_trans_unit_variable(curr_cx_limited_range_state);
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
   register_trans_unit_variable(curr_fx_full_precision_state),
   register_trans_unit_variable(curr_fx_fract_overflow_state),
   register_trans_unit_variable(curr_fx_accum_overflow_state),
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
   register_trans_unit_variable(curr_object_lifetime);
   register_trans_unit_variable(okay_to_eliminate_unneeded_il_entries);
   /* Not conditional because it's also used by trans_copy.c: */
@@ -16077,11 +16077,11 @@ need initialization for every (primary and secondary) translation unit.
   curr_fp_contract_state = (a_stdc_pragma_value)stdc_pv_default;
   curr_fenv_access_state = (a_stdc_pragma_value)stdc_pv_default;
   curr_cx_limited_range_state = (a_stdc_pragma_value)stdc_pv_default;
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
   curr_fx_full_precision_state = (a_stdc_pragma_value)stdc_pv_default;
   curr_fx_fract_overflow_state = (a_stdc_pragma_value)stdc_pv_default;
   curr_fx_accum_overflow_state = (a_stdc_pragma_value)stdc_pv_default;
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
   curr_upc_access_method = (a_upc_access_method)upc_access_unspecified;
 #endif /* UPC_EXTENSIONS_ALLOWED */
@@ -16106,9 +16106,9 @@ need initialization for every (primary and secondary) translation unit.
   memzero((char *)microsoft_sized_signed_int_types,
           sizeof(microsoft_sized_signed_int_types));
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
   memzero((char *)fixed_point_types, sizeof(fixed_point_types));
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
   memzero((char *)float_types, sizeof(float_types));
 #if C99_IL_EXTENSIONS_SUPPORTED
   memzero((char *)complex_types, sizeof(complex_types));

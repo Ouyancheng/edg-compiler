@@ -4317,10 +4317,10 @@ typedef enum {
   bt_wchar_t,
   bt_bool,
   bt_int,
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
   bt_fract,
   bt_accum,
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
   bt_float,
   bt_double,
   bt_typedef,
@@ -4482,9 +4482,9 @@ such a typedef, return the associated basic type specifier and set *sign and
   return basic_type;
 }  /* basic_type_from_typedef */
 
-#if !C99_IL_EXTENSIONS_SUPPORTED || !FIXED_POINT_EXTENSIONS_ALLOWED
+#if !C99_IL_EXTENSIONS_SUPPORTED || !FIXED_POINT_ALLOWED
 /*ARGSUSED*/  /* <-- complex_attr or saturating_fp not used in that case. */
-#endif /* !C99_IL_EXTENSIONS_SUPPORTED || !FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* !C99_IL_EXTENSIONS_SUPPORTED || !FIXED_POINT_ALLOWED */
 static a_boolean combine_type_specifiers(a_type_ptr           *type_ptr,
                                          a_basic_type         basic_type,
                                          a_type_sign          sign,
@@ -4693,7 +4693,7 @@ modifier _Sat was specified.
         }  /* if */
       }  /* if */
       break;
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
     case bt_fract:
     case bt_accum:
       { /* Create a fixed-point type according to specification. */
@@ -4719,7 +4719,7 @@ modifier _Sat was specified.
         }  /* if */
       }  /* if */
       break;
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
     case bt_float:
     case bt_double:
       if (sign != sign_none || (size != size_none && size != size_long)) {
@@ -4782,12 +4782,12 @@ modifier _Sat was specified.
       internal_error("combine_type_specifiers: bad basic type");
 #endif /* CHECKING */
   }  /* switch */
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
   if (saturating_fp && (basic_type != bt_fract && basic_type != bt_accum)) {
     /* "_Sat" is only allowed on fixed-point types ("_Fract" and "_Accum"). */
     bad_combination = TRUE;
   }  /* if */
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
   if (bad_combination) {
     /* Bad combination of type specifiers.  Issue a diagnostic and set the
        type to an error type. */
@@ -6358,10 +6358,10 @@ Returns TRUE if there is an error in the specifiers.
       case tok_int:
       case tok_float:
       case tok_double:
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
       case tok_fract:
       case tok_accum:
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
         /* A type specifier (3.5.2) that indicates a basic type. */
 #if GNU_EXTENSIONS_ALLOWED
         prev_basic_type = basic_type;
@@ -6383,10 +6383,10 @@ Returns TRUE if there is an error in the specifiers.
             case tok_int:      basic_type = bt_int;     break;
             case tok_float:    basic_type = bt_float;   break;
             case tok_double:   basic_type = bt_double;  break;
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
             case tok_fract:    basic_type = bt_fract;   break;
             case tok_accum:    basic_type = bt_accum;   break;
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
 #if CHECKING
             default:
               internal_error("decl_specifiers: bad type specifier");
@@ -6534,7 +6534,7 @@ Returns TRUE if there is an error in the specifiers.
         }  /* if */
         break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
       case tok_sat:
         /* The _Sat specifier for fixed-point types. */
         if (saturating_fixed_point) {
@@ -6543,7 +6543,7 @@ Returns TRUE if there is an error in the specifiers.
           saturating_fixed_point = TRUE;
         }  /* if */
         break;
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
       case tok_signed:
       case tok_unsigned:
         /* A type specifier (3.5.2) that modifies the signedness of a

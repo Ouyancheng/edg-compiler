@@ -1024,9 +1024,9 @@ to implement the GNU function __builtin_classify_type.)
         tck = (a_type_class_kind)tck_array;
       }  /* if */
       break;
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
     case tk_fixed_point:
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
     case tk_error:
       tck = (a_type_class_kind)tck_none;
       break;
@@ -1106,12 +1106,12 @@ given operand by a constant operand if appropriate.
           if (args != NULL && args->next == NULL &&
               is_integral_type(result_type)) {
             a_type_class_kind  tck = gnu_type_class_for_type(args->type);
-#if FIXED_POINT_EXTENSIONS_ALLOWED
-            if (fixed_point_allowed && is_fixed_point_type(args->type)) {
+#if FIXED_POINT_ALLOWED
+            if (fixed_point_enabled && is_fixed_point_type(args->type)) {
               pos_error(ec_no_classification_for_fixed_point_type,
                         &op->position);
             }  /* if */
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
             clear_constant(&result, (a_constant_repr_kind)ck_integer);
             result.type = call->type;
             set_integer_constant(&result, (a_host_large_integer)tck,
@@ -3310,7 +3310,7 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
             case tk_integer:
               op = (an_expr_operator_kind)eok_ipost_incr;
               break;
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
             case tk_fixed_point:
               op = (an_expr_operator_kind)eok_fxpost_incr;
               if (skip_typerefs(result_type)
@@ -3321,7 +3321,7 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
                             &operator_position);
               }  /* if */
               break;
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
             case tk_float:
               op = (an_expr_operator_kind)eok_fpost_incr;
               break;
@@ -3338,7 +3338,7 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
             case tk_integer:
               op = (an_expr_operator_kind)eok_ipost_decr;
               break;
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
             case tk_fixed_point:
               op = (an_expr_operator_kind)eok_fxpost_decr;
               if (skip_typerefs(result_type)
@@ -3349,7 +3349,7 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
                             &operator_position);
               }  /* if */
               break;
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
             case tk_float:
               op = (an_expr_operator_kind)eok_fpost_decr;
               break;
@@ -3564,7 +3564,7 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
             case tk_integer:
               op = (an_expr_operator_kind)eok_ipre_incr;
               break;
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
             case tk_fixed_point:
               op = (an_expr_operator_kind)eok_fxpre_incr;
               if (skip_typerefs(result_type)
@@ -3575,7 +3575,7 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
                             &start_position);
               }  /* if */
               break;
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
             case tk_float:
               op = (an_expr_operator_kind)eok_fpre_incr;
               break;
@@ -3592,7 +3592,7 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
             case tk_integer:
               op = (an_expr_operator_kind)eok_ipre_decr;
               break;
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
             case tk_fixed_point:
               op = (an_expr_operator_kind)eok_fxpre_decr;
               if (skip_typerefs(result_type)
@@ -3603,7 +3603,7 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
                             &start_position);
               }  /* if */
               break;
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
             case tk_float:
               op = (an_expr_operator_kind)eok_fpre_decr;
               break;
@@ -4205,11 +4205,11 @@ arithmetic type.  The operand of "~" must have integral type.  See section
           op = (an_expr_operator_kind)eok_xnegate;
         } else
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
         if (is_fixed_point_type(operand.type)) {
           op = (an_expr_operator_kind)eok_fxnegate;
         } else
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
         if (is_floating_type(operand.type)) {
           op = (an_expr_operator_kind)eok_fnegate;
         } else {
@@ -12583,8 +12583,8 @@ See section 3.3.16 of the standard.
             /* If the first operand is arithmetic or enum, the second must
                be also. */
             (void)check_arithmetic_or_enum_operand(&operand_2);
-#if FIXED_POINT_EXTENSIONS_ALLOWED
-            if (fixed_point_allowed) {
+#if FIXED_POINT_ALLOWED
+            if (fixed_point_enabled) {
               /* Warn about fixed-point arithmetic cases that are likely to
                  overflow. */
               an_expr_operator_kind  op = (an_expr_operator_kind)
@@ -12593,7 +12593,7 @@ See section 3.3.16 of the standard.
               check_mixed_integer_fixed_point_arithmetic(operand_1, &operand_2,
                                                          op);
             }  /* if */
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
           } else {
             a_boolean  nonobject_pointer =
                     (gcc_mode &&

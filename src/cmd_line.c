@@ -992,7 +992,7 @@ Initialize the option information table.
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);
 #endif /* UPC_EXTENSIONS_ALLOWED */
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
   add_option_description(optk_fixed_point,
                          "fixed_point",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
@@ -1001,7 +1001,7 @@ Initialize the option information table.
                          "no_fixed_point",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
 #if NAMED_ADDRESS_SPACES_ALLOWED
   add_option_description(optk_named_address_spaces,
                          "named_address_spaces",
@@ -1985,13 +1985,13 @@ setting is used, and to set various unmentioned settings as needed.
     command_line_error(ec_cl_compound_literals_option_only_in_C);
   }  /* if */
   compound_literals_allowed = FALSE;
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
   /* Fixed-point types are not currently supported in C++ modes. */
   if (option_kind_used[(int)optk_fixed_point]) {
     command_line_error(ec_cl_fixed_point_option_only_in_C);
   }  /* if */
-  fixed_point_allowed = FALSE;
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+  fixed_point_enabled = FALSE;
+#endif /* FIXED_POINT_ALLOWED */
 #if NAMED_ADDRESS_SPACES_ALLOWED
   /* Named address spaces are not currently supported in C++ modes. */
   if (option_kind_used[(int)optk_named_address_spaces]) {
@@ -3727,12 +3727,12 @@ enable_microsoft_mode:
         upc_num_threads = scan_opt_arg_number(opt_arg);
         break;
 #endif /* UPC_EXTENSIONS_ALLOWED */
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
       case optk_fixed_point:
         /* Enable (or disable) support for fixed-point extensions. */
-        fixed_point_allowed = opt_value;
+        fixed_point_enabled = opt_value;
         break;
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
 #if NAMED_ADDRESS_SPACES_ALLOWED
       case optk_named_address_spaces:
         /* Enable (or disable) support for named address spaces. */

@@ -439,7 +439,7 @@ typedef struct a_scope_stack_entry {
 			/* Saved values of the current state of the C99
 			   STDC pragma values.  These are saved when a scope
 			   is entered and restored when the scope is left. */
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
   a_bit_field	fx_full_precision_state:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
   a_bit_field	fx_fract_overflow_state:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
   a_bit_field	fx_accum_overflow_state:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
@@ -447,7 +447,7 @@ typedef struct a_scope_stack_entry {
 			   point STDC pragma values.  These are saved when a
 			   scope is entered and restored when the scope is
 			   left. */
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
   a_bit_field	qualified_conversion_operator:1;
 			/* TRUE when conversion_parent_type is set and the
 			   conversion type was specified using the form

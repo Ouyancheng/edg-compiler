@@ -444,7 +444,7 @@ wrapup:
   }  /* if */
 }  /* conv_integer_literal */
 
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
 
 void conv_fixed_point_literal(a_boolean      is_hexadecimal,
                               an_error_code  *err_code,
@@ -539,7 +539,7 @@ This function is modeled after conv_float_literal (see below).
   }  /* if */
 }  /* conv_fixed_point_literal */
 
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
 
 void conv_float_literal(a_boolean	is_hexadecimal,
 			an_error_code	*err_code,

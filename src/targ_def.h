@@ -429,8 +429,8 @@ Integer types:
 /*
 Fixed-point type configuration.
 
-Any configuration that sets FIXED_POINT_EXTENSIONS_ALLOWED to TRUE must also
-define all the quantities defining the size, alignment, etc. of these types.
+Any configuration that sets FIXED_POINT_ALLOWED to TRUE must also define all
+the quantities defining the size, alignment, etc. of these types.
 Six _Fract types can be configured independently: signed short _Fract,
 unsigned short _Fract, signed _Fract, unsigned _Fract, long signed _Fract, and
 long unsigned _Fract.  Similarly, there are six _Accum types that can also be
@@ -438,11 +438,11 @@ configured independently.
 These configuration macros are used to initialize the targ_sizeof_fixed_point,
 targ_alignof_fixed_point, and targ_fractional_bits_for_fixed_point arrays.
 */
-#ifndef FIXED_POINT_EXTENSIONS_ALLOWED
-#define FIXED_POINT_EXTENSIONS_ALLOWED FALSE
-#endif /* ifndef FIXED_POINT_EXTENSIONS_ALLOWED */
+#ifndef FIXED_POINT_ALLOWED
+#define FIXED_POINT_ALLOWED FALSE
+#endif /* ifndef FIXED_POINT_ALLOWED */
 
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
 
 #ifndef TARG_SIZEOF_SIGNED_SHORT_ACCUM
  #error TARG_SIZEOF_SIGNED_SHORT_ACCUM must be set
@@ -608,7 +608,7 @@ We assume it is one of the "long" precision variants.
 #endif /* TARG_SIZEOF_LARGEST_FIXED_POINT < TARG_SIZEOF_SIGNED_LONG_FRACT */
 #endif /* ifndef TARG_SIZEOF_LARGEST_FIXED_POINT */
 
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
 
 /*
 Type used as the representation of an integer value.  More precisely,
@@ -804,12 +804,12 @@ typedef unsigned long a_host_large_unsigned;
    Figure out how many.  Note that this representation may also be
    used for fixed-point values. */
 #define INTEGER_VALUE_REPRESENTATION_SIZE TARG_SIZEOF_LARGEST_INTEGER
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
 #if TARG_SIZEOF_LARGEST_FIXED_POINT > INTEGER_VALUE_REPRESENTATION_SIZE
 #undef INTEGER_VALUE_REPRESENTATION_SIZE
 #define INTEGER_VALUE_REPRESENTATION_SIZE TARG_SIZEOF_LARGEST_FIXED_POINT
 #endif /* TARG_SIZEOF_LARGEST_FIXED_POINT > INTEGER_VALUE_REPR... */
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
 #define INT_VALUE_PARTS_PER_INTEGER_VALUE                             \
   ((INTEGER_VALUE_REPRESENTATION_SIZE*INTERNAL_TARG_CHAR_BIT)/	      \
    (SIZEOF_INT_VALUE_PART*CHAR_BIT))
@@ -833,7 +833,7 @@ The printf formatting specifier to be used to print a host large integer.
 
 #endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
 
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
 /*
 By default the front end represents fixed-point values as implicitly scaled
 integer values.
@@ -847,7 +847,7 @@ integer values.
 #endif /* ifndef TYPE_FOR_A_FIXED_POINT_VALUE */
 typedef TYPE_FOR_A_FIXED_POINT_VALUE a_fixed_point_value;
 
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
 
 /*
 If this flag is TRUE, overflows on signed integer operations do
@@ -3051,21 +3051,21 @@ compiler also handles them).  The fixed-point extensions are a set of
 facilities defined by the C standardization committee's ISO/IEC TR 18037
 (e.g., support for _Fract and _Accum types).
 */
-#ifndef FIXED_POINT_EXTENSIONS_ALLOWED
-#define FIXED_POINT_EXTENSIONS_ALLOWED FALSE
-#endif /* ifndef FIXED_POINT_EXTENSIONS_ALLOWED */
+#ifndef FIXED_POINT_ALLOWED
+#define FIXED_POINT_ALLOWED FALSE
+#endif /* ifndef FIXED_POINT_ALLOWED */
 
 /*
 Flag that is TRUE if fixed-point extensions (e.g., support for _Fract and
 _Accum types) should be enabled by default.  It is the initial value of the
-global variable fixed_point_allowed.
+global variable fixed_point_enabled.
 */
-#ifndef DEFAULT_FIXED_POINT_ALLOWED
-#define DEFAULT_FIXED_POINT_ALLOWED FALSE
-#endif /* DEFAULT_FIXED_POINT_ALLOWED */
-#if !FIXED_POINT_EXTENSIONS_ALLOWED && DEFAULT_FIXED_POINT_ALLOWED
+#ifndef DEFAULT_FIXED_POINT_ENABLED
+#define DEFAULT_FIXED_POINT_ENABLED FALSE
+#endif /* DEFAULT_FIXED_POINT_ENABLED */
+#if !FIXED_POINT_ALLOWED && DEFAULT_FIXED_POINT_ENABLED
  #error -- fixed-point enabling not allowed
-#endif /* !FIXED_POINT_EXTENSIONS_ALLOWED && ... */
+#endif /* !FIXED_POINT_ALLOWED && ... */
 
 /*
 This switch controls whether a post-pass is done after IL lowering

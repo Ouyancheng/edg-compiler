@@ -991,7 +991,7 @@ value.
   return bits;
 }  /* number_of_bits_in_mantissa */
 
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
 
 a_boolean mantissa_is_zero(a_mantissa_ptr	mp)
 /*
@@ -1010,7 +1010,7 @@ Return TRUE if the mantissa is zero.
   return result;
 }  /* mantissa_is_zero */
 
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
 
 static void check_and_denormalize_hex_fp_value(
 			  a_mantissa_ptr		mp,
@@ -1118,7 +1118,7 @@ type, set inexact to TRUE.  If the exponent is out of range, set err to TRUE.
   }  /* if */
 }  /* check_and_denormalize_hex_fp_value */
 
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
 
 void load_hex_fp_value(an_internal_float_value	*float_value,
 		       a_float_kind		kind,
@@ -1237,7 +1237,7 @@ adjusted to make the implicit bit explicit.
   (*exponent)++;
 }  /* load_hex_fp_value */
 
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
 
 static void store_hex_fp_value(a_mantissa_ptr		mp,
 			       long			exponent,

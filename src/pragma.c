@@ -1613,7 +1613,7 @@ Initialize the pragma description table.
 		 /*il_info_is_complete=*/FALSE,
                  es_error);
   }  /* if */
-  if (c99_mode || fixed_point_allowed) {
+  if (c99_mode || fixed_point_enabled) {
     (void)add_immediate_pragma_kind_description
 		((a_pragma_kind)pk_stdc,
                  stdc_pragma,

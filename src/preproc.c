@@ -1771,9 +1771,9 @@ pragmas, and by translation_unit for pragmas that appear in the file scope.
   a_stdc_pragma_kind	kind = (a_stdc_pragma_kind)stdc_pk_none;
   a_stdc_pragma_value	value = (a_stdc_pragma_value)stdc_pv_none;
   a_boolean		err = FALSE, accept_on_off = FALSE;
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
   a_boolean		accept_sat = FALSE;
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
   char			*str;
   a_stdc_pragma_value	*state_var_ptr;
 
@@ -1795,8 +1795,8 @@ pragmas, and by translation_unit for pragmas that appear in the file scope.
         accept_on_off = TRUE;
       }  /* if */
     }  /* if */
-#if FIXED_POINT_EXTENSIONS_ALLOWED
-    if (fixed_point_allowed) {
+#if FIXED_POINT_ALLOWED
+    if (fixed_point_enabled) {
       if (strcmp(str, "FX_FULL_PRECISION") == 0) {
         kind = (a_stdc_pragma_kind)stdc_pk_fx_full_precision;
         state_var_ptr = &curr_fx_full_precision_state;
@@ -1811,7 +1811,7 @@ pragmas, and by translation_unit for pragmas that appear in the file scope.
         accept_sat = TRUE;
       }  /* if */
     }  /* if */
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
   }  /* if */
   if (kind == (a_stdc_pragma_kind)(a_stdc_pragma_kind)stdc_pk_none) {
     diagnostic(strict_ansi_error_severity, ec_unrecognized_stdc_pragma);
@@ -1826,10 +1826,10 @@ pragmas, and by translation_unit for pragmas that appear in the file scope.
         value = (a_stdc_pragma_value)stdc_pv_on;
       } else if (accept_on_off && strcmp(str, "OFF") == 0) {
         value = (a_stdc_pragma_value)stdc_pv_off;
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
       } else if (accept_sat && strcmp(str, "SAT") == 0) {
         value = (a_stdc_pragma_value)stdc_pv_sat;
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
       } else if (strcmp(str, "DEFAULT") == 0) {
         value = (a_stdc_pragma_value)stdc_pv_default;
       }  /* if */

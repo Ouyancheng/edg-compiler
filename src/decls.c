@@ -5036,14 +5036,14 @@ of the given routine.
     routine_ptr->fenv_access = curr_fenv_access_state;
     routine_ptr->cx_limited_range = curr_cx_limited_range_state;
   }  /* if */
-#if FIXED_POINT_EXTENSIONS_ALLOWED
-  if (fixed_point_allowed) {
+#if FIXED_POINT_ALLOWED
+  if (fixed_point_enabled) {
     /* Save the state of the fixed-point pragmas. */
     routine_ptr->fx_full_precision = curr_fx_full_precision_state;
     routine_ptr->fx_fract_overflow = curr_fx_fract_overflow_state;
     routine_ptr->fx_accum_overflow = curr_fx_accum_overflow_state;
   }  /* if */
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
   if (upc_mode) {
     /* Record the current UPC access method for this routine.  This is the
@@ -12645,7 +12645,7 @@ In C++, however, the declaration list is optional (3.4):
     while (curr_token != tok_end_of_source) {
       /* A C99 predefined pragma in the file scope must appear between
          top-level declarations. */
-      if (c99_mode || fixed_point_allowed) check_for_stdc_pragmas();
+      if (c99_mode || fixed_point_enabled) check_for_stdc_pragmas();
       declaration(/*function_definition_allowed=*/TRUE,
                   /*is_old_style_param_decl=*/FALSE,
                   /*is_top_level_declaration=*/TRUE,

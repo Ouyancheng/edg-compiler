@@ -5707,9 +5707,9 @@ the kind of token.
 {
   register char	ch;
   register enum {k_decimal, k_octal, k_hex,
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
                  k_fixed_point,
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
                  k_float} kind;
   register a_token_kind 
 		ctoken;
@@ -5720,10 +5720,10 @@ the kind of token.
   a_boolean	any_hex_digits = FALSE;
   a_boolean     u_suffix_seen = FALSE;
   int           l_suffix_seen = 0;
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
   a_boolean     l_before_u_suffix = FALSE;
   a_boolean     fixed_point_ruled_out = FALSE;
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
 
   /* Collect the characters of the constant, and figure out where it
      ends.  In the process, figure out what kind of token it is.
@@ -5745,7 +5745,7 @@ the kind of token.
         any_hex_digits = TRUE;
       }  /* while */
       /* Check for floating point. */
-      if (hex_floating_point_constants_allowed || fixed_point_allowed) {
+      if (hex_floating_point_constants_allowed || fixed_point_enabled) {
         /* C99 permits floating point constants specified in hexadecimal. */
         if ((ch = *curr_char_loc) == '.') goto float_accum_1;
         if (ch == 'p' || ch == 'P')       goto float_accum_2;
@@ -5802,9 +5802,9 @@ the kind of token.
     ch = *curr_char_loc;
     if ((ch == 'u' || ch == 'U') && !u_suffix_seen) {
       u_suffix_seen = TRUE;
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
       l_before_u_suffix = (l_suffix_seen > 0);
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
     } else if ((ch == 'l' || ch == 'L') &&
 #if LONG_LONG_ALLOWED
                l_suffix_seen < 2
@@ -5834,9 +5834,9 @@ the kind of token.
     do {
       curr_char_loc++;
     } while (isdigit((unsigned char)(*curr_char_loc)));
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
     fixed_point_ruled_out = TRUE;
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
   }  /* if */
   goto fixed_point_suffix;
 
@@ -5902,18 +5902,18 @@ end_float_accum:
   /* Check for a final suffix of "f" or "l", in upper or lower case. */
   if ((ch = *curr_char_loc) == 'f' || ch == 'F' || ch == 'l' || ch == 'L') {
     curr_char_loc++;
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
     if (ch == 'l' || ch == 'L') {
       ++l_suffix_seen;
     } else {
       fixed_point_ruled_out = TRUE;
     }  /* if */
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
   }  /* if */
 
 fixed_point_suffix:
-#if FIXED_POINT_EXTENSIONS_ALLOWED
-  if (fixed_point_allowed && !fixed_point_ruled_out) {
+#if FIXED_POINT_ALLOWED
+  if (fixed_point_enabled && !fixed_point_ruled_out) {
     /* Check for a fixed-point constant suffix, which must be of the following
        general form ([] = optional, {} = required):
            [ u | U ]  [ h | H | l | L ]  { k | K | r | R }
@@ -5956,7 +5956,7 @@ fixed_point_suffix:
                              start_of_curr_token);
     }  /* if */
   }  /* if */
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
 
   /* Here, start_of_curr_token marks the beginning, and curr_char_loc one
      past the end of the constant.  kind and ctoken are set correctly.
@@ -5970,9 +5970,9 @@ fixed_point_suffix:
       case k_decimal:     ks = "decimal";     break;
       case k_octal:       ks = "octal";       break;
       case k_hex:         ks = "hex";         break;
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
       case k_fixed_point: ks = "fixed-point"; break;
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
       case k_float:       ks = "float";       break;
 #if CHECKING
       default:          ks = "<bad kind>";
@@ -6007,7 +6007,7 @@ fixed_point_suffix:
     while (is_id_char[(ch = *curr_char_loc)-CHAR_MIN] || ch == '.' ||
            ((ch == '+' || ch == '-') &&
             ((ch = *(curr_char_loc-1)) == 'e' || ch == 'E' ||
-             ((hex_floating_point_constants_allowed || fixed_point_allowed) &&
+             ((hex_floating_point_constants_allowed || fixed_point_enabled) &&
               (ch == 'p' || ch == 'P'))))) {
       /* 0-9, a-z, A-Z, "_", ".", or sign preceded by "e" or "E" or "p"
          or "P".  Keep accumulating. */
@@ -6060,12 +6060,12 @@ fixed_point_suffix:
         conv_integer_literal(16, &err_code, &err_pos);
         ctoken = tok_int_constant;
         break;
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
       case k_fixed_point:
         conv_fixed_point_literal(is_hex_fp_value, &err_code, &err_pos);
         ctoken = tok_fixed_point_constant;
         break;
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
       case k_float:
 	if (is_hex_fp_value && !hex_floating_point_constants_allowed) {
           diagnostic_at_line_pos(strict_ansi_error_severity,

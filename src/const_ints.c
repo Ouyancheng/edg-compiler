@@ -1586,7 +1586,7 @@ preceded by a "-".
   return buffer;
 }  /* str_for_integer_constant */
 
-#if !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER || FIXED_POINT_EXTENSIONS_ALLOWED
+#if !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER || FIXED_POINT_ALLOWED
 
 void conv_float_string_to_integer_value(char			*float_str,
 					an_integer_value	*intval,
@@ -1702,7 +1702,7 @@ so no checking is done.
   *err = overflow || (!is_signed && is_negative);
 }  /* conv_float_string_to_integer_value */
 
-#endif /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER || FIXED_POINT_EXTENSIONS... */
+#endif /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER || FIXED_POINT_ALLOWED */
 
 char *conv_unsigned_long_to_str(unsigned long val)
 /*

@@ -78,10 +78,10 @@ incorporated:
 /* Manipulation of target integer constants. */
 #include "const_ints.h"
 
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
 /* Manipulation of internal fixed-point quantities. */
 #include "fixed_pt.h"
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
 
 /* Manipulation of internal floating point quantities. */
 #include "float_pt.h"

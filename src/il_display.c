@@ -883,12 +883,12 @@ display_constant_value:
       summarize_constant(ptr);
       (void)printf("\n");
       break;
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
     case ck_fixed_point:
       (void)printf("ck_fixed_point\n");
       disp_name("fixed_point_value");
       goto display_constant_value;
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
     case ck_string:
       (void)printf("ck_string\n");
       disp_host_large_unsigned(
@@ -1441,7 +1441,7 @@ Display the indicated type entry.
       }  /* if */
 #endif /* ifdef CFE */
       break;
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
     case tk_fixed_point:
       {
         a_fixed_point_precision  prec = ptr->variant.fixed_point.precision;
@@ -1460,7 +1460,7 @@ Display the indicated type entry.
                      (a_boolean)ptr->variant.fixed_point.saturating);
       }
       break;
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
     case tk_float:
       (void)printf("tk_float\n");
 #ifdef FFE
@@ -1771,9 +1771,9 @@ Display a STDC pragma value along with a name.
     case stdc_pv_none:    s = "none"; break;
     case stdc_pv_off:     s = "off"; break;
     case stdc_pv_on:      s = "on"; break;
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
     case stdc_pv_sat:     s = "sat"; break;
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
     case stdc_pv_default: s = "default"; break;
     default: unexpected_condition(); break;
   }  /* switch */
@@ -2758,7 +2758,7 @@ Display the indicated routine.
       disp_stdc_pragma_value("cx_limited_range", ptr->cx_limited_range);
     }  /* if */
   }  /* if */
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
   if (ptr->fx_full_precision != (a_stdc_pragma_value)stdc_pv_default) {
     disp_stdc_pragma_value("fx_full_precision", ptr->fx_full_precision);
   }  /* if */
@@ -2768,7 +2768,7 @@ Display the indicated routine.
   if (ptr->fx_accum_overflow != (a_stdc_pragma_value)stdc_pv_default) {
     disp_stdc_pragma_value("fx_accum_overflow", ptr->fx_accum_overflow);
   }  /* if */
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   if (ptr->contains_statement_expression) {
     disp_boolean("contains_statement_expression", TRUE);
@@ -2977,9 +2977,9 @@ Display the name of an expression operator.
   switch (okind) {
     case eok_indirect:          s = "eok_indirect";               break;
     case eok_inegate:           s = "eok_inegate";                break;
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
     case eok_fxnegate:          s = "eok_fxnegate";               break;
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
     case eok_fnegate:           s = "eok_fnegate";                break;
     case eok_unary_plus:        s = "eok_unary_plus";             break;
     case eok_not:               s = "eok_not";                    break;
@@ -3000,12 +3000,12 @@ Display the name of an expression operator.
     case eok_ipost_decr:        s = "eok_ipost_decr";             break;
     case eok_ipre_incr:         s = "eok_ipre_incr";              break;
     case eok_ipre_decr:         s = "eok_ipre_decr";              break;
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
     case eok_fxpost_incr:       s = "eok_fxpost_incr";            break;
     case eok_fxpost_decr:       s = "eok_fxpost_decr";            break;
     case eok_fxpre_incr:        s = "eok_fxpre_incr";             break;
     case eok_fxpre_decr:        s = "eok_fxpre_decr";             break;
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
     case eok_fpost_incr:        s = "eok_fpost_incr";             break;
     case eok_fpost_decr:        s = "eok_fpost_decr";             break;
     case eok_fpre_incr:         s = "eok_fpre_incr";              break;
@@ -3042,7 +3042,7 @@ Display the name of an expression operator.
     case eok_ignu_min:          s = "eok_ignu_min";               break;
     case eok_ignu_max:          s = "eok_ignu_max";               break;
     case eok_iassign:           s = "eok_iassign";                break;
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
     case eok_fxadd:             s = "eok_fxadd";                  break;
     case eok_fxsubtract:        s = "eok_fxsubtract";             break;
     case eok_fxmultiply:        s = "eok_fxmultiply";             break;
@@ -3054,7 +3054,7 @@ Display the name of an expression operator.
     case eok_fxge:              s = "eok_fxge";                   break;
     case eok_fxle:              s = "eok_fxle";                   break;
     case eok_fxassign:          s = "eok_fxassign";               break;
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
     case eok_fadd:              s = "eok_fadd";                   break;
     case eok_fsubtract:         s = "eok_fsubtract";              break;
     case eok_fmultiply:         s = "eok_fmultiply";              break;
@@ -3130,12 +3130,12 @@ Display the name of an expression operator.
     case eok_imultiply_assign:  s = "eok_imultiply_assign";       break;
     case eok_idivide_assign:    s = "eok_idivide_assign";         break;
     case eok_remainder_assign:  s = "eok_remainder_assign";       break;
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
     case eok_fxadd_assign:      s = "eok_fxadd_assign";           break;
     case eok_fxsubtract_assign: s = "eok_fxsubtract_assign";      break;
     case eok_fxmultiply_assign: s = "eok_fxmultiply_assign";      break;
     case eok_fxdivide_assign:   s = "eok_fxdivide_assign";        break;
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
     case eok_fadd_assign:       s = "eok_fadd_assign";            break;
     case eok_fsubtract_assign:  s = "eok_fsubtract_assign";       break;
     case eok_fmultiply_assign:  s = "eok_fmultiply_assign";       break;

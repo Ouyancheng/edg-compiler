@@ -25,7 +25,7 @@ for a production version.
 #pragma hdrstop
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
-#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if FIXED_POINT_ALLOWED
 
 #include "folding.h"
 
@@ -957,7 +957,7 @@ assumes a_fixed_point_value is a synonym for an_integer_value.)
   return (unsigned int)value_of_integer_constant(&int_constant, &ovflo);
 }  /* fxp_hash */
 
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* FIXED_POINT_ALLOWED */
 
 /******************************************************************************
 *                                                             \  ___  /       *

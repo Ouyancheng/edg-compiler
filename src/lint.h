@@ -340,9 +340,9 @@ extern int fileno(FILE *);
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /*lint -esym(769,an_ms_attribute_kind_tag::msak_last)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if !FIXED_POINT_EXTENSIONS_ALLOWED
-/*lint -esym(759,fixed_point_allowed)*/
-/*lint -esym(765,fixed_point_allowed)*/
+#if !FIXED_POINT_ALLOWED
+/*lint -esym(759,fixed_point_enabled)*/
+/*lint -esym(765,fixed_point_enabled)*/
 /*lint -esym(769,ec_nonstd_fixed_point_suffix)*/
 /*lint -esym(769,ec_cl_fixed_point_option_only_in_C)*/
 /*lint -esym(769,ec_integer_may_not_fit_in_fixed_point_result)*/
@@ -375,7 +375,7 @@ extern int fileno(FILE *);
 /*lint -esym(765,mantissa_is_zero)*/
 /*lint -esym(759,conv_mantissa_to_floating_point)*/
 /*lint -esym(765,conv_mantissa_to_floating_point)*/
-#endif /* !FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* !FIXED_POINT_ALLOWED */
 #if !NAMED_ADDRESS_SPACES_ALLOWED
 /*lint -esym(759,named_address_spaces_allowed)*/
 /*lint -esym(765,named_address_spaces_allowed)*/
