@@ -1,5 +1,11 @@
 Version 2.46
 
+1/11/01  Setting assoc_template for prototype instantiations of function
+         templates
+
+The assoc_template field was not set for the routine entry that represents
+the prototype instantiation of a function template.  This has been fixed.
+
 1/10/01  Use if __VA_ARGS__diagnosed in nonvariadic macros
 
 The front end used to accept the use (as a normal identifier) of __VA_ARGS__

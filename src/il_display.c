@@ -3291,6 +3291,14 @@ Display the indicated template.
     default:
       break;
   }  /* switch */
+  if (ptr->canonical_template != NULL) {
+     disp_ptr("canonical_template", (char*)ptr->canonical_template,
+              iek_template);
+  }  /* if */
+  if (ptr->definition_template != NULL) {
+     disp_ptr("definition_template", (char*)ptr->definition_template,
+              iek_template);
+  }  /* if */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   disp_source_range("definition_range", &ptr->definition_range);
