@@ -10139,8 +10139,13 @@ moreover, several fields of *decl_info may be updated by this routine.
     if (dso_flags & DSO_DEFINES_SOMETHING) {
       tp->autonomous_primary_tag_decl = TRUE;
     } else {
-      (void)set_src_seq_secondary_decl_fields((char *)tp, (a_type_ptr)NULL,
-                                              SSSD_AUTONOMOUS_TAG_DECL);
+      a_source_sequence_entry_ptr  ssep =
+                              last_matching_source_sequence_entry((char *)tp);
+      if (ss_entry_kind(ssep) == iek_src_seq_secondary_decl) {
+        a_src_seq_secondary_decl_ptr  sssdp =
+                               (a_src_seq_secondary_decl_ptr)ssep->entity.ptr;
+        sssdp->autonomous_tag_decl = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
