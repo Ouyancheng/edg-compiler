@@ -2157,7 +2157,7 @@ FALSE.
     /* A straight copy will work. */
     /* Note that this expression will not have temporaries or object lifetimes
        in it since it has no side effects. */
-    expr_copy = copy_expr_tree(expr);
+    expr_copy = copy_expr_tree(expr, CE_NO_OPTIONS);
   } else {
     /* Change the original expression to assign the value to a temporary. */
     temp_type = expr->type;
@@ -6286,7 +6286,9 @@ it is left alone.  expr is being used as an lvalue if is_lvalue is TRUE.
         newop2 = copy_node(expr);
         /* Likewise, newop2->result_is_not_used is properly FALSE. */
         newop2->variant.operation.operands = gchild3;
-        gchild3->next = (child2 != NULL) ? copy_expr_tree(child2) : NULL;
+        gchild3->next = (child2 != NULL) ?
+                                 copy_expr_tree(child2, CE_NO_OPTIONS) :
+                                 NULL;
         /* Replace the original top node with a "?" node. */
         gchild1->next = newop1;
         newop1->next = newop2;
@@ -9535,7 +9537,7 @@ scope) along with the class members.
            last_entry->next != NULL;
            last_entry = last_entry->next) {}
       last_entry->next = promoted_local_static_variable_inits;
-      promoted_local_static_variable_inits = scope->local_static_variable_inits;
+      promoted_local_static_variable_inits= scope->local_static_variable_inits;
       scope->local_static_variable_inits = NULL;
     }  /* if */
   }  /* if */

@@ -55,6 +55,13 @@ static a_scope_ptr
 			   with this scope is being expanded as an inline. */
 
 
+/*
+Interface macro to copy_expr_tree.
+*/
+#define copy_expr_tree_for_inlining(expr) \
+  copy_expr_tree((expr), CE_DOING_INLINING_OF_FUNCTION_CALL)
+
+
 static a_variable_remapping_for_inlining_ptr
                       alloc_variable_remapping_for_inlining(a_variable_ptr var)
 /*
@@ -474,7 +481,7 @@ variables.
             expr->variant.variable = constant_expr->variant.variable;
           } else {
             /* Other, more complicated, cases.  Just copy the expression. */
-            overwrite_node(expr, copy_expr_tree(constant_expr));
+            overwrite_node(expr, copy_expr_tree_for_inlining(constant_expr));
           }  /* if */
           break;
         default:
@@ -637,12 +644,12 @@ otherwise, do no copying and return FALSE.
     operand3 = operand2->next;
     /* Copy the first operand.  In the process, simplify to a constant if
        possible by substituting for parameter variables. */
-    operand = copy_expr_tree(operand);
+    operand = copy_expr_tree_for_inlining(operand);
     if (!is_constant_node(operand)) {
       /* The first operand is not constant, so this operation cannot be
          simplified.  Just copy the rest of the operands. */
-      operand2 = copy_expr_tree(operand2);
-      if (operand3 != NULL) operand3 = copy_expr_tree(operand3);
+      operand2 = copy_expr_tree_for_inlining(operand2);
+      if (operand3 != NULL) operand3 = copy_expr_tree_for_inlining(operand3);
       /* Link the copied operands together. */
       expr->variant.operation.operands = operand;
       operand->next = operand2;
@@ -655,11 +662,11 @@ otherwise, do no copying and return FALSE.
            of the value of the first operand. */
         if (is_false_constant(con)) {
           /* The constant is false, so keep the third operand. */
-          operand3 = copy_expr_tree(operand3);
+          operand3 = copy_expr_tree_for_inlining(operand3);
           overwrite_node(expr, operand3);
         } else {
           /* The constant is true, so keep the second operand. */
-          operand2 = copy_expr_tree(operand2);
+          operand2 = copy_expr_tree_for_inlining(operand2);
           overwrite_node(expr, operand2);
         }  /* if */
       } else if (op == (an_expr_operator_kind)eok_lor) {
@@ -667,7 +674,7 @@ otherwise, do no copying and return FALSE.
         if (is_false_constant(con)) {
           /* The first operand is false, so the second operand is the value
              of the expression. */
-          operand2 = copy_expr_tree(operand2);
+          operand2 = copy_expr_tree_for_inlining(operand2);
           overwrite_node(expr, operand2);
         } else {
           /* The first operand is true, so the overall operation has the
@@ -683,7 +690,7 @@ otherwise, do no copying and return FALSE.
         } else {
           /* The first operand is true, so the second operand is the value
              of the expression. */
-          operand2 = copy_expr_tree(operand2);
+          operand2 = copy_expr_tree_for_inlining(operand2);
           overwrite_node(expr, operand2);
         }  /* if */
       } else {
@@ -710,7 +717,7 @@ otherwise, do no copying and return FALSE.
         a_boolean is_non_null;
         /* Copy the source operand with substitution and constant folding
            so we can see if we have a constant. */
-        operand2 = copy_expr_tree(operand2);
+        operand2 = copy_expr_tree_for_inlining(operand2);
         processed = TRUE;
         if (is_constant_valued_expression(operand2, &is_non_null) &&
             (!var->is_temp_for_constructor_this_inlined_param ||
@@ -733,7 +740,7 @@ otherwise, do no copying and return FALSE.
         } else {
           /* The operation cannot be eliminated, so finish the rewriting,
              leaving an updated assignment in place. */
-          operand = copy_expr_tree(operand);
+          operand = copy_expr_tree_for_inlining(operand);
           operand->next = operand2;
           expr->variant.operation.operands = operand;
         }  /* if */
@@ -794,7 +801,7 @@ If not, *failed is set.
     goto cannot_inline_ever;
   } else {
     stmt_expr = statement->expr;
-    if (stmt_expr != NULL) stmt_expr = copy_expr_tree(stmt_expr);
+    if (stmt_expr != NULL) stmt_expr = copy_expr_tree_for_inlining(stmt_expr);
     switch (statement->kind) {
       case stmk_expr:
         set_expr_result_not_used(stmt_expr);
@@ -1044,12 +1051,13 @@ If not, *failed is set.
               goto cannot_inline_ever;
             }  /* if */
             /* Non-aggregate constant initial value. */
-            /* This uses copy_unshared_constant because that routine does
+            /* This uses copy_unshared_constant_full because that routine does
                variable remapping if necessary. */
             init_expr = alloc_node_for_constant(
-                                copy_unshared_constant(dip->variant.constant));
+                             copy_unshared_constant_full(dip->variant.constant,
+                                          CE_DOING_INLINING_OF_FUNCTION_CALL));
           } else if (dip->kind == (a_dynamic_init_kind)dik_expression) {
-            init_expr = copy_expr_tree(dip->variant.expression);
+            init_expr = copy_expr_tree_for_inlining(dip->variant.expression);
           } else {
             /* Other cases cannot be handled (they probably can't happen here,
                but for the sake of safety...). */
@@ -1102,7 +1110,7 @@ If not, *failed is set.
           /* Copy the increment expression. */
           increment_expr = statement->variant.for_loop.extra_info->increment;
           if (increment_expr != NULL) {
-            increment_expr = copy_expr_tree(increment_expr);
+            increment_expr = copy_expr_tree_for_inlining(increment_expr);
             set_expr_result_not_used(increment_expr);
           }  /* if */
           /* Copy the "for" statement.  This does not use
@@ -1206,7 +1214,6 @@ statement).
           fprintf(f_debug, ":\n");
         }  /* if */
 #endif /* DEBUG */
-        currently_doing_inlining_of_function_call = TRUE;
         scope = il_header.region_scope_entry[routine->assoc_scope];
         routine_scope_being_inlined = scope;
         /* Set the insert location.  Use a location unattached to the IL
@@ -1309,7 +1316,6 @@ statement).
         routine->inlinable = inlinable;
         if (failed) issue_inlining_failure_diagnostic(routine);
         routine_scope_being_inlined = NULL;
-        currently_doing_inlining_of_function_call = FALSE;
 #if DEBUG
         if (debug_level >= 4) {
           fprintf(f_debug, "End of inlining of call to ");
@@ -1417,7 +1423,6 @@ of the front end.
 */
 {
   /* Variables in inline.h: */
-  currently_doing_inlining_of_function_call = FALSE;
   avail_variable_remappings_for_inlining = NULL;
 #if DEBUG
   num_variable_remappings_for_inlining = 0;

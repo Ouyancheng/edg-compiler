@@ -1971,7 +1971,8 @@ routine is returned.
     if (default_arg_list != NULL) {
       /* Copy the default argument expressions into the function memory
          region. */
-      default_arg_list = copy_list_of_expr_trees(default_arg_list);
+      default_arg_list = copy_list_of_expr_trees(default_arg_list,
+                                                 CE_NO_OPTIONS);
       if (init_expr_lifetime != NULL) {
         /* Activate the object lifetime for temporaries in default arguments.
            This must be done after the default argument expressions are
@@ -3007,7 +3008,8 @@ there isn't a mixture of function scope and file scope pieces in the
 resulting expression.
 */
 {
-  an_expr_node_ptr expr_copy = copy_expr_tree(expr);
+  an_expr_node_ptr expr_copy = copy_expr_tree(expr,
+                                              CE_TRANSFER_DESTR_ENTITY_DESCR);
 
   if (expr->kind == (an_expr_node_kind)enk_object_lifetime) {
     /* The original expression has an object lifetime.  Since the original
@@ -3457,7 +3459,9 @@ in this routine must be FALSE in that case.
       if (!constructor_array_init) {
         an_expr_node_ptr expr_list = dip->variant.constructor.args;
         if (expr_list != NULL && in_file_scope(expr_list)) {
-          dip->variant.constructor.args = copy_list_of_expr_trees(expr_list);
+          dip->variant.constructor.args =
+                       copy_list_of_expr_trees(expr_list,
+                                               CE_TRANSFER_DESTR_ENTITY_DESCR);
         }  /* if */
       }  /* if */
     }  /* if */

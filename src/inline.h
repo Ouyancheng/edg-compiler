@@ -27,10 +27,6 @@ inline.h -- Declarations related to inline.c (minimal inlining for IL
 #endif /* ifndef IL_DEF_H */
 
 
-EXTERN a_boolean
-		currently_doing_inlining_of_function_call;
-			/* TRUE if currently doing the expansion of an
-			   inline function call. */
 /*
 Entry used to record information about the remapping to be done on a variable
 while expanding an inline function call.

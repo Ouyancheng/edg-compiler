@@ -280,6 +280,24 @@ extern void copy_constant(a_constant *from,
 
 extern a_constant_ptr alloc_unshared_constant(a_constant *cp);
 
+/*
+Options for copy_expr_tree et al.
+*/
+typedef int an_expr_copy_options_set;
+#define CE_NO_OPTIONS 0
+#define CE_DOING_INLINING_OF_FUNCTION_CALL 0x1
+			/* TRUE if this copy operation is copying an expression
+			   for inlining and extra operations like remapping
+			   should be done. */
+#define CE_TRANSFER_DESTR_ENTITY_DESCR 0x2
+			/* TRUE if, when copying a dynamic initialization
+			   entry, the pointer to the destructible entity
+			   description should be transferred to the copy. */
+
+a_constant_ptr copy_unshared_constant_full(
+                                         a_constant_ptr           old_constant,
+                                         an_expr_copy_options_set options);
+
 extern a_constant_ptr copy_unshared_constant(a_constant_ptr old_constant);
 
 extern a_boolean eq_constants(a_constant *cp1,
@@ -392,9 +410,12 @@ extern a_boolean is_operator_returning_bool(an_expr_operator_kind op);
 
 extern an_expr_node_ptr copy_node(an_expr_node_ptr expr);
 
-extern an_expr_node_ptr copy_list_of_expr_trees(an_expr_node_ptr expr_list);
+extern an_expr_node_ptr copy_list_of_expr_trees(
+                                            an_expr_node_ptr         expr_list,
+                                            an_expr_copy_options_set options);
 
-extern an_expr_node_ptr copy_expr_tree(an_expr_node_ptr expr);
+extern an_expr_node_ptr copy_expr_tree(an_expr_node_ptr         expr,
+                                       an_expr_copy_options_set options);
 
 extern an_expr_node_ptr copy_default_arg_expr(an_expr_node_ptr expr);
 

@@ -159,7 +159,8 @@ static a_boolean any_function_scope_lifetime_entries;
 
 
 /* Forward declarations needed because of mutual recursion: */
-static a_dynamic_init_ptr copy_dynamic_init(a_dynamic_init_ptr dip);
+static a_dynamic_init_ptr copy_dynamic_init(a_dynamic_init_ptr       dip,
+                                            an_expr_copy_options_set options);
 static a_constant_hash_value hash_constant(a_constant *cp);
 
 #if DEBUG
@@ -2635,9 +2636,13 @@ value.  Several fields are cleared or adjusted.
 }  /* alloc_unshared_constant */
 
 
-a_constant_ptr copy_unshared_constant(a_constant_ptr old_constant)
+a_constant_ptr copy_unshared_constant_full(
+                                         a_constant_ptr           old_constant,
+                                         an_expr_copy_options_set options)
 /*
-Make a copy of an unshared constant and return pointer to the copy.
+Make a copy of an unshared constant and return pointer to the copy.  options
+is the set of options for the copy.  See copy_unshared_copy for a simple
+interface to this routine for the usual case.
 */
 {
   a_constant_ptr new_constant, old_aggr_con, new_aggr_con;
@@ -2651,7 +2656,7 @@ Make a copy of an unshared constant and return pointer to the copy.
     for (old_aggr_con = old_constant->variant.aggregate.first_constant;
          old_aggr_con != NULL;
          old_aggr_con = old_aggr_con->next) {
-      new_aggr_con = copy_unshared_constant(old_aggr_con);
+      new_aggr_con = copy_unshared_constant_full(old_aggr_con, options);
       /* Add the constant to the aggregate list. */
       if (new_constant->variant.aggregate.first_constant == NULL) {
         new_constant->variant.aggregate.first_constant = new_aggr_con;
@@ -2663,11 +2668,13 @@ Make a copy of an unshared constant and return pointer to the copy.
   } else if (new_constant->kind == (a_constant_repr_kind)ck_init_repeat) {
     /* For ck_init_repeat constants, copy the subtree also. */
     new_constant->variant.init_repeat.constant =
-            copy_unshared_constant(old_constant->variant.init_repeat.constant);
+        copy_unshared_constant_full(old_constant->variant.init_repeat.constant,
+                                    options);
   } else if (new_constant->kind == (a_constant_repr_kind)ck_dynamic_init) {
     /* For ck_dynamic_init constants, copy the subtree also. */
     new_constant->variant.dynamic_init =
-                         copy_dynamic_init(old_constant->variant.dynamic_init);
+                          copy_dynamic_init(old_constant->variant.dynamic_init,
+                                            options);
   } else if (new_constant->kind == (a_constant_repr_kind)ck_address) {
     if (new_constant->variant.address.kind ==
                                           (an_address_base_kind)abk_constant) {
@@ -2685,11 +2692,21 @@ Make a copy of an unshared constant and return pointer to the copy.
            unshared we want the copy to be unshared as well, and we don't
            know for sure whether the original constant is unshared. */
         new_constant->variant.address.variant.constant =
-                               copy_unshared_constant(old_constant_pointed_to);
+                           copy_unshared_constant_full(old_constant_pointed_to,
+                                                       options);
       }  /* if */
     }  /* if */
   }  /* if */
   return new_constant;
+}  /* copy_unshared_constant_full */
+
+
+a_constant_ptr copy_unshared_constant(a_constant_ptr old_constant)
+/*
+Simple interface to copy_unshared_constant_full for the usual case.
+*/
+{
+  return copy_unshared_constant_full(old_constant, CE_NO_OPTIONS);
 }  /* copy_unshared_constant */
 
 
@@ -5259,12 +5276,13 @@ list.
 }  /* add_to_dynamic_inits_list */
 
 
-static a_dynamic_init_ptr copy_dynamic_init(a_dynamic_init_ptr dip)
+static a_dynamic_init_ptr copy_dynamic_init(a_dynamic_init_ptr       dip,
+                                            an_expr_copy_options_set options)
 /*
 Make a copy of a dynamic initialization entry and return a pointer to the copy.
 This is not a general-purpose routine -- it is meant to be called from
 copy_expr_tree for the kinds of dynamic initializations done under an
-expression node.
+expression node.  options is a set of options for the copy.
 */
 {
   a_dynamic_init_ptr new_dip;
@@ -5272,7 +5290,7 @@ expression node.
   new_dip = alloc_dynamic_init(dip->kind);
   *new_dip = *dip;
 #if MINIMAL_INLINING
-  if (currently_doing_inlining_of_function_call) {
+  if (options & CE_DOING_INLINING_OF_FUNCTION_CALL) {
     /* Look for variables that get remapped while copying the expressions
        in a function being inlined. */
     if (dip->variable != NULL) {
@@ -5286,17 +5304,19 @@ expression node.
       break;
     case dik_expression:
     case dik_call_returning_class_via_cctor:
-      new_dip->variant.expression = copy_expr_tree(dip->variant.expression);
+      new_dip->variant.expression = copy_expr_tree(dip->variant.expression,
+                                                   options);
       break;
     case dik_constructor:
       new_dip->variant.constructor.args =
-                        copy_list_of_expr_trees(dip->variant.constructor.args);
+                         copy_list_of_expr_trees(dip->variant.constructor.args,
+                                                 options);
       break;
     case dik_constant:
     case dik_nonconstant_aggregate:
       /* The constant pointed to is unshared and must be copied. */
       new_dip->variant.constant =
-                                 copy_unshared_constant(dip->variant.constant);
+                   copy_unshared_constant_full(dip->variant.constant, options);
       break;
 #if CHECKING
     case dik_bitwise_copy:
@@ -5320,11 +5340,16 @@ expression node.
                                        /*block_lifetime=*/FALSE);
   }  /* if */
 #if DO_IL_LOWERING
-  /* If IL lowering has already attached a destructible entity description to
-     the dynamic initialization, it goes with the copy and not the original.
-     (If the pointer in the original were not cleared, the destructible
-     entity description would be freed twice.) */
-  dip->destructible_entity_descr = NULL;
+  if (options & CE_TRANSFER_DESTR_ENTITY_DESCR) {
+    /* If IL lowering has already attached a destructible entity description to
+       the dynamic initialization, it goes with the copy and not the original.
+       (If the pointer in the original were not cleared, the destructible
+       entity description would be freed twice.) */
+    dip->destructible_entity_descr = NULL;
+  } else {
+    /* The destructible entity description stays with the original entry. */
+    new_dip->destructible_entity_descr = NULL;
+  }  /* if */
 #endif /* DO_IL_LOWERING */
   return new_dip;
 }  /* copy_dynamic_init */
@@ -6030,16 +6055,18 @@ Allocate a copy of an expression node and return a pointer to it.
 }  /* copy_node */
 
 
-an_expr_node_ptr copy_list_of_expr_trees(an_expr_node_ptr expr_list)
+an_expr_node_ptr copy_list_of_expr_trees(an_expr_node_ptr         expr_list,
+                                         an_expr_copy_options_set options)
 /*
 Make a copy of a list of expression trees and return a pointer to it.
+options is a set of options for the copy.
 */
 {
   an_expr_node_ptr expr, expr_copy, prev_expr_copy, expr_list_copy;
 
   expr_list_copy = prev_expr_copy = NULL;
   for (expr = expr_list; expr != NULL; expr = expr->next) {
-    expr_copy = copy_expr_tree(expr);
+    expr_copy = copy_expr_tree(expr, options);
     if (expr_list_copy == NULL) {
       expr_list_copy = expr_copy;
     } else {
@@ -6051,9 +6078,11 @@ Make a copy of a list of expression trees and return a pointer to it.
 }  /* copy_list_of_expr_trees */
 
 
-an_expr_node_ptr copy_expr_tree(an_expr_node_ptr expr)
+an_expr_node_ptr copy_expr_tree(an_expr_node_ptr         expr,
+                                an_expr_copy_options_set options)
 /*
-Make a copy of an expression tree and return a pointer to it.
+Make a copy of an expression tree and return a pointer to it.  options is
+a set of options for the copy.
 */
 {
   an_expr_node_ptr            expr_copy;
@@ -6076,11 +6105,12 @@ Make a copy of an expression tree and return a pointer to it.
 #if MINIMAL_INLINING
       /* Some short-circuited operations can be simplified while they are
          copied if the first operand value is constant. */
-      if (currently_doing_inlining_of_function_call &&
+      if ((options & CE_DOING_INLINING_OF_FUNCTION_CALL) &&
           copy_and_simplify_short_circuited_operation(expr_copy)) break;
 #endif /* MINIMAL_INLINING */
       expr_copy->variant.operation.operands =
-                     copy_list_of_expr_trees(expr->variant.operation.operands);
+                      copy_list_of_expr_trees(expr->variant.operation.operands,
+                                              options);
       if (expr->variant.operation.kind == (an_expr_operator_kind)eok_comma) {
         /* The value of the first operand of a comma operator is not used. */
         set_expr_result_not_used(expr_copy->variant.operation.operands);
@@ -6089,7 +6119,8 @@ Make a copy of an expression tree and return a pointer to it.
     case enk_temp_init:
       /* Copy the dynamic init for a dynamic initialization. */
       expr_copy->variant.init.dynamic_init =
-                            copy_dynamic_init(expr->variant.init.dynamic_init);
+                             copy_dynamic_init(expr->variant.init.dynamic_init,
+                                               options);
       break;
     case enk_new_delete:
       /* Copy the subtree and dynamic init for a new/delete operation. */
@@ -6097,33 +6128,37 @@ Make a copy of an expression tree and return a pointer to it.
       ndsp = expr->variant.new_delete;
       copy_ndsp = expr_copy->variant.new_delete;
       if (ndsp->arg != NULL) {
-        copy_ndsp->arg = copy_list_of_expr_trees(ndsp->arg);
+        copy_ndsp->arg = copy_list_of_expr_trees(ndsp->arg, options);
       }  /* if */
       if (ndsp->dynamic_init != NULL) {
-        copy_ndsp->dynamic_init = copy_dynamic_init(ndsp->dynamic_init);
+        copy_ndsp->dynamic_init = copy_dynamic_init(ndsp->dynamic_init,
+                                                    options);
       }  /* if */
       if (ndsp->freeing_of_storage_on_exception != NULL) {
         copy_ndsp->freeing_of_storage_on_exception =
-                      copy_dynamic_init(ndsp->freeing_of_storage_on_exception);
+                       copy_dynamic_init(ndsp->freeing_of_storage_on_exception,
+                                         options);
       }  /* if */
       break;
     case enk_throw:
       /* Copy the dynamic init for a throw. */
       expr_copy->variant.throw_info->dynamic_init =
-                     copy_dynamic_init(expr->variant.throw_info->dynamic_init);
+                      copy_dynamic_init(expr->variant.throw_info->dynamic_init,
+                                        options);
       break;
     case enk_condition:
       /* Copy the dynamic init and the expression. */
       expr_copy->variant.condition->dynamic_init =
-                     copy_dynamic_init(expr->variant.condition->dynamic_init);
+                      copy_dynamic_init(expr->variant.condition->dynamic_init,
+                                        options);
       expr_copy->variant.condition->expr =
-                     copy_expr_tree(expr->variant.condition->expr);
+                      copy_expr_tree(expr->variant.condition->expr, options);
       break;
     case enk_object_lifetime:
       /* For an object lifetime, create a new object lifetime for the copy. */
 #if MINIMAL_INLINING
       { a_boolean need_to_pop_function_lifetime = FALSE;
-        if (currently_doing_inlining_of_function_call) {
+        if (options & CE_DOING_INLINING_OF_FUNCTION_CALL) {
           /* When doing inlining, we might be expanding a function that has
              object lifetimes into a function that has none.  If so, we need
              to add an object lifetime to the current function. */
@@ -6142,7 +6177,8 @@ Make a copy of an expression tree and return a pointer to it.
         push_object_lifetime(iek_none, (char *)NULL,
                              expr->variant.object_lifetime.ptr->kind);
         expr_copy->variant.object_lifetime.expr =
-                            copy_expr_tree(expr->variant.object_lifetime.expr);
+                             copy_expr_tree(expr->variant.object_lifetime.expr,
+                                            options);
         expr_copy->variant.object_lifetime.ptr = NULL;
         bind_object_lifetime(curr_object_lifetime, iek_expr_node,
                              (char *)expr_copy);
@@ -6156,7 +6192,7 @@ Make a copy of an expression tree and return a pointer to it.
       /* If the expr field is non-NULL, copy it. */
       if (expr->variant.typeid_info.expr != NULL) {
         expr_copy->variant.typeid_info.expr =
-                           copy_expr_tree(expr->variant.typeid_info.expr);
+                       copy_expr_tree(expr->variant.typeid_info.expr, options);
       }  /* if */
       break;
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
@@ -6168,7 +6204,7 @@ Make a copy of an expression tree and return a pointer to it.
       unexpected_condition_str("copy_expr_tree: bad expr kind");
   }  /* if */
 #if MINIMAL_INLINING
-  if (currently_doing_inlining_of_function_call) {
+  if (options & CE_DOING_INLINING_OF_FUNCTION_CALL) {
     /* When doing inlining, look for parameters that should be remapped. */
     adjust_copied_expression_for_inlining(expr_copy);
   }  /* if */
@@ -6224,7 +6260,7 @@ scope memory region.
     expr = expr->variant.object_lifetime.expr;
   }  /* if */
   /* Copy the expression. */
-  expr = copy_expr_tree(expr);
+  expr = copy_expr_tree(expr, CE_NO_OPTIONS);
   if (lifetime != NULL) {
     /* Put an enk_object_lifetime node on the copy. */
     expr = add_object_lifetime_to_expr(expr, lifetime);
@@ -6251,7 +6287,7 @@ as a "generated" default argument expression.
        bound into the curr_object_lifetime. */
     expr = expr->variant.object_lifetime.expr;
   }  /* if */
-  expr = copy_expr_tree(expr);
+  expr = copy_expr_tree(expr, CE_NO_OPTIONS);
   expr->generated_default_arg = TRUE;
   return expr;
 }  /* copy_default_arg_expr */
