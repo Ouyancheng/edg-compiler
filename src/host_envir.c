@@ -391,7 +391,7 @@ The space is allocated in general (not IL or FE) memory.
 }  /* alloc_directory_name_entry */
 
 
-static void add_to_specified_include_search_path(
+void add_to_specified_include_search_path(
 			char				*dir_name,
 			a_boolean			system_include_dir,
 			a_directory_name_entry_ptr	*search_path,
@@ -432,7 +432,10 @@ a "system" include directory.
 }  /* add_to_include_search_path */
 
 
-void add_to_front_of_include_search_path(char *dir_name)
+void add_to_front_of_include_search_path(
+				char			   *dir_name,
+				a_directory_name_entry_ptr *search_path,
+				a_directory_name_entry_ptr *end_search_path)
 /*
 Add the indicated directory to the front of the include file search
 path.  The directory name string should be allocated in general memory.
@@ -442,13 +445,15 @@ path.  The directory name string should be allocated in general memory.
 
   new_search_path = alloc_directory_name_entry();
   new_search_path->dir_name = dir_name;
-  new_search_path->next     = incl_search_path;
-  if (incl_search_path == NULL) end_incl_search_path = new_search_path;
-  incl_search_path = new_search_path;
+  new_search_path->next     = *search_path;
+  if (*search_path == NULL) *end_search_path = new_search_path;
+  *search_path = new_search_path;
 }  /* add_to_front_of_include_search_path */
 
 
-void add_default_include_search_path(void)
+void add_default_include_search_path(
+				a_directory_name_entry_ptr *search_path,
+				a_directory_name_entry_ptr *end_search_path)
 /*
 Add the list of directories to be used as a default search path for
 include files to the end of the search path lists.
@@ -465,11 +470,13 @@ include files to the end of the search path lists.
   /* Add the default directory to the end of the normal search path. */
   usr_include = getenv("USR_INCLUDE");
   if (usr_include == NULL) usr_include = DEFAULT_USR_INCLUDE;
-  add_to_include_search_path(usr_include, /*system_include_dir=*/TRUE);
+  add_to_specified_include_search_path(usr_include,
+                                       /*system_include_dir=*/TRUE,
+                                       search_path, end_search_path);
 #endif /* NO_USR_INCLUDE */
 #if __VMS__
   /* For VMS, add the current directory to the search path. */
-  add_to_front_of_include_search_path("");
+  add_to_front_of_include_search_path("", search_path, end_search_path);
 #endif /* __VMS__ */
 }  /* add_default_include_search_path */
 
@@ -508,7 +515,8 @@ stack_referenced_include_directories to TRUE.
     if (stack_referenced_include_directories) {
       /* The new directory becomes the primary include search directory, but
          the current one remains in the search path. */
-      add_to_front_of_include_search_path(dir_name);
+      add_to_front_of_include_search_path(dir_name, &incl_search_path,
+                                          &end_incl_search_path);
     } else {
       /* The name in the current primary include search directory (the head of
          list of directory name entries) is simply replaced by dir_name. */
@@ -1021,7 +1029,7 @@ of the file name is bad.
   FILE        *temp_file;
 
 #if DEBUG
-  if (debug_level >= 2) {
+  if (db_flag_is_set("open_source_file") || debug_level >= 2) {
     fprintf(f_debug, "About to open %s\n", file_name);
   }  /* if */
 #endif /* DEBUG */

@@ -4167,6 +4167,26 @@ position indicated by error_position, and then terminate the compilation.
 }  /* str_catastrophe */
 
 
+DOES_NOT_RETURN pos_str2_catastrophe(an_error_code     error_code,
+                                     char              *error_string1,
+                                     char              *error_string2,
+				     a_source_position *error_pos)
+/*
+Report the indicated catastrophe (with the indicated fill-in strings) at the
+indicated error_position, and then terminate the compilation.
+*/
+{
+  init_error_params();
+  error_msg_strings[1] = error_string1;
+  error_msg_strings[2] = error_string2;
+  diag_message(error_code, error_pos, es_catastrophe, dck_standalone);
+#ifdef __GNUC__
+  /* Avoid gcc warning.  diag_message does not return in this case. */
+  exit_compilation(es_internal_error);
+#endif /* __GNUC__ */
+}  /* pos_str2_catastrophe */
+
+
 DOES_NOT_RETURN catastrophe(an_error_code error_code)
 /*
 Report the indicated catastrophe at the position indicated by error_position,

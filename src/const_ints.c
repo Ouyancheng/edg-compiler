@@ -1713,6 +1713,19 @@ so no checking is done.
 #endif /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
 
 
+char *conv_unsigned_long_to_str(unsigned long val)
+/*
+Convert an integer to a character string.  Return a pointer to the
+buffer containing the string.  The buffer is static storage that will
+be overwritten by subsequent calls.
+*/
+{
+  static char buffer[50];
+  sprintf(buffer, "%lu", val);
+  return buffer;
+}  /* conv_unsigned_long_to_str */
+
+
 #if DEBUG
 char* db_format_integer_value(an_integer_value  *value)
 /*

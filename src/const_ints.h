@@ -238,6 +238,8 @@ extern an_integer_kind int_kind_for_size_and_alignment(
                                                 a_targ_alignment alignment,
                                                 a_boolean        is_signed);
 
+extern char *conv_unsigned_long_to_str(unsigned long val);
+
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
 extern an_integer_kind int_kind_for_bit_size(unsigned int  number_of_bits,
                                              a_boolean     is_signed);

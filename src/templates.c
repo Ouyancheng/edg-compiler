@@ -12130,6 +12130,9 @@ to it.
   etfp->module_id = NULL;
   etfp->define_list = NULL;
   etfp->undefine_list = NULL;
+  etfp->incl_search_path = NULL;
+  etfp->end_incl_search_path = NULL;
+  etfp->sys_incl_search_path = NULL;
   return etfp;
 }  /* alloc_exported_template_file */
 
@@ -15972,7 +15975,22 @@ returned points to a static buffer that is reused for each call.
   }  /* while */
   /* Determine whether to return end-of-file (NULL). */
   result = file_read_buffer->buffer;
-  if (ch == EOF && file_read_buffer->size == 0) result = NULL;
+  if (ch == EOF && file_read_buffer->size == 0) {
+    result = NULL;
+  } else if (file_read_buffer->size > 0) {
+    /* Strip any trailing blanks.*/
+    char	*ptr = &file_read_buffer->buffer[file_read_buffer->size - 1];
+    char	*orig_ptr = ptr;
+    /* Find the last non-blank. */
+    while (*ptr == ' ' && ptr >= result) ptr--;
+    if (ptr != orig_ptr) {
+      /* Set the position at which to add characters to one past the last
+         non blank.  If the buffer is all blanks, this will make the buffer
+         empty. */
+      ptr++;
+      set_buffer_position(file_read_buffer, ptr);
+    }  /* if */
+  }  /* if */
   /* Terminate string with a null character. */
   add_char_to_text_buffer(file_read_buffer, '\0');
   return (result);
@@ -16410,11 +16428,14 @@ Determine the type of "line" that was read from an exported template file.
 
 static void read_exported_template_file(
 				char				*file_name,
-				a_directory_name_entry_ptr	dnep)
+				a_directory_name_entry_ptr	dnep,
+				an_export_info_file_ptr		eifp)
 /*
 Read the exported template file specified by file_name, found in the
 directory indicated by dnep.  Create lookup table entries for the
-templates defined in the file.
+templates defined in the file.  "eifp" is a structure that represents
+the information in the export information file associated with this
+directory, if any.
 
 An exported template file can actually contain information about multiple
 source files.  For example:
@@ -16452,6 +16473,10 @@ This routine reads all of the entries from a given exported template file.
                                                    dnep->dir_name);
       etfp->source_file_name = copy_string_to_region(
                                              FRONT_END_REGION_NUMBER, name);
+      /* Set the include search path information from the export info file. */
+      etfp->incl_search_path = eifp->incl_search_path;
+      etfp->end_incl_search_path = eifp->end_incl_search_path;
+      etfp->sys_incl_search_path = eifp->sys_incl_search_path;
     } else if (etfp == NULL || etfp->source_file_name == NULL) {
       /* The exported template file did not contain a file name.  Issue
          an error. */
@@ -16500,6 +16525,167 @@ This routine reads all of the entries from a given exported template file.
 }  /* read_exported_template_file */
 
 
+static void init_export_info_file(an_export_info_file_ptr	eifp)
+/*
+Initialize the fields of an export_info_file entry.
+*/
+{
+  eifp->dir_name_entry = NULL;
+  eifp->file_name = NULL;
+  eifp->incl_search_path = NULL;
+  eifp->end_incl_search_path = NULL;
+  eifp->sys_incl_search_path = NULL;
+}  /* init_export_info_file */
+
+
+static FILE *open_export_info_file(an_export_info_file_ptr	eifp)
+/*
+Attempt to open the export information in the directory specified by
+"eifp".  Return the file pointer if it can be opened, or NULL otherwise.
+*/
+{
+  FILE			*f_file;
+  a_text_buffer_ptr	file_name_buffer;
+  char			*file_name;
+
+  file_name_buffer = combine_dir_and_file_name(eifp->dir_name_entry->dir_name,
+                                               EXPORT_INFO_FILE_NAME,
+                                               (a_text_buffer_ptr)NULL);
+  file_name = file_name_buffer->buffer;
+  /* Save a copy of the file name. */
+  eifp->file_name = copy_string_to_region(FRONT_END_REGION_NUMBER,
+                                          file_name);
+#if DEBUG
+  if (db_flag_is_set("export")) {
+    fprintf(f_debug, "Opening export information file: %s\n", file_name);
+  }  /* if */
+#endif /* DEBUG */
+  f_file = fopen(file_name, "r");
+  return f_file;
+} /* open_export_info_file */
+
+
+static void bad_export_info_file(an_export_info_file_ptr	eifp,
+				 int				line_number)
+/*
+Call an error routine to issue a diagnostic about an invalid export
+information file.
+*/
+{
+  char	*str_line_number;
+
+  str_line_number = conv_unsigned_long_to_str((unsigned long)line_number);
+  pos_str2_catastrophe(ec_bad_export_info_file, eifp->file_name,
+                       str_line_number,
+                       &null_source_position);
+}  /* bad_export_info_file */
+
+
+static void scan_export_info_line(an_export_info_file_ptr	eifp,
+				  char				*line,
+				  int				line_number,
+				  char				**param_name,
+				  char				**value)
+/*
+"line" is a line read from an export information file.  Find the parameter
+name and value from the line.
+*/
+{
+  char	*ptr = line;
+  int	ch;
+  char	*param_end;
+
+  /* Lines are of the form "parameter_name = value".  Find the two
+     components. */
+  *param_name = ptr;
+  /* Find the end of the parameter name. */
+  for (ch = *ptr; ch != ' ' && ch != '=' && ch != '\0';) ch = *++ptr;
+  /* This should be the character after the end of the parameter name. */
+  param_end = ptr;
+  /* Skip any blanks to find the '='. */
+  while (*ptr == ' ') ptr++;
+  /* The next character must be a '='. */
+  if (*ptr != '=') bad_export_info_file(eifp, line_number);
+  /* Skip past the '='. */
+  ptr++;
+  /* Put a null terminator after the parameter name. */
+  *param_end = '\0';
+  /* Skip any blanks before the value. */
+  while (*ptr == ' ') ptr++;
+  if (*ptr == '\0') bad_export_info_file(eifp, line_number);
+  *value = ptr;
+  /* Note that trailing blanks are removed by the routine that reads the
+     line from the file. */
+}  /* scan_export_info_line */
+
+
+static void read_export_info_file(an_export_info_file_ptr	eifp)
+/*
+Read the contents of an export_info file.  "dir_name" is the directory in which
+to look for the file.  "eifp" is the entry into which the information from
+the file should be placed.
+*/
+{
+  FILE				*f_file;
+  char				*line;
+  int				line_number = 0;
+  a_directory_name_entry_ptr	search_path = NULL;
+  a_directory_name_entry_ptr	end_search_path = NULL;
+  a_directory_name_entry_ptr	sys_include_boundary = NULL;
+
+  if (put_dir_of_each_opened_source_file_on_incl_search_path) {
+    /* Put the current directory on the search path. */
+    add_to_specified_include_search_path(".", /*is_system_include=*/FALSE,
+                                         &search_path, &end_search_path);
+  }  /* if */
+  /* Attempt to open the export information file in the specified directory. */
+  f_file = open_export_info_file(eifp);
+  if (f_file != NULL) {
+    /* The file exists -- read its contents. */
+    while ((line = read_line_from_file(f_file)) != NULL) {
+      char	*param_name;
+      char	*value;
+      char	*ptr = line;
+      /* Increment the line number. */
+      line_number++;
+      /* Skip any leading blanks. */
+      while (*ptr == ' ') ptr++;
+      /* Ignore comment lines (that begin with a "#") and empty lines. */
+      if (*ptr == '#' || *ptr == '\0') continue;
+      scan_export_info_line(eifp, line, line_number, &param_name, &value);
+      if (strcmp(param_name, "include") == 0 ||
+          strcmp(param_name, "sys_include") == 0) {
+        if (strcmp(value, "-") == 0) {
+          /* Record the boundary between the normal search path and the system
+             include search path. */
+          sys_include_boundary = search_path;
+        } else {
+          char	*dir_name;
+          /* Add the specified directory to the include search path. */
+          dir_name = copy_string_to_region(FRONT_END_REGION_NUMBER, value);
+          add_to_specified_include_search_path(dir_name,
+                                               param_name[0] == 's',
+                                               &search_path, &end_search_path);
+        }  /* if */
+      } else {
+        bad_export_info_file(eifp, line_number);
+      }  /* if */
+    }  /* while */
+  }  /* if */
+  /* Add the default include directory to the end of the list. */
+  add_default_include_search_path(&search_path, &end_search_path);
+  /* Set the include search path information based on the information from
+     the file (or the default values if there was no file). */
+  eifp->incl_search_path = search_path;
+  eifp->end_incl_search_path = end_search_path;
+  if (sys_include_boundary != NULL) {
+    eifp->sys_incl_search_path = sys_include_boundary->next;
+  } else {
+    eifp->sys_incl_search_path = search_path;
+  }  /* if */
+}  /* read_export_info_file */
+
+
 static void find_exported_template_files(void)
 /*
 Go through the template search path and read the exported template files
@@ -16512,6 +16698,11 @@ compilation can be looked up to find the corresponding definition.
 
   db_enter(2, "find_exported_template_files");
   for (dnep = template_search_path; dnep != NULL; dnep = dnep->next) {
+    an_export_info_file	export_info;
+    /* Look for an export information file in this directory. */
+    init_export_info_file(&export_info);
+    export_info.dir_name_entry = dnep;
+    read_export_info_file(&export_info);
     for (first = TRUE;;first = FALSE) {
       char	*file_name;
       file_name = get_file_name_from_dir(first, dnep->dir_name,
@@ -16520,7 +16711,7 @@ compilation can be looked up to find the corresponding definition.
       /* A NULL pointer indicates there are no more matching file names. */
       if (file_name == NULL) break;
       /* Read the contents of the file. */
-      read_exported_template_file(file_name, dnep);
+      read_exported_template_file(file_name, dnep, &export_info);
     }  /* for */
   }  /* for */
   db_exit();

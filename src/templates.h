@@ -85,6 +85,30 @@ typedef int a_set_instance_required_options_set;
 			   instance required flag to be cleared. */
 
 /*
+Structure used to represent the information found an in export information
+file.
+*/
+typedef struct an_export_info_file *an_export_info_file_ptr;
+typedef struct an_export_info_file {
+  a_directory_name_entry_ptr
+		dir_name_entry;
+			/* The directory name entry for the export template
+			   search directory associated with this file. */
+  char		*file_name;
+			/* The name of the export information file. */
+  a_directory_name_entry_ptr
+		incl_search_path;
+			/* The include search path to be used. */
+  a_directory_name_entry_ptr
+		end_incl_search_path;
+			/* The end of the include search path. */
+  a_directory_name_entry_ptr
+		sys_incl_search_path;
+			/* The system include search path to be used (i.e.,
+			   for includes of the form <...>). */
+} an_export_info_file;
+
+/*
 Structure used to keep track of the class template partial specializations
 or function templates that match a given instance.
 */

@@ -656,14 +656,24 @@ treated as separate translation units of a single compilation.
   }  /* if */
   translation_units_tail = trans_unit;
   if (exported_file != NULL) {
-    /* Set the macro define/undefines to be used for this exported template
-       file.  For secondary translation units loaded from the command-line,
-       these variables retain the values used for the primary translation
-       unit. */
+    /* Set the include search path and macro define/undefines to be used for
+       this exported template file.  For secondary translation units loaded
+       from the command-line, these variables retain the values used for the
+       primary translation unit. */
+    char	*dir_name;
     defs_from_cmd_line = exported_file->define_list;
     undefs_from_cmd_line = exported_file->undefine_list;
+    incl_search_path = exported_file->incl_search_path;
+    sys_incl_search_path = exported_file->sys_incl_search_path;
+    end_incl_search_path = exported_file->end_incl_search_path;
     /* Save the translation unit associated with this exported template. */
     exported_file->translation_unit = trans_unit;
+    /* For exported translation units, update the include search path to
+       reflect the directory of the file being used. */
+    dir_name = gs_directory_of(file_name);
+    dir_name_of_primary_source_file = dir_name;
+    add_to_front_of_include_search_path(dir_name, &incl_search_path,
+                                        &end_incl_search_path);
   }  /* if */
   fe_translation_unit_init();
   trans_unit->file_scope_region_number = file_scope_region_number;

@@ -3607,7 +3607,7 @@ enable_microsoft_mode:
   /* Add the default directories to the end of the include search path.
      The list is then any -I directories, in the order they were specified,
      and the default directories at the end. */
-  add_default_include_search_path();
+  add_default_include_search_path(&incl_search_path, &end_incl_search_path);
   /* If there was a -I- option, the system include search path starts at
      the indicated point.  Otherwise, the system include search path is
      the same as the normal search path. */
@@ -3640,7 +3640,8 @@ enable_microsoft_mode:
 #endif /* USING_PURIFY */
     dir_name = gs_directory_of(primary_source_file_name);
     dir_name_of_primary_source_file = dir_name;
-    add_to_front_of_include_search_path(dir_name);
+    add_to_front_of_include_search_path(dir_name, &incl_search_path,
+                                        &end_incl_search_path);
   }  /* if */
 #if BACK_END_IS_CP_GEN_BE && AUTOMATIC_TEMPLATE_INSTANTIATION
   /* The C++-generating back end can't handle instantiations of exported

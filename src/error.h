@@ -442,6 +442,12 @@ extern DOES_NOT_RETURN str_catastrophe(an_error_code error_code,
 /*lint -sem(catastrophe, r_no)*/
 extern DOES_NOT_RETURN catastrophe(an_error_code error_code);
 
+/*lint -sem(pos_str2_catastrophe, r_no)*/
+extern DOES_NOT_RETURN pos_str2_catastrophe(an_error_code     error_code,
+                                            char              *error_string1,
+                                            char              *error_string2,
+    				            a_source_position *error_pos);
+
 /* Interfaces for producing multiple message diagnostics. */
 extern void pos_start_diagnostic(an_error_severity  error_severity,
                                  an_error_code      error_code,

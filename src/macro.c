@@ -4316,19 +4316,6 @@ header file, so some of the predefined macros need to be altered.
 }  /* fixup_predefined_macros */
 
 
-static char *conv_unsigned_long_to_str(unsigned long val)
-/*
-Convert an integer to a character string.  Return a pointer to the
-buffer containing the string.  The buffer is static storage that will
-be overwritten by subsequent calls.
-*/
-{
-  static char buffer[50];
-  sprintf(buffer, "%lu", val);
-  return buffer;
-}  /* conv_unsigned_long_to_str */
-
-
 static void init_runtime_macros(void)
 /*
 Initialize a set of macros that are use to pass configuration information

@@ -1142,6 +1142,15 @@ templates that are defined by a given file.
 #endif /* ifndef EXPORTED_TEMPLATE_FILE_SUFFIX */
 
 /*
+The name used for the file found in an export template directory that
+provides information about how files in that directory should be
+recompiled, such as the include search paths to be used.
+*/
+#ifndef EXPORT_INFO_FILE_NAME
+#define EXPORT_INFO_FILE_NAME "export_info"
+#endif /* ifndef EXPORT_INFO_FILE_NAME */
+
+/*
 Flag that is TRUE if a template information file should be created for
 information such as instantiation files (in one instantiation per object
 file mode), or to contain template instantiation flags. 
@@ -1570,12 +1579,23 @@ EXTERN a_directory_name_entry_ptr
 			   IL storage. */
 
 /* Add the default system include file search path. */
-extern void add_default_include_search_path(void);
+extern void add_default_include_search_path(
+				a_directory_name_entry_ptr *search_path,
+				a_directory_name_entry_ptr *end_search_path);
+/* Add a directory to a specified search path. */
+extern void add_to_specified_include_search_path(
+			char				*dir_name,
+			a_boolean			system_include_dir,
+			a_directory_name_entry_ptr	*search_path,
+			a_directory_name_entry_ptr	*end_search_path);
 /* Add a directory to the end of the include file search path. */
 extern void add_to_include_search_path(char		*dir_name,
                                        a_boolean	sys_include_dir);
 /* Add a directory to the front of the include file search path. */
-extern void add_to_front_of_include_search_path(char *dir_name);
+extern void add_to_front_of_include_search_path(
+				char			   *dir_name,
+				a_directory_name_entry_ptr *search_path,
+				a_directory_name_entry_ptr *end_search_path);
 
 /* Change the directory name in the primary include file search path entry. */
 extern void change_primary_include_search_dir(char *dir_name);
