@@ -1947,12 +1947,6 @@ extern void remove_symbol(a_symbol_ptr sym_ptr);
 extern void remove_anonymous_union_member_from_inactive_symbols_list
                                                        (a_symbol_ptr sym_ptr);
 
-extern a_boolean symbols_may_coexist_in_curr_scope
-					(a_symbol_ptr  old_sym,
-                                         a_symbol_ptr  new_sym,
-                                         a_symbol_ptr  *insert_sym,
-					 a_boolean     suppress_error);
-
 extern void add_symbol_to_inactive_list(a_symbol_ptr sym_ptr);
 
 extern a_symbol_ptr find_external_symbol(a_symbol_locator     *location,
@@ -2288,7 +2282,6 @@ a_template_param_ptr alloc_template_param
                                  a_boolean    def_arg_involves_template_param);
 
 extern a_template_instance_ptr alloc_template_instance(void);
-extern void free_param_id(a_param_id_ptr *ppip);
 extern void free_param_id_list(a_param_id_ptr *pidlist);
 extern void clear_func_info(a_func_info_block *func_info);
 

@@ -1273,7 +1273,7 @@ global, or namespace qualifier.
 }  /* clear_qualifier_from_locator */
 
 
-a_namespace_list_entry_ptr alloc_namespace_list_entry(void)
+static a_namespace_list_entry_ptr alloc_namespace_list_entry(void)
 /*
 Allocate a namespace list entry and return a pointer to it.
 */
@@ -1764,6 +1764,7 @@ them up one level.
 }  /* remove_anonymous_union_member_from_inactive_symbols_list */
 
 
+static
 a_boolean symbols_may_coexist_in_curr_scope(a_symbol_ptr  old_sym,
                                             a_symbol_ptr  new_sym,
                                             a_symbol_ptr  *insert_sym,
@@ -5158,7 +5159,7 @@ protected member access check.
 }  /* have_derived_class_access_from_class_scope */
 
 
-a_boolean have_member_access_to_derived_class(a_type_ptr class_type)
+static a_boolean have_member_access_to_derived_class(a_type_ptr class_type)
 /*
 Return TRUE if we have member access to some derived class of class_type.
 This is used for the ARM 11.5 protected member access check.
@@ -6047,7 +6048,7 @@ locator_for_curr_id.
 }  /* alloc_param_id */
 
 
-void free_param_id(a_param_id_ptr *ppip)
+static void free_param_id(a_param_id_ptr *ppip)
 /*
 Free the parameter id block pointed to by *ppip, set *ppip to NULL.
 */
