@@ -1000,16 +1000,17 @@ is_qualified_name is TRUE if the function was named by a qualified name
 
 
 void make_sym_for_member_operand(a_symbol_ptr    member_sym,
+                                 a_boolean       is_qualified_name,
                                  a_ref_entry_ptr rep,
                                  an_operand      *operand)
 /*
-Make an operand for a class member name, used in C++ for qualified
-names that appear in a context that calls for (or might call for) a
-pointer-to-member.  For nonstatic data members, that means only cases
-like &A::x.  For nonstatic member functions, it means all cases like
-A::f, because such a thing might decay to a pointer-to-member (that's
-an extension) or it might be called.  Not used for overloaded functions.
-member_sym points to the symbol entry for the member.  rep points to
+Make an operand for a nonstatic class member name.  Used in C++ to
+represent a member name per se, that is, to represent an uninterpreted
+member name from when it is scanned until it becomes clear from the
+context how the member is being used.  Not used for overloaded functions.
+member_sym points to the symbol entry for the member (possibly a
+projection symbol).  is_qualified_name is TRUE if the name was 
+qualified, e.g., "A::f" instead of just "f".  rep points to
 an associated reference entry, or is NULL if none is needed.  The
 operand is put into *operand.  It is a function designator if the
 symbol is a function, an rvalue otherwise.
@@ -1029,7 +1030,7 @@ symbol is a function, an rvalue otherwise.
     operand->type = fund_sym->variant.routine.ptr->type;
   }  /* if */
   operand->variant.symbol = member_sym;
-  operand->is_qualified_name = TRUE;  /* By definition. */
+  operand->is_qualified_name = is_qualified_name;
   copy_source_position(pos_curr_token, operand->position);
   operand->ref_entries_list = rep;
 }  /* make_sym_for_member_operand */
@@ -1559,20 +1560,12 @@ except for casts to ambiguous or inaccessible base classes.
                                          /*elided_reference=*/FALSE,
                                          (an_operand *)NULL,
                                          &access_error_reported);
-            if (strict_ansi_mode && !operand->is_qualified_name &&
-                operand->is_operand_of_address_of) {
-              /* Taking the address of a member function without using
-                 a qualified name is nonstandard.  Suppress the message here
-                 if the message about not using "&" will be generated
-                 by make_ptr_to_member_constant_operand. */
-              pos_diagnostic(strict_ansi_error_severity,
-                             ec_nonstd_member_function_address,
-                             &operand->position);
-            }  /* if */
             make_ptr_to_member_constant_operand(function_symbol,
                                                 overloaded_function_symbol,
                                                 &orig_operand.position,
                                                 !access_error_reported,
+                                                (a_boolean)operand->
+                                                      is_qualified_name,
                                                 (a_boolean)operand->
                                                       is_operand_of_address_of,
                                                 operand);
@@ -3208,6 +3201,7 @@ void make_ptr_to_member_constant_operand(
                                     a_symbol_ptr      member_proj_sym,
                                     a_source_position *position,
                                     a_boolean         check_protected_access,
+                                    a_boolean         is_qualified_name,
                                     a_boolean         is_operand_of_address_of,
                                     an_operand        *result)
 /*
@@ -3218,19 +3212,21 @@ symbol that contains member_sym, or it can be a projection symbol for
 either of those.  *position gives the source position to put into the
 operand.  If check_protected_access is TRUE and the symbol is a
 protected member, do the ARM 11.5 protected member access check.
-The name that generated this pointer-to-member constant is the operand
-of a "&" operator if is_operand_of_address_of is TRUE.
+The name that generated this pointer-to-member constant is a qualified
+name if is_qualified_name is TRUE; it is the operand of a "&" operator if
+is_operand_of_address_of is TRUE.  If the member is a bit field,
+issue an error.  
 */
 {
   a_constant    constant;
   a_type_ptr    member_type, member_class;
-  a_field_ptr   field;
   a_routine_ptr rout;
 
-  /* The ARM only allows this when the name is preceded by a "&" (5.3).
-     We allow it without "&" as an extension -- it's very much common
-     practice. */
-  if (strict_ansi_mode && !is_operand_of_address_of) {
+  /* The ARM only allows this when a qualified name is preceded by a "&" (5.3).
+     We allow it without "&" or without a qualified name as an extension --
+     it's common practice. */
+  if (strict_ansi_mode &&
+      (!is_operand_of_address_of || !is_qualified_name)) {
     pos_diagnostic(strict_ansi_error_severity,
                    ec_nonstd_member_function_address, position);
   }  /* if */
@@ -3258,9 +3254,13 @@ of a "&" operator if is_operand_of_address_of is TRUE.
   clear_constant(&constant, (a_constant_repr_kind)ck_ptr_to_member);
   if (member_sym->kind == (a_symbol_kind)sk_field) {
     /* Pointer to nonstatic data member. */
+    a_field_ptr field = member_sym->variant.field.ptr;
+    if (field->is_bit_field) {
+      /* Cannot make a pointer-to-member of a bit field. */
+      pos_error(ec_address_of_bit_field, position);
+    }  /* if */
     constant.variant.ptr_to_member.is_function_ptr = FALSE;
-    constant.variant.ptr_to_member.variant.field = field =
-                                                 member_sym->variant.field.ptr;
+    constant.variant.ptr_to_member.variant.field = field;
     member_type = field->type;
   } else {
 #if CHECKING
@@ -4361,13 +4361,14 @@ operand.
        expression. */
     operand->type = operand->variant.expression->type;
   } else if (is_sym_for_member_operand(operand)) {
-    /* Converting a qualified member name to a pointer-to-member. */
+    /* Converting a member name to a pointer-to-member. */
     func_sym = operand->variant.symbol;
     fund_sym = fundamental_symbol_of(func_sym);
     /* Make an operand for a pointer-to-member constant. */
     make_ptr_to_member_constant_operand(fund_sym, func_sym,
                                         &orig_operand.position,
                                        !operand->access_control_error_reported,
+                                        (a_boolean)operand->is_qualified_name,
                                         (a_boolean)operand->
                                                       is_operand_of_address_of,
                                         operand);

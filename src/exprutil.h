@@ -98,15 +98,14 @@ enum an_operand_kind_tag {
 			   type (which selects a specific function) or until
 			   used in some other way (which is an error).  Not
 			   used in C. */
-  ok_sym_for_member,	/* A symbol for a data member or member function
-			   that was referenced by qualified name (e.g., A::f),
-			   preserved because its address might be taken as a
-			   pointer-to-member.  That's guaranteed in the data
-			   member case; in the member function case, it's
-			   possible (likely, even) that the function will be
-			   called instead.  The function is never an overloaded
-			   function (ok_indefinite_function would be used
-			   instead).  Not used in C. */
+  ok_sym_for_member,	/* A symbol for a nonstatic data member or nonstatic
+			   member function.  Represented in this way because
+			   it's not clear yet how the member is being used --
+			   its address might be taken (e.g., "&A::f"), it
+			   might get bound to an object and called (e.g.,
+			   "p->f(1)"), etc.  Not used for overloaded
+			   functions (ok_indefinite_function is used
+			   instead).  Used only in C++. */
   ok_undefined_symbol	/* An undefined symbol encountered while scanning an
 			   expression.  Could be an implicit function
 			   declaration or a genuine undefined symbol.
@@ -184,7 +183,9 @@ typedef struct an_operand {
        ok_undefined_symbol: */
     a_symbol_ptr
 		symbol;
-			/* Pointer to the symbol. */
+			/* Pointer to the symbol.  May be a projection
+			   symbol for ok_indefinite_function or
+			   ok_sym_for_member. */
   } variant;
 } an_operand;
 
@@ -550,6 +551,7 @@ extern void make_ptr_to_member_constant_operand(
                                     a_symbol_ptr      member_proj_sym,
                                     a_source_position *position,
                                     a_boolean         check_protected_access,
+                                    a_boolean         is_qualified_name,
                                     a_boolean         is_operand_of_address_of,
                                     an_operand        *result);
 
@@ -619,6 +621,7 @@ extern void make_indefinite_function_operand(a_symbol_ptr routine_sym,
                                              an_operand   *operand);
 
 extern void make_sym_for_member_operand(a_symbol_ptr    member_sym,
+                                        a_boolean       is_qualified_name,
                                         a_ref_entry_ptr rep,
                                         an_operand      *operand);
 
