@@ -238,6 +238,8 @@ extern a_type_ptr rvalue_type(a_type_ptr type);
 
 extern a_type_ptr return_type_of(a_type_ptr routine_type);
 
+extern a_type_ptr il_return_type_of(a_type_ptr routine_type);
+
 extern a_type_ptr make_field_selection_type(a_field_ptr           field,
                                             a_type_qualifier_set  qualifiers);
 

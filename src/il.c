@@ -5210,6 +5210,29 @@ Otherwise, it is the type of the rvalue returned.
 }  /* return_type_of */
 
 
+a_type_ptr il_return_type_of(a_type_ptr routine_type)
+/*
+Return the type that is the return type of the given function type, as
+it would appear as the type on a call of the function in the IL.
+*/
+{
+  a_type_ptr return_type;
+
+  routine_type = skip_typerefs(routine_type);
+  return_type = routine_type->variant.routine.return_type;
+  if (is_reference_type(return_type)) {
+    /* If the function returns a reference type, make the result a
+       pointer. */
+    return_type = make_pointer_type(type_pointed_to(return_type));
+  } else {
+    /* The function returns a non-reference type, so the result is an
+       rvalue and cv-qualifiers should be dropped appropriately. */
+    return_type = rvalue_type(return_type);
+  }  /* if */
+  return return_type;
+}  /* il_return_type_of */
+
+
 a_type_ptr make_field_selection_type(a_field_ptr           field,
                                      a_type_qualifier_set  qualifiers)
 /*

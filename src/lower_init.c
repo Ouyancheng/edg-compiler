@@ -274,7 +274,7 @@ at *insert_location.
 */
 {
   an_expr_node_ptr      call_node, rout_node;
-  a_type_ptr            rout_type, rout_return_type;
+  a_type_ptr            rout_return_type;
   an_expr_operator_kind op;
   a_statement_ptr       call_stmt = NULL;
 
@@ -310,8 +310,7 @@ at *insert_location.
     routine->source_corresp.referenced = TRUE;
   }  /* if */
   /* Make the call node. */
-  rout_type = skip_typerefs(routine->type);
-  rout_return_type = rout_type->variant.routine.return_type;
+  rout_return_type = il_return_type_of(routine->type);
   call_node = make_operator_node(op, rout_return_type, rout_node);
   if (insert_location != NULL) {
     call_stmt = insert_expr_statement_set_pos(call_node, insert_location);
