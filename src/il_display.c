@@ -2280,6 +2280,9 @@ Display the indicated object lifetime.
     case olk_expr_temporary:
       (void)printf("olk_expr_temporary\n");
       break;
+    case olk_try_block:
+      (void)printf("olk_try_block\n");
+      break;
     default:
       (void)printf("**BAD OBJECT LIFETIME KIND**\n");
   }  /* switch */

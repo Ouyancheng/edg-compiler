@@ -2675,7 +2675,7 @@ where handler-seq is a sequence of one or more handlers of the form
   if (!C_mode()) {
     /* Push an object lifetime. */
     push_object_lifetime(iek_try_supplement, (char *)sp->variant.try_block,
-                         (an_object_lifetime_kind)olk_block);
+                         (an_object_lifetime_kind)olk_try_block);
   }  /* if */
   current_routine_entry()->contains_try_block = TRUE;
 #if CHECKING

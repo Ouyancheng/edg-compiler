@@ -5206,7 +5206,8 @@ enum an_object_lifetime_kind_tag {
 			       <olk_block_after_label>
 			     }      */
   olk_function_static,	/* Lifetime of function-local static variables. */
-  olk_expr_temporary	/* Lifetime of expression temporaries. */
+  olk_expr_temporary,	/* Lifetime of expression temporaries. */
+  olk_try_block		/* Lifetime of a try block. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte an_object_lifetime_kind;
@@ -5217,26 +5218,35 @@ typedef struct an_object_lifetime {
   /* Not used for objects allocated via "new," since their lifetimes
      are under user control.  Also not used for objects that don't
      require destruction. */
-  /* Possible kinds (indicated by entity.kind) are:
-	iek_scope	Entire scope; points to scope (file, function, or
-			  block).  This is the common case of an object
-			  lifetime that exactly matches a scope.  Includes
-			  as a special case scopes for exception handlers
-			  (catch clauses).
-	iek_expr_node	Full expression; points to enk_object_lifetime node
-			  which is the top node of expression.  Used for
-			  temporaries that last to end of full expression.
-	iek_block	Block; points to a_block entry.  Used in cfront
-			  mode for dependent statements (they have no
-			  associated scope, but there is an associated object
-			  lifetime).
-	iek_try_supplement
-			Try block; points to exception try block supplement.
-	iek_dynamic_init
-			Dynamic initialization; points to the dynamic
-			  initialization entry.  Used for temporaries created
-			  in constructor-call dynamic initializations that
-			  initialize variables.
+  /* The bindings between lifetimes and IL entries (indicated by entity.kind)
+     are:
+	olk_global_static
+		<==> iek_scope (sck_file only)
+	olk_block
+		<==> iek_scope (sck_function or sck_block)
+		<==> iek_block (used for cfront-mode dependent statements,
+		     which have no scope entry)
+	olk_block_after_label (one-way bindings -- the IL entities have no
+			       pointers back to the lifetime.)
+		 ==> iek_statement (stmk_label or a structured statement)
+		 ==> iek_switch_clause
+	olk_function_static
+		<==> iek_scope (sck_function only)
+			(Note: an entry for a function scope may bind to two
+			lifetimes, one for the topmost block of the function
+			and this one, for local static variables.)
+	olk_expr_temporary
+		<==> iek_expr_node (enk_object_lifetime, used for temporaries
+		     that last the lifetime of the full expression)
+		<==> iek_dynamic_init (used for temporaries created in
+		     constructor-call dynamic initializations that initialize
+		     variables).
+		<==> iek_block (as a result rewriting done for dynamic init
+		      entries during IL lowering)
+	olk_try_block
+		<==> iek_try_supplement
+		<==> iek_block (as a result of rewriting rewriting a try block
+		     into a block statement during IL lowering)
   */
   an_object_lifetime_kind
 		kind;
