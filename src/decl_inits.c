@@ -1342,6 +1342,8 @@ a_constructor_init_ptr ctor_initializer(a_routine_ptr  ctor_rout)
             /* Flush tokens? Scan? */
           } else if (is_scalar_type(init_type)) {
             add_stop_token(tok_rparen);
+            /* Allocate a new dynamic init entry, setting the kind to dik_none
+               for now.  It will be adjusted after the scan. */
             dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
             scan_initializer_of_simple_object(/*nonconst_allowed=*/TRUE,
                                               /*convert_array_to_ptr=*/TRUE,
@@ -1402,12 +1404,17 @@ a_constructor_init_ptr ctor_initializer(a_routine_ptr  ctor_rout)
     cip_list = virtual_list;
   }  /* if */
   /* Make a pass over the new list, adding default constructors where
-     appropriate. */
+     appropriate.  Items on the list are all subojects and members that
+     require constructor initialization (or have a destructor), plus
+     (optionally) additional items for which the user specified an initial
+     value. */
   for (cip = cip_list; cip != NULL; cip = cip->next) {
     if (cip->initializer == NULL) {
+      /* No initializer was explicitly specified. */
       array_type = NULL;
       if (cip->kind == (a_constructor_init_kind)cik_field) {
-        tp = cip->variant.field->type;
+        /* Get the field type.  For arrays, we want the element type. */
+        tp = skip_typerefs(cip->variant.field->type);
         if (is_array_type(tp)) {
           array_type = tp;
           do {
@@ -1415,39 +1422,53 @@ a_constructor_init_ptr ctor_initializer(a_routine_ptr  ctor_rout)
           } while(is_array_type(tp));
         }  /* while */
       } else {
-        tp = cip->variant.base_class->type;
+        /* Get the type of the base class. */
+        tp = skip_typerefs(cip->variant.base_class->type);
       }  /* if */
-      if (is_class_struct_union_type(tp)) {
-        cssp = symbol_supplement_for_class(tp);
-        dip = NULL;
-        if (cssp->default_constructor == NULL) {
-          if (cssp->destructor == NULL) {
-            str_error(ec_no_default_constructor,
-                      cip->variant.base_class->type->source_corresp.name);
-          } else {
-            dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
-          }  /* if */
-        } else {
-          dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
-          dip->variant.constructor.routine = rp =
-                                 cssp->default_constructor->variant.routine;
-          rp->source_corresp.referenced = TRUE;
-          dip->variant.constructor.args = NULL;
-        }  /* if */
-        if (cssp->destructor != NULL) {
-          dip->destructor = rp = cssp->destructor->variant.routine;
-          /* Mark the destructor referenced. */
-          rp->source_corresp.referenced = TRUE;
-        }  /* if */
-        if (dip != NULL && array_type != NULL) {
-          ctor_dip = dip;
-          dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
-          repeat_constructor_init(ctor_dip, dip,
-                                    array_type->size == 0 ? 1 :
-                                               array_type->size / tp->size);
-        }  /* if */
-        cip->initializer = dip;
+#if CHECKING
+      if (!is_class_struct_union_type(tp)) {
+        internal_error("ctor_initializer: unexpected type");
       }  /* if */
+#endif /* CHECKING */
+      cssp = symbol_supplement_for_class(tp);
+      if (cssp->default_constructor == NULL) {
+        /* This object has no default constructor.  If it has any constructor
+           at all this is an error, since nothing has been provided for
+           implicit initialization.  (It may have no constructors but a
+           destructor, in which case a dynamic init entry is also created.) */
+        if (cssp->constructor != NULL) {
+          str_error(ec_no_default_constructor,
+                     cip->variant.base_class->type->source_corresp.name);
+        }  /* if */
+        dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
+      } else {
+        /* A default constructor does exist.  Generate the dynamic init
+           entry and mark the constructor routine as referenced. */
+        dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
+        dip->variant.constructor.routine = rp =
+                               cssp->default_constructor->variant.routine;
+        rp->source_corresp.referenced = TRUE;
+        dip->variant.constructor.args = NULL;
+      }  /* if */
+      /* Record the destructor, if any, in the dynamic init entry. */
+      if (cssp->destructor != NULL) {
+        dip->destructor = rp = cssp->destructor->variant.routine;
+        /* Mark the destructor referenced. */
+        rp->source_corresp.referenced = TRUE;
+      }  /* if */
+      if (array_type != NULL) {
+        /* We have an array of objects with constructors.  Create a dynamic
+           init entry to handle the aggregate. */
+        ctor_dip = dip;
+        dip =
+           alloc_dynamic_init((a_dynamic_init_kind)dik_nonconstant_aggregate);
+        /* Build the looping constant entry. */
+        repeat_constructor_init(ctor_dip, dip,
+                                array_type->size == 0 ? 1 :
+                                             array_type->size / tp->size);
+      }  /* if */
+      /* Attach the new dynamic init entry to the constructor initializer. */
+      cip->initializer = dip;
     }  /* if */
   }  /* if */
 #if DEBUG
