@@ -1318,6 +1318,14 @@ typedef struct a_namespace_symbol_supplement {
                            is visible at more than one point, this contains
                            the depth of the innermost scope at which it
                            is visible. */
+  a_scope_number
+		depth_innermost_active_using_directive;
+			/* The scope depth at which the innermost using
+			   directive for this namespace appeared.  Contains
+			   NO_SCOPE_DEPTH if there are no active using
+			   directives for this scope.  Used to optimize
+			   certain tests of whether or not a namespace is on a
+			   scopes active using list. */
 } a_namespace_symbol_supplement;
 
 

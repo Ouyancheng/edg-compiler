@@ -1579,6 +1579,8 @@ on the list for the scope, a new entry is not added.
   a_symbol_ptr			 	ns_sym;
   a_scope_depth			 	new_depth;
   a_namespace_symbol_supplement_ptr	nssp;
+  a_scope_depth				curr_depth = ssep - &scope_stack[0];
+  a_boolean				add_to_list = FALSE;
 
   /* Get a pointer to the namespace to be used. */
   nsp = skip_namespace_aliases(udp->assoc_namespace);
@@ -1588,17 +1590,35 @@ on the list for the scope, a new entry is not added.
   new_depth = determine_scope_at_which_using_directive_applies(ns_sym, ssep);
   /* Determine whether this namespace is already on the active using list
      for this scope. */
-  audp = ssep->active_using_directives;
-  for (; audp != NULL; audp = audp->next) {
-    if (skip_namespace_aliases(audp->entry->assoc_namespace) == nsp) break;
-  }  /* for */
-  if (audp == NULL) {
+  if (curr_depth == nssp->depth_innermost_active_using_directive) {
+    /* The namespace is already on the active using list for this scope. */
+  } else if (nssp->depth_innermost_active_using_directive == NO_SCOPE_DEPTH) {
+    /* The namespace is not on any list, so we know we have to add it to this
+       one. */
+    add_to_list = TRUE;
+  } else {
+    /* We can't quickly tell whether or not the namespace is on the list
+       for this scope.  Look through the list to find out. */
+    audp = ssep->active_using_directives;
+    for (; audp != NULL; audp = audp->next) {
+      if (skip_namespace_aliases(audp->entry->assoc_namespace) == nsp) break;
+    }  /* for */
+    add_to_list = audp == NULL;
+  }  /* if */
+  if (add_to_list) {
     /* Add the using directive to the active list for this scope. */
     if (new_depth > nssp->scope_depth_at_which_using_directive_applies) {
       /* Only set the scope depth if it is greated than the existing value.
          When entries are added to previous scopes, we don't want to
          reset this value. */
       nssp->scope_depth_at_which_using_directive_applies = new_depth;
+    }  /* if */
+    /* Record the depth of the innermost scope for which this namespace
+       is on the scopes active using list.  This is done so that it
+       is possible to quickly determine whether a namespace is on the
+       active using list of the innermost scope. */
+    if (curr_depth > nssp->depth_innermost_active_using_directive) {
+      nssp->depth_innermost_active_using_directive = curr_depth;
     }  /* if */
     audp = alloc_active_using_directive();
     audp->entry = udp;
@@ -1686,6 +1706,7 @@ return a pointer to it.
   nssp = (a_namespace_symbol_supplement_ptr)
                    alloc_fe(sizeof(a_namespace_symbol_supplement));
   nssp->scope_depth_at_which_using_directive_applies = NO_SCOPE_DEPTH;
+  nssp->depth_innermost_active_using_directive = NO_SCOPE_DEPTH;
 #if DEBUG
   num_namespace_symbol_supplements_allocated++;
 #endif /* DEBUG */
@@ -8164,6 +8185,7 @@ starting_depth is the innermost scope to be processed.
 */
 {
   a_scope_stack_entry_ptr	ssep = &scope_stack[starting_depth];
+  a_scope_depth			curr_depth = starting_depth;
   for (;;) {
     an_active_using_directive_ptr	audp = ssep->active_using_directives;
     /* Set the flag for any active using directives for this scope. */
@@ -8175,6 +8197,16 @@ starting_depth is the innermost scope to be processed.
                     : NO_SCOPE_DEPTH;
       nssp = audp->namespace_supplement;
       nssp->scope_depth_at_which_using_directive_applies = new_depth;
+      /* Record the scope depth of the innermost active using directive for
+         this namespace.  If we are clearing the flags, reset this depth
+         to NO_SCOPE_DEPTH. */
+      if (set_value) {
+        if (curr_depth > nssp->depth_innermost_active_using_directive) {
+          nssp->depth_innermost_active_using_directive = curr_depth;
+        }  /* if */
+      } else {
+        nssp->depth_innermost_active_using_directive = NO_SCOPE_DEPTH;
+      }  /* if */
     }  /* for */
     /* Determine the next scope to be processed.  If this is an
        instantiation scope (but not a nested instantiation) skip
@@ -8185,8 +8217,10 @@ starting_depth is the innermost scope to be processed.
     } else if (ssep->kind == (a_scope_kind)sck_template_instantiation &&
         !ssep->nested_instantiation) {
       ssep = &scope_stack[DEPTH_OF_FILE_SCOPE];
+      curr_depth = DEPTH_OF_FILE_SCOPE;
     } else {
       ssep--;
+      curr_depth--;
     }  /* if */
   }  /* for */
 }  /* set_active_using_list_scope_depths */
