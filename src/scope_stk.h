@@ -109,6 +109,29 @@ typedef struct a_scope_pointers_block {
 } a_scope_pointers_block;
 
 
+/*
+Entry identifying a symbol that is visible in a given scope but would not
+be if old (cfront-compatible) for-init declaration scoping rules were used.
+*/
+typedef struct a_name_hidden_by_old_for_init
+                                     *a_name_hidden_by_old_for_init_ptr;
+typedef struct a_name_hidden_by_old_for_init {
+  a_name_hidden_by_old_for_init_ptr
+		next;
+			/* Next in a list of name_hidden_by_old_for_init
+			   entries for a given scope; NULL for the last in
+			   the list. */
+  a_symbol_ptr	symbol;
+			/* Pointer to a symbol (from an enclosing scope) for
+			   which hidden_by_old_for_init is TRUE. */
+  a_byte_boolean
+		already_hidden;
+			/* Value to which hidden_by_old_for_init in symbol
+			   should be restored when the current scope is
+			   popped. */
+} a_name_hidden_by_old_for_init;
+
+
 /* Scope stack, containing an entry for each currently-active scope. */
 typedef struct a_scope_stack_entry *a_scope_stack_entry_ptr;
 typedef struct a_scope_stack_entry {
@@ -548,6 +571,15 @@ typedef struct a_scope_stack_entry {
 			   entry that tracks general information about the
 			   class/struct/union definition as it accumulates;
 			   NULL otherwise. */
+  a_name_hidden_by_old_for_init_ptr
+		names_hidden_by_old_for_init;
+			/* For sck_function and sck_block scopes, pointer to
+			   a (possibly NULL) linked list of entries that
+			   identify symbols from an enclosing scope for which
+			   hidden_by_old_for_init is set to TRUE (because of
+			   for-init declarations of for-statements in the
+			   current scope).  Always NULL in C-mode or when
+			   use_nonstandard_for_init_scope is TRUE. */
 } a_scope_stack_entry;
 
 

@@ -941,6 +941,7 @@ instantiation scope (the template parameters to be used, etc.).
   ssep->first_template_cache_segment = NULL;
   ssep->last_template_cache_segment = NULL;
   ssep->class_def_state          = NULL;
+  ssep->names_hidden_by_old_for_init = NULL;
   /* Clear the substructure shared with namespace symbol supplements. */
   ssep->assoc_pointers_block     = NULL;
   clear_scope_pointers_block(&ssep->pointers_block);
