@@ -15161,6 +15161,30 @@ caller.
 }  /* find_corresponding_instance */
 
 
+static a_boolean entity_is_specialized_with_new_syntax(
+					a_template_instance_ptr	tip)
+/*
+Return TRUE if the template instance "tip" refers to an entity that
+has been specialized using a new-style specialization.
+*/
+{
+  a_boolean	specialized;
+
+  if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
+    a_variable_ptr	vp;
+    vp = tip->instance_sym->variant.static_data_member.variable;
+    specialized = vp->is_specialized &&
+                  !vp->specialized_with_old_syntax;
+  } else {
+    a_routine_ptr		      rp;
+    rp = tip->instance_sym->variant.routine.ptr;
+    specialized = rp->is_specialized &&
+                  !rp->specialized_with_old_syntax;
+  }  /* if */
+  return specialized;
+}  /* entity_is_specialized_with_new_syntax */
+
+
 static a_boolean entity_is_specialized(a_template_instance_ptr	tip)
 /*
 Return TRUE if the template instance "tip" refers to an entity that
@@ -16818,17 +16842,23 @@ be processed.
     if (!use_template_info_file && is_exported) {
       can_be_instantiated = TRUE;
     }  /* if */
+    /* Note that we do not set the do_not_instantiate flag for entries
+       specialized with the new syntax.  This would be pointless because
+       such specializations are mangled differently from the nonspecialized
+       version and the flag would have no effect in the prelinker. */
     if (is_static_data_member) {
       variable->can_be_instantiated = can_be_instantiated;
       do_not_instantiate = variable->do_not_instantiate
-                         = tip->explicit_do_not_instantiate;
+                         = tip->explicit_do_not_instantiate &&
+                           variable->specialized_with_old_syntax;
       instance_required = variable->instance_required
                         = (mip->instance_required_count &&
                            !variable->is_specialized);
     } else {
       routine->can_be_instantiated = can_be_instantiated;
       do_not_instantiate = routine->do_not_instantiate
-                         = tip->explicit_do_not_instantiate;
+                         = tip->explicit_do_not_instantiate &&
+                           routine->specialized_with_old_syntax;
       instance_required = routine->instance_required
                         = (mip->instance_required_count &&
                            !routine->is_specialized);
@@ -17171,7 +17201,7 @@ after instantiation_wrapup has been done for all of the translation units.
      at which update_auto_instantiation_flags is called is too late to
      generate certain mangled names. */
   for (mip = master_instantiations_list; mip != NULL; mip = mip->next) {
-    if (!entity_is_specialized(mip->instance)) {
+    if (!entity_is_specialized_with_new_syntax(mip->instance)) {
       (void)get_mangled_name_of_instance(mip);
     }  /* if */
   }  /* for */
