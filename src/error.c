@@ -488,7 +488,7 @@ called.
 {
   clear_il_to_str_output_control_block(&octl);
   octl.output_str = put_str_to_curr_output_msg_segment;
-  octl.gen_pcc_code = (C_dialect == C_dialect);
+  octl.gen_pcc_code = (C_dialect == C_dialect_pcc);
 }  /* set_up_output_control_block */
 
 
