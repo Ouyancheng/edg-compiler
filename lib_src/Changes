@@ -3,7 +3,7 @@ Version 2.44
 12/15/99 Inline functions in runtime changed to static
 
 The runtime includes some inline functions which, because of the
-language changes related to "extern inline" are now external.  These
+language changes related to "extern inline", are now external.  These
 functions have now been declared "static" to prevent them from polluting
 the global namespace.
 -------------------------------------------------------------------------------
