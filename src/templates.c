@@ -2525,53 +2525,58 @@ user later during real instantiations.
   rout_ptr = tssp->variant.function.routine;
   rout_sym = (a_symbol_ptr)rout_ptr->source_corresp.assoc_info;
   check_assertion(rout_sym != NULL);
-  func_info_ptr = func_info_for_template(tssp);
-  /* Push the template instantiation scope. */
-  tcp = cache_for_template(tssp);
-  /* For member functions that are not member templates the argument
-     list comes from the enclosing class that is reactivated by
-     push_template_instantiation_scope and the value from the routine
-     entry (which should be NULL) is not used. */
-  push_template_instantiation_scope(tcp->decl_info,
-				    (a_type_ptr)NULL, rout_ptr,
-				    rout_sym, template_sym,
-				    rout_ptr->template_arg_list,
-                                    /*push_stop_tokens=*/TRUE,
-                                    PS_PROTOTYPE_INSTANTIATION);
-  /* Reactivate any pragmas that should be bound to the generated
-     instance. */
-  reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
-  /* If a lint-style "argsused" or "varargs" comment appeared, record that in
-     the function type.  That will suppress any warnings about unused
-     parameters or variable arguments.  Note that this is done before calling
-     process_curr_construct_pragmas; otherwise the pragmas we're interested
-     in would have been disposed of. */
-  record_lint_argsused_and_varargs_state(rout_sym);
-  if (!exceptions_enabled && !func_info_ptr->is_inline &&
-      func_info_ptr->throw_position.seq != 0) {
-    /* Issue a diagnostic on attempting to define a noninline function with
-       an exception specification when exception support is not enabled.
-       (No diagnostic is issued on nondefinition -- the exception
-       specification is just ignored.) */
-    pos_error(ec_no_exception_support,
-              &func_info_ptr->throw_position);
+  if (rout_ptr->assoc_scope != NULL_region_number) {
+    /* The routine is already defined (a duplicate definition error should
+       have already been issued). */
+  } else {
+    func_info_ptr = func_info_for_template(tssp);
+    /* Push the template instantiation scope. */
+    tcp = cache_for_template(tssp);
+    /* For member functions that are not member templates the argument
+       list comes from the enclosing class that is reactivated by
+       push_template_instantiation_scope and the value from the routine
+       entry (which should be NULL) is not used. */
+    push_template_instantiation_scope(tcp->decl_info,
+  				      (a_type_ptr)NULL, rout_ptr,
+  				      rout_sym, template_sym,
+  				      rout_ptr->template_arg_list,
+                                      /*push_stop_tokens=*/TRUE,
+                                      PS_PROTOTYPE_INSTANTIATION);
+    /* Reactivate any pragmas that should be bound to the generated
+       instance. */
+    reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
+    /* If a lint-style "argsused" or "varargs" comment appeared, record that in
+       the function type.  That will suppress any warnings about unused
+       parameters or variable arguments.  Note that this is done before calling
+       process_curr_construct_pragmas; otherwise the pragmas we're interested
+       in would have been disposed of. */
+    record_lint_argsused_and_varargs_state(rout_sym);
+    if (!exceptions_enabled && !func_info_ptr->is_inline &&
+        func_info_ptr->throw_position.seq != 0) {
+      /* Issue a diagnostic on attempting to define a noninline function with
+         an exception specification when exception support is not enabled.
+         (No diagnostic is issued on nondefinition -- the exception
+         specification is just ignored.) */
+      pos_error(ec_no_exception_support,
+                &func_info_ptr->throw_position);
+    }  /* if */
+    /* Reactivate the tokens comprising the function body and scan them. */
+    rescan_reusable_cache(&tcp->tokens);
+    scan_function_body(rout_ptr, func_info_ptr,
+                       (SFB_NEW_STRUCT_STMT_STACK_REQUIRED |
+                        SFB_IS_INSTANTIATION |
+                        SFB_PRAGMA_PACK_IS_LOCAL));
+    /* scan_function_body does not scan past the right brace. */
+    if (curr_token == tok_rbrace) (void)get_token();
+    /* Process any pragmas that are to be bound to this instance. */
+    process_curr_construct_pragmas(rout_sym, (a_statement_ptr)NULL);
+    /* Pop the template instantiation scope. */
+    pop_template_instantiation_scope();
+    /* In the normal case the current token should be end_of_source, which was
+       inserted to mark the end of the cached token stream. If necessary, keep
+       flushing until end-of-source is found. */
+    flush_past_token_cache_terminator();
   }  /* if */
-  /* Reactivate the tokens comprising the function body and scan them. */
-  rescan_reusable_cache(&tcp->tokens);
-  scan_function_body(rout_ptr, func_info_ptr,
-                     (SFB_NEW_STRUCT_STMT_STACK_REQUIRED |
-                      SFB_IS_INSTANTIATION |
-                      SFB_PRAGMA_PACK_IS_LOCAL));
-  /* scan_function_body does not scan past the right brace. */
-  if (curr_token == tok_rbrace) (void)get_token();
-  /* Process any pragmas that are to be bound to this instance. */
-  process_curr_construct_pragmas(rout_sym, (a_statement_ptr)NULL);
-  /* Pop the template instantiation scope. */
-  pop_template_instantiation_scope();
-  /* In the normal case the current token should be end_of_source, which was
-     inserted to mark the end of the cached token stream. If necessary, keep
-     flushing until end-of-source is found. */
-  flush_past_token_cache_terminator();
   db_exit();
 }  /* function_prototype_instantiation */
 
