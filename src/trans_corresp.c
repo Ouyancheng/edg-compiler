@@ -259,11 +259,23 @@ the primary translation unit is preferred.
           }  /* if */
           break;
         case iek_routine:
-          if (assoc_sym_defined(entity) &&
-              (!assoc_sym_defined(canonical_il_entry_of(entity)) ||
-               !in_secondary_trans_unit(entity))) {
-            do_update = TRUE;
-          }  /* if */
+          {
+            a_routine_ptr  canon = (a_routine*)canonical_il_entry_of(entity);
+            if (assoc_sym_defined(entity)) {
+              if (!assoc_sym_defined(canon) ||
+                  !in_secondary_trans_unit(entity)) {
+                do_update = TRUE;
+              }  /* if */
+            } else {
+              if (!assoc_sym_defined(canon) &&
+                  !canon->is_specialized &&
+                  ((a_routine_ptr)entity)->is_specialized) {
+                /* Prefer the specialized declaration over the nonspecialized
+                   one. */
+                do_update = TRUE;
+              }  /* if */
+            }  /* if */
+          }
           break;
         case iek_template:
           {
@@ -313,15 +325,23 @@ the primary translation unit is preferred.
         case iek_variable:
           {
             a_variable_ptr  var = (a_variable_ptr)entity;
+            a_variable_ptr  canon = (a_variable_ptr)canonical_il_entry_of(var);
             if (var->storage_class == (a_storage_class)sc_unspecified) {
-              a_variable_ptr  canon =
-                                   (a_variable_ptr)canonical_il_entry_of(var);
+              /* Prefer variable definitions over declarations.  If both are
+                 defined, prefer the entry with an initializer and if both
+                 have an initializer, prefer the one in the primary translation
+                 unit. */
               if (canon->storage_class != (a_storage_class)sc_unspecified ||
                   (var->init_kind != (an_init_kind)initk_none &&
                    canon->init_kind == (an_init_kind)initk_none) ||
                   (!in_secondary_trans_unit(var) &&
                    (var->init_kind == (an_init_kind)initk_none) ==
                             (canon->init_kind == (an_init_kind)initk_none))) {
+                do_update = TRUE;
+              }  /* if */
+            } else {
+              if (canon->storage_class != (a_storage_class)sc_unspecified &&
+                  !canon->is_specialized && var->is_specialized) {
                 do_update = TRUE;
               }  /* if */
             }  /* if */
@@ -3230,6 +3250,8 @@ symbol supplement.
     }  /* if */
     if (sym_entry == NULL) {
       /* The instantiation was not found on the canonical list.  Add it now. */
+      /* Undo the recursion guard. */
+      set_unvisited_trans_unit_corresp(iek_type, class_type);
       mark_canonical_instantiation(corresp_tssp, inst);
     } else {
       /* Record the necessary correspondences. */
