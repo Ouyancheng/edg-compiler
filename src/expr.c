@@ -2403,8 +2403,10 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
                                        result, &processed);
         if (processed) {
           if (!is_error_operand(result)) {
-            pos_st_warning(ec_single_arg_postfix_incr_decr_anachronism,
-                           &operand->position, token_names[(int)curr_token]);
+            pos_st_diagnostic(anachronism_error_severity,
+                              ec_single_arg_postfix_incr_decr_anachronism,
+                              &operand->position,
+                              token_names[(int)curr_token]);
           }  /* if */
         }  /* if */
       }  /* if */
