@@ -5694,6 +5694,16 @@ done on exit from that statement.
     push_context(&context, curr_context->scope, /*dependent_statement=*/TRUE);
     lower_statement(statement);
     if (any_required_destructor_calls(curr_context)) {
+#if 0
+#else
+      char *file_name, *full_name;
+      a_line_number line_number;
+      a_boolean at_end_of_source;
+      conv_seq_to_file_and_line(statement->seq_number, &file_name, &full_name,
+                                &line_number, &at_end_of_source);
+      fprintf(stderr, "Dependent statement with dtors at %s line %ul\n",
+                      file_name, (unsigned long)line_number);
+#endif
       /* Some destructor calls must be emitted.  Make the statement into a
          block if it is not already a block, then find the last statement
          within the block so we can insert after it. */
