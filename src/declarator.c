@@ -1746,18 +1746,98 @@ information should be ignored or if an error should be issued.
      reset it so that the caller does not attempt to reuse it later. */
   p_calling_convention->call_conv = (a_calling_convention)cc_default;
 }  /* update_calling_convention */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
 /*
 Macro that returns TRUE if the current token is the start of a pointer
 operator (*, &, or ptr-to-member).
 */
 #define curr_token_is_ptr_operator()					\
-  (curr_token == tok_star ||						\
+  (curr_token == tok_star || curr_token == tok_based ||			\
    (curr_token == tok_ampersand && reference_allowed) ||		\
    (!C_mode() && is_ptr_to_member_declarator_start()))
+
+
+static a_symbol_ptr scan_based_modifier(void)
+/*
+Scan the Microsoft __based modifier.  The syntax is
+
+	__based(identifier)
+
+The identifier must name a variable with pointer type.  Return a
+pointer to the variable symbol.  If the identifier is undefined, or
+is not a variable with pointer type, return NULL.
+*/
+{
+  a_symbol_ptr	sym = NULL;
+
+  check_assertion(curr_token == tok_based);
+  /* Bypass the __based token. */
+  (void)get_token();
+  if (required_token(tok_lparen, ec_exp_lparen)) {
+    add_stop_token(tok_rparen);
+    if (!is_generalized_identifier_start(GID_NO_OPTIONS)) {
+      syntax_error(ec_exp_identifier);
+      /* Flush tokens to the right paren. */
+      flush_tokens();
+    } else {
+      a_boolean	err;
+      sym = coalesce_and_lookup_generalized_identifier(GID_NO_OPTIONS,
+                                                       ilm_normal,
+                                                       &err);
+      if (err) {
+        sym = NULL;
+      } else if (sym == NULL) {
+        str_error(ec_undefined_identifier,
+                  locator_for_curr_id.symbol_header->identifier);
+        sym = NULL;
+      } else if (sym == NULL || sym->kind != (a_symbol_kind)sk_variable) {
+        sym_error(ec_based_requires_variable_name, sym);
+        sym = NULL;
+      } else {
+        /* sym is a variable.  Make sure it is a pointer type. */
+	a_type_ptr	tp;
+        tp = sym->variant.variable.ptr->type;
+        if (!is_pointer_type(tp)) {
+          error(ec_based_var_must_be_ptr);
+          sym = NULL;
+        }  /* if */
+      }  /* if */
+      /* Bypass the identifier. */
+      (void)get_token();
+    }  /* if */
+    remove_stop_token(tok_rparen);
+    /* Bypass the closing parenthesis. */
+    required_token(tok_rparen, ec_exp_rparen);
+  }  /* if */
+  return sym;
+}  /* scan_based_modifier */
+
+
+static void issue_invalid_based_error(a_source_position *pos)
+/*
+Issue an error that a __based modifier is not allowed in the
+indicated position.
+*/
+{
+  pos_error(ec_based_not_allowed_here, pos);
+}  /* issue_invalid_based_error */
+
+/*
+Macro that tests whether a based symbol is present and, if so, issues
+an error and resets the symbol.  This macro expands to nothing when
+Microsoft extensions are not allowed.
+*/
+#define based_not_allowed_here(sym)					\
+  { if ((sym) != NULL) issue_invalid_based_error(&based_pos); sym = NULL; }
+
+#else  /* !MICROSOFT_EXTENSIONS_ALLOWED */
+
+/*
+Expands to nothing when Microsoft extensions are not being used.
+*/
+#define based_not_allowed_here(sym)  /* Nothing */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
@@ -1831,6 +1911,8 @@ are NULL.
   a_call_conv_descr		first_call_conv;
   a_boolean			first_loop = TRUE;
   a_boolean			is_call_conv = FALSE;
+  a_symbol_ptr			based_var_sym = NULL;
+  a_source_position		based_pos;
 
   unbound_call_conv.call_conv = (a_calling_convention)cc_default;
   first_call_conv.call_conv = (a_calling_convention)cc_default;
@@ -1887,8 +1969,20 @@ are NULL.
             }  /* if */
             complete_type = make_pointer_type(err ? error_type() :
                                                     complete_type);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            if (based_var_sym != NULL) {
+              /* If the pointer operator was preceded by a __based
+                 modifier, update the pointer type with the variable
+                 used in the __based modifier. */
+              complete_type->variant.pointer.base_variable =
+                                          based_var_sym->variant.variable.ptr;
+              based_var_sym = NULL;
+            }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           }  /* if */
         } else {
+          /* Make sure this was not preceded by __based. */
+          based_not_allowed_here(based_var_sym);
           if (is_reference_type(temp_type)) {
             /* Type "reference to reference" is illegal. */
             error(ec_reference_to_reference);
@@ -1924,6 +2018,8 @@ are NULL.
     } else if (C_dialect == C_dialect_cplusplus &&
                is_ptr_to_member_declarator_start()) {
       /* Qualified name followed by "*". */
+      /* Make sure this was not preceded by __based. */
+      based_not_allowed_here(based_var_sym);
       /* Upon return from is_ptr_to_member_declarator_start the current
          token is tok_ptr_to_member. */
       class_type = locator_for_curr_id.qualifier_class_type;
@@ -1942,6 +2038,10 @@ are NULL.
         complete_type = ptr_to_member_type(complete_type, class_type);
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (curr_token == tok_based) {
+      based_pos = pos_curr_token;
+      based_var_sym = scan_based_modifier();
+      get_token_needed = FALSE;
     } else if (is_microsoft_calling_convention()) {
       /* A Microsoft calling convention specifier. */
       a_call_conv_descr		ccd;
@@ -2068,6 +2168,12 @@ are NULL.
     check_assertion(p_unbound_calling_convention != NULL);
     *p_unbound_calling_convention = unbound_call_conv;
     *p_calling_convention = first_call_conv;
+  }  /* if */
+  if (based_var_sym != NULL) {
+    /* A __based modifier was present that was not followed by a
+       pointer operator.  Issue a warning that the modifier will
+       be discarded. */
+    pos_warning(ec_based_not_followed_by_star, &based_pos);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   db_exit();
