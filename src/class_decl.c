@@ -3907,7 +3907,7 @@ table.
     /* A static data member is not allowed to be an anonymous union.  An error
        will have been issued already, but promote the fields anyway. */
     var->is_anonymous_parent_object = TRUE;
-    check_anonymous_union_symbols(sym, (a_type_ptr)NULL);
+    check_anonymous_union_symbols(sym, (a_type_ptr)NULL, /*is_nonstd=*/FALSE);
   }  /* if */
   /* This is entered as a declaration rather than a definition, since the
      definition must appear outside the class definition. */
@@ -4082,7 +4082,8 @@ such member functions are present.
 
 
 void check_anonymous_union_symbols(a_symbol_ptr  assoc_object_sym,
-                                   a_type_ptr    class_type)
+                                   a_type_ptr    class_type,
+                                   a_boolean     is_nonstd)
 /*
 assoc_object_sym is a symbol for an unnamed field or variable that is the
 object associated with an anonymous union.  The type of the field or
@@ -4122,7 +4123,7 @@ new ones are allocated in scope specified by decl_scope_level.
       assoc_object_access = assoc_object_sym->
                               variant.field.ptr->source_corresp.access;
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
-      is_class_struct_union_type(assoc_object_type);
+      check_assertion(is_class_struct_union_type(assoc_object_type));
       if (assoc_object_type->kind == (a_type_kind)tk_typeref) {
         reuse_symbol = FALSE;
       }  /* if */
@@ -4141,7 +4142,7 @@ new ones are allocated in scope specified by decl_scope_level.
       internal_error("check_anonymous_union_symbols: bad symbol kind");
 #endif /* CHECKING */
   }  /* switch */
-  if (reuse_symbol && !C_mode()) {
+  if (reuse_symbol && !C_mode() && !is_nonstd) {
     ctsp = assoc_object_type->variant.class_struct_union.extra_info;
     if (assoc_object_sym->kind == (a_symbol_kind)sk_field) {
       ctsp->anonymous_union_kind = (an_anonymous_union_kind)auk_field;
@@ -4259,12 +4260,14 @@ new ones are allocated in scope specified by decl_scope_level.
 
 static a_boolean is_anonymous_union_decl(a_type_ptr       member_type,
                                          a_storage_class  storage_class,
-                                         a_decl_flag_set  dso_flags)
+                                         a_decl_flag_set  dso_flags,
+                                         a_boolean        *is_nonstd)
 /*
 */
 {
   a_boolean  is_anonymous_union = FALSE;
 
+  *is_nonstd = FALSE;
   if (
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
       C_mode() ||
@@ -4327,8 +4330,7 @@ static a_boolean is_anonymous_union_decl(a_type_ptr       member_type,
         }  /* if */
       }  /* if */
       if (is_anonymous_union) {
-        tp->variant.class_struct_union.extra_info->anonymous_union_kind =
-                               (an_anonymous_union_kind)auk_nonstandard_field;
+        *is_nonstd = TRUE;
         if (strict_ansi_mode) {
           /* Issue a diagnostic that this is an extension. */
           diagnostic(strict_ansi_error_severity, ec_nonstd_unnamed_field);
@@ -4370,14 +4372,16 @@ Add a field of error type to the field list for the specified class type.
 }  /* add_error_field */
 
 
-static void decl_nonstatic_data_member(a_symbol_locator    *locator,
-                                       a_type_ptr          class_type,
-                                       a_type_ptr          *member_type,
-                                       an_access_specifier access,
-                                       a_boolean           unnamed_field,
-                                       a_boolean           is_anonymous_union,
-                                       a_source_sequence_entry_ptr  ssep,
-                                       a_field_ptr         *end_of_list)
+static void decl_nonstatic_data_member(
+                       a_symbol_locator             *locator,
+                       a_type_ptr                   class_type,
+                       a_type_ptr                   *member_type,
+                       an_access_specifier          access,
+                       a_boolean                    unnamed_field,
+                       a_boolean                    is_anonymous_union,
+                       a_boolean                    is_nonstd_anonymous_union,
+                       a_source_sequence_entry_ptr  ssep,
+                       a_field_ptr                  *end_of_list)
 /*
 Scan a nonstatic data member of a class, struct, or union, create a field
 entry to represent it in the IL, and create an entry in the symbol table
@@ -4502,7 +4506,8 @@ class, struct, or union.
   }  /* if */
   if (is_anonymous_union) {
     /* Do checking, promote symbols to the current class. */
-    check_anonymous_union_symbols(member_sym, class_type);
+    check_anonymous_union_symbols(member_sym, class_type,
+                                  is_nonstd_anonymous_union);
   }  /* if */
   if (is_aggregate_or_union_type(*member_type)) {
     /* If the member's type is class, struct, or union -- or array of class,
@@ -5519,7 +5524,7 @@ Scan the body of a class definition, including the base classes list.
         a_boolean         friend_specified, virtual_specified;
         a_boolean         type_explicitly_specified, inline_specified;
         a_boolean         is_destructor, is_constructor;
-        a_boolean         is_anonymous_union;
+        a_boolean         is_anonymous_union, is_nonstd_anonymous_union;
 
         /* Move cached #pragma declarations (if any) to the current scope
            stack entry so they can be examined and acted upon in subsequent
@@ -5632,6 +5637,7 @@ Scan the body of a class definition, including the base classes list.
         member_type = NULL;
         member_storage_class = (a_storage_class)sc_unspecified;
         is_anonymous_union = FALSE;
+        is_nonstd_anonymous_union = FALSE;
         /* First scan the declaration specifiers.  In C++ the specifiers may
            be omitted, e.g., for a function member with implicit type. */
         add_stop_token(tok_colon);
@@ -5694,7 +5700,7 @@ Scan the body of a class definition, including the base classes list.
              to the next declaration. */
           /* Check first whether this is an anonymous union declaration. */
           if (is_anonymous_union_decl(member_type, member_storage_class,
-                                      dso_flags)) {
+                                      dso_flags, &is_nonstd_anonymous_union)) {
             /* A C++ anonymous union -- "union { int i, j; };" */
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
             /* It might also be an anonymous-union-like construct in C or
@@ -5705,15 +5711,7 @@ Scan the body of a class definition, including the base classes list.
             is_anonymous_union = TRUE;
           } else if (!C_mode()) {
             /* C++ mode. */
-            if (local_defines_something && !local_declares_something &&
-                member_type->kind == (a_type_kind)tk_union &&
-                is_unnamed_class_symbol((a_symbol_ptr)member_type->
-                                                source_corresp.assoc_info) &&
-                !friend_specified &&
-                member_storage_class != (a_storage_class)sc_typedef) {
-              /* An anonymous union -- "union { int i, j; };" */
-              is_anonymous_union = TRUE;
-            } else if (friend_specified) {
+            if (friend_specified) {
               if ((dso_flags & DSO_ELABORATED_TYPE_SPECIFIER) &&
                   !is_enum_type(member_type)) {
                 /* This is a friend class declaration, of the form:
@@ -6459,8 +6457,9 @@ Scan the body of a class definition, including the base classes list.
               if (!unnamed_field) any_named_fields = TRUE;
               decl_nonstatic_data_member(&locator, class_type, &local_type,
                                          access, unnamed_field,
-                                         is_anonymous_union, declarator_ssep,
-                                         &end_of_field_list);
+                                         is_anonymous_union,
+                                         is_nonstd_anonymous_union,
+                                         declarator_ssep, &end_of_field_list);
               if (!class_aggregate_ruled_out) {
                 /* The ARM says that classes with private or protected members
                    are not treated as "aggregates" (8.4.1).  We interpret this
