@@ -7262,6 +7262,16 @@ that follows.
       }  /* if */
       if (is_function_type(type) && is_function_or_template_symbol(sym)) {
         sym = find_matching_template_instance(sym, type);
+        if (sym == NULL) {
+          /* No match was found and an error was issued. */
+        } else if (sym->variant.routine.instance_ptr == NULL) {
+          /* Not a template instance. */
+          pos_sy_error(ec_entity_cannot_be_specialized,
+                       &locator.source_position, sym);
+          sym = NULL;
+        } else {
+          /* Okay. */
+        }  /* if */
       } else if (sym->kind == (a_symbol_kind)sk_static_data_member &&
                  sym->variant.static_data_member.instance_ptr != NULL) {
         /* Okay. */
