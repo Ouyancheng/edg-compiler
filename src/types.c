@@ -5698,10 +5698,11 @@ well as C++ mode.
 {
   a_boolean okay = FALSE, suppress_extensions = FALSE;
 
-  db_enter(5, "reinterpret_cast_conversion_possible");
+  db_enter(5, "reinterpret_cast_conversion_possible_full");
 #if DEBUG
   if (debug_level >= 5) {
-    fprintf(f_debug, "reinterpret_cast_conversion_possible: source_type = ");
+    fprintf(f_debug,
+            "reinterpret_cast_conversion_possible_full: source_type = ");
     db_abbreviated_type(source_type);
     fprintf(f_debug, ", dest_type = ");
     db_abbreviated_type(dest_type);
@@ -5719,7 +5720,7 @@ well as C++ mode.
   source_type = skip_typerefs(source_type);
   dest_type = skip_typerefs(dest_type);
   check_assertion_str(!is_reference_ptr(dest_type),
-               "reinterpret_cast_conversion_possible: dest_type is reference");
+          "reinterpret_cast_conversion_possible_full: dest_type is reference");
 
   if (is_incomplete(dest_type)) {
     /* Cannot cast to an incomplete type. */
@@ -5841,13 +5842,13 @@ well as C++ mode.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if DEBUG
   if (debug_level >= 5) {
-    fprintf(f_debug, "reinterpret_cast_conversion_possible: %s\n",
+    fprintf(f_debug, "reinterpret_cast_conversion_possible_full: %s\n",
                      okay ? "okay" : "not okay");
   }  /* if */
 #endif /* DEBUG */
   db_exit();
   return okay;
-}  /* reinterpret_cast_conversion_possible */
+}  /* reinterpret_cast_conversion_possible_full */
 
 
 a_boolean reinterpret_cast_conversion_possible(
