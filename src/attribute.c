@@ -353,6 +353,7 @@ pointed to be "pos" can be freed when this routine returns.
     case ak_stdcall:
     case ak_cdecl:
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED */
+    case ak_strong:
       break;
     case ak_section:
       ap->variant.section = NULL;
@@ -977,6 +978,7 @@ function returns the address of the last attribute.
           case ak_stdcall:
           case ak_cdecl:
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED */
+          case ak_strong:
             /* These attributes do not take arguments. */
             break;
 #if USER_CONTROL_OF_STRUCT_PACKING
@@ -2017,6 +2019,52 @@ Apply the given attributes to the indicated label (if applicable).
     }  /* switch */
   }  /* for */
 }  /* apply_attributes_to_label */
+
+
+void apply_attributes_to_using_directive(an_attribute_ptr	attributes,
+					 a_using_decl_ptr	udp,
+					 a_namespace_ptr	nsp)
+/*
+Apply the given attributes to the indicated using-directive (if applicable).
+"nsp" is the namespace nominated by the using-directive "udp".
+*/
+{
+  an_attribute_ptr			ap;
+  a_namespace_symbol_supplement_ptr	nssp;
+  a_namespace_list_entry_ptr		nlep;
+  a_scope_stack_entry_ptr		ssep;
+
+  for (ap = attributes; ap != NULL; ap = ap->next) {
+    switch (ap->kind) {
+      case ak_strong:
+        udp->strong = TRUE;
+        ssep = scope_stack_entry_for(depth_scope_stack);
+        /* Because the strong using-directive makes use of the
+           namespace scope in which it appears, it is only valid in a
+           namespace scope (including the file scope). */
+        if (ssep->kind == (a_scope_kind)sck_namespace ||
+            ssep->kind == (a_scope_kind)sck_namespace_extension ||
+            ssep->kind == (a_scope_kind)sck_file) {
+          /* Add the current namespace to the list of namespace that contain
+             a strong using of the named namespace. */
+          nssp = symbol_supplement_for_namespace(nsp);
+          nlep = alloc_namespace_list_entry();
+          nlep->ptr = ssep->assoc_namespace;
+          nlep->next = nssp->strong_using_directives;
+          nssp->strong_using_directives = nlep;
+        } else {
+          /* The strong using appeared in an invalid scope. */
+          pos_error(ec_bad_strong_using_scope, &ap->position);
+        }  /* if */
+        break;
+      default:
+        /* An invalid attribute. */
+        pos_st_warning(ec_unrecognized_attribute, &ap->position,
+                       attribute_kind_names[(int)ap->kind]);
+        break;
+    }  /* switch */
+  }  /* for */
+}  /* apply_attributes_to_using_directive */
 
 
 void check_for_invalid_param_attributes(a_symbol_ptr     sym,

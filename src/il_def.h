@@ -1573,6 +1573,19 @@ typedef struct a_using_decl {
 			   unnamed namespaces and is also TRUE for the
 			   using-directive created to simulate a Microsoft
 			   bug (in Microsoft bugs mode). */
+#if GNU_EXTENSIONS_ALLOWED
+  a_bit_field	strong:1;
+			/* TRUE for a GNU strong using-directive.  A strong
+			   using-directive differs from a normal
+			   using-directive in the following ways:
+			   1. Class templates from the used namespace can be
+			      specialized as if they were members of the
+			      namespace containing the using-directive.
+			   2. The namespace containing the using-directive is
+			      considered an associated namespace for types
+			      in the used namespace (for argument-dependent
+			      lookup). */     
+#endif /* GNU_EXTENSIONS_ALLOWED */
   an_access_specifier
                 access;
 			/* For class member using-declarations only, the

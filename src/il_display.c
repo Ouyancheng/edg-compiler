@@ -4753,6 +4753,11 @@ Display the indicated using-directive entry.
   if (ptr->compiler_generated) {
     disp_boolean("compiler_generated", ptr->compiler_generated);
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  if (ptr->strong) {
+    disp_boolean("strong", ptr->strong);
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   disp_ptr("source_sequence_entry", (char *)ptr->source_sequence_entry,
            iek_source_sequence_entry);

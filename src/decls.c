@@ -9521,10 +9521,14 @@ Return a pointer to the variable that is declared.
 }  /* condition_declaration */
 
 
+#if !GNU_EXTENSIONS_ALLOWED
+/*ARGSUSED*/ /* <-- attributes is not used in this case. */
+#endif /* !GNU_EXTENSIONS_ALLOWED */
 void make_using_directive(a_namespace_ptr    nsp,
 			  a_scope_depth	     depth,
                           a_source_position  *pos,
-			  a_boolean	     compiler_generated)
+			  a_boolean	     compiler_generated,
+			  an_attribute_ptr   attributes) 
 /*
 Create a using-decl entry for a using-directive that specifies the indicated
 namespace, add it to the list of using-decl entries for the scope specified
@@ -9533,7 +9537,8 @@ to the namespace will be found during name lookup.
 
 compiler_generated is TRUE for implicit using-directives created for
 unnamed namespaces, and for certain using-directives created to emulate
-a Microsoft bug.
+a Microsoft bug.  attributes is a list of GNU attributes specified on this
+using-directive.
 */
 {
   a_using_decl_ptr  udp;
@@ -9546,6 +9551,13 @@ a Microsoft bug.
   udp->is_using_directive = TRUE;
   udp->compiler_generated = compiler_generated;
   udp->decl_sequence_number = ++decl_seq_counter;
+#if GNU_EXTENSIONS_ALLOWED
+  if (attributes != NULL) {
+    /* GNU attributes were specified for this using-directive.  Apply them to
+       the using-directive entry. */
+    apply_attributes_to_using_directive(attributes, udp, nsp);
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   add_to_using_decls_list(udp, depth);
   /* Activate it. */
   add_active_using_directive(udp, depth);
@@ -9882,7 +9894,8 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
         pop_scope();
         /* Do an implicit "using" directive of the unnamed namespace. */
         make_using_directive(nsp, depth_scope_stack, &pos_curr_token,
-                             /*compiler_generated=*/TRUE);
+                             /*compiler_generated=*/TRUE,
+                             (an_attribute_ptr)NULL);
         (void)push_namespace_scope((a_scope_kind)sck_namespace_extension,
                                    nsp);
         scope_stack[depth_scope_stack].
@@ -9969,9 +9982,10 @@ Scan a using directive.  Its syntax is:
 A using-directive entry is created and activated for the current scope.
 */
 {
-  a_source_position              decl_start_pos;
-  a_symbol_ptr                   sym;
-  a_boolean                      err = FALSE;
+  a_source_position	decl_start_pos;
+  a_symbol_ptr		sym;
+  a_boolean		err = FALSE;
+  an_attribute_ptr	attributes = NULL;
 
   db_enter(3, "using_directive");
   decl_start_pos = pos_curr_token;
@@ -10004,6 +10018,13 @@ A using-directive entry is created and activated for the current scope.
       sym_error(ec_ambiguous_name, locator_for_curr_id.specific_symbol);
       err = TRUE;
     }  /* if */
+    (void)get_token();
+#if GNU_EXTENSIONS_ALLOWED
+    /* Scan any GNU attributes that may appear hear. */
+    if (gpp_mode) {
+      attributes = scan_attributes();
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     if (err) {
       /* Ignore pragma declarations. */
       discard_curr_construct_pragmas();
@@ -10014,9 +10035,9 @@ A using-directive entry is created and activated for the current scope.
       /* Allocate a using-directive entry specifying this namespace and
          activate it. */
       make_using_directive(sym->variant.namespace_info.ptr, depth_scope_stack,
-                           &decl_start_pos, /*compiler_generated=*/FALSE);
+                           &decl_start_pos, /*compiler_generated=*/FALSE,
+                           attributes);
     }  /* if */
-    (void)get_token();
   }  /* if */
   remove_stop_token(tok_semicolon);
   /* Check for final semicolon in the caller. */

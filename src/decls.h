@@ -453,7 +453,8 @@ extern a_variable_ptr condition_declaration(void);
 extern void make_using_directive(a_namespace_ptr    nsp,
 				 a_scope_depth	    depth,
                                  a_source_position  *pos,
-		   	         a_boolean	    compiler_generated);
+		   	         a_boolean	    compiler_generated,
+				 an_attribute_ptr   attributes); 
 
 /* Bit vector used to pass flags into declarator and into and out of
    declaration routines.  Each bit represents a flag.  (Note that several of

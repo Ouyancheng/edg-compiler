@@ -2396,7 +2396,8 @@ namespace being popped and applying them to the file scope.
       /* Get a pointer to the namespace to be used. */
       udp_nsp = skip_namespace_aliases((a_namespace_ptr)udp->entity.ptr);
       make_using_directive(udp_nsp, DEPTH_OF_FILE_SCOPE, &null_source_position,
-                           /*compiler_generated=*/TRUE);
+                           /*compiler_generated=*/TRUE,
+			  (an_attribute_ptr)NULL);
     }  /* if */
     udp = udp->next;
   }  /* while */

@@ -79,6 +79,7 @@ enum an_attribute_kind_tag {
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
   ak_init_priority,
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
+  ak_strong,
   ak_last
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -128,6 +129,7 @@ EXTERN char *attribute_kind_names[(int)ak_last + 1]
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
 /* ak_init_priority */              "init_priority",
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
+/* ak_strong */			    "strong", 
 /* ak_last */                       "last" /* used to check that
                                               initialization is right. */
 }
@@ -275,6 +277,11 @@ extern void apply_attributes_to_typedef(an_attribute_ptr  attributes,
 
 extern void apply_attributes_to_label(an_attribute_ptr  attributes,
                                       a_label_ptr       label);
+
+extern
+void apply_attributes_to_using_directive(an_attribute_ptr	attributes,
+					 a_using_decl_ptr	udp,
+					 a_namespace_ptr	nsp);
 
 extern a_type_ptr apply_type_transforming_attributes(a_type_ptr        tp,
                                                      an_attribute_ptr  *ap);

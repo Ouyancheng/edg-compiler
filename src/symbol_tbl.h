@@ -2131,6 +2131,15 @@ typedef struct a_namespace_symbol_supplement {
 			   class symbol supplement can point to a common
 			   entry for all of the leaf classes (i.e., most
 			   base classes) in a given namespace. */
+#if GNU_EXTENSIONS_ALLOWED
+  a_namespace_list_entry_ptr
+		strong_using_directives;
+			/* A list of namespaces that used this namespace via
+			   a GNU strong using-directive.  Such namespaces
+			   are considered associated namespaces for lookups
+			   for which this namespace is an associated
+			   namespace. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if RECORD_FORM_OF_NAME_REFERENCE
   a_name_qualifier_ptr
 		name_qualifiers;

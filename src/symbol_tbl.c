@@ -2405,6 +2405,9 @@ return a pointer to it.
   nssp->scope_depth_at_which_using_directive_applies = NO_SCOPE_DEPTH;
   nssp->depth_innermost_active_using_directive = NO_SCOPE_DEPTH;
   nssp->namespace_list_entry = NULL;
+#if GNU_EXTENSIONS_ALLOWED
+  nssp->strong_using_directives = NULL;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if RECORD_FORM_OF_NAME_REFERENCE
   nssp->name_qualifiers = NULL;
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */

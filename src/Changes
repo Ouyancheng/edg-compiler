@@ -1,5 +1,28 @@
 Version 3.4
 
+2/4/04   GNU C++ compatibility: Strong using-directives
+
+Strong using-directives are now supported in g++ mode.  The strong
+using-directive is an extension added in g++ 3.4 and used in the g++
+libraries.  A strong using-directive is like a normal using-directive except
+that the namespace containing the using-directive can specialize class
+templates declared in the used namespace, and the namespace containing the
+using-directive is included in any argument-dependent lookup that looks in
+the named namespace.
+
+  namespace std {
+    namespace debug {
+      template <class T> struct A {};
+    }
+    using namespace debug __attribute__((strong));
+    template <> struct A<int> {};
+    template <class T> void f(A<T>){}
+  }
+  int main() {
+    f(std::A<float>());
+    f(std::A<int>());
+  }
+
 2/4/04   GNU mode: Type of computed goto target
 
 In GNU mode, the front end previously issued a warning when the type of a

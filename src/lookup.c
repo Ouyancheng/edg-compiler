@@ -4675,6 +4675,18 @@ that "nsp" can be NULL to represent the global namespace.
     nlep->ptr = nsp;
     nlep->next = *namespace_list;
     *namespace_list = nlep;
+#if GNU_EXTENSIONS_ALLOWED
+    /* If the namespace was nominated by any strong using-directives, add
+       the nominating namespace(s) to the namespace list. */
+    if (nsp != NULL) { a_namespace_symbol_supplement_ptr	nssp;
+      a_namespace_list_entry_ptr	nlep;
+      nssp = symbol_supplement_for_namespace(nsp);
+      for (nlep = nssp->strong_using_directives; nlep != NULL;
+           nlep = nlep->next) {
+        add_namespace_to_namespace_list(nlep->ptr, namespace_list);
+      }  /* for */
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
 }  /* add_namespace_to_namespace_list */
 

@@ -1347,6 +1347,7 @@ ec_inexact_fxp_conversion;;"fixed-point value cannot be represented exactly"
 ec_c99_constant_in_unsigned_long_long_range;;"constant is too large for long long; given unsigned long long type (nonstandard)"
 ec_bad_upc_shared_void_pointer_layout_qualifier;;"layout qualifier cannot qualify pointer to shared void"
 ec_duplicate_threads_dim;;"duplicate THREADS in multidimensional array type"
+ec_bad_strong_using_scope;;"a strong using-directive may only appear in a namespace scope"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
