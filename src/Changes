@@ -1,5 +1,14 @@
 Version 2.34
 
+11/25/96 C++-generating back end: macro definition in prototyped parameter list
+
+The C++-generating back end got an internal error on a macro definition
+within a prototyped parameter list.  Now fixed.
+
+  void f(int x,
+  #define Y1 y
+  int Y1) {}
+
 11/25/96 Active using-directive information not restored in some cases
 
 In certain cases involving template instantiation the information about
