@@ -1916,7 +1916,8 @@ static void write_type_attributes(a_type_ptr type)
 Write out attributes that apply to the indicated type.
 */
 {
-  if (type->variant.integer.packed) {
+  if (type->kind == (a_type_kind)tk_integer &&
+      type->variant.integer.packed) {
     /* Output the "packed" attribute. */
     write_tok_str(" __attribute__((__packed__))");
   }  /* if */
