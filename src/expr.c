@@ -6503,16 +6503,16 @@ specification allow a variable-sized array as the top type.
       opname_kind = (an_opname_kind)onk_array_new;
     }  /* if */
     operator_new_symbol = NULL;
-    if (!use_global_new && (array_new_and_delete_enabled || !array_new) &&
-        is_class_struct_union_type(base_new_type)) {
+    if (!use_global_new && (array_new_and_delete_enabled || !array_new)) {
       /* Check for a member "operator new" or "operator new[]". */
-      if (unqual_base_new_type->variant.class_struct_union.is_nonreal_class) {
-        /* A nonreal class in a prototype instantiation.  Can't do lookup. */
+      if (is_template_param_or_nonreal_class_type(base_new_type)) {
+        /* In a prototype instantiation, you might not be able to tell
+           whether a class-specific operator new should be used. */
         unknown_dependent_new = TRUE;
-      } else {
+      } else if (is_class_struct_union_type(base_new_type)) {
         operator_new_symbol = opname_member_function_symbol(
-                                                         opname_kind,
-                                                         unqual_base_new_type);
+                                                          opname_kind,
+                                                          unqual_base_new_type);
       }  /* if */
     }  /* if */
     if (operator_new_symbol == NULL && !unknown_dependent_new) {
