@@ -3078,6 +3078,7 @@ Do IL lowering of an enk_temp_init expression node.
   /* Change the enk_temp_init to a reference to the value or address
      of the temporary. */
   if (result_is_addr) {
+    dip->variable->address_taken = TRUE;
     set_expr_node_kind(expr, (an_expr_node_kind)enk_variable_address);
   } else {
     set_expr_node_kind(expr, (an_expr_node_kind)enk_variable);
