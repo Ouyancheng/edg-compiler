@@ -215,21 +215,6 @@ constant expressions.  See ARM 7.1.6.
 #define is_const_variable(var)                                          \
 	(is_const_qualified_type((var)->type) && is_integral_type((var)->type))
 
-/*
-Information used when creating cross-reference information.  This is
-done only when f_xref_info != NULL.
-*/
-EXTERN an_xref_entry_ptr
-		avail_xref_entries;
-			/* List of cross-reference entries that have been freed
-			   and are available for reuse. */
-EXTERN an_xref_entry_ptr
-		curr_expr_xref_entries;
-			/* List of all the cross-reference entries for
-			   the current expression.  They are written out at
-			   the end of the expression.  Before that, the kind
-			   of reference each indicates might be adjusted. */
-
 
 extern void flush_xref_entries_list(void);
 
@@ -239,6 +224,15 @@ extern an_xref_entry_ptr xref_entry(a_symbol_ptr            sym_ptr,
 
 extern void change_xref_kinds(an_xref_entry_ptr       xref_list,
                               a_symbol_reference_kind kind);
+
+extern a_candidate_function_ptr alloc_candidate_function(void);
+
+extern void free_candidate_function_list(a_candidate_function_ptr cfp);
+
+extern an_argument_match_summary_ptr alloc_argument_match_summary(void);
+
+extern void free_argument_match_summary_list(
+                                           an_argument_match_summary_ptr amsp);
 
 extern a_constant_ptr var_constant_value(a_variable_ptr var);
 
@@ -420,6 +414,8 @@ extern void constant_prepare_assignment(a_constant    *constant,
 
 extern void error_in_operand(an_error_code error_code,
 		             an_operand    *operand);
+
+extern void expr_init(void);
 
 #endif /* ifndef EXPRUTIL_H */
 
