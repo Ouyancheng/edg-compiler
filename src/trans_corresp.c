@@ -1441,8 +1441,16 @@ Make type (and its inner structure) correspond to corresp_type.  This routine
 also deals with the consequences of type becoming the new canonical entry.
 */
 {
-  a_type_ptr  canon = (a_type_ptr)canonical_il_entry_of(corresp_type);
-
+  a_type_ptr  canon;
+ 
+  if (trans_unit_corresp_of(corresp_type) == NULL &&
+      trans_unit_corresp_of(type) != NULL) {
+    /* corresp_type is the newer type: swap the arguments. */
+    a_type_ptr  tmp = type;
+    type = corresp_type;
+    corresp_type = tmp;
+  }  /* if */
+  canon = (a_type_ptr)canonical_il_entry_of(corresp_type);
   set_trans_unit_corresp(iek_type, type, corresp_type);
   if (type == (a_type_ptr)canonical_il_entry_of(corresp_type)) {
     /* The canonical IL entry changed to type. */
