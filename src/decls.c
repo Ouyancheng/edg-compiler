@@ -4930,6 +4930,8 @@ is_definition is TRUE if the label is being scanned as part of a label.
       mark_declared(label_sym, &pos_curr_token,
                     /*save_as_decl_position=*/TRUE);
       label_sym->defined = TRUE;
+      /* Set the declaration sequence number. */
+      set_decl_sequence_number(label_sym);
     } else {
       mark_used(label_sym, &pos_curr_token);
       /* Set the decl_position in case no declaration shows up, so we
@@ -9531,6 +9533,10 @@ continue_with_declaration:
           /* In C a file scope variable declaration with no storage class or
              static storage class is called a tentative definition. */
           is_tentative_definition = TRUE;
+        }  /* if */
+        if (is_definition && symbol_ptr->decl_seq == 0) {
+          /* Set the declaration sequence number. */
+          set_decl_sequence_number(symbol_ptr);
         }  /* if */
       } else if (symbol_ptr->kind == (a_symbol_kind)sk_static_data_member) {
         /* All static data member declarations that that pass though this

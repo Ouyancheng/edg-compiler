@@ -3319,7 +3319,12 @@ special function kind (e.g., constructor, destructor), if any.
     rtn->source_corresp.name_linkage = class_type->source_corresp.name_linkage;
     rtn->source_corresp.access = access;
     rtn->is_inline = func_info->is_inline;
-    rtn->compiler_generated = compiler_generated;
+    if (compiler_generated) {
+      rtn->compiler_generated = TRUE;
+    } else {
+      /* Set the declaration sequence number. */
+      set_decl_sequence_number(sym);
+    }  /* if */
     add_throw_specification(func_info, rtn);
     if (cssp->is_nonreal_class) {
       /* This symbol represents a member function of a prototype instantiation
@@ -3548,6 +3553,8 @@ inconsistent with the restriction to integral type.
      it may mean the order in which errors are issued is a little strange. */
   sym = enter_local_symbol((a_symbol_kind)sk_constant, locator,
                            decl_scope_level, /*suppress_redecl_error=*/FALSE);
+  /* Set the declaration sequence number. */
+  set_decl_sequence_number(sym);
   /* Update the symbol and the constant entry. */
   sym->variant.constant = cp;
   set_source_corresp(&(cp->source_corresp), sym);
@@ -3579,6 +3586,8 @@ table.
   sym = enter_local_symbol((a_symbol_kind)sk_static_data_member, locator,
                            decl_scope_level, /*suppress_redecl_error=*/FALSE);
   sym->class_of_which_a_member = class_type;
+  /* Set the declaration sequence number. */
+  set_decl_sequence_number(sym);
   /* Create the variable entry for the static data member. */
   /* The storage class of static data members is sc_static until they are
      promoted to external linkage, at which time the storage class will
@@ -3956,6 +3965,8 @@ class, struct, or union.
       member_sym = enter_local_symbol((a_symbol_kind)sk_field, locator,
                                       depth_scope_stack,
                                       /*suppress_redecl_error=*/FALSE);
+      /* Set the declaration sequence number. */
+      set_decl_sequence_number(member_sym);
       member_sym->class_of_which_a_member = class_type;
       member_sym->variant.field.ptr = field;
       member_sym->defined = TRUE;
