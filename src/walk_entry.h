@@ -35,7 +35,7 @@ Placed in a separate file so they can be expanded several ways:
     the subtree and do so in the special way required for setting the
     keep_in_il flag.
 
-3)  With DO_SUBTREE_WALK FALSE, the routines walk just the entry itself.
+4)  With DO_SUBTREE_WALK FALSE, the routines walk just the entry itself.
     This is used for remapping of pointers.
   
 */
@@ -190,24 +190,33 @@ Similar to walk_list, but expands to nothing in the NEEDED_FLAG_WALK mode.
 
 /*
 Similar to walk_list, but used to walk lists attached to a scope.
-When KEEP_IN_IL_WALK is TRUE, expands to code that acts differently when
-local variable do_only_needed_entries_on_lists is TRUE: it walks the list but
-calls walk_ptr only on those entries with the "needed" flag TRUE (and on
-those, it clears the keep_in_il flag before doing the walk, to deal with
-entities that can be redeclared and whose subtrees can therefore change).
-In NEEDED_FLAG_WALK mode, expands to nothing.  Otherwise, expands to a
+scope_kind indicates the scope kind.  When KEEP_IN_IL_WALK is TRUE,
+expands to code that acts differently for certain kinds of scopes:
+  -- For the file scope and namespace scopes, it walks the list but
+     calls walk_ptr only on those entries with the "needed" flag TRUE
+     (and on those, it clears the keep_in_il flag before doing the walk,
+     to deal with entities that can be redeclared and whose subtrees
+     can therefore change).
+  -- For class scopes, every entry gets keep_in_il set (because classes
+     are kept or removed in their entirety).  keep_in_il is cleared
+     and set again, as above, because of changing subtrees.
+  -- For other scopes, it does a normal walk_list.
+In NEEDED_FLAG_WALK mode, expands to nothing.  In other modes, expands to a
 simple walk_list.
 */
 #undef walk_needed_on_list
 #if NEEDED_FLAG_WALK
-#define walk_needed_on_list(ptr, ptr_type, entry_kind) /* Nothing */
+#define walk_needed_on_list(ptr, ptr_type, entry_kind, scope_kind)/* Nothing */
 #else /* !NEEDED_FLAG_WALK */
 #if KEEP_IN_IL_WALK
-#define walk_needed_on_list(ptr, ptr_type, entry_kind) \
-{ if (do_only_needed_entries_on_lists) { \
+#define walk_needed_on_list(ptr, ptr_type, entry_kind, scope_kind) \
+{ if ((scope_kind) == (a_scope_kind)sck_file || \
+      (scope_kind) == (a_scope_kind)sck_namespace || \
+      (scope_kind) == (a_scope_kind)sck_class_struct_union) { \
     ptr_type local_ptr = (ptr); \
     for (; local_ptr != NULL; local_ptr = local_ptr->next) { \
-      if (local_ptr->source_corresp.needed || \
+      if ((scope_kind) == (a_scope_kind)sck_class_struct_union || \
+          local_ptr->source_corresp.needed || \
           il_entry_prefix_of(local_ptr).keep_in_il) { \
         il_entry_prefix_of(local_ptr).keep_in_il = FALSE; \
         walk_ptr(local_ptr, ptr_type, (entry_kind)); \
@@ -218,7 +227,7 @@ simple walk_list.
   }  /* if */ \
 }  /* walk_needed_on_list */
 #else /* !KEEP_IN_IL_WALK */
-#define walk_needed_on_list(ptr, ptr_type, entry_kind) \
+#define walk_needed_on_list(ptr, ptr_type, entry_kind, scope_kind) \
   walk_list(ptr, ptr_type, entry_kind)
 #endif /* KEEP_IN_IL_WALK */
 #endif /* NEEDED_FLAG_WALK */
@@ -1178,14 +1187,6 @@ handle_non_autonomous_tag:
       {
         a_scope_ptr  ptr = (a_scope_ptr)entry_ptr;
         a_scope_kind kind = ptr->kind;
-#if KEEP_IN_IL_WALK
-        /* Certain lists have their entries processed only if the "needed"
-           flag is set, when walking the file scope or a namespace scope
-           to set the "keep_in_il" flag. */
-        a_boolean    do_only_needed_entries_on_lists =
-                                         (kind == (a_scope_kind)sck_file ||
-                                          kind == (a_scope_kind)sck_namespace);
-#endif /* KEEP_IN_IL_WALK */
         remap_next_ptr(ptr->next, a_scope_ptr, iek_scope);
         switch (kind) {
           case sck_file:
@@ -1261,8 +1262,9 @@ handle_non_autonomous_tag:
 #else /* !NEEDED_FLAG_WALK */
         if (kind != (a_scope_kind)sck_function &&
             kind != (a_scope_kind)sck_block) {
-          walk_needed_on_list(ptr->types, a_type_ptr, iek_type);
-          walk_needed_on_list(ptr->variables, a_variable_ptr, iek_variable);
+          walk_needed_on_list(ptr->types, a_type_ptr, iek_type, kind);
+          walk_needed_on_list(ptr->variables, a_variable_ptr, iek_variable,
+                              kind);
         } else {
           /* The local "types" and static "variables" at function scope or
              block scope within a function are in the file scope memory region.
@@ -1299,21 +1301,12 @@ handle_non_autonomous_tag:
           }  /* for */
         }  /* if */
 #else /* !NEEDED_FLAG_WALK */
-#if KEEP_IN_IL_WALK
-        if (kind == (a_scope_kind)sck_class_struct_union) {
-          /* Since we don't break up classes, all member functions of a class
-             get marked as keep_in_il if the class is so marked. */
-          walk_list(ptr->routines, a_routine_ptr, iek_routine);
-        } else {
-          walk_needed_on_list(ptr->routines, a_routine_ptr, iek_routine);
-        }  /* if */
-#else /* !KEEP_IN_IL_WALK */
-        walk_list(ptr->routines, a_routine_ptr, iek_routine);
-#endif /* KEEP_IN_IL_WALK */
+        walk_needed_on_list(ptr->routines, a_routine_ptr, iek_routine, kind);
 #endif /* NEEDED_FLAG_WALK */
 #ifdef CFE
         walk_list(ptr->scopes, a_scope_ptr, iek_scope);
-        walk_needed_on_list(ptr->namespaces, a_namespace_ptr, iek_namespace);
+        walk_needed_on_list(ptr->namespaces, a_namespace_ptr, iek_namespace,
+                            kind);
         walk_list_not_needed(ptr->using_directives, a_using_directive_ptr,
                              iek_using_directive);
         walk_list(ptr->asm_entries, an_asm_entry_ptr, iek_asm_entry);
