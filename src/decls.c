@@ -7036,13 +7036,13 @@ exit_loop:
       } else if (kind == (a_type_kind)tk_error) {
         *type_ptr = error_type();
       } else if (kind == (a_type_kind)tk_integer) {
-	if (ikind == (an_integer_kind)ik_int && explicitly_signed) {
-	  /* For an explicitly "signed" int, use a different type entry.
-	     Plain "int" and "signed int" have to be kept separate because
-	     they may mean different things as bit-field types. */
-	  *type_ptr = signed_int_type();
+        if (explicitly_signed) {
+          /* For an explicitly "signed" integer, use a different type entry
+             tagged as an explicitly signed type.  Such an explicitly signed
+             type means something special as a bit field base type. */
+	  *type_ptr = signed_integer_type(ikind);
 	} else {
-          *type_ptr = integer_type((an_integer_kind)ikind);
+          *type_ptr = integer_type(ikind);
 	}  /* if */
       } else if (kind == (a_type_kind)tk_float) {
         *type_ptr = float_type((a_float_kind)fkind);
