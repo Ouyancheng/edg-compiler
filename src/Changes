@@ -1,5 +1,21 @@
 Version 3.4
 
+9/3/03   Microsoft mode: Nonstandard friend class template
+
+In Microsoft mode, the front end now accepts a friend class template without
+a leading template parameter clause if the referenced template is visible.
+For example:
+
+  template<typename T> struct F;
+  class C {
+    friend struct F;  // In Microsoft mode: same as
+  };                  // "template<typename T> struct F;"
+
+A special a_template entry is created for such declarations: It has no
+text representation (even when RECORD_TEMPLATE_STRINGS is TRUE) and its
+template_decl field is always NULL (even when prototype instantiations
+are recorded in the IL).
+
 9/3/03   GNU IA-64 ABI: Additional padding and spurious conflicts
 
 The front end has been modified to better emulate the emulation of GNU IA-64

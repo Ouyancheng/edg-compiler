@@ -8131,7 +8131,7 @@ Generate a declaration for a template.  The current source sequence entry
 is the one associated with the template.
 */
 {
-  a_src_seq_secondary_decl_ptr sec_decl;
+  a_src_seq_secondary_decl_ptr sec_decl = NULL;
   a_template_ptr               tp;
   a_boolean                    from_proto = FALSE;
   a_boolean                    is_definition = FALSE;
@@ -8153,29 +8153,46 @@ is the one associated with the template.
                      tp->canonical_template->definition_template == tp));
     is_definition = TRUE;
   }  /* if */
-  /* If all prototype instantiations are recorded in the IL, the templates
-     will be generated from those. */
-  from_proto = il_header.il_has_all_prototype_instantiations &&
-               gen_template_from_prototype_instantiation(tp);
-  if (!from_proto) { /*lint !e774*/
-    /* No prototype instantiation is available in the IL; generate the
-       template from the stored text string. */
-    set_output_position(&tp->source_corresp.decl_position);
+  if (sec_decl != NULL && sec_decl->friend_decl &&
+      tp->kind == (a_template_kind)templk_class &&
+      tp->template_decl == NULL && tp->text == NULL) {
+    /* This was a nonstandard friend template declaration without a template
+       parameter clause (accepted in Microsoft mode).  Such entries never
+       have a text representation.  They're of the general form
+          friend <elaborated template name>;
+       and therefore they do not have template parameter information either. */
     gen_member_access_specifier_for_decl_of(&tp->source_corresp);
-    if (tp->canonical_template->is_exported) gen_export();
-    /* Write the template string. */
-    write_code_string(tp->text);
-    /* Advance past the source sequence entry for the template. */
-    if (is_definition && (tp->kind == (a_template_kind)templk_class ||
-                          tp->kind == (a_template_kind)templk_member_class) &&
-                         tp->prototype_instantiation.type != NULL) {
-      /* Source sequence entries were recorded for a class template prototype
-         instantiation, but we won't use those to regenerate the template
-         (because nonclass prototype instantiations are not recorded). */
-      skip_type_definition_source_sequence_entries(
+    write_tok_str("friend class ");
+    set_output_position(&tp->source_corresp.decl_position);
+    gen_name(&tp->source_corresp, iek_template, GN_NO_OPTIONS,
+             (a_boolean*)NULL);
+    adv_curr_source_sequence_entry();
+  } else {
+      /* If all prototype instantiations are recorded in the IL, the templates
+     will be generated from those. */
+    from_proto = il_header.il_has_all_prototype_instantiations &&
+                 gen_template_from_prototype_instantiation(tp);
+    if (!from_proto) { /*lint !e774*/
+      /* No prototype instantiation is available in the IL; generate the
+         template from the stored text string. */
+      set_output_position(&tp->source_corresp.decl_position);
+      gen_member_access_specifier_for_decl_of(&tp->source_corresp);
+      if (tp->canonical_template->is_exported) gen_export();
+      /* Write the template string. */
+      write_code_string(tp->text);
+      /* Advance past the source sequence entry for the template. */
+      if (is_definition &&
+          (tp->kind == (a_template_kind)templk_class ||
+           tp->kind == (a_template_kind)templk_member_class) &&
+          tp->prototype_instantiation.type != NULL) {
+        /* Source sequence entries were recorded for a class template prototype
+           instantiation, but we won't use those to regenerate the template
+           (because nonclass prototype instantiations are not recorded). */
+        skip_type_definition_source_sequence_entries(
                                             tp->prototype_instantiation.type);
-    } else {
-      adv_curr_source_sequence_entry();
+      } else {
+        adv_curr_source_sequence_entry();
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* gen_template */

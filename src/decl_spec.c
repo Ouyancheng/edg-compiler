@@ -1022,7 +1022,8 @@ Scan a tag identifier for a class, struct, union, enum, or interface
 declaration.  If a tag symbol already exists for the identifier, return
 a pointer to that symbol; otherwise return NULL.  If there is no
 identifier or if there is an error, return NULL; otherwise, set *locator
-to represent the identifier.
+to represent the identifier.  (In Microsoft mode, the symbol returned
+may represent a class template.)
 
 *is_friend_decl is TRUE when the declaration appears to be of the form
 "friend class X;"; if it turns out that no semicolon follows the identifier,
@@ -1179,13 +1180,16 @@ caution when modifying this routine.
         }  /* if */
       }  /* if */
     } else if (curr_token == tok_identifier &&
-               decl_scope_level == depth_innermost_namespace_scope &&
+               (decl_scope_level == depth_innermost_namespace_scope ||
+                (microsoft_mode && *is_friend_decl)) &&
                tag_kind != (a_symbol_kind)sk_enum_tag) {
       /* Look up what may be a class template symbol.  If the name is
          the start of a qualified name (e.g., A::B) or has a template
          argument list (e.g., A<T>) it will have been coalesced by the
          call to coalesce_and_lookup_qualified_name.  If it just a simple
-         identifier (e.g., "A") we need look it up and coalesce it here. */
+         identifier (e.g., "A") we need look it up and coalesce it here.
+         In Microsoft mode, a simple friend declaration that resolves to
+         a template is treated as a friend template declaration. */
       templ_sym = normal_id_lookup(&locator_for_curr_id, IDL_LINKAGE_LOOKUP);
     }  /* if */
     if (templ_sym != NULL) {
@@ -1204,18 +1208,31 @@ caution when modifying this routine.
       if (templ_sym->kind == (a_symbol_kind)sk_class_template) {
         tag_sym = coalesce_template_class_reference(
                                    templ_sym,
-                                   microsoft_bugs ? GID_TEMPLATE_ARGS_OPTIONAL
+                                   microsoft_mode ? GID_TEMPLATE_ARGS_OPTIONAL
                                                   : GID_NO_OPTIONS,
                                    &err);
         if (tag_sym->kind == (a_symbol_kind)sk_class_template) {
-          if (microsoft_bugs) {
-            /* In Microsoft bugs mode, the following is accepted:
+          if (microsoft_mode) {
+            /* In Microsoft mode, simple friend declarations may refer to
+               templates: These are treated as friend template declarations.
+               For example:
+                  template<class T> struct S;
+                  class C {
+                    friend struct S;
+                              // Same as: template<class T> friend struct S;
+                  };
+               In Microsoft bugs mode, the following is also accepted:
                   template<class T> struct S;
                   struct S; // ignored
             */
-            if (next_token() == tok_semicolon && !is_ref_within_new_expr) {
-              tag_sym = tag_sym->variant.template_info
+            if (next_token() == tok_semicolon && !is_ref_within_new_expr &&
+                (*is_friend_decl || microsoft_bugs)) {
+              if (*is_friend_decl) {
+                goto done;
+              } else {
+                tag_sym = tag_sym->variant.template_info
                              ->variant.class_template.prototype_instantiation;
+              }  /* if */
               warning(ec_not_a_class_or_struct_name);
             } else {
               error(ec_not_a_class_or_struct_name);
@@ -1779,6 +1796,59 @@ which it was added.
   if (!friend_injection_enabled) (*sym)->is_invisible = TRUE;
 }  /* duplicate_friend_sym_in_namespace */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void decl_nonstandard_friend_template(a_symbol_ptr  sym)
+/*
+We've seen a friend declaration of the form "friend class X;" where X is a
+class template represented by sym.  In Microsoft mode, this is treated as a
+friend template declaration.  Update the IL as needed and issue an appropriate
+diagnostic.
+*/
+{
+  a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
+  a_template_symbol_supplement_ptr
+                           tssp = sym->variant.template_info;
+  a_template_ptr           tp;
+
+  check_assertion(microsoft_mode);
+  if (ssep->kind != (a_scope_kind)sck_class_struct_union) {
+    pos_error(ec_bad_friend_decl, &locator_for_curr_id.source_position);
+    goto done;
+  }  /* if */
+  add_befriending_class_to_class_template(tssp, ssep->assoc_type);
+  pos_warning(ec_bad_friend_decl, &locator_for_curr_id.source_position);
+  /* Create an IL entry for the template.  This entry is special in the
+     sense that its template_decl field is NULL (since there were no
+     template parameters in the source). */
+  tp = alloc_template();
+  tp->kind = (a_template_kind)templk_class;
+  tp->source_corresp.assoc_info = (char*)sym;
+  tp->source_corresp.name = sym->header->identifier;
+  tp->source_corresp.decl_position = locator_for_curr_id.source_position;
+  tp->source_corresp.name_linkage =
+                                  (a_name_linkage_kind)nlk_cplusplus_external;
+  tp->source_corresp.access = ssep->current_access;
+  tp->canonical_template = tssp->il_template_entry->canonical_template;
+  tp->prototype_instantiation.type = tp->canonical_template
+                                       ->prototype_instantiation.type;
+  add_to_templates_list(tp, depth_innermost_namespace_scope);
+#if RECORD_TEMPLATE_STRINGS
+  /* This entry has no text representation because its token were not
+     cached. */
+#endif /* RECORD_TEMPLATE_STRINGS */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  if (!source_sequence_entries_disallowed) {
+    a_src_seq_secondary_decl_ptr  sssdp;
+    add_to_source_sequence_list((char *)tp, (an_il_entry_kind)iek_template);
+    sssdp = secondary_src_seq_for_template(tp);
+    sssdp->friend_decl = TRUE;
+  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+done:;
+}  /* decl_nonstandard_friend_template */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if !EXTRA_SOURCE_POSITIONS_IN_IL || !GNU_EXTENSIONS_ALLOWED || \
     !MICROSOFT_EXTENSIONS_ALLOWED
@@ -2023,6 +2093,14 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
           }  /* if */
           set_to_named_error_locator(locator);
           tag_sym = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        } else if (is_class_template_symbol(tag_sym)) {
+          /* Microsoft compilers accept "friend class X;" where X is a class
+             template.  It is treated as a friend template declaration. */
+          decl_nonstandard_friend_template(tag_sym);
+          *type_ptr = NULL;
+          goto done;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         }  /* if */
       } else if ((is_explicit_instantiation || is_template_specialization) &&
                  !is_declarator_start()) {
@@ -2927,6 +3005,7 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
   } else {
     *type_ptr = class_type;
   }  /* if */
+done:
 #if DEBUG
   if (debug_level >= 3) {
     db_symbol(tag_sym, "tag_sym: ", 4);
@@ -6764,6 +6843,12 @@ exit_loop:
       /* Error has already been diagnosed. */
       *type_ptr = error_type();
       err = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (*type_ptr == NULL && basic_type == bt_struct_union) {
+      /* A friend declaration of the form "friend class X;" where "X" is a
+         class template. */
+      check_assertion(microsoft_mode && (decl_specifiers_seen & DS_FRIEND));
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       /* Combine the type specifiers (except for the type qualifiers) into a
          type.  *type_ptr is updated, based on the basic type, sign, and size

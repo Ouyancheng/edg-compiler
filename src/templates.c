@@ -9654,7 +9654,7 @@ definition (as opposed to a mere declaration).
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
-static void add_befriending_class_to_class_template
+void add_befriending_class_to_class_template
                       (a_template_symbol_supplement_ptr     tssp,
 		       a_type_ptr                           class_declared_in)
 /*

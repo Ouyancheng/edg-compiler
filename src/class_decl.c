@@ -11865,11 +11865,24 @@ passed via template_decl.
                         &member_type, &qualifiers, &specifier_attributes,
                         &ms_attributes, &decl_info.decl_modifiers,
                         &decl_info.decl_pos_block, (a_upc_block_size *)NULL);
-#if GNU_EXTENSIONS_ALLOWED
-  /* Find the last prefix_attribute. */
-  last_specifier_attribute = last_attribute_link(&specifier_attributes);
-#endif /* GNU_EXTENSIONS_ALLOWED */
+  no_decl_specifiers = (dso_flags & DSO_NO_DECL_SPECIFIERS) != 0;
+  type_explicitly_specified =
+                           (dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER) != 0;
+  friend_specified = dso_flags & DSO_FRIEND;
+  if (friend_specified) class_state->any_friend_decls = TRUE;
+  inline_specified = (dso_flags & DSO_INLINE) != 0;
+  decl_info.is_constructor = (dso_flags & DSO_CONSTRUCTOR) != 0;
+  decl_info.is_destructor = (dso_flags & DSO_DESTRUCTOR) != 0;
+  mutable_specified = (dso_flags & DSO_MUTABLE) != 0;
+  decl_info.dso_flags = dso_flags;
+  remove_stop_token(tok_colon);
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode && member_type == NULL && type_explicitly_specified) {
+    /* A friend declaration of the form "friend class X;" where "X" is a
+       class template. */
+    check_assertion(friend_specified && curr_token == tok_semicolon);
+    goto next_declaration;
+  }  /* if */
   if (ms_attributes != NULL &&
       (is_member_template || is_member_template_rescan ||
        is_template_context() ||
@@ -11882,7 +11895,10 @@ passed via template_decl.
     dispose_of_unapplied_attributes(&ms_attributes, ec);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  decl_info.dso_flags = dso_flags;
+#if GNU_EXTENSIONS_ALLOWED
+  /* Find the last prefix_attribute. */
+  last_specifier_attribute = last_attribute_link(&specifier_attributes);
+#endif /* GNU_EXTENSIONS_ALLOWED */
   if (C_dialect == C_dialect_cplusplus &&
       (dso_flags & DSO_DEFINES_SOMETHING) && !is_error_type(member_type)) {
     /* Should be a class, struct, union, or enum definition. */
@@ -11906,16 +11922,6 @@ passed via template_decl.
 #endif /* CHECKING */
     }  /* if */
   } /* if */
-  no_decl_specifiers = (dso_flags & DSO_NO_DECL_SPECIFIERS) != 0;
-  type_explicitly_specified =
-                       (dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER) != 0;
-  friend_specified = dso_flags & DSO_FRIEND;
-  if (friend_specified) class_state->any_friend_decls = TRUE;
-  inline_specified = (dso_flags & DSO_INLINE) != 0;
-  decl_info.is_constructor = (dso_flags & DSO_CONSTRUCTOR) != 0;
-  decl_info.is_destructor = (dso_flags & DSO_DESTRUCTOR) != 0;
-  mutable_specified = (dso_flags & DSO_MUTABLE) != 0;
-  remove_stop_token(tok_colon);
   if (dso_flags & DSO_DANGLING_TYPE_SPECIFIER) {
     /* A malformed declaration was detected by decl_specifiers.  Issue
        errors indicating that an identifier (= a declarator) is missing,
