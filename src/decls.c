@@ -4036,6 +4036,12 @@ class template.
         sym = enter_local_symbol((a_symbol_kind)sk_function_template, locator,
                                  effective_decl_level,
                                  /*suppress_redecl_error=*/FALSE);
+        
+        if (effective_decl_level != DEPTH_OF_FILE_SCOPE) {
+          set_namespace_membership(sym, (a_source_correspondence *)NULL,
+                                   scope_stack[effective_decl_level].
+                                            il_scope->variant.assoc_namespace);
+        }  /* if */
       }  /* if */
     } else {
       check_assertion(sym->kind == (a_symbol_kind)sk_function_template);
@@ -4070,6 +4076,7 @@ class template.
     }  /* if */
     check_assertion(!locator->is_conversion_name);
     set_source_corresp(&rout_ptr->source_corresp, sym);
+    set_membership_in_source_corresp(&(rout_ptr->source_corresp), sym);
     rout_ptr->source_corresp.name_linkage =
                           (storage_class == (a_storage_class)sc_extern) ?
                                 (a_name_linkage_kind)nlk_cplusplus_external :
