@@ -1934,6 +1934,15 @@ EXTERN a_scope_depth
 			/* Level in the scope stack that contains the innermost
 			   function scope, or NO_SCOPE_DEPTH if there isn't
 			   one. */
+EXTERN a_scope_ptr
+		innermost_function_scope;
+			/* The innermost function scope, or NULL if there isn't
+			   one.  Usually matches
+			   depth_innermost_function_scope, but can be
+			   different in situations where a function is being
+			   processed where no scope stack entry exists
+			   (e.g., in IL lowering, when routines are
+			   generated). */
 EXTERN a_scope_depth
 		depth_innermost_instantiation_scope;
 			/* If there are template instantiation scopes on the
@@ -2543,8 +2552,7 @@ which is_class_struct_union_type is TRUE.
 
 /* Return a pointer to the current routine entry (only usable when within
    a routine definition). */
-#define current_routine_entry()                                       \
-  (scope_stack[depth_innermost_function_scope].il_scope->variant.routine.ptr)
+#define current_routine_entry() (innermost_function_scope->variant.routine.ptr)
 
 /* Return a pointer to the template symbol supplement for a given
    symbol.  Return NULL for symbols of the wrong kind. */

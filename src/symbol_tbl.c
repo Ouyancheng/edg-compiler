@@ -7022,6 +7022,7 @@ specific version of the template.
       inside_local_class = ssep->inside_local_class = FALSE;
       depth_innermost_function_scope =
               ssep->depth_innermost_function_scope = NO_SCOPE_DEPTH;
+      innermost_function_scope = NULL;
       if (template_sym->kind == (a_symbol_kind)sk_static_data_member) {
         /* Static data members don't have their own scope so the
            template parameters are added at the instantiation scope. */
@@ -7097,6 +7098,7 @@ specific version of the template.
   if (kind == (a_scope_kind)sck_function) {
     depth_innermost_function_scope =
             ssep->depth_innermost_function_scope = depth_scope_stack;
+    innermost_function_scope = sp;
   } else if (C_dialect == C_dialect_cplusplus &&
              kind == (a_scope_kind)sck_class_struct_union) {
     /* When we enter a class scope, the containing function scope (if any)
@@ -7106,6 +7108,7 @@ specific version of the template.
        restore it in pop_scope. */
     depth_innermost_function_scope =
             ssep->depth_innermost_function_scope = NO_SCOPE_DEPTH;
+    innermost_function_scope = NULL;
   }  /* if */
   if (C_dialect == C_dialect_cplusplus) {
     /* Maintain the depth of the innermost stack entry that affects access
@@ -8178,6 +8181,10 @@ End a name scope by popping an entry off the scope stack.
     inside_local_class = scope_stack[depth_scope_stack].inside_local_class;
     depth_innermost_function_scope = scope_stack[depth_scope_stack].
                                             depth_innermost_function_scope;
+    innermost_function_scope =
+                   (depth_innermost_function_scope != NO_SCOPE_DEPTH) ?
+                         scope_stack[depth_innermost_function_scope].il_scope :
+                         NULL;
     depth_template_declaration_scope =
              scope_stack[depth_scope_stack].depth_template_declaration_scope;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -8994,6 +9001,7 @@ of the front end.
   depth_scope_stack = NO_SCOPE_DEPTH;
   decl_scope_level = NO_SCOPE_DEPTH;
   depth_innermost_function_scope = NO_SCOPE_DEPTH;
+  innermost_function_scope = NULL;
   depth_innermost_instantiation_scope = NO_SCOPE_DEPTH;
   depth_template_declaration_scope = NO_SCOPE_DEPTH;
   curr_deferred_access_scope = NO_SCOPE_DEPTH;
