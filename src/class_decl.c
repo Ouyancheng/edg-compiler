@@ -6322,10 +6322,12 @@ declared member functions.
   set_class_membership(sym, &rtn->source_corresp, class_type);
   rtn->source_corresp.access = class_state->access;
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-  if (scope_stack[decl_scope_level].in_prototype_instantiation) {
+  if (scope_stack[decl_scope_level].in_prototype_instantiation &&
+      !decl_info->is_trivial_default_constructor) {
     /* This is a member function of a prototype instantiation.  Although it is
        not a template, it is an instantiatable function and hence we create a
-       placeholder a_template entry for it. */
+       placeholder a_template entry for it.  (Trivial default constructors are
+       not linked in the IL and hence do no need that information.) */
     a_template_ptr  templ = alloc_template();
     templ->kind = (a_template_kind)templk_member_function;
     set_source_corresp(&templ->source_corresp, sym);
@@ -11686,14 +11688,12 @@ bits of information that were acquired while parsing.
          required. */
       report_missing_constructor(tag_sym);
     }  /* if */
-    if (!class_state->is_nonreal_instantiation) {
-      /* Check to see if a remark should be issued on direct base classes
-         with nonvirtual destructors. */
-      check_base_class_destructors(class_type);
-      /* Create compiler-generated default constructor, copy constructor,
-         destructor, and assignment operator, if any is needed. */
-      check_special_member_functions(class_type, class_state);
-    }  /* if */
+    /* Check to see if a remark should be issued on direct base classes
+       with nonvirtual destructors. */
+    check_base_class_destructors(class_type);
+    /* Create compiler-generated default constructor, copy constructor,
+       destructor, and assignment operator, if any is needed. */
+    check_special_member_functions(class_type, class_state);
     if (cssp->is_class_aggregate && !class_state->POD_ruled_out) {
       /* It was intentional to wait until check_special_member_functions
          was called to set the is_POD flag -- the check for copy

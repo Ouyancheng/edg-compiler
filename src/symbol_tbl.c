@@ -6090,9 +6090,14 @@ is returned TRUE if the parameter is not a reference parameter.
 
   *ambiguous = FALSE;
   cssp = symbol_supplement_for_class(class_type);
-  if (!cssp->assignment_by_bitwise_copy_allowed) {
+  if (cssp->assignment_by_bitwise_copy_allowed ||
+      cssp->assignment_operator == NULL) {
+    /* A NULL assignment operator when bitwise copies are not allowed can
+       occur in certain error cases.  Return NULL. */
+    check_assertion(cssp->assignment_by_bitwise_copy_allowed ||
+                    total_errors != 0);
+  } else {
     sym = cssp->assignment_operator;
-    check_assertion(sym != NULL);
     /* If sym is an overloaded function symbol we need to go through the whole
        list. */
     if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
