@@ -211,10 +211,6 @@ typedef struct a_substitution {
     /* When kind == iek_type: */
     a_type_ptr	type;
 			/* The type to which this substitution applies.	 */
-    /* When kind == iek_routine */
-    a_routine_ptr
-		routine;
-			/* The routine to which this substitution applies. */
     /* When kind == iek_namespace */
     a_namespace_ptr
 		namespace_ptr;
@@ -377,9 +373,6 @@ mctl->first_substitution/mctl->last_substitution.
   switch (kind) {
     case iek_type:
       sp->variant.type = (a_type_ptr)entity;
-      break;
-    case iek_routine:
-      sp->variant.routine = (a_routine_ptr)entity;
       break;
     case iek_namespace:
       sp->variant.namespace_ptr = (a_namespace_ptr)entity;
@@ -862,11 +855,6 @@ entity processed.
         switch (kind) {
           case iek_type:
             if (identical_types((a_type_ptr)entity, sp->variant.type)) {
-              result = TRUE;
-            }  /* if */
-            break;
-          case iek_routine:
-            if (same_entities((a_routine_ptr)entity, sp->variant.routine)) {
               result = TRUE;
             }  /* if */
             break;
@@ -1605,8 +1593,10 @@ template classes.
     a_boolean     suppress_param_encoding = TRUE;
     a_routine_ptr routine = con->variant.address.variant.routine;
 #if IA64_ABI
-    /* Always put out the parameter types. */
-    suppress_param_encoding = FALSE;
+    if (is_name_linkage_kind_subject_to_name_mangling(
+                                      routine->source_corresp.name_linkage)) {
+      suppress_param_encoding = FALSE;
+    }  /* if */
 #endif /* IA64_ABI */
     mangled_function_name(routine, suppress_param_encoding,
                           /*suppress_prefix=*/FALSE, (sizeof_t *)NULL,
@@ -1786,7 +1776,6 @@ specification in the mangling for lengths of literals.
   if (scp != NULL) {
     /* Unary "&" encoding "ad" followed by scope resolution operator "sr". */
     add_str_to_mangled_name("adsr", mctl);
-    add_prefix_for_local_class_if_necessary(scp->parent.class_type, mctl);
     add_to_mangled_name('N', mctl);
     mangled_encoding_for_type(scp->parent.class_type, mctl);
     if (rout != NULL && 
@@ -2606,6 +2595,24 @@ should be put out.
     /* See if template arguments are needed.  For partial specializations,
        there are two argument lists. */
     template_args = ctsp->template_arg_list;
+#if IA64_ABI
+    if (template_args != NULL) {
+      a_template_ptr tmpl = instantiated_template(type);
+      a_boolean      is_substitution;
+      check_assertion(tmpl != NULL);
+      /* Create a substitution entry for the template.  */
+      is_substitution = add_substitution(tmpl,
+                                         (an_il_entry_kind)iek_template,
+                                         mctl);
+      /* If there was an already an entry for this substitution, then this
+         routine should never have been called; instead, the substitution
+         should have already been performed.  This routine does not emit
+         parent qualifiers; therefore, if we reach this point with a
+         substitution available for the template, we have already re-emitted
+         the parent qualifiers, which is incorrect.  */
+      check_assertion(!is_substitution);
+    }  /* if */
+#endif /* IA64_ABI */
     /* Always start with the name of the class, which applies even in the
        template class case. */
     name = unmangled_name_of(&type->source_corresp);
@@ -2705,6 +2712,34 @@ should be put out).
 #define mangled_basic_class_name(type, mctl)                          \
   mangled_full_class_name((type), FALSE, FALSE, FALSE, FALSE, (mctl))
 
+#if IA64_ABI
+
+static void add_discriminator_if_necessary(a_source_correspondence  *scp,
+                                           an_il_entry_kind         entry_kind,
+                                           a_mangling_control_block *mctl)
+/*
+The entity (of kind entry_kind) whose source correspondence entry is
+scp is local to the function "routine".  Add a discriminator to the
+mangled name if necessary.  A discriminator is a number used in the
+IA-64 ABI to distinguish function-local entities with the same name.
+*/
+{
+  a_discriminator discriminator = 0;
+
+  if (scp->is_local_to_function) {
+    if (entry_kind == iek_variable) {
+      discriminator = ((a_variable_ptr)scp)->discriminator;
+    } else if (entry_kind == iek_type) {
+      discriminator = ((a_type_ptr)scp)->discriminator;
+    }  /* if */
+    if (discriminator > 0) {
+      add_to_mangled_name('_', mctl);
+      add_number_to_mangled_name((unsigned long)(discriminator - 1), mctl);
+    }  /* if */
+  }  /* if */
+}  /* add_discriminator_if_necessary */
+
+#endif /* IA64_ABI */
 
 static void mangled_class_encoding(
                          a_type_ptr               type,
@@ -2793,6 +2828,8 @@ that fact should be put out.
                               mctl);
 #if !IA64_ABI
       fill_in_length(&length_reservation, mctl);
+#else /* IA64_ABI */
+      add_discriminator_if_necessary(&type->source_corresp, iek_type, mctl);
 #endif /* !IA64_ABI */
     }  /* if */
   }  /* if */
@@ -2890,8 +2927,9 @@ mangled_parent_qualifier, which supplies the usual nesting_level == 1.
       a_class_type_supplement_ptr ctsp;
       tmpl = class_template_of(type);
       if (tmpl != NULL &&
-          add_substitution((char *)tmpl,
-                           (an_il_entry_kind)iek_template, mctl)) {
+          add_substitution_if_available(tmpl, 
+                                        (an_il_entry_kind)iek_template, 
+                                        mctl)) {
         ctsp = type->variant.class_struct_union.extra_info;
         mangled_template_arguments(ctsp->template_arg_list,
                                    /*partial_spec=*/FALSE,
@@ -3019,8 +3057,9 @@ and for unnamed classes and enums.  Nested types are encoded as such.
      template for which a substitution is available. */
   tmpl = class_template_of(type);
   if (tmpl != NULL && 
-      add_substitution((char *)tmpl,
-                       (an_il_entry_kind)iek_template, mctl)) {
+      add_substitution_if_available(tmpl, 
+                                    (an_il_entry_kind)iek_template, 
+                                    mctl)) {
     ctsp = type->variant.class_struct_union.extra_info;
     mangled_template_arguments(ctsp->template_arg_list,
                                /*partial_spec=*/FALSE,
@@ -3070,6 +3109,9 @@ and for unnamed classes and enums.  Nested types are encoded as such.
       name = type->source_corresp.name;
     }  /* if */
     mangled_name_with_length(name, mctl);
+#if IA64_ABI
+    add_discriminator_if_necessary(&type->source_corresp, iek_type, mctl);
+#endif /* IA64_ABI */
   }  /* if */
 #if IA64_ABI
   if (type_needs_parent_qualifier(type)) {
@@ -3392,6 +3434,11 @@ Add to the mangled name the encoding for the type "type".
                             type->variant.array.variant.element_count_constant,
                             /*old_form=*/FALSE,
                             mctl);
+#if IA64_ABI
+        } else if (!type->variant.array.bound_is_zero && 
+                   type->variant.array.variant.number_of_elements == 0) {
+          /* If there is no bound, nothing is output.  */
+#endif /* IA64_ABI */
         } else {
           /* Put out the (constant) number of elements. */
           add_number_to_mangled_name((unsigned long)type->variant.array.
@@ -5448,33 +5495,6 @@ returned.
 }  /* search_scope_list */
 
 #endif /* !IA64_ABI */
-#if IA64_ABI
-
-static void add_discriminator_if_necessary(a_source_correspondence  *scp,
-                                           an_il_entry_kind         entry_kind,
-                                           a_mangling_control_block *mctl)
-/*
-The entity (of kind entry_kind) whose source correspondence entry is
-scp is local to the function "routine".  Add a discriminator to the
-mangled name if necessary.  A discriminator is a number used in the
-IA-64 ABI to distinguish function-local entities with the same name.
-*/
-{
-  a_discriminator discriminator = 0;
-
-  check_assertion(scp->is_local_to_function);
-  if (entry_kind == iek_variable) {
-    discriminator = ((a_variable_ptr)scp)->discriminator;
-  } else if (entry_kind == iek_type) {
-    discriminator = ((a_type_ptr)scp)->discriminator;
-  }  /* if */
-  if (discriminator > 0) {
-    add_to_mangled_name('_', mctl);
-    add_number_to_mangled_name((unsigned long)(discriminator - 1), mctl);
-  }  /* if */
-}  /* add_discriminator_if_necessary */
-
-#endif /* IA64_ABI */
 
 #if IA64_ABI
 /*ARGSUSED*/  /* <-- scope is not used in that case. */

@@ -717,6 +717,35 @@ there was an overflow error.
 }  /* do_alignment */
 
 
+/*
+Return the error code to be used when a class (or in C a struct/union)
+is too large.
+*/
+#define struct_too_large_error()					\
+  (C_mode() ? ec_struct_too_large : ec_class_too_large)
+
+
+static void pad_bit_field(a_layout_block_ptr lob)
+/*
+If the last data field was a bit field that did not completely fill its
+containing byte, pad out the remaining bits in that byte.
+*/
+{
+  if (lob->bit_offset > 0) {
+    /* If the last data field was a bit field, bump the byte count by one. */
+    if (!increment_field_offsets(&lob->byte_offset, &lob->bit_offset,
+                                 (a_targ_size_t)1,
+                                 (an_unnormalized_bit_offset)0)) {
+      if (!lob->any_overflow) {
+        error(struct_too_large_error());
+        lob->any_overflow = TRUE;
+      }  /* if */
+    }  /* if */
+    lob->bit_offset = 0;
+  }  /* if */
+}  /* pad_bit_field */
+
+
 static void pad_ms_bit_field_container(a_layout_block_ptr  lob)
 /*
 Pad the remaining bits in the current bit field container, as represented
@@ -1046,14 +1075,6 @@ targ_minimum_struct_alignment).  Otherwise, FALSE is returned.
 }  /* is_empty_class_type */
 
 
-/*
-Return the error code to be used when a class (or in C a struct/union)
-is too large.
-*/
-#define struct_too_large_error()					\
-  (C_mode() ? ec_struct_too_large : ec_class_too_large)
-
-
 #if !IA64_ABI
 /*ARGSUSED*/  /* <-- atype_bcp, consider_virtual_bases are not used
                      in that case. */
@@ -1066,22 +1087,31 @@ static a_boolean empty_base_conflict(a_type_ptr       etype,
 /*
 Determine whether a subobject of type etype (an empty class type) can be
 allocated at offset bytes from the start of another (not necessarily empty)
-class type atype.  If atype corresponds to a base of the complete class in
-which etype is being allocated, atype_bcp gives that base type; otherwise,
-atype_bcp is NULL.  Return TRUE if this is not the case (i.e., there is a type
-conflict that would cause two empty subobjects of the same type to end up at
-the same address); FALSE otherwise.  If consider_virtual_bases is TRUE,
-virtual bases of atype are considered; otherwise, they are ignored.
+class type atype.  Return TRUE if this is not the case (i.e., there is
+a type conflict that would cause two empty subobjects of the same type
+to end up at the same address); FALSE otherwise.  If atype corresponds
+to a base of the complete class in which etype is being allocated,
+atype_bcp gives that base type; otherwise, atype_bcp is NULL.  If
+atype_bcp is non-NULL, offset is the offset from the start of the
+complete object containing atype_bcp, rather than from atype_bcp
+itself.  If consider_virtual_bases is TRUE, virtual bases of atype are
+considered; otherwise, they are ignored.
 */
 {
-  a_boolean result = FALSE;
+  a_boolean     result = FALSE;
+  a_targ_size_t atype_offset;
 
   check_assertion(is_empty_class_type(etype));
 #if !IA64_ABI
   /* The offset is always zero in the Cfront-like ABI. */
   check_assertion(offset == 0);
 #endif /* !IA64_ABI */
-  if (offset == 0 && same_entities(etype, atype)) {
+  if (atype_bcp != NULL) {
+    atype_offset = atype_bcp->offset;
+  } else {
+    atype_offset = 0;
+  }  /* if */
+  if (offset == atype_offset && same_entities(etype, atype)) {
     /* Is there a direct type conflict? */
     result = TRUE;
 #if !IA64_ABI
@@ -1121,10 +1151,9 @@ virtual bases of atype are considered; otherwise, they are ignored.
 #if IA64_ABI
           eff_bcp->offset_is_set && eff_bcp->offset <= offset &&
 #else /* !IA64_ABI */
-          eff_bcp->offset == 0 && 
+          eff_bcp->offset == atype_offset && 
 #endif /* !IA64_ABI */
-          empty_base_conflict(etype, eff_bcp->type, eff_bcp,
-                              offset - eff_bcp->offset,
+          empty_base_conflict(etype, eff_bcp->type, eff_bcp, offset,
                               /*consider_virtual_bases=*/FALSE)) {
         result = TRUE;
         break;
@@ -1133,6 +1162,10 @@ virtual bases of atype are considered; otherwise, they are ignored.
   }  /* if */
   if (!result) {
     a_field_ptr field = atype->variant.class_struct_union.field_list;
+    /* If the offset was relative to a complete class containing atype, we can
+       now normalize it to be relative to atype_bcp. */
+    offset -= atype_offset;
+    /* Check fields of atype. */
     for (; 
          field != NULL 
 #if IA64_ABI
@@ -1143,6 +1176,7 @@ virtual bases of atype are considered; otherwise, they are ignored.
       a_type_ptr    field_type;
       a_targ_size_t elt, num_array_elts = 1, field_offset;
       field_type = skip_typerefs(field->type);
+#if IA64_ABI || ABI_COMPATIBILITY_VERSION >= 300
       if (is_array_type(field_type)) {
         /* If the field has an array type, we're interested in the element
            type of that array. */
@@ -1154,6 +1188,7 @@ virtual bases of atype are considered; otherwise, they are ignored.
 #endif /* IA64_ABI */
         field_type =f_skip_typerefs(underlying_array_element_type(field_type));
       }  /* if */
+#endif /* IA64_ABI || ABI_COMPATIBILITY_VERSION >= 300 */
       if (is_class_struct_union_type(field_type)) {
         for (elt = 0; elt < num_array_elts; ++elt) {
           field_offset = field->offset + elt * field_type->size;
@@ -1293,7 +1328,7 @@ Return TRUE if placing bcp at offset would result in a subobject conflict.
                          /*consider_virtual_bases=*/FALSE)) {
     result = TRUE;
   } else {
-    /* There is no conflict with non-virtual bases.  There might, however, be
+    /* There is no direct conflict.  There might, however, be
        a conflict with bases that are going to be allocated as part of
        this base.  */
     for (base_bcp = base_classes_of(base_type); 
@@ -2908,7 +2943,9 @@ Reserve space at the end of the class object for virtual base classes.
 */
 {
   a_class_type_supplement_ptr	ctsp;
-  an_unnormalized_bit_offset    zero = 0;
+#if !TARG_REUSE_TAIL_PADDING
+  an_unnormalized_bit_offset	zero = 0;
+#endif /* !TARG_REUSE_TAIL_PADDING */
   
   db_enter(4, "set_virtual_base_class_offsets");
 
@@ -2916,21 +2953,15 @@ Reserve space at the end of the class object for virtual base classes.
     ctsp = lob->class_type->variant.class_struct_union.extra_info;
     /* Record the size and alignment of the class before space is added for
        virtual base classes. */
-    if (lob->bit_offset > 0) {
-      /* If the last data field was a bit field, bump the byte count by one
-         before setting the size-without-virtual-base-classes value. */
-      if (!increment_field_offsets(&lob->byte_offset, &lob->bit_offset,
-                                   (a_targ_size_t)1,
-                                   (an_unnormalized_bit_offset)0)) {
-        if (!lob->any_overflow) {
-          error(struct_too_large_error());
-          lob->any_overflow = TRUE;
-        }  /* if */
-      }  /* if */
-      lob->bit_offset = 0;
-    }  /* if */
+    pad_bit_field(lob);
+#if IA64_ABI
+    /* The size without virtual base classes includes all subobjects that have
+       been laid out thus far.  */
+    adjust_size_for_empty_bases(lob);
+#endif /* IA64_ABI */
     ctsp->size_without_virtual_base_classes = lob->byte_offset;
     ctsp->alignment_without_virtual_base_classes = lob->alignment;
+#if !TARG_REUSE_TAIL_PADDING
     /* Note that the current size may not be consistent (according to the
        rules for C structs) with the current alignment.  Modify
        size-without-virtual-base-classes in such a case, but without changing
@@ -2945,6 +2976,7 @@ Reserve space at the end of the class object for virtual base classes.
         lob->any_overflow = TRUE;
       }  /* if */
     }  /* if */
+#endif /* !TARG_REUSE_TAIL_PADDING */
     /* Now see if there are any virtual base class data sections that need to
        be added to the layout for the current class. */
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
@@ -3290,7 +3322,7 @@ propagates that decision into the base classes of class_type.
 }  /* compute_primary_base_classes */
 
 #endif /* IA64_ABI */
-    
+
 void do_class_layout(a_type_ptr  class_type)
 /*
 Allocate the subobjects defined for class_type -- its nonvirtual and
@@ -3302,6 +3334,9 @@ for handling virtual bases and functions.
 #if GNU_EXTENSIONS_ALLOWED
   a_targ_alignment            alignment;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if TARG_REUSE_TAIL_PADDING
+  a_boolean                   is_POD;
+#endif /* TARG_REUSE_TAIL_PADDING */
 
   db_enter(3, "do_class_layout");
 #if DEBUG
@@ -3403,6 +3438,23 @@ for handling virtual bases and functions.
     adjust_size_for_empty_bases(&lob);
   }  /* if */
 #endif /* IA64_ABI */
+#if TARG_REUSE_TAIL_PADDING
+  pad_bit_field(&lob);
+  /* If this class is a POD, tail-padding cannot be reused. */
+  is_POD = (class_type->source_corresp.assoc_info != NULL &&
+            symbol_supplement_for_class(class_type)->is_POD);
+  /* If the class has virtual base classes, the size and alignment without
+     virtual base classes will already have been recorded; otherwise, record
+     it now. */
+  if (!C_mode() &&
+      !lob.class_type->variant.class_struct_union.any_virtual_base_classes &&
+      !is_POD) {
+    a_class_type_supplement_ptr	ctsp = lob.class_type->
+                                        variant.class_struct_union.extra_info;
+    ctsp->size_without_virtual_base_classes = lob.byte_offset;
+    ctsp->alignment_without_virtual_base_classes = lob.alignment;
+  }  /* if */
+#endif /* TARG_REUSE_TAIL_PADDING */
   /* Adjust the total size of the class to be consistent with the
      overall alignment required for the class. */
   if (!do_alignment(&lob.byte_offset, &lob.bit_offset, lob.alignment)) {
@@ -3465,7 +3517,11 @@ for handling virtual bases and functions.
      virtual base classes will already have been recorded; otherwise, record
      it now. */
   if (!C_mode() &&
-      !lob.class_type->variant.class_struct_union.any_virtual_base_classes) {
+      !lob.class_type->variant.class_struct_union.any_virtual_base_classes
+#if TARG_REUSE_TAIL_PADDING
+      && is_POD
+#endif /* TARG_REUSE_TAIL_PADDING */
+                                                                          ) {
     a_class_type_supplement_ptr	ctsp = lob.class_type->
                                         variant.class_struct_union.extra_info;
     ctsp->size_without_virtual_base_classes = class_type->size;

@@ -2800,18 +2800,26 @@ destructors in the IA-64 ABI.
     a_param_type_ptr              param_type, last_param_type;
     a_routine_type_supplement_ptr rtsp, new_rtsp;
     rtsp = routine->type->variant.routine.extra_info;
-    /* Compute the mangled name for this new entry point.  It's the same as
-       the routine -- but "C9" or "D9" needs to become "C1", "C2", etc. */
-    mangled_name = get_mangled_function_name(routine);
-    name = alloc_lowered_name_string(strlen(mangled_name) + 1);
-    (void)strcpy(name, mangled_name);
-    switch (kind) {
-      case cdk_complete:  ch = '1';               break;
-      case cdk_subobject: ch = '2';               break;
-      case cdk_deleting:  ch = '0';               break;
-      default:            unexpected_condition();
-    }  /* switch */
-    name[routine->variant.ctor_dtor.base_name_offset + 1] = ch;
+    if (!has_name(routine)) {
+      /* A constructor or destructor for an unnamed class may not have a
+         name.  For example, if a local class is used to declare a variable
+         ("struct { C c; } x;"), the constructor will have no name.  In this
+         case, the alternate entry point does not need a name.  */
+      name = NULL;
+    } else {
+      /* Compute the mangled name for this new entry point.  It's the same as
+         the routine -- but "C9" or "D9" needs to become "C1", "C2", etc. */
+      mangled_name = get_mangled_function_name(routine);
+      name = alloc_lowered_name_string(strlen(mangled_name) + 1);
+      (void)strcpy(name, mangled_name);
+      switch (kind) {
+        case cdk_complete:  ch = '1';               break;
+        case cdk_subobject: ch = '2';               break;
+        case cdk_deleting:  ch = '0';               break;
+        default:            unexpected_condition();
+      }  /* switch */
+      name[routine->variant.ctor_dtor.base_name_offset + 1] = ch;
+    }  /* if */
     /* Make a type and routine entry for the routine. */
     /* The "this" parameter is generated in its lowered form (i.e., as a
        normal parameter). */

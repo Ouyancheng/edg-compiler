@@ -1769,6 +1769,15 @@ TARG_MINIMUM_STRUCT_ALIGNMENT is larger than one.
 #endif /* ifndef TARG_PAD_ALLOCATED_EMPTY_BASE */
 
 /*
+A flag that is TRUE when tail-padding from base classes should be reused for
+other purposes in the derived class.  The IA64 ABI requires that tail-padding
+be reused, but the C-generating back end cannot yet handle tail-padding reuse.
+*/
+#ifndef TARG_REUSE_TAIL_PADDING
+#define TARG_REUSE_TAIL_PADDING (IA64_ABI && !BACK_END_IS_C_GEN_BE)
+#endif /* TARG_REUSE_TAIL_PADDING */
+
+/*
 When a class with a copy constructor is passed to an ellipsis, does the
 copy constructor get called?  If this is TRUE, what is passed as the argument
 is the address of a temporary into which the class object has been copied.

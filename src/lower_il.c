@@ -3331,6 +3331,197 @@ Do IL lowering of the indicated list of constants and everything under it.
   }  /* for */
 }  /* lower_constant_list */
 
+#if IA64_ABI
+
+a_boolean contains_ptr_to_data_member(a_type_ptr type)
+/*
+Return TRUE if zero-initializing a variable with the indicated type requires
+zero-initializing a pointer to data member.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (is_or_was_ptr_to_data_member_type(type)) {
+    result = TRUE;
+  } else if (is_array_type(type)) { 
+    result = contains_ptr_to_data_member(array_element_type(type));
+  } else if (is_class_struct_union_type(type)) {
+    a_field_ptr f;
+    for (f = skip_typerefs(type)->variant.class_struct_union.field_list;
+         f != NULL;
+         f = f->next) {
+      if (contains_ptr_to_data_member(f->type)) {
+        result = TRUE;
+        break;
+      }  /* if */
+      /* Only the first field of a union is zero-initialized.  */
+      if (is_union_type(type)) {
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* contains_ptr_to_data_member */
+
+
+static a_constant_ptr lower_zero_initialization(a_type_ptr type)
+/* 
+Return an initializer for a zero-initialized variable of the indicated
+type.  This is needed with the IA-64 ABI for entities that are
+or contain a pointer to data member, which must be initialized to -1.
+*/
+{
+  a_constant_ptr con;
+  a_constant     zero_con;
+
+  if (is_or_was_ptr_to_data_member_type(type)) {
+    set_integer_constant(&zero_con, (a_host_large_integer)-1, 
+                         targ_ptr_to_data_member_int_kind);
+    con = alloc_unshared_constant(&zero_con);
+  } else {
+    type = skip_typerefs(type);
+    switch (type->kind) {
+      case tk_integer:
+      case tk_float:
+#if C99_IL_EXTENSIONS_SUPPORTED
+      case tk_imaginary:
+      case tk_complex:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+      case tk_pointer:
+        make_zero_of_proper_type(type, &zero_con);
+        con = alloc_unshared_constant(&zero_con);
+        break;
+      case tk_array:
+        { 
+          a_targ_size_t  i, elems;
+          a_constant_ptr elem_con;
+          a_type_ptr     elem_type = array_element_type(type);
+          con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+          con->type = type;
+          check_assertion(!type->variant.array.is_variable_size_array &&
+                        !type->variant.array.is_template_dependent_size_array);
+          elems = type->variant.array.variant.number_of_elements;
+          for (i = 0; i < elems; i++) {
+            elem_con = lower_zero_initialization(elem_type);
+            if (con->variant.aggregate.first_constant == NULL) {
+              con->variant.aggregate.first_constant = elem_con;
+              con->variant.aggregate.last_constant = elem_con;
+            } else {
+              con->variant.aggregate.last_constant->next = elem_con;
+              con->variant.aggregate.last_constant = elem_con;
+            }  /* if */
+          }  /* for */
+          break;
+        }
+      case tk_class:
+      case tk_struct:
+      case tk_union:
+        {
+          a_field_ptr    f;
+          a_constant_ptr field_con;
+          con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+          con->type = type;
+          for (f = type->variant.class_struct_union.field_list;
+               f != NULL;
+               f = next_initializable_field(f->next)) {
+            field_con = lower_zero_initialization(f->type);
+            if (con->variant.aggregate.first_constant == NULL) {
+              con->variant.aggregate.first_constant = field_con;
+              con->variant.aggregate.last_constant = field_con;
+            } else {
+              con->variant.aggregate.last_constant->next = field_con;
+              con->variant.aggregate.last_constant = field_con;
+            }  /* if */
+            /* Only the first field of a union type is zero-initialized.  */
+            if (is_union_type(type)) {
+              break;
+            }  /* if */
+          }  /* for */
+          break;
+        }
+      default:
+        unexpected_condition();
+    }  /* switch */
+  }  /* if */
+  return con;
+}  /* lower_zero_initialization */
+
+
+static void fill_out_aggregate_ptr_to_data_member_initialization(
+                                                       a_constant_ptr constant)
+/*
+The indicated aggregate constant is an initializer.  If it does not
+initialize some part of the aggregate, and that part contains pointers
+to data members, add initialization constants to ensure that the
+pointers to data members are properly initialized to -1 for NULL.
+*/
+{
+  a_type_ptr type = skip_typerefs(constant->type);
+  a_constant_ptr cp;
+
+  /* If the type contains pointers to data members, then there may be
+     additional fields or array elements that need initializing. */
+  if (is_array_type(type) && contains_ptr_to_data_member(type)) {
+    a_targ_size_t elem = 0;
+    /* Count the number of elements that have been explicitly
+       initialized. */
+    for (cp = constant->variant.aggregate.first_constant;
+         cp != NULL;
+         cp = cp->next) {
+      ++elem;
+    }  /* for */
+    /* Initialize the remaining elements. */
+    while (elem < type->variant.array.variant.number_of_elements) {
+      cp = lower_zero_initialization(array_element_type(type));
+      if (constant->variant.aggregate.first_constant == NULL) {
+        constant->variant.aggregate.first_constant = cp;
+      } else {
+        constant->variant.aggregate.last_constant->next = cp;
+      }  /* if */
+      constant->variant.aggregate.last_constant = cp;
+      ++elem;
+    }  /* while */
+  } else if (is_class_or_struct(type)) {
+    a_field_ptr f, first_f, last_f = NULL;
+    f = next_initializable_field(type->variant.class_struct_union.field_list);
+    /* Skip over the initialized fields. */
+    for (cp = constant->variant.aggregate.first_constant;
+         cp != NULL;
+         cp = cp->next) {
+      f = next_initializable_field(f->next);
+    }  /* for */
+    /* At this point f points to the first field that will need
+       initialization. */
+    first_f = f;
+    /* Find the last uninitialized field containing a pointer to data
+       member. */
+    while (f != NULL) {
+      if (contains_ptr_to_data_member(f->type)) {
+        last_f = f;
+      }  /* if */
+      f = next_initializable_field(f->next);
+    }  /* while */
+    /* Create initializers for the uninitialized fields until we get to
+       the last field that contains a pointer to data member. */
+    if (last_f != NULL) {
+      for (;;) {
+        cp = lower_zero_initialization(first_f->type);
+        if (constant->variant.aggregate.first_constant == NULL) {
+          constant->variant.aggregate.first_constant = cp;
+        } else {
+          constant->variant.aggregate.last_constant->next = cp;
+        }  /* if */
+        constant->variant.aggregate.last_constant = cp;
+        if (first_f == last_f) {
+          break;
+        }  /* if */
+        first_f = next_initializable_field(first_f->next);
+      }  /* for */
+    }  /* if */
+  }  /* if */
+}  /* fill_out_aggregate_ptr_to_data_member_initialization */
+
+#endif /* IA64_ABI */
 
 void lower_constant(a_constant_ptr constant)
 /*
@@ -3396,6 +3587,9 @@ Do IL lowering of the indicated constant and everything under it.
         break;
       case ck_aggregate:
         lower_constant_list(constant->variant.aggregate.first_constant);
+#if IA64_ABI
+        fill_out_aggregate_ptr_to_data_member_initialization(constant);
+#endif /* IA64_ABI */
         break;
 #if GENERATE_EH_TABLES && !DO_FULL_PORTABLE_EH_LOWERING
       case ck_stack_offset:
@@ -4814,6 +5008,13 @@ yet.
 #endif /* IA64_ABI */
 
 #if IA64_ABI
+  if (overriding_function->pure_virtual) {
+    /* If the overriding function is pure, there is no need for a thunk.
+       Instead, we just use the overriding function itself; elsewhere, that
+       will be replaced with __cxa_pure_virtual. */
+    entry_routine = overriding_function;
+    goto end_of_routine;
+  }  /* if */
   /* Compute the return delta and virtual base index. */
   if (rabcp == NULL) {
     return_delta = 0;
@@ -6056,11 +6257,15 @@ this routine to do a relatively simple copy of the all the fields.
   a_scope_depth               scope_depth;
 
   ctsp = class_type->variant.class_struct_union.extra_info;
-  if (!class_type->variant.class_struct_union.any_virtual_base_classes
+  if ((!class_type->variant.class_struct_union.any_virtual_base_classes
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
       || !class_has_independently_allocated_virtual_base_classes(class_type)
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
-                                                                      ) {
+                                                                            )
+#if TARG_REUSE_TAIL_PADDING
+      && ctsp->size_without_virtual_base_classes == class_type->size
+#endif /* TARG_REUSE_TAIL_PADDING */
+                                                                    ) {
     /* There are no virtual base classes, so the type to use as a subobject
        is the same as the class type itself. */
     subobject_type = class_type;
@@ -6978,123 +7183,6 @@ Do IL lowering of the indicated list of variables and everything under it.
     lower_variable(variable);
   }  /* for */
 }  /* lower_variable_list */
-
-#if IA64_ABI
-
-a_boolean contains_ptr_to_data_member(a_type_ptr type)
-/*
-Return TRUE if zero-initializing a variable with the indicated type requires
-zero-initializing a pointer to data member.
-*/
-{
-  a_boolean result = FALSE;
-
-  if (is_or_was_ptr_to_data_member_type(type)) {
-    result = TRUE;
-  } else if (is_array_type(type)) { 
-    result = contains_ptr_to_data_member(array_element_type(type));
-  } else if (is_class_struct_union_type(type)) {
-    a_field_ptr f;
-    for (f = skip_typerefs(type)->variant.class_struct_union.field_list;
-         f != NULL;
-         f = f->next) {
-      if (contains_ptr_to_data_member(f->type)) {
-        result = TRUE;
-        break;
-      }  /* if */
-      /* Only the first field of a union is zero-initialized.  */
-      if (is_union_type(type)) {
-        break;
-      }  /* if */
-    }  /* for */
-  }  /* if */
-  return result;
-}  /* contains_ptr_to_data_member */
-
-
-static a_constant_ptr lower_zero_initialization(a_type_ptr type)
-/* 
-Return an initializer for a zero-initialized variable of the indicated
-type.  This is needed with the IA-64 ABI for entities that are
-or contain a pointer to data member, which must be initialized to -1.
-*/
-{
-  a_constant_ptr con;
-  a_constant     zero_con;
-
-  if (is_or_was_ptr_to_data_member_type(type)) {
-    set_integer_constant(&zero_con, (a_host_large_integer)-1, 
-                         targ_ptr_to_data_member_int_kind);
-    con = alloc_unshared_constant(&zero_con);
-  } else {
-    type = skip_typerefs(type);
-    switch (type->kind) {
-      case tk_integer:
-      case tk_float:
-#if C99_IL_EXTENSIONS_SUPPORTED
-      case tk_imaginary:
-      case tk_complex:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-      case tk_pointer:
-        make_zero_of_proper_type(type, &zero_con);
-        con = alloc_unshared_constant(&zero_con);
-        break;
-      case tk_array:
-        { 
-          a_targ_size_t  i, elems;
-          a_constant_ptr elem_con;
-          a_type_ptr     elem_type = array_element_type(type);
-          con = alloc_constant((a_constant_repr_kind)ck_aggregate);
-          con->type = type;
-          check_assertion(!type->variant.array.is_variable_size_array &&
-                        !type->variant.array.is_template_dependent_size_array);
-          elems = type->variant.array.variant.number_of_elements;
-          for (i = 0; i < elems; i++) {
-            elem_con = lower_zero_initialization(elem_type);
-            if (con->variant.aggregate.first_constant == NULL) {
-              con->variant.aggregate.first_constant = elem_con;
-              con->variant.aggregate.last_constant = elem_con;
-            } else {
-              con->variant.aggregate.last_constant->next = elem_con;
-              con->variant.aggregate.last_constant = elem_con;
-            }  /* if */
-          }  /* for */
-          break;
-        }
-      case tk_class:
-      case tk_struct:
-      case tk_union:
-        {
-          a_field_ptr    f;
-          a_constant_ptr field_con;
-          con = alloc_constant((a_constant_repr_kind)ck_aggregate);
-          con->type = type;
-          for (f = type->variant.class_struct_union.field_list;
-               f != NULL;
-               f = next_initializable_field(f)) {
-            field_con = lower_zero_initialization(f->type);
-            if (con->variant.aggregate.first_constant == NULL) {
-              con->variant.aggregate.first_constant = field_con;
-              con->variant.aggregate.last_constant = field_con;
-            } else {
-              con->variant.aggregate.last_constant->next = field_con;
-              con->variant.aggregate.last_constant = field_con;
-            }  /* if */
-            /* Only the first field of a union type is zero-initialized.  */
-            if (is_union_type(type)) {
-              break;
-            }  /* if */
-          }  /* for */
-          break;
-        }
-      default:
-        unexpected_condition();
-    }  /* switch */
-  }  /* if */
-  return con;
-}  /* lower_zero_initialization */
-
-#endif /* IA64_ABI */
 
 #if !IA64_ABI
 /*ARGSUSED*/ /* <-- variable is not used in that case. */
@@ -8836,10 +8924,10 @@ have already been lowered.
 */
 {
   an_expr_node_ptr func_node, object_node, additional_args;
-  an_expr_node_ptr func_select_node;
+  an_expr_node_ptr func_select_node, assign_node;
 #if !IA64_ABI
   an_expr_node_ptr d_value_node;
-  an_expr_node_ptr vtbl_temp_node, padd_node, assign_node;
+  an_expr_node_ptr vtbl_temp_node, padd_node;
   an_expr_node_ptr cast_node; /*lint !e578*/
   a_variable_ptr   vtbl_temp_var;
 #endif /* !IA64_ABI */
@@ -8869,11 +8957,13 @@ have already been lowered.
   vtbl_entry_node = make_vtbl_entry_node(func_node, object_node);
 #if IA64_ABI
   /* Get the function pointer stored in the virtual function table. */
-  func_select_node = add_indirection_to_node(vtbl_entry_node);
-  func_select_node = add_cast_if_necessary(func_select_node, func_node->type);
+  assign_node = add_indirection_to_node(vtbl_entry_node);
+  assign_node = add_cast_if_necessary(assign_node, func_node->type);
   /* Make a reusable copy of the object address. */
   object_node = make_reusable_copy(object_node, /*vars_can_change=*/FALSE);
-#else /* IA64_ABI */
+  func_select_node = make_reusable_copy(assign_node, 
+                                        /*vars_can_change=*/FALSE);
+#else /* !IA64_ABI */
   /* Make the vtbl_temp temporary and an lvalue for it, and assign the
      virtual function table entry address to it. */
   vtbl_temp_var = make_local_temporary(vtbl_entry_node->type);
@@ -8899,16 +8989,9 @@ have already been lowered.
   cast_node->next = d_value_node;
   /* Cast the result back to the "this" parameter type. */
   object_node = add_cast(padd_node, object_node->type);
-#endif /* IA64_ABI */
+#endif /* !IA64_ABI */
   func_select_node->next = object_node;
   object_node->next = additional_args;
-#if IA64_ABI
-  /* Reuse the original eok_virtual_call node as the new eok_call_node.
-     Attach the function selection node, the object node, and the additional
-     arguments to the call node as arguments. */
-  change_node_to_operation(expr, (an_expr_operator_kind)eok_call,
-                           expr->type, func_select_node);
-#else /* !IA64_ABI */
   /* Reuse the node that was originally the first operand of
      the virtual call (i.e., the enk_routine_address node) as the new
      eok_call node.  Attach the function selection node, the object node, and
@@ -8921,7 +9004,6 @@ have already been lowered.
   assign_node->next = func_node;
   set_node_operator(expr, (an_expr_operator_kind)eok_comma, expr->type,
                     assign_node);
-#endif /* !IA64_ABI */
 }  /* lower_virtual_function_call */
 
 
