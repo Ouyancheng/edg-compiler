@@ -2488,7 +2488,10 @@ unsigned long show_preproc_space_used(void)
 Display and return the amount of space used for preprocessing structures.
 */
 {
-  unsigned long num, size, total, grand_total = 0;
+  unsigned long grand_total = 0;
+#if UPC_EXTENSIONS_ALLOWED
+  unsigned long num, size, total;
+#endif /* UPC_EXTENSIONS_ALLOWED */
 
 #if UPC_EXTENSIONS_ALLOWED
   db_space_used_lost("UPC pragma stack entries",
