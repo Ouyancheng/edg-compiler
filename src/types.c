@@ -1417,7 +1417,7 @@ not compared.
 */
 {
   a_param_type_ptr              list1, list2;
-  a_boolean                     compatible = FALSE;
+  a_boolean                     compatible;
   a_boolean                     list1_prototyped, list2_prototyped;
   a_routine_type_supplement_ptr rtsp1, rtsp2;
   a_type_ptr                    param_1_type, param_2_type;
@@ -1426,111 +1426,109 @@ not compared.
   rout_type_2 = skip_typerefs(rout_type_2);
   rtsp1 = rout_type_1->variant.routine.extra_info;
   rtsp2 = rout_type_2->variant.routine.extra_info;
+  list1 = rtsp1->param_type_list;
+  list2 = rtsp2->param_type_list;
+  list1_prototyped = rtsp1->prototyped;
+  list2_prototyped = rtsp2->prototyped;
   if (rtsp1->has_ellipsis != rtsp2->has_ellipsis) {
     /* One has a variable length parameter list and the other does not, so
        they cannot be compatible. */
-    /* compatible = FALSE; -- already set. */
+    compatible = FALSE;
+  } else if (C_dialect == C_dialect_cplusplus &&
+             ((!list1_prototyped && !rtsp1->old_style_params_scanned) ||
+              (!list2_prototyped && !rtsp2->old_style_params_scanned))) {
+    /* In C++ we can be in the situation of having no information about the
+       parameters of a function only in an error case (e.g., using what must
+       be a function without its having been declared -- which is legal in
+       C mode).  Such a function is not compatible with any other. */
+    compatible = FALSE;
+  } else if (C_dialect != C_dialect_cplusplus &&
+             !list1_prototyped && !list2_prototyped) {
+     /* Both parameter lists are old-style -- in C mode they are compatible. */
+    compatible = TRUE;
   } else {
     /* If either function has a new-style parameter list, the individual
        parameter types must be compatible.  See the C standard, 3.5.4.3. */
-    list1 = rtsp1->param_type_list;
-    list2 = rtsp2->param_type_list;
-    list1_prototyped = rtsp1->prototyped;
-    list2_prototyped = rtsp2->prototyped;
     if (C_dialect == C_dialect_cplusplus) {
-#if CHECKING
-      if ((!list1_prototyped && !rtsp1->old_style_params_scanned) ||
-          (!list2_prototyped && !rtsp2->old_style_params_scanned)) {
-        internal_error(
-                   "param_types_are_compatible: unscanned old-style params");
-      }  /* if */
-#endif /* CHECKING */
       /* In C++ there is no special handling for old-style functions -- they
          are treated as though they were prototyped. */
     } else {
-      if (!list1_prototyped && !list2_prototyped) {
-        /* Both parameter lists are old-style, so in C mode they are
-           compatible. */
-        compatible = TRUE;
-      } else {
-        /* At least one of the function types has a prototyped param list. */
-        a_routine_type_supplement_ptr  local_rtsp2 = rtsp2;
-        if (!list1_prototyped) {
-          /* Switch the two parameter lists, so that if there is an old-style
-             parameter list involved, it is list2. */
-          list1 = list2;
-          list2 = rtsp1->param_type_list;
-          list1_prototyped = TRUE;
-          list2_prototyped = FALSE;
-          local_rtsp2 = rtsp1;
-        }  /* if */
-        if (!list2_prototyped) {
-          /* The second parameter list is old-style.  */
-          if (!local_rtsp2->old_style_params_scanned) {
-            /* There is no parameter information for the second type, which is
-               an old-style declaration. The prototyped parameter list from
-               the first type is used, and each type on the list will be
-               promoted before comparison. */
-            list2 = list1;
-          }  /* if */
+      /* At least one of the function types has a prototyped param list. */
+      a_routine_type_supplement_ptr  local_rtsp2 = rtsp2;
+      if (!list1_prototyped) {
+        /* Switch the two parameter lists, so that if there is an old-style
+           parameter list involved, it is list2. */
+        list1 = list2;
+        list2 = rtsp1->param_type_list;
+        list1_prototyped = TRUE;
+        list2_prototyped = FALSE;
+        local_rtsp2 = rtsp1;
+      }  /* if */
+      if (!list2_prototyped) {
+        /* The second parameter list is old-style.  */
+        if (!local_rtsp2->old_style_params_scanned) {
+          /* There is no parameter information for the second type, which is
+             an old-style declaration. The prototyped parameter list from
+             the first type is used, and each type on the list will be
+             promoted before comparison. */
+          list2 = list1;
         }  /* if */
       }  /* if */
     }  /* if */
-    if (!compatible) {
-      /* Compare the types of the parameters on the two lists. */
-      for (; list1 != NULL && list2 != NULL;
-           list1 = list1->next, list2 = list2->next) {
-        /* Compare the parameter types, with the second parameter type
-           type promoted appropriately if it is old-style. */
-        param_1_type = list1->type;
-        param_2_type = list2->type;
-        if (C_dialect != C_dialect_cplusplus || !list2_prototyped) {
-           /* In C mode, the type qualifiers (if any) on the parameter
-              types are ignored (ANSI C standard, 3.5.4.3).
-              Also when dealing with an old-style function, because it's
-              like C mode, and -- especially -- because
-              default_argument_promotion drops type qualifiers. */
-          param_1_type = skip_typerefs(param_1_type);
-          param_2_type = skip_typerefs(param_2_type);
-          if (!list2_prototyped) {
-            if (C_dialect == C_dialect_cplusplus) {
-              /* Do not do default promotion of the argument in C++ mode.
-                 This is a matter not of conformity to the language definition,
-                 since old-style param declarations are not supported, but
-                 of compatibility with cfront, which overloads f in the
-                 following example:
-                   void f(int);            // prototyped
-                   void f(x) char x { }    // old-style -- char is not
-                                           //   promoted to int           */
-            } else {
-              param_2_type = default_argument_promotion(param_2_type);
-            }  /* if */
+    /* Compare the types of the parameters on the two lists. */
+    for (; list1 != NULL && list2 != NULL;
+         list1 = list1->next, list2 = list2->next) {
+      /* Compare the parameter types, with the second parameter type
+         type promoted appropriately if it is old-style. */
+      param_1_type = list1->type;
+      param_2_type = list2->type;
+      if (C_dialect != C_dialect_cplusplus || !list2_prototyped) {
+         /* In C mode, the type qualifiers (if any) on the parameter
+            types are ignored (ANSI C standard, 3.5.4.3).
+            Also when dealing with an old-style function, because it's
+            like C mode, and -- especially -- because
+            default_argument_promotion drops type qualifiers. */
+        param_1_type = skip_typerefs(param_1_type);
+        param_2_type = skip_typerefs(param_2_type);
+        if (!list2_prototyped) {
+          if (C_dialect == C_dialect_cplusplus) {
+            /* Do not do default promotion of the argument in C++ mode.
+               This is a matter not of conformity to the language definition,
+               since old-style param declarations are not supported, but
+               of compatibility with cfront, which overloads f in the
+               following example:
+                 void f(int);            // prototyped
+                 void f(x) char x { }    // old-style -- char is not
+                                         //   promoted to int           */
+          } else {
+            param_2_type = default_argument_promotion(param_2_type);
           }  /* if */
         }  /* if */
-        if (f_types_are_compatible(param_1_type, param_2_type,
-                                   allow_error_type)) {
-          /* The parameter types are compatible. */
+      }  /* if */
+      if (f_types_are_compatible(param_1_type, param_2_type,
+                                 allow_error_type)) {
+        /* The parameter types are compatible. */
 #if PROTOTYPED_INT_ARGS_PASSED_LIKE_UNPROTOTYPED
-        } else if (!strict_ansi_mode && is_integral_type(param_1_type) &&
-                   f_types_are_compatible(param_1_type, list2->type,
-                                          allow_error_type)) {
-          /* As an extension, allow a case like
-               void f(char);
-               void f(c) char c; {}
-             if we know that in this implementation integer arguments
-             to prototyped functions are passed like integer arguments
-             to unprototyped functions, i.e., they are widened, perhaps
-             because they are passed in a register. */
+      } else if (!strict_ansi_mode && is_integral_type(param_1_type) &&
+                 f_types_are_compatible(param_1_type, list2->type,
+                                        allow_error_type)) {
+        /* As an extension, allow a case like
+             void f(char);
+             void f(c) char c; {}
+           if we know that in this implementation integer arguments
+           to prototyped functions are passed like integer arguments
+           to unprototyped functions, i.e., they are widened, perhaps
+           because they are passed in a register. */
 #endif /* PROTOTYPED_INT_ARGS_PASSED_LIKE_UNPROTOTYPED */
-        } else {
-          /* The parameter types are not compatible. */
-          goto funcs_not_compatible;
-        }  /* if */
-      }  /* for */
-      /* The parameter lists are compatible if they both ended together. */
-      compatible = (list1 == NULL && list2 == NULL);
-funcs_not_compatible:;
-    }  /* if */
+      } else {
+        /* The parameter types are not compatible. */
+        compatible = FALSE;
+        goto done;
+      }  /* if */
+    }  /* for */
+    /* The parameter lists are compatible if they both ended together. */
+    compatible = (list1 == NULL && list2 == NULL);
+done:;
   }  /* if */
   return compatible;  
 }  /* param_types_are_compatible */
