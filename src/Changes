@@ -2,12 +2,11 @@ Version 2.42
 
 6/21/99  Property field with incomplete type
 
-In Microsoft mode, the front end now allows fields marked as "property" to
+In Microsoft mode, the front end now allows a field marked as "property" to
 have incomplete type even when it is not the last field in a class type.
 
   struct A {
-    __declspec(property(get=p))
-    int p_[]; // OK in Microsoft mode
+    __declspec(property(get=p)) int p_[]; // OK in Microsoft mode
     int p();
   };
 
