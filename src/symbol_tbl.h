@@ -66,6 +66,12 @@ typedef int an_id_lookup_options_set;
 				   in constructor initializer lists.  Names
 				   of parameters of the constructor must not
 				   be visible during this lookup. */
+#define IDL_DO_NOT_ADD_TO_NONREAL_CLASS 0x20
+				/* When a name is being looked up in
+				   a proxy or nonreal class, this flag
+				   suppresses the creation of a new
+				   symbol if the name is not found in the
+				   class. */
 #define IDL_NO_OPTIONS 0	/* No special lookup options. */
 
 /*

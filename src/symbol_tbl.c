@@ -5502,7 +5502,8 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
       sym = tag_symbol;
       goto end_lookup;
     }  /* if */
-    if (is_proxy_or_nonreal_class_lookup) {
+    if (is_proxy_or_nonreal_class_lookup &&
+        !(options & IDL_DO_NOT_ADD_TO_NONREAL_CLASS)) {
       /* When looking up a name in a proxy or nonreal class, the name is
          always found.  If we did not find the name in the search
          above then we must create a symbol now.  If we are doing a
@@ -5652,8 +5653,9 @@ a projection symbol is needed to check for ambiguity and access).
     /* Yes.  Look for one in the desired class. */
     clear_locator(&locator, &pos_curr_token);
     locator.symbol_header = symhdr;
-    if (class_qualified_id_lookup(&locator, class_type, IDL_NO_OPTIONS)
-                                                                     != NULL) {
+    if (class_qualified_id_lookup(&locator, class_type,
+                                  (IDL_NO_OPTIONS |
+                                   IDL_DO_NOT_ADD_TO_NONREAL_CLASS)) != NULL) {
       /* Get the projection symbol if any. */
       sym = locator.specific_symbol;
     }  /* if */
