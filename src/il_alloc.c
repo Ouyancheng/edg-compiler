@@ -1753,6 +1753,7 @@ pointer to it.
   vdp->next = NULL;
   vdp->type = NULL;
   vdp->dimension_expr = NULL;
+  vdp->original_dimension = NULL;
   vdp->in_prototype_scope = FALSE;
   vdp->position = null_source_position;
 #if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
