@@ -390,6 +390,9 @@ extern void make_indefinite_function_operand(a_symbol_ptr routine_sym,
 
 extern an_expr_node_ptr make_node_from_operand(an_operand *operand);
 
+extern void extract_constant_from_operand(an_operand     *operand,
+                                          a_constant_ptr constant);
+
 extern void discard_operand(an_operand *operand);
 
 extern void cast_operand(a_type_ptr         new_type,
