@@ -17,8 +17,8 @@ the GEN_C_FILE_SUFFIX to be appended.  It now uses this only when
 using either the C or C++ generating back end, otherwise OBJECT_FILE_SUFFIX
 is used instead.
 
-3/3/99   Spurious error when in member class template parameter depends on
-         type of enclosing template parameter
+3/3/99   Spurious error when a member class template parameter depends on
+         the type of an enclosing template parameter
 
 If a template parameter of a member class template depends on a template
 parameter of an enclosing class template, and if that member class template
