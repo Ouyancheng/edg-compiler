@@ -5244,7 +5244,7 @@ return the original member type.
       new_member_type = alloc_type((a_type_kind)tk_routine);
       copy_type(member_type, new_member_type);
       new_rtsp = new_member_type->variant.routine.extra_info;
-      new_rtsp->this_class = old_rtsp->this_class;
+      new_rtsp->this_class = class_type;
       new_rtsp->qualifiers = old_rtsp->qualifiers;
       member_type = new_member_type;
     }  /* if */
