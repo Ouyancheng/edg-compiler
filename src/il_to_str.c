@@ -63,6 +63,7 @@ The string may be only part of a token.
   rout(str);
 }  /* output_partial_token_str */
 
+#if BACK_END_IS_C_GEN_BE
 
 static void output_temp_name(char                                  *entry,
                              an_il_to_str_output_control_block_ptr octl)
@@ -79,6 +80,7 @@ indicated by octl.
   rout(entry);
 }  /* output_temp_name */
 
+#endif /* BACK_END_IS_C_GEN_BE */
 
 static void form_num(long                                  num,
                      an_il_to_str_output_control_block_ptr octl)
@@ -799,8 +801,6 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
 #ifdef CFE
   a_type_qualifier_set
               qualifiers = TQ_NONE;
-  a_form_type_options_set
-              array_options;
 #endif /* ifdef CFE */
 
 #ifdef CFE
@@ -814,9 +814,12 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
       /* Type qualifier typeref.  Accumulate the qualifiers. */
       qualifiers |= type->variant.typeref.qualifiers;
       /* If we're supposed to suppress "const" and this typeref has it, we
-         can take care of the suppression now. */
+         can take care of the suppression now.  This has to be done inside
+         the loop because the "typedef_is_invisible" test uses the
+         suppress_const flag. */
       if (suppress_const && (qualifiers & TQ_CONST)) {
         qualifiers &= ~TQ_CONST;
+        options &= ~FTO_SUPPRESS_CONST;
         suppress_const = FALSE;
       }  /* if */
     }  /* if */
@@ -916,13 +919,11 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
       type = unqual_array_type;
       goto handle_specifiers_type;
     }  /* if */
-    array_options = FTO_NO_OPTIONS;
-    if (suppress_const) array_options |= FTO_SUPPRESS_CONST;
     form_type_first_part(type->variant.array.element_type,
                          /*under_lhs_declarator=*/FALSE,
                          /*need_trailing_space=*/TRUE,
                          TQ_NONE,
-                         array_options,
+                         options,
                          octl);
     /* This is a right-side declarator, so if it's under a left-side
        declarator parentheses are needed. */
@@ -1100,9 +1101,12 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
       /* Type qualifier typeref.  Accumulate the qualifiers. */
       qualifiers |= type->variant.typeref.qualifiers;
       /* If we're supposed to suppress "const" and this typeref has it, we
-         can take care of the suppression now. */
+         can take care of the suppression now.  This has to be done inside
+         the loop because the "typedef_is_invisible" test uses the
+         suppress_const flag. */
       if (suppress_const && (qualifiers & TQ_CONST)) {
         qualifiers &= ~TQ_CONST;
+        options &= ~FTO_SUPPRESS_CONST;
         suppress_const = FALSE;
       }  /* if */
     }  /* if */
