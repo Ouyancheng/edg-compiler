@@ -2217,7 +2217,7 @@ static a_boolean examine_expr_list_for_unsequenced_temp_inits(
 /*
 Examine the list of expressions headed by node_list, and their subtrees,
 looking for unsequenced enk_temp_init initializations.  Return TRUE if
-any are found.  If seq_point_after_operand is TRUE, there is a sequence
+any are found.  If seq_point_after_first is TRUE, there is a sequence
 point after the first expression on the list.  Return *p_any_temp_inits
 TRUE if there are any enk_temp_inits in the tree.
 */
