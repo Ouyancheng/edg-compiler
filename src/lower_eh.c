@@ -3786,7 +3786,6 @@ Lower an enk_throw expression node.
   a_throw_supplement_ptr
                      tsp = expr->variant.throw_info;
 #if DO_FULL_PORTABLE_EH_LOWERING
-  an_expr_node_ptr   temp_node;
   a_type_ptr         ptr_throw_type;
   a_variable_ptr     temp_var, typeinfo_var;
   an_expr_node_ptr   call_node, typeinfo_node, size_node, flags_node;
@@ -3870,10 +3869,9 @@ Lower an enk_throw expression node.
     /* Cast the pointer to the right type. */
     call_node = add_cast_if_necessary(call_node, ptr_throw_type);
     /* Make the node to assign the pointer to the temporary. */
-    temp_node = var_lvalue_expr(temp_var);
-    temp_node->next = call_node;
-    assign_node = make_operator_node((an_expr_operator_kind)eok_passign,
-                                     ptr_throw_type, temp_node);
+    assign_node = make_var_assignment_expr(temp_var,
+                                           (an_expr_operator_kind)eok_passign,
+                                           call_node);
     /* Make the call to the __throw routine, which actually does the
        throw.  It has no arguments. */
     call_node = make_runtime_rout_call("__throw", &throw_routine,

@@ -365,7 +365,7 @@ that an insertion will be made.
 {
   a_type_ptr       node_type;
   a_variable_ptr   temp_var;
-  an_expr_node_ptr assign_node, node_copy, temp_node;
+  an_expr_node_ptr assign_node, node_copy;
 
   clear_insert_location(insert_location, ilk_after_expr);
   insert_location->variant.expr = node;
@@ -408,10 +408,9 @@ that an insertion will be made.
     temp_var = make_lowered_temporary(node_type);
     /* Make a copy of the original node, then assign it to the temporary. */
     node_copy = copy_node(node);
-    temp_node = var_lvalue_expr(temp_var);
-    temp_node->next = node_copy;
-    assign_node = make_operator_node(lowered_assignment_operator(node_type),
-                                     node_type, temp_node);
+    assign_node = make_var_assignment_expr(temp_var,
+                                           (an_expr_operator_kind)eok_last,
+                                           node_copy);
     /* Change the original node to a comma expression. */
     assign_node->next = var_rvalue_expr(temp_var);
     change_node_to_operation(node, (an_expr_operator_kind)eok_comma,
@@ -2560,6 +2559,52 @@ statement.
 }  /* insert_expr_statement_set_pos */
 
 
+static an_expr_node_ptr make_assignment_expr(
+                                      an_expr_node_ptr       lvalue_expr,
+                                      an_expr_operator_kind  op,
+                                      an_expr_node_ptr       rvalue_expr)
+/*
+Make an expression that assigns rvalue_expr to lvalue_expr using assignment
+operator op, and return a pointer to it.
+*/
+{
+  an_expr_node_ptr assign_node;
+  a_type_ptr       result_type =
+                     make_unqualified_type(type_pointed_to(lvalue_expr->type));
+
+  lvalue_expr->next = rvalue_expr;
+  /* Make the assignment node. */
+  assign_node = make_operator_node(op, result_type, lvalue_expr);
+  return assign_node;
+}  /* make_assignment_expr */
+
+
+an_expr_node_ptr make_var_assignment_expr(a_variable_ptr         lvalue_var,
+                                          an_expr_operator_kind  op,
+                                          an_expr_node_ptr       rvalue_expr)
+/*
+Make an expression that assigns rvalue_expr to the variable lvalue_var using
+assignment operator op, and return a pointer to it.  If op is eok_last,
+determine the assignment operator from the type.
+*/
+{
+  an_expr_node_ptr lvalue_expr, assign_node;
+
+  if (op == (an_expr_operator_kind)eok_last) {
+    op = lowered_assignment_operator(lvalue_var->type);
+  }  /* if */
+  /* Make an expression for the lvalue address. */
+  lvalue_expr = var_lvalue_expr(lvalue_var);
+  /* If this variable is a parameter, mark it as having been changed. */
+  if (lvalue_var->is_parameter) {
+    lvalue_var->param_value_has_been_changed = TRUE;
+  }  /* if */
+  /* Make the assignment node. */
+  assign_node = make_assignment_expr(lvalue_expr, op, rvalue_expr);
+  return assign_node;
+}  /* make_var_assignment_expr */
+
+
 a_statement_ptr insert_assignment_statement(
                                         an_expr_node_ptr       lvalue_expr,
                                         an_expr_operator_kind  op,
@@ -2575,13 +2620,8 @@ statement was created (in an expression insert context).
   a_statement_ptr  assign_stmt;
   an_expr_node_ptr assign_node;
 
-  lvalue_expr->next = rvalue_expr;
-  /* Make the assignment operation. */
-  assign_node = make_operator_node(op,
-                                   f_skip_typerefs(
-                                           type_pointed_to(lvalue_expr->type)),
-                                   lvalue_expr);
-  /* Make the expression statement. */
+  assign_node = make_assignment_expr(lvalue_expr, op, rvalue_expr);
+  /* Make and insert the expression statement. */
   assign_stmt = insert_expr_statement(assign_node, insert_location);
   return assign_stmt;
 }  /* insert_assignment_statement */
@@ -2601,20 +2641,12 @@ eok_last, determine the assignment operator from the type.
 */
 {
   a_statement_ptr  assign_stmt;
-  an_expr_node_ptr lvalue_expr;
+  an_expr_node_ptr assign_node;
 
-  if (op == (an_expr_operator_kind)eok_last) {
-    op = lowered_assignment_operator(lvalue_var->type);
-  }  /* if */
-  /* Make an expression for the lvalue address. */
-  lvalue_expr = var_lvalue_expr(lvalue_var);
-  /* If this variable is a parameter, mark it as having been changed. */
-  if (lvalue_var->is_parameter) {
-    lvalue_var->param_value_has_been_changed = TRUE;
-  }  /* if */
-  /* Make and insert the assignment. */
-  assign_stmt = insert_assignment_statement(lvalue_expr, op, rvalue_expr,
-                                            insert_location);
+  /* Make the assignment node. */
+  assign_node = make_var_assignment_expr(lvalue_var, op, rvalue_expr);
+  /* Make and insert the statement for the assignment. */
+  assign_stmt = insert_expr_statement(assign_node, insert_location);
   return assign_stmt;
 }  /* insert_var_assignment_statement */
 
@@ -5673,10 +5705,9 @@ used as an lvalue if is_lvalue is TRUE.
       question_node = make_operator_node((an_expr_operator_kind)eok_question,
                                          incr_node->type, compare_node);
       /* Make "temp = pmf". */
-      temp_node = var_lvalue_expr(temp_var);
-      temp_node->next = source_node;
-      assign_node = make_operator_node((an_expr_operator_kind)eok_sassign,
-                                       temp_var->type, temp_node);
+      assign_node = make_var_assignment_expr(temp_var,
+                                            (an_expr_operator_kind)eok_sassign,
+                                             source_node);
       /* Make "(temp = pmf, (temp.i != 0) ? temp.d += offset : 0)". */
       comma_node = make_comma_node(assign_node, question_node);
       /* Overwrite the original node with a "," operator to make the
@@ -6027,10 +6058,9 @@ have already been lowered.
   /* Make the vtbl_temp temporary and an lvalue for it, and assign the
      virtual function table entry address to it. */
   vtbl_temp_var = make_lowered_temporary(vtbl_entry_node->type);
-  vtbl_temp_node = var_lvalue_expr(vtbl_temp_var);
-  assign_node = make_operator_node((an_expr_operator_kind)eok_passign,
-                                   vtbl_entry_node->type, vtbl_temp_node);
-  vtbl_temp_node->next = vtbl_entry_node;
+  assign_node = make_var_assignment_expr(vtbl_temp_var,
+                                         (an_expr_operator_kind)eok_passign,
+                                         vtbl_entry_node);
   /* Make an expression that extracts the "f" (function pointer) from the
      virtual table entry and casts it to the right function pointer type. */
   vtbl_temp_node = var_rvalue_expr(vtbl_temp_var);
@@ -6116,9 +6146,9 @@ the expression have already been lowered.
   an_expr_node_ptr this_temp_assign_node, vtbl_temp_assign_node;
   an_expr_node_ptr select_i_node, compare_node, select_f_node;
   an_expr_node_ptr select_f_for_cast_node, cast_node, vtbl_addr_node;
-  an_expr_node_ptr offset_node, vtbl_temp_node, vtbl_d_value, vtbl_f_value;
+  an_expr_node_ptr offset_node, vtbl_d_value, vtbl_f_value;
   an_expr_node_ptr this_increment_node, comma_node, question_mark_node;
-  an_expr_node_ptr func_addr_node, func_temp_node, func_temp_assign_node;
+  an_expr_node_ptr func_addr_node, func_temp_assign_node;
   a_variable_ptr   this_temp_var, func_temp_var, vtbl_temp_var;
   a_type_ptr       ptr_to_vtbl_entry_type, routine_type, object_type;
   a_type_ptr       class_type, ptr_routine_type;
@@ -6195,11 +6225,9 @@ the expression have already been lowered.
   /* Cast back to the object pointer type. */
   cast_node = add_cast(padd_node, object_type);
   /* Make "(this_temp = (object_type *)((char *)object + pmf.d)". */
-  this_temp_node = var_lvalue_expr(this_temp_var);
-  this_temp_node->next = cast_node;
-  this_temp_assign_node = make_operator_node(
+  this_temp_assign_node = make_var_assignment_expr(this_temp_var,
                                             (an_expr_operator_kind)eok_passign,
-                                            object_type, this_temp_node);
+                                                   cast_node);
   if (class_type->variant.class_struct_union.extra_info->assoc_scope != NULL &&
       !class_type->variant.class_struct_union.
                              any_virtual_functions_including_in_base_classes) {
@@ -6255,12 +6283,9 @@ the expression have already been lowered.
                                    ptr_to_vtbl_entry_type, vtbl_addr_node);
     /* Make the temporary variable for the "vtbl_temp". */
     vtbl_temp_var = make_lowered_temporary(ptr_to_vtbl_entry_type);
-    vtbl_temp_node = var_lvalue_expr(vtbl_temp_var);
-    vtbl_temp_node->next = padd_node;
-    vtbl_temp_assign_node = make_operator_node(
+    vtbl_temp_assign_node = make_var_assignment_expr(vtbl_temp_var,
                                             (an_expr_operator_kind)eok_passign,
-                                            ptr_to_vtbl_entry_type,
-                                            vtbl_temp_node);
+                                                     padd_node);
     /* Make "this_temp = (object_type *)((char *)this_temp + vtbl_temp->d)",
        which adjusts the "this" pointer to be passed to the virtual
        function. */
@@ -6273,11 +6298,9 @@ the expression have already been lowered.
                                    this_temp_node->type,
                                    this_temp_node);
     cast_node = add_cast(padd_node, object_type);
-    this_temp_node = var_lvalue_expr(this_temp_var);
-    this_temp_node->next = cast_node;
-    this_increment_node = make_operator_node(
+    this_increment_node = make_var_assignment_expr(this_temp_var,
                                             (an_expr_operator_kind)eok_passign,
-                                            object_type, this_temp_node);
+                                                   cast_node);
     /* Make "vtbl_temp->f", the address of the virtual function to call. */
     vtbl_f_value = field_rvalue_selection_expr(var_rvalue_expr(vtbl_temp_var),
                                                mptr_f_field);
@@ -6297,12 +6320,9 @@ the expression have already been lowered.
                                            ptr_routine_type);
     /* Store it in func_temp. */
     func_temp_var = make_lowered_temporary(ptr_routine_type);
-    func_temp_node = var_lvalue_expr(func_temp_var);
-    func_temp_node->next = func_addr_node;
-    func_temp_assign_node = make_operator_node(
+    func_temp_assign_node = make_var_assignment_expr(func_temp_var,
                                             (an_expr_operator_kind)eok_passign,
-                                            ptr_routine_type,
-                                            func_temp_node);
+                                                     func_addr_node);
     /* Combine the assignment to this_temp and the assignment to
        func_temp into one expression using a comma operator. */
     this_temp_assign_node = make_comma_node(this_temp_assign_node,

@@ -2112,13 +2112,10 @@ routine is returned.
       /* If the routine has a non-void return, put the value in a temporary
          and then return the temporary later. */
       if (!void_return) {
-        an_expr_node_ptr temp_node;
         temp_var = make_lowered_temporary(call_node->type);
-        temp_node = var_lvalue_expr(temp_var);
-        temp_node->next = call_node;
-        call_node = make_operator_node(
-                                  lowered_assignment_operator(call_node->type),
-                                  call_node->type, temp_node);
+        call_node = make_var_assignment_expr(temp_var,
+                                             (an_expr_operator_kind)eok_last,
+                                             call_node);
       }  /* if */
       /* Insert the call as a statement. */
       (void)insert_expr_statement(call_node, &insert_location);
@@ -4232,10 +4229,10 @@ arrays with class elements.
     new_routine = NULL;  /* Allocation done outside of __vec_new. */
     /* Make "temp = (type *)new-call(...)". */
     temp_var = make_lowered_temporary(ptr_elem_type);
-    temp_var_node = var_lvalue_expr(temp_var);
-    temp_var_node->next = add_cast_if_necessary(new_node, ptr_elem_type);
-    assign_node = make_operator_node((an_expr_operator_kind)eok_passign,
-                                     ptr_elem_type, temp_var_node);
+    assign_node = make_var_assignment_expr(temp_var,
+                                           (an_expr_operator_kind)eok_passign,
+                                           add_cast_if_necessary(new_node,
+                                                               ptr_elem_type));
     /* Start the insert list with the assignment. */
     insert_expr(assign_node, &insert_location);
 #if ABI_CHANGES_FOR_PLACEMENT_DELETE
@@ -4259,10 +4256,9 @@ arrays with class elements.
       add_node = make_operator_node((an_expr_operator_kind)eok_padd,
                                     temp_var_node->type, temp_var_node);
       add_node = add_cast_if_necessary(add_node, ptr_elem_type);
-      temp_var_node = var_lvalue_expr(temp_var);
-      temp_var_node->next = add_node;
-      assign_node = make_operator_node((an_expr_operator_kind)eok_passign,
-                                       add_node->type, temp_var_node);
+      assign_node = make_var_assignment_expr(temp_var,
+                                            (an_expr_operator_kind)eok_passign,
+                                             add_node);
       /* Make "(temp != 0) ? (temp = ...) : 0". */
       compare_node->next = assign_node;
       assign_node->next = alloc_node_for_constant(&null_constant);
@@ -4563,7 +4559,7 @@ The subtree of the node has not yet been lowered.
   a_dynamic_init_ptr          dip = ndsp->dynamic_init;
   a_type_ptr                  base_type, ptr_base_type;
   a_variable_ptr              temp_var;
-  an_expr_node_ptr            temp_var_node, assign_node, compare_node;
+  an_expr_node_ptr            assign_node, compare_node;
   an_expr_node_ptr            init_node, call_node, null_node, delete_args;
   a_constant                  null_constant;
   an_insert_location          insert_location;
@@ -4640,11 +4636,11 @@ The subtree of the node has not yet been lowered.
       /* Allocate the temporary. */
       ptr_base_type = make_pointer_type(base_type);
       temp_var = make_lowered_temporary(ptr_base_type);
-      temp_var_node = var_lvalue_expr(temp_var);
       /* Assign the entity address expression to the temporary. */
-      temp_var_node->next = add_cast_if_necessary(call_node, ptr_base_type);
-      assign_node = make_operator_node((an_expr_operator_kind)eok_passign,
-                                       ptr_base_type, temp_var_node);
+      assign_node = make_var_assignment_expr(temp_var,
+                                            (an_expr_operator_kind)eok_passign,
+                                             add_cast_if_necessary(call_node,
+                                                               ptr_base_type));
       /* Compare the assignment node to a NULL constant of the right type. */
       make_zero_of_proper_type(ptr_base_type, &null_constant);
       null_node = alloc_node_for_constant(&null_constant);
@@ -5630,11 +5626,9 @@ constructor scope, and also lower the user code.
       /* Make "this = new_rout(size)". */
       unqual_this_param_type = f_skip_typerefs(this_param_var->type);
       call_node = add_cast_if_necessary(call_node, unqual_this_param_type);
-      this_param_node = var_lvalue_expr(this_param_var);
-      this_param_var->param_value_has_been_changed = TRUE;
-      this_param_node->next = call_node;
-      assign_node = make_operator_node((an_expr_operator_kind)eok_passign,
-                                       call_node->type, this_param_node);
+      assign_node = make_var_assignment_expr(this_param_var,
+                                            (an_expr_operator_kind)eok_passign,
+                                             call_node);
       if (exceptions_enabled &&
           /* The delete routine pointer can be null if the operator delete for
              the class is ambiguous. */

@@ -557,6 +557,11 @@ extern a_statement_ptr insert_expr_statement_set_pos(
                                        an_expr_node_ptr       node,
                                        an_insert_location_ptr insert_location);
 
+extern an_expr_node_ptr make_var_assignment_expr(
+                                          a_variable_ptr         lvalue_var,
+                                          an_expr_operator_kind  op,
+                                          an_expr_node_ptr       rvalue_expr);
+
 extern a_statement_ptr insert_assignment_statement(
                                        an_expr_node_ptr       lvalue_expr,
                                        an_expr_operator_kind  op,
