@@ -1400,7 +1400,7 @@ indicates the IL entry kind.  If the entity is unnamed, generate a name.
 
 static void gen_variable_name(a_variable_ptr var)
 /*
-Output the name of the indicated variable, qualified is necessary.
+Output the name of the indicated variable, qualified if necessary.
 */
 {
   if (var->is_this_parameter) {
@@ -5554,6 +5554,7 @@ declaration or definition.
   a_boolean                     is_definition = FALSE, friend_decl;
   a_boolean                     decl_within_class = FALSE;
   a_boolean                     context_pop_needed = FALSE;
+  a_boolean                     restore_global_qualification_needed = FALSE;
   a_storage_class               storage_class;
   a_scope_ptr                   scope = NULL;
   a_memory_region_number        scope_region_number;
@@ -5630,7 +5631,7 @@ declaration or definition.
     /* Check the kind of declaration within a class. */
     if (friend_decl) {
       /* This is a friend declaration. */
-      /* Friend is used instead of a storage class. */
+      /* "friend" is used instead of a storage class. */
       write_tok_str("friend ");
     } else {
       /* This is a declaration or definition of a member function inside
@@ -5746,8 +5747,35 @@ declaration or definition.
     }  /* if */
     /* Position the output file to the declaration position (again). */
     set_decl_position(&rout->source_corresp, sec_decl);
+    if (friend_decl &&
+        rout->source_corresp.global_qualification_needed) {
+      /* This is a friend declaration that looks like it might need a
+         leading "::", but be sure to use that only in the rare cases where
+         it's needed (they involve namespaces), because older compilers don't
+         accept it, and even in newer compilers it's only allowed when
+         referring to a previously-declared function.  See what the
+         innermost nonclass name context is.  If it's not the file scope,
+         the leading "::" really is needed. */
+      a_name_context_ptr ncp;
+      for (ncp = curr_name_context; ; ncp = ncp->next) {
+        a_scope_ptr scope = ncp->assoc_scope;
+        if (scope != NULL &&
+            scope->kind != (a_scope_kind)sck_class_struct_union) {
+          if (scope->kind == (a_scope_kind)sck_file) {
+            /* Suppress the leading "::". */
+            rout->source_corresp.global_qualification_needed = FALSE;
+            restore_global_qualification_needed = TRUE;
+          }  /* if */
+          break;
+        }  /* if */
+      }  /* for */
+    }  /* if */
     /* Write the routine name. */
     gen_decl_name(&rout->source_corresp, iek_routine);
+    if (restore_global_qualification_needed) {
+      /* Restore global_qualification_needed for the friend case. */
+      rout->source_corresp.global_qualification_needed = FALSE;
+    }  /* if */
     /* Push the name context for a class/namespace member. */
     push_name_context_if_member(&rout->source_corresp);
     context_pop_needed = TRUE;
