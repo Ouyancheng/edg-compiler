@@ -1110,80 +1110,56 @@ start of a sequence of declarations.
 {
   a_struct_stmt_stack_entry_ptr  sssep;
   a_statement_ptr                sp = NULL;
-  a_source_sequence_entry_ptr    old_ssep, new_ssep;
+  a_source_sequence_entry_ptr    prev_ssep;
 
   sssep = &struct_stmt_stack[depth_stmt_stack];
   sp = sssep->curr_decl_statement;
-  if (sp != NULL) {
+  if (sp == NULL) {
+    /* This is the first of a string of one or more declarations.  Create the
+       stmk_decl pseudo statement and update the structured statement stack. */
+    sp = add_statement((a_statement_kind)stmk_decl);
+    sssep->curr_decl_statement = sp;
+    /* Remember the most recently entered source sequence entry on the list for
+       the current function.  It will be used to find the source sequence
+       entry corresponding to the current declaration. */
+    prev_ssep = scope_stack[depth_innermost_function_scope].
+                                                 last_source_sequence_entry;
+  } else {
     /* The top of the structured statement stack already points to a
        decl-statement, meaning the current declaration is within (i.e., not
        at the start of) a string of declarations. */
     if (sp->source_sequence_entry != NULL) {
       /* Normal case -- previous declaration was as expected. */
-      sp = NULL;
+      prev_ssep = NULL;
     } else {
       /* The initial declaration must not have resulted in a source sequence
          entry's being added to the list.  Proceed as if this were the first
          declaration. */
-      old_ssep = scope_stack[depth_innermost_function_scope].
+      prev_ssep = scope_stack[depth_innermost_function_scope].
                                                  last_source_sequence_entry;
     }  /* if */
-  } else {
-    /* This is the first of a string of one or more declarations.  Create the
-       stmk_decl pseudo statement and update the structured statement stack. */
-    sp = add_statement((a_statement_kind)stmk_decl);
-    sssep->curr_decl_statement = sp;
-    /* Note the most recently entered source sequence entry on the list for
-       the current function. */
-    old_ssep = scope_stack[depth_innermost_function_scope].
-                                                 last_source_sequence_entry;
   }  /* if */
   /* Now process the declaration. */
   local_declaration();
-  if (sp != NULL) {
-    /* Get what is now the most recently entered source sequence entry. */
-    new_ssep = scope_stack[depth_innermost_function_scope].
-                                                 last_source_sequence_entry;
-    if (new_ssep == old_ssep) {
-      /* The declaration produced no new entry on the list.  Don't update
-         the pointer. */
-    } else {
-      sp->source_sequence_entry = new_ssep;
-    }  /* if */
+  /* Update the source sequence entry pointer, if required. */
+  if (sp->source_sequence_entry != NULL) {
+    /* The decl-statement already has a pointer to the source sequence entry
+       for the first declaration. */
+  } else {
+    check_assertion(prev_ssep != NULL);
+    sp->source_sequence_entry = prev_ssep->next;
   }  /* if */
 }  /* decl_statement */
 
 
-static void wrapup_decl_statement(void)
 /*
-If there is a currently active decl-statement, terminate it by setting its
-last-declaration pointer and removing it from the structured statement stack
-entry.
+If there is a currently active decl-statement, "terminate" it by removing it
+from the structured statement stack entry.
 */
-{
-  a_struct_stmt_stack_entry_ptr  sssep;
-  a_statement_ptr                sp = NULL;
-
-  if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH) {
-    if (depth_stmt_stack != -1) {
-      sssep = &struct_stmt_stack[depth_stmt_stack];
-      sp = sssep->curr_decl_statement;
-      if (sp != NULL) {
-        /* There is a currently active stmk_decl statement. */
-        if (sp->source_sequence_entry == NULL) {
-          /* However, there was no initial declaration recorded.  Avoid
-             recording a final declaration as well. */
-        } else {
-          /* Set the last-declaration pointer. */
-          sp->variant.last_declaration =
-                          scope_stack[depth_innermost_function_scope].
-                                                 last_source_sequence_entry;
-        }  /* if */
-        /* Deactivate the decl-statement. */
-        sssep->curr_decl_statement = NULL;
-      }  /* if */
-    }  /* if */
-  }  /* if */
+#define wrapup_decl_statement()						\
+{ if (depth_stmt_stack != -1) {						\
+    struct_stmt_stack[depth_stmt_stack].curr_decl_statement = NULL;	\
+  }									\
 }  /* wrapup_decl_statement */
 
 
@@ -1194,7 +1170,10 @@ the current function scope.
 */
 {
   if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH) {
-    if (C_dialect == C_dialect_cplusplus) wrapup_decl_statement();
+    if (C_dialect == C_dialect_cplusplus) {
+      /* If the previous statement was a decl-statement, deactivate it. */
+      wrapup_decl_statement();
+    }  /* if */
     update_source_sequence_list((char *)sp, iek_statement,
                                 (a_source_position *)NULL,
                                 (a_source_sequence_entry_ptr)NULL);
@@ -2077,6 +2056,7 @@ Scan the initializing expression or, in C++, declaration of a for statement.
                        /*real_declarator_allowed=*/TRUE)) {
     /* Scan a declaration (C++ only). */
     decl_statement();
+    /* Immediately deactivate the decl-statement. */
     wrapup_decl_statement();
   } else {
     /* Scan an expression.  It may be omitted. */
@@ -3523,6 +3503,7 @@ branching into it is disallowed).
   set_stmt_source_position(block->variant.block.extra_info->final_position,
                            pos_curr_token);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
+  /* Add a source sequence entry marking the end of the block. */
   add_end_of_block_source_sequence_entry(block);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Check for the closing "}".  Note that for a function, the "}" is left
