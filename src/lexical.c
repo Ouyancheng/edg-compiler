@@ -488,6 +488,16 @@ static a_text_buffer_ptr
 			   identifiers containing universal character names. */
 
 /*
+Hash table used by nested_source_line_modif to find the source
+line modification associated with the ATTENTION_MARKER at a given
+location.
+*/
+#define SOURCE_LINE_MODIF_HASH_TABLE_SIZE 1999
+static a_source_line_modif_ptr
+		source_line_modif_hash_table
+                                           [SOURCE_LINE_MODIF_HASH_TABLE_SIZE];
+
+/*
 Information about cached tokens, i.e., tokens saved for later rescanning.
 */
 static a_cached_token_ptr
@@ -2000,6 +2010,56 @@ original source line because of trigraphs and line splices.
   return(olmp);
 }  /* add_orig_line_modif */
 
+/*
+Compute the hash value to be used in source_line_modif_hash_table for
+the indicated address (often the line_loc field value of a source
+line modification).
+*/
+#define hash_value_for_source_line_modif(loc) \
+  ((((unsigned long)(loc))/HOST_ALIGNMENT_REQUIRED)% \
+   SOURCE_LINE_MODIF_HASH_TABLE_SIZE)
+
+
+void add_source_line_modif_to_hash_table(a_source_line_modif_ptr slmp)
+/*
+Add the indicated source line modification to the hash table used to
+optimize calls to nested_source_line_modif.
+*/
+{
+  unsigned long hash = hash_value_for_source_line_modif(slmp->line_loc);
+
+  slmp->next_in_hash_table = source_line_modif_hash_table[hash];
+  source_line_modif_hash_table[hash] = slmp;
+}  /* add_source_line_modif_to_hash_table */
+
+
+void rem_source_line_modif_from_hash_table(a_source_line_modif_ptr slmp)
+/*
+Remove the indicated source line modification from the hash table used to
+optimize calls to nested_source_line_modif.
+*/
+{
+  unsigned long           hash =
+                              hash_value_for_source_line_modif(slmp->line_loc);
+  a_source_line_modif_ptr tslmp, pslmp;
+
+  for (pslmp = NULL, tslmp = source_line_modif_hash_table[hash];
+       ;
+       pslmp = tslmp, tslmp = tslmp->next_in_hash_table) {
+    check_assertion_str(tslmp != NULL,
+             "rem_source_line_modif_from_hash_table: not found in hash table");
+    if (tslmp->line_loc == slmp->line_loc) {
+      /* Found the entry.  Unlink it from the hash table. */
+      if (pslmp == NULL) {
+        source_line_modif_hash_table[hash] = tslmp->next_in_hash_table;
+      } else {
+        pslmp->next_in_hash_table = tslmp->next_in_hash_table;
+      }  /* if */
+      break;
+    }  /* if */
+  }  /* for */
+}  /* rem_source_line_modif_from_hash_table */
+
 
 static void free_orig_line_modif(an_orig_line_modif_ptr *olmp)
 /*
@@ -2046,6 +2106,7 @@ invocations.
 #endif /* DEBUG */
   }  /* if */
   slmp->next                = source_line_modif_list;
+  slmp->next_in_hash_table  = NULL;
   slmp->line_loc            = line_loc;
   slmp->parent_modif        = NULL;
   slmp->num_chars_to_delete = num_chars_to_delete;
@@ -2093,8 +2154,9 @@ invocations.
      found most quickly.) */
   source_line_modif_list = slmp;
   no_modifs_to_curr_source_line = FALSE;
-
-  return(slmp);
+  /* Add the entry to the hash table used by nested_source_line_modif. */
+  add_source_line_modif_to_hash_table(slmp);
+  return slmp;
 }  /* add_source_line_modif */
 
 
@@ -2186,6 +2248,8 @@ source_line_modif_list.  The entry is not freed.
        character put in when this entry was added). */
     *(slmp->line_loc) = slmp->orig_char;
   }  /* if */
+  /* Remove the entry from the hash table used by nested_source_line_modif. */
+  rem_source_line_modif_from_hash_table(slmp);
 }  /* rem_source_line_modif */
 
 
@@ -2267,18 +2331,18 @@ point is altered by a source line modification entry.  Find the entry,
 and return a pointer to it.
 */
 {
-  register a_source_line_modif_ptr slmp;
+  unsigned long           hash = hash_value_for_source_line_modif(loc_in_line);
+  a_source_line_modif_ptr slmp;
 
-  for (slmp = source_line_modif_list; ; slmp = slmp->next) {
-#if CHECKING
-    if (slmp == NULL) {
-      internal_error("nested_source_line_modif: bad address");
-    }  /* if */
-#endif /* CHECKING */
+  /* Find the location in the hash table. */
+  for (slmp = source_line_modif_hash_table[hash];
+       ;
+       slmp = slmp->next_in_hash_table) {
+    check_assertion_str(slmp != NULL,
+                        "nested_source_line_modif: not found in hash table");
     if (slmp->line_loc == loc_in_line) break;
   }  /* for */
-
-  return(slmp);
+  return slmp;
 }  /* nested_source_line_modif */
 
 
@@ -14077,6 +14141,8 @@ done to determine whether a precompiled header may be used.
   asm_func_body_buffer = NULL;
   size_asm_func_body_buffer = 0;
 #endif /* ASM_SUPPORT_NEEDED */
+  (void)memzero((char *)source_line_modif_hash_table,
+                sizeof(source_line_modif_hash_table));
 }  /* lexical_reset */
 
 

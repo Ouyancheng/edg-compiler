@@ -1170,6 +1170,10 @@ typedef struct a_source_line_modif {
 			   source_line_modif_list, or NULL if there is
 			   no next entry.  Also used to link entries on the 
 			   avail_source_line_modifs list. */
+  a_source_line_modif_ptr
+		next_in_hash_table;
+			/* A pointer to the next entry in the same bucket
+			   of the hash table of source line modifications. */
   char		*line_loc;
 			/* The location in curr_source_line or macro_buffer
 			   of the modification.  Points to an ATTENTION_MARKER
@@ -1767,6 +1771,9 @@ extern void gen_rlisting_line_info(char kind);
 extern void gen_expanded_raw_listing_output_for_curr_line(
                                                    a_boolean do_inserted_text);
 extern void finish_raw_listing_file(void);
+extern void add_source_line_modif_to_hash_table(a_source_line_modif_ptr slmp);
+extern void rem_source_line_modif_from_hash_table(
+                                                a_source_line_modif_ptr slmp);
 /* Add an entry recording a logical modification to the source line. */
 extern a_source_line_modif_ptr add_source_line_modif(
                           char                      *line_loc,

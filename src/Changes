@@ -1,5 +1,11 @@
 Version 3.4
 
+5/5/04   Preprocessing performance improvements
+
+The preprocessor is now faster for a number of extreme cases,
+including BOOST preprocessing cases.  See also the 4/29/04 changes,
+which contributed to the speedup.
+
 5/4/04   No remark on undefined identifier in unevaluated part of #if
          expression
 
@@ -75,7 +81,7 @@ control of the behavior of fixed-point arithmetic.  For example:
 
 No lowering is done for fixed-point operations.  The C- and C++-generating
 back ends will render _Fract and _Accum types and assume that the consumer
-of the generate code accepts the extensions.  A back end should also be aware
+of the generated code accepts the extensions.  A back end should also be aware
 that the "usual arithmetic conversions" for binary operators do not include
 conversions to a common type if one of the operands has a fixed-point type
 and the other has a different fixed-point type or an integer type.

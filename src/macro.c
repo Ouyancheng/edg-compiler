@@ -273,7 +273,12 @@ new address for the area.
     /* Walk the source line modif list (which represents macro expansions
        and comment deletions). */
     for (slmp = source_line_modif_list; slmp != NULL; slmp = slmp->next) {
-      fix_ptr(slmp->line_loc);
+      if (slmp->line_loc != NULL &&
+          ptr_in_range(slmp->line_loc, old_ptr, old_after_end_plus_1)) {
+        rem_source_line_modif_from_hash_table(slmp);
+        fix_ptr(slmp->line_loc);
+        add_source_line_modif_to_hash_table(slmp);
+      }  /* if */
       fix_ptr(slmp->inserted_text);
       fix_ptr(slmp->end_inserted_text);
     }  /* for */
