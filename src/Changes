@@ -1,14 +1,24 @@
 Version 2.31
 
+12/21/95  Array of incomplete enum type
+
+It is now permitted to declare an array of incomplete enum type in contexts
+where an array of incomplete class/struct/union type is allowed:
+
+  extern enum E x[10];         // permitted in default mode, diagnostic
+                               //   in strict ANSI mode
+
+The operations permitted on the array are restricted until the enumeration
+is defined (e.g., elements may not be addressed).
+
 12/21/95  Explicit instantiation of templates
 
-Explicit instantiation of templates as specified in the Working Paper
-is now supported.  The existing instantiation pragmas have been
-modified to also accept arguments of the form permitted by the
-standard explicit instantiation directives.  Note that because
-explicit specification of function template arguments is not
-yet implemented, a template argument list may not be specified
-in an explicit instantiation at this point.
+Explicit instantiation of templates as specified in the Working Paper is
+now supported.  The existing instantiation pragmas have been modified to
+also accept arguments of the form permitted by the standard explicit
+instantiation directives.  Note that because explicit specification of
+function template arguments is not yet implemented, a template argument
+list may not be specified in an explicit instantiation at this point.
 
 12/21/95  C++/C-generating back end: "unsigned" instead of "unsigned int"
 
