@@ -15348,7 +15348,8 @@ required_type_determined:
       check_assertion(con->kind == (a_constant_repr_kind)ck_string);
       copy_constant(con, constant);
       *is_constant = TRUE;
-    } else if (gcc_mode && result.kind == (an_operand_kind)ok_constant) {
+    } else if (gcc_mode && is_an_rvalue(&result) &&
+               result.kind == (an_operand_kind)ok_constant) {
       /* In GNU C mode, compound literals can be constant-expressions. */
       copy_constant(&result.variant.constant, constant);
       *is_constant = TRUE;
