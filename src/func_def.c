@@ -770,8 +770,8 @@ a new symbol is created and entered in the symbol table.
        declaration and may involve template parameter types. */
     vp->declared_type = param_id->declared_type;
   } else {
-    /* Declared type of a template instance can be inferred from the
-       declared type of in the param-id entry (from the template declaration)
+    /* The declared type of a template instance can be inferred from the
+       declared type in the param-id entry (from the template declaration)
        and from the param-type entry (now recorded in tp). */
     if (is_function_type(param_id->declared_type)) {
       /* Undo the change of a function type to pointer-to-function type. */
