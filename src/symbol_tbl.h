@@ -763,6 +763,9 @@ typedef struct a_func_info_block {
 			   an error will be issued on a function definition
 			   and param_id_list and prototype_scope_symbols will
 			   be NULL. */
+  unsigned int	any_default_args:1;
+			/* TRUE if the function type declaration included
+			   the declarations of default arguments. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_source_sequence_entry_ptr
 		declarator_ssep;
