@@ -810,6 +810,7 @@ and return a pointer to it.
   dedp->region_table_entry = NULL;
   dedp->next_in_region_table = NULL;
 #endif /* GENERATE_EH_TABLES */
+  dedp->initialization_done = FALSE;
   return dedp;
 }  /* alloc_destructible_entity_descr */
 
@@ -2859,6 +2860,57 @@ variable to a zero value.
                             insert_location);
 }  /* reset_conditional_flag_var */
 
+#if GENERATE_EH_TABLES
+
+static void adjust_cleanup_state_for_inner_lifetime_temporaries(
+                                                   a_dynamic_init_ptr temp_dip,
+                                                   a_dynamic_init_ptr dip)
+/*
+dip points to a destruction for an entity that is created while
+destructible temporaries in an inner object lifetime are still in existence.
+temp_dip points to the destruction for one of those temporaries.
+Update the region table information for the temporary and those
+following it in its object lifetime so that the cleanup list includes
+the temporaries and then the outer-lifetime entity.  This may involve
+cloning some of the region table entries for the temporaries, since
+currently the last temporary points past the outer-lifetime entity
+to the next thing to be destroyed after that.  The region table entry
+for dip has already been created.
+*/
+{
+  a_destructible_entity_descr_ptr dedp = temp_dip->destructible_entity_descr;
+
+  if (dedp->next_in_region_table == NULL) {
+    /* End of the list, beginning of the object lifetime of the temporaries. */
+    curr_context->latest_initialization = NULL;
+    curr_context->curr_cleanup_state = dip;
+  } else {
+    /* Use a recursive call to process the rest of the list. */
+    adjust_cleanup_state_for_inner_lifetime_temporaries(
+                                              dedp->next_in_region_table, dip);
+  }  /* if */
+  /* Adjust the pointer to the previous entity, to one after this one on
+     the cleanup list. */
+  dedp->cleanup_state_to_set_when_starting_destruction =
+                                              curr_context->curr_cleanup_state;
+  /* Clone the region table entry for this destruction and add it to
+     the beginning of a region table cleanup sequence that runs through
+     the temporaries and then destroys the outer-lifetime entity.
+     Don't clone the region table entry for the first destruction
+     in the temporary lifetime, because a cleanup state including
+     that destruction will not be needed -- we start with destroying
+     that one, and the cleanup state established right away points to
+     the second destruction on the list, or the outer-lifetime entity's
+     destruction if there is only one temporary destruction on the
+     list. */
+  if (temp_dip != temp_dip->lifetime->destructions) {
+    clone_region_table_entry_list(temp_dip, dedp->next_in_region_table);
+  }  /* if */
+  curr_context->latest_initialization = temp_dip;
+  set_curr_cleanup_state_to_latest_initialization();
+}  /* adjust_cleanup_state_for_inner_lifetime_temporaries */
+
+#endif /* GENERATE_EH_TABLES */
 
 static void add_dyn_init_cleanup(a_dynamic_init_ptr     dip,
                                  an_init_pos_descr_ptr  ipdp,
@@ -2876,6 +2928,10 @@ Any code needed is inserted at *insert_location.
 */
 {
   a_destructible_entity_descr_ptr dedp = dip->destructible_entity_descr;
+#if GENERATE_EH_TABLES
+  a_dynamic_init_ptr              prev_initialization =
+                                                context->latest_initialization;
+#endif /* GENERATE_EH_TABLES */
 
   check_assertion_str(dedp != NULL,
                     "add_dyn_init_cleanup: missing destructible entity descr");
@@ -2890,25 +2946,50 @@ Any code needed is inserted at *insert_location.
   copy_init_pos_descr(ipdp, &dedp->init_pos_descr);
   dedp->cleanup_state_to_set_when_starting_destruction =
                                                    context->curr_cleanup_state;
-#if GENERATE_EH_TABLES
-  if (exceptions_enabled) {
-    /* Make a region table entry for the entity (and for its conditional
-       flag, if it has one). */
-    make_dyn_init_region_table_entry(dip,
-                                     context->latest_initialization,
-                                     insert_location);
-  }  /* if */
-#endif /* GENERATE_EH_TABLES */
   /* Set the current cleanup state. */
   context->curr_cleanup_state = dip;
-  if (exceptions_enabled) {
-    insert_code_to_indicate_cleanup_state(context->curr_cleanup_state,
-                                          insert_location,
-                                          /*unreachable=*/FALSE);
-  }  /* if */
   /* Record this dynamic initialization as the last encountered in the
      context. */
   context->latest_initialization = dip;
+  if (exceptions_enabled) {
+#if GENERATE_EH_TABLES
+    /* Make a region table entry for the entity (and for its conditional
+       flag, if it has one). */
+    make_dyn_init_region_table_entry(dip,
+                                     prev_initialization,
+                                     insert_location);
+    /* Check for entities initialized during an inner lifetime, which
+       may mean the entity overlaps with temporaries created in that inner
+       lifetime. */
+    if (context != curr_context &&
+        /* Rule out partial aggregate initialization cleanups for static
+           aggregates.  There is no overlap in that case. */
+        !dip->destruction_is_for_partially_constructed_aggregate) {
+      check_assertion_str(dip->overlaps_temps_in_inner_lifetime,
+                          "add_dyn_init_cleanup: context != curr_context");
+      /* This entity is initialized during an inner lifetime, and overlaps
+         with the lifetime of some temporaries in the inner lifetime.
+         Adjust the cleanup information for those so that both the temporaries
+         and the present entity are on the cleanup list. */
+      check_assertion_str(curr_context->latest_initialization != NULL,
+                          "add_dyn_init_cleanup: no temps");
+      adjust_cleanup_state_for_inner_lifetime_temporaries(
+                                     curr_context->latest_initialization, dip);
+      /* There's no need to emit code to set the cleanup state here: it's
+         not necessary because the cleanup state will be set in a moment
+         when the destruction of the last temporary begins.  If we were to
+         try to set the cleanup state here, we would be referring to the
+         region table for that last temporary, which was not cloned because
+         it's not needed. */
+    } else
+#endif /* GENERATE_EH_TABLES */
+    /* Do not insert code here; this is the "else" of an "if". */
+    {
+      insert_code_to_indicate_cleanup_state(context->curr_cleanup_state,
+                                            insert_location,
+                                            /*unreachable=*/FALSE);
+    }  /* if */
+  }  /* if */
 }  /* add_dyn_init_cleanup */
 
 
@@ -3859,22 +3940,6 @@ do_assignment:;
       internal_error("lower_dynamic_init: bad kind");
 #endif /* CHECKING */
   }  /* switch */
-  /* If the dynamic init defines a lifetime that surrounds the initialization,
-     pop the context for that lifetime. */
-  if (init_expr_lifetime != NULL) {
-    gen_cleanup_actions(init_expr_lifetime, eff_insert_location);
-    pop_context();
-  }  /* if */
-  /* If this is the initialization of a local static variable and a lifetime
-     surrounds that, pop the lifetime. */
-  if (local_static_lifetime != NULL) {
-    if (exceptions_enabled) {
-      remove_local_static_guard_var_cleanup(local_static_lifetime,
-                                            eff_insert_location);
-    }  /* if */
-    gen_cleanup_actions(local_static_lifetime, eff_insert_location);
-    pop_context();
-  }  /* if */
   /* If the dynamic init entry indicates a destructor call, it requires
      processing to get the destruction done at the right time. */
   if (dip->destructor != NULL) {
@@ -3882,9 +3947,12 @@ do_assignment:;
         !dip->destruction_is_for_partially_constructed_aggregate) {
       /* For static variables (local or global), generate code to record
          at runtime the need for a destruction later. */
-      record_needed_destruction(dip, ipdp, insert_location);
+      record_needed_destruction(dip, ipdp, eff_insert_location);
     } else {
       /* Initializations of nonstatic variables. */
+      a_destructible_entity_descr_ptr dedp = dip->destructible_entity_descr;
+      check_assertion_str(dedp != NULL, "lower_dynamic_init: missing dedp");
+      dedp->initialization_done = TRUE;
       if (dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate &&
           !C_mode() &&
           latest_initialization_on_entry !=
@@ -3901,15 +3969,33 @@ do_assignment:;
       if (dip->destruction_is_for_partially_constructed_aggregate &&
           !others_follow_in_aggr) {
         /* A cleanup entry is not needed for a partial initialization
-           in an aggregate that is not followed by anything else, because
+           in an aggregate if it is not followed by anything else, because
            there is no code executed after the partial initialization and
-           before initialization is completed where an exception could be
+           before the initialization is completed where an exception could be
            thrown. */
       } else {
+        /* Update the cleanup information so that this entity will be
+           destroyed at the appropriate time. */
         add_dyn_init_cleanup(dip, ipdp, /*set_cond_flag_if_any=*/TRUE,
-                             eff_context, insert_location);
+                             eff_context, eff_insert_location);
       }  /* if */
     }  /* if */
+  }  /* if */
+  /* If the dynamic init defines a lifetime that surrounds the initialization,
+     pop the context for that lifetime. */
+  if (init_expr_lifetime != NULL) {
+    gen_cleanup_actions(init_expr_lifetime, eff_insert_location);
+    pop_context();
+  }  /* if */
+  /* If this is the initialization of a local static variable and a lifetime
+     surrounds that, pop the lifetime. */
+  if (local_static_lifetime != NULL) {
+    if (exceptions_enabled) {
+      remove_local_static_guard_var_cleanup(local_static_lifetime,
+                                            eff_insert_location);
+    }  /* if */
+    gen_cleanup_actions(local_static_lifetime, eff_insert_location);
+    pop_context();
   }  /* if */
   /* In the whole-variable cases, adjust the initialization specified in
      the variable (it points to the dynamic init entry). */
@@ -4589,6 +4675,11 @@ the point at which code should be inserted.
       a_destructible_entity_descr_ptr dedp =
                            dyn_init_to_free_storage->destructible_entity_descr;
       if (dedp->conditional_flag_var != NULL) {
+        curr_context->curr_cleanup_state =
+                          dedp->cleanup_state_to_set_when_starting_destruction;
+        insert_code_to_indicate_cleanup_state(curr_context->curr_cleanup_state,
+                                              insert_location,
+                                              /*unreachable=*/FALSE);
         reset_conditional_flag_var(dedp->conditional_flag_var,
                                    insert_location);
       }  /* if */

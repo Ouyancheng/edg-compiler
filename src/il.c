@@ -7484,13 +7484,36 @@ object lifetime if it is an expr-temporary lifetime).
            belongs to the lifetime of the file scope itself. */
         olp = scope_stack[DEPTH_OF_FILE_SCOPE].curr_scope_object_lifetime;
       }  /* if */
-    } else if (block_lifetime) {
-      /* Skip an expr-temporary lifetime, if any. */
-      olp = innermost_block_object_lifetime(curr_object_lifetime);
     } else {
-      /* The default case is to use whatever is on top of the object lifetime
-         stack. */
-      olp = curr_object_lifetime;
+      an_object_lifetime_ptr temp_olp = NULL;
+      /* Not a static lifetime. */
+      if (block_lifetime) {
+        /* Want the innermost block lifetime. */
+        /* Skip an expr-temporary lifetime, if any. */
+        olp = innermost_block_object_lifetime(curr_object_lifetime);
+      } else {
+        /* The default case is to use whatever is on top of the object lifetime
+           stack. */
+        olp = curr_object_lifetime;
+      }  /* if */
+      temp_olp = dip->init_expr_lifetime;
+      if (temp_olp == NULL) temp_olp = curr_object_lifetime;
+      if (temp_olp != olp) {
+        /* This entity is initialized during a nested object lifetime.
+           If the nested lifetime has any destructible temporaries, they
+           will be destroyed after this entity has been constructed.
+           Adjust the parent pointer from the nested lifetime so that it
+           includes this entity. */
+        /* Find the lifetime immediately under the olp lifetime and
+           adjust its parent_destruction_sublist. */
+        while (temp_olp->parent_lifetime != olp) {
+          temp_olp = temp_olp->parent_lifetime;
+        }  /* while */
+        if (temp_olp->destructions != NULL) {
+          temp_olp->parent_destruction_sublist = dip;
+          dip->overlaps_temps_in_inner_lifetime = TRUE;
+        }  /* if */
+      }  /* if */
     }  /* if */
     /* Now that we've determined the appropriate object lifetime, add the
        dynamic init entry to its destructions list. */

@@ -494,6 +494,15 @@ and return that.
          lifetime != NULL;
          lifetime = lifetime->parent_lifetime) {
       cleanup_state = lifetime->parent_destruction_sublist;
+      if (cleanup_state != NULL &&
+          cleanup_state->overlaps_temps_in_inner_lifetime &&
+          cleanup_state->destructible_entity_descr != NULL &&
+          !cleanup_state->destructible_entity_descr->initialization_done) {
+        /* The entity in the parent list is considered to be on the cleanup
+           list only once it has been initialized, and it hasn't been
+           initialized yet. */
+        cleanup_state = cleanup_state->next_in_destruction_list;
+      }  /* if */
       if (cleanup_state != NULL) break;
     }  /* for */
   }  /* if */
@@ -7246,14 +7255,12 @@ to the statement; otherwise, it is NULL.
   an_insert_location     insert_location, insert_location2;
   an_expr_node_ptr       expr_to_lower = expr;
   an_object_lifetime_ptr lifetime = NULL;
-  a_dynamic_init_ptr     saved_curr_cleanup_state;
 
   /* An enk_object_lifetime node can only appear at the top of a full
      expression.  Process it if present.  Such a node defines
      an object lifetime for the evaluation of the full expression. */
   if (expr->kind == (an_expr_node_kind)enk_object_lifetime) {
     expr_to_lower = expr->variant.object_lifetime.expr;
-    saved_curr_cleanup_state = curr_context->curr_cleanup_state;
     lifetime = expr->variant.object_lifetime.ptr;
     push_context(&context, (a_scope_ptr)NULL, lifetime);
     /* Begin the object lifetime.  Any code generated is saved off to the
@@ -7295,18 +7302,6 @@ to the statement; otherwise, it is NULL.
          e.g., at the top of an expression tree. */
       set_after_expr_insert_location(expr_to_lower, &insert_location);
       gen_cleanup_actions(lifetime, &insert_location);
-    }  /* if */
-    if (curr_context->curr_cleanup_state != saved_curr_cleanup_state) {
-      /* In some cases (e.g., the dynamic init for freeing of storage
-         allocated by a new if an exception occurs), the cleanup state
-         has not been restored completely to what it was, so do that now. */
-      curr_context->curr_cleanup_state = saved_curr_cleanup_state;
-      if (exceptions_enabled) {
-        set_after_expr_insert_location(expr_to_lower, &insert_location);
-        insert_code_to_indicate_cleanup_state(curr_context->curr_cleanup_state,
-                                              &insert_location,
-                                              /*unreachable=*/FALSE);
-      }  /* if */
     }  /* if */
     /* The insertions may have changed the type of the node, so copy the
        type up to the enk_object_lifetime node. */

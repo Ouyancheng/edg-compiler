@@ -1273,6 +1273,15 @@ typedef struct a_dynamic_init {
 			   initialization is completed.  The entry has
 			   a NULL destructor pointer. */
 #endif /* DO_IL_LOWERING */
+  a_bit_field	overlaps_temps_in_inner_lifetime:1;
+			/* TRUE if the entity is initialized during a nested
+			   object lifetime, and overlaps with destructible
+			   temporaries in the inner lifetime.  If this flag is
+			   set, the destruction for this entity should not
+			   be considered to be on the cleanup list until
+			   the entity has actually been initialized.  This flag
+			   is not set for variables with static storage
+			   duration. */
   bitfield_to_avoid_codecenter_warnings()
   union {
     /* When kind == dik_none or dik_zero: no variant fields. */

@@ -3187,6 +3187,9 @@ Display the indicated dynamic_init structure.
   if (ptr->destruction_is_for_partially_constructed_aggregate) {
     disp_boolean("destruction_is_for_partially_constructed_aggregate", TRUE);
   }  /* if */
+  if (ptr->overlaps_temps_in_inner_lifetime) {
+    disp_boolean("overlaps_temps_in_inner_lifetime", TRUE);
+  }  /* if */
   disp_name("kind");
   switch (ptr->kind) {
     case dik_none:

@@ -247,6 +247,10 @@ typedef struct a_destructible_entity_descr {
 			   (reflected by the dynamic init
 			   next_in_destruction_list pointer). */
 #endif /* GENERATE_EH_TABLES */
+  a_byte_boolean
+		initialization_done;
+			/* Set to TRUE once the initialization of this entity
+			   has been completed. */
 } a_destructible_entity_descr;
 
 EXTERN a_destructible_entity_descr_ptr

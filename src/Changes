@@ -1,5 +1,36 @@
 Version 2.36
 
+6/16/97   EH cleanup state during destruction of inner-lifetime temporaries
+
+When an initialization is performed, it is sometimes the case that
+a block-scope entity is initialized while temporaries created in the
+initializing expression are still active.  When those temporaries are
+destroyed, the exception handling cleanup state should include the
+block-scope entity as well as any remaining inner-lifetime temporaries.
+This was not the case.  As a consequence, if an exception was thrown
+within a destructor call for such a temporary, the block-scope
+entity was not destroyed.  Now fixed.
+
+  struct X {
+    X();
+    ~X();
+  };
+  X f(const X&);
+  X g();
+  int main() {
+    const X& r = f(g());  // Cleanup state was wrong during destruction of
+                          // temporary for g(): temporary for f() not
+                          // destroyed
+  }
+
+IL CHANGE: This was implemented, in part, by adding a flag to a_dynamic_init
+called overlaps_temps_in_inner_lifetime.  It is set for entities whose
+lifetimes overlap that of inner-scope temporaries.  If you use partial
+lowering of exception handling constructs, you should change your code
+so that entities with this flag set are not destroyed if they are
+encountered on the cleanup chain at a point before they have been
+initialized.
+
 6/13/97   EH cleanup state after initialization of local static variable
 
 After initialization of a local static variable that is an aggregate,

@@ -1098,6 +1098,7 @@ Initialize a dynamic_init entry of the kind specified.
 #if DO_IL_LOWERING
   dip->is_guard_var_for_local_static_var_init = FALSE;
 #endif /* DO_IL_LOWERING */
+  dip->overlaps_temps_in_inner_lifetime = FALSE;
 #if CHECKING
   dip->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */
