@@ -4691,17 +4691,19 @@ defer_inline is TRUE.
     a_boolean	flag_already_set = tip->instantiation_required;
     tip->instantiation_required = TRUE;
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
-    /* Set the instantiation required flag in the routine or variable
-       entry. */
-    if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
-      a_variable_ptr	variable;
-      variable = sym->variant.static_data_member.variable;
-      variable->instance_required = TRUE;
-    } else if (!is_static_or_inline_template_function(tip)) {
-      /* A noninline function. */
-      a_routine_ptr	routine;
-      routine = sym->variant.routine.ptr;
-      routine->instance_required = TRUE;
+    if (automatic_instantiation_mode) {
+      /* Set the instantiation required flag in the routine or variable
+         entry. */
+      if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
+        a_variable_ptr	variable;
+        variable = sym->variant.static_data_member.variable;
+        variable->instance_required = TRUE;
+      } else if (!is_static_or_inline_template_function(tip)) {
+        /* A noninline function. */
+        a_routine_ptr	routine;
+        routine = sym->variant.routine.ptr;
+        routine->instance_required = TRUE;
+      }  /* if */
     }  /* if */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
     if (!defer_inline && is_function_symbol(sym) &&

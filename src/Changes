@@ -1,5 +1,13 @@
 Version 2.28
 
+1/23/95  Template instance flag and automatic instantiation mode
+
+Version 2.27 was setting the instance_required flag for variables
+and functions even when automatic instantiation mode was not
+being used.  The fact that this flag was set should not actually
+make any difference because IL lowering only checks then flag
+in automatic instantiation mode.
+
 1/23/95  Spurious access error on class template reference
 
 A bug has been fixed that caused examples such as the following to
