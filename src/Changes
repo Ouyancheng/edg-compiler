@@ -1,5 +1,38 @@
 Version 2.36
 
+5/12/97   Exception handling cleanup state in switch clauses
+
+The exception handling cleanup state determined in switch clauses
+was sometimes incorrect, with the consequence that if an exception
+were thrown during a destructor call, some of the required cleanup
+would not be done.
+
+  struct X {
+    X(int);
+    ~X();
+  };
+  struct Y {
+    Y();
+    Y(const Y&p);
+    Y(const X&p);
+    ~Y();
+  };
+  Y g();
+  void foo() {
+    Y y;
+    switch(0) {
+      case 0:
+        {
+          Y y1(X(0));  // Cleanup state at destruction of X temp is incorrect
+          Y y2 = g();
+        }
+        break;
+      default:
+          ;
+        break;
+    }
+  }
+
 5/12/97   Microsoft compatibility: lvalue casts in C++ mode
 
 In Microsoft Visual C++, casting an lvalue to its own type leaves it an

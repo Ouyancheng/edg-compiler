@@ -491,9 +491,11 @@ lifetime.
   if (cleanup_state == NULL && curr_context->lifetime != NULL) {
     /* No cleanups at this level, so the cleanup state is the position at which
        the current lifetime fits into the cleanup lists of its parents. */
-    a_context *context;
-    for (context = curr_context; context != NULL; context = context->parent) {
-      cleanup_state = context->lifetime->parent_destruction_sublist;
+    an_object_lifetime_ptr lifetime;
+    for (lifetime = curr_context->lifetime;
+         lifetime != NULL;
+         lifetime = lifetime->parent_lifetime) {
+      cleanup_state = lifetime->parent_destruction_sublist;
       if (cleanup_state != NULL) break;
     }  /* for */
   }  /* if */
