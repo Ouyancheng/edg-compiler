@@ -6846,6 +6846,9 @@ Display and return the amount of space used for various lexical tables.
 
   total = after_end_of_curr_source_line - curr_source_line;
   db_space_used_general_buffer("curr_source_line", total);
+  if (size_pragma_string_buffer != 0) {
+    db_space_used_general_buffer("pragma string", size_pragma_string_buffer);
+  }  /* if */
 
   if (after_end_of_raw_listing_buffer != NULL) {
     total = after_end_of_raw_listing_buffer - raw_listing_buffer;

@@ -224,7 +224,11 @@ typedef struct a_pending_pragma {
 			   back end as an uninterpretted character string,
 			   this points to the null terminated string.  The
 			   string begins with the token immediately following
-			   the #pragma keyword. */
+			   the #pragma keyword.  The string is allocated in
+			   the file scope IL memory region, so this pointer
+			   may be copied directly to the IL entry created
+			   for this pragma (if any).  The string does not
+			   need to be moved. */
   a_pragma_ptr	il_pragma_entry;
 			/* A pointer to the IL pragma entry associated with
 			   this pending pragma, if any. */

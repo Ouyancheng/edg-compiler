@@ -843,6 +843,117 @@ generate_pp_output is TRUE.
 }  /* pass_directive_to_output */
 
 
+/*
+Dynamically allocated buffer used to contain transient pragma directives
+that are being recorded as character strings.
+*/
+static char	*pragma_string_buffer = NULL;
+			/* Not allocated on a per-file basis. */
+#define PRAGMA_STRING_BUFFER_INITIAL_ALLOCATION 300
+#define PRAGMA_STRING_BUFFER_INCREMENTAL_ALLOCATION 300
+			/* Initial and incremental allocation sizes for
+			   pragma_string_buffer.  The initial allocation
+			   should be such that almost all cases can be
+			   accepted (so that the realloc is hardly ever
+			   needed). */
+
+
+static void expand_pragma_string_buffer(sizeof_t size_needed)
+/*
+Expand the pragma_string_buffer by reallocating it, so that its total size
+is at least size_needed.  Called by ensure_pragma_string_buffer_space.
+*/
+{
+  sizeof_t new_size;
+
+  new_size = size_pragma_string_buffer +
+             PRAGMA_STRING_BUFFER_INCREMENTAL_ALLOCATION;
+  if (new_size < size_needed) new_size  = size_needed;
+  pragma_string_buffer = realloc_general(pragma_string_buffer,
+                                        size_pragma_string_buffer, new_size);
+  size_pragma_string_buffer = new_size;
+}  /* expand_pragma_string_buffer */
+
+
+/*
+Ensure that pragma_string_buffer has at least size_needed bytes in it.
+If not, expand pragma_string_buffer by reallocating it.
+*/
+#define ensure_pragma_string_buffer_space(size_needed)                 \
+{ if (size_pragma_string_buffer < size_needed) {                       \
+    expand_pragma_string_buffer((sizeof_t)(size_needed));              \
+  }  /* if */                                                          \
+}  /* ensure_pragma_string_buffer_space */
+
+
+static void convert_pragma_to_string(a_pending_pragma_ptr          ppp,
+				     a_pragma_kind_description_ptr pkdp)
+/*
+Scans the tokens that make up a pragma directive and converts them into
+a single null terminated character string.  The string is constructed in
+a dedicated buffer which is enlarged as needed to be able to contain
+the entire pragma.  The tokens are scanned as preprocessing tokens.
+Once the entire pragma has been scanned, a buffer of the appropriate
+size is allocated in the file scope IL memory region and the pragma
+string is copied there.
+*/
+{
+  a_boolean	save_expand_macros;
+  a_boolean	save_processing_C_code_in_pragma;
+  a_boolean	save_fetch_pp_tokens;
+  a_boolean	any_white_space_skipped = FALSE;
+  sizeof_t	pos_in_buffer = 0;
+  char		*il_string;
+
+  db_enter(4, "convert_pragma_to_string");
+  /* Save the current value of the lexical scanning mode flags. */
+  save_expand_macros = expand_macros;
+  save_processing_C_code_in_pragma = processing_C_code_in_pragma;
+  save_fetch_pp_tokens = fetch_pp_tokens;
+  /* Set the new values. */
+  expand_macros = pkdp->expand_macros;
+  processing_C_code_in_pragma = pkdp->processing_C_code_in_pragma;
+  /* We expect expand_macros and processing_C_code_in_pragma to be FALSE when
+     building a string representation of the pragma. */
+  check_assertion_str2(!expand_macros && !processing_C_code_in_pragma,
+		       "convert_pragma_to_string:",
+		       "invalid token scanning mode");
+  fetch_pp_tokens = TRUE;
+  /* The current token is the identifier that indicate the pragma kind.
+     This should be included in the generated string. */
+  do {
+    ensure_pragma_string_buffer_space(len_of_curr_token +
+                                      any_white_space_skipped);
+    if (any_white_space_skipped) pragma_string_buffer[pos_in_buffer++] = ' ';
+    (void)memcpy(&pragma_string_buffer[pos_in_buffer], start_of_curr_token,
+                 size_t_arg(len_of_curr_token));
+    pos_in_buffer += len_of_curr_token;
+    /* Skip any white space and record whether any was skipped.  Any white
+       space will be replaced by a single blank. */
+    skip_white_space();
+    any_white_space_skipped = (kind_of_white_space_skipped != 0);
+    (void)get_token();
+  } while (curr_token != tok_newline);
+  /* Restore the previous values. */
+  expand_macros = save_expand_macros;
+  processing_C_code_in_pragma = save_processing_C_code_in_pragma;
+  fetch_pp_tokens = save_fetch_pp_tokens;
+  /* Allocate a block of file scope IL memory into which the string may
+     be copied. */
+  il_string = (char *)alloc_il(pos_in_buffer + 1);
+  (void)memcpy(il_string, pragma_string_buffer, pos_in_buffer);
+  /* Add a null terminator. */
+  il_string[pos_in_buffer] = '\0';
+  ppp->pragma_text = il_string;
+#if DEBUG
+  if (debug_level >= 0) {
+    fprintf(f_debug, "Saved pragma string: '%s'\n", il_string);
+  }  /* if */
+#endif /* DEBUG */
+  db_exit();
+}  /* convert_pragma_to_string */
+
+
 static void cache_pragma_tokens(a_pending_pragma_ptr          ppp,
 				a_pragma_kind_description_ptr pkdp)
 /*
@@ -854,10 +965,6 @@ based on the information specified in the pragma description entry.
   a_boolean	save_expand_macros;
   a_boolean	save_processing_C_code_in_pragma;
   a_boolean	save_fetch_pp_tokens;
-
-#if 0
-  /* Code to handle pass thru pragmas? */
-#endif
 
   /* Save the current value of the lexical scanning mode flags. */
   save_expand_macros = expand_macros;
@@ -912,12 +1019,30 @@ Scan and process a #pragma directive.
         if (curr_id_matches_pragma_id(pkdp->kind)) break;
         pkdp = pkdp->next;
       }  /* while */
+#if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
+      /* If no matching pragma name was found, set the pragma kind to
+         pk_unrecognized and scan the pragma according to the associated
+         description. */
+      if (pkdp == NULL) {
+        pkdp = pragma_description_for_pragma_kind[(int)pk_unrecognized];
+      }  /* if */
+#endif /* INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL */
       if (pkdp != NULL) {
-        /* Cache the tokens that make up the pragma directive. */
+        /* Scan the pragma directive.  The pragma statement may be recorded
+           as either a token cache or as a character string.  The character
+           string representation is usually used for pragmas that are to
+           be passed to the C or C++ generating back end, but may be used for
+           other pragmas in which a character string is simpler to
+           manipulate. */
         a_pending_pragma_ptr	ppp;
         processed = TRUE;
         ppp = alloc_pending_pragma(pkdp, &id_position);
-        cache_pragma_tokens(ppp, pkdp);
+        if (pkdp->make_text_not_tokens) {
+          convert_pragma_to_string(ppp, pkdp);
+        } else {
+          /* Cache the tokens that make up the pragma directive. */
+          cache_pragma_tokens(ppp, pkdp);
+        }  /* if */
         /* Add this pragma to the list of pragmas associated with the
            current token. */
         add_to_curr_token_pragma_list(ppp);

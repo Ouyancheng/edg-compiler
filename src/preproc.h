@@ -134,6 +134,10 @@ EXTERN int	base_pp_if_stack_depth;
 			   each #if must be closed within the file in
 			   which it was opened.  In pcc mode, always -1. */
 
+EXTERN sizeof_t	size_pragma_string_buffer /* = 0*/;
+			/* Current allocated size of pragma_string_buffer.
+			   Not per-file.  See preproc.c for the definition
+			   of pragma_string_buffer. */
 
 /* Scan a preprocessing directive. */
 extern void pp_directive(void);

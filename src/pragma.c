@@ -82,6 +82,12 @@ but cannot be referenced by name in a pragma directive.
                        "add_pragma_kind_description:",
 		       "pragma flags not valid when using C/C++ gen. BE");
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+  /* Pragmas scanned as text instead of tokens must not have macros expanded
+     or processing_C_code_in_pragma set. */
+  check_assertion_str2(make_text_not_tokens ?
+                       !expand_macros && !processing_C_code_in_pragma : TRUE,
+                       "add_pragma_kind_description:",
+		       "invalid make_text_not_tokens arguments");
   /* Allocate a new entry. */
   pkdp = (a_pragma_kind_description_ptr)
 				alloc_fe(sizeof(a_pragma_kind_description));
@@ -983,14 +989,14 @@ Initialize the pragma description table.
      description must be provided. */
   (void)add_next_construct_pragma_kind_description
 		((a_pragma_kind)pk_unrecognized,
-                 (an_immediate_pragma_function_ptr)NULL,
+                 (a_next_construct_pragma_function_ptr)NULL,
 		 /*is_pseudo_pragma=*/FALSE,
 		 /*may_bind_to_decl=*/TRUE,
-		 /*may_bind_to_stmt=*/FALSE,
+		 /*may_bind_to_stmt=*/TRUE,
                  /*automatically_include_in_il=*/TRUE,  /* Do not change. */
                  /*make_text_not_tokens=*/TRUE,         /* Do not change. */
-                 /*expand_macros=*/FALSE,
-                 /*processing_C_code_in_pragma=*/FALSE,
+                 /*expand_macros=*/FALSE,		/* Do not change. */
+                 /*processing_C_code_in_pragma=*/FALSE, /* Do not change. */
 		 /*ignore_in_back_end=*/FALSE,
                  es_error);
 #endif /* INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL */
