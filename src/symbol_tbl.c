@@ -8672,39 +8672,39 @@ are handled in symbol_tbl_init.)
 #if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
       pch_saved_var_array_elem(last_ctor_or_dtor_sym),
 #endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
-      { (a_void_ptr)NULL, (sizeof_t)0 }
+      pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
 #if DEBUG
-    if (db_active) {
-      static a_pch_saved_variable db_saved_vars[] = {
-        pch_saved_var_array_elem(db_symbol_buffer_pointer),
-        pch_saved_var_array_elem(num_access_error_descrs_allocated),
-        pch_saved_var_array_elem(num_class_symbol_supplements_allocated),
-        pch_saved_var_array_elem(num_classes_on_scope_stack),
-        pch_saved_var_array_elem(num_compares_for_symbols),
-        pch_saved_var_array_elem(num_conversion_headers_allocated),
-        pch_saved_var_array_elem(num_dependent_type_fixups_allocated),
-        pch_saved_var_array_elem(num_extern_symbol_descrs_allocated),
-        pch_saved_var_array_elem(num_extern_type_fixups_allocated),
-        pch_saved_var_array_elem(num_fast_id_lookups),
-        pch_saved_var_array_elem(num_param_ids_allocated),
-        pch_saved_var_array_elem(num_projection_descrs_allocated),
-        pch_saved_var_array_elem(num_searches_for_symbols),
-        pch_saved_var_array_elem(num_slow_id_lookups),
-        pch_saved_var_array_elem(num_symbol_headers_allocated),
-        pch_saved_var_array_elem(num_symbol_headers_in_hash_table),
-        pch_saved_var_array_elem(num_symbol_list_entries_allocated),
-        pch_saved_var_array_elem(num_symbols_allocated),
-        pch_saved_var_array_elem(num_template_instances_allocated),
-        pch_saved_var_array_elem(num_template_params_allocated),
-        pch_saved_var_array_elem(num_template_symbol_supplements_allocated),
-        pch_saved_var_array_elem(num_used_symbol_buckets),
-        pch_saved_var_array_elem(symbol_name_string_space),
-        { (a_void_ptr)NULL, (sizeof_t)0 }
-      };
-      register_pch_saved_variables(db_saved_vars);
-    }  /* if */
+    {
+    static a_pch_saved_variable db_saved_vars[] = {
+      pch_saved_var_array_elem(db_symbol_buffer_pointer),
+      pch_saved_var_array_elem(num_access_error_descrs_allocated),
+      pch_saved_var_array_elem(num_class_symbol_supplements_allocated),
+      pch_saved_var_array_elem(num_classes_on_scope_stack),
+      pch_saved_var_array_elem(num_compares_for_symbols),
+      pch_saved_var_array_elem(num_conversion_headers_allocated),
+      pch_saved_var_array_elem(num_dependent_type_fixups_allocated),
+      pch_saved_var_array_elem(num_extern_symbol_descrs_allocated),
+      pch_saved_var_array_elem(num_extern_type_fixups_allocated),
+      pch_saved_var_array_elem(num_fast_id_lookups),
+      pch_saved_var_array_elem(num_param_ids_allocated),
+      pch_saved_var_array_elem(num_projection_descrs_allocated),
+      pch_saved_var_array_elem(num_searches_for_symbols),
+      pch_saved_var_array_elem(num_slow_id_lookups),
+      pch_saved_var_array_elem(num_symbol_headers_allocated),
+      pch_saved_var_array_elem(num_symbol_headers_in_hash_table),
+      pch_saved_var_array_elem(num_symbol_list_entries_allocated),
+      pch_saved_var_array_elem(num_symbols_allocated),
+      pch_saved_var_array_elem(num_template_instances_allocated),
+      pch_saved_var_array_elem(num_template_params_allocated),
+      pch_saved_var_array_elem(num_template_symbol_supplements_allocated),
+      pch_saved_var_array_elem(num_used_symbol_buckets),
+      pch_saved_var_array_elem(symbol_name_string_space),
+      pch_saved_var_array_terminating_elem()
+    };
+    register_pch_saved_variables(db_saved_vars);
+    }
 #endif /* if DEBUG */
   }  /* if */
 }  /* symbol_tbl_one_time_init */
