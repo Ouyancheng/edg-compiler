@@ -255,7 +255,7 @@ declaration entry.
 
 /*
 Macro to extract the pointer from a source sequence entry or secondary
-declaration entry.  It is cast to the indicated type.
+declaration entry.  It is cast to the indicated pointer type.
 */
 #define ss_entry_ptr(ssep, type) ((type)(ssep)->entity.ptr)
 
@@ -448,57 +448,22 @@ Advance the function-scope source sequence list to the next (significant)
 entry, and return a pointer to it.  Return NULL if there are no more entries.
 */
 {
-  a_boolean                   is_proxy;
-  a_source_sequence_entry_ptr file_scope_ssep;
-
-  /* Remember whether the entry is a proxy for a file-scope declaration, i.e.,
-     whether it's an entry on the function-scope list that marks the position
+  /* See if the entry is a proxy for a file-scope declaration, i.e.,
+     if it's an entry on the function-scope list that marks the position
      of a file-scope declaration and points to the corresponding entry on the
-     file-scope list. */
-  is_proxy = ss_is_proxy(func_scope_source_sequence_entry);
-  if (is_proxy) {
-    file_scope_ssep = ss_assoc_with_proxy(func_scope_source_sequence_entry);
+     file-scope list.  If so, we also advance the file scope list. */
+  if (ss_is_proxy(func_scope_source_sequence_entry)) {
     /* Since this entry is a proxy, the current entry on the file scope
        list should be the associated entry. */
-    check_assertion_str(file_scope_ssep == file_scope_source_sequence_entry,
+    check_assertion_str(ss_assoc_with_proxy(func_scope_source_sequence_entry)
+                                           == file_scope_source_sequence_entry,
             "next_func_scope_source_sequence_entry: partner of proxy missing");
+    /* Advance the file-scope list. */
+    (void)next_file_scope_source_sequence_entry();
   }  /* if */
-  if (il_header.source_language == sl_C) {
-    /* If advancing from a class definition in C mode, skip to after the
-       end of the class.  This simulates having the source sequence entries
-       for declarations within the class on a separate list, as is done
-       in C++ mode.  Actually, all of the source sequence entries in
-       this scope will be proxies for the real entries in the file scope.
-       We find the end of the class list in the file scope and step through
-       the entries at this level to find the proxy for that last entry,
-       then advance from there. */
-    a_type_ptr type;
-    if (is_proxy &&
-        src_seq_entry_is_class_definition(file_scope_ssep, &type)) {
-      a_source_sequence_entry_ptr ssep= last_src_seq_of_class_definition(type);
-      /* Advance the file-scope list to the right place.  (It will be
-         advanced one more step below.) */
-      file_scope_source_sequence_entry = ssep;
-      /* ssep is now the last source sequence entry for the class definition.
-         Go through the function scope list looking for the proxy that
-         points to it. */
-      for (;; func_scope_source_sequence_entry =
-                                      func_scope_source_sequence_entry->next) {
-        check_assertion_str(func_scope_source_sequence_entry != NULL &&
-                            ss_is_proxy(func_scope_source_sequence_entry),
-                       "next_func_scope_source_sequence_entry: missing proxy");
-        if (ss_assoc_with_proxy(func_scope_source_sequence_entry) == ssep) {
-          break;
-        } /* if */
-      }  /* for */
-    }  /* if */
-  }  /* if */
-  /* Advance to the next entry. */
+  /* Advance to the next entry of the function list. */
   func_scope_source_sequence_entry = func_scope_source_sequence_entry->next;
   adv_to_signif_func_scope_source_sequence_entry();
-  /* If the entry on the function-scope list was a proxy, advance the
-     file-scope list too. */
-  if (is_proxy) (void)next_file_scope_source_sequence_entry();
   return func_scope_source_sequence_entry;
 }  /* next_func_scope_source_sequence_entry */
 
@@ -1753,6 +1718,68 @@ is not empty, because it contains a name or a derived type).
 }  /* gen_type_first_part */
 
 
+static void bypass_prototype_scope_type_src_seq_entries(void)
+/*
+Advance past any file-scope source sequence entries for types declared
+in a function prototype scope.  Mark those types so that their definitions
+will be put out when they are encountered when generating the parameter
+types.
+*/
+{
+  a_source_sequence_entry_ptr ssep;
+
+  while ((ssep = file_scope_source_sequence_entry) != NULL &&
+         ss_entry_kind(ssep) == iek_type) {
+    a_type_ptr type = ss_entry_ptr(ssep, a_type_ptr);
+    if (!type->declared_in_function_prototype) break;
+    /* A prototype scope type. */
+    type->definition_delayed = TRUE;
+    (void)next_file_scope_source_sequence_entry();
+  }  /* while */
+}  /* bypass_prototype_scope_type_src_seq_entries */
+
+
+static void bypass_prototyped_param_src_seq_entries(void)
+/*
+Advance past any source sequence entries on the function and file scope
+lists of the current function definition that are associated with parameter
+declarations and prototype scope types.  Mark such types so that their
+definitions will be put out when they are encountered when generating
+the parameter types.
+*/
+{
+  a_source_sequence_entry_ptr ssep, type_ssep;
+  a_type_ptr                  type;
+
+  for (;;) {
+    ssep = func_scope_source_sequence_entry;
+    if (ss_entry_kind(ssep) == iek_variable) {
+      /* Bypass a parameter declaration. */
+      (void)next_func_scope_source_sequence_entry();
+    } else if (ss_entry_kind(ssep) == iek_statement) {
+      /* Stop on the opening brace of the routine. */
+      break;
+    } else {
+      /* Anything else should be a type declared in the prototype scope. */
+      check_assertion_str(ss_is_proxy(ssep),
+                    "bypass_prototyped_param_src_seq_entries: bad entry kind");
+      type_ssep = ss_assoc_with_proxy(ssep);
+      check_assertion_str(ss_entry_kind(type_ssep) == iek_type,
+                "bypass_prototyped_param_src_seq_entries: proxy not for type");
+      type = ss_entry_ptr(type_ssep, a_type_ptr);
+      check_assertion_str(type->declared_in_function_prototype,
+          "bypass_prototyped_param_src_seq_entries: not prototype scope type");
+      /* Mark the type so it will be expanded when encountered in a parameter
+         declaration. */
+      type->definition_delayed = TRUE;
+      /* Advance the function scope list (the file scope list will be advanced
+         as well). */
+      (void)next_func_scope_source_sequence_entry();
+    }  /* if */
+  }  /* for */
+}  /* bypass_prototyped_param_src_seq_entries */
+
+
 static void gen_function_declarator(a_type_ptr  type,
                                     a_scope_ptr scope)
 /*
@@ -1797,6 +1824,15 @@ is non-NULL, in which case that is the function scope.
     } else {
       /* List the parameter types (and, if this is the definition, names
          too). */
+      if (scope == NULL) {
+        /* This is not a definition.  Advance past the source sequence
+           entries for prototype scope types (happens only in C). */
+        bypass_prototype_scope_type_src_seq_entries();
+      } else {
+        /* This is a definition.  Advance past the source sequence entries for
+           the parameters and any prototype scope types. */
+        bypass_prototyped_param_src_seq_entries();
+      }  /* if */
       for (;;) {
         if (scope != NULL) {
           /* This is the definition of the function, so put out the type and
@@ -1808,15 +1844,6 @@ is non-NULL, in which case that is the function scope.
                                      has_name(param_var) ?
                                              &param_var->source_corresp : NULL,
                                      (a_src_seq_secondary_decl_ptr)NULL);
-          /* Advance past the source source entry for the parameter
-             declaration. */
-#if 0
-          /* Check for prototype scope entries. */
-#endif /* 0 */
-          if (has_name(param_var)) {
-            check_for_and_take_func_source_seq_entry(
-                              param_var->source_corresp.source_sequence_entry);
-          }  /* if */
           param_var = param_var->next;
         } else {
           /* This is just a declaration, so put out the type and no name. */
@@ -2991,11 +3018,13 @@ Generate code for the indicated statement.
       /* Avoid problems with vestigial stmk_decls that point to nothing. */
       if (statement->source_sequence_entry != NULL) {
         /* Loop until the last declaration is processed. */
+        a_boolean last_decl;
         do {
+          last_decl = (func_scope_source_sequence_entry ==
+                                          statement->variant.last_declaration);
           /* Process the declaration entry and its source sequence entry. */
           gen_curr_func_declaration();
-        } while (func_scope_source_sequence_entry !=
-                                    statement->variant.last_declaration->next);
+        } while (!last_decl);
       }  /* if */
       break;
     default:
@@ -3174,27 +3203,24 @@ the parameters to be declared.
 
   /* Process all the source sequence entries on the list that are for
      parameters. */
-#if 0
-  /* We should also be merging in types from the prototype scope. */
-#endif /* 0 */
-  for (ssep = func_scope_source_sequence_entry;
-       ssep != NULL;
-       ssep = next_func_scope_source_sequence_entry()) {
+  for (;;) {
+    ssep = func_scope_source_sequence_entry;
     if (ss_entry_kind(ssep) == iek_variable) {
+      /* Output a parameter declaration. */
       a_variable_ptr var = ss_entry_ptr(ssep, a_variable_ptr);
-      if (var->is_parameter) {
-        /* Output the parameter declaration. */
-        write_space();
-        set_output_position(&var->source_corresp.decl_position);
-        gen_declaration_using_type(var->type, &var->source_corresp,
-                                   (a_src_seq_secondary_decl_ptr)NULL);
-        write_tok_str(";");
-        /* Continue with the next source sequence entry. */
-        continue;
-      }  /* if */
+      (void)next_func_scope_source_sequence_entry();
+      write_space();
+      set_output_position(&var->source_corresp.decl_position);
+      gen_declaration_using_type(var->type, &var->source_corresp,
+                                 (a_src_seq_secondary_decl_ptr)NULL);
+      write_tok_str(";");
+    } else if (ss_entry_kind(ssep) == iek_statement) {
+      /* Stop on the opening brace of the routine. */
+      break;
+    } else {
+      /* Anything else should be a type declared in the prototype scope. */
+      gen_curr_func_declaration();
     }  /* if */
-    /* Stop on any other entry. */
-    break;
   }  /* for */
 }  /* gen_old_style_parameter_decls */
 
@@ -3479,6 +3505,7 @@ Generate C++ or C from the intermediate language.
   pos.seq = 1;
   pos.column = SP_COL_UNKNOWN;
   set_output_position(&pos);
+  adjust_output_position();
 
   /* Process all the file scope entities (and the rest, too, as the
      associated functions/classes are encountered). */
