@@ -290,8 +290,7 @@ to match the source dialect.
   if (gnu_mode) {
     gcc_is_generated_code_target = TRUE;
   } else if (microsoft_mode) {
-    msvc_is_generated_code_target = TRUE;
-    msvc_target_version_number = microsoft_version;
+    microsoft_dialect_is_generated_code_target = TRUE;
   }  /* if */
 #endif /* CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT */
 }  /* select_cp_gen_be_target_dialect */

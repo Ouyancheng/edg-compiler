@@ -1966,10 +1966,10 @@ generate code for the GNU C compiler (gcc or g++).
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
 /*
 Switch that is TRUE if the C-generating or C++-generating back end should
-generate code for MSVC++ (the Microsoft C/C++ compiler).  This is the
-initial value of the global variable msvc_is_generated_code_target.
+generate code for MSVC++ (the Microsoft C/C++ compiler).  Setting this flag
+also requires setting MICROSOFT_DIALECT_IS_GENERATED_CODE_TARGET flag below.
+This is the initial value of the global variable msvc_is_generated_code_target.
 */
-
 #ifndef MSVC_IS_GENERATED_CODE_TARGET
 #if EDG_WIN32
 #define MSVC_IS_GENERATED_CODE_TARGET TRUE
@@ -1989,6 +1989,30 @@ compiler release (e.g., 1300 corresponds to MSVC version 7).
 #define MSVC_TARGET_VERSION_NUMBER DEFAULT_MICROSOFT_VERSION
 #endif /* MSVC_TARGET_VERSION_NUMBER */
 
+/*
+Switch that is TRUE if the C-generating or C++-generating back end should
+generate code taking advantage of Microsoft extensions.  This does not by
+itself cause the back ends to compensate for bugs in the Microsoft compiler.
+This is the initial value of the global variable
+microsoft_dialect_is_generated_code_target.
+*/
+#ifndef MICROSOFT_DIALECT_IS_GENERATED_CODE_TARGET
+#if MSVC_IS_GENERATED_CODE_TARGET
+#define MICROSOFT_DIALECT_IS_GENERATED_CODE_TARGET TRUE
+#else /* !MSVC_IS_GENERATED_CODE_TARGET */
+#define MICROSOFT_DIALECT_IS_GENERATED_CODE_TARGET FALSE
+#endif /* MSVC_IS_GENERATED_CODE_TARGET */
+#endif /* MICROSOFT_DIALECT_IS_GENERATED_CODE_TARGET */
+
+/*
+Compensating for Microsoft compiler bugs without actually generating
+Microsoft extensions is not likely an intentional configuration option.
+*/
+#if MSVC_IS_GENERATED_CODE_TARGET && \
+    !MICROSOFT_DIALECT_IS_GENERATED_CODE_TARGET
+ #error -- MSVC_IS_GENERATED_CODE_TARGET requires \
+           MICROSOFT_DIALECT_IS_GENERATED_CODE_TARGET
+#endif /* MSVC_IS_GENERATED_CODE_TARGET && !MICROSOFT_DIALECT_... */
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
 
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE

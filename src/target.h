@@ -1092,6 +1092,15 @@ EXTERN int
 			/* The version number (i.e., 1300 for 7.0) of the
 			   Microsoft MSVC compiler being targeted. */
 
+EXTERN int
+		microsoft_dialect_is_generated_code_target
+#if VAR_INITIALIZERS
+		                 = MICROSOFT_DIALECT_IS_GENERATED_CODE_TARGET
+#endif /* VAR_INITIALIZERS */
+                                                                             ;
+			/* True if code is being generated for a compiler
+			   accepting Microsoft extensions. */
+
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
 
 #if BACK_END_IS_CP_GEN_BE

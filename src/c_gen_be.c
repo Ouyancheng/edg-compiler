@@ -2404,7 +2404,7 @@ Put out the Microsoft __declspec(align(...)) declaration modifier if the
 given alignment value is nonzero.
 */
 {
-  if (msvc_is_generated_code_target && alignment != 0) {
+  if (microsoft_dialect_is_generated_code_target && alignment != 0) {
     write_tok_str("__declspec(align(");
     write_unsigned_num(alignment);
     write_tok_str(")) ");

@@ -2765,7 +2765,7 @@ If the "is_deprecated" flag is set in the given source correspondence,
 put out a "__declspec(deprecated)" specifier.
 */
 {
-  if (msvc_is_generated_code_target && scp->is_deprecated) {
+  if (microsoft_dialect_is_generated_code_target && scp->is_deprecated) {
     write_tok_str("__declspec(deprecated) ");
   }  /* if */
 }  /* gen_microsoft_deprecated_spec */
@@ -2777,7 +2777,7 @@ Put out the Microsoft __declspec(align(...)) declaration modifier if the
 given alignment value is nonzero.
 */
 {
-  if (msvc_is_generated_code_target && alignment != 0) {
+  if (microsoft_dialect_is_generated_code_target && alignment != 0) {
     write_tok_str("__declspec(align(");
     write_unsigned_num(alignment);
     write_tok_str(")) ");
