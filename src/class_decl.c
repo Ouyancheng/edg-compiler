@@ -3283,11 +3283,12 @@ Return a derivation step entry (or a list of them) to the free list for
 reuse at another time.
 */
 {
-  /* If there is a next step entry, free it first by making a recursive
-     call. */
-  if (step->next != NULL) free_derivation_step(step->next);
-  step->base_class = NULL;
-  step->next = avail_derivation_steps;
+  a_derivation_step_ptr	step_tail;
+
+  /* Find the last entry on the list. */
+  for (step_tail = step; step_tail->next != NULL;
+       step_tail = step_tail->next) { step_tail->base_class = NULL; }
+  step_tail->next = avail_derivation_steps;
   avail_derivation_steps = step;
 }  /* free_derivation_step */
 
