@@ -130,19 +130,23 @@ allocation and generates a catastrophic error.
 }  /* local_malloc */
 
 
-static void fread_with_check(char     *ptr,
-                             sizeof_t size)
 /*
 Interface to fread.  Read "size" bytes from f_il_input and put them at
 "*ptr".  If the read is unsuccessful, generate a catastrophic error.
 */
-{
-  if (fread(ptr, size_t_arg(size), 1, f_il_input) != 1) {
-    catastrophe(ec_bad_il_file);
-  }  /* if */
+/* Macro to inform CenterLine's environment that the area has been
+   reused, to avoid wrong-type errors. */
 #if __CENTERLINE__
-  (void)centerline_untype((void *)ptr, (unsigned int)size);
+#define conditional_centerline_untype(ptr, size)                      \
+  (void)centerline_untype((void *)(ptr), (unsigned int)(size))
+#else /* !__CENTERLINE__ */
+#define conditional_centerline_untype(ptr, size) /* Nothing */
 #endif /* __CENTERLINE__ */
+#define fread_with_check(ptr, size)                                   \
+{ if (fread((ptr), size_t_arg(size), 1, f_il_input) != 1) {           \
+    catastrophe(ec_bad_il_file);                                      \
+  }  /* if */                                                         \
+  conditional_centerline_untype(ptr, size);                           \
 }  /* fread_with_check */
 
 #if ALTERNATE_IL_FILE_FORMAT
@@ -348,6 +352,7 @@ necessary to make it directly accessible in memory.
   an_il_entry_number        entry_number;
   sizeof_t                  entry_length;
   char                      *entry_ptr;
+  a_boolean                 is_string_entry;
 #if CHECKING
   an_il_entry_number        count_of_entries_read[(int)iek_last];
   an_il_entry_number        trimmed_entry_number;
@@ -505,7 +510,8 @@ necessary to make it directly accessible in memory.
                           reading_file_scope_il);
     /* If this is a string entry, read the length.  Otherwise, compute the
        length from the entry kind. */
-    if (is_string_entry_kind(entry_kind)) {
+    is_string_entry = is_string_entry_kind(entry_kind);
+    if (is_string_entry) {
       fread_with_check((char *)&entry_length, sizeof(entry_length));
 #if DEBUG
       if (debug_level >= 5) {
@@ -564,8 +570,11 @@ necessary to make it directly accessible in memory.
     }  /* if */
     /* Read the entry into the right spot. */
     fread_with_check(entry_ptr, entry_length);
-    /* Change the pointers in the entry from entry numbers to real pointers. */
-    remap_pointers_in_il_entry(entry_ptr, entry_kind, remap_ptr_to_ptr);
+    if (!is_string_entry) {
+      /* Change the pointers in the entry from entry numbers to real
+         pointers. */
+      remap_pointers_in_il_entry(entry_ptr, entry_kind, remap_ptr_to_ptr);
+    }  /* if */
   }  /* for */
   /* Zero entry kind indicating end of list has been encountered. */
 #if CHECKING
