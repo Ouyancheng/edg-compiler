@@ -470,6 +470,10 @@ pointer decay).
      decay, etc.). */
   vp->declared_type = declared_type;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if VLA_ALLOWED
+  vp->has_variably_modified_type = (vla_enabled &&
+                                    is_variably_modified_type(tp));
+#endif /* VLA_ALLOWED */
   add_to_parameters_list(vp);
   sym = param_id->symbol;
   if (sym == NULL) {
