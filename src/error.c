@@ -1018,6 +1018,9 @@ error code.
     case ec_bad_virtual_decl:
       m = "only nonstatic member functions may be declared virtual";
       break;
+    case ec_unqual_function_with_qual_object:
+      m = "function may not be called for const- or volatile-qualified object";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

@@ -360,7 +360,8 @@ typedef enum /*an_error_code*/ {
   ec_return_type_cannot_distinguish_functions,
   ec_no_conversion_constructor,
   ec_function_qualifier_not_allowed,
-  ec_bad_virtual_decl
+  ec_bad_virtual_decl,
+  ec_unqual_function_with_qual_object
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
