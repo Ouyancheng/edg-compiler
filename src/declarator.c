@@ -1590,27 +1590,26 @@ parameter controls the restrictions imposed by the context.
 Note that this routine actually scans a sequence of pointer declarators.
 
 In Microsoft mode, the Microsoft __cdecl, __stdcall, and __fastcall are
-recognized as calling conventions.  Microsoft qualifiers are different than
-ordinary qualifiers in that they bind to the thing that that precede.
-If they precede something that is not a pointer declarator, they can't
-be bound within pointer_declarator.  These unbound qualifiers are returned
-to the caller in p_unbound_qualifiers.
+recognized as calling conventions.  The handling of calling conventions
+is intended to match the behavior of the Microsoft 32-bit C/C++ compiler.
+Calling conventions are allowed on function types and pointer to
+function types.  They are permitted on object declarations, but have
+no meaning.  They are not allowed on pointers to objects or on
+references.
 
-For example in the declaration
+calling_convention_allowed is TRUE if a calling convention specifier
+is legal in the current context.  The calling_convention syntax
+is recognized when microsoft_mode is TRUE.  An error is issued
+if a calling convention is supplied when calling_convention_allowed
+is FALSE.
 
-	int __cdecl f();
-
-specifiers_type is passed in as int, __cdecl is returned as an unbound
-qualifier.
-
-In the declaration
-
-	int (__cdecl *fp)();
-
-declarator is called recursively to scan the nested declarator.  In
-the nested declarator, specifiers_type is NULL, the type returned by
-pointer_declarator is "pointer to __cdecl", and unbound qualifiers
-is empty.
+p_calling_convention is a pointer to a calling convention.  If a calling
+convention was scanned at a higher level (e.g., if this is a nested
+declarator) the calling convention from the higher level is passed
+in.  If a calling convention has not been encountered at a higher level,
+the value cc_default is passed in.  When pointer_declarator is called from
+elsewhere in the compiler (e.g., new_type_name), p_calling_convention is
+NULL.
 */
 {
   a_type_ptr     		complete_type = specifiers_type;
@@ -1749,7 +1748,7 @@ is empty.
       set_err_pos_to_curr_token();
       qualifiers = collect_type_qualifiers();
 #if MICROSOFT_KEYWORDS_ALLOWED
-      if (microsoft_mode && complete_type == NULL) {
+      if (is_calling_convention) {
         /* A misplaced qualifier such as
              int (__cdecl volatile * x);
            This is accepted by the Microsoft compiler, but is is unclear
@@ -1814,6 +1813,82 @@ is empty.
 }  /* pointer_declarator */
 
 
+#if MICROSOFT_KEYWORDS_ALLOWED
+static
+void update_calling_convention(a_type_ptr	    type,
+			       a_calling_convention *p_calling_convention,
+                               a_source_position    *decl_pos)
+/*
+Determine whether the "type" specifies a type for which a calling
+convention may be specified.  If so, update the calling convention
+information.  Otherwise, determine whether the calling convention
+information should be ignored or if an error should be issued.
+*/
+{
+  a_calling_convention	calling_convention = *p_calling_convention;
+  a_boolean		retain_calling_convention = FALSE;
+
+  if (type == NULL) {
+    /* Null type -- retain the calling convention for later application. */
+    retain_calling_convention = TRUE;
+  } else if (calling_convention != cc_default) {
+    a_type_ptr	pointed_to_type = NULL;
+    a_boolean		is_pointer = FALSE;
+    a_boolean		ignore = FALSE;
+    a_boolean		invalid_type = FALSE;
+    a_type_ptr		type_to_update = NULL;
+
+    /* See if the type is a pointer or pointer to member type. */
+    if (is_pointer_type(type)) {
+      pointed_to_type = type_pointed_to(type);
+      is_pointer = TRUE;
+    } else if (is_ptr_to_member_type(type)) {
+      pointed_to_type = pm_member_type(type);
+      is_pointer = TRUE;
+    }  /* if */
+    if (is_pointer) {
+      /* It is a pointer type.  See if the type pointed to is a
+         function type.  A calling convention on a pointer to
+         object type is an error. */
+      if (pointed_to_type == NULL) {
+        /* The type pointed to is not yet known.  Defer the update
+           until the type is known. */
+        retain_calling_convention = TRUE;
+      } else if (is_function_type(pointed_to_type)) {
+        type_to_update = pointed_to_type;
+      } else {
+        invalid_type = TRUE;
+      }  /* if */
+    } else if (is_function_type(type)) {
+      /* A calling convention of a function type is valid. */
+      type_to_update = type;
+    } else if (is_reference_type(type)) {
+      /* A calling convention on a reference type is invalid. */
+      invalid_type = TRUE;
+    } else {
+      /* All other types are assumed to be object types that are
+         ignored. */
+      ignore = TRUE;
+    }  /* if */
+    if (invalid_type) {
+      pos_ty_error(ec_calling_convention_not_allowed_for_type, decl_pos, type);
+    } else if (ignore) {
+      pos_ty_remark(ec_calling_convention_ignored_for_type,
+                    decl_pos, type);
+    } else if (type_to_update != NULL) {
+      a_type_ptr	tp = skip_typerefs(type_to_update);
+      check_assertion(tp->kind == (a_type_kind)tk_routine);
+      tp->variant.routine.extra_info->calling_convention = calling_convention;
+    }  /* if */
+  }  /* if */
+  /* If the calling convention is to be considered "consumed" at this
+     level, then reset the value supplied by the caller so that 
+     it can't be applied at a higher level. */
+  if (!retain_calling_convention) *p_calling_convention = cc_default;
+}  /* update_calling_convention */
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+
+
 void declarator(a_decl_flag_set          input_flags,
                 a_decl_flag_set          *output_flags,
                 a_type_ptr               specifiers_type,
@@ -1846,7 +1921,16 @@ function, *func_info is filled with extra information about the
 parameter list, for use if a function body follows.  For declarators
 that may turn out to be member functions, member_parent_type is
 a pointer to the class (or struct or union) type of which it is a member;
-otherwise it is NULL.  The syntax is:
+otherwise it is NULL.
+
+p_calling_convention is a pointer to a calling convention.  If a calling
+convention was scanned at a higher level (e.g., if this is a nested
+declarator) the calling convention from the higher level is passed
+in.  If a calling convention has not been encountered at a higher level,
+the value cc_default is passed in.  In the top level call to declarator
+p_calling_convention is NULL.
+
+The syntax is:
 
 3.5.4  declarator:
 		pointer    direct-declarator
@@ -1959,7 +2043,8 @@ otherwise it is NULL.  The syntax is:
       /* Constructs such as
            int __cdecl (*fp)();
          are not permitted. */
-      error(ec_calling_convention_may_not_precede_nested_declarator);
+      pos_error(ec_calling_convention_may_not_precede_nested_declarator,
+                &declarator_pos);
     }  /* if */
     add_stop_token(tok_rparen);
     /* Get the nested declarator, removing the flag allowing parenthesized
@@ -2295,14 +2380,6 @@ otherwise it is NULL.  The syntax is:
       }  /* if */
     }  /* if */
   }  /* if */
-#if 0
-  if (unbound_qualifiers != TQ_NONE) {
-    /* Add any unbound Microsoft qualifiers to the bottom of the 
-       derived type constructed so far. */
-    add_unbound_qualifiers_to_derived_type(&derived_type, &bottom_derived_type,
-                                           &unbound_qualifiers);
-  }  /* if */
-#endif
   /* The declarator can end at this point, or an array or function
      specification (or a series of them) can follow.  The additional
      specifications, if they appear, are parsed in their order of 
@@ -2513,6 +2590,12 @@ function_lparen:
       bottom_derived_type = NULL;
     }  /* if */
   }  /* if */
+#if MICROSOFT_KEYWORDS_ALLOWED
+  if (calling_convention != cc_default) {
+    update_calling_convention(complete_type, &calling_convention,
+                              &locator->source_position);
+  }  /* if */
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
   if (specifiers_type != NULL) {
     /* This is a top-level call to declarator. */
     if (locator != NULL &&
@@ -2537,6 +2620,10 @@ function_lparen:
   }  /* if */
   *p_complete_type = complete_type;
   *p_bottom_derived_type = bottom_derived_type;
+  if (p_calling_convention != NULL) {
+    /* Return any unapplied calling information to the caller. */
+    *p_calling_convention = calling_convention;
+  }  /* if */
 #if DEBUG
   if (debug_level >= 3) {
     fputs("complete_type: ", f_debug);

@@ -699,6 +699,8 @@ ec_cl_strict_ansi_incompatible_with_microsoft;;"strict ANSI mode is incompatible
 ec_cl_cfront_incompatible_with_microsoft;;"cfront mode is incompatible with Microsoft mode"
 ec_calling_convention_ignored;;"calling convention specified here is ignored"
 ec_calling_convention_may_not_precede_nested_declarator;;"a calling convention may not be followed by a nested declarator"
+ec_calling_convention_ignored_for_type;;"calling convention is ignored for type %t"
+ec_calling_convention_not_allowed_for_type;;"calling convention is not allowed for type %t"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
