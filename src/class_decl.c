@@ -4443,7 +4443,8 @@ operator routine or do bitwise assignment.
        operation on each direct base class (direct assignment or calling
        the base class's assignment function), and then do the appropriate
        copy of each member. */
-    const_source_var = is_const_qualified_type(source_var->type);
+    const_source_var =
+                 is_const_qualified_type(type_pointed_to(source_var->type));
     for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
       if (bcp->direct) {
         /* We are only interested in direct base classes. */
