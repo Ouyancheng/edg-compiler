@@ -1,4 +1,4 @@
-Version 2.44
+Version 2.45, December 26, 2000
 
 10/6/00  C++ header files renamed
 
@@ -20,7 +20,7 @@ compatibility purposes so that programs that still use names such as
 new.h will continue to work.  The .h versions simply include the
 version without specifying a suffix.
 
-10/6/00  C and C++ headers split into separate directories
+10/6/00  Prototype C headers removed
 
 Formerly, the include directory contained both the C++ headers needed
 to work with the EDG C++ runtime library (e.g., typeinfo) and
@@ -29,6 +29,7 @@ While the C++ headers were required when using our runtime library,
 the C headers, in general, must not be used because they are
 incompatible with the target system's C library.  The include
 directory now contains only the C++ headers.
+
 -------------------------------------------------------------------------------
 Version 2.44, August 1, 2000
 
