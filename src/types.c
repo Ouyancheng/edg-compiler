@@ -2779,7 +2779,7 @@ underlying type of either source_type or dest_type.
 	if (!same) break;
       }  /* if */
       /* See if this qualifier includes const. */
-      if ((get_type_qualifiers(dest_type) & TQ_CONST) == 0) {
+      if ((dest_type_qualifiers & TQ_CONST) == 0) {
 	previous_qualifiers_include_const = FALSE;
       }  /* if */
       dest_type = skip_typerefs(dest_type);
