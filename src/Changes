@@ -66,6 +66,52 @@ function to be called with the wrong pointer.
     return 0;
   }
 
+10/16/97  Driver interface changes
+
+The implementation of some new features necessitated changes in the
+interface between the front end, driver, and prelinker.
+
+One instantiation per object mode and the ability to put instantiation
+flags in a separate file both make use of a new file called the
+"template information" file.  The current "instantiation information"
+file has been renamed the "instantiation request" file to make the
+names of the files more distinct.  The "template information" file is
+used for information that flows from the driver and front end to the
+prelinker, while the "instantiation request" file is for information
+that flows from the prelinker to the front end.  The default suffix
+for the template information file is ".ti".  The default suffix for
+the instantiation request file is ".ii" (i.e., it hasn't been changed,
+for compatibility reasons).
+
+A new configuration flag named DRIVER_COMPATIBILITY_VERSION has
+been added so that the front end can be easily configured to be
+compatible with a driver intended to work with an earlier version of
+the front end.  For example, if DRIVER_COMPATIBILITY_VERSION is set
+to a value less than 237, a template information file will not
+be generated, one instantiation per object mode will be disabled, and
+the instantiation flags will continue to be part of the generated code.
+
+The DRIVER_COMPATIBILITY_VERSION flag directly or indirectly affects
+the default values used for the following driver interface configuration
+flags:
+
+	USE_TEMPLATE_INFO_FILE
+	INSTANTIATION_FLAGS_IN_TEMPLATE_INFO_FILE
+	INSTANTIATION_REQUEST_LINES_RESERVED
+	ONE_INSTANTIATION_PER_OBJECT
+
+These flags may be set individually to enable or disable specific
+features.  For example, ONE_INSTANTIATION_PER_OBJECT could be
+explicitly disabled, as it requires more back end and driver support
+than simply placing the instantiation flags in a separate file.  See
+the configuration section section of the internal documentation for
+more information.
+
+Another feature with a minor impact on the driver is the improved
+interface with the prelinker.  This feature simply requires that the
+driver recognize the --definition_list_file option, and pass this
+option on to the front end.
+
 10/16/97  One instantiation per object file
 
 In a new template instantiation mode, enabled by the command-line
@@ -105,6 +151,10 @@ most part only when the feature is enabled.  If you intend never
 to use the feature and want to avoid all of the overhead, you
 can configure it out by setting ONE_INSTANTIATION_PER_OBJECT to
 FALSE.
+
+This feature requires support from the driver used to invoke the
+front end.  See the "Driver interface changes" entry above for
+more information.
 
 10/16/97  Explicit specification of function template arguments
 
@@ -267,6 +317,13 @@ is not already defined elsewhere, it is "adopted" by the file being
 compiled.  In many cases, this complete set of instantiations can
 be generated with only a single iteration of the prelinker.
 
+This feature requires a minor change in the driver.  The driver must
+recognize the --definition_list_file option, and pass it along on to
+the front end (without making it part of the instantiation command
+line saved in the .ii or .ti file).  If your driver does not recognize
+this option, the PL_DEFAULT_USE_DEFINITION_LIST flag should be set to
+FALSE when building the prelinker.
+
 10/14/97  Internal error when using precompiled header files
 
 An internal error would occur when using precompiled headers if
@@ -286,22 +343,7 @@ the instantiation flags in the object file and in libraries in which
 the object file may be placed.
 
 This feature requires support from the driver used to invoke the front
-end.  A new configuration flag named DRIVER_COMPATIBILITY_VERSION has
-been added so that the front end can be easily configured to be
-compatible with a driver intended to work with an earlier version of
-the front end.  DRIVER_COMPATIBILITY_VERSION can be set to a value less
-than 237 to select the old behavior.
-
-The DRIVER_COMPATIBILITY_VERSION flags directly or indirectly affects
-the default values used for the following driver interface configuration
-flags:
-
-	USE_TEMPLATE_INFO_FILE
-	INSTANTIATION_FLAGS_IN_TEMPLATE_INFO_FILE
-	INSTANTIATION_REQUEST_LINES_RESERVED
-
-See the configuration section section of the internal documentation for
-more information.
+end.  See the "Driver interface changes" entry above for more information.
 
 10/9/97   Equivalent type names found via using-directives
 
