@@ -1,5 +1,20 @@
 Version 2.20
 
+10/4/93  Spurious error on nested class in template instantiation
+
+A spurious error has been eliminated on cases in which (1) a nested class
+with a non-inline member function appears within a class template and (2)
+the code calling for the instantiation of the template appears inside a
+function.  For example:
+
+  template<class T> class A {
+    class N { void f(); };
+  };
+  template <class T> void A<T>::N::f() { };
+  void main() {
+     A<int> x;        // Spurious error no longer issued on A<int>::N::f
+  }
+
 10/3/93  Checking of unreferenced/unused symbols at end of scope
 
 The diagnostic on an unreferenced parameter is now a remark instead of a
