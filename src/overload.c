@@ -1476,6 +1476,14 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
       arg_operand_is_constant = is_constant_operand(arg_operand);
       if (arg_operand_is_constant) {
         arg_operand_constant = &arg_operand->variant.constant;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (microsoft_mode) {
+        /* Microsoft mode allows some expressions as null pointer constants. */
+        adjust_constant_operand_info_for_microsoft_null_pointer_test(
+                                                      arg_operand,
+                                                      &arg_operand_is_constant,
+                                                      &arg_operand_constant);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
     }  /* if */
     if (impl_conversion_possible(arg_type,
@@ -5265,6 +5273,16 @@ the target type to be used).
                                                         &arg_operand->operand);
         source_is_constant = is_constant_operand(&arg_operand->operand);
         source_constant = &arg_operand->operand.variant.constant;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (microsoft_mode && !source_is_constant) {
+          /* Microsoft mode allows some expressions as null pointer
+             constants. */
+          adjust_constant_operand_info_for_microsoft_null_pointer_test(
+                                                         &arg_operand->operand,
+                                                         &source_is_constant,
+                                                         &source_constant);
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* See if we can convert the type we have to the type we want. */
         cfront_null_ptr_constant_case =
                                any_cfront_mode() &&
@@ -6821,6 +6839,9 @@ rewritten) for use in error messages.
     /* A user-defined conversion can be done. */
     okay = TRUE;
   } else if (!failed) {
+    a_boolean      source_is_constant;
+    a_constant_ptr source_constant;
+
     /* No user-defined conversion applies. */
     /* Do the lvalue --> rvalue transformation et al. */
     do_operand_transformations(source_operand,
@@ -6828,6 +6849,17 @@ rewritten) for use in error messages.
     /* Note that the source type is extracted after the lvalue to
        rvalue transformation. */
     source_type = source_operand->type;
+    source_is_constant = is_constant_operand(source_operand);
+    source_constant = &source_operand->variant.constant;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (microsoft_mode && !source_is_constant) {
+      /* Microsoft mode allows some expressions as null pointer constants. */
+      adjust_constant_operand_info_for_microsoft_null_pointer_test(
+                                                           source_operand,
+                                                           &source_is_constant,
+                                                           &source_constant);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (is_indefinite_function_operand(source_operand)) {
       /* The source is an indefinite function, i.e., the address of an
          overloaded function.  It can be converted to an appropriate
@@ -6865,8 +6897,8 @@ rewritten) for use in error messages.
       conversion->class_identity_or_bitwise_copy = TRUE;
       okay = TRUE;
     } else if (impl_conversion_possible(source_type,
-                                        is_constant_operand(source_operand),
-                                        &source_operand->variant.constant,
+                                        source_is_constant,
+                                        source_constant,
                                         dest_type,
                                         /*suppress_extensions=*/FALSE,
                                         incompatible_err,

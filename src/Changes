@@ -1,5 +1,12 @@
 Version 2.37
 
+7/28/97   Microsoft compatibility: (expr, 0) considered null pointer constant
+
+In Microsoft mode, an expression of the form (expr, 0), where the second
+operand is some form of null pointer constant, is now considered to
+be a null pointer constant.  It can therefore be implicitly converted
+to a pointer or pointer-to-member type.
+
 7/26/97   Explicit cast of overloaded function of derived class to
           pointer-to-member of base class selects matching function
 

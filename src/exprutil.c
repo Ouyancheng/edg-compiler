@@ -2678,6 +2678,40 @@ done:;
   return result_type;
 }  /* determine_arithmetic_conversions */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+void adjust_constant_operand_info_for_microsoft_null_pointer_test(
+                                               an_operand *operand,
+                                               a_boolean  *operand_is_constant,
+                                               a_constant **operand_constant)
+/*
+In Microsoft mode, expressions like (x, 0) are allowed as null pointer
+constants.  This routine examines *operand to see if it is such a thing,
+and sets *operand_is_constant and *operand_constant to the underlying
+null pointer constant.  Those are then presumably passed to a function
+like impl_conversion_possible, which would then conclude that it is
+possible to implicitly convert the *operand expression to a pointer type.
+This routine is called only in Microsoft mode.
+*/
+{
+  if (is_expression_operand(operand)) {
+    an_expr_node_ptr expr = operand->variant.expression;
+    if (is_operation_node(expr) &&
+        expr->variant.operation.kind == (an_expr_operator_kind)eok_comma) {
+      /* The operand is a comma expression. */
+      expr = expr->variant.operation.operands->next;
+      if (is_constant_node(expr) &&
+          is_null_pointer_constant(expr->variant.constant)) {
+        /* The operand is a comma node with a second operand that is a
+           null pointer constant, e.g., (x, 0). */
+        *operand_is_constant = TRUE;
+        *operand_constant = expr->variant.constant;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* adjust_constant_operand_info_for_microsoft_null_pointer_test */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 a_boolean check_compatibility_of_pointer_operands(
                    an_operand        *operand_1,
@@ -2718,6 +2752,17 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
   suppress_extensions = TRUE;
   for (;;) {
     if (operand_1_is_pointer) {
+      a_boolean      operand_2_is_constant = is_constant_operand(operand_2);
+      a_constant_ptr operand_2_constant    = &operand_2->variant.constant;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (microsoft_mode && !operand_2_is_constant) {
+        /* Microsoft mode allows some expressions as null pointer constants. */
+        adjust_constant_operand_info_for_microsoft_null_pointer_test(
+                                                        operand_2,
+                                                        &operand_2_is_constant,
+                                                        &operand_2_constant);
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* See if the second operand can be converted to the type of the
          first operand.  In C mode, suppress the attempt to find an
          implicit conversion to the type of a null pointer constant
@@ -2731,8 +2776,8 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
         /* Don't try the conversion in this direction -- leave it to be done
            in the other direction below. */
       } else if (impl_pointer_conversion(operand_2_type,
-                                         is_constant_operand(operand_2),
-                                         &operand_2->variant.constant,
+                                         operand_2_is_constant,
+                                         operand_2_constant,
                                          operand_1_type,
                                      /*check_as_operands_not_conversion=*/TRUE,
                                          suppress_extensions,
@@ -2744,6 +2789,17 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
       }  /* if */
     }  /* if */
     if (operand_2_is_pointer) {
+      a_boolean      operand_1_is_constant = is_constant_operand(operand_1);
+      a_constant_ptr operand_1_constant    = &operand_1->variant.constant;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (microsoft_mode && !operand_1_is_constant) {
+        /* Microsoft mode allows some expressions as null pointer constants. */
+        adjust_constant_operand_info_for_microsoft_null_pointer_test(
+                                                        operand_1,
+                                                        &operand_1_is_constant,
+                                                        &operand_1_constant);
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* See if the first operand can be converted to the type of the
          second operand.  In C mode, suppress conversion toward a null
          pointer constant (see comment above), but try the conversion if
@@ -2757,8 +2813,8 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
           !operand_1_is_void_star_0) {
         /* Don't try the conversion in this direction. */
       } else if (impl_pointer_conversion(operand_1_type,
-                                         is_constant_operand(operand_1),
-                                         &operand_1->variant.constant,
+                                         operand_1_is_constant,
+                                         operand_1_constant,
                                          operand_2_type,
                                      /*check_as_operands_not_conversion=*/TRUE,
                                          suppress_extensions,
@@ -2882,11 +2938,22 @@ operator position (for errors).  Return FALSE if there is an error.
   a_std_conv_descr std_conv;
 
   if (is_ptr_to_member_type(operand_1_type)) {
+    a_boolean      operand_2_is_constant = is_constant_operand(operand_2);
+    a_constant_ptr operand_2_constant    = &operand_2->variant.constant;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (microsoft_mode && !operand_2_is_constant) {
+      /* Microsoft mode allows some expressions as null pointer constants. */
+      adjust_constant_operand_info_for_microsoft_null_pointer_test(
+                                                        operand_2,
+                                                        &operand_2_is_constant,
+                                                        &operand_2_constant);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* See if the second operand can be converted to the type of the
        first operand. */
     if (impl_ptr_to_member_conversion(operand_2_type,
-                                      is_constant_operand(operand_2),
-                                      &operand_2->variant.constant,
+                                      operand_2_is_constant,
+                                      operand_2_constant,
                                       operand_1_type,
                                      /*check_as_operands_not_conversion=*/TRUE,
                                       &std_conv)) {
@@ -2895,11 +2962,22 @@ operator position (for errors).  Return FALSE if there is an error.
     }  /* if */
   }  /* if */
   if (!okay && is_ptr_to_member_type(operand_2_type)) {
+    a_boolean      operand_1_is_constant = is_constant_operand(operand_1);
+    a_constant_ptr operand_1_constant    = &operand_1->variant.constant;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (microsoft_mode && !operand_1_is_constant) {
+      /* Microsoft mode allows some expressions as null pointer constants. */
+      adjust_constant_operand_info_for_microsoft_null_pointer_test(
+                                                        operand_1,
+                                                        &operand_1_is_constant,
+                                                        &operand_1_constant);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* See if the first operand can be converted to the type of the
        second operand. */
     if (impl_ptr_to_member_conversion(operand_1_type,
-                                      is_constant_operand(operand_1),
-                                      &operand_1->variant.constant,
+                                      operand_1_is_constant,
+                                      operand_1_constant,
                                       operand_2_type,
                                      /*check_as_operands_not_conversion=*/TRUE,
                                       &std_conv)) {
