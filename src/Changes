@@ -1,5 +1,14 @@
 Version 2.12
 
+11/16/92 Fixed bug with typedef'd base class name in ctor-initializer
+
+A bug has been fixed in handling base class references in ctor-initializer
+lists.  A spurious error used to be issued when the name identifying the
+base class was a typedef name, e.g.:
+
+  typedef class A { public: A(int); } X;
+  class B : public X { B(int i) : X(i) { } };
+
 11/16/92 Destructor always called to do deallocation
 
 Formerly, if ASSIGNMENT_TO_THIS was false, a "delete" for a class was
