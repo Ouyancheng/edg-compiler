@@ -55,6 +55,12 @@ typedef struct a_throw_stack_entry {
 			   to base.  This buffer is used to store the modified
 		  	   pointer.  The original pointer must be preserved for
 			   use by a rethrow. */
+  an_eh_stack_entry_ptr
+		nearest_enclosing_try_block;
+			/* Pointer to the nearest enclosing try block
+			   (that is not currently in a handler) at
+			   the point at which the throw was started.
+			   This is used to detect abandoned throws. */
   a_throw_stack_entry_ptr
 		primary_entry;
 			/* If this is a rethrow, points to the throw stack
@@ -827,6 +833,18 @@ and the copy that is integrated into the evaluation.
 }  /* exception_started */
 
 
+EXTERN_C void __exception_caught(void)
+/*
+Unlink the throw marker entry from the EH stack.  This is called after
+the catch parameter has been copied.
+*/
+{
+  check_assertion(__curr_eh_stack_entry->kind ==
+                  ehsek_throw_processing_marker);
+  __curr_eh_stack_entry = __curr_eh_stack_entry->next;
+}  /* __exception_caught */
+
+
 EXTERN_C int __throw(void)
 /*
 Process a throw.  This routine looks through the stack entries for
@@ -1037,6 +1055,12 @@ a try block with a catch that matches the type of the object thrown.
        for the thrown object. */
     destination_ehsep->variant.try_block.catch_info =
                                                (void*)curr_throw_stack_entry;
+#if ABI_COMPATIBILITY_VERSION < 233
+    /* ABI versions earlier than 2.33 don't include calls to the
+       __exception_caught routine.  Call it explicitly here.  This
+      is equivalent to the old behavior. */
+    __exception_caught();
+#endif /* ABI_COMPATIBILITY_VERSION < 233 */
     longjmp(destination_ehsep->variant.try_block.setjmp_buffer, 1);
   } else if (destination_ehsep->kind ==
                                 (an_eh_stack_entry_kind)ehsek_throw_spec) {
@@ -1063,6 +1087,7 @@ Push an entry onto the throw stack and initialize its fields.
 */
 {
   a_throw_stack_entry_ptr	tsep;
+  an_eh_stack_entry_ptr		ehsep;
 
   tsep =
       (a_throw_stack_entry_ptr)eh_alloc_on_stack(sizeof(a_throw_stack_entry));
@@ -1091,6 +1116,26 @@ Push an entry onto the throw stack and initialize its fields.
   tsep->object_evaluation_complete = FALSE;
   tsep->throw_marker.next = NULL;
   tsep->throw_marker.kind = ehsek_throw_processing_marker;
+  /* Record a pointer to the nearest enclosing try block in the throw
+     stack entry.  If this throw has the same nearest enclosing try block
+     as the previous throw then the previous throw should be discarded.
+     This can occur if a throw is done from a copy constructor called
+     after __throw_alloc but before __throw. */
+  ehsep = __curr_eh_stack_entry;
+  while (ehsep != NULL) {
+    /* Try blocks that are currently inside a handler are not considered. */
+    if (ehsep->kind == (an_eh_stack_entry_kind)ehsek_try_block &&
+        ehsep->variant.try_block.catch_info == NULL) break;
+    ehsep = ehsep->next;
+  }  /* while */
+  tsep->nearest_enclosing_try_block = ehsep;
+  if (tsep->next != NULL) {
+    if (tsep->next->nearest_enclosing_try_block == ehsep) {
+      /* There is a previous throw and it does point to the same nearest
+         enclosing try block. */
+      destroy_thrown_object(tsep);
+    }  /* if */
+  }  /* if */
 }  /* push_throw_stack */
 
 
@@ -1205,18 +1250,6 @@ the completion of a catch clause.
   }  /* if */
 #endif /* DEBUG */
 }  /* __free_thrown_object */
-
-
-EXTERN_C void __exception_caught(void)
-/*
-Unlink the throw marker entry from the EH stack.  This is called after
-the catch parameter has been copied.
-*/
-{
-  check_assertion(__curr_eh_stack_entry->kind ==
-                  ehsek_throw_processing_marker);
-  __curr_eh_stack_entry = __curr_eh_stack_entry->next;
-}  /* __exception_caught */
 
 
 EXTERN_C void __eh_exit_processing(void)
