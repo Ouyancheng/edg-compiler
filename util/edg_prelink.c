@@ -117,6 +117,13 @@ typedef struct a_pl_symbol {
 			   points to the global symbol for the symbol to which
 			   the special symbol refers (e.g., __CBI__xxx points
 			   to the global symbol for xxx). */
+  a_pl_symbol_ptr
+		template_sym;
+			/* Pointer to the symbol entry for the template
+			   of which a given name is an instance.  Present
+			   for instances of exported templates.  This is
+			   used to determine if a definition of an exported
+			   template is available. */
   char		*name;
 			/* Name of the symbol. */
   int		name_length;
@@ -888,6 +895,7 @@ Allocate a symbol, initialize it, and return a pointer to it.
   psp->next_in_request_file = NULL;
   psp->next_in_specialization_list = NULL;
   psp->global_sym = NULL;
+  psp->template_sym = NULL;
   psp->instantiation_file = NULL;
   psp->possible_instantiation_sites = NULL;
   psp->referenced = FALSE;
@@ -1874,6 +1882,11 @@ call.
       sym_ptr->next_in_specialization_list = specialization_list;
       specialization_list = sym_ptr;
     }  /* if */
+#if DEBUG
+    if (pl_debug_level >= 5) {
+      fprintf(stderr, "Adding %s to bucket %d\n", name, bucket_number);
+    }  /* if */
+#endif /* DEBUG */
     is_new = TRUE;
   }  /* if */
 
@@ -1995,14 +2008,21 @@ symbol.
           sym->defined = TRUE;
        }  /* if */
       }  /* if */
+      /* Update the global symbol to refer to the template from which this
+         instance can be instantiated. */
+      if (psp->template_sym != NULL) sym->template_sym = psp->template_sym;
       /* Process flags that can be set based on symbols read from
          a template information file. */
       if (psp->do_not_instantiate) sym->do_not_instantiate = TRUE;
       if (psp->is_template) sym->is_template = TRUE;
-      if (psp->can_be_instantiated) {
+      if (psp->can_be_instantiated ||
+          (sym->template_sym != NULL && sym->template_sym->defined)) {
         sym->can_be_instantiated = TRUE;
         /* Add the current input file to the list of files that could
-           instantiate the symbol. */
+           instantiate the symbol.  The test of template_sym is used to
+           determine that a given instance is associated with an exported
+           template.  If a template definition is available, the instance
+           can be instantiated. */
         add_possible_instantiation_site(sym, input_file);
       }  /* if */
       sym->tentative_definition |= psp->tentative_definition;
@@ -2170,9 +2190,11 @@ that line type.
       a_pl_symbol_ptr	sym;
 
       if (strncmp(line_type, "flg:", 4) == 0) {
-        /* An instantiation flag lines of the form "flg:name:flags".  Where
-           "flags" may be one or more of "C", "D", and "T", which
-           correspond to CBI, DNI, and TIR. */
+        /* An instantiation flag lines of the form "flg:name:flags:template".
+           Where "flags" may be one or more of "C", "D", and "T", which
+           correspond to CBI, DNI, and TIR.  The ":template" portion is
+           optional, and specifies the exported template from which this
+           instance is to be instantiated. */
         char	*flag_pos;
         flag_pos = strchr(info, ':');
         if (flag_pos == NULL) pl_internal_error("bad template info file");
@@ -2180,7 +2202,7 @@ that line type.
         *flag_pos++ = '\0';
         sym = alloc_pl_symbol();
         sym->name = pl_copy_string(info);
-        for (; *flag_pos != '\0'; flag_pos++) {
+        for (; *flag_pos != '\0' && *flag_pos != ':'; flag_pos++) {
           switch (*flag_pos) {
             case 'C':
               sym->can_be_instantiated = TRUE;
@@ -2197,8 +2219,20 @@ that line type.
              pl_internal_error("bad template info file");
           };
         }  /* for */
+        /* Check for the presence of a template name. */
+        if (*flag_pos == ':') {
+          char	*name_pos = flag_pos + 1;
+          sym->template_sym = pl_find_symbol(name_pos, (a_pl_symbol_ptr)NULL,
+                                             /*add=*/TRUE, (a_boolean*)NULL);
+        }  /* if */
         sym->next = pofp->symbols;
         pofp->symbols = sym;
+      } else if (strncmp(line_type, "tnm:", 4) == 0) {
+        /* A template definition entry for an exported template. */
+        char	*name_pos = line_type + 4;
+        sym = pl_find_symbol(name_pos, (a_pl_symbol_ptr)NULL,
+                             /*add=*/TRUE, (a_boolean*)NULL);
+        sym->defined = TRUE;
       } else if (strncmp(line_type, "ifn:", 4) == 0) {
         /* An instantiation file name.  Create the full path name by
            adding in the instantiation directory name.  The "extra_space"
@@ -2654,7 +2688,6 @@ before the quote.  Return a pointer to the dynamically allocated string
 created to hold the command.
 */
 {
-  int		pass;
   char		*to;
   sizeof_t	length;
   char		*command;

@@ -83,6 +83,7 @@ typedef enum /* a_template_info_line_type */ {
   tilt_instantiation_dir_name,	/* Used by driver. */
   tilt_instantiation_file_name,
   tilt_secondary_trans_units,	/* Used by driver. */
+  tilt_template_name,
   tilt_last
   /* Lint comments to disable warnings that the driver line types are
      not used. */
@@ -108,6 +109,7 @@ static char	*template_info_line_type_namess[(int)tilt_last+1] = {
   /* tilt_instantiation_dir_name */	"idn",
   /* tilt_instantiation_file_name */	"ifn",
   /* tilt_secondary_trans_units */	"stu",
+  /* tilt_template_name */		"tnm",
   /* tilt_last */			NULL
 };
 
@@ -172,10 +174,11 @@ Macro that is TRUE if template instantiation flags should be generated.
 Macro that is TRUE if there are any template instantiations needed for
 this compilation.  This is TRUE whether or not the instantiations are
 provided by this file.  This is used to determine whether to create a
-tempalte information file.
+template information file.
 */
 #define any_instantiations_required()					\
-  (instantiations_required != NULL || inline_function_list != NULL)
+  (instantiations_required != NULL || inline_function_list != NULL ||	\
+   exported_templates_list != NULL)
 
 
 #define INSTANCE_LOOKUP_TABLE_SIZE 10007
@@ -699,6 +702,20 @@ the "text" field of *template_ptr to point to it.
 
 #endif /* RECORD_TEMPLATE_STRINGS */
 
+
+static a_boolean template_is_exported(a_symbol_ptr	sym)
+/*
+Return TRUE if the template specified by sym is exported.
+*/
+{
+  a_template_symbol_supplement_ptr	tssp;
+
+  tssp = template_supplement_for_symbol(sym);
+  check_assertion(tssp != NULL);
+  return tssp->il_template_entry->is_exported;
+} /* template_is_exported */
+
+
 static a_template_ptr make_il_template_entry(a_tmpl_decl_state_ptr decl_state)
 /*  
 Allocate an IL template entry.  Don't add the entry to the templates list
@@ -752,13 +769,6 @@ source sequence entry.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
-
-/* Declaration needed because of forward references. */
-static void write_to_template_info_file(
-				a_template_info_line_type	line_type,
-				char				*string,
-				char				*flags_string);
-
 
 static void generate_template_file_names(void)
 /*
@@ -837,24 +847,40 @@ Open the template information file.
 }  /* open_template_info_file */
 
 
+/* Forward declaration. */
+static char *get_mangled_name_for_symbol(a_symbol_ptr	sym);
+
+
 static void write_to_template_info_file(
 				a_template_info_line_type	line_type,
 				char				*string,
-				char				*flags_string)
+				char				*flags_string,
+				a_symbol_ptr			template_sym)
 /*
 Write a line to the template information file.  line_type specifies
 the kind of line to be written.  string specifies the value to
 be written.  flags_string is either NULL or points to a string of flags
-associated with this information file line.
+associated with this information file line.  template_sym is either
+NULL or is symbol of the template from which the instance was generated.
 */
 {
+  a_boolean	is_exported;
+
   if (f_template_info == NULL) {
     open_template_info_file();
   }  /* if */
   fprintf(f_template_info, "%s:%s",
           template_info_line_type_namess[(int)line_type], string);
-  if (flags_string) {
-    fprintf(f_template_info, ":%s", flags_string);
+  is_exported = template_sym != NULL && template_is_exported(template_sym);
+  if (flags_string || is_exported) {
+    /* If we need to output the exported template name, we have to
+       include a (possibly empty) flags string. */
+    fprintf(f_template_info, ":%s", flags_string == NULL ? "" : flags_string);
+  }  /* if */
+  if (is_exported) {
+    char	*template_name;
+    template_name = get_mangled_name_for_symbol(template_sym);
+    fprintf(f_template_info, ":%s", template_name);
   }  /* if */
   fputs("\n", f_template_info);
 }  /* write_to_template_info_file */
@@ -15825,10 +15851,14 @@ static void write_instantiation_flags_to_template_info_file(
 				char			*name,
 				a_boolean		instance_required,
 				a_boolean		do_not_instantiate,
-				a_boolean		can_be_instantiated)
+				a_boolean		can_be_instantiated,
+				a_symbol_ptr		template_sym)
 /*
 For automatic instantiation, write an entry to the template information
 file that specifies the instantiation flags associated with the entity.
+template_sym is the template from which this instance is generated, and
+can be NULL for entries for inline functions (when INSTANTIATE_EXTERN_INLINE
+is TRUE).
 */
 {
   char	flags[4];
@@ -15849,7 +15879,8 @@ file that specifies the instantiation flags associated with the entity.
   *flag_ptr = '\0';
   if (flags[0] != '\0') {
     /* Only write the line if at least one flag is set. */
-    write_to_template_info_file(tilt_instantiation_flag, name, flags);
+    write_to_template_info_file(tilt_instantiation_flag, name, flags,
+                                template_sym);
   }  /* if */
 }  /* write_instantiation_flags_to_template_info_file */
 
@@ -15915,14 +15946,16 @@ file.
   file_name = generate_instantiation_output_file_name(scp->name);
   /* Write the generated file name to the template info file. */
   write_to_template_info_file(tilt_instantiation_file_name,
-                              file_name, (char*)NULL);
+                              file_name, (char*)NULL, (a_symbol_ptr)NULL);
 }  /* write_instantiation_file_name_to_template_info_file */
 
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 
-static void generate_exported_template_file(void)
+static void generate_exported_template_information(void)
 /*
-Create the file containing information about exported templates.
+Output information about exported templates.  Information is written
+to both the exported template file and the template information file
+(when template information files are being used).
 */
 {
   a_symbol_list_entry_ptr	slep;
@@ -15935,6 +15968,11 @@ Create the file containing information about exported templates.
     mangled_name = get_mangled_name_for_symbol(sym);
     /* Write an entry to the exported template file. */
     write_to_exported_template_file(etlt_template_name, mangled_name);
+    if (use_template_info_file) {
+      /* Write an entry to the template information file. */
+      write_to_template_info_file(tilt_template_name, mangled_name,
+                                  (char*)NULL, (a_symbol_ptr)NULL);
+    }  /* if */
   }  /* for */
   /* Only write the other information to the exported template file if
      some template names were written above. */
@@ -15946,7 +15984,7 @@ Create the file containing information about exported templates.
     write_to_exported_template_file(etlt_module_id, make_module_id());
 #endif /* MODULE_ID_NEEDED */
   }  /* if */
-}  /* generate_exported_template_file */
+}  /* generate_exported_template_information */
 
 
 void update_auto_instantiation_flags(void)
@@ -15973,6 +16011,7 @@ and "do not instantiate" flags are set here.
     a_boolean				do_not_instantiate;
     a_boolean				instance_required;
     a_boolean				is_static_data_member;
+    a_boolean				is_exported;
 
     /* Skip non-external functions.  Note that this tests the flag in
        the instance entry instead of calling the function
@@ -15988,18 +16027,22 @@ and "do not instantiate" flags are set here.
       is_static_data_member = FALSE;
       routine = instance_sym->variant.routine.ptr;
     }  /* if */
-    can_be_instantiated = tip->already_instantiated ||
-                  entity_can_be_instantiated(tip,
-                                             /*implicit_inclusion_okay=*/TRUE);
-#if 0
-#else
-    /* FIXME - temporary measure to set can_be_instantiated for all exported
-       templates. */
-    if (template_supplement_for_symbol(tip->template_sym)
-                                           ->il_template_entry->is_exported) {
+    is_exported = template_is_exported(tip->template_sym);
+    /* Don't set the can_be_instantiated flag for exported templates.  They
+       may have the flag set below when not using template information files.
+       The flag is not set because the prelinker uses an alternate
+       mechanism to assign exported templates, so there is no need to
+       look for a definition now. */
+    can_be_instantiated = !is_exported && (tip->already_instantiated ||
+                 entity_can_be_instantiated(tip,
+                                            /*implicit_inclusion_okay=*/TRUE));
+    /* When not using a template information file, set the can_be_instantiated
+       flag for any exported templates.  This is done so that the prelinker
+       can assign the instantiation to any file that references the template
+       even if the exported definition has not yet been compiled. */
+    if (!use_template_info_file && is_exported) {
       can_be_instantiated = TRUE;
     }  /* if */
-#endif
     if (is_static_data_member) {
       variable->can_be_instantiated = can_be_instantiated;
       do_not_instantiate = variable->do_not_instantiate
@@ -16038,7 +16081,8 @@ and "do not instantiate" flags are set here.
         char	*name;
         name = get_mangled_name_for_symbol(instance_sym);
         write_instantiation_flags_to_template_info_file(
-             name, instance_required, do_not_instantiate, can_be_instantiated);
+             name, instance_required, do_not_instantiate, can_be_instantiated,
+             tip->template_sym);
 #if DO_IL_LOWERING
       } else {
         /* The flags are to be placed in the IL as special variables. */
@@ -16091,7 +16135,7 @@ and "do not instantiate" flags are set here.
   /* Output information about exported templates defined in this
      translation unit. */
   if (export_template_allowed && generate_template_files()) {
-    generate_exported_template_file();
+    generate_exported_template_information();
   }  /* if */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   db_exit();
@@ -16434,7 +16478,8 @@ a body (if needed) for extern inline functions.
       char	*name;
       name = get_mangled_function_name(rout_ptr);
       write_instantiation_flags_to_template_info_file(
-           name, instance_required, do_not_instantiate, can_be_instantiated);
+           name, instance_required, do_not_instantiate, can_be_instantiated,
+           (a_symbol_ptr)NULL);
 #if DO_IL_LOWERING
     } else {
       /* The flags are to be placed in the IL as special variables. */
