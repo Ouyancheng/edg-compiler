@@ -4198,9 +4198,10 @@ involved in the declaration of an entity with linkage).
     if (tucp == NULL) {
       a_symbol_ptr  type_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
       /* Note that placeholder types do not have an associated symbol. */
-      if (type_sym != NULL && may_have_correspondence(type_sym)) {
-        /* Some types (e.g., C-mode types not participating in entities with
-           linkage) may not have a correspondence yet. */
+      if (!C_mode() && type_sym != NULL && may_have_correspondence(type_sym)) {
+        /* Some types may not have a correspondence yet.  (Note that in C types
+           do not have linkage and therefore do not need a correspondence
+           unless they participate in the type of an entity with linkage.) */
         clear_type_correspondence(type, /*visited=*/TRUE);
       }  /* if */
     } else if (trans_unit_corresp_of_unknown_entry(tucp->canonical) != tucp) {
