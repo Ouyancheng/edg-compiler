@@ -1,5 +1,19 @@
 Version 2.40
 
+11/28/98  User-defined conversions on operands of ->*
+
+User-defined conversions are now considered on the operands of the
+"->*" pointer-to-member operator.
+
+  struct X {
+    operator int X::*();
+  };
+  X o;
+  X *p = &o;
+  int main() {
+    p->*o = 1;
+  }
+
 11/28/98  Template default arguments instantiated only when needed
 
 Default arguments of function templates and member functions of class

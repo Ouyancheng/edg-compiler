@@ -4911,6 +4911,11 @@ as its first operand.
         /* Having the "=CC" case first is important for Microsoft mode. */
         operand_type_pattern = "=CC;AA;=PP;=MM";
         break;
+      case onk_arrow_star:
+        /* "->*" takes a pointer to class and a pointer to member to the
+           same class. */
+        operand_type_pattern = "=OM";
+        break;
 #if CHECKING
       default:
         internal_error("operand_type_pattern_for_operator: bad binary op");
@@ -5275,28 +5280,47 @@ the target type to be used).
     } else {
       /* A specific type is required.  Check that the operand can be
          converted to the type passed in. */
+      a_type_ptr eff_specific_type = specific_type;
+      if (*type_pattern_position == OBJECT_POINTER_TYPE_CODE &&
+          operand_type_pattern[1] == PTR_TO_MEMBER_TYPE_CODE) {
+        /* For "->*", the first operand is a pointer to class, and the
+           second is a pointer to member of the same class.  The
+           specific_type is a pointer to member, so make the proper
+           pointer type for the first operand. */
+        a_type_ptr           class_type = pm_class_type(specific_type);
+        a_type_qualifier_set qualifiers = TQ_NONE;
+        if (is_pointer_type(operand_type)) {
+          /* If the first operand has a pointer type, adopt the cv-qualifiers
+             under the pointer type as part of the specific type.  This
+             allows a first operand of, say "pointer to const X" with a
+             second operand of type "pointer to member of X of type T". */
+          qualifiers = get_type_qualifiers(type_pointed_to(operand_type));
+        }  /* if */
+        eff_specific_type = make_pointer_type(make_qualified_type(class_type,
+                                                                  qualifiers));
+      }  /* if */
       if (type_code == CLASS_TYPE_CODE) {
         /* See if the operand can be converted to the specific type (which
            is a class type).  This is used for the operands of the "?"
            operator, and because that operator doesn't copy its operands,
            the analysis here treats the operands specially. */
         a_base_class_ptr bcp = NULL;
-        check_assertion(is_class_struct_union_type(specific_type));
+        check_assertion(is_class_struct_union_type(eff_specific_type));
         if (types_are_compatible_ignoring_qualifiers(operand_type,
-                                                     specific_type) ||
+                                                     eff_specific_type) ||
             (is_class_struct_union_type(operand_type) &&
              (bcp = find_base_class_of(operand_type,
-                                       specific_type)) != NULL)) {
+                                       eff_specific_type)) != NULL)) {
           /* Same class, or derived --> base: preserves the identity of
              the class object. */
-          if (any_qualifier_missing(specific_type, operand_type)) {
+          if (any_qualifier_missing(eff_specific_type, operand_type)) {
             /* Some qualifier is dropped, so we can't do this.  Presumably
                we will be doing this test again on another call of this
                routine with specific_type the same as the (present)
                operand_type, and that will be viable. */
           } else {
             /* The operand can be made to match up. */
-            if (!type_qualifiers_match(specific_type, operand_type)) {
+            if (!type_qualifiers_match(eff_specific_type, operand_type)) {
               arg_match->conversion.class_object_adjustment_required = TRUE;
             }  /* if */
             if (bcp == NULL) {
@@ -5314,7 +5338,7 @@ the target type to be used).
           }  /* if */
         } else if (conversion_to_class_possible(
                                          &arg_operand->operand,
-                                         specific_type,
+                                         eff_specific_type,
                                          /*try_bitwise_copy=*/FALSE,
                                          /*is_copy_initialization=*/TRUE,
                                          /*is_reference_binding=*/FALSE,
@@ -5327,17 +5351,13 @@ the target type to be used).
              the identity of the class object. */
           arg_match->match_level = aml_user_conversion;
           arg_match->conversion = conversion;
-          arg_match->param_type = specific_type;
+          arg_match->param_type = eff_specific_type;
         }  /* if */
       } else if (is_class_struct_union_type(operand_type)) {
         /* The operand has a class type, so see if it can be converted to
            the specific type (which is a non-class type). */
-        /* If this operand is the one that suggested this specific type,
-           we already know it is compatible.  However, we still have to
-           call conversion_from_class_possible to get the conversion field
-           set in the arg_match entry. */
         if (conversion_from_class_possible(&arg_operand->operand,
-                                           specific_type,
+                                           eff_specific_type,
                                            (a_builtin_type_kind_set)BTK_NONE,
                                            need_lvalue_result,
                                            /*is_copy_initialization=*/TRUE,
@@ -5349,7 +5369,7 @@ the target type to be used).
           /* The conversion can be done with a conversion function. */
           arg_match->match_level = aml_user_conversion;
           arg_match->conversion = conversion;
-          arg_match->param_type = specific_type;
+          arg_match->param_type = eff_specific_type;
         }  /* if */
       } else {
         a_boolean        cfront_null_ptr_constant_case;
@@ -5377,8 +5397,8 @@ the target type to be used).
                                any_cfront_mode() &&
                                source_is_constant &&
                                is_null_pointer_constant(source_constant) &&
-                               (is_pointer_type(specific_type) ||
-                                is_ptr_to_member_type(specific_type));
+                               (is_pointer_type(eff_specific_type) ||
+                                is_ptr_to_member_type(eff_specific_type));
         if (cfront_null_ptr_constant_case &&
             (!source_constant->is_simple_zero ||
              (cfront_3_0_mode &&
@@ -5394,7 +5414,7 @@ the target type to be used).
         } else if (impl_conversion_possible(operand_type,
                                             source_is_constant,
                                             source_constant,
-                                            specific_type,
+                                            eff_specific_type,
                                             /*suppress_extensions=*/TRUE,
                                             ec_no_error, &std_conv)) {
           /* The conversion can be done. */
@@ -5407,7 +5427,7 @@ the target type to be used).
                                                 aml_std_conversion : aml_exact;
           }  /* if */
           arg_match->conversion.std = std_conv;
-          arg_match->param_type = specific_type;
+          arg_match->param_type = eff_specific_type;
         }  /* if */
       }  /* if */
     }  /* if */
@@ -5516,7 +5536,13 @@ in some way, e.g., two pointers that must have the same type.
        arg_operand != NULL;
        type_pattern_position++, arg_operand = arg_operand->next) {
     operand_type = arg_operand->operand.type;
-    if (is_class_struct_union_type(operand_type)) {
+    if (*type_pattern_position == OBJECT_POINTER_TYPE_CODE &&
+        operand_type_pattern[1] == PTR_TO_MEMBER_TYPE_CODE) {
+      /* For "->*", the first operand is a pointer to class, and the
+         second is a pointer to member of the same class.  Don't
+         consider any specific types generated from the first operand,
+         because they don't fully specify the second operand. */
+    } else if (is_class_struct_union_type(operand_type)) {
       /* This operand has a class type.  Look for conversion functions that
          convert the class type to an appropriate type. */
       class_type = skip_typerefs(operand_type);
@@ -5852,7 +5878,8 @@ Adjust the operand type to match the type requirement.
   a_type_ptr specific_type;
   /* Get the type code for this operand (see
      operand_type_pattern_for_operator). */
-  char       type_code=candidate_function->operand_type_pattern[operand_num-1];
+  char       *operand_type_pattern = candidate_function->operand_type_pattern;
+  char       type_code = operand_type_pattern[operand_num-1];
 
   if (!is_class_struct_union_type(operand->type) &&
       type_code != CLASS_TYPE_CODE) {
@@ -5914,6 +5941,14 @@ Adjust the operand type to match the type requirement.
     } else {
       /* A specific type is wanted.  Convert to the type indicated in
          candidate_function. */
+      if (type_code == OBJECT_POINTER_TYPE_CODE &&
+          operand_type_pattern[1] == PTR_TO_MEMBER_TYPE_CODE) {
+        /* For "->*", the first operand is a pointer to class, and the
+           second is a pointer to member of the same class.  The
+           specific_type is a pointer to member, so make the proper
+           pointer type for the first operand. */
+        specific_type = make_pointer_type(pm_class_type(specific_type));
+      }  /* if */
       if (type_code == CLASS_TYPE_CODE &&
           arg_match->conversion.routine == NULL) {
         /* Conversion to a class type that preserves the identity of the

@@ -2843,7 +2843,7 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
       check_for_operator_overloading((an_opname_kind)onk_arrow_star,
                                      /*unary_operator=*/FALSE,
                                      /*must_be_member_function=*/FALSE,
-                                     /*try_conversions=*/FALSE,
+                                     /*try_conversions=*/TRUE,
                                      /*has_predef_meaning=*/FALSE,
                                      operand_1, &operand_2,
                                      &operator_position,
