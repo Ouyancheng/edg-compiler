@@ -106,7 +106,7 @@ Flags to be set when using the KAI inliner.
 #define PRAGMA_WEAK_ALLOWED 1
 #define USER_CONTROL_OF_STRUCT_PACKING 1
 #ifndef MAINTAIN_NEEDED_FLAGS
-#define MAINTAIN_NEEDED_FLAGS 0
+#define MAINTAIN_NEEDED_FLAGS 1
 #endif /* ifndef MAINTAIN_NEEDED_FLAGS */
 
 #endif /* !defined(OPTIMIZED_VERSION) */
@@ -199,6 +199,7 @@ Flags to be set when using the KAI inliner.
 #ifndef RUNTIME_USES_NAMESPACES
 #define RUNTIME_USES_NAMESPACES 0
 #endif /* ifndef RUNTIME_USES_NAMESPACES */
+#define DEFAULT_REMOVE_UNNEEDED_ENTITIES 0
 
 #ifdef OPTIMIZED_VERSION
 #define SVR4_TRAP_NULL_POINTER_REFERENCES 0
