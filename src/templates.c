@@ -3142,7 +3142,7 @@ that make up the declaration and do a prototype instantiation.
       tssp->declaration_scope = scope_stack[decl_scope_level].number;
     }  /* if */
     if (is_definition) {
-      mark_defined(sym, &sym->decl_position);
+      mark_defined(sym, &locator.source_position);
       *defines_something = TRUE;
       prototype_sym = make_template_class_symbol(sym, &sym->decl_position);
       /* Add the new symbol to the head of the instantiation list. */
@@ -3205,7 +3205,7 @@ that make up the declaration and do a prototype instantiation.
       terminate_token_cache(&tssp->token_cache);
       /* Note that the semicolon is not cached. */
     } else {
-      mark_declared(sym, &sym->decl_position);
+      mark_declared(sym, &locator.source_position);
       /* This is not a class template definition, so we have no need to
          cache the tokens. */
     }  /* if */
