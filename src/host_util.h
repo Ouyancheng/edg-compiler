@@ -62,10 +62,14 @@ called again.
   /* Determine the output file name.  Use the mangled name (or the beginning
      of it) plus an underscore plus the hexadecimal for the CRC-32 checksum
      for the whole mangled name.  Note that the following computation uses
-     the size of GEN_C_FILE_SUFFIX (which includes the null terminator),
-     not the strlen. */
-  max_len_without_suffix = MAX_INSTANTIATION_OUTPUT_FILE_LEN -
-                                                 sizeof(GEN_C_FILE_SUFFIX) - 8;
+     the size of GEN_C_FILE_SUFFIX or OBJECT_FILE_SUFFIX (which includes the
+     null terminator), not the strlen. */
+  max_len_without_suffix = MAX_INSTANTIATION_OUTPUT_FILE_LEN - 8;
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
+  max_len_without_suffix -= sizeof(GEN_C_FILE_SUFFIX);
+#else /* !(BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE) */
+  max_len_without_suffix -= sizeof(OBJECT_FILE_SUFFIX);
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
   check_assertion(max_len_without_suffix > 0);
   (void)strncpy(buffer, mangled_name, max_len_without_suffix);
   buffer[max_len_without_suffix] = '\0';

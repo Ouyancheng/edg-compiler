@@ -2,6 +2,14 @@ Version 2.41, March 5, 1999
 
 3/5/99   IL version number changed to 2.33
 
+3/3/99   Computing the maximum length of instantiation output prefix
+
+Formerly, the routine that creates an instantiation output file name when
+using one-instantiation-per-object mode reserved enough space to allow
+the GEN_C_FILE_SUFFIX to be appended.  It now uses this only when
+using either the C or C++ generating back end, otherwise OBJECT_FILE_SUFFIX
+is used instead.
+
 3/3/99   Spurious error when in member class template parameter depends on
          type of enclosing template parameter
 
