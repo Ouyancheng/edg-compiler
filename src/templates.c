@@ -15,6 +15,7 @@ templates.c -- Support for C++ templates.
 
 #include "basics.h"
 #include "templates.h"
+#include "cmd_line.h"
 #include "decls.h"
 #include "error.h"
 #include "il.h"
@@ -180,36 +181,200 @@ no need to actually instantiate X<int> in the example above.
 }  /* find_template_class */
 
 
-static a_symbol_ptr class_template_declaration(void)
+static a_boolean class_template_declaration(a_symbol_ptr   *p_sym_ptr,
+                                            a_token_cache  *p_token_cache)
+/*
+If this turns out to be a class template declaration, scan it and return
+TRUE, setting *p_sym_ptr to the class template symbol and, if this is a
+defining declaration, setting *p_token_cache to the token cache for the
+entire declaration (from "class" through the closing right brace).  If it
+is not a class declaration, return FALSE.
+*/
+{
+  a_boolean         is_class_template_decl = FALSE;
+  a_symbol_locator  locator;
+  a_symbol_ptr      sym = NULL;
+
+  db_enter(3, "class_template_declaration");
+  if (curr_token == tok_class || curr_token == tok_struct ||
+      curr_token == tok_union) {
+    /* This appears to be a class template declaration -- though it could
+       be a function template declaration with a return type using one of
+       these keywords.  We'll proceed on the assumption that it is indeed
+       a class template until we see evidence to the contrary. */
+    is_class_template_decl = TRUE;
+    /* Bypass "class", "struct", or "union".  The token has to be cached
+       because instantiation is done by class_specifier, which expects it. */
+    cache_curr_token(p_token_cache);
+    (void)get_token();
+    /* Next should be the class name. */
+    if (!is_qualified_name_start()) {  /* Identifier or "::". */
+      /* Not an identifier.  Cache a dummy identifier token and proceed. */
+      error(ec_exp_identifier);
+      curr_token = tok_identifier;
+      set_to_error_locator(locator_for_curr_id);
+      cache_curr_token(p_token_cache);
+      locator = locator_for_curr_id;
+    } else {
+      /* Look up the identifier.  If it's a qualified name there will be an
+         error down the line. */
+      sym = get_normal_id_or_qualified_name(IDL_NO_OPTIONS);
+      /* Cache the identifier and advance past it so we can discriminate
+         between a class template and a function template. */
+      cache_curr_token(p_token_cache);
+      locator = locator_for_curr_id;
+      (void)get_token();
+      if (is_declarator_start()) {
+        /* Since the current token appears to be the start of a declarator
+           this looks like a function template declaration after all.  Return
+           to the caller, but first rewind to the start of the return type
+           declaration. */
+        is_class_template_decl = FALSE;
+#if 0
+        reset_token_cache_persistence(p_token_cache);
+#endif /* if 0 */
+        rescan_cached_tokens(p_token_cache);
+        sym = NULL;
+        clear_token_cache(p_token_cache);
+        goto done;
+      }  /* if */
+      /* Now check for a qualified name.  If it is, set the locator to an
+         error locator -- we don't have to worry about the locator that's
+         already in the cache because this template will never be
+         instantiated. */
+      if (locator.is_qualified_name) {
+        error(ec_qualified_name_not_allowed);
+        set_to_error_locator(locator);
+        sym = NULL;
+      }  /* if */
+    }  /* if */
+    /* If get_normal_id_or_qualified_name returned something, we may have a
+       name conflict or a redefinition. */
+    if (sym != NULL) {
+      if (sym->kind == (a_symbol_kind)sk_class_template) {
+        if (sym->defined &&
+            (curr_token == tok_colon || curr_token == tok_lbrace)) {
+          /* Attempting to redefine a class template. */
+          pos_sy_error(ec_already_defined, &locator.source_position, sym);
+        }  /* if */
+      } else {
+        /* Force the call to enter symbol, which will report the name clash. */
+        sym = NULL;
+      }  /* if */
+    }  /* if */
+    if (sym == NULL) {
+      /* Enter the symbol at file scope. */
+      sym = enter_symbol((a_symbol_kind)sk_class_template, &locator,
+                         DEPTH_OF_FILE_SCOPE, /*suppress_redecl_error=*/FALSE);
+    }  /* if */
+    /* If this is a class template definition, continue caching all the tokens
+       that comprise it. */
+    if (curr_token == tok_colon || curr_token == tok_lbrace) {
+      sym->defined = TRUE;
+      cache_curr_token(p_token_cache);
+      /* Now scan the remaining tokens. */
+      add_stop_token(tok_semicolon);
+      if (curr_token == tok_colon) {
+        /* Scan the tokens in the base class declarations, stopping when
+           the "{" is reached. */
+        add_stop_token(tok_lbrace);
+        cache_token_stream(p_token_cache);
+        remove_stop_token(tok_lbrace);
+      }  /* if */
+      remove_stop_token(tok_semicolon);
+      /* Scan the class body.  If the body is missing the error will be
+         found during prototype instantiation. */
+      if (curr_token == tok_lbrace) {
+        /* Swallow the "{" and then cache everything through to the "}". */
+        cache_curr_token(p_token_cache);
+        (void)get_token();
+        add_stop_token(tok_rbrace);
+        cache_token_stream(p_token_cache);
+        remove_stop_token(tok_rbrace);
+        /* Now cache the "}" (unless we didn't find one). */
+        if (curr_token == tok_rbrace) {
+          cache_curr_token(p_token_cache);
+          /* Add an end-of-source token after the right brace. */
+          curr_token = tok_end_of_source;
+          cache_curr_token(p_token_cache);
+          (void)get_token();
+#if CHECKING
+        } else if (curr_token != tok_end_of_source) {
+          internal_error("class_template_declaration: expected end-of-source");
+#endif /* CHECKING */
+        }  /* if */
+      }  /* if */
+    } else {
+      /* This is not a class template declaration, so we have no need to
+         cache the tokens. */
+#if 0
+      free_token_cache(p_token_cache);
+#else
+      clear_token_cache(p_token_cache);
+#endif /* if 0 */
+    }  /* if */
+    /* Note that the semicolon is not cached. */
+    (void)required_token(tok_semicolon, ec_exp_semicolon);
+  }  /* if */
+done:;
+  db_exit();
+  *p_sym_ptr = sym;
+  return is_class_template_decl;
+}  /* class_template_declaration */
+
+
+static void function_template_declaration(a_symbol_ptr   *sym,
+                                          a_token_cache  *p_token_cache)
 /*
 */
 {
-  a_symbol_ptr      sym;
+  a_storage_class       storage_class;
+  a_type_ptr            type;
+  a_symbol_locator      locator;
+  a_decl_flag_set       do_flags, dso_flags;
+  a_func_info_block     func_info;
+  a_type_ptr            bottom_derived_type = NULL;
+  an_expr_node_ptr      dim_expr_ptr;
 
-  db_enter(3, "class_template_declaration");
-  /* Bypass "class", "struct", or "union". */
-  (void)get_token();
-  sym = normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
-  if (sym != NULL) {
-    if (sym->kind == (a_symbol_kind)sk_class_template) {
-      if (!sym->defined) {
-        /* Reuse the symbol from a previous declaration. */
-      } else {
-        sym_error(ec_already_defined, sym);
-      }  /* if */
+  db_enter(3, "function_template_declaration");
+
+  add_stop_token(tok_semicolon);
+  add_stop_token(tok_lbrace);
+  (void)decl_specifiers((DSI_IS_TEMPLATE_DECLARATION |
+                         DSI_TYPE_SPECIFIER_ALLOWED |
+                         DSI_STORAGE_CLASS_SPECIFIER_ALLOWED),
+                         &dso_flags, &storage_class, &type);
+  declarator(DI_REAL_DECLARATOR_ALLOWED, &do_flags, type, (a_type_ptr)NULL,
+             &locator, &type, &bottom_derived_type, &func_info,
+             &dim_expr_ptr);
+  *sym = enter_symbol((a_symbol_kind)sk_function_template, &locator,
+                     DEPTH_OF_FILE_SCOPE, /*suppress_redecl_error=*/FALSE);
+  remove_stop_token(tok_lbrace);
+  remove_stop_token(tok_semicolon);
+  if (curr_token == tok_lbrace) {
+    (*sym)->defined = TRUE;
+    clear_token_cache(p_token_cache);
+    /* Cache the "{" and advance past it. */
+    cache_curr_token(p_token_cache);
+    (void)get_token();
+    /* Cache all tokens up to the "}" (or end-of-source). */
+    add_stop_token(tok_rbrace);
+    cache_token_stream(p_token_cache);
+    remove_stop_token(tok_rbrace);
+    /* Cache the "}" and append an end-of-source token. */
+    if (curr_token == tok_rbrace) {
+      cache_curr_token(p_token_cache);
+      curr_token = tok_end_of_source;
+      cache_curr_token(p_token_cache);
+      /* Advance to the next token. */
+      (void)get_token();
     }  /* if */
+  } else {
+    /* No body to cache.  Check for final semicolon. */
+    (void)required_token(tok_semicolon, ec_exp_semicolon);
   }  /* if */
-  if (sym == NULL) {
-    sym = enter_symbol((a_symbol_kind)sk_class_template, &locator_for_curr_id,
-                       DEPTH_OF_FILE_SCOPE, /*suppress_redecl_error=*/FALSE);
-  }  /* if */
-  /* Bypass the identifier. */
-  if (curr_token == tok_colon || curr_token == tok_lbrace) {
-    sym->defined = TRUE;
-  }  /* if */    
   db_exit();
-  return sym;
-}  /* class_template_declaration */
+}  /* function_template_declaration */
 
 
 static a_template_param_ptr scan_template_param_list(void)
@@ -252,8 +417,14 @@ to represent the template parameters.
          preliminary scanning of the body of the class. */
       sym = enter_symbol((a_symbol_kind)sk_type, &locator_for_curr_id,
                          decl_scope_level, /*suppress_redecl_error=*/FALSE);
+      /* Allocate a template-param type.  This type is for front-end use
+         only and will not appear in the IL passed on to the back end.  It
+         is therefore not added to any scope types list. */
       template_param_type = alloc_type((a_type_kind)tk_template_param);
       set_source_corresp(&template_param_type->source_corresp, sym);
+      /* The type symbol for the template parameter points for now to the
+         template-param type -- "for now", since it will be replaced with
+         an actual type during instantiation of the class or function. */
       sym->variant.type = template_param_type;
       /* Bypass the identifier. */
       (void)get_token();
@@ -328,41 +499,12 @@ to represent the template parameters.
 }  /* scan_template_param_list */
 
 
-static void build_template_token_cache(a_token_cache *token_cache,
-                                       a_boolean     *body_scanned)
-/*
-*/
-{
-  clear_token_cache(token_cache);
-  add_stop_token(tok_semicolon);
-  add_stop_token(tok_lbrace);
-  cache_token_stream(token_cache);
-  remove_stop_token(tok_lbrace);
-  remove_stop_token(tok_semicolon);
-  if (curr_token == tok_lbrace) {
-    cache_curr_token(token_cache);
-    (void)get_token();
-    add_stop_token(tok_rbrace);
-    cache_token_stream(token_cache);
-    remove_stop_token(tok_rbrace);
-    if (curr_token == tok_rbrace) {
-      cache_curr_token(token_cache);
-      (void)get_token();
-    }  /* if */
-  }  /* if */
-}  /* build_template_token_cache */
-
-
 void template_declaration(void)
 /*
 */
 {
-  a_decl_flag_set       dso_flags;
-  a_storage_class       storage_class;
-  a_type_ptr            type;
   a_template_param_ptr  template_param, template_param_list = NULL;
   a_symbol_ptr          sym;
-  a_boolean             body_scanned;
   a_token_cache         token_cache;
 
   db_enter(3, "template_declaration");
@@ -393,55 +535,9 @@ void template_declaration(void)
   (void)required_token(tok_gt, ec_exp_gt);
   remove_stop_token(tok_lbrace);
   remove_stop_token(tok_semicolon);
-#if 0
-  /* Cache all the tokens that remain in the template declaration. */
-  build_template_token_cache(&token_cache, &body_scanned);
-  rescan_cached_tokens(&token_cache);
-#endif /* if 0 */
-  if (is_decl_start(/*expr_context=*/FALSE,
-                    /*real_declarator_allowed=*/TRUE)) {
-    (void)decl_specifiers((DSI_IS_TEMPLATE_DECLARATION |
-                           DSI_TYPE_SPECIFIER_ALLOWED |
-                           DSI_STORAGE_CLASS_SPECIFIER_ALLOWED),
-                           &dso_flags, &storage_class, &type);
-  }  /* if */
-  if (dso_flags & DSO_CLASS_TEMPLATE) {
-    sym = class_template_declaration();
-#if 0
-#else
-    build_template_token_cache(&token_cache, &body_scanned);
-    if (curr_token != tok_semicolon) {
-      error(ec_exp_semicolon);
-    } else {
-      cache_curr_token(&token_cache);
-      (void)get_token();
-    }  /* if */
-#endif /* if 0 */
-  } else {
-    /* This must be a function template declaration. */
-    a_symbol_locator      locator;
-    a_decl_flag_set       do_flags, dso_flags;
-    a_func_info_block     func_info;
-    a_type_ptr            bottom_derived_type = NULL;
-    an_expr_node_ptr      dim_expr_ptr;
-
-    declarator(DI_REAL_DECLARATOR_ALLOWED, &do_flags, type, (a_type_ptr)NULL,
-               &locator, &type, &bottom_derived_type, &func_info,
-               &dim_expr_ptr);
-    sym = enter_symbol((a_symbol_kind)sk_function_template, &locator,
-                       DEPTH_OF_FILE_SCOPE, /*suppress_redecl_error=*/FALSE);
-#if 0
-#else
-    build_template_token_cache(&token_cache, &body_scanned);
-    if (!body_scanned) {
-      if (curr_token == tok_semicolon) {
-        error(ec_exp_semicolon);
-      } else {
-        cache_curr_token(&token_cache);
-        (void)get_token();
-      }  /* if */
-    }  /* if */
-#endif /* if 0 */
+  clear_token_cache(&token_cache);
+  if (!class_template_declaration(&sym, &token_cache)) {
+    function_template_declaration(&sym, &token_cache);
   }  /* if */
   sym->variant.template.extra_info->parameters = template_param_list;
   sym->variant.template.extra_info->template_body = token_cache;
