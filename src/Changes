@@ -1,5 +1,23 @@
 Version 3.4
 
+10/1/03  GNU C++ compatibility: lookup of dependent names
+
+Our emulation of the dependent name lookup rules as implemented by g++
+did not handle certain cases properly.  In particular, a function name
+made visible by a using-declaration or using-directive was incorrectly
+chosen when a name from a dependent base class should have been used
+instead.  Now fixed.
+
+  namespace N { void f(); }
+  namespace M {
+    template <class T> struct A { T f; };
+    template <class T> struct B: public A<T> {
+      B() { f = 0; };
+    };
+    B<int> s;
+  }
+  using N::f;
+
 10/1/03  Compilation problem in lexical.c, with no EDG back end
 
 There was a compilation problem in add_token_to_string in lexical.c

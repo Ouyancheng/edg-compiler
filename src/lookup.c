@@ -2989,12 +2989,14 @@ C and C++.
          find a function and the second lookup did find a function, use the
          symbol from the second lookup. */
       a_symbol_ptr	new_sym;
+      a_symbol_ptr	fund_sym;
       lookup_state.force_lookup_in_dependent_bases = TRUE;
       new_sym = scope_stack_lookup(locator, &lookup_state,
                                    depth_of_initial_lookup_scope,
                                    NO_SCOPE_DEPTH);
       lookup_state.force_lookup_in_dependent_bases = FALSE;
-      if (sym == NULL || is_function_or_template_symbol(sym)) {
+      fund_sym = sym == NULL ? NULL : fundamental_symbol_of(sym);
+      if (sym == NULL || is_function_or_template_symbol(fund_sym)) {
         sym = new_sym;
       } else if (new_sym != NULL) {
         a_symbol_ptr	fund_new_sym = fundamental_symbol_of(new_sym);
