@@ -2468,7 +2468,7 @@ redundant file names in a diagnostic.*/
     conv_seq_to_file_and_line(pos->seq, &file_name, &full_name,
                               &line_number, &at_end_of_source);
     if (at_end_of_source) {
-      add_string_to_segment(" (at end of source)", seg_ptr);
+      add_string_to_segment("(at end of source)", seg_ptr);
     } else {
       add_string_to_segment(prefix_string, seg_ptr);
       add_string_to_segment("at line ", seg_ptr);
