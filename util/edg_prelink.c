@@ -2830,11 +2830,11 @@ name to be used for the temporary file.
     /* Create the name of the temporary file to be created. */
     tmpdir = getenv("TMPDIR");
     if (tmpdir == NULL) {
-#if MICROSOFT_OS
+#if __MICROSOFT_OS__
       tmpdir = "/temp";
-#else /*  MICROSOFT_OS */
+#else /* __MICROSOFT_OS__ */
       tmpdir = "/tmp";
-#endif /*  MICROSOFT_OS */
+#endif /* __MICROSOFT_OS__ */
     }  /* if */
     sprintf(pl_file_name_buffer, "%s/%0dpltf", tmpdir, getpid());
     temporary_file_name = pl_copy_string(pl_file_name_buffer);
