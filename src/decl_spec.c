@@ -1008,7 +1008,7 @@ caution when modifying this routine.
          will return a projection symbol that informs of the ambiguity. */
       tag_sym = curr_scope_id_lookup(locator, IDL_MUST_BE_TAG);
       if (tag_sym != NULL && is_injected_class_symbol(tag_sym)) {
-        /* Ignore an injected class symbol, which would found for this sort
+        /* Ignore an injected class symbol, which would be found for this sort
            of case:
              struct A { struct A { ... }; };
         */
