@@ -5871,8 +5871,8 @@ precedence confusion and need_parens is TRUE.
           write_tok_str(" ? ");
 #if GNU_EXTENSIONS_ALLOWED
           if (node->variant.operation.is_gnu_two_operand_question_mark) {
-            /* The GNU two-operand case, e.g., x ?: y. */
-            operand_2 = operand_1;
+            /* The GNU two-operand case, e.g., x ?: y.  Skip the
+               synthesized second operand. */
           } else
 #endif /* GNU_EXTENSIONS_ALLOWED */
           /* Do not insert code here. */
@@ -7585,8 +7585,8 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           write_tok_str(" ? ");
 #if GNU_EXTENSIONS_ALLOWED
           if (expr->variant.operation.is_gnu_two_operand_question_mark) {
-            /* The GNU two-operand case, e.g., x ?: y. */
-            operand_2 = operand_1;
+            /* The GNU two-operand case, e.g., x ?: y.  Skip the
+               synthesized second operand. */
           } else
 #endif /* GNU_EXTENSIONS_ALLOWED */
           /* Do not insert code here. */
