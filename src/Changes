@@ -1,5 +1,16 @@
 Version 2.36
 
+5/2/97    ALLOW_VOID_QUESTION_OPERAND_IN_GENERATED_C
+
+The C-generating back end has always included code to rewrite void
+operands of "?" operands as "(operand, 0)" to avoid some bugs in
+C compilers.  Formerly, this was done only when generating K&R C,
+because pcc has problems with such operands in some cases.  Now, there
+is a separate configuration flag for this rewrite, i.e.,
+ALLOW_VOID_QUESTION_OPERAND_IN_GENERATED_C.  The default is TRUE iff
+C_GEN_BE_GENERATES_ANSI_C is TRUE, which produces the same behavior
+as before.
+
 5/2/97    Default diagnostic threshold when listing dependencies or includes
 
 When the --dependencies or --trace_includes command-line option is

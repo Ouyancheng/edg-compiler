@@ -2889,8 +2889,11 @@ there's some possibility of precedence confusion and need_parens is TRUE.
   unsigned long                  comma_column;
 #if !C_GEN_BE_GENERATES_ANSI_C
   a_field_ptr                    field;
-  a_boolean                      is_signed, void_operand;
+  a_boolean                      is_signed;
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
+#if !ALLOW_VOID_QUESTION_OPERAND_IN_GENERATED_C
+  a_boolean                      void_operand;
+#endif /* !ALLOW_VOID_QUESTION_OPERAND_IN_GENERATED_C */
 #if CHECKING
   a_param_type_ptr               param;
 #endif /* CHECKING */
@@ -3357,25 +3360,25 @@ process_assignment:
 #endif /* CHECKING */
           dump_boolean_controlling_expression(operand_1);
           write_tok_str(" ? ");
-#if !C_GEN_BE_GENERATES_ANSI_C
+#if !ALLOW_VOID_QUESTION_OPERAND_IN_GENERATED_C
           /* pcc does not allow operands of "?" to be void expressions.
              If they are, enclose them in (expr,0). */
           void_operand = is_void_type(operand_2->type);
           if (void_operand) write_tok_ch('(');
-#endif /* !C_GEN_BE_GENERATES_ANSI_C */
+#endif /* !ALLOW_VOID_QUESTION_OPERAND_IN_GENERATED_C */
           dump_expr_with_parens(operand_2);
-#if !C_GEN_BE_GENERATES_ANSI_C
+#if !ALLOW_VOID_QUESTION_OPERAND_IN_GENERATED_C
           if (void_operand) write_tok_str(",0)");
-#endif /* !C_GEN_BE_GENERATES_ANSI_C */
+#endif /* !ALLOW_VOID_QUESTION_OPERAND_IN_GENERATED_C */
           write_tok_str(" : ");
-#if !C_GEN_BE_GENERATES_ANSI_C
+#if !ALLOW_VOID_QUESTION_OPERAND_IN_GENERATED_C
           void_operand = is_void_type(operand_2->next->type);
           if (void_operand) write_tok_ch('(');
-#endif /* !C_GEN_BE_GENERATES_ANSI_C */
+#endif /* !ALLOW_VOID_QUESTION_OPERAND_IN_GENERATED_C */
           dump_expr_with_parens(operand_2->next);
-#if !C_GEN_BE_GENERATES_ANSI_C
+#if !ALLOW_VOID_QUESTION_OPERAND_IN_GENERATED_C
           if (void_operand) write_tok_str(",0)");
-#endif /* !C_GEN_BE_GENERATES_ANSI_C */
+#endif /* !ALLOW_VOID_QUESTION_OPERAND_IN_GENERATED_C */
           goto done_with_operation;
         case eok_call:
           /* N operand operator. */

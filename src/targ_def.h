@@ -1308,6 +1308,19 @@ code gets the same result that the underlying C compiler will get.
 #endif /* ifndef ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C */
 
 /*
+If the C-generating back end is being used, are "?" operators allowed
+to have operands of void type?  pcc, for example, does not allow them.
+If they are not allowed, they are rewritten as "(operand, 0)".
+*/
+#ifndef ALLOW_VOID_QUESTION_OPERAND_IN_GENERATED_C
+#if C_GEN_BE_GENERATES_ANSI_C
+#define ALLOW_VOID_QUESTION_OPERAND_IN_GENERATED_C TRUE
+#else /* !C_GEN_BE_GENERATES_ANSI_C */
+#define ALLOW_VOID_QUESTION_OPERAND_IN_GENERATED_C FALSE
+#endif /* C_GEN_BE_GENERATES_ANSI_C */
+#endif /* ifndef ALLOW_VOID_QUESTION_OPERAND_IN_GENERATED_C */
+
+/*
 If the C-generating back end is being used, and the target environment
 has .init sections (e.g., SVR4), this flag is TRUE to enable generation of
 asm directives to get startup routines called (thus eliminating the need
