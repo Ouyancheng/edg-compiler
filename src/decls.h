@@ -218,7 +218,8 @@ extern void decl_function_template(a_symbol_locator    *locator,
 extern void handler_declaration(a_statement_ptr     sp,
                                 a_source_position*  catch_pos);
 
-extern an_asm_entry_ptr asm_declaration(a_boolean asm_decl_allowed);
+extern an_asm_entry_ptr asm_declaration(a_boolean  asm_decl_allowed,
+                                        a_boolean  is_asm_statement);
 
 /* Bit vector used to pass flags into declarator and into and out of
    declaration routines.  Each bit represents a flag. */

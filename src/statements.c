@@ -1591,8 +1591,8 @@ asm ( "string" ) ;
   /* Allocate the statement. */
   sp = add_statement((a_statement_kind)stmk_asm);
   stmt_update_source_sequence_list(sp);
-  sp->variant.asm_entry = asm_declaration(/*asm_decl_allowed=*/TRUE);
-
+  sp->variant.asm_entry = asm_declaration(/*asm_decl_allowed=*/TRUE,
+                                          /*is_asm_statement=*/TRUE);
   db_exit();
 }  /* asm_statement */
 
@@ -3209,11 +3209,11 @@ only).
 
   db_enter(3, "statement");
 
+rescan_statement:
+  get_another_statement = FALSE;
   /* Move cached #pragma declarations (if any) to the current scope stack
      entry so they can be examined and acted upon in subsequent processing. */
   select_pragmas_bound_to_curr_decl_or_stmt(/*is_decl=*/FALSE);
-rescan_statement:
-  get_another_statement = FALSE;
   /* If a lint-style "notreached" comment was detected, suppress the
      warning on unreachable code. */
   check_lint_notreached_flag();

@@ -9739,7 +9739,8 @@ clause is to be attached.  catch_pos is the source position of "catch".
 }  /* handler_declaration */
 
 
-an_asm_entry_ptr asm_declaration(a_boolean  asm_decl_allowed)
+an_asm_entry_ptr asm_declaration(a_boolean  asm_decl_allowed,
+                                 a_boolean  is_asm_statement)
 /*
 Scan an asm declaration, create an entry to represent it in the IL, and
 return a pointer to the asm entry.  An asm declaration is specified as
@@ -9790,10 +9791,12 @@ an asm "declaration" is actually treated as an executable statement.
     /* Add the asm entry to the list for the current scope. */
     add_to_asm_entries_list(ap);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-    /* There's no name or symbol for the asm declaration, so call
-       update_source_sequence_list directly. */
-    update_source_sequence_list((char *)ap, (an_il_entry_kind)iek_asm_entry,
-                                &asm_pos, (a_source_sequence_entry_ptr)NULL);
+    if (!is_asm_statement) {
+      /* There's no name or symbol for the asm declaration, so call
+         update_source_sequence_list directly. */
+      update_source_sequence_list((char *)ap, (an_il_entry_kind)iek_asm_entry,
+                                  &asm_pos, (a_source_sequence_entry_ptr)NULL);
+    }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
 
@@ -9943,7 +9946,8 @@ of local variables (and types, etc.) of functions and in blocks.
     } else {
 #endif /* ASM_FUNCTION_ALLOWED */
       /* Scan the asm declaration. */
-      (void)asm_declaration(/*asm_decl_allowed=*/!is_old_style_param_decl);
+      (void)asm_declaration(/*asm_decl_allowed=*/!is_old_style_param_decl,
+                            /*is_asm_statement=*/FALSE);
       goto return_point;
 #if ASM_FUNCTION_ALLOWED
     }  /* if */
