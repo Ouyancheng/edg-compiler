@@ -1,5 +1,19 @@
 Version 2.46
 
+2/9/01   sizeof expression involving local variables, with
+         RECORD_CONSTANT_EXPRESSIONS_IN_IL
+
+When RECORD_CONSTANT_EXPRESSIONS_IN_IL is TRUE, a sizeof operator
+that appears inside a function in an integral constant expression
+for an array size and references a local variable produced
+incorrect IL that could cause aborts in some cases.  Now fixed (by
+eliminating the recorded expression in such cases).
+
+  int main() {
+    int i;
+    int ar [ sizeof(i) ];
+  }
+
 2/9/01   C99 lowering of cast of imaginary to bool
 
 The code produced by C99 lowering of a cast from imaginary to bool

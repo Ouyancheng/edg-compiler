@@ -4160,6 +4160,19 @@ Syntax:
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
       /* Make a sizeof expression that sits behind the constant and
          gives the original expression. */
+      if (!is_type &&
+          curr_il_region_number == file_scope_region_number &&
+          innermost_function_scope != NULL) {
+        /* An expression in a function scope might point to a local variable,
+           which is in the function scope memory region.  Therefore it
+           cannot be attached to a file-scope constant.  This comes up when
+           a sizeof in an array bound uses a local variable in its
+           expression.  We have no good way of checking whether the
+           expression contains a local variable, so we suppress the
+           recording of the expression in all cases, and just record
+           the type. */
+        is_type = TRUE;
+      }  /* if */
       constant.expr = make_runtime_sizeof_expr(is_type, sizeof_type, &operand);
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
     }  /* if */
