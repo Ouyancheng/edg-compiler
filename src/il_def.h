@@ -196,12 +196,6 @@ typedef struct a_source_correspondence {
                            that are dynamically initialized.  Also differs
                            from the flag in the symbol entry in that more
                            than one symbol can point to the same IL entry. */
-  unsigned int  il_walk_flag:1;
-                        /* Used by il_walk to mark entries already
-                           encountered in the traversal of the IL tree.
-                           Reversed on each walk: the first time through,
-                           0 -> 1 when encountered, the next, 1 -> 0 when
-                           encountered, etc. */
   unsigned int /* a_name_linkage_kind */
 		name_linkage:NUM_BITS_FOR_NAME_LINKAGE;
 			/* Kind of linkage for the name, e.g., is it
@@ -765,14 +759,6 @@ typedef struct a_param_type {
                            this is the last one. */
   a_type_ptr    type;
                         /* Type of the parameter. */
-  a_byte	il_walk_flag;
-                        /* Like the flag in a_source_correspondence:
-                           indicates whether or not this entry has been
-                           visited in the current walk through the IL tree.
-                           necessary in this entry because these entries can
-                           be shared between routine entries (e.g., when
-                           they come from a typedef'd function type used
-                           as the type of an extern function). */
 #ifdef CIL
   unsigned int	passed_via_copy_constructor:1;
 			/* If TRUE, the parameter has a type that requires
