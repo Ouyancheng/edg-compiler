@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-1995 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -287,15 +287,22 @@ typedef enum an_insert_location_kind {
   ilk_block_start,	/* Insert at the start of a block. */
   ilk_switch_clause_start,
 			/* Insert at the start of a switch clause. */
+  ilk_statement_creation,
+			/* Create a new statement (first insert provides the
+			   statement). */
   ilk_before_expr,	/* Insert before an expression. */
   ilk_after_expr,	/* Insert after an expression. */
   ilk_expr_creation	/* Create a new expression (first insert provides the
 			   expression). */
 } an_insert_location_kind;
+
 /* Test for the insertion kinds for insertions within expressions. */
 #define is_expr_insert_location_kind(kind)                            \
  ((kind) == ilk_before_expr || (kind) == ilk_after_expr ||            \
   (kind) == ilk_expr_creation)
+#define is_expr_insert_location(insert_location)                      \
+  is_expr_insert_location_kind((insert_location)->kind)
+
 typedef struct an_insert_location *an_insert_location_ptr;
 typedef struct an_insert_location {
   an_insert_location_kind
@@ -431,6 +438,8 @@ extern void set_insert_location(a_statement_ptr    stmt,
 extern void set_block_start_insert_location(
                                           a_statement_ptr    stmt,
                                           an_insert_location *insert_location);
+extern void set_statement_creation_insert_location(
+                                          an_insert_location *insert_location);
 
 extern void set_expr_insert_location(an_expr_node_ptr   node,
                                      an_insert_location *insert_location);
@@ -513,6 +522,9 @@ extern a_statement_ptr insert_var_assignment_statement(
                                        an_expr_node_ptr       rvalue_expr,
                                        an_insert_location_ptr insert_location);
 
+extern a_statement_ptr last_statement_in_block(
+                                              a_statement_ptr block_statement);
+
 extern a_statement_ptr make_call_statement(a_routine_ptr    routine,
                                            an_expr_node_ptr arg_list);
 
@@ -533,6 +545,9 @@ extern a_variable_ptr make_instantiation_var(
                                       an_integer_kind         ikind,
                                       a_source_correspondence *source_corresp);
 #endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
+
+extern void add_temporary_to_scope(a_variable_ptr temp,
+                                   a_scope_ptr    scope);
 
 extern a_variable_ptr make_temporary_in_scope(a_type_ptr  temp_type,
                                               a_scope_ptr scope,
@@ -639,7 +654,8 @@ extern an_expr_operator_kind lowered_assignment_operator(a_type_ptr type);
 extern void lower_virtual_function_call(an_expr_node_ptr expr);
 
 extern void lower_call(an_expr_node_ptr      expr,
-                       an_init_pos_descr_ptr ipdp);
+                       an_init_pos_descr_ptr ipdp,
+                       a_statement_ptr       statement);
 
 extern void initial_processing_on_destructible_initialization(
                                           a_dynamic_init_ptr dip,
@@ -703,6 +719,6 @@ error checking, but FALSE would be equally proper.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-1995 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
