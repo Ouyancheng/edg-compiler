@@ -11615,7 +11615,7 @@ to be acceptable, and *conversion describes it.
        temporary has a lifetime as long as the reference. */
     adjust_top_temporary_for_binding_to_reference(source_operand,
                                                   static_lifetime);
-  } else if (initializing_return_value) {
+  } else if (initializing_return_value && !template_case) {
     /* Check for returning a reference to a local entity. */
     check_for_returning_reference_to_local_entity(source_operand);
   }  /* if */
