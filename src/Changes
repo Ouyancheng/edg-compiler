@@ -1,5 +1,13 @@
 Version 2.30
 
+6/22/95  IL lowering of constructors: improvement to aid minimal inlining
+
+The process of wrapping a constructor inside an "if" statement, done
+by IL lowering when the constructor calls "new", has been improved
+slightly to avoid the insertion of an extra return statement when the
+constructor has destructible local variables.  This allows inline.c to
+inline calls to such constructors.
+
 6/22/95  Minimal inlining: inlining of return using copy constructor
 
 inline.c now allows inlining of calls of functions that return their values

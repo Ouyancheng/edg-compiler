@@ -456,18 +456,34 @@ generated, or NULL if no value needs to be returned.
   /* See if there is a return statement at the end of the original list of
      statements.  If so, move it outside the "if". */
   if (stmt != NULL) {
-    for (prev_stmt = NULL;
-         stmt->next != NULL;
-         prev_stmt = stmt, stmt = stmt->next) {}
+    a_statement_ptr temp_block_stmt = block_stmt, temp2_block_stmt;
+    for (;;) {
+      /* Find the last statement in the block. */
+      for (prev_stmt = NULL;
+           stmt->next != NULL;
+           prev_stmt = stmt, stmt = stmt->next) {}
+      /* If the last statement is itself a block, look inside it. */
+      if (stmt->kind != (a_statement_kind)stmk_block) break;
+      temp_block_stmt = stmt;
+      stmt = stmt->variant.block.statements;
+    }  /* for */
     if (stmt->kind == (a_statement_kind)stmk_return) {
       /* The last statement is a return.  Move it. */
-      block_stmt->variant.block.extra_info->end_of_block_reachable = TRUE;
       if (prev_stmt == NULL) {
-        block_stmt->variant.block.statements = NULL;
+        temp_block_stmt->variant.block.statements = NULL;
       } else {
         prev_stmt->next = NULL;
       }  /* if */
       if_stmt->next = stmt;
+      /* Mark the block from which the return was removed (and any
+         surrounding it, out to block_stmt) as reachable. */
+      for (temp2_block_stmt = block_stmt;
+           /* Termination test in loop. */;
+           temp2_block_stmt = last_statement_in_block(temp2_block_stmt)) {
+        temp2_block_stmt->variant.block.extra_info->
+                                                 end_of_block_reachable = TRUE;
+        if (temp2_block_stmt == temp_block_stmt) break;
+      }  /* for */
     }  /* if */
   }  /* if */
   /* If there is no return statement at the end of the routine (because the
