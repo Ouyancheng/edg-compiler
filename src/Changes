@@ -21,7 +21,7 @@ ALLOW_NONSTANDARD_ANONYMOUS_UNIONS is TRUE.)
 
 In modes allowing named variadic macros (e.g., GNU modes), the front end
 failed to warn if a macro redefinition only differs in the variadicity of
-a macro parameter.  This is now fixed: A warning is issue.  For example:
+a macro parameter.  This is now fixed: A warning is issued.  For example:
 
   #define A(x) 1
   #define A(x ...) 1  // Now a warning in GNU modes.  Previously silently
