@@ -411,7 +411,6 @@ unit, in case multiple source files are allowed.
   il_one_time_init();
   lexical_one_time_init();
   macro_one_time_init();
-  preproc_one_time_init();
   statements_one_time_init();
   symbol_tbl_one_time_init();
   templates_one_time_init();
@@ -482,7 +481,7 @@ to replace the initial portion of this compilation.
      keyword_init is called first, so that predefined macros will have
      priority over keywords.  (Also, macro_init must have been called, so
      that predefined #assert predicates (if any) are entered after
-     assert_predicates has been cleared. */
+     assert_predicates has been cleared.) */
   keyword_init();
   init_predefined_macros(curr_date_time);
 #if COMPILE_MULTIPLE_SOURCE_FILES
