@@ -991,7 +991,7 @@ based on the information specified in the pragma description entry.
 }  /* cache_pragma_tokens */
 
 
-static void proc_pragma(void)
+static void proc_pragma(a_source_position *start_of_dir_position)
 /*
 Scan and process a #pragma directive.
 */
@@ -1036,7 +1036,9 @@ Scan and process a #pragma directive.
            manipulate. */
         a_pending_pragma_ptr	ppp;
         processed = TRUE;
-        ppp = alloc_pending_pragma(pkdp, &id_position);
+        ppp = alloc_pending_pragma(pkdp);
+        ppp->id_position = id_position;
+        ppp->pragma_position = *start_of_dir_position;
         if (pkdp->make_text_not_tokens) {
           convert_pragma_to_string(ppp, pkdp);
         } else {
@@ -1103,12 +1105,15 @@ execute the preprocessor directive.
   a_boolean	     save_fetch_pp_tokens = fetch_pp_tokens;
   a_boolean	     save_expand_macros = expand_macros;
   a_source_position  save_error_position;
+  a_source_position  start_of_dir_position;
 
   db_enter(3, "pp_directive");
 
   /* Save the error position for later restoration because we may change
      it. */
   copy_source_position(error_position, save_error_position);
+  /* Save the position of the beginning of the directive. */
+  start_of_dir_position = pos_curr_token;
   in_preprocessing_directive = TRUE;
   fetch_pp_tokens = TRUE;
   expand_macros = FALSE;
@@ -1157,7 +1162,7 @@ execute the preprocessor directive.
       proc_error();
       break;
     case ppd_pragma:
-      proc_pragma();
+      proc_pragma(&start_of_dir_position);
       break;
     case ppd_ident:
       nonstandard_pp_directive();

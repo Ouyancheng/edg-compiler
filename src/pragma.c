@@ -225,8 +225,7 @@ used for creating pbk_other pragmas.
 }  /* add_other_pragma_kind_description */
 
 
-a_pending_pragma_ptr alloc_pending_pragma(a_pragma_kind_description_ptr pkdp,
-					  a_source_position	        *pos)
+a_pending_pragma_ptr alloc_pending_pragma(a_pragma_kind_description_ptr pkdp)
 /*
 Allocate and initialize a pending pragma entry.  Reuse a freed entry if
 possible.
@@ -248,11 +247,8 @@ possible.
   ppp->next = NULL;
   /* Initialize the token cache as a reusable token cache. */
   clear_token_cache(&ppp->token_cache, /*reusable=*/TRUE);
-  if (pos != NULL) {
-    ppp->id_position = *pos;
-  } else {
-    ppp->id_position = null_source_position;
-  }  /* if */
+  ppp->id_position = null_source_position;
+  ppp->pragma_position = null_source_position;
   ppp->descr_ptr = pkdp;
   ppp->discard_cache_when_done = TRUE;
   ppp->pragma_text = NULL;
@@ -428,7 +424,11 @@ information can be updated, if necessary.
   a_pragma_kind_description_ptr	pkdp;
 
   pkdp = pragma_description_for_pragma_kind[(int)kind];
-  ppp = alloc_pending_pragma(pkdp, pos);
+  ppp = alloc_pending_pragma(pkdp);
+  /* We don't have two positions for pseudo pragmas.  Use the same
+     position for both the ID and the start of the directive. */
+  ppp->id_position = *pos;
+  ppp->pragma_position = *pos;
   add_to_curr_token_pragma_list(ppp);
   return ppp;
 }  /* add_curr_token_pseudo_pragma */
@@ -593,7 +593,7 @@ there is additional processing to be done.
     }  /* if */
     if (at_file_scope) switch_to_file_scope_region(&region_to_switch_back_to);
     pp = alloc_pragma(ppp->descr_ptr->kind);
-    pp->decl_position = ppp->id_position;
+    pp->decl_position = ppp->pragma_position;
     pp->pragma_text = ppp->pragma_text;
     pp->ignore_in_back_end = ppp->descr_ptr->ignore_in_back_end;
     if (entity_ptr != NULL) {

@@ -200,6 +200,10 @@ typedef struct a_pending_pragma {
 		id_position;
 			/* Source position of the identifier that indicates
 			   the kind of pragma being processed. */
+  a_source_position
+		pragma_position;
+			/* Source position of the start of the #pragma
+			   directive. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_source_sequence_entry_ptr
 		source_sequence_entry;
@@ -281,8 +285,7 @@ EXTERN unsigned long
 #endif /* DEBUG */
 
 extern a_pending_pragma_ptr alloc_pending_pragma
-					(a_pragma_kind_description_ptr pkdp,
-                                         a_source_position             *pos);
+					(a_pragma_kind_description_ptr pkdp);
 
 extern a_pending_pragma_ptr alloc_copy_of_pending_pragma
 					(a_pending_pragma_ptr src_ppp);
