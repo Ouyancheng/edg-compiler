@@ -1113,7 +1113,7 @@ ec_corresp_decl_at;;"the other declaration was %p"
 ec_det_during_compilation_of_secondary_trans_unit;INTERNAL;"detected during compilation of secondary translation unit %sq"
 ec_compilation_of_secondary_trans_unit_context;INTERNAL;"compilation of secondary translation unit %sq"
 ec_field_cannot_involve_vla_type;;"a field declaration cannot have a type involving a variable length array"
-ec_entity_differs_in_other_trans_unit;;"declaration of %n meant something different during compilation of %sq"
+ec_entity_differs_in_other_trans_unit;;"declaration of %n had a different meaning during compilation of %sq"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
