@@ -1060,7 +1060,8 @@ the contents of *str had been scanned.
   char           *err_pos;
 
   curr_token = tok_string_literal;
-  internalize_string_literal(str, /*is_wide=*/FALSE, (unsigned long)strlen(str),
+  internalize_string_literal(str, /*is_wide=*/FALSE,
+                             (unsigned long)strlen(str),
                              &err_code, &err_pos);
 }  /* set_curr_token_to_string_literal */
 
