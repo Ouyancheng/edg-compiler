@@ -378,33 +378,61 @@ the primary translation unit is preferred.
     if (tcp->canonical != entity &&
         canonical_ranking(kind, entity) > canonical_ranking(kind,
                                                             tcp->canonical)) {
-      if (kind == iek_template) {
-        /* Since the canonical template is changing, the associated
-           all_instantiations list must be moved too. */
-        a_template_ptr
+      /* The canonical entity is about to change.  Update any information
+         that depends on the canonical entry. */
+      switch (kind) {
+        case iek_routine:
+          if (!in_secondary_trans_unit(entity)) {
+            a_routine_ptr  routine = (a_routine_ptr)entity;
+            if (routine->is_template_function &&
+                !routine->is_prototype_instantiation) {
+              set_master_instance_for_new_canonical_routine(
+                                      routine, (a_routine_ptr)tcp->canonical);
+            }  /* if */
+          }  /* if */
+          break;
+        case iek_template:
+          { /* Since the canonical template is changing, the associated
+               all_instantiations list must be moved too. */
+            a_template_ptr
                  corresp_templ = (a_template_ptr)entity,
                  templ = (a_template_ptr)tcp->canonical;
-        a_symbol_ptr
+            a_symbol_ptr
                  templ_sym = (a_symbol_ptr)templ->source_corresp.assoc_info,
                  corresp_sym =
                        (a_symbol_ptr)corresp_templ->source_corresp.assoc_info;
-        a_template_symbol_supplement_ptr
+            a_template_symbol_supplement_ptr
                  tssp = template_supplement_for_symbol(templ_sym),
                  corresp_tssp = template_supplement_for_symbol(corresp_sym);
-        if (tssp->all_instantiations != NULL) {
-          /* The canonical entry is changing: the list of all instantiations
-             should be reattached to the new canonical entry. */
-          check_assertion(corresp_tssp->all_instantiations == NULL);
+            if (tssp->all_instantiations != NULL) {
+              /* The canonical entry is changing: the list of all instantiations
+                 should be reattached to the new canonical entry. */
+              check_assertion(corresp_tssp->all_instantiations == NULL);
 #if DEBUG
-          if (db_trace("trans_corresp", templ, iek_template) ||
-              db_trace("trans_corresp", corresp_templ, iek_template)) {
-            fprintf(f_debug, "all_instantiations transferred because\n");
-          }  /* if */
+              if (db_trace("trans_corresp", templ, iek_template) ||
+                  db_trace("trans_corresp", corresp_templ, iek_template)) {
+                fprintf(f_debug, "all_instantiations transferred because\n");
+              }  /* if */
 #endif /* DEBUG */
-          corresp_tssp->all_instantiations = tssp->all_instantiations;
-          tssp->all_instantiations = NULL;
-        }  /* if */
-      }  /* if */
+              corresp_tssp->all_instantiations = tssp->all_instantiations;
+              tssp->all_instantiations = NULL;
+            }  /* if */
+          }
+        case iek_variable:
+          if (!in_secondary_trans_unit(entity)) {
+            a_variable_ptr  var = (a_variable_ptr)entity;
+            if (var->is_template_static_data_member &&
+                !var->source_corresp.parent.class_type
+                    ->variant.class_struct_union.is_prototype_instantiation) {
+              set_master_instance_for_new_canonical_variable(
+                                         var, (a_variable_ptr)tcp->canonical);
+            }  /* if */
+          }  /* if */
+          break;
+        default:
+          /* Nothing to be done. */
+          break;
+      }  /* switch */
       if (in_secondary_trans_unit(tcp->canonical)) {
         add_verification_entry(kind, tcp->canonical);
       }  /* if */
