@@ -46,7 +46,7 @@ The following example illustrates some consequences of this change:
 
   #include <stdio.h>
   int a = __builtin_classify_type("a");  // Returns the code for "array type"
-                                         // is GNU C++ 3.4 mode.  Previously,
+                                         // in GNU C++ 3.4 mode.  Previously,
                                          // array-to-pointer decay always
                                          // resulted in the code for "pointer
                                          // type".
