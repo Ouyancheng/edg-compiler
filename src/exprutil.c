@@ -841,12 +841,9 @@ current token will be used as the operand position.
     string_constant = alloc_unshared_constant(constant);
   }  /* if */
   /* Make an address constant that points to the string. */
-  clear_constant(&addr_constant, (a_constant_repr_kind)ck_address);
-  addr_constant.variant.address.kind = (an_address_base_kind)abk_constant;
-  addr_constant.variant.address.variant.constant = string_constant;
+  set_constant_address_constant(string_constant, &addr_constant);
   /* Note that the type is left as "pointer to array of char" here;
      the implicit conversion to "pointer to char" is done separately. */
-  addr_constant.type = make_pointer_type(constant->type);
   make_constant_operand(&addr_constant, operand);
   /* Treat a string literal constant as an lvalue. */
   operand->state = (an_operand_state)os_lvalue;

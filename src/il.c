@@ -2215,6 +2215,20 @@ the indicated variable.
 }  /* set_variable_address_constant */
 
 
+void set_constant_address_constant(a_constant_ptr constant,
+                                   a_constant    *con)
+/*
+Fill in the constant "con" as a ck_address constant for the address of
+the indicated constant.
+*/
+{
+  clear_constant(con, (a_constant_repr_kind)ck_address);
+  con->variant.address.kind = (an_address_base_kind)abk_constant;
+  con->variant.address.variant.constant = constant;
+  con->type = make_pointer_type(constant->type);
+}  /* set_constant_address_constant */
+
+
 a_constant_ptr alloc_constant(a_constant_repr_kind kind)
 /*
 Allocate a constant entry of the indicated kind, set its fields to default
