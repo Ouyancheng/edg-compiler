@@ -189,9 +189,13 @@ compilation.
 
     /* Loop through the routines list and check the virtual functions. */
     require_definitions_of_virtual_functions_on_routine_list(class_type);
-    /* Do the same for base class virtual functions that are not overridden. */
+    /* Do the same for base class virtual functions. */
     for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
-      require_definitions_of_virtual_functions_in_class(bcp->type);
+      /* Handle only direct base classes, because the recursive call
+         will handle that class's base classes. */
+      if (bcp->direct) {
+        require_definitions_of_virtual_functions_in_class(bcp->type);
+      }  /* if */
     }  /* for */
   }  /* if */
 }  /* require_definitions_of_virtual_functions_in_class */
