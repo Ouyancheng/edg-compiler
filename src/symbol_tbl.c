@@ -2816,6 +2816,8 @@ the options being used for the lookup.
   if (qualified_lookup && qualifier_namespace != NULL) {
     set_namespace_membership(sym_ptr, (a_source_correspondence*)NULL,
                              qualifier_namespace);
+  }  /* if */
+  if (qualified_lookup) {
     /* Set the decl_scope of the symbol to the scope number associated
        with the qualifiers namespace. */
     if (qualifier_namespace == NULL) {
