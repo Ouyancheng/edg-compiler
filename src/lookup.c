@@ -2398,11 +2398,11 @@ static a_symbol_ptr check_for_microsoft_hidden_template_bug(
 /*
 "orig_sym" is a symbol found in a class reactivation scope.  We are doing
 a tentative template lookup.  If "orig_sym" is not a type symbol, continue
-looking for a template symbol.  If a template is found, return that symbol.  Otherwise,
-return the original symbol.
+looking for a template symbol.  If a template is found, return that symbol.
+Otherwise, return the original symbol.
 
-This is done to accept examples like the following, which is accepted by the Microsoft
-7.0 compiler:
+This is done to accept examples like the following, which is accepted by
+the Microsoft 7.0 compiler:
 
   template<class T> struct A { };
   template<class T> struct B {
@@ -2416,11 +2416,13 @@ This is done to accept examples like the following, which is accepted by the Mic
   a_symbol_ptr	result_sym = orig_sym;
 
   fund_orig_sym = fundamental_symbol_of(orig_sym);
-  if (is_type_symbol(fund_orig_sym) && !is_injected_template_symbol(fund_orig_sym)) {
+  if (is_type_symbol(fund_orig_sym) &&
+      !is_injected_template_symbol(fund_orig_sym)) {
     /* If the symbol found is a type, look for a class template symbol in an
-       enclosing scope.  This is not done for an injected template symbol, which
-       could legally be followed by a template argument list. */
-    result_sym = scope_stack_lookup(locator, lookup_state, start_depth, end_depth);
+       enclosing scope.  This is not done for an injected template symbol,
+       which could legally be followed by a template argument list. */
+    result_sym = scope_stack_lookup(locator, lookup_state, start_depth,
+                                    end_depth);
     if (!is_class_template_symbol(result_sym)) result_sym = orig_sym;
   }  /* if */
   return result_sym;
@@ -2523,10 +2525,14 @@ that do normal id lookup processing.
       } else {
         sym = inactive_scope_lookup(kind, ssep, locator, lookup_state);
         if (sym != NULL && microsoft_bugs && microsoft_version <= 1300 &&
-            lookup_state->tentative_template_lookup && !is_class_template_symbol(sym)) {
-          /* The Microsoft compiler sometimes finds a hidden template symbol. */
-          sym = check_for_microsoft_hidden_template_bug(sym, locator, lookup_state,
-                                                        ssep->previous_scope, end_depth);
+            lookup_state->tentative_template_lookup &&
+            !is_class_template_symbol(sym)) {
+          /* The Microsoft compiler sometimes finds a hidden template
+             symbol. */
+          sym = check_for_microsoft_hidden_template_bug(sym, locator,
+                                                        lookup_state,
+                                                        ssep->previous_scope,
+                                                        end_depth);
         }  /* if */
         if (sym == NULL && kind == (a_scope_kind)sck_template_instantiation) {
           /* For template instantiation scopes, also look on the active list if
