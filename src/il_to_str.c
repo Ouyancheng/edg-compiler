@@ -174,17 +174,17 @@ void form_class_qualifier(a_type_ptr                            class_type,
                           an_il_to_str_output_control_block_ptr octl)
 /*
 Output a class qualifier (e.g., "A::B::") that identifies the indicated
-class type.  Do the output in the way described by octl.
+class type.  Do the output in the way described by octl.  Note that
+the output_name routine in the control block (if there is one) will not
+be used to output any part of the name.
 */
 {
   a_type_ptr parent_class = class_type->source_corresp.class_of_which_a_member;
 
   /* Use recursion to handle multiple levels of nesting. */
   if (parent_class != NULL) form_class_qualifier(parent_class, octl);
-  /* Do the last level.  Use form_name to get the special output_name
-     routine called when form_class_qualifier is called from outside
-     of il_to_str.c. */
-  form_name(&class_type->source_corresp, iek_type, octl);
+  /* Do the last level. */
+  form_unqualified_name(&class_type->source_corresp, iek_type, octl);
   octl->output_str("::");
 }  /* form_class_qualifier */
 
