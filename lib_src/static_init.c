@@ -121,6 +121,20 @@ extern "C" void on_exit(void_c_function_ptr, char *);
 #endif /* defined(sun) && USE_ATEXIT == 0 */
 
 
+void __register_finalization_routine(void)
+/*
+Register the function that handles static destruction so that it will be
+called when the program exits.
+*/
+{
+#if USE_ATEXIT
+  atexit((void_c_function_ptr)__call_dtors);
+#elif defined(sun)
+  on_exit((void_c_function_ptr)__call_dtors, (char *)NULL);
+#endif /* USE_ATEXIT */
+}  /* __register_finalization_rotuine */
+
+
 void __call_ctors()
 /*
 Call functions to perform static construction of objects.  This routine
@@ -144,11 +158,7 @@ call the static initializer functions.
      before any of the constructor routines are called so that if
      exit is called during static initialization, any constructed objects
      will be destroyed. */
-#if USE_ATEXIT
-  atexit((void_c_function_ptr)__call_dtors);
-#elif defined(sun)
-  on_exit((void_c_function_ptr)__call_dtors, (char *)NULL);
-#endif /* USE_ATEXIT */
+  __register_finalization_routine();
   if (use_patch_info) {
     /* Walk through the linked list of constructor/destructor function
        pointers and call each initialization (constructor) function.

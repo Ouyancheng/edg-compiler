@@ -23,6 +23,7 @@ initialization and destruction.
 
 extern void __call_ctors();
 extern void __call_dtors();
+extern void __register_finalization_routine(void);
 
 #endif /* STATIC_INIT_H */
 

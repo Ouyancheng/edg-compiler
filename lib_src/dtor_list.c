@@ -16,6 +16,7 @@ dtor_list.c -- destruction list processing.
 #include "basics.h"
 #include "runtime.h"
 #pragma hdrstop
+#include "static_init.h"
 #include "dtor_list.h"
 
 #if !defined(__EDG_IA64_ABI) || !SYSTEM_RUNTIME_HAS_IA64_SUPPORT || \
@@ -199,6 +200,14 @@ is called for the specific dso_handle value, or when __cxa_finalize
 is called to process all objects (i.e., the __cxa_finally dso_handle has
 a NULL value).  If dso_handle is NULL, the action will be taken only when
 __cxa_finalize is called to process all objects.
+
+This version of __cxa_atexit is only intended to be used when the
+system's runtime does not include its own version of __cxa_atexit.  When
+the system's runtime includes such a function, the system is responsible
+for seeing that __cxa_finalize is invoked at program termination.  When
+using our own version of this routine, we need to ensure that __cxa_finalize
+is invoked at program termination.  This is accomplished by calling
+__register_finalization_routine on the first invocation of this function.
 */
 {
   int                      success = TRUE;
@@ -208,6 +217,7 @@ __cxa_finalize is called to process all objects.
   if (ndp == NULL) {
     success = FALSE;
   }  else {
+    if (needed_destruction_head == NULL) __register_finalization_routine();
     ndp->object = object;
     ndp->destruction_routine = destruction_routine;
     ndp->dso_handle = dso_handle;
