@@ -9689,6 +9689,18 @@ the initializer has previously been found to be acceptable, and
         type_is_correct_or_derived = FALSE;
       }  /* if */
     }  /* if */
+    if (type_is_correct_or_derived && ref_to_const &&
+        is_bit_field_operand(source_operand)) {
+      /* For a bit-field case like
+           struct A { int i:2; } a;
+           const int &r = a.i;
+         force the use of a temporary.  This is not covered by the ARM
+         but it makes sense and cfront does it that way.  Note that in
+         the ref to nonconst case we leave the operand as it is to get
+         a more specific error message about taking the address of a
+         bit field. */
+      conv_lvalue_to_rvalue(source_operand);
+    }  /* if */
     if (type_is_correct_or_derived && is_an_lvalue(source_operand)) {
       /* The initial value is an lvalue of the right type; the initialization
          can be done directly. */
