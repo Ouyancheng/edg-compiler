@@ -59,6 +59,8 @@ extern a_boolean decl_specifiers(a_decl_flag_set             input_flags,
                                  a_decl_modifiers_block_ptr  decl_modifiers,
                                  a_decl_pos_block_ptr        decl_pos_block);
 
+extern void decl_spec_one_time_init(void);
+
 /* Constants defining bits in the input bit vector used in calls to
    decl_specifiers. */
 #define DSI_NO_INPUT_FLAGS ((a_decl_flag_set)0x0)

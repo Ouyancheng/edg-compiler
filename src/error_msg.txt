@@ -989,6 +989,7 @@ ec_implicit_int_on_main;;"return type \"int\" omitted in declaration of function
 ec_invalid_inheritance_kind_for_class;;"pointer-to-member representation %sq is too restrictive for %n"
 ec_implicit_return_from_non_void_function;;"missing return statement at end of non-void %n"
 ec_duplicate_using_decl;;"duplicate using-declaration of %no ignored"
+ec_unsigned_enum_bit_field_with_signed_enumerator;;"enum bit-fields are always unsigned, but enum %t includes negative enumerator"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

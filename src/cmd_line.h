@@ -1047,6 +1047,19 @@ EXTERN char	*import_dir_name /* = NULL */;
 			   sought for the Microsoft #import directive. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+EXTERN a_boolean
+		enum_types_can_be_larger_than_int /* = FALSE */;
+			/* TRUE when an enumerator type can be based on an
+			   integer type that is larger than an int.  Always
+			   FALSE in C mode; usually TRUE in C++ mode. */
+
+EXTERN a_boolean
+		enum_types_can_be_smaller_than_int /* = FALSE */;
+			/* TRUE when an enumerator type can be based on an
+			   integer type that is smaller than an int.  Always
+			   FALSE if targ_enum_types_can_be_smaller_than_int
+			   (an ABI requirement) is FALSE. */
+
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 EXTERN a_boolean

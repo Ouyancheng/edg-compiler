@@ -507,12 +507,29 @@ match the target machine behavior on integer operations in C.
 
 /* Signedness for enum bit fields (an extension): if TRUE, enum bit fields
    are always unsigned.  If FALSE, the rules are: (a) if the enum contains
-   any negative values, the field is signed; (b) if the enum contains
-   values large enough that they won't fit if one bit is allocated for a
-   sign, the field is unsigned; otherwise (c) the signedness is as
+   any negative values, the field is signed; otherwise (b) if the enum
+   contains values large enough that they won't fit if one bit is allocated
+   for a sign, the field is unsigned; otherwise (c) the signedness is as
    indicated by TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED. */
+/* When the flag is TRUE, declaring a bit field with an enumeration type
+   that includes negative enum constants will elicit a warning; moreover,
+   the value extracted from the bit field will always be treated as an
+   unsigned quantity (i.e., sign extension will not be done when extracting
+   the value).  On the other hand, when the flag is FALSE, the value
+   extracted from the bit field may be treated as a signed quantity (and
+   sign extension may be done unexpectedly). */
 #ifndef TARG_ENUM_BIT_FIELDS_ARE_ALWAYS_UNSIGNED
+/* The Microsoft compiler treats enum bit fields as signed or unsigned. */
+#if TARG_MICROSOFT_BIT_FIELD_ALLOCATION
+#define TARG_ENUM_BIT_FIELDS_ARE_ALWAYS_UNSIGNED FALSE
+#else /* !TARG_MICROSOFT_BIT_FIELD_ALLOCATION */
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
+/* Cfront treats enum bit fields as unsigned. */
 #define TARG_ENUM_BIT_FIELDS_ARE_ALWAYS_UNSIGNED TRUE
+#else /* !CFRONT_OBJECT_CODE_COMPATIBILITY */
+#define TARG_ENUM_BIT_FIELDS_ARE_ALWAYS_UNSIGNED FALSE
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
+#endif /* TARG_MICROSOFT_BIT_FIELD_ALLOCATION */
 			/* Default value, used to initialize global variable
 			   targ_enum_bit_fields_are_always_unsigned. */
 #endif /* ifndef TARG_ENUM_BIT_FIELDS_ARE_ALWAYS_UNSIGNED */

@@ -52,6 +52,7 @@ been included by the inclusion of fe_common.h.
 /*lint --e{766}*/ /* <-- No warning in this file on unneeded includes. */
 #include "class_decl.h"
 #include "decl_inits.h"
+#include "decl_spec.h"
 #include "decls.h"
 #include "def_arg.h"
 #include "expr.h"
@@ -618,6 +619,7 @@ after the command-line processing has been done.
   target_one_time_init();
   host_envir_one_time_init();
   class_decl_one_time_init();
+  decl_spec_one_time_init();
   def_arg_one_time_init();
   error_one_time_init();
   expr_one_time_init();

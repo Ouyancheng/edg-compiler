@@ -2077,6 +2077,13 @@ the template.
 }  /* class_specifier */
 
 
+static an_integer_kind
+		largest_enum_int_kind;
+			/* The largest integer kind that enum type can
+			   have.  Ordinarily ik_int in C mode, but in C++
+			   mode the integer kind corresponding to the
+			   largest integer type supported. */
+
 #if !EXTRA_SOURCE_POSITIONS_IN_IL
 /*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
                 information is being recorded in the IL. */
@@ -2314,7 +2321,7 @@ to indicate whether an enumeration is actually defined.
       /* In Microsoft compatibility mode enum types can be declared without
          being defined and can also be used.  The use requires that the size
          be set. */
-      check_assertion(!targ_enum_types_can_be_smaller_than_int);
+      check_assertion(!enum_types_can_be_smaller_than_int);
       set_type_size(enum_type);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -2373,16 +2380,16 @@ to indicate whether an enumeration is actually defined.
     *defines_something = TRUE;
     (void)get_token();
     if (C_dialect == C_dialect_cplusplus) {
-      /* In C++ (see ARM 7.2) the type of an enumerator is the same as that
-         of its enumeration -- i.e., enum_type and enum_con_type are the
-         same.  enum_type may have to be adjusted later to match the range
-         of the enumeration constant values. */
-      enum_con_type = enum_type;
+      /* In C++ the type of an enumerator is the same as that of its
+         enumeration, but that won't actually be known until the definition
+         is complete.  Set the types in the enum constants later. */
+      enum_con_type = NULL;
     } else {
-      /* The type of the constants is always "int", regardless of
+      /* In C the type of the constants is always "int", regardless of
          the type of the enumerated type (see 3.5.2.2).  However, it is
          tagged with the enumerated type, so that enum compatibility checking
          can be done later. */
+      check_assertion(!enum_types_can_be_larger_than_int);
       enum_con_type = alloc_type((a_type_kind)tk_integer);
       enum_con_type->variant.integer.int_kind = (an_integer_kind)ik_int;
       enum_con_type->variant.integer.enum_type = FALSE;
@@ -2460,12 +2467,15 @@ to indicate whether an enumeration is actually defined.
                  template <int N> class A { enum e { e1 = N }; };
             */
             template_param = TRUE;
+          } else if (enum_types_can_be_larger_than_int) {
+            /* No needed to check, since the largest integer kind will be
+               used if needed. */
           } else {
             check_assertion(constant.kind == (a_constant_repr_kind)ck_integer);
             /* Check the value to see if it is out of range.  (3.5.2.2,
                constraints) */
             if (!in_range_for_integer_kind(&constant, &constant,
-                                           (an_integer_kind)ik_int)) {
+                                           largest_enum_int_kind)) {
               a_boolean		conversion_allowed = TRUE;
               if (strict_ansi_mode) {
                 conversion_allowed = strict_ansi_error_severity != es_error;
@@ -2504,8 +2514,8 @@ to indicate whether an enumeration is actually defined.
             /* Use a value one larger than the previous value. */
             /* Check the value to see if it is out of range.  (3.5.2.2,
                constraints) */
-            if (is_max_value_for_integer_kind(&constant, 
-                                              (an_integer_kind)ik_int)) {
+            if (is_max_value_for_integer_kind(&constant,
+                                              largest_enum_int_kind)) {
               error(ec_enum_value_out_of_int_range);
               err = TRUE;
             } else {
@@ -2543,9 +2553,15 @@ to indicate whether an enumeration is actually defined.
         switch_back_to_original_region(region_to_switch_back_to);
         set_source_corresp(&(enum_con->source_corresp), enum_sym);
         enum_sym->variant.constant = enum_con;
-        enum_con->type = enum_con_type;
-        if (!C_mode()) {
-          /* Specify membership and access. */
+        if (C_mode()) {
+          enum_con->type = enum_con_type;
+        } else {
+          /* In C++ mode leave the type of the constant unchanged for now.
+             The enumerator constants will get the type of the enumeration,
+             but not until after all the constants have been scanned.  (This
+             affects cases in which an enum constant expression involves a
+             previously declared enum constant from the same enumeration.) */
+          /* In C++ specify membership and access. */
           if (class_of_which_a_member != NULL) {
             /* Set the parent class. */
             set_class_membership(enum_sym, &enum_con->source_corresp,
@@ -2608,15 +2624,21 @@ to indicate whether an enumeration is actually defined.
     add_end_of_construct_source_sequence_entry((char *)enum_type,
                                                (a_byte_il_entry_kind)iek_type);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    /* Determine the representation type for the enumeration.  In pcc mode,
-       and when targ_enum_types_can_be_smaller_than_int is FALSE, it's always
-       "int", and that's already set.  Otherwise, pick the first of "char",
-       "signed char", "unsigned char", "short", "unsigned short", and
-       "int" into which the enumeration values will fit.  Note that
-       it is pointless to try "unsigned int", because all enumeration
-       values must fall in the "int" range. */	
-    if (C_dialect != C_dialect_pcc &&
-        targ_enum_types_can_be_smaller_than_int) {
+    /* Determine the representation type for the enumeration.  When
+       enum_types_can_be_smaller_than_int is FALSE (e.g., in pcc mode and
+       Microsoft mode), it's always "int", and that's already set.
+       Otherwise, pick the first of "char", "signed char", "unsigned char",
+       "short", "unsigned short", and "int" into which the enumeration
+       values will fit.  Only if enum_types_can_be_larger_than_int (e.g.,
+       in strict C++ mode), is there any point in trying "unsigned int" and
+       larger integer types. */
+#if CHECKING
+    if (C_dialect == C_dialect_pcc) {
+      check_assertion(!enum_types_can_be_smaller_than_int &&
+                      !enum_types_can_be_larger_than_int);
+    }  /* if */
+#endif /* CHECKING */
+    if (enum_types_can_be_smaller_than_int) {
       if (!min_max_set || in_range_for_integer_kind(&min_value, &max_value,
                                                     plain_char_int_kind)) {
         /* "Plain" char. */
@@ -2647,11 +2669,55 @@ to indicate whether an enumeration is actually defined.
         enum_type->variant.integer.int_kind =
                                             (an_integer_kind)ik_unsigned_short;
       } else {
-        /* Representation type should be int, which is already set. */
+        /* Use the default representation type, which is already set. */
+      }  /* if */
+    }  /* if */
+    /* If the underlying integer type of enums can be larger than "int" (as
+       is standard in C++) and if the type has not already been adjusted to
+       be smaller than int, keep checking. */
+    if (enum_types_can_be_larger_than_int &&
+        enum_type->variant.integer.int_kind == (an_integer_kind)ik_int) {
+      if (in_range_for_integer_kind(&min_value, &max_value,
+                                    (an_integer_kind)ik_int)) {
+        /* Int. */
+        enum_type->variant.integer.int_kind = (an_integer_kind)ik_int;
+      } else if (in_range_for_integer_kind(&min_value, &max_value,
+                                          (an_integer_kind)ik_unsigned_int)) {
+        /* Unsigned int. */
+        enum_type->variant.integer.int_kind =
+                                             (an_integer_kind)ik_unsigned_int;
+
+      } else if (in_range_for_integer_kind(&min_value, &max_value,
+                                           (an_integer_kind)ik_long)) {
+        /* Long. */
+        enum_type->variant.integer.int_kind = (an_integer_kind)ik_long;
+#if LONG_LONG_ALLOWED
+      } else if (in_range_for_integer_kind(&min_value, &max_value,
+                                          (an_integer_kind)ik_unsigned_long)) {
+        /* Unsigned long. */
+        enum_type->variant.integer.int_kind =
+                                          (an_integer_kind)ik_unsigned_long;
+      } else if (in_range_for_integer_kind(&min_value, &max_value,
+                                           (an_integer_kind)ik_long_long)) {
+        /* Long long. */
+        enum_type->variant.integer.int_kind = (an_integer_kind)ik_long_long;
+#endif /* LONG_LONG_ALLOWED */
+      } else {
+        /* Representation should be largest_enum_int_kind. */
+        enum_type->variant.integer.int_kind = largest_enum_int_kind;
       }  /* if */
     }  /* if */
     /* Set the type size (based on the integral type it is mapped onto). */
     set_type_size(enum_type);
+    if (!C_mode()) {
+      /* In C++ now that we know the type of the enumeration, we can update
+         each constant to share the same type. */
+      for (enum_con = enum_type->variant.integer.enum_info.constant_list;
+           enum_con != NULL;
+           enum_con = enum_con->next) {
+        enum_con->type = enum_type;
+      }  /* for */
+    }  /* if */
     /* If entities dependent on this enum type were declared before it was
        defined, they will have been recorded on a fixup list.  Go through
        the fixup list and complete the declarations. */
@@ -4936,6 +5002,33 @@ exit_loop:
   return(err);
 }  /* decl_specifiers */
 
+
+void decl_spec_one_time_init(void)
+/*
+Do one-time initialization of variables related to the processing of
+decl-specifiers.
+*/
+{
+  if (!enum_types_can_be_larger_than_int) {
+    largest_enum_int_kind = (an_integer_kind)ik_int;
+  } else {
+#if LONG_LONG_ALLOWED
+    largest_enum_int_kind = (an_integer_kind)ik_unsigned_long_long;
+#else /* !LONG_LONG_ALLOWED */
+    largest_enum_int_kind = (an_integer_kind)ik_unsigned_long;
+#endif /* LONG_LONG_ALLOWED */
+  }  /* if */
+
+  /* Save variables from decl_spec.c that are needed for precompiled
+     headers */
+  if (precompiled_header_processing_required) {
+    static a_pch_saved_variable saved_vars[] = {
+      pch_saved_var_array_elem(largest_enum_int_kind),
+      pch_saved_var_array_terminating_elem()
+    };
+    register_pch_saved_variables(saved_vars);
+  }  /* if */
+}  /* decl_spec_one_time_init */
 
 /******************************************************************************
 *                                                             \  ___  /       *

@@ -1096,7 +1096,8 @@ is enabled.  Only set the option values if they were not already set
 by a command line option.
 */
 {
-  targ_enum_types_can_be_smaller_than_int = FALSE;
+  enum_types_can_be_smaller_than_int = FALSE;
+  enum_types_can_be_larger_than_int = FALSE;
   stack_referenced_include_directories = TRUE;
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
   allow_nonstandard_anonymous_unions = TRUE;
@@ -2048,6 +2049,9 @@ enable_microsoft_mode:
     if (C_dialect == C_dialect_pcc) {
       /* Alternative tokens are not recognized in PCC mode. */
       alternative_tokens_allowed = FALSE;
+      /* Enum types must be int. */
+      enum_types_can_be_smaller_than_int = FALSE;
+      enum_types_can_be_larger_than_int = FALSE;
     }  /* if */
     special_subscript_cost = FALSE;  /* Not really needed. */
     use_nonstandard_for_init_scope = TRUE;  /* Not really needed. */
@@ -2062,6 +2066,7 @@ enable_microsoft_mode:
     /* Reset the SVR4 C compatibility flag just in case it is set by
        default. */
     SVR4_C_mode = FALSE;
+    enum_types_can_be_larger_than_int = TRUE;
     /* The default for --long_preserving_rules in C++ is FALSE. */
     if (!option_kind_used[(int)optk_long_preserving_rules]) {
       long_preserving_rules = FALSE;

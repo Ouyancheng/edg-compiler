@@ -7474,9 +7474,12 @@ must be unsigned.
       }  /* if */
     }  /* if */
     /* Check that the enum values will fit in the bit field. */
-    if (bits_needed > bit_field_size ||
-        (targ_enum_bit_fields_are_always_unsigned && smallest_is_negative)) {
+    if (bits_needed > bit_field_size) {
       warning(ec_enum_bit_field_too_small);
+    }  /* if */
+    if (targ_enum_bit_fields_are_always_unsigned && smallest_is_negative) {
+      type_warning(ec_unsigned_enum_bit_field_with_signed_enumerator,
+                   bit_field_type);
     }  /* if */
   }  /* if */
   *need_signed_type = use_signed;
