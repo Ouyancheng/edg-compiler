@@ -2572,8 +2572,8 @@ to indicate whether an enumeration is actually defined.
   if (!C_mode() && microsoft_mode) {
     a_boolean                    local_err;
 
-    /* Scan any __declspec decl-modifiers "as if" this were a class (even
-       though they are ignored for enum types). */
+    /* Scan any __declspec decl-modifiers "as if" this were a class.  Only
+       uuid(...) specifiers will be recorded however. */
     clear_extended_decl_info_block(extended_decl_info);
     scan_extended_decl_modifiers(/*is_class_decl=*/TRUE,
                                  /*is_member_decl=*/FALSE,
