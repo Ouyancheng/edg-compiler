@@ -1280,8 +1280,7 @@ usage counts in other files.
                    total_unallocated);
   /* Size the memory blocks on the available list. */
   for (hdr = reusable_blocks_list; hdr != NULL; hdr = hdr->next) {
-    total_in_freed_blocks += hdr->after_end_of_block -
-                                                      hdr->next_avail_in_block;
+    total_in_freed_blocks += hdr->after_end_of_block - hdr->start_of_block;
   }  /* for */
   fprintf(f_debug, "%25s %8s %8s %8lu\n", "Avail in freed mem blocks", "", "",
                    total_in_freed_blocks);

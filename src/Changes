@@ -1,5 +1,11 @@
 Version 3.0
 
+4/16/02  Size of available memory blocks displayed wrong in debug output
+
+The computation of the amount of available space in available memory
+blocks displayed in debug output was wrong, with the consequence that
+the amount of memory indicated was too low.  Now fixed.
+
 4/15/02  Qualification conversion now permitted in template argument deduction
 
 Qualification conversions are now considered as part of the template argument
