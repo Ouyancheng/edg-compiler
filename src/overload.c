@@ -3651,7 +3651,8 @@ apply that would make one better than the other, and return
 
 
 static int compare_arg_match_levels(an_arg_match_summary *arg_match1,
-                                    an_arg_match_summary *arg_match2)
+                                    an_arg_match_summary *arg_match2,
+                                    a_boolean            suppress_tiebreakers)
 /*
 Compare two argument match summary entries and return
 
@@ -3659,6 +3660,8 @@ Compare two argument match summary entries and return
    0 if the two matches are equal, or
   -1 if arg_match1 is a worse match than arg_match2.
 
+If suppress_tiebreakers is TRUE, ignore tiebreakers (this is used
+for a Microsoft bug).
 */
 {
   int cmp = 0;
@@ -3688,6 +3691,7 @@ Compare two argument match summary entries and return
     /* arg_match2 is better. */
     cmp = -1;
   } else if (!do_late_ovl_res_tiebreaker &&
+             !suppress_tiebreakers &&
              (cmp=compare_argument_tiebreakers(arg_match1, arg_match2)) != 0) {
     /* The argument tiebreakers (applied early, which is the standard-
        conforming way) prefer one match over the other. */
@@ -3739,7 +3743,7 @@ entry to the next argument match.
   ((cfp)->current_arg_match = (cfp)->current_arg_match->next)
 
 
-static a_boolean suppress_microsoft_late_tiebreakers(
+static a_boolean suppress_microsoft_tiebreakers(
                                     a_candidate_function_ptr cfp1,
                                     a_candidate_function_ptr cfp2)
 /*
@@ -3799,7 +3803,7 @@ and return TRUE if the tiebreakers should be suppressed for this case.
     }  /* if */
   }  /* if */
   return suppress;
-}  /* suppress_microsoft_late_tiebreakers */
+}  /* suppress_microsoft_tiebreakers */
 
 
 static int compare_late_tiebreakers(a_candidate_function_ptr cfp1,
@@ -3826,7 +3830,7 @@ otherwise equivalent.  This is nonstandard, but it's what some compilers
       (cfp1->is_function_template || cfp2->is_function_template)) {
     /* Cfront doesn't consider tiebreakers for templates. */
   } else if (microsoft_bugs &&
-             suppress_microsoft_late_tiebreakers(cfp1, cfp2)) {
+             suppress_microsoft_tiebreakers(cfp1, cfp2)) {
     /* MSVC++ has some quirks with tiebreakers, copy constructors, and
        templates. */
   } else {
@@ -4169,7 +4173,8 @@ of something based strictly on the function itself or the call context
            function is better than the other function, we can stop
            checking.  Consider an error match to be (possibly) better
            than another match. */
-        if (compare_arg_match_levels(best_curr_arg, curr_arg) > 0 ||
+        if (compare_arg_match_levels(best_curr_arg, curr_arg,
+                                     /*suppress_tiebreakers=*/FALSE) > 0 ||
             best_curr_arg->match_level == aml_error) {
           goto check_next_function;
         }  /* if */
@@ -4456,8 +4461,16 @@ is set to TRUE.
                func_in_set = func_in_set->next_in_arg_best_match_set) {
             /* Compare the current argument match level against one match
                in the set of best matches so far on this argument. */
+            a_boolean suppress_tiebreakers = FALSE;
+            if (microsoft_bugs &&
+                suppress_microsoft_tiebreakers(cfp, func_in_set)) {
+              /* The Microsoft compiler suppresses argument tiebreakers
+                 in some strange cases. */
+              suppress_tiebreakers = TRUE;
+            }  /* if */
             cmp = compare_arg_match_levels(curr_arg,
-                                           func_in_set->current_arg_match);
+                                           func_in_set->current_arg_match,
+                                           suppress_tiebreakers);
             if (cmp < 0) {
               /* The current argument match is not as good as this match in
                  the set, so it will not be added to the set.  We do have

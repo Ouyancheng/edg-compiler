@@ -1,5 +1,23 @@
 Version 3.6
 
+3/1/05   Microsoft compatibility: copy constructor versus template
+
+The Microsoft compiler prefers a non-template copy constructor over a
+template constructor even if the latter is slightly better due to
+an argument tiebreaker.  Now emulated.
+
+  extern "C" int printf(const char *, ...);
+  struct A {
+    A() {}
+    A(const A&) { printf("C1\n"); }
+    template <class T> A(T&) { printf("C2\n"); }
+  } a;
+  int main() {
+    (void)A(a);  // prints C1 in Microsoft 7.1 mode (C2 is standard)
+  }
+
+See also the Changes entry of 2/23/02.
+
 3/1/05   Microsoft compatibility: Multiple explicit instantiation directives
 
 In Microsoft mode, the front end now accepts (with a warning) multiple
