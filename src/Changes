@@ -1,5 +1,19 @@
 Version 2.42
 
+6/14/99  Inappropriate diagnostics on parenthesized constructors and
+         destructors
+
+The front-end used to issue errors and warnings on this example:
+
+  struct S {
+    S();
+    ~S();
+  };
+  (S::S)() {}
+  (S::~S)() {}
+
+This is now fixed.
+
 6/14/99  Abort in default argument expression processing on use of
          field selection for template static member function
 

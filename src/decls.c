@@ -8647,7 +8647,6 @@ of local variables (and types, etc.) of functions and in blocks.
   a_symbol_ptr                 symbol_ptr = NULL, ext_sym;
   a_boolean	               decl_specifiers_omitted = FALSE;
   a_boolean                    is_function, is_main_function;
-  a_boolean                    is_constructor_or_destructor;
   a_boolean                    is_static_data_member;
   a_symbol_locator             locator;
   a_param_id_ptr               param_id;
@@ -8931,9 +8930,8 @@ continue_with_declaration:
     (void)get_token();
     goto advance_past_final_token;
   } else {
-    /* Flags based results from decl_specifiers. */
-    is_constructor_or_destructor =
-                     ((dso_flags & (DSO_CONSTRUCTOR | DSO_DESTRUCTOR)) != 0);
+    a_boolean is_constructor_or_destructor;
+
     inline_specified = ((dso_flags & DSO_INLINE) != 0);
     defines_something = ((dso_flags & DSO_DEFINES_SOMETHING) != 0);
     /* Set the various flags for declarator processing. */
@@ -8995,6 +8993,12 @@ continue_with_declaration:
                  /*member_parent_type=*/(a_type_ptr)NULL, &locator,
                  &local_type_ptr, &declarator_ssep, &func_info,
                  &decl_pos_block);
+      /* If a parenthesized constructor declarator is scanned, di_flags would
+         not have DI_IS_CONSTRUCTOR set, but do_flags would have
+         DO_IS_CONSTRUCTOR turned on. Similarly for destructors. Update the
+         local state with that information: */
+      is_constructor_or_destructor =
+                    ((do_flags & (DO_IS_CONSTRUCTOR | DO_IS_DESTRUCTOR)) != 0);
       /* declarator will have set error_position to the position of the
          declarator-id if this is a real declarator and the first token of
          the whole declarator if it is an abstract declarator. */

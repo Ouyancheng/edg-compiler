@@ -3924,10 +3924,13 @@ function_lparen:
         complete_type = locator->variant.conversion_result_type;
       }  /* if */
     } else if (*is_constructor) {
-      /* Return type should be "unknown" at this point.  Change it to
-         the constructed type (a front end convention that deviates from
-         what is explicitly in the source for a constructor declaration. */
-      if (!is_unknown_type(specifiers_type)) {
+      /* Return type should be "unknown" at this point, unless the declarator
+         was parenthesized in which case decl_specifiers will have though we
+         are in an "implicit int" case.  Change it to the constructed type
+         (a front end convention that deviates from what is explicitly in the
+         source for a constructor declaration. */
+      if (!is_unknown_type(specifiers_type) &&
+          !(input_flags & DI_NO_TYPE_SPECIFIERS)) {
         pos_error(ec_return_type_not_allowed, &declarator_pos);
       }  /* if */
       complete_type = make_reference_type(member_parent_type);
@@ -4085,6 +4088,12 @@ the parameters.
                (a_call_conv_descr_ptr)NULL, (a_call_conv_descr_ptr)NULL,
                (a_type_qualifier_set *)NULL, (a_type_qualifier_set *)NULL,
                declarator_ssep, func_info, decl_pos_block);
+  if (is_constructor) {
+    *output_flags |= DO_IS_CONSTRUCTOR;
+  }  /* if */
+  if (is_destructor) {
+    *output_flags |= DO_IS_DESTRUCTOR;
+  }  /* if */
 }  /* declarator */
 
 

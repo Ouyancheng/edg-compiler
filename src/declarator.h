@@ -211,7 +211,19 @@ abstract or real declarator.
 			   which the restrict qualifier was specified.  This
 			   bit will only be set if DI_IS_PARAMETER_DECL was
 			   set and only if RESTRICT_ALLOWED is TRUE. */
-#define DO_LAST DO_PARAM_TYPE_IS_RESTRICT_QUALIFIED_ARRAY
+#define DO_IS_CONSTRUCTOR ((a_decl_flag_set)0x20)
+         /* This bit is set if a constructor declarator was scanned.
+            It will certainly be set if the input flag corresponding to
+            DI_IS_CONSTRUCTOR was set, but even when that is not the case
+            --presumably because the declarator was parenthesized--this
+            bit may become set. */
+#define DO_IS_DESTRUCTOR ((a_decl_flag_set)0x40)
+         /* This bit is set if a destructor declarator was scanned.
+            It will certainly be set if the input flag corresponding to
+            DI_IS_DESTRUCOTR was set, but even when that is not the case
+            --presumably because the declarator was parenthesized--this
+            bit may become set. */
+#define DO_LAST DO_IS_DESTRUCTOR
 			/* Last bit in the bit vector that is in use. */
 			/*lint -esym(755,DO_LAST)*/
 
