@@ -1,5 +1,26 @@
 Version 2.32
 
+1/24/96   Handling of default arguments involving constructor calls
+
+In the following an internal error has been eliminated during processing of
+the default argument expression for X::f; instead, we now issue an error
+complaining that no default constructor can be found.
+
+  struct X {
+    void f(X* = new X);   // internal error eliminated, error now issued
+    X(int i = 0);
+  };
+
+There is a language issue here: at what point is a constructor like
+X::X(int) regarded as a "default constructor"?  The EDG implementation
+takes the position that it cannot be treated as a default constructor in a
+call context until *after* its default arguments have been scanned.  Here's
+an extreme example, which also used to produce an internal error:
+
+  struct X {
+    X(X* = new X);        // internal error eliminated, error now issued
+  };
+
 1/23/96   Spurious masked-handler warning
 
 A spurious warning is no longer issued when a handler for a derived class
