@@ -1989,6 +1989,13 @@ IA-64 ABI; see comments below.
       a_boolean    ambiguous;
       a_symbol_ptr delete_sym =
                       opname_function_symbol((an_opname_kind)onk_array_delete);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (delete_sym == NULL && microsoft_mode) {
+        /* In Microsoft mode operator delete[] is not predeclared.  Use
+           the non-array operator delete instead. */
+        delete_sym = opname_function_symbol((an_opname_kind)onk_delete);
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       check_assertion(delete_sym != NULL && !is_two_arg_delete);
       delete_sym = find_default_operator_delete_sym(delete_sym, &ambiguous);
       check_assertion(delete_sym != NULL);
