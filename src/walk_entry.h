@@ -798,7 +798,7 @@ the file scope, do not process it (but record an orphan in the latter case).
                                         biptr = ptr->variant.farray.bound_info;
                    array_bound_walk_index < num_walk_array_bounds;
                    array_bound_walk_index++, biptr++) {
-                walk_entry_and_subtree((char *)biptr, iek_bound_info_entry);
+                walk_ptr(biptr, a_bound_info_entry_ptr, iek_bound_info_entry);
               }  /* for */
               array_bound_walk_index = save_array_bound_walk_index;
               num_walk_array_bounds = save_num_walk_array_bounds;
