@@ -1,10 +1,17 @@
 Version 2.15
 
+2/25/93  Error on self-targeted conversion operator
+
+Enforcing a restriction that appears in Working Paper 12.3.2 (but not in
+the ARM), an error is now issued when class X contains a user-defined
+conversion operator that converts to X (with or without type qualifiers)
+or to X&.
+
 2/25/93  Invalid argument list on template member definition
 
-The error handling has been improved for definitions of members
-of class templates in which an incorrect template argument list
-is supplied.  For example,
+The error handling has been improved for definitions of members of class
+templates in which an incorrect template argument list is supplied.  For
+example,
 
   template <class T> struct A {
     void f();
@@ -41,11 +48,11 @@ only and a remark otherwise.  Here's an example:
 
 2/24/93  Redeclaration of template parameters
 
-An error is issued if a template parameter name is redeclared in
-a class template or function template.  This is only considered
-to be an error if the redeclaration occurs in the outermost scope
-of the template.  If a parameter name is redeclared in an inner
-scope of a template a warning is issued.
+An error is issued if a template parameter name is redeclared in a class
+template or function template.  This is only considered to be an error if
+the redeclaration occurs in the outermost scope of the template.  If a
+parameter name is redeclared in an inner scope of a template a warning is
+issued.
 
 Note that a redeclaration in a member function inside the template
 definition gives an error so that functions are treated consistently
