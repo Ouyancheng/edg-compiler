@@ -1,5 +1,15 @@
 Version 2.46
 
+1/20/01  C99 compound literals in static initializers
+
+The front end failed to diagnose errors in certain cases involving
+use of compound literals in initializers for static variables.
+This caused aborts later in some cases.
+
+  struct A {int y;};
+  struct B {struct A a;};
+  struct B b = { (struct A){1} };  // Now gets an error
+
 1/20/01  Microsoft compatibility: abort in get_integer_attributes
 
 An abort in get_integer_attributes in Microsoft C mode has been fixed.
