@@ -12,6 +12,11 @@ The file exit.c included some files that could result in it defining
 the C linkage version of exit instead of the C++ linkage version.
 This has been corrected.
 
+10/17/94  New files for destruction list processing
+
+dtor_list.c and dtor_list.h have been added to the runtime to support
+the new needed destructions list.
+
 10/17/94  Added needed destructions list
 
 A new mechanism for handling destruction of static object has been added.
