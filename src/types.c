@@ -4851,24 +4851,31 @@ top-level qualifiers are dropped).  Otherwise, NULL is returned.
 {
   a_type_ptr  result;
 
-  type_1 = skip_typerefs(type_1);
-  type_2 = skip_typerefs(type_2);
-  if (identical_types(type_1, type_2)) {
+  if (type_1 == type_2) {
+    /* Simple initial test for speed and to preserve typedefs if present. */
     result = type_1;
-  } else if (is_pointer_type(type_1) && is_pointer_type(type_2)) {
-    a_type_ptr  type_pointed_to_1 = type_pointed_to(type_1);
-    a_type_ptr  type_pointed_to_2 = type_pointed_to(type_2);
-
-    result = multilevel_composite_pointer_type(type_pointed_to_1,
-                                               type_pointed_to_2);
-    if (result != NULL) {
-      result = make_qualified_type(result,
-                                   get_type_qualifiers(type_pointed_to_1) |
-                                     get_type_qualifiers(type_pointed_to_2));
-      result = make_pointer_type(result);
-    }  /* if */
   } else {
-    result = NULL;
+    type_1 = skip_typerefs(type_1);
+    type_2 = skip_typerefs(type_2);
+    if (identical_types(type_1, type_2)) {
+      result = type_1;
+    } else if (is_pointer_type(type_1) && is_pointer_type(type_2)) {
+      a_type_ptr  type_pointed_to_1 = type_pointed_to(type_1);
+      a_type_ptr  type_pointed_to_2 = type_pointed_to(type_2);
+
+      result = multilevel_composite_pointer_type(type_pointed_to_1,
+                                                 type_pointed_to_2);
+      if (result != NULL) {
+        result = make_qualified_type(result,
+                                     get_type_qualifiers(type_pointed_to_1) |
+                                       get_type_qualifiers(type_pointed_to_2));
+        result = make_pointer_type(result);
+      }  /* if */
+    } else {
+      /* The types at this level are not the same, so there is no composite
+         type. */
+      result = NULL;
+    }  /* if */
   }  /* if */
   return result;
 }  /* multilevel_composite_pointer_type */

@@ -7337,6 +7337,125 @@ considered.
 }  /* specific_type_previously_handled */
 
 
+static void adjust_specific_type_for_previous_specific_type(
+                                            a_type_ptr  *specific_type,
+                                            a_type_ptr  previous_specific_type)
+/*
+Helper function for adjust_specific_type_for_previous_operand.  If
+previous_specific_type is a pointer type, look for a pointer type that
+both *specific_type and previous_specific_type can be converted to,
+e.g., by creating a type with the union of the cv-qualifiers on the
+two types.
+*/
+{
+  if (is_pointer_type(previous_specific_type)) {
+    /* Look for the usual pointer cases. */
+    a_type_ptr composite =
+                     multilevel_composite_pointer_type(*specific_type,
+                                                       previous_specific_type);
+    if (composite != NULL) {
+      *specific_type = composite;
+    } else {
+      /* Look for derived/base cases with cv-qualifier adjustment, e.g.,
+           const Base *
+         and
+           volatile Derived *
+         which requires the composite type
+           const volatile Base *
+      */
+      a_boolean        baseward_cast;
+      a_base_class_ptr bcp;
+      if (f_related_class_pointers(*specific_type, previous_specific_type,
+                                   &baseward_cast, &bcp)) {
+        a_type_ptr underlying_type = type_pointed_to(*specific_type);
+        a_type_ptr other_underlying_type =
+                                     type_pointed_to(previous_specific_type);
+        if (baseward_cast) {
+          /* previous_specific_type is the base class, so swap the underlying
+             types so that the composite type is built on the base class. */
+          a_type_ptr temp_type = underlying_type;
+          underlying_type = other_underlying_type;
+          other_underlying_type = temp_type;
+        }  /* if */
+        underlying_type = type_plus_qualifiers_from_second_type(
+                                                        underlying_type,
+                                                        other_underlying_type);
+        *specific_type = make_pointer_type(underlying_type);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* adjust_specific_type_for_previous_specific_type */
+
+
+static void adjust_specific_type_for_previous_operand(
+                              a_type_ptr     *specific_type,
+                              an_opname_kind kind,
+                              a_type_ptr     previous_class_type_considered,
+                              a_type_ptr     previous_specific_type_considered)
+/*
+We are considering the type given by *specific_type as the operation
+type for a built-in operation.  The kind of operation is indicated by
+kind.  If there was a previous operand, the previous class type considered
+and the previous specific type considered are given by the like-named
+parameters; otherwise, they are NULL.  Adjust *specific_type as necessary
+for the previous operand.
+*/
+{
+  /* Make sure there is a previous operand, i.e., do nothing on the
+     first operand. */
+  if (previous_class_type_considered != NULL ||
+      previous_specific_type_considered != NULL) {
+    /* Look for a case like one where the first operand is or can be
+       converted to
+         const char *
+       and the second operand is or can be converted to
+         volatile char *
+       and update the specific type to have the union of the cv-qualifiers,
+       i.e.,
+         const volatile char *
+    */
+    /* This applies only on operations where the result type does not
+       depend on the operand types, i.e., relational operators and the pointer
+       difference "-". */
+    if (is_pointer_type(*specific_type)) {
+      if (kind == (an_opname_kind)onk_eq ||
+          kind == (an_opname_kind)onk_ne ||
+          kind == (an_opname_kind)onk_gt ||
+          kind == (an_opname_kind)onk_lt ||
+          kind == (an_opname_kind)onk_ge ||
+          kind == (an_opname_kind)onk_le ||
+          kind == (an_opname_kind)onk_minus) {
+        /* Add cv-qualifiers from previously-considered pointer types. */
+        if (previous_specific_type_considered != NULL) {
+          /* The previous operand has a specific type. */
+          adjust_specific_type_for_previous_specific_type(
+                                            specific_type,
+                                            previous_specific_type_considered);
+        } else {
+          /* The first operand has a class type. */
+          a_symbol_list_entry_ptr slep;
+          a_type_ptr              class_type =
+                                 skip_typerefs(previous_class_type_considered);
+          /* Examine each conversion function from the source class. */
+          for (slep = symbol_supplement_for_class(class_type)->conversion_list;
+               slep != NULL;
+               slep = slep->next) {
+            a_symbol_ptr conversion_symbol = slep->symbol;
+            a_symbol_ptr base_conversion_symbol =
+                                      fundamental_symbol_of(conversion_symbol);
+            a_type_ptr   conv_routine_type =
+                                   routine_symbol_type(base_conversion_symbol);
+            a_type_ptr   return_type = return_type_of(conv_routine_type);
+            adjust_specific_type_for_previous_specific_type(specific_type,
+                                                            return_type);
+          }  /* for */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* adjust_specific_type_for_previous_operand */
+
+
 static void try_corresp_builtin_operands_match(
                          an_opname_kind           kind,
                          char                     *operand_type_pattern,
@@ -7409,6 +7528,11 @@ in some way, e.g., two pointers that must have the same type.
                                           previous_specific_type_considered)) {
             /* Try matching the operands, with the chosen specific type. */
             any_approp_conversion_function_this_operand = TRUE;
+            adjust_specific_type_for_previous_operand(
+                                            &specific_type,
+                                            kind,
+                                            previous_class_type_considered,
+                                            previous_specific_type_considered);
             try_builtin_operands_match(kind, operand_type_pattern,
                                        first_operand_must_be_lvalue,
                                        arg_operand_list,
@@ -7471,6 +7595,11 @@ in some way, e.g., two pointers that must have the same type.
                                           specific_type, (a_type_ptr)NULL,
                                           previous_class_type_considered,
                                           previous_specific_type_considered)) {
+          adjust_specific_type_for_previous_operand(
+                                            &specific_type,
+                                            kind,
+                                            previous_class_type_considered,
+                                            previous_specific_type_considered);
           previous_specific_type_considered = specific_type;
           /* Try matching the operands, with the chosen specific type. */
           try_builtin_operands_match(kind, operand_type_pattern,

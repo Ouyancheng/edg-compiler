@@ -1,5 +1,29 @@
 Version 2.45
 
+10/10/00 Looking for composite pointer type in operator overloading for
+         comparison operators
+
+When operator overloading considers user-defined conversions while
+resolving overloading of the operators
+
+   ==  !=  >  <  >=  <=
+
+and pointer difference (pointer - pointer), it now looks for conversion
+functions that can bring the operands to a composite pointer type
+(as defined in 5.9p2 of the C++ standard):
+
+  struct X {
+    operator const int *();
+  };
+  struct Y {
+    operator volatile int *();
+  };
+  int main() {
+    X x;
+    Y y;
+    x == y;  // Both converted to const volatile int *, then compared
+  }
+
 10/8/00  Template entities referenced in unused default argument expressions
          not instantiated
 
