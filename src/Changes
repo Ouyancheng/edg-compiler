@@ -1,5 +1,13 @@
 Version 2.28
 
+2/28/95  Cfront 2.1 compatibility: Derived::operator Base()
+
+Ordinarily a conversion operator that converts from a derived class to a
+base class is ignored (see WP 12.3.2), after a diagnostic is put out.  This
+is appropriate for cfront 3.0 as well, but it turns out that cfront 2.1
+actually calls such functions in preference to doing a standard conversion.
+We have made a change to emulate that behavior when --cfront_2.1 is used.
+
 2/28/95  Error recovery bug
 
 An internal error is no longer triggered during error recovery in the
