@@ -1663,13 +1663,12 @@ Likewise for match2.
     *match2 = matches_template_type(param_type2, param_type1, templ_arg_list2,
                                     templ_param_list2, MTT_NO_FLAGS);
   }  /* if */
-  /* If both comparisons match, prefer the direction that did not involve
-     dropping qualifiers. */
+  /* If both comparisons match, prefer the direction that is more qualified. */
   if (*match1 && *match2) {
     if (qualifiers_dropped1 && !qualifiers_dropped2) {
-      *match1 = FALSE;
-    } else if (qualifiers_dropped2 && !qualifiers_dropped1) {
       *match2 = FALSE;
+    } else if (qualifiers_dropped2 && !qualifiers_dropped1) {
+      *match1 = FALSE;
     }  /* if */
   }  /* if */
 }  /* parameter_is_more_specialized */
