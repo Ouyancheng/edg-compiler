@@ -671,6 +671,10 @@ extern void make_sym_constant_operand(a_symbol_ptr sym,
 extern void make_string_constant_operand(a_constant *constant,
                                          an_operand *operand);
 
+#if DEBUG
+extern void db_operand(an_operand *operand);
+#endif /* DEBUG */
+
 extern void clear_operand(an_operand_kind kind,
 		          an_operand      *operand);
 

@@ -1048,6 +1048,68 @@ values.
   set_operand_kind(operand, kind);
 }  /* clear_operand */
 
+#if DEBUG
+
+void db_operand(an_operand *operand)
+/*
+Display an expression operand for debugging purposes.
+*/
+{
+  switch (operand->state) {
+    case os_none:
+      break;
+    case os_lvalue:
+      (void)fprintf(f_debug, "lvalue, ");
+      break;
+    case os_rvalue:
+      (void)fprintf(f_debug, "rvalue, ");
+      break;
+    case os_function_designator:
+      (void)fprintf(f_debug, "function, ");
+      break;
+    default:
+      (void)fprintf(f_debug, "<bad operand state>, ");
+      break;
+  }  /* switch */
+  (void)fprintf(f_debug, "type = ");
+  if (operand->type == NULL) {
+    (void)fprintf(f_debug, "NULL");
+  } else {
+    db_abbreviated_type(operand->type);
+  }  /* if */
+  (void)fprintf(f_debug, ", ");
+  switch (operand->kind) {
+    case ok_error:
+      (void)fprintf(f_debug, "error");
+      break;
+    case ok_expression:
+      (void)fprintf(f_debug, "expression = \n");
+      db_expression(operand->variant.expression);
+      break;
+    case ok_constant:
+      (void)fprintf(f_debug, "constant = ");
+      db_constant(&operand->variant.constant);
+      break;
+    case ok_indefinite_function:
+      (void)fprintf(f_debug, "indefinite function = ");
+      db_symbol(operand->variant.symbol, "", 0);
+      break;
+    case ok_sym_for_member:
+      (void)fprintf(f_debug, "sym for member = ");
+      db_symbol(operand->variant.symbol, "", 0);
+      break;
+    case ok_undefined_symbol:
+      (void)fprintf(f_debug, "undefined symbol = ");
+      db_symbol(operand->variant.symbol, "", 0);
+      break;
+    default:
+      (void)fprintf(f_debug, "<bad operand kind>");
+      break;
+  }  /* switch */
+  (void)fprintf(f_debug, "\n");
+}  /* db_operand */
+
+#endif /* DEBUG */
 
 an_expr_node_ptr make_node_from_operand(an_operand *operand)
 /*
@@ -4355,6 +4417,9 @@ address_taken flag.
   } else {
 #if CHECKING
     if (!is_an_lvalue(operand)) {
+#if DEBUG
+      db_operand(operand);
+#endif /* DEBUG */
       internal_error("take_address_of_lvalue: not an lvalue");
     }  /* if */
 #endif /* CHECKING */
@@ -4854,6 +4919,9 @@ not an lvalue, it is left alone.
 #if CHECKING
         /* Since the expression is not a constant, it must be an expression. */
         if (!is_expression_operand(operand)) {
+#if DEBUG
+          db_operand(operand);
+#endif /* DEBUG */
           internal_error("conv_lvalue_to_rvalue: addr not constant or expr");
         }  /* if */
 #endif /* CHECKING */
@@ -5084,6 +5152,9 @@ operand.
   } else {
 #if CHECKING
     if (!is_indefinite_function_operand(operand)) {
+#if DEBUG
+      db_operand(operand);
+#endif /* DEBUG */
       internal_error(
                    "conv_function_designator_to_ptr_to_function: bad operand");
     }  /* if */
