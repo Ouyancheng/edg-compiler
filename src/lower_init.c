@@ -2895,15 +2895,6 @@ to be inserted, it is inserted at *insert_location.
 {
   a_variable_ptr cond_var = dedp->conditional_flag_var;
 
-#if DO_FULL_PORTABLE_EH_LOWERING
-  if (exceptions_enabled) {
-    an_init_pos_descr ipd;
-    /* Put the address of the variable into the object address table. */
-    set_var_init_pos_descr(cond_var, &ipd);
-    init_object_addr_table_entry(&ipd, dedp->conditional_flag_handle,
-                                 insert_location);
-  }  /* if */
-#endif /* DO_FULL_PORTABLE_EH_LOWERING */
   /* If the conditional flag is static, initialization to zero is
      implicit and requires nothing special in the IL. */
   if (cond_var->storage_class != (a_storage_class)sc_static) {
@@ -2934,6 +2925,15 @@ to be inserted, it is inserted at *insert_location.
       insert_statement(stmk_init_stmt, insert_location);
     }  /* if */
   }  /* if */
+#if DO_FULL_PORTABLE_EH_LOWERING
+  if (exceptions_enabled) {
+    an_init_pos_descr ipd;
+    /* Put the address of the variable into the object address table. */
+    set_var_init_pos_descr(cond_var, &ipd);
+    init_object_addr_table_entry(&ipd, dedp->conditional_flag_handle,
+                                 insert_location);
+  }  /* if */
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
 }  /* init_conditional_flag_var */
 
 
