@@ -3522,8 +3522,9 @@ There must be a derivation so marked.
 
   while (!bcdp->preferred) {
     bcdp = bcdp->next;
-    check_assertion_str(bcdp != NULL,
-                   "preferred_virtual_derivation_of: no preferred derivation");
+    check_assertion_str2(bcdp != NULL,
+                         "preferred_virtual_derivation_of:",
+                         "no preferred derivation");
   }  /* while */
   return bcdp;
 }  /* preferred_virtual_derivation_of */
@@ -7205,7 +7206,6 @@ to it.
     scope_depth = DEPTH_OF_FILE_SCOPE;
   } else {
     /* Use the current function scope. */
-    check_assertion(depth_innermost_function_scope != NO_SCOPE_DEPTH);
     scope_depth = depth_innermost_function_scope;
   }  /* if */
   /* Copy the address of the available list. */
@@ -7239,8 +7239,12 @@ Add the indicated dynamic init entry to the destructions list of the
 indicated object lifetime entry.
 */
 {
-  check_assertion(in_file_scope(olp) == in_file_scope(dip));
-  check_assertion(dip->lifetime == NULL);
+  check_assertion_str2(in_file_scope(olp) == in_file_scope(dip),
+                       "add_to_destructions_list: object lifetime",
+                       "and dynamic init in different memory regions");
+  check_assertion_str2(dip->lifetime == NULL,
+                       "add_to_destructions_list:",
+                       "entry is already on a destructions list");
   /* Add the dynamic init entry to the front of the destructions list for
      the lifetime.  (It's on the front because the last entry constructed
      will be the first entry destructed.) */
