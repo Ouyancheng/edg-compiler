@@ -6259,7 +6259,8 @@ Scan the body of a class definition, including the base classes list.
             /* Issue diagnostics on pragmas that are trying to bind to an
                overload declaration. */
             cannot_bind_to_curr_construct();
-            break;
+            (void)required_token(tok_semicolon, ec_exp_semicolon);
+            goto next_declaration;
           }  /* if */
           /* Check for access adjustment declaration. */
           if (is_qualified_name_start() &&
