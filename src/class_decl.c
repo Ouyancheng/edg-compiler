@@ -8082,13 +8082,17 @@ if p_ms_attributes is non-NULL, *p_ms_attributes is returned NULL.
   if (curr_token == tok_assign) {
     if ((is_const_qualified_type(member_type) &&
          (is_integral_or_enum_type(member_type) ||
-          (gpp_mode && is_floating_type(member_type)))) ||
+          (gpp_mode &&
+           (is_floating_type(member_type) ||
+            (gnu_version < 30300 && is_pointer_type(member_type)))))) ||
         (class_state->is_nonreal_instantiation &&
          is_template_param_type(member_type))) {
       /* A const integral or const enumeration type may be initialized inside
          the class definition (9.5.2).   This makes the static data member
-         usable as a member constant.  Note that the variable entry will
-         have an initializer but it is not yet considered defined. */
+         usable as a member constant.  Note that the variable entry will have
+         an initializer but it is not yet considered defined.  GNU compilers
+         allow floating-point in-class initializers, and some versions even
+         allow pointers to be initialized in this way. */
       a_constant constant;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       decl_info->decl_pos_block.var_init_range.start = pos_curr_token;
