@@ -455,6 +455,7 @@ check_abbreviation()
 --brief_diagnostics
 --building_runtime
 --c
+--c99
 --c++
 --cfront_2.1
 --cfront_3.0
@@ -532,6 +533,7 @@ check_abbreviation()
 --no_base_assign_op_is_default
 --no_bool
 --no_brief_diagnostics
+--no_c99
 --no_class_name_injection
 --no_code_gen
 --no_compound_literals
@@ -937,6 +939,8 @@ process_option()
          --no_anachronisms | \
     -# | --timing | \
          --c++ | \
+         --c99 | \
+         --no_c99 | \
          --display_error_number | \
          --dollar | \
 	 --old_line_commands | \
@@ -1050,7 +1054,7 @@ process_option()
       feoptions=$feoptions" $curr_arg"
 #     Options that require additional processing
       case $arg in
-        -m | --c | -K | --old_c | --svr4 | --no_svr4)
+        -m | --c | --c99 | --no_c99 | -K | --old_c | --svr4 | --no_svr4)
           c_mode=1
           ;;
         -b | --c++ | --cfront_2.1 | --cfront_3.0)
