@@ -727,14 +727,6 @@ typedef struct a_src_seq_secondary_decl {
 			   needn't be.  It appears on secondary declarations
 			   for typedefs, but NULL for secondary declarations
 			   of class, struct, union, and enum types. */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
-  a_template_decl_ptr
-		template_decl;
-			/* A description of the template declaration header
-			   as used in this particular declaration.  (E.g.,
-			   template parameter names could differ from those
-			   in the primary declaration.) */
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   a_bit_field	autonomous_tag_decl:1;
 			/* If entity refers to a type entry representing a
 			   class, struct, union, or enum, this flag is TRUE if
@@ -3497,16 +3489,11 @@ typedef struct a_class_type_supplement {
 			   classes.  This pointer is NULL when the class
 			   has been declared but not defined. */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-  a_template_decl_ptr
-		template_decl;
-			/* For template entities this points to information
-			   describing the template parameterization of that
-			   entity; otherwise, this is NULL. */
   a_template_ptr
 		assoc_template;
 			/* For instantiated entities, this points to the
-			   prototype instantiation of the template from which
-			   they were generated; otherwise, this is NULL. */
+			   the template from which they were generated;
+			   otherwise, this is NULL. */
 #endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   a_template_arg_ptr
 		template_arg_list;
@@ -4710,16 +4697,11 @@ typedef struct a_variable {
 			   May be null_source_range. */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-  a_template_decl_ptr
-		template_decl;
-			/* For template entities this points to information
-			   describing the template parameterization of that
-			   entity; otherwise, this is NULL. */
   a_template_ptr
 		assoc_template;
 			/* For instantiated entities, this points to the
-			   prototype instantiation of the template from which
-			   they were generated; otherwise, this is NULL. */
+			   the template from which they were generated;
+			   otherwise, this is NULL. */
 #endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_type_ptr	declared_type;
@@ -5281,16 +5263,11 @@ typedef struct a_routine {
 			   this pointer is NULL for member functions of
 			   class templates and other nontemplate functions). */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-  a_template_decl_ptr
-		template_decl;
-			/* For template entities this points to information
-			   describing the template parameterization of that
-			   entity; otherwise, this is NULL. */
   a_template_ptr
 		assoc_template;
 			/* For instantiated entities, this points to the
-			   prototype instantiation of the template from which
-			   they were generated; otherwise, this is NULL. */
+			   the template from which they were generated;
+			   otherwise, this is NULL. */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #endif /* ifdef CIL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -7540,10 +7517,9 @@ typedef struct a_template_parameter {
 
 
 typedef struct a_template_decl {
-  /* The description of the "header" of a template declaration.  The templated
-     entity (routine, variable or class supplement) points to an entry of this
-     type, and the nesting structure (for nested templates) is maintained
-     through a parent pointer.
+  /* The description of the "header" of a template declaration.  The template
+     entity (a_template) points to an entry of this type, and the nesting
+     structure (for nested templates) is maintained through a parent pointer.
          template <class T> void f(T x) { ... }
                             ^^^^^^^^^^^^^^^^^^^ ----- a_routine entry info
          ^^^^^^^^^^^^^^^^^^ ------------------------- a_template_decl info
@@ -7589,11 +7565,9 @@ typedef a_byte a_template_kind;
 An entry representing the occurrence of a template (or a template template
 parameter) declaration in the source.  It can contain the text of such a
 declaration (the front end maintains comparable information as a token cache).
-If prototype instantiations are not recorded in the IL, then these entries are
-pointed to by source sequence entries for templates.  Otherwise, the source
-sequence entries point to the prototype instantiations.  Note that there
-can be multiple a_template entries for a single template; each declaration
-or definition produces one entry.  (C++ only.)
+These entries are pointed to by source sequence entries for templates.  
+Note that there can be multiple a_template entries for a single template;
+each declaration or definition produces one entry.  (C++ only.)
 */
 typedef struct a_template {
   /* The source_corresp field must be first. */
@@ -7634,6 +7608,12 @@ typedef struct a_template {
 			   template template parameters, and is used to
 			   determine if two such templates are equivalent. */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
+  a_template_decl_ptr
+		template_decl;
+			/* A description of the template declaration header
+			   as used in this particular declaration.  (E.g.,
+			   template parameter names could differ from one
+			   declaration to the next.) */
   /* Information about the prototype instantiation of this template: */
   union {
     /* When kind == templk_function or templk_member_function: */
@@ -7650,11 +7630,6 @@ typedef struct a_template {
 		variable;
 			/* A pointer to the prototype instantiation of the
 			   static data member definition of a class template */
-    /* When kind == templk_template_template_param: */
-    a_template_decl_ptr
-		template_decl;
-			/* A pointer to the parameterization of a template
-			   template parameter. */
   } prototype_instantiation;
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 } a_template;
@@ -8165,11 +8140,7 @@ typedef struct a_scope {
   a_template_ptr
 		templates;
 			/* Linked list of template entries. Only used
-			   in C++.  Note that when
-			   prototype_instantiations_in_il is TRUE templates
-			   are represented as class type entries and routine
-			   entries rather than as a_template entries, so
-			   this list is always NULL. */
+			   in C++. */
 } a_scope;
 
 /*

@@ -1033,6 +1033,30 @@ source sequence entry list.  Check that it is, and advance the list.
 }  /* check_for_and_take_source_seq_entry */
 
 
+static void check_and_take_source_seq_entry_for_type(a_type_ptr type)
+/*
+Check that the current source sequence entry corresponds to the given type
+and move to the next source sequence entry.  In the case of prototype
+instantiations, the current source sequence entry is pointing to the
+associated a_template entry.
+*/
+{
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+  if (ss_entry_kind(curr_source_sequence_entry) == iek_template) {
+    check_assertion(is_immediate_class_type(type) &&
+                    type->variant.class_struct_union.is_nonreal_class);
+    /* Advance past the source sequence entry for the type itself. */
+    check_for_and_take_source_seq_entry(
+                assoc_template_of(type)->source_corresp.source_sequence_entry);
+  } else
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+  {
+    check_for_and_take_source_seq_entry(
+                                   type->source_corresp.source_sequence_entry);
+  }  /* if */
+}  /* check_and_take_source_seq_entry_for_type */
+
+
 static void skip_type_definition_source_sequence_entries(a_type_ptr type)
 /*
 The current source sequence entry is the one for the definition of the
@@ -1042,9 +1066,7 @@ end of the type definition.
 {
   a_type_kind kind = type->kind;
 
-  /* Advance past the source sequence entry for the type itself. */
-  check_for_and_take_source_seq_entry(
-                                   type->source_corresp.source_sequence_entry);
+  check_and_take_source_seq_entry_for_type(type);
   if (is_tag_type_kind(kind)) {
     /* For a class or enum, loop through source sequence entries looking
        for the end-of-construct entry for the type. */
@@ -3366,8 +3388,7 @@ is the one associated with the definition of the class.
   }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
   /* Advance past the source sequence entry for the class itself. */
-  check_for_and_take_source_seq_entry(
-                                   type->source_corresp.source_sequence_entry);
+  check_and_take_source_seq_entry_for_type(type);
   /* Position the output file to the definition position. */
   set_output_position(&type->source_corresp.decl_position);
   /* Put out the tag kind, e.g., "class". */
@@ -3465,8 +3486,12 @@ is the one associated with the definition of the class.
   { a_src_seq_end_of_construct_ptr ssecp = 
                                   ss_entry_ptr(curr_source_sequence_entry,
                                                a_src_seq_end_of_construct_ptr);
-    check_assertion_str(ss_entry_kind(ssecp) == iek_type &&
-                        ss_entry_ptr(ssecp, a_type_ptr) == type,
+    check_assertion_str((ss_entry_kind(ssecp) == iek_type &&
+                         ss_entry_ptr(ssecp, a_type_ptr) == type) ||
+                        (ss_entry_kind(ssecp) == iek_template &&
+                         is_immediate_class_type(type) &&
+                         ss_entry_ptr(ssecp, a_template_ptr) ==
+                                                      assoc_template_of(type)),
                         "gen_class_definition: bad end-of-construct");
     /* Set the position for the closing "}". */
     set_output_position(&ssecp->position);
@@ -3795,14 +3820,32 @@ this one is such a continuation.
   *another_decl_in_comma_list = FALSE;
   /* Deal with the primary/secondary declaration difference. */
   if (curr_src_seq_entry_is_secondary_decl(&sec_decl)) {
-    type = ss_entry_ptr(sec_decl, a_type_ptr);
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+    if (ss_entry_kind(sec_decl) == iek_template) {
+      a_template_ptr  templ = ss_entry_ptr(sec_decl, a_template_ptr);
+      template_decl = templ->template_decl;
+      type = templ->prototype_instantiation.type;
+    } else
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+    /* Do not insert code here. */
+    {
+      type = ss_entry_ptr(sec_decl, a_type_ptr);
+    }  /* if */
     friend_decl = sec_decl->friend_decl;
     is_specialization = sec_decl->specialized_with_new_syntax;
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
-    template_decl = sec_decl->template_decl;
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   } else {
-    type = ss_entry_ptr(curr_source_sequence_entry, a_type_ptr);
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+    if (ss_entry_kind(curr_source_sequence_entry) == iek_template) {
+      a_template_ptr  templ = ss_entry_ptr(curr_source_sequence_entry,
+                                           a_template_ptr);
+      template_decl = templ->template_decl;
+      type = templ->prototype_instantiation.type;
+    } else
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+    /* Do not insert code here. */
+    {
+      type = ss_entry_ptr(curr_source_sequence_entry, a_type_ptr);
+    }  /* if */
     is_definition = TRUE;
     /* A definition of a class is never a friend declaration. */
     friend_decl = FALSE;
@@ -3818,12 +3861,6 @@ this one is such a continuation.
            appropriate. */
         is_specialization = !old_specializations_for_generated_instances;
       }  /* if */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
-      if (type->variant.class_struct_union.extra_info != NULL) {
-        template_decl = type->variant.class_struct_union.extra_info
-                                                              ->template_decl;
-      }  /* if */
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
     }  /* if */
   }  /* if */
   kind = type->kind;
@@ -6440,8 +6477,7 @@ recorded with this particular header.
       }  /* if */  
     } else {
       check_assertion(param->kind == (a_template_parameter_kind)tpk_template);
-      gen_template_header(param->variant.templ.class_template
-                               ->prototype_instantiation.template_decl);
+      gen_template_header(param->variant.templ.class_template->template_decl);
       write_tok_str(" class ");
       /* Set the source position for the name. */
       set_output_position(&param->source_corresp.decl_position);
@@ -6482,6 +6518,50 @@ particular header.
   }  /* for */
 }  /* unmap_template_parameters */
 
+
+static a_boolean gen_template_from_prototype_instantiation(a_template_ptr  tp)
+/*
+The given template entry points to a prototype instantiation.  Dispatch the
+appropriate routine to generate code from it.  Return FALSE if no prototype
+instantiation is available.
+*/
+{
+  a_boolean  result = FALSE;
+
+  a_boolean  another_decl_in_comma_list;
+  switch (tp->kind) {
+    case templk_function:
+    case templk_member_function:
+      if (tp->prototype_instantiation.routine != NULL) {
+        gen_routine_decl(/*suppress_specifiers=*/FALSE,
+                         &another_decl_in_comma_list);
+        result = TRUE;
+      }  /* if */
+      break;
+    case templk_class:
+    case templk_member_class:
+      if (tp->prototype_instantiation.type != NULL) {
+        gen_type_decl(/*suppress_specifiers=*/FALSE,
+                      &another_decl_in_comma_list);
+        result = TRUE;
+      }  /* if */
+      break;
+    case templk_static_data_member:
+      if (tp->prototype_instantiation.variable != NULL) {
+        gen_variable_decl(/*is_condition=*/FALSE, /*for_init=*/FALSE,
+                          /*suppress_specifiers=*/FALSE,
+                          &another_decl_in_comma_list);
+        result = TRUE;
+      }  /* if */
+      break;
+    default:
+      unexpected_condition_str(
+                         "walk_entry_and_subtree: bad template kind");
+      break;
+  }  /* switch */
+  return result;
+}  /* gen_template_from_prototype_instantiation */
+
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 
 static void gen_template(void)
@@ -6490,17 +6570,30 @@ Generate a declaration for a template.  The current source sequence entry
 is the one associated with the template.
 */
 {
-  a_template_ptr tp = ss_entry_ptr(curr_source_sequence_entry, a_template_ptr);
-  
-  /* Advance past the source sequence entry for the template. */
-  adv_curr_source_sequence_entry();
-  if (!prototype_instantiations_in_il || !nonclass_prototype_instantiations) {
-    /* If prototype instantiations are recorded in the IL, the templates will
-       be generated from those. */
+  a_src_seq_secondary_decl_ptr sec_decl;
+  a_template_ptr               tp;
+  a_boolean                    from_proto = FALSE;
+
+  if (curr_src_seq_entry_is_secondary_decl(&sec_decl)) {
+    tp = ss_entry_ptr(sec_decl, a_template_ptr);
+    gen_template_from_prototype_instantiation(tp);
+  } else {
+    tp = ss_entry_ptr(curr_source_sequence_entry, a_template_ptr);
+  }  /* if */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+  /* If prototype instantiations are recorded in the IL, the templates
+     will be generated from those. */
+  from_proto = gen_template_from_prototype_instantiation(tp);
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+  if (!from_proto) {
+    /* No prototype instantiation is available in the IL; generate the
+       template from the stored text string. */
     set_output_position(&tp->source_corresp.decl_position);
     gen_member_access_specifier_for_decl_of(&tp->source_corresp);
     /* Write the template string. */
     write_code_string(tp->text);
+    /* Advance past the source sequence entry for the template. */
+    adv_curr_source_sequence_entry();
   }  /* if */
 }  /* gen_template */
 
@@ -7577,17 +7670,35 @@ declaration following this one is such a continuation.
                              
   /* Deal with the primary/secondary declaration difference. */
   if (curr_src_seq_entry_is_secondary_decl(&sec_decl)) {
-    var = ss_entry_ptr(sec_decl, a_variable_ptr);
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+    if (ss_entry_kind(sec_decl) == iek_template) {
+      a_template_ptr  templ = ss_entry_ptr(sec_decl, a_template_ptr);
+      template_decl = templ->template_decl;
+      var = templ->prototype_instantiation.variable;
+    } else
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+    /* Do not insert code here. */
+    {
+      var = ss_entry_ptr(sec_decl, a_variable_ptr);
+    }  /* if */
     /* Use the type from the secondary declaration entry instead of the one
        from the IL entry, since it might differ in small ways (e.g., using
        different typedefs, default arguments). */
     var_type = sec_decl->declared_type;
     is_specialization = sec_decl->specialized_with_new_syntax;
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
-    template_decl = sec_decl->template_decl;
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   } else {
-    var = ss_entry_ptr(curr_source_sequence_entry, a_variable_ptr);
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+    if (ss_entry_kind(curr_source_sequence_entry) == iek_template) {
+      a_template_ptr  templ = ss_entry_ptr(curr_source_sequence_entry,
+                                           a_template_ptr);
+      template_decl = templ->template_decl;
+      var = templ->prototype_instantiation.variable;
+    } else
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+    /* Do not insert code here. */
+    {
+      var = ss_entry_ptr(curr_source_sequence_entry, a_variable_ptr);
+    }  /* if */
     is_definition = TRUE;
     var_type = var->declared_type;
     is_specialization = FALSE;
@@ -7598,9 +7709,6 @@ declaration following this one is such a continuation.
       /* A generated instance.  Use the "template<>" prefix if appropriate. */
       is_specialization = !old_specializations_for_generated_instances;
     }  /* if */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
-    template_decl = var->template_decl;
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   }  /* if */
   check_assertion_str(var_type != NULL,
                       "gen_variable_decl: declared_type is NULL");
@@ -8060,7 +8168,7 @@ TRUE if the declaration following this one is such a continuation.
   a_boolean                     need_extern_C_closing_brace = FALSE;
   a_boolean                     microsoft_out_of_class_redecl = FALSE;
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-  a_template_decl_ptr           template_decl;
+  a_template_decl_ptr           template_decl = NULL;
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 
   *another_decl_in_comma_list = FALSE;
@@ -8068,24 +8176,39 @@ TRUE if the declaration following this one is such a continuation.
      lists, so they never get here. */
   /* Deal with the primary/secondary declaration difference. */
   if (curr_src_seq_entry_is_secondary_decl(&sec_decl)) {
-    rout = ss_entry_ptr(sec_decl, a_routine_ptr);
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+    if (ss_entry_kind(sec_decl) == iek_template) {
+      a_template_ptr  templ = ss_entry_ptr(sec_decl, a_template_ptr);
+      template_decl = templ->template_decl;
+      rout = templ->prototype_instantiation.routine;
+    } else
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+    /* Do not insert code here. */
+    {
+      rout = ss_entry_ptr(sec_decl, a_routine_ptr);
+    }  /* if */
     /* Use the type from the secondary declaration entry instead of the one
        from the IL entry, since it might differ in small ways (e.g., using
        different typedefs, default arguments). */
     rout_type = sec_decl->declared_type;
     friend_decl = sec_decl->friend_decl;
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
-    template_decl = sec_decl->template_decl;
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
     is_specialization = sec_decl->specialized_with_new_syntax;
   } else {
-    rout = ss_entry_ptr(curr_source_sequence_entry, a_routine_ptr);
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+    if (ss_entry_kind(curr_source_sequence_entry) == iek_template) {
+      a_template_ptr  templ = ss_entry_ptr(curr_source_sequence_entry,
+                                           a_template_ptr);
+      template_decl = templ->template_decl;
+      rout = templ->prototype_instantiation.routine;
+    } else
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+    /* Do not insert code here. */
+    {
+      rout = ss_entry_ptr(curr_source_sequence_entry, a_routine_ptr);
+    }  /* if */
     rout_type = rout->declared_type;
     is_definition = TRUE;
     friend_decl = rout->defined_in_friend_decl;
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
-    template_decl = rout->template_decl;
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
     is_specialization = FALSE;
     /* See if the "template<>" specialization prefix should be put out. */
     if (rout->is_specialized) {

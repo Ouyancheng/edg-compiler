@@ -1568,9 +1568,6 @@ Display the indicated variable.
   }  /* if */
   disp_initializer(ptr->init_kind, &ptr->initializer);
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-  if (ptr->template_decl != NULL) {
-    disp_template_decl("template_decl", ptr->template_decl);
-  }  /* if */
   if (ptr->assoc_template != NULL) {
     disp_ptr("assoc_template", (char*)ptr->assoc_template, iek_template);
   }  /* if */
@@ -2043,9 +2040,6 @@ Display the indicated routine.
     disp_class_list("befriending_classes", ptr->befriending_classes);
   }  /* if */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-  if (ptr->template_decl != NULL) {
-    disp_template_decl("template_decl", ptr->template_decl);
-  }  /* if */
   if (ptr->assoc_template != NULL) {
     disp_ptr("assoc_template", (char*)ptr->assoc_template, iek_template);
   }  /* if */
@@ -3208,6 +3202,9 @@ Display the indicated template.
       (void)printf("**BAD TEMPLATE KIND**\n");
   }  /* switch */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
+  if (ptr->template_decl != NULL) {
+    disp_template_decl("template_decl", ptr->template_decl);
+  }  /* if */
   switch (ptr->kind) {
     case templk_class:
     case templk_member_class:
@@ -3222,11 +3219,6 @@ Display the indicated template.
     case templk_static_data_member:
       disp_ptr("variable", (char *)ptr->prototype_instantiation.variable,
                iek_variable);
-      break;
-    case templk_template_template_parameter:
-      disp_ptr("template_decl",
-               (char *)ptr->prototype_instantiation.template_decl,
-               iek_template_decl);
       break;
     default:
       break;
@@ -4070,9 +4062,6 @@ Display the indicated class type supplement entry.
   }  /* if */
   disp_ptr("assoc_scope", (char * )ptr->assoc_scope, iek_scope);
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-  if (ptr->template_decl != NULL) {
-    disp_template_decl("template_decl", ptr->template_decl);
-  }  /* if */
   if (ptr->assoc_template != NULL) {
     disp_ptr("assoc_template", (char*)ptr->assoc_template, iek_template);
   }  /* if */

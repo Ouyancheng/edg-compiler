@@ -870,7 +870,6 @@ the file scope, do not process it (but record an orphan in the latter case).
                              iek_param_type);
         walk_initializer(ptr->init_kind, ptr->initializer);
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-        walk_ptr(ptr->template_decl, a_template_decl_ptr, iek_template_decl);
         remap_ptr(ptr->assoc_template, a_template_ptr, iek_template);
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -966,7 +965,6 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_list(ptr->template_arg_list, a_template_arg_ptr,
                   iek_template_arg);
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-        walk_ptr(ptr->template_decl, a_template_decl_ptr, iek_template_decl);
         remap_ptr(ptr->assoc_template, a_template_ptr, iek_template);
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
@@ -1616,6 +1614,7 @@ do_set_proper_definition_needed_flag:
         walk_string_ptr(ptr->text, iek_other_text, 0);
 #endif /* RECORD_TEMPLATE_STRINGS */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
+        walk_ptr(ptr->template_decl, a_template_decl_ptr, iek_template_decl);
         switch (ptr->kind) {
           case templk_function:
           case templk_member_function:
@@ -1632,8 +1631,7 @@ do_set_proper_definition_needed_flag:
                       iek_variable);
             break;
           case templk_template_template_param:
-            walk_ptr(ptr->prototype_instantiation.template_decl,
-                     a_template_decl_ptr, iek_template_decl);
+            /* No active variant field. */
             break;
           default:
             unexpected_condition_str(
@@ -2225,7 +2223,6 @@ after_entry_from_class:
         /* Fields to be processed even if the definition of the class is
            not to be processed: */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-        walk_ptr(ptr->template_decl, a_template_decl_ptr, iek_template_decl);
         remap_ptr(ptr->assoc_template, a_template_ptr, iek_template);
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
         walk_list(ptr->template_arg_list, a_template_arg_ptr,
@@ -2502,9 +2499,6 @@ after_entry_from_class:
           remap_ptr(ptr->entity.ptr, a_char_ptr, kind);
         }  /* if */
         walk_ptr(ptr->declared_type, a_type_ptr, iek_type);
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
-        walk_ptr(ptr->template_decl, a_template_decl_ptr, iek_template_decl);
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         walk_ptr(ptr->decl_pos_info, a_decl_position_supplement_ptr,
                  iek_decl_position_supplement);

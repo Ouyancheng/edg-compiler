@@ -630,6 +630,29 @@ for sure yet, since this may be a friend template.
   return tp;
 }  /* make_il_template_entry */
 
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+
+a_src_seq_secondary_decl_ptr
+                            secondary_src_seq_for_template(a_template_ptr  tp)
+/*
+Turn the source sequence entry pointing to the given template into a
+secondary source sequence entry and return a pointer to that secondary
+source sequence entry.
+*/
+{
+  a_source_sequence_entry_ptr  ssep = tp->source_corresp.source_sequence_entry;
+  a_src_seq_secondary_decl_ptr sssdp;
+
+  sssdp = alloc_src_seq_secondary_decl();
+  sssdp->entity = ssep->entity;
+  sssdp->decl_position = tp->source_corresp.decl_position;
+  ssep->entity.ptr = (char *)sssdp;
+  ssep->entity.kind = (a_byte_il_entry_kind)iek_src_seq_secondary_decl;
+  return sssdp;
+}  /* secondary_src_seq_for_template */
+
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
 
 /* Declaration needed because of forward references. */
@@ -2489,6 +2512,8 @@ A pointer to the head of the list is returned in tcsp.
                               /*delayed_nested_class_def=*/is_class_member,
                               /*is_template_instantiation=*/TRUE,
                               (a_decl_pos_block_ptr)NULL);
+  prototype_type->source_corresp.access = access_for_symbol(template_sym);
+  prototype_type->autonomous_primary_tag_decl = TRUE;
   pending_class_definitions--;
   /* Process any pragmas that are to be bound to this instance. */
   process_curr_construct_pragmas(instance_sym, (a_statement_ptr)NULL);
@@ -6522,6 +6547,12 @@ information.
                !friend_specified ? parent_class : (a_type_ptr)NULL,
                locator, type,
                &declarator_ssep, func_info, decl_pos_block);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    if (declarator_ssep != NULL) {
+      remove_from_src_seq_list(declarator_ssep);
+      declarator_ssep = NULL;
+    }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     if (decl_scope_err) {
       /* Just to be sure a template symbol doesn't get added to a scope that
          is not equipped to handle it, create an error locator based on the
@@ -6561,15 +6592,6 @@ information.
         }  /* if */
         report_exception_spec_errors(func_info);
       }  /* if */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-    } else {
-      /* A static data member definition.  It's more convenient to recreate
-         the source sequence entry later on. */
-      if (declarator_ssep != NULL) {
-        remove_from_src_seq_list(declarator_ssep);
-        declarator_ssep = NULL;
-      }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     }  /* if */
   }  /* if */
   if (is_initial_decl) {
@@ -8589,12 +8611,20 @@ initially used when processing the declaration of a partial specialization.
     prototype_sym = make_template_class_symbol(sym);
     /* Now create a new type entry. */
     prototype_type = alloc_type(tssp->variant.class_template.type_kind);
+    prototype_type->source_corresp.access = access_for_symbol(sym);
+    prototype_type->autonomous_primary_tag_decl = TRUE;
     prototype_type->variant.class_struct_union.is_template_class = TRUE;
     prototype_sym->variant.class_struct_union.type = prototype_type;
     set_source_corresp(&(prototype_type->source_corresp), prototype_sym);
     set_membership_in_source_corresp(&(prototype_type->source_corresp),
                                      prototype_sym);
     prototype_ctsp = prototype_type->variant.class_struct_union.extra_info;
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+    if (prototype_instantiations_in_il) {
+      add_to_types_list(prototype_type, NO_SCOPE_DEPTH);
+    }  /* if */
+    prototype_ctsp->assoc_template = decl_state->il_template_entry;
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
     /* Use the name linkage saved at the point of the original template
        declaration. */
     prototype_type->source_corresp.name_linkage =
@@ -8653,6 +8683,7 @@ class.  If so, issue an error.
     a_scope_stack_entry_ptr	ssep;
     ssep = &scope_stack[depth_scope_stack];
     if (ssep->inside_local_class) {
+      decl_state->decl_scope_err = TRUE;
       pos_error(ec_friend_template_in_local_class, &locator->source_position);
     }  /* if */
   }  /* if */
@@ -9538,38 +9569,6 @@ instantiation.
     create_prototype_type(decl_state, sym, tssp, partial_spec_nonreal_sym,
                           is_partial_specialization);
   }  /* if */
-#if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
-  if (prototype_instantiations_in_il &&
-      !source_sequence_entries_disallowed &&
-      tssp->variant.class_template.prototype_instantiation != NULL) {
-    /* Record the prototype instantiation in the IL. */
-    a_symbol_ptr  proto_sym = tssp->variant.class_template.
-                                                      prototype_instantiation;
-    a_type_ptr  proto_type = type_symbol_type(proto_sym);
-    a_symbol_reference_kind  srk_flags = SRK_DECLARATION;
-    a_source_sequence_entry_ptr  ssep;
-    a_scope_depth  saved_depth = depth_scope_stack;
-
-    depth_scope_stack = decl_state->effective_decl_level;
-    ssep = add_empty_source_sequence_entry();
-    depth_scope_stack = saved_depth;
-    if (is_definition) srk_flags |= SRK_DEFINITION;
-    if (decl_state->is_template_friend) srk_flags |= SRK_FRIEND;
-    record_symbol_declaration(srk_flags, proto_sym, &locator.source_position,
-                              ssep);
-    if (ss_entry_kind(ssep) == iek_src_seq_secondary_decl) {
-      a_src_seq_secondary_decl_ptr sssdp =
-                             ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
-      sssdp->template_decl = decl_state->template_decl;
-      sssdp->friend_decl = decl_state->is_template_friend;
-      sssdp->autonomous_tag_decl = TRUE;
-    } else {
-      proto_type->variant.class_struct_union.extra_info->template_decl =
-                                                    decl_state->template_decl;
-      proto_type->autonomous_primary_tag_decl = TRUE;
-    }  /* if */
-  }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
     if (tssp->prototype_template == NULL || tssp->is_specific_definition) {
@@ -10436,8 +10435,7 @@ parameter entry for the parameter.
   if (prototype_instantiations_in_il) {
     /* Keep a record of the parameterization structure.  (Needed, e.g., in the
        C++-generating back end.) */
-    templ_ptr->prototype_instantiation.template_decl =
-                                               local_decl_state.template_decl;
+    templ_ptr->template_decl = local_decl_state.template_decl;
   }  /* if */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   if (!is_named) {
@@ -11333,33 +11331,22 @@ returned to the caller.
     tssp = NULL;
   } /* if */
   if (tssp != NULL) {
-#if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
-    a_boolean  saved_sses_disallowed;
-    if (!prototype_instantiations_in_il) {
-      /* Prevent the generation of a source sequence entry for the a_template
-         entry since we already did so elsewhere. */
-      saved_sses_disallowed = source_sequence_entries_disallowed;
-      source_sequence_entries_disallowed = TRUE;
-    }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    /* Prevent the generation of a source sequence entry for the a_template
+       entry since we already did so elsewhere. */
+    a_boolean  saved_sses_disallowed = source_sequence_entries_disallowed;
+    source_sequence_entries_disallowed = TRUE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* Save the information needed to create an instantiation based
        on the definition of the template. */
     set_template_cache_info(&tssp->cache, p_token_cache,
                             decl_state->decl_info);
     mark_defined(sym, &locator->source_position);
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
-    if (!prototype_instantiations_in_il) {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-      /* Restore the previous state wrt. the generation of source sequence
-         entries. */
-      source_sequence_entries_disallowed = saved_sses_disallowed;
+    /* Restore the previous state wrt. the generation of source sequence
+       entries. */
+    source_sequence_entries_disallowed = saved_sses_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    } else {
-      check_assertion(nonclass_prototype_instantiations);
-      sym->variant.static_data_member.variable->template_decl =
-                                                    decl_state->template_decl;
-    }  /* if */
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   }  /* if */
   *p_tssp = tssp;
   db_exit();
@@ -11843,7 +11830,6 @@ information returned from decl_specifiers and declarator.
 */
 {
   a_symbol_ptr         sym = NULL;
-  a_template_decl_ptr  template_decl = NULL;
 
   db_enter(4, "function_template_declaration");  
   /* Set a flag in each param type entry whose associated type is or
@@ -11858,14 +11844,23 @@ information returned from decl_specifiers and declarator.
   }  /* if */
   decl_state->prototype_scope_symbols = func_info->prototype_scope_symbols;
   /* Process a function template declaration. */
-#if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
-  template_decl = decl_state->template_decl;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL */
   decl_function_template(locator, type, func_info, &sym, storage_class,
                          decl_modifiers, decl_state->decl_info,
                          decl_state->effective_decl_level,
-                         template_decl,
+                         (a_template_decl_ptr)NULL,
                          decl_state->is_specialization);
+  if (func_info->is_definition) {
+    
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  } else {
+    /* Turn the source sequence entry for the a_template entry into a
+       secondary source sequence entry. */
+    a_src_seq_secondary_decl_ptr sssdp = secondary_src_seq_for_template(
+                                               decl_state->il_template_entry);
+    sssdp->declared_type = func_info->declared_type;
+    sssdp->friend_decl = decl_state->is_template_friend;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  }  /* if */
   if (sym != NULL && sym->kind == (a_symbol_kind)sk_member_function &&
       decl_state->is_specialization) {
     /* Earlier, we thought this was a specialization but it turned out to
@@ -11876,7 +11871,6 @@ information returned from decl_specifiers and declarator.
   if (decl_state->is_template_friend) {
     /* Make sure the friend is not in a local class. */
     check_local_class_template_friend(decl_state, locator);
-    decl_state->decl_scope_err = TRUE;
   }  /* if */
   db_exit();
   return sym;
@@ -12106,9 +12100,10 @@ information).  See the definition of a_tmpl_decl_state for details.
 {
   a_template_decl_info_ptr	    prev_template_decl_info = NULL;
   a_template_decl_info_ptr	    template_decl_info = NULL;
-  a_boolean			    param_list_seen = FALSE;
+  a_boolean                    param_list_seen = FALSE;
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-  a_source_position                 template_pos;
+  a_source_position            template_pos;
+  a_template_decl_ptr          template_decl;
 #endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 
   /* Loop until there are no more template parameter clauses.  Note that
@@ -12157,13 +12152,13 @@ information).  See the definition of a_tmpl_decl_state for details.
            subsequent missing parameter list is an error. */
         param_list_seen = TRUE;
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-        if (prototype_instantiations_in_il) {
-          a_template_decl_ptr template_decl =
-                        make_template_decl(decl_state->decl_info->parameters);
-          template_decl->parent = decl_state->template_decl;
-          template_decl->template_pos = template_pos;
-          decl_state->template_decl = template_decl;
-        }
+        template_decl = make_template_decl(decl_state->decl_info->parameters);
+        template_decl->template_pos = template_pos;
+        if (decl_state->il_template_entry != NULL) {
+          template_decl->parent = decl_state->il_template_entry->template_decl;
+          decl_state->il_template_entry->template_decl = template_decl;
+        }  /* if */
+        decl_state->template_decl = template_decl;
 #endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
       } else if (is_template_param) {
         /* A template parameter declaration with a missing template
@@ -12183,13 +12178,13 @@ information).  See the definition of a_tmpl_decl_state for details.
         /* Bypass the ">". */
         (void)get_token();
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-        if (prototype_instantiations_in_il) {
-          a_template_decl_ptr template_decl =
-                                         make_template_decl(/*tp_list=*/NULL);
-          template_decl->parent = decl_state->template_decl;
-          template_decl->template_pos = template_pos;
-          decl_state->template_decl = template_decl;
-        }
+        template_decl = make_template_decl(/*tp_list=*/NULL);
+        template_decl->template_pos = template_pos;
+        if (decl_state->il_template_entry != NULL) {
+          template_decl->parent = decl_state->il_template_entry->template_decl;
+          decl_state->il_template_entry->template_decl = template_decl;
+        }  /* if */
+        decl_state->template_decl = template_decl;
 #endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
       }  /* if */
     } else {
@@ -12300,16 +12295,12 @@ any non-empty template parameter lists that were scanned.
       pos_error(ec_exp_declaration, &pos_curr_token);
     } else if (decl_state->is_member_decl && !decl_state->is_template_friend) {
       /* A member template declaration. */
-      a_template_decl_ptr  template_decl = NULL;
       a_source_position	   decl_start_pos;
       decl_start_pos = pos_curr_token;
-#if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
-      template_decl = decl_state->template_decl;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL */
       sym = class_member_template_declaration(decl_state->class_declared_in,
                                               decl_state->
                                                      decl_info->parameters,
-                                              template_decl,
+                                              decl_state->il_template_entry,
                                               &decl_state->decl_pos_block);
       complete_function_template_decl(decl_state, sym,
                                       (a_func_info_block *)NULL,
@@ -12464,8 +12455,12 @@ any non-empty template parameter lists that were scanned.
         /* Do a "prototype instantiation" of the class template -- i.e., parse
            the declarative information looking for gross syntax errors. */
         prototype_okay = TRUE;
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+        assoc_template_of(prototype_type) = decl_state->il_template_entry;
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
         instantiate_class_template(sym, prototype_type,
                                    &class_templ_cache_segments);
+        prototype_type->source_corresp.decl_position = sym->decl_position;
         if (tag_resolution) {
           /* This is the resolution of a previously incomplete template
              declaration.  If there are any incomplete instantiations that were
@@ -12474,6 +12469,16 @@ any non-empty template parameter lists that were scanned.
 		                                              prototype_type);
         }  /* if */
       }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    } else if (!decl_state->defines_something &&
+               !source_sequence_entries_disallowed) {
+      /* Turn the source sequence entry for the a_template entry into a
+         secondary source sequence entry. */
+      a_src_seq_secondary_decl_ptr sssdp = secondary_src_seq_for_template(
+                                               decl_state->il_template_entry);
+      sssdp->friend_decl = decl_state->is_template_friend;
+      sssdp->autonomous_tag_decl = TRUE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     }  /* if */
   } else if (nonclass_prototype_instantiations && sym != NULL) {
     if (is_function_or_template_symbol(sym)) {
@@ -12501,20 +12506,6 @@ any non-empty template parameter lists that were scanned.
   /* Complete the a_template entry and link it into the list of templates
      for the appropriate scope. */
   complete_il_template_entry(decl_state, sym, p_template_body_cache);
-#if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
-  if (prototype_instantiations_in_il) {
-    /* Since we recorded a prototype instantiation, remove the source sequence
-       entry for the corresponding a_template entry.  (We never want both in
-       the IL.) */
-    a_source_correspondence_ptr scp = 
-                               &decl_state->il_template_entry->source_corresp;
-    if (scp->source_sequence_entry != NULL) {
-      remove_from_src_seq_list(scp->source_sequence_entry);
-      scp->source_sequence_entry = NULL;
-    }  /* if */
-    check_assertion(nonclass_prototype_instantiations);
-  }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL */
   if (class_templ_cache_segments != NULL) {
     /* Remove any default arguments that may remain in the cache. */
     (void)extract_member_bodies(&tssp->cache, class_templ_cache_segments,

@@ -5868,16 +5868,12 @@ recorded in the IL, the template header is passed via template_decl.
   microsoft_out_of_class_redecl = microsoft_mode && sym->is_class_member &&
                                                     !func_info->is_definition;
   if (!is_error_locator(*locator)) {
-#if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
-    a_boolean  saved_sses_disallowed;
-    if (!prototype_instantiations_in_il || is_template_symbol(sym)) {
-      /* Prevent the generation of a source sequence entry for the a_template
-         entry: we already did so elsewhere or we are generating prototype
-         instantiations and hence do not want to record a_template entries. */
-      saved_sses_disallowed = source_sequence_entries_disallowed;
-      source_sequence_entries_disallowed = TRUE;
-    }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    /* Prevent the generation of a source sequence entry for the a_template
+       entry: we already did so elsewhere. */
+    a_boolean saved_sses_disallowed = source_sequence_entries_disallowed;
+    source_sequence_entries_disallowed = TRUE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     if (func_info->is_definition) {
       if (sym->defined) {
         pos_sy_error(ec_already_defined, &locator->source_position, sym);
@@ -5893,71 +5889,15 @@ recorded in the IL, the template header is passed via template_decl.
                      &locator->source_position, sym);
       } /* if */
     } /* if */
-#if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
-    if (!prototype_instantiations_in_il || is_template_symbol(sym)) {
-      /* Restore the previous state wrt. the generation of source sequence
-         entries. */
-      source_sequence_entries_disallowed = saved_sses_disallowed;
-    }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    /* Restore the previous state wrt. the generation of source sequence
+       entries. */
+    source_sequence_entries_disallowed = saved_sses_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   } /* if */
-#if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
-  if (prototype_instantiations_in_il) {
-    a_source_sequence_entry_ptr  ssep;
-    check_assertion(nonclass_prototype_instantiations);
-    if (sym->kind == (a_symbol_kind)sk_function_template ||
-        microsoft_out_of_class_redecl) {
-      /* We have already recorded (mark_defined/mark_declared) the template in
-         the code above, but not the prototype instantiation. */
-      ssep = func_info->declarator_ssep;
-      if (ssep == NULL) {
-        /* This could happen if we're processing a prototype friend template
-           instantiation as part of a real class instantiation. */
-      } else {
-        a_symbol_reference_kind  srk_flags = SRK_DECLARATION;
-        if (func_info->is_definition) srk_flags |= SRK_DEFINITION;
-        if (idlb.is_friend_decl) srk_flags |= SRK_FRIEND;
-        record_symbol_declaration(srk_flags,
-                                  (a_symbol_ptr)rout_ptr->
-                                                    source_corresp.assoc_info,
-                                  &locator->source_position, ssep);
-      }  /* if */
-    } else {
-      ssep = rout_ptr->source_corresp.source_sequence_entry;
-      if (func_info->declarator_ssep != NULL) {
-        remove_from_src_seq_list(func_info->declarator_ssep);
-        func_info->declarator_ssep = NULL;
-      }  /* if */
-    }  /* if */
-    if (ssep == NULL) {
-    } else if (ss_entry_kind(ssep) == iek_src_seq_secondary_decl) {
-      a_src_seq_secondary_decl_ptr sssdp =
-                             ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
-      sssdp->declared_type = func_info->declared_type;
-      sssdp->friend_decl = idlb.is_friend_decl;
-      sssdp->template_decl = template_decl;
-    } else {
-      set_routine_declared_type(rout_ptr, func_info->declared_type);
-      rout_ptr->template_decl = template_decl;
-      rout_ptr->defined_in_friend_decl = idlb.is_friend_decl &&
-                                         func_info->is_definition;
-    }  /* if */
-  } else {
-    a_source_correspondence_ptr  scp = source_corresp_entry_for_symbol(sym);
-    if (scp != NULL && scp->source_sequence_entry != NULL) {
-      /* The call to mark_defined may have created an extra source sequence
-         entry. */
-      remove_from_src_seq_list(scp->source_sequence_entry);
-      scp->source_sequence_entry = NULL;
-    }  /* if */
-    /* We're not making function prototype instantiations.  Remove the
-       source sequence entry that was created for the declarator. */
-    if (func_info->declarator_ssep != NULL) {
-      remove_from_src_seq_list(func_info->declarator_ssep);
-      func_info->declarator_ssep = NULL;
-    }  /* if */
+  if (func_info->is_definition) {
+    set_routine_declared_type(rout_ptr, func_info->declared_type);
   }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL */
   update_routine_decl_modifiers(rout_ptr, decl_modifiers,
                                 &locator->source_position, redeclaration,
                                 (a_boolean)func_info->is_definition,

@@ -2198,9 +2198,6 @@ associated with the indicated sck_function scope.
       /* Move the declared type pointer from the routine into the
          source-sequence entry, clearing the routine's pointer (since
          rp no longer represents a definition). */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
-      sssdp->template_decl = rp->template_decl;
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
       sssdp->declared_type = rp->declared_type;
       rp->declared_type = NULL;
       sssdp->friend_decl = rp->defined_in_friend_decl;
@@ -2365,13 +2362,6 @@ class type.
       sssdp->autonomous_tag_decl = TRUE;
       sssdp->first_declaration =
           symbol_supplement_for_class(class_type)->definition_is_first_decl;
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
-      if (prototype_instantiations_in_il) {
-        a_class_type_supplement_ptr ctsp =
-                            class_type->variant.class_struct_union.extra_info;
-        sssdp->template_decl = (ctsp != NULL) ? ctsp->template_decl : NULL;
-      }  /* if */
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
     }  /* if */
   }  /* if */
 }  /* eliminate_class_body_source_sequence_entries */

@@ -1431,6 +1431,10 @@ nested class.
           if (nonclass_prototype_instantiations) {
             /* Do the prototype instantiation of the function body. */
             function_prototype_instantiation(sym);
+            if (is_friend) {
+              tssp = template_supplement_for_symbol(sym);
+              tssp->variant.function.routine->defined_in_friend_decl = TRUE;
+            }  /* if */
           }  /* if */
         } else if (is_nonreal_template_instantiation &&
                    !scope_stack[depth_scope_stack].inside_local_class &&
@@ -6736,12 +6740,23 @@ in-class member function declarations.)
   }  /* if */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   if (!is_error_locator(*locator)) {
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    /* Prevent the generation of a source sequence entry for the a_template
+       entry: we already did so elsewhere. */
+    a_boolean saved_sses_disallowed = source_sequence_entries_disallowed;
+    source_sequence_entries_disallowed = TRUE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* Update cross-reference information, etc. */
     if (func_info->is_definition) {
       mark_defined(sym, &locator->source_position);
     } else {
       mark_declared(sym, &locator->source_position);
     }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    /* Restore the previous state wrt. the generation of source sequence
+       entries. */
+    source_sequence_entries_disallowed = saved_sses_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     update_decl_pos_info(&rtn->source_corresp, &decl_info->decl_pos_block);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -10360,7 +10375,7 @@ static a_symbol_ptr class_member_declaration(
                       a_boolean                *skip_semicolon_check,
                       a_type_ptr               *member_template_instance_type,
                       a_template_instance_ptr  instance,
-                      a_template_decl_ptr      template_decl,
+                      a_template_ptr           il_template_entry,
                       a_decl_pos_block_ptr     decl_pos_block_ptr)
 /*
 Scan a member declaration appearing inside a class definition.  class_type
@@ -10792,52 +10807,28 @@ the IL, the template header is passed via template_decl.
         decl_member_function_template(&locator, class_type, local_type,
                                       templ_param_list, &func_info,
                                       class_state, &decl_info);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+        if (decl_info.declarator_ssep != NULL) {
+          remove_from_src_seq_list(decl_info.declarator_ssep);
+          decl_info.declarator_ssep = NULL;
+        }  /* if */
+        if (!func_info.is_definition && !source_sequence_entries_disallowed) {
+          /* Turn the source sequence entry for the a_template entry into a
+             secondary source sequence entry. */
+          a_src_seq_secondary_decl_ptr sssdp =
+                            secondary_src_seq_for_template(il_template_entry);
+          sssdp->declared_type = func_info.declared_type;
+        } else if (func_info.is_definition) {
+          template_supplement_for_symbol(decl_info.member_sym)->
+                              variant.function.routine->declared_type =
+                                                      func_info.declared_type;
+        }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         rout_sym = decl_info.member_sym;
         if (decl_info.is_constructor && (dso_flags & DSO_EXPLICIT)) {
           tssp = rout_sym->variant.template_info;
           tssp->variant.function.routine->is_explicit_constructor = TRUE;
         }  /* if */
-#if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
-        if (func_info.declarator_ssep == NULL) {
-          /* A member of a real instantiation. */
-        } else if (prototype_instantiations_in_il) {
-          /* Record member templates of prototype instantiations.  (For real
-             instantiations, func_info.declarator_ssep will be NULL. */
-          a_routine_ptr  rout_ptr = rout_sym->variant.template_info
-                                            ->variant.function.routine;
-          a_symbol_reference_kind  srk_flags = SRK_DECLARATION;
-          if (func_info.is_definition) srk_flags |= SRK_DEFINITION;
-          record_symbol_declaration(srk_flags,
-                                    (a_symbol_ptr)rout_ptr->
-                                                    source_corresp.assoc_info,
-                                    &locator.source_position,
-                                    func_info.declarator_ssep);
-          if (ss_entry_kind(func_info.declarator_ssep) ==
-                                                 iek_src_seq_secondary_decl) {
-            a_src_seq_secondary_decl_ptr sssdp =
-                                   ss_entry_ptr(func_info.declarator_ssep,
-                                                a_src_seq_secondary_decl_ptr);
-            sssdp->declared_type = func_info.declared_type;
-            sssdp->template_decl = template_decl;
-          } else {
-            set_routine_declared_type(rout_ptr, func_info.declared_type);
-            rout_ptr->template_decl = template_decl;
-          }  /* if */
-          check_assertion(nonclass_prototype_instantiations);
-        } else {
-          a_routine_ptr  rout_ptr = rout_sym->variant.template_info
-                                            ->variant.function.routine;
-          remove_from_src_seq_list(func_info.declarator_ssep);
-          func_info.declarator_ssep = NULL;
-          if (rout_ptr->source_corresp.source_sequence_entry != NULL) {
-            /* The call to mark_defined may have created a source sequence
-               entry for a routine rather than a template. */
-            remove_from_src_seq_list(
-                              rout_ptr->source_corresp.source_sequence_entry);
-            rout_ptr->source_corresp.source_sequence_entry = NULL;
-          }  /* if */
-        }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL */
         remove_stop_token(tok_comma);
         goto next_declaration;
       } else {
@@ -11181,7 +11172,7 @@ next_declaration:;
 a_symbol_ptr class_member_template_declaration(
                                      a_type_ptr            class_type,
                                      a_template_param_ptr  templ_param_list,
-                                     a_template_decl_ptr   template_decl,
+                                     a_template_ptr        il_template_entry,
                                      a_decl_pos_block_ptr  decl_pos_block_ptr)
 /*
 Scan a template function declaration that appears inside a class (or class
@@ -11207,7 +11198,7 @@ is the template parameter list for the function template.
                                  /*is_member_template=*/TRUE,
                                  templ_param_list, &skip_semicolon_check,
                                  &dummy_type, (a_template_instance_ptr)NULL,
-                                 template_decl,
+                                 il_template_entry,
                                  decl_pos_block_ptr);
   if (curr_routine_fixup != NULL) dispose_of_curr_routine_fixup();
   if (sym == NULL) {
@@ -11252,7 +11243,7 @@ instance record associated with this instantiation.
                                  (a_template_param_ptr)NULL,
                                  &skip_semicolon_check,
                                  &member_template_instance_type, instance,
-                                 (a_template_decl_ptr)NULL,
+                                 (a_template_ptr)NULL,
                                  (a_decl_pos_block *)NULL);
   curr_routine_fixup = saved_routine_fixup;
   db_exit();
@@ -11906,7 +11897,7 @@ nested classes when their definition appears outside of the class template.
                                        &skip_semicolon_check,
                                        &dummy_type,
                                        (a_template_instance_ptr)NULL,
-                                       (a_template_decl_ptr)NULL,
+                                       (a_template_ptr)NULL,
                                        (a_decl_pos_block *)NULL);
         if (!skip_semicolon_check) {
           /* Check for and ignore the semicolon following the member
@@ -11960,10 +11951,21 @@ next_declaration:
     }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-    /* Add a source sequence entry marking the end of the class
-       definition. */
-    add_end_of_construct_source_sequence_entry(
+    /* Add a source sequence entry marking the end of the class definition. */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+    if (class_state.is_nonreal_instantiation &&
+        assoc_template_of(class_type) != NULL) {
+      /* This is a prototype instantiation of a class template. */
+      add_end_of_construct_source_sequence_entry(
+                                        (char *)assoc_template_of(class_type),
+                                        (a_byte_il_entry_kind)iek_template);
+    } else
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+    /* Do not insert code here. */
+    {
+      add_end_of_construct_source_sequence_entry(
                          (char *)class_type, (a_byte_il_entry_kind)iek_type);
+    }  /* if */
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   /* Clear the modified the ss-list instantiation insert point for the scope
      to which the class being defined belongs.  This has to be done before

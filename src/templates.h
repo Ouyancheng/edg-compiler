@@ -107,6 +107,11 @@ a_template_cache_ptr cache_for_template(a_template_symbol_supplement_ptr tssp);
 
 extern a_template_arg_ptr templ_arg_list_for_class(a_type_ptr class_type);
 
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+extern a_src_seq_secondary_decl_ptr
+                            secondary_src_seq_for_template(a_template_ptr  tp);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
 extern a_symbol_ptr primary_template_of(a_symbol_ptr sym);
 
 extern a_boolean rout_is_inline_template_function(a_routine_ptr	rout);
