@@ -42,12 +42,17 @@ initialize an array to the value of another array:
 
 Now fixed.
 
-1/9/04   NEED_NAME_MANGLING without DO_IL_LOWERING
+1/9/04   Name mangling without IL lowering
 
 Some minor changes have been made in fe_wrapup.c to support the
-combination of name mangling (NEED_NAME_MANGLING TRUE) without
-IL lowering (DO_IL_LOWERING FALSE).  Formerly, the mangling
-routines were not called in such a configuration.
+combination of name mangling without IL lowering (DO_IL_LOWERING
+FALSE).  Formerly, it was thought that setting NEED_NAME_MANGLING
+was enough to get that combination, but the mangling routines were
+present but not called for all names in such a configuration.
+Therefore, a new macro MANGLE_ALL_NAMES has been added, which
+indicates that all names should be mangled.  NEED_NAME_MANGLING
+is be set by default if MANGLE_ALL_NAMES is set, so it need not
+be set explicitly.
 
 1/8/04   C/C++-generating back end: system header flag on line directives
 
