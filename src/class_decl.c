@@ -7480,7 +7480,8 @@ be the last in the anonymous-union-parent chain.
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
 
 void check_anonymous_union_symbols(a_symbol_ptr  assoc_object_sym,
-                                   a_type_ptr    class_type)
+                                   a_type_ptr    class_type,
+                                   a_boolean     is_nonstd)
 /*
 assoc_object_sym is a symbol for an unnamed field or variable that is the
 object associated with an anonymous union.  The type of the field or
@@ -7493,7 +7494,8 @@ If ALLOW_NONSTANDARD_ANONYMOUS_UNIONS, then, when assoc_object_sym refers
 to a field, its type may also be an unnamed struct or class, or a typedef
 referring to an unnamed class, struct, or union.  If the type is a typedef,
 or a named struct or class, the symbols are not promoted, but rather new
-ones are allocated in the scope specified by decl_scope_level.
+ones are allocated in the scope specified by decl_scope_level.  For such
+nonstandard anonymous unions is_nonstd is TRUE.
 */
 {
   a_symbol_ptr                   sym, next_sym, mf_sym, apo_sym;
@@ -7556,7 +7558,7 @@ ones are allocated in the scope specified by decl_scope_level.
     db_symbol(assoc_object_sym, ":\n  ", 4);
   }  /* if */
 #endif /* DEBUG */
-  if (reuse_symbol && !C_mode()) {
+  if (reuse_symbol && !C_mode() && !is_nonstd) {
     ctsp = assoc_object_type->variant.class_struct_union.extra_info;
     if (assoc_object_sym->kind == (a_symbol_kind)sk_field) {
       ctsp->anonymous_union_kind = (an_anonymous_union_kind)auk_field;
@@ -8629,7 +8631,9 @@ specific information about the member declaration, respectively.
   }  /* if */
   if (decl_info->is_anonymous_union) {
     /* Do checking, promote symbols to the current class. */
-    check_anonymous_union_symbols(member_sym, class_type);
+    check_anonymous_union_symbols(member_sym, class_type,
+                                  (a_boolean)decl_info->
+                                               is_nonstd_anonymous_union);
   }  /* if */
   if (is_aggregate_or_union_type(member_type)) {
     /* If the member's type is class, struct, or union -- or array of class,

@@ -1100,7 +1100,8 @@ current scope.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Promote symbols for anonymous unions members to the enclosing scope.
      Error checking is also done. */
-  check_anonymous_union_symbols(assoc_object_sym, (a_type_ptr)NULL);
+  check_anonymous_union_symbols(assoc_object_sym, (a_type_ptr)NULL,
+                                /*is_nonstd=*/FALSE);
 }  /* make_anonymous_union_variable */
 
 
