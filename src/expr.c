@@ -1619,11 +1619,17 @@ information is not being maintained.  The result is placed in *result.
     make_error_operand(result);
   } else {
     field = field_sym->variant.field.ptr;
-    /* The result type is set to the type of the field with the union of the
-       qualifiers of the field and the qualifiers of the class, struct,
-       or union. */
-    result_type = type_plus_qualifiers_from_second_type(field->type,
+    if (cfront_compatibility_mode && is_array_type(field->type)) {
+      /* cfront 2.1 fouls up the qualifiers on arrays.  Duplicate the
+         behavior.  (This comes up in the NIH libraries.) */
+      result_type = field->type;
+    } else {
+      /* The result type is set to the type of the field with the union of the
+         qualifiers of the field and the qualifiers of the class, struct,
+         or union. */
+      result_type = type_plus_qualifiers_from_second_type(field->type,
                                                       class_struct_union_type);
+    }  /* if */
     rvalue_selection = (!is_arrow_operator && is_an_rvalue(operand_1));
     /* The operator is eok_value_field if the left operand is an rvalue and
        the selection was via the dot operator; otherwise it's the eok_field
