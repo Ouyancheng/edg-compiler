@@ -199,6 +199,10 @@ pruned at the entry pointed to by ptr, of kind "kind".
        memory regions that weren't moved from secondary translation
        units. */
     il_entry_prefix_of(ptr).secondary_trans_unit = FALSE;
+    if (kind == iek_scope) {
+      a_scope_ptr scope = (a_scope_ptr)ptr;
+      trans_unit_for_scope[scope->number] = translation_units;
+    }  /* if */
     prune = FALSE;
   } else {
     /* This entry is in the file scope memory region of a secondary translation
