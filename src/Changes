@@ -2,7 +2,7 @@ Version 3.6
 
 1/17/05  C99 inline definitions and local static variables
 
-In C99 mode, the front previously issued an error whenever a local static
+In C99 mode, the front end previously issued an error whenever a local static
 variable appeared in a function declared with the keyword "inline".  Now, an
 error is only issued for function definitions that are "inline definitions":
 Every declaration in the translation unit must have the keyword inline, and
