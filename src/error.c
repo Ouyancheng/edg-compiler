@@ -1,3 +1,4 @@
+
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *
@@ -121,7 +122,7 @@ typedef struct msg_segment {
   int		length;		/* Current length of the message segment. */
   int		max_length;	/* Maximum string size that can be accommodated
 				   in the message segment buffer. */
-  short		sequence;	/* Sequence number of the user string, type or
+  short		sequence_no;	/* Sequence number of the user string, type or
 				   symbol name in the error message.  This
 				   field is meaningless for kind ==
 				   msk_error_text_part. */
@@ -1564,7 +1565,7 @@ Allocate and initialize the fixed part a new message segment.
   msg->second_quote = NULL;
   msg->length       = 0;
   msg->max_length   = 0;
-  msg->sequence     = 1;
+  msg->sequence_no  = 1;
   return msg;
 }  /* new_message_segment */
 
@@ -1582,7 +1583,7 @@ static msg_segment_ptr establish_first_segment(void)
     first_segment = error_message_head = new_message_segment();
   }  /* if */
   first_segment->length = 0;
-  first_segment->sequence = 1;
+  first_segment->sequence_no = 1;
   return first_segment;
 }  /* establish_first_segment */
 
@@ -2324,11 +2325,11 @@ NOTE:  Symbol name insertion is not available if STANDALONE_UTILITY_PROGRAM
             }  /* if */
 #endif /* STANDALONE_UTILITY_PROGRAM */
 check_for_seq_number:
-            curr_segment->sequence = 1;
+            curr_segment->sequence_no = 1;
             if (isdigit(*msg_ptr)) {
-              i = toascii(*msg_ptr) - toascii('0');
+              i = (unsigned)*msg_ptr - (unsigned)'0';
               if (i > 0 && i <= INCR_MSG_SEGMENT_SIZE) {
-                curr_segment->sequence = i;
+                curr_segment->sequence_no = i;
                 msg_ptr++;
               }  /* if */
             }  /* if */
@@ -2367,7 +2368,7 @@ text_segment:
     }  /* if */
     curr_segment = curr_segment->next;
     curr_segment->length = 0;
-    curr_segment->sequence = 1;
+    curr_segment->sequence_no = 1;
   }  /* while */
 
   /* Having reached the end of the diagnostic message template, terminate
@@ -2533,7 +2534,7 @@ if possible.
 
 When text as allowed to be wrapped to the next line, trailing spaces on
 each message fragment are not printed; but the number of these blanks is
-remembered and used,if needed, for spacing before the next fragment.  The
+remembered and used, if needed, for spacing before the next fragment.  The
 boolean start_of_diagnostic indicates the beginning of a complete diagnostic.
 Any trailing spaces not printed at the end of the previous diagnostic will
 be forgotten.
@@ -2560,7 +2561,7 @@ be forgotten.
           len <= MAX_ERROR_OUTPUT_LINE_LENGTH - INDENT_AMOUNT ) {
         /* Quoted text will fit nicely on the next line. */
         goto start_line_and_indent;
-      };  /* if */
+      }  /* if */
       for (chars_to_take = chars_that_will_fit_on_line;
            chars_to_take > 0;
            chars_to_take--) {
@@ -2581,7 +2582,8 @@ be forgotten.
         /* Print any "remembered" spaces from the last fragment. */
         for (; trailing_space_count > 0; trailing_space_count--) {
           fputc(' ', file);
-        }; /* for */
+          (*line_len)++;
+        }  /* for */
         for (; trailing_space_count-- > 0;) fputc(' ', file);
         *line_len += fprintf(file, "%.*s", chars_to_take, msg);
         msg += chars_to_take;
@@ -2606,7 +2608,8 @@ start_line_and_indent:
     /* Print any "remembered" spaces from the last fragment. */
     for (; trailing_space_count > 0; trailing_space_count--) {
       fputc(' ', file);
-    }; /* for */
+      (*line_len)++;
+    }  /* for */
 
     if (wrap) {
       /* Remove any trailing spaces from the final piece of text.  These
@@ -2670,7 +2673,7 @@ successive additional lines as necessary.
         if (curr_seg->variant.string.quoted) {
           goto handle_embedded_quoted_text;
         }  /* if */
-        write_message_part(error_msg_strings[curr_seg->sequence], -1, file,
+        write_message_part(error_msg_strings[curr_seg->sequence_no], -1, file,
                            line_len, wrap, /*quoted_text=*/FALSE,
                            start_of_message);
         break;
@@ -2691,7 +2694,7 @@ handle_embedded_quoted_text:
                                line_len, wrap, /*quoted_text=*/FALSE,
                                start_of_message);
             start_of_message = FALSE;
-          };  /* if */
+          }  /* if */
           /* Output the quoted text as a single unit. */
           total_len += length = curr_seg->second_quote -
                                 curr_seg->first_quote +1;
@@ -2705,7 +2708,7 @@ handle_embedded_quoted_text:
                                line_len, wrap, /*quoted_text=*/FALSE,
                                start_of_message);
           }  /* if */
-        };  /* if */
+        }  /* if */
         break;
     }  /* switch */
     start_of_message = FALSE;
@@ -2977,25 +2980,81 @@ Write a command-line error message, and terminate the compilation.
   str_command_line_error(error_message, "");
 }  /* command_line_error */
 
+#if CHECKING
 
-static void construct_diagnostic (an_error_code     error_code,
-                                  a_source_position *error_pos,
-                                  an_error_severity severity)
+static void check_if_fill_in_used(enum a_message_segment_kind_tag kind,
+                                  int                             seq_no,
+                                  an_error_code                   error_code)
 /*
-Construct a diagnostic message.  The error code is error_code, and the
-position of the error is *error_pos.  severity gives the severity (e.g.,
+As a sanity check, report any fill-in that has not been incorporated into
+the diagnostic being formed.  kind denotes which of string, type, or symbol
+fill-in kind is to be checked; seq_no specifies the sequence number of
+that fill-in kind.  error_code is provided for debugging information.
+*/
+{
+  msg_segment_ptr
+		curr_seg;
+#if DEBUG
+  char		*s;
+#endif /* DEBUG */
+
+  for (curr_seg = error_message_head;
+       curr_seg != NULL && curr_seg->kind != (a_message_segment_kind)msk_last;
+       curr_seg = curr_seg->next ) {
+    if (curr_seg->kind == (a_message_segment_kind)kind && 
+        curr_seg->sequence_no == seq_no) {
+      /* The fill-in to be checked has been used. */
+      goto return_point;
+    }  /* if */
+  }  /* for */
+  /* Having scanned the complete list of message segments, this fill-in
+     obviously has not been used. */
+#if DEBUG
+  switch (kind) {
+    case msk_user_string:
+      s = "string %s";
+      break;
+    case msk_type:
+      s = "type %t";
+      break;
+    case msk_symbol:
+      s = "symbol %n";
+      break;
+    default:
+      s = "";
+  }  /* switch */
+  if (debug_level > 0) {
+    (void)fprintf(f_debug, "Provided diagnostic fill-in %s%d was not used.\n",
+                  s, seq_no);
+    (void)fprintf(f_debug, "  error message = \"%s\"\n", error_text(error_code));
+  }  /* if */
+#endif /* DEBUG */
+  internal_error(
+           "check_if_fill_in_used: provided diagnostic fill-in was not used");
+return_point:;
+}  /* check_if_fill_in_used */
+
+#endif /* CHECKING */
+
+static void construct_and_write_diagnostic (an_error_code     error_code,
+                                            a_source_position *error_pos,
+                                            an_error_severity severity)
+/*
+Construct and write a diagnostic message.  The error code is error_code, and
+the position of the error is *error_pos.  severity gives the severity (e.g.,
 es_warning).  The linked list of message segments that comprise the 
 diagnostic is based on the error message template associated with error_code.
 After constructing the segment list and doing any required expansions, the
 diagnostic is written.
 */
 {
-  char		  *error_text_template;
-  msg_segment_ptr curr_seg;
+  msg_segment_ptr
+		curr_seg;
+  int		i;
 
-  /* Get the error message text (template). */
-  error_text_template = error_text(error_code);
-  construct_message_segments(error_text_template);
+  /* Get the error message text (template) and construct the message
+     segment list. */
+  construct_message_segments(error_text(error_code));
 
   /* Walk through the message segments and complete any required 
      expansion. */
@@ -3007,15 +3066,16 @@ diagnostic is written.
 
       case msk_user_string:
 #if CHECKING
-        if (error_msg_strings[curr_seg->sequence] == NULL) {
-          internal_error("construct_diagnostic: missing string substitution");
+        if (error_msg_strings[curr_seg->sequence_no] == NULL) {
+          internal_error(
+                "construct_and_write_diagnostic: missing string substitution");
         }  /* if */
 #endif /* CHECKING */
         if (curr_seg->variant.string.quoted) {
           /* Rebuild the user string surrounded by double quotes. */
           add_string_to_segment("\"", curr_seg);
           curr_seg->first_quote = curr_seg->segment + curr_seg->length - 1;
-          add_string_to_segment(error_msg_strings[curr_seg->sequence],
+          add_string_to_segment(error_msg_strings[curr_seg->sequence_no],
                                 curr_seg);
           add_string_to_segment("\"", curr_seg);
           curr_seg->second_quote = curr_seg->segment + curr_seg->length - 1;
@@ -3024,28 +3084,45 @@ diagnostic is written.
         
       case msk_type:
 #if CHECKING
-        if (error_msg_types[curr_seg->sequence] == NULL) {
-          internal_error("construct_diagnostic: missing type substitution");
+        if (error_msg_types[curr_seg->sequence_no] == NULL) {
+          internal_error(
+                "construct_and_write_diagnostic: missing type substitution");
         }  /* if */
 #endif /* CHECKING */
-        form_type_summary(error_msg_types[curr_seg->sequence], curr_seg);
+        form_type_summary(error_msg_types[curr_seg->sequence_no], curr_seg);
         break;
       case msk_symbol:
 #if !STANDALONE_UTILITY_PROGRAM
 #if CHECKING
-        if (error_msg_syms[curr_seg->sequence] == NULL) {
-          internal_error("construct_diagnostic: missing symbol substitution");
+        if (error_msg_syms[curr_seg->sequence_no] == NULL) {
+          internal_error(
+                "construct_and_write_diagnostic: missing symbol substitution");
         }  /* if */
 #endif /* CHECKING */
-        form_symbol_name(error_msg_syms[curr_seg->sequence],
+        form_symbol_name(error_msg_syms[curr_seg->sequence_no],
                          error_pos, curr_seg);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
         break;
     }  /* switch */
   }  /* for */
+#if CHECKING
+  for (i = 1; i <= MAX_ERR_SEG_KIND_PER_MSG; i++) {
+    if (error_msg_strings[i] != NULL) {
+      check_if_fill_in_used(msk_user_string, i, error_code);
+    }  /* if */
+    if (error_msg_types[i] != NULL) {
+      check_if_fill_in_used(msk_type, i, error_code);
+    }  /* if */
+#if !STANDALONE_UTILITY_PROGRAM
+    if (error_msg_syms[i] != NULL) {
+      check_if_fill_in_used(msk_symbol, i, error_code);
+    }  /* if */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+  }  /* for */
+#endif /* CHECKING */
 
   write_diagnostic(error_pos, severity);
-}  /* construct_diagnostic */
+}  /* construct_and_write_diagnostic */
 
 
 void pos_st_remark(an_error_code     error_code,
@@ -3058,7 +3135,7 @@ indicated position.
 {
   init_error_params();
   error_msg_strings[1] = error_string;
-  construct_diagnostic(error_code, error_pos, es_remark);
+  construct_and_write_diagnostic(error_code, error_pos, es_remark);
 }  /* pos_st_remark */
 
 
@@ -3102,7 +3179,7 @@ indicated position.
 {
   init_error_params();
   error_msg_types[1] = type;
-  construct_diagnostic(error_code, error_pos, es_remark);
+  construct_and_write_diagnostic(error_code, error_pos, es_remark);
 }  /* pos_ty_remark */
 
 
@@ -3128,7 +3205,7 @@ indicated position.
 {
   init_error_params();
   error_msg_syms[1] = symbol;
-  construct_diagnostic(error_code, error_pos, es_remark);
+  construct_and_write_diagnostic(error_code, error_pos, es_remark);
 }  /* pos_sy_remark */
 
 
@@ -3154,7 +3231,7 @@ indicated position.
 {
   init_error_params();
   error_msg_strings[1] = error_string;
-  construct_diagnostic(error_code, error_pos, es_warning);
+  construct_and_write_diagnostic(error_code, error_pos, es_warning);
 }  /* pos_st_warning */
 
 
@@ -3187,7 +3264,7 @@ indicated position.
 {
   init_error_params();
   error_msg_types[1] = type;
-  construct_diagnostic(error_code, error_pos, es_warning);
+  construct_and_write_diagnostic(error_code, error_pos, es_warning);
 }  /* pos_ty_warning */
 
 
@@ -3215,7 +3292,7 @@ indicated position.
   init_error_params();
   error_msg_syms[1] = symbol;
   error_msg_types[1] = type;
-  construct_diagnostic(error_code, error_pos, es_warning);
+  construct_and_write_diagnostic(error_code, error_pos, es_warning);
 }  /* pos_sy_warning */
 
 
@@ -3229,7 +3306,7 @@ indicated position.
 {
   init_error_params();
   error_msg_syms[1] = symbol;
-  construct_diagnostic(error_code, error_pos, es_warning);
+  construct_and_write_diagnostic(error_code, error_pos, es_warning);
 }  /* pos_sy_warning */
 
 
@@ -3255,7 +3332,7 @@ indicated position.
 {
   init_error_params();
   error_msg_strings[1] = error_string;
-  construct_diagnostic(error_code, error_pos, es_error);
+  construct_and_write_diagnostic(error_code, error_pos, es_error);
 }  /* pos_st_error */
 
 
@@ -3271,7 +3348,7 @@ indicated position.
   init_error_params();
   error_msg_strings[1] = error_string;
   error_msg_types[1] = type;
-  construct_diagnostic(error_code, error_pos, es_error);
+  construct_and_write_diagnostic(error_code, error_pos, es_error);
 }  /* pos_st_error */
 
 
@@ -3315,7 +3392,7 @@ indicated position.
 {
   init_error_params();
   error_msg_types[1] = type;
-  construct_diagnostic(error_code, error_pos, es_error);
+  construct_and_write_diagnostic(error_code, error_pos, es_error);
 }  /* pos_ty_error */
 
 
@@ -3331,7 +3408,7 @@ indicated position.
   init_error_params();
   error_msg_types[1] = type1;
   error_msg_types[2] = type2;
-  construct_diagnostic(error_code, error_pos, es_error);
+  construct_and_write_diagnostic(error_code, error_pos, es_error);
 }  /* pos_ty_error */
 
 
@@ -3357,7 +3434,7 @@ indicated position.
 {
   init_error_params();
   error_msg_syms[1] = symbol;
-  construct_diagnostic(error_code, error_pos, es_error);
+  construct_and_write_diagnostic(error_code, error_pos, es_error);
 }  /* pos_sy_error */
 
 
@@ -3373,7 +3450,7 @@ indicated position.
   init_error_params();
   error_msg_types[1] = type;
   error_msg_syms[1] = symbol;
-  construct_diagnostic(error_code, error_pos, es_error);
+  construct_and_write_diagnostic(error_code, error_pos, es_error);
 }  /* pos_syty_error */
 
 
@@ -3417,7 +3494,7 @@ at the indicated position, and then terminate the compilation.
 {
   init_error_params();
   error_msg_strings[1] = error_string;
-  construct_diagnostic(error_code, error_pos, es_catastrophe);
+  construct_and_write_diagnostic(error_code, error_pos, es_catastrophe);
 }  /* pos_st_catastrophe */
 
 
