@@ -1,4 +1,21 @@
 Version 3.2
+	
+4/21/03  Universal character names in identifiers
+
+UCNs in identifiers were not translated to a canonical form.  As a result,
+identifiers in which the UCNs were specified differently were considered
+different identifiers.  This has been fixed.  All alphabetic characters
+are converted to lower case, and only those UCNs that require more than
+four digits are put out using the 8 digit notation.  Because this is an
+ABI change, the new behavior is used only when ABI_COMPATIBILITY_VERSION
+is >= 302.
+
+  int i\u00c0\u1234\Uabcdabcdx;
+  int i\u00c0A\u1234B\UabcdabcdY;
+  int main() {
+    i\U000000C0\u1234\UabcdABCDx = 1;
+    i\u00C0A\u1234B\UAbCdAbCdY = 2;
+  }
 
 4/21/03  GNU C and Microsoft C: Type of block-extern variable declarations
 

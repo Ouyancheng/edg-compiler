@@ -493,6 +493,11 @@ static a_source_position
 			/* The source position to be used for tokens inserted
 			   from a string. */
 
+static a_text_buffer_ptr
+		ucn_buffer;
+			/* A text buffer used to hold a temporary copy of
+			   identifiers containing universal character names. */
+
 /*
 Information about cached tokens, i.e., tokens saved for later rescanning.
 */
@@ -6195,6 +6200,65 @@ point to the character after the universal character name.
   return result;
 }  /* scan_universal_character */
 
+#if ABI_COMPATIBILITY_VERSION >= 302
+
+static char *make_canonical_UCN_identifier(char		*identifier,
+					   sizeof_t	*length)
+/*
+"identifier" points to the characters of an identifier containing
+universal character names.  Make a copy of the identifier in which
+any upper case characters in the UCN are converted to lower case.
+"length" is updated to the actual length of the new identifier.
+*/
+{
+  char	*src = identifier;
+  char	*end_pos = identifier + *length - 1;
+
+  /* Allocate a text buffer to be used for the copy if one has not
+     yet been created. */
+  if (ucn_buffer == NULL) ucn_buffer = alloc_text_buffer(128);
+  reset_text_buffer(ucn_buffer);
+  /* Make sure the text buffer has sufficient size for the identifier. */
+  for (src = identifier; src <= end_pos;) {
+    int			ucn_chars;
+    unsigned long	ucn_value;
+    char		ucn[8];
+    int			j;
+    if (*src == '\\' && (*(src+1) == 'u' || *(src+1) == 'U')) {
+      /* Scan the universal character.  We pass in FALSE for is_identifier,
+         etc., because those are only used when diagnosing errors. */
+      ucn_value = scan_universal_character(&src, /*is_identifier=*/FALSE,
+                                           /*is_identifier_start=*/FALSE,
+                                           /*issue_diagnostics=*/FALSE);
+      ucn_chars = ucn_value > 0xffff ? 8 : 4;
+      for (j = ucn_chars; j > 0; j--) {
+        int	hex_digit;
+        hex_digit = ucn_value & 0xf;
+        ucn_value = ucn_value >> 4;
+        ucn[j - 1] = "0123456789abcdef"[hex_digit];
+      }  /* for */
+      add_char_to_text_buffer(ucn_buffer, '\\');
+      add_char_to_text_buffer(ucn_buffer, ucn_chars == 8 ? 'U' : 'u');
+      add_to_text_buffer(ucn_buffer, ucn, ucn_chars);
+    } else {
+      add_char_to_text_buffer(ucn_buffer, *(src++));
+    }  /* if */
+  }  /* for */
+  /* Update the length parameter with the length of the new identifier. */
+  *length = ucn_buffer->size;
+  return ucn_buffer->buffer;
+}  /* make_canonical_UCN_identifier */
+
+#else /* !(ABI_COMPATIBILITY_VERSION >= 302) */
+
+/*
+No translation of UCN identifiers was done for older ABIs.  Simply
+return the original identifier pointer.
+*/
+#define make_canonical_UCN_identifier(identifier, length) (identifier)
+
+#endif /* !(ABI_COMPATIBILITY_VERSION >= 302) */
+
 
 #if !MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
 /*ARGSUSED*/  /* <-- is_wide is not used in that case.*/
@@ -7268,6 +7332,7 @@ to speed in some cases.
   a_boolean		rescan, is_inert_macro = FALSE;
   a_boolean		continue_scan;
   a_boolean             gotten_from_cache = FALSE;
+  a_boolean		contains_ucn;
 
   if (any_initial_get_token_tests_needed &&
       !fetching_tokens_from_insert_string()) {
@@ -7743,6 +7808,7 @@ id_scan:
          characters, underscores, and digits after the first character. */
       remember_token_start();
       ctoken = tok_identifier;
+      contains_ucn = FALSE;
       do {
         continue_scan = FALSE;
         if (allow_dollar_in_id_chars && strict_ansi_mode &&
@@ -7777,6 +7843,7 @@ id_scan:
           if ((ch == 'u' || ch == 'U') &&
               universal_character_names_allowed) {
             continue_scan = TRUE;
+            contains_ucn = TRUE;
             (void)scan_universal_character(&curr_char_loc,
 			                   /*is_identifier=*/TRUE,
 					   /*is_identifier_start=*/
@@ -7797,13 +7864,23 @@ id_scan:
         /* If variadic macros are allowed, '__VA_ARGS__' should appear only in
            the replacement list of such macros. */
         a_symbol_header_ptr	sym_hdr;
+        sizeof_t		id_length;
+        char			*id_ptr;
+        id_length = end_of_curr_token - start_of_curr_token + 1;
         check_use_of_VA_ARGS(
                     (sizeof_t)(end_of_curr_token - start_of_curr_token + 1),
                     start_of_curr_token);
         /* Look up the identifier in the symbol table. */
-        sym_hdr = find_symbol_header(start_of_curr_token,
-                                     (sizeof_t)((end_of_curr_token -
-                                                     start_of_curr_token + 1)),
+        if (contains_ucn) {
+          /* If the identifier contains a universal character name, the
+             string must be processed so that the UCN references have
+             uniform case. */
+          id_ptr = make_canonical_UCN_identifier(start_of_curr_token,
+                                                 &id_length);
+        } else {
+          id_ptr = start_of_curr_token;
+        }  /* if */
+        sym_hdr = find_symbol_header(id_ptr, id_length,
                                      &locator_for_curr_id);
         assoc_symbol = symbol_list_for_file_scope_symbols(sym_hdr);
         /* See if the identifier is a macro or keyword.  "Macro" should
@@ -13669,6 +13746,7 @@ of the front end.
   token_insertion_buffer = NULL;
   in_token_insertion_from_string = FALSE;
   token_insertion_position = null_source_position;
+  ucn_buffer = NULL;
   caching_tokens = FALSE;
 #if TOKENS_TO_STRING_NEEDED
   /* Initialize the output control block for the il-to-str routines. */
