@@ -10007,7 +10007,7 @@ specific definition that made it unnecessary.
 
   /* If any friend state changed between the initial prescan and the later one,
      an error should have been issued somewhere. */
-  check_assertion_str2(any_friend_state_changed || total_errors != 0,
+  check_assertion_str2(!any_friend_state_changed || total_errors != 0,
                        "instantiation_wrapup:",
                        "silent change in friend state");
   db_exit();
