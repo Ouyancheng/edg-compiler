@@ -2029,7 +2029,7 @@ typedef struct a_symbol {
   a_bit_field	is_nonreal_member:1;
 			/* TRUE if this symbol represents a member of a
 			   nonreal class. */
-  bitfield_to_avoid_codecenter_warnings()
+  /* bitfield_to_avoid_codecenter_warnings() -- at byte boundary right now. */
   union {
     /* When kind == sk_undefined, no variant fields. */
     /* When kind == sk_keyword: */
