@@ -5702,7 +5702,7 @@ non-NULL return *con_value == NULL.
   }  /* if */
   if (con_expr_value != NULL) {
     /* The rvalue has a constant value; this must be a const variable. */
-    check_assertion_str(node->kind == enk_variable_address,
+    check_assertion_str(node->kind == (an_expr_node_kind)enk_variable_address,
                         "conv_lvalue_expr_to_rvalue: unexpected expression");
     *constant_case = TRUE;
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
