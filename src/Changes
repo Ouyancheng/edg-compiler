@@ -1,5 +1,11 @@
 Version 2.29
 
+5/11/95  Removal of top-level cv-qualifiers from function parameter types
+
+Top-level qualifiers are removed from function parameter types (see changes
+of 1/16/95 and 1/20/95) only if ABI_COMPATIBILITY_VERSION is greater than
+227.  Otherwise, cfront-compatible behavior is retained.
+
 5/11/95  Non-null test on pointer on call of user-written operator delete
 
 The change of 1/26/95 has been undone.  It's now clearer that the
