@@ -3185,8 +3185,7 @@ Generate code for a stmk_init (dynamic initialization) statement.
     a_boolean          keep_dynamic_init;
     an_init_pos_descr  ipd;
     a_variable_ptr     first_time_test_var = NULL;
-    a_required_destructor_call_ptr
-                       required_destructor_calls_before;
+    a_context          context;
 
     set_insert_location(statement, &insert_location);
     set_var_init_pos_descr(dip->variable, &ipd);
@@ -3194,11 +3193,11 @@ Generate code for a stmk_init (dynamic initialization) statement.
        test. */
     if (dip->variable->storage_class == (a_storage_class)sc_static) {
       add_first_time_test(&insert_location, &first_time_test_var);
-      /* Remember the last required destruction at this point.  Anything
-         added within the conditional should be generated and removed at
-         the end of the conditional. */
-      required_destructor_calls_before =
-                                       curr_context->required_destructor_calls;
+      /* Put a dependent-statement context around the lowering of
+         the initialization so that any required destructor calls for
+         code within the initialization will be emitted within the "if". */
+      push_context(&context, curr_context->scope);
+      curr_context->dependent_statement = TRUE;
     }  /* if */
     lower_dynamic_init(dip, &ipd, first_time_test_var,
                        /*is_expr_temporary=*/FALSE,
@@ -3212,9 +3211,8 @@ Generate code for a stmk_init (dynamic initialization) statement.
     if (first_time_test_var != NULL) {
       /* Generate any required destructor calls for temporaries built within
          a first-time test conditional section. */
-      gen_and_remove_required_destructor_calls_up_to(
-                                              required_destructor_calls_before,
-                                              &insert_location);
+      gen_required_destructor_calls(curr_context, &insert_location);
+      pop_context();
     }  /* if */
   } else {
     /* Normal C case.  Lower the subtree if any. */

@@ -250,6 +250,7 @@ is "scope".
   /* Set the fields. */
   context->parent = parent_context;
   context->scope = scope;
+  context->dependent_statement = FALSE;
   context->required_destructor_calls = NULL;
   context->assoc_switch_clause = NULL;
   context->latest_label_statement_processed = NULL;
@@ -5440,36 +5441,6 @@ is inserted at *insert_location and *insert_location is updated.
 }  /* gen_one_required_destructor_call */
 
 
-void gen_and_remove_required_destructor_calls_up_to(
-                                a_required_destructor_call_ptr stop_before,
-                                an_insert_location_ptr         insert_location)
-/*
-Generate code for and then remove the required destructor call entries on the
-list for the current context, up to before the entry stop_before.  stop_before
-can be NULL to indicate the entire list.  The code is inserted at
-*insert_location and *insert_location is updated.
-*/
-{
-  a_required_destructor_call_ptr rdcp, rdcp_next;
-
-  /* Go through the list of required destructor calls, stopping when the
-     indicated entry is reached.  Recall that the list is built by adding
-     to its front, so the entries at the front are the later entries,
-     those we want to process and remove. */
-  for (rdcp = curr_context->required_destructor_calls;
-       rdcp != stop_before;
-       rdcp = rdcp_next) {
-    rdcp_next = rdcp->next;
-    gen_one_required_destructor_call(rdcp, insert_location);
-    /* Free the one entry. */
-    rdcp->next = NULL;
-    free_required_destructor_call_list(rdcp);    
-  }  /* for */
-  /* Remove the entries from the list. */
-  curr_context->required_destructor_calls = stop_before;
-}  /* gen_and_remove_required_destructor_calls_up_to */
-
-
 void gen_required_destructor_calls(a_context_ptr          outer_context,
                                    an_insert_location_ptr insert_location)
 /*
@@ -5558,7 +5529,7 @@ Generate any destructor calls required preceding the indicated goto statement.
   a_boolean          any_exited_block_destructor_calls_needed;
   a_required_destructor_call_ptr
                      rdcp;
-  a_label_ptr        label;
+  a_label_ptr        label = statement->variant.label;
 
   goto_context = curr_context;
   label_block = statement->variant.label->parent_block;
@@ -5571,15 +5542,39 @@ Generate any destructor calls required preceding the indicated goto statement.
   outermost_context_being_exited = NULL;
   for (;; goto_context = goto_context->parent) {
     goto_block = goto_context->scope->assoc_block;
-    /* End the loop when we find a block that both the goto and the
-       label are inside of.  At the worst, the block for the function
-       is such a block, so the loop would end on that block. */
-    if (block_is_on_parent_list(goto_block, label_block)) break;
-    /* Here, goto_context is a context that the goto is inside of whose
-       block does not appear on the label block list; therefore, we are
-       leaving the block.  */
+    if (goto_context->dependent_statement) {
+      /* The context for the goto is a dependent-statement context, i.e.,
+         one that does not have an associated scope.  This comes up for
+         first-time test code for static initializations and in cfront
+         compatibility mode.
+         We want to answer the question "does the label appear inside of this
+         dependent-statement context?"  It does if it's on the list of
+         labels defined in this context.  Note that a dependent-statement
+         context contains only one (possibly labeled) statement, so if
+         there are any labels at the top level in this context, they would
+         already have appeared (since we've reached an executable statement).
+         Also note that for the label to appear inside this context but not
+         at the top level, it would have to appear either as a label in
+         a block statement, in which case it gets handled by the normal
+         processing, or as a label in a dependent statement under this one,
+         in which case it gets handled by this same code at the lower level. */
+      for (rdcp = goto_context->required_destructor_calls;
+           rdcp != NULL;
+           rdcp = rdcp->next) {
+        if (rdcp->label_marker == label) goto end_context_loop;
+      }  /* for */
+    } else {
+      /* The goto context is a normal context. */
+      /* End the loop when we find a block that both the goto and the
+         label are inside of.  At the worst, the block for the function
+         is such a block, so the loop would end on that block. */
+      if (block_is_on_parent_list(goto_block, label_block)) break;
+    }  /* if */
+    /* Here, goto_context is a context that the goto is inside of and that
+       the label is not inside of; therefore, we are leaving the context. */
     outermost_context_being_exited = goto_context;
   }  /* for */
+end_context_loop:
   /* See if any destructor calls are needed. */
   any_label_block_destructor_calls_needed = FALSE;
   any_exited_block_destructor_calls_needed = FALSE;
@@ -5605,7 +5600,6 @@ Generate any destructor calls required preceding the indicated goto statement.
     /* Look for a label marker in the required destructor list that matches
        the label we have.  If we find one, the entries preceding the
        label marker need to be generated. */
-    label = statement->variant.label;
     for (rdcp = goto_context->required_destructor_calls;
          rdcp != NULL;
          rdcp = rdcp->next) {
@@ -5680,27 +5674,24 @@ cfront mode any destruction required within the dependent statement must be
 done on exit from that statement.
 */
 {
+  a_context          context;
+  an_insert_location insert_location;
+  a_statement_ptr    last_statement;
+
   if (!cfront_compatibility_mode) {
     /* When not in cfront compatibility mode, no special processing is
        needed. */
     lower_statement(statement);
   } else {
-    /* The special case is something like
-           if (y) for (A a(x); f(a); g(a)) {}
-       The variable "a" is constructed conditionally and must be destroyed
-       at the end of the "if" rather than the end of the surrounding scope.
-       This special processing is only needed in cfront mode because in the
-       normal mode dependent statements are always implicitly surrounded by a
-       block. */
-    /* Remember what's on the required destructor list, lower the dependent
-       statement, and see if any required destructor calls were added. */
-    a_required_destructor_call_ptr required_destructor_calls_before =
-                                       curr_context->required_destructor_calls;
-    an_insert_location             insert_location;
+    /* In cfront compatibility mode, it is possible for a dependent statement
+       to not have an associated scope.  However, it is still required that
+       anything contructed in the dependent statement (i.e., conditionally)
+       be destroyed at the end of the dependent statement, so push a special
+       dependent-statement context around the lowering of the statement. */
+    push_context(&context, curr_context->scope);
+    curr_context->dependent_statement = TRUE;
     lower_statement(statement);
-    if (required_destructor_calls_before !=
-                                     curr_context->required_destructor_calls) {
-      a_statement_ptr last_statement;
+    if (curr_context->required_destructor_calls != NULL) {
       /* Some destructor calls must be emitted.  Make the statement into a
          block if it is not already a block, then find the last statement
          within the block so we can insert after it. */
@@ -5717,12 +5708,10 @@ done on exit from that statement.
              last_statement = last_statement->next) {}
         set_insert_location(last_statement, &insert_location);
       }  /* if */
-      /* Generate the required destructor calls and remove the entries
-         for those from the list. */
-      gen_and_remove_required_destructor_calls_up_to(
-                                              required_destructor_calls_before,
-                                              &insert_location);
+      /* Generate the required destructor calls. */
+      gen_required_destructor_calls(curr_context, &insert_location);
     }  /* if */
+    pop_context();
   }  /* if */
 }  /* lower_dependent_statement */
 

@@ -198,6 +198,20 @@ typedef struct a_context *a_context_ptr;
 typedef struct a_context {
   a_context_ptr parent;	/* Parent context. */
   a_scope_ptr	scope;	/* Scope associated with this context. */
+  a_byte_boolean
+		dependent_statement;
+			/* In cfront compatibility mode, scopes are not
+			   implicitly added to dependent statements.  However,
+			   the dependent statements must still be treated as
+			   contexts because any objects constructed
+			   within a dependent statement (i.e., conditionally)
+			   must be destroyed at the end of the dependent
+			   statement rather than at the end of the scope.  If
+			   this flag is TRUE, this context is for a dependent
+			   statement; the scope field (above) indicates the
+			   nearest enclosing scope.  Also used for the "if"
+			   in first-time test code for initialization of
+			   local statics. */
   a_required_destructor_call_ptr
 		required_destructor_calls;
 			/* Destructor calls required on exit from the scope. */
@@ -357,10 +371,6 @@ extern a_boolean virtual_dtor_should_be_generated_for_class(
                                                         a_type_ptr class_type);
 
 extern a_required_destructor_call_ptr alloc_required_destructor_call(void);
-
-extern void gen_and_remove_required_destructor_calls_up_to(
-                               a_required_destructor_call_ptr stop_before,
-                               an_insert_location_ptr         insert_location);
 
 extern void gen_required_destructor_calls(
                                    a_context_ptr          outer_context,
