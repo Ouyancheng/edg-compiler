@@ -6248,7 +6248,14 @@ if this routine has a body (dump nothing if it has no body).
 #if GCC_IS_C_GEN_BE_TARGET
     /* gcc will be used to compile this generated code, so we know how to
        indicate an inline function. */
-    if (rout->is_inline) write_tok_str("__inline__ ");
+    if (rout->is_inline) {
+      /* gcc ignores __inline__ on functions with ellipses, so don't
+         mark such functions as inline. */
+      if (!f_skip_typerefs(rout->type)->variant.routine.extra_info->
+                                                                has_ellipsis) {
+        write_tok_str("__inline__ ");
+      }  /* if */
+    }  /* if */
 #endif /* GCC_IS_C_GEN_BE_TARGET */
     if (!is_definition) {
       /* A declaration of the routine. */
