@@ -847,7 +847,8 @@ skip_tag_scan:
             tag_sym->parent.class_type == ssep->assoc_type) {
           /* Redeclaration of nested class name inside the body of the class
              of which it is a member.  Be sure the access is consistent. */
-          if (ssep->current_access !=
+          if (!is_friend_decl &&
+              ssep->current_access !=
                           type_symbol_type(tag_sym)->source_corresp.access) {
             pos_sy_warning(ec_cannot_change_access, &tag_position, tag_sym);
           }  /* if */
