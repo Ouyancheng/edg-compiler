@@ -195,6 +195,8 @@ extern void db_field(a_field *fp);
 
 extern void db_type(a_type *tp);
 
+extern void db_abbreviated_type(a_type *tp);
+
 extern void db_variable(a_variable_ptr var_ptr);
 
 extern void db_expression(an_expr_node_ptr node);
