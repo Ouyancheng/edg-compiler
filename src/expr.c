@@ -3500,9 +3500,9 @@ specification allow a variable-sized array as the top type.
       if (curr_token != tok_rparen) {
         /* The new-initializer is not empty.  Scan it. */
         init_val_node = scan_parenthesized_initializer_expression(
-                                                      new_type,
-                                                      expression_kind,
-                                                      ec_bad_initializer_type);
+                                                       new_type,
+                                                       ec_bad_initializer_type,
+                                                       expression_kind);
         needs_initialization = TRUE;
       } else {
         /* The initializer is empty, i.e., "()". */
