@@ -4339,6 +4339,9 @@ or eok_rvalue node to the operand to mark it as an lvalue or rvalue.
   }  /* if */
   operand->state = orig_operand.state;
   restore_operand_details_incl_ref(operand, &orig_operand);
+  /* We don't know how this operand is used, so set a special kind
+     of reference. */
+  change_ref_kinds(operand->ref_entries_list, SRK_PROTO_INST_REF);
 }  /* prep_generic_operand */
 
 

@@ -117,14 +117,23 @@ address of a const and taking the address of a nonconst object).
 			/* Or'ed with SRK_ADDRESS_TAKEN to indicate an
 			   address taken in a way that can't modify the object
 			   without casting away constness. */
+#define SRK_PROTO_INST_REF 0x2000
+			/* A reference in a prototype instantiation, in
+			   a context where we can't tell what kind of use
+			   was made. */
 #define SRK_ALL_REFERENCES \
-  (SRK_USE | SRK_MODIFICATION | SRK_ADDRESS_TAKEN | SRK_ERROR)
+  (SRK_USE | SRK_MODIFICATION | SRK_ADDRESS_TAKEN | SRK_ERROR | \
+   SRK_PROTO_INST_REF)
 			/* All types of references.  Used to mask off those
 			   bits. */
 #define SRK_ALL_VARIABLE_USES \
-  (SRK_USE | SRK_ADDRESS_TAKEN)
+  (SRK_USE | SRK_ADDRESS_TAKEN | SRK_PROTO_INST_REF)
 			/* All reference kinds that constitute "use" of a
 			   variable's value in one way or another. */
+#define SRK_ALL_VARIABLE_MODIFICATIONS \
+  (SRK_MODIFICATION | SRK_ADDRESS_TAKEN | SRK_PROTO_INST_REF)
+			/* All reference kinds that constitute "modification"
+			   of a variable's value in one way or another. */
 
 
 /* Record use information (for cross-reference, etc.). */

@@ -1460,7 +1460,7 @@ projection symbol.
        are diagnostics issued here. */
     a_scope_stack_entry_ptr  ssep;
     a_variable_ptr           vp = sym_ptr->variant.variable.ptr;
-    if ((kind & SRK_ALL_VARIABLE_USES) || (kind & SRK_ERROR)) {
+    if (kind & (SRK_ALL_VARIABLE_USES | SRK_ERROR)) {
       if (sym_ptr->variant.variable.used) {
         /* This is not the first use. */
         if (vp->is_parameter || vp->is_handler_param) {
@@ -1574,8 +1574,7 @@ check_label_decl_seq:
     /* If this reference involves a modification or, by taking the variable's
        address, a potential modification, mark the variable as having its
        value set. */
-    if ((kind & SRK_MODIFICATION) || (kind & SRK_ADDRESS_TAKEN) ||
-        (kind & SRK_ERROR)) {
+    if (kind & (SRK_ALL_VARIABLE_MODIFICATIONS | SRK_ERROR)) {
       mark_variable_value_set(sym_ptr);
       if (exceptions_enabled) {
         /* If the modification takes place inside a try block and the
