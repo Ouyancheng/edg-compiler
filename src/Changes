@@ -1,5 +1,19 @@
 Version 3.6
 
+12/19/04 GNU C++ compatibility: friend class declaration finds names made
+         visible by using-directives
+
+When looking up a class name in a friend class declaration, the g++ compiler
+finds names made visible by using-directives.  We now emulate this in g++
+mode.
+
+  namespace N { struct A { }; }
+  using namespace N;
+  struct B {
+    void f() { A a; }
+    friend struct A;
+  }; 
+
 12/19/04 Abort in name mangling with IA-64 ABI and
          PROTOTYPE_INSTANTIATIONS_IN_IL
 

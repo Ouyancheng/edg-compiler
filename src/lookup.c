@@ -2007,7 +2007,8 @@ lookup processing.
         kind == (a_scope_kind)sck_namespace) &&
         ssep->using_directives_apply &&
         !lookup_state->is_linkage_lookup &&
-        !lookup_state->is_friend_lookup) {
+        (!lookup_state->is_friend_lookup ||
+         friend_class_decl_can_find_using_dir)) {
       sym = do_using_directive_lookup(ssep, sym, locator, lookup_state);
     }  /* if */
   }  /* if */
@@ -2140,7 +2141,8 @@ that do normal id lookup processing.
              kind == (a_scope_kind)sck_file) &&
             ssep->using_directives_apply &&
             !lookup_state->is_linkage_lookup &&
-            !lookup_state->is_friend_lookup) {
+            (!lookup_state->is_friend_lookup ||
+             friend_class_decl_can_find_using_dir)) {
           sym = do_using_directive_lookup(ssep, sym, locator, lookup_state);
         }  /* if */
       }  /* if */
@@ -3242,7 +3244,9 @@ in a friend declaration.
          instantiation of the class, use the template class symbol associated
          with the current instantiation. */
       (void)current_class_symbol_if_class_template(&assoc_symbol);
-    } else if (is_friend_decl && locator->specific_symbol != NULL &&
+    } else if (is_friend_decl &&
+               !friend_class_decl_can_find_using_dir &&
+               locator->specific_symbol != NULL &&
                locator->specific_symbol->kind ==
                                      (a_symbol_kind)sk_namespace_projection) {
       /* Friend lookups should not find using declarations. */

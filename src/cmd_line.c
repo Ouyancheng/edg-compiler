@@ -2700,6 +2700,9 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
       nonclass_prototype_instantiations = TRUE;
     }  /* if */
   }  /* if */
+  /* A friend class declaration finds names made visible by
+     using-directives. */
+  friend_class_decl_can_find_using_dir = TRUE;
   /* We will presumably want to pick std::type_info from the GNU headers.
      In that case, we cannot expect an EDG-specific pragma. */
   pragma_define_type_info_is_required = FALSE;
@@ -4509,6 +4512,7 @@ This is done before command line processing.
   gpp_dependent_name_lookup = FALSE;
   defer_friend_instantiation = TRUE;
   allow_default_arg_on_template_member_definition = FALSE;
+  friend_class_decl_can_find_using_dir = FALSE;
   /* Unless requested otherwise (using a command-line option or a pragma),
      ILP64 porting diagnostics should be remarks. */
   (void)set_severity_for_error_number((int)ec_ilp64_will_narrow, es_remark,
