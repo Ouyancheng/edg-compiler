@@ -109,7 +109,7 @@ Return the given entry to the list of available entries.
 */
 {
   entry->next = avail_alias_fixups;
-  avail_alias_fixups = entry->next;
+  avail_alias_fixups = entry;
 }  /* free_alias_fixup */
 
 

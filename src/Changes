@@ -1,5 +1,11 @@
 Version 3.4
 
+4/13/04  Memory leak with free list of alias fixup entries
+
+The list of freed alias fixup entries was maintained incorrectly
+in free_alias_fixup in attribute.c, with the consequence that
+freed entries were lost.  Now fixed.
+
 4/13/04  Microsoft anachronism on pointer-to-member dereference no longer
          emulated
 
