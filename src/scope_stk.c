@@ -2318,7 +2318,7 @@ NULL.
 #endif /* ASM_FUNCTION_ALLOWED */
           } else {
             /* Unreferenced parameter. */
-            report_unreferenced(sym, ec_declared_but_not_referenced,
+            report_unreferenced(sym, ec_param_declared_but_not_referenced,
                                 es_remark);
           }  /* if */
         } else if (var_ptr->param_value_has_been_changed &&

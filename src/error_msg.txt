@@ -873,6 +873,7 @@ ec_invalid_destructor_name;;"invalid destructor name for type %t"
 ec_nonstandard_destructor_reference;;"use of %n in a destructor call is nonstandard"
 ec_ambiguous_destructor;;"destructor reference is ambiguous -- both %n1 and %n2 could be used"
 ec_virtual_inline_never_defined;;"virtual inline %n was never defined"
+ec_param_declared_but_not_referenced;;"%n was declared but never referenced"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
