@@ -857,7 +857,7 @@ static sizeof_t mangled_full_class_name(
                                        a_boolean  show_specialization,
                                        char       *store_at)
 /*
-Determine the mangled form of the basic name of the class "type".  This is
+Determine the mangled form of the name of the class "type".  This is
 not the version that contains a leading count of the number of characters
 in the name; here, the name is usually just the original name, but is
 different if the class is a template class or is unnamed.  Also, this
@@ -888,8 +888,8 @@ and an indication of that fact should be put out.
   }  /* if */
   if (type->source_corresp.name_has_been_mangled) {
     /* The name is already mangled, including any template parameters.
-       We can use that unless we need to add specialization indicators,
-       which are not present in the saved mangled form. */
+       We can use the mangled form unless we need to add specialization
+       indicators, which are not present in the saved mangled form. */
     if (!show_template_specialization && !show_specialization) {
       previously_mangled_version_used = TRUE;
     } else {
