@@ -1,5 +1,11 @@
 Version 2.39
 
+3/27/98   Microsoft compatibility: unrecognized __declspec attribute
+
+In Microsoft-compatibilty mode a syntax error is no longer issued on
+an unrecognized __declspec attribute of the form xxx(yyy).  (See Changes
+entry for 12/8/97.)
+
 3/26/98   IL lowering: drop only const on initialized entity reference
 
 When IL lowering generates code to initialize an entity, and the entity

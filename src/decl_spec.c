@@ -445,6 +445,17 @@ end_of_uuid_string:
               /* Issue a warning on an unrecognized __declspec attribute. */
               pos_st_warning(ec_bad_declspec_modifier, &error_position,
                              modifier);
+              /* An unrecognized construct could be of two forms:
+                   __declspec(xxx)        // Like "dllimport" or "nothrow"
+                   __declspec(xxx(yyy))   // Like "allocate" or "uuid"
+                 If the next token is a left paren, skip to the matching
+                 right paren. */
+              if (next_token() == tok_lparen) {
+                /* Advance to the left paren. */
+                (void)get_token();
+                /* Flush all tokens till the matching right paren is found. */
+                flush_until_matching_token();
+              }  /* if */
             }  /* if */
             (void)get_token();
           }  /* while */
