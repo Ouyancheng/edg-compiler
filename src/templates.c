@@ -11007,9 +11007,6 @@ set, and its source sequence entry, if any, has been put out.)
 {
   a_boolean       err = FALSE;
   a_template_ptr  il_template_entry = decl_state->il_template_entry;
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
-  a_symbol_ptr    proto_sym = NULL;
-#endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 
   if (il_template_entry != NULL) {
     if (sym != NULL && !sym->is_error) {
@@ -11018,34 +11015,42 @@ set, and its source sequence entry, if any, has been put out.)
         case sk_class_template:
           il_template_entry->kind = (a_template_kind)templk_class;
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-          proto_sym = prototype_template_of(sym);
-          proto_sym = template_supplement_for_symbol(proto_sym)
+          if (prototype_instantiations_in_il) {
+            a_symbol_ptr  proto_sym = prototype_template_of(sym);
+            proto_sym = template_supplement_for_symbol(proto_sym)
                              ->variant.class_template.prototype_instantiation;
-          il_template_entry->prototype_instantiation.type =
+            il_template_entry->prototype_instantiation.type =
                                                   type_symbol_type(proto_sym);
+          }  /* if */
 #endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
           break;
         case sk_function_template:
           il_template_entry->kind = (a_template_kind)templk_function;
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-          proto_sym = prototype_template_of(sym);
-          il_template_entry->prototype_instantiation.routine =
-                                template_supplement_for_symbol(proto_sym)
+          if (prototype_instantiations_in_il) {
+            a_symbol_ptr  proto_sym = prototype_template_of(sym);
+            il_template_entry->prototype_instantiation.routine =
+                                  template_supplement_for_symbol(proto_sym)
                                                    ->variant.function.routine;
+          }  /* if */
 #endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
           break;
         case sk_member_function:
           il_template_entry->kind = (a_template_kind)templk_member_function;
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-          il_template_entry->prototype_instantiation.routine =
+          if (prototype_instantiations_in_il) {
+            il_template_entry->prototype_instantiation.routine =
                                                      sym->variant.routine.ptr;
+          }  /* if */
 #endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
           break;
         case sk_static_data_member:
           il_template_entry->kind = (a_template_kind)templk_static_data_member;
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-          il_template_entry->prototype_instantiation.variable =
+          if (prototype_instantiations_in_il) {
+            il_template_entry->prototype_instantiation.variable =
                                      sym->variant.static_data_member.variable;
+          }  /* if */
 #endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
           break;
         case sk_class_or_struct_tag:
@@ -11053,8 +11058,10 @@ set, and its source sequence entry, if any, has been put out.)
           check_assertion(sym->is_class_member);
           il_template_entry->kind = (a_template_kind)templk_member_class;
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-          il_template_entry->prototype_instantiation.type =
+          if (prototype_instantiations_in_il) {
+            il_template_entry->prototype_instantiation.type =
                                                         type_symbol_type(sym);
+          }  /* if */
 #endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
           break;
         default:

@@ -1615,38 +1615,39 @@ do_set_proper_definition_needed_flag:
 #if RECORD_TEMPLATE_STRINGS
         walk_string_ptr(ptr->text, iek_other_text, 0);
 #endif /* RECORD_TEMPLATE_STRINGS */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
         switch (ptr->kind) {
           case templk_function:
           case templk_member_function:
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
             remap_ptr(ptr->prototype_instantiation.routine, a_routine_ptr,
                       iek_routine);
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
             break;
           case templk_class:
           case templk_member_class:
+<<<<<<< walk_entry.h
+            remap_ptr(ptr->prototype_instantiation.type, a_type_ptr,
+                     iek_type);
+=======
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
             remap_ptr(ptr->prototype_instantiation.type, a_type_ptr,
                      iek_type);
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+>>>>>>> 1.318
             break;
           case templk_static_data_member:
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
             remap_ptr(ptr->prototype_instantiation.variable, a_variable_ptr,
                       iek_variable);
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
             break;
           case templk_template_template_param:
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
             walk_ptr(ptr->prototype_instantiation.template_decl,
                      a_template_decl_ptr, iek_template_decl);
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
             break;
           default:
             unexpected_condition_str(
-                                 "walk_entry_and_subtree: bad template kind");
+                               "walk_entry_and_subtree: bad template kind");
             break;
         }  /* switch */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
         /* The template_info pointer should be NULL for any entry actually
            written and read. */
         clear_pointer_if_remapping(ptr->template_info);
