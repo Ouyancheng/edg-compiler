@@ -52,7 +52,7 @@ exists.
 6/11/99  Abort on double block-scope declaration of an intrinsic function
 
 The front end aborted compilation upon encountering two declarations of an
-intrinsic (non-member) function in the sam block scope:
+intrinsic (non-member) function in the same block scope:
 
   void f() {
     extern void operator delete(void*);
