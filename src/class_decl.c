@@ -6399,7 +6399,8 @@ destination type is not yet on the current class's conversion list.
         (void)find_projected_symbol(class_type, &loc, /*must_be_tag=*/FALSE,
                                     /*must_be_type_name=*/FALSE,
                                     /*add_to_active_list=*/TRUE,
-                                    (a_symbol_ptr)NULL, &sym);
+                                    (a_symbol_ptr)NULL, &sym,
+                                    /*can_create_nonreal=*/FALSE);
         check_assertion(sym != NULL);
         /* Allocate the new conversion list entry and link it in the
            list for the current class. */
