@@ -1,5 +1,12 @@
 Version 2.15
 
+2/26/93  Prefix ++ and -- returning lvalues
+
+The prefix ++ and -- operators now return an lvalue in C++ mode,
+as they should.  The flag assignment_returns_lvalue in the IL expression
+entry has been renamed returns_lvalue_instead_of_usual_rvalue so that
+it can apply to this case as well.
+
 2/26/93  Redeclaring a class template as a tag
 
 An error is issued if the name of a class template is redeclared to be
