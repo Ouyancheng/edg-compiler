@@ -7917,6 +7917,12 @@ typedef struct a_template {
 			   the definition of this template (NULL if no
 			   definition appears in this translation unit).
 			   NULL for non-canonical entries. */
+  a_template_ptr
+		prototype_template;
+			/* If this is a member template of a class template
+			   instance, this points to the template for
+			   the original member template declaration in the
+			   prototype instantiation. */
 } a_template;
 
 #if RECORD_MACROS_IN_IL

@@ -2942,6 +2942,7 @@ fields, and return a pointer to it.
   tp->prototype_instantiation.type = NULL;
   tp->canonical_template = NULL;
   tp->definition_template = NULL;
+  tp->prototype_template = NULL;
   return tp;
 }  /* alloc_template */
 

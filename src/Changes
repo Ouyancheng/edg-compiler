@@ -1,5 +1,27 @@
 Version 2.46
 
+7/27/01  Change in a_template entries for members of class templates
+
+When a member template is declared in a class template, there is now a
+separate canonical a_template entry for each instance of the enclosing
+class.  Formerly, all of the instances would share the same canonical
+entry.  In the example below, there are canonical entries for A,
+A<T>::B, A<int>::B, and A<float>::B (where previously there were only
+entries for A and A<T>::B).
+
+A new field named prototype_template has been added to the a_template
+entry.  This field is used in a_template entries for members templates
+of class templates and points to the corresponding a_template entry in
+the prototype instantiation of the enclosing class.  In this example,
+the A<int>::B and A<float>::B a_template entries have a prototype_template
+field that points to the a_template entry for A<T>::B.
+
+  template <class T> struct A {
+    template <class U> struct B {};
+  };
+  A<int>::B<short> ab;
+  A<float>::B<int> ab2;
+
 7/27/01  Precision of output of long double constants, with 128-bit
          long doubles
 

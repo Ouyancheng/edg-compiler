@@ -3334,6 +3334,10 @@ Display the indicated template.
      disp_ptr("definition_template", (char*)ptr->definition_template,
               iek_template);
   }  /* if */
+  if (ptr->prototype_template != NULL) {
+     disp_ptr("prototype_template", (char*)ptr->prototype_template,
+              iek_template);
+  }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   disp_source_position("export_position", &ptr->export_position);
   disp_source_range("definition_range", &ptr->definition_range);

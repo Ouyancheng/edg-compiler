@@ -1685,6 +1685,7 @@ end_sizeof:;
         }  /* switch */
         remap_ptr(ptr->canonical_template, a_template_ptr, iek_template);
         remap_ptr(ptr->definition_template, a_template_ptr, iek_template);
+        remap_ptr(ptr->prototype_template, a_template_ptr, iek_template);
         /* The template_info pointer should be NULL for any entry actually
            written and read. */
         conditionally_clear_fe_pointer(ptr->template_info);

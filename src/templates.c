@@ -11747,9 +11747,11 @@ Finish up establishing the IL template entry.  (Its decl_position has been
 set, and its source sequence entry, if any, has been put out.)
 */
 {
-  a_boolean       err = FALSE;
-  a_template_ptr  il_template_entry = decl_state->il_template_entry;
+  a_boolean			    err = FALSE;
+  a_template_ptr		    il_template_entry =
+                                                 decl_state->il_template_entry;
   a_symbol_ptr                      proto_sym = NULL;
+  a_template_symbol_supplement_ptr  proto_tssp = NULL;
   a_template_symbol_supplement_ptr  tssp = NULL;
 
   if (il_template_entry != NULL) {
@@ -11758,14 +11760,23 @@ set, and its source sequence entry, if any, has been put out.)
          function template. */
       il_template_entry->source_corresp.name_linkage =
                                    (a_name_linkage_kind)nlk_cplusplus_external;
+      tssp = template_supplement_for_symbol(sym);
       /* Set the template kind. */
       switch (sym->kind) {
         case sk_class_template:
           il_template_entry->kind = (a_template_kind)templk_class;
           proto_sym = prototype_template_of(sym);
-          tssp = template_supplement_for_symbol(proto_sym);
+          proto_tssp = template_supplement_for_symbol(proto_sym);
+          if (proto_tssp != tssp) {
+            /* This is an instance of a member template of a class template.
+               Record a pointer to the template entry from the prototype
+               instantiation of the enclosing class template. */
+            il_template_entry->prototype_template =
+                                                 proto_tssp->il_template_entry;
+          }  /* if */
           if (prototype_instantiations_in_il) {
-            proto_sym = tssp->variant.class_template.prototype_instantiation;
+            proto_sym = proto_tssp->
+                               variant.class_template.prototype_instantiation;
             il_template_entry->prototype_instantiation.type =
                                                   type_symbol_type(proto_sym);
           } else {
@@ -11773,7 +11784,7 @@ set, and its source sequence entry, if any, has been put out.)
           }  /* if */
           if (tssp->is_nonreal_member) {
             /* The class referenced is a nonreal member.  Don't consider it
-               tobe the canonical template. */
+               to be the canonical template. */
             il_template_entry->canonical_template = il_template_entry;
           } else {
             il_template_entry->canonical_template = tssp->il_template_entry;
@@ -11790,8 +11801,16 @@ set, and its source sequence entry, if any, has been put out.)
             a_routine_ptr	rout;
             il_template_entry->kind = (a_template_kind)templk_function;
             proto_sym = prototype_template_of(sym);
-            tssp = template_supplement_for_symbol(proto_sym);
+            proto_tssp = template_supplement_for_symbol(proto_sym);
             rout = tssp->variant.function.routine;
+            rout = proto_tssp->variant.function.routine;
+            if (proto_tssp != tssp) {
+              /* This is an instance of a member template of a class template.
+                 Record a pointer to the template entry from the prototype
+                 instantiation of the enclosing class template. */
+              il_template_entry->prototype_template =
+                                                 proto_tssp->il_template_entry;
+            }  /* if */
             if (prototype_instantiations_in_il) {
               il_template_entry->prototype_instantiation.routine = rout;
             } else {
