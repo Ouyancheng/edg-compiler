@@ -6691,7 +6691,7 @@ Scan the body of a class definition, including the base classes list.
               }  /* if */
               if (function_def_present && !first_declarator) {
                 pos_error(ec_exp_semicolon, &pos_curr_token);
-              }
+              }  /* if */
               func_info.is_definition = function_def_present;
               func_info.is_inline = inline_specified || function_def_present;
               if (friend_specified) {
