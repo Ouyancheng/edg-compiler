@@ -2,8 +2,8 @@ Version 2.31
 
 12/11/95  Default handler must be last
 
-An error is now issued (instead of a warning) when the default handler is
-not last in the list of handler declarations for a try block.
+An error is now issued (instead of a warning) when the program declares a
+default handler that is not last in the list of handlers for a try block.
 
 12/8/95   C++-generating back end: class qualifier correct on class member
           using-declarations
