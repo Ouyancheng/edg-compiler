@@ -1,5 +1,16 @@
 Version 2.44
 
+7/31/00  Missing diagnostic or internal error on typedef with destructor name
+
+Depending on the configuration, the following kind of code would either pass
+without a diagnostic or cause a compiler component to abort:
+
+  struct S {
+    typedef ~S();
+  };
+
+This is now fixed (a normal diagnostic is issued).
+
 7/31/00  Internal error on erroneous use of reserved class name "type_info"
 
 Some unusual and erroneous uses of the reserved class name "type_info" in

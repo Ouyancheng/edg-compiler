@@ -3309,6 +3309,10 @@ to FALSE if the entity being declared is not initializable.
                  !locator_for_curr_id.is_qualified_name) {
         error(ec_destructor_name_must_be_qualified);
         set_to_error_locator(*locator);
+      } else if (input_flags & DI_IS_TYPEDEF_DECLARATION) {
+        /* "typedef ~X();" is not acceptable. */
+        error(ec_bad_destructor_decl);
+        set_to_error_locator(*locator);
       } else {
         a_scope_stack_entry_ptr ssep = &scope_stack[decl_scope_level];
 
