@@ -1,5 +1,16 @@
 Version 2.46
 
+7/30/01  Syntax checking for asm functions
+
+When ASM_FUNCTION_ALLOWED is TRUE, the front end used to discard the token
+introducing the definition of an asm function without verifying that it was
+in fact a left brace.
+
+  asm void f() any_token }  // "any_token" used to be treated as a left brace;
+                            // now it is reported as an error.
+
+This is now fixed (i.e., an error is issued).
+
 7/27/01  Microsoft compatibility: visibility of variable declarations
 
 In Microsoft bugs mode, a variable declaration is now invisible in its

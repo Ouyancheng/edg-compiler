@@ -63,7 +63,11 @@ Comments in asm functions are saved along with the normal tokens.
   treat_newline_as_token = TRUE;
   fetch_pp_tokens = TRUE;
   /* Advance past the opening brace. */
-  (void)get_token();
+  if (curr_token == tok_lbrace) {
+    (void)get_token();
+  } else {
+    pos_error(ec_exp_lbrace, &pos_curr_token);
+  }  /* if */
   /* Loop through the tokens and build the string token by token. */
   while (curr_token != tok_end_of_source) {
     /* Stop when a zero-level right brace is reached.
