@@ -975,29 +975,6 @@ instantiation.
 }  /* cache_for_template */
 
 
-static a_template_cache_ptr decl_cache_for_template(
-					a_template_symbol_supplement_ptr tssp)
-/*
-Returns a pointer to the declaration cache to be used for a given template.
-Typically, this is the declaration cache stored in the template symbols
-supplement.  But if the template is a member template declared within a
-class template, the declaration may be associated with the member template
-from the prototype instantiation.
-*/
-{
-  a_template_cache_ptr	tcp;
-
-  if (tssp->prototype_template != NULL && !tssp->is_specific_definition) {
-    /* Use the cache from the original template. */
-    tcp = &tssp->prototype_template->
-                            variant.template_info->variant.function.decl_cache;
-  } else {
-    tcp = &tssp->variant.function.decl_cache;
-  }  /* if */
-  return tcp;
-}  /* decl_cache_for_template */
-
-
 static
 a_func_info_block *func_info_for_template(
                                       a_template_symbol_supplement_ptr tssp)
@@ -2770,8 +2747,8 @@ declaration.
 
 
 static
-void find_function_template_member(a_symbol_ptr  ft_symbol,
-                                   a_type_ptr    parent_class)
+void find_function_template_member(a_tmpl_decl_state_ptr	decl_state,
+				   a_symbol_ptr			ft_symbol)
 /*
 ft_symbol is a symbol representing a member function template of a real
 instantiation of a class template.  Find the sk_function_template symbol
@@ -2786,11 +2763,12 @@ supplement already associated with ft_symbol.
   a_symbol_ptr			    parent_class_sym;
   a_symbol_ptr			    corresp_prototype_tag_sym;
   a_symbol_list_entry_ptr	    slep;
-
+  a_type_ptr			    parent_class;
 
   db_enter(3, "find_function_template_member");
   /* Get the prototype instantiation symbol that corresponds to the parent
      class of this member template. */
+  parent_class = decl_state->class_declared_in;
   parent_class_sym = (a_symbol_ptr)parent_class->source_corresp.assoc_info;
   check_assertion_str2(parent_class_sym != NULL,
                        "find_function_template_member:",
@@ -2906,6 +2884,9 @@ supplement already associated with ft_symbol.
     /* Copy the default argument information from the prototype template. */
     tssp->variant.function.def_arg_expr_list =
                                 orig_tssp->variant.function.def_arg_expr_list;
+    /* Get the declaration sequence number from the prototype template. */
+    decl_state->decl_info->decl_seq =
+                    orig_tssp->variant.function.decl_cache.decl_info->decl_seq;
     { a_routine_ptr	rp = tssp->variant.function.routine;
       a_routine_ptr	orig_rp = orig_tssp->variant.function.routine;;
       /* Copy the information that determines whether this function is inline
@@ -6542,7 +6523,7 @@ type based on the template argument list and the template parameter list
        because the type associated with the symbol is not yet complete
        (it has no routine type).  Using a partially constructed symbol could
        cause problems if errors occur while rescanning the declaration. */
-    tcp = decl_cache_for_template(tssp);
+    tcp = &tssp->variant.function.decl_cache;
     /* Increment the count of pending instantiations of this template. */
     ++(tssp->variant.function.pending_partial_instantiations);
     push_template_instantiation_scope(tcp->decl_info,
@@ -11267,7 +11248,7 @@ caller.
            instantiations are done. */
         if (decl_state->class_declared_in != NULL) {
           /* Only do this for the original declaration inside the class. */
-          find_function_template_member(sym, decl_state->class_declared_in);
+          find_function_template_member(decl_state, sym);
         }  /* if */
       }  /* if */
     } else if (decl_state->is_template_friend &&
@@ -11907,7 +11888,13 @@ any non-empty template parameter lists that were scanned.
   if (decl_state->decl_info != NULL) {
     /* Record the current declaration sequence number.  This is used
        to restrict name visibility during template instantiation. */
-    decl_state->decl_info->decl_seq = ++decl_seq_counter;
+    if (decl_state->decl_info->decl_seq == NO_DECL_SEQUENCE_NUMBER) {
+      /* Only set it if it was not already set.  For subordinate function
+         templates, it will have been set based on the prototype (but note
+         that this is only used for the decl_cache, the body cache is
+         actually used directly from the prototype template). */
+      decl_state->decl_info->decl_seq = ++decl_seq_counter;
+    }  /* if */
   }  /* if */
   /* Any pbk_next_construct pragmas will be considered to bind to each of
      the instances generated from the template.  Save the current construct
