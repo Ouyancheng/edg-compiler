@@ -1815,6 +1815,16 @@ is a specialization while the other one is generic and has been used.
 }  /* specialized_vs_generic_class_template_conflict */
 
 
+static a_boolean is_exported(a_template_ptr  templ)
+/* Return TRUE if the given template was declared as exported in its
+translation unit.
+*/
+{
+  return templ->canonical_template != NULL ?
+                  templ->canonical_template->is_exported : templ->is_exported;
+}  /* is_exported */
+
+
 static a_boolean verify_template_correspondence(a_template_ptr  templ)
 /*
 Check that the recorded translation unit correspondence for the given template
@@ -1846,7 +1856,7 @@ is in fact valid.
         (scp->access != corresp_scp->access ||
          scp->name_linkage != corresp_scp->name_linkage ||
          (!is_class_template_symbol(templ_sym) && !is_type_symbol(templ_sym) &&
-          templ->is_exported != corresp_templ->is_exported) ||
+          is_exported(templ) != is_exported(corresp_templ)) ||
          (tssp != NULL &&
           (!equiv_template_param_lists(
                                     corresp_tssp->cache.decl_info->parameters,
