@@ -1443,15 +1443,23 @@ typedef struct a_template_param_type_descr {
      how it is used -- in particular, when a template parameter is used in a
      way requiring that it be a class.  (C++ only.) */
   a_type_ptr	class_type;
-			/* A dummy class type associated with a given template
-			   parameter.  This becomes useful in name lookup if
-			   a template parameter is used in a way requiring it
-			   to be a class with members -- e.g.,
+			/* The "proxy" class type associated with a given
+                           template parameter.  This becomes useful in name
+			   lookup if a template parameter is used in a way
+			   requiring it to be a class with members --
+			   e.g.,
 			     template <class T> void f(T::X);
-			   Here we know T must represent a class type with a
-			   member type X, and the X can be entered in a scope
-			   associated with T.  Pointer is NULL if no class use
-			   has been encountered. */
+			   Here we know T must represent a class type
+			   with a member type X, and the X can be
+			   entered in a scope associated with T.  In such
+			   contexts the class pointed to by class_type is
+			   used in place of the type that points to the
+			   template parameter.  The class-qualified
+			   lookup is done using class_type.  The first
+			   time a name is looked up in class_type it
+			   is will be entered as a member that can be
+			   found by subsequent lookups.  Pointer is NULL
+			   if no class use has been  encountered. */
   a_scope_number
 		member_scope_number;
 			/* If class_type is non-NULL, the number of the
