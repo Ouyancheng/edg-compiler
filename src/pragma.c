@@ -421,11 +421,14 @@ pbk_immediate pragmas are processed here.
 }  /* process_curr_token_pragmas */
 
 
-a_boolean select_curr_construct_pragmas(a_boolean	is_decl)
+a_boolean select_curr_construct_pragmas(a_boolean	is_decl,
+					a_boolean	add_to_list)
 /*
 This routine scans the current token pragma list for any pbk_next_construct
 pragmas.  If the binding kind matches the flags passed by the caller,
 the pragma is copied to the curr_construct_pragmas list.
+If add_to_list is TRUE, any new entries are added to the end of
+the list.  If it is FALSE, the existing list must be empty.
 If binding kind does not match the flags passed by the caller an error
 is issued.  Pragmas that don't bind to the next declaration/statement
 remain on the current token pragma list.  If there are any pragmas on
@@ -445,12 +448,21 @@ return FALSE.
   add_source_sequence_entry_to_curr_token_pragmas();
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   list_start = *curr_list_of_curr_construct_pragmas();
-  /* Find the end of the current list. */
-  list_end = list_start;
-  if (list_end != NULL) {
-    while (list_end->next != NULL) {
-      list_end = list_end->next;
-    }  /* while */
+  if (add_to_list) {
+    /* Find the end of the current list. */
+    list_end = list_start;
+    if (list_end != NULL) {
+      while (list_end->next != NULL) {
+        list_end = list_end->next;
+      }  /* while */
+    }  /* if */
+  } else {
+    check_assertion_str2(list_start == NULL, "select_curr_construct_pragmas:",
+                         "previous list not NULL");
+    /* Clear the existing list if checking code is not enabled. */
+    free_pending_pragma_list(list_start);
+    list_start = NULL;
+    list_end = NULL;
   }  /* if */
   ppp = curr_token_pragmas;
   prev_ppp = NULL;
@@ -800,9 +812,10 @@ void pragma_init(void)
 Initialize the pragma description table.
 */
 {
+  int	i;
+  db_enter(3, "pragma_init");
   /* Clear the array used to get a pragma description pointer based on a
      pragma kind. */
-  int	i;
   for (i = (int)pk_none; i < (int)pk_last; ++i) {
     pragma_description_for_pragma_kind[i] =
 					 (a_pragma_kind_description_ptr)NULL;
@@ -940,7 +953,8 @@ Initialize the pragma description table.
                  /*processing_C_code_in_pragma=*/FALSE,
                  es_error);
 #endif
-}  /* init_pragma_descriptions */
+  db_exit();
+}  /* pragma_init */
 
 /******************************************************************************
 *                                                             \  ___  /       *
