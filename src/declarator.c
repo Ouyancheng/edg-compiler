@@ -1799,9 +1799,9 @@ if this is the function declarator in a friend function declaration.
               }  /* while */
               if (ssep->kind == (a_scope_kind)sck_template_declaration) {
                 /* A member function declaration of a template class outside
-                   of the class declaration.  This is allowed in g++,
-                   Microsoft, and Sun modes. */
-                if (microsoft_mode || gpp_mode || sun_mode) {
+                   of the class declaration.  This is nonstandard but is
+		   allowed in certain modes. */
+                if (allow_default_arg_on_template_member_definition) {
                   /* This is a template case, so the default should be
                      cached. */
                   cache_default_arg = TRUE;

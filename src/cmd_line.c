@@ -1538,6 +1538,7 @@ by a command line option.
     allow_nonconst_ref_anachronism = TRUE;
     allow_nonconst_call_anachronism = (microsoft_version < 1000);
     flexible_array_members_allowed = TRUE;
+    allow_default_arg_on_template_member_definition = TRUE;
     /* Make template parameters visible in specialization scopes. */
     use_microsoft_specialization_scope = TRUE;
   }  /* if */
@@ -2421,6 +2422,7 @@ checked again here.)
      compiler with respect to making template parameters visible in
      specializations. */
   use_microsoft_specialization_scope = TRUE;
+  allow_default_arg_on_template_member_definition = TRUE;
 }  /* check_and_set_sun_mode_options */
 
 
@@ -2533,6 +2535,7 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
     string_literals_are_const = TRUE;
   }  /* if */
   c_and_cpp_function_types_are_distinct = FALSE;
+  allow_default_arg_on_template_member_definition = TRUE;
 }  /* check_and_set_gpp_mode_options */
 
 
@@ -4166,6 +4169,7 @@ This is done before command line processing.
   curr_command_line_macro_def = NULL;
   gpp_dependent_name_lookup = FALSE;
   defer_friend_instantiation = TRUE;
+  allow_default_arg_on_template_member_definition = FALSE;
   /* Unless requested otherwise (using a command-line option or a pragma),
      ILP64 porting diagnostics should be remarks. */
   (void)set_severity_for_error_number((int)ec_ilp64_will_narrow, es_remark,

@@ -1,5 +1,16 @@
 Version 3.4
 
+11/18/03 Default argument on definition of member of class template
+
+In certain modes (Microsoft, g++, and Sun) a default argument may be
+specified in the out-of-class definition of a member function of a
+class template.  A variable that controls this feature has been added
+to make it easier for customers to enable this feature in other cases.
+The variable is allow_default_arg_on_template_member_definition.
+
+  template <class T> struct A { void f(T); };
+  template <class T> void A<T>::f(T value = T() )  { }
+
 11/18/03 C++-generating back end, __FUNCTION__ and the like
 
 The C++-generating back end incorrectly passed through

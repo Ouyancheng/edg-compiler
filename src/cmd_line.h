@@ -1566,6 +1566,12 @@ EXTERN a_boolean
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 
 EXTERN a_boolean
+		allow_default_arg_on_template_member_definition;
+			/* TRUE if a default argument can be specified in the
+			   out-of-class definition of a member function of a
+			   class template. */
+
+EXTERN a_boolean
 		use_microsoft_specialization_scope
 #if VAR_INITIALIZERS
 			= FALSE
