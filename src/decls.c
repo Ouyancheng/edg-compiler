@@ -7235,16 +7235,28 @@ return a pointer to it in *symbol_ptr.
            changed. */
         if (!C_mode() && class_type != NULL && !is_error_type(tp)) {
           check_assertion(ssep->kind == (a_scope_kind)sck_class_struct_union);
-          if (strict_ansi_mode) {
+          if (same_entities(class_type, tp)) {
+            /* sym corresponds to the injected class name for the current
+               class, which means that we are attempting to create a typedef
+               with the same as the enclosing class. */
+            pos_diagnostic(strict_ansi_mode ? es_error : es_warning,
+                           ec_class_and_member_name_conflict,
+                           &locator->source_position);
+          } else if (strict_ansi_mode || sun_mode) {
             /* Member typedefs cannot be redeclared in strict C++ mode
-               (clarified in TC1; see 7.1.3/2 in the 2003 standard). */
+               (clarified in TC1; see 7.1.3/2 in the 2003 standard).
+               Most compilers do not enforce this (and we issue a warning
+               below), but Sun compilers do. */
             pos_error(ec_duplicate_typedef, &locator->source_position);
           } else if (tp->source_corresp.access != ssep->current_access) {
             /* Access for previous declaration does not correspond to access
                for current declaration. */
-            pos_sy_diagnostic(es_warning, ec_cannot_change_access,
-                              &locator->source_position, sym);
+            pos_sy_warning(ec_cannot_change_access, &locator->source_position, 
+                           sym);
             /* Stay with the access specified on the original declaration. */
+          } else {
+            /* Issue a warning since this is no longer standard C++. */
+            pos_warning(ec_duplicate_typedef, &locator->source_position);
           }  /* if */
         }  /* if */
         /* In C++ we may still need an sk_type symbol, since tags and typedefs

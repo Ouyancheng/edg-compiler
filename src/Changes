@@ -1,5 +1,29 @@
 Version 3.3
 
+6/23/03  Diagnostic on member typedef with same name as enclosing class
+
+The front end now diagnoses a member typedef of the enclosing class using
+the same name as that enclosing class.  An error is issued in strict C++
+mode; a warning otherwise.  For example:
+
+  struct S {
+    typedef struct S S;  // Error in strict mode; warning otherwise.
+  };
+
+6/24/03  Diagnostic for duplicate member typedef declaration
+
+In strict ANSI and Sun C++ modes, the front end now issues an error on
+duplicate member typedef declarations.  In other modes, a warning is issued.
+For example:
+
+  struct S {
+    typedef int I;
+    typedef int I;  // Duplicate typedef declaration.  Error in strict mode
+  };                // and in Sun mode; warning otherwise.
+
+This is a consequence of a clarification in the TC1 revision of the C++
+standard.
+
 6/23/03  Sun compatibility: spurious error in class template specialization
 
 In Sun mode, we emulate a Sun bug that makes template parameters visible
@@ -11,20 +35,6 @@ parameter was redeclared within the specialization.  This has been fixed.
   template <> struct A <void> {
     typedef void T;
   };
-
-6/23/03  Diagnostic for duplicate member typedef declaration
-
-In strict ANSI C++ mode, the front end now issues an error on duplicate
-member typedef declarations.  For example:
-
-  struct S {
-    typedef int I;
-    typedef int I;  // Error: Duplicate typedef declaration
-  };
-
-This is a consequence of a clarification in the TC1 revision of the C++
-standard.  Duplicate member typedefs are still accepted in non-strict C++
-modes (if they refer to identical underlying types).
 
 6/22/03  Abort in get_token: bad lexical escape on #define in macro arguments
 
