@@ -1,5 +1,20 @@
 Version 2.35
 
+1/29/97 C-generating back end: configuration of __dummy field at end of
+        almost empty structures
+
+The C-generating back end has heretofore always put out a dummy field
+at the end of a struct if necessary to ensure that it has at least one
+named field.  That is indeed necessary if the struct is completely
+empty (e.g., for "struct A {}" in C++), but when the struct contains
+unnamed fields but no named fields (e.g., "struct B { int:0; }") it's
+an area of undefined behavior in the C standard, and the dummy field
+could be omitted if it were known that the underlying C compiler would
+accept the code that way.  The new configuration flag
+ALLOW_STRUCT_WITH_NO_NAMED_FIELDS_IN_GENERATED_C has been added
+(with a default of TRUE) to allow the front end to be configured in
+that regard.
+
 1/29/97 Enumerator with value larger than int range should be error (for now)
 
 The front end has failed to diagnose enumerator expressions whose

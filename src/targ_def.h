@@ -1239,6 +1239,28 @@ generated C allowed to have base types other than the standard
 #endif /* ifndef ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C */
 
 /*
+If the C-generating back end is being used, is it valid to generate
+a struct that contains unnamed fields but no named fields?  (That's
+undefined behavior according to the C standard.)  If this flag is
+FALSE, the C-generating back end will generate a dummy field at the
+end of the struct to avoid that situation, e.g.,
+
+  struct A { int : 3; };
+
+will be put out as
+
+  struct A { int : 3; char __dummy; };
+
+This is desirable if the underlying C compiler will not accept the
+code otherwise, but it shouldn't be put out unless it's necessary.
+Note that the C++ case of a completely empty struct (e.g., "struct A {};")
+is never valid C and a dummy field is always added in that case.
+*/
+#ifndef ALLOW_STRUCT_WITH_NO_NAMED_FIELDS_IN_GENERATED_C
+#define ALLOW_STRUCT_WITH_NO_NAMED_FIELDS_IN_GENERATED_C TRUE
+#endif /* ifndef ALLOW_STRUCT_WITH_NO_NAMED_FIELDS_IN_GENERATED_C */
+
+/*
 If the C-generating back end is being used, and the target environment
 has .init sections (e.g., SVR4), this flag is TRUE to enable generation of
 asm directives to get startup routines called (thus eliminating the need
