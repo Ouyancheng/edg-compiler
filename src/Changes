@@ -1,5 +1,16 @@
 Version 2.23
 
+4/12/94  Name mangling for entities promoted out of functions
+
+The names of types and local static variables promoted out of functions
+are now mangled as "name__function__Lnn", where "name" is the entity
+name, "function" is the mangled name of the function, and "nn" is
+a number identifying the scope (used to distinguish the various
+block scopes within the function).  This change allows us to turn
+off the _seq_col_ prefix on file-scope names in generated C code.
+The new mangling is also compatible with what cfront generates (but
+the "nn" number is usually different).
+
 4/12/94  is_bit_field_expr bug (in exprutil.c)
 
 A missing test has been added to is_bit_field_expr.  Without it, the

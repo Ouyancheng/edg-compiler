@@ -772,7 +772,7 @@ the name.
     /* Don't do this for nested classes. */
     if (type->source_corresp.class_of_which_a_member == NULL) {
       a_symbol_ptr assoc_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
-      if (assoc_sym->decl_scope != scope_stack[DEPTH_OF_FILE_SCOPE].number) {
+      if (assoc_sym->decl_scope != FILE_SCOPE_NUMBER) {
         /* This is a local name. */
         sizeof_t digits =
                      digits_to_represent((unsigned long)assoc_sym->decl_scope);
@@ -2077,35 +2077,43 @@ information.
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
 
 void mangle_promoted_entity_name(a_source_correspondence *scp,
-                                 a_routine_ptr           routine)
+                                 a_routine_ptr           routine,
+                                 a_scope_ptr             scope)
 /*
 scp points to the source correspondence field of an entity that is being
 promoted out of the routine "routine" (or one of its block scopes) to
-the file scope.  Give the entity a mangled name if necessary (e.g.,
-if the function is a template function).  This routine is called only
-once for each entity, and that is after normal name mangling has been done.
+the file scope.  scope indicates the scope out of which the entity is
+being promoted (a function or block scope).  Give the entity a mangled
+name if necessary.  This routine is called only once for each entity,
+and that is after normal name mangling has been done.
 */
 {
   sizeof_t mangled_name_length, alloc_length, name_length, routine_name_length;
+  sizeof_t scope_num_length;
   char     *mangled_name, *store_at;
 
-  if (routine->is_template_function && routine->source_corresp.name != NULL &&
-      scp->name != NULL) {
-    /* The routine is an instantiation of a template, so name mangling is
-       needed.  Without it, two instances of the same function might promote
-       two instances of the same entity to file scope.  Everything about them
-       looks the same, so they would clash. */
-    /* The encoding is the original name, two underscores, and the
-       mangled name of the routine.  Note that the routine name has
-       not been mangled yet, but the entity's name has been (if it needs
-       mangling). */
+  /* Leave the name alone if the entity is unnamed. */
+  if (scp->name != NULL) {
+    /* Name mangling is needed. */
+    /* The encoding is the original name, two underscores, the mangled
+       name of the routine, and "__Lnn", where "nn" is the scope number.
+       Note that the routine name has not been mangled yet, but the
+       entity's name has been (if it needs mangling). */
     check_assertion(!routine->source_corresp.name_has_been_mangled);
     name_length = strlen(scp->name);
-    routine_name_length =
+    if (routine->source_corresp.name != NULL) {
+      routine_name_length =
                        mangled_function_name(routine,
                                              /*suppress_param_encoding=*/FALSE,
                                              (char *)NULL);
-    mangled_name_length = name_length + 2 + routine_name_length;
+    } else {
+      /* Unnamed routine. */
+      routine_name_length = 0;
+    }  /* if */
+    /* Determine the length of "__Lnn". */
+    scope_num_length = digits_to_represent((unsigned long)scope->number) + 3;
+    mangled_name_length = name_length + 2 + routine_name_length +
+                          scope_num_length;
     /* Allocate space for the mangled name and build it.  The old name is
        just thrown away. */
     alloc_length = mangled_name_length + 1;
@@ -2114,8 +2122,12 @@ once for each entity, and that is after normal name mangling has been done.
     store_at = mangled_name + name_length;
     *store_at++ = '_';
     *store_at++ = '_';
-    (void)mangled_function_name(routine, /*suppress_param_encoding=*/FALSE,
-                                store_at);
+    if (routine_name_length > 0) {
+      (void)mangled_function_name(routine, /*suppress_param_encoding=*/FALSE,
+                                  store_at);
+      store_at += routine_name_length;
+    }  /* if */
+    (void)sprintf(store_at, "__L%lu", (unsigned long)scope->number);
     /* Store the final null. */
     mangled_name[mangled_name_length] = '\0';
     scp->name = mangled_name;
