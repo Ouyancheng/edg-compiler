@@ -1076,6 +1076,7 @@ Do lowering of an enk_typeid expression node, i.e., a C++ typeid operation.
     /* Polymorphic class case with expression. */
     check_assertion(is_immediate_class_type(typeid_type) &&
                     is_polymorphic_class_type(typeid_type));
+    lower_expr(typeid_expr, /*is_lvalue=*/TRUE);
     /* The expression is an lvalue with the form *p or p[x].  Since the
        expression gives the address of the lvalue, it really has the form
        p or p + x.  In the latter case, discard x. */
