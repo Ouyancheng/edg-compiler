@@ -308,14 +308,6 @@ typedef struct a_struct_stmt_stack_entry {
 			   block "invalidates" the lifetime and a new one is
 			   pushed to replace it; this pointer then points to
 			   the new one. */
-  a_statement_ptr
-		extra_block_insert_loc;
-			/* If kind == ssk_compound, a (possibly NULL) pointer
-			   to a statement (either stmk_label or stmk_block)
-			   after which an extra block can be inserted to
-			   provide an IL entry to which a new object lifetime
-			   (i.e., one to which curr_block_object_lifetime is
-			   reset after a label) can bind (if it is needed). */
   a_scope_depth depth_of_assoc_scope;
 			/* If kind == ssk_compound and a scope stack entry
 			   was pushed in conjunction with this structured
