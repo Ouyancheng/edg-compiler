@@ -3357,12 +3357,11 @@ Display the IL for the file scope in human-readable form.
   /* region_scope_entry is not displayed. */
   disp_name("source language");
   disp_source_language_name(il_header.source_language);
+  (void)printf("\n");
 #ifdef CFE
-  disp_name("pcc compatibility mode");
   disp_boolean("pcc_compatibility_mode",
                (a_boolean)il_header.pcc_compatibility_mode);
 #endif /* ifdef CFE */
-  (void)printf("\n");
 
   walk_file_scope_il(disp_entry, (a_string_entry_process_function_ptr)NULL,
                      (a_remap_function_ptr)NULL);
