@@ -2580,7 +2580,11 @@ special function kind (e.g., constructor, destructor), if any.
     /* Set the source correspondence, including the access specifier. */
     set_source_corresp(&rtn->source_corresp, sym);
     rtn->source_corresp.class_of_which_a_member = class_type;
-    rtn->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
+    /* Member functions should have the same name linkage as the class of
+       which they are members.  For now, the class will have internal or no
+       linkage.  If and when its linkage is promoted to C++, the linkage of
+       the member functions will also be changed. */
+    rtn->source_corresp.name_linkage = class_type->source_corresp.name_linkage;
     rtn->source_corresp.access = access;
     rtn->is_inline = is_inline;
     cssp = symbol_supplement_for_class(class_type);
@@ -2753,14 +2757,17 @@ table.
 {
   a_symbol          *sym;
   a_variable        *var;
-  a_boolean	    err = FALSE;
 
   db_enter(3, "decl_static_data_member");
   if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
     /* The class declaration is local to a function definition.  Static
        data members are allowed only in global classes. */
     pos_error(ec_static_member_in_local_class, &locator->source_position);
-    err = TRUE;
+    /* Set the type this invalid static member to error_type.  This will
+       assure "proper" (or unobtrusive) behavior later, if a definition is
+       encountered.  It also eliminates semi-spurious error messages if
+       there are references to it. */
+    member_type = error_type();
   }  /* if */
   /* Enter a new symbol in the symbol table. */
   sym = enter_local_symbol((a_symbol_kind)sk_static_data_member,
@@ -2774,24 +2781,20 @@ table.
      by curr_il_region_number -- i.e., in the memory region of the scope in
      which its class is declared. */
   sym->variant.variable = var = alloc_variable();
-  if (err) {
-    /* Set the storage class for this invalid static member to sc_static and
-       the type to error_type.  This will assure "proper" (or unobtrusive)
-       behavior later, if a definition is encountered.  It also eliminates
-       semi-spurious error messages if there are references to it. */
-    var->type = error_type();
-    var->storage_class = (a_storage_class)sc_static;
-  } else {
-    /* The normal case.  Note that the storage class of a static data member
-       is sc_extern until it becomes defined, and sc_unspecified thereafter. */
-    var->type = member_type;
-    var->storage_class = (a_storage_class)sc_extern;
-  }  /* if */
+  var->type = member_type;
   /* Set the source correspondence fields of the variable. */
   set_source_corresp(&var->source_corresp, sym);
   var->source_corresp.class_of_which_a_member = class_type;
-  var->source_corresp.name_linkage =
-                               (a_name_linkage_kind)nlk_cplusplus_external;
+  /* Static data members will have the same name linkage as the class of
+     which they are members.  For now, the class will have internal linkage.
+     If and when its linkage is promoted to C++, the linkage of the static
+     data members will also be changed. */
+  var->source_corresp.name_linkage = class_type->source_corresp.name_linkage;
+  /* Similarly, the storage class of static data members is sc_static until
+     they are promoted to externally linkage, at which time the storage class
+     will become sc_extern or sc_unspecified (depending on whether or not
+     a definition is provided). */
+  var->storage_class = (a_storage_class)sc_static;
   var->source_corresp.access = access;
   /* Link the variable entry onto the static data members list of the
      class, which is the variables list of the class's scope entry. */
@@ -5999,6 +6002,7 @@ by recursive calls.
   a_variable_ptr               vp;
   a_type_ptr                   tp;
   a_param_type_ptr             ptp;
+  a_symbol_ptr                 sym;
 
   type = skip_typerefs(type);
   switch (type->kind) {
@@ -6068,11 +6072,19 @@ by recursive calls.
             }  /* if */
             make_class_externally_linked(rp->type, count);
           }  /* for */
-          /* A variable entry for a static data member will already have its
-             own storage class and linkage set correctly.  Still, its type
+          /* A variable entry for a static data member will need to have its
+             storage class and linkage reset.  In addition, its type
              must be checked. */
           vp = ctsp->assoc_scope->variables;
           for (; vp != NULL; vp = vp->next) {
+            vp->source_corresp.name_linkage =
+                                   (a_name_linkage_kind)nlk_cplusplus_external;
+            sym = (a_symbol_ptr)vp->source_corresp.assoc_info;
+            if (sym->defined) {
+              vp->storage_class = (a_storage_class)sc_unspecified;
+            } else {
+              vp->storage_class = (a_storage_class)sc_extern;
+            }  /* if */
             make_class_externally_linked(vp->type, count);
           }  /* if */
           /* Classes nested in the class should also be treated as having
