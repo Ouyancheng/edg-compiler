@@ -81,10 +81,13 @@ constants).  The number may have a "u" or "l" suffix, or both.
         has_u_suffix = TRUE;
         real_end_pos--;
       } else if (*real_end_pos == 'l' || *real_end_pos == 'L') {
+#if LONG_LONG_ALLOWED
         if (has_l_suffix) {
           has_l_suffix = FALSE;
           has_ll_suffix = TRUE;
-        } else {
+        } else
+#endif /* LONG_LONG_ALLOWED */
+        {
           has_l_suffix = TRUE;
         }  /* if */
         real_end_pos--;
@@ -147,7 +150,11 @@ constants).  The number may have a "u" or "l" suffix, or both.
 #if LONG_LONG_ALLOWED
   /* Likewise for "ll". */
 #endif /* LONG_LONG_ALLOWED */
-  if (C_dialect == C_dialect_pcc && !has_u_suffix && !has_ll_suffix) {
+  if (C_dialect == C_dialect_pcc && !has_u_suffix
+#if LONG_LONG_ALLOWED
+      && !has_ll_suffix
+#endif /* LONG_LONG_ALLOWED */
+                                                 ) {
     /* Non-ANSI (pcc) checking. */
     if (has_l_suffix) {
       /* An explicit "L" suffix makes the constant long. */
