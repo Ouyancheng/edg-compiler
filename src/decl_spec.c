@@ -998,6 +998,12 @@ caution when modifying this routine.
         tag_sym = locator_for_curr_id.specific_symbol;
         if (tag_sym != NULL) {
           reduce_projection_symbol_to_fundamental_symbol(tag_sym);
+          /* If we found the injected class name, use the symbol of the
+             actual class. */
+          if (is_injected_class_symbol(tag_sym)) {
+            tag_sym = (a_symbol_ptr)(type_symbol_type(tag_sym)->
+                                                    source_corresp.assoc_info);
+          }  /* if */
           if (tag_sym->kind != tag_kind) {
             /* A qualified name is being used with a different tag kind than
                that of its declaration.  Issue an error. */
