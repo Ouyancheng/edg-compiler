@@ -1048,6 +1048,7 @@ created for this entity; otherwise, it is NULL.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_boolean                is_primary_decl = FALSE;
   a_boolean                set_first_decl_flag = FALSE;
+  a_boolean                update_src_seq_list = TRUE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   a_source_correspondence  *scptr = NULL;
 
@@ -1131,9 +1132,9 @@ created for this entity; otherwise, it is NULL.
       set_first_decl_flag = TRUE;
     }  /* if */
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-    if (is_definition && !C_mode()) {
-      if ((sym_ptr->kind == (a_symbol_kind)sk_member_function ||
-           sym_ptr->kind == (a_symbol_kind)sk_routine) &&
+    if (sym_ptr->kind == (a_symbol_kind)sk_member_function ||
+        sym_ptr->kind == (a_symbol_kind)sk_routine) {
+      if (is_definition && !C_mode() &&
           scope_stack[depth_scope_stack].kind ==
                                     (a_scope_kind)sck_class_struct_union &&
           !scope_stack[depth_scope_stack].inside_local_class) {
@@ -1144,11 +1145,13 @@ created for this entity; otherwise, it is NULL.
            just after it).  That means a secondary-source-sequence entry
            should be put out here. */
         is_primary_decl = FALSE;
+      }  /* if */
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-      } else if (is_class_struct_union_symbol(sym_ptr)) {
+    } else if (is_class_struct_union_symbol(sym_ptr) && !C_mode()) {
+      if (is_definition) {
         if (scptr != NULL && scptr->source_sequence_entry == NULL) {
           /* This is the initial declaration of this class.  If appropriate,
-             out a secondary declaration entry immediately before the
+             put out a secondary declaration entry immediately before the
              definition entry to deal with forward reference problems of
              instantiations that are inserted in front of the class; if
              there is no insertion, the entry will be removed eventually. */
@@ -1197,22 +1200,54 @@ created for this entity; otherwise, it is NULL.
             reset_ss_list_instantiation_insert_point();
           }  /* if */
         }  /* if */
-#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+      } else if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
+        /* Not a definition.  If this is a nested class declaration inside
+           a class template instantiation, only put out the declaration if
+           it's the first.  This is to deal with the following case:
+             template <class T> class A {
+               class N;
+               class N { ... };
+             };
+             A<int> x;
+           where the instantiation of A<int> would be represented in the
+           generated C++ as a specialization:
+             template<> class A<int> {
+               class N;
+               class N;                // declaration substitutes for
+             };                        //    inline definition
+             class A<int>::N { ... }   // if needed
+           The problem is that a second declaration of class N is disallowed
+           (9.2 paragraph 1 of the C++ standard).  The solution is to suppress
+           any declaration of a nested class other than the first. */
+        a_scope_stack_entry_ptr scope_stack_ptr =
+                                         &scope_stack[depth_scope_stack];
+        if (!scope_stack_ptr->in_prototype_instantiation &&
+            scope_stack_ptr->kind == (a_scope_kind)sck_class_struct_union &&
+            sym_ptr->is_class_member &&
+            sym_ptr->parent.class_type == scope_stack_ptr->assoc_type) {
+          scptr = source_corresp_entry_for_symbol(sym_ptr);
+          if (scptr != NULL && scptr->source_sequence_entry != NULL) {
+            update_src_seq_list = FALSE;
+          }  /* if */
+        }  /* if */
       }  /* if */
+#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
     }  /* if */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-    if (is_definition) {
-      /* If this is a primary declaration (or a tentative definition that
-         is the first definition of the variable), erase the previous
-         source sequence entry bound to this entity (if any). */
-      if (scptr != NULL) scptr->source_sequence_entry = NULL;
-      if (set_first_decl_flag) {
-        sym_ptr->variant.class_struct_union.extra_info->
-                                       definition_is_first_decl = TRUE;
+    if (update_src_seq_list) {
+      if (is_definition) {
+        /* If this is a primary declaration (or a tentative definition that
+           is the first definition of the variable), erase the previous
+           source sequence entry bound to this entity (if any). */
+        if (scptr != NULL) scptr->source_sequence_entry = NULL;
+        if (set_first_decl_flag) {
+          sym_ptr->variant.class_struct_union.extra_info->
+                                         definition_is_first_decl = TRUE;
+        }  /* if */
       }  /* if */
+      sym_update_source_sequence_list(sym_ptr, source_position,
+                                      is_primary_decl, ssep);
     }  /* if */
-    sym_update_source_sequence_list(sym_ptr, source_position,
-                                    is_primary_decl, ssep);
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if RECORD_HIDDEN_NAMES_IN_IL

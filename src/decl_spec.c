@@ -2081,18 +2081,20 @@ the template.
     if (class_ssep != NULL &&
         ss_entry_kind(class_ssep) == iek_src_seq_secondary_decl) {
       sssdp = (a_src_seq_secondary_decl_ptr)class_ssep->entity.ptr;
-      check_assertion(sssdp->decl_pos_info == NULL);
-      dpsp = alloc_decl_position_supplement(in_file_scope(sssdp));
-      dpsp->specifiers_range = local_decl_pos_block.specifiers_range;
-      if (is_friend_decl) {
-        /* If this is a friend declaration, adjust the specifiers range to
-           include "friend". */
-        dpsp->specifiers_range.start = decl_pos_block->specifiers_range.start;
+      if (sssdp->decl_pos_info == NULL) {
+        dpsp = alloc_decl_position_supplement(in_file_scope(sssdp));
+        dpsp->specifiers_range = local_decl_pos_block.specifiers_range;
+        if (is_friend_decl) {
+          /* If this is a friend declaration, adjust the specifiers range to
+             include "friend". */
+          dpsp->specifiers_range.start =
+                                   decl_pos_block->specifiers_range.start;
+        }  /* if */
+        if (tag_id_present) {
+          dpsp->identifier_range = local_decl_pos_block.identifier_range;
+        }  /* if */
+        sssdp->decl_pos_info = dpsp;
       }  /* if */
-      if (tag_id_present) {
-        dpsp->identifier_range = local_decl_pos_block.identifier_range;
-      }  /* if */
-      sssdp->decl_pos_info = dpsp;
     }  /* if */
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
