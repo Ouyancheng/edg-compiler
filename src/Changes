@@ -1,5 +1,26 @@
 Version 2.11
 
+10/20/92 Internal error in function_definition
+
+An error recovery bug has been fixed in function_definition -- it appeared
+with the definition of a function whose type is given by a typedef, e.g.,
+
+  typedef int FF(int);
+  FF f;                         // Okay
+  FF g { return 0; }            // Error
+
+The error was diagnosed properly, but an internal error occurred further
+down the line.  In addition, we discovered that the analagous error was
+not being diagnosed for member functions with inline definitions, e.g.,
+
+  typedef int FF(int);
+  class A {
+    FF f;                       // Okay
+    FF g { return 0; }          // Error
+  };
+
+This bug has also been fixed.
+
 10/19/92 TARG_NULL_IS_ALL_BITS_ZERO
 
 The configuration flag TARG_NULL_IS_ALL_BITS_ZERO has been added to target.h.
