@@ -1,5 +1,12 @@
 Version 2.44
 
+2/8/00   IL lowering: unnecessary temporaries in generated code
+
+In some cases, IL lowering used more temporaries than required.  This
+came up in particular for pointer-to-member comparisons where one of
+the pointer-to-member expressions contained an assignment.  The
+extraneous temporaries have been eliminated.
+
 2/7/00   Abort when defining certain predefined macros
 
 A bug was introduced in version 2.43 that would cause the front end to abort

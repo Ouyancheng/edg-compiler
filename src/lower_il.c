@@ -2441,6 +2441,37 @@ of this determination.
 }  /* is_invariant_expr */
 
 
+static a_boolean is_assignment_to_temp(an_expr_node_ptr expr,
+                                       a_variable_ptr   *temp_var)
+/*
+If the expression expr is an assigment to a temporary, set *temp_var
+pointing to the temporary variable and return TRUE.  Otherwise, return
+FALSE.
+*/
+{
+  a_boolean is_assign_to_temp = FALSE;
+
+  *temp_var = NULL;
+  if (is_operation_node(expr)) {
+    an_expr_operator_kind op = expr->variant.operation.kind;
+    if (op == (an_expr_operator_kind)eok_iassign ||
+        op == (an_expr_operator_kind)eok_fassign ||
+        op == (an_expr_operator_kind)eok_passign ||
+        op == (an_expr_operator_kind)eok_sassign) {
+      /* The expression is an assignment */
+      an_expr_node_ptr operand1 = expr->variant.operation.operands;
+      if (is_variable_address_node(operand1) &&
+          operand1->variant.variable->source_corresp.name == NULL) {
+        /* The destination is a temporary. */
+        is_assign_to_temp = TRUE;
+        *temp_var = operand1->variant.variable;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return is_assign_to_temp;
+}  /* is_assignment_to_temp */
+
+
 an_expr_node_ptr assign_expr_to_temp_and_make_expr_for_reuse(
                                                          an_expr_node_ptr expr)
 /*
@@ -2500,10 +2531,16 @@ FALSE.
 */
 {
   an_expr_node_ptr expr_copy;
+  a_variable_ptr   temp_var;
 
-  /* See whether the expression has any side effects and whether it will
-     give the same value if evaluated more than once. */
-  if (is_invariant_expr(expr, vars_can_change)) {
+  if (is_assignment_to_temp(expr, &temp_var)) {
+    /* The expression is an assignment to a temporary, probably generated
+       by a previous call of make_reusable_copy.  Use the value of
+       the temporary. */
+    expr_copy = var_rvalue_expr(temp_var);
+  } else if (is_invariant_expr(expr, vars_can_change)) {
+    /* The expression has no side effects and will give the same value if
+       evaluated more than once. */
     /* A straight copy will work. */
     /* Note that this expression will not have temporaries or object lifetimes
        in it since it has no side effects. */
