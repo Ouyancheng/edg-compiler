@@ -843,9 +843,19 @@ compiling ANSI C code in SVR4 C compatibility mode.
 #ifndef ALLOW_ADDR_OF_REGISTER_IN_GENERATED_C
 #define ALLOW_ADDR_OF_REGISTER_IN_GENERATED_C FALSE
 #endif /* !defined(ALLOW_ADDR_OF_REGISTER_IN_GENERATED_C) */
-#endif /* BACK_END_IS_C_GEN_BE */
 
-#if BACK_END_IS_C_GEN_BE
+/*
+If ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C is TRUE, "(...)" will be put out
+as the parameter list for a routine with no parameters and has_ellipsis
+set to TRUE.  Note: by default this flag is set to correspond to whether
+the construct is also accepted in a C source program, but there is no
+requirement that the two flags have the same value.
+*/
+#ifndef ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C
+#define ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C                       \
+                ALLOW_ELLIPSIS_ONLY_PARAM_IN_C_MODE
+#endif /* !define(ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C) */
+
 /*
 If the C-generating back end is being used, and the target environment
 has .init sections (e.g., SVR4), this flag is TRUE to enable generation of
