@@ -283,6 +283,8 @@ extern int fileno(FILE *);
 /*lint -esym(759,add_constructor_wrapper_code)*/
 /*lint -esym(765,add_constructor_wrapper_code)*/
 /*lint -esym(769,ec_assignment_to_this)*/
+/*lint -esym(759,is_this_parameter_operand)*/
+/*lint -esym(765,is_this_parameter_operand)*/
 #endif /* !ASSIGNMENT_TO_THIS_ALLOWED */
 #if !NEW_CAN_BE_FOLDED_INTO_CTOR
 /*lint -esym(759,initial_processing_on_destructible_initialization)*/
