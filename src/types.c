@@ -1118,18 +1118,22 @@ Compute and set the size and alignment of the array type pointed to by
 array_type.
 */
 {
-  register a_targ_size_t temp, temp2;
-  register a_type_ptr    elem_type;
+  a_type_ptr     underlying_elem_type;
+  a_targ_size_t  temp, temp2;
+  a_type_ptr     elem_type;
 
   db_enter(5, "set_array_type_size");
 
-  elem_type = skip_typerefs(underlying_array_element_type(array_type));
-  if (is_incomplete_type(elem_type) && is_immediate_class_type(elem_type)) {
-    /* This is an array whose element type (directly or indirectly) is
-       an incomplete struct or union.  The size cannot be determined now.
-       The type is put type on a list so it can be fixed later if the struct
-       or union type is defined. */
-    add_to_dependent_type_fixup_list(elem_type, array_type,
+  underlying_elem_type =
+                  skip_typerefs(underlying_array_element_type(array_type));
+  if (is_incomplete(underlying_elem_type) &&
+      is_immediate_class_type(underlying_elem_type)) {
+    /* This is an array whose element type (directly or indirectly) is an
+       incomplete class type.  The size cannot be determined now. The array
+       type is put on a list so it can be fixed later if the element type is
+       defined.  (Note that an array of incomplete struct is an extension in
+       C, but it's standard in C++.) */
+    add_to_dependent_type_fixup_list(underlying_elem_type, array_type,
                                      (a_param_type_ptr)NULL);
   } else {
     /* Get the number of elements.  Note that this is zero for an incomplete
