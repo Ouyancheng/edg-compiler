@@ -245,7 +245,7 @@ a cast (e.g., one that adjusts const at some level), the type of the
 rewritten "?" or "," was incorrect (it was the type before the adjustment
 done by the cast).  Now fixed.
 
-11/30/94 IL CHANGE: Added is_expr_temp_init to a_dynamic_init
+11/30/94 IL CHANGE: Added has_temporary_lifetime to a_dynamic_init
 
 This new flag is set to TRUE if the dynamic init entry represents the
 initialization of an expression temporary.

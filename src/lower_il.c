@@ -6222,7 +6222,7 @@ will cover them while we destroy them.
   for (dip = curr_context->latest_initialization;
        dip != NULL;
        dip = dip->destructible_entity_descr->next_in_region_table) {
-    if (dyn_init_initializes_temporary(dip)) {
+    if (dip->has_temporary_lifetime) {
       /* An initialization for a temporary. */
       if (first_temp == NULL) first_temp = dip;
       if (last_temp != NULL) {
@@ -6316,7 +6316,8 @@ Called only in long lifetime temporaries mode.
     for (dip = curr_context->latest_initialization;
          dip != NULL;
          dip = dip->next_in_destruction_list) {
-      if (dip->is_expr_temp_init) {
+      if (dip->has_temporary_lifetime &&
+          !dip->is_freeing_of_storage_on_exception) {
         /* Found a destruction for a temporary.  */
         /* If this is the first one, make an insert location by rewriting
            the label as a block. */
@@ -6587,7 +6588,7 @@ code.
     for (;;) {
       /* Generate destructions in this context. */
       for (; dip != NULL; dip = dip->next_in_destruction_list) {
-        if (dyn_init_initializes_temporary(dip) && skip_temporaries) {
+        if (dip->has_temporary_lifetime && skip_temporaries) {
           /* Skipping temporaries, so skip this destruction. */
         } else if (dip->is_constructor_init ||
                    dip->is_freeing_of_storage_on_exception) {

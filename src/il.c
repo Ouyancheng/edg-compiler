@@ -5092,7 +5092,7 @@ Initialize a dynamic_init entry of the kind specified.
   dip->follows_an_exec_statement     = FALSE;
   dip->inside_conditional_expression = FALSE;
   dip->unordered                     = FALSE;
-  dip->is_expr_temp_init             = FALSE;
+  dip->has_temporary_lifetime        = FALSE;
   dip->is_constructor_init           = FALSE;
   dip->is_freeing_of_storage_on_exception = FALSE;
 #if CHECKING

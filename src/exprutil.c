@@ -3836,7 +3836,7 @@ the value) of the temporary if result_is_addr is TRUE.
     (void)ensure_il_scope_exists(ssep);
   }  /* if */
   temp_init_node->variant.init.dynamic_init = dip;
-  dip->is_expr_temp_init = TRUE;
+  dip->has_temporary_lifetime = TRUE;
   /* Put the dynamic initialization on a destruction list if appropriate. */
   set_temp_init_dynamic_init_lifetime(temp_init_node);
   return temp_init_node;

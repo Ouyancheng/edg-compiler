@@ -2700,8 +2700,8 @@ Display the indicated dynamic_init structure.
   if (ptr->inside_conditional_expression) {
     disp_boolean("inside_conditional_expression", TRUE);
   }  /* if */
-  if (ptr->is_expr_temp_init) {
-    disp_boolean("is_expr_temp_init", TRUE);
+  if (ptr->has_temporary_lifetime) {
+    disp_boolean("has_temporary_lifetime", TRUE);
   }  /* if */
   if (ptr->is_constructor_init) {
     disp_boolean("is_constructor_init", TRUE);

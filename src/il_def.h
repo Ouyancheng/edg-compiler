@@ -910,9 +910,12 @@ typedef struct a_dynamic_init {
 			   destruction list cannot predetermine which should
 			   be destroyed first; the dynamic init entries for
 			   both operands will have the flag set. */
-  unsigned int	is_expr_temp_init:1;
-			/* TRUE if this entry represents the initialization of
-			   an expression temporary. */
+  unsigned int	has_temporary_lifetime:1;
+			/* TRUE if the entity initialized is a temporary with
+			   the normal object lifetime for a temporary (e.g.,
+			   it's not a temporary whose lifetime has been
+			   extended by virtue of being bound to a
+			   reference). */
   unsigned int	is_constructor_init:1;
 			/* TRUE if this entry is pointed to from a
 			   constructor_init entry in a constructor or
@@ -1013,14 +1016,6 @@ enum a_template_param_constant_kind_tag {
 			   assumed to be a member of T and a constant). */
 };
 typedef a_byte a_template_param_constant_kind;
-
-/*
-Macro to test a dynamic initialization to see whether it initializes a
-temporary, i.e., whether it initializes something subject to the short vs.
-long lifetime temporaries option.
-*/
-#define dyn_init_initializes_temporary(dip)                           \
-  ((dip)->is_expr_temp_init || (dip)->is_freeing_of_storage_on_exception)
 
 #endif /* ifdef CIL */
 
