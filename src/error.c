@@ -2123,7 +2123,7 @@ Add the name of the floating point type to the type string being formatted.
 }  /* form_float_kind_name */
 
 
-static void form_type_qualifier(a_type_ptr        type,
+static void form_type_qualifier(a_type_ptr        tp,
                                 a_msg_segment_ptr seg_ptr)
 /*
 Add a type qualifier to the type string being formatted at the position
@@ -2134,11 +2134,14 @@ the length of the type qualifier added.
   a_boolean is_const = FALSE,
             is_volatile = FALSE;
 
-  for (;
-       type->kind == (a_type_kind)tk_typeref;
-       type = type->variant.typeref.type) {
-    if (type->variant.typeref.is_const) is_const = TRUE;
-    if (type->variant.typeref.is_volatile) is_volatile = TRUE;
+  for (; tp->kind == (a_type_kind)tk_typeref; tp = tp->variant.typeref.type) {
+    if (tp->variant.typeref.is_const || tp->variant.typeref.is_volatile) {
+      if (tp->variant.typeref.is_const) is_const = TRUE;
+      if (tp->variant.typeref.is_volatile) is_volatile = TRUE;
+    } else {
+      /* A typedef name.  Stop here. */
+      break;
+    }  /* if */
   }  /* for */
   if (is_const) add_string_to_segment("const ", seg_ptr);
   if (is_volatile) add_string_to_segment("volatile ", seg_ptr);
@@ -2436,27 +2439,21 @@ Add the type specifier to the type string being formed.
     case tk_class:
       tag_kind = "class ";
 do_tag_name:
-      if (type->source_corresp.name != NULL) {
-        /* For C++, do not generate the tag kind for named types. */
-        if (C_dialect == C_dialect_cplusplus) tag_kind = NULL;
+      /* For C++, do not generate the tag kind for named types. */
+      if (type->source_corresp.name == NULL ||
+          C_dialect != C_dialect_cplusplus) {
+        add_string_to_segment(tag_kind, seg_ptr);
       }  /* if */
-      add_string_to_segment(tag_kind, seg_ptr);
       form_type_name(type, seg_ptr);
       break;
     case tk_typeref:
-      /* Look at each level of typeref.  If one with a name is found, print
-         the name.  Otherwise, when we reach a non-typeref, print that.
-         Note that type qualifiers are unimportant as far as the code here. */
-      do {
-        if (type->source_corresp.name != NULL) {
-          /* Named typeref (i.e., a typedef).  Print the name. */
-          add_string_to_segment(type->source_corresp.name, seg_ptr);
-          goto typeref_done;
-        }  /* if */
-        type = type->variant.typeref.type;
-      } while (type->kind == (a_type_kind)tk_typeref);
-      form_type_specifier(type, seg_ptr);
-typeref_done:
+      /* Assume that the caller has stripped off type qualifiers -- this
+         tk_typeref represents a typedef name. */
+      check_assertion(!type->variant.typeref.is_const &&
+                      !type->variant.typeref.is_volatile);
+      form_class_qualifier(type->source_corresp.class_of_which_a_member,
+                           seg_ptr);
+      form_type_name(type, seg_ptr);
       break;
     case tk_template_param:
       /* Just put out the template parameter's name. */
@@ -2480,20 +2477,21 @@ static void form_type_first_part(a_type_ptr        type,
 Add the first of possibly two parts of a type reference.
 */
 {
-  a_type_ptr local_type;
+  a_type_ptr local_type, unqualified_type;
 
+  unqualified_type = make_unqualified_type(type);
   /* For the pointer case, ignore any typerefs that provide qualifiers
      on the indirection. */
-  if (is_pointer_or_reference_type(type)) {
+  if (unqualified_type->kind == (a_type_kind)tk_pointer) {
     /* Pointer or reference type. */
-    local_type = skip_typerefs(type)->variant.pointer.type;
+    local_type = unqualified_type->variant.pointer.type;
     /* Recursive call to print out any lower indirections. */
     form_type_first_part(local_type,
                          /*need_parens=*/
-                         ! is_pointer_or_reference_type(local_type),
+                            local_type->kind != (a_type_kind)tk_pointer,
                          seg_ptr);
     /* Print out the star for this indirection. */
-    if (skip_typerefs(type)->variant.pointer.is_reference) {
+    if (is_reference_type(unqualified_type)) {
       /* This is a C++ reference type */
       add_string_to_segment("&", seg_ptr);
     } else {
@@ -2528,7 +2526,7 @@ Add the first of possibly two parts of a type reference.
     if (need_parens) add_string_to_segment("(", seg_ptr);
   } else {
     form_type_qualifier(type, seg_ptr);
-    form_type_specifier(type, seg_ptr);
+    form_type_specifier(unqualified_type, seg_ptr);
     if (need_parens) add_string_to_segment(" ", seg_ptr);
   }  /* if */
 }  /* form_type_first_part */
