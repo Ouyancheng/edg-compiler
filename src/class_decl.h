@@ -65,11 +65,13 @@ extern a_boolean is_copy_constructor(a_routine_ptr  ctor_rout,
 
 extern a_boolean is_default_constructor(a_routine_ptr  ctor_rout);
 
-#if ASSIGNMENT_TO_THIS_ALLOWED
+#if NEW_CAN_BE_FOLDED_INTO_CTOR
 extern void set_class_assoc_operator_new_routine(a_type_ptr class_type);
-#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
+#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
 
+#if DELETE_CAN_BE_FOLDED_INTO_DTOR
 extern void set_class_assoc_operator_delete_routine(a_type_ptr class_type);
+#endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
 
 extern void define_special_member_function(a_routine_ptr      rout_ptr,
                                            a_type_ptr         class_type,

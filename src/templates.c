@@ -369,19 +369,21 @@ Instantiate the body of the template function associated with fiep.
       scope->variant.routine.constructor_inits =
                                       ctor_initializer(rout_ptr,
                                                        /*user_defined=*/TRUE);
-#if ASSIGNMENT_TO_THIS_ALLOWED
+#if NEW_CAN_BE_FOLDED_INTO_CTOR
       /* Determine and remember the operator new() routine for the class. */
       set_class_assoc_operator_new_routine(
                              rout_ptr->source_corresp.class_of_which_a_member);
-#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
+#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
       break;
     case sfk_destructor:
       /* Record the destructors that are to be called implicitly when this
          destructor is executed. */
       scope->variant.routine.constructor_inits = dtor_initializer(rout_ptr);
+#if DELETE_CAN_BE_FOLDED_INTO_DTOR
       /* Determine and remember the operator delete() routine for the class. */
       set_class_assoc_operator_delete_routine(
                              rout_ptr->source_corresp.class_of_which_a_member);
+#endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
       break;
     default:;
       /* No action. */

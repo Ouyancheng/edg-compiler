@@ -4210,7 +4210,7 @@ routine body is generated at this time.
   db_exit();
 }  /* generate_special_function */
 
-#if ASSIGNMENT_TO_THIS_ALLOWED
+#if NEW_CAN_BE_FOLDED_INTO_CTOR
 
 void set_class_assoc_operator_new_routine(a_type_ptr class_type)
 /*
@@ -4279,7 +4279,7 @@ and record it in the class's assoc_operator_new_routine field.
   }  /* if */
 }  /* set_class_assoc_operator_new_routine */
 
-#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
+#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
 
 static void make_default_constructor_body(a_scope_ptr  scope)
 /*
@@ -4307,14 +4307,15 @@ will return a pointer to the constructed object.
   scope->assoc_block->variant.block.statements = sp =
           alloc_statement((a_statement_kind)stmk_return);
   sp->expr = this_param_value_expr();
-#if ASSIGNMENT_TO_THIS_ALLOWED
+#if NEW_CAN_BE_FOLDED_INTO_CTOR
   /* Determine and remember the operator new() routine for the class. */
   set_class_assoc_operator_new_routine(scope->variant.routine.ptr->
                                        source_corresp.class_of_which_a_member);
-#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
+#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
   db_exit();
 }  /* make_default_constructor_body */
 
+#if DELETE_CAN_BE_FOLDED_INTO_DTOR
 
 void set_class_assoc_operator_delete_routine(a_type_ptr class_type)
 /*
@@ -4356,6 +4357,7 @@ and record it in the class's assoc_operator_delete_routine field.
   }  /* if */
 }  /* set_class_assoc_operator_delete_routine */
 
+#endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
 
 static void make_default_destructor_body(a_scope_ptr  scope)
 /*
@@ -4368,9 +4370,11 @@ Create the body for a default destructor.  It will return no value.
   scope->assoc_block = alloc_statement((a_statement_kind)stmk_block);
   scope->assoc_block->variant.block.statements =
           alloc_statement((a_statement_kind)stmk_return);
+#if DELETE_CAN_BE_FOLDED_INTO_DTOR
   /* Determine and remember the operator delete() routine for the class. */
   set_class_assoc_operator_delete_routine(scope->variant.routine.ptr->
                                        source_corresp.class_of_which_a_member);
+#endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
   db_exit();
 }  /* make_default_destructor_body */
 
