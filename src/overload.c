@@ -3355,8 +3355,9 @@ overloaded but it is not convenient to note that fact before scanning the
 arguments (e.g., operator overloading).  Therefore, while
 overloaded_function_symbol is typically an sk_overloaded_function
 containing function_symbol, it may be the same as function_symbol, or it
-may be a projection symbol for one of those.  Generate an operand for a
-pointer to the specific function in *operand.  call_position is used as
+may be a projection symbol for one of those, or it might be an
+sk_function_template symbol.  Generate an operand for a pointer
+to the specific function in *operand.  call_position is used as
 the source position for that operand.  is_qualified_name is TRUE if a
 qualified name was used to name the function (that suppresses the
 virtual-ness of the function).  Access control and ambiguity checking are
@@ -3373,6 +3374,8 @@ checking error was detected and reported.
 {
   a_symbol_ptr     base_function_symbol =
                                         fundamental_symbol_of(function_symbol);
+  a_symbol_ptr     base_overloaded_function_symbol =
+                             fundamental_symbol_of(overloaded_function_symbol);
   a_symbol_locator function_symbol_locator;
   a_ref_entry_ptr  rep;
 
@@ -3386,13 +3389,15 @@ checking error was detected and reported.
      is not evaluated. */
   if (!curr_expr_is_potentially_evaluated()) address_taken = FALSE;
   /* Check ambiguity and access. */
-  if (fundamental_symbol_of(overloaded_function_symbol)->kind ==
-                                       (a_symbol_kind)sk_overloaded_function) {
+  if (base_overloaded_function_symbol->kind ==
+                                       (a_symbol_kind)sk_overloaded_function ||
+      base_overloaded_function_symbol->kind ==
+                                       (a_symbol_kind)sk_function_template) {
     /* Use a special routine for overloaded functions because (a) overloaded
        functions are considered always accessible when checked through the
        normal routine and (b) the projection symbol here may point to the
        overloaded function symbol rather than to the specific function
-       symbol. */
+       symbol.  Templates are also treated like overloaded functions. */
     make_locator_for_symbol(function_symbol, &function_symbol_locator);
     function_symbol_locator.source_position = *call_position;
     overload_check_ambiguity_and_verify_access(&function_symbol_locator,

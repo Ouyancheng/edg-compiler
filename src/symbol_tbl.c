@@ -5300,6 +5300,8 @@ we have scanned the entire function declarator.
   } else if (fund_sym->kind == (a_symbol_kind)sk_overloaded_function) {
     /* For overloaded functions, do not check access now.  The check will
        be done after the specific function is determined. */
+  } else if (fund_sym->kind == (a_symbol_kind)sk_function_template) {
+    /* Likewise treat templates as sets of overloaded functions. */
   } else if (!have_access_to_symbol(sym)) {
     /* The symbol is not accessible. */
     a_boolean			defer_access_checks = FALSE;
@@ -5490,7 +5492,9 @@ access to it when it is viewed from the vantage point of overloaded_symbol;
 issue an error if appropriate.  In case of an ambiguity,
 the locator is set to an error locator.  overloaded_symbol is either
 the sk_overloaded_function symbol containing the locator symbol, or
-a projection symbol pointing to that sk_overloaded_function symbol.
+an sk_function_template symbol from which the locator symbol was
+instantiated, or a projection symbol pointing to one of those two
+kinds of symbols.
 */
 {
   /* This routine looks like f_check_ambiguity_and_verify_access. */
