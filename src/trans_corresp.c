@@ -3513,13 +3513,8 @@ are not checked.
           if (same_name(routine, corresp_routine) &&
               (trans_unit_corresp_of(routine) == NULL ||
                trans_unit_corresp_of(corresp_routine) == NULL) &&
-              /* Functions that are only declared as friends are "invisible"
-                 to ordinary lookup. */
-              (friend_sym->is_invisible || corresp_friend_sym->is_invisible) &&
-              may_have_correspondence(
-                           (a_symbol_ptr)routine->source_corresp.assoc_info) &&
-              may_have_correspondence(
-                   (a_symbol_ptr)corresp_routine->source_corresp.assoc_info) &&
+              may_have_correspondence(friend_sym) &&
+              may_have_correspondence(corresp_friend_sym) &&
               same_parents(friend_sym, corresp_friend_sym) &&
               (param_types_are_compatible(
                                        routine->type, corresp_routine->type,
@@ -3535,8 +3530,7 @@ are not checked.
       /* Traverse friend classes. */
       {
         /* Just as with friend functions, it is possible that classes are
-           only declared in class template instantiations.  Such class have
-           the is_invisible flag set on their associated symbol. */
+           only declared in class template instantiations. */
         a_class_list_entry_ptr
            cle = type->variant.class_struct_union.extra_info->friend_classes,
            corresp_cle = corresp_type->variant.class_struct_union.extra_info
@@ -3550,7 +3544,6 @@ are not checked.
           if (same_name(cle->class_type, corresp_cle->class_type) &&
               (trans_unit_corresp_of(cle->class_type) == NULL ||
                trans_unit_corresp_of(corresp_cle->class_type) == NULL) &&
-              (friend_sym->is_invisible || corresp_friend_sym->is_invisible) &&
               same_parents(friend_sym, corresp_friend_sym)) {
             set_trans_unit_corresp(iek_type, cle->class_type,
                                    corresp_cle->class_type);
