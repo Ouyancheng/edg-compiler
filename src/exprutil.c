@@ -3645,7 +3645,7 @@ the IL operator (*op) implementing the given arithmetic operation.
       }  /* if */
       break;
     default:
-      error(ec_invalid_complex_operator);
+      error(ec_complex_type_not_allowed);
       *result_type = error_type();
   }  /* switch */
   if (!is_error_type(*result_type)) {
