@@ -6152,18 +6152,8 @@ is already an entry of the indicated kind on the list.
 */
 {
   a_based_type_list_member_ptr btlmp;
-  a_memory_region_number       saved_file_scope_region_number =
-                                                      file_scope_region_number;
 
-  if (!is_primary_translation_unit &&
-      !in_secondary_trans_unit(base_type)) {
-    /* Switch memory regions so that the based type list member is in the
-       primary IL memory region like the base type (the base type will point
-       to the entry). */
-    file_scope_region_number = FILE_SCOPE_REGION_NUMBER;
-  }  /* if */
-  btlmp = alloc_based_type_list_member(kind);
-  file_scope_region_number = saved_file_scope_region_number;
+  btlmp = alloc_based_type_list_member(kind, base_type);
   btlmp->based_type = based_type;
   /* Add the entry to the front of the existing based_types list. */
   btlmp->next = base_type->based_types;
@@ -6190,7 +6180,6 @@ is already an entry of the indicated kind on the list.
     /* We're about to create a situation where a based-type entry in the
        primary IL points to a type in secondary IL.  Record this in the
        based-type fixup list so that the entry can be removed later on. */
-    check_assertion(!is_primary_translation_unit);
     btlmp->front_end_only = TRUE;
     add_to_based_type_fixup_list(base_type, translation_units);
   }  /* if */

@@ -408,8 +408,20 @@ NULL, allocate the space in the current file scope memory region.
   } else {
     /* Allocate in some secondary translation unit's file scope memory
        region. */
-    a_translation_unit_ptr tup = trans_unit_for_source_corresp(scp);
-    check_assertion(tup != translation_units);
+    a_translation_unit_ptr tup;
+    check_assertion(in_front_end);
+    if (scp->assoc_info != NULL) {
+      tup = trans_unit_for_source_corresp(scp);
+      check_assertion(tup != translation_units);
+    } else {
+      /* No associated symbol, so pick an arbitrary secondary translation
+         unit. */
+      if (!is_primary_translation_unit) {
+        tup = curr_translation_unit;
+      } else {
+        tup = translation_units->next;
+      }  /* if */
+    }  /* if */
     ptr = alloc_secondary_file_scope_il(size, tup);
   }  /* if */
   return ptr;
@@ -1057,15 +1069,18 @@ to it.
 
 
 a_based_type_list_member_ptr alloc_based_type_list_member(
-                                               a_based_type_kind  kind)
+                                               a_based_type_kind  kind,
+                                               a_type_ptr         base_type)
 /*
 Allocate a based type list member, initialize it to the indicated kind, and
-return a pointer to it.
+return a pointer to it.  Allocate the entry in the same memory region as
+base_type, because base_type will point to the entry.
 */
 {
   a_based_type_list_member_ptr btlmp;
 
-  btlmp = (a_based_type_list_member_ptr)alloc_il(
+  btlmp = (a_based_type_list_member_ptr)alloc_in_same_region_as(
+                                             &base_type->source_corresp,
                                              sizeof(a_based_type_list_member));
 #if DEBUG
   num_based_type_list_members_allocated++;
