@@ -1,5 +1,18 @@
 Version 3.1
 
+11/26/02  Support for instantiate-as-used template model
+
+We've added some new configuration macros that make it easier to
+implement a template instantiation model in which all templates
+are instantiated in every compilation that uses them, and the
+duplicates in the object files are removed at link time.  This
+requires linker support and, when the C-generating back end
+is used, C compiler support.  See
+
+  LINKER_CAN_DISCARD_DUPLICATE_DEFINITIONS
+  INSTANTIATE_TEMPLATES_EVERYWHERE_USED
+  DEFAULT_INSTANTIATION_MODE
+
 11/26/02  IL write-read error on extern "C" redeclaration
 
 In configurations with IL_SHOULD_BE_WRITTEN_TO_FILE set to TRUE, the front
