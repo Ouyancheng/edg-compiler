@@ -4725,7 +4725,11 @@ scan_paren:
       /* This is a user-defined constructor, subject to restrictions in
          12.6.2 [class.base.init] para 4.  However, if only const members are
          involved, a discretionary error is issued. */
-      if (!any_ref_member_on_uninit_list) severity = es_discretionary_error;
+      if (gpp_mode) {
+        severity = es_warning;
+      } else if (!any_ref_member_on_uninit_list) {
+        severity = es_discretionary_error;
+      }  /* if */
       pos_sy_start_diagnostic(severity, ec_missing_initializer_on_fields,
                               &pos_curr_token, (a_symbol_ptr)ctor_rout->
                                                    source_corresp.assoc_info);

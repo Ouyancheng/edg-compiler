@@ -1,5 +1,15 @@
 Version 3.1
 
+11/18/02 GNU C++ compatibility: Uninitialized non-const members
+
+In GNU C++ compatibility mode, only a warning (instead of an error) is issued
+when a constructor fails to initialize a const data member.  For example:
+
+  struct S {
+    S() {}  // Warning only, even though ic is left uninitialized.
+    int const ic;
+  };
+
 11/15/02 GNU compatibility: Typo in name of built-in function
 
 The IL definition file misspelled the name of the GNU built-in function
