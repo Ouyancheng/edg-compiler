@@ -1345,7 +1345,26 @@ Do one-time initialization of variables related to the mem_manage routines.
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
   mem_region_table = NULL;
   size_of_mem_region_table = 0;
+  /* Register variables that must be saved and restored when switching
+     between translation units. */
+  register_trans_unit_variable(file_scope_region_number);
 }  /* mem_manage_one_time_init */
+
+
+void mem_manage_trans_unit_init(void)
+/*
+Initialize static variables related to the mem_manage routines that
+must be initialized for each translation unit.
+*/
+{
+  if (!is_primary_translation_unit) {
+    /* For secondary translation units, continue numbering memory regions
+       from where we left off.  The file scope memory region is the next
+       available region. */
+    file_scope_region_number = highest_used_region_number+1;
+    init_memory_region(file_scope_region_number, (sizeof_t)0);
+  }  /* if */
+}  /* mem_manage_trans_unit_init */
 
 
 void mem_manage_init(void)

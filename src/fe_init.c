@@ -946,6 +946,7 @@ is TRUE when the current translation is a primary file, and FALSE
 when it is a secondary file.
 */
 {
+  mem_manage_trans_unit_init();
   error_trans_unit_init();
   lexical_trans_unit_init();
   symbol_tbl_trans_unit_init();

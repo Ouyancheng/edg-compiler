@@ -168,6 +168,7 @@ extern void show_mem_manage_space_used(unsigned long total_accounted_for);
 /* One-time initialization of  memory management routines. */
 extern void mem_manage_one_time_init(void);
 /* Initialize memory management. */
+extern void mem_manage_trans_unit_init(void);
 extern void mem_manage_init(void);
 
 #if !STANDALONE_UTILITY_PROGRAM
