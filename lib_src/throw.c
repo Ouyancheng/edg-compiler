@@ -40,6 +40,12 @@ typedef struct a_throw_stack_entry {
   void*		object_address;
 			/* Pointer to the memory allocated to store
 			   the copy of the object. */
+  an_eh_stack_entry_ptr
+		nearest_enclosing_try_block;
+			/* Pointer to the nearest enclosing try block
+			   (that is not currently in a handler) at
+			   the point at which the throw was started.
+			   This is used to detect abandoned throws. */
   a_byte_boolean
 		is_rethrow;
 			/* TRUE if this entry represents a rethrow.
@@ -968,6 +974,7 @@ Push an entry onto the throw stack and initialize its fields.
 */
 {
   a_throw_stack_entry_ptr	tsep;
+  an_eh_stack_entry_ptr		ehsep;
 
   tsep =
       (a_throw_stack_entry_ptr)eh_alloc_on_stack(sizeof(a_throw_stack_entry));
@@ -977,12 +984,28 @@ Push an entry onto the throw stack and initialize its fields.
   tsep->is_pointer = is_pointer;
   tsep->object_address = object_address;
   tsep->is_rethrow = is_rethrow;
-  /* The discard entry flag is initially set to TRUE for throws in case a
-     throw occurs between the time that __throw_alloc is called and when
-     __throw is called.  This could be caused by a throw from the copy
-     constructor for example. */
-  tsep->discard_entry = !is_rethrow;
+  tsep->discard_entry = FALSE;
   tsep->in_handler = FALSE;
+  /* Record a pointer to the nearest enclosing try block in the throw
+     stack entry.  If this throw has the same nearest enclosing try block
+     as the previous throw then the previous throw should be discarded.
+     This can occur if a throw is done from a copy constructor called
+     after __throw_alloc but before __throw. */
+  ehsep = __curr_eh_stack_entry;
+  while (ehsep != NULL &&
+         ehsep->kind != (an_eh_stack_entry_kind)ehsek_try_block &&
+         ehsep->variant.try_block.catch_info == NULL) {
+    /* Try blocks that are currently inside a handler are not considered. */
+    ehsep = ehsep->next;
+  }  /* while */
+  tsep->nearest_enclosing_try_block = ehsep;
+  if (tsep->next != NULL) {
+    if (tsep->next->nearest_enclosing_try_block == ehsep) {
+      /* There is a previous throw and it does point to the same nearest
+         enclosing try block. */
+      tsep->next->discard_entry = TRUE;
+    }  /* if */
+  }  /* if */
 }  /* push_throw_stack */
 
 
