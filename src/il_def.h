@@ -1990,6 +1990,11 @@ typedef struct a_constant {
 			   Although it is semantically equivalent to a plain
 			   "0", it is meant to be a null pointer constant. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  a_bit_field	explicit_braces_on_aggregate:1;
+			/* For a ck_aggregate constant in an initializer,
+			   TRUE if the values were surrounded by explicit
+			   braces { ... }.  This affects the meaning of
+			   some designated initializers. */
   bitfield_to_avoid_codecenter_warnings()
   a_constant_repr_kind
                 kind;

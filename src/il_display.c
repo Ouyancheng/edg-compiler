@@ -855,6 +855,9 @@ Display the indicated constant entry.
     disp_boolean("null_keyword", TRUE);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  if (ptr->explicit_braces_on_aggregate) {
+    disp_boolean("explicit_braces_on_aggregate", TRUE);
+  }  /* if */
   disp_name("kind");
   switch (ptr->kind) {
     case ck_error:

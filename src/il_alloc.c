@@ -737,6 +737,7 @@ associated variant fields to default values.
 #if GNU_EXTENSIONS_ALLOWED
   cp->null_keyword = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  cp->explicit_braces_on_aggregate = FALSE;
 #if CHECKING
   cp->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */

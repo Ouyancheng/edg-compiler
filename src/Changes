@@ -1,5 +1,21 @@
 Version 3.3
 
+6/19/03  Bug in C99 designated initializer processing
+
+Defect Report 253 from the C standard committee clarifies the
+required behavior of designated initializers in a corner
+case.  The front end has been changed to conform.
+
+  int main() {
+    struct fred {
+      char s [6];
+      int n;
+    };
+    // Following two initializers are no longer equivalent:
+    struct fred x [] = { { { "abc" }, 1 }, [0].s[0] = 'q'        };
+    struct fred y [] = { { { "abc" }, 1 }, [0] = { .s[0] = 'q' } };
+  }
+
 6/19/03  Abort on overridden construction in C++ designated initializer
 
 IL lowering aborted in il.c/gather_initializer_expressions while

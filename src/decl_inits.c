@@ -2156,6 +2156,9 @@ this function points to a tree that includes a dynamic-init entry.
                                           context.end_of_constant_list;
         if (any_more_members) init_info->any_uninitialized_member = TRUE;
         if (brace_flag) {
+          /* Remember the explicit braces.  This affects the meaning of
+             some designated initializers. */
+          init_con->explicit_braces_on_aggregate = TRUE;
           /* Allow an extra comma before the "}" in a brace-enclosed list.
              Do not allow it if an extra comma was taken already in 
              the loop. */

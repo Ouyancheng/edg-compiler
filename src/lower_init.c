@@ -8304,11 +8304,20 @@ have already had their designated initializers lowered.
                a single value.  Save it off to the side and combine it
                with the initializer afterwards. */
             superseded_con = NULL;
+          } else if (con.ptr->explicit_braces_on_aggregate) {
+            /* According to DR 253 on C99, an aggregate value completely
+               overwrites any previous value, even if it doesn't initialize
+               all the fields that the previous value initializes.
+               Note that this applies only when the new value is surrounded
+               by braces, not when the braces are elided.  Save the old value
+               off to the side and process it below. */
+            superseded_con = NULL;
           }  /* if */
         }  /* if */
         lower_aggregate_designated_initializers(con.ptr, superseded_con);
         if (superseded_con != earlier_con.ptr) {
-          /* See comment above.  Combine the old and new initializers. */
+          /* See comments above.  Discard the old initializer for the
+             aggregate except for preserving its side effects. */
           combine_initializer_constants(earlier_con.ptr, con.ptr);
         }  /* if */
       } else {
@@ -8535,7 +8544,7 @@ void lower_designated_initializers(a_constant_ptr init_con)
 /*
 If the initial value constant indicated by init_con contains any
 designated initializers, rewrite them as standard C.  Note that this is
-called in C mode.
+called in C mode as well as C++ mode.
 */
 {
   check_assertion(C_mode() || gpp_mode);
