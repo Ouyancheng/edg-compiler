@@ -681,6 +681,7 @@ ec_pch_file_prefix_mismatch;;"the initial sequence of preprocessing directives i
 ec_unable_to_get_mapped_memory;;"unable to obtain mapped memory"
 ec_using_pch;;"using precompiled header file %sq"
 ec_creating_pch;;"creating precompiled header file %sq"
+ec_memory_mismatch;;"memory usage conflict with precompiled header file %sq"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
