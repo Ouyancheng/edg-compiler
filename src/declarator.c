@@ -344,13 +344,16 @@ array-to-pointer decay).
 
 void add_to_derived_type_list(a_type_ptr new_type_ptr,
                               a_type_ptr *derived_type,
-                              a_type_ptr *bottom_derived_type)
+                              a_type_ptr *bottom_derived_type,
+                              a_boolean  microsoft_property)
 /*
 Add the type entry pointed to by new_type_ptr to the list of derived-type
 entries pointed to by *derived_type (and whose end is pointed to by
 *bottom_derived_type).  Aside from the purely mechanical issues of
 linking the entries, this routine also checks to see if the resulting
-type is legal.
+type is legal.  When microsoft_property is TRUE, some of these checks are
+omitted (because Microsoft compilers do little checking on the types of
+property fields).
 */
 {
   a_type_ptr              temp_type, prev_temp_type, tp;
@@ -491,7 +494,7 @@ type is legal.
           } else if (temp_type->kind == (a_type_kind)tk_error) {
             /* Error already put out. */
             err = TRUE;
-          } else {
+          } else if (!microsoft_property) {
             error(ec_bad_array_element_type);
             err = TRUE;
           }  /* if */
@@ -681,6 +684,7 @@ type is legal.
          can be determined, so do that even if the new type is incomplete. */
       if (temp_type->size == 0 &&
           tkind != (a_type_kind)tk_routine /* For speed. */ &&
+          !microsoft_property &&
           (tkind == (a_type_kind)tk_pointer ||
            tkind == (a_type_kind)tk_ptr_to_member ||
            array_of_incomp_class_or_enum ||
@@ -3903,8 +3907,8 @@ function_lparen:
 #endif  /* NEAR_AND_FAR_ALLOWED */
     /* Add the new type to the bottom of the existing derived type list.
        Note that this involves error checking. */
-    add_to_derived_type_list(new_type_ptr,
-                             &derived_type, &bottom_derived_type);
+    add_to_derived_type_list(new_type_ptr, &derived_type, &bottom_derived_type,
+                             input_flags & DI_IS_MICROSOFT_PROPERTY);
   }  /* while */
   /* Set the referenced flag on the specifiers type if this is the top-level
      scan of the declarator (i.e., if specifiers_type is non-NULL) -- but
@@ -4023,7 +4027,8 @@ function_lparen:
      the full type.  Note that this involves error checking. */
   if (derived_type != NULL && complete_type != NULL) {
     add_to_derived_type_list(complete_type,
-                             &derived_type, &bottom_derived_type);
+                             &derived_type, &bottom_derived_type,
+                             input_flags & DI_IS_MICROSOFT_PROPERTY);
     complete_type = derived_type;
   } else {
     if (derived_type != NULL) complete_type = derived_type;

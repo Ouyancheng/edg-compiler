@@ -183,7 +183,10 @@ abstract or real declarator.
 #define DI_IS_TEMPLATE_PARAM_DECL ((a_decl_flag_set)0x20000)
 			/* If this bit is set the declaration is that of a
 			   template parameter. */
-#define DI_LAST DI_IS_TEMPLATE_PARAM_DECL
+#define DI_IS_MICROSOFT_PROPERTY ((a_decl_flag_set)0x40000)
+			/* If this bit is set the declaration is that of a
+			   property field (Microsoft mode only). */
+#define DI_LAST DI_IS_MICROSOFT_PROPERTY
 			/* Last bit in the bit vector that is in use. */
 			/*lint -esym(755,DI_LAST)*/
 /* Constants defining bits in the output bit vector used in calls to
@@ -299,7 +302,8 @@ extern a_type_ptr form_declared_type(a_type_ptr             type_ptr,
 
 extern void add_to_derived_type_list(a_type_ptr new_type_ptr,
                                      a_type_ptr *derived_type,
-                                     a_type_ptr *bottom_derived_type);
+                                     a_type_ptr *bottom_derived_type,
+                                     a_boolean  microsoft_property);
 
 #endif /* DECLARATOR_H */
 

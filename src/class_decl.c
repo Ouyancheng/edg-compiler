@@ -10067,6 +10067,14 @@ to be returned to the caller.
           di_flags |= DI_IS_TEMPLATE_DECLARATION;
         }  /* if */
       }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      /* While scanning the declarator it will be useful to know whether we're
+         dealing with the declaration of a Microsoft property field. */
+      if (decl_info.decl_modifiers.get_property_name != NULL ||
+          decl_info.decl_modifiers.put_property_name != NULL) {
+        di_flags |= DI_IS_MICROSOFT_PROPERTY;
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* Pass the class's type pointer to declarator if this might be a
          nonstatic member function, in which case its presence will cause an
          implicit "this" parameter type to be created. (Static member

@@ -983,7 +983,6 @@ there's no overflow TRUE is returned.
   /* Set the size and alignment for the field's type, if necessary. */
   field_type = skip_typerefs(field->type);
   class_type = field->source_corresp.parent.class_type;
-  set_type_size(field_type);
   if (is_error_type(field_type)) {
     /* Do nothing if the field has an error type. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -994,6 +993,8 @@ there's no overflow TRUE is returned.
     field->offset = field->offset_bit_remainder = 0;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
+    /* Ensure that the size of the field's type has been computed. */
+    set_type_size(field_type);
     /* Check for a bit-field. */
     if (field->is_bit_field) {
       /* Do any necessary alignment for a bit-field. */
