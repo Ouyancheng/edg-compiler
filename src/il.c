@@ -2327,7 +2327,7 @@ value.  Several fields are cleared or adjusted.
 }  /* alloc_unshared_constant */
 
 
-static a_constant_ptr copy_unshared_constant(a_constant_ptr old_constant)
+a_constant_ptr copy_unshared_constant(a_constant_ptr old_constant)
 /*
 Make a copy of an unshared constant and return pointer to the copy.
 */

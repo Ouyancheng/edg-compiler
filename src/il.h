@@ -216,6 +216,8 @@ extern void copy_constant(a_constant *from,
 
 extern a_constant_ptr alloc_unshared_constant(a_constant *cp);
 
+extern a_constant_ptr copy_unshared_constant(a_constant_ptr old_constant);
+
 extern a_boolean eq_constants(a_constant *cp1,
                               a_constant *cp2);
 
