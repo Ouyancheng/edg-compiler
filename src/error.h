@@ -497,7 +497,8 @@ typedef enum /*an_error_code*/ {
   ec_template_instantiation_context,
   ec_compiler_generated_function_context,
   ec_runaway_recursive_instantiation,
-  ec_bad_template_declaration
+  ec_bad_template_declaration,
+  ec_bad_nontype_template_arg
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 

@@ -1733,10 +1733,13 @@ error code.
       m = "%simplicit generation of %nf %p";
       break;
     case ec_runaway_recursive_instantiation:
-      m = "recursion halted at instantiation for %t";
+      m = "excessive recursion at instantiation of %t";
       break;
     case ec_bad_template_declaration:
       m = "invalid template declaration";
+      break;
+    case ec_bad_nontype_template_arg:
+      m = "argument is incompatible with corresponding template parameter";
       break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
