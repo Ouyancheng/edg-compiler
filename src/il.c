@@ -1300,12 +1300,12 @@ The pointer is only needed in file-scope allocations.
 Macro to increment the count of next-orphan pointers allocated only if
 DEBUG is TRUE.  Used in do_fs_alloc.
 */
-#if DEBUG
+#if DEBUG && !STANDALONE_UTILITY_PROGRAM
 #define incr_fs_orphan_pointers_allocated()                         \
   num_fs_orphan_pointers_allocated++
-#else /* !DEBUG */
+#else /* !(DEBUG && ...) */
 #define incr_fs_orphan_pointers_allocated() /* Do nothing */
-#endif /* DEBUG */
+#endif /* (DEBUG && ...) */
 #define do_fs_alloc(ptr, size)                                        \
 { do_alloc(ptr, FILE_SCOPE_REGION_NUMBER, size+SPACE_FOR_FS_ORPHAN_POINTER); \
   incr_fs_orphan_pointers_allocated();                                \
