@@ -1,5 +1,12 @@
 Version 2.46
 
+3/4/01   C99 __NAN__ and __INFINITY__
+
+In C99 mode, there are now predefined constants __NAN__ and
+__INFINITY__, which are Not-a-Number and positive Infinity values
+of float type.  These are intended for the use of library
+writers in implementing the C99 NAN and INFINITY macros.
+
 3/2/01   Loop in preprocessor on #if within macro argument
 
 The preprocessor looped as a result of processing a macro invocation
