@@ -5665,6 +5665,7 @@ normal_exit:
   locator_for_curr_id.do_not_clear_specific_symbol = arg_list_coalesced;
   locator_for_curr_id.symbol_header = new_sym->header;
   locator_for_curr_id.source_position = locator_pos;
+  locator_for_curr_id.is_template_id = TRUE;
   /* Set source position for error reporting. */
   error_position = start_position;
 
@@ -6386,6 +6387,9 @@ This routine may only be called in C++ mode.
     /* The qualifier class type is the only field of the locator
        that is valid when curr_token is tok_ptr_to_member. */
     locator_for_curr_id.qualifier_class_type = class_type;
+    /* Clear the is_template_id flag in the locator in case it was set before
+       this was recognized to be ptr-to-member. */
+    locator_for_curr_id.is_template_id = FALSE;
     /* For pointer to member, issue any access errors that were detected. */
     if (first_aedp != NULL) issue_qualifier_access_errors(&first_aedp);
     /* Since we're returning a pseudo-token, set pos_curr_token. */
