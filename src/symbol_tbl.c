@@ -5537,14 +5537,6 @@ Allocate a new template parameter list entry and return a pointer to it.
 }  /* alloc_template_param */
 
 
-/*
-Returns TRUE if the current scope is for a template declaration.
-*/
-#define in_template_declaration_scope()				\
-    (scope_stack[depth_scope_stack].kind ==			\
-                            (a_scope_kind)sck_template_declaration)
-
-
 
 a_symbol_ptr get_template_class(a_symbol_ptr  template_symbol)
 /*
@@ -5564,17 +5556,6 @@ an instance of the class template.
 
   db_enter(3, "get_template_class");
 
-  /* If we are scanning a template declaration don't expect to find a
-     template argument list -- this could be a duplicate declaration
-     such as:
-
-       template <class T> S;
-       template <class T> S;
-  */
-  if (in_template_declaration_scope()) {
-    new_sym = template_symbol;
-    goto normal_exit;
-  }  /* if */
   /* Save source position for error reporting. */
   copy_source_position(pos_curr_token, start_pos);
   /* Save the current locator. */
@@ -5686,7 +5667,6 @@ an instance of the class template.
 
 error_exit:
   remove_stop_token(tok_gt);
-normal_exit:
   db_exit();
   return new_sym;
 }  /* get_template_class */
