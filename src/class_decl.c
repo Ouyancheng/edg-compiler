@@ -6149,6 +6149,11 @@ or implicit) controlling the declaration.
                                          /*ambiguous=*/FALSE);
         new_sym->variant.projection.is_using_decl = TRUE;
         new_sym->variant.projection.access = access;
+        /* Note that projection symbols for using-declarations have the
+           source position of the using-declaration itself, whereas
+           other projection symbols take on the source position of the
+           fundamental symbol. */
+        new_sym->decl_position = decl_pos;
         if (other_sym == NULL) {
           /* Just enter it, since no overloading is involved. */
           reenter_symbol(new_sym, depth_scope_stack,
