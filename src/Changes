@@ -1,5 +1,16 @@
 Version 2.37
 
+8/15/97   Diagnostic on redeclaration of macro as empty
+
+When a macro is redefined differently, a diagnostic should be issued.
+The front end was failing to do so when the new definition is empty.
+Now fixed.
+
+  #define x 1
+  #define x       /* Now gets diagnostic. */
+  #define y(z) z
+  #define y(z)    /* Now gets diagnostic. */
+
 8/14/97   Standard conversion after user-defined conversion considered
           in overload resolution
 

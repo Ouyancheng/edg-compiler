@@ -2950,10 +2950,11 @@ Scan and process a #define directive.
          Both definitions have to be object-like or function-like,
          and the replacement text and parameter list have to have
          the same spelling after white space is standardized. */
+      sizeof_t new_length = next_avail_in_macro_buffer - macro_buffer;
       mdp = assoc_symbol->variant.macro_def;
       if ((a_boolean)mdp->object_like == object_like &&
-          smemcmp(mdp->repl_text, macro_buffer,
-                  (sizeof_t)(next_avail_in_macro_buffer - macro_buffer)) == 0){
+          smemcmp(mdp->repl_text, macro_buffer, new_length) == 0 &&
+          mdp->repl_text[new_length] == rt_null){
         /* Check parameter lists to make sure they match. */
         for (pp = param_list, pp2 = mdp->param_list;
              pp != NULL && pp2 != NULL;
