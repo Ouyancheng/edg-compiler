@@ -4198,10 +4198,9 @@ constructor, but may instead be after an assignment to "this".
      that is required. */
   /* Loop through the base classes of the current class. */
   for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
-    /* Set the pointer if it exists and is not shared with the current class
-       pointer already set above. */
+    /* Set the pointer if there is one. */
     vtbl_var = bcp->virtual_function_table_var;
-    if (vtbl_var != NULL && vtbl_var != primary_vtbl_var) {
+    if (vtbl_var != NULL) {
       /* The base class's virtual function table pointer must be set to
          reflect the fact that it exists as a subobject inside the current
          class. */
@@ -4560,13 +4559,14 @@ destructor scope, and also lower the user code.
        be called.  Don't do this in cfront mode.
     */
     if (vtbl_var == NULL && !cfront_compatibility_mode) {
+        !bcp->shares_virtual_function_info) {
       a_class_type_supplement_ptr base_class_ctsp =
                               bcp->type->variant.class_struct_union.extra_info;
       /* Use the virtual function table for the base class as a complete
          object, if there is one. */
       vtbl_var = base_class_ctsp->virtual_function_table_var;
     }  /* if */
-    if (vtbl_var != NULL && vtbl_var != primary_vtbl_var) {
+    if (vtbl_var != NULL) {
       /* The base class virtual function table pointer must be set
          to reflect the fact that it exists as a subobject inside the
          current class. */

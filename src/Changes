@@ -1,5 +1,23 @@
 Version 2.21
 
+12/15/93  Sharing of virtual function table instances
+
+In a case like the following, base classes can now share a single
+instance of a virtual function table:
+
+  struct A {
+    virtual int f();
+  };
+  struct B : public A {
+    virtual int f();
+  };
+  struct C : virtual public B {
+    virtual int f();
+  };
+
+Formerly, we generated a virtual function table for A in C and one for
+B in C, but they're really the same and can be shared.  Now they are.
+
 12/15/93  Virtual function table problem in non-cfront-compatibility mode
 
 In non-cfront-layout-compatibility mode, IL lowering would abort

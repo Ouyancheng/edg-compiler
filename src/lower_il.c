@@ -2677,49 +2677,35 @@ It might be changed later to add a definition.
 
 static a_boolean base_class_needs_virtual_function_table(
                                                    a_base_class_ptr bcp,
-                                                   a_type_ptr       class_type,
-                                                   a_boolean        *shared)
+                                                   a_type_ptr       class_type)
 /*
 Return TRUE if a virtual function table instance is needed for base class
 bcp when it occurs as part of a complete object of class class_type.
 FALSE means either the base class does not need a virtual function table
-(at all) or that it can share another one.  If it can share the one
-for class_type, return *shared TRUE.
+(at all) or that it can share another one.
 */
 {
-  a_boolean                   needed = FALSE;
-  a_class_type_supplement_ptr class_type_ctsp, base_class_ctsp;
+  a_boolean needed = FALSE;
 
-  *shared = FALSE;
   if (bcp->type->variant.class_struct_union.any_virtual_functions) {
     /* The base class declares virtual functions, so it needs a pointer
        to a virtual function table.  However, we may not need an
        instance of the function table specifically for bcp-in-class_type;
        some other instance may do. */
-    /* See if the class type shares its virtual function pointer with
-       the base class.  This test is done with offsets instead of comparing
-       base class pointers because the latter gets complicated with
-       multi-level sharing. */
-    class_type_ctsp = class_type->variant.class_struct_union.extra_info;
-    base_class_ctsp = bcp->type->variant.class_struct_union.extra_info;
-    if (class_type->variant.class_struct_union.any_virtual_functions &&
-        class_type_ctsp->virtual_function_info_offset ==
-        base_class_ctsp->virtual_function_info_offset+bcp->offset) {
-      /* The virtual function pointer for the base class we're considering
-         is shared with the one for class_type.  The virtual function
-         tables are therefore also shared. */
-      *shared = TRUE;
+    if (bcp->shares_virtual_function_info) {
+      /* The base class shares its virtual function table with a more-derived
+          base class or with class_type itself, so it does not need its own
+          virtual function table instance. */
       needed = FALSE;
+    } else if (bcp->overriding_virtual_functions != NULL) {
+      /* Some of the virtual functions in the base class are overridden
+         in class_type, so a separate virtual function table instance is
+         needed. */
+      needed = TRUE;
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
     } else if (class_type->variant.class_struct_union.any_virtual_functions) {
       /* cfront puts outs virtual function tables whenever there is a virtual
          function in the derived class, which is more often than is really
-         needed. */
-      needed = TRUE;
-#else /* !CFRONT_OBJECT_CODE_COMPATIBILITY */
-    } else if (bcp->overriding_virtual_functions != NULL) {
-      /* Some of the virtual functions in the base class are overridden
-         in class_type, so a separate virtual function table instance is
          needed. */
       needed = TRUE;
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
@@ -2740,7 +2726,6 @@ class_type if any are needed and if they have not already been generated.
 {
   a_class_type_supplement_ptr ctsp;
   a_base_class_ptr            bcp;
-  a_boolean                   shared;
 
   ctsp = class_type->variant.class_struct_union.extra_info;
   if (ctsp != NULL) {
@@ -2760,13 +2745,10 @@ class_type if any are needed and if they have not already been generated.
       /* Only generate virtual function tables for base classes that
          need them and only if the virtual function table has not yet
          been generated. */
-      if (base_class_needs_virtual_function_table(bcp, class_type, &shared)) {
+      if (base_class_needs_virtual_function_table(bcp, class_type)) {
         if (bcp->virtual_function_table_var == NULL) {
           make_var_for_virtual_function_table(class_type, bcp);
         }  /* if */
-      } else if (shared) {
-        /* The base class shares class_type's virtual function table. */
-        bcp->virtual_function_table_var = ctsp->virtual_function_table_var;
       }  /* if */
     }  /* for */
   }  /* if */
@@ -2901,19 +2883,19 @@ the file scope memory region.
     /* Force generation of the virtual function table variable (if any) for the
        class. */
     prelower_class_type(class_type);
-    /* See if the class has a virtual function table. */
-    if (class_type->variant.class_struct_union.extra_info->
-                                          virtual_function_table_var != NULL) {
-      /* See if the virtual function table will be defined in this
-         compilation. */
-      if (virtual_function_table_should_be_defined_here(class_type,
-                                                        &force_static,
-                                                        &first_virtual)) {
-        /* The virtual function table will be defined, and it will have a
-           reference to the virtual destructor, so the virtual destructor
-           should be generated. */
-        should_generate = TRUE;
-      }  /* if */
+    /* The class should have virtual function table, since it has a
+       virtual destructor. */
+    check_assertion(class_type->variant.class_struct_union.extra_info->
+                                           virtual_function_table_var != NULL);
+    /* See if the virtual function table will be defined in this
+       compilation. */
+    if (virtual_function_table_should_be_defined_here(class_type,
+                                                      &force_static,
+                                                      &first_virtual)) {
+      /* The virtual function table will be defined, and it will have a
+         reference to the virtual destructor, so the virtual destructor
+         should be generated. */
+      should_generate = TRUE;
     }  /* if */
   }  /* if */
   return should_generate;
@@ -3309,23 +3291,18 @@ class_type if any are needed.
                                                                &first_virtual);
           need_determined = TRUE;
         }  /* if */
-        /* If the base class and class_type share a virtual function table,
-           it was already defined above; do not define it again. */
-        if (bcp->virtual_function_table_var !=
-                                            ctsp->virtual_function_table_var) {
-          define_one_virtual_function_table(class_type, bcp,
-                                            definition_needed, force_static,
-                                            first_virtual);
+        define_one_virtual_function_table(class_type, bcp,
+                                          definition_needed, force_static,
+                                          first_virtual);
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
-          /* Remember whether or not there's any reference to a virtual
-             function table. */
-          if (bcp->virtual_function_table_var->source_corresp.referenced) {
-            any_vtbl_ref = TRUE;
-          }  /* if */
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+        /* Remember whether or not there's any reference to a virtual
+           function table. */
+        if (bcp->virtual_function_table_var->source_corresp.referenced) {
+          any_vtbl_ref = TRUE;
         }  /* if */
-      }  /* for */
-    }  /* if */
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+      }  /* if */
+    }  /* for */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
     if (automatic_instantiation_mode &&
         ctsp->template_arg_list != NULL && any_vtbl_ref &&
