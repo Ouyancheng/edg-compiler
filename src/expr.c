@@ -3881,10 +3881,17 @@ This is the C++ syntax.  C++ type-id is the same as C type-name.
   /* Instantiate the type if it is a template class. */
   complete_type_is_needed(typeid_type);
   /* The type cannot be incomplete if it is a class type. */
-  if (is_class_struct_union_type(typeid_type) &&
-      is_incomplete_type(typeid_type)) {
-    error(ec_incomplete_type_not_allowed);
-    err = TRUE;
+  if (is_class_struct_union_type(typeid_type)) {
+    if (is_incomplete_type(typeid_type)) {
+      error(ec_incomplete_type_not_allowed);
+      err = TRUE;
+#if DO_IL_LOWERING
+    } else {
+      /* Marking the virtual functions as required will ensure that the
+         typeinfo for the class is defined. */
+      require_definitions_of_virtual_functions_in_class(typeid_type);
+#endif /*  DO_IL_LOWERING */
+    }  /* if */
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   end_position = end_pos_curr_token;

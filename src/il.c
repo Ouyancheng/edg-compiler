@@ -10399,9 +10399,6 @@ entry into one representing a nondefining declaration.
     class_type->variant.class_struct_union.any_pure_virtual_functions = FALSE;
     class_type->variant.class_struct_union.
                any_virtual_functions_including_in_base_classes = FALSE;
-#if DO_IL_LOWERING
-    class_type->typeinfo_var = NULL;
-#endif /* DO_IL_LOWERING */
   }  /* if */
   /* Reset size and alignment to default values, as though this class had
      never been defined. */
@@ -10804,21 +10801,25 @@ eliminated, if appropriate.
         if (sym != NULL) {
           if (rp->is_virtual) {
 #if DO_IL_LOWERING
+            a_type_ptr                   class_type = sym->parent.class_type;
             a_class_type_supplement_ptr  ctsp;
-            a_variable_ptr               vtbl_var;
+            a_variable_ptr               vtbl_var, typeinfo_var;
 
-            ctsp = sym->parent.class_type->
-                         variant.class_struct_union.extra_info;
+            ctsp = class_type->variant.class_struct_union.extra_info;
             /* Note: the class-type supplement will be NULL if the class
                body has been eliminated. */
             if (ctsp != NULL &&
                 ((vtbl_var = ctsp->virtual_function_table_var) == NULL ||
-                 !il_entry_prefix_of(vtbl_var).keep_in_il)) {
+                  !il_entry_prefix_of(vtbl_var).keep_in_il) &&
+                ((typeinfo_var = class_type->typeinfo_var) == NULL ||
+                  !il_entry_prefix_of(typeinfo_var).keep_in_il)) {
               /* Either there is no virtual function table or it's been
                  eliminated from the IL: it's okay to clear the flag, since
                  an otherwise unreferenced virtual function would be needed
                  only if the virtual function table is defined in this
-                 translation unit. */
+                 translation unit.  If the typeinfo variable is kept,
+                 keep the virtual function so the virtual function table
+                 will be kept so that the typeinfo variable will be kept. */
             } else
 #endif /* DO_IL_LOWERING */
             /* Do not insert code here. */
