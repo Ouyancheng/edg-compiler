@@ -1,5 +1,24 @@
 Version 2.32
 
+3/8/96    cv-qualifiers retained on class rvalues in C++
+
+In C++, unlike in C, class rvalues may have cv-qualified types.  These
+qualifiers are now retained, which means in some cases overload resolution
+will come up with a different (better) answer:
+
+  struct A {
+    void g();
+    void g() const;
+  };
+  extern const A ca;
+  const A f() { return ca; }
+  main () {
+    f().g();  // Should pick g() const
+  }
+
+This matches the behavior of other compilers better, and matches the
+Working Paper.
+
 3/6/96    Warning on inaccessible elided copy constructor eliminated in
           default mode
 
