@@ -3988,7 +3988,7 @@ and return NULL.  This routine is called only in C++ mode.
           any_dependent_arg = TRUE;
         }  /* if */
         if (!any_dependent_arg &&
-            is_local_symbol(overloaded_function_symbol)) {
+            is_block_extern_symbol(overloaded_function_symbol)) {
           /* A block extern declaration can be dependent (e.g., it
              could have dependent parameter types or dependent default
              argument expressions). */
@@ -4256,11 +4256,11 @@ have_function:
        in a prototype instantiation.  Dependent calls in such a context
        don't get here.  Calls where argument-dependent lookup is turned
        off are not recorded; they're considered non-dependent. */
-    /* Local symbols (block extern declarations) are potentially
-       dependent (e.g., in the default argument expressions), so they
-       shouldn't be recorded as nondependent calls. */
+    /* Block extern declarations are potentially dependent (e.g., in
+       the default argument expressions), so they shouldn't be recorded
+       as nondependent calls. */
     check_assertion(!dependent_call && paren_tok_seq_number != 0 &&
-                    !is_local_symbol(overloaded_function_symbol));
+                    !is_block_extern_symbol(overloaded_function_symbol));
     record_nondependent_call(function_symbol, paren_tok_seq_number);
   }  /* if */
   db_exit();

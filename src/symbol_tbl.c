@@ -9577,6 +9577,23 @@ Return TRUE if the indicated symbol is a function-local symbol.
 }  /* is_local_symbol */
 
 
+a_boolean is_block_extern_symbol(a_symbol_ptr sym)
+/*
+Return TRUE if the indicated symbol is a function-local block extern symbol.
+This includes symbols for overload sets of block extern declarations.
+*/
+{
+  a_boolean is_block_extern = FALSE;
+
+  if (is_local_symbol(sym) &&
+      /* Rule out using-declarations. */
+      sym->kind != (a_symbol_kind)sk_namespace_projection) {
+    is_block_extern = TRUE;
+  }  /* if */
+  return is_block_extern;
+}  /* is_block_extern_symbol */
+
+
 static void clear_template_param_default_arg_info(
 		a_template_param_ptr	ptr,
 		a_boolean		def_arg_involves_template_param)
