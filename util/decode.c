@@ -2482,6 +2482,16 @@ Start of demangling code for IA-64 ABI.
 */
 
 /*
+Bits used to represent cv-qualifiers in a bit set.
+*/
+typedef int a_cv_qualifier_set;
+#define CVQ_NONE	((a_cv_qualifier_set)0)
+#define CVQ_CONST	((a_cv_qualifier_set)0x1)
+#define CVQ_VOLATILE	((a_cv_qualifier_set)0x2)
+#define CVQ_RESTRICT	((a_cv_qualifier_set)0x4)
+
+
+/*
 Information about a function that has to be preserved from the
 time of scanning of the name (e.g., in a <nested-name>) until later use
 in processing the <bare-function-type>.
@@ -2490,10 +2500,10 @@ typedef struct a_func_block {
   a_boolean	no_return_type;
 			/* TRUE if the function is one that will not have
 			   a return type encoded in the function type. */
-  char		*cv_qual;
+  a_cv_qualifier_set
+		cv_quals;
 			/* If the function is a cv-qualified member function,
-			   points to the encoding for the cv-qualifiers.
-			   NULL otherwise. */
+			   the set of cv-qualifiers.  0 otherwise. */
 } a_func_block;
 
 
@@ -2540,11 +2550,13 @@ static unsigned long
 
 static char *demangle_type_first_part(
                                char                       *ptr,
+                               a_cv_qualifier_set         cv_quals,
                                a_boolean                  under_lhs_declarator,
                                a_boolean                  need_trailing_space,
                                a_decode_control_block_ptr dctl);
 static void demangle_type_second_part(
                                char                       *ptr,
+                               a_cv_qualifier_set         cv_quals,
                                a_boolean                  under_lhs_declarator,
                                a_decode_control_block_ptr dctl);
 static char *demangle_type(char                       *ptr,
@@ -2583,7 +2595,7 @@ Clear a function information block to default values.
 */
 {
   func_block->no_return_type = FALSE;
-  func_block->cv_qual = NULL;
+  func_block->cv_quals = 0;
 }  /* clear_func_block */
 
 
@@ -2660,6 +2672,7 @@ for the subk_prefix and subk_template_prefix cases.
 static char *demangle_substitution(
                              char                       *ptr,
                              int                        type_pass_num,
+                             a_cv_qualifier_set         cv_quals,
                              a_boolean                  under_lhs_declarator,
                              a_boolean                  need_trailing_space,
                              char                       **last_component_name,
@@ -2686,14 +2699,14 @@ often.  The syntax is:
    <substitution> ::= Sd # ::std::basic_iostream<char, std::char_traits<char> >
 
 When the substitution is a type, type_pass_num indicates whether to
-do the first-part (1) or second-part (2) processing.  under_lhs_declarator
-and need_trailing_space give extra information to be passed through to
-the type demangling routines in that case.  If last_component_name is
-non-NULL, and the substitution decoded is a prefix of a nested name, a
-pointer to the encoding for the last component of the nested name is
-returned in *last_component_name.  It will not be a substitution.
-This is needed for generating the names of constructors and
-destructors.
+do the first-part (1) or second-part (2) processing.  cv_quals,
+under_lhs_declarator, and need_trailing_space give extra information
+to be passed through to the type demangling routines in that case.  If
+last_component_name is non-NULL, and the substitution decoded is a
+prefix of a nested name, a pointer to the encoding for the last
+component of the nested name is returned in *last_component_name.  It
+will not be a substitution.  This is needed for generating the names
+of constructors and destructors.
 */
 {
   char ch2 = ptr[1];
@@ -2794,12 +2807,13 @@ destructors.
             break;
           case subk_type:
             if (type_pass_num == 1) {
-              (void)demangle_type_first_part(p,
+              (void)demangle_type_first_part(p, cv_quals,
                                              under_lhs_declarator,
                                              need_trailing_space,
                                              dctl);
             } else {
-              demangle_type_second_part(p, under_lhs_declarator, dctl);
+              demangle_type_second_part(p, cv_quals,
+                                        under_lhs_declarator, dctl);
             }  /* if */
             break;
           case subk_template_template_param:
@@ -2883,53 +2897,45 @@ no_return_type is TRUE if the return type is not present.
 }  /* demangle_bare_function_type */
 
 
-static a_boolean is_immediate_cv_qualifier(char *p)
+static char *get_cv_qualifiers(char               *ptr,
+                               a_cv_qualifier_set *cv_quals)
 /*
-Return TRUE if the encoding pointed to is one that indicates cv-qualification.
+Advance over any cv-qualifiers (const/volatile) at the indicated location
+and return in *cv_quals a bit set indicating the qualifiers encountered.
+Return a pointer to the character position following what was demangled.
 */
 {
-  a_boolean is_cv_qual = FALSE;
+  *cv_quals = 0;
+  for (;; ptr++) {
+    if (*ptr == 'K') {
+      *cv_quals |= CVQ_CONST;
+    } else if (*ptr == 'V') {
+      *cv_quals |= CVQ_VOLATILE;
+    } else if (*ptr == 'r') {
+      *cv_quals |= CVQ_RESTRICT;
+    } else {
+      break;
+    }  /* if */
+  }  /* for */
+  return ptr;
+}  /* get_cv_qualifiers */
 
-  if (*p == 'K' || *p == 'V' || *p == 'r') {
-    /* This is a CV-qualifier. */
-    is_cv_qual = TRUE;
-  }  /* if */
-  return is_cv_qual;
-}  /* is_immediate_cv_qualifier */
 
-
-static char *demangle_cv_qualifiers(
-                                     char                       *ptr,
-                                     a_boolean                  trailing_space,
-                                     a_decode_control_block_ptr dctl)
+static void output_cv_qualifiers(a_cv_qualifier_set         cv_quals,
+                                 a_boolean                  trailing_space,
+                                 a_decode_control_block_ptr dctl)
 /*
-Demangle any CV-qualifiers (const/volatile) at the indicated location.
-Return a pointer to the character position following what was demangled.
+Output any cv-qualifiers (const/volatile) in the bit set cv_quals.
 If trailing_space is TRUE, add a space at the end if any qualifiers were
 put out.
 */
 {
-  char      *p = ptr;
-  a_boolean any_quals = FALSE;
 
-  for (;; p++) {
-    if (*p == 'K') {
-      if (any_quals) write_id_ch(' ', dctl);
-      write_id_str("const", dctl);
-    } else if (*p == 'V') {
-      if (any_quals) write_id_ch(' ', dctl);
-      write_id_str("volatile", dctl);
-    } else if (*p == 'r') {
-      if (any_quals) write_id_ch(' ', dctl);
-      write_id_str("restrict", dctl);
-    } else {
-      break;
-    }  /* if */
-    any_quals = TRUE;
-  }  /* for */
-  if (any_quals && trailing_space) write_id_ch(' ', dctl);
-  return p;
-}  /* demangle_cv_qualifiers */
+  if (cv_quals & CVQ_CONST   ) write_id_str("const", dctl);
+  if (cv_quals & CVQ_VOLATILE) write_id_str("volatile", dctl);
+  if (cv_quals & CVQ_RESTRICT) write_id_str("restrict", dctl);
+  if (cv_quals != 0 && trailing_space) write_id_ch(' ', dctl);
+}  /* output_cv_qualifiers */
 
 
 static char *demangle_template_param(char                       *ptr,
@@ -2978,13 +2984,11 @@ to the character position following what was demangled.  The syntax is:
 
 Other parts of <type> are handled in demangle_type_first_part and
 demangle_type_second_part.  In particular, substitutions are handled
-at that level.
+at that level.  cv-qualifiers have been handled by the caller.
 */
 {
   char *p = ptr, *s;
 
-  /* Process CV-qualifiers. */
-  p = demangle_cv_qualifiers(p, /*trailing_space=*/TRUE, dctl);
   /* Builtin type encodings are all lower-case.  Names begin with
      a digit or an upper-case letter. */
   if (!islower((unsigned char)*p)) {
@@ -3087,6 +3091,7 @@ just ignore it.
 
 static char *demangle_type_first_part(
                                char                       *ptr,
+                               a_cv_qualifier_set         cv_quals,
                                a_boolean                  under_lhs_declarator,
                                a_boolean                  need_trailing_space,
                                a_decode_control_block_ptr dctl)
@@ -3098,20 +3103,24 @@ this type is directly under a type that uses a left-side declarator,
 e.g., a pointer type.  (That's used to control use of parentheses around
 parts of the declarator.)  If need_trailing_space is TRUE, put a space
 at the end of the specifiers part (needed if the declarator part is
-not empty, because it contains a name or a derived type).
+not empty, because it contains a name or a derived type).  cv_quals
+indicates any previously-scanned cv-qualifiers that are to be considered
+to be on top of the type.
 */
 {
-  char      *p = ptr, *qualp = p, *unqualp;
-  char      kind;
-  a_boolean record_substitution = TRUE;
+  char               *p = ptr, *qualp = p, *unqualp;
+  char               kind;
+  a_cv_qualifier_set local_cv_quals;
+  a_boolean          record_substitution = TRUE;
 
-  /* Remove type qualifiers. */
-  while (is_immediate_cv_qualifier(p)) p++;
+  /* Accumulate cv-qualifiers. */
+  p = get_cv_qualifiers(p, &local_cv_quals);
+  cv_quals |= local_cv_quals;
   unqualp = p;
   kind = *p;
   if (kind == 'S') {
     /* A substitution. */
-    p = demangle_substitution(p, 1,
+    p = demangle_substitution(p, 1, cv_quals,
                               under_lhs_declarator,
                               need_trailing_space,
                               (char **)NULL,
@@ -3124,7 +3133,7 @@ not empty, because it contains a name or a derived type).
     }  /* if */
   } else if (kind == 'P' || kind == 'R') {
     /* Pointer or reference type, P <type> or R <type>. */
-    p = demangle_type_first_part(p+1, /*under_lhs_declarator=*/TRUE,
+    p = demangle_type_first_part(p+1, CVQ_NONE, /*under_lhs_declarator=*/TRUE,
                                  /*need_trailing_space=*/TRUE, dctl);
     /* Output "*" or "&" for pointer or reference. */
     if (kind == 'R') {
@@ -3132,8 +3141,8 @@ not empty, because it contains a name or a derived type).
     } else {
       write_id_ch('*', dctl);
     }  /* if */
-    /* Output the type qualifiers on the pointer, if any. */
-    (void)demangle_cv_qualifiers(qualp, /*trailing_space=*/TRUE, dctl);
+    /* Output the cv-qualifiers on the pointer, if any. */
+    output_cv_qualifiers(cv_quals, /*trailing_space=*/TRUE, dctl);
   } else if (kind == 'M') {
     /* Pointer-to-member type, M <class type> <member type>. */
     char *classp = p+1;
@@ -3142,21 +3151,21 @@ not empty, because it contains a name or a derived type).
     dctl->suppress_id_output++;
     p = demangle_type(classp, dctl);
     dctl->suppress_id_output--;
-    p = demangle_type_first_part(p, /*under_lhs_declarator=*/TRUE,
+    p = demangle_type_first_part(p, CVQ_NONE, /*under_lhs_declarator=*/TRUE,
                                  /*need_trailing_space=*/TRUE, dctl);
     /* Output Classname::*. */
     dctl->suppress_substitution_recording++;
     (void)demangle_type(classp, dctl);
     dctl->suppress_substitution_recording--;
     write_id_str("::*", dctl);
-    /* Output the CV-qualifiers on the pointer, if any. */
-    (void)demangle_cv_qualifiers(qualp, /*trailing_space=*/TRUE, dctl);
+    /* Output the cv-qualifiers on the pointer, if any. */
+    output_cv_qualifiers(cv_quals, /*trailing_space=*/TRUE, dctl);
   } else if (kind == 'F') {
     /* Function type, F [Y] <bare-function-type> E
        where "Y" indicates extern "C" (and is ignored here). */
     p = skip_extern_C_indication(p+1);
     /* Output the return type. */
-    p = demangle_type_first_part(p, /*under_lhs_declarator=*/FALSE,
+    p = demangle_type_first_part(p, CVQ_NONE, /*under_lhs_declarator=*/FALSE,
                                  /*need_trailing_space=*/TRUE, dctl);
     /* Skip over the parameter types without outputting anything. */
     /* Substitutions do get recorded on this scan. */
@@ -3189,14 +3198,15 @@ not empty, because it contains a name or a derived type).
     }  /* if */
     p = advance_past_underscore(p, dctl);
     /* Process the element type. */
-    p = demangle_type_first_part(p, /*under_lhs_declarator=*/FALSE,
+    p = demangle_type_first_part(p, CVQ_NONE, /*under_lhs_declarator=*/FALSE,
                                  /*need_trailing_space=*/TRUE, dctl);
     /* This is a right-side declarator, so if it's under a left-side declarator
        parentheses are needed. */
     if (under_lhs_declarator) write_id_ch('(', dctl);
   } else {
     /* No declarator part to process.  Handle the specifier type. */
-    p = demangle_type_specifier(qualp, dctl);
+    output_cv_qualifiers(cv_quals, /*trailing_space=*/TRUE, dctl);
+    p = demangle_type_specifier(p, dctl);
     if (need_trailing_space) write_id_ch(' ', dctl);
     if (p == unqualp+1) {
       /* Do not record a substitution for a builtin type.  (Builtin types
@@ -3220,6 +3230,7 @@ not empty, because it contains a name or a derived type).
 
 static void demangle_type_second_part(
                                char                       *ptr,
+                               a_cv_qualifier_set         cv_quals,
                                a_boolean                  under_lhs_declarator,
                                a_decode_control_block_ptr dctl)
 /*
@@ -3230,18 +3241,22 @@ that from the call of demangle_type_first_part, and it saves a lot of
 time if this routine can avoid scanning the specifiers again.
 If under_lhs_declarator is TRUE, this type is directly under a type that
 uses a left-side declarator, e.g., a pointer type.  (That's used to control
-use of parentheses around parts of the declarator.)
+use of parentheses around parts of the declarator.)  cv_quals
+indicates any previously-scanned cv-qualifiers that are to considered
+to be on top of the type.
 */
 {
-  char *p = ptr, *qualp = p;
-  char kind;
+  char               *p = ptr;
+  char               kind;
+  a_cv_qualifier_set local_cv_quals;
 
-  /* Remove type qualifiers. */
-  while (is_immediate_cv_qualifier(p)) p++;
+  /* Accumulate cv-qualifiers. */
+  p = get_cv_qualifiers(p, &local_cv_quals);
+  cv_quals |= local_cv_quals;
   kind = *p;
   if (kind == 'S') {
     /* A substitution. */
-    p = demangle_substitution(p, 2,
+    p = demangle_substitution(p, 2, cv_quals,
                               under_lhs_declarator,
                               /*need_trailing_space=*/FALSE,
                               (char **)NULL,
@@ -3250,7 +3265,8 @@ use of parentheses around parts of the declarator.)
        that was done by demangle_type_first_part. */
   } else if (kind == 'P' || kind == 'R') {
     /* Pointer or reference type, P <type> or R <type>. */
-    demangle_type_second_part(p+1, /*under_lhs_declarator=*/TRUE, dctl);
+    demangle_type_second_part(p+1, CVQ_NONE, /*under_lhs_declarator=*/TRUE,
+                              dctl);
   } else if (kind == 'M') {
     /* Pointer-to-member type, M <class type> <member type>. */
     /* Advance over the class name. */
@@ -3259,7 +3275,8 @@ use of parentheses around parts of the declarator.)
     p = demangle_type(p+1, dctl);
     dctl->suppress_substitution_recording--;
     dctl->suppress_id_output--;
-    demangle_type_second_part(p, /*under_lhs_declarator=*/TRUE, dctl);
+    demangle_type_second_part(p, CVQ_NONE, /*under_lhs_declarator=*/TRUE,
+                              dctl);
   } else if (kind == 'F') {
     char *returnt;
     /* Function type, F [Y] <bare-function-type> E
@@ -3281,12 +3298,13 @@ use of parentheses around parts of the declarator.)
        be valid C, but it's a reasonable representation of the mangled
        type, and there's no way of getting the typedef name in there,
        so let it be. */
-    if (*qualp != 'F') {
+    if (cv_quals != 0) {
       write_id_ch(' ', dctl);
-      (void)demangle_cv_qualifiers(qualp, /*trailing_space=*/FALSE, dctl);
+      output_cv_qualifiers(cv_quals, /*trailing_space=*/FALSE, dctl);
     }  /* if */
     /* Output the return type. */
-    demangle_type_second_part(returnt, /*under_lhs_declarator=*/FALSE, dctl);
+    demangle_type_second_part(returnt, CVQ_NONE,
+                              /*under_lhs_declarator=*/FALSE, dctl);
   } else if (kind == 'A') {
     /* Array type,
          A <positive dimension number> _ <element type>
@@ -3313,7 +3331,8 @@ use of parentheses around parts of the declarator.)
     p = advance_past_underscore(p, dctl);
     write_id_ch(']', dctl);
     /* Process the element type. */
-    demangle_type_second_part(p, /*under_lhs_declarator=*/FALSE, dctl);
+    demangle_type_second_part(p, CVQ_NONE, /*under_lhs_declarator=*/FALSE,
+                              dctl);
   } else {
     /* No declarator part to process.  No need to scan the specifiers type --
        it was done by demangle_type_first_part. */
@@ -3350,10 +3369,11 @@ a type.  The syntax is:
   char *p;
 
   /* Generate the specifier part of the type. */
-  p = demangle_type_first_part(ptr, /*under_lhs_declarator=*/FALSE,
+  p = demangle_type_first_part(ptr, CVQ_NONE, /*under_lhs_declarator=*/FALSE,
                                /*need_trailing_space=*/FALSE, dctl);
   /* Generate the declarator part of the type. */
-  demangle_type_second_part(ptr, /*under_lhs_declarator=*/FALSE, dctl);
+  demangle_type_second_part(ptr, CVQ_NONE, /*under_lhs_declarator=*/FALSE,
+                            dctl);
   return p;
 }  /* demangle_type */
 
@@ -3842,7 +3862,7 @@ substitution, the name of the last component in the substitution is used.
     } else if (*ptr == 'S') {
       /* A substitution. */
       is_substitution = TRUE;
-      ptr = demangle_substitution(ptr, 0,
+      ptr = demangle_substitution(ptr, 0, CVQ_NONE,
                                   /*under_lhs_declarator=*/FALSE,
                                   /*need_trailing_space=*/FALSE,
                                   &prev_component_name, dctl);
@@ -3948,14 +3968,9 @@ For function names, additional information is returned in *func_block.
   clear_func_block(func_block);
   /* Skip the initial "N". */
   ptr++;
-  /* Skip <CV-qualifiers> if present. */
-  if (is_immediate_cv_qualifier(ptr)) {
-    /* Pass the cv-qualifiers position back to the caller. */
-    func_block->cv_qual = ptr;
-    do {
-      ptr++;
-    } while (is_immediate_cv_qualifier(ptr));
-  }  /* if */
+  /* Accumulate <CV-qualifiers> if present. */
+  ptr = get_cv_qualifiers(ptr, &func_block->cv_quals);
+  /* Get all the components of the nested name. */
   ptr = demangle_nested_name_components(ptr,
                                         /*num_levels=*/0,
                                         &is_no_return_name,
@@ -4083,7 +4098,7 @@ For function names, additional information is returned in *func_block.
     if (*ptr == 'S' && ptr[1] != '\0' && ptr[2] == 'I') {
       /* <substitution> in <unscoped-template-name>, because it's
          followed by the "I" beginning a <template-args>. */
-      ptr = demangle_substitution(ptr, 0,
+      ptr = demangle_substitution(ptr, 0, CVQ_NONE,
                                   /*under_lhs_declarator=*/FALSE,
                                   /*need_trailing_space=*/FALSE,
                                   (char **)NULL, dctl);
@@ -4246,11 +4261,11 @@ Do not output function parameters if include_func_params is FALSE.
     if (*ptr != '\0' && *ptr != 'E') {
       if (!include_func_params) dctl->suppress_id_output++;
       ptr = demangle_bare_function_type(ptr, func_block.no_return_type, dctl);
-      if (include_func_params && func_block.cv_qual != NULL) {
+      if (include_func_params && func_block.cv_quals != 0) {
         /* Put out cv-qualifiers for a member function. */
         write_id_ch(' ', dctl);
-        (void)demangle_cv_qualifiers(func_block.cv_qual,
-                                     /*trailing_space=*/FALSE, dctl);
+        output_cv_qualifiers(func_block.cv_quals,
+                             /*trailing_space=*/FALSE, dctl);
       }  /* if */
       if (!include_func_params) dctl->suppress_id_output--;
     }  /* if */
