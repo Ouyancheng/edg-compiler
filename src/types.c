@@ -141,7 +141,7 @@ predicates.
 #else /* GNU_EXTENSIONS_ALLOWED */
 #define is_incomplete(tp)                                               \
    ((tp)->size == 0 && !is_function(tp) &&                              \
-    !(gcc_mode && is_array(tp) && tp->variant.array.bound_is_zero))
+    !(is_array(tp) && tp->variant.array.bound_is_zero))
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 /* Macro that is TRUE if two type kinds are the same, or are the same except
