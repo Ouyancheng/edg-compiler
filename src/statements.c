@@ -1260,6 +1260,8 @@ the current routine.
   a_type_ptr      tp;
   a_symbol_ptr    function_name_symbol;
   a_boolean       issue_no_value_returned_diag;
+  an_error_severity
+		  no_returned_value_severity;
 
 
   /* Get a pointer to the current routine entry, and get its return
@@ -1280,17 +1282,27 @@ the current routine.
         /* No diagnostic for "main". */
       } else {
         issue_no_value_returned_diag = TRUE;
+        no_returned_value_severity = es_warning;
       }  /* if */
     } else {
-      /* C++:  Issue a diagnostic unless we are returning from a constructor
-         (ARM 6.6.3 -- no special case for "main" or for cases in which the
-         routine type is not explicit). */
+      /* C++:  Issue a diagnostic unless we are returning from a constructor.
+	 The diagnostic is either a warning or a strict ANSI diagnostic.
+	 While the ARM (6.6.3) does not appear to special case "main"
+	 it seems inappropriate to issue an error for a program that may
+	 exit from "main" using the "exit" function;  So only a warning
+	 is given for main.  There is no special case for cases in which
+	 the return type is not explicit. */
       if (rout->special_kind == (a_special_function_kind)sfk_constructor) {
         /* Constructors will not have a return expression since at the source
            level they have no return type; however, in the IL they are
            represented as returning the "this" parameter. */
       } else {
         issue_no_value_returned_diag = TRUE;
+	if (strict_ansi_mode && rout != il_header.main_routine) {
+          no_returned_value_severity = strict_ansi_error_severity;
+        } else {
+          no_returned_value_severity = es_warning;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -1305,18 +1317,9 @@ the current routine.
         internal_error("check_void_return_okay: unexpected NULL assoc_info");
     }  /* if */
 #endif /* CHECKING */
-    /* If a diagnostic is to be issue and we are in strict ANSI mode,
-       issue a strict ANSI diagnostic except for main which may return
-       a value through use of the exit function. */
-    if (strict_ansi_mode && C_dialect == C_dialect_cplusplus &&
-        rout != il_header.main_routine) {
-      sym_diagnostic(strict_ansi_error_severity,
-                     ec_no_value_returned_in_non_void_function,
-                     function_name_symbol);
-    } else {
-      sym_warning(ec_no_value_returned_in_non_void_function,
-                  function_name_symbol);
-    }  /* if */
+    sym_diagnostic(no_returned_value_severity,
+                   ec_no_value_returned_in_non_void_function,
+                   function_name_symbol);
   }  /* if */
 }  /* check_void_return_okay */
 
