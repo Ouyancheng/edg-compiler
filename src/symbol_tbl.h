@@ -53,10 +53,6 @@ typedef int an_id_lookup_options_set;
 #define IDL_SUPPRESS_AMBIGUITY_CHECK_AND_ACCESS_CONTROL 0x4
 				/* Suppress the check for ambiguity and
 				   the access control check. */
-#define IDL_OKAY_TO_RETURN_PROJECTION_SYMBOL 0x8
-				/* It's okay to return an sk_projection symbol.
-				   Ordinarily, such symbols are reduced to
-				   the original symbol they reference. */
 #define IDL_NO_OPTIONS 0	/* No special lookup options. */
 
 
