@@ -230,7 +230,7 @@ pcc_kind_established:
       do_sign_extension = int_kind_is_signed[kind];
       /* Mask off any bits past the end of the largest target integer. */
       make_integer_value_mask(&mask,
-                              (int)TARG_SIZEOF_LARGEST_INTEGER*targ_char_bit);
+                             (int)(TARG_SIZEOF_LARGEST_INTEGER*targ_char_bit));
       and_integer_values(&number, &mask);
       ovflo = FALSE;
     }  /* if */

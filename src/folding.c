@@ -981,7 +981,7 @@ Convert an integer constant to a pointer constant of type as specified by
   }  /* if */
 #endif /* CHECKING */
   make_integer_value_mask(&mask,
-                          (int)skip_typerefs(new_type)->size*targ_char_bit);
+                          (int)(skip_typerefs(new_type)->size*targ_char_bit));
   and_integer_values(&new_constant->variant.integer_value, &mask);
 }  /* conv_integer_to_pointer */
 
