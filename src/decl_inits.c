@@ -228,9 +228,39 @@ has static storage duration.
 }  /* add_destructor_to_dynamic_init */
 
 
+static void remove_unneeded_destructor_from_dynamic_init(
+                                                    a_dynamic_init_ptr  dip)
+/*
+Assuming that destructors may have been added to dynamic init entries to
+deal with exceptions during partial construction of the aggregate with which
+dip is associated, remove the destructor from the very last member of the
+aggregate.  This is a minor optimization -- once that last element has been
+completed, the aggregate is no longer in a state of partial construction.
+*/
+{
+  a_constant_ptr  cp;
+
+  if (dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
+    cp = dip->variant.constant;
+    while (cp->kind == (a_constant_repr_kind)ck_aggregate) {
+      cp = cp->variant.aggregate.last_constant;
+    }  /* while */
+    if (cp->kind == (a_constant_repr_kind)ck_init_repeat) {
+      cp = cp->variant.init_repeat.constant;
+    }  /* if */
+    if (cp->kind == (a_constant_repr_kind)ck_dynamic_init) {
+      dip = cp->variant.dynamic_init;
+      if (dip->destruction_is_for_partially_constructed_aggregate) {
+        dip->destructor = NULL;
+        dip->destruction_is_for_partially_constructed_aggregate = FALSE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* remove_unneeded_destructor_from_dynamic_init */
+
+
 static a_boolean init_remaining_array_elements(a_type_ptr     array_type,
                                                a_targ_size_t  curr_element,
-                                               a_boolean      fill_in_dtor,
                                                a_boolean      static_lifetime,
                                                a_constant_ptr *con_list,
                                                a_constant_ptr *end_of_con_list,
@@ -594,9 +624,6 @@ static a_constant_ptr get_initializer(
                             a_type_ptr  *type,
                             a_boolean   top_level,
                             a_boolean   static_lifetime,
-                            a_boolean   is_top_level_array,
-                            a_boolean   is_array_element,
-                            a_boolean   is_final_array_element,
                             a_boolean   *any_member_uninitialized,
                             a_boolean   *any_uninit_const_or_ref_member,
                             a_boolean   *any_dynamic_initialization,
@@ -610,11 +637,7 @@ it is initialized.  If there is some error in the initializer, an error
 constant is returned.  top_level is TRUE if this is a top-level initializer
 (braces are required surrounding initializers for unions and aggregates at
 that level).  If static_lifetime is TRUE, the underlying entity has static
-storage duration.  is_top_level_array is TRUE if the entity being
-initialized is an array that is not itself an element of another array; it
-may be a field -- therefore this flag may be TRUE even though top_level is
-FALSE.  is_final_array_element is TRUE if the entity being initialized is
-the last element of an array.  *nothing_taken is returned TRUE if no source
+storage duration.  *nothing_taken is returned TRUE if no source
 tokens were taken because the entity being initialized is an empty
 class. *incomplete_init is returned TRUE when at least one const or ref
 field of a class object (or an array of same) remains uninitialized.
@@ -843,9 +866,6 @@ field of a class object (or an array of same) remains uninitialized.
       took_extra_comma = FALSE;
       /* Loop, scanning initializers and building an aggregate constant. */
       while (any_more_initializers) {
-        a_boolean  local_is_final_array_element = FALSE;
-        a_boolean  local_is_top_level_array = FALSE;
-
         /* Determine the type of the member being initialized. */
         if (!any_more_members) {
           /* There are more initializers, but we've run out of members
@@ -869,15 +889,9 @@ field of a class object (or an array of same) remains uninitialized.
             fputc('\n', f_debug);
           }  /* if */
 #endif /* DEBUG */
-          if ((is_final_array_element || is_top_level_array) &&
-              local_type->variant.array.variant.number_of_elements ==
-                                                 curr_array_element + 1) {
-            local_is_final_array_element = TRUE;
-          }  /* if */
         } else {
           /* Class type: get the type of the current field. */
           member_type = curr_field->type;
-          if (is_array_type(member_type)) local_is_top_level_array = TRUE;
 #if DEBUG
           if (debug_level == 4) {
             fputs("getting initializer for field \"", f_debug);
@@ -906,11 +920,7 @@ field of a class object (or an array of same) remains uninitialized.
         add_stop_token(tok_comma);
         /* Get the initializer for this one member. */
         member_con = get_initializer(&member_type, /*top_level=*/FALSE,
-                                     static_lifetime,
-                                     local_is_top_level_array,
-                                     kind == (a_type_kind)tk_array,
-                                     local_is_final_array_element,
-                                     any_member_uninitialized,
+                                     static_lifetime, any_member_uninitialized,
                                      any_uninit_const_or_ref_member,
                                      any_dynamic_initialization,
                                      &local_nothing_taken);
@@ -1046,17 +1056,8 @@ field of a class object (or an array of same) remains uninitialized.
                such that a constructor is required to initialize the elements,
                we are required to provide default initialization by calling
                the default constructor. */
-            a_boolean  fill_in_dtor;
-            /* When exceptions are enabled, fill_in_dtor indicates whether
-               a destructor pointer should be supplied to the dynamic init
-               entry (if any, and possibly underneath an init-repeat.  This
-               is needed if the remaining array elements is not actually the
-               end of the array (which can happen if local_type represents a
-               subarray that does not contain the final element of the
-               top-level array within which it is nested). */
-            fill_in_dtor = !is_final_array_element && !is_top_level_array;
             if (init_remaining_array_elements(local_type, curr_array_element,
-                                              fill_in_dtor, static_lifetime,
+                                              static_lifetime,
                                               &con_list, &end_of_con_list,
                                              any_uninit_const_or_ref_member)) {
               any_more_members = FALSE;
@@ -1195,9 +1196,6 @@ detection of uninitialized fields).
   }  /* if */
 #endif /* DEBUG */
   *init_con = get_initializer(type, /*top_level=*/TRUE, static_lifetime,
-                              /*is_top_level_array=*/is_array_type(*type),
-                              /*is_array_element=*/FALSE,
-                              /*is_final_array_element=*/FALSE,
                               &any_member_uninitialized,
                               &any_const_or_ref_member_uninitialized,
                               &initialization_is_dynamic, &nothing_taken);
@@ -1221,6 +1219,16 @@ detection of uninitialized fields).
       (*init_dip)->variant.constant = *init_con;
       (*init_dip)->destructor = dtor_rp;
       *init_con = NULL;
+      if (exceptions_enabled) {
+        /* If appropriate, remove destructor from the dynamic init entry
+           associated with the last member of the aggregate. */
+        if (dtor_rp != NULL) {
+          /* If the aggregate is an array, then the element type will have a
+             destructor; if the aggregate is a class, any member may have
+             a destructor. */
+          remove_unneeded_destructor_from_dynamic_init(*init_dip);
+        }  /* if */
+      }  /* if */
 #if CHECKING
     } else {
       check_assertion((*init_con)->kind == (a_constant_repr_kind)ck_string ||
