@@ -4428,6 +4428,7 @@ they are not already present.
   a_based_type_kind kind;
   a_boolean         base_type_const_qualified, base_type_volatile_qualified;
   a_boolean         is_array = FALSE;
+  a_boolean         add_const, add_volatile;
 
   orig_base_type = base_type;
   /* According to ANSI C 3.5.3: "If the specification of an array type
@@ -4443,20 +4444,30 @@ they are not already present.
   }  /* if */
   base_type_const_qualified = is_const_qualified_type(base_type);
   base_type_volatile_qualified = is_volatile_qualified_type(base_type);
-  if ((is_const && !base_type_const_qualified) ||
-      (is_volatile && !base_type_volatile_qualified)) {
+  add_const = is_const && !base_type_const_qualified;
+  add_volatile = is_volatile && !base_type_volatile_qualified;
+  if (add_const || add_volatile) {
     /* Some qualifiers need to be added. */
-    /* The typeref(s) containing qualifiers, if any, are removed to get down
-       to the real base type, to which the new qualifiers are added. */
     if (base_type_const_qualified || base_type_volatile_qualified) {
-      base_type = make_unqualified_type(base_type);
-      /* Merge the existing qualifiers with the new ones. */
-      is_const |= base_type_const_qualified;
-      is_volatile |= base_type_volatile_qualified;
+      /* The typeref(s) containing qualifiers, if any, are removed to get down
+         to the real base type, to which the new qualifiers are added.  When
+         a qualifier is removed, a flag must be set so that it will be added
+         back. */
+      while (base_type->kind == (a_type_kind)tk_typeref) {
+        if (!base_type->variant.typeref.is_const &&
+            !base_type->variant.typeref.is_volatile) {
+          /* This is a typedef -- preserve it, so that the qualifier is built
+             on top of it. */
+          break;
+        }  /* if */
+        if (base_type->variant.typeref.is_const) add_const = TRUE;
+        if (base_type->variant.typeref.is_volatile) add_volatile = TRUE;
+        base_type = base_type->variant.typeref.type;
+      }  /* while */
     }  /* if */
     /* Determine the based type kind. */
-    if (is_const) {
-      if (is_volatile) {
+    if (add_const) {
+      if (add_volatile) {
         kind = (a_based_type_kind)btk_const_volatile;
       } else {
         kind = (a_based_type_kind)btk_const;
@@ -4471,8 +4482,8 @@ they are not already present.
       /* No allocated entry, need to allocate one. */
       ptr = alloc_type((a_type_kind)tk_typeref);
       ptr->variant.typeref.type        = base_type;
-      ptr->variant.typeref.is_const    = (is_const != 0);
-      ptr->variant.typeref.is_volatile = (is_volatile != 0);
+      ptr->variant.typeref.is_const    = add_const;
+      ptr->variant.typeref.is_volatile = add_volatile;
       /* Remember the existence of this typeref type by putting a pointer
          to it in the based_types list. */
       add_based_type_list_member(base_type, kind, ptr);
