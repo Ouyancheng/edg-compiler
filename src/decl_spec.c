@@ -1444,6 +1444,8 @@ does not introduce a definition and is not followed by a semicolon; otherwise
 it is left unchanged.
 */
 {
+  a_type_ptr  type = tag_sym->variant.class_struct_union.type;
+
   if (is_class_definition && is_qualified_name) {
     /* Issue a warning on a case like this:
          class A {
@@ -1463,7 +1465,6 @@ it is left unchanged.
     *declares_something = FALSE;
   } else if (!is_friend_decl) {
     /* Be sure the access is consistent on the redeclaration. */
-    a_type_ptr              type = tag_sym->variant.class_struct_union.type;
     a_scope_stack_entry_ptr ssep = &scope_stack[depth_scope_stack];
     if (ssep->current_access != type->source_corresp.access) {
       /* The access specified for the previous declaration does not
@@ -1483,7 +1484,11 @@ it is left unchanged.
                    strict_ansi_discretionary_severity : es_warning;
       pos_sy_diagnostic(severity, error_code, tag_position, tag_sym);
     }  /* if */
-    if (tag_sym->defined || !is_class_definition) {
+    if ((tag_sym->defined || !is_class_definition) &&
+        /* Exclude ordinary (nonprototype) template instantiations: */
+        !(type->variant.class_struct_union.is_template_class &&
+          !type->variant.class_struct_union.is_prototype_instantiation &&
+          !type->variant.class_struct_union.is_specialized)) {
       /* The only standard conforming nested class redeclaration is a
          definition following a nondefining declaration. */
       pos_diagnostic(strict_ansi_mode ?
