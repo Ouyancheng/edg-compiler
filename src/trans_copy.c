@@ -1213,8 +1213,12 @@ to the secondary translation unit.
       check_assertion(check_member_merges);
       keep_on_list = TRUE;
       mark_to_merge(type, iek_type);
-    } else if (!C_mode() && is_immediate_class_type(type) &&
-               class_befriending_lists_need_to_be_merged(
+    } else {
+      /* The type is a duplicate of one elsewhere and should be discarded. */
+      keep_on_list = FALSE;
+    }  /* if */
+    if (!keep_on_list && !C_mode() && is_immediate_class_type(type) &&
+        class_befriending_lists_need_to_be_merged(
                                     type,
                                     (a_type_ptr)canonical_il_entry_of(type))) {
       /* For the most part, this type is a duplicate of one elsewhere,
@@ -1222,9 +1226,6 @@ to the secondary translation unit.
          so mark it to have that information merged. */
       keep_on_list = TRUE;
       mark_to_merge(type, iek_type);
-    } else {
-      /* The type is a duplicate of one elsewhere and should be discarded. */
-      keep_on_list = FALSE;
     }  /* if */
 #if DEBUG
     if (db_trace("trans_copy", type, iek_type)) {
