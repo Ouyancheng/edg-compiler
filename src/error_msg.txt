@@ -1320,6 +1320,7 @@ ec_exp_comma_or_rbracket;;"expected a \",\" or \"]\""
 ec_duplicate_attr_arg;;"attribute argument %sq has already been given a value"
 ec_cannot_assign_to_attribute;;"a value cannot be assigned to the %sq attribute"
 ec_ptr_incomplete_throw;;"a throw expression may not have pointer-to-incomplete type"
+ec_alignof_incomplete_type;;"argument has incomplete type"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

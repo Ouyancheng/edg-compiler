@@ -4446,6 +4446,12 @@ implement <stdarg.h>, a standard feature.
       alignof_type->alignment_set_explicitly) {
     alignment = alignof_type->alignment;
   }  /* if */
+  if (microsoft_mode && is_array_type(alignof_type)) {
+    /* Microsoft ignores array declarators to determine alignment.  This
+       matters particularly for arrays of unspecified length: __alignof(int[])
+       is the same as __alignof(int). */
+    alignof_type = underlying_array_element_type(alignof_type);
+  }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
   alignof_type = skip_typerefs(alignof_type);
   /* Instantiate the type if it is a template class. */
@@ -4473,14 +4479,18 @@ implement <stdarg.h>, a standard feature.
                                   targ_size_t_int_kind);
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (microsoft_mode && is_incomplete_type(alignof_type) &&
-             !is_void_type(alignof_type)) {
+  } else if (microsoft_mode && is_immediate_class_type(alignof_type) &&
+             is_incomplete_type(alignof_type)) {
     /* In Microsoft mode __alignof results in zero for non-void incomplete
        types. */
     set_unsigned_integer_constant(&constant, (a_host_large_unsigned)0,
                                   targ_size_t_int_kind);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
+    if (is_incomplete_type(alignof_type)) {
+      pos_diagnostic((gnu_mode || strict_ansi_mode) ? es_error : es_warning,
+                      ec_alignof_incomplete_type, &start_position);
+    }  /* if */
     set_unsigned_integer_constant(
                      &constant, (a_host_large_unsigned)alignof_type->alignment,
                      targ_size_t_int_kind);
