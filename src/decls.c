@@ -419,26 +419,13 @@ we keep scanning till the end of the declarator and return leaving both
            declarators are allowed.) */
         *may_be_decl = FALSE;
         goto done;
+      } else if (curr_token == tok_identifier &&
+                 locator_for_curr_id.is_qualified_name &&
+                 next_token() == tok_rparen) {
+        /* Looks like a cast expression -- int(::x) or int(*A::p). */
+        *may_be_decl = FALSE;
+        goto done;
       }  /* if */
-      /* Scan a qualified name without checking for legal class names.  We
-         just want a token sequence that looks right. */
-      if (is_qualified_name_start()) {
-        /* Cache and bypass an initial "::", if any. */
-        if (curr_token == tok_colon_colon) {
-          cache_curr_token(token_cache_ptr);
-          (void)get_token();
-        }  /* if */
-        /* Cache and bypass one or more token pairs in which an identifier
-           is followed by "::". */
-        while (curr_token == tok_identifier &&
-               next_token() == tok_colon_colon) {
-          cache_curr_token(token_cache_ptr);
-          (void)get_token();
-          cache_curr_token(token_cache_ptr);
-          (void)get_token();
-        }  /* while */
-      }  /* if */
-      /* Now the class or global qualifier, if any, is stripped off. */
       if (curr_token == tok_identifier) {
         /* Cache and bypass the identifier. */
         cache_curr_token(token_cache_ptr);
