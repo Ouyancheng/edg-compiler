@@ -2585,7 +2585,6 @@ or struct definition.  The syntax is
         }  /* for */
       }  /* if */
       if (first_direct_nonvirtual_base_class && !is_virtual) {
-#if 0
         /* For the first direct nonvirtual base class it is possible to
            share virtual function info (e.g., virtual function tables and
            their associated pointers) between the base class and the
@@ -2620,7 +2619,6 @@ or struct definition.  The syntax is
              already reserved for the function.) */
           ctsp->virtual_function_count = base_ctsp->virtual_function_count;
         }  /* if */
-#endif /* if 0 */
         first_direct_nonvirtual_base_class = FALSE;
       }  /* if */
 skip_base_class:
