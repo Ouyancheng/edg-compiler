@@ -838,7 +838,7 @@ caution when modifying this routine.
     tag_err = TRUE;
   }  /* if */
   if (!C_mode() || microsoft_mode) {
-    /* The effective scope depth for the current declaration may need to
+    /* The effective scope depth for the current declaration may need to be
        reset.  Compute the depth to which it should be reset now, since it's
        used for processing declarations of predeclared types.  The actual
        resetting, if required, will be done later. */
@@ -850,20 +850,16 @@ caution when modifying this routine.
     do {
       switch (scope_stack[computed_decl_level].kind) {
         case sck_template_instantiation:
-          /* We hit a template instantiation scope.  If the
-             instantiation scope is for a real instantiation then
-             set effective_decl_level to file scope.  If it is a
-             prototype or nonreal instantiation then leave
-             effective_decl_level pointing at the instantiation
-             scope.  The problem is that a class declared in a
-             prototype instantiation may not be a real type, but we
-             don't know yet.  We want to avoid contaminating the name
-             space, etc., so it gets declared in the instantiation
-             scope. */
-          instance_sym =
-                     scope_stack[computed_decl_level].instance_sym;
-          if (instance_sym == NULL ||
-              is_real_class_symbol(instance_sym)) {
+          /* We hit a template instantiation scope.  If the instantiation
+             scope is for a real instantiation then effective_decl_level
+             will be set to file scope.  If it is a prototype or nonreal
+             instantiation then it will be left pointing at the instantiation
+             scope.  The problem is that a class declared in a prototype
+             instantiation may not be a real type, but we don't know yet.
+             We want to avoid contaminating the name space, etc., so it gets
+             declared in the instantiation scope. */
+          instance_sym = scope_stack[computed_decl_level].instance_sym;
+          if (instance_sym == NULL || is_real_class_symbol(instance_sym)) {
             computed_decl_level = depth_innermost_namespace_scope;
           }  /* if */
           /*FALLTHROUGH*/
@@ -875,7 +871,7 @@ caution when modifying this routine.
           done = TRUE;
           break;
         default:
-          (computed_decl_level)--;
+          computed_decl_level--;
       }  /* if */
     } while (!done);
   }  /* if */
@@ -1206,6 +1202,8 @@ caution when modifying this routine.
              declaration of a member function within the definition of class
              A does not introduce the name of nested class A::B; rather, B
              is entered in the same scope as A.) */
+          /* Note: in Microsoft C mode, tags are not entered in function
+             prototype scopes. */
           if (C_dialect == C_dialect_cplusplus || microsoft_mode) {
             *effective_decl_level = computed_decl_level;
           }  /* if */
