@@ -1148,37 +1148,48 @@ Add to the mangled name the encoding for the template template argument
 given by tap.
 */
 {
-  a_source_correspondence  *scp = &tap->variant.templ->source_corresp;
-  sizeof_t                 str_length;
-  a_boolean                is_member;
-  a_mangling_control_block sctl;
+  a_template_ptr                   temp = tap->variant.templ;
+  a_template_symbol_supplement_ptr tssp=template_supplement_for_template(temp);
 
-  /* Name of template.  The encoding is like
-       4abcd <-- encoding for template "abcd"
-        ^^^^---- Name of entity.
-       ^-------- Length of the name.
-  */
-  check_assertion(scp->name != NULL);
-  /* Compute the length of the mangled name. */
-  str_length = strlen(scp->name);
-  is_member = (scp->is_class_member || scp->parent.namespace_ptr != NULL);
-  if (is_member) {
-    /* The template is a member of a class or namespace, so it needs a
-       parent qualifier.  Compute the length of the qualifier. */
-    set_control_block_for_suppression(&sctl, mctl);
-    mangled_parent_qualifier(scp, &sctl);
-    str_length += 2 + sctl.slength;  /* "2" for the underscores. */
-  }  /* if */
-  /* Put out the length. */
-  add_number_to_mangled_name((unsigned long)str_length, mctl);
-  /* Put out the base part of the name. */
-  add_str_to_mangled_name(scp->name, mctl);
-  if (is_member) {
-    /* Add two underscores after the name. */
-    add_str_to_mangled_name("__", mctl);
-    /* Put out the name of the class or namespace of which this template
-       is a member. */
-    mangled_parent_qualifier(scp, mctl);
+  if (tssp->variant.class_template.template_template_param) {
+    /* The value of the argument is itself a template template parameter. */
+    mangled_encoding_for_template_parameter(
+                                     &tssp->variant.class_template.coordinates,
+                                     mctl);
+  } else {
+    /* The value of the argument is a template. */
+    a_source_correspondence  *scp = &temp->source_corresp;
+    sizeof_t                 str_length;
+    a_boolean                is_member;
+    a_mangling_control_block sctl;
+
+    /* Name of template.  The encoding is like
+         4abcd <-- encoding for template "abcd"
+          ^^^^---- Name of entity.
+         ^-------- Length of the name.
+    */
+    check_assertion(scp->name != NULL);
+    /* Compute the length of the mangled name. */
+    str_length = strlen(scp->name);
+    is_member = (scp->is_class_member || scp->parent.namespace_ptr != NULL);
+    if (is_member) {
+      /* The template is a member of a class or namespace, so it needs a
+         parent qualifier.  Compute the length of the qualifier. */
+      set_control_block_for_suppression(&sctl, mctl);
+      mangled_parent_qualifier(scp, &sctl);
+      str_length += 2 + sctl.slength;  /* "2" for the underscores. */
+    }  /* if */
+    /* Put out the length. */
+    add_number_to_mangled_name((unsigned long)str_length, mctl);
+    /* Put out the base part of the name. */
+    add_str_to_mangled_name(scp->name, mctl);
+    if (is_member) {
+      /* Add two underscores after the name. */
+      add_str_to_mangled_name("__", mctl);
+      /* Put out the name of the class or namespace of which this template
+         is a member. */
+      mangled_parent_qualifier(scp, mctl);
+    }  /* if */
   }  /* if */
 }  /* mangled_encoding_for_template_template_argument */
 
