@@ -598,7 +598,9 @@ typedef struct a_src_seq_secondary_decl {
 			/* TRUE when the scope of this declaration is a
 			   function prototype scope -- e.g.,
 			     void f(struct A *);
-			   when this is the first declaration of A. */
+			   when this is the first declaration of A.  Used in
+			   both C and C++, though the interpretation of such
+			   declarations differs between the two languages. */
   bitfield_to_avoid_codecenter_warnings()
 } a_src_seq_secondary_decl;
 
