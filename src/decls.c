@@ -580,6 +580,9 @@ type is legal.
         }  /* if */
         if (err) new_type_ptr = error_type();
         (*bottom_derived_type)->variant.routine.return_type = new_type_ptr;
+        /* Check whether the routine needs special support for returning a
+           class object by value. */
+        set_routine_calling_method_flag(*bottom_derived_type);
       }  /* if */
       temp_type = *bottom_derived_type;
       *bottom_derived_type = new_type_ptr;
@@ -3861,11 +3864,6 @@ function_lparen:
       }  /* if */
     }  /* if */
     complete_type = derived_type;
-  }  /* if */
-  if (complete_type != NULL && is_function_type(complete_type)) {
-    /* Check whether the routine needs special support for returning a class
-       object by value. */
-    set_routine_calling_method_flag(complete_type);
   }  /* if */
   /* If there were pointer types scanned at the beginning of this routine,
      the bottom-most derived type is the bottom-most pointer type. */
