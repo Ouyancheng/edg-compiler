@@ -27,7 +27,6 @@ statements.c -- Scanning of statements.
 #include "decls.h"
 #include "disambig.h"
 #include "expr.h"
-#include "exprutil.h"
 #include "folding.h"
 #include "pch.h"
 #include "pragma.h"
@@ -1221,6 +1220,9 @@ initializing declarations.
           if (parent->variant.block.is_within_catch_or_try_block) {
             new_cfdp->variant.block.is_within_catch_or_try_block = TRUE;
           }  /* if */
+          break;
+        default:
+          unexpected_condition();
       }  /* switch */
     }  /* if */
 #if DEBUG
@@ -1867,7 +1869,7 @@ function should only be called in C++ mode.
           if (debug_level >= 4) {
             fputs("common = ", f_debug);
             db_object_lifetime(olp2);
-    }  /* if */
+          }  /* if */
 #endif /* DEBUG */
           goto done;
         }  /* if */
@@ -2587,8 +2589,11 @@ the block statement.
         struct_stmt_stack[depth_stmt_stack].
                                   in_cleanup_statement_of_microsoft_try)
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    /* Pop the name scope. */
-    pop_scope();
+    /* Do not insert code here */
+    {
+      /* Pop the name scope. */
+      pop_scope();
+    }  /* if */
   }  /* if */
   /* If a label appeared in the context of the block that was just
      terminated, it may be appropriate to push a new object lifetime for
