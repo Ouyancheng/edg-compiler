@@ -401,6 +401,7 @@ Initialize things related to preprocessing.
   expand_macros = TRUE;
   in_preprocessing_directive = FALSE;
   processing_C_code_in_pragma = FALSE;
+  do_string_literal_concatenation = TRUE;
   in_pp_if_expression = FALSE;
   exp_header_name = FALSE;
   exp_digit_sequence = FALSE;

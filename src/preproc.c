@@ -900,6 +900,7 @@ string is copied there.
 {
   a_boolean	save_expand_macros;
   a_boolean	save_processing_C_code_in_pragma;
+  a_boolean	save_do_string_literal_concatenation;
   a_boolean	save_fetch_pp_tokens;
   a_boolean	any_white_space_skipped = FALSE;
   sizeof_t	pos_in_buffer = 0;
@@ -909,10 +910,12 @@ string is copied there.
   /* Save the current value of the lexical scanning mode flags. */
   save_expand_macros = expand_macros;
   save_processing_C_code_in_pragma = processing_C_code_in_pragma;
+  save_do_string_literal_concatenation = do_string_literal_concatenation;
   save_fetch_pp_tokens = fetch_pp_tokens;
   /* Set the new values. */
   expand_macros = pkdp->expand_macros;
   processing_C_code_in_pragma = pkdp->processing_C_code_in_pragma;
+  do_string_literal_concatenation = processing_C_code_in_pragma;
   /* We expect expand_macros and processing_C_code_in_pragma to be FALSE when
      building a string representation of the pragma. */
   check_assertion_str2(!expand_macros && !processing_C_code_in_pragma,
@@ -937,6 +940,7 @@ string is copied there.
   /* Restore the previous values. */
   expand_macros = save_expand_macros;
   processing_C_code_in_pragma = save_processing_C_code_in_pragma;
+  do_string_literal_concatenation = save_do_string_literal_concatenation;
   fetch_pp_tokens = save_fetch_pp_tokens;
   /* Allocate a block of file scope IL memory into which the string may
      be copied. */
@@ -964,15 +968,18 @@ based on the information specified in the pragma description entry.
 {
   a_boolean	save_expand_macros;
   a_boolean	save_processing_C_code_in_pragma;
+  a_boolean	save_do_string_literal_concatenation;
   a_boolean	save_fetch_pp_tokens;
 
   /* Save the current value of the lexical scanning mode flags. */
   save_expand_macros = expand_macros;
   save_processing_C_code_in_pragma = processing_C_code_in_pragma;
+  save_do_string_literal_concatenation = do_string_literal_concatenation;
   save_fetch_pp_tokens = fetch_pp_tokens;
   /* Set the new values. */
   expand_macros = pkdp->expand_macros;
   processing_C_code_in_pragma = pkdp->processing_C_code_in_pragma;
+  do_string_literal_concatenation = processing_C_code_in_pragma;
   fetch_pp_tokens = FALSE;
   /* Bypass the identifier that indicates the pragma kind. */
   (void)get_token();
@@ -987,6 +994,7 @@ based on the information specified in the pragma description entry.
   /* Restore the previous values. */
   expand_macros = save_expand_macros;
   processing_C_code_in_pragma = save_processing_C_code_in_pragma;
+  do_string_literal_concatenation = save_do_string_literal_concatenation;
   fetch_pp_tokens = save_fetch_pp_tokens;
 }  /* cache_pragma_tokens */
 
@@ -1104,6 +1112,8 @@ execute the preprocessor directive.
   a_stop_token_array save_stop_token_array;
   a_boolean	     save_fetch_pp_tokens = fetch_pp_tokens;
   a_boolean	     save_expand_macros = expand_macros;
+  a_boolean          save_do_string_literal_concatenation =
+                                               do_string_literal_concatenation;
   a_source_position  save_error_position;
   a_source_position  start_of_dir_position;
 
@@ -1117,6 +1127,7 @@ execute the preprocessor directive.
   in_preprocessing_directive = TRUE;
   fetch_pp_tokens = TRUE;
   expand_macros = FALSE;
+  do_string_literal_concatenation = FALSE;
   /* Save and clear the list of tokens that will stop flushing on error, and
      put the newline token into it. */
   copy_stop_tokens(stop_token_array, save_stop_token_array);
@@ -1206,6 +1217,7 @@ execute the preprocessor directive.
   in_preprocessing_directive = FALSE;
   fetch_pp_tokens = save_fetch_pp_tokens;
   expand_macros = save_expand_macros;
+  do_string_literal_concatenation = save_do_string_literal_concatenation;
   /* Restore the error position as at entry. */
   copy_source_position(save_error_position, error_position);
 

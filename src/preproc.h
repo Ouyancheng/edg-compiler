@@ -61,6 +61,11 @@ EXTERN a_boolean
 			   keyword recognition is enabled and the tokens
 			   "#" and "##" are disabled. */
 EXTERN a_boolean
+		do_string_literal_concatenation;
+			/* TRUE if adjacent string literal tokens should be
+			   concatenated.  Considered only if fetch_pp_tokens
+			   is FALSE. */
+EXTERN a_boolean
 		in_pp_if_expression;
 			/* TRUE if we are currently inside the expression of
 			   a #if.  When TRUE, integer constants get an
