@@ -382,14 +382,14 @@ struct_stmt_stack_container, and struct_stmt_stack.
      struct_stmt_stack is currently active.  The offset computed is the
      element count from the start of the container to the start of the
      currently active stack. */
-  struct_stmt_stack_offset = struct_stmt_stack_container - struct_stmt_stack;
+  struct_stmt_stack_offset = struct_stmt_stack - struct_stmt_stack_container;
   /* Recompute the size of the container. */
   new_size = size_struct_stmt_stack_container +
                                       STRUCT_STMT_STACK_INCREMENTAL_ALLOCATION;
   /* Reallocate the container, copying the old to the new. */
   struct_stmt_stack_container =
                        (a_struct_stmt_stack_entry_ptr)realloc_general(
-                       (char *)struct_stmt_stack,
+                       (char *)struct_stmt_stack_container,
                        (sizeof_t)(size_struct_stmt_stack_container*
                                             sizeof(a_struct_stmt_stack_entry)),
                        (sizeof_t)(new_size*sizeof(a_struct_stmt_stack_entry)));
@@ -397,15 +397,15 @@ struct_stmt_stack_container, and struct_stmt_stack.
   size_struct_stmt_stack_container = new_size;
   /* Recompute the address of the struct_stmt_stack.  The offset remains the
      the same, but the address of the container has changed. */
-  struct_stmt_stack = struct_stmt_stack_container - struct_stmt_stack_offset;
+  struct_stmt_stack = struct_stmt_stack_container + struct_stmt_stack_offset;
 }  /* expand_struct_stmt_stack */
 
 
 /* Macro to check whether the structured statement stack is large enough to
    accept one more entry and if it is not to reallocate it to a larger size. */
-#define ensure_struct_stmt_stack_space()                              \
-  if (struct_stmt_stack_container -                                   \
-        struct_stmt_stack + depth_stmt_stack + 1 ==                   \
+#define ensure_struct_stmt_stack_space()                            	\
+  if (struct_stmt_stack -						\
+		 struct_stmt_stack_container + depth_stmt_stack + 1 ==  \
                                 size_struct_stmt_stack_container) {   \
     expand_struct_stmt_stack();                                   \
   }  /* if */
