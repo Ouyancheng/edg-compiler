@@ -10180,13 +10180,53 @@ Return the constant in *constant.
 }  /* scan_template_argument_constant_expression */
 
 
+void scan_member_constant_initializer_expression(a_type_ptr required_type,
+                                                 a_constant *constant)
+/*
+Scan a member constant initializer expression.  Convert the constant to
+required_type (an integral or enumeration type, or an error or template
+type); issue an error if it is incompatible with that type.  Used in C++
+for scanning member constants in classes (in the standard form).
+*/
+{
+  an_operand          result;
+  an_expr_stack_entry expr_stack_entry;
+
+  db_enter(3, "scan_member_constant_initializer_expression");
+
+  check_assertion(expr_stack == NULL); /* Check this is a full expression. */
+  push_expr_stack((an_expression_kind)ek_integral_constant, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE);
+  /* Scan the constant expression. */
+  scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+  /* Convert to the required type. */
+  prep_initializer_operand(&result, required_type, (a_conv_descr_ptr)NULL,
+                           /*initializing_return_value=*/FALSE,
+                           /*initializing_variable=*/TRUE,  /* Arbitrary. */
+                           /*static_lifetime=*/FALSE,
+                           /*try_user_conversions=*/FALSE,
+                           ec_bad_initializer_type);
+  /* Make a constant from the operand. */
+  extract_constant_from_operand(&result, constant);
+  pop_expr_stack();
+
+#if DEBUG
+  if (debug_level >= 3) {
+    db_constant(constant);
+    fprintf(f_debug, "\n");
+  }  /* if */
+#endif /* DEBUG */
+  db_exit();
+}  /* scan_member_constant_initializer_expression */
+
+
 void scan_constant_initializer_expression(a_type_ptr required_type,
                                           a_constant *constant)
 /*
 Scan a constant initializer expression.  Convert the constant to
 required_type; issue an error if it is incompatible with that type.
 See section 3.4 in the ANSI C standard.  Used in C++ for scanning
-constant class members (an extension).
+nonstandard class member constants.
 */
 {
   an_operand          result;

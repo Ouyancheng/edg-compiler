@@ -121,6 +121,10 @@ extern void scan_class_parenthesized_initializer(
 extern void scan_template_argument_constant_expression(a_type_ptr param_type,
                                                        a_constant *constant);
 
+extern void scan_member_constant_initializer_expression(
+                                                 a_type_ptr required_type,
+                                                 a_constant *constant);
+
 extern void scan_constant_initializer_expression(a_type_ptr required_type,
                                                  a_constant *constant);
 

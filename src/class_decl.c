@@ -3972,15 +3972,16 @@ and it is legal for virtual member functions only.
 }  /* scan_pure_specifier */
 
 
-static void decl_member_constant(a_symbol_locator            *locator,
+static void decl_nonstd_member_constant(
+                                 a_symbol_locator            *locator,
                                  a_type_ptr                  class_type,
                                  a_type_ptr                  member_type,
                                  an_access_specifier         access,
                                  a_source_sequence_entry_ptr ssep)
 /*
-Do processing for a member constant, including scanning the initializer
-constant and entering the name in the symbol table.  member_type is
-guaranteed to be a const-qualified scalar type.  This construct is an
+Do processing for a nonstandard member constant, including scanning the
+initializer constant and entering the name in the symbol table.  member_type
+is guaranteed to be a const-qualified scalar type.  This construct is an
 extension.  Such a declaration is of the form:
 
   decl-specifiers declarator = constant-expression ;
@@ -3996,7 +3997,8 @@ no other qualifier, and where the resulting type is a scalar type -- e.g.,
     // Added for comparison:
     const int j;                   // nonstatic data member
     static const int k;            // static data member
-    static const int l = 10;       // static data member, syntax error
+    static const int l = 10;       // standard form of member constant,
+                                   //   not handled here
   };
 
 If source-sequence lists are being generated, ssep is a pointer to an empty
@@ -4006,7 +4008,7 @@ source-sequence entry for the declarator; otherwise it is NULL.
   a_symbol_ptr     sym;
   a_constant_ptr   cp;
 
-  db_enter(3, "decl_member_constant");
+  db_enter(3, "decl_nonstd_member_constant");
   /* The current token is the "=".  Pointing to it issue a diagnostic that this
      is a nonstandard construct.  This is a strict ANSI diagnostic in
      strict ANSI mode, otherwise it is a remark. */
@@ -4034,7 +4036,7 @@ source-sequence entry for the declarator; otherwise it is NULL.
   process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
   add_to_constants_list(cp, /*at_file_scope=*/FALSE);
   db_exit();
-}  /* decl_member_constant */
+}  /* decl_nonstd_member_constant */
 
 
 #if !DECL_MODIFIERS_IN_USE
@@ -4085,13 +4087,14 @@ table.
         (is_nonreal_class &&
          is_or_contains_template_param(member_type))) {
       /* A const integral or const enumeration type may be initialized inside
-         the class definition (9.5.2).  Note that the variable entry will have
-         an initializer but will not yet be defined. */
+         the class definition (9.5.2).   This makes the static data member
+         usable as a member constant.  Note that the variable entry will
+         have an initializer but it is not yet considered defined. */
       a_constant_ptr  cp = alloc_constant((a_constant_repr_kind)ck_error);
       /* Advance past the "=". */
       (void)get_token();
       /* Scan the constant expression. */
-      scan_constant_initializer_expression(member_type, cp);
+      scan_member_constant_initializer_expression(member_type, cp);
       var->init_kind = (an_init_kind)initk_static;
       var->initializer.constant = cp;
       /* Set the flag indicating to the back end that, even though there is
@@ -7101,15 +7104,15 @@ Scan the body of a class definition, including the base classes list.
             /* "mutable" and top-level const "const" are not allowed
                together. */
             pos_error(ec_mutable_not_allowed, &decl_start_pos);
-          } else if (curr_token == tok_assign &&
-                     is_scalar_type(local_type) &&
+          } else if (curr_token == tok_assign && !C_mode() &&
+                     (is_scalar_type(local_type) ||
+                      is_or_contains_template_param(local_type)) &&
                      (get_type_qualifiers(local_type) == TQ_CONST) &&
-                     member_storage_class == (a_storage_class)sc_unspecified &&
-                     C_dialect == C_dialect_cplusplus) {
+                     member_storage_class == (a_storage_class)sc_unspecified) {
             /* Provide support for the nonstandard declaration of a member
                constant of integral type -- e.g., "const int I = 2;". */
-            decl_member_constant(&locator, class_type, local_type, access,
-                                 declarator_ssep);
+            decl_nonstd_member_constant(&locator, class_type, local_type,
+                                        access, declarator_ssep);
             if (access != (an_access_specifier)as_public) {
               /* Strictly speaking, any nonpublic member prevents a class from
                  being an aggregate -- keep track. */
