@@ -5147,7 +5147,7 @@ not an lvalue, it is left alone.
                                       (an_expr_operator_kind)eok_lvalue_cast) {
           /* In certain modes, lvalues cast to another type can stay lvalues.
              This is indicated by casting the lvalue address to
-             pointer-to-new-type using an oek_lvalue_cast.  Here, turn
+             pointer-to-new-type using an eok_lvalue_cast.  Here, turn
              such a case back into an ordinary cast on the rvalue. */
           cast_node = node;
           operand_node = cast_node->variant.operation.operands;
