@@ -15,7 +15,8 @@ the address of a local variable.
 When doing nonclass prototype instantiations, in examples such as the
 following, the lookup of "f" would find the global scope function f instead
 of using the f that is a member of the class specified by template parameter
-T during a real instantiation.  This has been fixed.
+T during a real instantiation.  This has been fixed.  [Patch sent
+out 1/23/01.]
 
   void f();
   template <class T> void g(T t) {
@@ -41,6 +42,8 @@ This caused aborts later in some cases.
   struct B {struct A a;};
   struct B b = { (struct A){1} };  // Now gets an error
 
+[Patch sent out 1/23/01.]
+
 1/20/01  Microsoft compatibility: abort in get_integer_attributes
 
 An abort in get_integer_attributes in Microsoft C mode has been fixed.
@@ -65,6 +68,8 @@ Previously, IL lowering aborted with an error in elem_dynamic_init.
     T *p = new T[7]();
   }
 
+[Patch sent out 1/23/01.]
+
 1/19/01  Linux configuration has incorrect alignment of long long
 
 The defines_linux.h file did not specify an alignment for long long.
@@ -75,7 +80,8 @@ for Linux.  This has been fixed.
 
 When doing nonclass prototype instantiations, a spurious error was issued
 on an explicit destructor call where the destructor type name was a typedef
-to a template parameter type.  This has been fixed.
+to a template parameter type.  This has been fixed.  [Patch sent out
+1/23/01.]
 
   template <class T> void f(T t) {
     typedef typename T::some_type xxx;
@@ -96,7 +102,7 @@ would suppress the warning, but not a cast on the second operand.
 
 When a nontemplate class contained a class template, the bodies of member
 functions of the class template were missing from the template string.
-This has been fixed.
+This has been fixed.  [Patch sent out 1/23/01.]
 
   struct A {
     template <class T> struct B {
@@ -111,7 +117,7 @@ scope stack to be reallocated during pop_scope processing.  This
 could result in the use of an invalid scope stack entry pointer.
 The use of the invalid pointer causes an IL read/write error on
 some versions and could in theory, result in other kinds of behavior
-such as aborts, etc.  This has been fixed.
+such as aborts, etc.  This has been fixed.  [Patch sent out 1/23/01.]
 
 This example results in the use of an invalid pointer on versions
 that use the hidden name table.
@@ -137,7 +143,7 @@ contained a nonconstant complex expression.
     _Complex double w[] = { 0.0, z*__I__ };  // Lowered initializer used to
   }                                          // refer to complex type.
 
-This is now fixed.
+This is now fixed.  [Patch sent out 1/23/01.]
 
 1/16/01  Support for complex unary minus in C++-generating back end
 
@@ -149,14 +155,14 @@ when the operator had to be rendered.
     _Complex double a = __I__, b = -a;  // Used to trigger an internal error.
   }
 
-This is now fixed.
+This is now fixed.  [Patch sent out 1/23/01.]
 
 1/16/01  Errors on qualified references to names from base classes
          in templates
 
 A bug introduced in 2.44 caused spurious errors on certain references
 to members of dependent base classes in templates, when dependent name
-processing is being done.  Now fixed.
+processing is being done.  Now fixed.  [Patch sent out 1/23/01.]
 
   template <class T> struct A {
     template <class T2> void f(T2);
@@ -175,7 +181,8 @@ processing is being done.  Now fixed.
 
 Parentheses were sometimes missing around the first operand of a "->*"
 operation as put out by the C++-generating back end.  This could cause
-the generated code to be uncompilable.  Now fixed.
+the generated code to be uncompilable.  Now fixed.  [Patch sent out
+1/23/01.]
 
   class A {
     void f(A *obj) {
@@ -249,7 +256,7 @@ not a constant).
   double rd = id;  // Should be zero, but used to be lowered as if
                    // id were real with value 1.2.
 
-This is now fixed.
+This is now fixed.  [Patch sent out 1/23/01.]
 
 1/15/01  Missing diagnostic and possible abort on wrong number of template<>
          constructs
@@ -265,7 +272,7 @@ to abort.  For example:
   template<> template<> template<class V>
     struct S<int>::N {};  // Extraneous 'template<>' was not diagnosed
 
-This is now fixed (an error is issued).
+This is now fixed (an error is issued).  [Patch sent out 1/23/01.]
 
 1/15/01  Base classes are only dependent when the derived class is a template
 
@@ -273,7 +280,7 @@ When looking up an unqualified name in a class context, a base class should
 only be considered dependent when the most-derived class from which the
 lookup is done is a class template.  Formerly, we would unconditionally
 treat such a base class as dependent, causing "f" to be undefined in the
-example below.
+example below.  [Patch sent out 1/23/01.]
 
   template <class T> struct A {
     void f();
@@ -301,7 +308,7 @@ In Microsoft bugs mode, names used in the declaration of a template
 declared in a namespace (or in a class in a namespace) but defined outside
 of the namespace were not looked up properly.  This could result in
 spurious errors or other incorrect behavior.  This problem was introduced
-in version 2.43 and is now fixed.
+in version 2.43 and is now fixed.  [Patch sent out 1/23/01.]
 
   namespace N {
     template <class T> struct A {
@@ -326,11 +333,12 @@ Microsoft and Cfront modes).
 
 The assoc_template field was not set for the routine entry that represents
 the prototype instantiation of a function template.  This has been fixed.
+[Patch sent out 1/23/01.]
 
 1/10/01  Abort on invalid compound literal
 
 Certain invalid compound literals could result in an abort.  This has
-been fixed.
+been fixed.  [Patch sent out 1/23/01.]
 
   void f() {
     (char []){1 , .* , 2} = 0;
@@ -378,7 +386,7 @@ This is now fixed.
 1/9/01   Spurious error when friend injection is disabled
 
 A spurious redeclaration error was issued in certain cases when friend
-injection is disabled.  This has been fixed.
+injection is disabled.  This has been fixed.  [Patch sent out 1/23/01.]
 
   class A {
     friend class B;
@@ -415,12 +423,12 @@ call to a conversion function as an explicit cast.  For example:
     p->B::operator int*();  // Used to be rendered as ((int *)(*p));
   }
 
-This is now fixed.
+This is now fixed.  [Patch sent out 1/23/01.]
 
 1/5/01   Poorly worded diagnostic for invalid STDC pragma
 
 The message issued for an invalid STDC pragma was mangled.  This has been
-fixed.
+fixed.  [Patch sent out 1/23/01.]
 
   void f() {
     int x;
@@ -442,7 +450,7 @@ This is now fixed.
 1/4/01   C99 mode cannot be enabled when Microsoft mode is the default
 
 The front end gave an error if the --c99 option was used when Microsoft mode
-was the default.  This has been fixed.
+was the default.  This has been fixed.  [Patch sent out 1/23/01.]
 
 1/4/01   Inconsistent positions on certain variable declarations
 
@@ -474,7 +482,7 @@ been fixed.
 When using dependent name lookup, a dependent base class of a nested class
 of a class template was incorrectly being treated as nondependent during
 real instantiations.  This could result in incorrect name resolution.
-This has been fixed.
+This has been fixed.  [Patch sent out 1/23/01.]
 
   template <class T> struct A {
     typedef int X;
@@ -500,7 +508,7 @@ For example:
     } n;
   } s = { 0 };  // Used to trigger a spurious error
 
-This is now fixed.
+This is now fixed.  [Patch sent out 1/23/01.]
 
 1/2/01   Setting of is_template_function for member function prototype
          instantiations
@@ -508,6 +516,7 @@ This is now fixed.
 The is_template_function flag was not set in the routine entry associated
 with the prototype instantiation of a member function of a class template
 (e.g., for A<T>::f and A<T>::g in the example below).  This has been fixed.
+[Patch sent out 1/23/01.]
 
   template <class T> struct A {
     void f();
@@ -532,7 +541,7 @@ A bug introduced in 2.44 caused aborts in some cases in Microsoft
 mode preprocessing.  The cases involved a top-level macro call that
 expands to a string that includes a recursive reference to the macro
 (such a reference is not expanded; we refer to that as an "inert"
-macro name).  The aborts are now corrected.
+macro name).  The aborts are now corrected.  [Patch sent out 1/23/01.]
 
   #define f() +f()
   f()   // Formerly aborted in Microsoft mode
