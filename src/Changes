@@ -1,5 +1,14 @@
 Version 2.20
 
+10/21/93 Code after a throw is unreachble
+
+The front end now recognizes that code following a throw is unreachable.
+It recognizes only the simplest case, however:
+
+  throw 1;   // Unreachable after this
+  x ? throw a : throw b  // Not unreachable after this
+
+
 10/20/93 Cast of 0 to pointer type allowed in nontype template argument
 
 A cast of a null pointer constant (0) to a pointer or pointer-to-member

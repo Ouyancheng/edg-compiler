@@ -907,6 +907,22 @@ the current function scope.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 
+static a_boolean is_throw_expr(an_expr_node_ptr node)
+/*
+Return TRUE if the given expression is a "throw".
+*/
+{
+  a_boolean is_throw = FALSE;
+
+  /* This could be much fancier and could check for things like
+       x ? throw a : throw b
+       (throw c, y)
+     but it doesn't seem worth it. */
+  if (node->kind == (an_expr_node_kind)enk_throw) is_throw = TRUE;
+  return is_throw;
+}  /* is_throw_expr */
+
+
 a_statement_ptr add_statement_at_stmt_pos(a_statement_kind   kind,
                                           a_source_position  *stmt_pos)
 /*
@@ -1937,6 +1953,9 @@ Scan an expression statement.
                                    &start_position);
     stmt_update_source_sequence_list(sp);
     sp->expr = expr;
+    /* If the expression is a throw expression, the code following is
+       unreachable. */
+    if (is_throw_expr(expr)) set_unreachable(curr_reachability);
   }  /* if */
 }  /* expression_statement */
 
