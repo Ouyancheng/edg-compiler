@@ -2289,6 +2289,8 @@ is called.
 {
   a_boolean invisible = FALSE;
 
+  check_assertion(type->kind == (a_type_kind)tk_typeref &&
+                  typeref_is_typedef(type));
   if (!type->typedef_definition_has_been_put_out) {
     /* The typedef definition has not been put out yet, so the typedef
        name cannot be referenced. */
@@ -2299,6 +2301,16 @@ is called.
        <stdarg.h> header is included). */
     if (type->is_builtin_va_list) invisible = FALSE;
 #endif /* GCC_BUILTIN_VARARGS */
+  } else if (type->source_corresp.is_class_member &&
+             type->source_corresp.access != (an_access_specifier)as_public &&
+             !class_is_in_name_context_stack(
+                                     type->source_corresp.parent.class_type)) {
+    /* The typedef is a non-public member of a class.  There might be
+       an access problem for this if we're not inside the class, so drop
+       the typedef in that case.  This comes up, from example, on template
+       arguments for non-member templates that are first established using
+       a member typedef. */
+    invisible = TRUE;
   }  /* if */
   return invisible;
 }  /* is_typedef_invisible_in_cp_gen_be */

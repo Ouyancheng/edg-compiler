@@ -1,12 +1,14 @@
 Version 3.4
 
-12/25/03 Interface block for il_to_str routines: visibility test
+12/27/03 C++-generating back end: removing non-public member typedefs
 
-The interface block for the il_to_str routines has been changed
-slightly to add a pointer to a user-provided typedef visibility
-test routine.  The C++-generating back end now uses this: some
-of the visibility tests required only there are now done
-by a custom routine in cp_gen_be.c.
+The C++-generating back (with help from the il_to_str routines)
+has been removing non-public member typedefs used in template
+arguments (and using the underlying type instead), to avoid some
+accessibility problems.  Now, that processing has been generalized
+and is used for all type references, with the added constraint
+that the typedef is removed only when the reference is not inside
+the associated class.
 
 12/21/03 C99 printf specifiers: hh, j, z, and t
 
