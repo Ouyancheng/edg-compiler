@@ -56,11 +56,10 @@ container.  Now fixed.
 
 3/25/99  Exception specification on function parameter
 
-If an exception specification appears on a function parameter
-declaration within a typedef declaration, a diagnostic (an error in -A
-mode, a warning otherwise) is now issued.
+An error is now issued if an exception specification appears on a function
+parameter declaration within a typedef declaration.
 
-  typedef int FTP(int (*)() throw());       // diagnostic now issued
+  typedef int FTP(int (*)() throw());       // error
 
 3/24/99  Added "!= 0" expression nodes marked as compiler-generated
 
