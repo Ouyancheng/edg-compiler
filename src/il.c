@@ -545,24 +545,16 @@ static void db_expr_node(an_expr_node_ptr node,
   for (a = 0; a < level; a++) fputs(" ", f_debug);
   switch ((int)node->kind) {
     case enk_operation:
-      if (node->variant.operation.kind == (an_expr_operator_kind)eok_cast) {
-	fputs("(", f_debug);
-	db_type(node->type);
-	fputs(")", f_debug);
-	db_expr_node(node->variant.operation.operands, 0);
-	fputs("\n", f_debug);
-      } else {
-        fprintf(f_debug, "operator: %s",
-	        db_operator_names[(int)node->variant.operation.kind]);
-        fputs(",  result type: ", f_debug);
-        db_type(node->type);
-        fputs("\n", f_debug);
-        operand = node->variant.operation.operands;
-        while (operand != NULL) {
-	  db_expr_node(operand, level + 2);
-	  operand = operand->next;
-        }  /* while */
-      }  /* if */
+      fprintf(f_debug, "operator: %s",
+              db_operator_names[(int)node->variant.operation.kind]);
+      fputs(", result type: ", f_debug);
+      db_type(node->type);
+      fputs("\n", f_debug);
+      operand = node->variant.operation.operands;
+      while (operand != NULL) {
+        db_expr_node(operand, level + 2);
+        operand = operand->next;
+      }  /* while */
       break;
     case enk_constant:
       const_ptr = node->variant.constant;
