@@ -1,5 +1,17 @@
 Version 2.31
 
+12/13/95  Pointer-to-member template parameters that depend on other template
+          parameter types
+
+A bug has been fixed that caused a spurious error to be issued for cases,
+like the example below, that contain a pointer-to-member template parameter
+whose class type depends on a previous template parameter.
+
+  template <class T, int T::* pm> class A {
+    void f();
+  };
+  template <class T, int T::* pm> void A<T,pm>::f(){}
+
 12/13/95  No longer an error to declare a function inline after it is called
 
 Formerly, it was an error to redeclare a function as inline after it

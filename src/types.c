@@ -2017,7 +2017,9 @@ funcs_not_identical:;
         case tk_ptr_to_member:
           /* Pointer-to-member types are identical if they refer to the same
              class type and to the same member type. */
-          identical = (pm_class_type(type_1) == pm_class_type(type_2) &&
+          identical = (f_identical_types(pm_class_type(type_1),
+                                         pm_class_type(type_2),
+                                         il_identical) &&
                        f_identical_types(pm_member_type(type_1),
                                          pm_member_type(type_2),
                                          il_identical));
