@@ -4690,7 +4690,8 @@ there's some possibility of precedence confusion and need_parens is TRUE.
             /* Use the type name to create a "destructor" name. */
             gen_type(type);
             write_str("::~");
-            while (typeref_is_typedef(type) &&
+            while (type->kind == (a_type_kind)tk_typeref &&
+                   typeref_is_typedef(type) &&
                    !type->typedef_definition_has_been_put_out) {
               /* For typedefs that have not yet been put out, go down to
                  the underlying type. */
