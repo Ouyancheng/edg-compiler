@@ -1993,10 +1993,12 @@ the proper insert location.
 				  sym_name_space_kind == nsk_other &&
 				  is_redeclared_template_param(sym_ptr);
       if (!suppress_error && redeclared_template_param &&
-          scope_stack[scope_depth].template_param_decl_scope) {
+          (scope_stack[scope_depth].template_param_decl_scope ||
+           strict_ansi_mode)) {
         /* A template parameter name has been reused in the first scope
 	   associated with the instantiation that affects the declarative
-           level.  Note that we pass the identifier string to the error
+           level (or in a scope nested within that scope, in strict mode).
+           Note that we pass the identifier string to the error
            routine rather than using the standard symbol name fill-in. 
            This is done because the variable pointer may not have been
            filled in at the time the symbol is entered. */

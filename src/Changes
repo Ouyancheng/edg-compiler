@@ -1,5 +1,17 @@
 Version 2.29
 
+5/18/95  Redeclaring template parameters in nested scopes
+
+An error is now issued in strict mode when a template parameter is
+redeclared in a scope nested within a template.  Formerly, only a
+warning was issued.  Errors have always been issued when a template
+parameter is redeclared in the outermost scope of a template.
+
+  template <class T> struct A {
+    void f(int T);  // Now an error in strict mode
+    int T;  // Always an error
+  };
+
 5/17/95  New global variable stack_referenced_include_directories
 
 Configuration flag STACK_REFERENCED_INCLUDE_DIRECTORIES is no longer used
