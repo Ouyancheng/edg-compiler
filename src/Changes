@@ -1,5 +1,18 @@
 Version 2.30
 
+8/13/95  C++-generating back end: Bug with array --> pointer decay as lvalue
+
+The C++-generating back end has been fixed to deal properly with
+array-->pointer decay in lvalues:
+
+  struct A {
+    char s[2];
+  };
+  void m() {
+    A *p;
+    *p->s = '\0';
+  }
+
 8/13/95  C++-generating back end: Hidden name table use
 
 The C++-generating back end now uses the hidden name table when putting
