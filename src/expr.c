@@ -5616,7 +5616,7 @@ and C++ functional-notation type conversions.
             cast_operand_to_void(operand, type_cast_to);
           } else if ((C_dialect == C_dialect_pcc || SVR4_C_mode
 #if MICROSOFT_EXTENSIONS_ALLOWED
-                                                 || microsoft_mode
+                     || (microsoft_mode && C_mode())
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                                                   ) &&
               is_an_lvalue(operand) &&
