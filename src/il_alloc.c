@@ -1158,7 +1158,7 @@ pointer to it.
   a_vla_dimension_ptr vdp;
 
   db_enter(5, "alloc_vla_dimension");
-  vdp = (a_vla_dimension_ptr)alloc_il(sizeof(a_vla_dimension));
+  vdp = (a_vla_dimension_ptr)alloc_cil(sizeof(a_vla_dimension));
 #if DEBUG
   num_vla_dimensions_allocated++;
 #endif /* DEBUG */
