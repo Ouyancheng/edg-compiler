@@ -1211,12 +1211,6 @@ extern a_token_kind next_token_with_seq_number(a_token_sequence_number *seq);
   (next_token_with_seq_number((a_token_sequence_number*)NULL))
 /* Back up one token. */
 extern void unget_token(void);
-/* Get a C++ destructor name, like "~A". */
-extern a_boolean f_get_destructor_name(void);
-#define get_destructor_name()			                      \
-  ((curr_token == tok_compl) ? f_get_destructor_name() : FALSE)
-/* get_opname is in lexical.c. */
-
 
 extern a_symbol_ptr coalesce_template_class_reference
 			(a_symbol_ptr		   template_symbol,

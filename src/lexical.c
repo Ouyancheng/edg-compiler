@@ -5720,19 +5720,20 @@ so efficiency is not a prime concern.
 }  /* unget_token */
 
 
-a_boolean f_get_destructor_name(void)
+static void get_destructor_name(void)
 /*
 The current token is the "~" at the start of a destructor name.  Scan the
 name and build a locator for the destructor name in locator_for_curr_id.
 Note that this routine does not check that the name is a class name or that
-the destructor exists.  Return TRUE always (this routine is called from the
-macro get_destructor_name; it handles the FALSE case).  This routine is called
+the destructor exists.  The caller is responsible for ensuring that the
+current token is "~" before calling this routine.  This routine is called
 only in C++ mode.
 */
 {
   /* Skip past the "~", check for an identifier. */
   (void)get_token();
-  if (!is_generalized_identifier_start(GID_NO_OPTIONS)) {
+  if (!is_generalized_identifier_start(GID_DISALLOW_QUALIFIED_NAME |
+				       GID_DISALLOW_OPERATOR_NAME)) {
     /* syntax_error is deliberately not called. */
     error(ec_exp_identifier);
     /* Put back the current token and make a fake error identifier. */
@@ -5773,8 +5774,7 @@ only in C++ mode.
     /* Convert the locator to a locator for the destructor. */
     tildize_locator(&locator_for_curr_id);
   }  /* if */
-  return TRUE;
-}  /* f_get_destructor_name */
+}  /* get_destructor_name */
 
 
 static void get_opname(a_type_ptr class_type)
@@ -7048,7 +7048,7 @@ qualified name.
     } else if (((options & GID_DTOR_RECOGNIZED) || (is_qualified_name)) &&
         !is_file_scope_qualified_name) {
       /* The name can be a destructor name like "~A". */
-      (void)get_destructor_name();
+      if (curr_token == tok_compl) get_destructor_name();
     }  /* if */
     if (locator_for_curr_id.is_destructor_name) {
       /* The position of the current identifier should be the tilde that
