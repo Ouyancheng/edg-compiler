@@ -652,6 +652,7 @@ Display a_param_type entry.
     disp_name("qualifiers");
     form_type_qualifier((a_type_qualifier_set)ptr->qualifiers,
                         /*need_trailing_space=*/FALSE, &octl);
+    (void)printf("\n");
   }  /* if */
 #endif /* ifdef CFE */
 }  /* disp_param_type */
