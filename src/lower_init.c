@@ -1189,6 +1189,7 @@ beginning and end of the list are returned in *implied_arg_list and
   a_base_class_ptr bcp;
   a_constant       null_constant;
 
+  /* If you change this, see also default_version_of_routine. */
   *implied_arg_list = *end_implied_arg_list = NULL;
   /* Get the class type. */
   class_type = ctor_routine->source_corresp.parent.class_type;
@@ -1232,6 +1233,7 @@ we know we are calling the destructor for a complete object.
 {
   a_type_ptr class_type;
 
+  /* If you change this, see also default_version_of_routine. */
   *implied_arg_node = NULL;
   /* Get the class type. */
   class_type = dtor_routine->source_corresp.parent.class_type;
@@ -1750,20 +1752,23 @@ routine is returned.
   a_statement_ptr  return_stmt;
   a_generated_routine_context
                    grcontext;
-  a_boolean        insert_as_statement;
+  a_boolean        any_implied_args, insert_as_statement;
 
   /* Determine any implicit arguments required for a constructor or
      destructor. */
+  any_implied_args = FALSE;
   if (routine->special_kind == (a_special_function_kind)sfk_constructor) {
-    make_ctor_implied_arg_list(routine, &implied_arg_list,
-                               &end_implied_arg_list);
+    /* The test here must match make_ctor_implied_arg_list. */
+    if (routine->source_corresp.parent.class_type->
+                         variant.class_struct_union.any_virtual_base_classes) {
+      any_implied_args = TRUE;
+    }  /* if */
   } else if (routine->special_kind ==
                                      (a_special_function_kind)sfk_destructor) {
-    make_dtor_implied_arg_list(routine, /*have_complete_object=*/TRUE,
-                               &implied_arg_list);
-    end_implied_arg_list = implied_arg_list;
+    /* This must match make_dtor_implied_arg_list. */
+    any_implied_args = TRUE;
   }  /* if */
-  if (default_arg_list != NULL || implied_arg_list != NULL) {
+  if (default_arg_list != NULL || any_implied_args) {
     /* There are some implicit or default arguments, so a wrapper routine
        must be created and used in place of the original routine. */
     /* Make a type and routine entry for the routine. */
@@ -1809,6 +1814,18 @@ routine is returned.
     src_param_type = unlowered_param_type_list(routine_type);
     last_param_type = new_rtsp->param_type_list;
     last_param_var = this_param_var;
+    if (any_implied_args) {
+      /* Make expression lists for constructor or destructor implied
+         arguments. */
+      if (routine->special_kind == (a_special_function_kind)sfk_constructor) {
+        make_ctor_implied_arg_list(routine, &implied_arg_list,
+                                   &end_implied_arg_list);
+      } else {
+        make_dtor_implied_arg_list(routine, /*have_complete_object=*/TRUE,
+                                   &implied_arg_list);
+        end_implied_arg_list = implied_arg_list;
+      }  /* if */
+    }  /* if */
     /* Do not process parameters with default argument values, since they
        are removed from the routine's interface. */
     for (; src_param_type != NULL && !src_param_type->has_default_arg;
