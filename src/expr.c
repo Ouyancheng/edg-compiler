@@ -7647,39 +7647,37 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
            unqualified members of compatible object types (ANSI C 3.3.6).
            In C++, the standard pointer conversions are also done (ARM 4.6,
            5.7). The result has type ptrdiff_t (see 3.3.6 and <stddef.h>). */
-        /* Use bitwise OR to force both check (and possible diagnostics). */
-        if ((check_object_pointer_operand(
-                           operand_1, ec_expr_not_pointer_to_object) |
-             check_object_pointer_operand(
-                           &operand_2, ec_expr_not_pointer_to_object)) != 0) {
-          err = TRUE;
-        } else {
-          if (types_are_compatible_ignoring_qualifiers(
+        if (types_are_compatible_ignoring_qualifiers(
                                            type_pointed_to(operand_1->type),
                                            type_pointed_to(operand_2.type))) {
-            operation_type = skip_typerefs(operand_1->type);
-            result_type = integer_type(targ_ptrdiff_t_int_kind);
-          } else if (check_compatibility_of_pointer_operands(
-                           operand_1, &operand_2, &operator_position,
-                           /*pointer_normalization_standard_in_C=*/FALSE,
-                           /*pointers_to_functions_standard_in_C=*/FALSE,
-                           /*pointers_to_incomplete_standard_in_C=*/FALSE,
-                           /*mixed_object_and_incomplete_standard_in_C=*/FALSE,
-                           &operation_type)) {
-            /* Traditionally, certain differences in the types pointed to have
-               been accepted. */
-            if (!(any_cfront_mode() || microsoft_mode)) {
-              pos_ty2_diagnostic(strict_ansi_mode ? strict_ansi_error_severity
-                                                  : es_warning,
-                                 ec_nonstandard_ptr_minus_ptr,
-                                 &operator_position,
-                                 operand_1->type, operand_2.type);
-            }  /* if */
-            result_type = integer_type(targ_ptrdiff_t_int_kind);
-          } else {
-            /* An error message was already issued. */
-            err = TRUE;
+          operation_type = skip_typerefs(operand_1->type);
+        } else if (check_compatibility_of_pointer_operands(
+                          operand_1, &operand_2, &operator_position,
+                          /*pointer_normalization_standard_in_C=*/FALSE,
+                          /*pointers_to_functions_standard_in_C=*/FALSE,
+                          /*pointers_to_incomplete_standard_in_C=*/FALSE,
+                          /*mixed_object_and_incomplete_standard_in_C=*/FALSE,
+                          &operation_type)) {
+          /* Traditionally, certain differences in the types pointed to have
+             been accepted. */
+          if (!(any_cfront_mode() || microsoft_mode)) {
+            pos_ty2_diagnostic(strict_ansi_mode ? strict_ansi_error_severity
+                                                : es_warning,
+                               ec_nonstandard_ptr_minus_ptr,
+                               &operator_position,
+                               operand_1->type, operand_2.type);
           }  /* if */
+        } else {
+          err = TRUE;
+        }  /* if */
+        if (!err && check_object_pointer_operand(
+                                 operand_1, ec_expr_not_pointer_to_object) &&
+                    check_object_pointer_operand(
+                                 &operand_2, ec_expr_not_pointer_to_object)) {
+          result_type = integer_type(targ_ptrdiff_t_int_kind);
+        } else {
+          /* An error message was already issued. */
+          err = TRUE;
         }  /* if */
       } else {
         /* Pointer +- non-integral.  Error. */
