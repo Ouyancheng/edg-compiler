@@ -24,6 +24,8 @@ target.c -- Target configuration support
 /* Header files common to all files. */
 #include "fe_common.h"
 
+#if !STANDALONE_IL_DISPLAY
+
 #if TARG_ALL_POINTERS_SAME_SIZE
 /*ARGSUSED*/ /* Because tp is not used. */
 #endif /* TARG_ALL_POINTERS_SAME_SIZE */
@@ -91,6 +93,7 @@ TARG_ALL_POINTERS_SAME_SIZE may not always be TRUE.
   return size;
 }  /* size_of_pointer_to */
 
+#endif /* !STANDALONE_IL_DISPLAY */
 
 #if CHECKING
 
