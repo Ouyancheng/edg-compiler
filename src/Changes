@@ -1,5 +1,21 @@
 Version 3.5
 
+7/8/04   Determining if source is from an include file with preprocessed input
+
+When compiling preprocessed source, the front end would sometimes treat
+code from the primary source file as if it came from an include file.
+This resulted in the suppression of some warnings and/or remarks that
+should have been issued.  Now fixed.
+
+  #line 1 "t.c"
+  int i;
+  #line 2 "t.c"
+  static int g(double x) { return 0; }
+  #line 10 "x.h"
+  static int g(double x) { return 0; }  // should result in a warning
+  #line 9 "t.c"
+int main() {}
+
 7/8/04   Abort on type qualifier appearing on VLA types
 
 In some cases, the front end aborted with an internal error in

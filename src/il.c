@@ -136,6 +136,14 @@ static a_seq_number_lookup_entry_ptr
 			   a_seq_number_lookup_entry and the routine
 			   add_seq_number_lookup_entry for more information. */
 
+static a_source_file_ptr
+		effective_primary_source_file;
+			/* A pointer to the effective primary source file
+			   entry.  This is usually the same as the primary
+			   source file, but is different for files that
+			   begin with #line directives.  For more information
+			   see eff_primary_source_file. */
+
 #if !STANDALONE_UTILITY_PROGRAM
 
 /*
@@ -3245,32 +3253,40 @@ a_source_file_ptr eff_primary_source_file(void)
 Return a pointer to the source file entry for the effective primary source
 file.  This is usually the same as the primary source file, but is different
 when the source file begins with a #line directive; in that case, the primary
-source file is the one named in that #line directive.
+source file is the one named in that #line directive.  Save the value that
+has been computed so that it can be reused on subsequent calls.  If
+there is no effective primary source file yet, return the actual primary
+source file.
 */
 {
   a_source_file_ptr primary_file = il_header.primary_source_file;
   a_source_file_ptr first_file_under_primary;
 
-  if (primary_file != NULL) {
-    first_file_under_primary = primary_file->first_child_file;
-    while (first_file_under_primary != NULL &&
-           first_file_under_primary->included_by_preinclude) {
-      /* Ignore files included by --preinclude. */
-      first_file_under_primary = first_file_under_primary->next;
-    }  /* if */
-    if (first_file_under_primary != NULL) {
-      /* See if the first file entry under the primary file entry is for
-         a #line directive that is the first line of the input and
-         specifies a line number of 1. */
-      if (first_file_under_primary->full_name == NULL &&
-          first_file_under_primary->first_seq_number == 1+1 &&
-          first_file_under_primary->first_line_number == 1) {
-        /* Yes -- this is the effective primary source file. */
-        primary_file = first_file_under_primary;
+  if (effective_primary_source_file == NULL) {
+    if (primary_file != NULL) {
+      first_file_under_primary = primary_file->first_child_file;
+      while (first_file_under_primary != NULL &&
+             first_file_under_primary->included_by_preinclude) {
+        /* Ignore files included by --preinclude. */
+        first_file_under_primary = first_file_under_primary->next;
+      }  /* if */
+      if (first_file_under_primary != NULL) {
+        /* See if the first file entry under the primary file entry is for
+           a #line directive that is the first line of the input and
+           specifies a line number of 1. */
+        if (first_file_under_primary->full_name == NULL &&
+            first_file_under_primary->first_seq_number == 1+1 &&
+            first_file_under_primary->first_line_number == 1) {
+          /* Yes -- this is the effective primary source file. */
+          effective_primary_source_file = first_file_under_primary;
+        } else {
+          effective_primary_source_file = primary_file;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
-  return primary_file;
+  return effective_primary_source_file != NULL ? effective_primary_source_file
+                                               : primary_file;
 }  /* eff_primary_source_file */
 
 #if !STANDALONE_UTILITY_PROGRAM
@@ -3292,11 +3308,17 @@ Return TRUE if the sequence number seq_number falls within an include file.
     /* Sequence number is not in a file, so it's not in an include file. */
     in_include_file = FALSE;
   } else {
-    /* The primary_source_file_for_seq test is used to detect a line from
-       a file other than the primary file when reading source with #line
-       directives. */
+    /* full_name will be NULL for source file entries associated with #line
+       directives.  When #line directives are present, compare the
+       name of the file found with the name of the effective primary source
+       file (the one named by the initial #line directive).  If they don't
+       match, assume we're in an include file. */
+    a_source_file_ptr	primary_source_file;
+    primary_source_file = eff_primary_source_file();
     in_include_file = proper_file->is_include_file ||
-                      proper_file != primary_source_file_for_seq(seq_number);
+                      (proper_file->full_name == NULL &&
+                       strcmp(proper_file->file_name,
+                              primary_source_file->file_name) != 0);
   }  /* if */
   return in_include_file;
 }  /* seq_is_in_include_file */
@@ -16128,6 +16150,7 @@ in il_init.)
   register_trans_unit_variable(il_bool_type);
   register_trans_unit_variable(shareable_constants_table);
   register_trans_unit_variable(seq_cache);
+  register_trans_unit_variable(effective_primary_source_file);
   /* Global variables declared in il.h. */
   register_trans_unit_array_with_field(orphaned_file_scope_il_entries,
                                        orphaned_file_scope_il_entries);
@@ -16191,6 +16214,7 @@ need initialization for every (primary and secondary) translation unit.
   okay_to_eliminate_unneeded_il_entries = remove_unneeded_entities;
   /* Not conditional because it's also used by trans_copy.c: */
   initial_value_for_il_lowering_flag = 0;
+  effective_primary_source_file = NULL;
 #if ONE_INSTANTIATION_PER_OBJECT
   needed_flag_bit_number = 0;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
@@ -16267,6 +16291,7 @@ IL.  This routine is called after the IL has been read from a file.
 */
 {
   build_seq_number_lookup_table(il_header.num_seq_number_lookup_entries);
+  effective_primary_source_file = NULL;
 }  /* rebuild_structures_on_il_read */
 
 
