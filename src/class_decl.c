@@ -3322,7 +3322,7 @@ special function kind (e.g., constructor, destructor), if any.
     rtn->source_corresp.access = access;
     rtn->is_inline = is_inline;
     rtn->compiler_generated = compiler_generated;
-    rtn->throw_specification = func_info->throw_specification;
+    add_throw_specification(func_info, rtn);
     if (cssp->is_nonreal_class) {
       /* This symbol represents a member function of a prototype instantiation
          of a class template.  As such it is a quasi function template itself.
@@ -4168,17 +4168,7 @@ routine body is generated at this time.
     }  /* if */
   }  /* if */
   clear_func_info(&func_info);
-#if 0
-#else
-#define exceptions_disallowed FALSE
-#endif /* if 0 */
-  if (!exceptions_disallowed) {
-    a_throw_specification_ptr tsp;
-    /* No explicit throw specification, meaning anything may be thrown. */
-    tsp = alloc_throw_specification((a_throw_spec_kind)tsk_any);
-    tsp->decl_position = pos_curr_token;
-    func_info.throw_specification = tsp;
-  }  /* if */
+  set_to_throw_anything(&func_info, &pos_curr_token);
   /* Create a symbol and enter it in the symbol table, and create a routine
      entry and add it to the routines list for the current scope. */
   (void)decl_member_function(&locator, class_type, rout_type, &func_info,

@@ -3022,17 +3022,7 @@ the compiler-generated flag should be cleared.
   extra_info->prototyped = TRUE;
   set_routine_calling_method_flag(rout_type);
   clear_func_info(&func_info);
-#if 0
-#else
-#define exceptions_disallowed FALSE
-#endif /* if 0 */
-  if (!exceptions_disallowed) {
-    a_throw_specification_ptr tsp;
-    /* No explicit throw specification, meaning anything may be thrown. */
-    tsp = alloc_throw_specification((a_throw_spec_kind)tsk_any);
-    tsp->decl_position = pos_curr_token;
-    func_info.throw_specification = tsp;
-  }  /* if */
+  set_to_throw_anything(&func_info, &pos_curr_token);
   /* Create the symbol and routine entry.  Note that the routine entry
      is given a storage class of sc_extern since there is no definition
      in the current translation unit. */
