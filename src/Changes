@@ -1,5 +1,12 @@
 Version 2.11
 
+10/13/92  Fixed bug in overload_distinguishable
+
+There was a bug in overload_distinguishable that caused the loop to end
+prematurely when checking a new routine's type against the types in a list
+of overloaded functions.  The only effect of the bug was a failure to
+diagnose certain rather obscure errors.  It is now fixed.
+
 10/8/92  Support for cfront "transitional model" nested types
 
 The cfront 2.1 "transitional model" for nested types, in which a nested type
