@@ -11769,14 +11769,25 @@ happen only in C++ mode.
        routine in a constant expression. */
   } else if (class_bitwise_copy) {
     /* The operation is a class bitwise copy, so use a dik_expression. */
+    a_dynamic_init_kind kind = (a_dynamic_init_kind)dik_expression;
     prep_class_bitwise_copy_operand(source_operand, dest_type,
                                     /*conv_to_rvalue=*/TRUE);
+    if (is_constant_operand(source_operand)) {
+      /* In some cases (e.g., when the initializer is a compound literal
+         in g++ mode) the dynamic initialization should use a constant. */
+      kind = (a_dynamic_init_kind)dik_constant;
+    }  /* if */
     dip = alloc_dynamic_init_possibly_with_dtor(
-                                          (a_dynamic_init_kind)dik_expression,
+                                          kind,
                                           fill_in_dtor,
                                           class_type,
                                           &source_operand->position);
-    dip->variant.expression = make_node_from_operand(source_operand);
+    if (kind == (a_dynamic_init_kind)dik_constant) {
+      dip->variant.constant =
+                   alloc_shareable_constant(&source_operand->variant.constant);
+    } else {
+      dip->variant.expression = make_node_from_operand(source_operand);
+    }  /* if */
   } else if (conversion->unknown_dependent_conversion) {
     /* Conversion to or from an unknown template-dependent type in a
        prototype instantiation. */

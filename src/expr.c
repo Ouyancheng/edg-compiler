@@ -10158,9 +10158,9 @@ static void scan_compound_literal(a_type_ptr              *p_literal_type,
                                   an_operand               *result,
                                   a_local_expr_options_set local_options)
 /*
-Scan a compound literal.  See 6.5.2.5 in the C99 standard.  A compound
-literal looks like a cast in which the source expression is a brace-
-enclosed initializer, e.g.,
+Scan a compound literal.  See 6.5.2.5 in the C99 standard (also allowed
+in some C++ modes, e.g., GNU C++).  A compound literal looks like a cast
+in which the source expression is a brace-enclosed initializer, e.g.,
 
   (int []){1, 2, 3}
 
@@ -10173,7 +10173,8 @@ to the compound literal.
   a_boolean               err = FALSE;
   a_type_ptr              literal_type = *p_literal_type;
   a_dynamic_init_ptr      dip;
-  a_boolean               is_static = curr_expr_kind_is_const();
+  a_boolean               is_static = (innermost_function_scope == NULL ||
+                                       curr_expr_kind_is_const());
   an_expr_stack_entry_ptr saved_expr_stack;
   a_memory_region_number  region_to_switch_back_to;
 
@@ -10228,7 +10229,7 @@ to the compound literal.
     a_constant_ptr literal_con;
     literal_con = dip->variant.constant;
     if (gnu_mode && !(local_options & EOPT_OPERAND_OF_ADDRESS_OF)) {
-      /* In GNU C mode, the compound literal is treated as a constant-
+      /* In GNU mode, the compound literal is treated as a constant-
          expression.  In some cases, the constant may later be used to
          initialize a variable (if an lvalue is needed after all). */
       make_constant_operand(literal_con, result);

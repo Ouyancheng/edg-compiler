@@ -9503,7 +9503,7 @@ Make a temporary variable whose type is temp_type.  Return a pointer to it.
   /* make_variable/alloc_variable uses the appropriate memory region,
      based on storage class.*/
   temp_var = make_variable(temp_type, storage_class,
-                           at_file_scope ? depth_innermost_namespace_scope :
+                           at_file_scope ? DEPTH_OF_FILE_SCOPE :
                                            decl_scope_level);
   /* Name linkage stays nlk_none. */
   return temp_var;

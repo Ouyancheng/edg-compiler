@@ -1,5 +1,15 @@
 Version 3.6
 
+2/10/05  Better code for compound literal initializers in C++ mode
+
+The code generated for file-scope variables initialized by
+compound literals in C++ mode (e.g., in GNU C++ mode) is now
+improved in some cases.
+
+  struct A { int x; };
+  A *p = &(A){1};  // Code improved
+  A a = (A){2};    // Code stays the same
+
 2/10/05  GNU C++ compatibility: Abstract class return types
 
 GNU C++ compilers only diagnose abstract class return types on function
