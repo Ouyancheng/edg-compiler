@@ -266,6 +266,7 @@ int main(int argc, char *argv[])
   a_list_entry_ptr     ctor_list = NULL;
   a_list_entry_ptr     dtor_list = NULL;
   a_list_entry_ptr     entry;
+  a_list_entry_ptr     last_entry = NULL;
   char*                name_pos;
   char*                name_string;
   int                  name_length;
@@ -304,6 +305,11 @@ int main(int argc, char *argv[])
     /* Skip empty lines. */
     if (line_size == 0) continue;
     if (check_type_and_get_name(&name_pos, &name_length, &is_ctor)) {
+      /* If the name is the same as the last entry, skip this one.  Some
+         systems put out duplicate entries for the sti and std routines. */
+      if (last_entry != NULL &&
+          name_length == strlen(last_entry->name) &&
+          strncmp(last_entry->name, name_pos, name_length) == 0) continue;
       /* Make a copy of the routine name. */
       name_string = (char *)malloc_with_check(size_t_arg(name_length + 1));
       strncpy(name_string, name_pos, name_length);
@@ -313,6 +319,7 @@ int main(int argc, char *argv[])
       entry = (a_list_entry_ptr)malloc_with_check(sizeof(a_list_entry));
       entry->name = name_string;
       entry->next = NULL;
+      last_entry = entry;
       /* Add to appropriate list.  The lists are built backwards (new items
          put on the front).  This matches the output from the AT&T munch
          utility.  */

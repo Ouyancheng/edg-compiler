@@ -1,5 +1,12 @@
 Version 2.39
 
+7/29/98  Handling of duplicate names in edg_munch
+
+The "nm" command on some systems produces duplicate entries for __sti
+and __std functions, causing edg_munch to call the routines more than
+once.  edg_munch has been modified to detect duplicate entries, but
+only if they are adjacent to one another in the "nm" output.
+
 7/10/98  Prelinker erroneously finds .ti file for archive
 
 The prelinker used information from a template information (.ti) file
