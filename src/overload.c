@@ -8629,6 +8629,12 @@ the target type to be used).
             arg_match->match_level = std_conv.nontrivial_conversion ?
                                                 aml_std_conversion : aml_exact;
           }  /* if */
+          if (microsoft_bugs) {
+            /* MSVC++ (7.1, 8.0 at least) seem to ignore the cost of the
+               deprecated conversion of a string literal to a pointer to
+               non-const char on an operand of a built-in operator. */
+            std_conv.conv_of_string_literal_to_ptr_to_nonconst = FALSE;
+          }  /* if */
           arg_match->conversion.std = std_conv;
           arg_match->param_type = eff_specific_type;
         }  /* if */

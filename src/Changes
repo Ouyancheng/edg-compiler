@@ -1,6 +1,23 @@
 Version 3.6
 
-2/4/04  Microsoft compatibility: __asm directives in template strings
+2/4/04   Microsoft 7.1 compatibility: string as argument to built-in ==
+
+The emulation for MSVC++ 7.1 (microsoft_version=1310) now gives
+no ambiguity for a case like the one below where a string (which
+has a const type as of MSVC++ 7.1) is an operand of a comparison
+operator and the other operand is a class that has a conversion
+function to "char *" (not const char *).
+
+  struct C {
+    C() {}
+    operator char *();
+  };
+  int main() {
+    C cs;
+    cs == "x";
+  }
+
+2/4/04   Microsoft compatibility: __asm directives in template strings
 
 When the front end is configured to create string representations of
 templates, the string for a template containing a Microsoft __asm directive
@@ -18,7 +35,7 @@ compiling the generated C++ code.  Now fixed.
     a.f();
   }
 
-2/3/04  GNU compatibility: infinity used for float values out of range
+2/3/04   GNU compatibility: infinity used for float values out of range
 
 In GNU mode, the front end accepts floating-point constants that are out
 of range and uses the "infinity" value instead.  However, constants that were
