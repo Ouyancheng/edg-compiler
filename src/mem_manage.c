@@ -37,6 +37,10 @@ extern char *realloc(char *ptr, unsigned size);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 
+#if IL_WALK_NEEDED
+#include "il_walk.h"
+#endif /* IL_WALK_NEEDED */
+
 
 static a_mem_block_header_ptr
 		reusable_blocks_list = NULL;
@@ -700,51 +704,6 @@ Save it if necessary, free the space if possible.
   db_exit();
 }  /* done_with_memory_region */
 
-#if DO_IL_LOWERING || IL_SHOULD_BE_WRITTEN_TO_FILE
-
-void preserve_local_scope_entities_allocated_in_file_scope(a_scope_ptr scope)
-/*
-Look at a single (function or block) scope.  Preserve pointers to any static
-variables or local types.  Do the same processing for the sub-scopes.
-The pointers are from a scope in a function scope memory region and point
-into the file scope.  They need to be preserved so that the entries can
-be found later when walking the file scope.
-*/
-{
-  a_scope_ptr local_scope;
-
-#if CHECKING
-  /* Static variables list and type list are only expected for function
-     or block scope. */
-  if (scope->kind != (a_scope_kind)sck_block &&
-      scope->kind != (a_scope_kind)sck_function) {
-    internal_error("preserve_local_scope: not a function or block scope");
-  }  /* if */
-#endif /* CHECKING */
-  if (scope->types != NULL || scope->variables != NULL) {
-    /* Create a_group_of_local_scope_entities_allocated_in_file_scope
-       entry with the variables and type pointers from the scope.  Add
-       this to the front of any existing list. */
-    a_group_of_local_scope_entities_allocated_in_file_scope_ptr
-		list_ptr;
-
-    list_ptr = (a_group_of_local_scope_entities_allocated_in_file_scope_ptr)
-           alloc_fe(
-              sizeof(a_group_of_local_scope_entities_allocated_in_file_scope));
-    list_ptr->next = local_scope_entities_allocated_in_file_scope;
-    list_ptr->static_variables = scope->variables;
-    list_ptr->local_types = scope->types;
-    local_scope_entities_allocated_in_file_scope = list_ptr;
-  }  /* if */
-  /* Walk through any local scopes. */
-  for (local_scope = scope->scopes;
-       local_scope != NULL;
-       local_scope = local_scope->next) {
-    preserve_local_scope_entities_allocated_in_file_scope(local_scope);
-  }  /* for */
-}  /* preserve_local_scope_entities_allocated_in_file_scope */
-
-#endif /* DO_IL_LOWERING || IL_SHOULD_BE_WRITTEN_TO_FILE */
 
 #if DEBUG
 void show_mem_manage_space_used(unsigned long total_accounted_for)
@@ -798,11 +757,6 @@ of the front end.
   /* Variables in mem_tables.h: */
   highest_used_region_number = NULL_region_number;
 
-#if DO_IL_LOWERING || IL_SHOULD_BE_WRITTEN_TO_FILE
-  /* Initialize the local_scope_entities_allocated_in_file_scope pointer. */
-  local_scope_entities_allocated_in_file_scope = NULL;
-#endif /* DO_IL_LOWERING || IL_SHOULD_BE_WRITTEN_TO_FILE */
-
   /* Static variables in mem_manage.c: */
 #if DEBUG
   total_mem_used = 0;
@@ -813,6 +767,12 @@ of the front end.
   init_memory_region(NULL_region_number);
   /* Initialize the memory region for file scope IL information. */
   init_memory_region(FILE_SCOPE_REGION_NUMBER);
+#if IL_WALK_NEEDED
+  /* Initialize the orphaned_file_scope_il_entries array to NULL
+     pointers. */
+  memzero((char *)orphaned_file_scope_il_entries,
+          sizeof(orphaned_file_scope_il_entries));
+#endif /* IL_WALK_NEEDED */
 }  /* mem_manage_init */
 
 
