@@ -6484,7 +6484,8 @@ declared and before the partial instantiation of the function was done.
                                   templ_sym, templ_arg_list,
                                   (a_template_arg_ptr*)NULL,
                                   (a_template_param_ptr)NULL);
-  if (!types_are_compatible(substituted_type, type)) {
+  if (substituted_type == NULL ||
+      !types_are_compatible(substituted_type, type)) {
     if (!is_or_contains_error_type(type) &&
         !is_or_contains_error_type(templ_rout->type)) {
       /* If the type contains an error type it is likely that the current
