@@ -631,6 +631,8 @@ do
          --no_distinct_template_signatures | \
          --multibyte_chars | \
          --no_multibyte_chars | \
+         --enum_overloading | \
+         --no_enum_overloading | \
          --embedded_c++ | \
          --force_vtbl)
       feoptions=$feoptions" $1"
