@@ -7531,10 +7531,6 @@ respectively.
       decl_info->storage_class != (a_storage_class)sc_typedef) {
     pos_error(ec_function_type_not_allowed, &locator->source_position);
     field_type = error_type();
-  } else if (is_abstract_class_type(field_type)) {
-    /* Abstract class objects are prohibited (ARM 10.3). */
-    report_abstract_class_error(ec_abstract_class_object_not_allowed,
-                                field_type, &locator->source_position);
   } else if (is_incomplete_type(field_type)) {
     /* The member type is incomplete.  This is usually an error, but as
        an extension allow an array of unknown size as the last member. */
@@ -7590,14 +7586,21 @@ respectively.
       }  /* if */
       field_type = error_type();
     }  /* if */
-  } else if (strict_ansi_mode && is_union_type(class_type) &&
-             is_reference_type(field_type)) {
-    /* Unions are not allowed to have members of reference type. */
-    pos_diagnostic(strict_ansi_error_severity, ec_ref_not_allowed_in_union,
-                   &decl_info->decl_start_pos);
-    if ((int)strict_ansi_error_severity > (int)es_warning) {
-      field_type = error_type();
-    } /* if */
+  }  /* if */
+  if (!is_error_type(field_type)) {
+    if (is_abstract_class_type(field_type)) {
+      /* Abstract class objects are prohibited (ARM 10.3). */
+      report_abstract_class_error(ec_abstract_class_object_not_allowed,
+                                  field_type, &locator->source_position);
+    } else if (strict_ansi_mode && is_union_type(class_type) &&
+               is_reference_type(field_type)) {
+      /* Unions are not allowed to have members of reference type. */
+      pos_diagnostic(strict_ansi_error_severity, ec_ref_not_allowed_in_union,
+                     &decl_info->decl_start_pos);
+      if ((int)strict_ansi_error_severity > (int)es_warning) {
+        field_type = error_type();
+      } /* if */
+    }  /* if */
   }  /* if */
   if (curr_token == tok_colon) {
     /* Bit-field declaration -- be sure the type is okay. */
