@@ -1751,7 +1751,7 @@ is non-NULL, in which case that is the function scope.
           write_tok_str("void");
         }  /* if */
 #if !ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C
-      } else if (il_header.source_language != sl_Cplusplus) 
+      } else if (il_header.source_language != sl_Cplusplus) {
         /* When C code is being generated, we put out the ellipsis by itself
            only if it can be handled.  Otherwise, "(...)" is rendered by
            "()" in the generated C. */
