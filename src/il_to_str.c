@@ -2032,11 +2032,14 @@ precedence confusion.  Do the output in the way described by octl.
       form_cast(con_type, octl);
       if (cast_to_nonpointer) {
         a_targ_alignment alignment;
-        /* This is a case where the final type is a nonpointer.  If the
-           final type is a small integer, cast to unsigned long and then
-           to the final type. */
+        /* This is a case where the final type is a nonpointer.  See if an
+           extra cast to unsigned long is needed. */
         if (is_integral_type(con_type) &&
-            con_type->size < size_of_pointer_to(achieved_type, &alignment)) {
+            con_type->size >= size_of_pointer_to(achieved_type, &alignment)) {
+          /* Cast to large-enough integral type.  No extra cast needed. */
+        } else {
+          /* Anything else (e.g., cast to float).  Go by way of unsigned long
+             first. */
           octl->output_str("(unsigned long)");
         }  /* if */
       }  /* if */
