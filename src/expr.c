@@ -4977,8 +4977,8 @@ C-style casts and C++ functional-notation type conversions.
           err = TRUE;
         }  /* if */
       }  /* if */
-      /* Check that the combination of the source and target types is
-         allowed, then do the cast.  See 3.4 in the ANSI C standard. */
+      /* The combination of the source and target types has been checked.
+         If it's okay, do the cast. */
       if (!err) {
         a_boolean      operand_is_constant = is_constant_operand(operand);
         a_constant_ptr operand_con = NULL;
@@ -6408,6 +6408,12 @@ standard.
     } else {
       /* The expression evaluates to a constant. */
       make_integer_constant_operand(result, local_result);
+      if (!is_constant_operand(&operand_2) ||
+          operand_2.variant.constant.null_pointer_constant_ruled_out ||
+          operand_1->variant.constant.null_pointer_constant_ruled_out) {
+        /* The result is not a null pointer constant. */
+        result->variant.constant.null_pointer_constant_ruled_out = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
 
@@ -6950,14 +6956,24 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
   if (err || is_error_operand(operand_1)) {
     make_error_operand(result);
   } else if (operand_1_is_const) {
+    an_operand *other_operand;
     if (operand_1_is_false) {
       /* The first operand is a zero constant; return the third operand as
 	 the result. */
       copy_operand(&operand_3, result);
+      other_operand = &operand_2;
     } else {
       /* The first operand is a non-zero constant; return the second operand
 	 as the result. */
       copy_operand(&operand_2, result);
+      other_operand = &operand_3;
+    }  /* if */
+    if (is_constant_operand(result) && 
+        (!is_constant_operand(other_operand) ||
+         other_operand->variant.constant.null_pointer_constant_ruled_out ||
+         operand_1->variant.constant.null_pointer_constant_ruled_out)) {
+      /* The result is not a null pointer constant. */
+      result->variant.constant.null_pointer_constant_ruled_out = TRUE;
     }  /* if */
   } else {
     /* The first operand is not a constant, so build the expression. */
