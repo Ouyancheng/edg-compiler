@@ -1310,7 +1310,7 @@ a template argument list or is just a less-than sign.
 src_cache must be provided when coalesce_ids is TRUE, and points to
 a token cache containing the tokens that are being coalesced.  Once the
 end of the token stream has been found, the tokens from that cache will
-be copies to the new cache.
+be copied to the new cache.
 */
 {
   a_token_sequence_number	first_tsn = curr_token_sequence_number;
@@ -1381,7 +1381,7 @@ be copies to the new cache.
      cached. */
   caching_tokens = FALSE;
   db_exit();
-}  /* cache_token_stream_with_coalecse_flag */
+}  /* cache_token_stream_with_coalesce_flag */
 
 
 void cache_token_stream(a_token_cache      *cache,
