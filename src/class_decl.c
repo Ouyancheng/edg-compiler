@@ -4577,45 +4577,52 @@ matching function, set *ambiguous to TRUE.
   a_boolean             class_bitwise_copy, pass_by_value;
   a_type_qualifier_set  qualifiers;
 
-  if (first_param != NULL) {
-    /* A copy constructor or an assignment operator.  If the parameter is
-       of reference type, the qualifier underneath the reference is
-       significant. */
-    a_type_ptr  tp = first_param->type;
-    if (is_reference_type(tp)) {
-      /* Reference argument. */
-      qualifiers = get_type_qualifiers(type_pointed_to(tp));
-    } else {
-      qualifiers = TQ_NONE;
-    }  /* if */
-  }  /* if */
-  switch (sfkind) {
-    case sfk_constructor:
-      if (first_param == NULL) {
-        /* Default constructor. */
-        sym = find_default_constructor(class_type, ambiguous);
+  if (is_incomplete_type(class_type) ||
+      !is_immediate_class_type(class_type)) {
+    /* An error of some short. */
+    sym = NULL;
+    *ambiguous = FALSE;
+  } else {
+    if (first_param != NULL) {
+      /* A copy constructor or an assignment operator.  If the parameter is
+         of reference type, the qualifier underneath the reference is
+         significant. */
+      a_type_ptr  tp = first_param->type;
+      if (is_reference_type(tp)) {
+        /* Reference argument. */
+        qualifiers = get_type_qualifiers(type_pointed_to(tp));
       } else {
-        /* Copy constructor. */
-        sym = find_copy_constructor(class_type, qualifiers,
-                                    /*source_is_rvalue=*/FALSE,
-                                    ambiguous, (a_boolean *)NULL,
-                                    &class_bitwise_copy);
+        qualifiers = TQ_NONE;
       }  /* if */
-      break;
-    case sfk_destructor:
-      /* Destructor. */
-      sym = (symbol_supplement_for_class(class_type))->destructor;
-      break;
-    case sfk_operator:
-      /* Assignment operator. */
-      check_assertion(first_param != NULL);
-      sym = find_copy_assignment_operator(class_type, qualifiers,
-                                          ambiguous, &pass_by_value);
-      break;
-    default:
-      unexpected_condition_str2("special_function_symbol:",
-                                "bad special function kind");
-  }  /* switch */
+    }  /* if */
+    switch (sfkind) {
+      case sfk_constructor:
+        if (first_param == NULL) {
+          /* Default constructor. */
+          sym = find_default_constructor(class_type, ambiguous);
+        } else {
+          /* Copy constructor. */
+          sym = find_copy_constructor(class_type, qualifiers,
+                                      /*source_is_rvalue=*/FALSE,
+                                      ambiguous, (a_boolean *)NULL,
+                                      &class_bitwise_copy);
+        }  /* if */
+        break;
+      case sfk_destructor:
+        /* Destructor. */
+        sym = (symbol_supplement_for_class(class_type))->destructor;
+        break;
+      case sfk_operator:
+        /* Assignment operator. */
+        check_assertion(first_param != NULL);
+        sym = find_copy_assignment_operator(class_type, qualifiers,
+                                            ambiguous, &pass_by_value);
+        break;
+      default:
+        unexpected_condition_str2("special_function_symbol:",
+                                  "bad special function kind");
+    }  /* switch */
+  }  /* if */
   return sym;
 }  /* special_function_symbol */
 
