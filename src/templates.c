@@ -14790,6 +14790,7 @@ that follows.
 #if GENERATE_SOURCE_SEQUENCE_LISTS || EXTRA_SOURCE_POSITIONS_IN_IL
   a_boolean                     first_decl = TRUE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS || EXTRA_SOURCE_POSITIONS_IN_IL */
+  a_boolean			microsoft_nonstd_specialization = FALSE;
 
   db_enter(3, "full_specialization");
   decl_start_pos = pos_curr_token;
@@ -14917,6 +14918,10 @@ that follows.
 			es_error);
         if (sym == NULL) {
           /* No match was found and an error was issued. */
+        } else if (microsoft_bugs && microsoft_version <= 1300) {
+          /* Microsoft allows specialization syntax to be used to define
+             non-template entities. */
+          microsoft_nonstd_specialization = TRUE;
         } else if (sym->variant.routine.instance_ptr == NULL) {
           /* Not a template instance. */
           pos_sy_error(ec_entity_cannot_be_specialized,
@@ -14936,6 +14941,10 @@ that follows.
                        &locator.source_position, sym);
           sym = NULL;
         }  /* if */
+      } else if (microsoft_bugs && microsoft_version <= 1300) {
+        /* Microsoft allows specialization syntax to be used to define
+           non-template entities. */
+        microsoft_nonstd_specialization = TRUE;
       } else {
         pos_sy_error(ec_entity_cannot_be_specialized,
                      &locator.source_position, sym);
@@ -15050,8 +15059,10 @@ that follows.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       /* Make sure that this declaration has the correct number of
          "template <>" clauses. */
-      (void)check_template_nesting_depth(sym, &locator.source_position,
-                                         decl_state);
+      if (!microsoft_nonstd_specialization) {
+        (void)check_template_nesting_depth(sym, &locator.source_position,
+                                           decl_state);
+      }  /* if */
       if (sym->kind == (a_symbol_kind)sk_static_data_member) {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         a_name_reference_ptr  name_ref = NULL;

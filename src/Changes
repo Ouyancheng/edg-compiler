@@ -1,5 +1,22 @@
 Version 3.2
 
+3/25/03  Microsoft compatibility: nonstandard use of specialization syntax
+
+The Microsoft compiler (prior to version 7.1) allows the definition
+of non-templates using the "template <>" specialization syntax.  We
+now emulate this behavior in Microsoft bugs mode when Microsoft version
+is < 1310.
+
+  template <class T> struct A {
+    void f(T){}
+  };
+  template <> struct A<int> {
+    void f(int);
+  };
+  // A member of a specialized class should be defined without the
+  // "template <>".
+  template <> void A<int>::f(int){}
+
 3/24/03  Internal error on catch parameter with ambiguous copy constructor
 
 The front end used to abort with an internal error when catch clause
