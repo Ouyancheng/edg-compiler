@@ -2706,6 +2706,10 @@ created; the caller must set it.
 
       for (; sym != NULL; sym = sym->next) {
         if (sym->kind == (a_symbol_kind)sk_extern_routine) {
+          /* Ignore symbols not associated with the current file scope.  These
+             could be extern entities associated with other translation
+             units. */
+          if (sym->decl_scope != file_scope_number) continue;
           rp = sym->variant.extern_symbol_descr->variant.routine.ptr;
           if (rp->source_corresp.name_linkage ==
                                      (a_name_linkage_kind)nlk_external &&
@@ -6137,8 +6141,11 @@ is a template specialization declaration.
     for (ext_sym = sym->header->other_symbols;
          ext_sym != NULL;
          ext_sym = ext_sym->next) {
+      /* The decl_scope test is used to exclude symbols that are not for
+         the current translation unit. */
       if (ext_sym->kind == (a_symbol_kind)sk_extern_routine &&
-          ext_sym->parent.namespace_ptr == sym->parent.namespace_ptr) {
+          ext_sym->parent.namespace_ptr == sym->parent.namespace_ptr &&
+          ext_sym->decl_scope == file_scope_number) {
         /* A routine belonging to the same namespace.  Don't check on the
            the type before determining that there is no instance pointer
            (i.e., it didn't appear in the search of the overload set) and
