@@ -2498,7 +2498,7 @@ extern a_boolean have_protected_member_access_privilege(a_type_ptr class_type);
 
 extern a_boolean have_access_to_symbol(a_symbol_ptr symbol);
 
-extern void member_check_ambiguity_and_verify_access
+extern void f_check_ambiguity_and_verify_access
 			(a_symbol_locator		*loc);
 
 extern void perform_deferred_access_checks(void);
@@ -2514,17 +2514,18 @@ extern void overload_check_ambiguity_and_verify_access(
                                            a_symbol_ptr     overloaded_symbol);
 
 /*
-Check to see if a symbol found is ambiguous or inaccessible.  Ambiguity
-checking precedes access control (ARM, 10.1.1).  Only class members
-can be ambiguous (in fact, only symbols projected into a derived class
-by inheritance can be ambiguous), and only class members are subject
-to access control.  Therefore, return immediately for non-class-members,
-and call a subroutine for class members.
+Check to see if a symbol found is ambiguous or inaccessible.  There
+are two kinds of ambiguity: ambiguity caused by inheritance and
+ambiguity caused by using directives.  Inheritance ambiguity
+checking precedes access control (ARM, 10.1.1).  Call a subroutine
+to do further checking if the ambiguous flag is set, or for class
+members in C++ (so that access checking can be done).
 */
 #define check_ambiguity_and_verify_access(locator)                    \
-{ if ((locator)->specific_symbol->is_class_member &&                  \
-      C_dialect == C_dialect_cplusplus) {                             \
-    member_check_ambiguity_and_verify_access(locator);                \
+{ if (((locator)->specific_symbol->is_class_member &&                 \
+       C_dialect == C_dialect_cplusplus) ||			      \
+      (locator)->specific_symbol->ambiguous) {                        \
+    f_check_ambiguity_and_verify_access(locator);                \
   }  /* if */                                                         \
 }  /* check_ambiguity_and_verify_access */
 

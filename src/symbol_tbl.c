@@ -4992,12 +4992,15 @@ Put the freed entry on the available list to be reused.
 }  /* free_access_error_descr */
 
 
-void member_check_ambiguity_and_verify_access
-			(a_symbol_locator		*locator)
+void f_check_ambiguity_and_verify_access(a_symbol_locator *locator)
 /*
-Verify that the indicated member symbol is not ambiguous and that we have
+Verify that the indicated symbol is not ambiguous and that we have
 access to it.  In case of an ambiguity, the locator is set to an error
 locator.  Note that no access checking is done on overloaded function symbols.
+
+This routine will only be called for member symbols or symbols that
+are ambiguous.  In other words, if the symbol is not ambiguous, it
+must be a member symbol.
 
 If an error is detected, the scope stack is consulted to see if access
 errors should be deferred and rechecked later.  If so, an access
@@ -5008,10 +5011,10 @@ the error is issued immediately.
   a_symbol_ptr   sym = locator->specific_symbol;
 
   /* This routine looks like overload_check_ambiguity_and_verify_access. */
-  /* Issue an error if the symbol is ambiguous.  Only a symbol projected
-     into a derived class by inheritance can be ambiguous.  Ambiguity checking
-     must precede access control (ARM, 10.1.1). */
-  if (sym->kind == (a_symbol_kind)sk_projection && sym->ambiguous) {
+  /* Issue an error if the symbol is ambiguous.  Symbols can be ambiguous
+     either as a result of using directives or as a result of inheritance.
+     Ambiguity checking must precede access control (ARM, 10.1.1). */
+  if (sym->ambiguous) {
     pos_sy_error(ec_ambiguous_name, &locator->source_position, sym);
     set_to_error_locator(*locator);
   } else if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
@@ -5047,7 +5050,7 @@ the error is issued immediately.
       ssep->last_deferred_access_check = aedp;
     }  /* if */
   }  /* if */
-}  /* member_check_ambiguity_verify_access */
+}  /* f_check_ambiguity_verify_access */
 
 
 void perform_deferred_access_checks(void)
@@ -5210,27 +5213,24 @@ the sk_overloaded_function symbol containing the locator symbol, or
 a projection symbol pointing to that sk_overloaded_function symbol.
 */
 {
-  /* This routine looks like member_check_ambiguity_verify_access. */
-  if (!overloaded_symbol->is_class_member) {
-    /* Non-class-members cannot be ambiguous and are always accessible. */
+  /* This routine looks like f_check_ambiguity_verify_access. */
+  /* Issue an error if the symbol is ambiguous.  Symbols can be ambiguous
+     either as a result of using directives or as a result of inheritance.
+     Ambiguity checking must precede access control (ARM, 10.1.1). */
+  if (overloaded_symbol->ambiguous) {
+    pos_sy_error(ec_ambiguous_name, &locator->source_position,
+                 overloaded_symbol);
+    set_to_error_locator(*locator);
+  } else if (!overloaded_symbol->is_class_member) {
+    /* Non-class-members are always accessible. */
   } else {
-    /* Issue an error if the symbol is ambiguous.  Only a symbol projected
-       into a derived class by inheritance can be ambiguous.  Ambiguity
-       checking must precede access control (ARM, 10.1.1). */
-    if (overloaded_symbol->kind == (a_symbol_kind)sk_projection &&
-        overloaded_symbol->ambiguous) {
-      pos_sy_error(ec_ambiguous_name, &locator->source_position,
-                   overloaded_symbol);
-      set_to_error_locator(*locator);
-    } else {
-      /* See if we have access to the symbol. */
-      if (!have_access_across_derivations(locator->specific_symbol,
-                                          overloaded_symbol)) {
-        /* The symbol is not accessible. */
-        issue_access_error(fundamental_symbol_of(locator->specific_symbol),
-                           &locator->source_position);
-        locator->access_control_error_reported = TRUE;
-      }  /* if */
+    /* See if we have access to the symbol. */
+    if (!have_access_across_derivations(locator->specific_symbol,
+                                        overloaded_symbol)) {
+      /* The symbol is not accessible. */
+      issue_access_error(fundamental_symbol_of(locator->specific_symbol),
+                         &locator->source_position);
+      locator->access_control_error_reported = TRUE;
     }  /* if */
   }  /* if */
 }  /* overload_check_ambiguity_and_verify_access */

@@ -6960,15 +6960,18 @@ qualified name.
         } else {
           /* Record the reference on the symbol. */
           mark_referenced(qualifier_sym, &pos_curr_token);
-          if (qualifier_sym->is_class_member) {
-            /* Do ambiguity and access control checking on the class symbol.
-               Only do the check if the symbol points to a class member.
-               The requirement that the class symbol be a member also ensures
-               that the check will be suppressed for template parameters
-               (i.e., the T in T::X).  Access for template parameters should
-               be checked at the point at which the type is used as a 
-               template argument. */
-            member_check_ambiguity_and_verify_access(&locator_for_curr_id);
+          if (qualifier_sym->is_class_member ||
+              locator_for_curr_id.specific_symbol->ambiguous) {
+            /* Do ambiguity and access control checking on the qualifier
+               symbol.  Access checking is only done for class members
+               to ensure  that the check will be suppressed for template
+               parameters (i.e., the T in T::X).  Access for template
+               parameters should be checked at the point at which the type
+               is used as a template argument.  The routine is also called
+               if the symbol is known to be ambiguous, so that it can
+               report the ambiguity error.  No access checking will be done
+               when an ambiguity error exists. */
+            check_ambiguity_and_verify_access(&locator_for_curr_id);
           }  /* if */
           if (is_class_symbol(qualifier_sym)) {
             /* Get the type associated with the class symbol. */
