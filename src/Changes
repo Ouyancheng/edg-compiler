@@ -1,5 +1,13 @@
 Version 2.44
 
+5/5/00   File name sometimes omitted from error context output
+
+In the error context output, the file name associated with the context
+position should be displayed if it is not the same as the file name
+indicated for the message in general.  Sometimes the file name was
+omitted when it should have been displayed or displayed when it
+should have been omitted.  This has been fixed.
+
 5/2/00   Lowering of assignments of empty classes
 
 IL lowering now suppresses assignments of empty classes (preserving

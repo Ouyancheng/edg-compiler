@@ -3183,7 +3183,7 @@ and doing any required expansions, the diagnostic is written.
           /* If there is more than one line of context we output an
 	     initial header line. */
           init_error_params();
-          diag_message(ec_template_detected_during_header, &error_position,
+          diag_message(ec_template_detected_during_header, error_pos,
                        severity, dck_context_primary);
         }  /* if */
         for (sd = depth_scope_stack; sd > DEPTH_OF_FILE_SCOPE; --sd) {
@@ -3206,7 +3206,7 @@ and doing any required expansions, the diagnostic is written.
 	  error_msg_positions[1] = &ssep->source_position;
           error_msg_scopes[1] = ssep;
           diag_message(context_error_code,
-                       &error_position, severity, context_diag_kind);
+                       error_pos, severity, context_diag_kind);
         }  /* for */
         /* Issue an "end context" message to indicate that all of the
            context information has been supplied. */
