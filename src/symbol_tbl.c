@@ -4961,6 +4961,8 @@ class_type that is a ck_template_param.
        constant so we allocate a tk_template_param to use as the type. */
     a_constant_ptr  constant;
     constant = fs_constant((a_constant_repr_kind)ck_template_param);
+    constant->variant.template_param.kind =
+                                  (a_template_param_constant_kind)tpck_member;
     sym->variant.constant = constant;
     constant->type = alloc_type((a_type_kind)tk_template_param);
     constant->type->variant.template_param.kind = 
