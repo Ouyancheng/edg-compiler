@@ -3757,7 +3757,8 @@ Also tests for "//" in C++ mode.
   ((*(curr_char_loc+1) == '*' ||                                      \
     (end_of_line_comments_allowed && *(curr_char_loc+1) == '/')) &&   \
    (within_curr_source_line(curr_char_loc) ||                         \
-    (pcc_preprocessing_mode && !in_pcc_mode_half_comment)))
+    (pcc_preprocessing_mode && !in_pcc_mode_half_comment &&           \
+    *(curr_char_loc+1) == '*')))
 
 
 void skip_white_space(void)
