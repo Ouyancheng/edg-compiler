@@ -10249,6 +10249,9 @@ original type or namespace that was specified.
       new_type = qualifier_sym->variant.type.ptr;
       is_type = TRUE;
       break;
+    default:
+      unexpected_condition();
+      break;
   }  /* switch */
   /* See if there is a list of previously used qualifiers that can be
      checked for an entry that can be reused. */
@@ -10299,12 +10302,13 @@ done:
 }  /* make_name_qualifier */
 
 
-void make_name_reference_from_locator(a_symbol_locator		*locator,
-				      a_name_reference_ptr	nrp)
+a_name_reference_ptr make_name_reference_from_locator(
+				a_symbol_locator	*locator,
+				a_name_reference_ptr	nrp)
 /*
 Create a name reference entry in the location specified by "nrp" that
 describes the name specified by "locator".  If "nrp" is NULL, a new entry
-is allocated.
+is allocated.  A pointer to the name reference entry is returned.
 */
 {
   if (nrp == NULL) {
@@ -10316,6 +10320,7 @@ is allocated.
   nrp->is_global_qualified_name = locator->is_global_qualified_name;
   nrp->is_template_id = locator->is_template_id;
   nrp->is_super_qualified = locator->is_super_qualified;
+  return nrp;
 }  /* make_name_reference_from_locator */
 
 
@@ -10397,7 +10402,7 @@ a previously created entry that can be reused.
   }  /* for */
   if (nrp == NULL) {
     /* No match was found -- create a new entry. */
-    make_name_reference_from_locator(locator, (a_name_reference_ptr)NULL);
+    nrp = make_name_reference_from_locator(locator, nrp);
     /* Put this on the list of name references pointed to by the source
        correspondence. */
     nrp->next = scp->name_references;

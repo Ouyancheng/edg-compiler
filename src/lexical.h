@@ -1960,7 +1960,7 @@ extern void init_token_string(a_source_position *pos);
 extern a_name_reference_ptr make_name_reference(
 					a_symbol_locator	*locator,
 					a_source_correspondence	*scp);
-extern void make_name_reference_from_locator(
+extern a_name_reference_ptr make_name_reference_from_locator(
 				      a_symbol_locator		*locator,
 				      a_name_reference_ptr	nrp);
 extern a_name_reference_ptr find_allocated_name_reference(
