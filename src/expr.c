@@ -3771,11 +3771,18 @@ specification allow a variable-sized array as the top type.
        was selected.  If so, the "new" call can be folded into the
        constructor call. */
     if (ctor_routine != NULL) {
-      a_type_ptr unqual_base_new_type = skip_typerefs(base_new_type);
-      set_class_assoc_operator_new_routine(unqual_base_new_type);
-      if (unqual_base_new_type->variant.class_struct_union.extra_info->
-                                   assoc_operator_new_routine == new_routine) {
+      if (array_new) {
+        /* In the array case, the global operator new is always used, so the
+           routine is always implied.  The implementation has to know that
+           it should call the global operator new for the array case. */
         new_routine = NULL;
+      } else {
+        a_type_ptr unqual_base_new_type = skip_typerefs(base_new_type);
+        set_class_assoc_operator_new_routine(unqual_base_new_type);
+        if (unqual_base_new_type->variant.class_struct_union.extra_info->
+                                   assoc_operator_new_routine == new_routine) {
+          new_routine = NULL;
+        }  /* if */
       }  /* if */
     }  /* if */
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
@@ -6260,6 +6267,7 @@ EOPT_DISALLOW_COMMA_OPERATOR).
       if (result_is_an_lvalue) {
         result->state = operand_2.state;
         result->type = operand_2.type;
+        result->came_from_reference = operand_2.came_from_reference;
       }  /* if */
     }  /* if */
   }  /* if */
