@@ -331,21 +331,12 @@ of constant initializers.
 }  /* scan_initializer_of_simple_object */
 
 
-static a_boolean is_empty_aggregate_constant(a_constant_ptr  cp)
-{
-  a_boolean  is_empty;
-
-  if (cp->kind == (a_constant_repr_kind)ck_aggregate) {
-    cp = cp->variant.aggregate.first_constant; 
-    is_empty = (cp == NULL) || is_empty_aggregate_constant(cp);
-  } else {
-    is_empty = FALSE;
-  }  /* if */
-  return is_empty;
-}  /* is_empty_aggregate_constant */
-
-
 static void flush_initializers(void)
+/*
+Flush a comma-seprarated list of initializer expressions by calling the
+expression scanning routine.  This routine is called from get_initializer
+in error cases.
+*/
 {
   a_dynamic_init  local_di;
 
@@ -356,7 +347,8 @@ static void flush_initializers(void)
                                       error_type(), &local_di);
     remove_stop_token(tok_comma);
     
-  } while (loop_token(tok_comma) && curr_token != tok_rbrace);
+  } while (loop_token(tok_comma) && curr_token != tok_rbrace &&
+           curr_token != tok_semicolon);
 }  /* flush_initialzers */
   
 
@@ -644,6 +636,7 @@ for unions and aggregates at that level).
         }  /* if */
         if (local_nothing_taken && !any_more_members &&
             curr_token == tok_comma) {
+          set_err_pos_to_curr_token();
           error(ec_exp_primary_expr);
           local_nothing_taken = FALSE;
         }  /* if */
