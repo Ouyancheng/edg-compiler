@@ -3093,6 +3093,11 @@ diagnostics.  is_redecl is TRUE if this is a redeclaration.
             }  /* if */
             break;
           case dmt_thread:
+            if (!has_static_storage_duration(variable->storage_class)) {
+              /* The "thread" specifier can only be applied to variables with
+                 a static life time. */
+              invalid_modifier = TRUE;
+            }  /* if */
             break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           default:

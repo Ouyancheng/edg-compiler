@@ -1,5 +1,17 @@
 Version 3.1
 
+9/18/02  Microsoft compatibility: "thread" specifier requires variable with
+         static storage duration
+
+In Microsoft mode, the front end accepted the __declspec(thread) specifier
+on all variable declarations.  Now an error is issued if a variable with
+that specifier does not have static storage duration.
+
+  __declspec(thread) int g;  // OK
+  void f() {
+    __declspec(thread) int a;  // Error: Specifier doesn't apply to
+  }                            // automatic variable.
+
 9/18/02  Internal error on overloaded unusable conversion operators
 
 An internal error would occur if a class template contained overloaded
