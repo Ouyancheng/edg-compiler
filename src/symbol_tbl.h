@@ -809,7 +809,7 @@ typedef struct a_template_instance {
 			/* For instances of nonmember function templates and
 			   member functions of template classes, TRUE if this
 			   instance has been explicitly defined (in which case
-			   no implicitly instantiation will be done). The
+			   no implicit instantiation will be done). The
 			   specific_decl flag will always be TRUE when this
 			   flag is set.  For static data members its value is
 			   identical to the defined flag in instance_sym. */
