@@ -3101,6 +3101,8 @@ is allocated, it is allocated in the file scope.
   an_expr_node_ptr comp_default_arg_expr;
   a_boolean        comp_has_default_arg;
   a_type_ptr       param_1_type, param_2_type;
+  a_routine_type_supplement_ptr
+                   rtsp1, rtsp2;
 
   db_enter(5, "composite_type");
 
@@ -3216,12 +3218,12 @@ is allocated, it is allocated in the file scope.
              composite type is prototyped, with each parameter type in
              its list being the composite of the corresponding parameter
              types in the two lists. */
-          list1 = base_type_1->variant.routine.extra_info->param_type_list;
-          list2 = base_type_2->variant.routine.extra_info->param_type_list;
-          list1_prototyped = base_type_1->variant.routine.extra_info->
-                                                                    prototyped;
-          list2_prototyped = base_type_2->variant.routine.extra_info->
-                                                                    prototyped;
+          rtsp1 = base_type_1->variant.routine.extra_info;
+          rtsp2 = base_type_2->variant.routine.extra_info;
+          list1 = rtsp1->param_type_list;
+          list2 = rtsp2->param_type_list;
+          list1_prototyped = rtsp1->prototyped;
+          list2_prototyped = rtsp2->prototyped;
           comp_prototyped = list1_prototyped || list2_prototyped;
           if (!comp_prototyped) {
             /* Both types have old-style (non-prototyped) interfaces, so
@@ -3363,28 +3365,36 @@ is allocated, it is allocated in the file scope.
              has_ellipsis flag is not checked because both types must have the
              same value, and likewise the implicit "this" parameter type. */
           if (base_type_1->variant.routine.return_type == comp_elem &&
-              base_type_1->variant.routine.extra_info->param_type_list ==
-                                                             comp_param_list &&
-              (a_boolean)base_type_1->variant.routine.extra_info->prototyped ==
-                                                             comp_prototyped) {
+              rtsp1->param_type_list == comp_param_list &&
+              list1_prototyped == comp_prototyped) {
             comp_type = base_type_1;
+            if (rtsp1->throw_specification == NULL) {
+              rtsp1->throw_specification = rtsp2->throw_specification;
+            }  /* if */
           } else if (base_type_2->variant.routine.return_type == comp_elem &&
               base_type_2->variant.routine.extra_info->param_type_list ==
                                                              comp_param_list &&
               (a_boolean)base_type_2->variant.routine.extra_info->prototyped ==
                                                              comp_prototyped) {
             comp_type = base_type_2;
+            if (rtsp2->throw_specification == NULL) {
+              rtsp2->throw_specification = rtsp1->throw_specification;
+            }  /* if */
           } else {
             /* Build a new function type. */
-            a_routine_type_supplement_ptr rtsp, rtsp1;
+            a_routine_type_supplement_ptr rtsp;
             comp_type = alloc_type((a_type_kind)tk_routine);
             comp_type->variant.routine.return_type = comp_elem;
             rtsp = comp_type->variant.routine.extra_info;
-            rtsp1 = base_type_1->variant.routine.extra_info;
             rtsp->param_type_list = comp_param_list;
             rtsp->prototyped = comp_prototyped;
             rtsp->has_ellipsis = rtsp1->has_ellipsis;
             rtsp->implicit_this_param_type = rtsp1->implicit_this_param_type;
+            if (rtsp1->throw_specification != NULL) {
+              rtsp->throw_specification = rtsp1->throw_specification;
+            } else {
+              rtsp->throw_specification = rtsp2->throw_specification;
+            }  /* if */
           }  /* if */
           break;
         case tk_ptr_to_member:
