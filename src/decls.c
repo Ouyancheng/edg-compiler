@@ -3314,6 +3314,21 @@ otherwise, set *ext_sym to NULL.
         /* Keep an indication of any references so far (the referenced
            flag is reset by the set_source_corresp call). */
         routine_ptr->source_corresp.referenced = saved_referenced_flag;
+        if (routine_ptr->compiler_generated) {
+#if CHECKING
+          if (routine_ptr->special_kind !=
+                              (a_special_function_kind)sfk_operator ||
+              (routine_ptr->opname_kind != (an_opname_kind)onk_new &&
+               routine_ptr->opname_kind != (an_opname_kind)onk_delete)) {
+            internal_error(
+                       "decl_var_or_routine: compiler_generated unexpected");
+          }  /* if */
+#endif /* CHECKING */
+          /* This is an entry for a compiler generated ::operator new or
+             ::operator delete.  It was created during initialization, but
+             is overridden by the present declaration. */
+          routine_ptr->compiler_generated = FALSE;
+        }  /* if */
       }  /* if */
     }  /* if */
     if (inline_specified) routine_ptr->is_inline = TRUE;
