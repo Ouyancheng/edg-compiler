@@ -1,5 +1,15 @@
 Version 3.4
 
+2/23/04  Abort during partial specialization processing
+
+An abort could occur during partial specialization processing when
+the primary template has nontype template parameters whose types depend
+on other template parameters.  Now fixed.
+
+  template <class T1, T1 A, class T2, T2 B> struct X { };
+  template <int A, int B> struct X<int, A, int, B> { };
+  X<int, 1, int, 2> x;
+
 2/19/04  C++-generating back end: GNU attributes on function definitions
 
 The C++-generating back end failed to render GNU attributes for function

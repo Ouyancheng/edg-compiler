@@ -6296,13 +6296,14 @@ Return TRUE if the conversion was successful.
 
 
 a_template_arg_ptr copy_template_arg_list_with_substitution(
-			a_template_arg_ptr		arg_list_to_copy,
-			a_template_param_ptr		param_list_for_copy,
-			a_template_arg_ptr		templ_arg_list,
-			a_template_param_ptr		templ_param_list,
-			a_source_position		*source_pos,
-			a_ctws_options_set		options,
-			a_boolean			*copy_error)
+			a_template_arg_ptr	arg_list_to_copy,
+			a_template_param_ptr	param_list_for_copy,
+			a_template_arg_ptr	templ_arg_list,
+			a_template_param_ptr	templ_param_list,
+			a_source_position	*source_pos,
+			a_ctws_options_set	options,
+			a_boolean		orig_is_nonreal_template,
+			a_boolean		*copy_error)
 /*
 Copy the template argument list arg_list_to_copy, and return a pointer
 to the copy.  In the process of copying, replace any template parameters at
@@ -6316,6 +6317,12 @@ instantiation).  source_pos indicates the source position of the
 argument list.  options is a set of bit flags used to control how
 names are looked up, if needed.  If there is an error in the copying,
 set *copy_error to TRUE.
+
+orig_is_nonreal_template is TRUE if the original template is a nonreal
+template (i.e., one for which no template parameter list was available
+when the template arguments were scanned).  In such cases, the types
+of any nontype parameters do not necessarily match the type of the
+associated parameter.
 */
 {
   a_template_arg_ptr	tap;
@@ -6360,7 +6367,20 @@ set *copy_error to TRUE.
          passed if we do not know the parameter type. */
       new_const_type = NULL;
       if (have_params) {
-        const_type = tpp->param_symbol->variant.constant->type;
+        /* When we have a template parameter list, and that parameter list was
+           available when the template argument list was scanned (i.e.,
+           orig_is_nonreal_template is FALSE) we know the type of the
+           constant matches the type of the parameter.  In such cases,
+           it is important to use the type from the constant, because in
+           some cases involving partial ordering the parameter type can
+           involve template parameter types that had been substituted when
+           the constant type was produced, but which are unsubstituted when
+           retrieved from the parameter symbol */
+        if (orig_is_nonreal_template) {
+          const_type = tpp->param_symbol->variant.constant->type;
+        } else {
+          const_type = tap->variant.constant->type;
+        }  /* if */
         new_const_type = copy_type_with_substitution(const_type,
                                                      templ_arg_list,
                                                      templ_param_list,
@@ -6436,7 +6456,10 @@ are looked up, if needed.  The symbol of the new instance is returned.
   a_template_param_ptr			tpp = NULL;
   a_template_symbol_supplement_ptr	tssp;
   a_boolean				is_nonreal_template;
+  a_boolean				orig_is_nonreal_template;
   a_boolean				orig_is_prototype;
+  a_symbol_ptr				orig_instance_sym;
+  a_symbol_ptr				orig_template_sym;
   
   template_sym = primary_template_of(template_sym);
   /* If the template symbol refers to a template template parameter, get
@@ -6452,7 +6475,15 @@ are looked up, if needed.  The symbol of the new instance is returned.
   tssp = template_sym->variant.template_info;
   tap = orig_type->variant.class_struct_union.extra_info->template_arg_list;
   orig_is_prototype = orig_type->
-                        variant.class_struct_union.is_prototype_instantiation;
+                        variant.class_struct_union.is_prototype_instantiation;\
+  /* Get the template symbol of the template associated with the original
+     type. */
+  orig_instance_sym =
+                    (a_symbol_ptr)orig_type->source_corresp.assoc_info;
+  orig_template_sym =
+      orig_instance_sym->variant.class_struct_union.extra_info->class_template;
+  orig_is_nonreal_template =
+                   orig_template_sym->variant.template_info->is_nonreal_member;
   is_nonreal_template = tssp->is_nonreal_member;
   if (!is_nonreal_template) {
     /* Except for nonreal templates, get the corresponding template parameter
@@ -6463,7 +6494,9 @@ are looked up, if needed.  The symbol of the new instance is returned.
   new_list = copy_template_arg_list_with_substitution(
                                            tap, tpp, templ_arg_list,
                                            templ_param_list, 
-                                           source_pos, options, copy_error);
+                                           source_pos, options,
+                                           orig_is_nonreal_template,
+                                           copy_error);
   if (*copy_error) {
     /* If an error occurred earlier, and in particular while creating one
        of the template arguments, don't try to find a matching template

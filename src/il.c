@@ -10597,13 +10597,14 @@ name lookup options.
                                                          template_ref.arg_list;
           /* Do substitution on the template argument list. */
           arg_list = copy_template_arg_list_with_substitution(
-                                                    arg_list,
-                                                    (a_template_param_ptr)NULL,
-                                                    template_arg_list,
-                                                    template_param_list,
-                                                    source_pos,
-                                                    options,
-                                                    copy_error);
+                                             arg_list,
+                                             (a_template_param_ptr)NULL,
+                                             template_arg_list,
+                                             template_param_list,
+                                             source_pos,
+                                             options,
+                                             /*orig_is_nonreal_template=*/TRUE,
+                                             copy_error);
           /* Apply the template argument list to the template. */
           con_copy = copy_template_param_unknown_entity_con(
                                  templ_con,
