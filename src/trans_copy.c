@@ -1107,13 +1107,6 @@ to the secondary translation unit.
          as we look at the members. */
       keep_on_parent_list = FALSE;
       check_member_merges = TRUE;
-      /* Check for other reasons to do a merge, e.g., befriending lists. */
-      if (!C_mode() &&
-          class_befriending_lists_need_to_be_merged(class_type,
-                                                    corresp_class)) {
-        keep_on_parent_list = TRUE;
-        mark_to_merge(class_type, iek_type);
-      }  /* if */
     }  /* if */
     pointers_block = NULL;
   }  /* if */
@@ -1168,6 +1161,15 @@ to the secondary translation unit.
          in the secondary translation unit but only a declaration in the
          primary IL. */
       check_assertion(check_member_merges);
+      keep_on_list = TRUE;
+      mark_to_merge(type, iek_type);
+    } else if (!C_mode() && is_immediate_class_type(type) &&
+               class_befriending_lists_need_to_be_merged(
+                                    type,
+                                    (a_type_ptr)canonical_il_entry_of(type))) {
+      /* For the most part, this type is a duplicate of one elsewhere,
+         but it does happen to have some additional befriending information,
+         so mark it to have that information merged. */
       keep_on_list = TRUE;
       mark_to_merge(type, iek_type);
     } else {
