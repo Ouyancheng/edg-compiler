@@ -1,5 +1,24 @@
 Version 2.16
 
+3/31/93 Template static data member definitions with parenthesized initializers
+
+Template static data member definitions with parenthesized initializers
+are now supported.
+
+template <class T> struct A {
+	static int i;
+};
+
+template <class T> int A<T>::j(sizeof(T)*10);  // Now supported
+
+3/31/93 Unreferenced template static data members
+
+When a template static data member definition is instantiated the
+IL referenced flag is now set.  Previously, an instantiation
+generated for an unreferenced static data member (in "-tall" mode,
+for example) may not have been put out by the back end because
+the referenced flag was not set.
+
 3/31/93 Initialization of references to const arrays
 
 The code that deals with initialization of references has been changed
