@@ -1,5 +1,16 @@
 Version 2.34
 
+10/15/96 Delete allowed after placement new of array
+
+The WP was recently changed to say that memory allocated through
+a "placement" new can be freed through the delete operator.
+In practice, such deletes have worked in the past except when the
+entity allocated is an array of class type (that case failed because
+the size of the array was not recorded at the time of the allocation).
+Now, such deletes work properly, thanks to the new runtime routine
+__placement_array_new and the new runtime global variable
+__array_new_prefix_size.
+
 10/11/96 Checking relaxed on overloaded function declarations
 
 An error complaining that the parameter types are too similar for

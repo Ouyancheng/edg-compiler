@@ -1365,6 +1365,7 @@ static a_routine_ptr
 		vec_new_routine,
 		vec_new_eh_routine,
 		array_new_routine,
+		placement_array_new_routine,
 		vec_cctor_routine,
 		vec_cctor_eh_routine,
 		vec_delete_routine,
@@ -1469,35 +1470,45 @@ Return TRUE if the indicated delete routine is of the two-argument form.
 }  /* is_two_argument_delete */
 
 
-static an_expr_node_ptr make_vec_new_call(an_expr_node_ptr entity_node,
-                                          a_type_ptr       entity_type,
-                                          an_expr_node_ptr num_elem_node,
-                                          a_routine_ptr    ctor_routine,
-                                          a_routine_ptr    dtor_routine,
-                                          a_routine_ptr    new_routine,
-                                          a_routine_ptr    delete_routine)
+#if ABI_COMPATIBILITY_VERSION < 234
+/*ARGSUSED*/ /* <-- record_size_for_delete is not used in that case. */
+#endif /* ABI_COMPATIBILITY_VERSION < 234 */
+static an_expr_node_ptr make_vec_new_call(
+                                       an_expr_node_ptr entity_node,
+                                       a_type_ptr       entity_type,
+                                       an_expr_node_ptr num_elem_node,
+                                       a_routine_ptr    ctor_routine,
+                                       a_routine_ptr    dtor_routine,
+                                       a_routine_ptr    new_routine,
+                                       a_routine_ptr    delete_routine,
+                                       a_boolean        record_size_for_delete)
 /*
 Make a call to a runtime routine (__vec_new or __array_new) that will
 allocate an array and call a constructor for each element of the
-array.  entity_node gives the address of the array (for cases where
-the array is already allocated).  entity_node == NULL if the
-runtime routine is supposed to do the allocation.  entity_type
-gives the type of the pointer to the entity.  num_elem_node gives (as
-an expression) the number of elements in the array.  ctor_routine is
-the constructor routine to be called, or NULL if no constructor is to
-be called.  dtor_routine is the destructor routine to be called --
-this is non-NULL only if there is a destructor and is used only if
-exceptions are enabled (in that case, it may be necessary to destroy
-array elements that were created if a throw occurs halfway through
-the initialization of the array); the runtime routine __vec_new_eh is
-called in that case.  If new_routine is non-NULL, it points to an
-"operator new[]" routine to be used to do the allocation; if it is
-null, the default routine is used.  If delete_routine is non-NULL, it
-points to an "operator delete[]" routine to be used to free the
-storage if an exception is thrown before initialization is completed;
-if it is NULL, the default routine is used.  The runtime routine
-__array_new is called for cases that require a special new or delete
-routine.  A pointer to the expression created is returned.
+array.  A pointer to the expression created is returned.  entity_node
+gives the address of the array (for cases where the array is already
+allocated).  entity_node == NULL if the runtime routine is supposed
+to do the allocation.  entity_type gives the type of the pointer to
+the entity.  num_elem_node gives (as an expression) the number of
+elements in the array.  ctor_routine is the constructor routine to be
+called, or NULL if no constructor is to be called.  dtor_routine is
+the destructor routine to be called -- this is non-NULL only if there
+is a destructor and is used only if exceptions are enabled (in that
+case, it may be necessary to destroy array elements that were created
+if a throw occurs halfway through the initialization of the array);
+the runtime routine __vec_new_eh is called in that case.  If
+new_routine is non-NULL, it points to an "operator new[]" routine to
+be used to do the allocation; if it is null, the default routine is
+used.  If delete_routine is non-NULL, it points to an "operator
+delete[]" routine to be used to free the storage if an exception is
+thrown before initialization is completed; if it is NULL, the default
+routine is used.  The runtime routine __array_new is called for cases
+that require a special new or delete routine.  If record_size_for_delete
+is TRUE, the array size is to be recorded by the runtime for use when
+the array is deleted (record_size_for_delete is FALSE for arrays that
+are not dynamically allocated, i.e., static and automatic arrays).
+__placement_array_new is called for cases where entity_node is non-NULL
+and record_size_for_delete is TRUE.
 */
 {
   an_expr_node_ptr call_node, arg_expr_list, size_elem_node;
@@ -1515,6 +1526,16 @@ routine.  A pointer to the expression created is returned.
          __vec_new_eh(entity_node, num_elems, size_elem, ctor_routine,
                                                          dtor_routine)
     */
+#if ABI_COMPATIBILITY_VERSION >= 234
+    /* Or, placement array new: the allocation has already been done
+       (entity_node points to it), and the size must be recorded for
+       use at the time of delete.  The call looks like
+         __placement_array_new(entity_node, num_elems, size_elem,
+                               ctor_routine, dtor_routine)
+    */
+    a_boolean placement_array_new = (entity_node != NULL &&
+                                     record_size_for_delete);
+#endif /* ABI_COMPATIBILITY_VERSION >= 234 */
     if (entity_node == NULL) {
       /* If the runtime routine is supposed to do the allocation, pass a
          null pointer to the routine. */
@@ -1525,6 +1546,19 @@ routine.  A pointer to the expression created is returned.
     entity_node->next = num_elem_node;
     num_elem_node->next = size_elem_node;
     size_elem_node->next = ctor_addr_node;
+#if ABI_COMPATIBILITY_VERSION >= 234
+    if (placement_array_new) {
+      /* Placement array new. */
+      dtor_addr_node = expr_for_pointer_to_routine(exceptions_enabled ?
+                                                            dtor_routine :
+                                                            (a_routine *)NULL);
+      ctor_addr_node->next = dtor_addr_node;
+      call_node = make_runtime_rout_call("__placement_array_new",
+                                         &placement_array_new_routine,
+                                         void_star_type(), arg_expr_list);
+    } else
+#endif /* ABI_COMPATIBILITY_VERSION >= 234 */
+    /* Do not insert code here; this is the "else" of an "if". */
     if (exceptions_enabled && dtor_routine != NULL) {
       /* __vec_new_eh call, with destructor. */
       dtor_addr_node = expr_for_pointer_to_routine(dtor_routine);
@@ -1545,6 +1579,7 @@ routine.  A pointer to the expression created is returned.
        and 0 otherwise. */
     /* When initializing an array that is not dynamically allocated,
        dtor_routine can be non-NULL even if exceptions are disabled. */
+    check_assertion(entity_node == NULL && !record_size_for_delete);
     dtor_addr_node = expr_for_pointer_to_routine(exceptions_enabled ?
                                                             dtor_routine :
                                                             (a_routine *)NULL);
@@ -2125,7 +2160,8 @@ in default_version_of_routine).
     call_node = make_vec_new_call(entity_node, entity_node->type,
                                   num_elem_node,
                                   ctor_routine, dip->destructor,
-                                  (a_routine *)NULL, (a_routine *)NULL);
+                                  (a_routine *)NULL, (a_routine *)NULL,
+                                  /*record_size_for_delete=*/FALSE);
   }  /* if */
   /* Make a statement containing the call. */
   call_stmt = alloc_expr_statement(call_node);
@@ -3991,6 +4027,15 @@ the dynamic init entry that applies to each element and return a pointer to it.
 }  /* elem_dynamic_init */
 
 
+/*
+Variable entry for the runtime global variable __array_new_prefix_size,
+which gives the size in bytes of the array allocation prefix.  NULL until
+created.  Used only with ABI_COMPATIBILITY_VERSION >= 234.
+*/
+static a_variable_ptr
+		array_new_prefix_size_var;
+
+
 static void lower_array_new(an_expr_node_ptr expr)
 /*
 Do lowering of an array new operation.  expr points to the enk_new_delete
@@ -4055,7 +4100,32 @@ arrays with class elements.
                        "lower_array_new: placement new with null new_routine");
     lower_arg_expr_list(ndsp->arg, new_routine->type,
                         (a_param_type_ptr)NULL);
-    new_node = make_call_node(new_routine, ndsp->arg,
+    size_node = ndsp->arg;
+#if ABI_COMPATIBILITY_VERSION >= 234
+    /* Add the size of the runtime prefix used to keep track of the array
+       size. */
+    { an_expr_node_ptr size_node_next = size_node->next;
+      an_expr_node_ptr prefix_size_node;
+
+      if (array_new_prefix_size_var == NULL) {
+        /* Create the variable for the runtime __array_new_prefix_size
+           variable. */
+        array_new_prefix_size_var =
+                      make_lowered_variable("__array_new_prefix_size",
+                                            /*already_il_name=*/FALSE,
+                                            integer_type(targ_size_t_int_kind),
+                                            (a_storage_class)sc_extern);
+      }  /* if */
+      prefix_size_node = var_rvalue_expr(array_new_prefix_size_var);
+      prefix_size_node = add_cast_if_necessary(prefix_size_node,
+                                               size_node->type);
+      size_node->next = prefix_size_node;
+      size_node = make_operator_node((an_expr_operator_kind)eok_iadd,
+                                     size_node->type, size_node);
+      size_node->next = size_node_next;
+    }
+#endif /* ABI_COMPATIBILITY_VERSION >= 234 */
+    new_node = make_call_node(new_routine, size_node,
                               /*honor_virtual=*/FALSE,
                               (an_insert_location *)NULL);
     new_routine = NULL;  /* Allocation done outside of __vec_new. */
@@ -4067,12 +4137,46 @@ arrays with class elements.
                                      ptr_elem_type, temp_var_node);
     /* Start the insert list with the assignment. */
     insert_expr(assign_node, &insert_location);
+#if ABI_COMPATIBILITY_VERSION >= 234
+    /* Add the array prefix size to get from the address returned to
+       the actual starting address of the array.  Put a "?" guard around
+       the increment to avoid incrementing temp if it is NULL. */
+    { a_constant       null_constant;
+      an_expr_node_ptr compare_node, add_node, assign_node, question_node;
+
+      /* Make "temp != 0". */
+      temp_var_node = var_rvalue_expr(temp_var);
+      make_zero_of_proper_type(temp_var_node->type, &null_constant);
+      temp_var_node->next = alloc_node_for_constant(&null_constant);
+      compare_node = make_operator_node((an_expr_operator_kind)eok_pne,
+                                        integer_type((an_integer_kind)ik_int),
+                                        temp_var_node);
+      /* Make "temp = (type *)((char *)temp + __array_new_prefix_size)". */
+      temp_var_node = var_rvalue_expr(temp_var);
+      temp_var_node = add_cast_if_necessary(temp_var_node, char_star_type());
+      temp_var_node->next = var_rvalue_expr(array_new_prefix_size_var);
+      add_node = make_operator_node((an_expr_operator_kind)eok_padd,
+                                    temp_var_node->type, temp_var_node);
+      add_node = add_cast_if_necessary(add_node, ptr_elem_type);
+      temp_var_node = var_lvalue_expr(temp_var);
+      temp_var_node->next = add_node;
+      assign_node = make_operator_node((an_expr_operator_kind)eok_passign,
+                                       add_node->type, temp_var_node);
+      /* Make "(temp != 0) ? (temp = ...) : 0". */
+      compare_node->next = assign_node;
+      assign_node->next = alloc_node_for_constant(&null_constant);
+      question_node = make_operator_node((an_expr_operator_kind)eok_question,
+                                         assign_node->type, compare_node);
+      insert_expr(question_node, &insert_location);
+    }
+#endif /* ABI_COMPATIBILITY_VERSION >= 234 */
     entity_node = var_rvalue_expr(temp_var);
     /* The size node is used in the "new" call, so it cannot be destroyed. */
     preserve_size_node = TRUE;
   }  /* if */
   /* Here, we have entity_node pointing to an expression for the address
-     of the entity. */
+     of the entity, or entity_node == NULL if the __vec_new call or
+     equivalent will be allocating the storage. */
   /* Make a node for the number of elements in the array. */
   if (array_type->size != 0) {
     /* The easy and usual case -- the array has a constant number of
@@ -4202,7 +4306,8 @@ arrays with class elements.
   /* Construct the call of __vec_new or __array_new. */
   vec_new_node = make_vec_new_call(entity_node, ptr_elem_type, num_elem_node,
                                    ctor_routine, dtor_routine,
-                                   new_routine, delete_routine);
+                                   new_routine, delete_routine,
+                                   /*record_size_for_delete=*/TRUE);
   insert_expr(vec_new_node, &insert_location);
   vec_new_node = insert_location.variant.expr;
   /* Overwrite expr with a cast of the result of __vec_new (of type void *)
@@ -6148,9 +6253,11 @@ are handled in il_lower_init.)
       pch_saved_var_array_elem(vec_new_routine),
       pch_saved_var_array_elem(vec_new_eh_routine),
       pch_saved_var_array_elem(array_new_routine),
+      pch_saved_var_array_elem(placement_array_new_routine),
       pch_saved_var_array_elem(memzero_routine),
       pch_saved_var_array_elem(needed_destruction_type),
       pch_saved_var_array_elem(needed_destruction_object_field),
+      pch_saved_var_array_elem(array_new_prefix_size_var),
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
@@ -6176,6 +6283,8 @@ of the front end.
   record_needed_destruction_routine = NULL;
   needed_destruction_type = NULL;
   file_scope_init_routine = NULL;
+  array_new_prefix_size_var = NULL;
+  placement_array_new_routine = NULL;
 }  /* init_lower_init */
 
 #endif /* DO_IL_LOWERING */
