@@ -3542,7 +3542,7 @@ this routine to do a relatively simple copy of the all the fields.
        Also give it the same declaration position as the original type. */
     name_ptr = class_type->source_corresp.name;
     if (name_ptr != NULL) {
-#define SUB_PREFIX "_"
+#define SUB_PREFIX "__SO__"
       name_length = mangled_class_name(class_type, (char *)NULL) +
                     sizeof(SUB_PREFIX) - 1;
       alloc_length = name_length + 1;

@@ -1,5 +1,20 @@
 Version 2.28
 
+2/25/95  IL lowering: type-as-subobject prefix changed to "__SO__"
+
+When a class has virtual base classes, IL lowering creates a version
+of the type shorn of those base classes.  This is called the
+type-as-subobject for the type.  The name of the type-as-subobject has
+been the class name prefixed by "_".  This unfortunately clashed
+with the user's name space, so the prefix has been changed to "__SO__".
+
+  struct v {};
+  struct _x {} a;
+  struct x : public virtual v {};
+
+This has no effect on binary compatiblity since these names are internal
+to a compilation.
+
 2/25/95  Improved error recovery on too many arguments to macro call
 
 The error recovery on a case like the following is now improved:
