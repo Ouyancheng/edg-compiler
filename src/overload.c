@@ -3460,7 +3460,7 @@ produce clearer error messages).  This routine is called only in C++ mode.
   }  /* if */
   if (!do_arg_dep_lookup) {
     /* No argument-dependent lookup.  Use only the function symbol provided. */
-    if (single_function != NULL) {
+    if (single_function != NULL && !have_selector) {
       /* If the function is a single non-overloaded function, overload
          resolution is not required. */
       function_symbol = fundamental_symbol_of(overloaded_function_symbol);
