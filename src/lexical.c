@@ -28,6 +28,7 @@ and parsing of them into tokens.
 /* Additional header files. */
 #include "class_decl.h"
 #include "decls.h"
+#include "def_arg.h"
 #include "literals.h"
 #include "macro.h"
 #include "pch.h"
