@@ -232,6 +232,14 @@ void instantiate_template_function(a_function_instantiation_entry_ptr  fiep)
   }  /* if */
 #endif /* if 0 */
 
+  /* For a member function create the implicit "this" param variable and
+     set a pointer to it in the scope entry. */
+  if (rtsp->implicit_this_param_type != NULL) {
+    /* Routine is a nonstatic member function. */
+    scope->variant.routine.this_param_variable =
+                make_param_variable(rtsp->implicit_this_param_type,
+                                    (a_storage_class)sc_auto);
+  }  /* if */
   /* If appropriate, set the return value pointer variable in the scope
      entry.  This is a pointer to an implicit parameter specifying the
      storage provided by the caller into which to copy a class object that
