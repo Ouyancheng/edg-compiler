@@ -10286,7 +10286,9 @@ or implicit) controlling the declaration.
       error(ec_template_id_not_allowed);
       err = TRUE;
     } else if (could_be_dependent_class_type(
-                                      locator_for_curr_id.parent.class_type)) {
+                                      locator_for_curr_id.parent.class_type) &&
+               !same_entities(class_type,
+                              locator_for_curr_id.parent.class_type)) {
       /* The qualifier is a dependent class.  Suppress the base class check
          and create a dummy base class. */
       bcp = alloc_base_class();
