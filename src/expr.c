@@ -4732,13 +4732,22 @@ type is passed in as type_cast_to.  The result is returned in *result.
   } else {
     /* Not a constructor case; obeys the same rules as a C-style cast. */
     add_matching_stop_token(tok_rparen);
-    /* Scan the expression to be cast.  If the expression is omitted,
-       use zero (the ARM says the result is undefined, so zero is
-       acceptable; zero is used because it can be cast to any scalar
-       type). */
     if (curr_token == tok_rparen) {
-      make_integer_constant_operand(result, 0L);
+      /* Empty parentheses. */
+      if (is_class_struct_union_type(type_cast_to)) {
+        /* A class with no constructor, followed by (), e.g., "A()" --
+           this is an error. */
+        pos_ty_error(ec_no_constructor, &lparen_pos, type_cast_to);
+        make_error_operand(result);
+      } else {
+        /* A non-class type followed by (); generate an "undefined" value
+           of the type.  We actually use 0, because it can be cast to all
+           non-class types (arithmetic, pointer, pointer to member, void). */
+        make_integer_constant_operand(result, 0L);
+        cast_operand(type_cast_to, result, /*is_implicit_cast=*/FALSE);
+      }  /* if */
     } else {
+      /* Non-empty parentheses. */
       /* Since the expression in parentheses is syntactically an
          expression list, a top-level comma is not allowed. */
       cast_options = EOPT_OPERAND_OF_CAST | EOPT_DISALLOW_COMMA_OPERATOR;
@@ -4749,11 +4758,11 @@ type is passed in as type_cast_to.  The result is returned in *result.
       }  /* if */
       scan_expr_full(result, &local_bound_function_selector, PREC_LOWEST,
                      cast_options);
+      /* Check compatibility of the types and do the cast. */
+      do_cast(type_cast_to, result, &local_bound_function_selector, err,
+              cast_to_reference, int_to_ptr_case, cast_to_func_ptr,
+              &start_position);
     }  /* if */
-    /* Check compatibility of the types and do the cast. */
-    do_cast(type_cast_to, result, &local_bound_function_selector, err,
-            cast_to_reference, int_to_ptr_case, cast_to_func_ptr,
-            &start_position);
     /* Check for the closing parenthesis. */
     check_closing_paren_after_expr_list();
     remove_matching_stop_token(tok_rparen);
