@@ -1930,8 +1930,8 @@ duplicate paths.  The copy will be a base class of new_class.
     new_bcp->complete_subobject = TRUE;
   } else {
     new_bcp->complete_subobject = base_class_to_copy->complete_subobject;
-#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
   }  /* if */
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
   /* Check for ambiguity. */
   for (bcp = base_classes_of(new_class); bcp != NULL; bcp = bcp->next) {
     if (bcp->type == new_bcp->type) {
