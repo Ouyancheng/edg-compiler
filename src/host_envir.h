@@ -562,8 +562,13 @@ be used when the back end is invoked by the driver as a separate program.
 #else /* STANDALONE_UTILITY_PROGRAM */
 /* Compiling a standalone utility program, so the back end is not
    being called (not from the front end, anyway). */
+#ifndef BACK_END_SHOULD_BE_CALLED
 #define BACK_END_SHOULD_BE_CALLED FALSE  /* Do not change this. */
+#endif /* ifndef BACK_END_SHOULD_BE_CALLED */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
+#if BACK_END_SHOULD_BE_CALLED && STANDALONE_UTILITY_PROGRAM
+ #error -- Back end should not be called in standalone utility program
+#endif /* BACK_END_SHOULD_BE_CALLED && STANDALONE_UTILITY_PROGRAM */
 
 /*
 Flag that is TRUE to cause the declaration scope depth to appear in the
