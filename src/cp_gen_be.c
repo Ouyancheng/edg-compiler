@@ -6773,7 +6773,7 @@ dimension expression in a VLA (variable-length array) declarator or an
 array declarator whose length is template dependent.
 */
 {
-  gen_expression(expr);
+  gen_expr_with_parens(expr);
 }  /* f_gen_expression */
 
 

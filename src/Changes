@@ -7,6 +7,9 @@ recorded for a constant that is parenthesized.  That gives access
 to the source start/end position for the constant itself and also for the
 parenthesized form.
 
+Also, a change was made in the C++-generating back end to put parentheses
+around such expressions when they are put out.
+
 2/12/02  Sun compatibility: static friend function declarations
 
 In Sun mode, the front end now accepts a "static" specifier in the declaration
