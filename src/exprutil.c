@@ -4621,6 +4621,9 @@ only if try_user_conversions is TRUE; it must be FALSE if arg_type is non-NULL.
        it would lose its top-level type qualifiers.  That means the type
        qualifiers must be compatible. */
     arg_type = skip_typerefs(arg_type);
+    /* Qualifiers on the parameter type are also not significant when dealing
+       with rvalues.  One cannot distinguish f(int) and f(const int). */
+    param_type = skip_typerefs(param_type);
     /* See if the "T[] --> T*" and "T(args) --> T(*)(args)" cases apply. */
     if (arg_operand != NULL) {
       if (is_array_type(arg_type)) {
