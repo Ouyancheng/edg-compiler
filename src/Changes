@@ -1,11 +1,12 @@
+Version 2.14, February 12, 1993
+
 2/15/93  Error recovery on ambiguous conversions
 
 Error recovery when a function or built-in operator is selected in overload
 resolution and an argument thereof requires a conversion that is ambiguous
 has been fixed.  It was broken by the recent change to remember the
-conversion required in that case.
-
-Version 2.14, February 12, 1993
+conversion required in that case.  (This patch was incorporated into
+the release retroactively.)
 
 2/12/93  IL version number changed to 2.06
 
