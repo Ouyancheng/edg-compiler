@@ -1,5 +1,16 @@
 Version 2.46
 
+11/14/01 Microsoft compatibility: template name used in base class specifier
+
+Within the scope of class template the template name may be used
+either with our without a template argument list.  The Microsoft
+compilers also accepts the template name without a template argument list
+in the base-specifier list of the class.  We now emulate this behavior
+in Microsoft bugs mode.
+
+  template <class T> class A { };
+  template <class T> class B : public A<B> { };
+
 10/11/01 Default temporary directory changed to /var/tmp
 
 On non-Windows systems the default temporary directory has been changed

@@ -846,11 +846,14 @@ template with no current instantiation or definition, we return FALSE.
             ssep->kind == (a_scope_kind)sck_class_reactivation) {
           /* Get the instance symbol pointed to by the type from the scope
              stack entry. */
-          if (is_instantiation_scope) {
-              /* Don't look beyond the innermost instantiation scope that
-                 is not a nested instantiation. */
-            if (!ssep->nested_instantiation) break;
-          } else {
+          if (!is_instantiation_scope ||
+              (microsoft_bugs && ssep->assoc_type != NULL)) {
+            /* Normally, we look for a class or class reactivation scope
+               for a class that is an instance of the template specified
+               by "sym".  The Microsoft compiler also accepts a class name
+               as being the "current instantiation" when referenced in the
+               base class list of the class.  To emulated this, also check
+               the class associated with a template instantiation scope. */
             a_symbol_ptr	template_sym;
             check_assertion_str(ssep->assoc_type != NULL,
 				"ccsict: assoc_type is NULL");
@@ -869,6 +872,9 @@ template with no current instantiation or definition, we return FALSE.
               break;
             }  /* if */
           }  /* if */
+          /* Don't look beyond the innermost instantiation scope that
+             is not a nested instantiation. */
+          if (is_instantiation_scope && !ssep->nested_instantiation) break;
         }  /* if */
       }  /* for */
       if (found) *sym = instance_sym;
