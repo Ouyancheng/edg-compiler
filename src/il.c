@@ -2344,19 +2344,83 @@ bucket of the shareable_constants_table to use for the constant.
 }  /* hash_constant */
 
 
-a_boolean eq_constants(a_constant *cp1,
-                       a_constant *cp2)
+static a_boolean compare_template_param_constant_expressions(
+                                                     an_expr_node_ptr  node1,
+                                                     an_expr_node_ptr  node2)
 /*
-Return TRUE if the two constants are identical.
+Return TRUE if node1 and node2 are equivalent expression trees.
+*/
+{
+  a_boolean         eq = FALSE;
+
+  if (node1->kind == node2->kind) {
+    switch (node1->kind) {
+      enk_operation:
+        if (node1->variant.operation.kind == node1->variant.operation.kind) {
+          an_expr_node_ptr   op1 = node1->variant.operation.operands;
+          an_expr_node_ptr   op2 = node2->variant.operation.operands;
+
+          check_assertion(op1 != NULL && op2 != NULL);
+          do {
+            if (!compare_template_param_constant_expressions(op1, op2)) {
+              /* Operands are not equivalent. */
+              break;
+            } else {
+              /* Operands are equivalent -- check other operands, if any. */
+              op1 = op1->next;
+              op2 = op2->next;
+              if (op1 == NULL && op2 == NULL) {
+                /* Both operand lists are exhausted, so we have a match. */
+                eq = TRUE;
+                break;
+              }  /* if */
+            }  /* if */
+          } while (op1 != NULL && op2 != NULL);
+          /* Falling though with one list incomplete means eq remains FALSE. */
+        }  /* if */
+        break;
+      enk_constant:
+        eq = eq_constants(node1->variant.constant, node1->variant.constant);
+        break;
+      enk_variable_address:
+        eq = (node1->variant.variable == node2->variant.variable);
+        break;
+      enk_routine_address:
+        eq = (node1->variant.routine == node2->variant.routine);
+        break;
+      enk_error:
+        /* Nonequivalence is assumed. */
+        break;
+#if CHECKING
+      default:
+        internal_error("compare_template_param_constant_expr: bad expr kind");
+#endif /* CHECKING */
+    }  /* switch */
+  }  /* if */
+  return eq;
+}  /* compare_template_param_constant_expressions */
+
+
+static a_boolean compare_constants(a_constant_ptr  cp1,
+                                   a_constant_ptr  cp2,
+                                   a_boolean       ignore_type_qualifiers)
+/*
+Return TRUE if the two constants are identical.  If ignore_type_qualifiers
+is TRUE the qualifiers are stripped from the constant type before they
+are compared; otherwise, a "const int 5" and an "int 5" are treated as
+nonidentical.
 */
 {
   a_boolean  eq = FALSE, unordered;
   a_type_ptr cp1_type = cp1->type, cp2_type = cp2->type;
 
-  if (cp1 == cp2) {
-    /* Same pointer implies same constant. */
-    eq = TRUE;
-  } else if (cp1->kind == cp2->kind && cp1_type  == cp2_type) {
+  check_assertion(cp1 != cp2);
+  check_assertion(cp1->kind == cp2->kind);
+  if (ignore_type_qualifiers) {
+    cp1_type = skip_typerefs(cp1_type);
+    cp2_type = skip_typerefs(cp2_type);
+  }  /* if */
+  if (cp1_type == cp2_type) {
     switch (cp1->kind) {
       case ck_error:
         /* No further field to check. */
@@ -2398,7 +2462,7 @@ Return TRUE if the two constants are identical.
               break;
 #if CHECKING
             default:
-              internal_error("eq_constants: bad address constant kind");
+              internal_error("compare_constants: bad address constant kind");
 #endif /* CHECKING */
           }  /* switch */
         }  /* if */
@@ -2425,25 +2489,63 @@ Return TRUE if the two constants are identical.
                             cp2->variant.template_param.variant.list_position);
               break;
             case tpck_expression:
-#if 0
-              /* Not supported yet. */
-#endif /* if 0 */
+              eq = compare_template_param_constant_expressions(
+                                    cp1->variant.template_param.variant.expr,
+                                    cp2->variant.template_param.variant.expr);
             case tpck_member:
-#if 0
-              /* Not supported yet. */
-#endif /* if 0 */
+              check_assertion(cp1->source_corresp.assoc_info != NULL);
+              check_assertion(cp2->source_corresp.assoc_info != NULL);
+              eq = (cp1->source_corresp.assoc_info ==
+                    cp2->source_corresp.assoc_info);
 #if CHECKING
             default:
-              internal_error("eq_constants: bad template param constant kind");
+              internal_error("compare_constants: bad templ param const kind");
 #endif /* CHECKING */
           }  /* switch */
         }  /* if */
         break;
 #if CHECKING
       default:
-        internal_error("eq_constants: bad constant kind");
+        internal_error("compare_constants: bad constant kind");
 #endif /* CHECKING */
     }  /* switch */
+  }  /* if */
+  return eq;
+}  /* compare_constants */
+
+
+static a_boolean identical_constants(a_constant *cp1,
+                                     a_constant *cp2)
+/*
+Return TRUE if the two constants are identical.
+*/
+{
+  a_boolean  eq;
+
+  if (cp1 == cp2) {
+    /* Same pointer implies same constant. */
+    eq = TRUE;
+  } else if (cp1->kind == cp2->kind) {
+    check_assertion(cp1->kind != (a_constant_repr_kind)ck_template_param);
+    eq = compare_constants(cp1, cp2, /*ignore_type_qualifiers=*/FALSE);
+  }  /* if */
+  return eq;
+}  /* identical_constants */
+
+
+a_boolean eq_constants(a_constant *cp1,
+                       a_constant *cp2)
+/*
+Return TRUE if the two constants are equivalent.
+*/
+{
+  a_boolean  eq;
+
+  if (cp1 == cp2) {
+    /* Same pointer implies same constant. */
+    eq = TRUE;
+  } else if (cp1->kind == cp2->kind) {
+    eq = compare_constants(cp1, cp2, /*ignore_type_qualifiers=*/TRUE);
   }  /* if */
   return eq;
 }  /* eq_constants */
@@ -2609,7 +2711,7 @@ put it on a list of constants).
         num_compares_for_shareable_constants++;
 #endif /* DEBUG */
         /* Compare the constant in the list with the desired constant. */
-        if (eq_constants(scp, cp)) {
+        if (identical_constants(scp, cp)) {
           /* The constants are the same, so we have found a reusable
              constant. */
           /* Remove the constant from the list.  It will be re-added at the
