@@ -1,5 +1,15 @@
 Version 3.2
 
+4/15/03  Internal error on multi-translation unit case with unprototyped
+         functions in C mode
+
+The front end gave an internal error in trans_copy.c (in routine
+transfer_routine_flags, though that was not indicated in the message)
+on a multiple-translation-unit case in C mode in which a function
+was unprototyped with no parameter information in one translation
+unit and unprototyped with parameter information in another.  Now
+fixed.
+
 4/14/03  GNU C++ compatibility: default arg. in member of class template
 
 g++ allows a default argument to be specified on the definition of a
