@@ -1,5 +1,24 @@
 Version 3.5
 
+10/25/04 C++-generating back end: Microsoft compatibility for inherited
+         enumeration constants
+
+MSVC++ version 6.0 had a bug such that the names of enumeration constants
+declared in base classes were not visible in default arguments in friend
+declarations.  The C++-generating back end formerly generated unqualified
+names in this context but will now qualify such names if
+msvc_is_generated_code_target is TRUE and msvc_target_version_number < 1300.
+For example:
+
+  struct B {
+    enum T { T0, T1 };
+  };
+  struct D: B {
+    friend void f(T t = B::T1);  /* Formerly generated as T1, now as B::T1
+                                    when generating code for MSVC++ 6.0 */
+  };
+
+
 10/23/04 Macro SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE eliminated
 
 The macro SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE is no longer used to

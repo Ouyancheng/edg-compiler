@@ -184,6 +184,15 @@ static unsigned long
 
 
 /*
+The following variable indicates the context in which a name is being
+generated.
+*/
+static a_boolean
+		in_friend_declaration;
+			/* TRUE if the name being generated appears within
+			   a friend declaration's parameter list. */
+
+/*
 Entry used to record an adjustment needed at the end of a name context,
 i.e., restoring the previous values of the qualification_needed and/or
 elaborated_type_specifier_needed flags of an IL entity, which were changed
@@ -2150,9 +2159,22 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
     if (scp->is_class_member) {
       a_type_ptr class_type = scp->parent.class_type;
       a_boolean  used_qualified_name = FALSE;
+      a_boolean include_base_classes = TRUE;
       /* Use a qualified name in some cases to avoid a cfront bug.  See
          gen_initializer. */
       if (curr_name_context->invisible_to_cfront) force_qualified_name = TRUE;
+      if (msvc_is_generated_code_target &&
+          msvc_target_version_number < 1300 &&
+          entry_kind == (an_il_entry_kind)iek_constant &&
+          in_friend_declaration) {
+        /* MSVC version 6.0 had a bug such that the names of enumeration
+           constants declared in base classes were not visible in default
+           arguments in friend declarations.  Force qualification in this
+           case by preventing consideration of base classes when determining
+           whether the parent class of the enumeration is in the scope
+           stack. */
+        include_base_classes = FALSE;
+      }  /* if */
       if (!force_qualified_name &&
           if_microsoft_extensions(!scp->member_of_unknown_super &&)
           (!scp->qualification_needed ||
@@ -2164,8 +2186,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
           (scp->visible_as_unqualified_name ||
            (class_type->variant.class_struct_union.is_nonreal_class &&
             !has_name(class_type)) ||
-           class_is_in_name_context_stack(class_type,
-                                          /*include_base_classes=*/TRUE))) {
+           class_is_in_name_context_stack(class_type, include_base_classes))) {
         /* A qualified name is not needed, because we're inside a name context
            for the class and the name is not hidden.  Note a subtle case in
            Microsoft mode: if the hiding symbol was an injected class, the
@@ -10937,6 +10958,7 @@ TRUE if the declaration following this one is such a continuation.
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   /* Generate a declaration for the routine name with the right type. */
+  in_friend_declaration = friend_decl;
   gen_routine_specifiers_and_declaration(rout, rout_type,
                                          is_definition,
                                          force_unqualified_name,
@@ -10948,6 +10970,7 @@ TRUE if the declaration following this one is such a continuation.
                                          suppress_specifiers,
                                          &context_pop_needed,
                                          &saved_state, name_ref);
+  in_friend_declaration = FALSE;
   if (need_to_unset_typedefs) {
     (void)gen_typedefs_for_template_classes_in_default_arguments(
                                                       rtsp->param_type_list,
@@ -11279,6 +11302,7 @@ Initialize for the C++/C-generating back end.
   innermost_function_scope = NULL;
   curr_switch_statement = NULL;
   num_curr_switch_statements = 0;
+  in_friend_declaration = FALSE;
   curr_name_context = NULL;
   avail_hidden_name_fixups = NULL;
   avail_name_contexts = NULL;
