@@ -1999,13 +1999,12 @@ specified id-linkage block.
              local_storage_class == (a_storage_class)sc_unspecified)) {
           /* An object or function with extern storage class, or a function
              with no storage class, has the same linkage as any visible
-             declaration of this identifier in the enclosing namespace
+             declaration of this identifier within the enclosing namespace
              scope. */
-          if (prior_decl != NULL &&
-              prior_decl->decl_scope ==
+          if (prior_decl->decl_scope >=
                     scope_stack[depth_innermost_namespace_scope].number) {
-            /* There is a prior declaration at namespace scope that is
-               visible from here. */
+            /* There is a prior declaration in or inside the innermost
+               namespace scope that is visible from here. */
             switch (prior_decl->kind) {
               case sk_routine:
                 local_storage_class = prior_decl->variant.routine.ptr->

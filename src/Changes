@@ -1,5 +1,22 @@
 Version 2.42
 
+7/19/99  Assertion failure with nested block-extern declarations that have
+         internal linkage
+
+Recent versions of the front end would fail when processing certain block-
+extern declarations of entities that had previously been declared with
+internal linkage in the surrounding namespace scope:
+
+  static void f() {}
+  void g() {
+    extern void f();
+    {
+      extern void f(); // Used to trigger an assertion failure.
+    }
+  }
+
+This is now fixed.
+
 7/17/99  Folding of constant but unevaluated parts of "?" operations
 
 Constant but unevaluated parts of "?" expressions were not correctly folded
