@@ -6427,12 +6427,13 @@ this routine goes on to determine whether they must be made external
 because they were used in declaring an external function or variable.
 */
 {
-  int            num_internally_linked_classes = 0, count;
-  a_scope_ptr    scope = il_header.primary_scope, class_scope;
-  a_type_ptr     tp;
-  a_routine_ptr  rp;
-  a_variable_ptr vp;
-  a_boolean      external;
+  int                          num_internally_linked_classes = 0, count;
+  a_scope_ptr                  scope = il_header.primary_scope, class_scope;
+  a_type_ptr                   tp;
+  a_routine_ptr                rp;
+  a_variable_ptr               vp;
+  a_boolean                    external;
+  a_class_type_supplement_ptr  ctsp;
 
   db_enter(3, "check_class_linkage");
   /* Search for classes by making a pass over all the types associated with
@@ -6442,14 +6443,19 @@ because they were used in declaring an external function or variable.
     if (tp->kind != (a_type_kind)tk_typeref &&
         is_class_struct_union_type(tp)) {
       /* Found a class. */
-      class_scope = tp->variant.class_struct_union.extra_info->assoc_scope;
+      ctsp = tp->variant.class_struct_union.extra_info;
+      class_scope = ctsp->assoc_scope;
       if (tp->source_corresp.name_linkage ==
                                (a_name_linkage_kind)nlk_internal &&
           class_scope != NULL) {
         /* Internally linked and defined.  Check for non-inlined functions
            and static data members. */
         external = FALSE;
-        if (class_scope->variables != NULL) {
+        if (ctsp->template_arg_list != NULL) {
+          /* This must be a template class, so it should have external
+             linkage. */
+          external = TRUE;
+        } else if (class_scope->variables != NULL) {
           /* At least one static data member: external linkage is required. */
           external = TRUE;
         } else {
