@@ -389,8 +389,8 @@ Process the arguments on the command line that invoked the compiler.
 #define DID_GOTO_UNKNOWN_OPTION
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
       case 'F':
-        {
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
+        {
           /* Specify file containing a list of names of template functions
              and static data members to be instantiated.  Intended to be
              used for linker feedback mechanisms for automatic
@@ -598,7 +598,8 @@ unknown_option:
     }  /* if */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
-    if (automatic_instantiation_mode != DEFAULT_AUTOMATIC_INSTANTIATION_MODE) {
+    if (implicit_template_inclusion_mode !=
+                                    DEFAULT_IMPLICIT_TEMPLATE_INCLUSION_MODE) {
       command_line_error(
       "implicit template inclusion mode (-B) can only be used when compiling C++");
     }  /* if */
@@ -642,9 +643,11 @@ unknown_option:
   /* Determine the appropriate error level for anachronism messages based
      on whether anachronisms are to be allowed. */
   anachronism_error_severity = allow_anachronisms ? es_warning : es_error;
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
   /* If an instantiation list file was specified make sure that automatic
      instantiation mode is enabled. */
   automatic_instantiation_mode |= process_instantiation_list_file;
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   /* Choose the style of preprocessing. */
   pcc_preprocessing_mode = (C_dialect == C_dialect_pcc);
   if (cfront_compatibility_mode) {
