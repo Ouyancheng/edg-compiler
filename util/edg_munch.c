@@ -207,7 +207,7 @@ length of the name.
       *is_ctor = FALSE;
     }  /* if */
     
-    /* We have found an entry that needs processsing. */
+    /* We have found an entry that needs processing. */
     if (result) {
       /* Set name length. */
       register int length = 0;

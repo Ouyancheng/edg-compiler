@@ -29,7 +29,7 @@ function.
 #define FUNCTION_RETURN_TYPE "char"
 
 /*
-Type code output by "nm" for externally visable function definitions.
+Type code output by "nm" for externally visible function definitions.
 */
 #define EXTERN_TYPE 'T'
 
