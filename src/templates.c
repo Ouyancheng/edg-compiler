@@ -3049,6 +3049,26 @@ of a function template.
 }  /* scan_template_declaration */
 
 
+static a_type_ptr scan_member_declaration(a_type_ptr	parent_class)
+/*
+Calls rescan_member_template_declaration to rescan the tokens of a
+member function template to produce the type for the instance and to
+detect any errors that should be diagnosed.
+*/
+{
+  a_type_ptr	instance_type;
+
+  add_stop_token(tok_end_of_source);
+  instance_type = rescan_member_template_declaration(parent_class);
+  remove_stop_token(tok_end_of_source);
+  /* In the normal case the current token should be end_of_source,
+     which was inserted to mark the end of the cached token stream.
+     If necessary, keep flushing until end-of-source is found. */
+  flush_past_token_cache_terminator();
+  return instance_type;
+}  /* scan_member_declaration */
+
+
 static void update_befriending_classes_for_function
                            (a_template_symbol_supplement_ptr tssp,
 			    a_routine_ptr                    rout_ptr)
@@ -3068,8 +3088,7 @@ function a friend and update the friend information.
 
 
 static a_symbol_ptr make_template_function(a_symbol_ptr        templ_sym,
-                                           a_template_arg_ptr  templ_arg_list,
-                                           a_source_position   *source_pos)
+                                           a_template_arg_ptr  templ_arg_list)
 /*
 Allocate the symbol and routine entry for a template function, based on
 the function template (represented by templ_sym), and allocate and enter
@@ -3113,13 +3132,9 @@ type based on the template argument list and the template parameter list
        template arguments.  This is done even if a type already exists
        because additional error checking is done during the declaration
        processing. */
-    a_decl_flag_set	 do_flags;
-    a_func_info_block	 func_info;
-    a_storage_class      storage_class;
-    a_symbol_locator	 locator;
-    a_decl_modifier	 decl_modifiers;
     a_source_position    saved_pos_curr_token;
     a_source_position    saved_error_position;
+    a_source_position	 locator_position;
     a_template_cache_ptr tcp;
 
     /* Push the template instantiation scope.  Note that the instance symbol
@@ -3141,7 +3156,6 @@ type based on the template argument list and the template parameter list
     saved_error_position = error_position;
     begin_deferral_of_access_checks();
     rescan_reusable_cache(&tcp->tokens);
-    clear_func_info(&func_info);
     /* Note that is_member_decl is TRUE if the declaration was found in a
        class context, while parent_class contains a pointer to the class of
        which the template is a member.  In other words, is_member_decl will
@@ -3152,13 +3166,29 @@ type based on the template argument list and the template parameter list
                                           (a_scope_kind)sck_class_struct_union;
     parent_class = templ_sym->is_class_member ? templ_sym->parent.class_type
                                               : (a_type_ptr)NULL;
-    scan_template_declaration(/*is_initial_decl=*/FALSE,
-                              is_member_decl, parent_class,
-			      /*invalid_decl_scope_err=*/FALSE,
-                              &dso_flags, &do_flags, &locator,
-                              &rout_type, &func_info, &storage_class,
-                              &decl_modifiers);
-    done_with_func_info(func_info);
+    if (parent_class != NULL) {
+      locator_position = pos_curr_token;
+      rout_type = scan_member_declaration(parent_class);
+#if 0
+      /* We should get the locator position returned. */
+#endif
+    } else {
+      a_decl_flag_set	 do_flags;
+      a_func_info_block	 func_info;
+      a_storage_class    storage_class;
+      a_symbol_locator	 locator;
+      a_decl_modifier	 decl_modifiers;
+
+      clear_func_info(&func_info);
+      scan_template_declaration(/*is_initial_decl=*/FALSE,
+                                is_member_decl, parent_class,
+  			        /*invalid_decl_scope_err=*/FALSE,
+                                &dso_flags, &do_flags, &locator,
+                                &rout_type, &func_info, &storage_class,
+                                &decl_modifiers);
+      done_with_func_info(func_info);
+      locator_position = locator.source_position;
+    }  /* if */
     error_position = saved_error_position;
     pos_curr_token = saved_pos_curr_token;
     /* Allocate the template function symbol.  Note that it is not entered
@@ -3169,7 +3199,8 @@ type based on the template argument list and the template parameter list
       if (is_function_type(rout_type)) {
         return_type = skip_typerefs(rout_type)->variant.routine.return_type;
       }  /* if */
-      sym = make_template_function_symbol(templ_sym, source_pos, return_type);
+      sym = make_template_function_symbol(templ_sym, &templ_sym->decl_position,
+                                          return_type);
       sym->variant.routine.ptr = rp;
     }
     /* Give the routine entry the type passed in, and set other fields in
@@ -3185,8 +3216,8 @@ type based on the template argument list and the template parameter list
     set_membership_in_source_corresp(&rp->source_corresp, sym);
     rp->source_corresp.name_linkage = templ_rout->source_corresp.name_linkage;
     rp->source_corresp.access = templ_rout->source_corresp.access;
-    update_routine_decl_modifiers(rp, decl_modifiers,
-                                  &locator.source_position,
+    update_routine_decl_modifiers(rp, templ_rout->decl_modifiers,
+                                  &locator_position,
                                   /*is_redecl=*/FALSE, /*is_definition=*/TRUE);
     /* Add it to the routines list of the appropriate scope; NO_SCOPE_DEPTH
        is passed in to cause the scope to be computed. */
@@ -3210,9 +3241,6 @@ type based on the template argument list and the template parameter list
   sym->variant.routine.instance_ptr = tip;
   /* Process any pragmas that are to be bound to this instance. */
   process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
-  /* Pop the template instantiation scope. */
-  pop_template_instantiation_scope();
-  switch_back_to_original_region(region_to_switch_back_to);
   {
     a_symbol_locator	locator;
     /* If there are default arguments whose types depend on template
@@ -3236,6 +3264,9 @@ type based on the template argument list and the template parameter list
     }  /* if */
     check_operator_function_params(rout_type, parent_class, &locator);
   }
+  /* Pop the template instantiation scope. */
+  pop_template_instantiation_scope();
+  switch_back_to_original_region(region_to_switch_back_to);
   /* Function instantiation entries are not marked for actual instantiation
      (that is, for generation of the function body) until there is an
      invocation of the function.  In tim_all mode the instantiations
@@ -3371,8 +3402,7 @@ done:
 
 
 a_symbol_ptr matching_template_function(a_symbol_ptr        templ_sym,
-                                        a_type_ptr          curr_type,
-                                        a_source_position   *source_pos)
+                                        a_type_ptr          curr_type)
 /*
 Search for a template function based on the function template represented
 by templ_sym and the type pointed to by curr_type.  If no such template
@@ -3401,7 +3431,7 @@ return a pointer to the symbol; otherwise, return NULL.
       /* A match has been found -- just return a pointer to it. */
     } else {
       /* Use the template arg list to create a new symbol. */
-      sym = make_template_function(templ_sym, templ_arg_list, source_pos);
+      sym = make_template_function(templ_sym, templ_arg_list);
     }  /* if */
   }  /* if */
   db_exit();
@@ -3881,7 +3911,7 @@ structure.
        function instantiation entry, and linking all these appropriately.
        Note that the symbol will not be added to the symbol table, since it
        is accessed through the list of function instantiation entries. */
-    sym = make_template_function(templ_sym, *new_list, source_pos);
+    sym = make_template_function(templ_sym, *new_list);
 #if DEBUG
     if (debug_level >= 3) {
       db_symbol(sym, "created: ", 2);
@@ -4313,6 +4343,35 @@ any classes that declared the nested class as a template friend.
 }  /* set_nested_template_class_symbol_info */
 
 
+static
+a_boolean same_name_as_template_param(
+                        a_template_decl_info_ptr template_decl_info,
+                        a_symbol_locator	 *locator)
+/*
+See if the class being declared has the same name as one of its
+template parameters.  Is so, issue an error.  Return TRUE if an
+error was diagnosed.
+*/
+{
+  a_template_param_ptr		tpp;
+  a_boolean			err = FALSE;
+
+  /* Compare the symbol header of the class name with each of the template
+     parameters. */
+  for (tpp = template_decl_info->parameters; tpp != NULL; tpp = tpp->next) {
+    if (tpp->param_symbol->header == locator->symbol_header) {
+      err = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  if (err) {
+    pos_error(ec_class_template_same_name_as_templ_param,
+              &locator->source_position);
+  }  /* if */
+  return err;
+}  /* same_name_as_template_param */
+
+
 static void class_template_declaration
                         (a_template_decl_info_ptr template_decl_info,
                          an_access_specifier   access,
@@ -4478,17 +4537,13 @@ instantiation.
     is_nested_class_definition = is_class_struct_union_symbol(sym) &&
                                  sym->is_class_member && tssp != NULL;
   }  /* if */
-  /* If get_normal_id_or_qualified_name returned something, we may have a
-     name conflict or a redefinition. */
+  /* See if the class being declared has the same name as one of its
+     template parameters. */
+  if (same_name_as_template_param(template_decl_info, &locator)) {
+    sym = NULL;
+    suppress_redecl_error = TRUE;
+  }  /* if */
   if (!locator.is_qualified_name && sym != NULL) {
-    if (sym->decl_scope == scope_stack[depth_scope_stack].number) {
-      /* The symbol found is from the current template declaration scope.
-         This means that the name of the class is the same as one of
-         its template parameters -- this is an error. */
-      pos_error(ec_class_template_same_name_as_templ_param,
-                &locator.source_position);
-      suppress_redecl_error = TRUE;
-    }  /* if */
     /* Unless this is a friend declaration, an unquaified name must refer
        to a name from the current scope. */
     check_assertion(is_template_friend || sym->decl_scope ==
@@ -6393,7 +6448,8 @@ as the current token; otherwise, it is consumed.
       pos_error(ec_exp_declaration, &pos_curr_token);
     } else if (is_member_decl && !is_template_friend) {
       /* A member template declaration. */
-      a_source_position	decl_start_pos = pos_curr_token;
+      a_source_position	decl_start_pos;
+      decl_start_pos = pos_curr_token;
       sym = class_member_template_declaration(class_declared_in);
       complete_function_template_decl(sym, (a_func_info_block *)NULL,
                                       template_decl_info, &decl_token_cache,
@@ -8068,8 +8124,7 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
       }  /* if */
       /* Look for a match on the list of instantiations. */
       if (lookup_sym != NULL) {
-        sym_found = matching_template_function(lookup_sym, type,
-                                               &locator.source_position);
+        sym_found = matching_template_function(lookup_sym, type);
         if (sym_found != NULL) {
 	  if (any_found) {
 	    sym_error(ec_ambiguous_overloaded_function, orig_sym);
