@@ -1,3 +1,5 @@
+Version 2.38
+
 10/25/97  Internal error from failure to mark routine as returning value
           by copy constructor
 
@@ -12,6 +14,15 @@ when it was necessary to merge default argument specifications:
   main() {
     S s = f();           // Internal error appeared here
   }
+
+10/22/97  Incorrect source position in IL template entry
+
+With RECORD_TEMPLATES_IN_IL configured to TRUE, an incorrect source position
+was sometimes recorded in a_template when the template was declared without
+a definition and then redeclared with one.  Note: the decl_position field in
+the IL template entry indicates where the template declaration begins (i.e.,
+the source position of the "template" keyword); it does not indicate the
+position of the template name.
 
 -------------------------------------------------------------------------------
 Version 2.37, October 18, 1997
