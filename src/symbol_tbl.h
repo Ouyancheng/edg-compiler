@@ -1223,6 +1223,12 @@ typedef struct a_scope_stack_entry {
                 template_arg_list;
                         /* When kind == sck_template_instantiation, contains
                            a pointer to template argument list. */
+  a_function_instantiation_entry_ptr
+		assoc_instantiation;
+			/* When kind == sck_template_instantiation and the
+			   instantiation is for a function template, contains
+			   a pointer to the function instantiation entry
+			   associated with this instantiation. */
 } a_scope_stack_entry;
 
 EXTERN a_scope_stack_entry_ptr

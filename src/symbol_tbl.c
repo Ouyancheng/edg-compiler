@@ -4957,6 +4957,7 @@ must be NULL in other cases.
   ssep->depth_of_previous_instantiation = NULL;
   ssep->template_sym             = NULL;
   ssep->template_arg_list        = NULL;
+  ssep->assoc_instantiation      = assoc_instantiation;
   /* Put the associated type (if any) into the IL scope (if any). */
   /* Note that the corresponding routine case was handled by the
      new_il_region call. */
