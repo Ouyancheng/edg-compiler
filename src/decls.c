@@ -4426,20 +4426,8 @@ skip_overloading:;
       /* There is an existing IL entry that we are reusing. */
       /* Check for internal linkage on the old but not the new, or
          vice-versa. */
-#if ASM_FUNCTION_ALLOWED
-      if (storage_class == (a_storage_class)sc_asm ||
-          routine_ptr->storage_class == (a_storage_class)sc_asm) {
-        /* asm functions have internal linkage but do not conflict
-           with previous declarations that are either extern or static. */
-          routine_ptr->storage_class = storage_class = (a_storage_class)sc_asm;
-      } else {
-#endif /* ASM_FUNCTION_ALLOWED */
-        check_for_linkage_conflict(&routine_ptr->storage_class, &linkage,
-                                   &storage_class, &locator->source_position,
-                                  /*suppress_diagnostic=*/linked_redecl_error);
-#if ASM_FUNCTION_ALLOWED
-      }  /* if */
-#endif /* ASM_FUNCTION_ALLOWED */
+      a_boolean suppress_diagnostic = linked_redecl_error;
+
       if (routine_ptr->compiler_generated) {
         /* This is an entry for a compiler generated ::operator new or
            ::operator delete.  It was created during initialization, but
@@ -4456,7 +4444,22 @@ skip_overloading:;
            routine entry. */
         sym->decl_position = locator->source_position;
         routine_ptr->source_corresp.decl_position = sym->decl_position;
+        suppress_diagnostic = TRUE;
       }  /* if */
+#if ASM_FUNCTION_ALLOWED
+      if (storage_class == (a_storage_class)sc_asm ||
+          routine_ptr->storage_class == (a_storage_class)sc_asm) {
+        /* asm functions have internal linkage but do not conflict
+           with previous declarations that are either extern or static. */
+          routine_ptr->storage_class = storage_class = (a_storage_class)sc_asm;
+      } else {
+#endif /* ASM_FUNCTION_ALLOWED */
+        check_for_linkage_conflict(&routine_ptr->storage_class, &linkage,
+                                   &storage_class, &locator->source_position,
+                                   suppress_diagnostic);
+#if ASM_FUNCTION_ALLOWED
+      }  /* if */
+#endif /* ASM_FUNCTION_ALLOWED */
       if (is_function_def) {
         a_boolean saved_referenced_flag;
         /* If this is a definition, unlink the routine entry and relink it
