@@ -25,14 +25,28 @@ overload.c -- Expression processing overload resolution.
 #include "templates.h"
 #include "cmd_line.h"
 #include "types.h"
+#include "folding.c"
 
-/* Forward declaration required because of out-of-order reference. */
+/* Forward declarations required because of out-of-order references. */
 static void prep_conversion_operand(an_operand        *source_operand,
                                     a_type_ptr        dest_type,
                                     a_user_conv_descr *user_conversion,
                                     a_boolean         is_initialization,
                                     an_error_code     incompatible_err,
                                     a_source_position *err_pos);
+static a_boolean conversion_to_class_possible(
+                                  an_operand               *source_operand,
+                                  a_type_ptr               dest_type,
+                                  a_user_conv_descr        *user_conversion,
+                                  a_boolean                *ambiguous,
+                                  a_candidate_function_ptr *ambiguity_list);
+static a_boolean conversion_from_class_possible(
+                               an_operand               *source_operand,
+                               a_type_ptr               dest_type,
+                               a_builtin_type_kind_set  builtin_types_allowed,
+                               a_user_conv_descr        *user_conversion,
+                               a_boolean                *ambiguous,
+                               a_candidate_function_ptr *ambiguity_list);
 
 
 static void clear_user_conv_descr(a_user_conv_descr_ptr ucdp)
