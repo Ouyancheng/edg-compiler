@@ -8319,12 +8319,13 @@ processing is done for using-directives by make_using_directive.
 
 
 static void create_nonmember_using_declaration(
-                                           a_symbol_ptr     sym,
-                                           a_symbol_ptr     *overload_sym_ptr,
-                                           a_symbol_ptr     other_decl,
-                                           a_namespace_ptr  nsp,
-                                           a_using_decl_ptr *prev_udp,
-                                           a_boolean        is_list)
+                                       a_symbol_ptr     sym,
+                                       a_symbol_ptr     *overload_sym_ptr,
+                                       a_symbol_ptr     other_decl,
+                                       a_namespace_ptr  nsp,
+                                       a_using_decl_ptr *prev_udp,
+                                       a_boolean        is_list,
+                                       a_boolean        suppress_redecl_error)
 /*
 Create a projection for symbol "sym" from namespace "nsp".  If this is part
 of an overload set being imported, "is_list" will be TRUE and
@@ -8345,11 +8346,10 @@ currently being processed (NULL if none).
   clear_specific_symbol(locator);
   decl_pos = locator_for_curr_id.source_position;
   if (overload_sym == NULL) {
-    a_boolean  suppress_redecl_error = FALSE;
     /* If we bring in a type, and a previous declaration was a tag,
        suppress a redeclaration error.  This is similar to the case
        "typedef struct S {} S;". */
-    if (other_decl != NULL &&
+    if (!suppress_redecl_error && other_decl != NULL &&
         is_tag_symbol(other_decl) && is_type_symbol(fund_sym)) {
       a_type_ptr  type1 = type_symbol_type(other_decl),
                   type2 = type_symbol_type(fund_sym);
@@ -8407,6 +8407,49 @@ currently being processed (NULL if none).
   }  /* if */
 done:;
 }  /* create_nonmember_using_declaration */
+
+
+static void import_any_hidden_tags(a_symbol_ptr      other_decl,
+                                   a_namespace_ptr   nsp,
+                                   a_using_decl_ptr  *prev_udp,
+                                   a_boolean         *redecl_error)
+/*
+A name that is imported by a using-declaration can refer to both tag names and
+non-tag names.  In those cases, ordinary namespace-qualified lookup will only
+find the non-tag, and this routine is used to also import the tag.  nsp is the
+namespace from which to import the hidden tag.  *prev_udp is set to the using-
+declaration structure that is created (if any).  *redecl_error is TRUE if and
+only if a redeclaration error is issued.
+*/
+{
+  /* Check if we missed a tag symbol; it should be imported too. */
+  a_symbol_ptr      null_sym_ptr = NULL, tag_sym;
+  a_symbol_locator  locator = locator_for_curr_id;
+
+  *redecl_error = FALSE;
+  clear_specific_symbol(locator);
+  tag_sym = namespace_qualified_id_lookup(
+              &locator, nsp,
+              IDL_MUST_BE_TAG | IDL_DIRECT_NAMESPACE_MEMBERS_ONLY);
+  if (tag_sym != NULL) {
+    a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
+    clear_specific_symbol(locator);
+    if (!is_class_template_symbol(tag_sym) &&
+        !(other_decl != NULL && is_file_or_namespace_scope(ssep) &&
+          symbols_are_lookup_equivalent(fundamental_symbol_of(tag_sym),
+                                        fundamental_symbol_of(other_decl)))) {
+      /* We found a tag that was masked by another declaration (sym),
+         and importing it is not just a redeclaration. */
+      create_nonmember_using_declaration(tag_sym, &null_sym_ptr,
+                                         other_decl, nsp, prev_udp,
+                                         /*is_list=*/FALSE,
+                                         /*suppress_redecl_error=*/FALSE);
+      *redecl_error = (curr_scope_id_lookup(
+                          &locator, IDL_MUST_BE_TAG | IDL_PROJ_SYMBOL_ALLOWED)
+                         != NULL);
+    }  /* if */
+  }  /* if */
+}  /* import_any_hidden_tags */
 
 
 static void nonmember_using_declaration(void)
@@ -8534,30 +8577,16 @@ current scope.
              the declaration. */
         } else {
           a_using_decl_ptr  prev_udp = NULL;
+          a_boolean         redecl_error;
           /* Create the new sk_namespace_projection symbol(s). */
           if (!is_tag_symbol(sym)) {
             /* Check if we missed a tag symbol; it should be imported too. */
-            a_symbol_ptr null_sym_ptr = NULL, tag_sym;
-            locator = locator_for_curr_id;
-            clear_specific_symbol(locator);
-            tag_sym = namespace_qualified_id_lookup(
-                        &locator, nsp,
-                        IDL_MUST_BE_TAG | IDL_DIRECT_NAMESPACE_MEMBERS_ONLY);
-            if (tag_sym != NULL && !is_class_template_symbol(tag_sym) &&
-                !(other_decl != NULL && is_file_or_namespace_scope(ssep) &&
-                  symbols_are_lookup_equivalent(
-                                        fundamental_symbol_of(tag_sym),
-                                        fundamental_symbol_of(other_decl)))) {
-              /* We found a tag that was masked by another declaration (sym),
-                 and importing it is not just a redeclaration. */
-              create_nonmember_using_declaration(tag_sym, &null_sym_ptr,
-                                                 other_decl, nsp, &prev_udp,
-                                                 /*is_list=*/FALSE);
-            }  /* if */
+            import_any_hidden_tags(other_decl, nsp, &prev_udp, &redecl_error);
           }  /* if */
           for (; sym != NULL; sym = is_list ? sym->next : NULL) {
             create_nonmember_using_declaration(sym, &overload_sym, other_decl,
-                                               nsp, &prev_udp, is_list);
+                                               nsp, &prev_udp, is_list,
+                                               redecl_error);
           }  /* for */
         }  /* if */
       }  /* if */
