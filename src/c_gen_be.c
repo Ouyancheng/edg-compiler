@@ -8106,6 +8106,10 @@ if this routine has a body (dump nothing if it has no body).
     { a_decl_modifier decl_modifiers = rout->decl_modifiers;
       /* __declspec(naked) applies only to definitions. */
       if (!is_definition) decl_modifiers &= ~DM_NAKED;
+      if (is_definition && rout->is_inline && msvc_is_generated_code_target) {
+        /* If the routine was "inline", force the keyword "__inline". */
+        decl_modifiers |= DM_MICROSOFT_INLINE;
+      }  /* if */
       dump_microsoft_decl_modifiers(decl_modifiers);
     }
 #endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
