@@ -658,7 +658,8 @@ do_variable:
         if (C_dialect == C_dialect_cplusplus) {
           a_throw_specification_ptr  tsp;
 
-          tsp = type->variant.routine.extra_info->throw_specification;
+          tsp = (skip_typerefs(type))->variant.routine.extra_info->
+                                                         throw_specification;
           if (tsp == NULL) {
             if (exceptions_enabled) put_string("throws any");
           } else if (tsp->throw_spec_type_list == NULL) {
