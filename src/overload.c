@@ -42,6 +42,7 @@ static a_boolean conversion_to_class_possible(
                             a_conv_descr             *ctor_arg_conversion,
                             a_boolean                *ambiguous,
                             a_candidate_function_ptr *ambiguity_list);
+static a_boolean operand_is_temp_init(an_operand *operand);
 
 
 static void clear_conv_descr(a_conv_descr_ptr conv)
@@ -1115,17 +1116,30 @@ must free that list.
   a_boolean  okay;
   a_type_ptr base_dest_type = type_pointed_to(dest_type);
 
-  okay = conversion_from_class_possible(source_operand,
-                                        base_dest_type,
-                                        (a_builtin_type_kind_set)BTK_NONE,
-                                        /*need_lvalue_result=*/TRUE,
-                                        /*is_copy_initialization=*/FALSE,
-                                        /*is_reference_binding=*/TRUE,
-                                        conversion,
-                                        ambiguous,
-                                        ambiguity_list);
-  /* The flag here is deliberately not set when *ambiguous is TRUE. */
-  if (okay) conversion->conversion_for_direct_reference_binding = TRUE;
+  if (microsoft_bugs &&
+      (!is_an_lvalue(source_operand) || operand_is_temp_init(source_operand))){
+    /* The Microsoft compiler (VC++ 6.0) implements an older rule in
+       the Working Paper that does not allow a conversion function
+       to be used for a direct reference binding unless the original
+       expression is an lvalue.  Note that because there is another
+       Microsoft change that makes the result of a function call that
+       returns a class into an lvalue, we have to test for temp init
+       expressions specially. */
+    okay = FALSE;
+    *ambiguous = FALSE;
+  } else {
+    okay = conversion_from_class_possible(source_operand,
+                                          base_dest_type,
+                                          (a_builtin_type_kind_set)BTK_NONE,
+                                          /*need_lvalue_result=*/TRUE,
+                                          /*is_copy_initialization=*/FALSE,
+                                          /*is_reference_binding=*/TRUE,
+                                          conversion,
+                                          ambiguous,
+                                          ambiguity_list);
+    /* The flag here is deliberately not set when *ambiguous is TRUE. */
+    if (okay) conversion->conversion_for_direct_reference_binding = TRUE;
+  }  /* if */
   return okay;
 }  /* conversion_for_direct_reference_binding_possible */
 
@@ -1510,9 +1524,11 @@ only if try_user_conversions is TRUE; it must be FALSE if arg_type is non-NULL.
                                              &conversion, (a_conv_descr *)NULL,
                                              &ambiguous,
                                            (a_candidate_function_ptr *)NULL) ||
-                ambiguous)) {
+                (ambiguous && !microsoft_bugs))) {
       /* There is a constructor or conversion function (or several) that
-         will convert the argument type to the parameter class type. */
+         will convert the argument type to the parameter class type.
+         The Microsoft compiler (VC++ 6.0) considers the match impossible
+         if it is ambiguous. */
       /* We don't try the conversions to classes if we need an lvalue result,
          since constructors don't yield lvalues. */
       set_arg_summary_for_user_conversion(arg_summary, &conversion,
@@ -1529,10 +1545,12 @@ only if try_user_conversions is TRUE; it must be FALSE if arg_type is non-NULL.
                                                &conversion,
                                                &ambiguous,
                                            (a_candidate_function_ptr *)NULL) ||
-                ambiguous)) {
+                (ambiguous && !microsoft_bugs))) {
       /* There is a conversion function (or several) that will convert the
          argument class type into the parameter type or to some type that
-         can be converted to the parameter type via a standard conversion. */
+         can be converted to the parameter type via a standard conversion.
+         The Microsoft compiler (VC++ 6.0) considers the match impossible
+         if it is ambiguous. */
       set_arg_summary_for_user_conversion(arg_summary, &conversion,
                                           orig_param_type, param_is_reference);
       goto have_level;

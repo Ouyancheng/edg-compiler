@@ -1,5 +1,44 @@
 Version 2.40
 
+10/19/98  Microsoft compatibility: conversion for direct reference binding
+
+The Microsoft VC++ 6.0 compiler will not consider a conversion function
+when trying to directly bind a reference if the original expression is
+not an lvalue.  This matches a rule in some versions of the Working
+Paper that was changed before the final standard.  In Microsoft bugs
+mode, we now duplicate that behavior.
+
+  struct A {
+    operator int&();
+  };
+  A f();
+  int main() {
+    int &r = f();  // Not accepted by MSVC++ 6.0
+    return 0;
+  }
+
+10/19/98  Microsoft compatibility: ambiguity on conversion rules out argument
+
+The Microsoft VC++ 6.0 compiler treats a function as non-viable if
+a conversion on an argument is ambiguous.  What it should do is
+keep that function under consideration and issue an ambiguity if
+there isn't another function that's better (i.e., one that doesn't
+require a user-defined conversion).
+
+  struct A {};
+  void f(const char *);
+  void f(const A&);
+  struct B {
+    operator const char*() const;
+    operator const A&() const;
+    operator A() const;
+  };
+  B g();
+  int main() {
+    f(g());  // Should be ambiguous; MSVC++ chooses f(const char *)
+    return 0;
+  }
+
 10/15/98  Problems if statement stack is resized during switch statement
 
 The code that processes switch statements (switch_statement in
