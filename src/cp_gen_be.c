@@ -3208,6 +3208,11 @@ Write out attributes that apply to the indicated variable.
     write_alignment_attribute(var->alignment);
   }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
+  if (var->init_priority != 0) {
+    write_tok_str(" __attribute__((__init_priority__(");
+    write_unsigned_num((a_host_large_unsigned)var->init_priority);
+    write_tok_str(")))");
+  }  /* if */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
   write_ELF_visibility_attribute(var->ELF_visibility);
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
@@ -4681,7 +4686,7 @@ this one is such a continuation.
   a_template_decl_ptr          template_decl = NULL;
   a_template_ptr               assoc_template;
 #if GNU_EXTENSIONS_ALLOWED
-  a_boolean                     marked_as_gnu_extension = FALSE;
+  a_boolean                    marked_as_gnu_extension = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
   *another_decl_in_comma_list = FALSE;

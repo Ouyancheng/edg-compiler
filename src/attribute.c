@@ -725,8 +725,11 @@ that do take arguments.
            been issued. */
         if (error_occurred) goto done;
         /* For overflow, issue the message now. */
-        if (ovflo || priority < 101 || priority > 65535) {
+        if (ovflo || priority < 1 || priority > 65535) {
           goto error;
+        } else if (priority < 101) {
+          /* Priorities 1 through 100 are reserved for internal use. */
+          pos_warning(ec_init_priority_reserved, &attribute->position);
         }  /* if */
         /* Remember the value. */
         attribute->variant.init_priority = priority;
@@ -1317,7 +1320,12 @@ invalid attributes.
         break;
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
       case ak_init_priority:
-        vp->init_priority = ap->variant.init_priority;
+        if (is_file_or_namespace_scope(&scope_stack[depth_scope_stack]) &&
+            is_class_struct_union_type(vp->type)) {
+          vp->init_priority = ap->variant.init_priority;
+        } else {
+          pos_error(ec_bad_variable_for_init_priority, &ap->position);
+        }  /* if */
         break;
       default:
         /* This attribute is not applicable to variables. */
