@@ -906,7 +906,7 @@ error code.
       m = "invalid destructor declaration";
       break;
     case ec_class_and_member_name_conflict:
-      m = "invalid declaration for a member with name \"%s\"";
+      m = "invalid declaration of a member with the same name as its class";
       break;
     case ec_unary_colon_colon_in_declarator:
       m = "unary \"::\" is not allowed on a name in a declarator";
@@ -1308,7 +1308,8 @@ error code.
       m = "\"main()\" may not be declared inline";
       break;
     case ec_class_and_member_function_name_conflict:
-      m = "member function is named \"%s\" but is not a constructor";
+      m =
+       "member function with the same name as its class must be a constructor";
       break;
     case ec_nested_class_anachronism:
       m = "using nested class \"%s\" (anachronism)";
