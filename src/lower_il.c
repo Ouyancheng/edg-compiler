@@ -7379,7 +7379,9 @@ Do IL lowering of the indicated statement and everything under it.
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case stmk_microsoft_try:
         lower_statement(statement->variant.microsoft_try->guarded_statement);
-        lower_normal_expr(statement->variant.microsoft_try->except_expr);
+        if (statement->variant.microsoft_try->except_expr != NULL) {
+          lower_normal_expr(statement->variant.microsoft_try->except_expr);
+        }  /* if */
         lower_statement(statement->variant.microsoft_try->cleanup_statement);
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
