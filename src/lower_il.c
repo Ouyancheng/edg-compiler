@@ -11710,13 +11710,6 @@ C++ to C, so that a C back end can handle it without change.
     /* Do any processing on classes that has to wait until the very end. */
     do_class_lowering_wrapup(scope);
     if (lowering_file_scope) {
-#if ONE_INSTANTIATION_PER_OBJECT
-      if (one_instantiation_per_object) {
-        /* Make static variables and routines that are referenced from
-           instantiations in separate object files external. */
-        make_statics_referenced_from_instantiations_external();
-      }  /* if */
-#endif /* ONE_INSTANTIATION_PER_OBJECT */
       /* Clear class/namespace membership information and the
          is_local_to_function flag on entities promoted out of classes,
          namespaces, and functions. */

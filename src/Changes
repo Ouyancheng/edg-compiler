@@ -1,5 +1,14 @@
 Version 2.39
 
+2/27/98   Nit in IL lowering in one instantiation per object mode
+
+When the change for local statics described by the 1/12/98 entry
+below was done, a new call of
+make_statics_referenced_from_instantiations_external was added.
+The existing call, in lower_il_memory_region, should have been
+removed, and now has been.  As far as we know, the extra call
+was not harmful.
+
 2/26/98   Spurious error on explicit specializations and explicit
           specializations in the presence of using-directives 
 
