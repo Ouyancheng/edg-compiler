@@ -23,8 +23,6 @@ Prelink utility for template instantiation.
 #include "edg_prelink.h"
 #include "decode.h"
 
-#define DEBUG 1
-
 /*
 The getopt.h include file will provide either the declarations needed
 to use the system getopt routine or, if no system version is available,
