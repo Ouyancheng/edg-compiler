@@ -2386,7 +2386,7 @@ else.  This routine should only be called when generate_pp_output is TRUE.
        is not always wanted (the SUN cc generates it, but not all pcc-based
        compilers do); the flag GEN_EXTRA_LINE_ID_INFO controls whether or
        not it is generated. */
-    if (!pcc_preprocessing_mode) {
+    if (!pcc_preprocessing_mode && !gnu_mode) {
       /* ANSI version. */
       fputs("#line", f_pp_output);
     } else {

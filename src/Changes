@@ -1,5 +1,11 @@
 Version 3.6
 
+11/18/04 GNU compatibility: line directives in preprocessed output
+
+The GNU preprocessor emits "old-style" line directives (e.g., '# 1 t.c"'
+instead of '#line 1 "t.c"').  When preprocessed output is requested, we
+now emit old-style line directives when in GNU mode.
+
 11/17/04 GNU and Microsoft compatibility: Deprecated declarations
 
 In Microsoft and GNU modes, the front end allows declarations to be marked as
