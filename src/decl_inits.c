@@ -1015,6 +1015,7 @@ the default constructor (if one exists) is called.
   a_type_ptr                     var_type, tp;
   a_class_symbol_supplement_ptr  cssp;
   a_dynamic_init                 local_di, *ctor_dip;
+  a_routine_ptr                  rp;
 
   db_enter(3, "def_initializer");
   if (C_dialect == C_dialect_cplusplus &&
@@ -1039,16 +1040,10 @@ the default constructor (if one exists) is called.
                       "def_initializer: incomplete types not yet supported");
 #endif /* if 0 */
         }  /* if */
-        if (cssp->default_constructor == NULL) {
-          pos_st_error(ec_no_default_constructor, err_pos,
-                       tp->source_corresp.name);
-        } else {
-          /* Check that the constructor is accessible and mark it
-             referenced. */
-          reference_to_special_member_function(cssp->default_constructor);
+        rp = select_default_constructor(tp, err_pos);
+        if (rp != NULL) {
           clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_constructor);
-          local_di.variant.constructor.routine =
-                                  cssp->default_constructor->variant.routine;
+          local_di.variant.constructor.routine = rp;
           local_di.variant.constructor.args = NULL;
           if (cssp->destructor != NULL) {
             /* Check that the destructor is accessible and mark it
@@ -1147,7 +1142,7 @@ initialized.  These are addressed in the course of the processing.
   a_constructor_init_ptr        direct_list, end_of_direct_list;
   a_base_class_ptr              bcp;
   a_class_symbol_supplement_ptr cssp;
-  a_routine_ptr                 conversion_routine, cctor_routine;
+  a_routine_ptr                 conversion_routine, rp;
   a_dynamic_init_ptr            dip, ctor_dip;
 
   db_enter(3, "ctor_initializer");
@@ -1562,19 +1557,18 @@ scan_paren:
              By extension, the same applies to the volatile qualifier.  Thus
              the parameter name on the other end of this call stipulates a
              requirement on the search for a copy constructor. */
-          cctor_routine =
-            select_copy_constructor(tp,
-                                    /*const_required=*/const_object_okay,
+          rp = select_copy_constructor(
+                                    tp, /*const_required=*/const_object_okay,
                                     /*volatile_required=*/volatile_object_okay,
                                     &error_position);
-          if (cctor_routine == NULL) {
+          if (rp == NULL) {
             /* The copy constructor was invalid in some way or other. */
             dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
           } else {
             /* A valid copy constructor does exist.  Generate the dynamic init
                entry. */
             dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
-            dip->variant.constructor.routine = cctor_routine;
+            dip->variant.constructor.routine = rp;
             /* No expression node is created to represent the subobject.  The
                back end will compute the subobject's address based on the
                base class or field just as it will compute the address of the
@@ -1584,27 +1578,28 @@ scan_paren:
             dip->variant.constructor.is_copy_constructor_for_subobject = TRUE;
           }  /* if */
         }  /* if */
-      } else if (cssp->default_constructor == NULL) {
-        /* This object has no default constructor.  If it has any constructor
-           at all this is an error, since nothing has been provided for
-           implicit initialization.  (It may have no constructors but a
-           destructor, in which case a dynamic init entry is also created.) */
-        if (cssp->constructor != NULL) {
-          str_error(ec_no_default_constructor,
-                     (cip->kind == (a_constructor_init_kind)cik_field) ?
-                         cip->variant.field->type->source_corresp.name :
-                         cip->variant.base_class->type->source_corresp.name);
-        }  /* if */
-        dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
       } else {
-        /* A default constructor does exist.  Generate the dynamic init
-           entry and mark the constructor routine referenced. */
-        dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
-        dip->variant.constructor.routine =
-                                  cssp->default_constructor->variant.routine;
-        dip->variant.constructor.args = NULL;
-        /* Check that the constructor is accessible and mark it referenced. */
-        reference_to_special_member_function(cssp->default_constructor);
+        /* No copy constructor is required.  If any constructor exists, the
+           default constructor should be called. */
+        if (cssp == NULL || cssp->constructor == NULL) {
+          dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
+        } else {
+          rp = select_default_constructor(
+                     (cip->kind == (a_constructor_init_kind)cik_field) ?
+                         cip->variant.field->type :
+                         cip->variant.base_class->type,
+                     &error_position);
+          if (rp == NULL) {
+            /* Error in trying to find a default constructor. */
+            dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
+          } else {
+            /* A default constructor does exist.  Generate the dynamic init
+               entry and mark the constructor routine referenced. */
+            dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
+            dip->variant.constructor.routine = rp;
+            dip->variant.constructor.args = NULL;
+          }  /* if */
+        }  /* if */
       }  /* if */
       if (array_type != NULL &&
           dip->kind == (a_dynamic_init_kind)dik_constructor) {
