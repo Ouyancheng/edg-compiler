@@ -1,5 +1,28 @@
 Version 2.30
 
+8/4/95   Relaxation of restrictions on access-declarations
+
+Access-declarations (see WP 11.3) are now implemented identically to base
+class member using-declarations.  This means fewer restrictions on the use
+of access-declarations -- programs previously ill-formed are now permitted
+-- but the behavior of previously well-formed programs should not be
+affected.  For instance:
+
+  class A {
+  public:
+    void f();
+  protected:
+    int i;
+  };
+  class B : private A {
+  public:
+    A::i;            // used to be an error (increasing access), now okay
+    A::f;            // okay (no change)
+    void f(int);     // used to be an error ("f" already declared), now
+  };                 //   okay (overload set "f" has two members)
+
+(No compilation mode is provided to reenable the previous behavior.)
+
 8/4/95   Missing promotions on IL-lowering-generated pointer-to-data-member
          operations
 
