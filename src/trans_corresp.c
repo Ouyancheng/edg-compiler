@@ -1925,10 +1925,13 @@ is_inline flag.
        flag set yet. */
     result = TRUE;
   } else if (!routine_defined(rp1) && !rp1->called && !rp1->address_taken &&
-             !rp1->is_virtual) {
+             !rp1->is_virtual &&
+             (routine_defined(rp2) || !rp1->source_corresp.is_class_member)) {
     /* If a routine is undefined and unused, it is OK for it not to have
        been declared inline when other declarations of that routine are
-       inline. */
+       inline.  (However, if the routine is a class member that hasn't
+       been defined in either translation unit, the parent class must have
+       been defined differently in those translation units.) */
     result = TRUE;
   }  /* if */
   return result;
