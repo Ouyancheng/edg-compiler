@@ -1246,14 +1246,16 @@ matches a class type from the parameter list of a template function.
         match = matches_template_type(tap->variant.type,
                                       templ_tap->variant.type,
                                       templ_arg_list,
-                                      /*allow_conversion=*/FALSE);
+                                      /*allow_conversion=*/FALSE,
+                                      (a_boolean *)NULL);
       } else if (templ_tap->variant.constant->kind ==
                                   (a_constant_repr_kind)ck_template_param) {
         match = matches_template_type(
                                   tap->variant.constant->type,
                                   templ_tap->variant.constant->type,
                                   templ_arg_list,
-                                  /*allow_conversion=*/FALSE);
+                                  /*allow_conversion=*/FALSE,
+                                  (a_boolean *)NULL);
       } else {
         match = eq_constants(tap->variant.constant,
                              templ_tap->variant.constant);
@@ -1269,7 +1271,8 @@ matches a class type from the parameter list of a template function.
 a_boolean matches_template_type(a_type_ptr         type,
                                 a_type_ptr         templ_type,
                                 a_template_arg_ptr *templ_arg_list,
-				a_boolean          allow_conversion)
+				a_boolean          allow_conversion,
+                                a_boolean          *conversion_required)
 /*
 Compare type and templ_type.  The latter is from a parameter list of a
 function template (function params, not template params).  If the types are
@@ -1278,6 +1281,11 @@ return TRUE if the type is consistent with other uses of that template
 parameter, as represented in the template argument list.  Otherwise, return
 FALSE.  When for the nth template parameter, the nth template arg has not
 yet been created, extend the template argument list to include n entries.
+allow_conversion specifies that a conversion from Derived<T> to Base<T>
+may be done if needed.  The value pointed to by conversion_required is
+set to TRUE if such a conversion is needed; otherwise it is set to FALSE.
+conversion_required may be NULL if the caller does not need to know
+whether a conversion was performed.
 */
 {
   a_boolean                      match = FALSE;
@@ -1287,6 +1295,7 @@ yet been created, extend the template argument list to include n entries.
   a_template_arg_ptr             tap, prev_tap;
 
   db_enter(5, "matches_template_type");
+  if (conversion_required != NULL) *conversion_required = FALSE;
   if (is_template_param_type(templ_type)) {
     if (is_qualified_type(templ_type)) {
       /* If the template parameter has any type qualifiers, the argument type
@@ -1378,7 +1387,8 @@ yet been created, extend the template argument list to include n entries.
         if (sym->header != templ_sym->header) {
           /* Members have different names -- no match. */
         } else if (matches_template_type(tp, ttp, templ_arg_list,
-                                         /*allow_conversion=*/FALSE)) {
+                                         /*allow_conversion=*/FALSE,
+                                         (a_boolean *)NULL)) {
           /* Members have the same names and the parent classes "match". */
           match = TRUE;
         }  /* if */
@@ -1396,10 +1406,14 @@ yet been created, extend the template argument list to include n entries.
                type.  This is allows a Derived<T> to be passed to a function
                expecting a Base<T> as an argument. */
             bcp = type->variant.class_struct_union.extra_info->base_classes;
-            while (bcp != NULL && !match) {
+            while (bcp != NULL) {
               match = matches_template_type_for_class_type(bcp->type,
                                                            templ_type,
                                                            templ_arg_list);
+              if (match) {
+                if (conversion_required != NULL) *conversion_required = TRUE;
+                break;
+              }  /* if */
               bcp = bcp->next;
             }  /* while */
           }  /* if */
@@ -1412,7 +1426,8 @@ yet been created, extend the template argument list to include n entries.
             tp = type->variant.typeref.type;
             ttp = templ_type->variant.typeref.type;
             match = matches_template_type(tp, ttp, templ_arg_list,
-                                          /*allow_conversion=*/FALSE);
+                                          /*allow_conversion=*/FALSE,
+                                          (a_boolean *)NULL);
           }  /* if */
           break;
         case tk_array:
@@ -1425,7 +1440,8 @@ yet been created, extend the template argument list to include n entries.
             tp = type->variant.array.element_type;
             ttp = templ_type->variant.array.element_type;
             match = matches_template_type(tp, ttp, templ_arg_list,
-                                          /*allow_conversion=*/FALSE);
+                                          /*allow_conversion=*/FALSE,
+                                          (a_boolean *)NULL);
           }  /* if */
           break;
         case tk_pointer:
@@ -1438,7 +1454,8 @@ yet been created, extend the template argument list to include n entries.
             tp = type->variant.pointer.type;
             ttp = templ_type->variant.pointer.type;
             match = matches_template_type(tp, ttp, templ_arg_list,
-                                          /*allow_conversion=*/FALSE);
+                                          /*allow_conversion=*/FALSE,
+                                          (a_boolean *)NULL);
           }  /* if */
           break;
         case tk_ptr_to_member:
@@ -1447,11 +1464,13 @@ yet been created, extend the template argument list to include n entries.
           tp = type->variant.ptr_to_member.type;
           ttp = templ_type->variant.ptr_to_member.type;
           if (matches_template_type(tp, ttp, templ_arg_list,
-                                    /*allow_conversion=*/FALSE)) {
+                                    /*allow_conversion=*/FALSE,
+                                    (a_boolean *)NULL)) {
             tp = type->variant.ptr_to_member.class_of_which_a_member;
             ttp = templ_type->variant.ptr_to_member.class_of_which_a_member;
             match = (matches_template_type(tp, ttp, templ_arg_list,
-                                           /*allow_conversion=*/FALSE));
+                                           /*allow_conversion=*/FALSE,
+                                           (a_boolean *)NULL));
           }  /* if */
           break;
         case tk_routine:
@@ -1461,7 +1480,8 @@ yet been created, extend the template argument list to include n entries.
           tp = type->variant.routine.return_type;
           ttp = templ_type->variant.routine.return_type;
           if (matches_template_type(tp, ttp, templ_arg_list,
-                                    /*allow_conversion=*/FALSE) &&
+                                    /*allow_conversion=*/FALSE,
+                                    (a_boolean *)NULL) &&
               (type->variant.routine.extra_info->has_ellipsis ==
                   templ_type->variant.routine.extra_info->has_ellipsis)) {
             /* Return type and ellipsis are okay.  Check the param types. */
@@ -1477,7 +1497,8 @@ yet been created, extend the template argument list to include n entries.
               tp = ptp->type;
               ttp = tptp->type;
               if (!matches_template_type(tp, ttp, templ_arg_list,
-                                         /*allow_conversion=*/FALSE)) {
+                                         /*allow_conversion=*/FALSE,
+                                         (a_boolean *)NULL)) {
                 /* The first param type for which there is a mismatch causes
                    a mismatch for the entire type.  No need to keep looping. */
                 break;
@@ -1809,7 +1830,8 @@ get_next_sym:;
      template arg list is returned; otherwise, NULL is returned. */
   if (!matches_template_type(curr_type->variant.routine.return_type,
                              templ_rout_type->variant.routine.return_type,
-                             templ_arg_list, /*allow_conversion=*/FALSE)) {
+                             templ_arg_list, /*allow_conversion=*/FALSE,
+                                         (a_boolean *)NULL)) {
     goto done;
   } else {
     /* The routine type for curr_type can be accommodated to the template
@@ -1818,7 +1840,8 @@ get_next_sym:;
     other_ptp = templ_rout_type->variant.routine.extra_info->param_type_list;
     for (; other_ptp != NULL; other_ptp = other_ptp->next) {
       if (!matches_template_type(ptp->type, other_ptp->type,
-                                 templ_arg_list, /*allow_conversion=*/FALSE)) {
+                                 templ_arg_list, /*allow_conversion=*/FALSE,
+                                         (a_boolean *)NULL)) {
         goto done;
       }  /* if */
       ptp = ptp->next;

@@ -5950,6 +5950,7 @@ number of parameters.
                      rtsp;
   a_type_ptr         param_type, arg_type;
   a_boolean          template_param;
+  a_boolean          conversion_required;
 
   db_enter(4, "function_template_matches_operand_list");
   *template_arg_list = NULL;
@@ -6081,7 +6082,8 @@ number of parameters.
          be considered as a matching type.  This conversion is accepted
          in normal mode but not in strict ANSI mode. */
       if (!matches_template_type(arg_type, param_type, &templ_arg_list,
-                                 /*allow_conversion=*/FALSE)) {
+                                 /*allow_conversion=*/!strict_ansi_mode,
+                                 &conversion_required)) {
         goto done;
       }  /* if */
     }  /* if */
