@@ -1547,7 +1547,7 @@ scope is that of a class definition.
   extra_info->param_type_list = NULL;
   if (is_destructor && curr_token != tok_rparen) {
     /* Destructors are allowed no arguments. */
-    error(ec_too_many_args_for_destructor);
+    error(ec_too_many_params_for_destructor);
   }  /* if */
   if (curr_token == tok_rparen) {
     if (C_dialect == C_dialect_cplusplus) {
@@ -1663,7 +1663,7 @@ scope is that of a class definition.
               identical_types(member_function_parent_type,
                               skip_typerefs(param_type_ptr))) {
             /* X::X(X) is not allowed -- ARM 12.1. */
-            pos_error(ec_bad_constructor_arg, &param_type_pos);
+            pos_error(ec_bad_constructor_param, &param_type_pos);
           } else if (C_dialect == C_dialect_cplusplus &&
                      is_illegal_abstract_class_type(param_type_ptr)) {
             /* Abstract class may not be used as an arg type (ARM 10.3). */
@@ -7230,7 +7230,15 @@ of local variables (and types, etc.) of functions and in blocks.
          and give a more specific "Expected a declaration" message. */
       if (curr_token == tok_semicolon) {
         /* An empty declaration is ignored (as an extension in ANSI mode). */
+#if 0
         warning(ec_extra_semicolon);
+#else
+        if (strict_ansi_mode) {
+          warning(ec_extra_semicolon);
+        } else {
+          remark(ec_extra_semicolon);
+        }  /* if */
+#endif /* if 0 */
       } else {
         if (curr_token == tok_lbrace) {
           /* Special error recovery on encountering an open brace: it

@@ -1663,8 +1663,13 @@ is a base class.
       /* The indirect derivation gives greater access, so it's the one whose
          path we use (following ARM 11.7), even though it is not the
          derivation one would expect for a base class marked "direct". */
+#if 0
       str_warning(ec_direct_derivation_less_accessible,
                   base_class->type->source_corresp.name);
+#else
+      str_remark(ec_direct_derivation_less_accessible,
+                 base_class->type->source_corresp.name);
+#endif /* if 0 */
     } else {
       /* The direct derivation gives at least as much access as the indirect
          derivation. */
@@ -1682,8 +1687,13 @@ is a base class.
            present one, was for a direct base class, we again have the
            situation where a base class is marked "direct" but has a longer
            path. */
+#if 0
         str_warning(ec_direct_derivation_less_accessible,
                     base_class->type->source_corresp.name);
+#else
+        str_remark(ec_direct_derivation_less_accessible,
+                   base_class->type->source_corresp.name);
+#endif /* if 0 */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -2000,7 +2010,11 @@ or struct definition.  The syntax is
       /* Issue a warning if an explicit access specifier was not provided
          (as per the recommendation on p. 243 of the ARM). */
       if (!access_already_specified) {
+#if 0
         str_warning(ec_missing_access_specifier, default_access_str);
+#else
+        str_remark(ec_missing_access_specifier, default_access_str);
+#endif /* if 0 */
       }  /* if */
       /* The current class will have to have a constructor if any of its base
          classes is virtual or itself has a constructor; it requires a
@@ -6573,10 +6587,17 @@ next_declaration:
       /* Issue a warning on a class with an operator new() but no operator
          delete() or vice versa. */
       if (cssp->has_operator_new != cssp->has_operator_delete) {
+#if 0
         str_warning(cssp->has_operator_new ?
                       ec_class_with_op_new_but_no_op_delete :
                       ec_class_with_op_delete_but_no_op_new,
                     class_type->source_corresp.name);
+#else
+        str_remark(cssp->has_operator_new ?
+                     ec_class_with_op_new_but_no_op_delete :
+                     ec_class_with_op_delete_but_no_op_new,
+                   class_type->source_corresp.name);
+#endif /* if 0 */
       }  /* if */
       /* Issue a warning on a class with virtual functions but no virtual
          destructor. */
@@ -6613,8 +6634,13 @@ next_declaration:
           }  /* for */
           if (ctor_sym == NULL) {
             /* All constructors are private. */
+#if 0
             str_warning(ec_no_access_to_constructors,
                         class_type->source_corresp.name);
+#else
+            str_remark(ec_no_access_to_constructors,
+                       class_type->source_corresp.name);
+#endif /* if 0 */
           }  /* if */
         }  /* if */
       }  /* if */
