@@ -35,6 +35,11 @@ extern void type_is_used_in_exception(a_type_ptr type);
 
 extern void lower_throw(an_expr_node_ptr expr);
 
+extern void init_object_addr_table_entry(
+                                       an_init_pos_descr_ptr ipdp,
+                                       a_targ_size_t         entry_number,
+                                       an_insert_location    *insert_location);
+
 extern a_variable_ptr make_caught_object_address_var(void);
 
 extern void make_region_table_entry(a_cleanup_action_ptr cap,
