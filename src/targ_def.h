@@ -826,7 +826,7 @@ typedef struct an_internal_float_value {
      declaration assumes that target floating constants are represented in
      a host double, which is what the default float_pt.c does. */
   a_byte bytes[sizeof(double)];
-  /*lint -esym(829,an_internal_float_value::bytes)*/
+  /*lint -esym(768,an_internal_float_value::bytes)*/
 } an_internal_float_value;
 
 /*

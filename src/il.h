@@ -159,15 +159,6 @@ extern void set_instantiation_needed_flag(a_source_correspondence *scp,
 #define set_needed_flag(scp) ((scp)->needed = TRUE)
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 
-/* Macro to clear the needed flag. */
-#if ONE_INSTANTIATION_PER_OBJECT
-#define clear_needed_flag(scp) \
-  (needed_flag_bit_number == 0 ? ((scp)->needed = FALSE) : \
-                                 (set_instantiation_needed_flag(scp,0,0), 0))
-#else /* !ONE_INSTANTIATION_PER_OBJECT */
-#define clear_needed_flag(scp) ((scp)->needed = FALSE)
-#endif /* ONE_INSTANTIATION_PER_OBJECT */
-
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 /* Macro to fetch the value of the class definition_needed flag. */
@@ -869,8 +860,9 @@ extern void db_function_param_list(a_type_ptr  tp);
 extern void db_abbreviated_type(a_type *tp);
 
 /* Abbreviated version of db_abbreviated type. */
+/*lint -esym(755,db_abbr_type)*/
 #define db_abbr_type(tp)                                              \
-  db_abbreviated_type(tp), (void)fputc('\n', f_debug)
+  (db_abbreviated_type(tp), (void)fputc('\n', f_debug))
 
 extern void db_variable(a_variable_ptr var_ptr);
 

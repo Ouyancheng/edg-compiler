@@ -3119,6 +3119,7 @@ extern void db_symbol(a_symbol_ptr	sym,
                       int		indentation);
 
 /* Short-hand version of db_symbol. */
+/*lint -esym(755,db_sym)*/
 #define db_sym(sym) db_symbol(sym, "", 2)
 
 extern void db_symbol_name(a_symbol_ptr  sym);
