@@ -458,11 +458,18 @@ flags cleared.  Note that this happens even if no hiding had occurred.
     if (microsoft_mode) {
       /* In Microsoft mode, injected class names are only accessible as
          qualified names. */
+#if BACK_END_IS_CP_GEN_BE
+    } else if (gcc_is_generated_code_target && 
+               is_injected_template_symbol(sym_ptr)) {
+       /* When generating code for g++, the injected class name cannot be used 
+          as a template, so don't cancel the hiding. */
+#endif /* BACK_END_IS_CP_GEN_BE */
     } else {
       /* An injected class name is accessible without qualification (except in
-         Microsoft mode).  Creating a hidden name entry will ensure that any
-         qualification forced by prior entries is canceled.  Make sure that the
-         injected class name is not hidden by another member. */
+         Microsoft mode and some cases when generating code for g++).  Creating
+         a hidden name entry will ensure that any qualification forced by
+         prior entries is canceled.  Make sure that the injected class name
+         is not hidden by another member. */
       a_symbol_locator  locator;
       clear_locator(&locator, &sym_ptr->decl_position);
       locator.symbol_header = sym_ptr->header;

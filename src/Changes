@@ -1,5 +1,21 @@
 Version 3.4
 
+11/5/03  C++-generating back end: injected template names using g++ target
+
+In the example below, the C++-generating back end emits "N::A<int>" as
+"A<int>" in the declaration of "na".  The transformed code does not
+compile properly when using g++.  The namespace qualifier is now emitted
+when gcc_is_generated_code_target is TRUE.
+  
+  namespace N {
+    template <class T> struct A {};
+  }
+  namespace M {
+    struct B : N::A<int> {
+      N::A<int> na;    
+    };
+  }
+
 11/4/03  Microsoft C mode: __declspec attributes on struct types
 
 In Microsoft C mode the front end now accepts certain __declspec attributes
