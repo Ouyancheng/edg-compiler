@@ -1117,7 +1117,7 @@ See ARM 13.3, "Address of Overloaded Function".
 */
 {
   a_boolean     is_ptr = FALSE, is_ptr_to_member = FALSE;
-  a_boolean     any_function_templates;
+  a_boolean     sym_is_list, any_function_templates;
   a_type_ptr    routine_type, dest_class, ptr_routine_type;
   a_type_ptr    dest_underlying_type;
   an_error_code warning_suggested;
@@ -1136,14 +1136,23 @@ See ARM 13.3, "Address of Overloaded Function".
     dest_underlying_type = pm_member_type(dest_type);
   }  /* if */
   if (is_ptr || is_ptr_to_member) {
-    reduce_projection_symbol_to_fundamental_symbol(ovl_sym);
-#if CHECKING
-    if (ovl_sym->kind != (a_symbol_kind)sk_overloaded_function) {
-      internal_error(
-                "find_addr_of_overloaded_function_match: not overloaded func");
-    }  /* if */
-#endif /* CHECKING */
     dest_underlying_type = skip_typerefs(dest_underlying_type);
+    reduce_projection_symbol_to_fundamental_symbol(ovl_sym);
+    if (ovl_sym->kind == (a_symbol_kind)sk_function_template) {
+      /* A single function template represents multiple instantiations of
+         that template. */
+      sym_is_list = FALSE;
+    } else {
+#if CHECKING
+      if (ovl_sym->kind != (a_symbol_kind)sk_overloaded_function) {
+        internal_error(
+                "find_addr_of_overloaded_function_match: not overloaded func");
+      }  /* if */
+#endif /* CHECKING */
+      /* A list of overloaded functions. */
+      sym_is_list = TRUE;
+      ovl_sym = ovl_sym->variant.overloaded_function.symbols;
+    }  /* if */
     /* Check each function in the overload set to see if its type matches
        the one desired.  The algorithm is the one for template matching
        (ARM 14.4):
@@ -1158,9 +1167,9 @@ See ARM 13.3, "Address of Overloaded Function".
        are involved. */
     /* Check first for an exact match. */
     any_function_templates = FALSE;
-    for (sym = ovl_sym->variant.overloaded_function.symbols;
+    for (sym = ovl_sym;
          sym != NULL;
-         sym = sym->next) {
+         sym = (sym_is_list ? sym->next : NULL)) {
       if (sym->kind == (a_symbol_kind)sk_function_template) {
         /* Function template.  Ignore on this pass, but enable a second pass
            to try matching it. */
@@ -1181,9 +1190,9 @@ See ARM 13.3, "Address of Overloaded Function".
     }  /* for */
     if (number_of_matches == 0 && any_function_templates) {
       /* Try matching function templates. */
-      for (sym = ovl_sym->variant.overloaded_function.symbols;
+      for (sym = ovl_sym;
            sym != NULL;
-           sym = sym->next) {
+           sym = (sym_is_list ? sym->next : NULL)) {
         if (sym->kind == (a_symbol_kind)sk_function_template) {
           /* Function template. */
           instance_sym = matching_template_function(sym, dest_underlying_type,
@@ -1203,9 +1212,9 @@ See ARM 13.3, "Address of Overloaded Function".
          handle the normal pointer case too in case the implicit conversion
          rules change (also, it makes the error message clearer in the
          case where dest_type is "void *"). */
-      for (sym = ovl_sym->variant.overloaded_function.symbols;
+      for (sym = ovl_sym;
            sym != NULL;
-           sym = sym->next) {
+           sym = (sym_is_list ? sym->next : NULL)) {
         if (sym->kind != (a_symbol_kind)sk_function_template) {
           /* Not a function template (i.e., a normal function). */
           routine_type = routine_symbol_type(sym);
