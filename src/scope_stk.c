@@ -33,6 +33,9 @@ scope_stk.c - Management of the scope stack and related routines.
 #include "exprutil.h"
 /* statement.h is needed because of wrapup_control_flow_processing call. */
 #include "statements.h"
+#if MAINTAIN_NEEDED_FLAGS
+#include "il_walk.h"
+#endif /* MAINTAIN_NEEDED_FLAGS */
 
 /*
 Variables and constants related to the scope_stack:
@@ -2493,6 +2496,37 @@ pointed to by scope_ptr.
   }  /* while */
 }  /* wrapup_namespace_scopes */
 
+#if 0
+#if MAINTAIN_NEEDED_FLAGS
+
+void mark_variables_as_needed(a_scope_ptr  scope)
+/*
+scope is a pointer to the file scope or a namespace scope.  Set the 
+*/
+{
+  a_namespace_ptr  nsp;
+  a_variable_ptr   vp;
+
+  for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
+    if (!nsp->is_namespace_alias) {
+      mark_variables_as_needed(nsp->variant.assoc_scope);
+    }  /* if */
+  }  /* for */
+  for (vp = scope->variables; vp != NULL; vp = vp->next) {
+    if (vp->storage_class == (a_storage_class)sc_unspecified &&
+        !vp->source_corresp.needed) {
+      /* This is a variable that has been defined but not yet marked as
+         "needed" (presumably because it has not been referenced in a
+         function that is needed).  But it may be referenced from another
+         translation unit, so mark it needed now (along with the type with
+         which it was declared and its initializer, if appropriate). */
+      mark_as_needed((char *)vp, (an_il_entry_kind)iek_variable);
+    }  /* if */
+  }  /* for */
+}  /* mark_variables_as_needed */
+
+#endif /* MAINTAIN_NEEDED_FLAGS */
+#endif /* if 0 */
 
 void pop_scope(void)
 /*
@@ -2736,6 +2770,17 @@ End a name scope by popping an entry off the scope stack.
     /* Do IL lowering (change the C++ IL into C IL). */
     lower_il_memory_region(old_memory_region_number);
 #endif /* DO_IL_LOWERING */
+#if MAINTAIN_NEEDED_FLAGS
+    if (kind == (a_scope_kind)sck_function) {
+      a_routine_ptr  rp = il_scope->variant.routine.ptr;
+
+      if (rp->storage_class == (a_storage_class)sc_unspecified ||
+          rp->source_corresp.needed) {
+        rp->source_corresp.needed = FALSE;
+        mark_as_needed((char *)rp, (an_il_entry_kind)iek_routine);
+      }  /* if */
+    }  /* if */
+#endif /* MAINTAIN_NEEDED_FLAGS */
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
     if (kind == (a_scope_kind)sck_function) {
       /* If a function or block scope has local types or static variables,
@@ -2773,12 +2818,12 @@ End a name scope by popping an entry off the scope stack.
 #endif /* DO_IL_LOWERING */
   }  /* if */
   /* The IL scope, if any, is no longer on the stack.  This must occur
-     after IL lowering and before done_with_memory_region. */
+     after IL lowering and before check_for_done_with_memory_region. */
   if (il_scope != NULL) {
     il_scope->depth_in_scope_stack = NO_SCOPE_DEPTH;
   }  /* if */
   if (!old_region_still_needed) {
-    done_with_memory_region(old_memory_region_number);
+    check_for_done_with_memory_region(old_memory_region_number);
   }  /* if */
   /* For any entities on the extern_type_fixup_list, restore the type of the
      variable or routine to what it was earlier.  This is used for cases like
