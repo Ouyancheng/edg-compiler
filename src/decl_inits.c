@@ -1948,6 +1948,10 @@ this function points to a tree that includes a dynamic-init entry.
   } else {
     /* Non-aggregate/union case -- initializer is a single (possibly
        brace-enclosed) value. */
+    if (curr_token == tok_lbrace && !top_level) {
+      diagnostic(strict_ansi_mode ? strict_ansi_error_severity : es_warning,
+                 ec_nonstd_braces);
+    }  /* if */
     init_con = get_single_value_for_aggregate_initializer(init_info, &context);
   }  /* if */
   if (prev_init_context != NULL) {

@@ -1,5 +1,12 @@
 Version 2.43
 
+9/3/99   Report extraneous braces in aggregate initializers
+
+The front end now diagnoses extraneous braces around scalar elements of
+aggregate initializers (error in strict ANSI mode, warning otherwise).
+
+  struct { int i; } gs = { { 42 } };  // Error or warning.
+
 8/31/99  C++-generating back end: extern "C" around static functions and
          classes
 

@@ -1038,6 +1038,7 @@ ec_abstract_class_catch_type;;"abstract class type %t is not allowed as catch ty
 ec_bad_qualified_function_type;;"a qualified function type cannot be used to declare a nonmember function or a static member function"
 ec_bad_qualified_function_type_parameter;;"a qualified function type cannot be used to declare a parameter"
 ec_ptr_or_ref_to_qualified_function_type;;"cannot create a pointer or reference to qualified function type"
+ec_nonstd_braces;;"extra braces are nonstandard"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
