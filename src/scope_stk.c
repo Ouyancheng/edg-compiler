@@ -638,6 +638,37 @@ starting_depth is the innermost scope to be processed.
 }  /* set_active_using_list_scope_depths */
 
 
+void clear_scope_pointers_block(a_scope_pointers_block_ptr  spbp)
+/*
+Initialize the fields in a scope-pointers-block substructure.
+*/
+{
+  spbp->symbols                      = NULL;
+  spbp->synth_namespace_projection_symbols
+                                     = NULL;
+  spbp->last_symbol                  = NULL;
+  spbp->last_constant                = NULL;
+  spbp->last_type                    = NULL;
+  spbp->last_variable                = NULL;
+  spbp->last_routine                 = NULL;
+  spbp->last_asm_entry               = NULL;
+  spbp->last_namespace               = NULL;
+  spbp->last_using_directive         = NULL;
+  spbp->last_pragma                  = NULL;
+#if RECORD_HIDDEN_NAMES_IN_IL
+  spbp->last_hidden_name             = NULL;
+#endif /* RECORD_HIDDEN_NAMES_IN_IL */
+#if RECORD_TEMPLATES_IN_IL
+  spbp->last_template                = NULL;
+#endif /* RECORD_TEMPLATES_IN_IL */
+  spbp->unnamed_namespace_sym        = NULL;
+  spbp->add_symbols_to_inactive_list = FALSE;
+#if CHECKING 
+  spbp->avoid_codecenter_warnings     = FALSE;
+#endif /* CHECKING */
+}  /* clear_scope_pointers_block */
+
+
 /*
 Return TRUE if the scope stack entry kind given by kind is for something
 that has an effect on access control (a class, class reactivation, or

@@ -1816,8 +1816,6 @@ extern void make_specific_symbol_error_locator(a_symbol_locator *locator);
 
 extern void clear_qualifier_from_locator(a_symbol_locator  *locator);
 
-extern void clear_scope_pointers_block(a_scope_pointers_block_ptr  spbp);
-
 extern a_namespace_symbol_supplement_ptr
                                    alloc_namespace_symbol_supplement(void);
 

@@ -99,6 +99,7 @@ typedef struct a_scope_pointers_block {
 			   symbols added to the scope should be added
 			   directly to the inactive list, instead of being
 			   added to the active list as is usually done. */
+  bitfield_to_avoid_codecenter_warnings()
 } a_scope_pointers_block;
 
 
@@ -677,6 +678,8 @@ Call namespace_is_enclosed_by_scope for the current scope.
 extern a_boolean current_class_symbol_if_class_template(a_symbol_ptr *sym);
 
 extern void add_active_using_directive(a_using_directive_ptr udp);
+
+extern void clear_scope_pointers_block(a_scope_pointers_block_ptr  spbp);
 
 extern void scope_stk_one_time_init(void);
 
