@@ -582,7 +582,7 @@ type is legal.
 #endif /* RESTRICT_ALLOWED */
 #if MICROSOFT_KEYWORDS_ALLOWED
           } else if ((get_type_qualifiers(new_type_ptr) &
-                                     TQ_CALLING_CONVENTION_QUALIFIERS) != 0) {
+                                     TQ_ALL_MICROSOFT_QUALIFIERS) != 0) {
             /* Okay. */
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
           } else {
