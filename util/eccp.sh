@@ -451,6 +451,12 @@ if [ $any_l_or_o_files -eq 0 -a $any_c_files -eq 0 ] ; then
   error=1
 fi
 
+# If we are in C mode then disable automatic instantiation just for
+# efficiency.
+if [ $cmode -eq 1 ] ; then
+  automatic_instantiation=0
+fi
+
 # Put the command name on the beginning of the instantiation command line.
 # This is done here because a different name can be supplied on the
 # command line.  This is useful when the compile command is a script that
