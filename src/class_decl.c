@@ -4598,7 +4598,7 @@ int f(int) const), then the type compatibility check must take the
 const qualification into account when seeking a match.  In other words,
 if one of the functions was so qualified, both must be for them to have
 compatible types.  The qualification is indicated by a separate field
-"qualifiers" in a_routine_type_supplement_ptr.
+"qualifiers" in the routine type supplement.
 
 Otherwise, the type compatibility check is done based only on the return
 type and parameters; the type of the implicit "this" parameter, if any, is
