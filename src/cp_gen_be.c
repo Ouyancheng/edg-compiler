@@ -7816,12 +7816,49 @@ exception-handling "try" block.
 }  /* gen_try_block_statement */
 
 
+static void gen_pragma_start(a_pragma_ptr pp)
+/*
+Emit the "#pragma" or "__pragma(" that begins a pragma.  Indicate the
+start of a pp directive when the #pragma form is used.
+*/
+{
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (pp->is_microsoft_pragma_operator) {
+    write_str("__pragma( ");
+  } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Do not insert code here; this is the else clause of an "if". */
+  {
+    begin_pp_directive("");
+    write_str("#pragma ");
+  }  /* if */
+}  /* gen_pragma_start */
+
+
+static void gen_pragma_end(a_pragma_ptr pp)
+/*
+Emit the token sequence to terminate a pragma.  Indicate the end of a pp
+directive when the #pragma form is used.
+*/
+{
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (pp->is_microsoft_pragma_operator) {
+    write_str(") ");
+  } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Do not insert code here; this is the else clause of an "if". */
+  {
+    end_pp_directive();
+  }  /* if */
+}  /* gen_pragma_start */
+
+
 static void gen_stdc_pragma(a_pragma_ptr pp)
 /*
 Generate one of the predefined C99 pragmas.
 */
 {
-  write_str("#pragma ");
+  gen_pragma_start(pp);
   switch (pp->variant.stdc.kind) {
     case stdc_pk_fp_contract: write_str("FP_CONTRACT "); break;
     case stdc_pk_fenv_access: write_str("FENV_ACCESS "); break;
@@ -7834,6 +7871,7 @@ Generate one of the predefined C99 pragmas.
     case stdc_pv_default: write_str("DEFAULT"); break;
     default: unexpected_condition_str("gen_stdc_pragma: bad value"); break;
   }  /* switch */
+  gen_pragma_end(pp);
 }  /* gen_stdc_pragma */
 
 
@@ -7850,7 +7888,6 @@ is the one associated with the pragma.
   adv_curr_source_sequence_entry();
   /* Ignore this entry if told to do so. */
   if (!pp->ignore_in_back_end) {
-    begin_pp_directive("");
     octl.suppress_line_breaking = TRUE;
     set_output_position(&pp->position);
     if (pp->kind == (a_pragma_kind)pk_stdc) {
@@ -7860,28 +7897,37 @@ is the one associated with the pragma.
     } else if (pp->kind == (a_pragma_kind)pk_upc) {
       a_boolean  is_strict = (pp->variant.upc.access_method ==
                                        (a_upc_access_method)upc_access_strict);
-      write_str(is_strict ? "#pragma upc strict" : "#pragma upc relaxed");
+      gen_pragma_start(pp);
+      write_str(is_strict ? "upc strict" : "upc relaxed");
+      gen_pragma_end(pp);
 #endif /* UPC_EXTENSIONS_ALLOWED */
 #if IDENT_DIRECTIVE_AND_PRAGMA
     /* Check for #pragma ident (= #ident). */
     } else if (pp->kind == (a_pragma_kind)pk_ident) {
 #if USE_PRAGMA_IDENT_IN_GENERATED_CODE
-      write_str("#pragma ident ");
+      gen_pragma_start(pp);
+      write_str("ident ");
 #else /* !USE_PRAGMA_IDENT_IN_GENERATED_CODE */
+      begin_pp_directive("");
       write_str("#ident ");
 #endif /* USE_PRAGMA_IDENT_IN_GENERATED_CODE */
       /* Don't escape tab characters. */
       octl.gen_raw_tab_in_literals = TRUE;
       gen_constant(pp->variant.ident_string, /*need_parens=*/FALSE);
       octl.gen_raw_tab_in_literals = FALSE;
+#if USE_PRAGMA_IDENT_IN_GENERATED_CODE
+      gen_pragma_end(pp);
+#else /* !USE_PRAGMA_IDENT_IN_GENERATED_CODE */
+      end_pp_directive();
+#endif /* USE_PRAGMA_IDENT_IN_GENERATED_CODE */
 #endif /* IDENT_DIRECTIVE_AND_PRAGMA */
     } else {
       check_assertion_str(pp->pragma_text != NULL,
                           "gen_pragma: NULL pragma_text");
-      write_str("#pragma ");
+      gen_pragma_start(pp);
       write_str(pp->pragma_text);
+      gen_pragma_end(pp);
     }  /* if */
-    end_pp_directive();
     octl.suppress_line_breaking = saved_suppress_line_breaking;
   }  /* if */
 }  /* gen_pragma */

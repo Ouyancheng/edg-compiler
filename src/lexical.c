@@ -13307,6 +13307,9 @@ encountered, whatever their other characteristics, are included.
     if (is_pseudo_pragma) {
       /* Add comment delimiter to the template string. */
       put_str_to_temp_text_buffer("/*");
+    } else if (ppp->is_microsoft_pragma_operator) {
+      /* A Microsoft __pragma operator. */
+      put_str_to_temp_text_buffer("__pragma(");
     } else {
       /* Add "#pragma " to the template string. */
       put_str_to_temp_text_buffer("#pragma ");
@@ -13327,6 +13330,10 @@ encountered, whatever their other characteristics, are included.
     if (is_pseudo_pragma) {
       /* Add terminating comment delimiter to the template string. */
       put_str_to_temp_text_buffer("*/");
+    } else if (ppp->is_microsoft_pragma_operator) {
+      /* Put out the closing parenthesis for the Microsoft __pragma
+         operator. */
+      put_str_to_temp_text_buffer(")");
     }  /* if */
   }  /* for */
   db_exit();

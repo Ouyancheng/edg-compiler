@@ -3223,6 +3223,12 @@ typedef struct a_pragma {
 			   (for example) on pragmas that are in the IL but
 			   are for use by other (earlier) phases of the
 			   compilation. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_byte_boolean
+		is_microsoft_pragma_operator;
+			/* TRUE if the pragma was specified using a Microsoft
+			   __pragma operator. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_tagged_pointer
 		entity;
 			/* A struct containing a tag and a generic pointer to

@@ -247,6 +247,9 @@ typedef struct a_pending_pragma {
 			   pragma entry is discarded.  This will be FALSE when
 			   a pragma entry was created by making a copy of
 			   an entry retrieved from a reusable token cache. */
+  a_bit_field	is_microsoft_pragma_operator:1;
+			/* TRUE if the pragma was specified using a Microsoft
+			   __pragma operator. */
   char		*pragma_text;
 			/* For pragmas that are passed through to the
 			   back end as an uninterpreted character string,

@@ -2904,6 +2904,9 @@ in the current IL memory region.
   pp->next                  = NULL;
   pp->kind                  = kind;
   pp->ignore_in_back_end    = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  pp->is_microsoft_pragma_operator = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   pp->entity.kind           = (a_byte_il_entry_kind)iek_none;
   pp->entity.ptr            = NULL;
   pp->position              = null_source_position;

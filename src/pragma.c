@@ -323,6 +323,7 @@ possible.
   ppp->pragma_position = null_source_position;
   ppp->descr_ptr = pkdp;
   ppp->discard_cache_when_done = TRUE;
+  ppp->is_microsoft_pragma_operator = FALSE;
   ppp->pragma_text = NULL;
   ppp->il_pragma_entry = NULL;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -826,6 +827,9 @@ there is additional processing to be done.
     pp->position = ppp->pragma_position;
     pp->pragma_text = ppp->pragma_text;
     pp->ignore_in_back_end = ppp->descr_ptr->ignore_in_back_end;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    pp->is_microsoft_pragma_operator = ppp->is_microsoft_pragma_operator;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (entity_ptr != NULL) {
       pp->entity.kind = (a_byte_il_entry_kind)entity_kind;
       pp->entity.ptr = entity_ptr;

@@ -1460,6 +1460,7 @@ being scanned is a Microsoft __pragma operator.
   ppp = alloc_pending_pragma(pkdp);
   ppp->id_position = *id_pos;
   ppp->pragma_position = *directive_pos;
+  ppp->is_microsoft_pragma_operator = is_microsoft_pragma_operator;
   /* Cache the tokens that make up the pragma directive. */
   cache_pragma_tokens(ppp, pkdp, is_microsoft_pragma_operator);
   if (pkdp->make_text_not_tokens) {

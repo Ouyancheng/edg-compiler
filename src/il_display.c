@@ -3934,6 +3934,11 @@ Display the indicated pragma entry.
   disp_string_ptr("pragma_text", ptr->pragma_text, iek_other_text,
                   (sizeof_t)0);
   if (ptr->ignore_in_back_end) disp_boolean("ignore_in_back_end", TRUE);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (ptr->is_microsoft_pragma_operator) {
+    disp_boolean("is_microsoft_pragma_operator", TRUE);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   disp_name("kind");
   disp_pragma_kind_name(ptr->kind);
 #if IDENT_DIRECTIVE_AND_PRAGMA
