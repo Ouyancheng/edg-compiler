@@ -1019,7 +1019,8 @@ by IA64_ABI_USE_GUARD_ACQUIRE_RELEASE.  Now, we have added:
     for a virtual function table, which is selected by
     IA64_ABI_VARIANT_KEY_FUNCTION.
   - Support for "int"-sized guard variables for initializations of
-    local static variables.
+    local static variables, which is selected by
+    IA64_ABI_USE_INT_STATIC_INIT_GUARD
 
 The runtime has also been updated to support these features.
 
