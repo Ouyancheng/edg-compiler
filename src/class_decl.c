@@ -6833,7 +6833,11 @@ to indicate whether the class/struct/union is actually defined.
     (void)get_token();
     (void)get_token();
     goto skip_tag_scan;
-  } else if (depth_of_containing_function_scope() != NO_SCOPE_DEPTH) {
+  } else if (depth_innermost_function_scope != NO_SCOPE_NUMBER ||
+             inside_local_class) {
+    /* This declaration appears within a function or block scope, or else it
+       is a nested class declaration within a local class.  In either case,
+       it is a local class. */
     is_local_class = TRUE;
   }  /* if */
   if (!is_qualified_name_start()) {

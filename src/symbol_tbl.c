@@ -6938,31 +6938,6 @@ End a name scope by popping an entry off the scope stack.
 }  /* pop_scope */
 
 
-a_scope_depth depth_of_containing_function_scope(void)
-/*
-If there is a function scope between the current scope and the file scope,
-return the depth of the function scope (which may be the same as the current
-scope).  Otherwise, return NO_SCOPE_DEPTH.
-*/
-{
-  a_scope_depth            sd, func_scope_depth = NO_SCOPE_DEPTH;
-
-  if (decl_scope_level != DEPTH_OF_FILE_SCOPE) {
-    if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
-      func_scope_depth = depth_innermost_function_scope;
-    } else {
-      for (sd = depth_scope_stack; sd > DEPTH_OF_FILE_SCOPE; sd--) {
-        if (scope_stack[sd].kind == (a_scope_kind)sck_function) {
-          func_scope_depth = sd;
-          break;
-        }  /* if */
-      }  /* for */
-    }  /* if */
-  }  /* if */
-  return func_scope_depth;
-}  /* depth_of_containing_function_scope */
-
-
 void push_class_reactivation_scope(a_type_ptr class_type)
 /*
 Push one or more scopes that will reactivate the indicated class type.
