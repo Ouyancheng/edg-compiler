@@ -31,29 +31,37 @@ applies.
 #define MSAT_STANDALONE		0x1
 			/* A standalone attribute (not associated with an
 			   entity). */
-
 #define MSAT_CLASS		0x2
-			/* Applies to a class or struct. */
-
-#define MSAT_INTERFACE		0x4
+			/* Applies to a class. */
+#define MSAT_STRUCT		0x4
+			/* Applies to a struct. */
+#define MSAT_UNION		0x8
+			/* Applies to a union. */
+#define MSAT_INTERFACE		0x10
 			/* Applies to a Microsoft interface. */
-
-#define MSAT_METHOD		0x8
+#define MSAT_METHOD		0x20
 			/* Applies to a member function. */
-
-#define MSAT_PARAMETER		0x10
+#define MSAT_PARAMETER		0x40
 			/* Applies to a function parameter. */
-
-#define MSAT_DATA_MEMBER	0x20
+#define MSAT_DATA_MEMBER	0x80
 			/* Applies to a class data member. */
-
-#define MSAT_ROUTINE		0x40
+#define MSAT_ROUTINE		0x100
 			/* Applies to nonmember functions. */
+#define MSAT_TYPEDEF		0x200
+			/* Applies to a typedef. */
+#define MSAT_ENUM		0x400
+			/* Applies to an enum. */
+#define MSAT_ARRAY		0x800
+			/* Applies to an array. */
+#define MSAT_ANY		0x1000
+			/* Can be used with any target or as a standalone
+			   attribute. */
 
 /*
 Storage size used to represent a target bit set.
 */
-typedef a_byte	an_ms_attribute_target;
+typedef unsigned short
+		an_ms_attribute_target;
 
 /*
 Entry used to represent a parameter description for a Microsoft attribute.
