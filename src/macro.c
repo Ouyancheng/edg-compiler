@@ -3623,6 +3623,20 @@ from the front end to the runtime.
 			   "__EDG_ABI_COMPATIBILITY_VERSION",
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
+#if ABI_CHANGES_FOR_RTTI
+  /* Are the ABI changes for RTTI implemented? */
+  (void)enter_predef_macro("1",
+			   "__EDG_ABI_CHANGES_FOR_RTTI",
+                           /*cannot_be_redefined=*/TRUE,
+                           /*ref_suppresses_pch_file=*/FALSE);
+#endif /* ABI_CHANGES_FOR_RTTI */
+#if ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE
+  /* Are the ABI changes for array new and delete implemented? */
+  (void)enter_predef_macro("1",
+			   "__EDG_ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE",
+                           /*cannot_be_redefined=*/TRUE,
+                           /*ref_suppresses_pch_file=*/FALSE);
+#endif /* ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE */
 }  /* init_runtime_macros */
 
 
