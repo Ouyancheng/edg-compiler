@@ -1,5 +1,20 @@
 Version 2.32
 
+3/26/96   Loop in IL lowering on local nested class definition outside of
+          parent
+
+A loop in IL lowering has been corrected on definitions of nested
+local classes outside of their parent classes.  This bug was introduced
+in 2.31.
+
+  void f() {
+    struct A {
+      struct B;
+    };
+    struct A::B {
+    };
+  }
+
 3/26/96   Bug in suppressing instantiation flags
 
 When the --suppress_instantiation_flags option was used, __TIR__ symbols
