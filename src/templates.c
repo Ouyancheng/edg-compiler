@@ -9274,9 +9274,8 @@ otherwise, it is consumed.
     /* Issue an error if this is not C++ linkage. */
     if (def_external_linkage.kind !=
                         (a_name_linkage_kind)nlk_cplusplus_external &&
-        (depth_innermost_namespace_scope == NO_SCOPE_DEPTH ||
-         !scope_stack[depth_innermost_namespace_scope].
-                                            within_unnamed_namespace)) {
+        !scope_stack[depth_innermost_namespace_scope].
+                                            within_unnamed_namespace) {
       pos_error(ec_bad_linkage_for_decl, &pos_curr_token);
       def_external_linkage.kind = (a_name_linkage_kind)nlk_cplusplus_external;
       def_external_linkage.is_explicit = FALSE;
