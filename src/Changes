@@ -1,5 +1,14 @@
 Version 2.13
 
+11/25/92 Additional context information added to error output
+
+Additional context information is supplied for errors encountered
+during the instantiation of template classes, template functions, and
+member functions of template classes.  Additional information is also
+supplied for errors encountered while generating functions implicitly
+created by the compiler (i.e., compiler generated constructors and
+destructors).
+
 11/25/92 IL lowering changes all functions to unprototyped (as as option)
 
 For full cfront compatibility, IL lowering now changes all functions
