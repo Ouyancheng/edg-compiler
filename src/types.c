@@ -2338,16 +2338,16 @@ is allocated, it is allocated in the file scope.
             comp_type = base_type_2;
           } else {
             /* Build a new function type. */
-            a_routine_type_supplement_ptr extra_info;
+            a_routine_type_supplement_ptr extra_info, extra_info1;
             comp_type = fs_type((a_type_kind)tk_routine);
             comp_type->variant.routine.return_type = comp_elem;
             extra_info = comp_type->variant.routine.extra_info;
+            extra_info1 = base_type_1->variant.routine.extra_info;
             extra_info->param_type_list = comp_param_list;
             extra_info->prototyped = comp_prototyped;
-            extra_info->has_ellipsis =
-                         base_type_1->variant.routine.extra_info->has_ellipsis;
+            extra_info->has_ellipsis = extra_info1->has_ellipsis;
             extra_info->implicit_this_param_type =
-             base_type_1->variant.routine.extra_info->implicit_this_param_type;
+                                         extra_info1->implicit_this_param_type;
           }  /* if */
           break;
 #if CHECKING
@@ -2547,6 +2547,69 @@ distinguishable_determined:;
   db_exit();
   return distinguishable;
 }  /* overload_distinguishable */
+
+
+void set_routine_calling_method_flags(a_type_ptr routine_type)
+/*
+Set the calling-method flags in the indicated routine type and in its
+parameters.  Those flags are used to indicated when arguments must be
+passed by copy constructor or when the function result is returned
+to a temporary provided by the caller.  This routine may be called
+more than once, since the information on the parameter types can be
+incomplete at the original declaration of the function and must be
+completed by the point of call.
+*/
+{
+  a_routine_type_supplement_ptr rtsp;
+  a_type_ptr                    return_type;
+  a_param_type_ptr              ptp;
+  a_class_type_supplement_ptr   ctsp;
+
+  rtsp = skip_typerefs(routine_type)->variant.routine.extra_info;
+  if (rtsp->assoc_routine) {
+    /* The routine has been defined, so the flags are set correctly. */
+  } else if (C_dialect != C_dialect_cplusplus) {
+    /* The flags cannot be set in C mode. */
+  } else {
+    /* If the function returns a class object whose address may have to be
+       taken, make the caller provide a temporary for the result. */
+    return_type = routine_type->variant.routine.return_type;
+    return_type = skip_typerefs(return_type);
+    if (is_class_struct_union_type(return_type)) {
+      ctsp = return_type->variant.class_struct_union.extra_info;
+      if (ctsp->base_classes != NULL) {
+        /* The class has base classes.  The address of the class object
+           will be required to do base class casts. */
+        rtsp->caller_provides_place_to_put_return_value = TRUE;
+      } else {
+        a_scope_ptr scope = ctsp->assoc_scope;
+        if (scope != NULL) {
+          /* The class definition is known. */
+          if (scope->routines != NULL) {
+            /* The class has member functions, so the class object address
+               will have to be passed as a "this" parameter.  (This could
+               be refined to exclude static member functions.) */
+            rtsp->caller_provides_place_to_put_return_value = TRUE;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    /* Traverse the parameter list looking for parameters that require a
+       copy constructor. */
+    for (ptp = rtsp->param_type_list; ptp != NULL; ptp = ptp->next) {
+      a_type_ptr param_type = ptp->type;
+      param_type = skip_typerefs(param_type);
+      if (is_class_struct_union_type(param_type)) {
+        /* The parameter is a class passed by value.  See if the class
+           has a copy constructor. */
+        if (symbol_supplement_for_class(param_type)->has_copy_constructor) {
+          /* Yes. */
+          ptp->passed_via_copy_constructor = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* set_routine_calling_method_flags */
 
 
 static a_param_type_ptr file_scope_param_list(a_param_type_ptr old_param)
