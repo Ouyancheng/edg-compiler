@@ -67,6 +67,7 @@ static unsigned long
 		num_variables_allocated,
 		num_fields_allocated,
 		num_routines_allocated,
+		num_asm_entries_allocated,
 		num_labels_allocated,
 		num_expr_nodes_allocated,
 		num_switch_clauses_allocated,
@@ -4018,6 +4019,53 @@ for the file scope if at_file_scope is TRUE.
 }  /* add_to_routines_list */
 
 
+an_asm_entry_ptr alloc_asm_entry(void)
+/*
+Allocate an asm entry, clear it to default values, and return a pointer
+to it.  The entry is allocated in the file scope memory region.
+*/
+{
+  an_asm_entry_ptr ap;
+
+  db_enter(5, "alloc_asm_entry");
+
+  ap = (an_asm_entry_ptr)alloc_il(sizeof(an_asm_entry));
+#if DEBUG
+  num_asm_entries_allocated++;
+#endif /* DEBUG */
+  set_default_source_corresp(&(ap->source_corresp));
+  /* Asm entries are always in the file scope, so use the il_walk_flag
+     value for the file scope memory region. */
+  ap->source_corresp.il_walk_flag = curr_fs_initial_il_walk_flag_setting;
+  ap->next = NULL;
+  ap->asm_string = NULL;
+
+  db_exit();
+  return ap;
+}  /* alloc_asm_entry */
+
+
+void add_to_asm_entries_list(an_asm_entry_ptr  asm_entry_ptr)
+/*
+Add the given routine to the asm entries list for the current scope.
+*/
+{
+  a_scope_stack_entry_ptr  ssep;
+  a_scope_ptr              sp;
+
+  ssep = &scope_stack[decl_scope_level];
+  /* Create the IL scope if necessary (for block scopes). */
+  sp = ensure_il_scope_exists(ssep);
+  if (sp->asm_entries == NULL) {
+    sp->asm_entries = asm_entry_ptr;
+  } else {
+    ssep->last_asm_entry->next = asm_entry_ptr;
+  }  /* if */
+  ssep->last_asm_entry = asm_entry_ptr;
+  asm_entry_ptr->next = NULL;
+}  /* add_to_asm_entries_list */
+
+
 a_label_ptr alloc_label(void)
 /*
 Allocate a label entry, clear it to default values, and return a pointer
@@ -4884,7 +4932,7 @@ fields to default values.
       sp->variant.dynamic_init = NULL;
       break;
     case stmk_asm:
-      sp->variant.asm_string = NULL;
+      sp->variant.asm_entry = NULL;
       break;
 #if CHECKING
     default:
@@ -5001,6 +5049,7 @@ points to the associated routine if the kind is sck_function.
   sp->nonstatic_variables = NULL;
   sp->labels              = NULL;
   sp->routines            = NULL;
+  sp->asm_entries         = NULL;
   sp->scopes              = NULL;
   sp->dynamic_inits       = NULL;
 #ifdef FIL
@@ -5054,6 +5103,7 @@ Display and return the amount of space used for various IL tables.
   write_one("variable", num_variables_allocated, a_variable);
   write_one("field", num_fields_allocated, a_field);
   write_one("routine", num_routines_allocated, a_routine);
+  write_one("asm entry", num_asm_entries_allocated, an_asm_entry);
   write_one("label", num_labels_allocated, a_label);
   write_one("expr node", num_expr_nodes_allocated, an_expr_node);
   write_one("switch clause", num_switch_clauses_allocated, a_switch_clause);
@@ -5155,6 +5205,7 @@ of the front end.
   num_variables_allocated                = 0;
   num_fields_allocated                   = 0;
   num_routines_allocated                 = 0;
+  num_asm_entries_allocated              = 0;
   num_labels_allocated                   = 0;
   num_expr_nodes_allocated               = 0;
   num_switch_clauses_allocated           = 0;

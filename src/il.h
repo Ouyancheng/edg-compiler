@@ -310,6 +310,10 @@ extern void remove_from_routines_list(a_routine_ptr rout_ptr);
 extern void add_to_routines_list(a_routine_ptr rout_ptr,
                                  a_boolean    at_file_scope);
 
+extern an_asm_entry_ptr alloc_asm_entry(void);
+
+extern void add_to_asm_entries_list(an_asm_entry_ptr asm_entry_ptr);
+
 extern a_label_ptr alloc_label(void);
 
 extern void add_to_labels_list(a_label_ptr label_ptr);
