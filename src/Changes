@@ -1,5 +1,33 @@
 Version 2.34
 
+11/6/96  Checking exception specifications on assignment and initialization
+
+An error is now issued on an assignment or initialization involving
+pointer-to-function types when the entity assigned allows exceptions to
+be thrown that the object assigned to does not allow.  For example:
+
+  void f1();                  // allows anything to be thrown
+  void f2() throw();          // allows nothing to be thrown
+  void (*pf)() throw(int);    // *pf only allows an int to be thrown
+  main() {
+    pf = f1;                  // Error -- *pf is too restrictive for f1
+    pf = f2;                  // Okay
+  }
+
+11/6/96  Exception specifications on pointer-to-function declarations
+
+Up to now exception specifications have been ignored on all function
+declarators except those belonging to top-level function declarations.
+With this change, exception specifications are also recorded for the
+function declarators of top-level pointer-to-function declarations (except
+when the latter appears in a typedef declaration), and a discretionary
+error is issued in other cases.  (Note: exception specifications are
+still silently ignored when compiling with --no_exceptions.)
+
+  void (*pf)() throw();               // Okay
+  typedef void (*pf2)() throw();      // Error
+  void (**ppf)() throw();             // Error
+
 11/4/96  Spurious error on redeclaration of file scope template with the
          same name as a macro
 
