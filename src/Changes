@@ -1,5 +1,14 @@
 Version 2.44
 
+3/24/00  Avoid generation of namespace qualifiers when selecting fields or
+         member functions in output for MSVC++
+
+Microsoft compilers do not accept expressions of the form p->N::X::f() where
+N is a namespace name and X is a class name.  The C++-generating back end has
+therefore been modified to never emit namespace qualifiers in such expression
+contexts when msvc_is_generated_code_target is TRUE.  Previously, such
+namespace qualifier was omitted only if X was a nontemplate class.
+
 3/22/00  C-generating back end: extraneous casts on function call targets
 
 Under some circumstances, the C-generating back end used to emit a cast on the

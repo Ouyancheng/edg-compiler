@@ -266,6 +266,10 @@ typedef int a_gen_name_options_set;
 			/* gen_name is invoked recursively to generate a
 			   qualifier for a qualified name (e.g., "A::B" in
 			   "A::B::x"). */
+#define GN_BOUND_MEMBER 0x10
+			/* gen_name is invoked to emit the name of a member
+			   function of field.  In Microsoft mode, such a
+			   name cannot be qualified with a namespace name. */
 
 
 /* Needed because of forward references: */
@@ -1716,6 +1720,10 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
            scope_is_in_name_context_stack(nsp->variant.assoc_scope))) {
         /* A qualified name is not needed, because we're inside a name context
            for the namespace and the name is not hidden. */
+      } else if (msvc_is_generated_code_target &&
+                 (options & GN_BOUND_MEMBER) && (options & GN_QUALIFIER)) {
+        /* Microsoft compilers do not accept namespace qualifiers after a
+           field or member function selection operation. */
       } else {
         gen_namespace_qualifier(nsp,
                                 options & GN_PARENS_IF_GLOBAL_QUALIFIER,
@@ -4826,7 +4834,7 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
                                                        extra_info->assoc_scope;
         push_name_context(class_scope);
       }  /* if */
-      gen_class_qualifier(naming_class, GN_NO_OPTIONS, (a_boolean *)NULL);
+      gen_class_qualifier(naming_class, GN_BOUND_MEMBER, (a_boolean *)NULL);
       if (!suppress_this) pop_name_context();
     }  /* if */
     /* Put out the base routine name.*/
