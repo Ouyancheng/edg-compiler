@@ -71,15 +71,13 @@ and return *err TRUE if there is an error of some kind.
     if (constant->kind != (a_constant_repr_kind)ck_string) {
       /* The constant is not a string. */
       *err = TRUE;
-    } else if (char_int_kind_from_string_type(*type) !=
-               char_int_kind_from_string_type(constant->type)) {
-      /* The constant and the array do not have the same underlying character
-         element type; it must be that one is a wide string and the other
-         a normal string.  Note that there is no mismatch in that case if
-         wchar_t is char. */
-      *err = TRUE;
-    } else {
-      /* The constant is a string. */
+    } else if (is_wide_string ?
+                 (char_int_kind_from_string_type(*type) ==
+                              char_int_kind_from_string_type(constant->type)) :
+                 is_char_array_type(constant->type)) {
+      /* The constant is a string with characters that are compatible with
+         the array element type.  (Note that an array of characters of any
+         signedness can be initialized with a string literal: ANSI C 3.5.7.) */
       num_elems = string_length = constant->variant.string.length;
       if (is_wide_string) {
         /* Adjust the wide string number of elements. */
@@ -119,6 +117,12 @@ and return *err TRUE if there is an error of some kind.
           }  /* if */
         }  /* if */
       }  /* if */
+    } else {
+      /* The constant and the array do not have the same underlying character
+         element type; it must be that one is a wide string and the other
+         a normal string.  Note that there is no mismatch in that case if
+         wchar_t is char. */
+      *err = TRUE;
     }  /* if */
     if (*err) {
       /* There was an error of some kind. */
