@@ -8102,7 +8102,8 @@ Copy the type entry "from" to "to".
         a_vla_dimension_ptr  vdp = find_vla_dimension(from), new_vdp;
         decl_scope_level = depth_innermost_function_scope;
         new_vdp = make_vla_dimension(to, (an_expr_node_ptr)NULL,
-                                     vdp->in_prototype_scope, &vdp->position);
+                                     (a_boolean)vdp->in_prototype_scope,
+                                     &vdp->position);
         decl_scope_level = saved_decl_scope_level;
         new_vdp->original_dimension = vdp;
         check_assertion(C_mode());
