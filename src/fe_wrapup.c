@@ -120,7 +120,7 @@ are instantiated.
   (void)make_module_id();
 #endif /* MODULE_ID_NEEDED */
 
-  if (!is_primary_translation_unit && !do_preprocessing_only) {
+  if (!C_mode() && !is_primary_translation_unit && !do_preprocessing_only) {
     /* Check for the presence of a master instance established in a prior
        translation unit. */
     set_master_instance_information();
@@ -351,23 +351,26 @@ already been copied over.
        functions. */
     check_for_done_with_all_function_memory_regions();
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
-    if (total_errors == 0) {
-      /* Set the IL flags used to pass automatic instantiation information to
-         the link-time instantiation processor.  The timing of this call is
-         important.  It must follow the call to eliminate_unneeded_il_entries,
-         which may clear the instantiation_required flag in the associated
-         template instance entry.  And it must precede the call to
-         check_for_done_with_memory_region, since it modifies IL entries and
-         (if DO_IL_LOWERING is TRUE) may allocate variables that are added to
-         the IL. */
-      update_auto_instantiation_flags();
-      /* Do the similar processing for inline functions, when instantiating
-         inline functions similarly to templates. */
-      update_inline_function_flags();
+    if (!C_mode()) {
+      if (total_errors == 0) {
+        /* Set the IL flags used to pass automatic instantiation information to
+           the link-time instantiation processor.  The timing of this call is
+           important.  It must follow the call to
+           eliminate_unneeded_il_entries, which may clear the
+           instantiation_required flag in the associated template instance
+           entry.  And it must precede the call to
+           check_for_done_with_memory_region, since it modifies IL entries and
+           (if DO_IL_LOWERING is TRUE) may allocate variables that are added to
+           the IL. */
+        update_auto_instantiation_flags();
+        /* Do the similar processing for inline functions, when instantiating
+           inline functions similarly to templates. */
+        update_inline_function_flags();
+      }  /* if */
+      /* Do any special processing needed to wrapup the automatic instantiation
+         process at the end of the compilation. */
+      wrapup_auto_instantiation_information();
     }  /* if */
-    /* Do any special processing needed to wrapup the automatic instantiation
-       process at the end of the compilation. */
-    wrapup_auto_instantiation_information();
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 #if DO_IL_LOWERING
     if (il_lowering_needed()) {
@@ -454,6 +457,7 @@ functions require definitions in this translation unit.
   /* Push the primary translation unit.  This should be the first entry
      on the stack. */
   check_assertion(curr_translation_unit_stack_entry == NULL);
+  check_assertion(!C_mode());
   push_translation_unit_stack(translation_units);
   /* Do one-time processing (not per-translation unit) for instantiation
      wrapup. */
@@ -462,19 +466,24 @@ functions require definitions in this translation unit.
     /* Push the translation unit (but don't repush the primary translation
        unit. */
     if (tup != translation_units) push_translation_unit_stack(tup);
+#if DO_IL_LOWERING
+    if (il_lowering_needed()) {
+      /* To improve efficiency of name mangling in the instantiation
+         process, pre-generate the mangled names of classes. */
+      do_class_name_mangling();
+    }  /* if */
+#endif /* DO_IL_LOWERING */
     /* Do any template instantiation that may be required.  This is called
        first because it may generate additional function bodies and class
        definitions that need to be processed by the operations that follow. */
     instantiation_wrapup();
 
-    if (C_dialect == C_dialect_cplusplus) {
-      /* Go through the classes in the file scope and each namespace scope
-         and generate bodies for virtual destructors, as required. */
-      generate_required_virtual_destructor_bodies(il_header.primary_scope);
-      /* Determine which extern inline functions should have bodies emitted
-         as part of this translation unit. */
-      inline_function_wrapup();
-    }  /* if */
+    /* Go through the classes in the file scope and each namespace scope
+       and generate bodies for virtual destructors, as required. */
+    generate_required_virtual_destructor_bodies(il_header.primary_scope);
+    /* Determine which extern inline functions should have bodies emitted
+       as part of this translation unit. */
+    inline_function_wrapup();
     /* Pop the translation unit if pushed above. */
     if (tup != translation_units) pop_translation_unit_stack();
   }  /* for */
@@ -502,9 +511,11 @@ and before the back end (if any) is executed.
   check_assertion_str2(is_primary_translation_unit,
                        "fe_wrapup:", "bad translation unit in fe_wrapup");
 
-  /* For each translation unit, generate any instantiations that are
-     needed, and determine which inline functions require definitions. */
-  template_and_inline_function_wrapup();
+  if (!C_mode()) {
+    /* For each translation unit, generate any instantiations that are
+       needed, and determine which inline functions require definitions. */
+    template_and_inline_function_wrapup();
+  }  /* if */
 
   /* Lower the file scope, remove unneeded entities, etc. */
   wrap_up_file_scopes();

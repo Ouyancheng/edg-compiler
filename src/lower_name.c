@@ -2850,7 +2850,7 @@ Note that this does not include final processing for type names.
 }  /* do_scope_class_name_mangling */
 
 
-static void do_class_name_mangling(void)
+void do_class_name_mangling(void)
 /*
 Do name mangling for all class names.  Note that this does not include
 final processing for type names.
