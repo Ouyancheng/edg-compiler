@@ -1180,7 +1180,7 @@ error code.
       m = "invalid anonymous union -- member function not allowed";
       break;
     case ec_anon_union_storage_class:
-      m = "invalid storage class for anonymous union";
+      m = "global anonymous union must be declared static";
       break;
     case ec_missing_initializer_on_field:
       m = "no initializer provided for \"%s\"";
