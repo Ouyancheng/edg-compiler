@@ -31,6 +31,20 @@ the compiler is invoked.
 #endif /* !defined(LANG_FEAT_H) */
 
 /*
+Flag used to retain ABI (Application Binary Interface, i.e., runtime layout
+and calling sequence) compatibility with older versions.  The value is the
+version number of the EDG C++ front end, e.g., 227 for version 2.27, for
+which compatibility should be maintained.  ABI changes made after that
+version will be suppressed.  Of course, that may suppress certain language
+features that cannot be implemented without the corresponding ABI changes.
+The default -- a large value -- has the effect of requesting the latest
+version of the ABI.
+*/
+#ifndef ABI_COMPATIBILITY_VERSION
+#define ABI_COMPATIBILITY_VERSION 99999 /* Use latest version. */
+#endif /* ifndef ABI_COMPATIBILITY_VERSION */
+
+/*
 Flag that is TRUE if object code compatibility with USL's cfront is
 required.  The main issue is class layout and specifically how the data
 sections for virtual base classes are put out.  Other issues include
@@ -1061,6 +1075,33 @@ no smaller than the size of a_virtual_function_number.
 #ifndef TARG_VIRTUAL_FUNCTION_INDEX_INT_KIND
 #define TARG_VIRTUAL_FUNCTION_INDEX_INT_KIND ((an_integer_kind)ik_short)
 #endif /* ifndef TARG_VIRTUAL_FUNCTION_INDEX_INT_KIND */
+
+/*
+This switch controls whether or not the ABI changes for runtime
+type information (RTTI) are done.  This affects element 0 of virtual
+function tables, the BCS_PUBLIC flag in base class arrays, and the
+name field in the typeinfo implementation structure.  If the switch
+is off, compatibility with versions up to 2.28 is preserved, but the
+RTTI language features are turned off.  The typeinfo generated in
+that case is adequate for exception handling but not for RTTI.
+This ABI difference is mostly upward-compatible: the only potential
+issue is the extra field in the typeinfo implementation structure.
+If the linker will not complain about tentative definitions with
+different sizes, the new layout can coexist with the old layout.
+Also, if the old code did not use exceptions, it contained no
+typeinfo entries, and therefore the changes are upward-compatible.
+*/
+#ifndef ABI_CHANGES_FOR_RTTI
+#if ABI_COMPATIBILITY_VERSION <= 228
+#define ABI_CHANGES_FOR_RTTI FALSE /* Versions up to 2.28. */
+#else /* ABI_COMPATIBILITY_VERSION > 228 */
+#define ABI_CHANGES_FOR_RTTI TRUE  /* Versions after 2.28. */
+#endif /* ABI_COMPATIBILITY_VERSION <= 228 */
+#endif /* ifndef ABI_CHANGES_FOR_RTTI */
+#if ABI_CHANGES_FOR_RTTI && (ABI_COMPATIBILITY_VERSION <= 228)
+ #error -- ABI_CHANGES_FOR_RTTI TRUE is incompatible with \
+           ABI_COMPATIBILITY_VERSION <= 228
+#endif /* ABI_CHANGES_FOR_RTTI && (ABI_COMPATIBILITY_VERSION <= 228) */
 
 /*
 This switch controls whether or not operations with
