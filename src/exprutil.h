@@ -736,6 +736,8 @@ extern void rewrite_property_field_reference(an_operand *operand,
                                              an_operand *put_operand);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+extern void error_if_indefinite_function(an_operand *operand);
+
 extern void do_operand_transformations(an_operand                   *operand,
                                        a_transformation_options_set options);
 

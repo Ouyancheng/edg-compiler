@@ -6831,6 +6831,19 @@ is a "get" if put_operand is NULL.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+void error_if_indefinite_function(an_operand *operand)
+/*
+If the given operand is an indefinite function, issue an error and
+change the operand to an error operand.
+*/
+{
+  if (is_indefinite_function_operand(operand)) {
+    sym_error_in_operand(ec_indeterminate_overloaded_function,
+                         operand, operand->variant.symbol);
+  }  /* if */
+}  /* error_if_indefinite_function */
+
+
 void do_operand_transformations(an_operand                   *operand,
                                 a_transformation_options_set options)
 /*
@@ -6885,14 +6898,11 @@ transformations.
                     /*allow_ctor=*/(options & TOPT_ADDR_OF_CTOR_ALLOWED) != 0);
     }  /* if */
   }  /* if */
-  if (is_indefinite_function_operand(operand)) {
-    if (!(options & TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION)) {
-      /* Issue an error for an indefinite function (i.e., a C++ overloaded
-         function that wasn't called, so we were never able to determine
-         which function was intended). */
-      sym_error_in_operand(ec_indeterminate_overloaded_function,
-                           operand, operand->variant.symbol);
-    }  /* if */
+  if (!(options & TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION)) {
+    /* Issue an error for an indefinite function (i.e., a C++ overloaded
+       function that wasn't called, so we were never able to determine
+       which function was intended). */
+    error_if_indefinite_function(operand);
   }  /* if */
 }  /* do_operand_transformations */
 

@@ -12608,6 +12608,7 @@ parameter type is not known.
     prep_nontype_template_argument_initializer(&result, param_type, constant);
   } else {
     /* No destination type.  Make a constant from the operand. */
+    error_if_indefinite_function(&result);
     extract_constant_from_operand(&result, constant);
   }  /* if */
   pop_expr_stack();
