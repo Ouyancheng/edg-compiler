@@ -4577,6 +4577,8 @@ is set to point to a symbol that provides the context information and
     /* Template instantiations (except for prototype instantiations)
        need additional context information. */
     sym = ssep->instance_sym;
+    /* If the instance symbol is NULL use the template symbol instead. */
+    if (sym == NULL) sym = ssep->template_sym;
     if (sym->kind == (a_symbol_kind)sk_static_data_member) {
       result = TRUE;
       error_code = ec_implicit_static_data_member_definition;
