@@ -4073,8 +4073,10 @@ table.
   var->source_corresp.name_linkage = class_type->source_corresp.name_linkage;
   var->source_corresp.access = access;
 
-  if (curr_token == tok_assign && is_const_qualified_type(member_type) &&
-      is_integral_type(member_type)) {
+  if (curr_token == tok_assign &&
+      (is_const_qualified_type(member_type) &&
+       is_integral_type(member_type)) ||
+      (is_nonreal_class && is_or_contains_template_param(member_type))) {
     /* A const integral or const enumeration type may be initialized inside
        the class definition (9.5.2).  Note that the variable entry will have
        an initializer but will not yet be defined. */
