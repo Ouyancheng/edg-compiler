@@ -1938,7 +1938,7 @@ the routine; otherwise it is NULL.
            the parameters). */
         if (rout != NULL && rout->defined) {
           a_type_ptr rout_type = rout->type;
-          rout->type = skip_typerefs(rout_type);
+          rout_type = skip_typerefs(rout_type);
           defn_param = rout_type->variant.routine.extra_info->param_type_list;
         }  /* if */
       } else {
