@@ -2211,6 +2211,7 @@ bound with the function in *bound_function_selector.
          possible if there was an error in the first operand. */
       if (operand_1_is_complete_class) {
         if (is_qualified_name) {
+qualified_name_check:
           /* There was a qualified member name, as in "p->A::x".  "A" in the
              preceding must be the class pointed to by p or a base class
              thereof, i.e., "A::x" must be a member of the class of the
@@ -2261,12 +2262,23 @@ bound with the function in *bound_function_selector.
           } else if (member_sym->kind == (a_symbol_kind)sk_class_template) {
             /* For a member template, coalesce the template reference.
                This will use the specific symbol already established. */
-            member_sym = coalesce_and_lookup_generalized_identifier(
+            locator_for_curr_id.has_been_coalesced = FALSE;
+            if (is_generalized_identifier_start(gid_flags)) {
+              member_sym = coalesce_and_lookup_generalized_identifier(
                                                                    gid_flags,
                                                                    ilm_normal,
                                                                    &local_err);
-            err |= local_err;
-            projection_member_sym = locator_for_curr_id.specific_symbol;
+              projection_member_sym = locator_for_curr_id.specific_symbol;
+              if (local_err) {
+                err = TRUE;
+              } else if (locator_for_curr_id.is_qualified_name) {
+                /* For qualified names, go back and do the normal checking. */
+                goto qualified_name_check;
+              }  /* if */
+            } else {
+              unexpected_condition_str(
+                            "scan_field_selection_operator: template problem");
+            }  /* if */
           }  /* if */
         }  /* if */
       }  /* if */
