@@ -2634,21 +2634,31 @@ extern void determine_operator_lookup_namespaces(a_type_ptr	class_type);
   ((sym)->kind == (a_symbol_kind)sk_class_or_struct_tag ||            \
    (sym)->kind == (a_symbol_kind)sk_union_tag)
 
-/* Return TRUE if a symbols is a namespace symbol. */
+/* Return TRUE if a symbol is a namespace symbol. */
 #define is_namespace_symbol(sym)                                          \
   ((sym)->kind == (a_symbol_kind)sk_namespace)
+
+/* Return TRUE if a symbol is an enum symbol or a typedef to an enum. */
+#define is_enum_symbol(sym)					      \
+  ((sym)->kind == (a_symbol_kind)sk_enum_tag ||			      \
+   ((sym)->kind == (a_symbol_kind)sk_type &&			      \
+    is_enum_type((sym)->variant.type)))
+
+extern a_boolean is_member_enum_symbol(a_symbol_ptr sym);
 
 /* Return TRUE if a symbol is one that may be used as part of the
    qualifier in a qualified name.  This includes class symbols,
    typedefs to class symbols, type template parameters, class template
-   symbols, and namespace symbols.  This macro should only be used in
-   C++ mode. */
+   symbols, and namespace symbols.  In Microsoft mode, enum tags are also
+   considered to be eligible for use in the qualifier portion of a name.
+   This macro should only be used in C++ mode. */
 #define symbol_may_precede_qualifier(sym)                           \
   ((sym)->kind == (a_symbol_kind)sk_class_template ||		      \
    is_class_symbol(sym) ||                                            \
    (sym)->kind == (a_symbol_kind)sk_namespace ||		      \
    ((sym)->kind == (a_symbol_kind)sk_type &&                          \
-    is_template_param_type((sym)->variant.type)))
+    is_template_param_type((sym)->variant.type)) ||		      \
+   (microsoft_mode && is_member_enum_symbol(sym)))
 
 /* Return TRUE if a symbol is a class symbol, a class template symbol,
    or a type template parameter. */

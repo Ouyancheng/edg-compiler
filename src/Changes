@@ -1,5 +1,19 @@
 Version 2.35
 
+1/22/97 Microsoft compatibility: enum types can be used as qualifiers
+
+The Microsoft compiler allows enum types to be used as a qualifier
+in a qualified name.  We now duplicate this behavior in Microsoft mode.
+As with the Microsoft compiler, only member enumerations are permitted.
+
+  struct A {
+    enum E {e1};
+    int f(){ return E::e1;}  // Accepted by Microsoft compiler
+  };
+  enum F {f1};
+  int f(){ return F::f1;}  // Not accepted by Microsoft compiler
+
+
 1/21/97 Omission of named field of struct in C mode
 
 Diagnostics on failing to declare at least one named field when defining a

@@ -1097,6 +1097,34 @@ is not a routine symbol, return FALSE.
 }  /* is_special_function_symbol */
 
 
+a_boolean is_member_enum_symbol(a_symbol_ptr sym)
+/*
+Used in Microsoft mode to determine whether a symbol refers to an
+enumeration that is a class member.  Such enumerations are accepted
+by the Microsoft compiler in the qualifier portion of a name.
+Return TRUE if the symbol refers to a class member enumeration.
+*/
+{
+  a_type_ptr	tp;
+
+  /* If the symbol refers to a type that is an enumeration, set tp to
+     the type that represents the enumeration. */
+  if (sym->kind == (a_symbol_kind)sk_enum_tag) {
+    tp = sym->variant.enumeration.type;
+  } else if (sym->kind == (a_symbol_kind)sk_type) {
+    tp = sym->variant.type;
+    tp = skip_typerefs(tp);
+    if (!is_enum_type(tp)) tp = NULL;
+  } else {
+    tp = NULL;
+  }  /* if */
+  /* If a type was found, does it refer to a class member?  If not, set
+     the type pointer to NULL. */
+  if (tp != NULL && !tp->source_corresp.is_class_member) tp = NULL;
+  return tp != NULL;
+}  /* is_member_enum_symbol */
+
+
 static a_symbol_header_ptr alloc_symbol_header(void)
 /*
 Allocate a new symbol header, and return a pointer to it.

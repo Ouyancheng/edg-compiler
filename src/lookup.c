@@ -2632,6 +2632,66 @@ end_lookup:
 }  /* class_qualified_id_lookup */
 
 
+a_symbol_ptr enum_qualified_id_lookup(a_symbol_locator		*locator,
+				      a_type_ptr		enum_type)
+/*
+Look up the identifier indicated by *locator as an enumerator associated
+with the enumeration specified by enum_type.  This is used in Microsoft
+mode to permit an enumerator to be used in a qualified name.  The enumerator
+that is found, or NULL is no matching symbol is found.
+*/
+{
+  a_symbol_ptr	sym;
+
+/* Local macro that tests whether or not a symbol is acceptable. */
+#define is_acceptable_symbol(sym)                                     \
+  ((sym)->kind == (a_symbol_kind)sk_constant &&			      \
+   (sym)->variant.constant->type == enum_type)
+
+  db_enter(4, "enum_qualified_id_lookup");
+  /* Remove any typedefs on the enum type. */
+  enum_type = skip_typerefs(enum_type);
+  sym = locator->specific_symbol;
+  if (is_error_locator(*locator)) {
+    /* The locator is an error locator, so return NULL (i.e., no symbol
+       found). */
+    sym = NULL;
+  } else if (sym != NULL) {
+    /* The locator is for a specific symbol, so return the symbol for it. */
+    /* Make sure that the symbol we are returning matches the lookup
+       criteria.  This check is suppressed if the do_not_clear_specific_symbol
+       flag is set, which usually indicates that the symbol is a coalesced
+       template reference. */
+    check_assertion(is_acceptable_symbol(sym) ||
+                    locator->do_not_clear_specific_symbol);
+  } else {
+    /* Try to find an acceptable symbol on the active list. */
+    sym = symbol_list_from_locator(*locator);
+    for (; sym != NULL; sym = sym->next) {
+      if (is_acceptable_symbol(sym)) break;
+    }  /* for */
+    if (sym == NULL) {
+      /* No symbol was found on the active list.  Look on the inactive list. */
+      sym = inactive_symbol_list_from_locator(*locator);
+      for (; sym != NULL; sym = sym->next) {
+        if (is_acceptable_symbol(sym)) break;
+      }  /* for */
+    }  /* if */
+    locator->specific_symbol = sym;
+  }  /* if */
+#if DEBUG
+  if (debug_level >= 4) {
+    fprintf(f_debug, "enum_qualified_id_lookup: id = %s, %s\n",
+                     locator->symbol_header->identifier,
+                     (sym != NULL) ? "found" : "not found");
+  }  /* if */
+#endif /* DEBUG */
+  db_exit();
+  return sym;
+#undef is_acceptable_symbol
+}  /* enum_qualified_id_lookup */
+
+
 /* Forward declaration. */
 static
 a_symbol_ptr lookup_in_namespace(a_symbol_locator         *locator,

@@ -806,7 +806,7 @@ a template argument list or is just a less-than sign.
       break;
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    /* Check for the start of an Microsoft-style asm block.  This can
+    /* Check for the start of a Microsoft-style asm block.  This can
        take one of two forms:
  
                 asm { asm-instructions }
@@ -968,7 +968,7 @@ be copies to the new cache.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     a_boolean	is_asm_block;
     a_boolean	one_line_asm;
-    /* Check for the start of an Microsoft-style asm block.  This can
+    /* Check for the start of a Microsoft-style asm block.  This can
        take one of two forms:
 
 		asm { asm-instructions }
@@ -7923,6 +7923,14 @@ selection operator, in which case it points to the type of the left operand.
         /* Usual case (no leading "::"). */
         qualifier_sym = normal_id_lookup(&locator_for_curr_id,
                                          lookup_kind);
+        if (microsoft_mode && qualifier_sym != NULL &&
+            is_enum_symbol(qualifier_sym) && might_be_vacuous_dtor) {
+          /* The "must be class or namespace" lookup can return an enumeration
+             in Microsoft mode.  If it does, and if we are processing what
+             might be a vacuous destructor, indicate that it is a vacuous
+             destructor. */
+          is_vacuous_dtor = TRUE;
+        }  /* if */
         if (qualifier_sym == NULL && might_be_vacuous_dtor) {
           qualifier_sym = normal_id_lookup(&locator_for_curr_id,
                                            IDL_NO_OPTIONS);
@@ -8036,6 +8044,12 @@ selection operator, in which case it points to the type of the left operand.
           /* Get the namespace from the symbol entry. */
           qualifier_namespace = namespace_symbol_namespace(qualifier_sym);
           qualifier_is_type = FALSE;
+        } else if (microsoft_mode && is_enum_symbol(qualifier_sym)) {
+          /* In Microsoft mode the qualifier can be an enumeration name. */
+          qualifier_type = type_symbol_type(qualifier_sym);
+          qualifier_type = skip_typerefs(qualifier_type);
+          qualifier_is_type = TRUE;
+          qualifier_type_is_class = FALSE;
         } else if (qualifier_sym->kind == (a_symbol_kind)sk_type ||
                    qualifier_sym->kind == (a_symbol_kind)sk_enum_tag) {
             /* The class symbol points to a type.  This is the case when
@@ -8151,22 +8165,34 @@ selection operator, in which case it points to the type of the left operand.
               }  /* if */
             }  /* if */
             if (qualifier_is_type) {
-              /* Look up the name in the class specified by the qualifier
-                 that has been scanned so far. */
-              qualifier_sym = class_qualified_id_lookup
+              if (qualifier_type_is_class) {
+                /* Look up the name in the class specified by the qualifier
+                   that has been scanned so far. */
+                qualifier_sym = class_qualified_id_lookup
                                          (&locator_for_curr_id, qualifier_type,
                                           lookup_options);
-              /* If the class lookup fails, and a vacuous destructor is
-                 allowed, do another lookup without the requirement that
-                 a class be found. */
-              if (qualifier_sym == NULL && might_be_vacuous_dtor) {
-                qualifier_sym = class_qualified_id_lookup(&locator_for_curr_id,
-                                                          qualifier_type,
-                                                          IDL_NO_OPTIONS);
-                is_vacuous_dtor = TRUE;
-                if (qualifier_sym != NULL && !is_type_symbol(qualifier_sym)) {
-                  qualifier_sym = NULL;
+                /* If the class lookup fails, and a vacuous destructor is
+                   allowed, do another lookup without the requirement that
+                   a class be found. */
+                if (qualifier_sym == NULL && might_be_vacuous_dtor) {
+                  qualifier_sym = class_qualified_id_lookup(
+                                          &locator_for_curr_id, qualifier_type,
+                                          IDL_NO_OPTIONS);
+                  is_vacuous_dtor = TRUE;
+                  if (qualifier_sym != NULL &&
+                      !is_type_symbol(qualifier_sym)) {
+                    qualifier_sym = NULL;
+                  }  /* if */
                 }  /* if */
+              } else {
+                /* In Microsoft mode, an enumeration can be used as the
+                   qualifier in a qualified name.  Look up the name in the
+                   enumeration. */
+                check_assertion_str2(
+                    microsoft_mode && is_enum_type(qualifier_type),
+                    "f_is_generalized_identifier_start", "expected enum type");
+                qualifier_sym = enum_qualified_id_lookup(&locator_for_curr_id,
+							 qualifier_type);
               }  /* if */
             } else {
               /* Look up the name in the namespace that has been scanned so
@@ -8664,7 +8690,16 @@ The caller must guarantee that is_generalized_identifier_start is TRUE
 	      okay = qualifier_type != NULL;
             } else {
               /* Look up the id in the class scope. */
-              if (qualifier_is_type &&
+              a_boolean	qualifier_is_enum_type;
+              qualifier_is_enum_type = microsoft_mode && qualifier_is_type &&
+                                       is_enum_type(qualifier_type);
+              if (microsoft_mode && qualifier_is_enum_type &&
+                  is_enum_type(qualifier_type) &&
+                  enum_qualified_id_lookup(&locator_for_curr_id,
+                                            qualifier_type) != NULL) {
+                /* In Microsoft mode, enumerations can be used as qualifiers.
+                   The name was found as an enumerator. */
+              } else if (qualifier_is_type && !qualifier_is_enum_type &&
                   class_qualified_id_lookup(&locator_for_curr_id,
                                             qualifier_type,
 					    idl_options) != NULL) {

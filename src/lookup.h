@@ -162,6 +162,10 @@ a_symbol_ptr namespace_qualified_id_lookup(a_symbol_locator         *locator,
                                            a_namespace_ptr          ns_ptr,
                                            an_id_lookup_options_set options);
 
+extern
+a_symbol_ptr enum_qualified_id_lookup(a_symbol_locator		*locator,
+				      a_type_ptr		enum_type);
+
 extern a_symbol_ptr file_scope_id_lookup(a_symbol_locator         *locator,
                                          an_id_lookup_options_set options);
 
