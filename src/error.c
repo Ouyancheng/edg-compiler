@@ -32,6 +32,85 @@ error.c -- Error reporting routines.
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 
+#define BASE_MSG_SEGMENT_SIZE 100
+				/* The starting length of a formatted
+				   message segment. */
+#define INCR_MSG_SEGMENT_SIZE BASE_MSG_SEGMENT_SIZE
+				/* The increment size to be used to lengthen
+				   a message seqment. */
+
+
+/*
+An error message being formed is represented by a linked list of message
+segment descriptors, one for each part of the error message text or fill-in.
+*/
+enum a_message_segment_kind_tag {
+/* Kind of error message segment (e.g. part of text, symbol name, or type).
+*/
+  msk_error_text_part,		/* Textual part of an error message. */
+  msk_user_string,		/* User provided string insert. */
+  msk_type,			/* Type to be expanded in the message */
+  msk_symbol,			/* Symbol name to be expanded in the
+				   message at this point. */
+  msk_last			/* Termination of the current message
+				   being formatted.  This should be the last
+				   message segment kind. */
+};
+/* Define as "a_byte" to explicitly control storage size. */
+typedef a_byte a_message_segment_kind;
+
+typedef struct msg_segment *msg_segment_ptr;
+typedef struct msg_segment {
+  msg_segment_ptr
+		next;		/* Pointer to the next message segment. */
+  char		*segment;	/* Pointer to the message segment buffer. */
+  int		length;		/* Current length of the message segment. */
+  int		max_length;	/* Maximum string size that can be accommodated
+				   in the message segment buffer. */
+  short		sequence;	/* Sequence number of the user string, type or
+				   symbol name in the error message.  This
+				   field is meaningless for kind ==
+				   msk_error_text_part. */
+  a_message_segment_kind
+		kind;		/* The kind of this message segment. */
+  union {
+    /* When kind == msk_error_text_part: */
+    char 	*msg_part;	/* Pointer into the error message text to the
+				   start of this portion of the error.  The
+				   length specifies the exact number of 
+				   characters since this portion may not have
+				   a NULL character terminator. */
+    /* When kind == msk_user_string:
+				   The pointer to the user string is in
+				   error_msg_strings[]. */
+    struct string_tag {
+      a_byte_boolean
+		quoted;		/* True if the user specified string is to
+				   be outputted in double quotes.  When TRUE,
+				   the string is constructed in the message
+				   seqment buffer. */
+    } string;
+    /* When kind == msk_type: no variant
+				   The pointer to the type is in
+				   error_msg_types[]. */
+    /* When kind == msk_symbol:    The pointer to the symbol is in
+				   error_msg_syms[]. */
+    struct symbol_tag {
+      a_byte_boolean
+		full_type;	/* True if the symbol should be expanded
+				   into an object (type and name). */
+      a_byte_boolean
+		name_only;	/* True if only the symbol name is needed. */
+      a_byte_boolean
+		decl_pos;	/* True if the declaration position is
+				   to be generated. */
+    } symbol;
+  } variant;
+} msg_segment;
+
+
+
+
 #define MAX_ERR_SEG_KIND_PER_MSG 2
 				/* The maximum number of error message
 				   arguments of any message segment kind. */
@@ -56,7 +135,7 @@ static a_symbol_ptr
 				   used for substitutions in diagnostic
 				   messages. */
 static msg_segment_ptr
-	error_message_head = (msg_segment_ptr)NULL;
+	error_message_head = NULL;
 				/* Pointer to the first segment in the current
 				   error message being formatted. */
 
@@ -80,13 +159,13 @@ error code.
       m = "last line of file ends with a backslash";
       break;
     case ec_include_recursion:
-      m = "#include file \"%s\" includes itself";
+      m = "#include file %sq includes itself";
       break;
     case ec_out_of_memory:
       m = "out of memory";
       break;
     case ec_source_file_could_not_be_opened:
-      m = "could not open source file \"%s\"";
+      m = "could not open source file %sq";
       break;
     case ec_comment_unclosed_at_eof:
       m = "comment unclosed at end of file";
@@ -116,10 +195,10 @@ error code.
       m = "extra text after expected end of preprocessing directive";
       break;
     case ec_source_file_has_bad_format:
-      m = "\"%s\" is not a file containing source text";
+      m = "%sq is not a file containing source text";
       break;
     case ec_illegal_source_file_name:
-      m = "\"%s\" is not a valid source file name";
+      m = "%sq is not a valid source file name";
       break;
     case ec_exp_rbracket:
       m = "expected a \"]\"";
@@ -131,7 +210,7 @@ error code.
       m = "extra text after expected end of number";
       break;
     case ec_undefined_identifier:
-      m = "identifier \"%s\" is undefined";
+      m = "identifier %sq is undefined";
       break;
     case ec_useless_type_qualifiers:
       m = "type qualifiers are meaningless in this declaration";
@@ -558,10 +637,10 @@ error code.
       m = "declaration is incompatible with previous use of same name";
       break;
     case ec_external_name_clash:
-      m = "name conflicts with previously used external name \"%s\"";
+      m = "name conflicts with previously used external name %sq";
       break;
     case ec_routine_definition_missing:
-      m = "the definition for function \"%s\" is missing";
+      m = "the definition for function %sq is missing";
       break;
     case ec_unrecognized_pragma:
       m = "unrecognized #pragma";
@@ -570,10 +649,10 @@ error code.
       m = "expression must have arithmetic, pointer, or void type";
       break;
     case ec_cannot_open_temp_file:
-      m = "could not open temporary file \"%s\"";
+      m = "could not open temporary file %sq";
       break;
     case ec_temp_file_dir_name_too_long:
-      m = "name of directory for temporary files is too long (\"%s\")";
+      m = "name of directory for temporary files is too long (%sq)";
       break;
     case ec_too_few_arguments:
       m = "too few arguments in function call";
@@ -636,7 +715,7 @@ error code.
       m = "invalid argument type for format string conversion";
       break;
     case ec_empty_include_search_path:
-      m = "could not open source file \"%s\" (no directories in search list)";
+      m = "could not open source file %sq (no directories in search list)";
       break;
     case ec_cast_not_integral:
       m = "type of cast must be integral";
@@ -799,7 +878,7 @@ error code.
       m = "pointer does not point to struct or union containing this field";
       break;
     case ec_var_retained_incomp_type:
-      m = "variable \"%s\" declared with a never-completed type";
+      m = "variable %sq declared with a never-completed type";
       break;
     case ec_boolean_controlling_expr_is_constant:
       m = "controlling expression is constant";
@@ -883,7 +962,7 @@ error code.
       m = "explicit type specifier is missing";
       break;
     case ec_missing_access_specifier:
-      m = "access control not specified (\"%s\" by default)";
+      m = "access control not specified (%sq by default)";
       break;
     case ec_not_a_class_or_struct_name:
       m = "not a class or struct name";
@@ -898,7 +977,7 @@ error code.
       m = "%n is inaccessible";
       break;
     case ec_ambiguous_name:
-      m = "inheritance of \"%s\" is ambiguous";
+      m = "inheritance of %sq is ambiguous";
       break;
     case ec_old_style_parameter_list:
       m = "old-style parameter list";
@@ -910,7 +989,7 @@ error code.
       m = "base class is inaccessible";
       break;
     case ec_not_a_base_class_member:
-      m = "name is not a member of a base class of \"%s\"";
+      m = "name is not a member of a base class of %sq";
       break;
     case ec_access_adjustment_in_private_section:
       m = "access adjustment in a \"private\" section is not allowed";
@@ -925,7 +1004,7 @@ error code.
       m = "improperly terminated macro invocation";
       break;
     case ec_not_equivalent_to_inherited_member:
-      m = "qualified name not equivalent to inherited member \"%s\"";
+      m = "qualified name not equivalent to inherited member %sq";
       break;
     case ec_id_must_be_class_name:
       m = "name followed by \"::\" must be a class name";
@@ -970,10 +1049,10 @@ error code.
       m = "none of the available constructors matches this argument list";
       break;
     case ec_ambiguous_copy_constructor:
-      m = "copy constructor for class \"%s\" is ambiguous";
+      m = "copy constructor for class %sq is ambiguous";
       break;
     case ec_no_default_constructor:
-      m = "no default constructor exists for class \"%s\"";
+      m = "no default constructor exists for class %sq";
       break;
     case ec_not_a_field_or_base_class:
       m = "not a nonstatic data member or base class of class %n";
@@ -982,11 +1061,11 @@ error code.
       m = "indirect nonvirtual base class not allowed";
       break;
     case ec_no_constructor:
-      m = "no constructor exists for class \"%s\"";
+      m = "no constructor exists for class %sq";
       break;
     case ec_bad_union_field:
       m =
-       "invalid union member -- class \"%s\" has a disallowed member function";
+       "invalid union member -- class %sq has a disallowed member function";
       break;
     case ec_overloaded_function_types_too_similar:
       m = "cannot overload functions -- parameter types are too similar";
@@ -1014,7 +1093,7 @@ error code.
       m = "this function has already been defined";
       break;
     case ec_overloaded_function_incompatible_type:
-      m = "type does not match any instance of overloaded function \"%s\"";
+      m = "type does not match any instance of overloaded function %sq";
       break;
     case ec_no_matching_function:
       m = "no instance of this overloaded function matches this argument list";
@@ -1103,16 +1182,16 @@ error code.
       break;
     case ec_direct_derivation_less_accessible:
       m =
-       "direct path to base class \"%s\" gives less access than indirect path";
+       "direct path to base class %sq gives less access than indirect path";
       break;
     case ec_missing_const_copy_constructor:
-      m = "class \"%s\" has no copy constructor to copy a const object";
+      m = "class %sq has no copy constructor to copy a const object";
       break;
     case ec_definition_of_implicitly_declared_function:
       m = "defining an implicitly declared member function is not allowed";
       break;
     case ec_no_suitable_copy_constructor:
-      m = "class \"%s\" has no suitable copy constructor";
+      m = "class %sq has no suitable copy constructor";
       break;
     case ec_linkage_specifier_not_allowed:
       m = "linkage specification is not allowed";
@@ -1125,10 +1204,10 @@ error code.
       break;
     case ec_overloaded_function_linkage:
       m =
-      "more than one instance of overloaded function \"%s\" has \"C\" linkage";
+      "more than one instance of overloaded function %sq has \"C\" linkage";
       break;
     case ec_ambiguous_default_constructor:
-      m = "more than one default constructor for class \"%s\"";
+      m = "more than one default constructor for class %sq";
       break;
     case ec_temp_used_for_ref_init:
       m = "value copied to temporary, reference to temporary used";
@@ -1358,9 +1437,6 @@ error code.
     case ec_incomplete_return_type_not_allowed:
       m = "a function with an incomplete return type may not be called";
       break;
-    case ec_call_of_pure_virtual_function:
-      m = "a pure virtual function may not be called";
-      break;
     case ec_protected_access_problem:
       m =
       "protected member %n is not accessible through this pointer or object";
@@ -1377,6 +1453,7 @@ error code.
   return (m);
 }  /* error_text */
 
+#if CHECKING
 
 static sizeof_t digits_to_represent(unsigned long value)
 /*
@@ -1393,6 +1470,7 @@ e.g., 1297 --> 4.
   return ndigits;
 }  /* digits_to_represent */
 
+#endif /* CHECKING */
 
 static void add_string_to_segment(char		  *str,
 				  msg_segment_ptr seg_ptr)
@@ -1407,23 +1485,26 @@ end of the buffer.
 {
   int	length_of_string;
 
-  length_of_string = strlen(str);
-  /* If the string will not fit in the buffer, enlarge the buffer so that it
-     will fit.  Allow for a terminating null character. */
-  if (seg_ptr->max_length <= (seg_ptr->length + length_of_string)) {
-    char	*new_buffer;
-    sizeof_t	new_size;
+  if (str != NULL) {
+    length_of_string = strlen(str);
+    /* If the string will not fit in the buffer, enlarge the buffer so that it
+       will fit.  Allow for a terminating null character. */
+    if (seg_ptr->max_length <= (seg_ptr->length + length_of_string)) {
+      char	*new_buffer;
+      sizeof_t	new_size;
 
-    new_size = seg_ptr->max_length +
-               ((INCR_MSG_SEGMENT_SIZE > length_of_string)
-                 ? INCR_MSG_SEGMENT_SIZE + 1 : length_of_string + 1);
-    new_buffer = realloc_general(seg_ptr->segment, seg_ptr->max_length + 1,
-                                 new_size);
-    seg_ptr->segment    = new_buffer;
-    seg_ptr->max_length = new_size - 1;
+      new_size = seg_ptr->max_length +
+                 ((INCR_MSG_SEGMENT_SIZE > length_of_string)
+                   ? INCR_MSG_SEGMENT_SIZE + 1 : length_of_string + 1);
+      new_buffer = realloc_general(seg_ptr->segment,
+                                  (sizeof_t)(seg_ptr->max_length + 1),
+                                   new_size);
+      seg_ptr->segment    = new_buffer;
+      seg_ptr->max_length = new_size - 1;
+    }  /* if */
+    (void)strcpy((char *)(seg_ptr->segment + seg_ptr->length), str);
+    seg_ptr->length += length_of_string;
   }  /* if */
-  (void)strcpy((char *)(seg_ptr->segment + seg_ptr->length), str);
-  seg_ptr->length += length_of_string;
 }  /* add_string_to_segment */
 
 
@@ -1445,7 +1526,10 @@ Add the name of the integer type to the message segment string being formatted.
     case ik_unsigned_int:   s = "unsigned int";     break;
     case ik_long:           s = "long";             break;
     case ik_unsigned_long:  s = "unsigned long";    break;
-    default:                s = "**BAD INT KIND**";
+#if CHECKING
+    default:
+      internal_error("form_int_kind_name: bad integer kind");
+#endif /* CHECKING */
   }  /* switch */
   add_string_to_segment(s, seg_ptr);
 }  /* form_int_kind_name */
@@ -1463,12 +1547,14 @@ Add the name of the floating point type to the type string being formatted.
     case fk_float:       s = "float";             break;
     case fk_double:      s = "double";            break;
     case fk_long_double: s = "long double";       break;
-    default:             s = "**BAD FLOAT KIND**";
+#if CHECKING
+    default:
+      internal_error("form_float_kind|name: bad float kind");
+#endif /* CHECKING */
   }  /* switch */
   add_string_to_segment(s, seg_ptr);
 }  /* form_float_kind_name */
 
-#ifdef CFE
 
 static void form_type_qualifier(a_type_ptr      type,
                                 msg_segment_ptr seg_ptr)
@@ -1491,49 +1577,6 @@ the length of the type qualifier added.
   if (is_volatile) add_string_to_segment("volatile ", seg_ptr);
 }  /* form_type_qualifier */
 
-#endif /* ifdef CFE */
-#ifdef FFE
-
-static void form_bound(a_bound_info_entry_ptr biptr,
-                       msg_segment_ptr        seg_ptr)
-/*
-Add the indicated dimension bound information entry to the type string
-being formed.
-*/
-{
-  char	*s;
-  char	buffer[BASE_MSG_SEGMENT_SIZE];
-
-  switch (biptr->kind) {
-    case bk_error:
-      s = "<err>";
-      break;
-    case bk_constant:
-#if CHECKING
-      if (digits_to_represent((unsigned long)bi_ptr->variant.constant_bound)
-                          >= BASE_MSG_SEGMENT_SIZE) {
-        internal_error("form_bound: buffer size too small");
-      }  /* if */
-#endif /* CHECKING */
-      (void)sprintf(buffer, "%ld", biptr->variant.constant_bound);
-      s = &buffer[0];
-      break;
-    case bk_adjustable:
-      s = "<adj>";
-      break;
-    case bk_assumed:
-      s = "*";
-      break;
-    case bk_unknown_adjustable:
-      s = "<unk adj>";
-      break;
-    default:
-      s = "**BAD BOUND KIND**";
-  }  /* switch */
-  add_string_to_segment("const ", seg_ptr);
-}  /* form_bound */
-
-#endif /* ifdef FFE */
 
 static void form_type_specifier(a_type_ptr      type,
                                 msg_segment_ptr seg_ptr)
@@ -1542,9 +1585,6 @@ Add the type specifier to the type string being formed.
 */
 {
   char	*s = NULL;
-#ifdef FFE
-  char	buffer[BASE_MSG_SEGMENT_SIZE];
-#endif /* ifdef FFE */
 
   switch (type->kind) {
     case tk_error:
@@ -1557,7 +1597,6 @@ Add the type specifier to the type string being formed.
       s = "void";
       break;
     case tk_integer:
-#ifdef CFE
       if (type->variant.integer.enum_type) {
         s = "enum ";
         goto do_tag_name;
@@ -1565,18 +1604,11 @@ Add the type specifier to the type string being formed.
       if (type->variant.integer.explicitly_signed) {
         add_string_to_segment("signed ", seg_ptr);
       }  /* if */
-#endif /* ifdef CFE */
-#ifdef FFE
-      if (type->variant.integer.logical_type) {
-        add_string_to_segment("logical ", seg_ptr);
-      }  /* if */
-#endif /* ifdef FFE */
       form_int_kind_name(type->variant.integer.int_kind, seg_ptr);
       break;
     case tk_float:
       form_float_kind_name(type->variant.float_kind, seg_ptr);
       break;
-#ifdef CFE
     case tk_class:
       s = "class ";
       goto do_tag_name;
@@ -1609,81 +1641,6 @@ do_tag_name:
       form_type_specifier(type, seg_ptr);
 typeref_done:
       break;
-#endif /* ifdef CFE */
-#ifdef FFE
-    case tk_fcharacter:
-      if (type->variant.fcharacter.star_star) {
-        add_string_to_segment("character*(*)", seg_ptr);
-      } else {
-        add_string_to_segment("character*", seg_ptr);
-#if CHECKING
-        if (digits_to_represent((unsigned long)type->variant.fcharacter.length
-                            >= BASE_MSG_SEGMENT_SIZE) {
-          internal_error
-              ("form_type_specifier: tk_fcharacter: buffer size too small");
-        }  /* if */
-#endif /* CHECKING */
-        (void)sprintf(buffer, "%ld", type->variant.fcharacter.length);
-        s = &buffer[0];
-      }  /* if */
-      break;
-    case tk_hollerith:
-      add_string_to_segment("hollerith*", seg_ptr);
-#if CHECKING
-      if (digits_to_represent((unsigned long)type->variant.hollerith_length
-                            >= BASE_MSG_SEGMENT_SIZE) {
-        internal_error
-              ("form_type_specifier: tk_hollerith: buffer size too small");
-      }  /* if */
-#endif /* CHECKING */
-				      (void)sprintf(buffer, "%ld", type->variant.hollerith_length);
-      s = &buffer[0];
-      break;
-    case tk_farray:
-      form_type_specifier(type->variant.farray.element_type,
-                          ptr_to_type_string_ptr);
-      add_string_to_segment(" array(", seg_ptr);
-      for (i = 0; i < type->variant.farray.number_of_dimensions; i++) {
-        a_bound_info_entry_ptr bound_info = type->variant.farray.bound_info;
-        if (i > 0) {
-          add_string_to_segment(", ", seg_ptr);
-        }  /* if */
-        form_bound(&bound_info[i], seg_ptr);
-        add_string_to_segment(":", seg_ptr);
-        form_bound(&bound_info[i+type->variant.farray.number_of_dimensions],
-                   seg_ptr);
-      }  /* for */
-      s = ")";
-      break;
-    case tk_complex:
-      form_float_kind_name(type->variant.float_kind, seg_ptr);
-      s = " complex";
-      break;
-    case tk_stmt_label:
-      s = "stmt label";
-      break;
-    case tk_format:
-      s = "format";
-      break;
-    case tk_association:
-      add_string_to_segment("association of size ", seg_ptr);
-#if CHECKING
-      if (digits_to_represent((unsigned long)type->size
-                                       >= BASE_MSG_SEGMENT_SIZE) {
-        internal_error
-              ("form_type_specifier: tk_association: buffer size too small");
-      }  /* if */
-#endif /* CHECKING */
-      (void)sprintf(buffer, "%lu", type->size);
-      s = &buffer[0];
-      break;
-    case tk_unspec_routine:
-      s = "unspecified routine";
-      break;
-    case tk_blockdata:
-      s = "blockdata";
-      break;
-#endif /* ifdef FFE */
       /* Note that certain type kinds are handled by form_type_first_part
          and form_type_second_part and shouldn't get here. */
     default:
@@ -1703,7 +1660,7 @@ has no user name.
 {
   char 	*s;
 
-  if (type != NULL) {
+  if (type != NULL && C_dialect == C_dialect_cplusplus) {
     if (type->source_corresp.name != NULL) {
       s = type->source_corresp.name;
     } else {
@@ -1731,18 +1688,13 @@ Add the first of possibly two parts of a type reference.
     /* Recursive call to print out any lower indirections. */
     form_type_first_part(local_type, /*need_parens=*/FALSE, seg_ptr);
     /* Print out the star for this indirection. */
-#ifdef CFE
     if (skip_typerefs(type)->variant.pointer.is_reference) {
       /* This is a C++ reference type */
       add_string_to_segment("&", seg_ptr);
     } else {
-#endif /* ifdef CFE */
       add_string_to_segment("*", seg_ptr);
-#ifdef CFE
     }  /* if */
     form_type_qualifier(type, seg_ptr);
-#endif /* ifdef CFE */
-#ifdef CFE
   } else if (type->kind == (a_type_kind)tk_array) {
     form_type_first_part(type->variant.array.element_type,
                          /*need_parens=*/TRUE, seg_ptr);
@@ -1753,14 +1705,11 @@ Add the first of possibly two parts of a type reference.
     form_class_name(type->variant.ptr_to_member.class_of_which_a_member,
                     seg_ptr);
     add_string_to_segment("*", seg_ptr);
-#endif /* ifdef CFE */
   } else if (type->kind == (a_type_kind)tk_routine) {
     form_type_first_part(type->variant.routine.return_type,
                          /*need_parens=*/FALSE, seg_ptr);
   } else {
-#ifdef CFE
     form_type_qualifier(type, seg_ptr);
-#endif /* ifdef CFE */
     form_type_specifier(type, seg_ptr);
   }  /* if */
   if (need_parens) {
@@ -1789,7 +1738,6 @@ array, print out the dimension information.
     }  /* if */
     form_type_second_part(local_type->variant.pointer.type,
                           /*need_parens=*/FALSE, seg_ptr);
-#ifdef CFE
   } else if (type->kind == (a_type_kind)tk_array) {
     if (need_parens) {
       add_string_to_segment(")", seg_ptr);
@@ -1819,7 +1767,6 @@ array, print out the dimension information.
     }  /* if */
     form_type_second_part(type->variant.ptr_to_member.type,
                           /*needs_parens=*/TRUE, seg_ptr);
-#endif /* ifdef CFE */
   } else if (type->kind == (a_type_kind)tk_routine) {
     if (need_parens) {
       add_string_to_segment(")", seg_ptr);
@@ -1841,7 +1788,6 @@ Add the parameter list of a function to the type string being formatted.
   a_boolean		has_ellipsis;
 
   add_string_to_segment("(", seg_ptr);
-#ifdef CFE
   if (suppl_ptr->prototyped) {
     has_ellipsis = suppl_ptr->has_ellipsis;
     for (param_ptr = suppl_ptr->param_type_list;
@@ -1857,7 +1803,6 @@ Add the parameter list of a function to the type string being formatted.
       add_string_to_segment("...", seg_ptr);
     }  /* if */
   }  /* if */
-#endif /* CFE */
   add_string_to_segment(")", seg_ptr);
 }  /* form_param_list */
 
@@ -1919,7 +1864,7 @@ Format the name of the symbol pointed to by "sym" in the message segment
 described by "seg_ptr".
 */
 {
-  a_type_ptr        type = (a_type_ptr)NULL;
+  a_type_ptr        type = NULL;
 
   add_string_to_segment("\"", seg_ptr);
   switch (sym->kind) {
@@ -1983,7 +1928,10 @@ simple_symbol_name:
     case sk_member_function:
       type = routine_symbol_type(sym);
 function_name:
-      if (seg_ptr->variant.symbol.full_type && type != NULL) {
+      if (seg_ptr->variant.symbol.full_type && 
+          type != NULL &&
+          ! is_constructor_symbol(sym) &&
+          ! is_destructor_symbol(sym)) {
         form_type_first_part(type, /*need_parens=*/FALSE, seg_ptr);
         add_string_to_segment(" ", seg_ptr);
       }  /* if */
@@ -2049,8 +1997,8 @@ Allocate and initialize the fixed part a new message segment.
   msg_segment_ptr	msg;
 
   msg = (msg_segment_ptr)alloc_general(sizeof(msg_segment));
-  msg->next       = (msg_segment_ptr)NULL;
-  msg->segment    = (char *)NULL;
+  msg->next       = NULL;
+  msg->segment    = NULL;
   msg->length     = 0;
   msg->max_length = 0;
   msg->sequence   = 1;
@@ -2065,14 +2013,16 @@ segment list.  The global variable error_message_head points to the first
 segment descriptor.  Parameter substitutions are specified in the message
 template beginning with a "%".  Accepted substitution designations are:
 
-	sx		- user provided string insertion.
+	s[q]x		- user provided string insertion.
 	tx		- type insertion in double quotes.
         n[f|o][d]x	- symbol name insertion in double quotes.
 
 where "x" is an optional number in the range of 1 to MAX_ERR_SEG_KIND_PER_MSG
 (defaulted to 1) that indicates which of multiple types, strings, or
-symbols substitutions to be used.  At present only a single argument
-of any type is used.
+symbols substitutions to be used.
+
+String inserts may have an optional "q" modifier which specifies that the
+string is to be enclosed in quotes.
 
 Symbol name expansions may have one of the mutually exclusive optional
 modifiers:
@@ -2080,9 +2030,9 @@ modifiers:
 	f	- full object, complete type and object name.
 	o	- name or qualified name only.
 
-Symbol name expansions may have a declaration position modifier which requests
-that the declaration position of the symbol be added at the end of the
-expansion.
+Symbol name expansions may have a declaration position modifier"d" which
+requests that the declaration position of the symbol be added at the end
+of the expansion.
 
 The linked list of message segments needed for the text and parameter
 substitutions to form the desired diagnostic message is constructed.
@@ -2109,15 +2059,20 @@ substitutions to form the desired diagnostic message is constructed.
         msg_ptr++;
         switch (*msg_ptr) {
           case 's':
-            curr_segment->kind = msk_user_string;
+            curr_segment->kind = (a_message_segment_kind)msk_user_string;
+            curr_segment->variant.string.quoted = FALSE;
             msg_ptr++;
+            if (*msg_ptr == 'q') {
+              curr_segment->variant.string.quoted = TRUE;
+              msg_ptr++;
+            }
             goto check_for_seq_number;
           case 't':
-            curr_segment->kind = msk_type;
+            curr_segment->kind = (a_message_segment_kind)msk_type;
             msg_ptr++;
             goto check_for_seq_number;
           case 'n':
-            curr_segment->kind = msk_symbol;
+            curr_segment->kind = (a_message_segment_kind)msk_symbol;
             curr_segment->variant.symbol.full_type = FALSE;
             curr_segment->variant.symbol.name_only = FALSE;
             curr_segment->variant.symbol.decl_pos = FALSE;
@@ -2154,7 +2109,7 @@ check_for_seq_number:
 
       default:
         /* This is the first character of a text segment. */
-        curr_segment->kind = msk_error_text_part;
+        curr_segment->kind = (a_message_segment_kind)msk_error_text_part;
         curr_segment->variant.msg_part = msg_ptr;
         end_ptr = strchr(msg_ptr, '%');
         if (end_ptr == NULL) {
@@ -2181,7 +2136,7 @@ check_for_seq_number:
   /* Having reached the end of the diagnostic message template, terminate
      the message segment chain by setting the current segment kind to
      msk_last. */
-  curr_segment->kind = msk_last;
+  curr_segment->kind = (a_message_segment_kind)msk_last;
 }  /* construct_message_segments */
 
 
@@ -2400,9 +2355,9 @@ a diagnostic message.
 
   /* Initialize the message substitution kind array. */
   for (i = 1; i <= MAX_ERR_SEG_KIND_PER_MSG; i++) {
-    error_msg_strings[i] = (char *)NULL;
-    error_msg_types[i] = (a_type_ptr)NULL;
-    error_msg_syms[i] = (a_symbol_ptr)NULL;
+    error_msg_strings[i] = NULL;
+    error_msg_types[i] = NULL;
+    error_msg_syms[i] = NULL;
   }  /* for */
   }  /* init_error_params */
 
@@ -2531,7 +2486,7 @@ message segments pointed to by the global variable error_msg_head.
        between a quote and a file name). */
 
     for (curr_seg = error_message_head;
-         curr_seg->kind != msk_last;
+         curr_seg->kind != (a_message_segment_kind)msk_last;
          curr_seg = curr_seg->next) {
       switch (curr_seg->kind) {
         case msk_error_text_part:
@@ -2539,13 +2494,20 @@ message segments pointed to by the global variable error_msg_head.
                         &line_len, /*wrap=*/TRUE);
           break;
         case msk_user_string:
-          write_message(error_msg_strings[curr_seg->sequence], -1, stderr,
-                        &line_len, /*wrap=*/TRUE);
+          { char  *msg;
+
+            if (curr_seg->variant.string.quoted) {
+              msg = curr_seg->segment;
+            } else {
+              msg = error_msg_strings[curr_seg->sequence];
+            }  /* if */
+            write_message(msg, -1, stderr, &line_len, /*wrap=*/TRUE);
+          }
           break;
         case msk_type:
         case msk_symbol:
-          write_message(curr_seg->segment, -1, stderr,
-                        &line_len, /*wrap=*/TRUE);
+          write_message(curr_seg->segment, -1, stderr, &line_len,
+                        /*wrap=*/TRUE);
           break;
       }  /* switch */
     }  /* for */
@@ -2613,7 +2575,7 @@ message segments pointed to by the global variable error_msg_head.
       /* Put out the error message text. */
       line_len = 0;  /* Meaningless. */
       for (curr_seg = error_message_head;
-           curr_seg->kind != msk_last;
+           curr_seg->kind != (a_message_segment_kind)msk_last;
            curr_seg = curr_seg->next) {
         switch (curr_seg->kind) {
           case msk_error_text_part:
@@ -2621,8 +2583,15 @@ message segments pointed to by the global variable error_msg_head.
                           f_raw_listing, &line_len, /*wrap=*/FALSE);
             break;
           case msk_user_string:
-            write_message(error_msg_strings[curr_seg->sequence], -1,
-                          f_raw_listing, &line_len, /*wrap=*/FALSE);
+            { char  *msg;
+
+              if (curr_seg->variant.string.quoted) {
+                msg = curr_seg->segment;
+              } else {
+                msg = error_msg_strings[curr_seg->sequence];
+              }  /* if */
+              write_message(msg, -1, f_raw_listing, &line_len, /*wrap=*/FALSE);
+            }
             break;
           case msk_type:
           case msk_symbol:
@@ -2690,17 +2659,18 @@ An internal error has occurred.  Write the given message and abort.
 
 
 void str_command_line_error(char *error_message,
-                            char *fill_in_string)
+                            char *concat_string)
 /*
-Write a command-line error message with a fill-in string, and terminate the
-compilation.
+Write a command-line error message concatenated with concat_string, and
+terminate the compilation.
 */
 {
   error_position.seq = 0;
   error_position.column = SP_COL_CMD_LINE;
   init_error_params();
-  error_msg_strings[1] = fill_in_string;
-  construct_message_segments(error_message);
+  error_msg_strings[1] = error_message;
+  error_msg_strings[2] = concat_string;
+  construct_message_segments("%s1%s2");
 
   write_diagnostic(&error_position, es_command_line_error);
 }  /* str_command_line_error */
@@ -2737,18 +2707,25 @@ diagnostic is written.
   /* Walk through the message segments and complete any required 
      expansion. */
   for (curr_seg = error_message_head;
-       curr_seg->kind != msk_last;
+       curr_seg->kind != (a_message_segment_kind)msk_last;
        curr_seg = curr_seg->next ) {
     switch (curr_seg->kind) {
       /* No processing is needed for msk_error_text_part. */
 
-#if CHECKING
       case msk_user_string:
+#if CHECKING
         if (error_msg_strings[curr_seg->sequence] == NULL) {
           internal_error("diag_message: missing string substitution");
         }  /* if */
-        break;
 #endif /* CHECKING */
+        if (curr_seg->variant.string.quoted) {
+          /* Rebuild the user string surrounded by double quotes. */
+          add_string_to_segment("\"", curr_seg);
+          add_string_to_segment(error_msg_strings[curr_seg->sequence],
+                                curr_seg);
+          add_string_to_segment("\"", curr_seg);
+        }  /* if */
+        break;
         
       case msk_type:
 #if CHECKING
