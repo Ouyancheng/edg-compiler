@@ -1956,6 +1956,14 @@ whole process.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
+This switch controls whether designated initializers (a C9X feature)
+are lowered to standard C.
+*/
+#ifndef LOWER_DESIGNATED_INITIALIZERS
+#define LOWER_DESIGNATED_INITIALIZERS TRUE
+#endif /* ifndef LOWER_DESIGNATED_INITIALIZERS */
+
+/*
 This switch controls whether or not "guard" code is placed around
 initializations of static data members of templates.  Such guard code is
 necessary if template instantiation resolution is done by instantiating

@@ -149,6 +149,10 @@ extern void lower_microsoft_C_mode_nonconstant_aggregate_init(
 #endif /* LOWER_MICROSOFT_NONCONSTANT_AGGREGATE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+#if LOWER_DESIGNATED_INITIALIZERS
+extern void lower_designated_initializers(a_constant_ptr init_con);
+#endif /* LOWER_DESIGNATED_INITIALIZERS */
+
 extern void lower_file_scope_dynamic_inits(void);
 
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN

@@ -5523,6 +5523,313 @@ init_stmt is the stmk_init statement.
 
 #endif /* LOWER_MICROSOFT_NONCONSTANT_AGGREGATE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if LOWER_DESIGNATED_INITIALIZERS
+
+/*
+Structure used to hold information about the current position in
+an aggregate, for lowering of designated initializers.
+*/
+typedef struct an_aggregate_position {
+  a_boolean	array_init;
+			/* TRUE if the aggregate is an array, FALSE for
+			   a struct/union. */
+  a_boolean	union_init;
+			/* TRUE if the entity being initialized is a union. */
+  a_field_ptr	curr_field;
+			/* Current field, when array_init == FALSE. */
+  a_targ_size_t	curr_elem;
+			/* Current element in the array, when array_init ==
+			   TRUE. */
+  a_type_ptr	member_type;
+			/* Current member type. */
+} an_aggregate_position;
+
+
+static void set_aggregate_position_for_field(a_field_ptr           field,
+                                             an_aggregate_position *aggr_pos)
+/*
+Set *aggr_pos to indicate the position of the given field.
+*/
+{
+  aggr_pos->curr_field = field;
+  aggr_pos->member_type = field->type;
+}  /* set_aggregate_position_for_field */
+
+
+static void init_aggregate_position(a_constant_ptr        aggr_con,
+                                    an_aggregate_position *aggr_pos)
+/*
+Initialize the indicated aggregate position block, indicating the
+position of the first member of the aggregate constant aggr_con.
+*/
+{
+  a_type_ptr aggr_type;
+
+  check_assertion(aggr_con != NULL &&
+                  aggr_con->kind == (a_constant_repr_kind)ck_aggregate);
+  aggr_type = f_skip_typerefs(aggr_con->type);
+  aggr_pos->array_init = (aggr_type->kind == (a_type_kind)tk_array);
+  aggr_pos->union_init = (aggr_type->kind == (a_type_kind)tk_union);
+  aggr_pos->curr_field = NULL;
+  aggr_pos->curr_elem = 0;
+  aggr_pos->member_type = NULL;
+  if (aggr_pos->array_init) {
+    /* Initializing members of an array. */
+    aggr_pos->member_type = f_skip_typerefs(array_element_type(aggr_type));
+  } else {
+    /* Initializing members of a struct or union. */
+    a_field_ptr first_field =
+                    next_initializable_field(
+                             aggr_type->variant.class_struct_union.field_list);
+    if (first_field != NULL) {
+      set_aggregate_position_for_field(first_field, aggr_pos);
+    }  /* if */
+  }  /* if */
+}  /* init_aggregate_position */
+
+
+static void advance_aggregate_position_to_next_member(
+                                               an_aggregate_position *aggr_pos)
+/*
+Advance the indicated position within an aggregate to the next member of
+the aggregate.
+*/
+{
+  if (aggr_pos->array_init) {
+    aggr_pos->curr_elem++;
+  } else {
+    a_field_ptr field = aggr_pos->curr_field;
+    check_assertion(field != NULL);
+    field = field->next;
+    check_assertion(field != NULL);
+    set_aggregate_position_for_field(field, aggr_pos);
+  }  /* if */
+}  /* advance_aggregate_position_to_next_member */
+
+
+static a_constant_ptr make_init_zero_constant(a_type_ptr type)
+/*
+Make and return an unshared constant that is a zero of the indicated type.
+If the type is an aggregate, return an aggregate constant that initializes
+the first member of the aggregate.
+*/
+{
+  a_constant_ptr con;
+
+  if (!is_aggregate_or_union_type(type)) {
+    /* Simple scalar case. */
+    a_constant zero_constant;
+    make_zero_of_proper_type(type, &zero_constant);
+    con = alloc_unshared_constant(&zero_constant);
+  } else {
+    /* Aggregate type. */
+    an_aggregate_position aggr_pos;
+    con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+    con->type = type;
+    init_aggregate_position(con, &aggr_pos);
+    /* Check that there is at least one initializable member. */
+    if (aggr_pos.member_type != NULL) {
+      con->variant.aggregate.first_constant =
+      con->variant.aggregate.last_constant =
+                                 make_init_zero_constant(aggr_pos.member_type);
+    }  /* if */
+  }  /* if */
+  return con;
+}  /* make_init_zero_constant */
+
+
+/*
+Return TRUE if the aggregate position aggr_pos and the ck_designator
+constant con indicate the same aggregate member.
+*/
+#define same_aggregate_member(aggr_pos, con) \
+  ((aggr_pos)->array_init ? \
+        ((con)->variant.designator.array_element == (aggr_pos)->curr_elem) : \
+        ((con)->variant.designator.field == (aggr_pos)->curr_field))
+
+
+static void find_designator_insert_point(a_constant_ptr desig_con,
+                                         a_constant_ptr aggr_con,
+                                         a_constant_ptr *previous_con,
+                                         a_constant_ptr *earlier_con)
+/*
+The ck_designator constant desig_con appeared at the top level of the
+aggregate constant aggr_con.  It and the constants following it have been
+removed from the aggregate.  Determine the right insert point to re-insert
+the constants following, and set *previous_con to the constant after which
+to insert (or NULL for insertion at the beginning of the aggregate).
+If the new constants will overwrite earlier initialization constants,
+set *earlier_con to point to the first of the constants being
+overwritten; otherwise, set it to NULL.
+*/
+{
+  an_aggregate_position aggr_pos;
+  a_constant_ptr        prev_con, con;
+
+  check_assertion(desig_con != NULL &&
+                  desig_con->kind == (a_constant_repr_kind)ck_designator);
+  init_aggregate_position(aggr_con, &aggr_pos);
+  con = aggr_con->variant.aggregate.first_constant;
+  prev_con = NULL;
+  /* Find the right insert point. */
+  while (!same_aggregate_member(&aggr_pos, desig_con)) {
+    if (con == NULL && !aggr_pos.union_init) {
+      /* Inserting after the end of the aggregate constant list.
+         Add a zero constant for a skipped member. */
+      a_constant_ptr zero_con = make_init_zero_constant(aggr_pos.member_type);
+      if (prev_con == NULL) {
+        aggr_con->variant.aggregate.first_constant = zero_con;
+      } else {
+        prev_con->next = zero_con;
+      }  /* if */
+      con = zero_con;
+    }  /* if */
+    prev_con = con;
+    advance_aggregate_position_to_next_member(&aggr_pos);
+    if (!aggr_pos.union_init) con = con->next;
+  }  /* while */
+  *previous_con = prev_con;
+  *earlier_con = con;
+}  /* find_designator_insert_point */           
+  
+
+static void lower_aggregate_designated_initializers(
+                                               a_constant_ptr aggr_con,
+                                               a_constant_ptr earlier_aggr_con)
+/*
+Lower designated initializers in the indicated aggregate constant to
+standard C.  If earlier_aggr_con is non-NULL, aggr_con is a replacement
+for earlier_aggr_con (it initializes the same aggregate, overwriting
+the earlier initialization).  The constants under earlier_aggr_con
+have already had their designated initializers lowered.
+*/
+{
+  a_constant_ptr con = aggr_con->variant.aggregate.first_constant;
+  a_constant_ptr prev_con, earlier_con;
+
+  if (earlier_aggr_con != NULL) {
+    earlier_con = earlier_aggr_con->variant.aggregate.first_constant;
+  } else {
+    earlier_con = NULL;
+  }  /* if */
+  prev_con = NULL;
+  /* The outer loop is repeated for each ck_designator list found. */
+  for (;;) {
+    /* Go through the list of constants pointed to by con, looking for
+       a ck_designator entry that must be rewritten.  If there is a
+       list of previous initialization constants being overwritten
+       (earlier_con != NULL), preserve any part of the old initialization
+       that is needed. */
+    for (;
+         con != NULL && con->kind != (a_constant_repr_kind)ck_designator;
+         prev_con = con, con = con->next) {
+      if (con->kind == (a_constant_repr_kind)ck_aggregate) {
+        /* Process a sub-aggregate. */
+        lower_aggregate_designated_initializers(con, earlier_con);
+      } else {
+        /* Non-aggregate constant. */
+        if (earlier_con != NULL) {
+          /* con overwrites an earlier initialization at the same location,
+             given by earlier_con. */
+          if (earlier_con->kind != (a_constant_repr_kind)ck_dynamic_init) {
+            /* The earlier constant has no side effects, so it is just
+               replaced by the new one. */
+          } else {
+            /* The earlier constant has side effects, so keep the old and
+               new initializations under a comma expression. */
+            an_expr_node_ptr   earlier_expr, expr;
+            a_dynamic_init_ptr earlier_dip = earlier_con->variant.dynamic_init;
+            a_dynamic_init_ptr dip;
+            check_assertion(earlier_dip->kind ==
+                                          (a_dynamic_init_kind)dik_expression);
+            earlier_expr = earlier_dip->variant.expression;
+            if (con->kind == (a_constant_repr_kind)ck_dynamic_init) {
+              dip = con->variant.dynamic_init;
+              check_assertion(dip->kind==(a_dynamic_init_kind)dik_expression);
+              expr = dip->variant.expression;
+            } else {
+              expr = alloc_node_for_constant(con);
+              set_constant_kind(con, (a_constant_repr_kind)ck_dynamic_init);
+              dip = con->variant.dynamic_init = earlier_dip;
+            }  /* if */
+            expr = make_comma_node(earlier_expr, expr);
+            dip->variant.expression = expr;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      if (earlier_con != NULL) earlier_con = earlier_con->next;
+    }  /* for */
+    /* End of list found, either the real end of list or a ck_designator
+       which ends this part of the list. */
+    if (con != NULL) {
+      check_assertion(con->kind == (a_constant_repr_kind)ck_designator);
+      /* Disconnect the ck_designator and the list that follows it from
+         the aggregate. */
+      if (prev_con == NULL) {
+        aggr_con->variant.aggregate.first_constant = NULL;
+      } else {
+        prev_con->next = NULL;
+      }  /* if */
+    }  /* if */
+    /* Keep the end of list pointer up to date. */
+    aggr_con->variant.aggregate.last_constant = prev_con;
+    if (earlier_con != NULL) {
+      /* There are entries on the earlier constants list that initialize
+         members beyond the end of the new list.  Move those initializations
+         to the new list. */
+      if (prev_con == NULL) {
+        aggr_con->variant.aggregate.first_constant = earlier_con;
+      } else {
+        prev_con->next = earlier_con;
+      }  /* if */
+      /* Find the end of the list. */
+      while (earlier_con->next != NULL) earlier_con = earlier_con->next;
+      aggr_con->variant.aggregate.last_constant = earlier_con;
+    }  /* if */
+    /* Exit the outer loop unless we've run into a ck_designator. */
+    if (con == NULL) break;
+    check_assertion(con->kind == (a_constant_repr_kind)ck_designator);
+    /* A ck_designator constant indicates a skip to a new initialization
+       position within the aggregate. */
+    /* Find the right point to insert the constants after the designator. */
+    find_designator_insert_point(con, aggr_con, &prev_con, &earlier_con);
+    /* Advance to the constant following the ck_designator. */
+    con = con->next;
+    check_assertion(con != NULL &&
+                    con->kind != (a_constant_repr_kind)ck_designator);
+    /* Relink the previous constant (at the insert point) to the first
+       constant following the ck_designator. */
+    if (prev_con == NULL) {
+      aggr_con->variant.aggregate.first_constant = con;
+    } else {
+      prev_con->next = con;
+    }  /* if */
+  }  /* for */
+#if EXPENSIVE_CHECKING
+  for (con = aggr_con->variant.aggregate.first_constant;
+       con != NULL && con->next != NULL;
+       con = con->next) {}
+  check_assertion(aggr_con->variant.aggregate.last_constant == con);
+#endif /* EXPENSIVE_CHECKING */
+}  /* lower_aggregate_designated_initializers */
+
+
+void lower_designated_initializers(a_constant_ptr init_con)
+/*
+If the initial value constant indicated by init_con contains any
+designated initializers, rewrite them as standard C.  Note that this is
+called in C mode.
+*/
+{
+  check_assertion(C_mode());
+  if (!suppress_il_lowering && total_errors == 0) {
+    if (init_con->kind == (a_constant_repr_kind)ck_aggregate) {
+      lower_aggregate_designated_initializers(init_con, (a_constant *)NULL);
+    }  /* if */
+  }  /* if */
+}  /* lower_designated_initializers */
+
+#endif /* LOWER_DESIGNATED_INITIALIZERS */
 
 static a_variable_ptr implicit_virtual_base_parameter(
                                                 a_type_ptr     class_type,
