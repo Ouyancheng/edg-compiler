@@ -4172,7 +4172,12 @@ This routine is only used in C++ mode.
     return_type = return_type_of(conv_routine_type);
     result_is_an_lvalue = is_reference_type(conv_routine_type->
                                                   variant.routine.return_type);
-    if (dest_type != NULL && builtin_types_allowed == BTK_NONE) {
+    if (need_lvalue_result && !result_is_an_lvalue) {
+      /* We need an lvalue result but the conversion function does
+         not return one.  This is tested again later; the test here is for
+         speed. */
+      /* compatible = FALSE; -- already set. */
+    } else if (dest_type != NULL && builtin_types_allowed == BTK_NONE) {
       /* We're looking for a specific type. */
       a_boolean types_match_ignoring_qualifiers =
               types_are_compatible_ignoring_qualifiers(dest_type, return_type);
@@ -4321,7 +4326,8 @@ This routine is only used in C++ mode.
     }  /* if */
     if (need_lvalue_result && !result_is_an_lvalue) {
       /* We need an lvalue result but the conversion function does
-         not return one. */
+         not return one.  This was tested previously, but since then
+         result_is_an_lvalue may have been changed to FALSE. */
       compatible = FALSE;
     }  /* if */
     if (compatible) {
