@@ -303,18 +303,20 @@ is TRUE, include type information for function parameters.
   }  /* if */
   db_name_str_buffer->size = 0;
 #if !STANDALONE_UTILITY_PROGRAM
-  /* Generate a translation unit name if this entity's symbol is
-     not from the primary translation unit. */
-  trans_unit_name = db_symbol_trans_unit((a_symbol_ptr)scp->assoc_info);
-  if (trans_unit_name != NULL) {
-    add_char_to_text_buffer(db_name_str_buffer, '[');
-    if (!in_secondary_trans_unit(scp)) {
-      /* This entity was in a secondary translation unit, but has been
-         copied to the primary IL. */
-      add_string_to_text_buffer(db_name_str_buffer, "copied from ");
+  if (in_front_end) {
+    /* Generate a translation unit name if this entity's symbol is
+       not from the primary translation unit. */
+    trans_unit_name = db_symbol_trans_unit((a_symbol_ptr)scp->assoc_info);
+    if (trans_unit_name != NULL) {
+      add_char_to_text_buffer(db_name_str_buffer, '[');
+      if (!in_secondary_trans_unit(scp)) {
+        /* This entity was in a secondary translation unit, but has been
+           copied to the primary IL. */
+        add_string_to_text_buffer(db_name_str_buffer, "copied from ");
+      }  /* if */
+      add_string_to_text_buffer(db_name_str_buffer, trans_unit_name);
+      add_char_to_text_buffer(db_name_str_buffer, ']');
     }  /* if */
-    add_string_to_text_buffer(db_name_str_buffer, trans_unit_name);
-    add_char_to_text_buffer(db_name_str_buffer, ']');
   }  /* if */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
   /* Generate the name of this entity. */
