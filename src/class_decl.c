@@ -548,7 +548,7 @@ ambiguity.
            bcp refers) are the same -- i.e., both ovfp and ovfp->next
            represent an override of the same function. */
         a_symbol_ptr sym = (a_symbol_ptr)vfp->source_corresp.assoc_info;
-        str_error(ec_ambiguous_virtual_function_override, name_of_symbol(sym));
+        sym_error(ec_ambiguous_virtual_function_override, sym);
         /* Remove the next entry and any successors that also have the same
            virtual function number. */
         for (;;) {
@@ -1942,8 +1942,8 @@ or struct definition.  The syntax is
         /* The symbol in the locator is a nested class that is not visible
            according to the ARM lookup rules but is returned in support of
            the nested class anachronism (ARM 18.3.5). Issue a warning. */
-        str_warning(ec_nested_class_anachronism,
-                    name_of_symbol(locator_for_curr_id.specific_symbol));
+        sym_warning(ec_nested_class_anachronism,
+                    locator_for_curr_id.specific_symbol);
         }  /* if */
       if (type_ptr->kind == (a_type_kind)tk_union) {
         /* We just ignore the base classes declared for a union.  The error
@@ -3524,9 +3524,10 @@ function, return TRUE if at least one of the functions qualifies.  Set
 
 */
 {
-  a_type_ptr   tp, class_type;
-  a_boolean    sym_is_overloaded;
-  a_boolean    found_assignment_operator_for_copy = FALSE;
+  a_type_ptr        tp, class_type;
+  a_param_type_ptr  ptp;
+  a_boolean         sym_is_overloaded;
+  a_boolean         found_assignment_operator_for_copy = FALSE;
 
   db_enter(4, "assignment_operator_for_copy_exists");
   if (sym == NULL) {
@@ -3541,35 +3542,38 @@ function, return TRUE if at least one of the functions qualifies.  Set
     /* Loop through the one or more symbols looking for one with the right
        argument type. */
     for (; sym != NULL; sym = sym_is_overloaded ? sym->next : NULL) {
-      tp = skip_typerefs(routine_symbol_type(sym)->
-                            variant.routine.extra_info->param_type_list->type);
-      /* We are looking for a reference to the current class. */
-      if (is_reference_type(tp)) {
-        tp = type_pointed_to(tp);
-        /* Look for an exact match between tp and either the parent class or
-           a base class of the parent class.  (A strict reading of the ARM
-           seems to disallow the base class match.) */
-        if (is_class_struct_union_type(tp) &&
-            is_same_class_or_base_class_thereof(class_type, tp)) {
-          /* Found it. */
-          found_assignment_operator_for_copy = TRUE;
-          /* Now see if it a const qualified object can be copied.  If not
-             keep looping in case there's another that accepts a const
-             object. */
-          if (is_const_qualified_type(tp)) {
-            *const_okay = TRUE;
-            break;
+      ptp = routine_symbol_type(sym)->
+                                 variant.routine.extra_info->param_type_list;
+      if (ptp != NULL) {
+        tp = skip_typerefs(ptp->type);
+        /* We are looking for a reference to the current class. */
+        if (is_reference_type(tp)) {
+          tp = type_pointed_to(tp);
+          /* Look for an exact match between tp and either the parent class or
+             a base class of the parent class.  (A strict reading of the ARM
+             seems to disallow the base class match.) */
+          if (is_class_struct_union_type(tp) &&
+              is_same_class_or_base_class_thereof(class_type, tp)) {
+            /* Found it. */
+            found_assignment_operator_for_copy = TRUE;
+            /* Now see if it a const qualified object can be copied.  If not
+               keep looping in case there's another that accepts a const
+               object. */
+            if (is_const_qualified_type(tp)) {
+              *const_okay = TRUE;
+              break;
+            }  /* if */
           }  /* if */
+        } else if (is_class_struct_union_type(tp) &&
+                   is_same_class_or_base_class_thereof(class_type, tp)) {
+          /* The argument is not the class object by reference but rather
+             the class object by value.  We accept this, but it presents a
+             special set of problems. */
+          found_assignment_operator_for_copy = TRUE;
+          /* An argument passed by value is not modified, so the assignment
+             function can accept a const source operand. */
+          *const_okay = TRUE;
         }  /* if */
-      } else if (is_class_struct_union_type(tp) &&
-                 is_same_class_or_base_class_thereof(class_type, tp)) {
-        /* The argument is not the class object by reference but rather
-           the class object by value.  We accept this, but it presents a
-           special set of problems. */
-        found_assignment_operator_for_copy = TRUE;
-        /* An argument passed by value is not modified, so the assignment
-           function can accept a const source operand. */
-        *const_okay = TRUE;
       }  /* if */
     }  /* if */
   }  /* for */
@@ -4836,17 +4840,17 @@ assignment operator.
     /* No applicable assignment operator function. */
     if (const_object_required && !volatile_object_required) {
       /* The common case:  missing const assignment operator function. */
-      pos_st_error(ec_missing_const_assignment_operator, err_pos,
-                   class_type->source_corresp.name);
+      pos_sy_error(ec_missing_const_assignment_operator, err_pos,
+                   (a_symbol_ptr)class_type->source_corresp.assoc_info);
     } else {
       /* Unusual case: volatile or const-volatile expected. */
-      pos_st_error(ec_no_suitable_assignment_operator, err_pos,
-                   class_type->source_corresp.name);
+      pos_sy_error(ec_no_suitable_assignment_operator, err_pos,
+                   (a_symbol_ptr)class_type->source_corresp.assoc_info);
     }  /* if */
   } else if (ambiguous) {
     /* More than one applicable assignment operator function. */
-    pos_st_error(ec_ambiguous_assignment_operator, err_pos,
-                 class_type->source_corresp.name);
+    pos_sy_error(ec_ambiguous_assignment_operator, err_pos,
+                 (a_symbol_ptr)class_type->source_corresp.assoc_info);
   } else {
     /* Exactly one assignment operator function is best. */
     /* Check that the function is accessible and mark it referenced. */
@@ -5137,8 +5141,8 @@ operator routine or do bitwise assignment.
      base class with a private (which we interpret to *really* mean
      nonpublic) operator=() (ARM 12.8). */
   if (err) {
-    str_error(ec_missing_user_defined_assignment_for_copy,
-              class_type->source_corresp.name);
+    sym_error(ec_missing_user_defined_assignment_for_copy,
+              (a_symbol_ptr)class_type->source_corresp.assoc_info);
   }  /* if */
   db_exit();
   return;
@@ -5233,18 +5237,32 @@ destructors, assignment operators, and conversion functions.
 #endif /* CHECKING */
   /* Check for accessibility. */
   if (!have_access_to_symbol(sym)) {
-    if (rp->special_kind == (a_special_function_kind)sfk_conversion) {
-      error(ec_inaccessible_conversion_function);
-    } else {
-      if (rp->special_kind == (a_special_function_kind)sfk_constructor) {
+    switch (rp->special_kind) {
+      case sfk_conversion:
+        err_code = ec_inaccessible_conversion_function;
+        break;
+      case sfk_constructor:
         err_code = ec_inaccessible_constructor;
-      } else if (rp->special_kind == (a_special_function_kind)sfk_destructor) {
+        break;
+      case sfk_destructor:
         err_code = ec_inaccessible_destructor;
-      } else {
-        err_code = ec_inaccessible_assignment_operator;
-      }  /* if */
-      str_error(err_code, name_of_symbol(sym));
-    }  /* if */
+        break;
+      case sfk_operator:
+        if (rp->opname_kind == (an_opname_kind)onk_assign) {
+          err_code = ec_inaccessible_assignment_operator;
+          break;
+        }  /* if */
+        /* If it is not an assignment operator, fall through to the internal
+           error. */
+      default:
+#if CHECKING
+        internal_error(
+               "reference_to_implicitly_invoked_function: unexpected sfkind");
+#else
+        err_code = ec_no_error;
+#endif /* CHECKING */
+    }  /* switch */
+    sym_error(err_code, sym);
   }  /* if */
   /* Mark the IL entry referenced. */
   rp->source_corresp.referenced = TRUE;
@@ -5637,8 +5655,7 @@ and "class_type" indicates the class in which the declaration occurs.
       if (!max_access_of_overloaded_function(sym, &function_access)) {
         /* Functions overloading this name were not all declared with the
            same access. */
-        str_error(ec_bad_access_adjustment_with_overloading,
-                  name_of_symbol(sym));
+        sym_error(ec_bad_access_adjustment_with_overloading, sym);
         goto done;
       }  /* if */
       if (immediate_progenitor_sym->kind == (a_symbol_kind)sk_projection) {
@@ -6588,15 +6605,15 @@ next_declaration:
          delete() or vice versa. */
       if (cssp->has_operator_new != cssp->has_operator_delete) {
 #if 0
-        str_warning(cssp->has_operator_new ?
+        sym_warning(cssp->has_operator_new ?
                       ec_class_with_op_new_but_no_op_delete :
                       ec_class_with_op_delete_but_no_op_new,
-                    class_type->source_corresp.name);
+                    tag_sym);
 #else
-        str_remark(cssp->has_operator_new ?
+        sym_remark(cssp->has_operator_new ?
                      ec_class_with_op_new_but_no_op_delete :
                      ec_class_with_op_delete_but_no_op_new,
-                   class_type->source_corresp.name);
+                   tag_sym);
 #endif /* if 0 */
       }  /* if */
       /* Issue a warning on a class with virtual functions but no virtual
@@ -6607,8 +6624,11 @@ next_declaration:
             !cssp->destructor->variant.routine->is_virtual) {
           /* The class has virtual functions and a destructor, but the latter
              isn't virtual. */
-          str_warning(ec_class_with_virtual_func_but_nonvirtual_dtor,
-                      class_type->source_corresp.name);
+#if 0
+          sym_warning(ec_class_with_virtual_func_but_nonvirtual_dtor, tag_sym);
+#else
+          sym_remark(ec_class_with_virtual_func_but_nonvirtual_dtor, tag_sym);
+#endif /* if 0 */
         }  /* if */
       }  /* if */
       /* Issue a warning on a class with all private constructors and no
@@ -6635,11 +6655,9 @@ next_declaration:
           if (ctor_sym == NULL) {
             /* All constructors are private. */
 #if 0
-            str_warning(ec_no_access_to_constructors,
-                        class_type->source_corresp.name);
+            sym_warning(ec_no_access_to_constructors, tag_sym);
 #else
-            str_remark(ec_no_access_to_constructors,
-                       class_type->source_corresp.name);
+            sym_remark(ec_no_access_to_constructors, tag_sym);
 #endif /* if 0 */
           }  /* if */
         }  /* if */
