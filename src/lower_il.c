@@ -2451,7 +2451,7 @@ Do IL lowering of a pointer-to-member constant.
   a_memory_region_number
                    region_to_switch_back_to = NULL_region_number;
 
-  /* A pointer-to-data-member becomes a short; a pointer-to-member-function
+  /* A pointer-to-data-member becomes an integer; a pointer-to-member-function
      becomes a ck_aggregate to initialize a struct.  Clearly, the places
      that reference such a ck_aggregate constant must be changed if they
      aren't static initializations. */
@@ -2520,7 +2520,9 @@ Do IL lowering of a pointer-to-member constant.
   } else {
     /* Pointer to data member. */
     repr_for_ptr_to_data_member_constant(constant, &delta);
-    set_delta_constant(delta, constant);
+    set_unsigned_integer_constant_with_overflow_check(
+                                             constant, (unsigned long)delta,
+                                             targ_ptr_to_data_member_int_kind);
   }  /* if */
   constant->next = constant_next;
   /* The assoc_info field will be used to point to an associated temporary
@@ -3970,15 +3972,8 @@ Do IL lowering of the indicated type and everything under it.
           /* Pointer to member function; gets replaced by a struct. */
           new_type = make_mptr_type();
         } else {
-          /* Pointer to data member; gets replaced by a short. */
-          new_type = integer_type(TARG_DELTA_INT_KIND);
-#if CHECKING
-          if (new_type->size != targ_sizeof_ptr_to_data_member ||
-              new_type->alignment != targ_alignof_ptr_to_data_member) {
-            internal_error(
-           "lower_type: target config of pointer-to-data-member is incorrect");
-          }  /* if */
-#endif /* CHECKING */
+          /* Pointer to data member; gets replaced by an integer. */
+          new_type = integer_type(targ_ptr_to_data_member_int_kind);
         }  /* if */
         /* Make a copy of the original pointer-to-member type.  Note that
            this copy is for the use of IL lowering; it is not really part
@@ -4944,9 +4939,6 @@ used as an lvalue if is_lvalue is TRUE.
     node->type = dest_type;
   } else {
     /* The offset is non-zero, so some work is needed. */
-    /* Make a node for the offset constant. */
-    set_delta_constant(offset, &offset_constant);
-    offset_node = alloc_node_for_constant(&offset_constant);
     if (is_or_was_ptr_to_member_function_type(dest_type)) {
       /* Pointer to member function.  Change the node to
            (temp = pmf, (temp.i != 0) ? temp.d += offset : 0, temp)
@@ -4964,6 +4956,9 @@ used as an lvalue if is_lvalue is TRUE.
       /* Make "temp.d += offset". */
       temp_node = var_lvalue_expr(temp_var);
       select_d_node = field_lvalue_selection_expr(temp_node, mptr_d_field);
+      /* Make a node for the offset constant. */
+      set_delta_constant(offset, &offset_constant);
+      offset_node = alloc_node_for_constant(&offset_constant);
       select_d_node->next = offset_node;
       incr_node = make_operator_node((an_expr_operator_kind)eok_iadd_assign,
                                      offset_node->type, select_d_node);
@@ -4994,18 +4989,26 @@ used as an lvalue if is_lvalue is TRUE.
            (pdm != 0) ? pdm + offset : 0
       */
       /* Make "pdm != 0". */
-      source_node->next = node_for_integer_constant(0L, TARG_DELTA_INT_KIND);
+      source_node->next = node_for_integer_constant(0L,
+                                             targ_ptr_to_data_member_int_kind);
       compare_node = make_operator_node((an_expr_operator_kind)eok_ine,
                                         integer_type((an_integer_kind)ik_int),
                                         source_node);
       /* Make "pdm + offset". */
       source_node = make_reusable_copy(source_node, /*vars_can_change=*/FALSE);
+      /* Make a node for the offset constant. */
+      set_unsigned_integer_constant_with_overflow_check(
+                                             &offset_constant,
+                                             (unsigned long)offset,
+                                             targ_ptr_to_data_member_int_kind);
+      offset_node = alloc_node_for_constant(&offset_constant);
       source_node->next = offset_node;
       plus_node = make_operator_node((an_expr_operator_kind)eok_iadd,
                                      source_node->type, source_node);
       /* Make the "?" operation by overwriting the original node. */
       compare_node->next = plus_node;
-      plus_node->next = node_for_integer_constant(0L, TARG_DELTA_INT_KIND);
+      plus_node->next = node_for_integer_constant(0L,
+                                             targ_ptr_to_data_member_int_kind);
       set_node_operator(node, (an_expr_operator_kind)eok_question,
                         dest_type, compare_node);
     }  /* if */
@@ -5562,7 +5565,8 @@ Lower comparison of two pointers to members.
     /* Make "op1.i == 0" (or "!= 0" for the ne_case). */
     op1_node = make_reusable_copy(op1_node, vars_can_change);
     select1_node = node_to_select_field_from_rvalue(op1_node, mptr_i_field);
-    select1_node->next = node_for_integer_constant(0L, TARG_DELTA_INT_KIND);
+    select1_node->next = node_for_integer_constant(0L,
+                                         TARG_VIRTUAL_FUNCTION_INDEX_INT_KIND);
     compare_i0_node = make_operator_node
                         ((an_expr_operator_kind) (ne_case ? eok_ine : eok_ieq),
                          int_type, select1_node);
@@ -5630,11 +5634,10 @@ the expression have already been lowered.
      pointer addition. */
   cast_node = add_cast_to_char_star(object_node);
   /* Make the node for "pdm-1". */
-  one_node = node_for_integer_constant(1L, TARG_DELTA_INT_KIND);
+  one_node = node_for_integer_constant(1L, targ_ptr_to_data_member_int_kind);
   pdm_node->next = one_node;
   minus_node = make_operator_node((an_expr_operator_kind)eok_isubtract,
-                                  integer_type(TARG_DELTA_INT_KIND),
-                                  pdm_node);
+                                  pdm_node->type, pdm_node);
   /* Make the pointer addition node "((char *)p)+(pdm-1)". */
   cast_node->next = minus_node;
   plus_node = make_operator_node((an_expr_operator_kind)eok_padd,
@@ -8684,6 +8687,29 @@ of the front end.
   allocated_name_string_length  = 0;
   num_return_memos_allocated    = 0;
 #endif /* DEBUG */
+  /* Determine targ_ptr_to_data_member_int_kind from
+     targ_sizeof_ptr_to_data_member.  That is, find the integer kind to be
+     used for pointers to data members.  An unsigned type is always used.
+     Note that cfront uses "int *". */
+  { an_integer_kind  int_kind;
+    a_targ_size_t    int_size;
+    a_targ_alignment int_alignment;
+    for (int_kind = (an_integer_kind)0;
+         (int)int_kind < (int)ik_last;
+         int_kind = (an_integer_kind)((int)int_kind + 1)) {
+      get_integer_size_and_alignment(int_kind, &int_size, &int_alignment);
+      if (int_size == targ_sizeof_ptr_to_data_member &&
+          int_alignment == targ_alignof_ptr_to_data_member &&
+          !int_kind_is_signed[(int)int_kind]) {
+        /* This is the kind to use. */
+        targ_ptr_to_data_member_int_kind = int_kind;
+        goto have_ptr_to_member_int_kind;
+      }  /* if */
+    }  /* for */
+    internal_error(
+             "il_lower_init: no integer of right size for ptr to data member");
+have_ptr_to_member_int_kind:;
+  }
   /* name_lower_init is called from fe_init.c because name mangling can
      be used separately from the rest of IL lowering. */
   /* Do lower_init.c initialization. */

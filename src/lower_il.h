@@ -75,6 +75,11 @@ when a just-allocated entry requires lowering.
 #define mark_as_not_visited(entry_ptr) (il_lowering_flag_of(entry_ptr) = FALSE)
 
 
+EXTERN an_integer_kind
+		targ_ptr_to_data_member_int_kind;
+			/* The integer kind to use for pointers to data
+			   members. */
+
 #if GENERATE_EH_TABLES
 typedef unsigned long a_handle_number;
 			/* Number in the region table that identifies an

@@ -168,7 +168,8 @@ pointer to data member.  Do widening on it, needed because pointers
 to data members are lowered into a small integer type.
 */
 {
-  a_type_ptr ptr_to_data_member_type = integer_type(TARG_DELTA_INT_KIND);
+  a_type_ptr ptr_to_data_member_type =
+                                integer_type(targ_ptr_to_data_member_int_kind);
   a_type_ptr promoted_type =
                            default_argument_promotion(ptr_to_data_member_type);
 
