@@ -1596,6 +1596,7 @@ the template.  is_typedef is TRUE if the class specifier is being typedefed.
   a_boolean               is_template_specific_decl = FALSE;
   a_boolean               is_predeclared_type_decl = FALSE;
   a_decl_pos_block        local_decl_pos_block;
+  a_boolean		  previously_invisible = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
   an_extended_decl_info_block
                           extended_decl_info;
@@ -2229,6 +2230,7 @@ the template.  is_typedef is TRUE if the class specifier is being typedefed.
       /* In case the previous declaration was a friend declaration, ensure
          that the symbol is henceforth visible for lookup. */
       tag_sym->is_invisible = FALSE;
+      previously_invisible = TRUE;
     }  /* if */
     if (is_class_definition) {
       /* Allow for alternating between class and struct, but stay with the
@@ -2262,10 +2264,15 @@ the template.  is_typedef is TRUE if the class specifier is being typedefed.
     } else if (is_class_definition || is_predeclared_type_decl ||
                (curr_token == tok_semicolon &&
                 (vacuous_decl_allowed ||
-                 is_friend_decl || is_template_specific_decl))) {
+                 is_friend_decl || is_template_specific_decl)) ||
+               previously_invisible) {
       /* Vacuous declarations are not typically permitted to use qualified
          names.  Exceptions are made for friend declarations and for
-         template specialization declarations. */
+         template specialization declarations.
+
+         A class name that was previously invisible, that is used in an
+         elaborated type specifier is now visible.  Treat such a transition
+         as a declaration. */
       srk_flags = SRK_DECLARATION;
       if (is_friend_decl) srk_flags |= SRK_FRIEND;
       if (is_class_definition) {
