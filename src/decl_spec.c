@@ -2468,7 +2468,7 @@ to indicate whether an enumeration is actually defined.
             */
             template_param = TRUE;
           } else if (enum_types_can_be_larger_than_int) {
-            /* No needed to check, since the largest integer kind will be
+            /* No need to check, since the largest integer kind will be
                used if needed. */
           } else {
             check_assertion(constant.kind == (a_constant_repr_kind)ck_integer);
@@ -2519,6 +2519,16 @@ to indicate whether an enumeration is actually defined.
               error(ec_enum_value_out_of_int_range);
               err = TRUE;
             } else {
+              /* If incrementing the current value requires a larger
+                 integer, just use the integer corresponding to
+                 largest_enum_int_kind.  It's not specified by the standard
+                 what larger integer to use, and it doesn't seem to make
+                 much difference. */
+              if (is_max_value_for_integer_kind(
+                                  &constant,
+                                  constant.type->variant.integer.int_kind)) {
+                constant.type = integer_type(largest_enum_int_kind);
+              }  /* if */
               incr_integer_value(&constant.variant.integer_value);
             }  /* if */
           }  /* if */
