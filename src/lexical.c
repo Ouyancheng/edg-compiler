@@ -2108,9 +2108,12 @@ Push the indicated file onto the input stack.
   } else {
     parent_file = input_stack[depth_input_stack-1].assoc_il_file;
   }  /* if */
+  /* Note that full_file_name is passed twice to record_start_of_source_file.
+     This is because the actual file name and the display name start off
+     the same.  The latter can be modified in a #line directive. */
   record_start_of_source_file(parent_file,
                               (a_seq_number)seq_number_last_read+1,
-                              (a_line_number)1, file_name,
+                              (a_line_number)1, full_file_name,
                               full_file_name, &(curr_ise->assoc_il_file),
 			      is_system_include);
   /* The two il file pointers start out the same.  They will be made to
