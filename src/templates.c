@@ -176,23 +176,21 @@ itself recursively to process classes nested within this class.
        still needs to appear on the instantiation-required list (because
        instantiation is required required somewhere in the program even if
        not in the current translation unit). */
-    if (instantiation_mode != tim_none) {
-      var = class_type->variant.class_struct_union.extra_info->
-  							assoc_scope->variables;
-      while (var != NULL) {
-        sym = (a_symbol_ptr)var->source_corresp.assoc_info;
-        tip = sym->variant.variable.instance_ptr;
+    var = class_type->variant.class_struct_union.extra_info->
+							assoc_scope->variables;
+    while (var != NULL) {
+      sym = (a_symbol_ptr)var->source_corresp.assoc_info;
+      tip = sym->variant.variable.instance_ptr;
 #if 0
-        /* Are there error cases when tip can be NULL?  It is probably safer
-           to skip setting the instantiation required flag rather than
-           generate a possibly spurious internal error. */
+      /* Are there error cases when tip can be NULL?  It is probably safer
+         to skip setting the instantiation required flag rather than
+         generate a possibly spurious internal error. */
 #endif /* 0 */
-        if (tip != NULL) {
-          update_instantiation_required_flag(tip, /*value=*/TRUE);
-        }  /* if */
-        var = var->next;
-      }  /* while */
-    }  /* if */
+      if (tip != NULL) {
+        update_instantiation_required_flag(tip, /*value=*/TRUE);
+      }  /* if */
+      var = var->next;
+    }  /* while */
     /* Process any classes nested within this class. */
     type = ctsp->assoc_scope->types;
     while (type != NULL) {
@@ -3720,6 +3718,12 @@ is responsible for setting the appropriate flags.
     a_boolean		is_static_data_member;
     a_boolean		can_instantiate;
 
+#if DEBUG
+    if (debug_level >= 4) {
+      fprintf(f_debug, "Automatic instantiation processing for:\n");
+      db_symbol(instance_sym, "", 0);
+    }  /* if */
+#endif /* DEBUG */
 #if 0
     if (tip->instantiation_required) any_instantiations_required = TRUE;
 #else /* 0 */
@@ -3761,6 +3765,14 @@ is responsible for setting the appropriate flags.
         }  /* if */
       }  /* if */
     }  /* if */
+#if DEBUG
+    if (debug_level >= 4) {
+      fprintf(f_debug, " already_instantiated=%d\n",
+              tip->already_instantiated);
+      fprintf(f_debug, " can_instantiate=%d\n", can_instantiate);
+      fprintf(f_debug, " specific_def=%d\n", tip->specific_def);
+    }  /* if */
+#endif /* DEBUG */
     /* Set the flags to be passed to the link-time automatic instantiator. */
 #if 0
     /* Should there be a special "do_not_instantiate" field in the template
