@@ -69,11 +69,12 @@ extern void set_class_assoc_operator_delete_routine(a_type_ptr class_type);
 #endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
 
 extern void reference_to_implicitly_invoked_function
-					(a_symbol_ptr       sym,
-                                         a_source_position  *pos,
-					 a_type_ptr         class_of_object,
-                                         a_boolean          honor_virtual,
-                                         a_boolean          evaluated);
+                                    (a_symbol_ptr       sym,
+                                     a_source_position  *pos,
+                                     a_type_ptr         class_of_object,
+                                     a_boolean          honor_virtual,
+                                     a_boolean          evaluated,
+                                     a_boolean          suppress_access_check);
 
 extern void force_definition_of_compiler_generated_routine(a_routine_ptr rp);
 

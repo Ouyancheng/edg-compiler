@@ -4470,10 +4470,10 @@ assignment operator.
     } else {
       /* Exactly one assignment operator function is best. */
       /* Check that the function is accessible and mark it referenced. */
-      reference_to_implicitly_invoked_function(opass_sym, err_pos,
-					       (a_type_ptr)NULL,
-                                               /*honor_virtual=*/FALSE,
-                                               /*evaluated=*/TRUE);
+      reference_to_implicitly_invoked_function(
+                                  opass_sym, err_pos, (a_type_ptr)NULL,
+                                  /*honor_virtual=*/FALSE, /*evaluated=*/TRUE,
+                                  /*suppress_access_check=*/FALSE);
     }  /* if */
     opass_routine = opass_sym->variant.routine.ptr;
   }  /* if */
@@ -4890,7 +4890,8 @@ void reference_to_implicitly_invoked_function
                                  a_source_position  *err_pos,
 				 a_type_ptr         class_of_object,
                                  a_boolean          honor_virtual,
-                                 a_boolean          evaluated)
+                                 a_boolean          evaluated,
+                                 a_boolean          suppress_access_check)
 /*
 sym is points to a symbol for a special member function that is invoked
 implicitly -- e.g., a copy constructor that is called when a class object
@@ -4910,7 +4911,8 @@ virtual, the reference is considered to be a virtual call; that means
 the access control checking is done, but the IL entry is not marked as
 referenced.  If evaluated is FALSE, the reference is within an unevaluated
 expression; again, access control checking is done, but the IL entry is not
-marked as referenced.
+marked as referenced.  If suppress_access_check is TRUE, no access control
+checking is done.
 */
 {
   a_routine_ptr rp = sym->variant.routine.ptr;
@@ -4923,22 +4925,24 @@ marked as referenced.
                                (a_special_function_kind)sfk_conversion ||
                   (rp->special_kind == (a_special_function_kind)sfk_operator &&
                    rp->opname_kind == (an_opname_kind)onk_assign));
-  /* Check for accessibility. */
-  if (!have_access_to_symbol(sym)) {
-    an_error_severity	severity = es_error;
-    /* Normally an error, but in cfront mode there is a special case
-       involving a private base class destructor where we issue a warning. */
-    if (cfront_compatibility_mode &&
-        is_cfront_base_class_destructor_access_bug(sym, rp,
-						   class_of_object)) {
-      severity = es_warning;
+  if (!suppress_access_check) {
+    /* Check for accessibility. */
+    if (!have_access_to_symbol(sym)) {
+      an_error_severity	severity = es_error;
+      /* Normally an error, but in cfront mode there is a special case
+         involving a private base class destructor where we issue a warning. */
+      if (cfront_compatibility_mode &&
+          is_cfront_base_class_destructor_access_bug(sym, rp,
+                                                     class_of_object)) {
+        severity = es_warning;
+      }  /* if */
+      pos_sy_diagnostic(severity, ec_inaccessible_special_function,
+                        err_pos, sym);
+    } else if (class_of_object != NULL) {
+      /* Protected members of a base class can only be accessed through an
+         object of a derived class. */
+      check_protected_member_access(sym, err_pos, class_of_object);
     }  /* if */
-    pos_sy_diagnostic(severity, ec_inaccessible_special_function,
-		      err_pos, sym);
-  } else if (class_of_object != NULL) {
-    /* Protected members of a base class can only be accessed through an
-       object of a derived class. */
-    check_protected_member_access(sym, err_pos, class_of_object);
   }  /* if */
   if (!evaluated) {
     /* Unevaluated expression.  Do not set referenced (etc.). */
