@@ -468,7 +468,8 @@ typedef enum /*an_error_code*/ {
   ec_dollar_used_in_identifier,
   ec_nonconst_ref_init_anachronism,
   ec_qualifier_in_member_declaration,
-  ec_mixed_enum_type_anachronism
+  ec_mixed_enum_type_anachronism,
+  ec_new_array_size_must_be_nonnegative
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 

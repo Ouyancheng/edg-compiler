@@ -1625,6 +1625,9 @@ error code.
     case ec_mixed_enum_type_anachronism:
       m = "enumerated type mixed with another type (anachronism)";
       break;
+    case ec_new_array_size_must_be_nonnegative:
+      m = "the size of an array in \"new\" must be non-negative";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
