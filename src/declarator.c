@@ -1462,7 +1462,7 @@ issue an error if a default argument expression is encountered.
                  copy constructor.  This will help find cases 3 and 4. */
               if (is_reference_type(param_type_ptr) &&
                   identical_types(member_function_parent_type,
-                                  skip_typerefs(type_pointed_to(
+                                  f_skip_typerefs(type_pointed_to(
                                                           param_type_ptr)))) {
                 /* Depending on whether the next parameter has a default
                    argument, this may be a copy constructor. */
@@ -2069,16 +2069,6 @@ information should be ignored or if an error should be issued.
 }  /* update_calling_convention */
 
 
-/*
-Macro that returns TRUE if the current token is the start of a pointer
-operator (*, &, or ptr-to-member).
-*/
-#define curr_token_is_ptr_operator()					\
-  (curr_token == tok_star || curr_token == tok_based ||			\
-   (curr_token == tok_ampersand && reference_allowed) ||		\
-   (!C_mode() && is_ptr_to_member_declarator_start()))
-
-
 static a_variable_ptr scan_based_modifier(void)
 /*
 Scan the Microsoft __based modifier.  The syntax is
@@ -2160,7 +2150,10 @@ Clear the pointer stored in "var" if it is used.
     *var = NULL;
   } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  new_tp = make_pointer_type(tp);
+  /* Do not insert code here. */
+  {
+    new_tp = make_pointer_type(tp);
+  }  /* if */
 
   return new_tp;
 }  /* make_possibly_based_pointer_type */
