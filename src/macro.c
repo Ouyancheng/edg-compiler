@@ -1177,7 +1177,10 @@ end, got_proper_closing_token is set to FALSE, otherwise it is unchanged.
      by the caller. */
   if (!found_end_of_operator) {
     *got_proper_closing_token = FALSE;
-    curr_token = tok_error;
+    /* The main purpose of the following is to insure that we don't return
+       a tok_identifier when we might have an invalid locator (e.g., the
+       symbol header could be unset). */
+    if (curr_token != tok_end_of_source) curr_token = tok_error;
   }  /* if */
 }  /* scan_pragma_operator */
 

@@ -1,5 +1,13 @@
 Version 2.46
 
+3/15/01  Internal error on invalid C99 _Pramga operator
+
+An internal error would occur if an ill-formed _Pragma operator
+followed by and end-of-file was encountered while flushing tokens
+because of a syntax error.  This has been fixed.
+
+  int x _Pragma 
+
 3/14/01  Abort in inlining with non-inlinable function
 
 An abort in inlining has been corrected.  The abort came up on
