@@ -2332,6 +2332,9 @@ is in fact valid.
     if (match && !trans_unit_test_mode &&
         var->storage_class == (a_storage_class)sc_unspecified &&
         corresp_var->storage_class == (a_storage_class)sc_unspecified &&
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        !(var->decl_modifiers & (a_decl_modifier)DM_SELECTANY) &&
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         (!C_mode() ||
          (var->init_kind != (an_init_kind)initk_none &&
           corresp_var->init_kind != (an_init_kind)initk_none))) {

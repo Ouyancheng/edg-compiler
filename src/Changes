@@ -1,5 +1,21 @@
 Version 3.4
 
+1/15/04  Microsoft compatibility: Spurious duplicate definition error on
+         selectany variables
+
+In Microsoft mode, when compiling multiple translation units simultaneously,
+the front end diagnosed as an error  multiple definitions of a variable 
+declared with __declspec(selectany).  For example:
+
+  // File 1:
+  __declspec(selectany) int x = 1;
+
+  // File 2:
+  __declspec(selectany) int x = 1;  // Can coexist with definition in File 1,
+                                    // but the front end issued an error.
+
+This is now fixed (i.e., such code is now accepted).
+
 1/12/04  GNU C++ mode: Class types with size zero
 
 In GNU C++ mode, struct containing only data members of zero-length array
