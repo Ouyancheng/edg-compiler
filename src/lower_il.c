@@ -14091,8 +14091,9 @@ from an exported template.  See externalize_statics_for_exported_templates.
 */
 {
   a_boolean is_extern_inline =
-              (treat_as_extern_inline(routine) ||
-               routine_should_be_externalized_for_exported_templates(routine));
+            (routine->is_inline &&
+             (treat_as_extern_inline(routine) ||
+              routine_should_be_externalized_for_exported_templates(routine)));
   return is_extern_inline;
 }  /* is_or_will_be_extern_inline */
 

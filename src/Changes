@@ -1,5 +1,14 @@
 Version 3.1
 
+12/6/02  More local statics than necessary externalized
+
+When exported templates are used, some static functions are
+"externalized", i.e., made external so they can be referenced
+from other translation units.  The local statics of such functions
+were made external also, but that isn't in general necessary
+(there is only one copy of the function).  The variables are no
+longer made external.
+
 12/3/02  Microsoft compatibility: duplicate inline function list entry
 
 If INSTANTIATE_EXTERN_INLINE is used, a class given external linkage
