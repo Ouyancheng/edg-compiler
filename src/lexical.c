@@ -7222,6 +7222,10 @@ to speed in some cases.
          take the next one on the list. */
       ctoken = get_token_from_reusable_cache_stack();
       gotten_from_cache = TRUE;
+#ifdef __GNUC__
+    } else {
+      ctoken = tok_error;  /* Avoid spurious warning from gcc. */
+#endif /* ifdef __GNUC__ */
     }  /* if */
     if (gotten_from_cache) {
 #if MICROSOFT_EXTENSIONS_ALLOWED

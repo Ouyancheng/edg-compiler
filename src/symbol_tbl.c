@@ -2723,7 +2723,7 @@ Remove a symbol from the symbol table, i.e., unlink it from either the main
     } else {
       /* The symbol is not the first on either of the lists.  Find it on one
          of the lists, remembering the preceding symbol. */
-      ptr = NULL;
+      ptr = prev_ptr = NULL;
       if (hdr_ptr->symbol != NULL) {
         /* Check the active list. */
         prev_ptr = hdr_ptr->symbol;
