@@ -1169,8 +1169,23 @@ A flag that is TRUE if the layout mechanism should attempt to allocate empty
 base classes at the same offset as other subobjects.
 */
 #ifndef TARG_OPTIMIZE_EMPTY_BASE_CLASS_LAYOUT
-#define TARG_OPTIMIZE_EMPTY_BASE_CLASS_LAYOUT 0
+/* This feature CAN be turned on when CFRONT_OBJECT_CODE_COMPATIBILITY is on,
+   but that produces a cfront-like ABI rather than a cfront-compatible ABI. */
+#if TARG_OPTIMIZE_EMPTY_BASE_CLASS_LAYOUT <= 242 || \
+    CFRONT_OBJECT_CODE_COMPATIBILITY
+#define TARG_OPTIMIZE_EMPTY_BASE_CLASS_LAYOUT FALSE
+                                                    /* Versions up to 2.42. */
+#else /* ABI_COMPATIBILITY_VERSION > 242 && !CFRONT_... */
+#define TARG_OPTIMIZE_EMPTY_BASE_CLASS_LAYOUT TRUE
+                                                    /* Versions after 2.42. */
+#endif /* ABI_COMPATIBILITY_VERSION <= 242 || CFRONT_... */
 #endif /* ifndef TARG_OPTIMIZE_EMPTY_BASE_CLASS_LAYOUT */
+#if TARG_OPTIMIZE_EMPTY_BASE_CLASS_LAYOUT
+#if ABI_COMPATIBILITY_VERSION <= 242
+ #error -- TARG_OPTIMIZE_EMPTY_BASE_CLASS_LAYOUT TRUE is incompatible \
+           with ABI_COMPATIBILITY_VERSION <= 242
+#endif /* ABI_COMPATIBILITY_VERSION <= 242 */
+#endif /* TARG_OPTIMIZE_EMPTY_BASE_CLASS_LAYOUT */
 
 /*
 When a class with a copy constructor is passed to an ellipsis, does the
