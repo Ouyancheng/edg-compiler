@@ -9418,7 +9418,7 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
       } else if (locator.symbol_header == symbol_for_namespace_abi->header &&
                  depth_scope_stack == DEPTH_OF_FILE_SCOPE &&
                  !locator.is_error) {
-        /* This is the initial explicit declaration of namespace "std".
+        /* This is the initial explicit declaration of namespace "__cxxabiv1".
            Reuse the predeclared symbol. */
         ns_sym = symbol_for_namespace_abi;
         enter_symbol_for_namespace_abi(&locator);
