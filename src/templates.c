@@ -2222,7 +2222,7 @@ that make up the declaration and do a prototype instantiation.
     is_class_template_decl = TRUE;
     /* Bypass "class", "struct", or "union".  It has to be cached in case it
        has to be rescanned as part of a function template declaration. */
-    clear_token_cache(&local_token_cache);
+    clear_token_cache(&local_token_cache, /*reusable=*/FALSE);
     cache_curr_token(&local_token_cache);
     (void)get_token();
     /* Next should be the class name. */
@@ -2878,7 +2878,7 @@ entry is pushed on the scope stack.
         (void)get_token();
         add_stop_token(tok_semicolon);
         p_token_cache = err ? &local_token_cache : &tssp->token_cache;
-        clear_token_cache(p_token_cache);
+        clear_token_cache(p_token_cache, /*reusable=*/TRUE);
         cache_token_stream(p_token_cache);
         remove_stop_token(tok_semicolon);
         if (err) {
@@ -2905,7 +2905,7 @@ entry is pushed on the scope stack.
       }
       if (err) {
         a_token_cache  local_token_cache;
-        clear_token_cache(&local_token_cache);
+        clear_token_cache(&local_token_cache, /*reusable=*/FALSE);
         cache_function_template_tokens(&local_token_cache, /*is_ctor=*/TRUE,
                                        defines_something);
         discard_token_cache(&local_token_cache);

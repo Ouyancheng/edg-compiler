@@ -49,7 +49,7 @@ entry and initialize it.
   /* Clear the entity. */
   daefp->next = NULL;
   daefp->param_type = NULL;
-  clear_token_cache(&daefp->token_cache);
+  clear_token_cache(&daefp->token_cache, /*reusable=*/FALSE);
 
   return daefp;
 }  /* alloc_def_arg_expr_fixup */
@@ -79,7 +79,7 @@ await actual processing at a later point.
   a_stop_token_array        save_stop_token_array;
 
   db_enter(3, "prescan_default_arg_expr");
-  clear_token_cache(token_cache);
+  clear_token_cache(token_cache, /*reusable=*/TRUE);
   /* Save the current stop token state, and reinitialize it. */
   copy_stop_tokens(stop_token_array, save_stop_token_array);
   clear_stop_tokens();

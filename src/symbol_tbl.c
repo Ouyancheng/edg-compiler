@@ -17,6 +17,7 @@ symbol_tbl.c - Symbol table management routines.
 #include "const_ints.h"
 #include "symbol_tbl.h"
 #include "mem_manage.h"
+#include "debug.h"
 #include "error.h"
 #include "il.h"
 #include "types.h"
@@ -1144,7 +1145,7 @@ and return a pointer to it.
   tssp->innermost_instantiation_scope = NO_SCOPE_DEPTH;
   tssp->declaration_scope = NO_SCOPE_NUMBER;
   tssp->pending_instantiations = 0;
-  clear_token_cache(&tssp->token_cache);
+  clear_token_cache(&tssp->token_cache, /*reusable=*/TRUE);
   switch (kind) {
     case sk_class_template:
       tssp->variant.class_template.instantiations = NULL;

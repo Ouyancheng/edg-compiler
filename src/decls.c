@@ -751,7 +751,7 @@ either.
   clear_stop_tokens();
   add_stop_token(tok_rparen);
   /* Initialize the token cache. */
-  clear_token_cache(&token_cache);
+  clear_token_cache(&token_cache, /*reusable=*/FALSE);
   /* Scan forward as far as required to determine whether this is a
      declaration.  Each token that is encountered is cached away, so that
      that they can be restored for the actual scan. */
@@ -5189,7 +5189,7 @@ otherwise it is NULL.  The syntax is:
           if (curr_token == tok_identifier) {
             a_token_cache       cache;
 
-            clear_token_cache(&cache);
+            clear_token_cache(&cache, /*reusable=*/FALSE);
             cache_curr_token(&cache);
             /* Advance past all comma-identifier pairs till what should be
                the closing paren. */
@@ -6534,7 +6534,7 @@ process_class_specifier:
 		 determine_curr_type_symbol to handle this case
 		 correctly. */
 	      (void)simplify_curr_class_qualified_name();
-              clear_token_cache(&cache);
+              clear_token_cache(&cache, /*reusable=*/FALSE);
               /* Put the current token in the cache. */
               cache_curr_token(&cache);
               /* Advance to what may be the left paren. */
@@ -6752,7 +6752,7 @@ process_class_specifier:
             a_token_cache  cache;
             a_boolean      is_declarator;
 
-            clear_token_cache(&cache);
+            clear_token_cache(&cache, /*reusable=*/FALSE);
             /* Put the current token in the cache. */
             cache_curr_token(&cache);
             /* Advance to next token. */

@@ -105,7 +105,10 @@ initialize it.
   rfp->routine = NULL;
   rfp->def_arg_expr_fixup_list = NULL;
   clear_func_info(&rfp->func_info);
-  clear_token_cache(&rfp->function_body_token_cache);
+  /* We don't know whether this cache will be reused or not.  Make it
+     reusable here.  If it is rescanned as a nonreusable cache we
+     will change it later. */
+  clear_token_cache(&rfp->function_body_token_cache, /*reusable=*/TRUE);
 
   return rfp;
 }  /* alloc_routine_fixup */
@@ -159,7 +162,10 @@ constructor initializer is present, a colon.
 
   db_enter(3, "prescan_function_definition");
 
-  clear_token_cache(&token_cache);
+  /* We don't know whether this cache will be reused or not.  Make it
+     reusable here.  If it is rescanned as a nonreusable cache we
+     will change it later. */ 
+ clear_token_cache(&token_cache, /*reusable=*/TRUE);
   /* Save the current stop token state, and reinitialize it. */
   copy_stop_tokens(stop_token_array, save_stop_token_array);
   clear_stop_tokens();
@@ -389,7 +395,8 @@ routine recursively for each nested class.
           /* Prototype instantiation -- copy the cache for member functions. */
           tssp = sym->variant.routine.instance_ptr->template_info;
           tssp->token_cache = rfp->function_body_token_cache;
-          clear_token_cache(&rfp->function_body_token_cache);
+          clear_token_cache(&rfp->function_body_token_cache,
+                           /*reusable=*/TRUE);
           /* Also copy the func_info block. */
           tssp->variant.function.func_info = rfp->func_info;
         } else {
@@ -6250,7 +6257,8 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
                      inline.  Clear the token cache. */
                   if (curr_routine_fixup != NULL) {
                     clear_token_cache(&curr_routine_fixup->
-                                                function_body_token_cache);
+                                                function_body_token_cache,
+                                      /*reusable=*/FALSE);
                   }  /* if */
                 } else {
                   rout_sym->defined = TRUE;

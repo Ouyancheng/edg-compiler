@@ -4725,7 +4725,7 @@ has exactly one argument, return TRUE; otherwise, return FALSE.
   a_token_cache      cache;
   a_stop_token_array save_stop_token_array;
 
-  clear_token_cache(&cache);
+  clear_token_cache(&cache, /*reusable=*/FALSE);
   /* Put the class name token in the cache. */
   cache_curr_token(&cache);
   /* Advance to the "(". */

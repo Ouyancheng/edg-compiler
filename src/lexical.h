@@ -263,6 +263,17 @@ typedef struct a_token_cache {
 			   used in determining whether or not a
 			   teik_lint_and_pragma entry is needed to record
 			   a change in the lint comment or pragma state. */
+  a_byte_boolean
+		is_reusable;
+			/* TRUE if this cache will be reused (e.g.,
+			   for a template cache.  This should be TRUE if
+			   there is any possibility that the cache may
+			   be resued. */
+#if DEBUG
+  long		count;
+			/* The number of tokens in this cache.  Used for
+			   tracking memory usage. */
+#endif /* DEBUG */
 } a_token_cache;
 
 
@@ -953,7 +964,8 @@ typedef struct a_reusable_cache_entry {
 
 
 /* Initialize a token cache. */
-extern void clear_token_cache(a_token_cache *cache);
+extern void clear_token_cache(a_token_cache *cache,
+			      a_boolean     reusable);
 /* Discard the contents of a token cache. */
 extern void discard_token_cache(a_token_cache *cache);
 /* Save an end-of-source token in the token cache. */
