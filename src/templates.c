@@ -5057,7 +5057,7 @@ as the current token; otherwise, it is consumed.
        save a pointer to the class in which the definition appears. */
     class_declared_in = scope_stack[decl_scope_level].assoc_type;
   }  /* if */
-  is_nonglobal_decl = decl_scope_level != DEPTH_OF_FILE_SCOPE;
+  is_nonglobal_decl = decl_scope_level > depth_innermost_namespace_scope;
   if (is_nonglobal_decl && !is_member_decl) {
     /* Issue an invalid template scope error, if not already done. */
     invalid_decl_scope_err = TRUE;
