@@ -2274,8 +2274,9 @@ static void disp_builtin_function_kind_name(a_builtin_function_kind kind)
 }  /* disp_builtin_function_kind_name */
 
 
-static void disp_ELF_visibility_kind(an_ELF_visibility  ELF_visibility)
+static void disp_ELF_visibility_kind(an_ELF_visibility_kind  ELF_visibility)
 /*
+Display an ELF_visibility field.
 */
 {
   char  *str;
@@ -2288,7 +2289,7 @@ static void disp_ELF_visibility_kind(an_ELF_visibility  ELF_visibility)
     case evk_internal:    str = "evk_protected";               break;
     default:              str = "**BAD ELF VISIBILITY KIND**";
   }  /* switch */
-  (void)printf("%s\n", s);
+  (void)printf("%s\n", str);
 }  /* if */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -2402,7 +2403,6 @@ Display the indicated routine.
     }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  }  /* if */
   if (ptr->address_taken) {
     disp_boolean("address_taken", TRUE);
   }  /* if */
