@@ -7380,7 +7380,8 @@ void add_vla_fixup_entry(a_type_ptr        array_type,
 /*
 Allocate and initialize a VLA fixup entry.  expr_node is an expression node
 and will never be NULL.  Either array_type or param_sym will be non-NULL (but
-not both).  The current scope will be a function prototype scope.  Add the
+not both).  (See comments on the definition of a_vla_fixup for further
+details.)  The current scope will be a function prototype scope.  Add the
 fixup entry to the end of the vla_fixup_list of the current scope stack entry.
 */
 {
@@ -7397,19 +7398,33 @@ fixup entry to the end of the vla_fixup_list of the current scope stack entry.
     num_vla_fixups_allocated++;
 #endif /* DEBUG */
   }  /* if */
-  check_assertion_str(expr_node != NULL &&
-                      ((array_type != NULL) ?
-                         (param_sym == NULL &&
-                          array_type->kind == (a_type_kind)tk_array) :
-                         (param_sym != NULL &&
-                          param_sym->kind == (a_symbol_kind)sk_parameter)),
-                      "add_vla_fixup_entry: unexpected argument values");
+#if CHECKING
+  check_assertion_str(ssep->kind == (a_scope_kind)sck_func_prototype,
+                      "add_vla_fixup_entry: not func-prototype scope");
+  check_assertion_str(expr_node != NULL,
+                      "add_vla_fixup_entry: NULL expr node");
+  if (array_type == NULL) {
+    /* param_sym must be non-NULL and must be an sk_paramter symbol. */
+    check_assertion_str(param_sym != NULL &&
+                          param_sym->kind == (a_symbol_kind)sk_parameter,
+                        "add_vla_fixup_entry: bad parameter symbol");
+    /* The expression node should be the result of scanning the dummy
+       parameter variable. */
+    check_assertion_str(expr_node->kind == (an_expr_node_kind)enk_variable ||
+                        expr_node->kind ==
+                                    (an_expr_node_kind)enk_variable_address,
+                        "add_vla_fixup_entry: bad expression node");
+  } else {
+    /* param_sym must be NULL and array_type must refer to a tk_array. */
+    check_assertion_str(param_sym == NULL &&
+                          array_type->kind == (a_type_kind)tk_array,
+                        "add_vla_fixup_entry: bad array type");
+  }  /* if */
+#endif /* CHECKING */
   vfp->next = NULL;
   vfp->array_type = array_type;
   vfp->expr = expr_node;
   vfp->param_sym = param_sym;
-  check_assertion_str(ssep->kind == (a_scope_kind)sck_func_prototype,
-                      "add_vla_fixup_entry: not func-prototype scope");
   if (ssep->vla_fixup_list == NULL) {
     ssep->vla_fixup_list = vfp;
   } else {
