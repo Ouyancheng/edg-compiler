@@ -4320,7 +4320,9 @@ result_is_addr flag is set correctly; this routine cannot deal with that.
   }  /* if */
   if (C_mode()) {
     /* In C mode, a temp-init node represents a compound literal. */
-    check_assertion(dip->kind == (a_dynamic_init_kind)dik_constant);
+    check_assertion(
+                  dip->kind == (a_dynamic_init_kind)dik_constant ||
+                  dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate);
     gen_compound_literal(dip->variant.constant);
   } else {
     /* C++ mode; use gen_dynamic_init. */
@@ -6069,7 +6071,9 @@ done_with_operation:
           /* Address of temp-init in C.  This comes up for the address
              of a C99 compound literal. */
           a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
-          check_assertion(dip->kind == (a_dynamic_init_kind)dik_constant);
+          check_assertion(
+                  dip->kind == (a_dynamic_init_kind)dik_constant ||
+                  dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate);
           gen_compound_literal(dip->variant.constant);
         } else {
           /* Address of temp-init in C++.  This can come up if it is allowed
