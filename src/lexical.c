@@ -861,8 +861,13 @@ be copies to the new cache.
   set_err_pos_to_curr_token();
   if (coalesce_ids) {
     /* Make a copy of the specified range of tokens from the source cache. */
-    last_tsn = curr_token_sequence_number;
-    copy_tokens_from_cache(src_cache, first_tsn, last_tsn, cache);
+    if (first_tsn > last_tsn_in_cache) {
+      /* The starting token is not in the cache (possible in error cases).
+         Don't try to extract them from the source cache. */
+    } else {
+      last_tsn = curr_token_sequence_number;
+      copy_tokens_from_cache(src_cache, first_tsn, last_tsn, cache);
+    }  /* if */
     if (curr_token == tok_end_of_source && last_tsn >= last_tsn_in_cache) {
       (void)get_token();
     }  /* if */
