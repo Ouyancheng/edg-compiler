@@ -1215,6 +1215,9 @@ Return TRUE if the given expression is a "throw".
        x ? throw a : throw b
        (throw c, y)
      but it doesn't seem worth it. */
+  if (node->kind == (an_expr_node_kind)enk_object_lifetime) {
+    node = node->variant.object_lifetime.expr;
+  }  /* if */
   if (node->kind == (an_expr_node_kind)enk_throw) is_throw = TRUE;
   return is_throw;
 }  /* is_throw_expr */
