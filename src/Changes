@@ -1,5 +1,12 @@
 Version 2.16
 
+4/5/93  Class template with the same name as a template parameter
+
+An error is now issued if a class template has the same name as a
+template parameter.
+
+  template <class T> class T {};  // Error
+
 4/5/93  Nontype template parameters of reference type
 
 These now work correctly.  For example:
