@@ -3895,11 +3895,10 @@ not an lvalue, it is left alone.
 void conv_array_operand_to_pointer_operand(an_operand *operand)
 /*
 Apply the implicit array to pointer-to-first-element-of-array transformation
-of 3.2.2.1 in the standard to the operand.  In addition to the usual case of
-an array lvalue becoming a pointer to the first element of the array,
-this routine also converts a string literal to a pointer to its first
-character.  If the operand is an rvalue array, an error is issued.
-All other cases are left alone.
+of 3.2.2.1 in the standard to the operand.  If the operand is an array
+lvalue it is changed to a pointer to the first element of the array.
+If the operand is an rvalue array, an error is issued.  All other cases
+are left alone.
 */
 {
   a_type_ptr ptr_type;
@@ -4022,7 +4021,7 @@ transformations.
 */
 {
   if (is_array_type(operand->type)) {
-    /* An array lvalue (or rvalue, which is used for string literals). */
+    /* An array lvalue (or rvalue, which is an error). */
     if (!(options & TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION)) {
       /* In most contexts, an lvalue of array type is changed to
          "pointer to first element of array".  See section 3.2.2.1 in the
