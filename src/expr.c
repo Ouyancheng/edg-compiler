@@ -3144,66 +3144,92 @@ operation is a pointer-to-member (see ARM 5.3).
 
   /* Advance past the "&". */
   (void)get_token();
-  /* Scan the operand. */
-  scan_expr(&operand, PREC_PREFIX, EOPT_OPERAND_OF_ADDRESS_OF);
-
-  if (err) {
-    /* Operator is not allowed in this kind of expression. */
-    make_error_operand(result);
-    change_operand_refs_to_error(&operand);
-  } else {
-    if (C_dialect == C_dialect_cplusplus &&
-        is_class_or_error_operand(&operand)) {
-      /* Look for C++ operator overloading cases. */
-      check_for_operator_overloading((an_opname_kind)onk_ampersand,
-                                     /*unary_operator=*/TRUE,
-                                     /*must_be_member_function=*/FALSE,
-                                     /*try_conversions=*/FALSE,
-                                     /*has_predef_meaning=*/TRUE,
-                                     &operand, (an_operand *)NULL,
-                                     &start_position,
-                                     result, &processed);
+#if ADDRESS_OF_ELLIPSIS_ALLOWED
+  if (curr_token == (a_token_kind)tok_ellipsis) {
+    /* Allow the &... extension, used in stdarg.h macros to get the
+       address of the ellipsis arguments. */
+    if (depth_innermost_function_scope == NO_SCOPE_DEPTH ||
+        !f_skip_typerefs(current_routine_entry()->type)->
+                                    variant.routine.extra_info->has_ellipsis) {
+      /* "&..." used outside a function, or in a function that does not have
+         an ellipsis. */
+      error(ec_bad_address_of_ellipsis);
+      err = TRUE;
+      make_error_operand(result);
+    } else {
+      a_type_ptr       void_star_type = make_pointer_type(void_type());
+      an_expr_node_ptr node =
+                   alloc_expr_node((an_expr_node_kind)enk_address_of_ellipsis);
+      node->type = void_star_type;
+      make_expression_operand(node, void_star_type, result);
+      if (strict_ansi_mode) {
+        diagnostic(strict_ansi_error_severity, ec_nonstd_address_of_ellipsis);
+      }  /* if */
     }  /* if */
-    if (!processed) {
-      /* Non-operator-function cases. */
-      /* As of this writing, this call suppresses every known transformation,
-         but it's here to allow for future transformations. */
-      do_operand_transformations(&operand,
-                                 TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
-                                 TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
+    /* Advance past the "...". */
+    (void)get_token();
+  } else {
+#endif /* ADDRESS_OF_ELLIPSIS_ALLOWED */
+    /* Scan the operand. */
+    scan_expr(&operand, PREC_PREFIX, EOPT_OPERAND_OF_ADDRESS_OF);
+
+    if (err) {
+      /* Operator is not allowed in this kind of expression. */
+      make_error_operand(result);
+      change_operand_refs_to_error(&operand);
+    } else {
+      if (C_dialect == C_dialect_cplusplus &&
+          is_class_or_error_operand(&operand)) {
+        /* Look for C++ operator overloading cases. */
+        check_for_operator_overloading((an_opname_kind)onk_ampersand,
+                                       /*unary_operator=*/TRUE,
+                                       /*must_be_member_function=*/FALSE,
+                                       /*try_conversions=*/FALSE,
+                                       /*has_predef_meaning=*/TRUE,
+                                       &operand, (an_operand *)NULL,
+                                       &start_position,
+                                       result, &processed);
+      }  /* if */
+      if (!processed) {
+        /* Non-operator-function cases. */
+        /* As of this writing, this call suppresses every known transformation,
+           but it's here to allow for future transformations. */
+        do_operand_transformations(&operand,
+                                   TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
+                                   TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
                                  TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION |
-                                 TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION);
-      if (is_an_lvalue(&operand)) {
-        if (C_dialect == C_dialect_pcc && is_array_type(operand.type)) {
-          /* In pcc mode "&array" is the same as "array" implicitly converted
-             to a pointer.  It has type "pointer-to-array-element" rather than
-             "pointer to array" as in ANSI. */
-          pos_warning(ec_pcc_address_of_array, &start_position);
-          conv_array_operand_to_pointer_operand(&operand);
-        } else {
-          /* Convert the lvalue operand to an rvalue operand for the
-             pointer. */
-          take_address_of_lvalue(&operand);
-        }  /* if */
-        /* Note that the copy preserves ref_entries_list. */
-        copy_operand(&operand, result);
-      } else if (is_a_function_designator(&operand)) {
-        /* "&" of a function designator.  Change it to a pointer to the
-           function.  This includes overloaded functions and 
-           member functions specified by qualified name. */
-        /* Change the error position to the "&". */
-        operand.position = start_position;
-        conv_function_designator_to_ptr_to_function(&operand);
-        /* Note that the copy preserves ref_entries_list. */
-        copy_operand(&operand, result);
-      } else if (is_sym_for_member_operand(&operand)) {
-        /* The operand is the name of a nonstatic data member, so
-           the "&" operator returns a pointer-to-member. */
-        member_proj_sym = operand.variant.symbol;
-        member_sym = fundamental_symbol_of(member_proj_sym);
-        check_assertion(member_sym->kind == (a_symbol_kind)sk_field);
-        /* Make an operand for a pointer-to-member constant. */
-        make_ptr_to_member_constant_operand(
+                                  TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION);
+        if (is_an_lvalue(&operand)) {
+          if (C_dialect == C_dialect_pcc && is_array_type(operand.type)) {
+            /* In pcc mode "&array" is the same as "array" implicitly converted
+               to a pointer.  It has type "pointer-to-array-element" rather
+               than "pointer to array" as in ANSI. */
+            pos_warning(ec_pcc_address_of_array, &start_position);
+            conv_array_operand_to_pointer_operand(&operand);
+          } else {
+            /* Convert the lvalue operand to an rvalue operand for the
+               pointer. */
+            take_address_of_lvalue(&operand);
+          }  /* if */
+          /* Note that the copy preserves ref_entries_list. */
+          copy_operand(&operand, result);
+        } else if (is_a_function_designator(&operand)) {
+          /* "&" of a function designator.  Change it to a pointer to the
+             function.  This includes overloaded functions and 
+             member functions specified by qualified name. */
+          /* Change the error position to the "&". */
+          operand.position = start_position;
+          conv_function_designator_to_ptr_to_function(&operand);
+          /* Note that the copy preserves ref_entries_list. */
+          copy_operand(&operand, result);
+        } else if (is_sym_for_member_operand(&operand)) {
+          /* The operand is the name of a nonstatic data member, so
+             the "&" operator returns a pointer-to-member. */
+          member_proj_sym = operand.variant.symbol;
+          member_sym = fundamental_symbol_of(member_proj_sym);
+          check_assertion(member_sym->kind == (a_symbol_kind)sk_field);
+          /* Make an operand for a pointer-to-member constant. */
+          make_ptr_to_member_constant_operand(
                                         member_sym,
                                         member_proj_sym,
                                         &start_position,
@@ -3211,19 +3237,22 @@ operation is a pointer-to-member (see ARM 5.3).
                                         (a_boolean)operand.is_qualified_name,
                                         /*is_operand_of_address_of=*/TRUE,
                                         result);
-        /* Change the kind in the reference entries to address-taken. */
-        change_ref_kinds(operand.ref_entries_list, SRK_ADDRESS_TAKEN);
-      } else {
-        /* "&" applied to something that is not an lvalue or a function
-           designator or another permitted case. */
-        if (!is_error_operand(&operand)) {
-          error_in_operand(ec_expr_not_an_lvalue_or_function_designator,
-                           &operand);
+          /* Change the kind in the reference entries to address-taken. */
+          change_ref_kinds(operand.ref_entries_list, SRK_ADDRESS_TAKEN);
+        } else {
+          /* "&" applied to something that is not an lvalue or a function
+             designator or another permitted case. */
+          if (!is_error_operand(&operand)) {
+            error_in_operand(ec_expr_not_an_lvalue_or_function_designator,
+                             &operand);
+          }  /* if */
+          make_error_operand(result);
         }  /* if */
-        make_error_operand(result);
       }  /* if */
     }  /* if */
+#if ADDRESS_OF_ELLIPSIS_ALLOWED
   }  /* if */
+#endif /* ADDRESS_OF_ELLIPSIS_ALLOWED */
 
   error_position = start_position;
   result->position = start_position;

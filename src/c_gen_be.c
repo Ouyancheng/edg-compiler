@@ -3073,6 +3073,9 @@ done_with_operation:
       dump_expr(expr->variant.object_lifetime.expr, need_parens);
       break;
 #endif /* KEEP_OBJECT_LIFETIME_INFO_IN_LOWERED_IL_WHEN_EH_ENABLED */
+    case enk_address_of_ellipsis:
+      write_tok_str("&...");
+      break;
 #if !DO_FULL_PORTABLE_EH_LOWERING
     /* This code is here as a debugging aid.  Normally, these nodes are
        not seen by the C-generating back end. */
