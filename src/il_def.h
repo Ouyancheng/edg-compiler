@@ -1484,7 +1484,10 @@ typedef struct a_dynamic_init {
       a_routine_ptr
 		ptr;
 			/* The constructor to be invoked to initialize this
-			   object. */
+			   object.  In initializations generated for entities
+			   with template-dependent types in prototype
+			   instantiations, this can be NULL to indicate that
+			   the constructor is not known. */
       an_expr_node_ptr
 		args;   /* The actual arguments with which the constructor
 			   should be called, not including the
