@@ -18,6 +18,11 @@ This version is for the Sun Solaris operating system.
 
 /* Configuration definitions determined by dettarg.c: */
 
+#ifdef DEMO_VERSION
+/* Demo versions should support multiple translation units. */
+#define COMPILE_MULTIPLE_TRANSLATION_UNITS 1
+#endif /* ifdef DEMO_VERSION */
+
 #ifdef SUNOS
 /* SPARC SunOS specific defines. */
 #define TARG_LITTLE_ENDIAN FALSE
@@ -112,7 +117,6 @@ in the C-generating back end.
 #endif /* ifndef __GNUC__ */
 #endif /* ifdef __SUNPRO_C */
 #endif /* ifdef SUNOS */
-
 
 /******************************************************************************
 *                                                             \  ___  /       *

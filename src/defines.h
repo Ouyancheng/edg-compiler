@@ -19,6 +19,18 @@ Note: This is the EDG internal version.  The version shipped as part of
 the release should contain no defines.
 */
 
+/*
+Set the test version flags to FALSE for demo versions.
+*/
+#ifdef DEMO_VERSION
+#ifdef sun
+#define SUN_TEST_VERSION 0
+#endif  /* ifdef sun */
+#ifdef __linux__
+#define LINUX_TEST_VERSION 0
+#endif /* ifdef __linux__ */
+#endif /* ifdef DEMO_VERSION */
+
 #define ENABLE_TRANS_UNIT_TEST_MODE 1
 #define DEFAULT_FLOATING_POINT_TEMPLATE_PARAMETERS_ALLOWED 1
 
@@ -232,16 +244,18 @@ Flags to be set when using the KAI inliner.
 
 /* Linux version. */
 
+#ifndef LINUX_TEST_VERSION
+#define LINUX_TEST_VERSION 1
+#endif /* ifndef LINUX_TEST_VERSION */
+
+#if LINUX_TEST_VERSION
 /* defines_linux.h sets this to TRUE if not already set. */
 #ifndef IA64_ABI
 #define IA64_ABI 0
 #endif /* IA64_ABI */
+#endif /* LINUX_TEST_VERSION */
 
 #include "defines_linux.h"
-
-#ifndef LINUX_TEST_VERSION
-#define LINUX_TEST_VERSION 1
-#endif /* ifndef LINUX_TEST_VERSION */
 
 #if LINUX_TEST_VERSION
 
