@@ -1,5 +1,20 @@
 Version 2.43
 
+9/16/99  Assignment problems in cfront mode introduced in 2.42
+
+A change for operator= functions made in version 2.42 (see Changes
+entry of 6/14/99) broke the handling of "=" in cfront mode in some
+cases.  Now fixed again.
+
+  struct Y {
+    Y& operator=(int);
+  };
+  int main() {
+    Y yobj1;
+    Y yobj2 = yobj1;
+    yobj1 = yobj2;  // Got error in 2.42 in cfront mode, now okay again
+  }
+
 9/13/99  __declspec(dllimport) processing could refer to freed memory
 
 Bodies of functions marked with __declspec(dllimport) are always discarded,
