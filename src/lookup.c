@@ -3420,6 +3420,114 @@ functions symbols or namespace projection symbols in the list).
   return symbol_list;
 }  /* nonmember_operator_function_lookup */
 
+
+void add_to_arg_dependent_lookup_list(a_type_ptr		arg_type,
+				      a_type_list_entry_ptr	*type_list)
+/*
+Add the type specified by arg_type to the list of types to be used for
+argument-dependent lookup specified by type_list.  Return an updated
+list pointer in type_list.  *type_list should be NULL on the first call.
+*/
+{
+  a_type_ptr		orig_type = NULL;
+  a_type_list_entry_ptr	tlep;
+
+  /* Remove any pointer, references, arrays, or qualifiers on the type. */
+  for (; orig_type != arg_type ;) {
+    orig_type = arg_type;
+    switch (arg_type->kind) {
+      case tk_pointer:  /* Includes C++ reference too. */
+        arg_type = type_pointed_to(arg_type);
+        break;
+      case tk_array:
+        arg_type = array_element_type(arg_type);
+        break;
+      case tk_typeref:
+        arg_type = arg_type->variant.typeref.type;
+        break;
+      default:
+        break;
+    }  /* switch */
+    arg_type = skip_typerefs(arg_type);
+  }  /* for */
+  /* See if the type is already on the list. */
+  for (tlep = *type_list; tlep != NULL; tlep = tlep->next) {
+    if (tlep->type == arg_type) break;
+  }  /* if */
+  if (tlep == NULL) {
+    /* The type is not on the list -- add it now. */
+    tlep = alloc_type_list_entry();
+    tlep->type = arg_type;
+    /* Add this to the front of the list. */
+    tlep->next = *type_list;
+    *type_list = tlep;
+    /* If the type is a pointer-to-member or function type, add the
+       types of which the type is composed to the list. */
+    if (is_ptr_to_member_type(arg_type)) {
+      /* A pointer to member type; add the type of the member, and the
+         class type. */
+      add_to_arg_dependent_lookup_list(pm_member_type(arg_type), type_list);
+      add_to_arg_dependent_lookup_list(pm_class_type(arg_type), type_list);
+    } else if (is_function_type(arg_type)) {
+      /* A function type; add the types of each parameter, and the return
+         type. */
+      a_routine_type_supplement_ptr	rtsp;
+      a_param_type_ptr			ptp;
+      rtsp = arg_type->variant.routine.extra_info;
+      for (ptp = rtsp->param_type_list; ptp != NULL; ptp = ptp->next) {
+        add_to_arg_dependent_lookup_list(ptp->type, type_list);
+      }  /* for */
+      add_to_arg_dependent_lookup_list(arg_type->variant.routine.return_type,
+                                       type_list);
+    }  /* if */
+  }  /* if */
+#if DEBUG
+  if (db_flag_is_set("add_to_arg_dependent_lookup_list")) {
+    fprintf(f_debug, "add_to_arg_dependent_lookup_list:\n");
+    for (tlep = *type_list; tlep != NULL; tlep = tlep->next) {
+      fprintf(f_debug, "  ");
+      db_type_name(tlep->type);
+      fprintf(f_debug, "\n");
+    }  /* for */
+  }  /* if */
+#endif /* DEBUG */
+}  /* add_to_arg_dependent_lookup_list */
+
+
+a_symbol_list_entry_ptr argument_dependent_lookup(
+					a_symbol_ptr		normal_sym,
+					a_type_list_entry_ptr	*type_list)
+/*
+Perform C++ argument-dependent lookup as specified in 3.4.2
+[basic.lookup.koenig] of the C++ standard.  normal_sym is the result of
+a normal lookup of the function name in the context of the call.  type_list
+is a list of argument types to be used to produce a list of associated
+classes and namespaces from which candidate functions should be considered.
+
+This routine builds a list of symbol list entries.  Each entry points to
+a sk_routine, sk_overloaded_function, or sk_namespace_projection symbol.
+The same function may be pointed to directly and/or indirectly by
+any number of these symbols, so the caller is responsible for ignoring
+duplicate entries.
+
+The list pointed to by *type_list is freed by this routine, and *type_list
+is set to NULL.
+*/
+{
+#if 0
+#else
+  /* Temporary version. */
+  a_symbol_list_entry_ptr	slep;
+
+  slep = alloc_symbol_list_entry();
+  slep->symbol = normal_sym;
+  free_list_of_type_list_entries(*type_list);
+  *type_list = NULL;
+  return slep;
+#endif
+}  /* argument_dependent_lookup */
+
+
 void lookup_one_time_init(void)
 /*
 Do one-time initialization of variables related to name lookup.

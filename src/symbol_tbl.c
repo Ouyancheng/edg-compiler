@@ -84,6 +84,7 @@ static unsigned long
 		num_dependent_type_fixups_allocated,
 		num_template_instances_allocated,
 		num_symbol_list_entries_allocated,
+		num_type_list_entries_allocated,
 		num_substituted_type_list_entries_allocated,
 		num_template_cache_segments_allocated,
 		num_template_decl_info_allocated,
@@ -138,6 +139,11 @@ static an_access_error_descr_ptr
 static a_symbol_list_entry_ptr
 		avail_symbol_list_entries;
 			/* List of symbol list entries freed and available for
+			   reuse. */
+
+static a_type_list_entry_ptr
+		avail_type_list_entries;
+			/* List of type list entries freed and available for
 			   reuse. */
 
 static a_substituted_type_list_entry_ptr
@@ -1379,6 +1385,52 @@ be NULL, in which case nothing is done.
     avail_symbol_list_entries = slep;
   }  /* if */
 }  /* free_list_of_symbol_list_entries */
+
+
+a_type_list_entry_ptr alloc_type_list_entry(void)
+/*
+Allocate a new type list entry and return a pointer to it.
+*/
+{
+  register a_type_list_entry_ptr ptr;
+
+  db_enter(5, "alloc_type_list_entry");
+  if (avail_type_list_entries != NULL) {
+    /* Reuse an existing entry. */
+    ptr = avail_type_list_entries;
+    avail_type_list_entries = avail_type_list_entries->next;
+  } else {
+    /* Allocate a new entry. */
+    ptr = (a_type_list_entry_ptr)alloc_fe(sizeof(a_type_list_entry));
+#if DEBUG
+   num_type_list_entries_allocated++;
+#endif /* DEBUG */
+  }  /* if */
+  ptr->next    = NULL;
+  ptr->type  = NULL;
+  
+  db_exit();
+  return ptr;
+}  /* alloc_type_list_entry */
+
+
+void free_list_of_type_list_entries(a_type_list_entry_ptr tlep)
+/*
+Add a list of symbol list entries to the available list.  tlep may
+be NULL, in which case nothing is done.
+*/
+{
+  a_type_list_entry_ptr	tlep_tail;
+  if (tlep != NULL) {
+    /* Find the last entry on the list. */
+    tlep_tail = tlep;
+    while (tlep_tail->next != NULL) tlep_tail = tlep_tail->next;
+    /* Add the current available list to the end of the list passed by the
+       caller. */
+    tlep_tail->next = avail_type_list_entries;
+    avail_type_list_entries = tlep;
+  }  /* if */
+}  /* free_list_of_type_list_entries */
 
 
 a_symbol_ptr find_symbol(char             *identifier,
@@ -8981,6 +9033,8 @@ for space tracking purposes.
                 a_template_instance);
   db_space_used("symbol list entry", num_symbol_list_entries_allocated,
                 a_symbol_list_entry);
+  db_space_used("type list entry", num_type_list_entries_allocated,
+                a_type_list_entry);
   db_space_used("subst. type list entry",
                 num_substituted_type_list_entries_allocated,
                 a_substituted_type_list_entry);
@@ -9172,6 +9226,7 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(avail_access_error_descrs),
       pch_saved_var_array_elem(avail_active_using_directives),
       pch_saved_var_array_elem(avail_symbol_list_entries),
+      pch_saved_var_array_elem(avail_type_list_entries),
       pch_saved_var_array_elem(avail_substituted_type_list_entries),
       pch_saved_var_array_elem(avail_template_cache_segments),
       pch_saved_var_array_elem(avail_dependent_type_fixups),
@@ -9210,6 +9265,7 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(num_symbol_headers_allocated),
       pch_saved_var_array_elem(num_symbol_headers_in_hash_table),
       pch_saved_var_array_elem(num_symbol_list_entries_allocated),
+      pch_saved_var_array_elem(num_type_list_entries_allocated),
       pch_saved_var_array_elem(num_substituted_type_list_entries_allocated),
       pch_saved_var_array_elem(num_symbols_allocated),
       pch_saved_var_array_elem(num_template_instances_allocated),
@@ -9270,6 +9326,7 @@ of the front end.
   avail_access_error_descrs = NULL;
   avail_active_using_directives = NULL;
   avail_symbol_list_entries = NULL;
+  avail_type_list_entries = NULL;
   avail_substituted_type_list_entries = NULL;
   avail_template_cache_segments = NULL;
   avail_vla_fixups = NULL;
@@ -9307,6 +9364,7 @@ of the front end.
   num_dependent_type_fixups_allocated          = 0;
   num_template_instances_allocated             = 0;
   num_symbol_list_entries_allocated            = 0;
+  num_type_list_entries_allocated              = 0;
   num_substituted_type_list_entries_allocated  = 0;
   num_template_cache_segments_allocated        = 0;
   num_template_decl_info_allocated             = 0;

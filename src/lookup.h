@@ -195,6 +195,14 @@ extern a_symbol_ptr opname_member_function_symbol(an_opname_kind kind,
 
 extern a_symbol_ptr opname_function_symbol(an_opname_kind kind);
 
+extern
+void add_to_arg_dependent_lookup_list(a_type_ptr		arg_type,
+				      a_type_list_entry_ptr	*type_list);
+
+extern a_symbol_list_entry_ptr argument_dependent_lookup(
+					a_symbol_ptr		normal_sym,
+					a_type_list_entry_ptr	*type_list);
+
 extern a_symbol_list_entry_ptr nonmember_operator_function_lookup(
                                  an_opname_kind kind,
                                  a_type_ptr	type_1,

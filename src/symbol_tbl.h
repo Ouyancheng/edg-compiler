@@ -525,6 +525,20 @@ typedef struct a_symbol_list_entry {
 } a_symbol_list_entry;
 
 
+typedef struct a_type_list_entry *a_type_list_entry_ptr;
+typedef struct a_type_list_entry {
+  /* Entry created to produce a list of types for some special purpose.
+     For example, such a list is used when building a list of associated
+     types for namespace/class directed lookup. */
+  a_type_list_entry_ptr
+		next;
+			/* Next in a linked list of type list entries; NULL
+			   for the last on the list. */
+  a_type_ptr	type;
+			/* Pointer to a type entry. */
+} a_type_list_entry;
+
+
 typedef struct a_substituted_type_list_entry
 			*a_substituted_type_list_entry_ptr;
 typedef struct a_substituted_type_list_entry {
@@ -2925,6 +2939,8 @@ extern void free_list_of_substituted_type_list_entries(
 				a_substituted_type_list_entry_ptr stlep);
 extern a_symbol_list_entry_ptr alloc_symbol_list_entry(void);
 extern void free_list_of_symbol_list_entries(a_symbol_list_entry_ptr slep);
+extern a_type_list_entry_ptr alloc_type_list_entry(void);
+extern void free_list_of_type_list_entries(a_type_list_entry_ptr slep);
 
 
 extern
