@@ -1823,17 +1823,18 @@ the caller will be setting those things.
     if (anon_parent_sym == NULL) break;
     check_assertion(anon_parent_sym->kind == (a_symbol_kind)sk_field);
     parent_field = anon_parent_sym->variant.field.ptr;
-    /* In C++, stop if this parent is a standard anonymous union, because
-       those don't get handled here. */
+    /* In C++, skip a standard anonymous union, because those don't get
+       handled here.  But keep looping because there might be more
+       nonstandard cases further out. */
     if (!C_mode()) {
       /* C++.  See if this is an anonymous union case. */
       a_type_ptr                  field_class =
                           parent_field->source_corresp.class_of_which_a_member;
       a_class_type_supplement_ptr ctsp =
                             field_class->variant.class_struct_union.extra_info;
-      /* Stop if the field is from a standard anonymous union. */
+      /* Skip this level if the field is from a standard anonymous union. */
       if (ctsp->anonymous_union_kind == (an_anonymous_union_kind)auk_field) {
-        break;
+        continue;
       }  /* if */
     }  /* if */
     /* Rewrite the field selection to add an implied selection. */
