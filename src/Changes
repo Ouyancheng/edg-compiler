@@ -1,5 +1,10 @@
 Version 2.24
 
+6/11/94 Typedefs preserved on constant types
+
+When a constant is cast to a new type, the typedefs on the type are now
+preserved.
+
 6/10/94 Changes in command line option handling
 
 A number of changes have been made in the processing of command
