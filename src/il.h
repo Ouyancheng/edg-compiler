@@ -117,7 +117,7 @@ EXTERN a_stdc_pragma_value
 #if ONE_INSTANTIATION_PER_OBJECT
 
 EXTERN unsigned long
-		needed_flag_bit_number /* = 0 */;
+		needed_flag_bit_number;
 			/* If non-zero, indicates that instead of the normal
 			   "needed" flag in the source correspondence entry,
 			   the so-numbered bit in the
@@ -263,10 +263,10 @@ Dynamically-allocated and expandable buffer used for short-lived text.
 which no parsing or lexical advance is done (no get_token calls, no
 macro expansions, etc.).
 */
-EXTERN char	*temp_text_buffer /* = NULL */;
+EXTERN char	*temp_text_buffer;
 			/* The buffer itself.  Not allocated on a per-file
 			   basis. */
-EXTERN sizeof_t	size_temp_text_buffer /* = 0 */;
+EXTERN sizeof_t	size_temp_text_buffer;
 			/* The size of temp_text_buffer, as currently
 			   allocated. */
 EXTERN sizeof_t	pos_in_temp_text_buffer;

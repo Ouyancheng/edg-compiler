@@ -12238,6 +12238,10 @@ in il_init.)
   }  /* if */
 #endif /* CHECKING */
 
+  /* Initialize certain global variables declared in il.h. */
+  temp_text_buffer = NULL;
+  size_temp_text_buffer = 0;
+
   /* Save variables from il.h and il.c that are needed for precompiled
      headers */
   if (precompiled_header_processing_required) {
@@ -12281,6 +12285,7 @@ in il_init.)
       pch_saved_var_array_elem(curr_fenv_access_state),
       pch_saved_var_array_elem(curr_cx_limited_range_state),
 #if DEBUG
+      pch_saved_var_array_elem(num_searches_for_shareable_constants),
       pch_saved_var_array_elem(num_compares_for_shareable_constants),
       pch_saved_var_array_elem(num_func_shareable_constants),
       pch_saved_var_array_elem(num_get_based_type_calls),
@@ -12294,6 +12299,7 @@ in il_init.)
   }  /* if */
   /* Register variables (and arrays) that have distinct copies for distinct
      compilation units. */
+  register_trans_unit_array(curr_il_region_number);
   register_trans_unit_array(int_types);
   register_trans_unit_array(signed_int_types);
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -12366,6 +12372,9 @@ need initialization for every (primary and secondary) translation unit.
 #if DO_IL_LOWERING
   initial_value_for_il_lowering_flag = 0;
 #endif /* DO_IL_LOWERING */
+#if ONE_INSTANTIATION_PER_OBJECT
+  needed_flag_bit_number = 0;
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
 
   /* Static variables declared in il.c. */
   /* Depending on NULL represented as zero bits here. */
@@ -12378,6 +12387,10 @@ need initialization for every (primary and secondary) translation unit.
           sizeof(microsoft_sized_signed_int_types));
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   memzero((char *)float_types, sizeof(float_types));
+#if C99_IL_EXTENSIONS_SUPPORTED
+  memzero((char *)complex_types, sizeof(complex_types));
+  memzero((char *)imaginary_types, sizeof(imaginary_types));
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
   memzero((char *)string_types, sizeof(string_types));
   memzero((char *)wide_string_types, sizeof(wide_string_types));
   il_wchar_t_type = NULL;
