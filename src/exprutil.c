@@ -1264,7 +1264,9 @@ points to the dynamic initialization.
 void discard_curr_expr_object_lifetime(void)
 /*
 If the current expression stack entry has an associated object lifetime,
-mark it so it will be discarded later.  This is done for errors.
+mark it so it will be discarded later.  This is done for errors and
+for default argument expressions that are discarded, e.g., in
+prototype instantiations.
 */
 {
   an_object_lifetime_ptr lifetime = expr_stack->lifetime;
