@@ -28,7 +28,7 @@ copy_node now deals correctly with an enk_throw node with throw_info == NULL.
 7/17/96 EXIT_ON_INTERNAL_ERROR
 
 A new configuration flag EXIT_ON_INTERNAL_ERROR can be set to request
-an exit() call instad of an abort() call if an internal error occurs.
+an exit() call instead of an abort() call if an internal error occurs.
 
 7/17/96 C-generating back end: output of "const void"
 
@@ -132,7 +132,7 @@ been fixed.
   }
   X::A::B::B() {}  // Internal error on this declaration
 
-7/15/96 Missing #ifs for when PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE is FALSE
+7/15/96 Missing #ifs when PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE is FALSE
 
 lower_init.c was missing some #ifs, with the consequence that the file did
 not compile when PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE is FALSE.
