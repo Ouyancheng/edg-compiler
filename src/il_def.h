@@ -5795,7 +5795,7 @@ typedef struct an_expr_node {
     a_throw_supplement_ptr
 		throw_info;
 			/* Information about the object being thrown in a
-			   throw expression; NULL when a no object is
+			   throw expression; NULL when no object is
 			   specified (i.e., a "rethrow" of the current
 			   throw object). */
     /* When kind == enk_condition (C++ only): */
