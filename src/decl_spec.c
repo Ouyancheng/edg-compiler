@@ -2631,13 +2631,18 @@ exit_loop:
           /* However, adding a qualifier to a typedef for a reference type
              is not allowed.  More precisely, the qualifier is ignored.
              Issue a diagnostic. */
-          if (is_reference_type(*type_ptr)
+          if (is_reference_type(*type_ptr)) {
 #if RESTRICT_ALLOWED
-              && ((*qualifiers & ~TQ_RESTRICT) != TQ_NONE)
-#endif /* RESTRICT_ALLOWED */
-                                          ) {
+            /* "restrict" may be applied to reference types, but the other
+                qualifiers may not. */
+            if ((*qualifiers & ~TQ_RESTRICT) != TQ_NONE) {
+              *qualifiers &= TQ_RESTRICT;
+              pos_warning(ec_useless_type_qualifiers, &const_volatile_pos);
+            }  /* if */
+#else /* !RESTRICT_ALLOWED */
             *qualifiers = TQ_NONE;
             pos_warning(ec_useless_type_qualifiers, &const_volatile_pos);
+#endif /* RESTRICT_ALLOWED */
           }  /* if */        
         } else {
           /* In C we check for duplicate qualifiers on a declaration, even
