@@ -1109,20 +1109,40 @@ file scope IL memory region), and return a pointer to it.
   return name;
 }  /* make_typeinfo_name */
 
+#if IA64_ABI
 
-#if !IA64_ABI
-/*ARGSUSED*/ /* <-- force_static and use_comdat are not used in that case. */
-#endif /* !IA64_ABI */
-static a_constant_ptr make_typeinfo_name_constant(a_type_ptr type,
-                                                  a_boolean  force_static,
-                                                  a_boolean  use_comdat)
+static a_boolean type_is_externally_visible(a_type_ptr type)
+/*
+Return TRUE if the indicated type is visible across more than one
+translation unit.  This controls whether the typeinfo for the type
+is placed in a COMDAT.
+*/
+{
+  a_boolean is_extern = FALSE;
+
+  /* Types that refer to local types need not be shared, unless they
+     are from a routine that may be instantiated more than once. */
+  if (!is_or_contains_local_type(type)) {
+    is_extern = TRUE;
+  } else {
+    if (type->source_corresp.is_local_to_function) {
+      a_routine_ptr enclosing_routine = enclosing_routine_for_local_type(type);
+      if (routine_might_exist_in_multiple_copies(enclosing_routine)) {
+        is_extern = TRUE;
+      }  /* if */
+    } /* if */
+  }  /* if */
+  return is_extern;
+}  /* type_is_externally_visible */
+
+#endif /* IA64_ABI */
+
+static a_constant_ptr make_typeinfo_name_constant(a_type_ptr type)
 /*
 Make a constant that is the address of a string for the name of the given
 type, for use in typeinfo implementation constants.  For the IA-64 ABI,
 a variable is initialized to the string, and the address of the
-variable is returned.  If force_static is TRUE, the variable containing
-the constant is emitted with internal linkage.  If use_comdat is TRUE,
-the variable containing the constant is emitted in a COMDAT group.
+variable is returned.
 */
 {
   char           *name = make_typeinfo_name(type);
@@ -1133,6 +1153,7 @@ the variable containing the constant is emitted in a COMDAT group.
   char           *var_name;
   a_variable_ptr typeinfo_name_var;
   a_type_ptr     var_type;
+  a_boolean      use_comdat;
 #endif /* IA64_ABI */
 
   /* Generate a string constant. */
@@ -1147,20 +1168,23 @@ the variable containing the constant is emitted in a COMDAT group.
   var_type = make_qualified_type(string_con->type, TQ_CONST);
   /* Store the constant in a variable; the IA64 ABI requires that the name
      be stored in a variable with a prescribed name. */
+  /* The variable is always a COMDAT even if the associated typeinfo
+     is static, unless it contains a reference to a local type. */
+  use_comdat = type_is_externally_visible(type);
   var_name = mangled_typeinfo_string_name(type);
   typeinfo_name_var = make_lowered_variable(var_name, 
                                             /*already_il_name=*/FALSE,
                                             var_type,
-                                            (force_static ? 
-                                             (a_storage_class)sc_static :
-                                             (a_storage_class)sc_unspecified));
+                                            use_comdat ?
+                                              (a_storage_class)sc_unspecified :
+                                              (a_storage_class)sc_static);
   typeinfo_name_var->source_corresp.name_has_been_mangled = TRUE;
   set_variable_address_constant(typeinfo_name_var, &constant, 
                                 /*set_address_taken_flag=*/TRUE);
   /* Initialize the variable. */
   typeinfo_name_var->init_kind = (an_init_kind)initk_static;
   typeinfo_name_var->initializer.constant = string_con;
-  if (use_comdat && !force_static) {
+  if (use_comdat) {
     put_variable_into_comdat_group(typeinfo_name_var);
   }  /* if */
 #else /* !IA64_ABI */
@@ -1473,7 +1497,7 @@ typeinfo variable in a COMDAT group.
     curr_field = curr_field->next;
     curr_field_type = curr_field->type;
 #endif /* !IA64_ABI */
-    name_con = make_typeinfo_name_constant(type, force_static, use_comdat);
+    name_con = make_typeinfo_name_constant(type);
 #if IA64_ABI
     vptr_con->next = name_con;
     type_info_con->variant.aggregate.last_constant = name_con;
@@ -2054,19 +2078,7 @@ pointers-to-members).
           force_static = TRUE;
         } else {
           /* See whether the typeinfo should be in a COMDAT. */
-          /* Types that refer to local types need not be shared, unless they
-             are from a routine that may be instantiated more than once. */
-          if (!is_or_contains_local_type(type)) {
-            use_comdat = TRUE;
-          } else {
-            if (type->source_corresp.is_local_to_function) {
-              a_routine_ptr enclosing_routine =
-                                        enclosing_routine_for_local_type(type);
-              if (routine_might_exist_in_multiple_copies(enclosing_routine)) {
-                use_comdat = TRUE;
-              }  /* if */
-            } /* if */
-          }  /* if */
+          use_comdat = type_is_externally_visible(type);
         }  /* if */
       }  /* if */
 #endif /* IA64_ABI */
