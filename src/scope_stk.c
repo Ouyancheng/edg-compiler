@@ -2898,10 +2898,19 @@ End a name scope by popping an entry off the scope stack.
          cleared. */
       curr_routine->source_corresp.needed = FALSE;
       mark_as_needed((char *)curr_routine, (an_il_entry_kind)iek_routine);
+#if DEBUG
+    } else if (debug_level >= 3) {
+      fprintf(f_debug, "Not calling mark_as_needed for \"");
+      db_name(&curr_routine->source_corresp);
+      fprintf(f_debug, "\", storage class is %s\n",
+              db_storage_class_names[(int)curr_routine->storage_class]);
+#endif /* DEBUG */
     }  /* if */
   } else if (kind == (a_scope_kind)sck_file) {
     /* Set the "needed" flag in defined variables with external linkage --
        both in the file scope and in each of the namespace scopes. */
+    a_boolean  saved_okay_to_eliminate_unneeded_il_entries =
+                                     okay_to_eliminate_unneeded_il_entries;
     end_of_file_scope_needed_flags_phase = TRUE;
     set_needed_flags_at_end_of_file_scope(il_scope);
     end_of_file_scope_needed_flags_phase = FALSE;
@@ -2922,7 +2931,14 @@ End a name scope by popping an entry off the scope stack.
       /* Now eliminate everything at file and namespace scope that does not
          need to be kept in the IL. */
       eliminate_unneeded_il_entries(il_scope);
+    } else if (saved_okay_to_eliminate_unneeded_il_entries) {
+      /* If any memory regions would have been written out if it had been
+         known earlier that unneeded IL entries should not be eliminated,
+         write them out at this time. */
+      check_for_done_with_all_function_memory_regions();
     }  /* if */
+    okay_to_eliminate_unneeded_il_entries =
+                            saved_okay_to_eliminate_unneeded_il_entries;
 #endif /* MAINTAIN_NEEDED_FLAGS */
   }  /* if */
   /* The IL scope, if any, is no longer on the stack.  This must occur
