@@ -2595,26 +2595,35 @@ aggregate, set *keep_constant to TRUE.
       repeated_con = con_ptr->variant.init_repeat.constant;
       /* Repeat the constant the right number of times.  It must be a
          ck_dynamic_init constant. */
-#if CHECKING
-      if (repeated_con->kind != (a_constant_repr_kind)ck_dynamic_init) {
-        internal_error(
-    "lower_dynamic_init_aggregate_constant: repeated con not ck_dynamic_init");
-      }  /* if */
-#endif /* CHECKING */
-      ipd.array_element_sequence = TRUE;
-      ipd.array_element_count =
-                          (a_targ_ptrdiff_t)con_ptr->variant.init_repeat.count;
-      lower_ck_dynamic_init(repeated_con, &ipd, dtor_case, ctor_init,
-                            others_follow, insert_location, keep_constant);
-      /* Remove the ck_init_repeat constant, in case the overall aggregate
-         is kept for the constant parts. */
-      check_assertion(con_ptr->next == NULL);
-      if (prev_con == NULL) {
-        aggr_const->variant.aggregate.first_constant = NULL;
+      if (C_mode()) {
+        /* With designated initializers, it is possible to get a repeated
+           constant.  Leave it alone, except for lowering the underlying
+           constant.  This comes up in C mode when IL lowering is used to
+           lower nonconstant initializers.  (However, the repeated constant
+           will be actually constant.) */
+        lower_constant(repeated_con);
       } else {
-        prev_con->next = NULL;
+#if CHECKING
+        if (repeated_con->kind != (a_constant_repr_kind)ck_dynamic_init) {
+          internal_error(
+    "lower_dynamic_init_aggregate_constant: repeated con not ck_dynamic_init");
+        }  /* if */
+#endif /* CHECKING */
+        ipd.array_element_sequence = TRUE;
+        ipd.array_element_count =
+                          (a_targ_ptrdiff_t)con_ptr->variant.init_repeat.count;
+        lower_ck_dynamic_init(repeated_con, &ipd, dtor_case, ctor_init,
+                              others_follow, insert_location, keep_constant);
+        /* Remove the ck_init_repeat constant, in case the overall aggregate
+           is kept for the constant parts. */
+        check_assertion(con_ptr->next == NULL);
+        if (prev_con == NULL) {
+          aggr_const->variant.aggregate.first_constant = NULL;
+        } else {
+          prev_con->next = NULL;
+        }  /* if */
+        aggr_const->variant.aggregate.last_constant = prev_con;
       }  /* if */
-      aggr_const->variant.aggregate.last_constant = prev_con;
     } else if (con_ptr->kind == (a_constant_repr_kind)ck_aggregate) {
       /* Aggregate constant initializing a member of an aggregate. */
       lower_dynamic_init_aggregate_constant(con_ptr, &ipd,
