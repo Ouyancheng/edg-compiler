@@ -1,5 +1,27 @@
 Version 2.43
 
+11/10/99 Unresolved typeinfo variable due to dynamic_cast or typeid
+
+In some cases where a dynamic_cast or typeid uses a class template type
+that is little used elsewhere in the program, the typeinfo variable for
+the class was not defined, leading to a link-time unresolved external.
+This was due to a failure to recognize that the decider function
+for the class must be instantiated.  (The instantiation of the decider
+function in a compilation causes the virtual function table definition
+to be put out, which causes the typeinfo variable definition to be put
+out.)  Now fixed.
+
+  template <class T> struct A {
+    virtual void f();
+  };
+  template <class T> void A<T>::f(){}
+  template <class T> struct B : public A<T> {};
+  int main() {
+    A<int>* a = 0;
+    B<int>* b;
+    b = dynamic_cast<B<int>*>(a);
+  }
+
 11/10/99 Internal error with source sequence entry for a pragma attached to a
          void parameter list
 
