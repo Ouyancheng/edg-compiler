@@ -7179,7 +7179,6 @@ be put out.
        associated with this declaration (again, unconditionally, since this is
        the definition). */
     sym_ptr->decl_position = *source_position;
-    sym_ptr->defined = TRUE;
     set_decl_sequence_number(sym_ptr);
   }  /* if */
   /* Update the cross reference file if it exists and if this is not a
@@ -7191,75 +7190,80 @@ be put out.
       write_xref_entry(srk_definition, sym_ptr, source_position);
     }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-    {
-    a_source_correspondence       *scp;
-    a_source_sequence_entry_ptr   ssep;
-    a_src_seq_secondary_decl_ptr  sssdp;
-    a_boolean                     force_alloc_in_filescope;
-    a_memory_region_number        region_to_switch_back_to;
+    if (sym_ptr->defined) {
+      /* This is a redefinition.  Let the first definition stand and record
+         this as secondary. */
+      sym_update_source_sequence_list(sym_ptr, source_position);
+    } else {
+      a_source_correspondence       *scp;
+      a_source_sequence_entry_ptr   ssep;
+      a_src_seq_secondary_decl_ptr  sssdp;
+      a_boolean                     force_alloc_in_filescope;
+      a_memory_region_number        region_to_switch_back_to;
     
-    /* If this is a definition that follows a previous declaration, the latter
-       should be recorded as a secondary. */
-    scp = source_corresp_entry_for_symbol(sym_ptr);
-    if (scp != NULL && (ssep = scp->source_sequence_entry) != NULL) {
-      /* A source sequence entry has been located. */
-      if (ssep->entity.kind ==
-                         (a_byte_il_entry_kind)iek_source_sequence_entry) {
-        ssep = (a_source_sequence_entry_ptr)ssep->entity.ptr;
-      }  /* if */
-      if (ssep->entity.kind !=
-                         (a_byte_il_entry_kind)iek_src_seq_secondary_decl) {
-        /* It is not already a secondary declaration, so create one.
-           Current:               Change to:
-
-               entity                       entity
-                  ^                           ^
-                  |                           |
-                  |         ==>       src-seq-secondary-decl
-                  |                           ^
-                  v                           |
-             src-seq-entry             src-seq-entry
-
-           which eventually will look like this:
-
-                                  entity
-                                   ^   ^
-                                   |   |
-                src-seq-secondary-decl |
-                        ^              |
-                        |              v
-                 src-seq-entry ... src-seq-entry
-
-           where the second source-sequence-entry in the new construct (the
-           one at which the entity will point back) has not yet been created
-           at this point in the processing. */
-        if (curr_il_region_number != FILE_SCOPE_REGION_NUMBER &&
-            in_file_scope(ssep)) {
-          force_alloc_in_filescope = TRUE;
-          switch_to_file_scope_region(&region_to_switch_back_to);
-        } else {
-          force_alloc_in_filescope = FALSE;
+      /* If this is a definition that follows a previous declaration, the
+         latter should be recorded as a secondary. */
+      scp = source_corresp_entry_for_symbol(sym_ptr);
+      if (scp != NULL && (ssep = scp->source_sequence_entry) != NULL) {
+        /* A source sequence entry has been located. */
+        if (ssep->entity.kind ==
+                           (a_byte_il_entry_kind)iek_source_sequence_entry) {
+          ssep = (a_source_sequence_entry_ptr)ssep->entity.ptr;
         }  /* if */
-        sssdp = alloc_src_seq_secondary_decl();
-        if (force_alloc_in_filescope) {
-          switch_back_to_original_region(region_to_switch_back_to);
+        if (ssep->entity.kind !=
+                           (a_byte_il_entry_kind)iek_src_seq_secondary_decl) {
+          /* It is not already a secondary declaration, so create one.
+             Current:               Change to:
+
+                 entity                       entity
+                    ^                           ^
+                    |                           |
+                    |         ==>       src-seq-secondary-decl
+                    |                           ^
+                    v                           |
+               src-seq-entry             src-seq-entry
+
+             which eventually will look like this:
+
+                                    entity
+                                     ^   ^
+                                     |   |
+                  src-seq-secondary-decl |
+                          ^              |
+                          |              v
+                   src-seq-entry ... src-seq-entry
+
+             where the second source-sequence-entry in the new construct (the
+             one at which the entity will point back) has not yet been created
+             at this point in the processing. */
+          if (curr_il_region_number != FILE_SCOPE_REGION_NUMBER &&
+              in_file_scope(ssep)) {
+            force_alloc_in_filescope = TRUE;
+            switch_to_file_scope_region(&region_to_switch_back_to);
+          } else {
+            force_alloc_in_filescope = FALSE;
+          }  /* if */
+          sssdp = alloc_src_seq_secondary_decl();
+          if (force_alloc_in_filescope) {
+            switch_back_to_original_region(region_to_switch_back_to);
+          }  /* if */
+          sssdp->decl_position = scp->decl_position;
+          sssdp->entity = ssep->entity;
+          /* Update the tagged-pointer of the current source sequence entry
+             to refer to the secondary-decl entry. */
+          ssep->entity.kind = (a_byte_il_entry_kind)iek_src_seq_secondary_decl;
+          ssep->entity.ptr = (char *)sssdp;
+          /* Note that there is no back pointer from the entity to the
+             secondary-decl entry.   When the new source sequence entry is
+             created, the back pointer will refer to it. */
+          scp->source_sequence_entry = NULL;
         }  /* if */
-        sssdp->decl_position = scp->decl_position;
-        sssdp->entity = ssep->entity;
-        /* Update the tagged-pointer of the current source sequence entry
-           to refer to the secondary-decl entry. */
-        ssep->entity.kind = (a_byte_il_entry_kind)iek_src_seq_secondary_decl;
-        ssep->entity.ptr = (char *)sssdp;
-        /* Note that there is no back pointer from the entity to the
-           secondary-decl entry.   When the new source sequence entry is
-           created, the back pointer will refer to it. */
-        scp->source_sequence_entry = NULL;
       }  /* if */
-    }  /* if */
-    sym_update_source_sequence_list(sym_ptr, source_position);
-    }
+      sym_update_source_sequence_list(sym_ptr, source_position);
+    } /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
+  sym_ptr->defined = TRUE;
 }  /* mark_defined */
 
 
