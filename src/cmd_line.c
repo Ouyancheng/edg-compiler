@@ -2037,6 +2037,15 @@ setting is used, and to set various unmentioned settings as needed.
     command_line_error(
                      ec_cl_pending_instantiations_option_only_in_cplusplus);
   }  /* if */
+#if SUN_EXTENSIONS_ALLOWED
+  if (!(option_kind_used[(int)optk_sun_linker_scope]) &&
+      !microsoft_mode && !strict_ansi_mode) {
+    /* If the Sun linker scope option was not set on the command line, set
+       its value now based on the configuration macros. */
+    sun_linker_scope_allowed = DEFAULT_SUN_LINKER_SCOPE_ALLOWED &&
+                               DEFAULT_SUN_COMPATIBILITY;
+  }  /* if */
+#endif /* SUN_EXTENSIONS_ALLOWED */
   set_c_mode_flags();
 }  /* check_and_set_c_mode_options */
 
@@ -2577,6 +2586,13 @@ checked again here.)
     thread_local_storage_specifier_enabled = TRUE;
   }  /* if */
 #endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
+#if SUN_EXTENSIONS_ALLOWED
+  if (!(option_kind_used[(int)optk_sun_linker_scope])) {
+    /* If the Sun linker scope option was not set on the command line, set
+       its value now based on the configuration macros. */
+    sun_linker_scope_allowed = DEFAULT_SUN_LINKER_SCOPE_ALLOWED;
+  }  /* if */
+#endif /* SUN_EXTENSIONS_ALLOWED */
   /* The Sun compiler suffers from the same problem as the Microsoft
      compiler with respect to making template parameters visible in
      specializations. */
@@ -4831,7 +4847,7 @@ variables declared in cmd_line.h.
 #endif /* !SUN_EXTENSIONS_ALLOWED */
 #endif /* SUN_EXTENSIONS_ALLOWED || defined(_lint) */
 #if SUN_EXTENSIONS_ALLOWED
-  sun_linker_scope_allowed = DEFAULT_SUN_LINKER_SCOPE_ALLOWED;
+  sun_linker_scope_allowed = FALSE;
 #endif /* SUN_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED || defined(_lint)
   gcc_mode = FALSE;

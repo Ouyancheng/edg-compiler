@@ -42,7 +42,11 @@ of the namespace when the Microsoft dialect is the target.  For example:
 The Sun linker scope specifiers (see Changes entry of 11/10/04)
 can now be enabled in C mode.  This allows compilation of Sun C
 code using --c --sun_linker_scope (but not --sun, which implies
-C++ mode as of now).
+C++ mode as of now).  In Microsoft C mode and in strict ANSI C
+mode, the Sun linker scope specifiers are never enabled by
+default.  In other C modes, they are enabled default when both
+DEFAULT_SUN_LINKER_SCOPE_ALLOWED and DEFAULT_SUN_COMPATIBILITY
+are set to TRUE.
 
 3/25/05  Zeroing of partially-initialized aggregate compound literals
 

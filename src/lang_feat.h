@@ -384,7 +384,7 @@ Flag that is TRUE if Sun CC 5.5 linker scope specifiers (__global, __hidden,
 __symbolic) should be accepted by default. */
 #if SUN_EXTENSIONS_ALLOWED
 #ifndef DEFAULT_SUN_LINKER_SCOPE_ALLOWED
-#define DEFAULT_SUN_LINKER_SCOPE_ALLOWED TRUE
+#define DEFAULT_SUN_LINKER_SCOPE_ALLOWED DEFAULT_SUN_COMPATIBILITY
 #endif /* ifndef DEFAULT_SUN_LINKER_SCOPE_ALLOWED */
 #endif /* SUN_EXTENSIONS_ALLOWED */
 
