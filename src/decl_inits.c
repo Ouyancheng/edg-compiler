@@ -609,6 +609,13 @@ also create an stmk_init statement at the current point in the code.
     node->variant.variable = vp;
     init_stmt->expr = node;
   }  /* if */
+  /* Mark all dynamically initialized variables as referenced.  (They are
+     "referenced" in the sense that a variable assigned to, even if never
+     used, is referenced.)  It is especially important not to leave the
+     referenced flag unset when the initialization (e.g., by constructor)
+     may have side effects. */
+  vp->source_corresp.referenced = TRUE;
+
   db_exit();
 }  /* gen_dynamic_initialization */
 
@@ -1294,9 +1301,9 @@ a_constructor_init_ptr ctor_initializer(a_routine_ptr  ctor_rout)
                  at a spot corresponding to its declaration order. */
             }  /* if */
           }  /* if */
-        } else if (is_class_symbol(sym)) {
+        } else if (is_class_symbol(member_or_base_sym)) {
           a_boolean  indirect_nonvirtual_base_class_found = FALSE;
-          init_type = type_symbol_type(sym);
+          init_type = type_symbol_type(member_or_base_sym);
           bcp = class_type->variant.class_struct_union.extra_info->
                                                              base_classes;
           for (; bcp != NULL; bcp = bcp->next) {
@@ -1313,7 +1320,8 @@ a_constructor_init_ptr ctor_initializer(a_routine_ptr  ctor_rout)
             if (indirect_nonvirtual_base_class_found) {
               error(ec_indirect_nonvirtual_base_class_not_allowed);
             } else {
-              error(ec_not_a_field_or_base_class);
+              str_error(ec_not_a_field_or_base_class,
+                        class_type->source_corresp.name);
             }  /* if */
             init_type = error_type();
           } else {
@@ -1453,11 +1461,12 @@ a_constructor_init_ptr ctor_initializer(a_routine_ptr  ctor_rout)
         sym = (a_symbol_ptr)cip->variant.base_class->type->
                                                 source_corresp.assoc_info;
       }  /* if */
-      db_symbol(sym, "  for: ", 4);
-      fputs("  initializer = ", f_debug);
-      if (cip->initializer == NULL) {
-        fputs("<null>", f_debug);
-      } else {
+      fprintf(f_debug, "    initializer for %s %s: %s",
+                       (cip->kind == (a_constructor_init_kind)cik_field) ?
+                          "field" : "base class",
+                       sym->header->identifier,
+                       (cip->initializer == NULL) ? " <none>\n" : "\n      ");
+      if (cip->initializer != NULL) {
         db_dynamic_initializer(cip->initializer, 6);
       }  /* if */
     }  /* for */
