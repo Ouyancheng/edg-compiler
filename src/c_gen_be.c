@@ -2982,22 +2982,32 @@ of a statement or short-circuit operator.  The expression is surrounded
 by parentheses.
 */
 {
-  an_expr_node_ptr con_node;
+  an_expr_node_ptr first_op, second_op, other_op;
   a_constant_ptr   con;
 
   /* If there is a "!= 0" at the top of the expression, remove it.
      This is not just an optimization -- the Sun 4.1 compiler has
      a bug in handling a "!= 0" on top of a comma operator, as in
        if ((i++, ++i != 6) != 0) {}
+     The optimization/problem is there the other way around too,
+     i.e. "0 != ...".
   */
   if (node->kind == (an_expr_node_kind)enk_operation &&
       node->variant.operation.kind == (an_expr_operator_kind)eok_ine) {
-    con_node = node->variant.operation.operands->next;
-    if (con_node->kind == (an_expr_node_kind)enk_constant) {
-      con = con_node->variant.constant;
+    con = NULL;
+    first_op = node->variant.operation.operands;
+    second_op = first_op->next;
+    if (first_op->kind == (an_expr_node_kind)enk_constant) {
+      con = first_op->variant.constant;
+      other_op = second_op;
+    } else if (second_op->kind == (an_expr_node_kind)enk_constant) {
+      con = second_op->variant.constant;
+      other_op = first_op;
+    }  /* if */
+    if (con != NULL) {
       if (con->kind == (a_constant_repr_kind)ck_integer &&
           !con->implicit_cast && eqlit_integer_constant(con, 0L)) {
-        node = node->variant.operation.operands;
+        node = other_op;
       }  /* if */
     }  /* if */
   }  /* if */
