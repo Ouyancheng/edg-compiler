@@ -1,5 +1,26 @@
 Version 2.46
 
+6/25/01  cv-qualifiers on return type of template conversion function
+
+cv-qualifiers are now preserved in type deduction on the return type of
+a template conversion if the destination will be bound to a reference.
+
+  struct A {
+    template <class T> operator T&(); // Deduced T is "const int" not "int"
+  };
+  int main() {
+    A a;
+    (const int &)a;
+  }
+
+6/25/01  cv-qualifiers on template parameters in implicit pointer conversions
+         in prototype instantiations
+
+The processing for implicit conversions in prototype instantiations
+now assumes that a template parameter might represent a type that
+is cv-qualified, and therefore that "T *" and "const T *" might be
+the same type.
+
 6/22/01  Effect and configuration of custom name linkage kinds
 
 The front end would abort on certain redeclarations when custom name linkage
