@@ -3527,14 +3527,19 @@ typedef enum {
   size_int64
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 } a_type_size;
-/* C99 floating-point modifiers. */
+#if C99_IL_EXTENSIONS_SUPPORTED
+/* C99 complex modifiers. */
 typedef enum {
   cxa_none,
   cxa_complex,
   cxa_imaginary
 } a_complex_attribute;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
 
+#if !C99_IL_EXTENSIONS_SUPPORTED
+/*ARGSUSED*/  /* <-- complex_attr not used in that case. */
+#endif /* !C99_IL_EXTENSIONS_SUPPORTED */
 static a_boolean combine_type_specifiers(a_type_ptr           *type_ptr,
                                          a_basic_type         basic_type,
                                          a_type_sign          sign,

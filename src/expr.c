@@ -9059,7 +9059,7 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
          "pointer + integer" and "pointer - integer".  This is as
          the standard wants it. */
       if (both_operands_are_arithmetic || pointer_difference) {
-        if (!imaginary_arithmetic) {
+        if (!imaginary_arithmetic) {  /*lint !e774*/
           change_binary_operand_types(operation_type, operand_1, &operand_2);
         }  /* if */
       }  /* if */
@@ -9067,7 +9067,7 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
       if (pointer_difference) {
         /* Pointer - pointer is a special case, with its own operator. */
         op = (an_expr_operator_kind)eok_pdiff;
-      } else if (imaginary_arithmetic) {
+      } else if (imaginary_arithmetic) {  /*lint !e774*/
         /* op is already set. */
       } else {
         op = which_binary_operator(save_token, operation_type);
@@ -11017,7 +11017,7 @@ See section 3.3.16 of the standard.
                        /*reinterpret_semantics=*/FALSE);
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        if (!imaginary_arithmetic) {
+        if (!imaginary_arithmetic) {  /*lint !e774*/
           op = which_binary_operator(operator_token, operation_type);
         }  /* if */
         build_binary_result_operand(operand_1, &operand_2, op,
