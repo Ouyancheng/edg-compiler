@@ -2779,7 +2779,25 @@ layout_init.)
     register_pch_saved_variables(saved_vars);
   }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
+#if USER_CONTROL_OF_STRUCT_PACKING
+  register_trans_unit_variable(curr_max_member_alignment);
+  register_trans_unit_variable(pack_alignment_stack);
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 }  /* layout_one_time_init */
+
+
+void layout_translation_unit_init(void)
+/*
+Initialize static variables related to class layout.  This function is
+responsible for those variables that need to be initialized for the
+processing of each (primary or secondary) translation unit.
+*/
+{
+#if USER_CONTROL_OF_STRUCT_PACKING
+  curr_max_member_alignment = 0;
+  pack_alignment_stack = NULL;
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+}  /* layout_translation_unit_init */
 
 
 void layout_init(void)
@@ -2791,14 +2809,13 @@ of the front end.
 */
 {
 #if USER_CONTROL_OF_STRUCT_PACKING
-  curr_max_member_alignment = 0;
-  pack_alignment_stack = NULL;
   avail_pack_alignment_stack_entries = NULL;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
   check_assertion_str2(!targ_microsoft_bit_field_allocation ||
                               (targ_bit_field_container_size < 0),
                        "layout_init: inconsistent configuration",
                        "for bit field allocation");
+  layout_translation_unit_init();
 }  /* layout_init */
 
 /******************************************************************************

@@ -12891,12 +12891,17 @@ One-time initialization for class_decl.c static variables.
     };
     register_pch_saved_variables(saved_vars);
   }  /* if */
+  /* Global variables in class_decl.h. */
+  register_trans_unit_variable(pending_class_definitions);
+  /* Static variables in class_decl.c. */
+  register_trans_unit_variable(avail_derivation_steps);
 }  /* class_decl_one_time_init */
 
 
-void class_decl_init(void)
+void class_decl_trans_unit_init(void)
 /*
-Initializations for class declaration processing.
+Initializations for class declaration processing that must be done for each
+translation unit.
 */
 {
   /* Global variables in class_decl.h. */
@@ -12906,15 +12911,25 @@ Initializations for class declaration processing.
   avail_class_fixup = NULL;
   curr_routine_fixup = NULL;
   avail_derivation_steps = NULL;
-  avail_override_registry_entries = NULL;
   def_arg_class_fixup_list = NULL;
   def_arg_class_fixup_list_tail = NULL;
   inline_function_class_fixup_list = NULL;
   inline_function_class_fixup_list_tail = NULL;
+}  /* class_decl_trans_unit_init */
+
+
+void class_decl_init(void)
+/*
+Initializations for class declaration processing.
+*/
+{
+  /* Static variables in class_decl.c. */
+  avail_override_registry_entries = NULL;
 #if DEBUG
   num_routine_fixups_allocated = 0;
   num_class_fixups_allocated = 0;
 #endif /* DEBUG */
+  class_decl_trans_unit_init();
   return;
 }  /* class_decl_init */
 

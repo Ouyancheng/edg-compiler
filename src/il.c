@@ -12292,31 +12292,71 @@ in il_init.)
     };
     register_pch_saved_variables(saved_vars);
   }  /* if */
+  /* Register variables (and arrays) that have distinct copies for distinct
+     compilation units. */
+  register_trans_unit_array(int_types);
+  register_trans_unit_array(signed_int_types);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  register_trans_unit_array(microsoft_sized_int_types);
+  register_trans_unit_array(microsoft_sized_signed_int_types);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  register_trans_unit_array(float_types);
+#if C99_IL_EXTENSIONS_SUPPORTED
+  register_trans_unit_array(complex_types);
+  register_trans_unit_array(imaginary_types);
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+  register_trans_unit_array(string_types);
+  register_trans_unit_array(wide_string_types);
+  register_trans_unit_variable(il_error_type);
+  register_trans_unit_variable(il_unknown_type);
+  register_trans_unit_variable(il_void_type);
+  register_trans_unit_variable(il_wchar_t_type);
+  register_trans_unit_variable(il_bool_type);
+  register_trans_unit_array(shareable_constants_table);
+#if RECORD_MACROS_IN_IL
+  register_trans_unit_variable(last_macro);
+#endif /* RECORD_MACROS_IN_IL */
+#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
+  register_trans_unit_array(last_scope_orphaned_list_header);
+#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
+  register_trans_unit_variable(based_type_fixup_list);
+  register_trans_unit_variable(any_function_scope_lifetime_entries);
+  register_trans_unit_variable(seq_cache);
+  /* Global variables declared in il.h. */
+  register_trans_unit_array(orphaned_file_scope_il_entries);
+  register_trans_unit_variable(type_of_type_info);
+  register_trans_unit_variable(type_of_guid);
+  register_trans_unit_variable(curr_fp_contract_state);
+  register_trans_unit_variable(curr_fenv_access_state);
+  register_trans_unit_variable(curr_cx_limited_range_state);
+  register_trans_unit_variable(curr_object_lifetime);
+#if DO_IL_LOWERING
+  register_trans_unit_variable(initial_value_for_il_lowering_flag);
+#endif /* DO_IL_LOWERING */
+
   il_alloc_one_time_init();
 }  /* il_one_time_init */
 
 
-void il_init(void)
+void il_trans_unit_init(void)
 /*
-Initialize static variables related to the IL.  This is done as a
-subroutine (rather than relying on static initialization) so that it
-can be redone to compile more than one source file in a single invocation
-of the front end.
+Initialize static variables related to the IL.  These are variables that
+need initialization for every (primary and secondary) translation unit.
 */
 {
-  /* Variables in il.h: */
+  /* Global variables declared in il.h. */
   curr_il_region_number = NULL_region_number;
+  type_of_type_info = NULL;
+  type_of_guid = NULL;
+  curr_fp_contract_state = (a_stdc_pragma_value)stdc_pv_default;
+  curr_fenv_access_state = (a_stdc_pragma_value)stdc_pv_default;
+  curr_cx_limited_range_state = (a_stdc_pragma_value)stdc_pv_default;
+  curr_object_lifetime = NULL;
 #if DO_IL_LOWERING
   initial_value_for_il_lowering_flag = 0;
 #endif /* DO_IL_LOWERING */
-  curr_object_lifetime = NULL;
-  type_of_type_info = NULL;
-  /* remove_unneeded_entities is the value, settable from the command line,
-     to which okay_to_eliminate_unneeded_il_entries should be initialized
-     with each new translation unit. */
-  okay_to_eliminate_unneeded_il_entries = remove_unneeded_entities;
 
-  /* Static variables in il.c: */
+  /* Static variables declared in il.c. */
   /* Depending on NULL represented as zero bits here. */
   memzero((char *)int_types, sizeof(int_types));
   memzero((char *)signed_int_types, sizeof(signed_int_types));
@@ -12337,10 +12377,28 @@ of the front end.
 #if RECORD_MACROS_IN_IL
   last_macro = NULL;
 #endif /* RECORD_MACROS_IN_IL */
+#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
+  last_scope_orphaned_list_header = NULL;
+#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
   based_type_fixup_list = NULL;
-  curr_fp_contract_state = (a_stdc_pragma_value)stdc_pv_default;
-  curr_fenv_access_state = (a_stdc_pragma_value)stdc_pv_default;
-  curr_cx_limited_range_state = (a_stdc_pragma_value)stdc_pv_default;
+  il_reset();
+}  /* il_trans_unit_init */
+
+
+void il_init(void)
+/*
+Initialize static variables related to the IL.  This is done as a
+subroutine (rather than relying on static initialization) so that it
+can be redone to compile more than one source file in a single invocation
+of the front end.
+*/
+{
+  /* Variables in il.h: */
+  /* remove_unneeded_entities is the value, settable from the command line,
+     to which okay_to_eliminate_unneeded_il_entries should be initialized
+     with each new translation unit. */
+  okay_to_eliminate_unneeded_il_entries = remove_unneeded_entities;
+
 #if DEBUG
   num_shareable_constants                = 0;
   num_func_shareable_constants           = 0;
@@ -12350,11 +12408,8 @@ of the front end.
   num_get_based_type_calls               = 0;
   num_based_type_fixups_allocated        = 0;
 #endif /* DEBUG */
-#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
-  last_scope_orphaned_list_header = NULL;
-#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
   any_function_scope_lifetime_entries = FALSE;
-  il_reset();
+  il_trans_unit_init();
   il_alloc_init();
 }  /* il_init */
 

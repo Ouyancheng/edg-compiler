@@ -6330,6 +6330,18 @@ One-time initialization for statements.c static variables.
 }  /* statements_one_time_init */
 
 
+void statements_trans_unit_init(void)
+/*
+Initialize static variables related to statement processing.  These must
+be repeated for every (primary or secondary) translation unit.
+*/
+{
+  control_flow_descr_list = NULL;
+  end_of_control_flow_descr_list = NULL;
+  goto_fixup_list = NULL;
+}  /* statements_trans_unit_init */
+
+
 void statements_init(void)
 /*
 Initialize static variables related to statement processing.  This is done as
@@ -6338,13 +6350,11 @@ can be redone to compile more than one source file in a single invocation
 of the front end.
 */
 {
-  control_flow_descr_list = NULL;
-  end_of_control_flow_descr_list = NULL;
-  goto_fixup_list = NULL;
   avail_control_flow_descrs = NULL;
 #if DEBUG
   num_control_flow_descrs_allocated = 0;
 #endif /* DEBUG */
+  statements_trans_unit_init();
 }  /* statements_init */
 
 
