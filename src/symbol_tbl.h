@@ -2226,7 +2226,8 @@ extern a_symbol_ptr full_enter_symbol(char          *identifier,
 				      a_symbol_kind sym_kind,
 				      a_scope_depth scope_depth);
 
-extern void make_symbol_for_type_of_type_info(void);
+extern void make_symbol_for_predeclared_type(a_type_ptr  predeclared_type,
+                                             char        *name);
 
 EXTERN a_symbol_ptr
 		symbol_for_namespace_std;

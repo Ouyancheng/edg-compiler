@@ -738,7 +738,13 @@ source file's compilation.
   if (!C_mode()) {
     /* This is done even when RTTI is not enabled because the type_info
        struct may still be defined when RTTI is disabled. */
-    init_type_of_type_info();
+    type_of_type_info = init_predeclared_class((a_type_kind)tk_class,
+                                               "type_info");
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (microsoft_mode) {
+      type_of_guid = init_predeclared_class((a_type_kind)tk_struct, "_GUID");
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
 #if COMPILE_MULTIPLE_SOURCE_FILES
   /* If more than one source file is being compiled, identify each

@@ -77,6 +77,12 @@ EXTERN a_type_ptr
 			   by a #pragma define_type_info that immediately
 			   precedes the class definition of type_info. */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+EXTERN a_type_ptr
+		type_of_guid;
+			/* Points to the definition of the _GUID struct. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 EXTERN a_boolean
 		okay_to_eliminate_unneeded_il_entries;
 			/* When TRUE unneeded entities may be pruned from the
@@ -886,7 +892,8 @@ skipping any namespace aliases that might be present.
 #define skip_namespace_aliases(nsp)					\
   ((nsp)->is_namespace_alias ? f_skip_namespace_aliases(nsp) : (nsp))
 
-extern void init_type_of_type_info(void);
+extern a_type_ptr init_predeclared_class(a_type_kind  kind,
+                                         char         *name);
 
 extern void il_reset(void);
 

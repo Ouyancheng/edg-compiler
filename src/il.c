@@ -11165,18 +11165,23 @@ Display and return the amount of space used for various IL tables.
 #endif /* DEBUG */
 
 
-void init_type_of_type_info(void)
+a_type_ptr init_predeclared_class(a_type_kind          kind,
+                                  char                 *name)
 /*
-Create an undefined (i.e., "predeclared") type for the type associated with
-type_info.  The symbol created is not entered into the symbol table.
+Create a type entry for a predeclared type of the specified kind.  It is
+given the name indicated and a symbol is created, but the symbol is not
+entered into the symbol table.
 */
 {
-  type_of_type_info = alloc_type((a_type_kind)tk_class);
+  a_type_ptr  predeclared_type;
+
+  predeclared_type = alloc_type(kind);
   /* Default name-linkage for classes is C++ external linkage. */
-  type_of_type_info->source_corresp.name_linkage =
+  predeclared_type->source_corresp.name_linkage =
                                 (a_name_linkage_kind)nlk_cplusplus_external;
-  make_symbol_for_type_of_type_info();
-}  /* init_type_of_type_info */
+  make_symbol_for_predeclared_type(predeclared_type, name);
+  return predeclared_type;
+}  /* init_predeclared_type */
 
 
 void il_one_time_init(void)

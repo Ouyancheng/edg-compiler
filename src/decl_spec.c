@@ -398,6 +398,7 @@ caution when modifying this routine.
         tag_kind != (a_symbol_kind)sk_enum_tag) {
       /* See if this is an explicit declaration of class type_info, which was
          already "predeclared".  If it is, reuse the original symbol. */
+      a_type_ptr    predeclared_type = NULL;
       a_symbol_ptr  type_info_sym;
       check_assertion(type_of_type_info != NULL);
       type_info_sym = (a_symbol_ptr)type_of_type_info->
@@ -452,20 +453,37 @@ caution when modifying this routine.
         }  /* if */
         if (tag_sym == type_info_sym &&
             tag_sym->decl_scope == NO_SCOPE_NUMBER) {
-          /* It the type_info symbol has no scope number, it hasn't been
-             added to the symbol table yet.  Use the current source
-             position. */
-          tag_sym->decl_position = locator_for_curr_id.source_position;
-          reenter_symbol(tag_sym, decl_scope_level, /*suppress_error=*/FALSE);
-          /* Call set_source_corresp again to get everything in sync. */
-          set_source_corresp(&(type_of_type_info->source_corresp), tag_sym);
-          set_namespace_membership(tag_sym,
-                                   &(type_of_type_info->source_corresp),
-                                   (a_namespace_ptr)NULL);
-          /* The referenced flag may have been reset by set_source_corresp). */
-          type_of_type_info->source_corresp.referenced = tag_sym->referenced;
-          add_to_types_list(type_of_type_info, decl_scope_level);
+          predeclared_type = type_of_type_info;
         }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (microsoft_mode && !C_mode() &&
+                 decl_scope_level == DEPTH_OF_FILE_SCOPE) {
+        /* Similarly, check for predeclared "struct _GUID". */
+        a_symbol_ptr  guid_sym;
+        check_assertion(type_of_guid != NULL);
+        guid_sym = (a_symbol_ptr)type_of_guid->source_corresp.assoc_info;
+        if (locator_for_curr_id.symbol_header == guid_sym->header) {
+          tag_sym = guid_sym;
+          if (tag_sym->decl_scope == NO_SCOPE_NUMBER) {
+            predeclared_type = type_of_guid;
+          }  /* if */
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      }  /* if */
+      if (predeclared_type != NULL) {
+        /* It the type_info or _GUID symbol has no scope number, it hasn't
+           been added to the symbol table yet.  Use the current source
+           position. */
+        tag_sym->decl_position = locator_for_curr_id.source_position;
+        reenter_symbol(tag_sym, decl_scope_level, /*suppress_error=*/FALSE);
+        /* Call set_source_corresp again to get everything in sync. */
+        set_source_corresp(&(predeclared_type->source_corresp), tag_sym);
+        set_namespace_membership(tag_sym,
+                                 &(predeclared_type->source_corresp),
+                                 (a_namespace_ptr)NULL);
+        /* The referenced flag may have been reset by set_source_corresp. */
+        predeclared_type->source_corresp.referenced = tag_sym->referenced;
+        add_to_types_list(predeclared_type, decl_scope_level);
       }  /* if */
     }  /* if */
   }  /* if */
