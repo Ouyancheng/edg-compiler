@@ -8837,7 +8837,7 @@ to represent the template parameters.
         prescan_default_arg_expr(&def_arg_cache, /*is_template_param=*/TRUE,
                                  &decl_state->param_list_cache);
         if (const_type_involves_template_param) {
-	  /* The type of the constant parameter involve a template parameter
+	  /* The type of the constant parameter involves a template parameter
 	     type so we can't scan the expression now.  When the type of the
 	     constant involves a template parameter we have to save the
 	     constant as a token cache, so we also set the flag that indicates
