@@ -7939,6 +7939,13 @@ context doesn't care what the type is).
         /* These operations pass through lvalueness.  Go to the first
            operand and continue. */
         rewrite_discarded_lvalue_as_rvalue(op1, /*can_change_type=*/FALSE);
+      } else if (op == (an_expr_operator_kind)eok_bit_field) {
+        /* Rewrite eok_bit_field (which returns an lvalue) as
+           eok_extract_bit_field (which returns an rvalue), which then
+           requires no further changes. */
+        expr->variant.operation.kind =
+                                  (an_expr_operator_kind)eok_extract_bit_field;
+        expr->type = rvalue_type(type_pointed_to(expr_type));
       } else if (expr->variant.operation.
                                       returns_lvalue_instead_of_usual_rvalue) {
         /* An lvalue-returning operation. */

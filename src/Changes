@@ -1,5 +1,26 @@
 Version 2.46
 
+1/31/02  Reference to bit field, with side effects, as discarded lvalue
+
+In a case where an expression statement names an lvalue and then does
+nothing with it, the lvalue is not converted to an rvalue.  IL lowering
+converts it to some kind of rvalue in C.  In cases that involve
+a bit-field reference at the top and a side effect somewhere below
+that, this transformation was not done correctly, with the
+consequence that an eok_bit_field operator appeared in an rvalue
+context in the IL.  The C-generating back end aborted on that, and
+other back ends might also have had trouble with it.  Now fixed.
+
+  struct A {
+    int i:1;
+  };
+  A *f();
+  int main () {
+    A *p;
+    p->i;
+    f()->i;
+  }
+
 1/31/02  Abort in IL lowering with empty base and virtual base
 
 In some rare situations involving a trailing nonvirtual empty base class,
