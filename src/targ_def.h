@@ -37,8 +37,8 @@ version number of the EDG C++ front end, e.g., 227 for version 2.27, for
 which compatibility should be maintained.  ABI changes made after that
 version will be suppressed.  Of course, that may suppress certain language
 features that cannot be implemented without the corresponding ABI changes.
-The default -- a large value -- has the effect of requesting the latest
-version of the ABI.
+The default is 228, which results in the ABI being compatible with earlier
+versions of the front end.
 */
 #ifndef ABI_COMPATIBILITY_VERSION
 #define ABI_COMPATIBILITY_VERSION 228
