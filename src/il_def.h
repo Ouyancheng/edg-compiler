@@ -80,7 +80,7 @@ uninitialized values from CodeCenter on those bit fields (because the
 value used for "uninitialized" has no two adjacent zero bits).
 */
 #define bitfield_to_avoid_codecenter_warnings() \
-  unsigned int	avoid_codecenter_warnings:2;
+  unsigned int	avoid_codecenter_warnings:2
 
 
 /*
