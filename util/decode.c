@@ -2833,6 +2833,7 @@ of constructors and destructors.
               if (subp->kind == subk_template_prefix) {
                 /* For the template prefix case, take one more
                    <unqualified-name>. */
+                if (subp->num_levels > 0) write_id_str("::", dctl);
                 p = demangle_unqualified_name(p, &is_no_return_name, dctl);
               }  /* if */
             }
