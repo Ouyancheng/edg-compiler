@@ -2357,9 +2357,20 @@ do_assignment:;
         dip->variant.constant = simple_constant;
       }  /* if */
     } else {
-      /* The initialization is handled entirely by the generated code, so the
-         variable should no longer be marked as initialized. */
-      variable->init_kind = (an_init_kind)initk_none;
+      /* The initialization is handled entirely by the generated code.
+         It would seem that the variable should no longer be marked as
+         initialized, but in fact we want to preserve the distinction between
+         static variables that are initialized and those that are tentative
+         definitions.  That is important when the initialization is in a
+         library; the linker has to see it as a definition in order for it
+         to bring in the variable (and hence the initialization code) from
+         a library.  So we change the initialization to static initialization
+         to zero. */
+      if (has_static_storage_duration(variable->storage_class)) {
+        variable->init_kind = (an_init_kind)initk_zero;
+      } else {
+        variable->init_kind = (an_init_kind)initk_none;
+      }  /* if */
     }  /* if */
   }  /* if */
   error_position = saved_error_position;
