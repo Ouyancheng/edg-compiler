@@ -587,12 +587,6 @@ and for the instantiation of template functions.
   a_boolean                      discard_definition = FALSE;
 
   db_enter(3, "scan_function_body");
-  if (microsoft_bugs && microsoft_version == 1200 &&
-      rout_ptr->defined && rout_ptr->is_specialized) {
-    /* This is a duplicate definition of a template specialization.
-       Microsoft Visual C++ 6.0 just discards these. */
-    discard_definition = TRUE;
-  }  /* if */
   if (rout_ptr->source_corresp.is_class_member) {
     class_type = rout_ptr->source_corresp.parent.class_type;
   } else {
@@ -680,6 +674,12 @@ and for the instantiation of template functions.
   if (class_type != NULL && rtsp->this_class != NULL) {
     scope_ptr->variant.routine.this_param_variable =
                                  make_implicit_this_param_variable(rout_type);
+  }  /* if */
+  if (microsoft_bugs && microsoft_version == 1200 &&
+      rout_ptr->defined && rout_ptr->is_specialized) {
+    /* This is a duplicate definition of a template specialization.
+       Microsoft Visual C++ 6.0 just discards these. */
+    scope_stack[depth_scope_stack].discard_when_popped = TRUE;
   }  /* if */
   if (func_info->function_type_from_typedef) {
     /* An error was already issued on this.  Now, since no parameters were
@@ -1047,9 +1047,6 @@ and for the instantiation of template functions.
     /* When inline functions are instantiated like templates, add the function
        to the list of inline functions if it is inline. */
     add_to_inline_function_list(rout_ptr);
-  }  /* if */
-  if (discard_definition) {
-    clear_function_body(il_header.region_scope_entry[rout_ptr->assoc_scope]);
   }  /* if */
 #if DEBUG
   if (debug_level >= 4) {

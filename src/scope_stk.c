@@ -1719,6 +1719,7 @@ the scope being pushed.
   ssep->pragma_pack_is_local     = FALSE;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
   ssep->is_reactivation          = (options & PS_IS_REACTIVATION) != 0;
+  ssep->discard_when_popped      = FALSE;
 #if DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
   ssep->assign_string_literal_sequence_numbers = FALSE;
   ssep->string_literal_table = NULL;
@@ -5595,7 +5596,8 @@ End a name scope by popping an entry off the scope stack.
     /* The old memory region is no longer needed. */
     check_assertion(kind == (a_scope_kind)sck_function);
     /* See whether this is a function whose body should be discarded. */
-    discard_function_body = function_body_should_be_discarded(curr_routine);
+    discard_function_body = function_body_should_be_discarded(curr_routine) ||
+                            scope_stack[depth_scope_stack].discard_when_popped;
 #if DO_IL_LOWERING
     if (is_primary_translation_unit && !discard_function_body &&
         should_delay_lowering_on_function(curr_routine)) {
