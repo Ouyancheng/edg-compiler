@@ -3267,6 +3267,15 @@ typedef struct a_statement {
   a_statement_kind
                 kind;
                         /* The kind of statement. */
+  a_byte_boolean
+		dependent_statement;
+			/* TRUE if this statement is the dependent statement
+			   of another (e.g., "f();" in "if (i) f();") and it
+			   does not have its own associated scope.  This can
+			   happen only in cfront compatibility mode, and is
+			   of interest because destructor calls for objects
+			   created within a dependent statement must be placed
+			   at the end of the dependent statement. */
   an_expr_node_ptr
                 expr;
                         /* The primary expression, if applicable

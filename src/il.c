@@ -5758,8 +5758,9 @@ to it.  The statement kind is set as indicated.
 #if DEBUG
   num_statements_allocated++;
 #endif /* DEBUG */
-  sp->seq_number       = 0;
-  sp->next             = NULL;
+  sp->seq_number          = 0;
+  sp->next                = NULL;
+  sp->dependent_statement = FALSE;
   set_statement_kind(sp, stmt_kind);
   db_exit();
   return sp;

@@ -2063,6 +2063,9 @@ Display the indicated statement.
 {
   disp_unsigned_long("seq_number", (unsigned long)ptr->seq_number);
   disp_ptr("next", (char *)ptr->next, iek_statement);
+  if (ptr->dependent_statement) {
+    disp_boolean("dependent_statement", (a_boolean)ptr->dependent_statement);
+  }  /* if */
   disp_name("kind");
   switch (ptr->kind) {
     case stmk_expr:
