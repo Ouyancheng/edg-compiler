@@ -819,6 +819,7 @@ routine.
               constant, (a_template_param_constant_kind)tpck_unknown_function);
         constant->variant.template_param.variant.unknown_function.
                      conversion_type = locator->variant.conversion_result_type;
+        sym->is_unknown_function = TRUE;
       } else if (locator->is_operator_name) {
         /* For operators, create an "unknown function" entry that represents
            the kind of operator. */
@@ -826,6 +827,7 @@ routine.
               constant, (a_template_param_constant_kind)tpck_unknown_function);
         constant->variant.template_param.variant.unknown_function.
                                          opname_kind = locator->variant.opname;
+        sym->is_unknown_function = TRUE;
       } else {
         /* For everything except a conversion function create a generic
            nontype member. */
