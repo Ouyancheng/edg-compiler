@@ -6725,7 +6725,7 @@ lifetime list in the right place).
 /*
 Macro to issue a warning about a missing operator delete corresponding to a
 new-expression that might throw an exception.  The warning is only issued if
-the operator is missing and the given boolean flag is TRUE).  There is no
+the operator is missing and the given boolean flag is TRUE.  There is no
 need to issue the warning if exceptions are disabled (since no exceptions
 could possibly be thrown in such cases).  In some cases (prototype
 instantiations or errors) the actual operator new being called is not known

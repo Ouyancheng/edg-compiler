@@ -101,7 +101,7 @@ The front end previously issued a warning when a class definition contains
 a member placement operator new and no matching operator is visible at that
 point.  (Such a situation may lead to a memory leak if an initialization
 associated with an new-expression throws an exception.)  This warning has
-been weakened to a remark, it is now also issued if the matching delete is
+been weakened to a remark, and it is now also issued if the matching delete is
 not a member.  In addition, a warning is issued if a placement operator delete
 is still missing at the point where it would be called.  For example:
 
