@@ -877,15 +877,16 @@ array_type.
        avoid dividing by temp, since it may be zero for an incomplete type. */
     if (temp > TARG_SIZE_T_MAX/temp2) {
       error(ec_array_size_too_large);
-      array_type->variant.array.number_of_elements = 0;
+      set_type_kind(array_type, (a_type_kind)tk_error);
+      set_type_size(array_type);
     } else {
       /* Now that we know the multiplication will not overflow, compute the
          array size. */
       array_type->size = temp*temp2;
+      /* The alignment for the array is the same as the alignment for the
+         elements. */
+      array_type->alignment = elem_type->alignment;
     }  /* if */
-    /* The alignment for the array is the same as the alignment for the
-       elements. */
-    array_type->alignment = elem_type->alignment;
   }  /* if */
   db_exit();
 }  /* set_array_type_size */
