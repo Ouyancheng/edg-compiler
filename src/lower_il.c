@@ -96,9 +96,6 @@ static unsigned long
 			   are inside of.  Incremented on entering conditional
 			   operands of "?:", "&&", and "||". */
 
-/* Declaration needed because of mutual recursion: */
-static void prelower_class_type(a_type_ptr class_type);
-
 /*
 Integer kind to use for an offset into a class.  Its size must match
 TARG_SIZEOF_PTR_TO_DATA_MEMBER.
@@ -187,54 +184,6 @@ typedef struct an_insert_location {
     } statement;
   } variant;
 } an_insert_location;
-
-
-static void clear_insert_location(an_insert_location *insert_location,
-                                  a_boolean          expr_insert)
-/*
-Clear an insert location and set its expr_insert field to expr_insert.
-*/
-{
-  insert_location->expr_insert = expr_insert;
-  if (expr_insert) {
-    insert_location->variant.expr.ptr = NULL;
-    insert_location->variant.expr.insert_before = FALSE;
-  } else {
-    insert_location->variant.statement.ptr = NULL;
-    insert_location->variant.statement.insert_at_block_start = FALSE;
-  }  /* if */
-}  /* clear_insert_location */
-
-/*
-Set *insert_location to indicate an insert location following stmt.
-Note that stmt must be a statement in a statement sequence (e.g., in
-block); it may not be a statement in a position that requires a single
-statement rather than a sequence (e.g., the dependent statement of an "if").
-*/
-#define set_insert_location(stmt, insert_location)                    \
-{ clear_insert_location(insert_location, FALSE);                      \
-  (insert_location)->variant.statement.ptr = (stmt);                  \
-}  /* set_insert_location */
-
-/*
-Set *insert_location to indicate an insert location at the start of
-the block stmt.
-*/
-#define set_block_start_insert_location(stmt, insert_location)        \
-{ clear_insert_location(insert_location, FALSE);                      \
-  (insert_location)->variant.statement.ptr = (stmt);                  \
-  (insert_location)->variant.statement.insert_at_block_start = TRUE;  \
-}  /* set_block_start_insert_location */
-
-/*
-Set *insert_location to indicate an insert location before the indicated
-expression node.
-*/
-#define set_expr_insert_location(node, insert_location)               \
-{ clear_insert_location(insert_location, TRUE);                       \
-  (insert_location)->variant.expr.ptr = (node);                       \
-  (insert_location)->variant.expr.insert_before = TRUE;               \
-}  /* set_expr_insert_location */
 
 
 static a_routine_ptr
@@ -415,6 +364,102 @@ a_scope_ptr	nearest_scope,
 a_variable_ptr	nearest_this_param_variable;
 			/* The this_param_variable from
 			   nearest_function_scope. */
+
+
+/* Declarations needed because of forward references: */
+static void prelower_class_type(a_type_ptr class_type);
+static void lower_ptr_to_member_constant(a_constant_ptr constant);
+static an_expr_node_ptr make_base_class_lvalue(an_expr_node_ptr node,
+                                               a_base_class_ptr bcp);
+static sizeof_t mangled_encoding_for_type(a_type_ptr type,
+                                          char       *store_at);
+static void lower_constant(a_constant_ptr constant);
+static void lower_os_constant(a_constant_ptr constant);
+static void lower_type(a_type_ptr type);
+static void lower_os_type(a_type_ptr type);
+static void lower_variable(a_variable_ptr variable);
+
+static void lower_field_list(a_field_ptr field_list);
+static void lower_field(a_field_ptr field);
+static void lower_routine(a_routine_ptr routine);
+static void lower_label(a_label_ptr label);
+static void lower_asm_entry(an_asm_entry_ptr asm_entry);
+static void lower_arg_expr_list(an_expr_node_ptr expr_list,
+                                a_type_ptr       called_rout_type);
+static void lower_expr(an_expr_node_ptr expr,
+                       a_boolean        is_lvalue);
+#define lower_normal_expr(expr) lower_expr(expr, /*is_lvalue=*/FALSE)
+static void lower_statement(a_statement_ptr statement);
+static void lower_scope(a_scope_ptr scope);
+static void lower_dynamic_init(a_dynamic_init_ptr       dip,
+                               an_init_pos_descr_ptr    ipdp,
+                               a_variable_ptr           first_time_test_var,
+                               a_boolean                is_expr_temporary,
+                               an_expr_node_ptr         implied_arg_list,
+                               an_expr_node_ptr         end_implied_arg_list,
+                               a_constructor_init_ptr   ctor_init,
+                               an_insert_location_ptr   insert_location,
+                               a_boolean                *keep_dynamic_init);
+static void lower_destructor_dynamic_init(
+                                       a_dynamic_init_ptr     dip,
+                                       an_init_pos_descr_ptr  ipdp,
+                                       an_insert_location_ptr insert_location);
+static void lower_virtual_function_call(an_expr_node_ptr expr);
+static void add_constructor_wrapper_code(a_scope_ptr        scope,
+                                         an_insert_location *insert_location);
+static void gen_required_destructor_calls(
+                                        a_scope_ptr            outer_scope,
+                                        an_insert_location_ptr insert_location,
+                                        a_boolean              make_block);
+
+
+
+static void clear_insert_location(an_insert_location *insert_location,
+                                  a_boolean          expr_insert)
+/*
+Clear an insert location and set its expr_insert field to expr_insert.
+*/
+{
+  insert_location->expr_insert = expr_insert;
+  if (expr_insert) {
+    insert_location->variant.expr.ptr = NULL;
+    insert_location->variant.expr.insert_before = FALSE;
+  } else {
+    insert_location->variant.statement.ptr = NULL;
+    insert_location->variant.statement.insert_at_block_start = FALSE;
+  }  /* if */
+}  /* clear_insert_location */
+
+/*
+Set *insert_location to indicate an insert location following stmt.
+Note that stmt must be a statement in a statement sequence (e.g., in
+block); it may not be a statement in a position that requires a single
+statement rather than a sequence (e.g., the dependent statement of an "if").
+*/
+#define set_insert_location(stmt, insert_location)                    \
+{ clear_insert_location(insert_location, FALSE);                      \
+  (insert_location)->variant.statement.ptr = (stmt);                  \
+}  /* set_insert_location */
+
+/*
+Set *insert_location to indicate an insert location at the start of
+the block stmt.
+*/
+#define set_block_start_insert_location(stmt, insert_location)        \
+{ clear_insert_location(insert_location, FALSE);                      \
+  (insert_location)->variant.statement.ptr = (stmt);                  \
+  (insert_location)->variant.statement.insert_at_block_start = TRUE;  \
+}  /* set_block_start_insert_location */
+
+/*
+Set *insert_location to indicate an insert location before the indicated
+expression node.
+*/
+#define set_expr_insert_location(node, insert_location)               \
+{ clear_insert_location(insert_location, TRUE);                       \
+  (insert_location)->variant.expr.ptr = (node);                       \
+  (insert_location)->variant.expr.insert_before = TRUE;               \
+}  /* set_expr_insert_location */
 
 
 static void clear_init_pos_modifier(an_init_pos_modifier_ptr ipmp)
@@ -1576,11 +1621,6 @@ class type.
 }  /* field_at_offset */
 
 
-/* Declaration needed because of mutual recursion: */
-static an_expr_node_ptr make_base_class_lvalue(an_expr_node_ptr node,
-                                               a_base_class_ptr bcp);
-
-
 static an_expr_node_ptr make_vbptr_field_lvalue(an_expr_node_ptr node,
                                                 a_base_class_ptr bcp)
 /*
@@ -2338,6 +2378,49 @@ operator op.  Insert the statement at *insert_location and update
   return assign_stmt;
 }  /* insert_var_assignment_statement */
 
+
+static void do_ptr_to_data_member_arg_promotion_on_node(an_expr_node_ptr expr)
+/*
+expr is an unprototyped argument of a function call, whose value is a
+pointer to data member.  Do widening on it, needed because pointers
+to data members are lowered into a small integer type.
+*/
+{
+  a_type_ptr ptr_to_data_member_type = integer_type(TARG_DELTA_INT_KIND);
+  a_type_ptr promoted_type =
+                           default_argument_promotion(ptr_to_data_member_type);
+
+  if (ptr_to_data_member_type != promoted_type) {
+    /* Some widening is needed. */
+    if (is_constant_node(expr)) {
+      /* A constant.  Do the type change on a copy of the constant. */
+      /* This must be done on a copy because the constant is typically shared
+         and in the file scope, and therefore unlowerable at this point. */
+      a_constant con;
+      con = *expr->variant.constant;
+      lower_ptr_to_member_constant(&con);
+      /* Widen the constant by changing its type. */
+#if CHECKING
+      if (con.kind != (a_constant_repr_kind)ck_integer) {
+        internal_error(
+                "do_ptr_to_data_member_arg_promotion_on_node: pm not int con");
+      }  /* if */
+#endif /* CHECKING */
+      con.type = promoted_type;
+      /* Allocate a copy of the constant, and point the expression to it. */
+      expr->variant.constant = alloc_shareable_constant(&con);
+      expr->type = promoted_type;
+    } else {
+      /* Add a cast, but reuse the original node as the cast to preserve the
+         expression address. */
+      an_expr_node_ptr expr_copy = copy_node(expr);
+      set_expr_node_kind(expr, (an_expr_node_kind)enk_operation);
+      set_node_operator(expr, (an_expr_operator_kind)eok_cast,
+                      promoted_type, expr_copy);
+    }  /* if */
+  }  /* if */
+}  /* do_ptr_to_data_member_arg_promotion_on_node */
+
 #if MAKE_ALL_FUNCTIONS_UNPROTOTYPED
 
 static void do_default_arg_promotions_on_node(an_expr_node_ptr expr)
@@ -2359,6 +2442,12 @@ function).
     promoted_type = node_type_after_integral_promotion(expr);
   } else if (is_floating_type(arg_type)) {
     promoted_type = default_argument_promotion(arg_type);
+  } else if (is_or_was_ptr_to_data_member_type(arg_type)) {
+    /* Widen pointers-to-data-members (which have been or will be turned into
+       integers). */
+    do_ptr_to_data_member_arg_promotion_on_node(expr);
+    /* The subroutine does all the processing. */
+    goto done;
   } else {
     promoted_type = arg_type;
   }  /* if */
@@ -2386,6 +2475,7 @@ function).
       expr->variant.operation.operands = expr_cast;
     }  /* if */
   }  /* if */
+done:;
 }  /* do_default_arg_promotions_on_node */
 
 #endif /* MAKE_ALL_FUNCTIONS_UNPROTOTYPED */
@@ -2482,11 +2572,6 @@ e.g., 1297 --> 4.
   }  /* while */
   return ndigits;
 }  /* digits_to_represent */
-
-
-/* Forward declaration needed because of mutual recursion: */
-static sizeof_t mangled_encoding_for_type(a_type_ptr type,
-                                          char       *store_at);
 
 
 static sizeof_t mangled_encoding_for_function_type(a_type_ptr type,
@@ -3909,40 +3994,6 @@ function table is for class_type itself.  Place the mangled name at
   return mangled_name_length;
 #undef VTBL_STR
 }  /* mangled_vtbl_name */
-
-
-/* Declarations needed because of mutual recursion: */
-static void lower_constant(a_constant_ptr constant);
-static void lower_os_constant(a_constant_ptr constant);
-static void lower_type(a_type_ptr type);
-static void lower_os_type(a_type_ptr type);
-static void lower_variable(a_variable_ptr variable);
-
-static void lower_field_list(a_field_ptr field_list);
-static void lower_field(a_field_ptr field);
-static void lower_routine(a_routine_ptr routine);
-static void lower_label(a_label_ptr label);
-static void lower_asm_entry(an_asm_entry_ptr asm_entry);
-static void lower_arg_expr_list(an_expr_node_ptr expr_list,
-                                a_type_ptr       called_rout_type);
-static void lower_expr(an_expr_node_ptr expr,
-                       a_boolean        is_lvalue);
-#define lower_normal_expr(expr) lower_expr(expr, /*is_lvalue=*/FALSE)
-static void lower_statement(a_statement_ptr statement);
-static void lower_scope(a_scope_ptr scope);
-static void lower_dynamic_init(a_dynamic_init_ptr       dip,
-                               an_init_pos_descr_ptr    ipdp,
-                               a_variable_ptr           first_time_test_var,
-                               a_boolean                is_expr_temporary,
-                               an_expr_node_ptr         implied_arg_list,
-                               an_expr_node_ptr         end_implied_arg_list,
-                               a_constructor_init_ptr   ctor_init,
-                               an_insert_location_ptr   insert_location,
-                               a_boolean                *keep_dynamic_init);
-static void lower_destructor_dynamic_init(
-                                       a_dynamic_init_ptr     dip,
-                                       an_init_pos_descr_ptr  ipdp,
-                                       an_insert_location_ptr insert_location);
 
 
 static void lower_source_correspondence(
@@ -6157,10 +6208,6 @@ dip->variant.constructor.args has already been lowered.
 }  /* add_array_constructor_call */
 
 
-/* Declaration needed because of forward reference: */
-static void lower_virtual_function_call(an_expr_node_ptr expr);
-
-
 static void add_destructor_call(a_dynamic_init_ptr     dip,
                                 an_expr_node_ptr       entity_node,
                                 a_boolean              have_complete_object,
@@ -7411,11 +7458,8 @@ expr_list.
       /* Widen pointers-to-data-members that have been turned into integers
          and are passed to an old-style function or ellipsis. */
       if (is_or_was_ptr_to_data_member_type(expr->type)) {
-        /* A pointer to data member -- cast to int. */
-        an_expr_node_ptr expr_copy = copy_node(expr);
-        set_expr_node_kind(expr, (an_expr_node_kind)enk_operation);
-        set_node_operator(expr, (an_expr_operator_kind)eok_cast,
-                          integer_type((an_integer_kind)ik_int), expr_copy);
+        /* A pointer to data member -- widen if necessary. */
+        do_ptr_to_data_member_arg_promotion_on_node(expr);
       }  /* if */
     }  /* if */
   }  /* for */
@@ -9213,11 +9257,6 @@ dtor_this has been lowered.
 }  /* lower_simple_delete */
 
 
-/* Declaration needed because of forward reference: */
-static void add_constructor_wrapper_code(a_scope_ptr        scope,
-                                         an_insert_location *insert_location);
-
-
 static void lower_expr(an_expr_node_ptr expr,
                        a_boolean        is_lvalue)
 /*
@@ -9346,7 +9385,7 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
           a_routine_type_supplement_ptr rtsp;
           an_expr_node_ptr              arg_node = operand_node->next;
           if (op == (an_expr_operator_kind)eok_pm_call) {
-            rout_type = pm_member_type(operand_node->type);
+            rout_type = pm_member_type_possibly_lowered(operand_node->type);
           } else {
             rout_type = type_pointed_to(operand_node->type);
           }  /* if */
@@ -9586,13 +9625,6 @@ there are no statements on the list.
     *last_statement = (*last_statement)->next;
   }  /* while */
 }  /* lower_statement_list */
-
-
-/* Declaration needed because of forward reference: */
-static void gen_required_destructor_calls(
-                                        a_scope_ptr            outer_scope,
-                                        an_insert_location_ptr insert_location,
-                                        a_boolean              make_block);
 
 
 static void remove_temp_required_destructor_calls(void)
