@@ -11318,12 +11318,8 @@ continue_with_declaration:
       if (vla_enabled) di_flags |= DI_VLA_ALLOWED;
     } else if (vla_enabled) {
       if (!function_definition_allowed &&
-          declared_storage_class != (a_storage_class)sc_asm &&
-          (!strict_ansi_mode ||
-           (declared_storage_class != (a_storage_class)sc_static &&
-            declared_storage_class != (a_storage_class)sc_extern))) {
-        /* No static storage duration, so a VLA may appear on some
-           declarations. */
+          declared_storage_class != (a_storage_class)sc_asm) {
+        /* Not at file scope, so a VLA may appear on some declarations. */
         di_flags |= DI_VLA_ALLOWED;
       }  /* if */
     }  /* if */
