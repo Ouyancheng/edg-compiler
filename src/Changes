@@ -1,5 +1,26 @@
 Version 2.30
 
+5/31/95  Linkage name on tagless enum defined in a typedef declaration
+
+A tagless class defined in a typedef declaration receives a "name for
+linkage purposes" (WP 7.1.3 [dcl.typedef]) -- in cfront mode that is now
+the way similar tagless enum definitions are handled, too:
+
+  typedef enum { a,b,c } E;           // linkage name applied in cfront mode
+
+The source_corresp.name field for the enum type is now "E" (in cfront mode
+only; otherwise it is NULL).
+
+Moreover, in cfront mode the linkage name is now applied, for both
+classes and enums, even when a cv-qualifier appears in the typedef
+declaration:
+
+  typedef const struct { int i; } S;  // linkage name applied in cfront mode
+
+There is a tk_typeref type entry named "S" that preserves the const
+qualifier -- and (in cfront mode only) a tk_struct type entry that also
+has the name "S".
+
 5/31/95  Template function matching bug involving pointer to member functions
 
 A bug in the template matching routines resulted in the two calls of
