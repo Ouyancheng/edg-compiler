@@ -3724,14 +3724,14 @@ template.
     goto done;
   }  /* if */
   if (is_primary_translation_unit) {
-    a_template_ptr  templ;
-    if (!secondary_translation_unit_seen()) {
+    a_template_ptr  templ = tssp->il_template_entry;
+    if (!secondary_translation_unit_seen() || templ == NULL) {
       /* There is no need to look for a matching instantiation in a secondary
-         translation unit. */
+         translation unit.  For prototype instantiations of friend templates
+         templ is sometimes NULL. */
       mark_canonical_instantiation(tssp, inst);
       goto done;
     }  /* if */
-    templ = tssp->il_template_entry;
     if (canonical_il_entry_of(templ) != (char*)templ->canonical_template) {
       /* The given tssp is not associated with the canonical template entry. */
       templ = (a_template_ptr)canonical_il_entry_of(templ);
