@@ -1,5 +1,26 @@
 Version 2.14
 
+2/5/93  Added a_template_instance
+
+This data structure has been added for template processing, unifying and
+replacing a_function_instantiation_entry, a_static_data_member_def, and
+a_template_definition.
+
+Briefly, template-instances fit in to the symbol table in the following
+way.  Each symbol representing a template function (i.e., an instance of
+a function template) or a member function or static data member member
+of a template class contains a pointer to one of these template-instance
+entries.  An instance entry for a template function contains a pointer
+to the function template symbol on which it is based.  The instance
+entry for a member function or static data member of a template class
+contains a pointer to the corresponding member function or static data
+member symbol of the prototype instantiation of the class template.
+
+Instance entries appear on lists belonging to the templates they are
+based on.  They also appear on the instantiation_required list, which
+is scanned when the end of the source program is reached to put out
+all required function bodies and static data member definitions.
+
 2/5/93  Accessing a private base class destructor (cfront compatibility)
 
 The destructor of a derived class may implicitly call the private
