@@ -3921,8 +3921,7 @@ initialized.  These are addressed in the course of the processing.
                                                  member_or_base_sym))) {
               /* A class that's on the base-classes list. */
               check_base_classes = FALSE;
-            } else if (is_class_symbol(member_or_base_sym) &&
-                       same_entities(member_or_base_sym->parent.class_type,
+            } else if (same_entities(member_or_base_sym->parent.class_type,
                                      class_type)) {
               /* A member of the current class. */
               check_base_classes = FALSE;

@@ -1,5 +1,35 @@
 Version 3.2
 
+3/25/03  Microsoft compatibility: ctor-initializer lookup
+
+In Microsoft mode, the front end emulates the ctor-initializer lookup
+that is done by the Microsoft compiler.  This lookup finds base class names
+that may not otherwise be visible even though the Microsoft compiler
+(prior to version 7.1) does not support class name injection.  A flaw in
+this emulation resulted in a spurious error on examples such as this one.
+Now fixed.
+
+  struct B { };
+  struct C : public virtual B {
+    int B;
+    C(int i = 62) : B(i) { }
+  };
+
+3/25/03  GNU C++ mode: Minimum and maximum operators
+
+In GNU C++ mode, the front end now recognizes the binary operators "<?" and
+">?".  They evaluate (respectively) to the minimum and maximum values of
+their operands.  These are built-in operators for arithmetic types and for
+pointer types.  When both operands are lvalues of identical type, the
+built-in minimum and maximum operators result in lvalues.  For example:
+
+  int a[3<?4]; // Same as a[3]
+  void f(double x, double y) {
+    x >? y = 1.0;  // The largest of x and y is set to 1.0.
+  }
+
+The operators can also be overloaded for user-defined types.
+
 3/25/03  GNU C++ mode: injected template names
 
 When doing name lookup in a base class, g++ does not find the injected
