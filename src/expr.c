@@ -1929,7 +1929,6 @@ bound with the function in *bound_function_selector.
   a_routine_ptr         routine_ptr;
   a_boolean             is_qualified_name;
   a_source_position     member_position, qualified_member_position;
-  a_symbol_header_ptr   class_symbol_header;
 
   db_enter(4, "scan_field_selection_operator");
 
@@ -2065,7 +2064,7 @@ bound with the function in *bound_function_selector.
       } else {
         /* Normal case: not qualified member name. */
         /* Handle destructor names ("~A") and operator names ("operator+"). */
-        if (get_destructor_name(&class_symbol_header)) {
+        if (get_destructor_name()) {
           /* The name is a destructor name. */
         } else if (get_opname()) {
           /* The name is an operator name. */
