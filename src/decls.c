@@ -604,7 +604,7 @@ part of a declarator is found, may_be_decl is set to FALSE.
     a_boolean	treat_as_expr = FALSE;
     cache_curr_token(token_cache_ptr);
     (void)get_token_and_coalesce_if_identifier();
-    if (cfront_compatibility_mode && is_top_level) {
+    if (any_cfront_mode() && is_top_level) {
       /* Cfront handles declarations like
              int a(int());
          as the declaration of an object with an initializer of int()
@@ -1022,7 +1022,7 @@ language defined in the ARM, it is supported for cfront compatibility.
   a_type_ptr  tp;
 
   *class_type = NULL;
-  if (cfront_compatibility_mode && is_function_type(type_ptr)) {
+  if (any_cfront_mode() && is_function_type(type_ptr)) {
     *rout_type = skip_typerefs(type_ptr);
     if (*rout_type != type_ptr) {
       tp = (*rout_type)->variant.routine.extra_info->implicit_this_param_type;
@@ -1388,7 +1388,7 @@ new fields are set properly.
     check_assertion(class_type != NULL);
     /* Check the target type of the conversion -- which is the return type
        of rout_type. */
-    if (!cfront_compatibility_mode &&
+    if (!any_cfront_mode() &&
         is_void_type(rout_type->variant.routine.return_type)) {
       /* Conversion operators specifying conversion to void type are not
          allowed (Boston X3J16). */
@@ -1504,7 +1504,7 @@ new fields are set properly.
           if (!is_pointer_type(tp) ||
               skip_typedefs(type_pointed_to(tp))->kind !=
                                                    (a_type_kind)tk_void) {
-            if (cfront_compatibility_mode && is_pointer_type(tp) &&
+            if (cfront_2_1_mode && is_pointer_type(tp) &&
                 is_void_type(type_pointed_to(tp))) {
               /* Cfront 2.1 allows "const void *" parameter.  Issue a
                  warning and change the type to "void *". */
@@ -2404,7 +2404,7 @@ scope is that of a class definition.
                in common use. Accept this silently in cfront compatibility
                mode. Otherwise produce at least a warning and possibly an
                error in strict ANSI mode.  */
-            if (!cfront_compatibility_mode) {
+            if (!any_cfront_mode()) {
               an_error_severity    severity;
               severity = strict_ansi_mode ? strict_ansi_error_severity :
                                             es_warning;
@@ -2710,7 +2710,7 @@ scope is that of a class definition.
       } else if (is_constructor || is_destructor) {
         /* A qualifier appearing on a constructor or destructor is not
            allowed (ARM 9.3.1). */
-        if (cfront_compatibility_mode) {
+        if (cfront_2_1_mode) {
           /* Cfront 2.1 issues no diagnostic for a qualifier on a constructor
              or destructor. */
           pos_warning(ec_function_qualifier_not_allowed, &qualifier_pos);
@@ -5955,7 +5955,7 @@ otherwise it is NULL.  The syntax is:
         if (input_flags & DI_IS_TEMPLATE_DECLARATION) {
           options |= GID_CLASS_MUST_BE_PROTOTYPE_INSTANTIATION;
         }  /* if */
-        if (cfront_compatibility_mode) {
+        if (any_cfront_mode()) {
           /* Provide support for an exploitable cfront bug. */
           if (locator_for_curr_id.is_qualified_name &&
               locator_for_curr_id.qualifier_class_type != NULL &&
@@ -6145,7 +6145,7 @@ otherwise it is NULL.  The syntax is:
           }  /* switch */
           if (s != NULL) {
             if (locator->variant.opname == (an_opname_kind)onk_assign &&
-                cfront_compatibility_mode && allow_anachronisms) {
+                cfront_2_1_mode) {
               pos_st_warning(ec_nonmember_operator_not_allowed,
                              &locator->source_position, s);
             } else {
@@ -6657,8 +6657,7 @@ caution when modifying this routine.
       /* Check for a cfront bug (violation of ARM 7.1.3, which says a typedef
          name may not appear in an elaborated type specifier) which allows
          a typedef name as long as it refers to a class/struct/union type. */
-      if (cfront_compatibility_mode &&
-          tag_kind != (a_symbol_kind)sk_enum_tag) {
+      if (any_cfront_mode() && tag_kind != (a_symbol_kind)sk_enum_tag) {
         /* Look up the name again in the current scope, but this time don't
            restrict the search to tag names. */
         a_symbol_ptr  sym;
@@ -7622,7 +7621,7 @@ Returns TRUE if there is an error in the specifiers.
                 /* No semicolon -- back up. */
                 unget_token();
                 curr_token = tok_friend;
-              } else if (cfront_compatibility_mode && tag_sym == NULL) {
+              } else if (any_cfront_mode() && tag_sym == NULL) {
                 /* This friend declaration introduces a new type -- which is
                    okay in cfront compatibility mode.  Still, issue a remark
                    on use of a nonstandard feature. */
@@ -7779,7 +7778,7 @@ Returns TRUE if there is an error in the specifiers.
           /* Size has already been specified in some way. */
           if ((size == size_short) == (curr_token == tok_short)) {
             /* "short short" or "long long". */
-            if (cfront_compatibility_mode && curr_token == tok_short) {
+            if (any_cfront_mode() && curr_token == tok_short) {
               /* Cfront allows the redundancy.  It issues a warning on
                  "long long", so we do too. */
             } else {
@@ -7814,7 +7813,7 @@ Returns TRUE if there is an error in the specifiers.
           /* Sign has already been specified in some way. */
           if ((sign == sign_signed) == (curr_token == tok_signed)) {
             /* Either "signed signed" or "unsigned unsigned". */
-            if (cfront_compatibility_mode) {
+            if (any_cfront_mode()) {
               /* Cfront allows the redundancy. */
             } else {
               /* Since the redundancy is harmless, just issue a warning
@@ -9520,7 +9519,7 @@ specified (rather than defaulted to "int").
      See check_for_cfront_name_lookup_bug in symbol_tbl.c for more
      information. */
   if (is_member_function_def) {
-    if (cfront_compatibility_mode) {
+    if (cfront_2_1_mode) {
       if (routine_ptr->special_kind ==
 			 (a_special_function_kind)sfk_constructor ||
           routine_ptr->special_kind ==
@@ -10450,7 +10449,7 @@ continue_with_declaration:
       top_declarator_type_is_function = (is_function &&
 				         local_type_ptr != type_ptr);
       if (is_function && !top_declarator_type_is_function &&
-          cfront_compatibility_mode) {
+          any_cfront_mode()) {
         a_type_ptr                     tp = skip_typerefs(local_type_ptr);
         a_routine_type_supplement_ptr  rtsp = tp->variant.routine.extra_info;
 
