@@ -1,5 +1,18 @@
 Version 2.39
 
+7/29/98   C++-generating back end: bug in optimization to eliminate body
+          of unneeded inline member function
+
+The C++-generating back end was sometimes producing invalid output when
+NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS was configured
+to TRUE and the elimination of unneeded IL entries was enabled.  (See
+Changes entries of 9/23/97 and 11/24/97.)  When a member function defined
+inside a class was to be represented in the generated C++ as merely
+declared inside the class and defined outside it, and when the member
+function body was eliminated because it was unneeded, it sometimes
+happened that the out-of-class definition was turned into a declaration
+instead of being cleared completely.  Now fixed.
+
 7/29/98   Warning on negation of unsigned quantity
 
 A warning is now issued when a unary "-" is applied to an expression
