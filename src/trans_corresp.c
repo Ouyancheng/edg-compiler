@@ -2468,19 +2468,29 @@ is in fact valid.
 {
   a_boolean     match;
   a_symbol_ptr  type_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
-  a_type_ptr    corresp_type = (a_type_ptr)canonical_il_entry_of(type);
+  a_type_ptr    corresp_type;
   a_boolean     both_defined;
   a_source_correspondence_ptr
                 scp, corresp_scp;
+  a_trans_unit_corresp_ptr
+                tcp = trans_unit_corresp_of(type);
 
-  if (type == corresp_type) {
-    /* This is the canonical entry.  If applicable, verify the entry in
-       the primary translation unit against this one.  Otherwise, nothing
-       needs to be done. */
-    a_type_ptr  prim = (a_type_ptr)trans_unit_corresp_of(type)->primary;
-    if (prim != NULL && type != prim) {
-      corresp_type = type;
-      type = prim;
+  if (tcp == NULL) {
+    /* This should only happen in if an error prevented us from setting
+       correspondences on all entities in secondary translation units. */
+    check_assertion(total_errors != 0);
+    corresp_type = type;
+  } else {
+    corresp_type = (a_type_ptr)tcp->canonical;
+    if (type == corresp_type) {
+      /* This is the canonical entry.  If applicable, verify the entry in
+         the primary translation unit against this one.  Otherwise, nothing
+         needs to be done. */
+      a_type_ptr  prim = (a_type_ptr)tcp->primary;
+      if (prim != NULL && type != prim) {
+        corresp_type = type;
+        type = prim;
+      }  /* if */
     }  /* if */
   }  /* if */
   check_assertion(corresp_type != NULL);
@@ -2490,7 +2500,7 @@ is in fact valid.
                  type_has_definition(corresp_type);
   if (type == corresp_type) {
     match = TRUE;
-    if (is_immediate_enum_type(type)) {
+    if (tcp != NULL && is_immediate_enum_type(type)) {
       check_for_enumerator_conflicts(type);
     }  /* if */
   } else if (type_sym == NULL) {
