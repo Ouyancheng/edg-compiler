@@ -6676,7 +6676,9 @@ associated class was declared.
 {
   a_type_ptr     class_type = con->variant.address.variant.type;
   a_type_ptr     orig_con_type = con->type;
+#if MAINTAIN_NEEDED_FLAGS
   a_boolean      orig_needed = con->source_corresp.needed;
+#endif /* MAINTAIN_NEEDED_FLAGS */
   a_variable_ptr uuid_var;
 
   /* Create the initialized uuid variable for the type, if it doesn't
