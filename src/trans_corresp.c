@@ -1382,7 +1382,7 @@ also deals with the consequences of type becoming the new canonical entry.
   a_type_ptr  canon = (a_type_ptr)canonical_il_entry_of(corresp_type);
 
   set_trans_unit_corresp(iek_type, type, corresp_type);
-  if (canon != (a_type_ptr)canonical_il_entry_of(corresp_type)) {
+  if (type == (a_type_ptr)canonical_il_entry_of(corresp_type)) {
     /* The canonical IL entry changed to type. */
     if (!type_has_definition(canon)) {
       /* This is the first definition.  The members of type should therefore
