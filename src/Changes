@@ -1,5 +1,12 @@
 Version 2.41
 
+2/22/99  IL file reading problem in one-instantiation-per-object mode
+
+When running in one-instantiation-per-object mode, in a complicated
+case involving an enum constant that is referenced only in an
+initializer expression inside a function, the IL file produced was
+inconsistent, and the IL reader aborted when reading it.  Now fixed.
+
 2/22/99  New semantics for unexpected()
 
 The runtime now implements the semantics of unexpected() described in
