@@ -1298,6 +1298,9 @@ are handled in lower_c99_init.)
   /* Save variables from lower_c99.c that are needed for precompiled headers */
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
+      pch_saved_var_array_elem(lowered_complex_float),
+      pch_saved_var_array_elem(lowered_complex_double),
+      pch_saved_var_array_elem(lowered_complex_long_double),
       pch_saved_var_array_elem(xnegate_routine),
       pch_saved_var_array_elem(xadd_routine),
       pch_saved_var_array_elem(xsubtract_routine),
