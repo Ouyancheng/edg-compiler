@@ -147,11 +147,15 @@ a_boolean tentatively_matches_template_type(
 		  	       a_type_ptr           templ_type,
                                a_template_param_ptr templ_param_list);
 
-extern a_boolean verify_template_nontype_args(
-                                        a_template_arg_ptr   templ_arg_list,
-                                        a_symbol_ptr         rout_templ_sym,
-                                        a_template_param_ptr templ_param_list);
+extern a_type_ptr substitute_template_arguments(
+				a_symbol_ptr		templ_sym,
+				a_template_arg_ptr	templ_arg_list,
+				a_template_arg_ptr	*new_arg_list);
 
+extern a_type_ptr wrapup_function_template_argument_deduction(
+				a_template_arg_ptr   templ_arg_list,
+                                a_symbol_ptr         rout_templ_sym,
+                                a_template_param_ptr templ_param_list);
 
 extern a_symbol_ptr find_template_function(a_symbol_ptr        templ_sym,
                                            a_template_arg_ptr  *templ_arg_list,
@@ -210,6 +214,12 @@ extern void find_static_data_member_template(
 extern void check_for_uninstantiated_template_class(a_type_ptr  type);
 
 extern void f_instantiate_template_class(a_type_ptr  type);
+
+extern a_type_ptr copy_type_with_substitution(
+				a_type_ptr		type,
+				a_template_arg_ptr	templ_arg_list,
+				a_source_position	*source_pos,
+				a_boolean		*copy_error);
 
 extern a_boolean equiv_template_arg_lists(
 				a_template_arg_ptr list1,

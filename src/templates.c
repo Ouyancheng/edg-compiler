@@ -909,6 +909,118 @@ for each parameter.
 }  /* all_templ_params_have_values */
 
 
+static a_boolean wrapup_template_argument_deduction(
+				a_template_arg_ptr   templ_arg_list,
+                                a_symbol_ptr         rout_templ_sym,
+                                a_template_param_ptr templ_param_list)
+/*
+This routine is used after doing argument deduction for each argument to
+ensure that any nontype parameter whose type depends on a
+template parameter is consistent with the deduced value.  Also,
+types are supplied for nontype parameters that are deduced entirely
+from array bounds.  templ_param_list is the template parameter list to
+be used.  If a NULL pointer is provided, the template parameter list
+from the template symbol supplement is used.  The parameter is supplied
+because some calls of this routine occur before the field in the
+template symbol supplement has been set.  The templ_param_list is also
+passed explicitly when this routine is used to check the nontype
+template arguments of a partial specialization of a class template.  In
+such cases, the rout_templ_sym field is NULL.  For partial specializations
+the only tests that are needed are the check that all parameters have
+values, and the handling of array bounds of unknown type.
+*/
+{
+  a_boolean				match = TRUE;
+  a_template_param_ptr			tpp;
+  a_template_arg_ptr			tap;
+
+  if (templ_param_list == NULL) {
+    a_template_symbol_supplement_ptr	tssp;
+    a_template_decl_info_ptr		tdip;
+    tssp = template_supplement_for_symbol(rout_templ_sym);
+    /* The decl_info pointer can be NULL if the template parameter list is
+       missing (in an error case), and the template declaration information
+       has not yet been filled in. */
+    tdip = tssp->variant.function.decl_cache.decl_info;
+    templ_param_list = tdip != NULL ? tdip->parameters : NULL;
+  }  /* if */
+  /* Make an initial pass through the argument list to see if all of the
+     arguments have deduced values. */
+  match = all_templ_params_have_values(templ_arg_list, templ_param_list);
+  if (match) {
+    tpp = templ_param_list;
+    tap = templ_arg_list;
+    for (; tpp != NULL; tpp = tpp->next, tap = tap->next) {
+      a_type_ptr	constant_type;
+      /* Only nontype parameters need to be processed. */
+      if (tap->is_type) continue;
+      if (tpp->variant.constant.type_involves_template_param) {
+        /* Rescan the tokens that make up the parameter declaration. */
+        check_assertion(rout_templ_sym != NULL);
+        constant_type = rescan_template_constant_parameter
+                                   (rout_templ_sym, tpp->param_symbol, tpp,
+                                    templ_arg_list, /*do_default_arg=*/FALSE,
+                                    (a_constant_ptr*)NULL);
+      } else {
+        constant_type = tpp->variant.constant.ptr->type;
+      }  /* if */
+      if (tap->is_array_bound_of_unknown_type) {
+        /* The constant was deduced from an array bound and does not yet
+           have a type.  Make sure the declared type is integral, then
+           create a constant of the appropriate type. */
+        if (!is_integral_type(constant_type)) {
+          match = FALSE;
+        } else {
+          a_constant_ptr	constant;
+          constant = fs_constant((a_constant_repr_kind)ck_integer);
+          set_unsigned_integer_constant
+                       (constant, (unsigned long)tap->variant.integer_value,
+                        constant_type->variant.integer.int_kind);
+          tap->variant.constant = constant;
+          tap->is_array_bound_of_unknown_type = FALSE;
+        }  /* if */
+      } else {
+        /* The template argument has a deduced value with a type.  The
+           type must match the declared type.  This test is only needed if
+           the type involves a template parameter. */
+        check_assertion(!tap->constant_is_an_arg_operand);
+        if (tpp->variant.constant.type_involves_template_param) {
+          check_assertion(rout_templ_sym != NULL);
+          match = identical_types(constant_type, tap->variant.constant->type);
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return match;
+}  /* wrapup_template_argument_deduction */
+
+
+a_type_ptr wrapup_function_template_argument_deduction(
+				a_template_arg_ptr   templ_arg_list,
+                                a_symbol_ptr         rout_templ_sym,
+                                a_template_param_ptr templ_param_list)
+/*
+Calls wrapup_template_argument_deduction and then produces a final
+routine type by substituting the completed template arguments into the
+template routine type.  The new routine type is returned.  If an error
+occurred in the substitution process, a NULL pointer is returned.
+*/
+{
+  a_type_ptr	new_type = NULL;
+
+  if (wrapup_template_argument_deduction(templ_arg_list, rout_templ_sym,
+                                         templ_param_list)) {
+#if 0
+    new_type = substitute_template_arguments(rout_templ_sym, templ_arg_list,
+                                             (a_template_arg_ptr*)NULL);
+#else
+    new_type = error_type();
+#endif
+  }  /* if */
+  return new_type;
+}  /* wrapup_function_template_argument_deduction */
+
+
 static a_boolean parameter_is_more_specialized(
 				a_type_ptr		param_type1,
 				a_type_ptr		param_type2,
@@ -1013,8 +1125,8 @@ over templ_sym2.
   if (result) {
     /* Each of the arguments match.  Now make sure that all arguments were
        deduced, and that nontype arguments have the correct types. */
-    if (verify_template_nontype_args(
-                       dummy_arg_list, (a_symbol_ptr)NULL, templ_param_list)) {
+    if (wrapup_function_template_argument_deduction(
+               dummy_arg_list, templ_sym2, templ_param_list) != NULL) {
       result = TRUE;
     }  /* if */
   }  /* if */
@@ -1103,7 +1215,7 @@ in ps_arg_list.
   }  /* if */
   if (matches_template_arg_list(arg_list, templ_tap, ps_arg_list,
                                 templ_param_list)) {
-    if (verify_template_nontype_args(
+    if (wrapup_template_argument_deduction(
                         *ps_arg_list, (a_symbol_ptr)NULL, templ_param_list)) {
       result = TRUE;
     }  /* if */
@@ -1158,7 +1270,7 @@ matches both templates, templ_sym1 should be preferred over templ_sym2.
      template1. */
   if (matches_template_arg_list(tap1, tap2, &dummy_arg_list,
                                 templ_param_list)) {
-    if (verify_template_nontype_args(
+    if (wrapup_template_argument_deduction(
                        dummy_arg_list, (a_symbol_ptr)NULL, templ_param_list)) {
       result = TRUE;
     }  /* if */
@@ -2437,14 +2549,20 @@ the same constant.
       if (ignore_unknown_arg_values &&
           (con1 == NULL || con2 == NULL)) {
         /* An argument with no specified value.  Treat this as a match. */
-      } else if (eq_constants(con1, con2) ||
-          (error_matches_anything &&
-           (is_error_constant(con1) || is_error_constant(con2)))) {
+      } else if (con1 == NULL && con2 == NULL) {
+        /* Both argument values are unspecified.  Treat this as a match. */
+      } else if (con1 == NULL || con2 == NULL) {
+        /* Only one is unspecified -- this is a mismatch. */
+        equiv = FALSE;
+      } else if (eq_constants(con1, con2)) {
+        /* Okay. */
+      } else if (error_matches_anything &&
+                 (is_error_constant(con1) || is_error_constant(con2))) {
         /* Okay. */
       } else {
         equiv = FALSE;
-        break;
       }  /* if */
+      if (!equiv) break;
     } else {
       /* Both are type arguments.  If they are not identical, this is a
          mismatch. */
@@ -2453,14 +2571,20 @@ the same constant.
       if (ignore_unknown_arg_values &&
           (type1 == NULL || type2 == NULL)) {
         /* An argument with no specified value.  Treat this as a match. */
-      } else if (identical_types(type1, type2) ||
-          (error_matches_anything &&
-           (is_error_type(type1) || is_error_type(type2)))) {
+      } else if (type1 == NULL && type2 == NULL) {
+        /* Both argument values are unspecified.  Treat this as a match. */
+      } else if (type1 == NULL || type2 == NULL) {
+        /* Only one is unspecified -- this is a mismatch. */
+        equiv = FALSE;
+      } else if (identical_types(type1, type2)) {
+        /* Okay. */
+      } else if (error_matches_anything &&
+                 (is_error_type(type1) || is_error_type(type2))) {
         /* Okay. */
       } else {
         equiv = FALSE;
-        break;
       }  /* if */
+      if (!equiv) break;
     }  /* if */
     /* Advance to the next arguments in step. */
     arg1 = arg1->next;
@@ -3234,43 +3358,64 @@ matches a class type from the parameter list of a template function.
        needed for binding template parameter values when doing partial
        ordering comparisons. */
     match = TRUE;
-  } else if (type->source_corresp.is_class_member) {
-    /* The argument type is a class member -- a nested class or enum.  Be
-       sure the parent classes match and that the members correspond
-       (i.e., have the same name).  This occurs when the parameter has
-       a type like "T::X<int>", and the actual argument is something
-       like "Z::X<int>". */
-    if (!templ_type->source_corresp.is_class_member) {
-      /* No match. */
-    } else {
-      a_symbol_ptr	sym;
-      a_symbol_ptr	templ_sym;
-      sym = (a_symbol_ptr)type->source_corresp.assoc_info;
-      templ_sym = (a_symbol_ptr)templ_type->source_corresp.assoc_info;
-      if (sym->header != templ_sym->header) {
-        /* Members have different names -- no match. */
+  } else if (templ_type->source_corresp.is_class_member) {
+    if (nonstandard_qualifier_deduction) {
+      /* The parameter type is a class member -- a nested class or enum.  Be
+         sure the parent classes match and that the members correspond
+         (i.e., have the same name).  This occurs when the parameter has
+         a type like "T::X<int>", and the actual argument is something
+         like "Z::X<int>".  The WP does not permit this kind of deduction,
+         but it is optionally supported for compatibility reasons. */
+      if (!type->source_corresp.is_class_member) {
+        /* No match. */
       } else {
-        a_class_symbol_supplement_ptr	ttp_cssp;
-        a_type_ptr			tp;
-        a_type_ptr			ttp;
-        tp = type->source_corresp.parent.class_type;
-        ttp = templ_type->source_corresp.parent.class_type;
-        ttp_cssp = symbol_supplement_for_class(ttp);
-        if (ttp_cssp->template_param_for_proxy_class != NULL) {
-          /* The type being matches is a member of a proxy class.
-             Substitute the original template parameter for the proxy
-             class in the matching process. */
-          ttp = ttp_cssp->template_param_for_proxy_class;
-        }  /* if */
-        if (matches_template_type(tp, ttp, templ_arg_list,
-                                  templ_param_list,
-                                  MTT_NO_FLAGS,
-                                  (a_base_class_ptr*)NULL)) {
-          /* Members have the same names and the parent classes
-             "match". */
-          match = TRUE;
+        a_symbol_ptr	sym;
+        a_symbol_ptr	templ_sym;
+        sym = (a_symbol_ptr)type->source_corresp.assoc_info;
+        templ_sym = (a_symbol_ptr)templ_type->source_corresp.assoc_info;
+        if (sym->header != templ_sym->header) {
+          /* Members have different names -- no match. */
+        } else {
+          a_class_symbol_supplement_ptr	ttp_cssp;
+          a_type_ptr			tp;
+          a_type_ptr			ttp;
+          tp = type->source_corresp.parent.class_type;
+          ttp = templ_type->source_corresp.parent.class_type;
+          ttp_cssp = symbol_supplement_for_class(ttp);
+          if (ttp_cssp->template_param_for_proxy_class != NULL) {
+            /* The type being matches is a member of a proxy class.
+               Substitute the original template parameter for the proxy
+               class in the matching process. */
+            ttp = ttp_cssp->template_param_for_proxy_class;
+          }  /* if */
+          if (matches_template_type(tp, ttp, templ_arg_list,
+                                    templ_param_list,
+                                    MTT_NO_FLAGS,
+                                    (a_base_class_ptr*)NULL)) {
+            /* Members have the same names and the parent classes
+               "match". */
+            match = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
+    } else {
+      /* The two classes do not otherwise match.  Determine whether the
+         qualifier depends on a template parameter.  If the qualifier
+         depends on a template parameter, then this is a "nondeduced"
+         context in which the template argument values deduced elsewhere
+         should be used to determine the type.  Consider this type to
+         match for now.  The type that results from the substitution of
+         the template argument values will be checked later. */
+      a_class_symbol_supplement_ptr	ttp_cssp;
+      a_type_ptr			ttp;
+      ttp = templ_type->source_corresp.parent.class_type;
+      ttp_cssp = symbol_supplement_for_class(ttp);
+      if (ttp_cssp->template_param_for_proxy_class != NULL) {
+        /* The type is a member of a proxy class.  Substitute the original
+           template parameter for the proxy class in the matching process. */
+        ttp = ttp_cssp->template_param_for_proxy_class;
+      }  /* if */
+      match = is_or_contains_template_param(ttp);
     }  /* if */
   }  /* if */
   return match;
@@ -3370,53 +3515,76 @@ template parameter list.
           }  /* if */
         }  /* if */
       } else {
-        /* This is a template parameter associated with a member of a
-           proxy class (e.g., X in a type like T::X).  The members must have
-           the same name (e.g., T::X matches A::X) and the parent classes
-           must match. */
         /* Skip typedefs on the real type. */
         type = skip_typedefs(type);
-        if (type->source_corresp.is_class_member) {
-          if (!templ_type->source_corresp.is_class_member) {
-            /* No parent class -- no match. */
-          } else {
-            sym = (a_symbol_ptr)type->source_corresp.assoc_info;
-            templ_sym = (a_symbol_ptr)templ_type->source_corresp.assoc_info;
-            if (sym->header != templ_sym->header) {
-              /* Members have different names -- no match. */
+        if (templ_type->source_corresp.is_class_member) {
+          /* This is a template parameter associated with a member of a
+             proxy class (e.g., X in a type like T::X).  The members must have
+             the same name (e.g., T::X matches A::X) and the parent classes
+             must match.  The WP does not permit this kind of deduction, but
+             it is optionally supported for compatibility reasons. */
+          if (nonstandard_qualifier_deduction) {
+            if (!type->source_corresp.is_class_member) {
+              /* No parent class -- no match. */
             } else {
-              /* Convert the proxy class into its associated template
-                 parameter and call matches_template_type on the parent
-                 type. */
-              a_class_symbol_supplement_ptr  cssp;
+              sym = (a_symbol_ptr)type->source_corresp.assoc_info;
+              templ_sym = (a_symbol_ptr)templ_type->source_corresp.assoc_info;
+              if (sym->header != templ_sym->header) {
+                /* Members have different names -- no match. */
+              } else {
+                /* Convert the proxy class into its associated template
+                   parameter and call matches_template_type on the parent
+                   type. */
+                a_class_symbol_supplement_ptr  cssp;
 
-              tp = type->source_corresp.parent.class_type;
-              ttp = templ_type->source_corresp.parent.class_type;
-              cssp = symbol_supplement_for_class(ttp);
-              ttp = cssp->template_param_for_proxy_class;
-              if (ttp != NULL) {
-                if (matches_template_type(tp, ttp, templ_arg_list,
-  				          templ_param_list,
-                                          new_flags,
-                                          (a_base_class_ptr*)NULL)) {
-                  /* Members have the same names and the parent classes
-                     "match".  This will handle cases like T::B. */
-                  match = TRUE;
-                }  /* if */
-              }  /* if */
-              if (!match) {
-                /* Attempt to match on the class of which this is a member. */
+                tp = type->source_corresp.parent.class_type;
                 ttp = templ_type->source_corresp.parent.class_type;
-                if (matches_template_type(tp, ttp, templ_arg_list,
-  				          templ_param_list,
-                                          new_flags,
-                                          (a_base_class_ptr*)NULL)) {
-                  /* Members have the same names and the parent classes
-                     "match".  This will handle cases like A<T>::B. */
-                  match = TRUE;
+                cssp = symbol_supplement_for_class(ttp);
+                ttp = cssp->template_param_for_proxy_class;
+                if (ttp != NULL) {
+                  if (matches_template_type(tp, ttp, templ_arg_list,
+  				            templ_param_list,
+                                            new_flags,
+                                            (a_base_class_ptr*)NULL)) {
+                    /* Members have the same names and the parent classes
+                       "match".  This will handle cases like T::B. */
+                    match = TRUE;
+                  }  /* if */
+                }  /* if */
+                if (!match) {
+                  /* Attempt to match on the class of which this is a
+                     member. */
+                  ttp = templ_type->source_corresp.parent.class_type;
+                  if (matches_template_type(tp, ttp, templ_arg_list,
+    				            templ_param_list,
+                                            new_flags,
+                                            (a_base_class_ptr*)NULL)) {
+                    /* Members have the same names and the parent classes
+                       "match".  This will handle cases like A<T>::B. */
+                    match = TRUE;
+                  }  /* if */
                 }  /* if */
               }  /* if */
             }  /* if */
+          } else {
+            /* Determine whether the qualifier of the template type
+               depends on a template parameter.  If it does, this is a
+               "nondeduced" context in which the template argument
+               values deduced elsewhere should be used to determine the
+               type.  Consider this type to match for now.  The type
+               that results from the substitution of the template
+               argument values will be checked later. */
+            a_class_symbol_supplement_ptr	ttp_cssp;
+            a_type_ptr				ttp;
+            ttp = templ_type->source_corresp.parent.class_type;
+            ttp_cssp = symbol_supplement_for_class(ttp);
+            if (ttp_cssp->template_param_for_proxy_class != NULL) {
+              /* The type is a member of a proxy class.  Substitute the
+                 original template parameter for the proxy class in
+                 the matching process. */
+              ttp = ttp_cssp->template_param_for_proxy_class;
+            }  /* if */
+            match = is_or_contains_template_param(ttp);
           }  /* if */
         } /* if */
       }  /* if */
@@ -3690,89 +3858,476 @@ may have been deduced.
 }  /* tentatively_matches_template_type */
 
 
-a_boolean verify_template_nontype_args(a_template_arg_ptr   templ_arg_list,
-                                       a_symbol_ptr         rout_templ_sym,
-                                       a_template_param_ptr templ_param_list)
+static a_symbol_ptr copy_template_class_reference_with_substitution(
+				a_symbol_ptr		template_sym,
+				a_type_ptr		orig_type,
+				a_template_arg_ptr	templ_arg_list,
+				a_source_position	*source_pos,
+				a_boolean		*copy_error)
 /*
-This routine is used after doing argument deduction for each argument to
-ensure that any nontype parameter whose type depends on a
-template parameter is consistent with the deduced value.  Also,
-types are supplied for nontype parameters that are deduced entirely
-from array bounds.  templ_param_list is the template parameter list to
-be used.  If a NULL pointer is provided, the template parameter list
-from the template symbol supplement is used.  The parameter is supplied
-because some calls of this routine occur before the field in the
-template symbol supplement has been set.  The templ_param_list is also
-passed explicitly when this routine is used to check the nontype
-template arguments of a partial specialization of a class template.  In
-such cases, the rout_templ_sym field is NULL.  For partial specializations
-the only tests that are needed are the check that all parameters have
-values, and the handling of array bounds of unknown type.
+Copy, with substitution, the template argument list from
+orig_type and find the corresponding instance of the template
+indicated by template_sym.  The symbol of the new instance is returned.
 */
 {
-  a_boolean				match = TRUE;
-  a_template_param_ptr			tpp;
-  a_template_arg_ptr			tap;
+  a_template_arg_ptr	new_list;
+  a_template_arg_ptr	new_tap;
+  a_template_arg_ptr	prev_new_tap;
+  a_symbol_ptr		new_sym;
+  a_template_arg_ptr	tap;
+  
+  tap = orig_type->variant.class_struct_union.extra_info->template_arg_list;
+  prev_new_tap = new_list = NULL;
+  for (; tap != NULL; tap = tap->next) {
+    new_tap = alloc_template_arg(tap->is_type);
+    if (tap->is_type) {
+      new_tap->variant.type =
+               copy_type_with_substitution(tap->variant.type,
+                                           templ_arg_list, source_pos,
+                                           copy_error);
+    } else {
+#if CHECKING
+      if (tap->variant.constant->kind ==
+                            (a_constant_repr_kind)ck_template_param) {
+        internal_error("copy_type_with_subst: bad const in templ arg");
+      }  /* if */
+#endif /* CHECKING */
+      new_tap->variant.constant = tap->variant.constant;
+    }  /* if */
+    if (new_list == NULL) {
+      new_list = new_tap;
+    } else {
+      prev_new_tap->next = new_tap;
+    }  /* if */
+    prev_new_tap = new_tap;
+  }  /* for */
+  new_sym = find_template_class(template_sym, &new_list,
+                                /*prototype_allowed=*/FALSE);
+  return new_sym;
+}  /* copy_template_class_reference_with_substitution */
 
-  if (templ_param_list == NULL) {
-    a_template_symbol_supplement_ptr	tssp;
-    a_template_decl_info_ptr		tdip;
-    tssp = template_supplement_for_symbol(rout_templ_sym);
-    /* The decl_info pointer can be NULL if the template parameter list is
-       missing (in an error case), and the template declaration information
-       has not yet been filled in. */
-    tdip = tssp->variant.function.decl_cache.decl_info;
-    templ_param_list = tdip != NULL ? tdip->parameters : NULL;
+
+static a_symbol_ptr copy_parent_type_with_substitution(
+				a_symbol_ptr		sym,
+				a_template_arg_ptr	templ_arg_list,
+				a_source_position	*source_pos,
+				a_boolean		*copy_error)
+/*
+sym points to a member symbol.  The parent type is copied using
+copy_type_with_substitution, and the corresponding member is looked
+up in the updated parent type.  The symbol associated with the
+corresponding member is returned.  A NULL symbol is returned if the
+updated parent type does not contain the specified member.
+*/
+{
+  a_type_ptr			orig_parent_type;
+  a_type_ptr			parent_type;
+  a_symbol_ptr			new_sym = NULL;
+  a_class_symbol_supplement_ptr	parent_cssp;
+
+  parent_type = sym->parent.class_type;
+  orig_parent_type = parent_type;
+  check_assertion(sym->is_class_member && parent_type != NULL);
+  /* Nested type case -- e.g., A<T>::B, where B names a nested class or
+     enumeration.  The substitution is performed on the class-of-which-member
+     rather than on the nested type itself.  Note that the algorithm deals
+     with any nesting depth. */
+  parent_cssp = symbol_supplement_for_class(parent_type);
+  if (parent_cssp->template_param_for_proxy_class) {
+    /* The parent type is a proxy class for a template parameter.  Substitute
+       the original template parameter for the proxy class. */
+    parent_type = parent_cssp->template_param_for_proxy_class;
   }  /* if */
-  /* Make an initial pass through the argument list to see if all of the
-     arguments have deduced values. */
-  match = all_templ_params_have_values(templ_arg_list, templ_param_list);
-  if (match) {
-    tpp = templ_param_list;
-    tap = templ_arg_list;
-    for (; tpp != NULL; tpp = tpp->next, tap = tap->next) {
-      a_type_ptr	constant_type;
-      /* Only nontype parameters need to be processed. */
-      if (tap->is_type) continue;
-      if (tpp->variant.constant.type_involves_template_param) {
-        /* Rescan the tokens that make up the parameter declaration. */
-        check_assertion(rout_templ_sym != NULL);
-        constant_type = rescan_template_constant_parameter
-                                   (rout_templ_sym, tpp->param_symbol, tpp,
-                                    templ_arg_list, /*do_default_arg=*/FALSE,
-                                    (a_constant_ptr*)NULL);
-      } else {
-        constant_type = tpp->variant.constant.ptr->type;
-      }  /* if */
-      if (tap->is_array_bound_of_unknown_type) {
-        /* The constant was deduced from an array bound and does not yet
-           have a type.  Make sure the declared type is integral, then
-           create a constant of the appropriate type. */
-        if (!is_integral_type(constant_type)) {
-          match = FALSE;
+  parent_type = copy_type_with_substitution(
+                          parent_type, templ_arg_list, source_pos, copy_error);
+  if (*copy_error) goto done;
+  if (parent_type == orig_parent_type) {
+    /* No change to the parent class, so this is simply a case of A::B --
+       i.e., the parent class is not a template reference.  Just return the
+       original symbol. */
+    new_sym = sym;
+  } else {
+    /* If the original parent type of "type" was A<T>, tp now represents a
+       class with the substitution performed on the template parameter,
+       e.g., A<int>.  If "type" was A<T>::B, we want to return as new_sym
+       the corresponding member of the new type, e.g., A<int>::B. */
+    a_symbol_locator  locator;
+
+    clear_locator(&locator, source_pos);
+    locator.symbol_header = sym->header;
+    complete_class_type_is_needed(parent_type);
+    new_sym = class_qualified_id_lookup(&locator, parent_type, IDL_NO_OPTIONS);
+    if (is_class_template_symbol(new_sym)) {
+      /* The symbol found is a class template symbol.  Get the corresponding
+         instance using the template argument list from the original
+         parent class. */
+      check_assertion(is_any_template_instance_class_symbol(sym));
+      new_sym = copy_template_class_reference_with_substitution(
+                                 new_sym, sym->variant.class_struct_union.type,
+                                 templ_arg_list, source_pos, copy_error);
+    }  /* if */
+  }  /* if */
+done:
+  return new_sym;
+}  /* copy_parent_type_with_substitution */
+
+
+a_type_ptr copy_type_with_substitution(
+				a_type_ptr		type,
+				a_template_arg_ptr	templ_arg_list,
+				a_source_position	*source_pos,
+				a_boolean		*copy_error)
+/*
+If "type", a pointer to a type entry, is a template-parameter type, return
+the corresponding real type, based on the template argument list.  If "type"
+contains a template-parameter type, return a copy with the substitution made.
+If it involves no template-parameter type, simply return "type".  *copy_error
+is set to TRUE if the substitution would have created an invalid type.  A
+NULL type is also returned in such cases.  An invalid type can result from
+a type such as A<T>::B, if, for a given T, A<T> contains no member named B.
+Other cases include putting a pointer over a reference type or creating
+an array of references.
+*/
+{
+  a_type_ptr			new_type;
+  a_type_ptr			tp;
+  a_type_ptr			tp2;
+  int				reusable_param_types;
+  a_template_arg_ptr		tap;
+  a_type_ptr			new_return_type;
+  a_type_ptr			this_param_type;
+  a_type_ptr			new_this_param_type;
+  a_type_ptr			first_new_type_for_param_types_list;
+  a_param_type_ptr		ptp;
+  a_param_type_ptr		new_ptp;
+  a_param_type_ptr		prev_ptp;
+  a_class_symbol_supplement_ptr	cssp;
+
+  db_enter(5, "copy_type_with_substitution");
+#if DEBUG
+  if (debug_level >= 5 || db_flag_is_set("ctws")) {
+    fputs("in:  ", f_debug);
+    db_type(type);
+    fputc('\n', f_debug);
+  }  /* if */
+#endif /* DEBUG */
+  if (type->source_corresp.is_class_member) {
+    a_symbol_ptr	sym;
+    sym = (a_symbol_ptr)type->source_corresp.assoc_info;
+    check_assertion(sym != NULL);
+    sym = copy_parent_type_with_substitution(sym, templ_arg_list,
+                                             source_pos, copy_error);
+    if (sym == NULL || !is_type_symbol(sym)) {
+      /* The type was specified as something like A<T>::B, but the
+         substituted "A<T>" does not contain a B, or the B found is not
+         a type. */
+      *copy_error = TRUE;
+      new_type = NULL;
+    } else {
+      new_type = type_symbol_type(sym);
+    }  /* if */
+  }  /* if */
+  {
+    switch (type->kind) {
+      case tk_template_param:
+        /* If this template parameter type entry corresponds to the nth
+           parameter, the real type to substitute for it is given in the nth
+           template argument.  Find the template argument that matches this
+           template parameter and return it to the caller. */
+        { a_template_param_list_pos	list_pos;
+          list_pos = type->
+                      variant.template_param.extra_info->coordinates.position;
+          tap = get_template_arg_by_list_pos((a_template_param_ptr)NULL,
+                                             &templ_arg_list, list_pos);
+          if (tap->variant.type == NULL) {
+            /* No value has been provided for this template parameter yet.
+               Don't do the substitution, but don't consider this to be
+               a copy error either. */
+            new_type = type;
+          } else {
+            new_type = tap->variant.type;
+          }  /* if */
+        }
+        break;
+      case tk_pointer:
+        /* Make a pointer type based on a copy (or reuse, if copying is not
+           required) of the type pointed to. */
+        tp = type->variant.pointer.type;
+        tp = copy_type_with_substitution(tp, templ_arg_list,
+                                         source_pos, copy_error);
+        if (type->variant.pointer.is_reference) {
+          new_type = make_reference_type(tp);
         } else {
-          a_constant_ptr	constant;
-          constant = fs_constant((a_constant_repr_kind)ck_integer);
-          set_unsigned_integer_constant
-                       (constant, (unsigned long)tap->variant.integer_value,
-                        constant_type->variant.integer.int_kind);
-          tap->variant.constant = constant;
-          tap->is_array_bound_of_unknown_type = FALSE;
+          new_type = make_pointer_type(tp);
         }  /* if */
-      } else {
-        /* The template argument has a deduced value with a type.  The
-           type must match the declared type.  This test is only needed if
-           the type involves a template parameter. */
-        check_assertion(!tap->constant_is_an_arg_operand);
-        if (tpp->variant.constant.type_involves_template_param) {
-          check_assertion(rout_templ_sym != NULL);
-          match = identical_types(constant_type, tap->variant.constant->type);
+        break;
+      case tk_typeref:
+        /* Make an identically qualified type of a copy (or reuse) of the type
+           that underlies the typeref. */
+        tp = copy_type_with_substitution(skip_typerefs(type), templ_arg_list,
+                                         source_pos, copy_error);
+        new_type = type_plus_qualifiers_from_second_type(tp, type);
+        break;
+      case tk_ptr_to_member:
+        /* Make a pointer to member type.  The current pointer to member type
+           points to two types, so the new type is based on copies (or reuses)
+           of each. */
+        tp = copy_type_with_substitution(type->variant.ptr_to_member.type,
+                                         templ_arg_list, source_pos,
+                                         copy_error);
+        tp2 = copy_type_with_substitution(
+                          type->variant.ptr_to_member.class_of_which_a_member,
+                          templ_arg_list, source_pos, copy_error);
+        new_type = ptr_to_member_type(tp, tp2);
+        break;
+      case tk_routine:
+        /* We can reuse "type" as long as we can reuse the return type and all
+           its param types.  Otherwise we will need to allocate a new type
+           entry. Go through "type" until we find that a new type was returned
+           from copy_type_with_substitution. */
+        reusable_param_types = 0;
+        first_new_type_for_param_types_list = NULL;
+        new_return_type = copy_type_with_substitution(
+                                        type->variant.routine.return_type,
+                                        templ_arg_list, source_pos,
+                                        copy_error);
+        this_param_type =
+                   type->variant.routine.extra_info->implicit_this_param_type;
+        if (this_param_type == NULL) {
+          new_this_param_type = NULL;
+        } else {
+          new_this_param_type = copy_type_with_substitution(
+                                        this_param_type, templ_arg_list,
+                                        source_pos, copy_error);
         }  /* if */
-      }  /* if */
-    }  /* for */
+        if (new_return_type != type->variant.routine.return_type ||
+            new_this_param_type != this_param_type) {
+          /* A substitution was made on the return type or the this-param
+             type, so a new routine type will be required. */
+          goto make_new_type;
+        }  /* if */
+        /* Now examine each of the parameters. */
+        for (ptp = type->variant.routine.extra_info->param_type_list;
+             ptp != NULL;
+             ptp = ptp->next) {
+          tp = copy_type_with_substitution(ptp->type, templ_arg_list,
+                                           source_pos, copy_error);
+          if (tp != ptp->type) {
+            /* A substitution was made, so a new routine type will be required.
+               Remember tp so we can avoid calling copy_type_with_substituion
+               again for this param type entry. */
+            first_new_type_for_param_types_list = tp;
+            goto make_new_type;
+          }  /* if */
+          /* Keep track of the number of param type entries for which reuse of
+             the existing type is okay. */
+          ++reusable_param_types;
+        }  /* for */
+        /* Falling through to here means that no substitutions are required
+           for this type.  Therefore it can simply be reused. */
+        new_type = type;
+        break;
+make_new_type:
+        /* Make a routine type based on "type".  Checking for reusable types
+           has already been done for the return type and possibly for some of
+           the parameter types. */
+        new_type = alloc_type((a_type_kind)tk_routine);
+        /* Fill in the return type.  It has already been determined. */
+        new_type->variant.routine.return_type = new_return_type;
+        /* Clone the routine type supplement, except for the pointers. */
+        *(new_type->variant.routine.extra_info) =
+                                         *(type->variant.routine.extra_info);
+        new_type->variant.routine.extra_info->assoc_routine = NULL;
+        new_type->variant.routine.extra_info->implicit_this_param_type =
+                                                       new_this_param_type;
+        /* Make copies of the entries on type's param types list, making the
+           appropriate substitutions for template parameter type entries. */
+        prev_ptp = NULL;
+        for (ptp = type->variant.routine.extra_info->param_type_list;
+             ptp != NULL;
+             ptp = ptp->next) {
+          if (reusable_param_types > 0) {
+            /* We have already called copy_type_with_substitution for this
+               parameter and we know we can reuse the existing type. */
+            tp = ptp->type;
+            --reusable_param_types;
+          } else if (first_new_type_for_param_types_list != NULL) {
+            /* We have already called copy_type_with_substitution for this
+               parameter and the type returned contained a substitution; we can
+               use that type. */
+            tp = first_new_type_for_param_types_list;
+            first_new_type_for_param_types_list = NULL;
+          } else {
+            /* copy_type_with_substitution has not been called yet. */
+            tp = copy_type_with_substitution(ptp->type, templ_arg_list,
+                                             source_pos, copy_error);
+          }  /* if */
+          /* Allocate the param type entry and copy default arg info. */
+          new_ptp = alloc_param_type(tp);
+          if (ptp->has_default_arg) {
+            new_ptp->has_default_arg = TRUE;
+#if 0
+            if (!ptp->type_involves_template_param) {
+	      /* Default argument processing for parameters that involve
+		 template parameters is done later. */
+              new_ptp->default_arg_expr= copy_expr_tree(ptp->default_arg_expr,
+                                                        CE_NO_OPTIONS);
+            }  /* if */
+#endif
+          }  /* if */
+          /* Add the new param type entry to the param types list. */
+          if (prev_ptp == NULL) {
+            new_type->variant.routine.extra_info->param_type_list = new_ptp;
+          } else {
+            prev_ptp->next = new_ptp;
+          }  /* if */
+          prev_ptp = new_ptp;
+        }  /* if */
+        set_routine_calling_method_flag(new_type, &null_source_position);
+        /* A brand new type has been created -- add it to the file scope types
+           list. */
+#if 0
+        add_to_types_list(new_type, DEPTH_OF_FILE_SCOPE);
+#endif
+        break;
+      case tk_array:
+        /* Make an array type based on "type", making substitutions as
+           required in the element type.  Note that if the element type doesn't
+           require substitution, we don't create a new type entry. */
+        tp = copy_type_with_substitution(type->variant.array.element_type,
+                                         templ_arg_list, source_pos,
+                                         copy_error);
+        if (tp == type->variant.array.element_type) {
+          /* Reuse the current type. */
+          new_type = type;
+        } else {
+          /* Create a new array type. */
+          tp2 = alloc_type((a_type_kind)tk_array);
+          *tp2 = *type;
+          tp2->variant.array.element_type = tp;
+          new_type = tp2;
+#if 0
+          add_to_types_list(new_type, DEPTH_OF_FILE_SCOPE);
+#endif
+        }  /* if */
+        break;
+      case tk_class:
+      case tk_struct:
+      case tk_union:
+        cssp = symbol_supplement_for_class(type);
+        if (!cssp->is_nonreal_class) {
+          /* Reuse the current type. */
+          new_type = type;
+#if CHECKING
+        } else if (cssp->class_template == NULL) {
+          internal_error(
+                "copy_type_with_substitution: nonreal class with no template");
+#endif /* CHECKING */
+        } else {
+          /* The class is a template. The copy will be an instantiation of it.
+             Build a new template arg list and call find_template_class. */
+          a_template_arg_ptr  new_list, new_tap, prev_new_tap;
+          a_symbol_ptr        sym;
+  
+          tap = type->variant.class_struct_union.extra_info->template_arg_list;
+          prev_new_tap = new_list = NULL;
+          for (; tap != NULL; tap = tap->next) {
+            new_tap = alloc_template_arg(tap->is_type);
+            if (tap->is_type) {
+              new_tap->variant.type =
+                       copy_type_with_substitution(tap->variant.type,
+                                                   templ_arg_list, source_pos,
+                                                   copy_error);
+            } else {
+#if CHECKING
+              if (tap->variant.constant->kind ==
+                                    (a_constant_repr_kind)ck_template_param) {
+                internal_error("copy_type_with_subst: bad const in templ arg");
+              }  /* if */
+#endif /* CHECKING */
+              new_tap->variant.constant = tap->variant.constant;
+            }  /* if */
+            if (new_list == NULL) {
+              new_list = new_tap;
+            } else {
+              prev_new_tap->next = new_tap;
+            }  /* if */
+            prev_new_tap = new_tap;
+          }  /* for */
+          sym = find_template_class(cssp->class_template, &new_list,
+                                    /*prototype_allowed=*/FALSE);
+          new_type = sym->variant.class_struct_union.type;
+        }  /* if */
+        break;
+      default:;
+        /* No modification required. */
+        new_type = type;
+    }  /* switch */
+  }
+  /* Return a NULL type pointer if a copy error occurred. */
+  if (*copy_error) new_type = NULL;
+#if DEBUG
+  if (debug_level >= 5 || db_flag_is_set("ctws")) {
+    fputs("out: ", f_debug);
+    if (*copy_error) {
+      fprintf(f_debug, "<copy error>");
+    } else {
+      db_type(new_type);
+    }  /* if */
+    fputc('\n', f_debug);
   }  /* if */
-  return match;
-}  /* verify_template_nontype_args */
+#endif /* DEBUG */
+  db_exit();
+  return new_type;
+}  /* copy_type_with_substitution */
+
+
+a_type_ptr substitute_template_arguments(
+				a_symbol_ptr		templ_sym,
+				a_template_arg_ptr	templ_arg_list,
+				a_template_arg_ptr	*new_arg_list)
+/*
+In the function template specified by templ_sym, replace the template
+parameters in the function type with the values specified by templ_arg_list
+and return the resulting type.  If new_arg_list is non-NULL, templ_arg_list
+is an explicitly specified template argument list that must be converted into
+an argument list appropriate for the specified template.  The new argument
+list is returned in *new_arg_list.
+*/
+{
+  a_boolean				copy_error = FALSE;
+  a_template_symbol_supplement_ptr	tssp;
+  a_type_ptr				templ_rout_type = NULL;
+  a_template_param_ptr			templ_param_list;
+
+#if 0
+  /* Add processing here to look up a previously created type based on the
+     template argument list being used. */
+#endif
+  tssp = template_supplement_for_symbol(templ_sym);
+  templ_param_list = tssp->variant.function.decl_cache.decl_info->parameters;
+  if (new_arg_list != NULL) {
+    /* An explicit template argument list was specified, initialize the
+       new template argument list with the specified list.  If the new
+       list that is returned is NULL, the explicit argument list didn't
+       match the template parameter list, so no further processing of this
+       template should be done. */
+    templ_arg_list = create_initial_template_arg_list(templ_param_list,
+                                                      templ_arg_list);
+    *new_arg_list = templ_arg_list;
+  }  /* if */
+  if (templ_arg_list != NULL) {
+    templ_rout_type = skip_typerefs(tssp->variant.function.routine->type);
+#if 0
+    templ_rout_type = copy_type_with_substitution(templ_rout_type,
+                                                  templ_arg_list,
+	       					  &templ_sym->decl_position,
+						  &copy_error);
+#endif
+    if (copy_error) templ_rout_type = NULL;
+  }  /* if */
+  return templ_rout_type;
+}  /* substitute_template_arguments */
 
 
 #if CHECKING
@@ -4079,8 +4634,8 @@ declared and before the partial instantiation of the function was done.
      on other template parameters agree with the types of the deduced
      values. */
   if (match) {
-    match = verify_template_nontype_args(templ_arg_list, templ_sym,
-                                         templ_param_list);
+    match = wrapup_function_template_argument_deduction(
+                          templ_arg_list, templ_sym, templ_param_list) != NULL;
   }  /* if */
   if (!match) {
     if (!tssp->variant.function.cannot_be_called &&
@@ -4614,14 +5169,17 @@ type should not be used in the matching process.
     goto done;
   }  /* if */
   if (explicit_arg_list != NULL) {
-    /* If an explicit template argument list was specified, initialize the
-       new template argument list with the specified list.  If the new
-       list that is returned is NULL, the explicit argument list didn't
-       match the template parameter list, so no further checking of this
-       template should be done. */
-    *templ_arg_list = create_initial_template_arg_list(templ_param_list,
-                                                       explicit_arg_list);
-    if (*templ_arg_list == NULL) goto done;
+    /* Substitute the explicitly specified template arguments and
+       produce an updated template routine type. */
+    a_template_arg_ptr	new_arg_list;
+    templ_rout_type = substitute_template_arguments(templ_sym,
+                                                    explicit_arg_list,
+						    &new_arg_list);
+    *templ_arg_list = new_arg_list;
+    /* A NULL type will be returned if the copy could not be done because
+       the substitution of the template arguments would result in an invalid
+       type. */
+    if (templ_rout_type == NULL) goto done;
   }  /* if */
   /* Make a pass over the entries representing instantiations of the function
      template to see if any of them match the current type signature. */
@@ -4681,8 +5239,8 @@ type should not be used in the matching process.
      on other template parameters agree with the types of the deduced
      values. */
   if (match) {
-    match = verify_template_nontype_args(*templ_arg_list, templ_sym,
-                                         templ_param_list);
+    match = wrapup_function_template_argument_deduction(
+                         *templ_arg_list, templ_sym, templ_param_list) != NULL;
   }  /* if */
 done:
   if (!match && *templ_arg_list != NULL) {

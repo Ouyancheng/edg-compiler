@@ -1694,8 +1694,8 @@ ambiguous symbol and return a pointer.  If no match is found, return NULL.
                               (a_base_class_ptr*)NULL)) {
       /* Do the wrapup processing to make sure that all of the parameters
          have been deduced. */
-      if (verify_template_nontype_args(templ_arg_list, fund_sym,
-                                       (a_template_param_ptr)NULL)) {
+      if (wrapup_function_template_argument_deduction(
+               templ_arg_list, fund_sym, (a_template_param_ptr)NULL) != NULL) {
         /* We have a match.  Add the matching template to a list of matching
            candidates.  Any poorer matches will be removed by this process.
            The template argument list is saved along with the symbol. */

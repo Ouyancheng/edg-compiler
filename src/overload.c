@@ -2665,8 +2665,8 @@ evaluated (but not checked to see if the match is good enough).
      on other template parameters agree with the types of the deduced
      values.  Also check for the case where not all template parameters
      have been deduced. */
-  if (!verify_template_nontype_args(templ_arg_list, templ_sym,
-                                    (a_template_param_ptr)NULL)) {
+  if (wrapup_function_template_argument_deduction(
+              templ_arg_list, templ_sym, (a_template_param_ptr)NULL) == NULL) {
     goto done;
   }  /* if */
   if (arg_operand != NULL) {
