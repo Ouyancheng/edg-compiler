@@ -12,8 +12,9 @@ fixed.
 7/9/98    EH cleanup state, long lifetime temporaries mode, switch clauses
 
 The cleanup state determined in long lifetime temporaries mode at a
-switch clause after the first in the switch was sometimes wrong.
-This has been corrected.
+switch clause, when the previous switch clause created some temporaries
+that were destroyed at the break, was sometimes wrong.  This has been
+corrected.
 
 7/9/98    __STDC__ redefinable in non-strict ANSI/ISO C mode
 
