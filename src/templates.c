@@ -18348,6 +18348,18 @@ emitted in this translation unit.
     result = TRUE;
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   }  /* if */
+#if DEBUG
+  if (db_trace("instantiation", rout_ptr, iek_routine)) {
+    fprintf(f_debug, "inline_function_should_be_emitted:\n");
+    db_entity_info((char*)rout_ptr, iek_routine);
+    fprintf(f_debug, "should_be_emitted=%d\n", result);
+    fprintf(f_debug, "body_can_be_generated=%d\n", body_can_be_generated);
+    fprintf(f_debug, "in_request_file=%d\n",
+            inline_function_in_request_file(rout_ptr));
+    fprintf(f_debug, "is_nontemplate_routine...=%d\n",
+            is_nontemplate_routine_from_exported_trans_unit(rout_ptr));
+  }  /* if */
+#endif /* DEBUG */
   return result;
 }  /* inline_function_should_be_emitted */
 
@@ -18477,6 +18489,10 @@ a body (if needed) for extern inline functions.
 #if MAINTAIN_NEEDED_FLAGS
       fprintf(f_debug, " definition_needed=%d\n", rout_ptr->definition_needed);
 #endif /* MAINTAIN_NEEDED_FLAGS */
+      fprintf(f_debug, " inline_instance_required=%d\n",
+              rout_ptr->inline_instance_required);
+      fprintf(f_debug, " suppress_inline_body=%d\n",
+              rout_ptr->suppress_inline_body);
     }  /* if */
 #endif /* DEBUG */
   }  /* if */
@@ -19529,14 +19545,22 @@ a_boolean is_nontemplate_routine_from_exported_trans_unit(
 							a_routine_ptr rout_ptr)
 /*
 Return TRUE if a routine is from a secondary translation unit loaded
-to defined exported templates and is not a routine that should be
+to define exported templates and is not a routine that should be
 retained.
+
+When instantiating inline functions using the template instantiation
+mechanism, extern inline functions are treated as template functions
+by this routine.  When exported templates are present, static inlines
+are treated as extern inlines.
 */
 {
   a_boolean	result = FALSE;
 
   if (translation_unit_needed_only_for_exported_templates) {
-    if ((!(rout_ptr)->is_template_function || (rout_ptr)->is_specialized)) {
+    if ((!(rout_ptr)->is_template_function || (rout_ptr)->is_specialized) &&
+        !(rout_ptr->is_inline &&
+         (rout_ptr->storage_class != (a_storage_class)sc_static ||
+          any_exported_templates()))) {
       /* A non-template function or a specialized template function. */
       result = TRUE;
       if (rout_ptr->compiler_generated) {
