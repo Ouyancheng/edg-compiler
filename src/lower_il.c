@@ -790,7 +790,7 @@ It cannot create bit fields.  field_name may not be NULL.
   sizeof_t         name_length, alloc_length;
   a_field_ptr      field_ptr;
   a_targ_alignment alignment;
-  int              bit_offset;
+  unsigned int     bit_offset;
   a_targ_size_t    old_byte_offset;
 
   /* Copy the name into the file-scope IL memory region. */
@@ -835,7 +835,7 @@ size and alignment.  Works for both structs and unions.
 */
 {
   a_class_type_supplement_ptr ctsp;
-  int                         bit_offset = 0;
+  unsigned int                bit_offset = 0;
 
   (void)do_alignment(byte_offset, &bit_offset, class_type->alignment);
   /* Put final size into the struct or union type. */
