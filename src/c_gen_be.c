@@ -1002,7 +1002,7 @@ static void dump_temp_name(char *ptr)
 Write a temporary name generated from the given IL pointer.
 */
 {
-  static char buffer[50];
+  char buffer[50];
 
   (void)sprintf(buffer, "__T%lu", unique_id_for_il_pointer(ptr));
   m_write_tok_str(buffer);
