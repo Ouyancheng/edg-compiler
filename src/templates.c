@@ -445,21 +445,25 @@ Initialize a template declaration state block.
   tdsp->nesting_depth = 0;
   tdsp->final_token_ptr = NULL;
   tdsp->decl_info = NULL;
+  tdsp->effective_decl_level = NO_SCOPE_DEPTH;
   tdsp->number_of_template_decl_scopes = 0;
   tdsp->number_of_template_param_clauses = 0;
   tdsp->enclosing_scope = NULL;
   tdsp->class_declared_in = FALSE;
   tdsp->start_pos = null_source_position;
-  tdsp->pragmas_bound_to_template = NULL;
   clear_token_cache(&tdsp->param_list_cache, /*reusable=*/TRUE);
   clear_token_cache(&tdsp->decl_token_cache, /*reusable=*/TRUE);
   tdsp->decl_token_cache_used = FALSE;
+  tdsp->pragmas_bound_to_template = NULL;
   tdsp->il_template_entry = NULL;
   clear_decl_pos_block(&tdsp->decl_pos_block);
   tdsp->prototype_scope_symbols = NULL;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   tdsp->definition_range = null_source_range;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+  tdsp->template_decl = NULL;
+#endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 }  /* init_templ_decl_state */
 
 
