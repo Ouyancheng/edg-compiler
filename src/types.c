@@ -1719,8 +1719,8 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
       } else if (C_dialect != C_dialect_cplusplus &&
                  !check_as_operands_not_conversion &&
                  is_void_type(unqual_source_type_pointed_to) &&
-                 is_object(unqual_dest_type_pointed_to) ||
-                 is_incomplete(unqual_dest_type_pointed_to)) {
+                 (is_object(unqual_dest_type_pointed_to) ||
+                  is_incomplete(unqual_dest_type_pointed_to))) {
         /* In C but not C++, a "void *" may be converted to a pointer to an
            object or incomplete type.  ANSI C 3.3.16.1 (assignment). */
         okay = TRUE;
