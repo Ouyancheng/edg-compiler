@@ -4234,7 +4234,7 @@ curr_date_time passed in by the caller.
                          make_repl_text(time_of_translation, (sizeof_t*)NULL);
   }  /* if */
 
-}  /* set_date_and_time_macros */
+}  /* init_date_and_time_macros */
 
 
 void fixup_predefined_macros(char  curr_date_time[26])
