@@ -3066,13 +3066,13 @@ entry is pushed on the scope stack.
         /* Prior definition. */
         pos_sy_error(ec_already_defined, &locator.source_position, sym);
         err = TRUE;
-#if 0
-/* Not yet implemented -- new field needed in a_template_symbol_supplement. */
-      } else if (types-are-not-compatible) {
+      } else if (!types_are_compatible(type,
+                 sym->variant.variable.ptr->type)) {
+        /* The type of the static data member definition does not match
+           the declaration in the class. */
         pos_sy_error(ec_not_compatible_with_previous_decl,
                      &locator.source_position, sym);
         err = TRUE;
-#endif /* if 0 */
       } else {
         /* This is a template definition of a static data member of a
            class template. */
