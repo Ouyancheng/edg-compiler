@@ -1696,7 +1696,8 @@ to the constructor-init entry.
     /* In a destructor case, so the "initialization" is really
        destruction. */
     lower_destructor_dynamic_init(con_ptr->variant.dynamic_init, ipdp,
-                                  dtor_case, /*have_complete_object=*/TRUE,
+                                  (a_cleanup_action_ptr)NULL,
+                                  /*have_complete_object=*/TRUE,
                                   insert_location);
   } else {
     /* Normal initialization. */
@@ -2549,15 +2550,15 @@ do_assignment:;
 
 void lower_destructor_dynamic_init(a_dynamic_init_ptr     dip,
                                    an_init_pos_descr_ptr  ipdp,
-                                   a_boolean              dtor_case,
+                                   a_cleanup_action_ptr   cap,
                                    a_boolean              have_complete_object,
                                    an_insert_location_ptr insert_location)
 /*
-Do IL lowering on a dynamic initialization entry that represents a destructor
-call in a destructor's init list.  dip points to the dynamic initialization,
-and ipdp identifies the entity to be destroyed.  If dtor_case is TRUE, we
-are generating a destructor wrapper; do the destruction indicated in
-the dynamic init but ignore any initialization.  If have_complete_object 
+Do IL lowering of the destruction part of a dynamic initialization entry
+(ignore any initialization that is indicated).  dip points to the dynamic
+initialization, and ipdp identifies the entity to be destroyed.  cap
+points to the cleanup action entry for the destruction, or is NULL if
+this destruction is part of a destructor wrapper.  If have_complete_object 
 is TRUE, the entity being destroyed is a complete object.  The statements
 are inserted at *insert_location and *insert_location is updated.
 */
@@ -2577,20 +2578,29 @@ are inserted at *insert_location and *insert_location is updated.
     }  /* if */
 #endif /* CHECKING */
   }  /* if */
-  if (exceptions_enabled && dtor_case) {
-    /* Generate an exception cleanup action for a destruction in a destructor
-       wrapper. */
-    a_cleanup_action_ptr cap;
-    cap = alloc_destruction_cleanup_action(dip, ipdp,
+  if (exceptions_enabled) {
+    if (cap == NULL) {
+      /* Generate an exception cleanup action for a destruction in a destructor
+         wrapper. */
+      cap = alloc_destruction_cleanup_action(dip, ipdp,
                                         /*applies_on_block_exit=*/FALSE,
                                         /*applies_on_exception_cleanup=*/TRUE);
-    cap->destructor_wrapper_cleanup = TRUE;
-    add_cleanup_action_to_context_list(cap, curr_context,
+      cap->destructor_wrapper_cleanup = TRUE;
+      add_cleanup_action_to_context_list(cap, curr_context,
                                        &dtor_wrapper_prologue_insert_location);
-    /* Insert an assignment to set the current exception handling region
-       to this new region.  That gets set before the *previous* cleanup
-       action. */
-    set_region_on_prev_destructor_wrapper_cleanup(cap, insert_location);
+      /* Insert an assignment to set the current exception handling region
+         to this new region.  That gets set before the *previous* cleanup
+         action. */
+      set_region_on_prev_destructor_wrapper_cleanup(cap, insert_location);
+    } else {
+      /* Normal case (not a destructor wrapper).  Set the region number
+         to what it should be after the destruction, because as soon as
+         we start the destruction it's the destructor's job to deal with
+         partial destruction. */
+      a_cleanup_region_number region_number =
+                        context_cleanup_region_number(curr_context, cap->next);
+      assign_region_number_to_eh_curr_region(region_number, insert_location);
+    }  /* if */
   }  /* if */
   /* Make an expression for the object to be destroyed. */
   entity_node = make_init_entity_node(ipdp);
@@ -4080,7 +4090,7 @@ at *insert_location, and *insert_location is updated.
 #endif /* CHECKING */
   } else {
     /* Normal case; generate the code to do the destruction. */
-    lower_destructor_dynamic_init(dip, &ipd, /*dtor_case=*/TRUE,
+    lower_destructor_dynamic_init(dip, &ipd, (a_cleanup_action_ptr)NULL,
                                   have_complete_object, insert_location);
   }  /* if */
 }  /* lower_dtor_init */
