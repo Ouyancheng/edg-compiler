@@ -5359,7 +5359,12 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
   /* Scan the third operand.  Evaluate the expression if the first operand
      is non-constant or a zero constant, and if we are currently evaluating
      expressions. */
-  scan_expr(&operand_3, PREC_QUEST_MARK, expr3_kind, EOPT_NO_OPTIONS);
+  /* In C++, the 3rd operand is an assignment-expression (this was changed
+     after the ARM) to allow things like "a ? i=1 : j=2". */
+  scan_expr(&operand_3, (C_dialect != C_dialect_cplusplus ||
+                         cfront_compatibility_mode) ? PREC_QUEST_MARK :
+                                                      PREC_ASSIGNMENT,
+                         expr3_kind, EOPT_NO_OPTIONS);
   do_operand_transformations(&operand_3,
                              TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION,
                              expression_kind);
