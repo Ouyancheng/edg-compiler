@@ -1,5 +1,23 @@
 Version 2.43
 
+10/29/99 Using-declarations for tag names and non-tag names
+
+The front end used to ignore tag names referred to by using-declarations if
+non-tag names were also present in the nominated scope.  This leads to an
+error in the following example:
+
+  namespace N {
+    struct S {};
+    void S();
+  }
+  void f() {
+    using N::S;  // Imports function N::S, but not struct N::S
+    struct S s;  // Error: ::S is incomplete
+  }
+
+This is now fixed (also for using-declarations appearing in class
+definitions).
+
 10/29/99 Names for conversion functions for typedef types
 
 The names in symbol headers and IL entries for conversion functions
