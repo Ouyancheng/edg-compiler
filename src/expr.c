@@ -9485,11 +9485,6 @@ Syntax:
           a_base_class_ptr bcp;
           a_boolean        baseward_cast;
           /* Valid static_cast conversion. */
-          if (cast_removes_qualifiers(source_type, type_cast_to)) {
-            /* This static_cast casts away constness, which is not allowed. */
-            pos_st_error(ec_cannot_cast_away_const, &start_position,
-                         "static_cast");
-          }  /* if */
           if (warning_suggested != ec_no_error) {
             /* Issue warning on oddball cases. */
             pos_warning(warning_suggested, &start_position);
@@ -9552,6 +9547,14 @@ Syntax:
             /* Use a special clearer message for casting to a class. */
             pos_ty_error(ec_cast_to_bad_type, &type_position,
                          orig_type_cast_to);
+          } else if (same_type_with_added_qualifiers(source_type,
+                                                     type_cast_to,
+                                                    /*ignore_qualifiers=*/TRUE,
+                                                     (a_boolean *)NULL) &&
+                     cast_removes_qualifiers(source_type, type_cast_to)) {
+            /* Use a special message for casting away constness. */
+            pos_st_error(ec_cannot_cast_away_const, &start_position,
+                         "static_cast");
           } else {
             /* Generic message. */
             /* Note: If this is changed to display the types involved,

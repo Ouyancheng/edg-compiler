@@ -1,5 +1,14 @@
 Version 3.6
 
+11/15/04 Better diagnostic on casting away const in a static_cast
+
+The processing for static_cast now gives a specific diagnostic for
+casting away const in default mode.  Formerly, this special message
+was issued only in strict mode, and a generic "invalid type conversion"
+was issued in default mode.
+
+  int *f(int const *p) { return static_cast<int *>(p); }
+
 11/15/04 Virtual function call optimization
 
 When the optimization is enabled, virtual function calls are converted to
