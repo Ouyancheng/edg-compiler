@@ -1478,6 +1478,15 @@ EXTERN a_boolean
 			/* TRUE if a warning should be emitted when a field
 			   of a derived class is placed in the tail padding
 			   of its base class. */
+
+EXTERN a_boolean
+		targ_reuse_tail_padding;
+#if VAR_INITIALIZERS
+			= TARG_REUSE_TAIL_PADDING
+#endif /* VAR_INITIALIZERS */
+			                         ;
+			/* TRUE if tail-padding from base classes can be
+			   reused for other subobjects of the derived class. */
 #endif /* IA64_ABI */
 
 EXTERN a_boolean
