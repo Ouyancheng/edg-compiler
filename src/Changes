@@ -5,7 +5,7 @@ Version 2.32
 A bug has been fixed in aggregate initialization: implicit default
 initialization of fields is now done in accord with recent changes to 8.5.1
 [dcl.init.aggr].  There are two changes in behavior related to this change.
-One is that default initializers are now called where they weren't before
+One is that default constructors are now called where they weren't before
 -- for example:
 
   struct S { S(); };
