@@ -71,16 +71,19 @@ The default is given by DEFAULT_ARG_DEPENDENT_LOOKUP (TRUE in the
 release).  The feature is turned off in Microsoft mode and cfront
 mode.
 
-2/25/99  Complete access checking on dynamic_cast
+2/25/99  Complete runtime access checking on dynamic_cast
 
 The dynamic_cast operation requires a limited form of access checking
 at runtime.  Heretofore, the information provided to the runtime has
 not been sufficient to allow it to do all parts of the access check.
-To fix this, an additional parameter has been added to the __dynamic_cast
+To fix this, two additional parameters have been added to the __dynamic_cast
 and __dynamic_cast_ref runtime routines (this is an ABI CHANGE).
-This additional parameter is used to pass in the typeinfo entry
+The additional parameters are used to pass in the typeinfo entry
 of the underlying class type of the static type of the source
-pointer.
+pointer, and the original source pointer (in cases where the
+source pointer is to a class that has no virtual function table,
+the pointer passed in as the first paremeter has been cast to a
+base class that does have a virtual function pointer).
 
 2/25/99  Qualification conversion on throw of multi-level pointer
 
