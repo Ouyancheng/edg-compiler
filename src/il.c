@@ -4519,8 +4519,6 @@ argument because it references a non-external entity, e.g., a local variable.
 {
   a_boolean               invalid = FALSE;
   a_source_correspondence *scp = NULL;
-  a_boolean               null_is_invalid =
-                                        !(microsoft_mode || any_cfront_mode());
 
   if (constant->kind == (a_constant_repr_kind)ck_address) {
     /* An address constant.  See if the object referenced is external. */
@@ -4565,22 +4563,6 @@ argument because it references a non-external entity, e.g., a local variable.
       /* Not a class member. */
       invalid = (scp->name_linkage == (a_name_linkage_kind)nlk_none ||
                  scp->name_linkage == (a_name_linkage_kind)nlk_internal);
-    }  /* if */
-  } else if (constant->kind == (a_constant_repr_kind)ck_ptr_to_member) {
-    if (null_is_invalid &&
-        (constant->variant.ptr_to_member.is_function_ptr ?
-                    (constant->variant.ptr_to_member.variant.routine == NULL) :
-                    (constant->variant.ptr_to_member.variant.field == NULL))) {
-      /* A null pointer-to-member is invalid. */
-      invalid = TRUE;
-    }  /* if */
-  } else if (constant->kind == (a_constant_repr_kind)ck_integer) {
-    if (null_is_invalid &&
-        is_pointer_type(constant->type) &&
-        /* Can't use is_null_pointer_constant here. */
-        cmplit_integer_constant(constant, (a_host_large_integer)0) == 0) {
-      /* A null pointer is invalid. */
-      invalid = TRUE;
     }  /* if */
   }  /* if */
   return invalid;

@@ -1,20 +1,5 @@
 Version 3.0
 
-5/5/02   Error on null pointer as nontype template argument
-
-Null pointers and null pointers-to-members are not allowed as
-nontype template arguments according to the standard, but the Front
-End has been accepting them.  An error is now issued, except in
-Microsoft mode and cfront mode.
-
-  struct A {};
-  typedef int A::*pdm;
-  typedef int (*pf)();
-  template <pdm X> struct T1 {};
-  template <pf X> struct T2 {};
-  T1<(pdm)0> t1;  // Error now
-  T2<(pf)0> t2;   // Error now
-
 5/3/02   Macro to determine whether long long is enabled
 
 The front end can now be configured to define a macro when long long is not
