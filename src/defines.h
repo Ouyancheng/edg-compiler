@@ -106,7 +106,7 @@ Flags to be set when using the KAI inliner.
 #define PRAGMA_WEAK_ALLOWED 1
 #define USER_CONTROL_OF_STRUCT_PACKING 1
 #ifndef MAINTAIN_NEEDED_FLAGS
-#define MAINTAIN_NEEDED_FLAGS 1
+#define MAINTAIN_NEEDED_FLAGS 0
 #endif /* ifndef MAINTAIN_NEEDED_FLAGS */
 
 #endif /* !defined(OPTIMIZED_VERSION) */
