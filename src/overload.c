@@ -4188,6 +4188,33 @@ lookup.
 }  /* add_operand_to_arg_dependent_lookup_list */
 
 
+static a_boolean is_symbol_for_which_overload_resolution_should_be_deferred(
+                                                              a_symbol_ptr sym)
+/*
+Return TRUE if the indicated symbol is one for which overload resolution
+cannot be done at present.  We are in a template dependent context.
+*/
+{
+  a_boolean defer = FALSE;
+
+  check_assertion(is_template_dependent_context());
+  if (is_block_extern_symbol(sym)) {
+    /* A block extern declaration can be dependent (e.g., it
+       can have dependent parameter types or dependent default
+       argument expressions), so we can't do overload resolution. */
+    defer = TRUE;
+  } else if (sym->kind == (a_symbol_kind)sk_function_template &&
+             sym->is_class_member &&
+             sym->parent.class_type->variant.class_struct_union.
+                                                  is_prototype_instantiation) {
+    /* A template member of a prototype instantiation.  We can't call
+       find_template_function on these, so defer overload resolution. */
+    defer = TRUE;
+  }  /* if */
+  return defer;
+}  /* is_symbol_for_which_overload_resolution_should_be_deferred */
+
+
 a_symbol_ptr select_overloaded_function(
                          a_symbol_ptr             overloaded_function_symbol,
                          a_boolean                is_template_id,
@@ -4302,10 +4329,10 @@ and return NULL.  This routine is called only in C++ mode.
       dependent_call = TRUE;
     }  /* if */
     if (overloaded_function_symbol != NULL &&
-        is_block_extern_symbol(overloaded_function_symbol)) {
-      /* A block extern declaration can be dependent (e.g., it
-         can have dependent parameter types or dependent default
-         argument expressions), so we can't do overload resolution. */
+        is_symbol_for_which_overload_resolution_should_be_deferred(
+                                                 overloaded_function_symbol)) {
+      /* A function for which we can't do overload resolution at this
+         time. */
       defer_overload_resolution = TRUE;
     }  /* if */
     if (dependent_call || defer_overload_resolution) {
@@ -8676,11 +8703,10 @@ such cases (where operator overloading might apply, but we can't tell).
           for (slep = symbol_list; slep != NULL; slep = slep->next) {
             nonmember_functions_symbol = slep->symbol;
             if (is_template_dependent_context() &&
-                is_block_extern_symbol(nonmember_functions_symbol)) {
-              /* A block extern declaration in a prototype instantiation
-                 can be dependent (e.g., it can have dependent parameter
-                 types or dependent default argument expressions), so we
-                 can't do overload resolution. */
+                is_symbol_for_which_overload_resolution_should_be_deferred(
+                                                 nonmember_functions_symbol)) {
+              /* A symbol for which we cannot do overload resolution at
+                 this time, e.g., a block extern symbol. */
               defer_overload_resolution = TRUE;
               break;
             } else {
