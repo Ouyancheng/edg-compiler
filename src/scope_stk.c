@@ -3808,7 +3808,17 @@ End a name scope by popping an entry off the scope stack.
     /* Set the "needed" flag in defined variables with external linkage --
        both in the file scope and in each of the namespace scopes. */
     end_of_file_scope_needed_flags_phase = TRUE;
+#if DEBUG
+    if (db_flag_is_set("needed_flags")) {
+      fprintf(f_debug, "Beginning end of file scope needed flags phase\n");
+    }  /* if */
+#endif /* DEBUG */
     set_needed_flags_at_end_of_file_scope(il_scope);
+#if DEBUG
+    if (db_flag_is_set("needed_flags")) {
+      fprintf(f_debug, "Ending end of file scope needed flags phase\n");
+    }  /* if */
+#endif /* DEBUG */
     end_of_file_scope_needed_flags_phase = FALSE;
     /* Don't bother pruning the IL of unneeded entries if errors were seen. */
     if (total_errors != 0) okay_to_eliminate_unneeded_il_entries = FALSE;
