@@ -2377,6 +2377,7 @@ static void lower_ck_dynamic_init(a_constant_ptr         con_ptr,
                                   an_init_pos_descr_ptr  ipdp,
                                   a_boolean              dtor_case,
                                   a_constructor_init_ptr ctor_init,
+                                  a_boolean              others_follow_in_aggr,
                                   an_insert_location_ptr insert_location)
 /*
 Generate executable code to handle a ck_dynamic_init constant (pointed
@@ -2387,7 +2388,9 @@ this call is handling a sequence of elements in an array.  If dtor_case
 is TRUE, we are generating a destructor wrapper; do the destruction
 indicated in the dynamic init but ignore any initialization.  If the dynamic
 initialization is part of a constructor initializer, ctor_init points
-to the constructor-init entry.
+to the constructor-init entry.  others_follow_in_aggr is TRUE if this constant
+is followed by others in an aggregate initialization (i.e., it's not the
+last).
 */
 {
   a_constant_ptr next_con;
@@ -2403,7 +2406,7 @@ to the constructor-init entry.
     /* Normal initialization. */
     lower_dynamic_init(con_ptr->variant.dynamic_init, ipdp,
                        (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
-                       ctor_init, LDIO_FULL_EXPR,
+                       ctor_init, LDIO_FULL_EXPR, others_follow_in_aggr,
                        insert_location, (a_boolean *)NULL);
   }  /* if */
   /* Overwrite the constant with a harmless constant of the right kind.
@@ -2442,6 +2445,7 @@ static void lower_dynamic_init_aggregate_constant(
                                  an_init_pos_descr_ptr  ipdp,
                                  a_boolean              dtor_case,
                                  a_constructor_init_ptr ctor_init,
+                                 a_boolean              others_follow_in_aggr,
                                  an_insert_location_ptr insert_location,
                                  a_boolean              *keep_constant)
 /*
@@ -2451,9 +2455,11 @@ the initial value for the entity described by ipdp.  If dtor_case is TRUE,
 we are generating a destructor wrapper; do the destruction indicated in
 the aggregate init but ignore any initialization.  If the dynamic
 initialization is part of a constructor initializer, ctor_init points to
-the constructor-init entry.  Insert statements to implement the
-initialization at *insert_location and update *insert_location.  If there
-are any (genuine) constants in the aggregate, set *keep_constant to TRUE.
+the constructor-init entry.  others_follow_in_aggr is TRUE if this constant
+is followed by others in an aggregate initialization (i.e., it's not the
+last).  Insert statements to implement the initialization at *insert_location
+and update *insert_location.  If there are any (genuine) constants in the
+aggregate, set *keep_constant to TRUE.
 */
 {
   an_init_pos_descr    ipd;
@@ -2496,6 +2502,7 @@ are any (genuine) constants in the aggregate, set *keep_constant to TRUE.
   for (prev_con = NULL;
        con_ptr != NULL;
        prev_con = con_ptr, con_ptr = con_ptr->next) {
+    a_boolean others_follow = (others_follow_in_aggr || con_ptr->next != NULL);
     if (!array_aggr) {
       check_assertion_str(ipmp->curr_field != NULL,
              "lower_dynamic_init_aggregate_constant: have constant, no field");
@@ -2508,7 +2515,7 @@ are any (genuine) constants in the aggregate, set *keep_constant to TRUE.
     if (con_ptr->kind == (a_constant_repr_kind)ck_dynamic_init) {
       /* Dynamic initialization. */
       lower_ck_dynamic_init(con_ptr, &ipd, dtor_case, ctor_init,
-                            insert_location);
+                            others_follow, insert_location);
     } else if (con_ptr->kind == (a_constant_repr_kind)ck_init_repeat) {
       /* Repeated constant.  Must be initializing members of an array. */
 #if CHECKING
@@ -2530,7 +2537,7 @@ are any (genuine) constants in the aggregate, set *keep_constant to TRUE.
       ipd.array_element_count =
                           (a_targ_ptrdiff_t)con_ptr->variant.init_repeat.count;
       lower_ck_dynamic_init(repeated_con, &ipd, dtor_case, ctor_init,
-                            insert_location);
+                            others_follow, insert_location);
       /* Remove the ck_init_repeat constant, in case the overall aggregate
          is kept for the constant parts. */
       check_assertion(con_ptr->next == NULL);
@@ -2544,7 +2551,8 @@ are any (genuine) constants in the aggregate, set *keep_constant to TRUE.
       /* Aggregate constant initializing a member of an aggregate. */
       lower_dynamic_init_aggregate_constant(con_ptr, &ipd,
                                             dtor_case, ctor_init,
-                                            insert_location, keep_constant);
+                                            others_follow, insert_location,
+                                            keep_constant);
     } else {
       /* Normal constant. */
       lower_constant(con_ptr);
@@ -3393,6 +3401,7 @@ void lower_dynamic_init(a_dynamic_init_ptr     dip,
                         a_constructor_init_ptr ctor_init,
                         a_lower_dynamic_init_options_set
                                                options,
+                        a_boolean              others_follow_in_aggr,
                         an_insert_location_ptr insert_location,
                         a_boolean              *keep_dynamic_init)
 /*
@@ -3415,6 +3424,9 @@ stmk_init), (options & LDIO_FULL_EXPR) is set.
 
 If the dynamic initialization is the top-level one for a throw,
 (options & LDIO_THROW) is set.
+
+others_follow_in_aggr is TRUE if this constant is followed by others in
+an aggregate initialization (i.e., it's not the last).
 
 This routine is only called for non-C cases, and therefore it will always
 generate some executable code.  (Well, almost always: a dynamic initialization
@@ -3815,6 +3827,7 @@ do_assignment:;
       keep_constant = FALSE;
       lower_dynamic_init_aggregate_constant(dip->variant.constant, ipdp,
                                             /*dtor_case=*/FALSE, ctor_init,
+                                            others_follow_in_aggr,
                                             eff_insert_location,
                                             &keep_constant);
       if (keep_constant) {
@@ -3876,8 +3889,17 @@ do_assignment:;
                                                 latest_initialization_on_entry,
                                                 &some_cloned);
       }  /* if */
-      add_dyn_init_cleanup(dip, ipdp, /*set_cond_flag_if_any=*/TRUE,
-                           eff_context, insert_location);
+      if (dip->destruction_is_for_partially_constructed_aggregate &&
+          !others_follow_in_aggr) {
+        /* A cleanup entry is not needed for a partial initialization
+           in an aggregate that is not followed by anything else, because
+           there is no code executed after the partial initialization and
+           before initialization is completed where an exception could be
+           thrown. */
+      } else {
+        add_dyn_init_cleanup(dip, ipdp, /*set_cond_flag_if_any=*/TRUE,
+                             eff_context, insert_location);
+      }  /* if */
     }  /* if */
   }  /* if */
   /* In the whole-variable cases, adjust the initialization specified in
@@ -4012,6 +4034,7 @@ scope is the scope in which the variable's definition appears.
   lower_dynamic_init(&dyn_init, &ipd,
                      (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                      (a_constructor_init_ptr)NULL, LDIO_FULL_EXPR,
+                     /*others_follow_in_aggr=*/FALSE,
                      &insert_location, (a_boolean *)NULL);
 }  /* lower_constant_init_of_static_in_extern_inline */
 
@@ -4677,6 +4700,7 @@ The subtree of the node has not yet been lowered.
       lower_dynamic_init(dip, &ipd,
                          (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                          (a_constructor_init_ptr)NULL, LDIO_NONE,
+                         /*others_follow_in_aggr=*/FALSE,
                          &insert_location, (a_boolean *)NULL);
       /* Now that the entity is initialized, turn off the freeing on
          exception. */
@@ -4930,6 +4954,7 @@ Do IL lowering of an enk_temp_init expression node.
   lower_dynamic_init(dip, &ipd,
                      (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                      (a_constructor_init_ptr)NULL, LDIO_NONE,
+                     /*others_follow_in_aggr=*/FALSE,
                      &insert_location, (a_boolean *)NULL);
   /* Optimization -- if the initialization is done by a constructor,
      and the enk_temp_init returns the address of the temporary,
@@ -5120,6 +5145,7 @@ Generate code for a stmk_init (dynamic initialization) statement.
     lower_dynamic_init(dip, &ipd,
                        (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                        (a_constructor_init_ptr)NULL, LDIO_FULL_EXPR,
+                       /*others_follow_in_aggr=*/FALSE,
                        &insert_location, &keep_dynamic_init);
     if (!keep_dynamic_init) {
       /* Delete the stmk_init statement. */
@@ -5169,6 +5195,7 @@ init_stmt is the stmk_init statement.
     lower_dynamic_init(vp->initializer.dynamic, &ipd,
                        (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                        (a_constructor_init_ptr)NULL, LDIO_FULL_EXPR,
+                       /*others_follow_in_aggr=*/FALSE,
                        &insert_location, &keep_dynamic_init);
     if (!keep_dynamic_init) {
       /* Delete the stmk_init statement. */
@@ -5310,7 +5337,8 @@ created are inserted at *insert_location, and *insert_location is updated.
   /* Generate the code to do the initialization. */
   lower_dynamic_init(dip, &ipd,
                      implied_arg_list, end_implied_arg_list, ctor_init,
-                     LDIO_FULL_EXPR, insert_location, (a_boolean *)NULL);
+                     LDIO_FULL_EXPR, /*others_follow_in_aggr=*/FALSE,
+                     insert_location, (a_boolean *)NULL);
 }  /* lower_ctor_init */
 
 
@@ -5810,6 +5838,7 @@ at *insert_location, and *insert_location is updated.
     lower_dynamic_init_aggregate_constant(dip->variant.constant, &ipd,
                                           /*dtor_case=*/TRUE,
                                           (a_constructor_init_ptr)NULL,
+                                          /*others_follow_in_aggr=*/FALSE,
                                           insert_location,
                                           &keep_constant);
 #if CHECKING
@@ -6400,6 +6429,7 @@ Do lowering on the file-scope dynamic initializations list.
       lower_dynamic_init(dip, &ipd,
                          (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                          (a_constructor_init_ptr)NULL, LDIO_FULL_EXPR,
+                         /*others_follow_in_aggr=*/FALSE,
                          eff_insert_location, (a_boolean *)NULL);
     }  /* for */
     if (exceptions_enabled) {

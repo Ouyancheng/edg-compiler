@@ -3092,6 +3092,7 @@ for the scope of the handler.
     lower_dynamic_init(handler->dynamic_init, &ipd,
                        (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                        (a_constructor_init_ptr)NULL, LDIO_FULL_EXPR,
+                       /*others_follow_in_aggr=*/FALSE,
                        &insert_location, (a_boolean *)NULL);
     /* Mark the parameter as referenced. */
     handler->parameter->source_corresp.referenced = TRUE;
@@ -3904,6 +3905,7 @@ Lower an enk_throw expression node.
     lower_dynamic_init(dip, &ipd,
                        (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                        (a_constructor_init_ptr)NULL, LDIO_THROW,
+                       /*others_follow_in_aggr=*/FALSE,
                        &insert_location, (a_boolean *)NULL);
 #if !DO_FULL_PORTABLE_EH_LOWERING
     /* Put the lowered node pointer into the throw supplement. */

@@ -8612,6 +8612,7 @@ Lower an stmk_return statement.
       lower_dynamic_init(dip, &ipd,
                          (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                          (a_constructor_init_ptr)NULL, LDIO_FULL_EXPR,
+                         /*others_follow_in_aggr=*/FALSE,
                          &insert_location, (a_boolean *)NULL);
     } else {
       /* Return value optimization was done. */
@@ -8884,6 +8885,7 @@ handled).
     lower_dynamic_init(csp->dynamic_init, &ipd,
                        (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                        (a_constructor_init_ptr)NULL, LDIO_FULL_EXPR,
+                       /*others_follow_in_aggr=*/FALSE,
                        &insert_location, (a_boolean *)NULL);
     /* Lower the value expression. */
     value_expr = csp->expr;

@@ -93,6 +93,27 @@ partially constructed aggregates no longer makes use of a conditional
 flag.  This is a slight efficiency improvement, and does not cause a
 version-to-version object-code compatibility problem.
 
+Fixed while making this change: a bug in cases where the last initialization
+of a destructible entity in an aggregate is followed by a dynamic
+initialization of a non-destructible entity which calls a function that
+throws an exception:
+
+  struct A {
+    A(int n);
+    ~A();
+  };
+  struct B {
+    A a;
+    int i;
+  };
+  int f() { throw 1; }
+  int main () {
+    try {
+      B b = {1, f()};  // Cleanup of b.a wasn't done correctly
+    } catch (...) {
+    }
+  }
+
 6/7/97    Cast of class object to same type, plus or minus cv-qualifiers
 
 For a class type for which copy construction is done by bitwise copying,
