@@ -1,5 +1,11 @@
 Version 2.30
 
+8/24/95  Nit in support of additional nonstandard linkage kinds
+
+The routine constant_references_non_external_entity has been fixed to
+work correctly when additional nonstandard linkage kinds (e.g.,
+extern "Ada") are added by our customers.
+
 8/23/95  C-generating back end: mutable
 
 The C-generating back end now accommodates "mutable" by adding extra

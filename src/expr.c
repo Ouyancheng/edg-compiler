@@ -10135,9 +10135,8 @@ e.g., a local variable.
       }  /* if */
     } else {
       /* Not a class member. */
-      refs_non_ext = (scp->name_linkage != (a_name_linkage_kind)nlk_external &&
-                      scp->name_linkage !=
-                                  (a_name_linkage_kind)nlk_cplusplus_external);
+      refs_non_ext = (scp->name_linkage == (a_name_linkage_kind)nlk_none ||
+                      scp->name_linkage == (a_name_linkage_kind)nlk_internal);
     }  /* if */
   }  /* if */
   return refs_non_ext;
