@@ -119,6 +119,8 @@ extern a_routine_list_entry_ptr alloc_list_entry_for_routine(void);
 
 extern a_derivation_step_ptr alloc_derivation_step(void);
 
+extern a_virtual_derivation_ptr alloc_virtual_derivation(void);
+
 extern an_overriding_virtual_function_ptr
                                        alloc_overriding_virtual_function(void);
 
