@@ -4595,7 +4595,7 @@ static a_boolean ttt_is_unnamed_or_local_type(
 This is a service function designed to be called from traverse_type_tree
 (whence the ttt_ prefix).  It returns TRUE if type_ptr is an unnamed or
 local class, struct, union, or enum.  Typedefs will have been skipped, as
-they in name mangling; it is the underlying type, not the typedef name
+they are in name mangling; it is the underlying type, not the typedef name
 (which can be declared anywhere) that we really care about.
 */
 {
@@ -4603,8 +4603,19 @@ they in name mangling; it is the underlying type, not the typedef name
   a_boolean     result = FALSE;
 
   if (is_class_struct_union(type_ptr) || is_enum(type_ptr)) {
-    sym  = (a_symbol_ptr)type_ptr->source_corresp.assoc_info;
-    if (is_unnamed_tag_symbol(sym)) {
+    /* Note two cases that are handled differently:
+         typedef struct { ... } S, *P1; // named "S" for linkage purposes
+         typedef struct { ... } *P2;    // has no name for linkage purposes
+         template <class T> class X { ... };
+         X<P1> a;                       // Okay
+         X<P2> b;                       // Error
+    */
+    if (type_ptr->source_corresp.name == NULL) {
+#if CHECKING
+      a_symbol_ptr  sym  = (a_symbol_ptr)type_ptr->source_corresp.assoc_info;
+      check_assertion_str(sym != NULL && is_unnamed_tag_symbol(sym),
+                          "ttt_is_unnamed_or_local_type: bad tag symbol");
+#endif /* CHECKING */
       is_unnamed_type = *force_end_of_traversal = result = TRUE;
     }  /* if */
   }  /* if */
