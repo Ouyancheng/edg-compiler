@@ -3549,6 +3549,7 @@ it is set to "" if not needed.
           *num_operands = 1;
         } else if (ch2 == 't') {
           str = "!";
+          *num_operands = 1;
         } else if (ch2 == 'w') {
           str = "new ";
         }  /* if */
