@@ -82,6 +82,19 @@ Char types:
 			/* Number of bits in a target char.  Default value,
 			   used to initialize global variable targ_char_bit. */
 
+/* TARG_HOST_STRING_CHAR_BIT is the number of data bits per character used
+   when representing target characters as a string on the host.  One is
+   allowed to make the target char larger than the host char, but individual
+   characters in string literals will be limited by what is representable in
+   a host char. */
+#if TARG_CHAR_BIT > CHAR_BIT
+#define TARG_HOST_STRING_CHAR_BIT CHAR_BIT
+#else /* TARG_CHAR_BIT <= CHAR_BIT */
+#define TARG_HOST_STRING_CHAR_BIT TARG_CHAR_BIT
+#endif /* TARG_CHAR_BIT > CHAR_BIT */
+			/* Default value, used to initialize global variable
+			   targ_host_string_char_bit. */
+
 /* Make the default for character signedness on the target the same as
    for the host.  That's not required; it's just the most common case,
    and doing it this way makes it less likely that this configuration
@@ -337,6 +350,8 @@ errors are still generated for type mismatches.
 #else /* !CFRONT_OBJECT_CODE_COMPATIBILITY */
 #define TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT 0
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
+			/* Default value, used to initialize global variable
+			   targ_zero_width_bit_field_alignment. */
 
 /*
 Pointer types:
