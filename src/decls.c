@@ -1335,7 +1335,6 @@ scope is that of a class definition.
                entire class had been seen and therefore to contain forward
                references to class members.  The ARM does not require this
                behavior and Cfront does not provide it, either. */
-#if 0
             /* Check the scope immediately containing the current scope, which
                is a function prototype scope. */
             if (default_arg_expr_allowed &&
@@ -1348,7 +1347,8 @@ scope is that of a class definition.
                  The tokens for the default argument expression are cached at
                  this point and only scanned once the entire class has been
                  defined.  This is because forward references may legally
-                 appear in the default argument expression. */
+                 appear in the default argument expression (as specified by
+                 the C++ draft standard of 9/23/91, section 8.2.6, para 3). */
               prescan_default_arg_expr(ptp);
             } else {
               /* Not a class scope -- or else a syntax error.  Go ahead and
@@ -1356,11 +1356,6 @@ scope is that of a class definition.
               scan_default_arg_expr(default_arg_expr_allowed ?
                                       ptp : (a_param_type_ptr)NULL);
             }  /* if */
-#else
-            /* Scan the expression and convert it to the required type. */
-            scan_default_arg_expr(default_arg_expr_allowed ?
-                                    ptp : (a_param_type_ptr)NULL);
-#endif /* if 0 */
             ptp->has_default_arg = default_arg_expr_allowed;
           }  /* if */
           /* Keep scanning parameter-declarations if there is a comma.
