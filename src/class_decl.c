@@ -5039,12 +5039,11 @@ and it is legal for virtual member functions only.
 }  /* scan_pure_specifier */
 
 
-static void decl_nonstd_member_constant(
-                                 a_symbol_locator            *locator,
-                                 a_type_ptr                  class_type,
-                                 a_type_ptr                  member_type,
-                                 an_access_specifier         access,
-                                 a_source_sequence_entry_ptr ssep)
+static void decl_nonstd_member_constant(a_symbol_locator        *locator,
+                                        a_type_ptr              class_type,
+                                        a_type_ptr              member_type,
+                                        a_class_def_state_ptr   class_state,
+                                        a_member_decl_info_ptr  decl_info)
 /*
 Do processing for a nonstandard member constant, including scanning the
 initializer constant and entering the name in the symbol table.  member_type
@@ -5068,8 +5067,9 @@ no other qualifier, and where the resulting type is a scalar type -- e.g.,
                                    //   not handled here
   };
 
-If source-sequence lists are being generated, ssep is a pointer to an empty
-source-sequence entry for the declarator; otherwise it is NULL.
+*class_state
+and *decl_info track general information about the class definition and
+specific information about the member declaration, respectively.
 */
 {
   a_symbol_ptr     sym;
@@ -5095,9 +5095,14 @@ source-sequence entry for the declarator; otherwise it is NULL.
   sym->variant.constant = cp;
   set_source_corresp(&(cp->source_corresp), sym);
   set_class_membership(sym, &cp->source_corresp, class_type);
-  cp->source_corresp.access = access;
+  decl_info->member_sym = sym;
+  cp->source_corresp.access = class_state->access;
+  if (class_state->access != (an_access_specifier)as_public) {
+    class_state->any_nonpublic_members = TRUE;
+  }  /* if */
   record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, sym,
-                            &locator->source_position, ssep);
+                            &locator->source_position,
+                            decl_info->declarator_ssep);
   /* Do processing required for any pragmas that are bound to the current
      declaration. */
   process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
@@ -8532,12 +8537,7 @@ following the member declaration.
       /* Provide support for the nonstandard declaration of a member constant
          of scalar type -- e.g., "const int I = 2;". */
       decl_nonstd_member_constant(&locator, class_type, local_type,
-                                  class_state->access, decl_info.declarator_ssep);
-      if (class_state->access != (an_access_specifier)as_public) {
-        /* Strictly speaking, any nonpublic member prevents a class from
-           being an aggregate -- keep track. */
-        class_state->any_nonpublic_members = TRUE;
-      }  /* if */
+                                  class_state, &decl_info);
     } else {
       if (C_dialect == C_dialect_cplusplus) {
         if (!type_explicitly_specified && first_declarator_diagnostics) {
