@@ -615,6 +615,9 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
            for them to do so because types can't be defined in parameter
            lists, and other contexts that are involved in disambiguation.
            We assume this is an elaborated type specifier */
+        /* typename is ignored in Sun mode.  Simply discard the token
+           unless the user has disabled implicit typename mode. */
+        if (sun_mode && implicit_typename_enabled) break;
         cache_curr_token(&state->cache);
         f_get_token_and_coalesce_if_identifier(
                        flags, curr_token == tok_typename ? GID_IS_TYPENAME

@@ -1,5 +1,20 @@
 Version 3.4
 
+3/3/04   Sun compatibility: spurious error on repeated typename keyword
+
+The typename keyword is ignored in Sun mode, allowing it to be repeated and
+used in invalid locations.  In some cases, however, a repeated use of
+typename could result in spurious errors.  Now fixed.
+
+  template <class T> struct B {
+    typedef int I;
+  };
+  template <class T> struct C {
+     typename B<T>::I f();
+  };
+  template <class T> typename typename B<T>::I C<T>::f() { return 0;}
+
+
 3/2/04   C++-generating back end: Unmovable members
 
 When FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS is TRUE, the
