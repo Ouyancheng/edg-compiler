@@ -3248,7 +3248,7 @@ is a that of a constructor.
     cache_in_use = TRUE;
     /* Put the current token in the cache. */
     cache_curr_token(&cache);
-    get_token();
+    (void)get_token();
   }  /* if */
   /* See whether the name of the current identifier token is the same as
      that of a class being defined.  If so, this declaration is treated
@@ -4979,7 +4979,7 @@ process_class_specifier:
               basic_type = bt_no_type;
               *output_flags |= DSO_CONSTRUCTOR | DSO_NO_DECL_SPECIFIERS;
               /* Skip "class" or "struct". */
-              get_token();
+              (void)get_token();
               goto exit_loop;
             } else {
               if (!class_specifier(
