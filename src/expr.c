@@ -4153,10 +4153,46 @@ be inappropriate, because the feature is probably used to implement
 }  /* scan_alignof_operator */
 
 
+static a_type_ptr scan_type_generic_expression_and_return_type(void)
+/*
+Scan an expression (beginning at the current token) that is an argument to a
+type-generic function.  Do not evaluate the expression; just determine its
+floating or complex type, converting an integral type to double, and return
+the type.
+*/
+{
+  an_operand  operand;
+  a_type_ptr  tp;
+
+  /* Scan the expression. */
+  scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+  /* Do not convert lvalues to rvalues, arrays to pointers, or functions to
+     pointers. */
+  do_operand_transformations(&operand,
+                             (TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
+                              TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
+                              TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION));
+  /* Get its type. */
+  if (is_error_operand(&operand)) {
+    tp = error_type();
+  } else {
+    tp = skip_typerefs(operand.type);
+    if (is_integral_or_enum_type(tp)) {
+      /* Integral types are converted to double. */
+      tp = float_type((a_type_kind)fk_double);
+    } else if (!is_arithmetic_or_enum_type(tp)) {
+      pos_error(ec_expr_not_arithmetic, &operand.position);
+      tp = error_type();
+    }  /* if */
+  }  /* if */
+  return tp;
+}  /* scan_type_generic_expression_and_return_type */
+
+
 static void scan_type_generic_operator(an_operand *result)
 /*
 Scan the __generic operator, which implements C99 type-generic function
-macros.  The form of the macro is:
+macros.  The form of the macro expansion is:
 
    __generic(x, [y], fnc-d, fnc-f, fnc-l, fnc-cd, fnc-cf, fnc-cl)
 
@@ -4164,8 +4200,9 @@ where x and the optional y are the arguments with which a type-generic
 function is called, and the remaining 6 arguments are the names of functions
 from which is selected the actual function to be called.  (The suffixes with
 which the function names are supplied here correspond to function parameter
-types: double, float, long double, _Complex, _Complex float, _Complex long
-double, respectively.  The order is fixed.)  Function names may be omitted.
+types: double, float, long double, double _Complex, float _Complex, long
+double _Complex, respectively.  The order is fixed.)  Function names may be
+omitted.
 
 For example, tgmath.h may have the following macros defined:
 
@@ -4183,58 +4220,117 @@ arguments.
   a_source_position   end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   an_operand          operand;
-  a_type_ptr          arg_type;
+  a_type_ptr          arg_type, arg2_type;
   int                 arg_number, func_arg_number;
+  a_boolean           err = FALSE;
   an_expr_stack_entry expr_stack_entry;
-  a_boolean           err;
 
   db_enter(4, "scan_type_generic_operator");
 
   check_assertion(c99_mode);
-  push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE,
-                  /*suppress_object_lifetime=*/FALSE);
-  expr_stack_entry.evaluated = FALSE;
-  expr_stack_entry.potentially_evaluated = FALSE;
   /* Save the position of the __generic keyword. */
   start_position = pos_curr_token;
   (void)get_token();
   /* Check for and pass over the left parenthesis. */
   (void)required_token(tok_lparen, ec_exp_lparen);
   add_matching_stop_token(tok_rparen);
-  /* Loop through the 8 arguments of __generic.  The first two slots are
-     treated differently from the next six.  The first and optional second
-     arguments to __generic are also arguments to whatever specific function
-     is eventually selected, and the selection is dependent on their types.
-     Once the type has been determined (which occurs after the first two
-     iterations), looping continues: the expression identifying the selected
-     function is scanned, and the irrelevant entries are ignored. */
-  arg_number = 1;
-  func_arg_number = -1;
-  arg_type = NULL;
-  err = FALSE;
-  do {
-#if DEBUG
-    if (debug_level >= 4) {
-      fprintf(f_debug, "arg_number = %d, func_arg_number = %d, arg_type = ",
-	      arg_number, func_arg_number);
-      if (arg_type == NULL) {
-        fputs("NULL", f_debug);
+  add_stop_token(tok_comma);
+  /* Scan the first argument expression, but do not evaluate it -- just get
+     its type. */
+  push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
+  expr_stack_entry.evaluated = FALSE;
+  expr_stack_entry.potentially_evaluated = FALSE;
+  arg_type = scan_type_generic_expression_and_return_type();
+  if (is_error_type(arg_type)) err = TRUE;
+  /* Bypass the comma, and move on to scan the optional second argument. */
+  (void)required_token(tok_comma, ec_exp_comma);
+  if (curr_token == tok_comma || curr_token == tok_rparen) {
+    /* Only one argument. */
+  } else {
+    /* There is a second argument.  Scan it and choose the more inclusive
+       of the two types. */
+    arg2_type = scan_type_generic_expression_and_return_type();
+    if (is_error_type(arg2_type)) err = TRUE;
+    if (!err && arg2_type != arg_type) {
+      /* Reconcile the two types.  If either is complex, an error will be
+         issued later, since no 2-parameter type-generic function accepts
+         complex arguments.  Otherwise, if either is long double, use long
+         double.  Otherwise, one must be double and the other float, so use
+         double. */
+#if 0
+      if (is_complex_type(arg_type)) {
+        /* Error will be reported later. */
+      } else if (is_complex_type(arg2_type)) {
+        /* Error will be reported later. */
+        arg_type = arg2_type;
+      } else
+#endif /* if 0 */
+      if (arg_type->variant.float_kind == (a_float_kind)fk_long_double) {
+        /* Okay. */
+      } else if (arg2_type->variant.float_kind ==
+                                (a_float_kind)fk_long_double) {
+        arg_type = arg2_type;
       } else {
-        db_type(arg_type);
+        arg_type = float_type((a_float_kind)fk_double);
       }  /* if */
-      fputs("\n", f_debug);
     }  /* if */
+  }  /* if */
+  pop_expr_stack();
+  /* Use arg_type to determine the argument number of the function that
+     matches the type of the expression. */
+  if (err) {
+    func_arg_number = -1;
+  } else {
+#if 0
+    check_assertion(arg_type != NULL &&
+                    (is_floating_type(arg_type) || is_complex_type(arg_type)));
+#endif /* if 0 */
+    /* Positions 3, 4, and 5 are occupied, respectively, by double,
+       float, and long double versions of the function. */
+    switch (arg_type->variant.float_kind) {
+      case fk_double:      func_arg_number = 3; break;
+      case fk_float:       func_arg_number = 4; break;
+      case fk_long_double: func_arg_number = 5; break;
+      default:
+        unexpected_condition_str2("scan_type_generic_operator:",
+                                  "bad float kind");
+    }  /* switch */
+#if 0
+    /* Positions 6, 7, and 8 are occupied, respectively, by complex
+       double, complex float, and complex long double versions of the
+       function. */
+    if (arg_type->kind == (a_type_kind)tk_complex) func_arg_number += 3;
+#endif /* if 0 */
+  }  /* if */
+  check_assertion(func_arg_number == -1 ||
+                  (func_arg_number >= 3 && func_arg_number <= 8));
+#if DEBUG
+  if (debug_level >= 4) {
+    fprintf(f_debug, "func_arg_number = %d, arg_type = ", func_arg_number);
+    if (arg_type == NULL) {
+      fputs("NULL", f_debug);
+    } else {
+      db_type(arg_type);
+    }  /* if */
+    fputs("\n", f_debug);
+  }  /* if */
 #endif /* DEBUG */
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
+  /* Now loop through the remaining arguments (3-8), ignoring everything
+     except the function name associated with the argument type -- i.e., the
+     expression at the position specified by func_arg_number. */
+  for (arg_number = 3; arg_number <= 8; arg_number++) {
+    /* Bypass the comma. */
+    (void)required_token(tok_comma, ec_exp_comma);
+    /* Examine the expression, if any. */
     if (curr_token == tok_comma || curr_token == tok_rparen) {
       /* Missing expression. */
-      if (arg_number == 1) {
-        /* The first argument is required. */
-        pos_error(ec_exp_primary_expr, &start_position);
-        err = TRUE;
-      } else if (arg_number == func_arg_number ||
-                 (curr_token == tok_rparen &&
-                  arg_number < func_arg_number)) {
+      if (arg_number == func_arg_number ||
+          (curr_token == tok_rparen && arg_number < func_arg_number)) {
         /* There is no specific function corresponding to the type.  Issue
            an error. */
         pos_ty_error(ec_type_generic_function_mismatch, &start_position,
@@ -4244,107 +4340,37 @@ arguments.
         /* Okay. */
       }  /* if */
     } else {
-      if (arg_number < 3) {
-        /* This is an argument to the function.  We need to scan the
-           expression to get its type, which will be used to determine the
-           specific function to call. */
-        scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
-        /* Do not convert lvalues to rvalues, arrays to pointers,
-           or functions to pointers. */
-        do_operand_transformations(&operand,
-                               TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
-                               TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
-                               TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION);
-        operand.type = skip_typerefs(operand.type);
-        if (is_integral_or_enum_type(operand.type)) {
-          operand.type = float_type((a_type_kind)fk_double);
-        } else if (!is_arithmetic_or_enum_type(operand.type)) {
-          pos_error(ec_expr_not_arithmetic, &operand.position);
-          operand.type = error_type();
-          err = TRUE;
-        }  /* if */
-        if (arg_number == 1) {
-          arg_type = operand.type;
-        } else if (!err && arg_type != operand.type) {
-#if 0
-          if (is_complex_type(arg_type)) {
-            /* No 2-param type-generic function accepts complex arguments;
-               the error will be reported later. */
-          } else if (is_complex_type(operand.type)) {
-            /* No 2-param type-generic function accepts complex arguments;
-               the error will be reported later. */
-            arg_type = operand.type;
-          } else
-#endif /* if 0 */
-          if (arg_type->variant.float_kind ==
-                                    (a_float_kind)fk_long_double) {
-            /* Okay. */
-          } else if (operand.type->variant.float_kind ==
-                                    (a_float_kind)fk_long_double) {
-            arg_type = operand.type;
-          } else {
-            arg_type = float_type((a_float_kind)fk_double);
-          }  /* if */
-        }  /* if */
-      } else if (arg_number == func_arg_number) {
-        /* Scan the expression and return it in result. */
-        scan_expr(result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+      /* The expression is evaluated if it's the one that is to be
+         returned. */
+      expr_stack_entry.evaluated = 
+      expr_stack_entry.potentially_evaluated = (arg_number == func_arg_number);
+      /* Scan the expression. */
+      scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+      if (arg_number == func_arg_number) {
+        /* This is the target position in the list of functions. */
+        copy_operand(&operand, result);
         do_operand_transformations(result, TOPT_NO_OPTIONS);
-      } else {
-        /* Ignore the expression. */
-        add_stop_token(tok_comma);
-        flush_tokens();
-        remove_stop_token(tok_comma);
       }  /* if */
     }  /* if */
-    if (arg_number == 2) {
-      /* Determine the argument number of the function that matches the
-         type of the expression. */
-      if (!err) {
-#if 0
-        check_assertion(arg_type != NULL &&
-                        (is_floating_type(arg_type) ||
-                         is_complex_type(arg_type)));
-#endif /* if 0 */
-        /* Positions 3, 4, and 5 are occupied, respectively, by double,
-           float, and long double versions of the function. */
-        switch (arg_type->variant.float_kind) {
-          case fk_double:      func_arg_number = 3; break;
-          case fk_float:       func_arg_number = 4; break;
-          case fk_long_double: func_arg_number = 5; break;
-          default:
-            unexpected_condition_str2("scan_type_generic_operator:",
-                                      "bad float kind");
-        }  /* switch */
-#if 0
-        /* Positions 6, 7, and 8 are occupied, respectively, by complex
-           double, complex float, and complex long double versions of the
-           function. */
-        if (arg_type->kind == (a_type_kind)tk_complex) func_arg_number += 3;
-#endif /* if 0 */
-      }  /* if */
-      /* Now continue looping (arguments 3-8), throwing away all tokens
-         except for the function name associated with the argument type --
-         i.e., the name at the position specified by func_arg_number. */
-      check_assertion(func_arg_number == -1 ||
-                      (func_arg_number >= 3 && func_arg_number <= 8));
+    if (curr_token == tok_rparen) {
+      /* Allow a shortened argument list if there has been a match. */
+      if (func_arg_number <= arg_number) break;
     }  /* if */
-    /* Advance the argument counter. */
-    arg_number++;
-  } while (loop_token(tok_comma));
-  if (err) {
-    make_error_operand(result);
-  }  /* if */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  end_position = end_pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  }  /* for */
+  pop_expr_stack();
+  remove_stop_token(tok_comma);
   /* Check for and pass over the right parenthesis. */
   (void)required_token(tok_rparen, ec_exp_rparen);
   remove_matching_stop_token(tok_rparen);
+  if (err) {
+    make_error_operand(result);
+  }  /* if */
 
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   set_operand_position(result, &start_position, &end_position,
                        &start_position);
-  pop_expr_stack();
 
   db_exit();
 }  /* scan_type_generic_operator */
