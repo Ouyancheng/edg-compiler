@@ -471,6 +471,9 @@ typedef int an_expr_copy_options_set;
 #define CE_INSIDE_CONDITIONAL_EXPRESSION 0x4
 			/* TRUE if the expression is being copied into a
 			   context that is under a conditional operator. */
+#define CE_UNLINK_SOURCE_DESTRUCTIONS 0x8
+			/* TRUE if destructions in the source expression
+			   should be unlinked from their object lifetimes. */
 
 a_constant_ptr copy_unshared_constant_full(
                                          a_constant_ptr           old_constant,

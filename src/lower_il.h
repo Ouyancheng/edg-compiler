@@ -867,8 +867,6 @@ extern void make_statics_referenced_from_instantiations_external(void);
 
 extern void lower_il_memory_region(a_memory_region_number region_number);
 
-extern void eliminate_object_lifetime_tree(an_object_lifetime_ptr olp);
-
 extern void clean_up_all_object_lifetimes(a_scope_ptr scope);
 
 #if DEBUG

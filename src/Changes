@@ -1,5 +1,27 @@
 Version 2.44
 
+1/26/00  Useless destructions and object lifetimes from default arguments
+         left in IL
+
+Some useless object lifetimes and dynamic initialization entries for
+destructions were left in the IL tree when an array new was done on
+a class whose default constructor has a default argument that builds
+a destructible temporary.  These extra entities were not referenced
+from elsewhere, and therefore they were probably harmless in most
+applications.
+
+  struct A {
+    A();
+    ~A();
+  };
+  struct B {
+    B(A = A());
+    ~B();
+  };
+  int main () {
+    B*p = new B[10];  // main had extra object lifetimes/destructions
+  }
+
 1/26/00  Extra position info for explicitly declared intrinsic functions
 
 Extra position information was not attached to routine entries for predeclared

@@ -281,6 +281,7 @@ static void adjust_bool_operation_types(an_expr_node_ptr expr,
 static void lower_pm_comparison(an_expr_node_ptr expr,
                                 a_boolean        operand1_lowered);
 static void do_scope_namespace_member_promotion(a_scope_ptr scope);
+static void eliminate_object_lifetime_tree(an_object_lifetime_ptr olp);
 
 
 static void clear_insert_location(an_insert_location      *insert_location,
@@ -12667,7 +12668,7 @@ so they're not reachable.  Do nothing if olp is NULL.
 }  /* visit_object_lifetime_tree */
 
 
-void eliminate_object_lifetime_tree(an_object_lifetime_ptr olp)
+static void eliminate_object_lifetime_tree(an_object_lifetime_ptr olp)
 /*
 Eliminate the indicated object lifetime and all its children.  "Eliminate"
 means to detach them from the IL tree so they're not reachable.  Do nothing

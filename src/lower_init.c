@@ -2085,8 +2085,9 @@ routine is returned.
       push_context(&def_arg_context, (a_scope_ptr)NULL, init_expr_lifetime);
       /* Copy the default argument expressions into the function memory
          region. */
-      default_arg_list = copy_list_of_expr_trees(default_arg_list,
-                                                 CE_NO_OPTIONS);
+      default_arg_list =
+                        copy_list_of_expr_trees(default_arg_list,
+                                                CE_UNLINK_SOURCE_DESTRUCTIONS);
       if (is_useless_object_lifetime(init_expr_lifetime)) {
         /* There weren't any temporaries in the default argument expressions,
            so the lifetime is not needed. */
@@ -3367,14 +3368,8 @@ resulting expression.
 */
 {
   an_expr_node_ptr expr_copy = copy_expr_tree(expr,
-                                              CE_TRANSFER_DESTR_ENTITY_DESCR);
-
-  if (expr->kind == (an_expr_node_kind)enk_object_lifetime) {
-    /* The original expression has an object lifetime.  Since the original
-       expression won't be in the IL, eliminate that object lifetime
-       and any under it. */
-    eliminate_object_lifetime_tree(expr->variant.object_lifetime.ptr);
-  }  /* if */
+                                              CE_TRANSFER_DESTR_ENTITY_DESCR |
+                                              CE_UNLINK_SOURCE_DESTRUCTIONS);
   return expr_copy;
 }  /* copy_expr_to_function_memory_region */
 
