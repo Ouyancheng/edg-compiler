@@ -206,6 +206,16 @@ is a structure instead of an array.
 #endif /* ifndef __linux__ */
 #endif /* ifndef USE_SYSTEM_JMP_BUF_DEFINITION */
 
+/*
+Flag that is TRUE if the stack should be unwound before terminate()
+is called when an exception with no matching handler is thrown.
+According to the Working Paper, it is unspecified whether or not the
+stack is unwound in this case.
+*/
+#ifndef UNWIND_STACK_BEFORE_CALLING_TERMINATE
+#define UNWIND_STACK_BEFORE_CALLING_TERMINATE TRUE
+#endif /* ifndef UNWIND_STACK_BEFORE_CALLING_TERMINATE */
+
 #endif /* EXCEPTION_HANDLING */
 
 /*

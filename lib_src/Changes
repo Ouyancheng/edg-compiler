@@ -1,3 +1,30 @@
+Version 2.34
+
+10/14/96 Recording array allocation information for placement array new
+
+A new runtime routine named __placement_array_new has been added
+for use when an array is allocated using placement array new.
+__placement_array_new records the array size information so that
+the memory may be freed later using the normal array delete
+operations.
+
+10/14/96 Internal try block added to exception handling routines
+
+A new kind of try block known as an "internal" try block has been
+added to the exception handling runtime.  An internal try block
+is identical to a normal try block except that it is not considered
+as a handler for purposes of determining whether terminate() should
+be called.
+
+10/14/96 UNWIND_STACK_BEFORE_CALLING_TERMINATE in config.h
+
+A new configuration flag has been added that can be used to specify
+whether the stack should be unwound before terminate() is called when
+an exception with no matching handler is thrown.  According to the
+Working Paper, it is unspecified whether or not the stack is unwound
+in this case.  This flag is TRUE by default, which matches the behavior
+of previous versions of the runtime.
+-------------------------------------------------------------------------------
 Version 2.33, October 2, 1996
 
 9/26/96 Guard against _main being called more than once

@@ -337,7 +337,8 @@ static void *array_new_general(void                  *array_ptr,
                                a_destructor_ptr	     dtor,
 		               a_new_ptr	     new_routine,
                                a_delete_ptr          delete_routine,
-			       int		     is_two_arg)
+			       int		     is_two_arg,
+                               a_boolean	     record_array_info)
 /*
 Allocate storage for an array, then call a constructor for each
 element of the array.  If array_ptr is NULL, allocate the space for an
@@ -361,7 +362,8 @@ If there is no destructor then dtor is NULL and no cleanup is done.
 delete_routine is a pointer to the delete routine to be used to deallocate
 the space in the event that an exception is thrown during construction.
 is_two_arg is TRUE if delete_routine refers to a two argument version
-of the delete operator.
+of the delete operator.  record_array_info is TRUE if the array size
+information should be saved even though an array_ptr value was provided.
 
 This routine needs to record the size of the array that was allocated so
 that the size is known when the array is deallocated.  One of two means
@@ -393,13 +395,19 @@ use.
      dynamically allocated. */
   create_eh_stack_entry = dtor != NULL || array_ptr == NULL;
 #endif /* EXCEPTION_HANDLING */
-  if (array_ptr == NULL) {
+  if (array_ptr == NULL || record_array_info) {
     a_boolean	err;
     array_size = number_of_elements * element_size;
-    array_ptr = alloc_array(array_size, new_routine);
     if (array_ptr == NULL) {
-      goto error_exit;
+      /* Allocate the array if a pointer has not been supplied by the
+         caller. */
+      array_ptr = alloc_array(array_size, new_routine);
+      if (array_ptr == NULL) {
+        goto error_exit;
+      }  /* if */
     }  /* if */
+    /* Record the array size information so that the array can be properly
+       freed later. */
     err = record_array_alloc_info(array_ptr, array_size, number_of_elements);
     if (err) goto error_exit;
   }  /* if */
@@ -483,9 +491,33 @@ routine is one that requires two arguments.
 {
   return (array_new_general((void*)NULL, number_of_elements, element_size,
                             (void*)NULL, ctor, dtor, new_routine,
-                            delete_routine, is_two_arg));
+                            delete_routine, is_two_arg,
+                            /*record_array_info=*/FALSE));
 }  /* __array_new */
 #endif /* ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE */
+
+
+#if ABI_COMPATIBILITY_VERSION >= 234
+EXTERN_C void *__plcacement_array_new(
+			   void				*array_ptr,
+			   int                          number_of_elements,
+                           size_t                       element_size,
+                           a_constructor_ptr	 	ctor,
+                           a_destructor_ptr	        dtor)
+/*
+This entry point is used for placement array new operations.  The actual
+memory is allocated by a call to the appropriate new routine before
+this routine is called.  This routine is used to record the array size
+information and to call the constructor for each array element.
+*/
+{
+  return (array_new_general(array_ptr, number_of_elements, element_size,
+                            (void*)NULL, ctor, dtor, (a_new_ptr)NULL,
+                            (a_delete_ptr)NULL, /*is_two_arg=*/FALSE,
+                            /*record_array_info=*/TRUE));
+}  /* __array_new */
+#endif /* ABI_COMPATIBILITY_VERSION >= 234 */
+
 
 
 EXTERN_C void *__vec_new_eh(void                         *array_ptr,
@@ -501,7 +533,8 @@ operator new.
 {
   return (array_new_general(array_ptr, number_of_elements, element_size,
                             (void*)NULL, ctor, dtor, (a_new_ptr)NULL,
-                            (a_delete_ptr)NULL, /*is_two_arg=*/FALSE));
+                            (a_delete_ptr)NULL, /*is_two_arg=*/FALSE,
+                            /*record_array_info=*/FALSE));
 }  /* __vec_new_eh */
 
 
@@ -518,7 +551,8 @@ no destructor pointer is provided.
   return (array_new_general(array_ptr, number_of_elements, element_size,
                             (void*)NULL, ctor, /*a_destructor_ptr*/NULL,
                             (a_new_ptr)NULL, (a_delete_ptr)NULL,
-                            /*is_two_arg=*/FALSE));
+                            /*is_two_arg=*/FALSE,
+                            /*record_array_info=*/FALSE));
 }  /* __vec_new */
 
 
@@ -540,7 +574,8 @@ can never be zero.
   (void)array_new_general(array_ptr, number_of_elements, element_size,
                           src_array_ptr, (a_constructor_ptr)ctor, dtor,
                           (a_new_ptr)NULL, (a_delete_ptr)NULL,
-                          /*is_two_arg=*/FALSE);
+                          /*is_two_arg=*/FALSE,
+                          /*record_array_info=*/FALSE);
 }  /* __vec_ctor_eh */
 
 

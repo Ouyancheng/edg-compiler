@@ -853,6 +853,9 @@ a try block with a catch that matches the type of the object thrown.
 {
   an_eh_stack_entry_ptr		ehsep;
   an_eh_stack_entry_ptr		destination_ehsep = NULL;
+#if !UNWIND_STACK_BEFORE_CALLING_TERMINATE
+  an_eh_stack_entry_ptr		non_internal_destination_ehsep = NULL;
+#endif /* !UNWIND_STACK_BEFORE_CALLING_TERMINATE */
   int				destination_catch_value;
   void*				object_ptr;
   void*				object_buffer_ptr;
@@ -912,7 +915,8 @@ a try block with a catch that matches the type of the object thrown.
       /* Do nothing with function blocks at this time. */
     } else if (kind == (an_eh_stack_entry_kind)ehsek_vec_new_or_delete) {
       /* Do nothing with vec_new and vec_delete entries at this time. */
-    } else if (kind == (an_eh_stack_entry_kind)ehsek_try_block) {
+    } else if (kind == (an_eh_stack_entry_kind)ehsek_try_block ||
+               kind == (an_eh_stack_entry_kind)ehsek_internal_try_block) {
       if (ehsep->variant.try_block.catch_info == NULL) {
         /* Skip over try blocks for which a catch is active. */
         int result = check_exception_type_specifications
@@ -920,11 +924,32 @@ a try block with a catch that matches the type of the object thrown.
 				 thrown_type_info, throw_flags, access_flags,
 				 use_access_flags, &object_ptr, &etsp_found);
         if (result != 0) {
-          destination_ehsep = ehsep;
-          destination_catch_value = result;
-          break;
+          /* A matching try block was found.  This could be an regular try
+             block or an "internal" try block that is generated as part of
+             the EH cleanup code for things like placement new operations
+             (with matching placement delete functions).  Internal try
+             blocks are treated like normal try blocks in all respects
+             except that they are not considered a matching handler for
+             purposes of determining whether or not terminate() should be
+             called. */
+          if (destination_ehsep == NULL) {
+            destination_ehsep = ehsep;
+            destination_catch_value = result;
+          }  /* if */
+          if (kind == (an_eh_stack_entry_kind)ehsek_try_block) {
+#if !UNWIND_STACK_BEFORE_CALLING_TERMINATE
+            non_internal_destination_ehsep = ehsep;
+#endif /* !UNWIND_STACK_BEFORE_CALLING_TERMINATE */
+            break;
+          }  /* if */
         }  /* if */
       }  /* if */
+    } else if (destination_ehsep != NULL) {
+      /* Once a matching try block has been found, disregard an subsequent
+         throw specification entries or throw processing markers that might
+         be found.   The only other entries that are considered are
+         non-internal try blocks to see if a matching handler can be found. */
+      continue;
     } else if (kind == (an_eh_stack_entry_kind)ehsek_throw_spec) {
       /* Check for violations of throw specifications.  If a throw
          specification is violated we cleanup until we reach the
@@ -954,7 +979,12 @@ a try block with a catch that matches the type of the object thrown.
     }  /* if */
     ehsep = ehsep->next;
   }  /* while */
-
+#if !UNWIND_STACK_BEFORE_CALLING_TERMINATE
+  /* If no matching (non-internal) handler was found, call terminate. */
+  if (non_internal_destination_ehsep == NULL) {
+    __call_terminate();
+  }  /* if */
+#endif /* !UNWIND_STACK_BEFORE_CALLING_TERMINATE */
   /* Go through the EH stack again and do any necessary cleanup. */
   ehsep = __curr_eh_stack_entry;
   /* Skip past the throw marker entry. */
@@ -975,7 +1005,8 @@ a try block with a catch that matches the type of the object thrown.
          exception occurred.  Call the routine to cleanup the partially
          constructed or destructed array. */
       __cleanup_vec_new_or_delete(ehsep);
-    } else if (kind == (an_eh_stack_entry_kind)ehsek_try_block) {
+    } else if (kind == (an_eh_stack_entry_kind)ehsek_try_block ||
+               kind == (an_eh_stack_entry_kind)ehsek_internal_try_block) {
       /* A try block that is being skipped. */
       if (ehsep->variant.try_block.catch_info != NULL) {
         /* A catch clause associated with this try block is currently
@@ -997,13 +1028,20 @@ a try block with a catch that matches the type of the object thrown.
     }  /* if */
     ehsep = ehsep->next;
   }  /* while */
-
+#if UNWIND_STACK_BEFORE_CALLING_TERMINATE
+  /* If no handler was found call the terminate function.  Note that this
+     tests "destination_ehsep" instead of "non_internal_destination_ehsep".
+     When an internal try block is the matching handler, it should be used
+     to do the necessary cleanup even when no "real" matching handler is
+     found.  When the internal try block does its rethrow, the rethrow will
+     result in a call to terminate() when no matching handler is found. */
   if (destination_ehsep == NULL) {
-    /* If no handler was found call the terminate function. */
-   __call_terminate();
+    __call_terminate();
   }  /* if */
-
-  if (destination_ehsep->kind == (an_eh_stack_entry_kind)ehsek_try_block) {
+#endif /* UNWIND_STACK_BEFORE_CALLING_TERMINATE */
+  if (destination_ehsep->kind == (an_eh_stack_entry_kind)ehsek_try_block ||
+      destination_ehsep->kind ==
+                           (an_eh_stack_entry_kind)ehsek_internal_try_block) {
     /* A try block may have objects that must be cleaned up before
        transferring control to one of the catch clauses.  This is determined
        by comparing the current region number with the region number in
@@ -1034,7 +1072,9 @@ a try block with a catch that matches the type of the object thrown.
   /* Indicate that the current thrown object is now in a handler.  This makes
      the object eligible for a rethrow. */
   curr_throw_stack_entry->in_handler = TRUE;
-  if (destination_ehsep->kind == (an_eh_stack_entry_kind)ehsek_try_block) {
+  if (destination_ehsep->kind == (an_eh_stack_entry_kind)ehsek_try_block ||
+      destination_ehsep->kind ==
+                            (an_eh_stack_entry_kind)ehsek_internal_try_block) {
     __catch_clause_number = destination_catch_value;
     if (is_pointer(throw_flags)) {
       /* The throw object is a pointer that may have underdone some
@@ -1124,7 +1164,8 @@ Push an entry onto the throw stack and initialize its fields.
   ehsep = __curr_eh_stack_entry;
   while (ehsep != NULL) {
     /* Try blocks that are currently inside a handler are not considered. */
-    if (ehsep->kind == (an_eh_stack_entry_kind)ehsek_try_block &&
+    if ((ehsep->kind == (an_eh_stack_entry_kind)ehsek_try_block  ||
+         ehsep->kind == (an_eh_stack_entry_kind)ehsek_internal_try_block) &&
         ehsep->variant.try_block.catch_info == NULL) break;
     ehsep = ehsep->next;
   }  /* while */

@@ -239,7 +239,8 @@ enum an_eh_stack_entry_kind_tag {
   ehsek_function,
   ehsek_throw_spec,
   ehsek_throw_processing_marker,
-  ehsek_vec_new_or_delete
+  ehsek_vec_new_or_delete,
+  ehsek_internal_try_block
 };
 
 typedef a_byte an_eh_stack_entry_kind;
@@ -253,7 +254,7 @@ typedef struct an_eh_stack_entry {
 		kind;
 			/* The kind of stack entry. */
   union {
-    /* When kind == ehsek_try_block. */
+    /* When kind == ehsek_try_block or ehsek_internal_try_block. */
     struct {
 #if USE_SYSTEM_JMP_BUF_DEFINITION
       jmp_buf	setjmp_buffer;
