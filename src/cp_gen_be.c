@@ -3246,22 +3246,41 @@ precedence confusion.
       gen_cast(type_pointed_to(node->type));
       gen_lvalue(operand_1);
       processed = TRUE;
-    } else if (op == (an_expr_operator_kind)eok_cast &&
-               node->variant.operation.compiler_generated) {
-      /* Implicit cast.  Remove to avoid problems with casting address
-         of enk_temp_init to some related type. */
-      if (is_array_decay_cast(node)) {
-        /* A cast that does array-to-pointer decay.  The cast can be removed,
-           but an extra indirection has to be applied to the underlying
-           lvalue.  That is, "(int *[3])&x" becomes "x", not "&x". */
-        write_tok_str("(*");
-        gen_lvalue(operand_1);
-        write_tok_str(")");
-        processed = TRUE;
+    } else if (op == (an_expr_operator_kind)eok_cast ||
+               op == (an_expr_operator_kind)eok_base_class_cast ||
+               op == (an_expr_operator_kind)eok_derived_class_cast) {
+      /* Cast. */
+      if (node->variant.operation.compiler_generated) {
+        /* Implicit cast.  Remove to avoid problems with casting address
+           of enk_temp_init to some related type. */
+        if (is_array_decay_cast(node)) {
+          /* A cast that does array-to-pointer decay.  The cast can be removed,
+             but an extra indirection has to be applied to the underlying
+             lvalue.  That is, "(int *[3])&x" becomes "x", not "&x". */
+          write_tok_str("(*");
+          gen_lvalue(operand_1);
+          write_tok_ch(')');
+          processed = TRUE;
+        } else {
+          /* Normal cast. */
+          gen_lvalue(operand_1);
+          processed = TRUE;
+        }  /* if */
       } else {
-        /* Normal cast. */
-        gen_lvalue(operand_1);
-        processed = TRUE;
+        /* Explicit cast.  In C++, handle as a reference cast.  In C, leave
+           to be done in the general way. */
+        if (!C_mode()) {
+          a_type_ptr con_type = node->type;
+          a_type     type_copy;
+          check_assertion(con_type->kind == (a_type_kind)tk_pointer);
+          type_copy = *con_type;
+          type_copy.variant.pointer.is_reference = TRUE;
+          write_tok_ch('(');
+          gen_cast(&type_copy);
+          gen_lvalue(operand_1);
+          write_tok_ch(')');
+          processed = TRUE;
+        }  /* if */
       }  /* if */
     } else if (node->variant.operation.returns_lvalue_instead_of_usual_rvalue){
       /* An operation that returns an lvalue, e.g., an lvalue-returning
