@@ -471,9 +471,9 @@ input file to get the instantiation list file name.
 The number of lines of the instantiation information file that are reserved
 and do not contain instantiation list entries.
 */
-#ifndef INSTANTIATION_INFO_LINES_TO_BE_SKIPPED
-#define INSTANTIATION_INFO_LINES_TO_BE_SKIPPED 1
-#endif /* ifndef INSTANTIATION_INFO_LINES_TO_BE_SKIPPED */
+#ifndef INSTANTIATION_INFO_LINES_RESERVED
+#define INSTANTIATION_INFO_LINES_RESERVED 1
+#endif /* ifndef INSTANTIATION_INFO_LINES_RESERVED */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
