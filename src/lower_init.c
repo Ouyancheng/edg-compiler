@@ -321,6 +321,32 @@ done:;
 }  /* do_default_arg_promotions_on_node */
 
 
+static a_type_ptr lowered_return_type_of(a_type_ptr routine_type)
+/*
+Return the type that is the return type of the given function type, as
+it would appear as the type on a call of the function in the lowered IL.
+*/
+{
+  a_type_ptr return_type;
+
+  routine_type = skip_typerefs(routine_type);
+#if !IA64_ABI
+  if (routine_type->variant.routine.extra_info->assoc_routine_is_ctor) {
+    /* Constructors return "pointer to class" in the Cfront-like ABI. */
+    a_type_ptr class_type =
+                          routine_type->variant.routine.extra_info->this_class;
+    check_assertion(class_type != NULL);
+    return_type = make_pointer_type(class_type);
+  } else
+#endif /* !IA64_ABI */
+  /* Do not insert code here. */
+  {
+    return_type = il_return_type_of(routine_type);
+  }  /* if */
+  return return_type;
+}  /* lowered_return_type_of */
+
+
 an_expr_node_ptr make_call_node(a_routine_ptr      routine,
                                 an_expr_node_ptr   arg_list,
                                 a_boolean          honor_virtual,
@@ -373,7 +399,7 @@ at *insert_location.
     routine->source_corresp.referenced = TRUE;
   }  /* if */
   /* Make the call node. */
-  rout_return_type = il_return_type_of(routine->type);
+  rout_return_type = lowered_return_type_of(routine->type);
   call_node = make_operator_node(op, rout_return_type, rout_node);
   if (insert_location != NULL) {
 #if MINIMAL_INLINING
@@ -2590,7 +2616,7 @@ default_arg_list.
                                   &insert_location);
   push_generated_routine_context(new_routine_scope, new_routine_il_region,
                                  &grcontext);
-  /* Make a parameter variable for the "this" parameter (again, in lowered
+  /* Make a parameter variable for the "this" parameter (in lowered
      form as a normal parameter). */
   new_routine_scope->variant.routine.parameters = this_param_var =
                                 make_lowered_param_variable(this_param_type);
@@ -2747,7 +2773,7 @@ default_arg_list.
   /* If the routine has a void type, insert a statement for the call
      followed by a return statement.  Otherwise, attach the call directly
      to the return. */
-  void_return = is_void_type(routine_type->variant.routine.return_type);
+  void_return = is_void_type(lowered_return_type_of(routine_type));
   insert_as_statement = void_return;
   /* If we might have to insert destructor calls, insert the call as
      a statement. */
@@ -2895,7 +2921,7 @@ wrapper routine is created; the original routine is returned.
 #endif /* CHECKING */
     /* Additional parameter types, if any, are added below. */
     new_routine = make_rout_entry((char *)NULL, (a_storage_class)sc_static,
-                                  routine_type->variant.routine.return_type,
+                                  lowered_return_type_of(routine_type),
                                   this_param_type);
 #if CHECKING
     rtsp = routine_type->variant.routine.extra_info;
@@ -2979,7 +3005,7 @@ destructors in the IA-64 ABI.
     check_assertion(routine->source_corresp.is_class_member);
     new_routine = make_rout_entry_no_add(
                                   (char *)NULL, new_storage_class,
-                                  routine_type->variant.routine.return_type,
+                                  lowered_return_type_of(routine_type),
                                   this_param_type);
     new_routine->is_inline = routine->is_inline;
 #if DECL_MODIFIERS_IN_USE
@@ -7131,6 +7157,11 @@ Do IL lowering of an enk_temp_init expression node.
         if (is_operation_node(first_operand) &&
             first_operand->variant.operation.kind ==
                                              (an_expr_operator_kind)eok_call &&
+            /* In ABIs where the constructor returns nothing (e.g., the
+               IA-64 ABI), this optimization can be done only if the
+               result is not used. */
+            (result_is_not_used ||
+             !is_void_type(first_operand->type)) &&
             (result_is_addr ? is_variable_address_node(second_operand) :
                               is_variable_node(second_operand))) {
           /* The optimization is possible. */
@@ -11069,8 +11100,8 @@ The overriding function must have a definition in the current compilation.
   }  /* for */
   overriding_function = routine->overriding_function_for_covariant_return_type;
   overridden_function = routine->overridden_function_for_covariant_return_type;
-  overriding_return_type = il_return_type_of(overriding_function->type);
-  overridden_return_type = il_return_type_of(overridden_function->type);
+  overriding_return_type = lowered_return_type_of(overriding_function->type);
+  overridden_return_type = lowered_return_type_of(overridden_function->type);
   /* The overriding function must have a definition in this compilation. */
   check_assertion(overriding_function->assoc_scope != NULL_region_number &&
                   !overriding_function->suppress_inline_body);

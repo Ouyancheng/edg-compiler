@@ -10830,15 +10830,10 @@ in C++ mode.
 {
   an_expr_node_ptr expr;
   a_variable_ptr   this_param_var;
-  a_scope_ptr      curr_scope;
 
-#if CHECKING
-  if (depth_innermost_function_scope == NO_SCOPE_DEPTH) {
-    internal_error("this_param_value_expr: not inside function");
-  }  /* if */
-#endif /* CHECKING */
-  curr_scope = scope_stack[depth_innermost_function_scope].il_scope;
-  this_param_var = curr_scope->variant.routine.this_param_variable;
+  check_assertion(innermost_function_scope != NULL);
+  this_param_var =
+                 innermost_function_scope->variant.routine.this_param_variable;
 #if CHECKING
   if (this_param_var == NULL) {
     internal_error("this_param_value_expr: no this param");

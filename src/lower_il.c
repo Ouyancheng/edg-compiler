@@ -7079,6 +7079,9 @@ not lowered at this time (see lower_constructor_code).
      make_ctor_implied_arg_list, var_for_copy_constructor_source,
      and add_constructor_wrapper_code. */
 #if !IA64_ABI
+  /* Change the return type from "void" to "pointer to class type". */
+  /* See lowered_return_type_of. */
+  routine_type->variant.routine.return_type = make_pointer_type(class_type);
   /* Add a parameter for each virtual base class.  See the ARM, top of
      p. 296.  add_constructor_params does the similar processing for param
      variables. */
@@ -13028,6 +13031,14 @@ Lower an stmk_return statement.
     return_type = routine_type->variant.routine.return_type;
     lower_full_expr(return_expr, /*is_lvalue=*/is_reference_type(return_type),
                     (a_statement_ptr)NULL);
+#if !IA64_ABI
+  } else if (routine->special_kind==(a_special_function_kind)sfk_constructor) {
+    /* A constructor returns "this". */
+    a_variable_ptr this_param_var =
+                 innermost_function_scope->variant.routine.this_param_variable;
+    return_expr = statement->expr = var_rvalue_expr(this_param_var);
+    return_type = return_expr->type;
+#endif /* !IA64_ABI */
   }  /* if */
   /* Keep track of whether or not we have already turned the return
      statement into a block.  We haven't so far. */

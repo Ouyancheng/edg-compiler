@@ -5163,11 +5163,9 @@ The return expression is also set for a return from a constructor.
   }
   /* Get a pointer to the current routine entry. */
   rout = current_routine_entry();
-  if (rout->special_kind == (a_special_function_kind)sfk_constructor) {
-    /* Constructors will not have a return expression since at the source
-       level they have no return type; however, in the IL they are
-       represented as returning the "this" parameter. */
-    *return_expr = this_param_value_expr();
+  if (rout->special_kind == (a_special_function_kind)sfk_constructor ||
+      rout->special_kind == (a_special_function_kind)sfk_destructor) {
+    /* Constructors and destructors have no return value. */
   } else {
     /* Get the routine return type. */
     tp = skip_typerefs(rout->type)->variant.routine.return_type;

@@ -1734,7 +1734,6 @@ will return a pointer to the constructed object.
 */
 {
   a_routine_ptr                  rp;
-  a_statement_ptr                sp;
   a_routine_type_supplement_ptr  rtsp;
   a_variable_ptr                 vp;
   a_param_type_ptr               ptp;
@@ -1753,9 +1752,8 @@ will return a pointer to the constructed object.
                                   ctor_initializer(rp, /*user_defined=*/FALSE);
   /* Create a statement block that is empty except for the return statement. */
   scope->assoc_block = alloc_statement((a_statement_kind)stmk_block);
-  scope->assoc_block->variant.block.statements = sp =
+  scope->assoc_block->variant.block.statements =
           alloc_statement((a_statement_kind)stmk_return);
-  sp->expr = this_param_value_expr();
   /* See if the fact that this constructor is defined forces definition
      of virtual functions of the class. */
   require_definitions_of_virtual_functions_due_to_definition_of(rp);

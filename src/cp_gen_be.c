@@ -8375,11 +8375,6 @@ simple return statement, i.e., just "return;".
   if (statement->expr != NULL) {
     /* The return has an expression. */
     simple_return = FALSE;
-    /* Suppress the return expression on constructors. */
-    if (innermost_function_scope->variant.routine.ptr->special_kind ==
-                                    (a_special_function_kind)sfk_constructor) {
-      simple_return = TRUE;
-    }  /* if */
   } else if (statement->variant.return_dynamic_init != NULL) {
     /* The return value is passed via a copy constructor call. */
     simple_return = FALSE;
