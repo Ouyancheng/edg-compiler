@@ -1964,9 +1964,10 @@ do_variable:
       break;
     case enk_temp_init:
       (void)printf("enk_temp_init\n");
+      disp_boolean("result_is_addr",
+                   (a_boolean)ptr->variant.init.result_is_addr);
       disp_ptr("dynamic_init", (char *)ptr->variant.init.dynamic_init,
                iek_dynamic_init);
-      disp_ptr("expr", (char *)ptr->variant.init.expr, iek_expr_node);
       break;
     case enk_new_delete:
       (void)printf("enk_new_delete\n");

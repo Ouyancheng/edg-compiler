@@ -592,8 +592,6 @@ the file scope, do not process it (but record an orphan in the latter case).
           case enk_temp_init:
             walk_ptr(ptr->variant.init.dynamic_init,
                      a_dynamic_init_ptr, iek_dynamic_init);
-            walk_ptr(ptr->variant.init.expr, an_expr_node_ptr,
-                     iek_expr_node);
             break;
           case enk_new_delete:
             walk_ptr(ptr->variant.new_delete, a_new_delete_supplement_ptr,

@@ -347,7 +347,8 @@ typedef struct a_dynamic_init {
 			   variable, this points to the variable.  NULL
 			   otherwise (e.g., when pointed to from a
 			   ck_dynamic_init constant to indicate initialization
-			   of one member of an aggregate). */
+			   of one member of an aggregate, or when initializing
+			   a temporary in an expression). */
   a_routine_ptr destructor;
 			/* If non-NULL, the destructor routine to be invoked
 			   when this object ceases to exist; if NULL, no
@@ -2210,8 +2211,8 @@ enum an_expr_node_kind_tag {
 #ifdef CIL
   enk_field,            /* Used in an eok_field or eok_value_field
                            operation to indicate the field. */
-  enk_temp_init,	/* Initialization of a temporary and evaluation of
-			   an expression that creates/uses it.  C++ only. */
+  enk_temp_init,	/* Initialization of a temporary within an
+			   expression.  C++ only. */
   enk_new_delete,	/* C++ "new" or "delete". */
 #endif /* ifdef CIL */
 #ifdef FIL
@@ -2641,13 +2642,15 @@ typedef struct an_expr_node {
     /* When kind == enk_temp_init: */
     /* C++ only. */
     struct {
+      a_byte_boolean
+		result_is_addr;
+			/* If TRUE, the value of the enk_temp_init node
+			   is the address of the temporary.  If FALSE, the
+			   value is the value of the temporary. */
       a_dynamic_init_ptr
 		dynamic_init;
 			/* Dynamic initialization entry that does the
 			   initialization for the temporary. */
-      an_expr_node_ptr
-		expr;	/* Expression evaluated after the temporary is
-			   initialized, also the value of the expression. */
     } init;
     /* When kind == enk_new_delete: */
     a_new_delete_supplement_ptr
