@@ -1,5 +1,12 @@
 Version 3.4
 
+1/9/04   NEED_NAME_MANGLING without DO_IL_LOWERING
+
+Some minor changes have been made in fe_wrapup.c to support the
+combination of name mangling (NEED_NAME_MANGLING TRUE) without
+IL lowering (DO_IL_LOWERING FALSE).  Formerly, the mangling
+routines were not called in such a configuration.
+
 1/8/04   C/C++-generating back end: system header flag on line directives
 
 When generating code for gcc/g++, old-style line directives are now emitted by

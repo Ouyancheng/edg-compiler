@@ -32,8 +32,10 @@ fe_wrapup.c - End of front end processing.
 #include "trans_copy.h"
 #if DO_IL_LOWERING
 #include "lower_il.h"
-#include "lower_name.h"
 #endif /* DO_IL_LOWERING */
+#if NEED_NAME_MANGLING
+#include "lower_name.h"
+#endif /* NEED_NAME_MANGLING */
 #if DEBUG
 #include "exprutil.h"
 #include "macro.h"
@@ -304,19 +306,25 @@ it needs to be executed after all templates have been instantiated.
        types in secondary translation units are removed. */
     do_based_type_fixup();
   }  /* if */
+#if NEED_NAME_MANGLING
 #if DO_IL_LOWERING
-  if (il_lowering_needed()) {
+  if (il_lowering_needed())
+#endif /* DO_IL_LOWERING */
+  /* Do not insert code here. */
+  {
     /* Do name mangling for all entities.  This has to be done before
        the names for statics referenced from templates are externalized. */
     do_all_name_mangling();
+#if DO_IL_LOWERING
     if (any_exported_templates()) {
       /* In a compilation with exported templates, all statics are potentially
          referenced from templates.  Externalize them. */
       externalize_statics_for_exported_templates(
                                          curr_translation_unit->primary_scope);
     }  /* if */
-  }  /* if */
 #endif /* DO_IL_LOWERING */
+  }  /* if */
+#endif /* NEED_NAME_MANGLING */
 }  /* file_scope_il_wrapup_part_1 */
 
 
@@ -491,8 +499,12 @@ already been copied over.
     /* Remove the definitions of any static data members instantiated only for
        the purpose of determining their size. */
     remove_unneeded_static_data_member_instantiations();
+#if NEED_NAME_MANGLING
 #if DO_IL_LOWERING
-    if (il_lowering_needed()) {
+    if (il_lowering_needed())
+#endif /* DO_IL_LOWERING */
+    /* Do not insert code here. */
+    {
       /* Do final name mangling, which can make names that can no longer
          be embedded in other names, and therefore must be done very late.
          In particular, it must be done after
@@ -501,7 +513,7 @@ already been copied over.
          parent classes and functions need to be around still). */
       do_final_name_mangling();
     }  /* if */
-#endif /* DO_IL_LOWERING */
+#endif /* NEED_NAME_MANGLING */
     /* Do removal of unneeded IL entities for the primary translation
        unit.  That was done for secondary translation units in part 3. */
     file_scope_il_wrapup_remove_unneeded_il();
