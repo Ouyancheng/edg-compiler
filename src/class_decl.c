@@ -2848,9 +2848,13 @@ or struct definition.  The syntax is
             /* Refer to the same virtual_function_info_base_class as the
                direct base class does.  (In the above example, set the field
                to point to A.) */
+            /* bcp is a base class of new_direct_bcp->type; we need to find
+               the corresponding base class of type_ptr.  Find a disambiguator
+               in case what we are looking for is an ambiguous base class of
+               type_ptr. */
+            disambiguator = find_disambiguator(type_ptr, new_direct_bcp, bcp);
             ctsp->virtual_function_info_base_class =
-                              corresponding_base_class(bcp, type_ptr,
-                                                       (a_base_class_ptr)NULL);
+                        corresponding_base_class(bcp, type_ptr, disambiguator);
           }  /* if */
           /* Advance the virtual function count so that any new virtual
              functions will be tacked on at the end of the shared virtual

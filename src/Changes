@@ -1,5 +1,19 @@
 Version 2.27
 
+12/10/94 Setting virtual_function_info_base_class with ambiguous base class
+
+A bug has been fixed in setting virtual_info_base_class when the base class
+in question is ambiguous.  For example:
+
+  struct A { virtual void f(); };
+  struct B : public A { void f(); };
+  struct C : public B { void f(); };
+  struct D : virtual public C, public B { void f(); } d;
+
+The virtual_info_base_class pointer in D had been set point to the A whose
+path is ==>C==>B==>A; now it is correctly set to the A whose path is
+through D's first direct nonvirtual base class, namely, ==>B==>A.
+
 12/7/94  Template instance required flag set incorrectly
 
 The way in which the template instance required flag in the variable
