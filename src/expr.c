@@ -10188,21 +10188,10 @@ If p_sym_ptr is not NULL, set *p_sym_ptr to point to the symbol scanned
           if (curr_expr_kind_is(ek_integral_constant)) {
             /* In an integral constant expression, check that the constant
                is integral or enum.  This is needed for nontype template
-               arguments. It might also be needed for the extension that
+               arguments.  It might also be needed for the extension that
                allows definition of constants within a class if that
                extension were to allow non-integral constants. */
-            if (is_template_param_type(result->type)) {
-              /* The constant has a template parameter type, e.g.,
-                   template <class T, T N> class A {
-                     int a[N+1];  // "N" here being processed
-                   };
-                 We don't know what type the parameter has, but we do know that
-                 it has to be an integral type, so convert to "int". */
-              cast_operand(integer_type((an_integer_kind)ik_int), result,
-                           /*check_cast_access=*/FALSE,
-                           /*is_implicit_cast=*/FALSE,
-                           /*is_reinterpret_cast=*/FALSE);
-            } else {
+            if (!is_template_param_type(result->type)) {
               (void)check_integral_or_enum_operand(result);
             }  /* if */
           }  /* if */
