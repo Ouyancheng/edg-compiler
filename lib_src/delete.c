@@ -27,3 +27,12 @@ Free the memory pointed to by ptr.
 }  /* operator delete */
 
 
+/******************************************************************************
+*                                                             \  ___  /       *
+*                                                               /   \         *
+* Edison Design Group C++  Runtime                           - | \^/ | -      *
+*                                                               \   /         *
+* Proprietary information of Edison Design Group Inc.         /  | |  \       *
+* Copyright 1992 Edison Design Group Inc.                        [_]          *
+*                                                                             *
+******************************************************************************/
