@@ -28,6 +28,29 @@ IL CHANGE: Two new fields have been added, return_adjustment_base_class
 to an_overriding_virtual_function and covariant_return_virtual_override
 to a_routine.
 
+If IL lowering is done, this feature is implemented by adding wrapper
+functions which are pointed to from virtual function tables in cases
+where the overriding function should be called but the interface
+(specifically, the return type) must be that of the overridden function.
+The mangled names for these wrapper functions begin with __VFE__.
+
+IL CHANGE: The IL representation for a wrapper function is a routine with
+overriding_function_for_covariant_return_type and
+overridden_function_for_covariant_return_type set appropriately, and
+a definition that is simply a return of an enk_result_of_overriding_function
+node cast to the proper pointer-to-base-class.  The
+enk_result_of_overriding_function node represents the value returned
+from calling the overriding function with the arguments passed to the
+wrapper.
+
+While the IL representation is a wrapper function, the underlying
+implementation need not be.  In fact, for functions with variable-length
+argument lists, a wrapper approach may not be feasible.  Instead, a back
+end can turn the wrapper routines into entry points of the overriding
+function, or duplicate the body of the overriding function within each 
+wrapper routine.  The C-generating back end uses the body-duplication
+technique.
+
 10/31/96 IL CHANGE: name field added to a_param_type
 
 When RECORD_NAME_IN_PARAM_TYPE_ENTRY (see host_envir.h) is configured to
