@@ -3988,6 +3988,10 @@ unit.
         /* Don't check symbols in namespaces and namespace extensions because
            we don't have complete information yet.  This will be done at the
            end of the file scope. */
+      } else if (!is_namespace_wrapup && is_class_struct_union_symbol(sym) &&
+                 is_member_of_unnamed_namespace(
+                                    &type_symbol_type(sym)->source_corresp)) {
+        /* Same for unnamed namespace class members. */
       } else if (kind == (a_scope_kind)sck_file && !is_namespace_wrapup) {
         /* File scope symbols are not checked until the file scope is popped
            again after processing all translation units. */

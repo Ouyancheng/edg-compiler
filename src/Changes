@@ -1,5 +1,24 @@
 Version 2.46
 
+6/27/01  Spurious warning on members of nested classes in unnamed namespaces
+
+When a member function of a nested class in an unnamed namespace was defined
+the front end used to issue a warning that that function was defined but
+not referenced even though it was used by a member function of the enclosing
+class.  For example:
+
+  namespace {
+    struct S {
+      struct N {
+        static void f() {}  // Used to be reported as "unreferenced"
+      };
+      static void g() { N::f(); }
+    };
+  }
+  int main() { S::g(); }
+
+This is now fixed.
+
 6/27/01  Exception specifications and address of overloaded function
 
 The front end failed to diagnose an incompatibility in exception
