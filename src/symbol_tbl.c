@@ -5050,9 +5050,20 @@ are ambiguous.  In other words, if the symbol is not ambiguous, it
 must be a member symbol.
 
 If an error is detected, the scope stack is consulted to see if access
-errors should be deferred and rechecked later.  If so, an access
-error descriptor is added to the list on the scope stack.  Otherwise,
-the error is issued immediately.
+errors should be deferred and rechecked later.  When access errors are
+to be deferred, and an access error is detected, instead of issuing the
+error immediately an access error descriptor is created that provides
+information about the error that was detected.  Later
+perform_deferred_access_checks will be called to repeat the access
+checks that had failed earlier.  If the access checks still fail,
+the errors may be issued or retained for yet another check.
+
+The access deferral mechanism is used when processing definitions
+of member functions and friend functions.  For member functions,
+access to the return type cannot be checked until we know the parent
+class of the member being defined.  For friend functions, access to the
+return type and parameter types of the function cannot be checked until
+we have scanned the entire function declarator.
 */
 {
   a_symbol_ptr   sym = locator->specific_symbol;
@@ -5210,8 +5221,8 @@ void discard_declarator_access_errors(void)
 /*
 Discard any deferred access checks that were recorded while scanning the
 declarator name.  The current token must be the coalesced declarator
-identifier at which point curr_token_sequence is the number of the first
-token that comprised the generalized identifier.  All tokens after
+identifier at which point curr_token_sequence_number is the number of the first
+token that is part of the generalized identifier.  All tokens after
 the start of the declarator and before the next token are assumed to
 be part of the declarator name.
 */
@@ -5339,13 +5350,14 @@ void f_check_protected_member_access(a_symbol_ptr      sym_param,
 This routine implements the access control check mandated by ARM 11.5, which
 requires that a protected member be accessed only through a pointer or
 object of a type to which we have member access (or a derived type thereof).
-locator is a locator for the member symbol being referenced.  access_class
-is the class of the pointer or object through which the member is being
-accessed.  access_class is NULL if we don't know the object type (which
-will cause an error).  access_class may also be an error type (which will
-cause no error).  *err_pos is the source position for an error.  See the
-macro check_protected_member_access for a convenient way to invoke this
-function.
+sym_param points to the symbol being referenced, which may be a projection
+symbol.  locator is a locator for the member symbol being referenced.
+access_class is the class of the pointer or object through which the
+member is being accessed.  access_class is NULL if we don't know the object
+type (which will cause an error).  access_class may also be an error type
+(which will cause no error).  *err_pos is the source position for an error.
+See the macro check_protected_member_access for a convenient way to invoke
+this function.
 */
 {
   a_boolean                   have_access;
