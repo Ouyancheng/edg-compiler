@@ -4434,7 +4434,7 @@ on the ck_template_param constant pointed to by the expression.
     orig_expr = type->variant.array.variant.element_count_expr;
     check_assertion_str2(orig_expr->kind ==
                                       (an_expr_node_kind)enk_constant,
-                         "copy_type_with_substitution:",
+                         "copy_array_type_with_substitution:",
                          "nonconstant array expression");
     orig_cp = orig_expr->variant.constant;
     new_cp = copy_template_param_con_with_substitution(
