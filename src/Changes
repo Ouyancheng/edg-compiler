@@ -1,5 +1,26 @@
 Version 3.6
 
+3/11/05  Incorrect pointer value in default_arg_expr field with IL lowering
+         and RECORD_CONSTANT_EXPRESSIONS_IN_IL
+
+In some obscure cases, the default_arg_expr field of an a_param_type
+entry arrived in the back end with a garbage value.  This happened
+only in versions with DO_IL_LOWERING and RECORD_CONSTANT_EXPRESSIONS_IN_IL
+both set to TRUE (an unusual but permitted combination), and is largely
+harmless given that the default_arg_expr field contains no useful
+information after IL lowering has been done (in fact, in almost all
+cases it has been set to NULL) and therefore a back end has no reason
+to look at it.  Now fixed.  This problem was introduced by the change
+associated with the Changes entry of 5/17/04.
+
+  struct X {};
+  typedef void (X::*PM)(int);
+  struct A : public X {
+    void f(int i = 0);
+  };
+  PM x = static_cast<PM>(&A::f);
+  void A::f(int i) { }
+
 3/9/05   Incorrect IL for lvalue-returning assignment of class with
          tail padding in IA-64 ABI
 

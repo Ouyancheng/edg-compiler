@@ -2259,24 +2259,30 @@ running them through the indicated remapping function.
 void remap_pointers_in_il_entry(char                 *entry_ptr,
                                 an_il_entry_kind     entry_kind,
                                 a_remap_function_ptr remap_function,
-                                a_remap_function_ptr list_remap_function)
+                                a_remap_function_ptr list_remap_function,
+                                a_boolean            clear_fe_pointers)
 /*
 Remap the pointers in the indicated entry (of kind entry_kind) by running
 them through the indicated remapping routines.  list_remap_function is
 used for list pointers, i.e., "next" pointers and start-of-list pointers.
-The subtree is not processed.
+The subtree is not processed.  If clear_fe_pointers is TRUE, pointers to
+front end data structures are cleared.
 */
 {
   a_remap_function_ptr saved_walk_remap_func = walk_remap_func;
   a_remap_function_ptr saved_walk_list_remap_func = walk_list_remap_func;
+  a_boolean            saved_clear_fe_pointers_during_walk =
+                                                 clear_fe_pointers_during_walk;
 
   walk_remap_func = remap_function;
   walk_list_remap_func = list_remap_function;
+  clear_fe_pointers_during_walk = clear_fe_pointers;
 
   remap_pointers_in_entry(entry_ptr, entry_kind);
 
   walk_remap_func = saved_walk_remap_func;
   walk_list_remap_func = saved_walk_list_remap_func;
+  clear_fe_pointers_during_walk = saved_clear_fe_pointers_during_walk;
 }  /* remap_pointers_in_il_entry */
 
 

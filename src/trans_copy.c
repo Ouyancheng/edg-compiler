@@ -488,7 +488,8 @@ and remap the pointers in the copy.
        the pointers but don't copy. */
     remap_pointers_in_il_entry(ptr, kind,
                                remap_secondary_ptr_to_primary,
-                               remap_secondary_list_ptr_to_primary);
+                               remap_secondary_list_ptr_to_primary,
+                               /*clear_fe_pointers=*/FALSE);
     copy = ptr;
     scp = source_corresp_for_il_entry(copy, kind);
   } else {
@@ -500,7 +501,8 @@ and remap the pointers in the copy.
     (void)memcpy(copy, ptr, size_t_arg(sizeof_il_entry[(int)kind]));
     remap_pointers_in_il_entry(copy, kind,
                                remap_secondary_ptr_to_primary,
-                               remap_secondary_list_ptr_to_primary);
+                               remap_secondary_list_ptr_to_primary,
+                               /*clear_fe_pointers=*/FALSE);
     if (kind == iek_base_class) {
       tucp = ((a_base_class_ptr)ptr)->trans_unit_corresp;
     } else {

@@ -764,7 +764,15 @@ the file scope, do not process it (but record an orphan in the latter case).
            if we're processing a call in a function memory region and the
            type of the function, in the file scope, has not been lowered
            yet. */
-        if (walking_secondary_trans_unit)
+        /* When RECORD_CONSTANT_EXPRESSIONS_IN_IL is TRUE, the expressions
+           under constants are unlowered.  If that's true when IL lowering
+           is done (unusual, but okay), there may be some default_arg_expr
+           pointers that are not cleared to NULL.  A back end shouldn't be
+           looking at them, but clear the pointer on an IL read to make
+           sure nothing bad happens (e.g., in the IL display program). */
+        if (!walking_secondary_trans_unit) {
+          conditionally_clear_fe_pointer(ptr->default_arg_expr);
+        } else
 #endif /* DO_IL_LOWERING */
         /* Do not add code here. */
         {

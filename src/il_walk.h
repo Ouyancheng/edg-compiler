@@ -160,7 +160,8 @@ extern
 void remap_pointers_in_il_entry(char                 *entry_ptr,
                                 an_il_entry_kind     entry_kind,
                                 a_remap_function_ptr remap_function,
-                                a_remap_function_ptr list_remap_function);
+                                a_remap_function_ptr list_remap_function,
+                                a_boolean            clear_fe_pointers);
 
 #if REMAP_ONLY_ROUTINES_NEEDED
 extern void remap_il_header_pointers(a_remap_function_ptr remap_function,

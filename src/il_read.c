@@ -554,7 +554,10 @@ necessary to make it directly accessible in memory.
       /* Change the pointers in the entry from entry numbers to real
          pointers. */
       remap_pointers_in_il_entry(entry_ptr, entry_kind,
-                                 remap_ptr_to_ptr, remap_ptr_to_ptr);
+                                 remap_ptr_to_ptr, remap_ptr_to_ptr,
+                                 /* Pointers were cleared on write, so no
+                                    need to clear them again. */
+                                 /*clear_fe_pointers=*/FALSE);
     }  /* if */
   }  /* for */
   /* Zero entry kind indicating end of list has been encountered. */

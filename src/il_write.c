@@ -638,7 +638,8 @@ its length.
     (void)memcpy(entry_copy, entry_ptr, size_t_arg(entry_length));
     remap_pointers_in_il_entry(entry_ptr, entry_kind,
                                remap_ptr_to_entry_number,
-                               remap_ptr_to_entry_number);
+                               remap_ptr_to_entry_number,
+                               /*clear_fe_pointers=*/TRUE);
   }  /* if */
   /* Write the entry kind. */
   byte_entry_kind = (int)entry_kind;
