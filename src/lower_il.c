@@ -9391,14 +9391,52 @@ Promote the asm entries on the asm_entries list of the indicated scope
 }  /* promote_asm_entries */
 
 
+static void move_class_promoted_local_types(a_type_ptr class_type,
+                                            a_type_ptr *local_types,
+                                            a_type_ptr *end_local_types)
+/*
+If the class class_type has any types on its promoted_local_types list,
+add them to the end of the list bounded by local_types/end_local_types.
+The promoted_local_types list contains types promoted out of nested
+classes and member functions, held off to the side so they can be
+promoted to the right point in the types list when promotion is
+done for the parent class.
+*/
+{
+  a_class_type_supplement_ptr
+             ctsp = class_type->variant.class_struct_union.extra_info;
+  a_type_ptr first, last;
+
+  first = ctsp->promoted_local_types;
+  if (first != NULL) {
+    /* There are types on the promoted_local_types list.  Move them to the
+       end of the local_types/end_local_types list. */
+    check_assertion(local_types != NULL);
+    if (*local_types == NULL) {
+      *local_types = first;
+    } else {
+      (*end_local_types)->next = first;
+    }  /* if */
+    last = first;
+    while (last->next != NULL) last = last->next;
+    *end_local_types = last;
+    ctsp->promoted_local_types = NULL;
+  }  /* if */
+}  /* move_class_promoted_local_types */
+
+
 static void promote_type_list(a_type_ptr  type,
                               a_scope_ptr promotion_scope,
-                              a_type_ptr  *insert_pointer)
+                              a_type_ptr  *insert_pointer,
+                              a_type_ptr  *local_types,
+                              a_type_ptr  *end_local_types)
 /*
 Promote the types on the indicated types list into the scope promotion_scope
 (the file scope, a function or block scope, or a namespace scope).
 *insert_pointer indicates the insertion position, and is updated after
-the insertion.
+the insertion.  Types on the promoted_local_types list of any
+classes are moved onto the end of the list bounded by local_types/
+end_local_types for later processing.
 */
 {
   a_type_ptr next_type;
@@ -9500,18 +9538,12 @@ the insertion.
     }  /* if */
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
     if (is_immediate_class_type(type)) {
-      a_class_type_supplement_ptr ctsp =
-                                   type->variant.class_struct_union.extra_info;
       /* If some local types of member functions were promoted into the
-         class on their way to the file scope, promote them now too.
-         They go out after the class itself.  There will only be
-         types on this list for non-nested classes (because the promoted
-         types go to the outermost enclosing class).  However, the list
-         can be non-NULL for nested classes that are defined outside of
-         their parent classes. */
-      promote_type_list(ctsp->promoted_local_types, promotion_scope,
-                        insert_pointer);
-      ctsp->promoted_local_types = NULL;
+         class on their way to the file scope, add them to the local_types
+         list for later promotion.  They go out at the end of the scope. 
+         There will only be types on this list for nested classes that are
+         defined outside of their parent classes. */
+      move_class_promoted_local_types(type, local_types, end_local_types);
     }  /* if */
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
   }  /* for */
@@ -9531,7 +9563,8 @@ and is updated after the insertion.
   check_assertion(scope->kind == (a_scope_kind)sck_class_struct_union);
   /* Promote the types to the end of the proper types list.  Also promote
      members out of any classes encountered on the types list. */
-  promote_type_list(scope->types, promotion_scope, insert_pointer);
+  promote_type_list(scope->types, promotion_scope, insert_pointer,
+                    (a_type_ptr *)NULL, (a_type_ptr *)NULL);
   /* Clear the list of promoted types.  Since the scope is for a class,
      we know it cannot be on the scope stack now, and therefore we do
      not need to update a corresponding last pointer. */
@@ -9724,7 +9757,6 @@ of the placeholder.
 }  /* unlink_classes_with_placeholders_in_scope */
 
 
-
 static void do_scope_class_member_promotion(a_scope_ptr scope)
 /*
 Do promotion of members of classes out of those classes in the indicated
@@ -9733,6 +9765,7 @@ and all subscopes.
 */
 {
   a_type_ptr      type, next_type, insert_pointer;
+  a_type_ptr      local_types, end_local_types;
   a_scope_ptr     block_scope;
   a_scope_depth   depth;
   a_namespace_ptr nsp;
@@ -9770,6 +9803,7 @@ and all subscopes.
   type = scope->types;
   if (type != NULL) {
     insert_pointer = NULL;
+    local_types = end_local_types = NULL;
     for (; type != NULL; type = next_type) {
       next_type = type->next;
       /* If the type is a class, promote its members out of the class. */
@@ -9778,18 +9812,11 @@ and all subscopes.
         insert_pointer = type;
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
         /* If some local types of member functions were promoted into the
-           class on their way to the file scope, promote them now too.
-           They go out after the class itself.  There will only be
-           types on this list for non-nested classes (because the promoted
-           types go to the outermost enclosing class).  However, the list
-           can be non-NULL for nested classes that are defined outside of
-           their parent classes. */
-        { a_class_type_supplement_ptr ctsp =
-                                   type->variant.class_struct_union.extra_info;
-          promote_type_list(ctsp->promoted_local_types, scope,
-                            &insert_pointer);
-          ctsp->promoted_local_types = NULL;
-        }
+           class on their way to the file scope, add them to the local_types
+           list for later promotion.  They go out at the end of the scope. 
+           There will only be types on this list for non-nested classes
+           (because the promoted types go to the outermost enclosing class). */
+        move_class_promoted_local_types(type, &local_types, &end_local_types);
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
       } else if (type->kind == (a_type_kind)tk_typeref &&
                  type->variant.typeref.is_placeholder_for_nested_class_def) {
@@ -9808,7 +9835,8 @@ and all subscopes.
         }  /* if */
 #endif /* DEBUG */
         /* Promote the class, and its type-as-subobject if that is present. */
-        promote_type_list(nested_type, scope, &insert_pointer);
+        promote_type_list(nested_type, scope, &insert_pointer,
+                          &local_types, &end_local_types);
         if (scope->kind == (a_scope_kind)sck_file ||
             scope->kind == (a_scope_kind)sck_function ||
             scope->kind == (a_scope_kind)sck_block) {
@@ -9829,6 +9857,19 @@ and all subscopes.
         /* Not a class type or nested class definition placeholder.  Set
            the insert location after the type. */
         insert_pointer = type;
+      }  /* if */
+      /* At the end of the list, process any function-local types that
+         were encountered in the process.  We want them to follow all other
+         types. */
+      if (next_type == NULL && local_types != NULL) {
+        if (insert_pointer == NULL) {
+          scope->types = local_types;
+        } else {
+          check_assertion(insert_pointer->next == NULL);
+          insert_pointer->next = local_types;
+        }  /* if */
+        next_type = local_types;
+        local_types = end_local_types = NULL;
       }  /* if */
     }  /* for */
     check_assertion(insert_pointer == NULL ||
@@ -9956,27 +9997,6 @@ by things that will be in the file scope.
 }  /* local_entities_should_be_promoted */
 
 
-static void clear_is_local_to_function_flag_in_type(a_type_ptr type)
-/*
-The indicated type is (part of something) being promoted to file scope.
-Clear its is_local_to_function flag and the flags of any subtypes.
-*/
-{
-  type->source_corresp.is_local_to_function = FALSE;
-  /* If the type is a class, process its type list. */
-  if (is_immediate_class_type(type)) {
-    a_scope_ptr scope =
-                      type->variant.class_struct_union.extra_info->assoc_scope;
-    if (scope != NULL) {
-      a_type_ptr subtype;
-      for (subtype = scope->types; subtype != NULL; subtype = subtype->next) {
-        clear_is_local_to_function_flag_in_type(subtype);
-      }  /* for */
-    }  /* if */
-  }  /* if */
-}  /* clear_is_local_to_function_flag_in_type */
-
-
 static void promote_types_out_of_function(a_scope_ptr   scope,
                                           a_routine_ptr routine)
 /*
@@ -10037,8 +10057,12 @@ with the outermost enclosing class, for later promotion out of the class
       /* Mangle the name if necessary (e.g., if it is part of a template
          function). */
       mangle_promoted_entity_name(&type->source_corresp, routine, scope);
-      /* Clear the is_local_function flag in the type and any subtypes. */
-      clear_is_local_to_function_flag_in_type(type);
+      /* The is_local_function flag in the type is not cleared yet.  That
+         happens at the end of lowering.  For now, it's necessary to keep the
+         flag set because when eventually we promote the types from the
+         promoted_local_types list, we want to promote the function-local
+         types after the class_local types, even though they are
+         intermixed on the list. */
       if (routine_class == NULL) {
         /* Not promoting from a member function: just add to the file-scope
            types list. */
