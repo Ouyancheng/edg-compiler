@@ -2118,7 +2118,7 @@ Returns TRUE if there is an error in the specifiers.
           } else {
             /* Aside from interactions with storage classes, errors cannot
                be issued on mutable until the declarator has been scanned.
-               Just return a flag to the called. */
+               Just return a flag to the caller. */
             *output_flags |= DSO_MUTABLE;
           }  /* if */
         } else if (is_member_decl &&
