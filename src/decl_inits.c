@@ -947,11 +947,10 @@ unreachable code).
        than at file scope). */
     if (dip->kind != (a_dynamic_init_kind)dik_none) {
       /* The initialization is not just a destruction. */
-      /* Issue a warning for a dynamic initialization in an unreachable
-         block. */
-      if (!curr_code_reachable()) {
-        pos_warning(ec_initialization_not_reachable, source_pos);
-      }  /* if */
+      /* If the block in which the dynamic initialization is executed is
+         unreachable and if no other unreachability warnings have been
+         issued on the block, put out a warning now. */
+      warn_if_code_is_unreachable(ec_initialization_not_reachable, source_pos);
     }  /* if */
     /* If this dynamic init appears after some executable code
        in its block, set a flag to that effect in the dynamic

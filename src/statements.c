@@ -1069,37 +1069,39 @@ the current statement sequence.
 }  /* add_statement */
 
 
-static void check_for_unreachable_code(void)
+void warn_if_code_is_unreachable(an_error_code      error_code,
+                                 a_source_position  *err_pos)
 /*
-Generate a warning if the current location in the code is unreachable.
+If the current location in the code is unreachable, generate a warning,
+using the specified diagnostic message at the specified source position.
 */
 {
   if (!curr_reachability.reachable) {
     if (!curr_reachability.suppress_unreachable_warning) {
-      warning(ec_code_is_unreachable);
+      warning(error_code, err_pos);
       /* Suppress the warning once it has been issued. */
       curr_reachability.suppress_unreachable_warning = TRUE;
     }  /* if */
   }  /* if */
-}  /* check_for_unreachable_code */
+}  /* warn_if_code_is_unreachable */
 
 
-static void check_loop_unreachable_code(void)
+/* 
+Generate a standard warning if the current location in the code is
+unreachable.
+*/
+#define check_for_unreachable_code()                                    \
+  warn_if_code_is_unreachable(ec_code_is_unreachable, &error_position)
+
+
 /*
 Generate a warning if the current location in the code (the top of a loop)
 is unreachable.  This generates a different message than the normal
 check_for_unreachable_code, because the bodies of loops can be reached
 via branch from the bottom.
 */
-{
-  if (!curr_reachability.reachable) {
-    if (!curr_reachability.suppress_unreachable_warning) {
-      warning(ec_loop_not_reachable);
-      /* Suppress the warning once it has been issued. */
-      curr_reachability.suppress_unreachable_warning = TRUE;
-    }  /* if */
-  }  /* if */
-}  /* check_loop_unreachable_code */
+#define check_loop_unreachable_code()                                  \
+  warn_if_code_is_unreachable(ec_loop_not_reachable, &error_position)
 
 
 static a_label_ptr alloc_temp_label(void)

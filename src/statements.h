@@ -159,7 +159,9 @@ extern a_statement_ptr add_statement(a_statement_kind kind);
 extern a_statement_ptr compound_statement(a_boolean at_function_level,
                                           a_boolean explicit_return_type,
                                           a_boolean is_catch_clause);
-extern a_boolean curr_code_reachable(void);
+
+extern void warn_if_code_is_unreachable(an_error_code      error_code,
+                                        a_source_position  *err_pos);
 
 /*
 a_control_flow_desr is an entry used in tracking gotos, labels, and
