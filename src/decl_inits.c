@@ -1364,10 +1364,6 @@ returned set to TRUE.
     vp_type = error_type();
   }  /* if */
   if (symbol_ptr->kind == (a_symbol_kind)sk_static_data_member) {
-    /* Though static data members may be given storage class of extern or
-       unspecified, that fixup should not have taken place yet. */
-    check_assertion(vp == NULL ||
-                    vp->storage_class == (a_storage_class)sc_static);
     /* The initializer of a static data member is scanned with the original
        class reactivated. */
     push_class_reactivation_scope(symbol_ptr->parent.class_type);

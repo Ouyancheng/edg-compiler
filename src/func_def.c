@@ -1003,6 +1003,14 @@ on a prior declaration.
     }  /* if */
     sym->variant.routine.ptr->is_inline = TRUE;
   }  /* if */
+  if (rp->storage_class == (a_storage_class)sc_extern) {
+    /* If the routine was given a storage class of sc_extern when it was
+       originally declared, change it to sc_unspecified now that the
+       definition has been seen.  Also set the referenced flag, assuming
+       a reference from another translation unit. */
+    rp->storage_class = (a_storage_class)sc_unspecified;
+    rp->source_corresp.referenced = TRUE;
+  }  /* if */
   if (any_deferred_access_checks()) {
     /* Now that we know which function has been declared, recheck any
        access errors that occurred while scanning the declaration. */

@@ -4095,7 +4095,6 @@ the symbol and its linkage (which is always "none").
   }  /* if */
   if (sym->kind == (a_symbol_kind)sk_static_data_member) {
     var = sym->variant.static_data_member.variable;
-    check_assertion(var->storage_class == (a_storage_class)sc_static);
     if (sym->defined) {
       pos_sy_error(ec_already_defined, &locator->source_position, sym);
       err = TRUE;
@@ -4113,6 +4112,13 @@ the symbol and its linkage (which is always "none").
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       /* The type of the variable should be the composite of the two types. */
       var->type = composite_type(type_ptr, var->type);
+      /* Ordinarily a static data member will have been given a storage class
+         of sc_extern; promote it to sc_unspecified, now that the definition
+         has been seen.  (In cfront mode the storage class is promoted from
+         sc_static at the end of the translation unit.) */
+      if (var->storage_class == (a_storage_class)sc_extern) {
+        var->storage_class = (a_storage_class)sc_unspecified;
+      }  /* if */
       /* Set the IL referenced flag since, as an externally visible variable,
          it could be referenced from another translation unit. */
       var->source_corresp.referenced = TRUE;

@@ -768,25 +768,6 @@ skip_tag_scan:
       pos_sy_error(ec_bad_scope_for_definition, &tag_position, tag_sym);
       err = TRUE;
     } else if (C_dialect == C_dialect_cplusplus) {
-      /* In C classes have no linkage.  In C++ most classes have either
-         internal linkage or, for classes declared at file scope and with
-         other characteristics (see ARM 3.3), C++ external linkage; local
-         classes and classes nested within local classes have no linkage.
-         For now give nonlocal classes internal linkage; it may be changed
-         later (see check_class_linkage).  Note that even nameless classes
-         may be marked as having linkage; this is useful for dealing with
-         member functions.) */
-      if (!is_local_class) {
-        /* Nonlocal class. */
-        if (any_cfront_mode() &&
-            depth_innermost_namespace_scope == DEPTH_OF_FILE_SCOPE) {
-          class_type->source_corresp.name_linkage =
-                                (a_name_linkage_kind)nlk_internal;
-        } else {
-          class_type->source_corresp.name_linkage =
-                                (a_name_linkage_kind)nlk_cplusplus_external;
-        }  /* if */
-      }  /* if */
       /* If this is the declaration of a nested class, set the parent class
          pointer in the tag symbol. */
       if (scope_stack[decl_scope_level].kind ==
@@ -803,6 +784,32 @@ skip_tag_scan:
       } else if (!is_local_class) {
         set_namespace_membership(tag_sym, &class_type->source_corresp,
                                  (a_namespace_ptr)NULL);
+      }  /* if */
+      /* In C classes have no linkage, as do local classes in C++; otherwise
+         classes have "C++-external" name linkage.  (Note: in cfront mode
+         classes may also have internal linkage -- see ARM 3.3.)  Note that
+         even nameless classes may be marked as having linkage; this is
+         useful for dealing with member functions.) */
+      if (!is_local_class) {
+        /* Nonlocal class. */
+        if (class_type->source_corresp.is_class_member) {
+          /* A nested class has the same linkage as the class of which it is
+             a member. */
+          class_type->source_corresp.name_linkage =
+                             class_type->source_corresp.parent.class_type->
+                                                 source_corresp.name_linkage;
+        } else if (any_cfront_mode() &&
+                   depth_innermost_namespace_scope == DEPTH_OF_FILE_SCOPE) {
+          /* In cfront mode -- unless this is a class declared within a
+             namespace -- give the class internal linkage by default.  It
+             may be promoted later, based on how it's used, etc. */
+          class_type->source_corresp.name_linkage =
+                                (a_name_linkage_kind)nlk_internal;
+        } else {
+          /* Ordinary default for classes is C++ external linkage. */
+          class_type->source_corresp.name_linkage =
+                                (a_name_linkage_kind)nlk_cplusplus_external;
+        }  /* if */
       }  /* if */
 #if RECORD_HIDDEN_NAMES_IN_IL
       /* If the current declaration coexists with another declaration in the

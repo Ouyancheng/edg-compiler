@@ -3665,6 +3665,7 @@ special function kind (e.g., constructor, destructor), if any.
   a_type_qualifier_set          qualifiers;
   a_type_ptr                    tp;
   a_source_sequence_entry_ptr   declarator_ssep;
+  a_name_linkage_kind           def_name_linkage;
 
   db_enter(3, "decl_member_function");
   /* If this is a user-defined conversion or an overloaded operator,
@@ -3716,13 +3717,41 @@ special function kind (e.g., constructor, destructor), if any.
     /* Set the source correspondence, including the access specifier. */
     set_source_corresp(&rtn->source_corresp, sym);
     set_class_membership(sym, &rtn->source_corresp, class_type);
-    /* Member functions should have the same name linkage as the class of
-       which they are members.  For now, the class will have internal or no
-       linkage.  If and when its linkage is promoted to C++, the linkage of
-       the member functions will also be changed. */
-    rtn->source_corresp.name_linkage = class_type->source_corresp.name_linkage;
     rtn->source_corresp.access = access;
-    rtn->is_inline = func_info->is_inline;
+    /* Member functions should have the same name linkage as the class of
+       which they are members.  (In cfront mode that may mean internal
+       linkage -- if and when its linkage is promoted to C++, the linkage of
+       the member functions will also be changed. */
+    def_name_linkage = class_type->source_corresp.name_linkage;
+    if (func_info->is_inline) {
+      /* Inline member function (either because "inline" was specified or
+         a function definition is present). */
+      rtn->is_inline = TRUE;
+#if 0
+      /* Temporary special handling for inline member functions of nonlocal
+         classes -- until we support "extern inline" inline member functions
+         get nlk_internal and sc_static (which is the cfront behavior). */
+#endif /* if 0 */
+      if (def_name_linkage == (a_name_linkage_kind)nlk_none) {
+        /* Must be a local class. */
+        rtn->source_corresp.name_linkage = (a_name_linkage_kind)nlk_none;
+      } else {
+        rtn->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
+      }  /* if */
+      /* storage_class is already set to sc_static. */
+    } else {
+      /* Noninline member function. */
+      rtn->is_inline = FALSE;
+      rtn->source_corresp.name_linkage = def_name_linkage;
+      if (def_name_linkage != (a_name_linkage_kind)nlk_cplusplus_external) {
+        /* Either this is a local class (nlk_none) or a cfront-compatible
+           declaration (nlk_internal). */
+        /* storage_class is already set to sc_static. */
+      } else {
+        /* Will be changed to sc_unspecified if a definition is seen. */
+        rtn->storage_class = (a_storage_class)sc_extern;
+      }  /* if */
+    }  /* if */
     if (compiler_generated) {
       rtn->compiler_generated = TRUE;
     } else {
@@ -4074,10 +4103,18 @@ table.
   sym->variant.static_data_member.variable = var;
   set_class_membership(sym, &var->source_corresp, class_type);
   /* Static data members will have the same name linkage as the class of
-     which they are members.  For now, the class will have internal linkage.
-     If and when its linkage is promoted to C++, the linkage of the static
-     data members will also be changed. */
+     which they are members.  (In cfront mode that may mean internal linkage
+     -- if and when its linkage is promoted to C++, the linkage of the static
+     data members will also be changed.) */
   var->source_corresp.name_linkage = class_type->source_corresp.name_linkage;
+  if (class_type->source_corresp.name_linkage ==
+                        (a_name_linkage_kind)nlk_cplusplus_external) {
+    /* Ordinarily a static data member gets sc_extern storage class, which
+       is promoted to sc_unspecified if a definition is seen.  In cfront mode,
+       the storage is sc_static (already set), which is changed to sc_extern
+       or sc_unspecified when during a final fixup pass. */
+    var->storage_class = (a_storage_class)sc_extern;
+  }  /* if */
   var->source_corresp.access = access;
 
   if (curr_token == tok_assign) {
