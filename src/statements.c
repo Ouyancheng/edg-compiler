@@ -1194,6 +1194,11 @@ See also 3.6.6.4.
       /* A void function may not return a value. */
       error(ec_value_returned_in_void_function);
       sp->expr = NULL;
+    } else if (is_no_type(rout_type)) {
+      /* Only constructors and destructors have a return type of tk_none.
+         Like void functions, they may not return a value (ARM 6.6.3). */
+      error(ec_value_returned_in_constructor);
+      sp->expr = NULL;
     } else {
       /* Cast the expression to the return type, if necessary, with semantics
          the same as for assignment. */
