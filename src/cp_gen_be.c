@@ -4905,8 +4905,7 @@ this one is such a continuation.
       } else if (type->is_builtin_va_list) {
         /* This is the declaration of the builtin va_list, from <stdarg.h>. */
 #if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS
-        if (gcc_is_generated_code_target &&
-            (il_header.gcc_mode || il_header.gpp_mode)) {
+        if (gcc_is_generated_code_target) {
           /* This is the intrinsic GNU C/C++ type __builtin_va_list.  No
              declaration should be generated for it. */
         } else
@@ -7099,8 +7098,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           /* <stdarg.h> va_start macro, treated as a builtin operator. */
           disable_line_wrapping();
 #if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS
-          if (gcc_is_generated_code_target &&
-              (il_header.gcc_mode || il_header.gpp_mode)) {
+          if (gcc_is_generated_code_target) {
             /* This is the intrinsic GNU C/C++ "__builtin_varargs_start". */
             write_tok_str("__builtin_stdarg_start(");
           } else
@@ -7119,8 +7117,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           /* <varargs.h> va_start macro, treated as a builtin operator. */
           disable_line_wrapping();
 #if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS
-          if (gcc_is_generated_code_target &&
-              (il_header.gcc_mode || il_header.gpp_mode)) {
+          if (gcc_is_generated_code_target) {
             /* This is the intrinsic GNU C/C++ "__builtin_varargs_start". */
             write_tok_str("__builtin_varargs_start(");
           } else
@@ -7137,8 +7134,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           /* <stdarg.h> va_arg macro, treated as a builtin operator. */
           disable_line_wrapping();
 #if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS
-          if (gcc_is_generated_code_target &&
-              (il_header.gcc_mode || il_header.gpp_mode)) {
+          if (gcc_is_generated_code_target) {
             /* This is the intrinsic GNU C/C++ "__builtin_va_arg". */
             write_tok_str("__builtin_va_arg(");
           } else
@@ -7157,8 +7153,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           /* <stdarg.h> va_end macro, treated as a builtin operator. */
           disable_line_wrapping();
 #if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS
-          if (gcc_is_generated_code_target &&
-              (il_header.gcc_mode || il_header.gpp_mode)) {
+          if (gcc_is_generated_code_target) {
             /* This is the intrinsic GNU C/C++ "__builtin_va_end". */
             write_tok_str("__builtin_va_end(");
           } else
@@ -7175,8 +7170,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           /* <stdarg.h> va_copy macro, treated as a builtin operator. */
           disable_line_wrapping();
 #if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS
-          if (gcc_is_generated_code_target &&
-              (il_header.gcc_mode || il_header.gpp_mode)) {
+          if (gcc_is_generated_code_target) {
             /* This is the intrinsic GNU C/C++ "__builtin_va_copy". */
             write_tok_str("__builtin_va_copy((");
           } else
@@ -10245,7 +10239,7 @@ TRUE if the declaration following this one is such a continuation.
            constructor definitions. */
         !(decl_within_class && is_definition)) {
 #if GNU_EXTENSIONS_ALLOWED
-      if (gcc_is_generated_code_target && il_header.gcc_mode) {
+      if (gcc_is_generated_code_target) {
         if (rout->suppress_inline_body) {
           write_tok_str("extern ");
         }  /* if */
