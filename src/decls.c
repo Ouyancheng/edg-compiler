@@ -8181,7 +8181,7 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
              a namespace extension for the aliased namespace. */
           ns_sym = (a_symbol_ptr)
              skip_namespace_aliases(ns_sym->variant.namespace_info.ptr)->
-                           variant.assoc_namespace->source_corresp.assoc_info;
+                                                    source_corresp.assoc_info;
         }  /* if */
         if (ns_sym->kind != (a_symbol_kind)sk_namespace ||
             (!is_namespace_alias &&
