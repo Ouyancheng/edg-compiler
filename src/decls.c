@@ -10792,9 +10792,10 @@ void scan_gnu_declarator_attributes(char*              *asm_name,
                                     a_storage_class    declared_storage,
                                     a_boolean          is_function)
 /*
-Scan asm name constructs and attribute lists following a declarator.
-The resulting asm() symbol name tag is returned through asm_name and
-the position of the string literal is stored in *asm_name_pos.  If
+Scan asm name constructs and attribute lists preceding or following a
+declarator.  The resulting asm() symbol name tag is returned through
+asm_name and the position of the string literal is stored in *asm_name_pos.
+is_function is TRUE if a function declarator has been scanned.  If
 asm_name is NULL, asm name constructs are not scanned.  The attributes
 are appended to the list pointed to by *attributes (and if new_attributes
 is non-NULL *new_attributes is set to TRUE if there are any).  
@@ -11302,10 +11303,11 @@ continue_with_declaration:
          the specifier attributes.  GNU versions prior to 3.1 treated all
          prefix attributes as specifier attributes; we emulate the more
          recent (GNU C/C++ 3.1 and later) behavior. */
-      scan_gnu_declarator_attributes((char*)NULL, &asm_name_pos,
+      scan_gnu_declarator_attributes((char**)NULL, &asm_name_pos,
                                      &declarator_attributes,
                                      (a_boolean*)NULL,
-                                     declared_storage_class, is_function);
+                                     declared_storage_class,
+                                     /*is_function=*/FALSE);
 #endif /* GNU_EXTENSIONS_ALLOWED */
       /* Save the source position of the first token of the declarator. */
       declarator_start_pos = pos_curr_token;
