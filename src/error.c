@@ -13,7 +13,6 @@ error.c -- Error reporting routines.
 
 */
 
-#include <stdlib.h>
 #include "basics.h"
 #include "target.h"
 #include "error.h"
