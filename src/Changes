@@ -1,5 +1,18 @@
 Version 2.28
 
+1/11/95 Implicit inclusion problem introduced in 2.27
+
+Version 2.27 introduced an implicit inclusion bug that would sometimes
+cause files to be included after the linkage of classes and
+their members had been determined.  This resulted in spurious errors
+in classes declared in the implicitly included files.  This has been
+corrected.
+
+1/11/95 Bug in code to compute CPU time used
+
+A bug was fixed that could cause the CPU time usage to be reported
+incorrectly.
+
 1/10/95 Duplicate size and sign specifiers in a declaration
 
 Except in cfront mode, we now issue an error (rather than a warning) when a
