@@ -1,5 +1,14 @@
 Version 3.1
 
+12/14/02 Microsoft mode: do-nothing cast to array type allowed and ignored
+
+In Microsoft bugs mode in C++, a do-nothing cast to an array type is
+now allowed and ignored, as an old-style cast, functional-notation cast,
+or static_cast.
+
+  int a[100];
+  (int[100])a;
+
 12/14/02 C++-generating back end: "?" operator with equal-length strings
 
 The C++-generating back end rendered a "?" with equal-length

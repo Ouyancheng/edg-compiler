@@ -43,7 +43,8 @@ expr.c -- Expression scanning routines.
 /* Forward declarations. */
 static void fix_up_dynamic_init_dtors(void);
 static a_boolean cast_type_pre_check(a_type_ptr *type_cast_to,
-                                     a_boolean  has_explicit_cv_qualifiers);
+                                     a_boolean  has_explicit_cv_qualifiers,
+                                     a_boolean  allow_array);
 static void process_boolean_controlling_expression(an_operand *result,
                                                    a_boolean  validate_only);
 static void scan_compound_literal(a_type_ptr               *p_literal_type,
@@ -5898,22 +5899,50 @@ The value of the operation is an lvalue of type "const struct _GUID".
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+static a_boolean check_array_cast(a_type_ptr        type_cast_to,
+                                  an_operand        *operand,
+                                  a_source_position *type_position)
+/*
+In some modes, e.g., Microsoft C++ mode, a cast to an array type
+is allowed if it does nothing.  To allow this, we have suppressed
+the error check for an array type in cast_type_pre_check.  Now,
+after we know that the cast is to an array type (type_cast_to),
+and we have scanned the operand of the cast (operand), check
+that the cast is allowed.  If not, issue an error at type_position.
+Return TRUE for okay, FALSE for an error.
+*/
+{
+  a_boolean okay = TRUE;
+
+  if (identical_types(type_cast_to, operand->type)) {
+    /* Do-nothing cast, okay. */
+  } else {
+    okay = FALSE;
+    if (!is_error_operand(operand)) {
+      pos_ty_error(ec_cast_to_bad_type, type_position, type_cast_to);
+    }  /* if */
+  }  /* if */
+  return okay;
+}  /* check_array_cast */
+
 #if !EXTRA_SOURCE_POSITIONS_IN_IL
 /*ARGSUSED*/ /* <-- end_position is not used in that case. */
 #endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-static a_boolean scan_new_style_cast(a_type_ptr        *cast_type,
-                                     a_source_position *type_position,
-                                     a_source_position *end_position,   
-                                     an_operand        *operand)
+static a_boolean scan_new_style_cast(an_expr_operator_kind cast_op,
+                                     a_type_ptr            *cast_type,
+                                     a_source_position     *type_position,
+                                     a_source_position     *end_position,
+                                     an_operand            *operand)
 /*
 Scan the sequence "< type-id > ( expression )" as part of a new-style cast.
+cast_op indicates the kind of cast (static_cast, const_cast, etc).
 Return the type in *cast_type (and its position in *type_position) and
 the expression in *operand.  The position of the final ")" is returned
 in *end_position.  Various error cases are checked for (e.g.,
 the type defines something); FALSE is returned if there is an error.
 */
 {
-  a_boolean err = FALSE, explicit_cv_qualifiers;
+  a_boolean err = FALSE, explicit_cv_qualifiers, allow_array = FALSE;
 
   /* Check for and pass over the "<". */
   (void)required_token(tok_lt, ec_exp_lt);
@@ -5922,8 +5951,14 @@ the type defines something); FALSE is returned if there is an error.
      in the type-id. */
   *type_position = pos_curr_token;
   type_name_full(cast_type, &explicit_cv_qualifiers);
+  /* In Microsoft mode, static_cast allows a cast to an array type if it
+     does nothing. */
+  if (microsoft_bugs && !C_mode() &&
+      cast_op == (an_expr_operator_kind)eok_static_cast) {
+    allow_array = TRUE;
+  }  /* if */
   /* Do initial checking on the type. */
-  err = cast_type_pre_check(cast_type, explicit_cv_qualifiers);
+  err = cast_type_pre_check(cast_type, explicit_cv_qualifiers, allow_array);
   /* Check for and pass over the ">". */
   (void)required_token(tok_gt, ec_exp_gt);
   remove_stop_token(tok_gt);
@@ -5932,6 +5967,10 @@ the type defines something); FALSE is returned if there is an error.
   add_matching_stop_token(tok_rparen);
   /* Scan the expression. */
   scan_expr(operand, PREC_LOWEST, EOPT_OPERAND_OF_CAST);
+  if (allow_array && is_array_type(*cast_type)) {
+    /* Catch cast-to-error cases allowed by above. */
+    if (!check_array_cast(*cast_type, operand, type_position)) err = TRUE;
+  }  /* if */
   /* Check for and pass over the ")". */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   *end_position = end_pos_curr_token;
@@ -5983,7 +6022,8 @@ Syntax:
   /* Advance past dynamic_cast. */
   (void)get_token();
   /* Scan "< type-id > ( expression )". */
-  if (!scan_new_style_cast(&cast_type, &type_position, &end_position,
+  if (!scan_new_style_cast((an_expr_operator_kind)eok_dynamic_cast,
+                           &cast_type, &type_position, &end_position,
                            &operand)) {
     err = TRUE;
   }  /* if */
@@ -7579,14 +7619,16 @@ only done in C mode, and it's an extension.
 
 
 static a_boolean cast_type_pre_check(a_type_ptr *p_type_cast_to,
-                                     a_boolean  has_explicit_cv_qualifiers)
+                                     a_boolean  has_explicit_cv_qualifiers,
+                                     a_boolean  allow_array)
 /*
 Do a first check on the destination type of a cast to see if it is legal.
 This is very top-level checking applicable to all casts.  Return TRUE if
 there is an error.  *p_type_cast_to is the destination type of the cast,
 which may be updated on return if the cast should be to some other type.
 If explicit_cv_qualifiers is set, warn about those qualifiers being useless
-when the type cast to is a nonclass type.
+when the type cast to is a nonclass type.  If allow_array is TRUE, do
+not issue an error for a cast to an array type.
 This routine is called for C-style casts, C++ functional-notation type
 conversions, and C++ new-style casts.  The current error_position must
 be set to the source position of the type.
@@ -7644,7 +7686,9 @@ be set to the source position of the type.
     }  /* if */
   } else if (is_array_type(type_cast_to)) {
     /* Casting to an array type is not allowed. */
-    if (cfront_2_1_mode) {
+    if (allow_array) {
+      /* The caller will check further. */
+    } else if (cfront_2_1_mode) {
       /* In cfront 2.1 mode, treat a cast to an array type as a cast to
          a pointer to. */
       *p_type_cast_to = type_cast_to =
@@ -8650,7 +8694,8 @@ Syntax:
   /* Advance past const_cast. */
   (void)get_token();
   /* Scan "< type-id > ( expression )". */
-  if (!scan_new_style_cast(&cast_type, &type_position, &end_position,
+  if (!scan_new_style_cast((an_expr_operator_kind)eok_const_cast,
+                           &cast_type, &type_position, &end_position,
                            &operand)) {
     err = TRUE;
   }  /* if */
@@ -8813,7 +8858,8 @@ Syntax:
   /* Advance past static_cast. */
   (void)get_token();
   /* Scan "< type-id > ( expression )". */
-  if (!scan_new_style_cast(&type_cast_to, &type_position, &end_position,
+  if (!scan_new_style_cast((an_expr_operator_kind)eok_static_cast,
+                           &type_cast_to, &type_position, &end_position,
                            result)) {
     err = TRUE;
   } else {
@@ -8980,7 +9026,8 @@ Syntax:
   /* Advance past reinterpret_cast. */
   (void)get_token();
   /* Scan "< type-id > ( expression )". */
-  if (!scan_new_style_cast(&type_cast_to, &type_position, &end_position,
+  if (!scan_new_style_cast((an_expr_operator_kind)eok_reinterpret_cast,
+                           &type_cast_to, &type_position, &end_position,
                            result)) {
     err = TRUE;
   } else {
@@ -9392,9 +9439,11 @@ Also scans GNU C statement expressions:
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       } else {
         /* Normal cast (not a compound literal). */
+        a_boolean allow_array = microsoft_bugs && !C_mode();
         /* Check the type to see if it is valid in general terms. */
         error_position = type_position;
-        err = cast_type_pre_check(&type_cast_to, explicit_cv_qualifiers);
+        err = cast_type_pre_check(&type_cast_to, explicit_cv_qualifiers,
+                                  allow_array);
         set_err_pos_to_curr_token();
         /* Scan the expression to be cast. */
         scan_cast_expression(type_cast_to, /*allow_comma=*/TRUE, PREC_CAST,
@@ -9402,9 +9451,17 @@ Also scans GNU C statement expressions:
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         end_position = result->end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-        /* Check compatibility of the types and do the cast. */
-        do_cast(type_cast_to, result, &local_bound_function_selector,
-                local_options, err, &type_position, &start_position);
+        if (allow_array && is_array_type(type_cast_to)) {
+          /* Catch cast-to-error cases allowed by above. */
+          if (!check_array_cast(type_cast_to, result, &type_position)) {
+            type_cast_to = error_type();
+            err = TRUE;
+          }  /* if */
+        } else {
+          /* Check compatibility of the types and do the cast. */
+          do_cast(type_cast_to, result, &local_bound_function_selector,
+                  local_options, err, &type_position, &start_position);
+        }  /* if */
       }  /* if */
       set_operand_position(result, &start_position, &end_position,
                            &start_position);
@@ -9525,6 +9582,7 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
   a_boolean                     ctor_case = FALSE;
   a_class_symbol_supplement_ptr cssp;
   an_operand                    local_bound_function_selector;
+  a_boolean                     allow_array = microsoft_bugs && !C_mode();
 
   db_enter(4, "scan_functional_notation_type_conversion");
 
@@ -9533,7 +9591,8 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
      this does a worthwhile check even in the class case (abstract class).
      However, cv-qualifiers cannot syntactically appear in this sort of
      explicit conversion. */
-  err = cast_type_pre_check(&type_cast_to, /*explicit_cv_qualifiers=*/FALSE);
+  err = cast_type_pre_check(&type_cast_to, /*explicit_cv_qualifiers=*/FALSE,
+                            allow_array);
   /* See if we have a case that is clearly a constructor call. */
   if (is_class_struct_union_type(type_cast_to)) {
     cssp = symbol_supplement_for_class(type_cast_to);
@@ -9593,7 +9652,8 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
     }  /* if */
   } else if (!curr_expr_kind_is_const() &&
              is_template_dependent_context() &&
-             is_template_dependent_type(type_cast_to)) {
+             is_template_dependent_type(type_cast_to) &&
+             !is_array_type(type_cast_to)) {
     /* A cast to an unknown type in a prototype instantiation.  This is
        handled specially because it may have more than one argument.
        In a constant expression, a cast to a class type is not allowed,
@@ -9620,6 +9680,10 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
            value-initialization, and there's no error for value-
            initializing a reference, but that has to be wrong. */
         pos_error(ec_bad_cast, &lparen_pos);
+        make_error_operand(result);
+      } else if (is_array_type(type_cast_to)) {
+        /* Also a cast to an array type, let by above in some modes. */
+        pos_ty_error(ec_cast_to_bad_type, start_position, type_cast_to);
         make_error_operand(result);
       } else {
         /* See if the cast is valid in the current expression kind by
@@ -9677,9 +9741,17 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
          expression list, a top-level comma is not allowed. */
       scan_cast_expression(type_cast_to, /*allow_comma=*/FALSE, PREC_LOWEST,
                            result, &local_bound_function_selector);
-      /* Check compatibility of the types and do the cast. */
-      do_cast(type_cast_to, result, &local_bound_function_selector,
-              local_options, err, start_position, start_position);
+      if (is_array_type(type_cast_to)) {
+        /* Catch cast-to-error cases allowed by above. */
+        if (!check_array_cast(type_cast_to, result, start_position)) {
+          type_cast_to = error_type();
+          err = TRUE;
+        }  /* if */
+      } else {
+        /* Check compatibility of the types and do the cast. */
+        do_cast(type_cast_to, result, &local_bound_function_selector,
+                local_options, err, start_position, start_position);
+      }  /* if */
     }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = end_pos_curr_token;
