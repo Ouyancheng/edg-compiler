@@ -959,6 +959,9 @@ error code.
     case ec_overloaded_function_types_too_similar:
       m = "overloaded function type is too similar to previous function type";
       break;
+    case ec_bad_rvalue_array:
+      m = "invalid use of non-lvalue array";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

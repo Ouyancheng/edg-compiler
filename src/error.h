@@ -341,7 +341,8 @@ typedef enum /*an_error_code*/ {
   ec_indirect_nonvirtual_base_class_not_allowed,
   ec_no_constructor,
   ec_bad_union_field,
-  ec_overloaded_function_types_too_similar
+  ec_overloaded_function_types_too_similar,
+  ec_bad_rvalue_array
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
