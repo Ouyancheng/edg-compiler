@@ -623,15 +623,21 @@ kind entry_kind.
          of entries of that kind. */
       { char               **entry_array_base_array_ptr;
         an_il_entry_number entry_number;
+        sizeof_t           gross_entry_size, offset_to_entry;
+
+        /* Determine the size of the entry including the prefix. */
+        gross_entry_size = entry_length_with_prefix(entry_kind,
+                                                    is_file_scope_entry,
+                                                    &offset_to_entry);
         entry_array_base_array_ptr = is_file_scope_entry ?
                                        fs_entry_array_base_array :
                                        entry_array_base_array;
-        /* Note that sizeof_il_entry for string entries is 1, so this works
-           right for them too. */
+        /* Determine the entry number by dividing the offset into the
+           area by the size of each entry. */
         /* The first entry in the array is entry 1, therefore "1 +". */
-        entry_number = 1 + (entry_ptr -
+        entry_number = 1 + (entry_ptr - offset_to_entry -
                             entry_array_base_array_ptr[(int)entry_kind]) /
-                                              sizeof_il_entry[(int)entry_kind];
+                                                              gross_entry_size;
         (void)printf("#%ld", (unsigned long)entry_number);
       }
 #else /* !(ALTERNATE_IL_FILE_FORMAT && STANDALONE_UTILITY_PROGRAM) */
