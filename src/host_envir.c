@@ -2082,10 +2082,6 @@ Change any non-identifier characters in the indicated string to underscores.
 }  /* change_non_id_characters */
 
 
-static char	*module_id /* = NULL */;
-			/* A string used to qualify static names that are put
-			   out as external names to make them unique. */
-
 char *make_module_id(void)
 /*
 Make a string that is based on the name of the current module and is used to
@@ -2985,7 +2981,21 @@ Do one-time initialization related to host specific processing.  This
 is done after command line processing.
 */
 {
+#if MODULE_ID_NEEDED
+  register_trans_unit_variable(module_id);
+#endif /* MODULE_ID_NEEDED */
 }  /* host_envir_one_time_init */
+
+
+void host_envir_trans_unit_init(void)
+/*
+Initialize variables that are specific to a given translation unit.
+*/
+{
+#if MODULE_ID_NEEDED
+  module_id = NULL;
+#endif /* MODULE_ID_NEEDED */
+}  /* host_envir_trans_unit_init */
 
 
 void host_envir_early_init(void)
@@ -3018,9 +3028,6 @@ so that it can be redone to compile more than one source file in a single
 invocation of the front end.
 */
 {
-#if MODULE_ID_NEEDED
-  module_id = NULL;
-#endif /* MODULE_ID_NEEDED */
   dir_and_file_buffer = NULL;
 }  /* host_envir_init */
 

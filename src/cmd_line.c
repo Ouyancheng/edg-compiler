@@ -3480,7 +3480,7 @@ Call the translation unit routine for the secondary translation units.
       change_primary_include_search_dir(dir_name_of_primary_source_file);
     }  /* if */
     process_translation_unit(file_name, /*is_primary=*/FALSE,
-                             /*for_exported_templates=*/FALSE);
+                             (an_exported_template_file_ptr)NULL);
   }  /* while */
 }  /* proc_secondary_translation_units */
 

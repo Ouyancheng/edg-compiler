@@ -1267,6 +1267,13 @@ typedef struct an_exported_template_file {
 			/* If the translation unit for this file has been
 			   loaded, this point to the translation unit entry.
 			   NULL if the translation unit has not been loaded. */
+  char		*module_id;
+			/* The module ID read from the exported template
+			   file.  When instantiating exported templates, the
+			   original module ID must be used when referring to
+			   things like static entities that were promoted to
+			   be external so that they could be referenced from
+			   instantiations. */
 } an_exported_template_file;
 
 

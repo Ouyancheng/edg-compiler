@@ -1772,8 +1772,14 @@ is required when using IL lowering or the C generating back end.
 #endif /* !NEED_NAME_MANGLING */
 
 #if MODULE_ID_NEEDED
+
+EXTERN char	*module_id /* = NULL */;
+			/* A string used to qualify static names that are put
+			   out as external names to make them unique. */
+
 extern void change_non_id_characters(char *str);
 extern char *make_module_id(void);
+
 #endif /* MODULE_ID_NEEDED */
 
 extern char *suffix_of(char		*file_name);
@@ -1781,6 +1787,8 @@ extern char *suffix_of(char		*file_name);
 extern unsigned long extract_wide_char_from_string(char *str);
 
 extern void host_envir_one_time_init(void);
+
+extern void host_envir_trans_unit_init(void);
 
 extern void host_envir_early_init(void);
 

@@ -136,6 +136,7 @@ be written.
 typedef enum /* an_exported_template_line_type */ {
   etlt_file_name,
   etlt_template_name,
+  etlt_module_id,
   etlt_last
 } an_exported_template_line_type;
 
@@ -146,6 +147,7 @@ file for the various line type kinds.
 static char	*exported_template_line_type_namess[(int)etlt_last+1] = {
   /* etlt_file_name */			"fnm",
   /* etlt_template_name */		"tnm",
+  /* etlt_module_id */			"mid",
   /* etlt_last */			NULL
 };
 
@@ -14639,8 +14641,7 @@ the exported templates in that file.
   /* FIXME - need to handle directory name, include search paths, etc. */
   /* Pop the file scope of the current translation unit. */
   pop_scope();
-  process_translation_unit(etfp->source_file_name, /*is_primary=*/FALSE,
-                           /*for_exported_templates=*/TRUE);
+  process_translation_unit(etfp->source_file_name, /*is_primary=*/FALSE, etfp);
   /* Save the translation unit pointer associated with this exported template
      file. */
   etfp->translation_unit = curr_translation_unit;
@@ -15268,6 +15269,7 @@ to it.
   etfp->directory_name = NULL;
   etfp->source_file_name = NULL;
   etfp->translation_unit = NULL;
+  etfp->module_id = NULL;
   return etfp;
 }  /* alloc_exported_template_file */
 
@@ -15425,6 +15427,12 @@ templates defined in the file.
         tlp->exported_template_file = etfp;
 
       }  /* if */
+#if MODULE_ID_NEEDED
+   } else if (strncmp(line, "mid:", 4) == 0) {
+      char	*new_module_id = &line[4];
+      etfp->module_id = copy_string_to_region(
+                                       FRONT_END_REGION_NUMBER, new_module_id);
+#endif /* MODULE_ID_NEEDED */
     } else {
       unexpected_condition_str("read_exported_template_file: bad line kind");
     }  /* if */
@@ -16025,6 +16033,11 @@ Create the file containing information about exported templates.
     /* Output the file name. */
     write_to_exported_template_file(etlt_file_name, primary_source_file_name);
   }  /* if */
+#if MODULE_ID_NEEDED
+  /* Write the module ID. */
+  make_module_id();
+  write_to_exported_template_file(etlt_module_id, module_id);
+#endif /* MODULE_ID_NEEDED */
 }  /* generate_exported_template_file */
 
 

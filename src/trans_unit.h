@@ -73,9 +73,10 @@ typedef struct a_translation_unit {
 
 extern void trans_unit_early_init(void);
 
-extern void process_translation_unit(char	*file_name,
-				     a_boolean	is_primary,
-				     a_boolean	for_exported_templates);
+extern void process_translation_unit(
+				char				*file_name,
+				a_boolean			is_primary,
+				an_exported_template_file_ptr	exported_file);
 
 extern void switch_translation_unit(a_translation_unit_ptr	tup);
 
