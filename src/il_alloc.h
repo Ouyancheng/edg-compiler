@@ -20,6 +20,8 @@ il_alloc.h -- Declarations related to allocation of intermediate language
 
 extern char *alloc_il(sizeof_t size);
 
+extern char *alloc_primary_file_scope_il(sizeof_t size);
+
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
 a_scope_orphaned_list_header_ptr alloc_scope_orphaned_list_header(
                                                  a_routine_ptr   assoc_routine,

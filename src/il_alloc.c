@@ -225,11 +225,13 @@ multiple translation units.
 Allocate a file-scope IL entry of size "size" preceded by an_il_entry_prefix
 and (if appropriate) an orphan list pointer, and initialize the prefix
 and orphan pointer to default values.  ptr is a "char *" pointer and is set
-to point to the entry proper.
+to point to the entry proper.  fs_region_number indicates the file scope
+region number to be used (there can be several, when secondary translation
+units are involved).
 */
-#define do_fs_alloc(ptr, size)                                        \
+#define do_fs_alloc(ptr, size, fs_region_number)                      \
 { ptr = alloc_in_region(					      \
-          file_scope_region_number,				      \
+          fs_region_number,                                           \
           (sizeof_t)((size) + file_scope_entry_prefix_size));         \
   if (!is_primary_translation_unit) {				      \
     clear_and_incr_past_trans_unit_corresp_pointer(ptr);		      \
@@ -247,7 +249,7 @@ file-scope and normal allocation methods as necessary).
 */
 #define do_any_alloc(ptr, region_number, size)                        \
 { if ((region_number) == file_scope_region_number) {                  \
-    do_fs_alloc((ptr), (size));                                       \
+    do_fs_alloc((ptr), (size), file_scope_region_number);             \
   } else {                                                            \
     do_alloc((ptr), (region_number), FALSE, (size));                  \
   }  /* if */                                                         \
@@ -301,12 +303,27 @@ Allocate and return "size" bytes of storage in the file scope memory region.
 */
 {
   char *ptr;
-  do_fs_alloc(ptr, size);
+  do_fs_alloc(ptr, size, file_scope_region_number);
 #ifdef TRACE_ALLOC
   trace_alloc_check(ptr);
 #endif /* TRACE_ALLOC */
   return ptr;
 }  /* alloc_il */
+
+
+char *alloc_primary_file_scope_il(sizeof_t size)
+/*
+Allocate and return "size" bytes of storage in the file scope memory region
+of the primary translation unit.
+*/
+{
+  char *ptr;
+  do_fs_alloc(ptr, size, FILE_SCOPE_REGION_NUMBER);
+#ifdef TRACE_ALLOC
+  trace_alloc_check(ptr);
+#endif /* TRACE_ALLOC */
+  return ptr;
+}  /* alloc_primary_file_scope_il */
 
 #if !STANDALONE_UTILITY_PROGRAM
 
@@ -396,7 +413,9 @@ Allocate a source file entry, initialize it, and return a pointer to it.
 {
   a_source_file_ptr  sfp;
 
-  sfp = (a_source_file_ptr)alloc_il(sizeof(a_source_file));
+  /* Entries for secondary translation units are allocated in the primary
+     translation unit file scope memory region. */
+  sfp = (a_source_file_ptr)alloc_primary_file_scope_il(sizeof(a_source_file));
 #if DEBUG
   num_source_files_allocated++;
 #endif /* DEBUG */
