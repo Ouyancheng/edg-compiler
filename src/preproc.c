@@ -831,7 +831,7 @@ Escapes in the string are processed only if process_escapes is TRUE.
   /* Build a mask used to mask individual characters. */
   centity_mask = (unsigned long)1 << (targ_host_string_char_bit-1);
   centity_mask = centity_mask | (centity_mask-1);
-  name_start_pos = alloc_il((sizeof_t)(
+  name_start_pos = alloc_primary_file_scope_il((sizeof_t)(
            (name_len = len_of_curr_token - 2 /* Drop quoting characters. */)
            + 1 /* Space for null. */));
   in_pos = start_of_curr_token+1;
@@ -1032,7 +1032,7 @@ simply include that.
                                        (a_text_buffer_ptr)NULL);
     /* Copy the name to a string in the IL memory region.  Note that
        the buffer includes the null terminator. */
-    name = (char*)alloc_il(buffer->size);
+    name = (char*)alloc_primary_file_scope_il(buffer->size);
     (void)strcpy(name, buffer->buffer);
     /* Push the name and associated search directory onto the input stack,
        thus starting input from that file. */
