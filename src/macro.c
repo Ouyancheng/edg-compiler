@@ -3272,12 +3272,11 @@ Display and return the amount of space used for various macro tables.
   db_space_used("Macro definition text", macro_definition_space, char);
 
   total = after_end_of_macro_buffer - macro_buffer;
-  db_space_used_other("macro_buffer", total, "(gen. storage)");
-  grand_total += total;
+  db_space_used_general_buffer("macro_buffer", total);
+
   if (pcc_preprocessing_mode) {
     total = after_end_of_aux_buffer_for_pcc_macros - aux_buffer_for_pcc_macros;
-    db_space_used_other("Aux pcc buffer", total, "(gen. storage)");
-    grand_total += total;
+    db_space_used_general_buffer("Aux pcc buffer", total);
   }  /* if */
 
   db_space_used_total();

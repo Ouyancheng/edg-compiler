@@ -46,12 +46,19 @@ extern a_boolean proc_debug_option(char *debug_option);
 }  /* db_space_used */
 
 
-#define db_space_used_general(name, counter, type)                            \
+#define db_space_used_general(name, counter, type)                    \
 { num = counter; size = sizeof(type); total = num*size;               \
   fprintf(f_debug, "%25s %8lu %8lu %8lu (gen. storage)\n", name, num, \
-          size, total); 					      \
+          size, total);                                               \
   grand_total += total;                                               \
 }  /* db_space_used_general */
+
+
+#define db_space_used_general_buffer(name, size)                      \
+{ fprintf(f_debug, "%25s %8s %8s %8lu (gen. storage)\n", name, "",    \
+          "", size);                                                  \
+  grand_total += size;                                                \
+}  /* db_space_used_general_buffer */
 
 
 #define db_space_used_nontype(name, counter, size_arg)                \

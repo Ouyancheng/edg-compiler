@@ -6281,13 +6281,11 @@ Display and return the amount of space used for various lexical tables.
                      num_access_error_descrs_allocated, an_access_error_descr);
 
   total = after_end_of_curr_source_line - curr_source_line;
-  db_space_used_other("curr_source_line", total, "(gen. storage)");
-  grand_total += total;
+  db_space_used_general_buffer("curr_source_line", total);
 
   if (after_end_of_raw_listing_buffer != NULL) {
     total = after_end_of_raw_listing_buffer - raw_listing_buffer;
-    db_space_used_other("raw_listing_buffer", total, "(gen. storage)");
-    grand_total += total;
+    db_space_used_general_buffer("raw_listing_buffer", total);
   }  /* if */
 
   db_space_used_total();
