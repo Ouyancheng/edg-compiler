@@ -821,12 +821,12 @@ Type used to represent float quantities internally:
 (This should not be an array, so that it's always known whether one gets the
 address or the value of the item.)
 */
-typedef struct an_internal_float_value *an_internal_float_value_ptr;
 typedef struct an_internal_float_value {
   /* The type here must match the code in float_pt.c.  The default
      declaration assumes that target floating constants are represented in
      a host double, which is what the default float_pt.c does. */
   a_byte bytes[sizeof(double)];
+  /*lint -esym(829,an_internal_float_value::bytes)*/
 } an_internal_float_value;
 
 /*

@@ -2003,6 +2003,8 @@ Routines used by lower_init.c and c_gen_be.c to generate module IDs
 used to create unique external names.
 */
 
+/*lint -esym(759,change_non_id_characters)*/
+/*lint -esym(765,change_non_id_characters)*/
 void change_non_id_characters(char *str)
 /*
 Change any non-identifier characters in the indicated string to underscores.
