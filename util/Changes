@@ -1,5 +1,11 @@
 Version 2.30
 
+8/21/95  Missing newline at end of file given to edg_decode
+
+If final line of the input to edg_decode ends without a newline, and a
+mangled identifier is the last thing on that line, a garbage character
+(== EOF) was written to the output file.  Now fixed.
+
 8/21/95  Display of false and true in name demangling
 
 Name demangling now puts out false and true in template arguments of

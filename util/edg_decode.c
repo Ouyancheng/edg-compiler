@@ -170,6 +170,9 @@ edg_decode utility program -- demangles names for C++.
     /* Look for the start of an identifier. */
     if (is_id_start_char(ch)) {
       process_identifier();
+      /* If the identifier runs into the end of file without a preceding
+         newline, end the loop. */
+      if (ch == EOF) break;
     }  /* if */
     putchar(ch);
   }  /* while */
