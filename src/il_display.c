@@ -2950,6 +2950,9 @@ Display the indicated label.
   if (ptr->break_label) {
     disp_boolean("break_label", (a_boolean)ptr->break_label);
   }  /* if */
+  if (ptr->switch_break_label) {
+    disp_boolean("switch_break_label", (a_boolean)ptr->switch_break_label);
+  }  /* if */
   if (ptr->continue_label) {
     disp_boolean("continue_label", (a_boolean)ptr->continue_label);
   }  /* if */

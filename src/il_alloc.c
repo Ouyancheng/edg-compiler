@@ -2330,6 +2330,7 @@ to it.
   lp->next = NULL;
   lp->reachable_by_fall_through = TRUE;
   lp->break_label = FALSE;
+  lp->switch_break_label = FALSE;
   lp->continue_label = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   lp->leave_label = FALSE;

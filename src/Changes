@@ -1,5 +1,12 @@
 Version 3.6
 
+4/6/05   Labels for switch breaks marked as such
+
+The front end converts break statements to goto statements with synthesized
+labels whose break_label flag is set to TRUE.  Now an additional flag is set
+to TRUE if the break statement breaks out of a switch statement (as opposed
+to any of the loop statements).  The new flag is spelled switch_break_label.
+
 4/6/05   GNU and Microsoft compatibility: Incomplete dependent base classes
 
 In GNU and Microsoft C++ modes the front end now accepts any kind of incomplete

@@ -7748,6 +7748,10 @@ typedef struct a_label {
   a_bit_field	break_label:1;
 			/* TRUE if this is a compiler-generated label that
 			   is the target of a "break" statement. */
+  a_bit_field   switch_break_label:1;
+			/* TRUE if this is a compiler-generated label that
+			   is the target of a switch "break" statement.  Set
+			   in addition to break_label above. */
   a_bit_field	continue_label:1;
 			/* TRUE if this is a compiler-generated label that
 			   is the target of a "continue" statement. */

@@ -329,6 +329,8 @@ purposes.
       label = cfdp->variant.goto_statement.ptr->variant.label.ptr;
       if (label->continue_label) {
         fputs("continue", f_debug);
+      } else if (label->switch_break_label) {
+        fputs("switch break", f_debug);
       } else if (label->break_label) {
         fputs("break", f_debug);
       } else {
@@ -341,6 +343,8 @@ purposes.
       label = cfdp->variant.label_statement->variant.label.ptr;
       if (label->continue_label) {
         fputs("continue label", f_debug);
+      } else if (label->switch_break_label) {
+        fputs("switch break label", f_debug);
       } else if (label->break_label) {
         fputs("break label", f_debug);
       } else {
@@ -513,13 +517,6 @@ dump_control_flow has been enabled at the command line.
 
 #endif /* DEBUG */
 
-#if DEBUG
-static unsigned long
-		cfd_id_number;
-			/* Identifier number used in control flow debug
-			   output. */
-#endif /* DEBUG */
-
 static a_control_flow_descr_ptr alloc_control_flow_descr(
                                                a_control_flow_descr_kind kind)
 /*
@@ -529,6 +526,9 @@ to it.
 */
 {
   register a_control_flow_descr_ptr  cfdp;
+#if DEBUG
+  static   unsigned long             id_number = 0;
+#endif /* DEBUG */
 
   db_enter(5, "alloc_control_flow_descr");
   if (avail_control_flow_descrs != NULL) {
@@ -549,7 +549,7 @@ to it.
   cfdp->kind = kind;
   cfdp->source_pos = error_position;
 #if DEBUG
-  cfdp->id_number = ++cfd_id_number;
+  cfdp->id_number = ++id_number;
 #endif /* DEBUG */
 #if UPC_EXTENSIONS_ALLOWED
   cfdp->enclosing_forall = NULL;
@@ -985,8 +985,7 @@ is found, a diagnostic is issued (an error in C++, a warning otherwise), and
         vp = cfdp->variant.init.variable;
         severity = es_none;
         if (vp != NULL && !cfdp->variant.init.is_vla_variable) {
-          check_assertion(sp == NULL ||
-                          sp->kind == (a_statement_kind)stmk_init ||
+          check_assertion(sp->kind == (a_statement_kind)stmk_init ||
                           (C_mode() && microsoft_mode &&
                            sp->kind == (a_statement_kind)stmk_block));
           if (!has_static_storage_duration(vp->storage_class)) {
@@ -1033,10 +1032,9 @@ is found, a diagnostic is issued (an error in C++, a warning otherwise), and
           if (vp != NULL) {
             /* Issue the diagnostic addendum that identifies this particular
                variable. */
-            sym_add_diag_info((sp != NULL &&
-                               sp->kind == (a_statement_kind)stmk_vla_decl) ?
-                                  ec_vla_name_at_decl_position :
-                                  ec_name_at_decl_position,
+            sym_add_diag_info(sp->kind == (a_statement_kind)stmk_vla_decl ?
+                                ec_vla_name_at_decl_position :
+                                ec_name_at_decl_position,
                               (a_symbol_ptr)vp->source_corresp.assoc_info);
           } else {	
             /* Diagnostic addendum that identifies the VLA declaration. */
@@ -1780,26 +1778,6 @@ should be set to TRUE.
   db_exit();
 }  /* add_statement_list */
 
-#if UPC_EXTENSIONS_ALLOWED
-
-static void check_for_return_in_upc_forall(a_source_position  *stmt_pos)
-/*
-We're about to create a return statement.  Issue a warning if it is a reachable
-statement within a upc_forall construct.  (The UPC specification indicates that
-this leads to undefined behavior when executed.)
-*/
-{
-  if (upc_mode && curr_reachability.reachable_considering_hints &&
-      innermost_forall_loop != NULL) {
-    pos_warning(ec_exit_forall, stmt_pos);
-  }  /* if */
-}  /* check_for_return_in_upc_forall */
-
-#else /* !UPC_EXTENSIONS_ALLOWED */
-
-#define check_for_return_in_upc_forall(stmt_pos)  /* Nothing */
-
-#endif /* UPC_EXTENSIONS_ALLOWED */
 
 a_statement_ptr add_statement_at_stmt_pos(a_statement_kind   kind,
                                           a_source_position  *stmt_pos)
@@ -1815,8 +1793,8 @@ the current statement sequence.
   /* Maintain the code reachable flag.  Labels are always reachable. */
   if (kind == (a_statement_kind)stmk_label) {
     set_reachable(curr_reachability);
-  } else if (kind == (a_statement_kind)stmk_return) {
 #if GNU_EXTENSIONS_ALLOWED
+  } else if (kind == (a_statement_kind)stmk_return) {
     a_routine_ptr  rp = current_routine_entry();
     a_type_ptr     rtp = skip_typerefs(rp->type);
     if (rtp->variant.routine.extra_info->does_not_return &&
@@ -1830,7 +1808,6 @@ the current statement sequence.
       rtp->variant.routine.extra_info->does_not_return = FALSE;
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-    check_for_return_in_upc_forall(stmt_pos);
   }  /* if */
 
   /* Allocate the statement entry. */
@@ -1902,22 +1879,6 @@ declarations.
   add_to_control_flow_descr_list(cfdp);
 }  /* update_init_statement_control_flow */
 
-
-void record_trivial_init_control_flow(a_variable_ptr  var)
-/*
-Record a control flow entry for a trivial initialization of the given variable
-(corresponding to the invocation of a trivial constructor).   Such an
-initialization does not require an init statement (since no actual
-initialization work must be performed), but it must be diagnosed when branched
-over.
-*/
-{
-  a_control_flow_descr_ptr  cfdp;
-
-  cfdp = alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_init);
-  cfdp->variant.init.variable = var;
-  add_to_control_flow_descr_list(cfdp);
-}  /* record_trivial_init_control_flow */
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 
@@ -2693,7 +2654,7 @@ struct_stmt_stack_container, and struct_stmt_stack.
                                       STRUCT_STMT_STACK_INCREMENTAL_ALLOCATION;
   /* Reallocate the container, copying the old to the new. */
   struct_stmt_stack_container =
-                       (a_struct_stmt_stack_entry_ptr)realloc_buffer(
+                       (a_struct_stmt_stack_entry_ptr)realloc_general(
                        (char *)struct_stmt_stack_container,
                        (sizeof_t)(size_struct_stmt_stack_container*
                                             sizeof(a_struct_stmt_stack_entry)),
@@ -4632,8 +4593,7 @@ issue a diagnostic complaining about skipping over an initialization.
       sp = cfdp->variant.init.statement;
       vp = cfdp->variant.init.variable;
       if (vp != NULL && !cfdp->variant.init.is_vla_variable) {
-        check_assertion(sp == NULL ||
-                        sp->kind == (a_statement_kind)stmk_init ||
+        check_assertion(sp->kind == (a_statement_kind)stmk_init ||
                         (C_mode() && microsoft_mode &&
                          sp->kind == (a_statement_kind)stmk_block));
         /* We only issue a diagnostic for jumping over an initialization of
@@ -4647,13 +4607,7 @@ issue a diagnostic complaining about skipping over an initialization.
             tp = vp->type;
             if (is_array_type(tp)) tp = underlying_array_element_type(tp);
             tp = skip_typerefs(tp);
-            if (sp == NULL) {
-              /* cfdp stands for a trivial non-POD initialization.  No
-                 statement is needed for such initializations, but a branch
-                 over the initialization still must be diagnosed. */
-              severity = strict_ansi_mode ? strict_ansi_error_severity
-                                          : es_warning;
-            } else if (is_class_struct_union_type(tp) && !microsoft_mode) {
+            if (is_class_struct_union_type(tp) && !microsoft_mode) {
               severity = es_error;
             } else if (strict_ansi_mode) {
               severity = strict_ansi_error_severity;
@@ -4685,10 +4639,9 @@ issue a diagnostic complaining about skipping over an initialization.
         if (vp != NULL) {
           /* Issue the diagnostic addendum that identifies this particular
              variable. */
-          sym_add_diag_info((sp != NULL &&
-                             sp->kind == (a_statement_kind)stmk_vla_decl) ?
-                               ec_vla_name_at_decl_position :
-                               ec_name_at_decl_position,
+          sym_add_diag_info(sp->kind == (a_statement_kind)stmk_vla_decl ?
+                              ec_vla_name_at_decl_position :
+                              ec_name_at_decl_position,
                             (a_symbol_ptr)vp->source_corresp.assoc_info);
         } else {
           /* Diagnostic addendum that identifies the VLA declaration. */
@@ -4752,12 +4705,12 @@ diagnose the condition.
 #endif /* DEBUG */
 #if UPC_EXTENSIONS_ALLOWED
   if (label_cfdp->enclosing_forall != goto_cfdp->enclosing_forall) {
-    /* goto and label are either in different forall statements or one is in
-       a forall and the other is not.  (The UPC specification indicates that
-       this leads to undefined behavior when executed.)   */
-    pos_warning(ec_exit_forall, &goto_cfdp->source_pos);
-  }  /* if */
+    /* goto and label are either in different forall statements or
+       one is in a forall and the other is not. */
+    pos_error(ec_exit_forall, &goto_cfdp->source_pos);
+  } else
 #endif /* UPC_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
   if (check_for_branch_into_goto_protected_block(label_cfdp, goto_cfdp)) {
     /* Ignore the jump-over-initialization errors -- this is an illegal
        branch into a catch clause or try block.  (The diagnostic has
@@ -5154,6 +5107,9 @@ give the starting and ending positions of the break statement.
     /* The break label has not previously been used, so generate it. */
     dest_label = sssep->break_label = alloc_temp_label();
     dest_label->break_label = TRUE;
+    if (sssep->kind == (a_struct_stmt_kind)ssk_switch) {
+      dest_label->switch_break_label = TRUE;
+    }  /* if */
   }  /* if */
   /* Allocate the goto statement. */
   sp = add_statement_at_stmt_pos((a_statement_kind)stmk_goto, pos);
@@ -5225,28 +5181,6 @@ has at least one VLA variable.
                                             ->variant.block.any_vla_variables;
 }  /* parent_block_has_vla */
 
-#if UPC_EXTENSIONS_ALLOWED
-
-static void check_for_leaving_upc_forall(a_struct_stmt_stack_entry_ptr  sssep)
-/*
-We are parsing a break statement.  Issue a warning if it is a reachable break
-out of a upc_forall statement.  (The UPC specification indicates that this
-leads to undefined behavior when executed.)  sssep is the statement to which
-the break applies.
-*/
-{
-  if (upc_mode && curr_reachability.reachable_considering_hints &&
-      sssep->statement != NULL &&
-      sssep->statement->kind == (a_statement_kind)stmk_upc_forall) {
-    warning(ec_exit_forall);
-  }  /* if */
-}  /* check_for_leaving_upc_forall */
-
-#else /* !UPC_EXTENSIONS_ALLOWED */
-
-#define check_for_leaving_upc_forall(sssep)  /* Nothing */
-
-#endif /* UPC_EXTENSIONS_ALLOWED */
 
 static void break_statement(void)
 /*
@@ -5279,7 +5213,6 @@ See also 3.6.6.3.
     error(ec_break_must_be_in_loop_or_switch);
   } else {
     check_for_leaving_statement_expr(sssep);
-    check_for_leaving_upc_forall(sssep);
   }  /* if */
   /* Advance over the "break". */
 #if CHECKING
@@ -5303,8 +5236,7 @@ See also 3.6.6.3.
       set_stmt_source_position(sssep->curr_switch_clause->break_position,
                                start_position);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-      set_stmt_source_position(sssep->curr_switch_clause->break_end_position,
-                               end_position);
+      sssep->curr_switch_clause->break_end_position = end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     }  /* if */
     if (top_level_break &&
@@ -5631,6 +5563,14 @@ See also 3.6.6.4.
     stmt_update_source_sequence_entry(sp, src_seq_entry);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
+#if UPC_EXTENSIONS_ALLOWED
+  if (innermost_forall_loop != NULL) {
+    /* Cannot issue return from inside a forall loop. */
+    error(ec_exit_forall);
+    sp = NULL;
+    return_type = error_type();
+  }  /* if */
+#endif /* UPC_EXTENSIONS_ALLOWED */
   if (sp != NULL) {
     /* Do processing required for any pragmas that are bound to the current
        statement. */
@@ -6018,8 +5958,7 @@ redundant diagnostics in case ranges (GNU C mode only).
       prev_reachability = curr_reachability;
       label = alloc_temp_label();
       if (label_directly_in_switch) {
-        goto_stmt = add_statement_at_stmt_pos((a_statement_kind)stmk_goto,
-                                              &null_source_position);
+        goto_stmt = add_statement((a_statement_kind)stmk_goto);
         label->case_fallthrough_label = TRUE;
       } else {
         goto_stmt = alloc_statement((a_statement_kind)stmk_goto);
@@ -7323,10 +7262,6 @@ be repeated for every (primary or secondary) translation unit.
   /* Initialize static variables. */
   struct_stmt_stack_container = NULL;
   size_struct_stmt_stack_container = 0;
-#if UPC_EXTENSIONS_ALLOWED
-  affinity_forall_loop = NULL;
-  innermost_forall_loop = NULL;
-#endif /* UPC_EXTENSIONS_ALLOWED */
 }  /* statements_trans_unit_init */
 
 
@@ -7341,7 +7276,6 @@ of the front end.
   avail_control_flow_descrs = NULL;
 #if DEBUG
   num_control_flow_descrs_allocated = 0;
-  cfd_id_number = 0;
 #endif /* DEBUG */
 }  /* statements_init */
 
