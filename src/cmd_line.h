@@ -132,6 +132,7 @@ typedef enum /*an_option_kind*/ {
   optk_typename,
   optk_implicit_typename,
   optk_special_subscript_cost,
+  optk_suppress_instantiation_flags,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -451,6 +452,12 @@ EXTERN a_boolean
 			   performed.  This includes both the generation of
  			   the instantiation flags and the processing of the
 			   instantiation list. */
+
+EXTERN a_boolean
+		suppress_instantiation_flags /* = FALSE */;
+			/* Should the instantiation flags that are normally
+			   generated as part of the automatic instantiation
+			   process be suppressed. */
 
 EXTERN char	*ii_file_name /* = NULL */;
 			/* Name of the instantiation information file to
