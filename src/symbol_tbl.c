@@ -4366,7 +4366,8 @@ It cannot be used for checking access (see have_access_to_symbol).
   } else if (sym_ptr->kind == (a_symbol_kind)sk_class_template) {
     /* Access for class templates is stored in the template symbol
        supplement. */
-    access = sym_ptr->variant.template_info->variant.class_template.access;
+    access = (an_access_specifier)sym_ptr->
+                         variant.template_info->variant.class_template.access;
   } else if (sym_ptr->kind == (a_symbol_kind)sk_function_template) {
     /* Access for function templates is stored in routine entry pointed to
        by the template symbol supplement. */
