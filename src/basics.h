@@ -259,9 +259,9 @@ typedef ptrdiff_t a_ptrdiff;
 /* Turbo C does not define CHAR_MIN correctly for signed characters.
    It defines it as 0x80, which is not a negative number in int context.
    It should be defined as -128. */
-#ifdef CHAR_MAX
-#undef CHAR_MAX
-#endif /* !defined(CHAR_MAX) */
+#ifdef CHAR_MIN
+#undef CHAR_MIN
+#endif /* ifdef CHAR_MIN */
 #define CHAR_MIN (-128)
 #endif /* __TURBOC__ */
 #if __MSC__
