@@ -1,5 +1,16 @@
 Version 2.24
 
+6/29/94 cfront compatibility: ptr-to-member-function cast to ptr-to-function
+
+In cfront compatibility mode, it is now legal to cast a constant pointer-
+to-member function to a pointer-to-function.  A warning is issued.
+
+  struct A {int f();};
+  main () {
+    int (*p)();
+    p = (int (*)())A::f;  // Okay, with warning
+  }
+
 6/29/94 IL CHANGE: name changes related to exception specifications
 
 The names of types defined to support exceptions specifications have been
