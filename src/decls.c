@@ -8341,16 +8341,20 @@ types, e.g., "unsigned int".  See ARM 7.1.6 and 5.2.3.
 
 a_boolean check_function_return_type(a_type_ptr         rout_type,
                                      a_source_position  *err_pos,
-                                     a_boolean          is_call)
+                                     a_boolean          is_expr_use)
 /*
-Given a routine type, check the that the return type is valid, issuing an
+Given a routine type, check that the return type is valid, issuing an
 error if not, and also set the routine calling method flag if appropriate.
+is_expr_use is TRUE if the function is being called or its address is
+being taken.
 */
 {
-  a_type_ptr     return_type;
-  an_error_code  error_code;
-  a_boolean      err = FALSE;
+  a_type_ptr                     return_type;
+  an_error_code                  error_code;
+  a_boolean                      err = FALSE;
+  a_routine_type_supplement_ptr  rtsp;
 
+  rout_type = skip_typerefs(rout_type);
   /* Any type qualifiers on the return type are dropped because rvalues
      do not have qualified types. */
   return_type = skip_typerefs(rout_type->variant.routine.return_type);
@@ -8367,14 +8371,24 @@ error if not, and also set the routine calling method flag if appropriate.
   } else if (is_error_type(return_type)) {
     /* No diagnostic this time. */
   } else {
-    if (is_call) {
+    if (is_expr_use) {
       /* The type check is simpler on function calls, because function and
          array types have already been filtered out. */
       check_assertion(!is_array_type(return_type) &&
                       !is_function_type(return_type));
       if (is_incomplete_type(return_type)) {
+        /* Note that err is set (for the return value) even if no diagnostic
+           is actually issued. */
         err = TRUE;
-        error_code = ec_calling_function_with_incomplete_return_type;
+        rtsp = rout_type->variant.routine.extra_info;
+        if (rtsp->suppress_diagnostic_on_incomplete_return_type) {
+          /* A diagnostic has already been issued on calling (or taking the
+             address of) this routine.  No need to do it again. */
+          error_code = ec_no_error;
+        } else {
+          error_code = ec_calling_function_with_incomplete_return_type;
+          rtsp->suppress_diagnostic_on_incomplete_return_type = TRUE;
+        }  /* if */
       }  /* if */
     } else {
       /* Declaration case. */
@@ -8395,7 +8409,7 @@ error if not, and also set the routine calling method flag if appropriate.
       /* If the function is one that returns its value to a caller-supplied
          location using a copy constructor, mark the routine type. */
       set_routine_calling_method_flag(rout_type);
-    } else {
+    } else if (error_code != ec_no_error) {
       pos_error(error_code, err_pos);
     }  /* if */
   }  /* if */
@@ -8434,7 +8448,7 @@ and for the instantiation of template functions.
   /* Issue an error if this is an invalid return type. */
   (void)check_function_return_type(rout_type,
                                    &rout_ptr->source_corresp.decl_position,
-                                   /*is_call=*/FALSE);
+                                   /*is_expr_use=*/FALSE);
   /* In certain very obscure cases, the routine type associated with
      rout_ptr may be replaced by an equivalent type entry.  Refetch the type,
      just in case. */

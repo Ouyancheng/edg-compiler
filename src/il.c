@@ -3760,6 +3760,7 @@ to default values.
       rtsp->value_returned_by_cctor  = FALSE;
       rtsp->assoc_routine_is_ctor    = FALSE;
       rtsp->assoc_routine_is_dtor    = FALSE;
+      rtsp->suppress_diagnostic_on_incomplete_return_type = FALSE;
       rtsp->lint_varargs_count       = NOT_LINT_VARARGS;
       rtsp->arg_pragma               = (an_arg_pragma_kind)apk_none;
       rtsp->implicit_this_param_type = NULL;

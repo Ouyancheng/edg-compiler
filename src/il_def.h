@@ -1360,6 +1360,13 @@ typedef struct a_routine_type_supplement {
   unsigned int  assoc_routine_is_dtor:1;
 			/* TRUE if associated with a destructor, even if the
 			   assoc_routine pointer has not yet been supplied. */
+  unsigned int	suppress_diagnostic_on_incomplete_return_type:1;
+			/* TRUE if, upon calling the function or taking its
+			   address, a diagnostic has been put out because the
+			   return type is incomplete; when this flag is set,
+			   diagnostics will not be issued on subsequent uses
+			   (though diagnostics on function definitions are not
+			   affected).  (Intended for front-end use only.) */
   a_lint_varargs_count
 	         lint_varargs_count;
                         /* If not equal to NOT_LINT_VARARGS (-1), this
