@@ -3764,17 +3764,25 @@ Reserve space at the end of the class object for virtual base classes.
     pad_bit_field(lob);
 #if IA64_ABI
     if (lob->curr_base_extent >= lob->byte_offset) {
-      /* The "size without virtual bases" may include some padding when the
-         last nonvirtual base is empty and the class has no fields of its own.
-         This padding is never reused when the class is used as a subobject
-         type.  Note that the quantity "dsize(C)" used in the IA-64 ABI
-         specification is equivalent to lob->byte_offset.  Similarly, the
-         current value of "sizeof(C)" as used in the ABI specification equals
+      /* The "size without virtual bases" may include some padding (e.g., when
+         the last nonvirtual base is empty and the class has no fields of its
+         own).  This padding is normally never reused when the class is used
+         as a subobject type (except when emulating GNU ABI bugs).
+         Note that the quantity "dsize(C)" used in the IA-64 ABI specification
+         is equivalent to lob->byte_offset.  Similarly, the current value of
+         "sizeof(C)" as used in the ABI specification equals
          lob->curr_base_extent+1 when the latter expression is larger than
          lob->byte_offset. */
-      ctsp->size_without_virtual_base_classes = lob->curr_base_extent + 1;
+#if TARG_REUSE_TAIL_PADDING
       if (emulate_gnu_abi_bugs) {
+        /* GNU reuses the tail padding of nonvirtual base classes. */
+        ctsp->size_without_virtual_base_classes = lob->byte_offset;
         lob->byte_offset = lob->curr_base_extent + 1;
+      } else
+#endif /* TARG_REUSE_TAIL_PADDING */
+      /* Do not insert code here. */
+      {
+        ctsp->size_without_virtual_base_classes = lob->curr_base_extent + 1;
       }  /* if */
     } else
 #endif /* IA64_ABI */

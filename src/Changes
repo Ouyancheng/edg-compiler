@@ -1,5 +1,32 @@
 Version 3.3
 
+7/1/03   GNU IA-64 ABI: Reuse of tail padding of indirect base
+
+The default (IA-64-based) GNU C++ ABI deviates from the IA-64 ABI
+specifications by allowing the tail padding for indirect bases to be
+reused.  For example:
+
+  struct S1 {
+    char m1;  // Offset 4 in S1 (virtual function table pointer at offset 0)
+    S1() {}
+    virtual ~S1() {}
+  };
+  struct S2 {
+    short m2;
+    S2() {}
+  };
+  struct S3: S1, virtual S2 {
+    char m3;  // Offset 5 in S3 (reuses tail padding of direct base S1).
+    S3() {}
+  };
+  struct S4: S3 {
+    short m4;  // When emulating GNU ABI bugs, offset 6 in S4 because the
+               // tail padding of indirect base S1 is reused.
+    S4() {}
+  };
+
+This behavior is now imitated when emulating GNU ABI bugs.
+
 6/27/03  GNU mode: Warning only on duplicate clobber
 
 In GNU C and C++ modes, the front end used to issue an error when a
