@@ -4558,12 +4558,14 @@ shares virtual function info.
 
 static void scan_inheritance_kind(a_type_ptr           type_ptr,
                                   a_boolean            *is_virtual,
-                                  an_access_specifier  *access)
+                                  an_access_specifier  *access,
+                                  a_boolean            *explicit_access)
 /*
 Scan any of the keywords "virtual", "public", "private", and "protected"
 that might precede a base class specifier in the definition of the class
 represented by type_ptr.  Set *is_virtual to TRUE if "virtual" is seen,
-and set *access to any explicitly mentioned access specifier.  Issue any
+and set *access to any explicitly mentioned access specifier (if such an
+explicit specifier is seen, set *explicit_access to TRUE).  Issue any
 diagnostics that can be emitted based on this information.
 */
 {
@@ -4608,6 +4610,7 @@ diagnostics that can be emitted based on this information.
     }  /* if */
     (void)get_token();
   }  /* for */
+  *explicit_access = access_already_specified;
 }  /* scan_inheritance_kind */
 
 
@@ -4638,7 +4641,7 @@ or struct definition.  The syntax is
   a_base_class_ptr              new_direct_bcp;
   an_access_specifier           access;
   a_boolean                     is_virtual;
-  a_boolean                     access_already_specified;
+  a_boolean                     explicit_access_specifier;
   char                          *default_access_str;
   a_symbol_ptr                  sym;
   a_type_ptr                    base_class_type;
@@ -4697,7 +4700,8 @@ or struct definition.  The syntax is
     direct_base_number++;
     /* Scan a single base specification, first looping through the specifying
        keywords virtual, public, private, and protected. */
-    scan_inheritance_kind(type_ptr, &is_virtual, &access);
+    scan_inheritance_kind(type_ptr, &is_virtual, &access,
+                          &explicit_access_specifier);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
     {
@@ -4824,7 +4828,7 @@ or struct definition.  The syntax is
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* Issue a diagnostic if an explicit access specifier was not provided
          (as per the recommendation on p. 243 of the ARM). */
-      if (!access_already_specified) {
+      if (!explicit_access_specifier) {
         pos_st_remark(ec_missing_access_specifier, &error_position,
                       default_access_str);
       }  /* if */
