@@ -1441,7 +1441,7 @@ the recursion in get_initializer.
       context->repeat = alloc_constant((a_constant_repr_kind)ck_init_repeat);
       context->repeat->variant.init_repeat.count = last_el-start_el+1;
     }  /* if */
-    *curr_array_element = start_el;
+    *curr_array_element = last_el;
   } else {
     /* Some error. */
     context->type = error_type();

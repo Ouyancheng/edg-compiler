@@ -1,5 +1,25 @@
 Version 3.2
 
+2/10/03  Unspecified array size computed from extended designator
+
+The front end sometimes incorrectly computed the size of an array with an
+unspecified length when that array was initialized with an initializer
+containing an extended designated initializer.  For example:
+
+  int a[] = { [ 0 ... 1 ] = 42 };  // Used to set sizeof(a) = sizeof(int)
+
+This is now fixed.
+
+2/10/03  GNU mode: Diagnostic for unrecognized format function type
+
+In GNU C and C++ mode, an error used to be issued when the "format" attribute
+referred to an unknown format function type.  Now, only a warning is issued
+and the attribute is ignored.  For example:
+
+  int f(char const*, ...) __attribute__((format(diag_printf, 1, 2)));
+    // Triggers warning about diag_printf not being known
+    // (previously, this triggered an error).
+
 2/7/03   Abort in correspondence processing
 
 Under relatively obscure circumstances the front end could abort while
