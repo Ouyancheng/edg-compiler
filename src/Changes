@@ -1,5 +1,16 @@
 Version 3.4
 
+3/29/04  Abort on diagnostic for restrict qualifiers
+
+In C++ modes accepting the restrict qualifier an internal error was triggered
+when attempting to issue a warning for a restrict specifier appearing on a
+typedef of a function type.  For example:
+
+  typedef void F();
+  typedef F restrict RF;  // Previously an internal error.  Now just a warning.
+
+This is now fixed.
+
 3/29/04  Microsoft compatibility: falling off function try block handlers
 
 Normally, falling off the handler of a function try block for a constructor

@@ -4856,7 +4856,9 @@ from decl_specifiers only.
             scope_stack[decl_scope_level].in_prototype_instantiation) {
           /* If we're not instantiating a template, applying a cv-qualifier
              to a function type was probably not intended: Issue a warning. */
-          pos_warning(ec_cv_qualified_function_type, qualifier_pos);
+          a_source_position_ptr  diag_pos = (*qualifiers == TQ_RESTRICT) ?
+                                                 restrict_pos : qualifier_pos;
+          pos_warning(ec_cv_qualified_function_type, diag_pos);
         }  /* if */
         *qualifiers = TQ_NONE;
       }  /* if */
