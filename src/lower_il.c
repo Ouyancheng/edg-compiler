@@ -12441,8 +12441,28 @@ files can reference it.
   */
   if (name == NULL) {
     /* Entity has no name, e.g., a generated routine.  Generate one. */
-    (void)sprintf(buffer, "%lu", unique_id_for_il_pointer(scp));
-    name = buffer;
+    if (is_variable) {
+      a_variable_ptr var = (a_variable_ptr)scp;
+      if (var->is_anonymous_parent_object) {
+        /* Give a name to an anonymous union variable based on its first
+           member's name.  This is necessary so that the name will come out
+           the same whether compiled in a primary translation unit or a
+           secondary one. */
+        a_type_ptr  union_type = var->type;
+        a_field_ptr field;
+        check_assertion(union_type->kind == (a_type_kind)tk_union);
+        field = union_type->variant.class_struct_union.field_list;
+        if (field != NULL) {
+          /* Use the name of the first member. */
+          name = field->source_corresp.name;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    if (name == NULL) {
+      /* Generate a name. */
+      (void)sprintf(buffer, "%lu", unique_id_for_il_pointer(scp));
+      name = buffer;
+    }  /* if */
   }  /* if */
   name_len = strlen(name);
   prefix_len = strlen(prefix);
