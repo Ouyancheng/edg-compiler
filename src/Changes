@@ -1,5 +1,16 @@
 Version 2.46
 
+1/1/01   Microsoft mode initialization oddity: abort in lower_constant
+
+A bug was introduced in 2.45 in the handling of an obscure Microsoft-mode
+initialization oddity first emulated in 2.44 (see Changes entry of 6/24/99).
+The symptom was an abort in lower_constant.  Now fixed.
+
+  int f(int);
+  int main() {
+    int r = { f(17), { 26 } };  // Aborted in Microsoft mode
+  }
+
 12/31/00 Microsoft mode macro expansion: abort on inert macro name
 
 A bug introduced in 2.44 caused aborts in some cases in Microsoft

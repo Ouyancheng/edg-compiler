@@ -2591,11 +2591,20 @@ the type of that entity.
            with static lifetime.  The emulation is not perfect when more
            nesting is involved as in "int x = { f(), { 1, { 2 }}};". */
       } else {
-        combine_initializers(constant, init_dip, next_constant, &next_dip);
-        /* Don't use the second constant (if any) if it has acquired a
-           dynamic component that needs further processing. */
-        constant = (next_dip != NULL)? NULL: next_constant;
-        *init_dip = next_dip;
+        combine_initializers(constant, *init_dip, next_constant, next_dip);
+        /* If the combined initializer is non-constant, keep using the
+           dynamic-initializer representation. */
+        if (next_dip != NULL) {
+          *init_dip = next_dip;
+          constant = NULL;
+        } else if (next_constant->kind ==
+                                       (a_constant_repr_kind)ck_dynamic_init) {
+          *init_dip = next_constant->variant.dynamic_init;
+          constant = NULL;
+        } else {
+          *init_dip = NULL;
+          constant = next_constant;
+        }  /* if */
       }  /* if */
     }  /* while */
   }  /* if */

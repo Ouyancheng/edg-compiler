@@ -3144,20 +3144,19 @@ that expression.
 
 
 void combine_initializers(a_constant_ptr     first,
-                          a_dynamic_init_ptr *first_dip_ptr,
+                          a_dynamic_init_ptr first_dip,
                           a_constant_ptr     second,
-                          a_dynamic_init_ptr *second_dip_ptr)
+                          a_dynamic_init_ptr second_dip)
 /*
 Create the effect of sequentially applying two initializers to the same
 variable.  If an initializer representation is available as "a_constant"
 variables, they can be passed through first and second.  If either of
-these is NULL, the corresponding first_dip_ptr or second_dip_ptr should
-not be null and not point to a null pointer: instead, they should point
-to a dynamic_init_ptr representing the initializer for which (presumably)
-no constant has been created (yet).  This interface conveniently fits that
-of scan_initializer_of_simple_object.  The entities passed as parameters
-should be unshared. The entities pointed to by second and *second_dip_ptr
-are modified to reflect the combined effect.
+these is NULL, the corresponding first_dip or second_dip should
+not be null and should point to a dynamic_init representing the
+initializer for which (presumably) no constant has been created (yet).
+The entities passed as parameters should be unshared.  The entities
+pointed to by second and second_dip are modified to reflect the
+combined effect.
 */
 {
   an_expr_node_ptr first_expr;
@@ -3166,7 +3165,6 @@ are modified to reflect the combined effect.
   if (first != NULL) {
     first_expr = gather_initializer_expressions(first);
   } else {
-    a_dynamic_init_ptr first_dip = *first_dip_ptr;
     check_assertion(first_dip->kind == (a_dynamic_init_kind)dik_expression);
     first_expr = first_dip->variant.expression;
     if (!node_has_side_effects(first_expr, (a_boolean *)NULL)) {
@@ -3182,7 +3180,6 @@ are modified to reflect the combined effect.
     if (second != NULL) {
       modif_ptr = find_expression_in_initializer(second);
     } else {
-      a_dynamic_init_ptr second_dip = *second_dip_ptr;
       check_assertion(second_dip->kind == (a_dynamic_init_kind)dik_expression);
       modif_ptr = &second_dip->variant.expression;
     }  /* if */
@@ -3200,8 +3197,8 @@ original) *second.  In particular, *first can be discarded if it has no
 side-effects.  The constants passed as parameters should be unshared.
 */
 {
-  combine_initializers(first, (a_dynamic_init_ptr*)NULL,
-                       second, (a_dynamic_init_ptr*)NULL);
+  combine_initializers(first, (a_dynamic_init_ptr)NULL,
+                       second, (a_dynamic_init_ptr)NULL);
 }  /* combine_initializer_constants */
 
 

@@ -488,9 +488,9 @@ extern void copy_constant(a_constant *from,
                           a_constant *to);
 
 extern void combine_initializers(a_constant_ptr     first,
-                                 a_dynamic_init_ptr *first_dip_ptr,
+                                 a_dynamic_init_ptr first_dip,
                                  a_constant_ptr     second,
-                                 a_dynamic_init_ptr *second_dip_ptr);
+                                 a_dynamic_init_ptr second_dip);
 
 extern void combine_initializer_constants(a_constant_ptr first,
                                           a_constant_ptr second);
