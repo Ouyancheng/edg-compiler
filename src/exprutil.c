@@ -90,6 +90,7 @@ is scanned.
 #endif /* DEBUG */
   }  /* if */
   rep->kind = kind;
+  rep->already_recorded = FALSE;
   rep->symbol = sym_ptr;
   copy_source_position(*pos, rep->position);
   rep->next = NULL;
@@ -109,13 +110,26 @@ Free the reference entry pointed to by rep.
 }  /* free_ref_entry */
 
 
+static void record_reference(a_ref_entry_ptr rep)
+/*
+Record the symbol reference described by the reference entry rep.
+*/
+{
+  /* Do not record the reference if it has already been recorded. */
+  if (!rep->already_recorded) {
+    reference_to_symbol(rep->kind, rep->symbol, &rep->position,
+                        /*update_il_entry=*/TRUE);
+    rep->already_recorded = TRUE;
+  }  /* if */
+}  /* record_reference */
+
+
 static void record_and_free_ref_entry(a_ref_entry_ptr rep)
 /*
 Record the reference indicated in the reference entry rep, and free the entry.
 */
 {
-  reference_to_symbol(rep->kind, rep->symbol, &rep->position,
-                      /*update_il_entry=*/TRUE);
+  record_reference(rep);
   free_ref_entry(rep);
 }  /* record_and_free_ref_entry */
 
@@ -182,7 +196,7 @@ therefore cannot be modified further.
 }  /* flush_ref_entries_except */
 
 
-void flush_ref_entries_list(void)
+static void flush_ref_entries_list(void)
 /*
 If there are any entries on the list of reference entries for the current
 expression, record and free them now.
@@ -284,8 +298,7 @@ field.
     } else {
       if ((old_kind == srk_modification || old_kind == srk_use_and_modif) &&
           new_kind == srk_address_taken) {
-        reference_to_symbol(old_kind, rep->symbol, &rep->position,
-                            /*update_il_entry=*/TRUE);
+        record_reference(rep);
       }  /* if */
       rep->kind = new_kind;
     }  /* if */
@@ -346,6 +359,26 @@ The list is linked by the next_operand_ref field.
     if (rep->kind == old_kind) rep->kind = new_kind;
   }  /* for */
 }  /* change_some_ref_kinds */
+
+
+void record_operand_modification_refs(an_operand *operand)
+/*
+Record any modification and use-modification references indicated on
+the references list for *operand.  This is used at potential sequence points.
+The reference entries are left on the list but are marked as having
+been already recorded.
+*/
+{
+  a_ref_entry_ptr rep;
+
+  for (rep = operand->ref_entries_list;
+       rep != NULL;
+       rep = rep->next_operand_ref) {
+    if (rep->kind == srk_modification || rep->kind == srk_use_and_modif) {
+      record_reference(rep);
+    }  /* if */
+  }  /* for */
+}  /* record_operand_modification_refs */
 
 
 an_arg_operand_ptr alloc_arg_operand(void)

@@ -59,6 +59,14 @@ typedef struct a_ref_entry {
   a_symbol_reference_kind
 		kind;	/* Kind of reference (modification, address taken,
 			   etc.). */
+  a_byte_boolean
+		already_recorded;
+			/* TRUE if the reference has already been recorded.
+			   Used when modifications are recorded at potential
+			   sequence points.  The modification is recorded, but
+			   the symbol pointer has to be kept around in case
+			   the address of the entity is taken for a reference
+			   parameter to an overloaded operator function. */
   a_symbol_ptr	symbol;	/* Pointer to the referenced symbol. */
   a_source_position
 		position;
@@ -428,8 +436,6 @@ extern void flush_ref_entries_except(a_ref_entry_ptr keep_list1,
                                      a_ref_entry_ptr keep_list2,
                                      a_ref_entry_ptr saved_list);
 
-extern void flush_ref_entries_list(void);
-
 extern a_ref_entry_ptr ref_entry(a_symbol_ptr      sym_ptr,
                                  a_source_position *source_position);
 
@@ -446,6 +452,8 @@ extern void change_arg_operand_list_refs_to_error(
 extern void change_some_ref_kinds(a_ref_entry_ptr         ref_list,
                                   a_symbol_reference_kind old_kind,
                                   a_symbol_reference_kind new_kind);
+
+extern void record_operand_modification_refs(an_operand *operand);
 
 extern an_arg_operand_ptr alloc_arg_operand(void);
 
