@@ -1679,6 +1679,16 @@ mangled_parent_qualifier, which supplies the usual nesting_level == 1.
   /* See if the present level is nested inside some other class or
      namespace. */
   if (scp->is_class_member) {
+#if CHECKING
+    if (!class_type_has_body(scp->parent.class_type)) {
+#if DEBUG
+      (void)fprintf(f_debug, "Parent class = ");
+      db_abbr_type(scp->parent.class_type);
+#endif /* DEBUG */
+      unexpected_condition_str(
+                       "r_mangled_parent_qualifier: parent class has no body");
+    }  /* if */
+#endif /* CHECKING */
     parent_scp = &scp->parent.class_type->source_corresp;
   } else {
     check_assertion(scp->parent.namespace_ptr != NULL);
