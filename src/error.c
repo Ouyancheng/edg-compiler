@@ -814,6 +814,7 @@ symbol_name:
       break;
 #if CHECKING
     case sk_projection:
+    case sk_namespace_projection:
       /* Cannot have a projection of a projection symbol.  This is an
          error. */
       internal_error("form_symbol_summary: projection of projection kind");

@@ -407,6 +407,12 @@ and indentation is the indentation desired.
     put_separator("", strlen(str) + 6);
     fprintf(f_debug, "(= \"%s\")", str);
     col += strlen(str) + 6;
+  } else if (sym->kind == (a_symbol_kind)sk_namespace_projection) {
+    a_symbol_ptr fsym = sym->variant.namespace_projection.fundamental_symbol;
+    if (fsym != NULL) str = str_qualified_name(buffer, fsym);
+    put_separator("", strlen(str) + 6);
+    fprintf(f_debug, "(= \"%s\")", str);
+    col += strlen(str) + 6;
   }  /* if */
 
   if (sym->decl_seq > 0) {
@@ -805,6 +811,11 @@ do_variable:
       break;
     case sk_namespace:
       break;
+    case sk_namespace_projection:
+     if (sym->variant.namespace_projection.is_explicit) {
+       put_string("is_explicit");
+     }  /* if */
+     break;
 #if CHECKING
     default:
       put_string("UNEXPECTED SYMBOL KIND");
@@ -1684,6 +1695,10 @@ state.
     case sk_namespace:
       sym_ptr->variant.namespace_info.ptr = NULL;
       sym_ptr->variant.namespace_info.extra_info = NULL;
+      break;
+    case sk_namespace_projection:
+      sym_ptr->variant.namespace_projection.fundamental_symbol = NULL;
+      sym_ptr->variant.namespace_projection.is_explicit = FALSE;
       break;
 #if CHECKING
     default:
@@ -10026,6 +10041,7 @@ are handled in symbol_tbl_init.)
   name_space_for_symbol_kind[(int)sk_class_template]      = nsk_other;
   name_space_for_symbol_kind[(int)sk_function_template]   = nsk_other;
   name_space_for_symbol_kind[(int)sk_namespace]           = nsk_other;
+  name_space_for_symbol_kind[(int)sk_namespace_projection] = nsk_other;
 #if CHECKING
   /* "undefined" and "routine" must be in the same name space.  See
       decl_default_function. */

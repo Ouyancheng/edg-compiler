@@ -302,7 +302,8 @@ enum a_symbol_kind_tag {
   sk_macro,       	/* Preprocessor macro. */
   sk_constant,		/* Constant (enumerator). */
   sk_type,		/* Typedef'd type. */
-  sk_class_or_struct_tag, /* Tag of a struct, or C++ class type. */
+  sk_class_or_struct_tag,
+			/* Tag of a struct, or C++ class type. */
   sk_union_tag,		/* Tag of a union, or C++ union type. */
   sk_enum_tag,		/* Tag of an enumeration, or C++ enum type. */
   sk_variable,		/* Variable or parameter. */
@@ -320,11 +321,16 @@ enum a_symbol_kind_tag {
 			   linkage, ditto. */
   sk_projection,	/* Projection of a member symbol from a base class
 			   into a derived class. */
-  sk_overloaded_function, /* C++ overloaded function (member or non-member). */
+  sk_overloaded_function,
+			/* C++ overloaded function (member or non-member). */
   sk_parameter,         /* Parameter name in a function prototype. */
-  sk_class_template,    /* Definition of a class template. */
-  sk_function_template, /* Definition of a function template. */
-  sk_namespace,         /* Definition of a namespace. */
+  sk_class_template,    /* Definition of a C++ class template. */
+  sk_function_template, /* Definition of a C++ function template. */
+  sk_namespace,         /* Definition of a C++ namespace. */
+  sk_namespace_projection,
+		        /* Projection of a member of a namespace into another
+			   scope (either through a using-declaration or as a
+			   by-product of a lookup). */
   sk_last
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -340,8 +346,8 @@ EXTERN char	*symbol_kind_names[(int)sk_last + 1]
    "keyword", "macro", "constant", "type", "class or struct", "union",
    "enum", "variable", "field", "static data member", "member function",
    "routine", "label", "undefined", "extern variable", "extern routine",
-   "projection", "overloaded function", "parameter",
-   "class template", "function template", "namespace",
+   "projection", "overloaded function", "parameter", "class template",
+   "function template", "namespace", "namespace projection",
    "last" /* used to check that initialization is right. */
 }
 #endif /* VAR_INITIALIZERS */
@@ -1617,14 +1623,21 @@ typedef struct a_symbol {
     struct {
       a_symbol_ptr
 		symbols;
-			/* Pointer to two or more sk_member_function or
-			   sk_routine symbol entries that represent instances
-			   of an overloaded function name. */
-      unsigned int
-		mixed_static_nonstatic:1;
-			/* TRUE if some but not all the functions have been
-			   declared "static"; applies to sk_member_function
-			   overloading only. */
+			/* Linked list of two or more symbols comprising an
+			   function overload set, where each symbol in the
+			   list has the same name as the current symbol.
+			   When the latter is a class member, each symbol in
+			   the list is either an sk_member_function symbol or
+			   an sk_projection symbol with an sk_member_function
+			   fundamental symbol.  When the current symbol is
+			   not a class member, each symbol is either an
+			   sk_routine symbol or an sk_namespace_projection
+			   symbol with an sk_routine fundamental symbol. */
+      a_byte_boolean
+		mixed_static_nonstatic;
+			/* TRUE when the current symbol is a class member and
+			   some but not all the members of the overload set
+			   are static member functions. */
     } overloaded_function;
     /* When kind == sk_parameter: */
     a_param_id_ptr
@@ -1636,7 +1649,7 @@ typedef struct a_symbol {
                 template_info;
 			/* Pointer to an entry providing additional info about
 			   a C++ class template or function template. */
-    /* When kind = sk_namespace: */
+    /* When kind == sk_namespace: */
     struct {
       a_namespace_ptr
 		ptr;
@@ -1647,6 +1660,29 @@ typedef struct a_symbol {
 			   about a C++ namespace definition; NULL when the
 			   symbol represents a namespace alias. */
     } namespace_info;
+    /* When kind == sk_namespace_projection: */
+    struct {
+      a_symbol_ptr
+		fundamental_symbol;
+			/* Pointer to the symbol representing the fundamental
+			   namespace member to which this projection refers.
+			   For instance:
+			     namespace A { int i; }
+			     namespace B { using A::i; }
+			     namespace C { using B::i; }
+			   The sk_namespace_projection symbols in the scope
+			   s of B and C both point to A::i as fundamental
+			   symbol: the fundamental_symbol is never itself an
+			   an sk_namespace_projection symbol.  Nor will the
+			   fundamental symbol be an sk_overloaded_function
+			   symbol; rather, separate projection symbols will be
+			   created for members of the fundamental namespace's
+			   overload set. */
+      a_byte_boolean
+		is_explicit;
+			/* The projection symbol was brought into the current
+			   scope by means of a using-declaration. */
+    } namespace_projection;
   } variant;
 } a_symbol;
 
