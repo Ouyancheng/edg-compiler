@@ -1,5 +1,14 @@
 Version 2.45
 
+8/9/00  Nonstandard anonymous unions mistakenly represented as standard C++
+        anonymous unions
+
+The modifications applied for the Changes entry of 7/18/00 (nested types in
+nonstandard anonymous unions) brought about the unintended side effect of
+having nonstandard anonymous unions represented as standard auk_field C++
+anonymous unions.  In C mode, this led to implicit field selections not being
+generated in the IL and potential aborts in back ends that consumed that IL.
+
 8/9/00  Source position on expression from pointer-to-member call
 
 The source position in the IL expression for a pointer-to-member call
