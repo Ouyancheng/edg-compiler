@@ -748,7 +748,11 @@ that it can be available to standalone utilities.
 EXTERN a_boolean
                 sun_mode
 #if VAR_INITIALIZERS
+#if !SUN_EXTENSIONS_ALLOWED
+                         = FALSE;
+#else /* SUN_EXTENSIONS_ALLOWED */
                          = DEFAULT_SUN_COMPATIBILITY
+#endif /* !SUN_EXTENSIONS_ALLOWED */
 #endif /* VAR_INITIALIZERS */
                                                     ;
                         /* Accept C language features supported by SUN C++ 5.x
@@ -1706,6 +1710,7 @@ enabled.
 #endif /* DEFAULT_MICROSOFT_MODE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+#if SUN_EXTENSIONS_ALLOWED
 #if DEFAULT_SUN_COMPATIBILITY
 #ifndef DEFAULT_DIALECT_SET
 #define DEFAULT_DIALECT_SET TRUE
@@ -1713,7 +1718,9 @@ enabled.
 #define MULTIPLE_DEFAULT_DIALECTS_SET TRUE
 #endif /* ifndef DEFAULT_DIALECT_SET */
 #endif /* DEFAULT_SUN_COMPATIBILITY */
+#endif /* SUN_EXTENSIONS_ALLOWED */
 
+#if GNU_EXTENSIONS_ALLOWED
 #if DEFAULT_GNU_COMPATIBILITY
 #ifndef DEFAULT_DIALECT_SET
 #define DEFAULT_DIALECT_SET TRUE
@@ -1721,6 +1728,7 @@ enabled.
 #define MULTIPLE_DEFAULT_DIALECTS_SET TRUE
 #endif /* ifndef DEFAULT_DIALECT_SET */
 #endif /* DEFAULT_GNU_COMPATIBILITY */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 #ifdef MULTIPLE_DEFAULT_DIALECTS_SET
  #error -- Cannot set multiple exclusive dialects as defaults
