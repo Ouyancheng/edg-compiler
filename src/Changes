@@ -106,7 +106,7 @@ when microsoft_dialect_is_generated_code_target is TRUE.
 
 When the --restrict or --c99 option was used in conjunction with the --gcc
 option, only the "__restrict" keyword (not the "restrict" form) was accepted.
-Likewise, when --restrict was combined with --g++, only the "--restrict"
+Likewise, when --restrict was combined with --g++, only the "__restrict"
 form was accepted.  In such cases, both "restrict" and "__restrict" should
 be accepted.  This is now done correctly.
 
