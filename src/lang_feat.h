@@ -258,7 +258,7 @@ Flag that is TRUE if variable length arrays (VLAs) are allowed.  A VLA is
 an array whose size is known only at execution time.  This extension
 implements proposal "Arrays of Variable Length", WG14/N637 (X3J11/96-101),
 and is supported in C mode only.  If VLA_ALLOWED is TRUE, support is enabled
-and disabled based on command-line options --[no_]vla, which controls global
+and disabled based on command-line options --[no_]vla, which control global
 variable vla_enabled.
 */
 #ifndef VLA_ALLOWED
