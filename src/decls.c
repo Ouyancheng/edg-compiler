@@ -730,7 +730,7 @@ new fields are set properly.
 }  /* check_operator_function_params */
 
 
-void check_scope_for_new_or_delete(a_symbol_locator  *locator)
+static void check_scope_for_new_or_delete(a_symbol_locator  *locator)
 /*
 Issue an error on declaring an operator new or delete function that is a
 namespace member.
