@@ -3419,6 +3419,9 @@ at file scope.
 #endif /* CHECKING */
   ptp->default_arg_expr = NULL;
   ptp->passed_via_copy_constructor = FALSE;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  ptp->rout_src_seq_entry_for_default_arg_decl = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
   db_exit();
   return ptp;
