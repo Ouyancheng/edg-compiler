@@ -37,6 +37,7 @@ il.c -- Construction of intermediate language trees.
 
 #if !STANDALONE_UTILITY_PROGRAM
 #include "class_decl.h"
+#include "decls.h"
 #include "templates.h"
 
 /*
