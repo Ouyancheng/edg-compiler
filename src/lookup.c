@@ -2671,20 +2671,18 @@ type, that type is ignored by this routine.
              associated with the file scope. */
           /* Look on the list associated with the first type. */
           for (nlep = nlep_1; nlep != NULL; nlep = nlep->next) {
-            if (nsp == NULL) {
+            if (nlep->ptr == nsp) {
+              if (nsp != NULL) break;
               if (sym->decl_scope == FILE_SCOPE_NUMBER) break;
-            } else {
-              if (nlep->ptr == nsp) break;
             }  /* if */
           }  /* for */
           if (nlep == NULL) {
             /* The namespace was not found on the first list, look on the
                list associated with the second type. */
             for (nlep = nlep_2; nlep != NULL; nlep = nlep->next) {
-              if (nsp == NULL) {
+              if (nlep->ptr == nsp) {
+                if (nsp != NULL) break;
                 if (sym->decl_scope == FILE_SCOPE_NUMBER) break;
-              } else {
-                if (nlep->ptr == nsp) break;
               }  /* if */
             }  /* for */
           }  /* if */
