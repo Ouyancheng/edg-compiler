@@ -1,6 +1,6 @@
 Version 2.29
 
-5/9/95   for-init-statement marker in source-sequence list
+5/9/95   for-init declaration marker in source-sequence list
 
 When GENERATE_SOURCE_SEQUENCE_ENTRIES is TRUE and a for-init-statement
 consists of a declaration, an end-of-construct entry (pointing to the
