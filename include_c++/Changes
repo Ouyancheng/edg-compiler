@@ -11,6 +11,7 @@ delete is enabled.
 The placement delete declarations in new.h have been enabled.  They were
 added in version 2.31, but were disabled because the front end did not
 yet support placement delete or overloaded delete operators.
+
 -------------------------------------------------------------------------------
 Version 2.33, Octover 2, 1996
 
