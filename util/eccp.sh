@@ -621,6 +621,8 @@ do
          --no_long_preserving_rules | \
          --extern_inline | \
          --no_extern_inline | \
+         --guiding_decls | \
+         --no_guiding_decls | \
          --force_vtbl)
       feoptions=$feoptions" $1"
 #     Options that require additional processing
