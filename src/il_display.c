@@ -3043,6 +3043,9 @@ Display the indicated dynamic_init structure.
   if (ptr->is_freeing_of_storage_on_exception) {
     disp_boolean("is_freeing_of_storage_on_exception", TRUE);
   }  /* if */
+  if (ptr->destruction_is_for_partially_constructed_array) {
+    disp_boolean("destruction_is_for_partially_constructed_array", TRUE);
+  }  /* if */
   disp_name("kind");
   switch (ptr->kind) {
     case dik_none:
