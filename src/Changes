@@ -6,7 +6,7 @@ New macros are now defined when exceptions, RTTI, and placement delete are
 enabled.  The macro names are specified by the configuration flags
 MACRO_DEFINED_WHEN_EXCEPTIONS_ENABLED, MACRO_DEFINED_WHEN_RTTI_ENABLED,
 and MACRO_DEFINED_WHEN_PLACEMENT_DELETE_ENABLED.  The default values are
-__EXCEPTIONS, __RTTI, and __PLACEMENT delete.
+__EXCEPTIONS, __RTTI, and __PLACEMENT_DELETE.
 
 11/19/96 Internal error when immediate pragma added to scope with no IL scope
 
