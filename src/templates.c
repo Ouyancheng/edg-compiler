@@ -3483,8 +3483,11 @@ the diagnostic is suppressed.
 {
   /* The rescan of the declaration should have produced a routine
      type.  If not all of the tokens were used, or if the type created
-     is not a function type, issue a diagnostic. */
-  if (curr_token != tok_end_of_source || *type == NULL ||
+     is not a function type, issue a diagnostic.  We permit a tok_colon
+     to be present because the ctor-initializers may be part of the
+     declaration cache. */
+  if ((curr_token != tok_end_of_source && curr_token != tok_colon) ||
+      *type == NULL ||
       !is_function_type(*type)) {
     if (!suppress_diagnostic) {
       pos_error(ec_invalid_declaration, &pos_curr_token);
@@ -6260,7 +6263,6 @@ cache the expected tokens.
      be in this cache is in cases where the initializer contains a
      brace enclosed list. */
   incr_token_set_array_element(stop_tokens, tok_lbrace);
-  incr_token_set_array_element(stop_tokens, tok_colon);
   incr_token_set_array_element(stop_tokens, tok_semicolon);
   cache_token_stream(p_cache, stop_tokens);
   /* Add an end-of-source token to the end of the token cache to
@@ -7562,6 +7564,8 @@ static a_boolean is_class_template_decl(a_token_cache *token_cache)
 Determine whether the template declaration described by token_cache
 is a class template declaration of the form
 
+	friend	class-key identifier tok_colon
+	      opt
 	friend	class-key identifier tok_end_of_source
 	      opt
 
@@ -7580,10 +7584,10 @@ the declaration token cache.
     if (is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL |
                                         GID_USE_PROTOTYPE_NOT_NONREAL)) {
       (void)get_token();
-      if (curr_token == tok_end_of_source) {
+      if (curr_token == tok_colon || curr_token == tok_end_of_source) {
         result = TRUE;
       }  /* if */
-    } else if (curr_token == tok_end_of_source) {
+    } else if (curr_token == tok_colon || curr_token == tok_end_of_source) {
       /* A class template declaration with a missing identifier.  Return
          TRUE for better error recovery. */
       result = TRUE;
