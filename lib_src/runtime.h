@@ -27,9 +27,11 @@ Miscellaneous declarations for all runtime routines.
 EXTERN int	__debug_level /* = 0 */;
 			/* Debug level.  0 means no debug output, 1 - 5
                             means increasing amounts. */
+#endif /* DEBUG */
+#if DEBUG || CHECKING
 EXTERN FILE	*__f_debug initial_value(stderr);
 			/* Debug output file. */
-#endif /* DEBUG */
+#endif /* DEBUG || CHECKING */
 
 /*
 Error routines.
