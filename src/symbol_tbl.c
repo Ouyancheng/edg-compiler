@@ -241,12 +241,12 @@ putting line-feeds at more or less the right places.
       case tk_pointer:
         (void)sprintf(&buffer[strlen(buffer)], "%s to ",
                         (tp->variant.pointer.is_reference) ? "ref" : "ptr");
-        str_type(&buffer[strlen(buffer)], tp->variant.pointer.type);
+        (void)str_type(&buffer[strlen(buffer)], tp->variant.pointer.type);
         break;
       case tk_array:
         (void)sprintf(&buffer[strlen(buffer)], "array [%lu] of ",
                       tp->variant.array.number_of_elements);
-        str_type(&buffer[strlen(buffer)], tp->variant.pointer.type);
+        (void)str_type(&buffer[strlen(buffer)], tp->variant.pointer.type);
         break;
       case tk_typeref:
         if (!tp->variant.typeref.is_const &&
@@ -260,7 +260,7 @@ putting line-feeds at more or less the right places.
             (void)sprintf(&buffer[strlen(buffer)], "volatile ");
           }  /* if */
         }  /* if */
-        str_type(&buffer[strlen(buffer)], tp->variant.typeref.type);
+        (void)str_type(&buffer[strlen(buffer)], tp->variant.typeref.type);
         break;
       case tk_ptr_to_member:
         /* Should be fixed. */
@@ -272,8 +272,8 @@ putting line-feeds at more or less the right places.
       case tk_class:
       case tk_struct:
       case tk_union:
-        str_qualified_name(&buffer[strlen(buffer)],
-                           (a_symbol_ptr)tp->source_corresp.assoc_info);
+        (void)str_qualified_name(&buffer[strlen(buffer)],
+                                 (a_symbol_ptr)tp->source_corresp.assoc_info);
         break;
       case tk_template_param:
         s = (tp->source_corresp.name == NULL) ? "???" :
@@ -341,9 +341,9 @@ to deal with nested classes.
         (void)sprintf(&buffer[strlen(buffer)], "<");
         do {
           if (tap->is_type) {
-            str_type(&buffer[strlen(buffer)], tap->variant.type);
+            (void)str_type(&buffer[strlen(buffer)], tap->variant.type);
           } else {
-            str_constant(&buffer[strlen(buffer)], tap->variant.constant);
+            (void)str_constant(&buffer[strlen(buffer)], tap->variant.constant);
           }  /* if */
           tap = tap->next;
           if (tap != NULL) (void)sprintf(&buffer[strlen(buffer)], ",");
