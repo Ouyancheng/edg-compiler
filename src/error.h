@@ -594,8 +594,37 @@ extern void pos_st_catastrophe(an_error_code     error_code,
 extern void str_catastrophe(an_error_code error_code,
                             char          *error_string);
 extern void catastrophe(an_error_code error_code);
+
+/* Interfaces for producing multiple message diagnostics. */
+extern void pos_st_start_error(an_error_code     error_code,
+                               a_source_position *error_pos,
+                               char              *error_string);
+extern void pos_start_error(an_error_code     error_code,
+                            a_source_position *error_pos);
+extern void str_start_error(an_error_code error_code,
+                            char          *error_string);
+extern void start_error(an_error_code error_code);
+extern void pos_ty_start_error(an_error_code     error_code,
+                               a_source_position *error_pos,
+                               struct a_type     *type);
+extern void typ_start_error(an_error_code error_code,
+                            struct a_type *type);
+extern void pos_sy_start_error(an_error_code     error_code,
+                               a_source_position *error_pos,
+                               struct a_symbol   *symbol);
+extern void sym_start_error(an_error_code   error_code,
+                            struct a_symbol *symbol);
+
+extern void str_add_diag_info(an_error_code error_code,
+                              char          *error_string);
+extern void typ_add_diag_info(an_error_code error_code,
+                              struct a_type *type);
 #if !STANDALONE_UTILITY_PROGRAM
+extern void sym_add_diag_info(an_error_code   error_code,
+                              struct a_symbol *symbol);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
+extern void add_diag_info(an_error_code error_code);
+extern void end_error(void);
 
 /* Report a syntax error, flush to a token in the stop set. */
 extern void syntax_error(an_error_code error_code);
