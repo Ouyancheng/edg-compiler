@@ -1271,6 +1271,10 @@ error code.
     case ec_ref_to_nested_function_var:
       m = "reference to local variable of enclosing function is not allowed";
       break;
+    case ec_single_arg_postfix_incr_decr_anachronism:
+      m =
+    "single-argument function used for postfix \"++\" or \"--\" (anachronism)";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

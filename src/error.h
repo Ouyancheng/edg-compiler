@@ -442,7 +442,8 @@ typedef enum /*an_error_code*/ {
   ec_initializer_not_allowed_on_array_new,
   ec_member_function_redeclaration,
   ec_ptr_to_incomplete_class_type_not_allowed,
-  ec_ref_to_nested_function_var
+  ec_ref_to_nested_function_var,
+  ec_single_arg_postfix_incr_decr_anachronism
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 

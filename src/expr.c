@@ -2288,17 +2288,31 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
          them from the prefix ++/--, which use a one-argument function.
          See ARM 13.4.7.  The second compiler-supplied argument is an
          integer zero. */
-#if 0
-      /* Anachronism should be allowed. */
-#endif
       make_integer_constant_operand(&zero_operand, 0L);
       check_for_operator_overloading(opname_kind_for_token[(int)curr_token],
                                      /*unary_operator=*/FALSE,  /* sic! */
                                      /*must_be_member_function=*/FALSE,
-                                     /*has_predef_meaning=*/FALSE,
+                                     /*has_predef_meaning=*/TRUE,  /* sic */
                                      operand, &zero_operand,
                                      expression_kind, &operand->position,
                                      result, &processed);
+      if (!processed) {
+        /* Try the anachronism that allows a one-argument function to
+           be used for both prefix and postfix ++/--. */
+        check_for_operator_overloading(opname_kind_for_token[(int)curr_token],
+                                       /*unary_operator=*/TRUE,
+                                       /*must_be_member_function=*/FALSE,
+                                       /*has_predef_meaning=*/FALSE,
+                                       operand, (an_operand *)NULL,
+                                       expression_kind, &operand->position,
+                                       result, &processed);
+        if (processed) {
+          if (!is_error_operand(result)) {
+            pos_warning(ec_single_arg_postfix_incr_decr_anachronism,
+                        &operand->position);
+          }  /* if */
+        }  /* if */
+      }  /* if */
     }  /* if */
     if (!processed) {
       /* Non-operator-function cases. */
