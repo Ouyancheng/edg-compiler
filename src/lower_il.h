@@ -540,9 +540,6 @@ extern a_statement_ptr insert_var_assignment_statement(
 extern a_statement_ptr last_statement_in_block(
                                               a_statement_ptr block_statement);
 
-extern a_statement_ptr make_call_statement(a_routine_ptr    routine,
-                                           an_expr_node_ptr arg_list);
-
 extern a_variable_ptr make_unnamed_local_static_variable(
                                                  a_type_ptr type,
                                                  a_boolean  in_function_scope);
