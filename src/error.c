@@ -1253,6 +1253,12 @@ error code.
     case ec_bad_return_type_for_operator_arrow:
       m = "operator->() requires pointer-to-class return type";
       break;
+    case ec_cast_to_abstract_class:
+      m = "a cast to an abstract class is not allowed";
+      break;
+    case ec_bad_use_of_main:
+      m = "\"main\" may not be called or have its address taken";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
