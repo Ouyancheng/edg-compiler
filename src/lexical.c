@@ -7506,9 +7506,13 @@ start_of_token_scan:  /* Restart here after scanning white space. */
 	goto two_char_token;
       } else if (ch == ':' && digraphs_allowed()) {
         ctoken = tok_lbracket;
-        if (*(curr_char_loc+2) == ':' && *(curr_char_loc+3) != ':') {
+        if (*(curr_char_loc+2) == ':' && *(curr_char_loc+3) != ':'
+            && *(curr_char_loc+3) != '>' && !C_mode()) {
           /* We have a construct like "<::I", which is invalid if we
-             interpret "<:" as a digraph.  Issue a warning. */
+             interpret "<:" as a digraph.  Issue a warning.  The warning
+             is issued in C++ mode when you have a "<::" and the next
+             character is not ":" or ">".  These last cases make sure you
+             don't warn on valid sequences like "<:::i" or "<::>". */
           warning(ec_probable_inadvertent_lbracket_digraph);
         }  /* if */
 	goto two_char_token;

@@ -1,5 +1,12 @@
 Version 3.2
 
+2/13/03  Spurious warning on unintended use of alternative token
+
+Certain valid uses of alternative tokens would result in an "unintended
+use of alternative token" warning.  This has been fixed.
+
+  char t<::> = "t";
+
 2/12/03  GNU mode: Attribute "aligned" on typedefs
 
 The front end used to ignore attributes on typedefs of class types and
