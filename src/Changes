@@ -3,7 +3,7 @@ Version 2.38
 10/30/97  Spurious error on qualified operator names with explicit
           template arguments
 
-A use of a qualified operator names with an explicit template argument
+A use of a qualified operator name with an explicit template argument
 list resulted in a spurious error.  This has been fixed.
 
   namespace N {
