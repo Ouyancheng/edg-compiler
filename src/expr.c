@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1996 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-1997 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -12525,6 +12525,6 @@ Return TRUE if we are currently inside an expression context.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1996 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-1997 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
