@@ -1,5 +1,13 @@
 Version 2.29
 
+4/24/95  Diagnostics on exception specifications with --no_exceptions
+
+When exception support is disabled (either as the default or by the command
+line option) exception specifications are ignored (that is, no diagnostic
+is issued) when the function is an inline function or the declaration does
+not entail a definition.  This allows the same header to be processed either
+with or without exception support enabled.
+
 4/22/95  dynamic_cast and typeid
 
 The dynamic_cast and typeid operators (part of RTTI) are now implemented.
