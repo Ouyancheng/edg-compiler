@@ -6678,7 +6678,6 @@ in a declarator of a template declaration.
       /* The qualifier class type must point to a prototype instantiation. */
       a_type_ptr	tp;
       a_symbol_ptr	type_sym;
-      a_boolean		is_template_class;
       a_boolean		is_prototype_instantiation;
 
       tp = sym->parent.class_type;
