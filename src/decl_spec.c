@@ -2063,6 +2063,10 @@ Returns TRUE if there is an error in the specifiers.
                    (curr_token == tok_auto || curr_token == tok_register)) {
           error(ec_bad_file_scope_storage_class);
           err = TRUE;
+        } else if (input_flags & DSI_IS_CONDITION_DECL &&
+                   curr_token != tok_auto && curr_token != tok_register) {
+          error(ec_bad_storage_class_on_condition_decl);
+          err = TRUE;
         } else {
           if (C_dialect != C_dialect_pcc && !err) {
             if (num_specifiers > ((*output_flags & DSO_FRIEND) ? 1 : 0) +
