@@ -1915,6 +1915,13 @@ evaluated (but not checked to see if the match is good enough).
          not apply for template cases. */
       param_type = ptp->type;
       arg_type = arg_operand->operand.type;
+      /* An incomplete type operand cannot be made to match anything.
+         This comes up for something like
+           struct A *p;
+           template<class T> void f(T);
+           void m() { f(*p); }
+      */
+      if (is_incomplete_type(arg_type)) goto done;
       type_qualifiers_added = FALSE;
       pointer_case = FALSE;
       param_is_reference = is_reference_type(param_type);

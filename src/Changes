@@ -1,5 +1,14 @@
 Version 2.20
 
+9/19/93  Internal error on function template call with incomplete type
+
+There is no longer an internal on a call of a function template with an
+argument that has an incomplete type:
+
+  struct A *p;
+  template<class T> void f(T);
+  void m() { f(*p); }
+
 9/18/93  Reference information always maintained in expression routines
 
 Reference information for symbol references is now maintained always
