@@ -50,8 +50,7 @@ static char	*mangled_name_buffer = NULL;
 			   should be such that almost all cases can be
 			   accepted (so that the realloc is hardly ever
 			   needed). */
-static sizeof_t	size_mangled_name_buffer = 0;
-			/* Current allocated size of mangled_name_buffer. */
+/* See lower_il.h for size_mangled_name_buffer. */
 
 
 static void expand_mangled_name_buffer(sizeof_t size_needed)

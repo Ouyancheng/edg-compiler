@@ -260,6 +260,11 @@ EXTERN unsigned long
 		count_of_refs_to_destructor_epilogue_label;
 			/* Number of returns converted to branches as above. */
 
+EXTERN sizeof_t	size_mangled_name_buffer /* = 0*/;
+			/* Current allocated size of mangled_name_buffer.
+			   Not per-file.  See lower_name.c for the definition
+			   of mangled_name_buffer. */
+
 #if DEBUG
 /*
 Count of entries allocated, for debugging purposes.
