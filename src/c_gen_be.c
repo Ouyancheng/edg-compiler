@@ -522,9 +522,11 @@ conflict with identical names in separately-compiled modules.
 {
   char *new_name;
 
-  if (source_corresp->name_linkage == (a_name_linkage_kind)nlk_internal) {
+  if (source_corresp->name_linkage == (a_name_linkage_kind)nlk_internal &&
+      source_corresp->name[0] != '_') {
     /* Name is at file scope, but is not external.  Add a prefix so
-       that it will not conflict with external names.  See dump_variable. */
+       that it will not conflict with external names.  See dump_variable.
+       Leave names beginning with "_" alone. */
     (void)sprintf(name_buffer, "_S%s_%s", module_name,
                                source_corresp->name);
     new_name = name_buffer;
@@ -4455,7 +4457,7 @@ If this assignment is the first one, put out anything that must precede it.
       set_init_file(variable, &save_f_C_output, &save_indent);
       startline((a_seq_number)0);
       fprintf(f_C_output,
-             "{static int __first_time=1; if (__first_time) {__first_time=0;");
+             "{static int __init_done=0; if (!__init_done) {__init_done=1;");
       unset_init_file(save_f_C_output, save_indent);
       first_time_test_closing_needed = TRUE;
     }  /* if */
@@ -4463,14 +4465,18 @@ If this assignment is the first one, put out anything that must precede it.
       /* There was no constant initialization at all, so we are generating
          assignments for the entire initialization of the variable.  If the
          variable is not static, start by zeroing it in case it is
-         incompletely initialized.  See 3.5.7.  Only do this for non-scalar
-         variables; scalar variables contain only one value and therefore
-         cannot be partially initialized. */
+         incompletely initialized.  See 3.5.7.  Only do this for variables
+         that are initialized with an aggregate constant; those are the only
+         cases where something can be partially initialized. */
       if (!static_storage_class(variable->storage_class)) {
-        a_type_ptr type = skip_typerefs(variable->type);
-        if (type->kind == (a_type_kind)tk_struct ||
-            type->kind == (a_type_kind)tk_union ||
-            type->kind == (a_type_kind)tk_array) {
+        if ((variable->init_kind == (an_init_kind)initk_static &&
+             variable->initializer.constant->kind ==
+                                         (a_constant_repr_kind)ck_aggregate) ||
+            (variable->init_kind == (an_init_kind)initk_dynamic &&
+             variable->initializer.dynamic->kind ==
+                                           (a_dynamic_init_kind)dik_constant &&
+             variable->initializer.dynamic->variant.constant->kind ==
+                                         (a_constant_repr_kind)ck_aggregate)) {
           zero_variable(variable);
         }  /* if */
       }  /* if */
