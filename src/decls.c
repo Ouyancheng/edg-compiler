@@ -2201,7 +2201,7 @@ specified id-linkage block.
     idlbp->linked_symbol = NULL;
 #if ASM_FUNCTION_ALLOWED
   } else if (idlbp->storage_class == (a_storage_class)sc_asm) {
-    idlbp->name_linkage = idl_internal;
+    idlbp->name_linkage = (a_name_linkage_kind)nlk_internal;
 #endif /* ASM_FUNCTION_ALLOWED */
   } else {
     /* Set the storage class to fit the linkage. */
