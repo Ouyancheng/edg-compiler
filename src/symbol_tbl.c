@@ -461,8 +461,8 @@ and indentation is the indentation desired.
       {
         a_class_symbol_supplement_ptr  cssp;
         cssp = sym->variant.class_struct_union.extra_info;
-        if (cssp->constructor_required) put_string("ctor req'd");
-        if (cssp->destructor_required) put_string("dtor req'd");
+        if (cssp->is_POD) put_string("POD");
+        if (cssp->is_POD) put_string("aggregate");
         if (cssp->constructor != NULL) put_string("has ctor");
         if (cssp->has_default_constructor) {
           put_string("has default-ctor");
@@ -1658,8 +1658,6 @@ state.
         cssp->referencing_namespace = NULL;
         cssp->dependent_type_fixup_list = NULL;
         cssp->operator_lookup_namespaces = NULL;
-        cssp->constructor_required = FALSE;
-        cssp->destructor_required = FALSE;
         cssp->has_default_constructor = FALSE;
         cssp->has_copy_constructor = FALSE;
         cssp->has_copy_constructor_for_const_object = FALSE;
@@ -1670,6 +1668,8 @@ state.
         /* The is_class_aggregate flag is initialized to TRUE when we are not
            in C++ mode. */
         cssp->is_class_aggregate = (C_dialect != C_dialect_cplusplus);
+        cssp->is_POD = FALSE;
+        cssp->trivial_default_constructor_defined = FALSE;
         cssp->has_operator_new = FALSE;
         cssp->has_operator_array_new = FALSE;
         cssp->has_operator_delete = FALSE;
