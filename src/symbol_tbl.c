@@ -909,7 +909,12 @@ Dump the entire scope stack (for debugging).
         if (ssep->il_scope == NULL) {
           fprintf(f_debug, "null IL scope");
         } else {
-          db_name(&ssep->il_scope->variant.assoc_namespace->source_corresp);
+          a_namespace_ptr  nsp = ssep->il_scope->variant.assoc_namespace;
+          if (nsp == NULL) {
+            fprintf(f_debug, "null assoc_namespace");
+          } else {
+            db_name(&nsp->source_corresp);
+          }  /* if */
         }  /* if */
         break;
       case sck_class_struct_union:
@@ -7205,6 +7210,12 @@ specific version of the template.
       }  /* if */
       ssep->il_memory_region = FILE_SCOPE_REGION_NUMBER;
       break;
+    case sck_namespace:
+      check_assertion_str(curr_il_region_number == FILE_SCOPE_REGION_NUMBER,
+                          "push_scope_full: bad memory region for namespace");
+      sp = alloc_scope(kind, ssep->number, (a_routine_ptr)NULL);
+      ssep->il_memory_region = FILE_SCOPE_REGION_NUMBER;
+      break;
     case sck_class_struct_union:
       /* Class/struct/union definitions require the file-scope memory region,
          since the entities created to represent the members are pointed to
@@ -7502,6 +7513,7 @@ specific version of the template.
     /* Determine whether this scope affects whether access checks can
        be deferred. */
     if (kind == (a_scope_kind)sck_file ||
+        kind == (a_scope_kind)sck_namespace ||
         kind == (a_scope_kind)sck_pragma ||
         kind == (a_scope_kind)sck_template_instantiation ||
         kind == (a_scope_kind)sck_class_struct_union) {
