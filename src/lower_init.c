@@ -2167,7 +2167,6 @@ Make the code that will ensure that the file-scope initialization routine
 #if !USE_INIT_SECTION_IN_GENERATED_C
   a_type_ptr       func_type, struct_type, ptr_struct_type;
   a_type_ptr       ptr_func_type;
-  a_targ_size_t    byte_offset;
   a_field_ptr      last_field;
   a_variable_ptr   link_var;
   a_constant_ptr   aggr_con, init_con1, init_con2, init_con3;
@@ -2200,21 +2199,17 @@ Make the code that will ensure that the file-scope initialization routine
     switch_to_file_scope_region(&region_to_switch_back_to);
     /* Make the __linkl struct type.  It doesn't actually have a name. */
     struct_type = alloc_type((a_type_kind)tk_struct);
-    byte_offset = 0;
     last_field = NULL;
     /* field: struct __linkl *next; */
     ptr_struct_type = make_pointer_type(struct_type);
-    make_lowered_field("next", ptr_struct_type, &byte_offset, struct_type,
-                       &last_field);
+    make_lowered_field("next", ptr_struct_type, struct_type, &last_field);
     /* field: void (*ctor)(); */
     func_type = make_function_type(void_type(), (a_type_ptr)NULL);
     ptr_func_type = make_pointer_type(func_type);
-    make_lowered_field("ctor", ptr_func_type, &byte_offset, struct_type,
-                       &last_field);
+    make_lowered_field("ctor", ptr_func_type, struct_type, &last_field);
     /* field: void (*dtor)(); */
-    make_lowered_field("dtor", ptr_func_type, &byte_offset, struct_type,
-                       &last_field);
-    finish_class_type(struct_type, &byte_offset);
+    make_lowered_field("dtor", ptr_func_type, struct_type, &last_field);
+    finish_class_type(struct_type);
     add_to_front_of_file_scope_types_list(struct_type);
     /* Make the __link variable. */
     link_var = make_lowered_variable("__link", /*already_il_name=*/FALSE,
@@ -2464,26 +2459,24 @@ already, and return a pointer to it.  Its definition is
 See the runtime files dtor_list.h and dtor_list.c.
 */
 {
-  a_targ_size_t byte_offset;
   a_field_ptr   last_field;
 
   if (needed_destruction_type == NULL) {
     /* Make the struct type.  It doesn't actually have a name. */
     needed_destruction_type = alloc_type((a_type_kind)tk_struct);
     add_to_front_of_file_scope_types_list(needed_destruction_type);
-    byte_offset = 0;
     last_field = NULL;
     /* field: a_needed_destruction_ptr next */
     make_lowered_field("next", make_pointer_type(needed_destruction_type),
-                       &byte_offset, needed_destruction_type, &last_field);
+                       needed_destruction_type, &last_field);
     /* field: void *object */
-    make_lowered_field("object", void_star_type(),
-                       &byte_offset, needed_destruction_type, &last_field);
+    make_lowered_field("object", void_star_type(), needed_destruction_type,
+                       &last_field);
     needed_destruction_object_field = last_field;
     /* field: __vptp dtor */
-    make_lowered_field("dtor", make_vptp_type(),
-                       &byte_offset, needed_destruction_type, &last_field);
-    finish_class_type(needed_destruction_type, &byte_offset);
+    make_lowered_field("dtor", make_vptp_type(), needed_destruction_type,
+                       &last_field);
+    finish_class_type(needed_destruction_type);
   }  /* if */
   return needed_destruction_type;
 }  /* make_needed_destruction_type */

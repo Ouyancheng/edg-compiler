@@ -462,8 +462,7 @@ extern void set_expr_insert_location(an_expr_node_ptr   node,
 extern void set_expr_creation_insert_location(
                                           an_insert_location *insert_location);
 
-extern void finish_class_type(a_type_ptr    class_type, 
-                              a_targ_size_t *byte_offset);
+extern void finish_class_type(a_type_ptr class_type);
 
 extern void add_to_front_of_file_scope_types_list(a_type_ptr type);
 
@@ -574,7 +573,6 @@ extern a_variable_ptr make_file_scope_temporary(a_type_ptr temp_type);
 
 extern void make_lowered_field(char          *field_name,
                                a_type_ptr    field_type,
-                               a_targ_size_t *byte_offset,
                                a_type_ptr    struct_type,
                                a_field_ptr   *last_field);
 

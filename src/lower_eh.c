@@ -214,27 +214,25 @@ if it is not made already, and return a pointer to it.  Its definition is
 
 */
 {
-  a_targ_size_t byte_offset;
   a_field_ptr   last_field;
 
   if (typeinfo_type == NULL) {
     /* Make the struct type. */
     typeinfo_type = alloc_type((a_type_kind)tk_struct);
     add_to_front_of_file_scope_types_list(typeinfo_type);
-    byte_offset = 0;
     last_field = NULL;
     /* field: char *id */
     make_lowered_field("id",
                      make_pointer_type(integer_type((an_integer_kind)ik_char)),
-                       &byte_offset, typeinfo_type, &last_field);
+                       typeinfo_type, &last_field);
     /* field: __vptp dtor */
     make_lowered_field("dtor", make_vptp_type(),
-                       &byte_offset, typeinfo_type, &last_field);
+                       typeinfo_type, &last_field);
     /* field: typeinfo **bc */
     make_lowered_field("bc",
                        make_pointer_type(make_pointer_type(typeinfo_type)),
-                       &byte_offset, typeinfo_type, &last_field);
-    finish_class_type(typeinfo_type, &byte_offset);
+                       typeinfo_type, &last_field);
+    finish_class_type(typeinfo_type);
   }  /* if */
   return typeinfo_type;
 }  /* make_typeinfo_type */
@@ -449,26 +447,24 @@ and return a pointer to it.  Its definition is
 
 */
 {
-  a_targ_size_t byte_offset;
   a_field_ptr   last_field;
 
   if (base_class_spec_type == NULL) {
     /* Make the struct type. */
     base_class_spec_type = alloc_type((a_type_kind)tk_struct);
     add_to_front_of_file_scope_types_list(base_class_spec_type);
-    byte_offset = 0;
     last_field = NULL;
     /* field: typeinfo *tinfo */
     make_lowered_field("tinfo", make_pointer_type(make_typeinfo_type()),
-                       &byte_offset, base_class_spec_type, &last_field);
+                       base_class_spec_type, &last_field);
     /* field: short offset */
     make_lowered_field("offset", integer_type(TARG_DELTA_INT_KIND),
-                       &byte_offset, base_class_spec_type, &last_field);
+                       base_class_spec_type, &last_field);
     /* field: unsigned char flags */
     make_lowered_field("flags",
                        integer_type((an_integer_kind)ik_unsigned_char),
-                       &byte_offset, base_class_spec_type, &last_field);
-    finish_class_type(base_class_spec_type, &byte_offset);
+                       base_class_spec_type, &last_field);
+    finish_class_type(base_class_spec_type);
   }  /* if */
   return base_class_spec_type;
 }  /* make_base_class_spec_type */
@@ -1016,28 +1012,26 @@ if it is not made already, and return a pointer to it.  Its definition is
 
 */
 {
-  a_targ_size_t byte_offset;
   a_field_ptr   last_field;
 
   if (array_descr_type == NULL) {
     /* Make the struct type. */
     array_descr_type = alloc_type((a_type_kind)tk_struct);
     add_to_front_of_file_scope_types_list(array_descr_type);
-    byte_offset = 0;
     last_field = NULL;
     /* field: unsigned short (or whatever) handle */
     make_lowered_field("handle",
                        integer_type(targ_var_handle_int_kind),
-                       &byte_offset, array_descr_type, &last_field);
+                       array_descr_type, &last_field);
     /* field: size_t elem_size */
     make_lowered_field("elem_size",
                        integer_type(targ_size_t_int_kind),
-                       &byte_offset, array_descr_type, &last_field);
+                       array_descr_type, &last_field);
     /* field: long elem_count */
     make_lowered_field("elem_count",
                        integer_type((an_integer_kind)ik_long),
-                       &byte_offset, array_descr_type, &last_field);
-    finish_class_type(array_descr_type, &byte_offset);
+                       array_descr_type, &last_field);
+    finish_class_type(array_descr_type);
   }  /* if */
   return array_descr_type;
 }  /* make_array_descr_type */
@@ -1150,31 +1144,29 @@ and return a pointer to it.  Its definition is
 
 */
 {
-  a_targ_size_t byte_offset;
   a_field_ptr   last_field;
 
   if (region_descr_type == NULL) {
     /* Make the struct type. */
     region_descr_type = alloc_type((a_type_kind)tk_struct);
     add_to_front_of_file_scope_types_list(region_descr_type);
-    byte_offset = 0;
     last_field = NULL;
     /* field: __vptp dtor */
-    make_lowered_field("dtor", make_vptp_type(), &byte_offset,
+    make_lowered_field("dtor", make_vptp_type(),
                        region_descr_type, &last_field);
     /* field: unsigned short (or whatever) handle */
     make_lowered_field("handle",
                        integer_type(targ_var_handle_int_kind),
-                       &byte_offset, region_descr_type, &last_field);
+                       region_descr_type, &last_field);
     /* field: unsigned short next */
     make_lowered_field("next",
                        integer_type(TARG_REGION_NUMBER_INT_KIND),
-                       &byte_offset, region_descr_type, &last_field);
+                       region_descr_type, &last_field);
     /* field: unsigned char flags */
     make_lowered_field("flags",
                        integer_type((an_integer_kind)ik_unsigned_char),
-                       &byte_offset, region_descr_type, &last_field);
-    finish_class_type(region_descr_type, &byte_offset);
+                       region_descr_type, &last_field);
+    finish_class_type(region_descr_type);
   }  /* if */
   return region_descr_type;
 }  /* make_region_descr_type */
@@ -1725,23 +1717,21 @@ and return a pointer to it.  Its definition is
 
 */
 {
-  a_targ_size_t byte_offset;
   a_field_ptr   last_field;
 
   if (exception_type_spec_type == NULL) {
     /* Make the struct type. */
     exception_type_spec_type = alloc_type((a_type_kind)tk_struct);
     add_to_front_of_file_scope_types_list(exception_type_spec_type);
-    byte_offset = 0;
     last_field = NULL;
     /* field: typeinfo *tinfo */
     make_lowered_field("tinfo", make_pointer_type(make_typeinfo_type()),
-                       &byte_offset, exception_type_spec_type, &last_field);
+                       exception_type_spec_type, &last_field);
     /* field: unsigned char flags */
     make_lowered_field("flags",
                        integer_type((an_integer_kind)ik_unsigned_char),
-                       &byte_offset, exception_type_spec_type, &last_field);
-    finish_class_type(exception_type_spec_type, &byte_offset);
+                       exception_type_spec_type, &last_field);
+    finish_class_type(exception_type_spec_type);
   }  /* if */
   return exception_type_spec_type;
 }  /* make_exception_type_spec_type */
@@ -1996,7 +1986,6 @@ Its definition is
 
 */
 {
-  a_targ_size_t byte_offset;
   a_field_ptr   last_field;
   a_type_ptr    try_block_struct_type, function_struct_type;
   a_type_ptr    variant_union_type, ptr_exception_type_spec;
@@ -2014,87 +2003,83 @@ Its definition is
     /* Make the try_block variant struct. */
     try_block_struct_type = alloc_type((a_type_kind)tk_struct);
     add_to_front_of_file_scope_types_list(try_block_struct_type);
-    byte_offset = 0;
     last_field = NULL;
     /* field: jmp_buf setjmp_buffer */
     make_lowered_field("setjmp_buffer", make_jmp_buf_type(),
-                       &byte_offset, try_block_struct_type, &last_field);
+                       try_block_struct_type, &last_field);
     ehse_try_setjmp_buffer_field = last_field;
     /* field: exception_type_spec *catch_entries */
     ptr_exception_type_spec =
                             make_pointer_type(make_exception_type_spec_type());
     make_lowered_field("catch_entries", ptr_exception_type_spec,
-                       &byte_offset, try_block_struct_type, &last_field);
+                       try_block_struct_type, &last_field);
     ehse_try_catch_entries_field = last_field;
     /* field: void *rtinfo */
     make_lowered_field("rtinfo", void_star_type(),
-                       &byte_offset, try_block_struct_type, &last_field);
+                       try_block_struct_type, &last_field);
     ehse_try_rtinfo_field = last_field;
     /* field: unsigned short region_number */
     make_lowered_field("region_number",
                        integer_type(TARG_REGION_NUMBER_INT_KIND),
-                       &byte_offset, try_block_struct_type, &last_field);
+                       try_block_struct_type, &last_field);
     ehse_try_region_number_field = last_field;
-    finish_class_type(try_block_struct_type, &byte_offset);
+    finish_class_type(try_block_struct_type);
     /* Make the function variant struct. */
     function_struct_type = alloc_type((a_type_kind)tk_struct);
     add_to_front_of_file_scope_types_list(function_struct_type);
-    byte_offset = 0;
     last_field = NULL;
     /* field: region_descr *regions */
     make_lowered_field("regions",
                        make_pointer_type(make_region_descr_type()),
-                       &byte_offset, function_struct_type, &last_field);
+                       function_struct_type, &last_field);
     ehse_function_regions_field = last_field;
     /* field: void **obj_table */
     make_lowered_field("obj_table",
                        make_pointer_type(void_star_type()),
-                       &byte_offset, function_struct_type, &last_field);
+                       function_struct_type, &last_field);
     ehse_function_obj_table_field = last_field;
     /* field: array_descr *array_table */
     make_lowered_field("array_table",
                        make_pointer_type(make_array_descr_type()),
-                       &byte_offset, function_struct_type, &last_field);
+                       function_struct_type, &last_field);
     ehse_function_array_table_field = last_field;
     /* field: unsigned short saved_region_number */
     make_lowered_field("saved_region_number",
                        integer_type(TARG_REGION_NUMBER_INT_KIND),
-                       &byte_offset, function_struct_type, &last_field);
+                       function_struct_type, &last_field);
     ehse_function_saved_region_number_field = last_field;
-    finish_class_type(function_struct_type, &byte_offset);
+    finish_class_type(function_struct_type);
     /* Define the variant union type. */
-    byte_offset = 0;
     last_field = NULL;
     /* field: struct {...} try_block */
     make_lowered_field("try_block", try_block_struct_type,
-                       &byte_offset, variant_union_type, &last_field);
+                       variant_union_type, &last_field);
     ehse_try_field = last_field;
     /* field: struct {...} function */
     make_lowered_field("function", function_struct_type,
-                       &byte_offset, variant_union_type, &last_field);
+                       variant_union_type, &last_field);
     ehse_function_field = last_field;
     /* field: exception_type_spec *throw_spec */
     make_lowered_field("throw_spec", ptr_exception_type_spec,
-                       &byte_offset, variant_union_type, &last_field);
+                       variant_union_type, &last_field);
     ehse_throw_spec_field = last_field;
-    finish_class_type(variant_union_type, &byte_offset);
+    finish_class_type(variant_union_type);
     /* Define the eh_stack_entry struct type. */
-    byte_offset = 0;
     last_field = NULL;
     /* field: eh_stack_entry *next */
     make_lowered_field("next", make_pointer_type(eh_stack_entry_type),
-                       &byte_offset, eh_stack_entry_type, &last_field);
+                       eh_stack_entry_type, &last_field);
     ehse_next_field = last_field;
     /* field: unsigned char kind */
     make_lowered_field("kind",
                        integer_type((an_integer_kind)ik_unsigned_char),
-                       &byte_offset, eh_stack_entry_type, &last_field);
+                       eh_stack_entry_type, &last_field);
     ehse_kind_field = last_field;
     /* field: union {...} variant */
     make_lowered_field("variant", variant_union_type,
-                       &byte_offset, eh_stack_entry_type, &last_field);
+                       eh_stack_entry_type, &last_field);
     ehse_variant_field = last_field;
-    finish_class_type(eh_stack_entry_type, &byte_offset);
+    finish_class_type(eh_stack_entry_type);
   }  /* if */
   return eh_stack_entry_type;
 }  /* make_eh_stack_entry_type */
