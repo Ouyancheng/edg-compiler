@@ -3623,6 +3623,9 @@ and return a pointer to it.
   msap->arg_list = NULL;
   msap->name = NULL;
   msap->position = null_source_position;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  msap->source_sequence_entry = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   msap->kind_descr = NULL;
   return msap;
 }  /* alloc_ms_attribute */

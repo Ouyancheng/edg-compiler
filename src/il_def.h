@@ -9857,6 +9857,14 @@ typedef struct an_ms_attribute {
   a_source_position
 		position;
 			/* Source position of the attribute name. */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_source_sequence_entry_ptr
+		source_sequence_entry;
+			/* Pointer to source sequence entry that represents
+			   the place this attribute appears within the current
+			   file or function scope relative to other
+			   declarations, statements, comments, etc. */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   struct an_ms_attribute_kind_descr
 		*kind_descr;
 			/* Pointer to an entry that describes the attribute

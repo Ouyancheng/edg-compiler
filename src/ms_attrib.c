@@ -1223,8 +1223,10 @@ declaration.
     /* Create a source sequence entry for the attribute.  This is not done
        for parameter attributes as they appear within a declaration. */
     if (!is_parameter) {
-      add_to_source_sequence_list((char *)attr,
-                                  (an_il_entry_kind)iek_ms_attribute);
+      attr->source_sequence_entry = add_empty_source_sequence_entry();
+      update_source_sequence_list((char *)attr,
+                                  (an_il_entry_kind)iek_ms_attribute,
+                                  attr->source_sequence_entry);
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* Look for an argument list.  We do this even for attributes without

@@ -1890,6 +1890,10 @@ end_sizeof:;
         walk_string_ptr(ptr->string, iek_other_text, 0);
         walk_list(ptr->arg_list, an_ms_attribute_arg_ptr,
                   iek_ms_attribute_arg);
+#if GENERATE_SOURCE_SEQUENCE_LISTS && !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK
+        remap_ptr(ptr->source_sequence_entry, a_source_sequence_entry_ptr,
+                  iek_source_sequence_entry);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && ... */
         conditionally_clear_fe_pointer(ptr->kind_descr);
       }
       break;
