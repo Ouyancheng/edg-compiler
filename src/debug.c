@@ -157,7 +157,7 @@ Returns TRUE if there was an error during parsing of the debug option.
   a_boolean           done;
 
   db_active = TRUE;
-  if (isdigit(*debug_option)) {
+  if (isdigit((unsigned char)*debug_option)) {
     /* The option is just a number, set the global debug level. */
     debug_level = atoi(debug_option);
   } else {
@@ -170,13 +170,13 @@ Returns TRUE if there was an error during parsing of the debug option.
       do {
 
 	/* The first thing must be the name of the routine. */
-        if (!isalpha(*curr_char)) {
+        if (!isalpha((unsigned char)*curr_char)) {
 	  goto error_exit;
         }  /* if */
 
         /* Gather up the name of the routine. */
         curr_name_ptr = curr_name;
-        while (isalnum(*curr_char) || (*curr_char == '_')) {
+        while (isalnum((unsigned char)*curr_char) || (*curr_char == '_')) {
 	  *curr_name_ptr++ = *curr_char++;
         }  /* while */
         *curr_name_ptr = '\0';
@@ -217,10 +217,10 @@ Returns TRUE if there was an error during parsing of the debug option.
 
       /* There should be a number following the action. */
       level = 0;
-      if (!isdigit(*curr_char)) {
+      if (!isdigit((unsigned char)*curr_char)) {
 	goto error_exit;
       }  /* if */
-      while (isdigit(*curr_char)) {
+      while (isdigit((unsigned char)*curr_char)) {
 	level = (level * 10) + (*curr_char++ - '0');
       }  /* while */
       /* "!" at the end indicates that the entry/exit message should not

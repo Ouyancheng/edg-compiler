@@ -544,7 +544,7 @@ extern char *derived_name(char *file_name,
 #if __MSDOS__
 #define is_absolute_file_name(file_name) \
   (((file_name)[0] == '/') || ((file_name)[0] == '\\') || \
-   (isalpha((file_name)[0]) && ((file_name)[1] == ':')))
+   (isalpha((unsigned char)(file_name)[0]) && ((file_name)[1] == ':')))
 #else /* !__MSDOS__ */
 #define is_absolute_file_name(file_name) ((file_name)[0] == '/')
 #endif /* __MSDOS__ */
