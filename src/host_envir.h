@@ -641,7 +641,7 @@ of struct a_constant.)  This can be useful for source-analysis applications.
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
 
 /*
-Flag that is TRUE if the front end should represent empty statement using a
+Flag that is TRUE if the front end should represent empty statements using a
 distinct statement kind.  Otherwise, NULL pointers or empty blocks are used
 for that purpose.
 */
