@@ -8153,13 +8153,15 @@ static void adjust_specific_type_for_previous_specific_type(
                                             a_type_ptr  previous_specific_type)
 /*
 Helper function for adjust_specific_type_for_previous_operand.  If
-previous_specific_type is a pointer type, look for a pointer type that
-both *specific_type and previous_specific_type can be converted to,
-e.g., by creating a type with the union of the cv-qualifiers on the
-two types.
+*specific_type and previous_specific_type are pointer types, look for
+a pointer type that both can be converted to, e.g., by creating a type
+with the union of the cv-qualifiers on the two types, and return
+*specific_type updated to that.  Otherwise, leave *specific_type
+unchanged.
 */
 {
-  if (is_pointer_type(previous_specific_type)) {
+  if (is_pointer_type(previous_specific_type) &&
+      is_pointer_type(*specific_type)) {
     /* Look for the usual pointer cases. */
     a_type_ptr composite =
                      multilevel_composite_pointer_type(*specific_type,
@@ -8167,31 +8169,44 @@ two types.
     if (composite != NULL) {
       *specific_type = composite;
     } else {
-      /* Look for derived/base cases with cv-qualifier adjustment, e.g.,
-           const Base *
-         and
-           volatile Derived *
-         which requires the composite type
-           const volatile Base *
-      */
-      a_boolean        baseward_cast;
-      a_base_class_ptr bcp;
-      if (f_related_class_pointers(*specific_type, previous_specific_type,
-                                   &baseward_cast, &bcp)) {
-        a_type_ptr underlying_type = type_pointed_to(*specific_type);
-        a_type_ptr other_underlying_type =
+      a_type_ptr underlying_type = type_pointed_to(*specific_type);
+      a_type_ptr other_underlying_type =
                                      type_pointed_to(previous_specific_type);
-        if (baseward_cast) {
-          /* previous_specific_type is the base class, so swap the underlying
-             types so that the composite type is built on the base class. */
-          a_type_ptr temp_type = underlying_type;
-          underlying_type = other_underlying_type;
-          other_underlying_type = temp_type;
-        }  /* if */
-        underlying_type = type_plus_qualifiers_from_second_type(
+      if (is_void_type(underlying_type) ||
+          is_void_type(other_underlying_type)) {
+        /* "pointer to cv T" can be converted to "pointer to cv void",
+           so if at least one of the operands is a pointer to void,
+           "pointer to cv-union void" will work as the common type. */
+        a_type_ptr temp_type = void_type();
+        temp_type = type_plus_qualifiers_from_second_type(temp_type,
+                                                          underlying_type);
+        temp_type = type_plus_qualifiers_from_second_type(temp_type,
+                                                        other_underlying_type);
+        *specific_type = make_pointer_type(temp_type);
+      } else {
+        /* Look for derived/base cases with cv-qualifier adjustment, e.g.,
+             const Base *
+           and
+             volatile Derived *
+           which requires the composite type
+             const volatile Base *
+        */
+        a_boolean        baseward_cast;
+        a_base_class_ptr bcp;
+        if (f_related_class_pointers(*specific_type, previous_specific_type,
+                                     &baseward_cast, &bcp)) {
+          if (baseward_cast) {
+            /* previous_specific_type is the base class, so swap the underlying
+               types so that the composite type is built on the base class. */
+            a_type_ptr temp_type = underlying_type;
+            underlying_type = other_underlying_type;
+            other_underlying_type = temp_type;
+          }  /* if */
+          underlying_type = type_plus_qualifiers_from_second_type(
                                                         underlying_type,
                                                         other_underlying_type);
-        *specific_type = make_pointer_type(underlying_type);
+          *specific_type = make_pointer_type(underlying_type);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */

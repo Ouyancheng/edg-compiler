@@ -1,5 +1,23 @@
 Version 3.4
 
+10/8/03  Comparison operator overloading and comparisons with "void *"
+
+Operator overloading processing using conversion functions for
+built-in equality and relational operators now correctly finds a
+common type when one operand is a "pointer to cv void" and the other
+is "pointer to cv T", with one or the other of those types being
+the result type of a conversion function.
+
+  struct R {
+    R();
+    operator const char *();
+  };
+  R x;
+  void *p;
+  int main() {
+    if (x >= p) return 0;  /* Now accepted. */
+  }
+
 10/8/03  Use of typename in nonmember using-declarations
 
 The typename keyword is now accepted in nonmember using-declarations.
