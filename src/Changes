@@ -79,7 +79,7 @@ when the front end is compiled on a Windows system.
 
 When a class is marked __declspec(dllimport), the front end used to also mark
 the out-of-class definitions as dllimport (with a warning).  Such definitions
-were conseuqently discarded (to avoid conflict with the definition that
+were consequently discarded (to avoid conflict with the definition that
 should presumably have been imported).  However, Microsoft compilers treat
 such out-of-class definitions as not having the dllimport property and the
 front end now emulates that behavior.
