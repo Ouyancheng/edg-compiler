@@ -8286,20 +8286,6 @@ Do IL lowering of the indicated scope and everything under it.
        il_header.scope_orphaned_list_headers list if either of those
        pointers is non-NULL.  The entry is created after IL lowering
        runs so that IL lowering can alter those local lists. */
-#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
-    /* If there is reason to promote the local types and static variables
-       to the file scope, do that now and clear the lists.  That makes the
-       promoted entities part of the file scope and no longer orphans.
-       For member functions, the local types get lowered, put onto a list
-       associated with the class, and promoted when the class members get
-       promoted out later. */
-    if (scope_kind == (a_scope_kind)sck_function) {
-      if (local_entities_should_be_promoted(scope)) {
-        promote_local_entities_to_file_scope(scope,
-                                             scope->variant.routine.ptr);
-      }  /* if */
-    }  /* if */
-#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
   }  /* if */
   lower_variable_list(scope->nonstatic_variables);
   lower_local_static_variable_init_list(scope->local_static_variable_inits);
@@ -8361,6 +8347,17 @@ Do IL lowering of the indicated scope and everything under it.
       make_call_statement(underscore_main, (an_expr_node_ptr)NULL,
                           &insert_location);
     }  /* if */
+#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
+    /* If there is reason to promote the local types and static variables
+       to the file scope, do that now and clear the lists.  That makes the
+       promoted entities part of the file scope and no longer orphans.
+       For member functions, the local types get lowered, put onto a list
+       associated with the class, and promoted when the class members get
+       promoted out later. */
+    if (local_entities_should_be_promoted(scope)) {
+      promote_local_entities_to_file_scope(scope, scope->variant.routine.ptr);
+    }  /* if */
+#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
     /* Free any return memos that were not used. */
     free_return_memo_list(return_memo_list);
     return_memo_list = NULL;
