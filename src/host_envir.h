@@ -533,7 +533,7 @@ is more compact since there is one fewer field in IL entries.
 #endif /* ifndef RECORD_SCOPE_DEPTH_IN_IL */
 
 /*
-Flag that is TRUE if parameter names should be in recorded param-type entries.
+Flag that is TRUE if parameter names should be recorded in param-type entries.
 Even when it is FALSE the names of parameters are recorded in the associated
 variable when the function is defined; setting it to TRUE assures that a name
 is available (if the user declared one) even if the function is not defined
