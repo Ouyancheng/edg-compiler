@@ -1,5 +1,18 @@
 Version 2.06
 
+5/5/92   Added symbols for ::operator new and ::operator delete to symbol
+         table as part of initialization
+
+Before this change these symbols (and their routine entries) were
+created on demand when a new or delete expression was encountered:
+
+  int *pi = ::new int;
+
+The bug was that this approach did not work if the first use of the
+operator was an explicit call, for instance:
+
+  int *pi = (int *)::operator new(sizeof(int));
+
 5/5/92   Support for member arrays requiring assignment operator functions
          in generated assignment operator functions.
 
@@ -17,7 +30,7 @@ Formerly, the following gave an internal error:
     b = c;
   }
 
-5/3/92   Support for access declarations of overloaded functions
+5/4/92   Support for access declarations of overloaded functions
 
 Prior to this change, compiling a program that contained an access
 adjustment of an overloaded function resulted in an internal error (in
