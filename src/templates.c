@@ -5270,7 +5270,8 @@ error was diagnosed.
 static a_symbol_ptr add_partial_specialization(
 			a_tmpl_decl_state_ptr	decl_state,
 			a_symbol_ptr		partial_spec_nonreal_sym,
-			a_symbol_locator	*locator)
+			a_symbol_locator	*locator,
+			a_type_kind		type_kind)
 /*
 Create a symbol for a class template partial specialization and add it
 to the list of partial specializations associated with the primary template.
@@ -5281,6 +5282,9 @@ declaration might be A<T1,int>.  When A<T1,int> is first scanned a nonreal
 class will be created.  As a consequence of the partial specialization
 declaration a new prototype instantiation for the partial specialization
 will be created (this is done later).
+
+type_kind is the type_kind used to declare the partial specialization.  Make
+sure it matches the primary template.
 */
 {
   a_symbol_ptr				primary_sym;
@@ -5304,6 +5308,23 @@ will be created (this is done later).
        already occurred. */
     sym->next = primary_tssp->variant.class_template.partial_specializations;
     primary_tssp->variant.class_template.partial_specializations = sym;
+    /* Make sure that the type kind of the partial specialization matches the
+       type kind of the primary template. */
+    if ((type_kind == (a_type_kind)tk_union) !=
+          (primary_tssp->variant.class_template.type_kind ==
+                                                  (a_type_kind)tk_union)) {
+      char	*type_kind_name;
+      switch (type_kind) {
+        case tk_struct: type_kind_name = "struct"; break;
+        case tk_class:  type_kind_name = "class";  break;
+        case tk_union:  type_kind_name = "union";  break;
+        default: unexpected_condition();
+      }  /* switch */
+      /* Cannot mix union and nonunion declarations. */
+      pos_stsy_error(ec_tag_kind_incompatible_with_declaration,
+                     &locator->source_position,
+                     type_kind_name, primary_sym);
+    }  /* if */
   }  /* if */
   return sym;
 }  /* add_partial_specialization */
@@ -6083,8 +6104,8 @@ instantiation.
     if (is_partial_specialization) {
       /* The symbol being created is for a partial specialization.  Create
          the symbol. */
-      sym = add_partial_specialization(decl_state,
-                                       partial_spec_nonreal_sym, &locator);
+      sym = add_partial_specialization(decl_state, partial_spec_nonreal_sym,
+                                       &locator, type_kind);
     } else {
       sym = enter_symbol((a_symbol_kind)sk_class_template, &locator,
                          decl_state->effective_decl_level,

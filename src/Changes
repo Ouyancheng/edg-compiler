@@ -1,5 +1,13 @@
 Version 2.35
 
+1/31/97 Missing diagnostic on partial specialization tag kind mismatch
+
+A diagnostic is now issued if the tag kind of a partial specialization does
+not match the tag kind of the primary template.
+
+  template <class T> struct A {};
+  template <class T> union A<T*> {};
+
 1/31/97 Recognition of predeclared class type_info
 
 A new configuration flag, PRAGMA_DEFINE_TYPE_INFO_IS_REQUIRED, has been
