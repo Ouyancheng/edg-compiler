@@ -173,12 +173,12 @@ typedef struct a_cleanup_action {
 			/* Description of the object to which cleanup
 			   applies. */
       a_variable_ptr
-		first_time_test_var;
-			/* If non-NULL, points to a first-time-test variable
-			   which will be non-zero if the initialization has
-			   been done.  This is needed for local static
-			   variables and for temporaries initialized under
-			   conditional operators. */
+		conditional_flag_var;
+			/* If non-NULL, points to a variable which will be
+			   non-zero if the cleanup should be done.  This is
+			   needed for local static variables and for
+			   temporaries initialized under conditional
+			   operators. */
       /* This field only applies when kind == cak_new_allocation: */
       a_routine_ptr
 		delete_routine;
@@ -323,10 +323,10 @@ typedef struct a_context {
 			   in (this clause of) the block, or NULL if none
 			   has been processed. */
   a_byte_boolean
-		any_conditional_destruction_var_initializations_deferred;
+		any_conditional_flag_var_initializations_deferred;
 			/* TRUE if one or more initializations of
 			   flag variables for conditional destructions were
-			   deferred by add_conditional_destruction_temp.
+			   deferred by add_cleanup_action_to_context_list.
 			   Only happens when assoc_expr is non-NULL. */
 } a_context;
 EXTERN a_context_ptr
