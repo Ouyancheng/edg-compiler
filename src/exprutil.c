@@ -141,7 +141,7 @@ Counts of entries allocated, for debugging purposes.
 */
 unsigned long	num_arg_operands_allocated,
 		num_arg_match_summaries_allocated,
-		num_candidate_functions_allocated;
+		num_candidate_functions_allocated,
 		num_xref_entries_allocated;
 #endif /* DEBUG */
 
