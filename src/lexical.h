@@ -1760,8 +1760,6 @@ extern void push_input_stack(
 
 extern void pop_input_stack(void);
 
-extern void expand_curr_source_line(void);
-
 extern void ensure_min_curr_source_line_length(sizeof_t  min_len);
 
 extern void check_for_generation_of_pch_on_return_to_primary_file(void);

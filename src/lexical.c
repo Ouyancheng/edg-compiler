@@ -3889,7 +3889,7 @@ at the next level down.
 }  /* pop_input_stack */
 
 
-void expand_curr_source_line(void)
+static void expand_curr_source_line(void)
 /*
 We have run into a source line that won't fit in curr_source_line;
 reallocate curr_source_line to make it bigger.
