@@ -4383,8 +4383,20 @@ index number of the first entry, or 0 if no entries were created.
              any_virtual_steps_in_derivation(sub_bcp))
 #endif /* IA64_ABI */
                                                                             ) {
+          a_base_class_ptr            eff_bcp = sub_bcp;
+#if IA64_ABI
+          a_class_type_supplement_ptr eff_ctsp = 
+                          eff_bcp->type->variant.class_struct_union.extra_info;
+          if (eff_ctsp->virtual_function_info_base_class != NULL) {
+            a_base_class_ptr vfibc, disambiguator;
+            vfibc = eff_ctsp->virtual_function_info_base_class;
+            disambiguator = find_disambiguator(sub_bcp, vfibc);
+            eff_bcp = corresponding_base_class(vfibc, vtbl_class, 
+                                               disambiguator);
+          }  /* if */
+#endif /* IA64_ABI */
           /* Needs a special virtual function table. */
-          make_construction_vtbl(class_type, bcp, sub_bcp,
+          make_construction_vtbl(class_type, bcp, eff_bcp,
                                  construction_vtbls, 
                                  end_construction_vtbls, index,
                                  &first_index);
