@@ -3508,11 +3508,15 @@ End a name scope by popping an entry off the scope stack.
     }  /* if */
 #endif /* DEBUG */
 #if DO_IL_LOWERING
-    /* Do IL lowering (change the C++ IL into C IL). */
-    lower_il_memory_region(old_memory_region_number);
+    if (kind != (a_scope_kind)sck_function ||
+        !curr_routine->is_trivial_default_constructor) {
+      /* Do IL lowering (change the C++ IL into C IL). */
+      lower_il_memory_region(old_memory_region_number);
+    }  /* if */
 #endif /* DO_IL_LOWERING */
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
-    if (kind == (a_scope_kind)sck_function) {
+    if (kind == (a_scope_kind)sck_function &&
+        !curr_routine->is_trivial_default_constructor) {
       /* If a function or block scope has local types or static variables,
          make a special entry to record those orphan lists on the il_header
          scope_orphaned_list_headers list so they can be found when processing
