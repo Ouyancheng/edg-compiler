@@ -9071,8 +9071,9 @@ selection operator, in which case it points to the type of the left operand.
           invalid_qualifier_sym = TRUE;
         } else if (is_class_symbol(qualifier_sym)) {
           /* Get the type associated with the class symbol. */
-          qualifier_type = skip_typerefs(qualifier_sym->
-                                              variant.class_struct_union.type);
+          a_type_ptr	qualifier_sym_type;
+          qualifier_sym_type = type_symbol_type(qualifier_sym);
+          qualifier_type = skip_typerefs(qualifier_sym_type);
           qualifier_is_type = TRUE;
           qualifier_type_is_class = TRUE;
         } else if (is_namespace_symbol(qualifier_sym)) {
