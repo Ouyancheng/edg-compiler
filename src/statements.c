@@ -900,8 +900,9 @@ Allocate a source sequence entry for statement sp and add it to the list for
 the current function scope.
 */
 #define stmt_update_source_sequence_list(sp)                     \
-   update_source_sequence_list((char *)(sp), iek_statement,      \
-                               (a_source_position *)NULL);
+  update_source_sequence_list((char *)sp, iek_switch_clause,     \
+                              (a_source_position *)NULL,         \
+                              (a_decl_seq_info_ptr)NULL)
 #else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
 #define stmt_update_source_sequence_list(sp) /* Nothing */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -2878,7 +2879,8 @@ by *constant_ptr.  constant_ptr is NULL to indicate the default label.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* Add a source sequence entry for the switch clause. */
     update_source_sequence_list((char *)scp, iek_switch_clause,
-                                (a_source_position *)NULL);
+                                (a_source_position *)NULL,
+                                (a_decl_seq_info_ptr)NULL);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* Represent this case label by adding an entry to the
        control_flow_descr_list. */
