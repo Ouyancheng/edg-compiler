@@ -7294,6 +7294,39 @@ process_class_specifier:
               goto exit_loop;
             }  /* if */
           }  /* if */
+#if 0
+/* It is unlikely that the following special case (namely the declaration of
+   function A with implicit return type) should be supported.  Cfront does,
+   but it may be a bug, so (for now, at least) we suppress support even in
+   cfront compatibility mode. */
+          /* Special case.  Consider the following:
+               struct A { };
+               A (i);       // declares var i of type A (C++ only)
+               A (int i);   // declares func A taking int param, returning int
+             The third declaration is a valid function declaration in C and
+             is allowed in C++ as well.  We need to look ahead to disambiguate
+             this case. */
+          if (!locator_for_curr_id.is_qualified_name &&
+              basic_type == bt_none && next_token() == tok_lparen) {
+            a_type_ptr  tp = type_symbol_type(curr_token_type_symbol);
+            if (is_immediate_class_type(tp) && !is_template_class_type(tp)) {
+              a_token_cache  cache;
+              a_boolean      is_decl;
+
+              clear_token_cache(&cache, /*reusable=*/FALSE);
+              /* Put the current token in the cache. */
+              cache_curr_token(&cache);
+              /* Advance to the left paren, cache it, and move past it. */
+              (void)get_token();
+              cache_curr_token(&cache);
+              (void)get_token();
+              is_decl = is_decl_start(/*expr_context=*/FALSE,
+                                      /*real_declarator_allowed=*/TRUE);
+              rescan_cached_tokens(&cache);
+              if (is_decl) goto exit_loop;
+            }  /* if */
+          }  /* if */
+#endif /* if 0 */
           /* The identifier is a type name and should be treated as a
              type specifier. */
           if (locator_for_curr_id.is_semivisible_nested_type) {
@@ -8280,9 +8313,10 @@ and for the instantiation of template functions.
   rout_ptr->assoc_scope = curr_il_region_number;
   rtsp->assoc_routine = rout_ptr;
   if (class_type != NULL && rtsp->implicit_this_param_type != NULL) {
-    scope_ptr->variant.routine.this_param_variable =
-                        make_param_variable(rtsp->implicit_this_param_type,
-                                            (a_storage_class)sc_auto);
+    a_variable_ptr  vp = make_param_variable(rtsp->implicit_this_param_type,
+                                             (a_storage_class)sc_auto);
+    vp->implicit_this_param = TRUE;
+    scope_ptr->variant.routine.this_param_variable = vp;
   }  /* if */
   if (func_info->function_type_from_typedef) {
     /* An error was already issued on this.  Now, since no parameters were
