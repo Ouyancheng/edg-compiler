@@ -779,6 +779,10 @@ the name.
                             type->variant.class_struct_union.extra_info->
                                                              template_arg_list;
 
+  /* This routine shouldn't be called after the nested type mangling has been
+     done. */
+  check_assertion_str(!type->source_corresp.nested_type_mangling_has_been_done,
+                "mangled_basic_class_name: nested type mangling done already");
   /* Always start with the name of the class, which applies even in the
      template class case. */
   name = type->source_corresp.name;
@@ -958,6 +962,13 @@ Interface to r_mangled_parent_qualifier, to provide nesting_level == 1.
 #endif /* !CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
 
 
+/*
+The prefix put on the front of the type encoding for a nested type to get
+the name placed in the nested type itself.
+*/
+#define PREFIX_ON_NESTED_TYPE_NAME "__"
+
+
 static sizeof_t mangled_type_name(a_type_ptr type,
                                   char       *store_at)
 /*
@@ -972,50 +983,63 @@ classes and enums.  Nested types are encoded as such.
   char       *name;
   sizeof_t   digits;
 
-  if (type_needs_parent_qualifier(type)) {
-    /* The type is a member of a class or namespace, so put out a qualifier.
-       Note that the count starts at 2 because the type name itself is level
-       1. */
-    mangled_name_length = r_mangled_parent_qualifier(&type->source_corresp,
-                                                     (unsigned long)2,
-                                                     store_at);
-    if (store_at != NULL) store_at += mangled_name_length;
-  }  /* if */
-  /* Put out the type name itself. */
-  /* The mangled form of a type name is the type name with a length
-       preceding it:
-         AB          --> 2AB
-         ABCDEFGHIJK --> 11ABCDEFGHIJK
-  */
-  if (is_immediate_class_type(type)) {
-    /* Class name. */
-    name_length = mangled_basic_class_name(type, (char *)NULL);
-    digits = digits_to_represent((unsigned long)name_length);
-    mangled_name_length += name_length + digits;
+  if (type->source_corresp.nested_type_mangling_has_been_done) {
+    /* The parent information has already been mangled into the type name,
+       i.e., the name is already fully mangled.  Return the name after
+       the prefix. */
+    char *mangled_name = type->source_corresp.name +
+                         sizeof(PREFIX_ON_NESTED_TYPE_NAME) - 1;
+    mangled_name_length = strlen(mangled_name);
     if (store_at != NULL) {
-      /* Actually store the name. */
-      (void)sprintf(store_at, "%lu", (unsigned long)name_length);
-      store_at += digits;
-      store_at += mangled_basic_class_name(type, store_at);
+      (void)strcpy(store_at, mangled_name);
+      store_at += mangled_name_length;
     }  /* if */
   } else {
-    /* Not a class name (typedef or enum). */
-    name = type->source_corresp.name;
-    if (name == NULL) {
-      /* Unnamed entity. */
-      check_assertion(is_enum_type(type));
-      give_unnamed_enum_a_name(type);
-      name = type->source_corresp.name;
+    if (type_needs_parent_qualifier(type)) {
+      /* The type is a member of a class or namespace, so put out a qualifier.
+         Note that the count starts at 2 because the type name itself is level
+         1. */
+      mangled_name_length = r_mangled_parent_qualifier(&type->source_corresp,
+                                                       (unsigned long)2,
+                                                       store_at);
+      if (store_at != NULL) store_at += mangled_name_length;
     }  /* if */
-    name_length = strlen(name);
-    digits = digits_to_represent((unsigned long)name_length);
-    mangled_name_length += name_length + digits;
-    if (store_at != NULL) {
-      /* Actually store the name. */
-      (void)sprintf(store_at, "%lu", (unsigned long)name_length);
-      store_at += digits;
-      (void)memcpy(store_at, name, size_t_arg(name_length));
-      store_at += name_length;
+    /* Put out the type name itself. */
+    /* The mangled form of a type name is the type name with a length
+         preceding it:
+           AB          --> 2AB
+           ABCDEFGHIJK --> 11ABCDEFGHIJK
+    */
+    if (is_immediate_class_type(type)) {
+      /* Class name. */
+      name_length = mangled_basic_class_name(type, (char *)NULL);
+      digits = digits_to_represent((unsigned long)name_length);
+      mangled_name_length += name_length + digits;
+      if (store_at != NULL) {
+        /* Actually store the name. */
+        (void)sprintf(store_at, "%lu", (unsigned long)name_length);
+        store_at += digits;
+        store_at += mangled_basic_class_name(type, store_at);
+      }  /* if */
+    } else {
+      /* Not a class name (typedef or enum). */
+      name = type->source_corresp.name;
+      if (name == NULL) {
+        /* Unnamed entity. */
+        check_assertion(is_enum_type(type));
+        give_unnamed_enum_a_name(type);
+        name = type->source_corresp.name;
+      }  /* if */
+      name_length = strlen(name);
+      digits = digits_to_represent((unsigned long)name_length);
+      mangled_name_length += name_length + digits;
+      if (store_at != NULL) {
+        /* Actually store the name. */
+        (void)sprintf(store_at, "%lu", (unsigned long)name_length);
+        store_at += digits;
+        (void)memcpy(store_at, name, size_t_arg(name_length));
+        store_at += name_length;
+      }  /* if */
     }  /* if */
   }  /* if */
   return mangled_name_length;
@@ -2007,10 +2031,8 @@ other name mangling that might use the name is done.
   char     *mangled_name;
 
   error_position = type->source_corresp.decl_position;
-  if (type_needs_parent_qualifier(type) && has_name(type)) {
-    /* No check for !type->source_corresp.name_has_been_mangled here because
-       if the class is a nested template class, its template argument
-       mangling has already been done. */
+  if (type_needs_parent_qualifier(type) && has_name(type) &&
+      !type->source_corresp.nested_type_mangling_has_been_done) {
     /* Nested type names must be mangled (because they exist in a scope
        that does not exist in the generated C code).  The mangled form
        is something like
@@ -2020,21 +2042,22 @@ other name mangling that might use the name is done.
        from all user identifiers).  Similar mangling is used for members
        of namespaces (a different kind of "nested" type). */
     /* Determine how long the mangled name is. */
-    mangled_name_length = mangled_class_name(type, (char *)NULL) +
-                          2;  /* "__" */
+    mangled_name_length = mangled_type_name(type, (char *)NULL) +
+                          sizeof(PREFIX_ON_NESTED_TYPE_NAME) - 1;
     /* Allocate space for the mangled name and build it.  The old name is
        just thrown away. */
     alloc_length = mangled_name_length + 1;
     mangled_name = alloc_lowered_name_string(alloc_length);
-    mangled_name[0] = '_';
-    mangled_name[1] = '_';
-    (void)mangled_class_name(type, mangled_name + 2);
+    (void)strcpy(mangled_name, PREFIX_ON_NESTED_TYPE_NAME);
+    (void)mangled_type_name(type,
+                            mangled_name+sizeof(PREFIX_ON_NESTED_TYPE_NAME)-1);
     mangled_name[mangled_name_length] = '\0';
     /* Note that the mangled name is not put into the type until after it has
        been completely built, because the old name is used in building the
        mangled form. */
     type->source_corresp.name = mangled_name;
     type->source_corresp.name_has_been_mangled = TRUE;
+    type->source_corresp.nested_type_mangling_has_been_done = TRUE;
   }  /* if */
 }  /* mangle_nested_type_name */
 

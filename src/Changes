@@ -1,5 +1,25 @@
 Version 2.30
 
+8/21/95  Object id variable double name mangling for nested classes fixed
+
+In certain cases the object id variable (pointed to from the typeinfo
+variable) generated for a nested class had double name mangling in it.
+In the following, __TID_Q2_5Space13__Q2_5Space1B is now __TID_Q2_5Space1B:
+
+  class Space {
+  public:
+          class B {
+          public:
+                  virtual int f();
+          };
+          class D: virtual public B {
+          public:
+                  virtual int g();
+          };
+  };
+  int Space::B::f() { return 0; }
+  int Space::D::g() { return 0; }
+
 8/21/95  SVR4-C compatibility bug fixed
 
 An error is no longer issued in SVR4-C mode when a nonprototyped function
