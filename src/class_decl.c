@@ -6255,9 +6255,9 @@ static void decl_member_function(a_symbol_locator        *locator,
                                  a_member_decl_info_ptr  decl_info,
                                  a_boolean               compiler_generated)
 /*
-For a member function declaration:  create a symbol entry and a routine entry
+For a member function declaration: create a symbol entry and a routine entry
 for the member function, add the symbol to the symbol table, and append the
-routine entry to the routines list for the current class.  *locator give the
+routine entry to the routines list for the current class.  *locator gives the
 source locator of the declaration.  class_type points to the type entry of the
 class of which the function is a member, and member_type points to the type
 entry of the function itself.  *class_state and *decl_info track general
