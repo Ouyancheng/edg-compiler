@@ -1,5 +1,11 @@
 Version 2.16
 
+4/6/93  Pointer-to-member operands for "&&", "||", and "!" operands
+
+The operands of the "&&", "||", and "!" operators are now allowed to
+be pointers to members.  This was added in a recent draft of the
+X3J16/WG21 Working Paper.
+
 4/6/93  Error diagnosis for template operator and conversion functions
 
 Errors are now diagnosed for invalid operator functions and conversions
