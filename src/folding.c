@@ -2559,8 +2559,8 @@ everything went fine.
 */
 {
   an_integer_value result_value;
-  a_boolean        is_signed, err;
-  int              value_2;
+  a_boolean        is_signed, err, too_large = FALSE;
+  int              shift_count, extra_shift_count = 0;
 
   *err_code = ec_no_error;
   *err_severity = es_warning;
@@ -2568,12 +2568,54 @@ everything went fine.
   check_shift_count(constant_2, constant_1->type, err_code);
   if (*err_code != ec_no_error) {
     /* Something wrong with the shift count. */
-    *err_severity = es_error;
-  } else {
+    if (*err_code == ec_shift_count_too_large) {
+      /* The shift count is too large. */
+      too_large = TRUE;
+      if (microsoft_mode || gnu_mode) {
+        /* Too-large shift counts are only warnings in Microsoft and GNU
+           modes. */
+      } else {
+        *err_severity = es_error;
+      }  /* if */
+    } else {
+      /* Other errors (e.g., negative shift count) are always errors.
+         Microsoft doesn't give errors, but it's not clear what they do,
+         so we don't try to emulate the folding. */
+      *err_severity = es_error;
+    }  /* if */
+  }  /* if */
+  if (*err_severity != es_error) {
+    /* Fold the shift. */
     result_value = constant_1->variant.integer_value;
-    value_2 = (int)value_of_integer_constant(constant_2, &err);
-    /* No need to check err because check_shift_count has already
-       established that the shift count is reasonable. */
+    if (too_large) {
+      /* Adjust the shift count for a too-large value. */
+      int object_bit_size =
+                         (skip_typerefs(constant_1->type)->size)*targ_char_bit;
+      if (targ_too_large_shift_count_is_taken_modulo_size) {
+        /* We're supposed to reduce the shift count modulo the bit size
+           of the object. */
+        shift_count = (int)value_of_integer_constant(constant_2, &err);
+        if (err) {
+          /* The number is huge.  Give up. */
+          *err_severity = es_error;
+          goto end_of_folding;
+        }  /* if */
+        shift_count %= object_bit_size;
+      } else {
+        /* We're supposed to treat the shift count as if we really shift
+           that many bits.  Just shift the amount beyond which we would
+           not get any further change, i.e., the number of bits in the
+           object.  Do it in two steps so that the low-level routines
+           need not deal with the odd cases. */
+        shift_count = object_bit_size-1;
+        extra_shift_count = 1;
+      }  /* if */
+    } else {
+      /* Normal shift count, not too big. */
+      shift_count = (int)value_of_integer_constant(constant_2, &err);
+      /* No need to check err because check_shift_count has already
+         established that the shift count is reasonable. */
+    }  /* if */
     if (shift_right) {
       /* Shift right. */
       is_signed = int_constant_is_signed(constant_1);
@@ -2592,15 +2634,23 @@ everything went fine.
         make_integer_value_mask(&mask, tmp_bit_size);
         and_integer_values(&result_value, &mask);
       }  /* if */
-      shift_right_integer_value(&result_value, value_2, is_signed,
+      shift_right_integer_value(&result_value, shift_count, is_signed,
                                /*sign_extend=*/targ_right_shift_is_arithmetic);
+      if (extra_shift_count != 0) {
+        shift_right_integer_value(&result_value, extra_shift_count, is_signed,
+                               /*sign_extend=*/targ_right_shift_is_arithmetic);
+      }  /* if */
     } else {
       /* Shift left. */
-      shift_left_integer_value(&result_value, value_2, &err);
+      shift_left_integer_value(&result_value, shift_count, &err);
+      if (extra_shift_count != 0) {
+        shift_left_integer_value(&result_value, extra_shift_count, &err);
+      }  /* if */
     }  /* if */
     trunc_and_set_integer(&result_value, result, /*check_overflow=*/FALSE,
                           err_code, err_severity);
   }  /* if */
+end_of_folding:;
 }  /* do_shift */
 
 

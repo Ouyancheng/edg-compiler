@@ -865,6 +865,16 @@ EXTERN a_boolean
 			   sign extension.  Initialized to the default value
 			   but reconfigurable. */
 
+EXTERN a_boolean
+		targ_too_large_shift_count_is_taken_modulo_size
+#if VAR_INITIALIZERS
+                             = TARG_TOO_LARGE_SHIFT_COUNT_IS_TAKEN_MODULO_SIZE
+#endif /* VAR_INITIALIZERS */
+                                                                              ;
+			/* When TRUE a shift with a too-large shift count is
+			   treated as if the shift count is reduced modulo
+			   the bit size of the object. */
+
 EXTERN a_targ_alignment
 		targ_minimum_struct_alignment
 #if VAR_INITIALIZERS

@@ -1831,6 +1831,22 @@ Definition of shift operations:
 #endif /* !defined(TARG_RIGHT_SHIFT_IS_ARITHMETIC) */
 
 /*
+Flag that indicates indicates whether in a shift with a too-large shift
+count the count is reduced modulo the bit size of the object being shifted.
+FALSE means the shift is done as if we really shift as many bits as
+indicated.  Used to initialize targ_too_large_shift_count_is_taken_modulo_size.
+Note that this is really relevant only for compile-time folding, and
+probably only in certain permissive modes (in most modes, too-large shift
+counts are errors).  Also note that almost all compilers seem to fold at
+compile time in a way that matches the FALSE setting in spite of the fact
+that when the same operation is done at runtime the result matches the
+TRUE setting.
+*/
+#ifndef TARG_TOO_LARGE_SHIFT_COUNT_IS_TAKEN_MODULO_SIZE
+#define TARG_TOO_LARGE_SHIFT_COUNT_IS_TAKEN_MODULO_SIZE FALSE
+#endif /* ifndef TARG_TOO_LARGE_SHIFT_COUNT_IS_TAKEN_MODULO_SIZE */
+
+/*
 Number of significant characters in an external name (names will be truncated
 to this length if necessary).  If there is no limit, this value should be set
 to zero.  It should in any case be set to a reasonably small value (not, for

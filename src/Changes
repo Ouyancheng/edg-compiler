@@ -1,5 +1,18 @@
 Version 3.4
 
+4/16/04  Warning on too-large shift count
+
+In Microsoft and GNU modes a too-large shift count now causes a
+warning rather than an error.  This immediately brings up the
+issue of how such shifts are to be folded at compile time.
+The standard doesn't require any particular behavior, and
+doesn't require that the result at compile time match the
+result at run time.  (Surprisingly, our survey of compilers
+indicates that most compilers do the two cases differently.)
+We have added a configuration macro
+TARG_TOO_LARGE_SHIFT_COUNT_IS_TAKEN_MODULO_SIZE to control
+the behavior.
+
 4/15/04  pch_one_time_init not called in usual way
 
 For historical reasons, pch_one_time_init was called the first time that
