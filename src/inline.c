@@ -950,8 +950,13 @@ Issue a diagnostic about a failure to inline the indicated routine.
   a_symbol_ptr sym = (a_symbol_ptr)routine->source_corresp.assoc_info;
 
   if (sym != NULL) {
-    sym_remark(!routine->inlinable ? ec_cannot_inline : ec_cannot_inline_call,
-               sym);
+    if (!routine->inlinable) {
+      /* The routine cannot ever be inlined. */
+      pos_sy_remark(ec_cannot_inline, &sym->decl_position, sym);
+    } else {
+      /* The routine cannot be inlined in this case. */
+      sym_remark(ec_cannot_inline_call, sym);
+    }  /* if */
   }  /* if */
 }  /* issue_inlining_failure_diagnostic */
 
