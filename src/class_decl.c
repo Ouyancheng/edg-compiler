@@ -7320,6 +7320,13 @@ return a pointer to it.
       kind = iek_field;
       entity = (char *)sym->variant.field.ptr;
       break;
+    case sk_function_template:
+    case sk_class_template:
+#if RECORD_TEMPLATES_IN_IL
+      kind = iek_template;
+      entity = (char *)sym->variant.template_info->il_template_entry;
+      break;
+#endif /* RECORD_TEMPLATES_IN_IL */
 #if CHECKING
     default:
       internal_error("new_class_member_using_decl: unexpected symbol kind");
@@ -7598,14 +7605,13 @@ or implicit) controlling the declaration.
           add_to_conversion_list(new_sym,
                                  symbol_supplement_for_class(class_type));
         }  /* if */
-        if (fund_sym->kind == (a_symbol_kind)sk_function_template) {
-#if 0
-/* If RECORD_TEMPLATES_IN_IL is FALSE there's no IL entry for the
-   class-member-using-decl to point to.  Even if it's TRUE there's no easy
-   way to get from the sk_function_template symbol to the corresponding IL
-   entry.  So this will go unimplemented for the time being. */
-#endif /* if 0 */
+#if !RECORD_TEMPLATES_IN_IL
+        if (fund_sym->kind == (a_symbol_kind)sk_class_template ||
+            fund_sym->kind == (a_symbol_kind)sk_function_template) {
+          /* When RECORD_TEMPLATES_IN_IL is FALSE there's no IL entry for the
+             class-member-using-decl to point to, don't put out an entry. */
         } else {
+#endif /* !RECORD_TEMPLATES_IN_IL */
           /* Create a class member using decl entry to represent this
              declaration in the IL. */
           cmudp = new_class_member_using_decl(fund_sym, access);
@@ -7621,7 +7627,9 @@ or implicit) controlling the declaration.
           /* Update cross-reference and source sequence info, if required. */
           record_class_member_using_decl(cmudp, fund_sym,
                                          &locator_for_curr_id.source_position);
+#if !RECORD_TEMPLATES_IN_IL
         }  /* if */
+#endif /* !RECORD_TEMPLATES_IN_IL */
       }  /* if */
       if (!is_overloaded) break;
       if ((sym = sym->next) == NULL) break;
