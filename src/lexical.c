@@ -5325,11 +5325,6 @@ an opening parenthesis).  Flush to the corresponding closing token.
         break;
       default:;
     }  /* switch */
-    /* Always stop the flush on:
-       1)  End of source;
-       2)  A newline, if in a preprocessing directive. */
-    if (curr_token == tok_end_of_source ||
-        (in_preprocessing_directive && curr_token == tok_newline)) break;
     /* If we've skipped too many lines, give up the flush. */
     if ((pos_curr_token.seq - start_pos.seq) > max_lines) break;
     /* Check for the start of a template parameter list. */
@@ -5338,6 +5333,11 @@ an opening parenthesis).  Flush to the corresponding closing token.
         flush_until_matching_token();
       }  /* if */
     }  /* if */
+    /* Always stop the flush on:
+       1)  End of source;
+       2)  A newline, if in a preprocessing directive. */
+    if (curr_token == tok_end_of_source ||
+        (in_preprocessing_directive && curr_token == tok_newline)) break;
     /* None of the conditions was satisfied, so keep flushing tokens. */
     prev_token = curr_token;
     (void)get_token();
@@ -6136,6 +6136,10 @@ a routine to lookup the appropriate instance (or generate one if needed).
   if (curr_token != tok_gt) {
     syntax_error(ec_exp_gt);
     any_errors = TRUE;
+    /* Below we will set curr_token to tok_identifier.  Do an unget
+       of the token that stopped the flush so that it can be processed
+       later. */
+    unget_token();
   }  /* if */
   if (!any_errors) {
     /* Everything is OK -- find the instance that matches these arguments.
@@ -7433,6 +7437,7 @@ pragma scope to be used while scanning the pragma tokens.
   clear_stop_tokens();
   add_stop_token(tok_newline);
   rescan_reusable_cache(&ppp->token_cache);
+  in_preprocessing_directive = TRUE;
   /* Push a pragma scope.  This prevents names introduced by the pragma
      processing from polluting the current scope. */
   (void)push_scope((a_scope_kind)sck_pragma, NO_SCOPE_NUMBER, (a_type_ptr)NULL,
@@ -7477,6 +7482,7 @@ is actived is popped here.
   copy_stop_tokens(save_stop_token_array, stop_token_array);
   /* Pop the pragma scope. */
   pop_scope();
+  in_preprocessing_directive = FALSE;
 }  /* wrapup_rescan_of_pragma_tokens */
 
 

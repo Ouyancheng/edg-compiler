@@ -1,5 +1,18 @@
 Version 2.28
 
+1/20/95  Internal error following syntax error in #pragma directive
+
+A few problems have been fixed that could result in an internal
+error in wrapup_rescan_of_pragma_tokens after diagnosing a syntax error.
+
+This is an example of a case that resulted in an internal error:
+
+  template <class T> struct A {};
+  template <class T> struct B {
+    ~B();
+  };
+  #pragma instantiate B<A<int>>::~B()
+
 1/20/95  IL CHANGE: qualifiers field in a_param_type
 
 With the change to remove cv-qualifiers from function parameter types (in

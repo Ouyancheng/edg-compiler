@@ -730,6 +730,7 @@ pbk_immediate pragmas are processed here.
   add_source_sequence_entry_to_curr_token_pragmas();
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   ppp = curr_token_pragmas;
+  curr_token_pragmas = NULL;
   while (ppp != NULL) {
     a_pending_pragma_ptr	next_ppp = ppp->next;
     pkdp = ppp->descr_ptr;
@@ -799,7 +800,6 @@ pbk_immediate pragmas are processed here.
     }  /* switch */
     ppp = next_ppp;
   }  /* while */
-  curr_token_pragmas = NULL;
   db_exit();
 }  /* process_curr_token_pragmas */
 
