@@ -584,6 +584,16 @@ Initialize the option information table.
                          "no_for_init_diff_warning", '\0',
                          /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+#if NEED_NAME_MANGLING
+  add_option_description(optk_distinct_template_signatures,
+                         "distinct_template_signatures", '\0',
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_distinct_template_signatures,
+                         "no_distinct_template_signatures", '\0',
+                         /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+#endif /* NEED_NAME_MANGLING */
 }  /* initialize_option_descriptions */
 
 
@@ -1547,6 +1557,12 @@ common_cfront_mode_settings:
            visibility than old rules. */
         warning_on_for_init_difference = opt_value;
         break;
+#if NEED_NAME_MANGLING
+      case optk_distinct_template_signatures:
+        /* Enable distinct name mangling for templates and nontemplates. */
+        distinct_mangling_for_templates = opt_value;
+        break;
+#endif /* NEED_NAME_MANGLING */
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
