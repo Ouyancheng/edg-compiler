@@ -6702,8 +6702,9 @@ If C_output_file_name is NULL, use stdout for the output.
      source file contains #line directives, start with the file indicated
      therein as the primary file. */
   prim_source_file = eff_primary_source_file();
-  write_line_directive(prim_source_file->first_line_number,
-                       prim_source_file);
+  last_known_good_line = prim_source_file->first_line_number;
+  last_known_good_file = prim_source_file;
+  write_line_directive(last_known_good_line, last_known_good_file);
 
   /* Dump all of the declarative information at the top-most (file) level. */
   curr_scope = scope = il_header.primary_scope;
