@@ -148,10 +148,11 @@ This is now fixed.
 
 12/8/04  C++-generating back end: Infinite loop on member specialization
 
-When TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is set to TRUE, the
-C++-generating back end sometimes ended up in an infinite loop.  This loop
-was due to the invalid structure of the list of source sequence entries
-for the specialization of a member template.  For example:
+When both TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS and
+PROTOTYPE_INSTANTIATIONS_IN_IL are set to TRUE, the C++-generating back end
+sometimes ended up in an infinite loop.  This loop was due to the invalid
+structure of the list of source sequence entries for the specialization of a
+member template.  For example:
 
   template<typename T> struct A { template<typename T> struct B; };
   template<> template<typename U> struct A<int>::B {};

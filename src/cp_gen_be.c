@@ -519,7 +519,7 @@ hidden names in C, so there's no point in maintaining this information).
          example:
 
            template<typename T> struct X { };
-           template<typename T>struct Outer { };
+           template<typename T> struct Outer { };
            template<> struct Outer<int> {
              struct X;
              struct inner: ::X<int> {
@@ -8483,9 +8483,15 @@ recorded with this particular header.
 {
   a_template_parameter_ptr  param = tdp->param_list;
 
+#if !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   if (tdp->parent != NULL) {
     gen_template_header(tdp->parent);
   }  /* if */
+#else /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+  /* If template classes are put out as specializations, the parent of a member
+     template isn't a template (but a template specialization) and no header
+     should be put out for it. */
+#endif /* !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   set_output_position(&tdp->template_pos);
   write_tok_str("template<");
   for (; param != NULL; param = param->next) {
