@@ -1130,6 +1130,10 @@ current scope.
                                          &pos_curr_token,
                                          scope_stack[decl_scope_level].number);
   assoc_object_sym->variant.variable.ptr = vp;
+  if (at_global_scope) {
+    set_namespace_membership(assoc_object_sym, &vp->source_corresp,
+                             (a_namespace_ptr)NULL);
+  }  /* if */
   check_anonymous_union_symbols(assoc_object_sym, (a_type_ptr)NULL,
                                 /*is_nonstd=*/FALSE);
 }  /* make_anonymous_union_variable */
