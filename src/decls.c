@@ -4040,7 +4040,6 @@ on for use in generating cross-reference output describing this declaration.
     homonym_symbol = idlb.homonym_symbol;
     overload_symbol = idlb.overload_symbol;
     effective_decl_level = idlb.effective_decl_level;
-    if (homonym_symbol == NULL) homonym_symbol = overload_symbol;
     storage_class = idlb.storage_class;
   }  /* if */
   if (linkage != idl_none && linked_symbol != NULL) {
