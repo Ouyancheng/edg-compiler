@@ -8395,6 +8395,43 @@ entry, if there is one.
   }  /* if */
 }  /* set_autonomous_tag_decl_flag */
 
+
+static a_source_sequence_entry_ptr scan_to_end_of_construct(
+                                           a_source_sequence_entry_ptr  ssep)
+/*
+*/
+{
+  a_source_sequence_entry_ptr  last_ssep;
+  a_src_seq_secondary_decl_ptr sssdp;
+
+  check_assertion(ssep->entity.kind == (a_byte_il_entry_kind)iek_type &&
+                  (is_immediate_class_type((a_type_ptr)ssep->entity.ptr) ||
+                   is_immediate_enum_type((a_type_ptr)ssep->entity.ptr)));
+  last_ssep = ssep->next;
+  for (;;) {
+    if (last_ssep->entity.kind ==
+                     (a_byte_il_entry_kind)iek_src_seq_end_of_construct &&
+        ((a_src_seq_end_of_construct_ptr)last_ssep->entity.ptr)->
+                                          entity.ptr == ssep->entity.ptr) {
+      break;
+    }  /* if */
+    if (last_ssep->entity.kind ==
+                 (a_byte_il_entry_kind)iek_src_seq_secondary_decl) {
+      sssdp = (a_src_seq_secondary_decl_ptr)last_ssep->entity.ptr;
+      if (sssdp->friend_decl &&
+          sssdp->entity.kind == (a_byte_il_entry_kind)iek_routine) {
+        a_routine_ptr rp = (a_routine_ptr)sssdp->entity.ptr;
+        if (rp->source_corresp.source_sequence_entry == last_ssep) {
+          rp->source_corresp.source_sequence_entry = NULL;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    last_ssep = last_ssep->next;
+  }  /* for */
+  return last_ssep;
+}  /* scan_to_end_of_construct */
+
+
 static void drop_from_file_scope_source_sequence_list(
                                        a_source_sequence_entry_ptr  ssep,
                                        a_source_sequence_entry_ptr  *next_ssep)
@@ -8403,19 +8440,12 @@ static void drop_from_file_scope_source_sequence_list(
 {
   a_source_sequence_entry_ptr  last_ssep;
 
-  last_ssep = ssep;
   if (ssep->entity.kind == (a_byte_il_entry_kind)iek_type &&
       (is_immediate_class_type((a_type_ptr)ssep->entity.ptr) ||
        is_immediate_enum_type((a_type_ptr)ssep->entity.ptr))) {
-    for (;;) {
-      if (last_ssep->entity.kind ==
-                     (a_byte_il_entry_kind)iek_src_seq_end_of_construct &&
-          ((a_src_seq_end_of_construct_ptr)last_ssep->entity.ptr)->
-                                          entity.ptr == ssep->entity.ptr) {
-        break;
-      }  /* if */
-      last_ssep = last_ssep->next;
-    }  /* for */
+    last_ssep = scan_to_end_of_construct(ssep);
+  } else {
+    last_ssep = ssep;
   }  /* if */
   if (ssep->prev == NULL) {
     scope_stack[DEPTH_OF_FILE_SCOPE].il_scope->
@@ -8583,31 +8613,17 @@ static void turn_class_definition_into_declaration(a_type_ptr  class_type)
       }  /* for */
     } else {
       check_assertion(ssep->entity.ptr == (char *)class_type);
-      last_ssep = ssep->next;
-      for (;;) {
-        if (last_ssep->entity.kind ==
-                       (a_byte_il_entry_kind)iek_src_seq_end_of_construct &&
-            ((a_src_seq_end_of_construct_ptr)last_ssep->entity.ptr)->
-                                            entity.ptr == ssep->entity.ptr) {
-          break;
-        }  /* if */
-        if (last_ssep->entity.kind ==
-                       (a_byte_il_entry_kind)iek_src_seq_secondary_decl) {
-          sssdp = (a_src_seq_secondary_decl_ptr)last_ssep->entity.ptr;
-          if (sssdp->friend_decl &&
-              sssdp->entity.kind == (a_byte_il_entry_kind)iek_routine) {
-            a_routine_ptr rp = (a_routine_ptr)sssdp->entity.ptr;
-            if (rp->source_corresp.source_sequence_entry == last_ssep) {
-              rp->source_corresp.source_sequence_entry = NULL;
-            }  /* if */
-          }  /* if */
-        }  /* if */
-        last_ssep = last_ssep->next;
-      }  /* for */
+      /* Locate the end-of-construct entry corresponding to ssep. */
+      last_ssep = scan_to_end_of_construct(ssep);
+      /* Remove all the entries following ssep up to and including the
+         end-of-construct.  ssep remains in the source sequence list. */
       ssep->next = last_ssep->next;
       if (last_ssep->next != NULL) {
         last_ssep->next->prev = ssep;
       }  /* if */
+      /* Turn what was originally a definition into a secondary declaration
+         (a nondefining class declaration) as far as the source-sequence
+         representation is concerned. */
       sssdp = alloc_src_seq_secondary_decl();
       sssdp->entity = ssep->entity;
       ssep->entity.ptr = (char *)sssdp;
