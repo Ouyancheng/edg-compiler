@@ -3252,6 +3252,10 @@ Reserve space at the end of the class object for virtual base classes.
     /* The size without virtual base classes includes all subobjects that have
        been laid out thus far.  */
     adjust_size_for_empty_bases(lob);
+#endif /* IA64_ABI */
+    ctsp->size_without_virtual_base_classes = lob->byte_offset;
+    ctsp->alignment_without_virtual_base_classes = lob->alignment;
+#if IA64_ABI
     if (emulate_gnu_abi_bugs) {
       /* Early GNU implementations for the IA-64 ABI force an alignment
          boundary before allocating trailing virtual bases. */
@@ -3262,8 +3266,6 @@ Reserve space at the end of the class object for virtual base classes.
       }  /* if */
     }  /* if */
 #endif /* IA64_ABI */
-    ctsp->size_without_virtual_base_classes = lob->byte_offset;
-    ctsp->alignment_without_virtual_base_classes = lob->alignment;
 #if !TARG_REUSE_TAIL_PADDING
     /* Note that the current size may not be consistent (according to the
        rules for C structs) with the current alignment.  Modify
