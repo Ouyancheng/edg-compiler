@@ -1,5 +1,12 @@
 Version 2.39
 
+7/3/98    C++-generating back end: operator function name followed by
+          explicit template argument list
+
+The C++-generating back end now puts out a space after an operator function
+name when it is followed by an explicit template argument list, to
+avoid problems with cases like "operator< <int>".
+
 7/3/98    Access checking for protected members in the presence of
           nondirect virtual base classes
 

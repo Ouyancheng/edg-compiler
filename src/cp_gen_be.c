@@ -1545,6 +1545,14 @@ entity is a template class, add the template arguments.
       a_routine_ptr rout = (a_routine_ptr)scp;
       if (rout->expl_template_arg_list_used) {
         tap = rout->template_arg_list;
+        if (tap != NULL &&
+            rout->special_kind == (a_special_function_kind)sfk_operator) {
+          /* For operator functions with a template argument list, put a space
+             between the operator and the "<" of the template arguments.
+             This is necessary for operator< and operator<<, to avoid
+             mis-tokenizing the operator. */
+          write_space();
+        }  /* if */
       }  /* if */
     }  /* if */
     if (tap != NULL) {
