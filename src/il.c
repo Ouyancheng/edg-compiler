@@ -2405,23 +2405,14 @@ Copy the type entry "from" to "to".
 }  /* copy_type */
 
 
-a_dynamic_init_ptr alloc_dynamic_init(a_dynamic_init_kind kind,
-                                      a_variable_ptr      variable)
+void clear_dynamic_init(a_dynamic_init_ptr    dip,
+                        a_dynamic_init_kind   kind)
 /*
-Allocate a dynamic initialization entry, clear it to default values, set
-its kind to kind and its variable to variable, and return a pointer to it.
+Initialize a dynamic_init entry of the kind specified.
 */
 {
-  a_dynamic_init_ptr dip;
-
-  db_enter(5, "alloc_dynamic_init");
-
-  dip = (a_dynamic_init_ptr)alloc_cil(sizeof(a_dynamic_init));
-#if DEBUG
-  num_dynamic_inits_allocated++;
-#endif /* DEBUG */
   dip->next     = NULL;
-  dip->variable = variable;
+  dip->variable = NULL;
   dip->kind     = kind;
   switch (kind) {
     case dik_constant:
@@ -2444,6 +2435,25 @@ its kind to kind and its variable to variable, and return a pointer to it.
       internal_error("alloc_dynamic_init: bad kind");
 #endif /* CHECKING */
   }  /* switch */
+}  /* clear_dynamic_init */
+
+
+a_dynamic_init_ptr alloc_dynamic_init(a_dynamic_init_kind kind)
+/*
+Allocate a dynamic initialization entry, clear it to default values, set
+its kind to kind and its variable to variable, and return a pointer to it.
+*/
+{
+  a_dynamic_init_ptr dip;
+
+  db_enter(5, "alloc_dynamic_init");
+
+  dip = (a_dynamic_init_ptr)alloc_cil(sizeof(a_dynamic_init));
+#if DEBUG
+  num_dynamic_inits_allocated++;
+#endif /* DEBUG */
+  clear_dynamic_init(dip, kind);
+
   db_exit();
   return dip;
 }  /* alloc_dynamic_init */
