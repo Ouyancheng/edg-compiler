@@ -262,21 +262,28 @@ Dump a member function (a routine entry), for debug purposes.
 {
   fputs("  ", f_debug);
   db_access_control(rp->source_corresp.access);
+  if (!routine_type_is_nonstatic_member_function(rp->type)) {
+    fputs(" static", f_debug);
+  }  /* if */
   fputs(" member function \"", f_debug);
   db_name(&rp->source_corresp);
-  fputs("\",\n     type = ", f_debug);
+  fputs("\",\n    type = ", f_debug);
   db_abbreviated_type(rp->type);
   fputc('\n', f_debug);
 }  /* db_static_data_member */
 
 
 static void db_base_class_field(a_field *fp,
-				a_type *tp)
+				a_type  *tp,
+                                int     depth)
 /*
 Dump field *fp derived from base class *tp, for debug purposes.
 */
 {
-  fputs("\n\t", f_debug);
+  int i;
+
+  fputs("\n    ", f_debug);
+  for (i = depth; i > 0; --i) fputs("  ", f_debug);
   db_access_control(fp->source_corresp.access);
   fprintf(f_debug, " field %s::", tp->source_corresp.name);
   db_name(&fp->source_corresp);
@@ -289,17 +296,21 @@ Dump field *fp derived from base class *tp, for debug purposes.
 }  /* db_base_class_field */
 
 
-static void db_base_class(a_base_class *bcp)
+static void db_base_class(a_base_class *bcp,
+                          int          depth)
 /*
 Dump a base class entry, for debug purposes.
 */
 {
   a_type     *tp = bcp->class;
   a_field    *fp;
+  int        i;
 
-  fputs("\n    [[ ", f_debug);
+  fputs("\n  ", f_debug);
+  for (i = depth; i > 0; --i) fputs("  ", f_debug);
+  fputs("[[ ", f_debug);
   if (bcp->virtual) {
-    fputs("(virtual) ", f_debug);
+    fputs("virtual ", f_debug);
   }  /* if */
   db_access_control(bcp->access);
   fprintf(f_debug, " base class %s (%soffset = %lu)",
@@ -308,12 +319,12 @@ Dump a base class entry, for debug purposes.
   if (!bcp->virtual) {
     bcp = tp->variant.class_struct_union.extra_info->base_classes;
     while (bcp != NULL) {
-      db_base_class(bcp);
+      db_base_class(bcp, depth+1);
       bcp = bcp->next;
     }  /* while */
     fp = tp->variant.class_struct_union.field_list;
     while (fp != NULL) {
-      db_base_class_field(fp, tp);
+      db_base_class_field(fp, tp, depth);
       fp = fp->next;
     }  /* while */
   }  /* if */
@@ -329,17 +340,17 @@ Dump a virtual base class entry, for debug purposes.
   a_type       *tp = vbcp->class;
   a_field      *fp;
   a_base_class *bcp;
-
-  fprintf(f_debug, "    [( virtual base class %s (offset = %lu)",
+  
+  fprintf(f_debug, "  [( virtual base class %s (offset = %lu)",
 		   tp->source_corresp.name, vbcp->data_section_offset);
   bcp = tp->variant.class_struct_union.extra_info->base_classes;
   while (bcp != NULL) {
-    db_base_class(bcp);
+    db_base_class(bcp, /*nesting_depth=*/1);
     bcp = bcp->next;
   }  /* while */
   fp = tp->variant.class_struct_union.field_list;
   while (fp != NULL) {
-    db_base_class_field(fp, tp);
+    db_base_class_field(fp, tp, /*nesting_depth=*/0);
     fp = fp->next;
   }  /* while */
   fputs(" )]\n", f_debug);
@@ -401,7 +412,7 @@ class_struct_union:
       ctsp = tp->variant.class_struct_union.extra_info;
       if (ctsp != NULL && tp->kind != (a_type_kind)tk_union) {
         a_base_class_ptr bcp = ctsp->base_classes;
-        for (; bcp != NULL; bcp = bcp->next) db_base_class(bcp);
+        for (; bcp != NULL; bcp = bcp->next) db_base_class(bcp, 0);
       }  /* if */
       fputc('\n', f_debug);
       fp = tp->variant.class_struct_union.field_list;
@@ -411,15 +422,27 @@ class_struct_union:
 	a_variable_ptr	         vp = ctsp->assoc_scope->variables;
         a_routine_ptr            rp = ctsp->assoc_scope->routines;
 
-        for (; vbcp != NULL; vbcp = vbcp->next) db_virtual_base_class(vbcp);
-        for (; vp != NULL; vp = vp->next) db_static_data_member(vp);
-        for (; rp != NULL; rp = rp->next) db_member_function(rp);
+        if (vbcp != NULL) {
+          fputs("  collected virtual base classes:\n", f_debug);
+          for (; vbcp != NULL; vbcp = vbcp->next) {
+            db_virtual_base_class(vbcp, 0);
+          }  /* for */
+        }  /* if *.
+        if (vp != NULL) {
+          fputs("  static data members:\n", f_debug);
+          for (; vp != NULL; vp = vp->next) db_static_data_member(vp);
+        }  /* if */
+        if (rp != NULL) {
+          fputs("  member functions:\n", f_debug);
+          for (; rp != NULL; rp = rp->next) db_member_function(rp);
+        }  /* if */
       }  /* if */
       fprintf(f_debug, "} : size = %lu, alignment = %d",
               tp->size, tp->alignment);
       if (ctsp->virtual_base_classes != NULL) {
-        fprintf(f_debug, ", size w/o virtuals = %lu",
-                            ctsp->size_without_virtual_base_classes);
+        fprintf(f_debug, "; w/o virtuals: size = %lu, alignment = %d",
+                            ctsp->size_without_virtual_base_classes,
+                            ctsp->alignment_without_virtual_base_classes);
       }  /* if */
       break;
     case tk_routine:
@@ -1621,12 +1644,13 @@ a pointer to it.
 #if DEBUG
   num_class_type_supplements_allocated++;
 #endif /* DEBUG */
-  ctsp->base_classes                      = NULL;
-  ctsp->virtual_base_classes              = NULL;
-  ctsp->size_without_virtual_base_classes = 0;
-  ctsp->access_adjustments                = NULL;
-  ctsp->befriending_classes               = NULL;
-  ctsp->assoc_scope                       = NULL;
+  ctsp->base_classes                           = NULL;
+  ctsp->virtual_base_classes                   = NULL;
+  ctsp->size_without_virtual_base_classes      = 0;
+  ctsp->alignment_without_virtual_base_classes = 1;
+  ctsp->access_adjustments                     = NULL;
+  ctsp->befriending_classes                    = NULL;
+  ctsp->assoc_scope                            = NULL;
   return ctsp;
 }  /* alloc_class_type_supplement */
 
