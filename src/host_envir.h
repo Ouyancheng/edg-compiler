@@ -320,12 +320,12 @@ not really significant, but the C-generating back end needs to know what
 they are in order to recognize them for special handling.
 */
 #if DO_IL_LOWERING
-#ifndef IL_LOWERING_INIT_ROUTINE_NAME
-#define IL_LOWERING_INIT_ROUTINE_NAME "_file_scope_inits"
-#endif /* ifndef IL_LOWERING_INIT_ROUTINE_NAME */
-#ifndef IL_LOWERING_TERM_ROUTINE_NAME
-#define IL_LOWERING_TERM_ROUTINE_NAME "_file_scope_terms"
-#endif /* ifndef IL_LOWERING_TERM_ROUTINE_NAME */
+#ifndef IL_LOWERING_INIT_ROUTINE_PREFIX
+#define IL_LOWERING_INIT_ROUTINE_PREFIX "__sti__"
+#endif /* ifndef IL_LOWERING_INIT_ROUTINE_PREFIX */
+#ifndef IL_LOWERING_TERM_ROUTINE_PREFIX
+#define IL_LOWERING_TERM_ROUTINE_PREFIX "__std__"
+#endif /* ifndef IL_LOWERING_TERM_ROUTINE_PREFIX */
 #endif /* DO_IL_LOWERING */
 
 /*
