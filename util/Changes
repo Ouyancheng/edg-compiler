@@ -1,5 +1,15 @@
 Version 2.23
 
+4/11/94 edg_prelink displays identifiers in demangled form
+
+edg_demangle now calls decode_identifier and displays identifiers
+in decoded format.
+
+4/11/94 edg_prelink allows substitution in error strings
+
+edg_prelink now provides a simple text insertion facility to
+insert variable information in error messages.
+
 4/5/94  eccp uses edg_decode to demangle the names in linker output
 
 The eccp script has been modified to use edg_decode to demangle

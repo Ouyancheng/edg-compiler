@@ -21,6 +21,7 @@ Prelink utility for template instantiation.
 #include "host_envir.h"
 #include "target.h"
 #include "edg_prelink.h"
+#include "decode.h"
 
 #define DEBUG 1
 
@@ -314,7 +315,8 @@ typedef enum /*a_pl_error_code*/ {
   pl_ec_invalid_nm_format_option,
   pl_ec_command_line_error,
   pl_ec_instantiation_loop,
-  pl_ec_lib_file_not_found
+  pl_ec_lib_file_not_found,
+  pl_ec_error_occurred_during_name_decoding
 } a_pl_error_code;
 
 
@@ -339,10 +341,10 @@ string.
     m = "%s: executing: %s\n";
     break;
   case pl_ec_unrecognized_option:
-    m = "unrecognized option: %c\n";
+    m = "unrecognized option: %s\n";
     break;
   case pl_ec_error:
-    m = "%s: error: %s\n";
+    m = "%s: error: ";
     break;
   case pl_ec_out_of_memory:
     m = "out of memory";
@@ -365,6 +367,9 @@ string.
   case pl_ec_lib_file_not_found:
     m = "library \"%s\" does not exist in the specified library directories\n";
     break;
+  case pl_ec_error_occurred_during_name_decoding:
+    m = "an error occurred during name decoding of \"%s\"";
+    break;
   default:
     pl_internal_error("invalid error code");
   }  /* switch */
@@ -372,13 +377,19 @@ string.
 }  /* pl_error_text */
 
 
-static void pl_error(a_pl_error_code	error_code)
+static void pl_error(a_pl_error_code	error_code,
+                     char		*insertion_string)
 /*
-Prints an error message and exits with an error exit status.
+Prints an error message and exits with an error exit status.  A string
+may be inserted into the message by passing a pointer to the string
+to be inserted in inseration_string.  This will only be used if
+the error text contains a corresponding %s.  If the message contains such
+a %s, insertion_string must not be NULL.
 */
 {
-  fprintf(stderr, pl_error_text(pl_ec_error), message_prefix,
-          pl_error_text(error_code));
+  fprintf(stderr, pl_error_text(pl_ec_error), message_prefix);
+  fprintf(stderr, pl_error_text(error_code), insertion_string);
+  fprintf(stderr, "\n");
   exit (RC_ERROR);
 }
 
@@ -391,7 +402,7 @@ allocation and generates a catastrophic error.
   char *ptr;
 
   if ((ptr = (char *)malloc(size)) == NULL) {
-    pl_error(pl_ec_out_of_memory);
+    pl_error(pl_ec_out_of_memory, (char *)NULL);
   } /* if */
   return (ptr);
 }  /* pl_malloc_with_check */
@@ -587,8 +598,29 @@ static void pl_invalid_input(void)
 Issue an invalid input error and exit.
 */
 {
-  if (!ignore_invalid_nm_output) pl_error(pl_ec_invalid_input);
+  if (!ignore_invalid_nm_output) pl_error(pl_ec_invalid_input, (char *)NULL);
 }  /* pl_invalid_input */
+
+
+#define NAME_DECODE_BUFFER_SIZE 32767
+static char *pl_decoded_name(char* encoded_name)
+/*
+Return a pointer to a temporary buffer containing a decoded name.
+*/
+{
+  a_boolean	error;
+  a_boolean	buffer_overflow;
+  char		*result;
+  static char	decode_buffer[NAME_DECODE_BUFFER_SIZE];
+
+  decode_identifier(encoded_name, decode_buffer, NAME_DECODE_BUFFER_SIZE,
+                    &error, &buffer_overflow);
+  result = decode_buffer;
+  if (error) {
+    pl_error(pl_ec_error_occurred_during_name_decoding, encoded_name);
+  }  /* if */
+  return result;
+}  /* pl_decoded_name */
 
 
 static a_boolean pl_scan_solaris_nm_line(char	**name1,
@@ -1022,6 +1054,14 @@ processed further.
        underscore is present.  */
     if (skip_underscore_prefix && *pos == '_') pos++;
     *symbol_name = pos;
+    if (nm_format == nmfk_SGI) {
+      /* The symbol name may optionally have some extra information after it:
+         ex.o:   0000034c T __ct__17A__pt__9_7istreamFv (multiext)
+         We scan the rest of the line, and if we hit a blank before reaching
+         the end of the line, the blank is replaced with a NULL */
+      while((ch = *pos), ch != ' ' && ch != '\0') pos++;
+      if (ch == ' ') *pos = '\0';
+    }  /* if */
   }  /* if */
   return result;
 }  /* pl_scan_default_nm_line */
@@ -1511,7 +1551,7 @@ Read the existing instantiation assignment information from the
           if (sym->instantiation_file != NULL) {
             /* The symbol is in the instantiation list of more than one file.
 	       This should not happen. */
-	    pl_error(pl_ec_bad_instantiation_information_file);
+	    pl_error(pl_ec_bad_instantiation_information_file, (char *)NULL);
           }  /* if */
           sym->instantiation_file = pifp;
           /* Add this to the front of the list of instantiation entries
@@ -1651,7 +1691,8 @@ the file is flagged as requiring recompilation.
           done = FALSE;
           if (verbose) {
             fprintf(stdout, pl_error_text(pl_ec_no_longer_needed),
-                    message_prefix, psp->name, pifp->filename);
+                    message_prefix, pl_decoded_name(psp->name),
+                    pifp->filename);
           }  /* if */
         }  /* if */
         /* Don't update the previous pointer if the current item was
@@ -1689,7 +1730,8 @@ the file is flagged as requiring recompilation.
           done = FALSE;
           if (verbose) {
             fprintf(stdout, pl_error_text(pl_ec_assigned_to_file),
-                    message_prefix, sym->name, pifp->filename);
+                    message_prefix, pl_decoded_name(sym->name),
+                    pifp->filename);
           }  /* if */
         }  /* if */
         psp = psp->next;
@@ -1974,6 +2016,9 @@ int main(int argc, char *argv[])
   L_directories = (char**)pl_malloc_with_check(argc * sizeof(char*));
   library_filenames = (char**)pl_malloc_with_check(argc * sizeof(char*));
 
+  /* Process command-line options. */
+  /* Suppress getopt's error on non-recognized option. */
+  opterr = 0;
 #define OPTION_LIST "inrvuc:d:f:l:L:"
   while ((optchar = getopt(argc, argv, OPTION_LIST)) != EOF) {
     switch (optchar) {
@@ -1997,7 +2042,7 @@ int main(int argc, char *argv[])
         } else if (strcmp(optarg, "CLIX") == 0) {
           nm_format = nmfk_CLIX;
         } else {
-          pl_error(pl_ec_invalid_nm_format_option);
+          pl_error(pl_ec_invalid_nm_format_option, (char *)NULL);
         }  /* if */
         break;
       case 'i':
@@ -2037,8 +2082,10 @@ int main(int argc, char *argv[])
         break;        
 #endif /* DEBUG */
       default:
-        fprintf(stderr, pl_error_text(pl_ec_unrecognized_option), optchar);
-        pl_error(pl_ec_command_line_error);
+        if (optind >= argc) optind = argc-1;
+        optarg = argv[optind];
+        fprintf(stderr, pl_error_text(pl_ec_unrecognized_option), optarg);
+        pl_error(pl_ec_command_line_error, (char*)NULL);
         break;
     }  /* switch */
   }  /* while */
@@ -2088,7 +2135,7 @@ int main(int argc, char *argv[])
     if (!found) {
       fprintf(stderr, pl_error_text(pl_ec_lib_file_not_found),
               library_filenames[i]);
-      pl_error(pl_ec_command_line_error);
+      pl_error(pl_ec_command_line_error, (char *)NULL);
     }  /* if */
   }  /* for */
 
@@ -2172,7 +2219,7 @@ int main(int argc, char *argv[])
       /* Write the modified info files back to the disk. */
       return_status = pl_update_info_files();
       if (limit_recursion && ++number_of_iterations == PL_MAX_ITERATIONS) {
-        pl_error(pl_ec_instantiation_loop);
+        pl_error(pl_ec_instantiation_loop, (char *)NULL);
       }  /* if */
       if (return_status != 0 || suppress_compilation) done = TRUE;
       if (!done) pl_free_all();
