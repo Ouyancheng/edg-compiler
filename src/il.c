@@ -6241,7 +6241,7 @@ pragma has not yet been found for the given IL entity).
 
   if (prev_assoc_pragma) {
     /* A pragma has already been found that is associated il_entity.  Any
-       additional pragmas associated with the same entity will be be among
+       additional pragmas associated with the same entity will be among
        its successors on the same list. */
     assoc_pragma = prev_assoc_pragma->next;
   } else {
