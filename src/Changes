@@ -1,5 +1,10 @@
 Version 2.07
 
+6/5/92  Added support for various diagnostic message fill-ins.
+
+Support was added to allow type and symbol names to be inserted in diagnostic
+messages along with strings.
+
 6/4/92  Destructor inheritance disallowed.
 
 A bug was fixed in the creation of projection symbols so that now
