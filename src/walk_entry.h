@@ -16,7 +16,7 @@ Placed in a separate file so they can be expanded several ways:
 1)  With DO_SUBTREE_WALK TRUE, the routines walk not only the entry itself
     but also its subtree.
 
-2)  With DO_SUBTREE_WALK and DO_NEEDED_FLAG_WALK TRUE, the routines walk
+2)  With DO_SUBTREE_WALK and NEEDED_FLAG_WALK TRUE, the routines walk
     the subtree and do so in the special way required for setting the
     needed flag.
 
@@ -28,7 +28,7 @@ Placed in a separate file so they can be expanded several ways:
 /*
 Macro to remap a pointer from an "old" value to a "new" value.  ptr is
 the pointer, ptr_type the type of ptr, and entry_kind is the kind of entry
-pointed to.  For the DO_NEEDED_FLAG_WALK case, just walks the pointer.
+pointed to.  For the NEEDED_FLAG_WALK case, just walks the pointer.
 This macro is used for secondary references to IL entities, e.g., a
 reference from executable code to a declarative entry, where it is known
 that the declarative entry will be reached from a primary pointer while
@@ -355,6 +355,9 @@ the file scope, do not process it (but record an orphan in the latter case).
 #endif /* ifdef FFE */
           case ck_template_param:
             /* Front end only. */
+#if NEEDED_FLAG_WALK
+            break;
+#endif /* NEEDED_FLAG_WALK */
           default:
             unexpected_condition_str(
                                   "walk_entry_and_subtree: bad constant kind");
@@ -528,6 +531,9 @@ the file scope, do not process it (but record an orphan in the latter case).
 #endif /* ifdef FFE */
           case tk_template_param:
             /* Front end only. */
+#if NEEDED_FLAG_WALK
+            break;
+#endif /* NEEDED_FLAG_WALK */
           default:
             unexpected_condition_str("walk_entry_and_subtree: bad type kind");
         }  /* switch */
@@ -1095,6 +1101,9 @@ the file scope, do not process it (but record an orphan in the latter case).
           case sck_template_declaration:
           case sck_template_instantiation:
             /* Front end only. */
+#if NEEDED_FLAG_WALK
+            break;
+#endif /* NEEDED_FLAG_WALK */
           default:
             unexpected_condition_str("walk_entry_and_subtree: bad scope kind");
         }  /* switch */
