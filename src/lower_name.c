@@ -1174,12 +1174,15 @@ If the indicated namespace is unnamed, give it a name.
      end. */
   if (nsp->source_corresp.name == NULL) {
     /* The namespace is unnamed, so make up a name. */
-    char *module_id;
+    char            *module_id;
+    a_namespace_ptr parent_nsp;
     /* The name is __N followed by the module id. */
     check_assertion(!nsp->source_corresp.is_class_member);
-    if (nsp->source_corresp.parent.namespace_ptr != NULL) {
-      /* A nested unnamed namespace.  Just use __N.  The name will be unique
-         within the parent namespace. */
+    parent_nsp = nsp->source_corresp.parent.namespace_ptr;
+    if (parent_nsp != NULL &&
+        unmangled_name_of(&parent_nsp->source_corresp) == NULL) {
+      /* A nested unnamed namespace within an unnamed namespace.
+         Just use __N.  The name will be unique within the parent namespace. */
       module_id = "";
     } else {
       a_translation_unit_ptr tup;
