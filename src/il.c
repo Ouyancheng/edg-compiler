@@ -5863,8 +5863,6 @@ to it.  The entry is allocated in the file scope memory region.
   rp->contains_try_block      = FALSE;
 #if MINIMAL_INLINING
   rp->inlinable               = FALSE;
-  rp->inlining_temporarily_suppressed
-                              = FALSE;
   rp->need_out_of_line_copy   = FALSE;
 #endif /* MINIMAL_INLINING */
 #if DECL_MODIFIERS_IN_USE
