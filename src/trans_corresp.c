@@ -4022,14 +4022,12 @@ entities.
        If a correspondence has already been established, nothing needs to
        be done either. */
   } else if (templ->canonical_template != NULL &&
-             templ->canonical_template != templ &&
-             canonical_template_entry_of(templ->canonical_template) != 
-                                                   templ->canonical_template) {
+             templ->canonical_template != templ) {
     /* Templates are a somewhat unique in that there can be multiple IL
        entries corresponding to multiple declarations of the same template.
        In those cases, all entries belong to the same correspondence set. */
-    a_template_ptr  canon = (a_template_ptr)canonical_il_entry_of(
-                                                   templ->canonical_template);
+    a_template_ptr  canon =
+                        canonical_template_entry_of(templ->canonical_template);
     set_trans_unit_corresp(iek_template, templ, canon);
   } else if (templ_sym->decl_scope == NO_SCOPE_NUMBER) {
     /* Some prototype instantiations are not associated with any scope and
