@@ -6491,6 +6491,7 @@ caution when modifying this routine.
                        name_of_symbol_kind(tag_kind), tag_sym);
         tag_sym = NULL;
         tag_err = TRUE;
+        goto done;
       }  /* if */
 #if 0
     }  /* if */
@@ -6534,18 +6535,28 @@ caution when modifying this routine.
           tag_kind != (a_symbol_kind)sk_enum_tag) {
         /* Look up the name again in the current scope, but this time don't
            restrict the search to tag names. */
-        a_symbol_ptr  sym = curr_scope_id_lookup(locator, IDL_NO_OPTIONS);
-        if (sym != NULL && sym->kind == (a_symbol_kind)sk_type) {
-          /* Name is already declared in the current scope as a typedef. */
-          a_type_ptr  tp = skip_typerefs(sym->variant.type);
-          if (is_immediate_class_type(tp) &&
-              ((tag_kind == (a_symbol_kind)sk_union_tag) ==
-               (tp->kind == (a_type_kind)tk_union))) {
-            /* This is the special case.  Return an sk_type symbol instead
-               of the normally expected sk_class_or_struct_tag. */
-            tag_sym = sym;
-            goto done;
+        a_symbol_ptr  sym;
+
+        check_assertion(locator->specific_symbol == NULL);
+        sym = curr_scope_id_lookup(locator, IDL_NO_OPTIONS);
+        if (sym != NULL) {
+          /* Found a symbol of the same name that was declared in the current
+             scope. */
+          if (sym->kind == (a_symbol_kind)sk_type) {
+            /* Name is already declared in the current scope as a typedef. */
+            a_type_ptr  tp = skip_typerefs(sym->variant.type);
+            if (is_immediate_class_type(tp) &&
+                ((tag_kind == (a_symbol_kind)sk_union_tag) ==
+                 (tp->kind == (a_type_kind)tk_union))) {
+              /* This is the special case.  Return an sk_type symbol instead
+                 of the normally expected sk_class_or_struct_tag. */
+              tag_sym = sym;
+              goto done;
+            }  /* if */
           }  /* if */
+          /* Reset the specific_symbol pointer to avoid prejudicing any
+             subsequent lookup. */
+          locator->specific_symbol = NULL;
         }  /* if */
       }  /* if */
       /* Check for a "vacuous declaration" (e.g. "struct S;" or "enum E;").
