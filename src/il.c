@@ -3459,6 +3459,9 @@ to it.
   bcdp->preferred  = FALSE;
   bcdp->direct     = FALSE;
   bcdp->access     = (an_access_specifier)as_public;
+#if CHECKING
+  bcdp->avoid_codecenter_warnings = 0;
+#endif /* CHECKING */
   db_exit();
   return bcdp;
 }  /* alloc_base_class_derivation */
@@ -3637,6 +3640,9 @@ to it.
 #if DO_IL_LOWERING
   bcp->virtual_function_table_var      = NULL;
 #endif /* DO_IL_LOWERING */
+#if CHECKING
+  bcp->avoid_codecenter_warnings       = 0;
+#endif /* CHECKING */
 
   return bcp;
 }  /* alloc_base_class */
@@ -4218,18 +4224,18 @@ to keep frequently asked for based types at the front of the list.
        btlmp != NULL;
        prev_btlmp = btlmp, btlmp = btlmp->next) {
     if (btlmp->kind == kind) {
+      ptr = btlmp->based_type;
       if (kind == (a_based_type_kind)btk_ptr_to_member &&
-          btlmp->based_type->variant.ptr_to_member.class_of_which_a_member
-                                                        != class_type) {
+          ptr->variant.ptr_to_member.class_of_which_a_member != class_type) {
         /* Pointer-to-member parent class does not match class type -- keep
            looking. */
+        ptr = NULL;
       } else if (kind == (a_based_type_kind)btk_qualified &&
-                 btlmp->based_type->variant.typeref.qualifiers != qualifiers) {
+                 ptr->variant.typeref.qualifiers != qualifiers) {
         /* Qualifiers do not match -- keep looking. */
+        ptr = NULL;
       } else {
         /* This is a match. */
-        ptr = btlmp->based_type;
-        /* Move the found based type list member to the front of the list. */
         if (prev_btlmp != NULL) {
           /* There is at least one base type list member preceding this one;
              move the current based type member to the front of the list. */
@@ -4492,10 +4498,9 @@ they are not already present.
 */
 {
   a_type_ptr            orig_base_type, ptr;
-  a_based_type_kind     kind;
   a_boolean             is_array = FALSE;
-  a_type_qualifier_set  base_type_qualifiers = TQ_NONE;
-  a_type_qualifier_set  qualifiers_to_add = TQ_NONE;
+  a_type_qualifier_set  base_type_qualifiers;
+  a_type_qualifier_set  qualifiers_to_add;
 
   orig_base_type = base_type;
   /* According to ANSI C 3.5.3: "If the specification of an array type
@@ -4509,16 +4514,8 @@ they are not already present.
     base_type = underlying_array_element_type(base_type);
     is_array = TRUE;
   }  /* if */
-  if (is_const_qualified_type(base_type)) {
-    base_type_qualifiers |= TQ_CONST;
-  } else if (qualifiers & TQ_CONST) {
-    qualifiers_to_add  |= TQ_CONST;
-  }  /* if */
-  if (is_volatile_qualified_type(base_type)) {
-    base_type_qualifiers |= TQ_VOLATILE;
-  } else if (qualifiers & TQ_VOLATILE) {
-    qualifiers_to_add  |= TQ_VOLATILE;
-  }  /* if */
+  base_type_qualifiers = get_type_qualifiers(base_type);
+  qualifiers_to_add = qualifiers & ~base_type_qualifiers;
   if (qualifiers_to_add != TQ_NONE) {
     /* Some qualifiers need to be added. */
     if (base_type_qualifiers != TQ_NONE) {
@@ -4532,12 +4529,7 @@ they are not already present.
              on top of it. */
           break;
         }  /* if */
-        if (typeref_is_const_qualified(base_type)) {
-          qualifiers_to_add  |= TQ_CONST;
-        }  /* if */
-        if (typeref_is_volatile_qualified(base_type)) {
-          qualifiers_to_add  |= TQ_VOLATILE;
-        }  /* if */
+        qualifiers_to_add |= base_type->variant.typeref.qualifiers;
         base_type = base_type->variant.typeref.type;
       }  /* while */
     }  /* if */
@@ -4567,46 +4559,6 @@ they are not already present.
 
   return ptr;
 }  /* make_qualified_type */
-
-
-a_type_ptr make_identically_qualified_type(a_type_ptr type,
-                                           a_type_ptr model_type)
-/*
-Make a version of type that has the same qualifiers as model_type, and return
-a pointer to it.  The original qualifiers on type, if any, are ignored.
-Note that type and model_type need not be the same (or even similar) types
-under the qualifiers.
-*/
-{
-  a_type_ptr            new_type;
-  a_type_qualifier_set  qualifiers = TQ_NONE;
-
-  if (is_const_qualified_type(model_type)) qualifiers |= TQ_CONST;
-  if (is_volatile_qualified_type(model_type)) qualifiers |= TQ_VOLATILE;
-  new_type = make_qualified_type(skip_typerefs(type), qualifiers);
-
-  return new_type;
-}  /* make_identically_qualified_type */
-
-
-a_type_ptr type_plus_qualifiers_from_second_type(a_type_ptr type,
-                                                 a_type_ptr model_type)
-/*
-Make a version of type that has the same qualifiers as model_type, and return
-a pointer to it.  The original qualifiers on type, if any, are preserved,
-which means that the result type has all the qualifiers of both types.
-Note that type and model_type need not be the same (or even similar) types
-under the qualifiers.
-*/
-{
-  a_type_ptr new_type;
-  a_type_qualifier_set  qualifiers = TQ_NONE;
-
-  if (is_const_qualified_type(model_type)) qualifiers |= TQ_CONST;
-  if (is_volatile_qualified_type(model_type)) qualifiers |= TQ_VOLATILE;
-  new_type = make_qualified_type(type, qualifiers);
-  return new_type;
-}  /* type_plus_qualifiers_from_second_type */
 
 
 a_type_ptr make_unqualified_type(a_type_ptr type)
@@ -4641,15 +4593,13 @@ types, and then new types may be built up from them; this may result in
 discarding typedefs.
 */
 {
-  a_type_qualifier_set  type1_qualifiers = TQ_NONE;
-  a_type_qualifier_set  type2_qualifiers = TQ_NONE;
-  a_type_qualifier_set  qualifiers = TQ_NONE;
+  a_type_qualifier_set  type1_qualifiers;
+  a_type_qualifier_set  type2_qualifiers;
+  a_type_qualifier_set  qualifiers;
   a_type_ptr  tp1 = *type1, tp2 = *type2;
 
-  if (is_const_qualified_type(tp1)) type1_qualifiers |= TQ_CONST;
-  if (is_volatile_qualified_type(tp1)) type1_qualifiers |= TQ_VOLATILE;
-  if (is_const_qualified_type(tp2)) type2_qualifiers |= TQ_CONST;
-  if (is_volatile_qualified_type(tp2)) type2_qualifiers |= TQ_VOLATILE;
+  type1_qualifiers = get_type_qualifiers(tp1);
+  type2_qualifiers = get_type_qualifiers(tp2);
   if (type1_qualifiers != TQ_NONE && type2_qualifiers != TQ_NONE) {
     /* Strip off the qualifiers. */
     tp1 = skip_typerefs(tp1);
@@ -4780,15 +4730,14 @@ points to a default constructor routine entry.
 }  /* is_default_constructor */
 
 
-a_boolean is_copy_constructor(a_routine_ptr  ctor_rout,
-                              a_type_ptr     class_of_which_a_member,
-                              a_boolean      *const_object_okay,
-                              a_boolean      *volatile_object_okay)
+a_boolean is_copy_constructor(a_routine_ptr         ctor_rout,
+                              a_type_ptr            class_of_which_a_member,
+                              a_type_qualifier_set  *qualifiers)
 /*
 Return TRUE if ctor_rout points to a copy constructor routine entry for
-class_of_which_a_member; if it does, also set and return *const_object_okay
-and/or *volatile_object_okay, depending on whether the type of the copy
-constructor's first parameter is const or volatile qualified (or both).
+class_of_which_a_member; if it does, also set and return *qualifiers to
+indicate the type qualifiers on the copy constructor's first parameter --
+this will show what restrictions are placed on the object being copied.
 */
 {
   a_param_type_ptr  ptp;
@@ -4797,8 +4746,6 @@ constructor's first parameter is const or volatile qualified (or both).
 
   check_assertion(ctor_rout->special_kind ==
                                   (a_special_function_kind)sfk_constructor);
-  *const_object_okay = FALSE;
-  *volatile_object_okay = FALSE;
   /* A constructor is deemed a copy constructor if (1) the type of the first
      parameter is reference-to-class or reference-to-qualified-class where
      "class" is the class of which it is a member function, and
@@ -4813,15 +4760,8 @@ constructor's first parameter is const or volatile qualified (or both).
     if (skip_typerefs(tp) == class_of_which_a_member) {
       /* It is a copy constructor. */
       is_cctor = TRUE;
-      /* See if the object being copied is const qualified. */
-      if (tp->kind == (a_type_kind)tk_typeref) {
-        if (f_is_const_qualified_type(tp, /*top_level=*/TRUE)) {
-          *const_object_okay = TRUE;
-        }  /* if */
-        if (f_is_volatile_qualified_type(tp, /*top_level=*/TRUE)) {
-          *volatile_object_okay = TRUE;
-        }  /* if */
-      }  /* if */
+      /* See if the object being copied is qualified. */
+      *qualifiers = get_top_level_type_qualifiers(tp);
     }  /* if */
   }  /* if */
   return is_cctor;
@@ -5362,6 +5302,9 @@ to it.  The entry is allocated in the file scope memory region.
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   rp->specific_def            = FALSE;
   rp->contains_try_block      = FALSE;
+#if CHECKING
+  rp->avoid_codecenter_warnings = 0;
+#endif /* CHECKING */
   rp->befriending_classes     = NULL;
   rp->virtual_function_number = 0;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -6718,7 +6661,6 @@ fields to default values.
       bp->assoc_scope      = NULL;
       bp->parent_block     = NULL;
       bp->end_of_block_reachable = TRUE;
-      bp->any_initializing_decls_in_parent_block = FALSE;
 #if CHECKING
       bp->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */
