@@ -5612,9 +5612,9 @@ is what mangled_type_name generates, plus a prefix.
        in some cases it suppresses the need for a parent qualifier
        (name_has_been_mangled is set to TRUE). */
     if (is_immediate_class_type(type)) {
-      give_unnamed_class_a_name(type);
+      (void)give_unnamed_class_a_name(type);
     } else if (is_immediate_enum_type(type)) {
-      give_unnamed_enum_a_name(type);
+      (void)give_unnamed_enum_a_name(type);
     }  /* if */
   }  /* if */
   /* do_type_name_mangling gets called twice, once from template processing
