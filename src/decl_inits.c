@@ -3782,8 +3782,17 @@ initialized.  These are addressed in the course of the processing.
           /* Ref-type fields and const and array-of-const fields require an
              initializer. */
         } else {
-          if (is_array_type(tp)) tp = underlying_array_element_type(tp);
           tp = skip_typerefs(tp);
+          if (is_array_type(tp)) {
+            if (tp->size == 0) {
+              /* Zero-length arrays (a GNU feature) and flexible array members
+                 (a C++ extension in GNU and Microsoft modes) cannot be
+                 initialized. */
+              continue;
+            }  /* if */
+            tp = underlying_array_element_type(tp);
+            tp = skip_typerefs(tp);
+          }  /* if */
           if (is_class_struct_union_type(tp)) {
             cssp = symbol_supplement_for_class(tp);
             if (cssp->constructor != NULL) {
@@ -4932,11 +4941,18 @@ though neither constructors nor initialization is involved here.)
        sym = sym->next_in_scope) {
     if (sym->kind == (a_symbol_kind)sk_field) {
       /* sym represents a field.  Determine whether a destructor exists. */
-      tp = sym->variant.field.ptr->type;
+      tp = skip_typerefs(sym->variant.field.ptr->type);
       /* For arrays get the element type, allowing for multidimensional
-         arrays. */
-      if (is_array_type(tp)) tp = underlying_array_element_type(tp);
-      tp = skip_typerefs(tp);
+         arrays.  Flexible array members (and zero-length array members)
+         need no destruction (these are extensions in some modes). */
+      if (is_array_type(tp)) {
+        if (tp->size == 0) {
+          /* A zero-length array or a flexible array member. */
+          continue;
+        }  /* if */
+        tp = underlying_array_element_type(tp);
+        tp = skip_typerefs(tp);
+      }  /* if */
       if (is_immediate_class_type(tp)) {
         rp = select_destructor(tp, tp, &source_pos,
                                /*honor_virtual=*/FALSE, /*evaluated=*/TRUE);

@@ -1,5 +1,18 @@
 Version 3.5
 
+8/31/04  Microsoft compatibility: Abort on flexible array member
+
+Under certain circumstances an internal error was triggered in "types.c"
+during the lowering of flexible array members when the underlying type is
+a class type with a nontrivial destructor.  For example:
+
+  struct S { ~S(); };
+  struct T { S s[]; };
+  struct U { T t; };
+  U u;  // Causes an abort during lowering in Microsoft C++ mode.
+
+This is now fixed.
+
 8/31/04  Microsoft compatibility/IA-64 ABI: Abort on flexible array member
 
 Under certain circumstances an internal error was triggered in "types.c"
