@@ -392,6 +392,7 @@ That is what the remap function does.
   remap_ptr(il_header.primary_scope, a_scope_ptr, iek_scope);
   flag_value_meaning_visited =
                      !il_entry_prefix_of(il_header.primary_scope).il_walk_flag;
+  /* Walk the main body of the IL. */
   walk_entry_and_subtree((char *)il_header.primary_scope, iek_scope);
   walk_ptr(il_header.primary_source_file, a_source_file_ptr, iek_source_file);
   remap_ptr(il_header.main_routine, a_routine_ptr, iek_routine);
