@@ -1181,7 +1181,8 @@ dik_nonconstant_aggregate.
         case dik_none:
         case dik_zero:
           for (a = 0; a < level; a++) fputs(" ", f_debug);
-          fputs(dip->kind == dik_none ? "no initializer" : "zero initializer",
+          fputs(dip->kind == (a_dynamic_init_kind)dik_none ?
+		    "no initializer" : "zero initializer",
                 f_debug);
           if (dip->destructor != NULL) {
             fputs(", ", f_debug);
