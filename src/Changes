@@ -1,5 +1,62 @@
 Version 3.0
 
+5/7/02   Exported templates
+
+Exported templates are now implemented, as required by the C++
+standard.  Templates declared with the keyword "export" can be
+separately compiled, meaning a template can be referenced in a file
+containing only a declaration of the template (marked with "export"),
+and the definition (also marked with "export") can be placed in
+another source file.  The Front End does appropriate processing to
+ensure that when the complete program is linked the template will be
+instantiated appropriately.
+
+When the front end compiles a file containing a definition of
+an exported template, it writes a file with a .et suffix to
+record the location of the definition.  Later, when a template
+needs to be instantiated, the Front End searches the .et
+files to find the location of the definition, compiles the
+definition file as a secondary translation unit, and instantiates
+the template in a synthesized context formed by merging
+information from several translation units.
+
+As part of the process of reading secondary translation units,
+the Front End checks that the declarations of entities with
+external linkage in different translation units match up, and
+issues errors if they do not.
+
+"export" is not quite the panacea that some users might hope
+for.  It does allow users to omit the definitions of templates in
+header files, but it doesn't make templates more efficient.  On the
+contrary, because the front end has to process multiple translation
+units simultaneously, the cost of compilation can be large, both
+in terms of time and in terms of memory use.  Accordingly, "export"
+is off by default, and we've tried hard to make sure that with the
+feature disabled C++ programs that don't use "export" do not compile
+slower than they did with previous versions of the Front End.
+"export" can be enabled by --export or --strict.
+
+EDG's implementation requires that the source code for the
+definitions of exported templates be available at the time of
+instantiation, even for library code, so this feature does not
+allow library vendors to avoid shipping source code.
+
+For information on using "export" with libraries, and more
+general information, see the External Interface chapter of the
+internal documentation.
+
+"export" cannot be used with the C++-generating back end.
+
+This feature does not require any IL, back end, or ABI changes, but
+the prelinker does more work than it used to and the formats of
+some prelinker information files (.ti files, and .ii files on
+Windows) have been changed.  There are substantial changes in
+the structure of the Front End, in particular in initialization
+and wrapup.  Note that initializations in customer modifications
+may have to be reworked (a) to do the initialization at the right
+time (per-compilation or per-translation-unit), and (b) to register
+variables that should be per-translation-unit.
+
 5/6/02   IL version number changed to 2.38
 
 5/6/02   Source position on rvalue array in C99 or GNU C mode
@@ -4290,7 +4347,10 @@ they match, and errors are issued if not.  Note that this is not
 the same as the mode that already existed that is enabled by
 COMPILE_MULTIPLE_SOURCE_FILES.  In that mode, multiple files are
 compiled but they are kept completely separate, and a separate
-IL tree is produced for each file.
+IL tree is produced for each file.  The eccp script has a new
+command-line option --multi_trans_unit which indicates that all
+the files specified on the command-line should be compiled
+together as multiple translation units.
 
 2/9/01   sizeof expression involving local variables, with
          RECORD_CONSTANT_EXPRESSIONS_IN_IL
