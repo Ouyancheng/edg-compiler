@@ -1691,7 +1691,9 @@ are not checked.
              templ = templ->next, corresp_templ = corresp_templ->next) {
           a_symbol_ptr  templ_sym =
                                (a_symbol_ptr)templ->source_corresp.assoc_info;
-          if (is_class_template_symbol(templ_sym) && templ_sym->defined) {
+          templ_sym = is_class_template_symbol(templ_sym) ?
+                                      prototype_template_of(templ_sym) : NULL;
+          if (templ_sym != NULL && templ_sym->defined) {
             find_template_correspondence(templ);
           } else {
             record_trans_unit_corresp(templ, corresp_templ);
@@ -2166,7 +2168,7 @@ and are handled elsewhere.
                   tssp = templ_sym->variant.template_info;
 
   if (templ != tssp->il_template_entry) {
-    /* The can be multiple a_template entries for the same template.  Only
+    /* There can be multiple a_template entries for the same template.  Only
        process the instantiations when encountering the a_template entry that
        is recorded in the template symbol supplement. */
   } else if (templ_sym->kind == (a_symbol_kind)sk_class_template) {
@@ -2182,7 +2184,9 @@ and are handled elsewhere.
                    ->variant.template_info
                    ->variant.class_template.prototype_instantiation;
     /* For instantiations from template template parameters proto_inst will
-       be NULL. */
+       be NULL.  It will also be NULL for nonprototype templates (the
+       prototype instantiation is attached to the corresponding prototype
+       template). */
     if (proto_inst != NULL) {
       a_type_ptr    class_type = tssp
                               ->variant.class_template.prototype_instantiation
@@ -2624,14 +2628,27 @@ way, determine to which other IL entry this might correspond.
   if (correspondence_checking_underway &&
       trans_unit_corresp_pointer_of(scp) == NULL) {
     a_type_ptr  root = NULL;
-    /* Class members have their correspondence set when their parent type
-       is processed.  Hence we look for the outermost parent type. */
+    /* Class members usually have their correspondence set when their parent
+       type is processed.  In those cases we look for the outermost parent
+       type. */
     if (scp->is_class_member) {
       root = scp->parent.class_type;
-      while (root->source_corresp.is_class_member &&
-             trans_unit_corresp_pointer_of(root) == NULL) {
-        root = root->source_corresp.parent.class_type;
-      }  /* while */
+      if (kind != (an_il_entry_kind)iek_field &&
+          has_name((a_type_ptr)scp) &&
+          root->variant.class_struct_union.is_prototype_instantiation &&
+          root->variant.class_struct_union.extra_info != NULL &&
+          root->variant.class_struct_union.extra_info
+                                                   ->assoc_template != NULL) {
+        /* Prototype instantiations are not always recorded in the IL.
+           Therefore, set root to NULL so that the symbol table will be used
+           to find the named member instead. */
+        root = NULL;
+      } else {
+        while (root->source_corresp.is_class_member &&
+               trans_unit_corresp_pointer_of(root) == NULL) {
+          root = root->source_corresp.parent.class_type;
+        }  /* while */
+      }  /* if */
     }  /* if */
     if (root == NULL) {
       /* Not a class member. */
