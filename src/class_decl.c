@@ -5054,12 +5054,27 @@ The routine body is not generated until it is known to be needed.
 */
 {
   a_param_type_ptr              ptp;
-  a_class_symbol_supplement_ptr cssp;
+  a_class_symbol_supplement_ptr cssp, base_class_cssp;
+  a_base_class_ptr              bcp;
   a_boolean                     const_okay, dummy_flag;
 
   db_enter(3, "check_special_member_functions");
   cssp = symbol_supplement_for_class(class_type);
   if (cssp->constructor_required && cssp->constructor == NULL) {
+    /* A default constructor needs to be generated.  Check each direct and
+       virtual base class that requires a constructor for initialization to be
+       sure it has a default constructor. */
+    for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
+      if (bcp->direct || bcp->is_virtual) {
+        base_class_cssp = symbol_supplement_for_class(bcp->type);
+        if (base_class_cssp->constructor != NULL &&
+            !base_class_cssp->has_default_constructor) {
+          /* Base class needs to be initialized with a constructor, but no
+             default constructor exists. */
+          type_warning(ec_base_class_with_no_default_ctor, bcp->type);
+        }  /* if */
+      }  /* if */
+    }  /* for */
     generate_special_function(class_type, (a_param_type_ptr)NULL,
                               (a_special_function_kind)sfk_constructor);
   }  /* if */
