@@ -9582,7 +9582,11 @@ is_lvalue is TRUE.
     op1 = op_node;
   }  /* if */
   op1_for_operation = add_indirection_to_node(op1_for_operation);
-  if (!is_fixed_point_type(operation_type)) {
+#if FIXED_POINT_ALLOWED
+  if (!is_fixed_point_type(operation_type))
+#endif /* FIXED_POINT_ALLOWED */
+  /* Do not insert code here. */
+  {
     /* Cast the first operand (as an rvalue) to the operation type. */
     op1_for_operation = add_lowered_cast_if_necessary(op1_for_operation,
                                                       operation_type);
