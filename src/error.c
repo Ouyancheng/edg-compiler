@@ -3431,8 +3431,6 @@ indicated position.
   diag_message(error_code, error_pos, es_error, dck_standalone);
 }  /* pos_sy2_error */
 
-#if 0
-/* This routine is not currently used by the compiler. */
 
 void pos_syty_error(an_error_code     error_code,
                     a_source_position *error_pos,
@@ -3449,7 +3447,6 @@ indicated position.
   diag_message(error_code, error_pos, es_error, dck_standalone);
 }  /* pos_syty_error */
 
-#endif /* 0 */
 
 void sym_error(an_error_code error_code,
                a_symbol_ptr  symbol)
