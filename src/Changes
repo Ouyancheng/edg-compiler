@@ -1,5 +1,21 @@
 Version 2.37
 
+10/13/97  Ability to put instantiation flags in a separate file
+
+The instantiation flags (i.e., the TIR, CBI, and DNI flags) that are
+used for automatic instantiation processing can now be placed in a
+separate file instead of being encoded as variables in the generated
+object file.  This was done to eliminate the space required to store
+the instantiation flags in the object file and in libraries in which
+the object file may be placed.
+
+This feature requires support from the driver used to invoke the front
+end.  A new configuration flags named DRIVER_COMPATIBILITY_VERSION has
+been added so that the front end can be easily configured to be
+compatible with a driver intended to work with an earlier version of
+the front end.  DRIVER_COMPATIBILITY_VERSION can be set to a value less
+than 237 to select the old behavior.
+
 10/9/97   Equivalent type names found via using-directives
 
 An error is no longer issued if a using-directive lookup finds more
