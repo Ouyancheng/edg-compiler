@@ -8119,9 +8119,10 @@ list (the one specified by param_list).
 
 
 /* Forward declaration. */
-static void check_template_nesting_depth(a_symbol_ptr		sym,
-					 a_source_position	*pos,
-					 a_tmpl_decl_state_ptr	decl_state);
+static a_boolean check_template_nesting_depth(
+					a_symbol_ptr		sym,
+					a_source_position	*pos,
+					a_tmpl_decl_state_ptr	decl_state);
 
 
 static a_boolean member_template_param_list_matches_class(
@@ -8204,10 +8205,12 @@ Otherwise, return FALSE.
                                type->source_corresp.parent.class_type : NULL;
     if (decl_info != NULL) decl_info = decl_info->enclosing_template_decl;
   }  /* for */
-  if (!decl_state->decl_scope_err) {
+  if (!decl_state->decl_scope_err && !any_mismatches) {
     /* Make sure the nesting depth of the declaration matches the entity
        being declared. */
-    check_template_nesting_depth(member_sym, error_pos, decl_state);
+    if (check_template_nesting_depth(member_sym, error_pos, decl_state)) {
+      any_mismatches = TRUE;
+    }  /* if */
   }  /* if */
   return !any_mismatches;
 }  /* member_template_param_list_matches_class */
@@ -12892,20 +12895,22 @@ by type.
 }  /* has_matching_template_instance */
 
 
-static void check_template_nesting_depth(a_symbol_ptr		sym,
-					 a_source_position	*pos,
-					 a_tmpl_decl_state_ptr	decl_state)
+static a_boolean check_template_nesting_depth(
+					a_symbol_ptr		sym,
+					a_source_position	*pos,
+					a_tmpl_decl_state_ptr	decl_state)
 /*
 This routine is used to determine whether the number of template clauses
 in a specialization matches the template nesting depth of the
 entity being specialized.  If a mismatch is found, a diagnostic is
-issued.
+issued, and TRUE is returned.
 */
 {
   a_template_nesting_depth	depth = 0;
   a_template_arg_ptr		arg_list;
   a_boolean			is_template = FALSE;
   a_type_ptr			parent_tp;
+  a_boolean			result = FALSE;
 
   /* The presence of a template argument list indicates that this entity is
      an instance of a class or function template.  A member function of
@@ -12943,7 +12948,7 @@ issued.
      (but not a nested class or member function of a class template),
      there must be a template parameter clause for the entity. */
   if (is_template) depth++;
-  if (decl_state->is_member_decl) {
+  if (decl_state->is_member_decl && !decl_state->is_template_friend) {
     /* If this declaration appears within a class, don't count the enclosing
        classes.  This should only occur in Microsoft mode when an explicit
        specialization appears within a class definition. */
@@ -12972,7 +12977,10 @@ issued.
     /* The depths do not match, issue a diagnostic. */
     pos_sy_diagnostic(es_discretionary_error,
                       ec_template_depth_mismatch, pos, sym);
+    decl_state->decl_scope_err = TRUE;
+    result = TRUE;
   }  /* if */
+  return result;
 }  /* check_template_nesting_depth */
 
 
@@ -13042,7 +13050,7 @@ that follows.
     } else {
       /* Make sure that this declaration has the correct number of
          "template <>" clauses. */
-      check_template_nesting_depth(sym, &decl_start_pos, decl_state);
+      (void)check_template_nesting_depth(sym, &decl_start_pos, decl_state);
       type->variant.class_struct_union.is_specialized = TRUE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       { a_boolean	decl_is_definition;
@@ -13253,7 +13261,8 @@ that follows.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       /* Make sure that this declaration has the correct number of
          "template <>" clauses. */
-      check_template_nesting_depth(sym, &locator.source_position, decl_state);
+      (void)check_template_nesting_depth(sym, &locator.source_position,
+                                         decl_state);
       if (sym->kind == (a_symbol_kind)sk_static_data_member) {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         /* Do fixup on the source sequence entry that was just created to
