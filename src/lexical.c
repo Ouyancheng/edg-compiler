@@ -30,6 +30,7 @@ and parsing of them into tokens.
 #include "literals.h"
 #include "statements.h"
 #include "decls.h"
+#include "templates.h"
 
 #if ASM_FUNCTION_ALLOWED
 #include "asm_func.h"
@@ -4814,6 +4815,7 @@ will be TRUE.  This routine may only be called in C++ mode.
         /* There is another level of qualification.  Search for the identifier
            in the given scope. */
         if (!*err) {
+          check_for_uninstantiated_template_class(*class_type);
           class_symbol = class_qualified_id_lookup(&locator_for_curr_id,
                                                    *class_type,
                                                    IDL_MUST_BE_CLASS);
