@@ -1432,6 +1432,30 @@ nothing.
 }  /* free_macro_arg_entries */
 
 
+static char *find_final_inert_escape(char     *text_loc,
+                                     sizeof_t sect_len)
+/*
+text_loc points to a string of replacement text for an rt_raw_argument
+insertion, of length sect_len.  If there is an inert-macro escape
+at the end of the string (followed by an identifier, but no other
+escapes), return a pointer to it.  Otherwise, return NULL.
+*/
+{
+  char     *final_inert_escape = NULL;
+  sizeof_t len;
+
+  for (len = sect_len; len > 0; len--) {
+    if (text_loc[len-1] == LE_ESCAPE) {
+      if (text_loc[len] == LE_INERT_MACRO) {
+        final_inert_escape = text_loc+len-1;
+        break;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  return final_inert_escape;
+}  /* find_final_inert_escape */
+
+
 static void adjust_length_for_magic_arg(a_repl_text_seq_kind kind,
                                         char                 *rtp,
                                         sizeof_t             n_params,
@@ -1520,8 +1544,8 @@ hence its name should not be changed.
       switch (rts_kind) {
         case rt_raw_argument:
           sect_len = map->raw_len;
-          /* Don't count an LE_INERT_MACRO escape if present, since it
-             will be removed. */
+          /* Don't count an LE_INERT_MACRO escape at the beginning if present,
+             since it will be removed. */
           if (map->raw_text[0] == LE_ESCAPE &&
               map->raw_text[1] == LE_INERT_MACRO) sect_len -= LE_ESCAPE_LEN;
           break;
@@ -2225,13 +2249,32 @@ end_arg_expansion:;
           case rt_raw_argument:
             sect_len = map->raw_len;
             text_loc = map->raw_text;
-            /* Remove an LE_INERT_MACRO escape if present, since the token
-               is being pasted to another one. */
+            /* Remove an LE_INERT_MACRO escape at the beginning if present,
+               since the token is being pasted to another one. */
             if (map->raw_text[0] == LE_ESCAPE &&
                 map->raw_text[1] == LE_INERT_MACRO) {
               sect_len -= LE_ESCAPE_LEN;
               text_loc += LE_ESCAPE_LEN;
             }  /* if */
+            { char *final_inert_escape =
+                                   find_final_inert_escape(text_loc, sect_len);
+              if (final_inert_escape != NULL) {
+                /* Remove an LE_INERT_MACRO escape preceding an identifier
+                   at the end if present, since the token is being pasted
+                   to another one.  Replace it with an end-of-token escape. */
+                /* Copy the part before the escape here, and copy the part
+                   after the escape (the identifier name) in the normal
+                   code below. */
+                sizeof_t initial_len = final_inert_escape - text_loc;
+                (void)memcpy(src_loc, text_loc,
+                             size_t_arg(initial_len)); /*lint !e668 */
+                src_loc += initial_len;
+                *src_loc++ = LE_ESCAPE;
+                *src_loc++ = LE_END_OF_TOKEN;
+                text_loc = final_inert_escape+LE_ESCAPE_LEN;
+                sect_len -= initial_len+LE_ESCAPE_LEN;
+              }  /* if */
+            }
             break;
           case rt_stringized_raw_argument:
             /* Generate the text of the stringized version of the argument,

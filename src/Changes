@@ -1,5 +1,20 @@
 Version 2.44
 
+1/12/00  Preprocessing: token pasting and inert macro identifiers
+
+The preprocessor incorrectly handled cases where two identifiers
+that are inert (i.e., they are macro names that appear within their
+own expansions, and are protected from further expansion) are
+pasted together.  The resulting identifier was still considered
+inert, and it should not be.
+
+  #define paste(a,b) a ## b
+  #define paste2(a,b) paste(a, b)
+  #define G "AB" G
+  #define L L "EF"
+  #define GL "CD"
+  paste2(G,L)  // Should give "AB" "CD" "EF"
+
 1/9/00   Eliminating blank in textual preprocessing output with inert
          macro identifiers
 
