@@ -558,6 +558,11 @@ char *name_of_symbol(a_symbol_ptr  sym)
       }  /* for */
       (void)sprintf(&buffer[strlen(buffer)], "%s)", has_ellipsis ? "..." : "");
       break;
+    case sk_field:
+      (void)sprintf(buffer, "%s::%s",
+                    sym->class_of_which_a_member->source_corresp.name,
+                    sym->header->identifier);
+      break;
 #if 0
 #else
 #if CHECKING
@@ -846,6 +851,7 @@ state.
         cssp->has_copy_constructor_for_const_object = FALSE;
         cssp->assignment_by_bitwise_copy_allowed = FALSE;
         cssp->target_of_user_defined_conversion = FALSE;
+        cssp->any_ref_member = FALSE;
       }
       break;
     case sk_variable:

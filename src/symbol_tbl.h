@@ -435,6 +435,9 @@ typedef struct a_class_symbol_supplement {
 			/* TRUE if this class is the target of a user-defined
 			   conversion function (for conversion from another
 			   class to this class). */
+  unsigned int  any_ref_member:1;
+			/* TRUE if this class has any fields of reference
+			   type. */
 } a_class_symbol_supplement;
 
 
