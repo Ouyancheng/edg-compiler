@@ -531,14 +531,15 @@ itself recursively to process classes nested within this class.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 #if !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-      if (!rout->is_inline) {
-        /* Add a secondary source sequence entry to represent the partial
-           instantiation -- it will take the form of an explicit
-           specialization. */
-        add_source_sequence_entry_for_partial_instantiation(
+      /* Add a secondary source sequence entry to represent the partial
+         instantiation -- it will take the form of an explicit
+         specialization.  This entry is not needed if the class of which
+         this function is a member will itself be put out as a
+         specialization, because that definition will include declarations
+         of all the member functions. */
+      add_source_sequence_entry_for_partial_instantiation(
                                            (char *)rout,
                                            (an_il_entry_kind)iek_routine);
-      }  /* if */
 #endif /* !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -569,7 +570,10 @@ itself recursively to process classes nested within this class.
 #if !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
       /* Add a secondary source sequence entry to represent the partial
          instantiation -- it will take the form of an explicit
-         specialization. */
+         specialization.  This entry is not needed if the class of which
+         this is a static data member will itself be put out as a
+         specialization, because that definition will include declarations
+         of all the static data members. */
       add_source_sequence_entry_for_partial_instantiation(
                                            (char *)var,
                                            (an_il_entry_kind)iek_variable);
@@ -4496,13 +4500,11 @@ type based on the template argument list and the template parameter list
   }
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-  if (!rp->is_inline || tssp->cache.tokens.first_token == NULL) {
-    /* Add a secondary source sequence entry to represent the partial
-       instantiation -- it will take the form of an explicit specialization. */
-    add_source_sequence_entry_for_partial_instantiation(
+  /* Add a secondary source sequence entry to represent the partial
+     instantiation -- it will take the form of an explicit specialization. */
+  add_source_sequence_entry_for_partial_instantiation(
                                            (char *)rp,
                                            (an_il_entry_kind)iek_routine);
-  }  /* if */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Pop the template instantiation scope. */
