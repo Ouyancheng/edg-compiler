@@ -995,14 +995,14 @@ typedef struct a_using_decl {
 			   using-declaration specifies an overload set, each
 			   function or function template is recorded
 			   individually. */
-  a_bit_field	is_using_directive;
+  a_bit_field	is_using_directive:1;
 			/* TRUE if this is a using-directive and FALSE if it
 			   is a using-declaration. */
-  a_bit_field	is_class_member;
+  a_bit_field	is_class_member:1;
 			/* When is_using_directive is FALSE, this flag is TRUE
 			   if this is a class member using-declaration and
 			   FALSE if it is a nonmember using-declaration. */
-  a_bit_field	hidden;
+  a_bit_field	hidden:1;
 			/* For class member using-declarations only, TRUE if
 			   a base class member brought into a derived class
 			   by a using-declaration is subsequently hidden by a
