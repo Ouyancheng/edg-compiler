@@ -385,6 +385,12 @@ Initialize the option information table.
   add_option_description(optk_pch_messages, "no_pch_messages",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_none);
+  add_option_description(optk_pch_verbose, "pch_verbose",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_none);
+  add_option_description(optk_pch_verbose, "no_pch_verbose",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_none);
 #if !USE_MMAP_FOR_MEMORY_REGIONS
   add_option_description(optk_pch_mem, "pch_mem",
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
@@ -1904,6 +1910,7 @@ Process the arguments on the command line that invoked the compiler.
         case optk_use_pch:
         case optk_pch:
         case optk_pch_messages:
+        case optk_pch_verbose:
         case optk_pch_mem:
         case optk_pch_dir:
           is_pch_option = TRUE;
@@ -2335,6 +2342,10 @@ common_cfront_mode_settings:
       case optk_pch_messages:
         /* Enable or suppress PCH messages. */
         suppress_pch_messages = !opt_value;
+        break;
+      case optk_pch_verbose:
+        /* Enable or suppress verbose PCH messages. */
+        verbose_pch_messages = opt_value;
         break;
 #if !USE_MMAP_FOR_MEMORY_REGIONS
       case optk_pch_mem:

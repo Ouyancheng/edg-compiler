@@ -1,5 +1,12 @@
 Version 2.43
 
+12/1/99  Additional information about PCH files that cannot be used
+
+It automatic precompiled header file mode, it can sometimes be difficult
+to know why a given PCH file is not used for a compilation.  The
+--pch_verbose option has been added to display a message for each PCH
+file that was rejected for a given compilation.
+
 11/30/99 Microsoft compatibility: using-directives make names visible in
          the file scope
 

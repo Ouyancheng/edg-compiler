@@ -552,6 +552,7 @@ check_abbreviation()
 --no_nonstd_using_decl
 --no_old_specializations
 --no_pch_messages
+--no_pch_verbose
 --no_preproc_only
 --no_remove_unneeded_entities
 --no_restrict
@@ -587,6 +588,7 @@ check_abbreviation()
 --pch_mem
 --pch_messages
 --pch_test_mode
+--pch_verbose
 --pending_instantiations
 --pic
 --preinclude
@@ -1051,6 +1053,8 @@ process_option()
 # the beginning of the option list passed to the front end.
 ###############################################################################
          --pch | \
+         --pch_verbose | \
+         --no_pch_verbose | \
          --pch_messages | \
          --no_pch_messages)
       feoptions=$curr_arg" $feoptions"

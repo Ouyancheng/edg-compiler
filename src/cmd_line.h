@@ -98,6 +98,7 @@ typedef enum /*an_option_kind*/ {
   optk_use_pch,
   optk_pch,
   optk_pch_messages,
+  optk_pch_verbose,
 #if !USE_MMAP_FOR_MEMORY_REGIONS
   optk_pch_mem,
 #endif /* !USE_MMAP_FOR_MEMORY_REGIONS */
@@ -830,6 +831,12 @@ EXTERN a_boolean
 EXTERN a_boolean
 		suppress_pch_messages /* = FALSE */;
 			/* TRUE if messages regarding the creation and
+			   use of precompiled header files should be
+			   suppressed. */
+
+EXTERN a_boolean
+		verbose_pch_messages /* = FALSE */;
+			/* TRUE if extra messages regarding the creation and
 			   use of precompiled header files should be
 			   suppressed. */
 

@@ -1937,6 +1937,11 @@ directory.  Return TRUE if an applicable PCH was found.
            inspecting any other files. */
         skip_remaining_entries = last_matching_event == pch_event_list_tail;
       }  /* if */
+    } else {
+      if (verbose_pch_messages) {
+        /* Issue a warning that the precompiled header cannot be used. */
+        pos_st_warning(mismatch_reason, &null_source_position, file_name);
+      }  /* if */
     }  /* if */
   }  /* for */
   if (result) {
