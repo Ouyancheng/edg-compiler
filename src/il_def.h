@@ -966,6 +966,14 @@ typedef struct a_dynamic_init {
 			   source object is known only at runtime. */
     } constructor;
   } variant;
+#if DO_IL_LOWERING
+  struct an_init_pos_descr
+		*init_pos_descr;
+			/* Used by IL lowering to record the position of the
+			   entity initialized, in an IL-lowering-specific
+			   form.  This is needed later when generating
+			   destruction code. */
+#endif /* DO_IL_LOWERING */
 } a_dynamic_init;
 
 
