@@ -5897,10 +5897,16 @@ block.
       syntax_error(ec_exp_identifier);
     } else {
       /* Look up the namespace specifier. */
-      sym = coalesce_and_lookup_generalized_identifier(GID_NO_OPTIONS,
-                                                        ilm_normal, &err);
+      (void)coalesce_and_lookup_generalized_identifier(GID_NO_OPTIONS,
+                                                       ilm_normal, &err);
+      sym = locator_for_curr_id.specific_symbol;
       if (!err) {
-        if (sym == NULL || sym->kind != (a_symbol_kind)sk_namespace) {
+        if (sym != NULL &&
+            sym->kind == (a_symbol_kind)sk_namespace_projection &&
+            sym->ambiguous) {
+          /* The name for which an alias is being declared is ambiguous. */
+          sym_error(ec_ambiguous_name, sym);
+        } else if (sym == NULL || sym->kind != (a_symbol_kind)sk_namespace) {
           /* Either nothing was found or what was found was not a namespace. */
           error(ec_missing_namespace_name);
         } else {
