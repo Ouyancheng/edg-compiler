@@ -1040,13 +1040,6 @@ If the indicated class type is unnamed, give it a name.
 }  /* give_unnamed_class_a_name */
 
 
-/*
-Seed number for unnamed namespace names.
-*/
-static unsigned long
-		unnamed_namespace_name_seed;
-
-
 static void give_unnamed_namespace_a_name(a_namespace_ptr nsp)
 /*
 If the indicated namespace is unnamed, give it a name.
@@ -1063,7 +1056,6 @@ If the indicated namespace is unnamed, give it a name.
     /* The name is __Nnn, where nn is a unique number for the
        namespace.  This is not from the ARM or cfront. */
     char *module_id = make_module_id();
-    unnamed_namespace_name_seed++;
     name_len = 6 + strlen(module_id) + 1;
     name = alloc_lowered_name_string(name_len);
     (void)strcpy(name, "__NU__");
@@ -3570,7 +3562,6 @@ name_lower_init.)
   if (exceptions_enabled && precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(unnamed_class_name_seed),
-      pch_saved_var_array_elem(unnamed_namespace_name_seed),
       pch_saved_var_array_elem(unnamed_enum_name_seed),
       pch_saved_var_array_elem(unnamed_member_variable_name_seed),
       pch_saved_var_array_terminating_elem()
@@ -3589,7 +3580,6 @@ of the front end.
 */
 {
   unnamed_class_name_seed = 0;
-  unnamed_namespace_name_seed = 0;
   unnamed_enum_name_seed = 0;
   unnamed_member_variable_name_seed = 0;
   avail_compressible_string_pos = NULL;
