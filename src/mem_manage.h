@@ -148,10 +148,8 @@ extern void check_for_done_with_all_function_memory_regions(void);
 extern void free_memory_region(a_memory_region_number region_number);
 /* Free all of the memory regions. */
 extern void free_all_memory_regions(void);
-#if !IL_SHOULD_BE_WRITTEN_TO_FILE || !ALTERNATE_IL_FILE_FORMAT
 /* Free the unused space in the final block of a memory region. */
 extern void trim_memory_region(a_memory_region_number region_number);
-#endif /* !IL_SHOULD_BE_WRITTEN_TO_FILE || !ALTERNATE_IL_FILE_FORMAT */
 
 /* purify_discard_memory is used to indicate that a piece of memory
    is no longer needed but need not be freed.  This is used to prevent

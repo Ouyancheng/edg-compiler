@@ -382,6 +382,8 @@ Unmap the memory blocks that have been mapped.
 }  /* free_mapped_mem_blocks */
 
 
+/*lint -esym(759,alloc_new_mem_block)*/
+/*lint -esym(765,alloc_new_mem_block)*/
 a_void_ptr alloc_new_mem_block(sizeof_t size)
 /*
 Allocate a block of memory to be used for memory region storage.  This
@@ -479,6 +481,8 @@ precompiled headers is suppressed.
 #endif /* !STANDALONE_UTILITY_PROGRAM */
  
 
+/*lint -esym(759,alloc_mem_block)*/
+/*lint -esym(765,alloc_mem_block)*/
 a_mem_block_header_ptr alloc_mem_block(a_memory_region_number region_number,
                                        sizeof_t               min_size,
                                        char                   *desired_addr)
@@ -801,6 +805,8 @@ the number of entries indicated by region_number.
 }  /* ensure_mem_region_table_space */
 
 
+/*lint -esym(759,init_memory_region_without_initial_allocation)*/
+/*lint -esym(765,init_memory_region_without_initial_allocation)*/
 void init_memory_region_without_initial_allocation
                         (a_memory_region_number region_number)
 /*
@@ -1025,6 +1031,8 @@ end memory region.
 }  /* free_all_memory_regions */
 
 
+/*lint -esym(759,trim_memory_region)*/
+/*lint -esym(765,trim_memory_region)*/
 void trim_memory_region(a_memory_region_number region_number)
 /*
 Trim the current (last) block of the indicated memory region to free
