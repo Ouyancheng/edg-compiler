@@ -1,5 +1,16 @@
 Version 2.15
 
+2/24/93  Inconsistent linkage specifications for variables
+
+We used to issue a warning when a variable was redeclared with a
+different linkage specification.  Now it's a warning in strict ANSI mode
+only and a remark otherwise.  Here's an example:
+
+  extern char *strlist[32];
+  extern "C" {
+    extern char *strlist[];        // Now a remark by default
+  }
+
 2/24/93  Redeclaration of template parameters
 
 An error is issued if a template parameter name is redeclared in
@@ -11,12 +22,13 @@ Note that a redeclaration in a member function inside the template
 definition gives an error so that functions are treated consistently
 whether the body appears in the class definition or outside the class
 definition.
+
   template <class T> struct A {
-    int T;	// error
-    void f() { int T;}	// error
+    int T;              // error
+    void f() { int T;}  // error
     void g();
     struct B {
-      int T;	// OK
+      int T;            // OK
     };
   };
 
@@ -24,9 +36,9 @@ definition.
 
   template <class T> void f(T)
   {
-    int  T;	// error
+    int  T;            // error
     {
-      int T;	// OK
+      int T;           // OK
     }
   }
 
