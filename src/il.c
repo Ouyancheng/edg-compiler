@@ -63,9 +63,9 @@ static unsigned long
 		num_param_types_allocated,
 		num_routine_type_supplements_allocated,
 		num_based_type_list_members_allocated,
+		num_class_type_supplements_allocated,
                 num_access_adjustments_allocated,
                 num_class_list_entries_allocated,
-		num_class_type_supplements_allocated,
                 num_overriding_virtual_functions_allocated,
                 num_derivation_steps_allocated,
                 num_base_classes_allocated,
@@ -78,13 +78,15 @@ static unsigned long
 		num_asm_entries_allocated,
 		num_labels_allocated,
 		num_expr_nodes_allocated,
+		num_new_delete_supplements_allocated,
 		num_switch_clauses_allocated,
 		num_blocks_allocated,
 		num_statements_allocated,
                 num_constructor_inits_allocated,
 		num_scopes_allocated,
 		num_il_entry_prefixes_allocated,
-		string_literal_text_space_allocated;
+		string_literal_text_space_allocated,
+		num_rewritten_temporaries_allocated;
 #if ORPHAN_PROCESSING_NEEDED
 static unsigned long
 		num_fs_orphan_pointers_allocated,
@@ -4111,6 +4113,9 @@ new_temp.  Add the entry to the beginning of the rewritten_temporaries list.
   } else {
     /* Allocate a new entry. */
     rtp = (a_rewritten_temporary_ptr)alloc_fe(sizeof(a_rewritten_temporary));
+#if DEBUG
+    num_rewritten_temporaries_allocated++;
+#endif /* DEBUG */
   }  /* if */
   /* Initialize the entry and put in on the front of the list. */
   rtp->old_temp = old_temp;
@@ -4717,6 +4722,9 @@ fields to default values.
       ndsp = (a_new_delete_supplement_ptr)
                                     alloc_cil(sizeof(a_new_delete_supplement));
       node->variant.new_delete = ndsp;
+#if DEBUG
+      num_new_delete_supplements_allocated++;
+#endif /* DEBUG */
       ndsp->is_new       = TRUE;
       ndsp->type         = NULL;
       ndsp->routine      = NULL;
@@ -5777,6 +5785,8 @@ Display and return the amount of space used for various IL tables.
   write_one("asm entry", num_asm_entries_allocated, an_asm_entry);
   write_one("label", num_labels_allocated, a_label);
   write_one("expr node", num_expr_nodes_allocated, an_expr_node);
+  write_one("new/delete supplement", num_new_delete_supplements_allocated,
+            a_new_delete_supplement);
   write_one("switch clause", num_switch_clauses_allocated, a_switch_clause);
   write_one("block", num_blocks_allocated, a_block);
   write_one("statement", num_statements_allocated, a_statement);
@@ -5794,6 +5804,19 @@ Display and return the amount of space used for various IL tables.
 
   fprintf(f_debug, "%25s %8s %8s %8lu\n", "Total", "", "", grand_total);
 
+  (void)fputc('\n', f_debug);
+  write_one("rewritten temporary", num_rewritten_temporaries_allocated,
+            a_rewritten_temporary);
+  /* Count the freed rewritten temporary entries to see if any were lost. */
+  { a_rewritten_temporary_ptr rtp;
+    unsigned long             count = 0;
+    for (rtp = avail_rewritten_temporaries; rtp != NULL; rtp = rtp->next) {
+      count++;
+    }  /* if */
+    if (count != num_rewritten_temporaries_allocated) {
+      fprintf(f_debug, "%25s %8s %8s %8lu lost\n", "", "", "", count);
+    }  /* if */
+  }
   (void)fputc('\n', f_debug);
   fprintf(f_debug, "%25s %8s %8s %8lu\n", "get_based_type calls", "", "",
                                           num_get_based_type_calls);  
@@ -5910,9 +5933,9 @@ of the front end.
   num_param_types_allocated              = 0;
   num_routine_type_supplements_allocated = 0;
   num_based_type_list_members_allocated  = 0;
+  num_class_type_supplements_allocated   = 0;
   num_access_adjustments_allocated       = 0;
   num_class_list_entries_allocated       = 0;
-  num_class_type_supplements_allocated   = 0;
   num_derivation_steps_allocated         = 0;
   num_base_classes_allocated             = 0;
   num_template_args_allocated            = 0;
@@ -5924,6 +5947,7 @@ of the front end.
   num_asm_entries_allocated              = 0;
   num_labels_allocated                   = 0;
   num_expr_nodes_allocated               = 0;
+  num_new_delete_supplements_allocated   = 0;
   num_switch_clauses_allocated           = 0;
   num_blocks_allocated                   = 0;
   num_statements_allocated               = 0;
@@ -5931,6 +5955,7 @@ of the front end.
   num_scopes_allocated                   = 0;
   num_il_entry_prefixes_allocated        = 0;
   string_literal_text_space_allocated    = 0;
+  num_rewritten_temporaries_allocated    = 0;
   num_shareable_constants                = 0;
   num_func_shareable_constants           = 0;
   num_used_shareable_constant_buckets    = 0;
