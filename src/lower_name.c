@@ -3202,8 +3202,9 @@ Add to the mangled name the encoding for the type "type".
 #endif /* IA64_ABI */
 
 #if IA64_ABI
+  /* If the type has appeared previously, use a substitution for it. */
   if (add_substitution_if_available(type, (an_il_entry_kind)iek_type, mctl)) {
-    goto have_whole_mangled_name;
+    goto end_of_routine;
   }  /* if */
 #endif /* IA64_ABI */
   /* Walk through any typerefs above the type.  Remember type qualifiers
@@ -3488,6 +3489,7 @@ Add to the mangled name the encoding for the type "type".
         /* Many cases don't require any handling. */
     }  /* switch */
   }  /* if */
+have_whole_mangled_name:;
 #if IA64_ABI
   /* Create a substitution for the unqualified type. */
   if (!is_integral_type(type) && !is_floating_type(type) && 
@@ -3500,8 +3502,8 @@ add_substitution_for_qualified_type:
     alloc_substitution((char *)qualified_type,
                        (an_il_entry_kind)iek_type, mctl);
   }  /* if */
+end_of_routine:;
 #endif /* IA64_ABI */
-have_whole_mangled_name:;
 }  /* mangled_encoding_for_type */
 
 
