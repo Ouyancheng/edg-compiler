@@ -253,7 +253,7 @@ Process the arguments on the command line that invoked the compiler.
   /* Start with empty include file search paths.  Entries may be added
      because of command line options, and others will be added as defaults. */
   incl_search_path = end_incl_search_path = sys_incl_search_path = NULL;
-  /* Supress getopt's error on non-recognized option. */
+  /* Suppress getopt's error on non-recognized option. */
   opterr = 0;
   /* Scan the command-line options. */
 #define COMMAND_LIST "AEPCKMHnsuvwrmpI:D:U:e:L:X:S:o:i:d:"
