@@ -10153,6 +10153,11 @@ defined inline, or if has a nested class with such members, return TRUE.
   } else if (scope->variables != NULL) {
     /* At least one static data member: external linkage is required. */
     external = TRUE;
+  } else if (extern_inline_allowed && scope->routines != NULL) {
+    /* Ordinarily this path is not taken in cfront mode, but if extern inline
+       was explicitly specified on the command line, then any member function
+       has external linkage. */
+    external = TRUE;
   } else {
     /* Look for noninline member functions. */
     for (rp = scope->routines; rp != NULL; rp = rp->next) {
@@ -10185,7 +10190,6 @@ defined inline, or if has a nested class with such members, return TRUE.
 
 void check_class_linkage(void)
 /*
-
 This routine makes a pass over all the classes defined in this translation
 unit to determine which ones need to be changed from internal to external
 linkage and to make the change when appropriate.  This processing is
@@ -10225,7 +10229,6 @@ because they were used in declaring an external function or variable.
   a_symbol_ptr    sym;             
 
   db_enter(3, "check_class_linkage");
-  check_assertion(!extern_inline_allowed);
   /* Search for classes by making a pass over all the types associated with
      the file scope. */
   scope = il_header.primary_scope;
