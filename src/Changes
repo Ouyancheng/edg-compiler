@@ -1,5 +1,13 @@
 Version 2.34
 
+10/23/96 Interaction of cfront mode and --extern_inline
+
+When the command line specifies both cfront-compatibility mode and
+extern inline support (and the latter option follows the former), an
+internal error is no longer produced.  Instead, inline member functions
+now force the class to have external linkage (just as non-inline member
+functions have done all along).
+
 10/17/96 Spurious warning on multi-line template static data member definition
 
 A template static data member whose initializer is spread over several lines
