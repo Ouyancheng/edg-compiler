@@ -26,11 +26,12 @@ program as the front end is produced.
 #include "basics.h"
 #include "host_envir.h"
 
-/* This code is only needed if the IL is to be displayed, either in the
+/*
+This code is only needed if the IL is to be displayed, either in the
 standalone il_display program or as part of the front end.  For a standalone
 il_display program, the makefile should define STANDALONE_IL_DISPLAY.  To
-include il_display into a frontend, that makefile should define
-NEED_IL_DISPLAY and a call of il_display added in the front end.
+include il_display in a front end, that makefile should define
+NEED_IL_DISPLAY and a call of il_display should be added in the front end.
 */
 #if NEED_IL_DISPLAY
 
