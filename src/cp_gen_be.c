@@ -2666,27 +2666,23 @@ entry is the one associated with the access adjustment.
   adv_curr_source_sequence_entry();
   /* Put out an access specifier if necessary to change the current access. */
   gen_member_access_specifier(adj->access);
+  entry_kind = adj->entity.kind;
   /* Get the source correspondence entry for the entity. */
-  switch (adj->kind) {
-    case aak_field:
-      scp = &adj->variant.field->source_corresp;
-      entry_kind = iek_field;
+  switch (entry_kind) {
+    case iek_field:
+      scp = &((a_field_ptr)adj->entity.ptr)->source_corresp;
       break;
-    case aak_variable:
-      scp = &adj->variant.variable->source_corresp;
-      entry_kind = iek_variable;
+    case iek_variable:
+      scp = &((a_variable_ptr)adj->entity.ptr)->source_corresp;
       break;
-    case aak_routine:
-      scp = &adj->variant.routine->source_corresp;
-      entry_kind = iek_routine;
+    case iek_routine:
+      scp = &((a_routine_ptr)adj->entity.ptr)->source_corresp;
       break;
-    case aak_type:
-      scp = &adj->variant.type->source_corresp;
-      entry_kind = iek_type;
+    case iek_type:
+      scp = &((a_type_ptr)adj->entity.ptr)->source_corresp;
       break;
-    case aak_constant:
-      scp = &adj->variant.constant->source_corresp;
-      entry_kind = iek_constant;
+    case iek_constant:
+      scp = &((a_type_ptr)adj->entity.ptr)->source_corresp;
       break;
     default:
       unexpected_condition();
@@ -2698,15 +2694,15 @@ entry is the one associated with the access adjustment.
   /* For overloaded functions, there is an access adjustment and a source
      sequence entry for each function in the set.  If that is the case here,
      advance over the other entries. */
-  if (adj->kind == (an_access_adjustment_kind)aak_routine) {
+  if (entry_kind == (an_il_entry_kind)iek_routine) {
     while (curr_source_sequence_entry != NULL &&
            ss_entry_kind(curr_source_sequence_entry) == iek_access_adjustment){
       an_access_adjustment_ptr adjb = ss_entry_ptr(curr_source_sequence_entry,
                                                    an_access_adjustment_ptr);
       /* Keep going on access adjustments for routines with the same name. */
-      if (adjb->kind != (an_access_adjustment_kind)aak_routine ||
-          adjb->variant.routine->source_corresp.name !=
-                              adj->variant.routine->source_corresp.name) break;
+      if (adjb->entity.kind != (an_il_entry_kind)iek_routine ||
+          ((a_routine_ptr)adjb->entity.ptr)->source_corresp.name !=
+                  ((a_routine_ptr)adj->entity.ptr)->source_corresp.name) break;
       /* Advance past the source sequence entry for the adjustment. */
       adv_curr_source_sequence_entry();
     }  /* while */  
@@ -4421,7 +4417,7 @@ is the one associated with the pragma.
   /* Ignore this entry if told to do so. */
   if (!pp->ignore_in_back_end) {
     end_output_line_if_begun();
-    set_output_position(&pp->decl_position);
+    set_output_position(&pp->position);
     disable_line_wrapping();
     write_str("#pragma ");
     check_assertion_str(pp->pragma_text != NULL,
