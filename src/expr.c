@@ -2432,6 +2432,22 @@ nonstatic_member_function:
         case sk_function_template:
           /* Member function template. */
           goto nonstatic_member_function;
+        case sk_class_template:
+          /* Class template.  Returned by symbol lookup for cases like
+             x.template f<N> in prototype instantiations.  A class
+             template is returned because there's only a representation
+             for the class case as a member of a nonreal class, but
+             it's really a function template. */
+          check_assertion(locator_for_curr_id.is_template_id &&
+                          is_template_dependent_context());
+          make_unknown_dependent_function_operand(projection_member_sym,
+                                                  /*is_template_id=*/TRUE,
+                                                  locator_for_curr_id.
+                                                             template_arg_list,
+                                                  result);
+          combine_unneeded_selector_with_operand(operand_1, &is_arrow_operator,
+                                                 result);
+          break;
         case sk_constant:
           /* Member constant (e.g., an enumerator). */
           make_sym_constant_operand(member_sym, result);
@@ -11179,8 +11195,10 @@ overloaded_function:
           /* Class template.  Returned by symbol lookup for cases like
              A<T>::template f<N> in prototype instantiations.  A class
              template is returned because there's only a representation
-             for the class case as a member of a nonreal class. */
-          check_assertion(locator_for_curr_id.is_template_id);
+             for the class case as a member of a nonreal class, but it's
+             really a function template. */
+          check_assertion(locator_for_curr_id.is_template_id &&
+                          is_template_dependent_context());
           make_unknown_dependent_function_operand(projection_sym_ptr,
                                                   /*is_template_id=*/TRUE,
                                                   locator_for_curr_id.

@@ -4539,10 +4539,13 @@ precedence confusion and need_parens is TRUE.
 		    need_parens, &octl);
       processed = TRUE;
     } else if (constant->variant.template_param.kind ==
-                       (a_template_param_constant_kind)tpck_unknown_function) {
-      /* A tpck_unknown_function constant represents the address of the
-         unknown function.  Drop the "&" to make an lvalue. */
-      form_unknown_function_constant(constant, /*is_template=*/FALSE, &octl);
+                       (a_template_param_constant_kind)tpck_unknown_function ||
+               constant->variant.template_param.kind ==
+                       (a_template_param_constant_kind)tpck_template_ref) {
+      /* A tpck_unknown_function or tpck_template_ref constant represents
+         the address of the unknown function.  Drop the "&" to make an
+         lvalue. */
+      form_unknown_function_constant(constant, &octl);
       processed = TRUE;
     }  /* if */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
@@ -5036,12 +5039,31 @@ Put out the operator indicated by opstr and the second operand (as
 an rvalue).
 */
 {
+  a_boolean      unknown_function_case = FALSE;
+  a_constant_ptr con;
+
   /* If the second operand has been turned into a constant (i.e., it
      was a const-valued variable), use a comma operator in the output
      to avoid generating something like "x.2". */
-  if (!is_variable_node(operand_2)) opstr = ",";
+  if (is_constant_node(operand_2)) {
+    con = operand_2->variant.constant;
+    if (con->kind == (a_constant_repr_kind)ck_template_param) {
+      if (con->variant.template_param.kind ==
+                       (a_template_param_constant_kind)tpck_unknown_function ||
+          con->variant.template_param.kind ==
+                       (a_template_param_constant_kind)tpck_template_ref) {
+        unknown_function_case = TRUE;
+      }  /* if */
+    }  /* if */
+    if (!unknown_function_case) opstr = ",";
+  }  /* if */
   write_tok_str(opstr);
-  gen_expr_with_parens(operand_2);
+  if (unknown_function_case) {
+    /* Put out an unknown function without a leading "&". */
+    form_unknown_function_constant(con, &octl);
+  } else {
+    gen_expr_with_parens(operand_2);
+  }  /* if */
 }  /* gen_dot_static */
 
 
@@ -5511,13 +5533,16 @@ finish_new_style_cast:
           } else if (is_constant_node(operand_1) &&
                      operand_1->variant.constant->kind ==
                                      (a_constant_repr_kind)ck_template_param &&
-                     operand_1->variant.constant->variant.template_param.kind==
-                       (a_template_param_constant_kind)tpck_unknown_function) {
-            /* A tpck_unknown_function constant represents the address of the
-               unknown function.  Drop the "&" (it's implied) to make neater
-               output. */
-            form_unknown_function_constant(operand_1->variant.constant,
-                                           /*is_template=*/FALSE, &octl);
+                     (operand_1->variant.constant->variant.
+                                                         template_param.kind ==
+                       (a_template_param_constant_kind)tpck_unknown_function ||
+                      operand_1->variant.constant->variant.
+                                                         template_param.kind ==
+                       (a_template_param_constant_kind)tpck_template_ref)) {
+            /* A tpck_unknown_function or tpck_template_ref constant
+               represents the address of the unknown function.  Drop the "&"
+               (it's implied) to make neater output. */
+            form_unknown_function_constant(operand_1->variant.constant, &octl);
           } else if (is_operation_node(operand_1) &&
                      (operand_1->variant.operation.kind ==
                                (an_expr_operator_kind)eok_points_to_static ||

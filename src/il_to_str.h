@@ -230,7 +230,6 @@ extern void form_pm_constant(
 
 extern void form_unknown_function_constant(
                              a_constant_ptr                        constant,
-                             a_boolean                             is_template,
                              an_il_to_str_output_control_block_ptr octl);
 
 extern void form_constant(a_constant_ptr                        constant,
