@@ -19,7 +19,6 @@ decls.c -- Scanning of declarations.
 #include "decl_spec.h"
 #include "declarator.h"
 #include "def_arg.h"
-#include "disambig.h"
 #include "class_decl.h"
 #include "cmd_line.h"
 #include "decl_inits.h"
