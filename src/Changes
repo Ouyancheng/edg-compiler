@@ -60,7 +60,7 @@ In such cases, the resulting composite parameter type is the union type.
 
 6/20/02  GNU C mode: last line of file can end with backslash
 
-In GNU C mode, the last line of a file is not allowed to end with a
+In GNU C mode, the last line of a file is now allowed to end with a
 backslash.  A warning is issued.
 
 6/20/02  asm member function definitions
