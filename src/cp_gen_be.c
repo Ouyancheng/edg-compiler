@@ -292,7 +292,7 @@ static void gen_class_definition(a_type_ptr type);
 static a_boolean process_preprocessing_directives(void);
 static void gen_pragma(void);
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-static void gen_template_header(a_template_decl_ptr);
+static void gen_template_header(a_template_decl_ptr tdp);
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 static void gen_template(void);
 static void gen_lvalue_full(an_expr_node_ptr node,

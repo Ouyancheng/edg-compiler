@@ -11688,6 +11688,8 @@ information returned from decl_specifiers and declarator.
                          decl_state->effective_decl_level,
 #if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
                          decl_state->template_decl,
+#else /* !(GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL) */
+                         /*template_decl=*/NULL,
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL */
                          decl_state->is_specialization);
   if (sym != NULL && sym->kind == (a_symbol_kind)sk_member_function &&
@@ -12126,6 +12128,8 @@ any non-empty template parameter lists that were scanned.
                                                      decl_info->parameters,
 #if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
                                               decl_state->template_decl,
+#else /* !(GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL) */
+                                              /*template_decl=*/NULL,
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL */
                                               &decl_state->decl_pos_block);
       complete_function_template_decl(decl_state, sym,
