@@ -1,3 +1,12 @@
+Version 2.32
+
+2/22/96  Reentrancy in name demangler
+
+The state variables used in decode.c have been moved into a structure, and
+a pointer to the structure is passed around.  This allows the name demangler
+to be used where reentrancy is required.
+
+-------------------------------------------------------------------------------
 Version 2.31, January 19, 1996
 
 1/17/96  eccp option to prelink object files to be put in a library
