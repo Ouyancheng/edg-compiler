@@ -641,6 +641,9 @@ extern void change_binary_operand_types(a_type_ptr type,
 				        an_operand *operand_1,
 				        an_operand *operand_2);
 
+extern void rewrite_property_field_reference(an_operand *operand,
+                                             an_operand *put_operand);
+
 extern void do_operand_transformations(an_operand                   *operand,
                                        a_transformation_options_set options);
 

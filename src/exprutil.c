@@ -5633,12 +5633,14 @@ qualifiers as appropriate).  If operand != NULL, it is the associated operand
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-static void rewrite_rvalue_property_field_reference(an_operand *operand)
+void rewrite_property_field_reference(an_operand *operand,
+                                      an_operand *put_operand)
 /*
 *operand is an operand for a reference to a field declared with the
-Microsoft extension __declspec(property(...)).  It is being used in an
-rvalue context.  Change the operand to a call of the "get" function
-declared for the field.
+Microsoft extension __declspec(property(...)).  Transform it to a
+call of an accessor routine.  The access is a "put" if put_operand
+is non-NULL (and *put_operand gives the value to be put); the access
+is a "get" if put_operand is NULL.
 */
 {
   /* The operands of the eok_property_field operation are:
@@ -5649,26 +5651,30 @@ declared for the field.
   */
   an_expr_node_ptr expr, object_expr, field_expr, subscript_expr;
   a_field_ptr      field;
-  char             *get_property_name;
+  char             *getput_property_name;
 
   expr = operand->variant.expression;
   object_expr = expr->variant.operation.operands;
   field_expr = object_expr->next;
   field = field_expr->variant.field;
   subscript_expr = field_expr->next;
-  /* Get the "get" function name from the field. */
-  get_property_name = field->get_property_name;
-  if (get_property_name == NULL) {
-    error_in_operand(ec_no_get_property, operand);
+  /* Get the "get" or "put" function name from the field. */
+  getput_property_name = (put_operand != NULL) ? field->put_property_name :
+                                                 field->get_property_name;
+  if (getput_property_name == NULL) {
+    error_in_operand(put_operand != NULL ? ec_no_put_property :
+                                           ec_no_get_property,
+                     operand);
   } else {
     a_symbol_locator locator;
-    a_symbol_ptr     get_sym;
+    a_symbol_ptr     getput_sym;
     a_type_ptr       class_type = NULL;
 
-    /* Look up the "get" function name in the symbol table to get the locator
-       set. */
+    /* Look up the "get" or "put" function name in the symbol table to get
+       the locator set. */
     clear_locator(&locator, &operand->position);
-    (void)find_symbol(get_property_name, (sizeof_t)strlen(get_property_name),
+    (void)find_symbol(getput_property_name,
+                      (sizeof_t)strlen(getput_property_name),
                       &locator);
     /* Get the class type from the object pointer expression. */
     if (is_pointer_type(object_expr->type)) {
@@ -5680,12 +5686,13 @@ declared for the field.
       /* Some previous error. */
       conv_to_error_operand(operand);
     } else {
-      /* Look for the "get" function by name in the class. */
-      get_sym = class_qualified_id_lookup(&locator, class_type,
-                                          IDL_NO_OPTIONS);
-      if (get_sym == NULL || !is_member_function_symbol(get_sym)) {
-        pos_st_error(ec_get_property_function_missing,
-                     &operand->position, get_property_name);
+      /* Look for the "get" or "put" function by name in the class. */
+      getput_sym = class_qualified_id_lookup(&locator, class_type,
+                                             IDL_NO_OPTIONS);
+      if (getput_sym == NULL || !is_member_function_symbol(getput_sym)) {
+        pos_st_error(put_operand != NULL ? ec_put_property_function_missing :
+                                           ec_get_property_function_missing,
+                     &operand->position, getput_property_name);
         conv_to_error_operand(operand);
       } else {
         an_operand         bound_function_selector, function_operand;
@@ -5693,12 +5700,17 @@ declared for the field.
         an_expr_node_ptr   subscript_expr_next, argument_list;
 
         /* Use a projection symbol if there is one. */
-        get_sym = locator.specific_symbol;
+        getput_sym = locator.specific_symbol;
         /* Make an operand for the object pointer. */
         make_expression_operand(object_expr, object_expr->type,
                                 &bound_function_selector);
-        /* Make an arg_operand_list for the subscript operands, if any. */
         arg_operand_list = end_arg_operand_list = NULL;
+        if (put_operand != NULL) {
+          /* The first argument for a "put" is the value to be put. */
+          arg_operand_list = end_arg_operand_list = alloc_arg_operand();
+          arg_operand_list->operand = *put_operand;
+        }  /* if */
+        /* Add the subscript operands, if any, to the arg_operand_list. */
         for (; subscript_expr != NULL; subscript_expr = subscript_expr_next) {
           an_arg_operand_ptr new_arg_operand = alloc_arg_operand();
           subscript_expr_next = subscript_expr->next;
@@ -5712,8 +5724,9 @@ declared for the field.
           } /* if */
           end_arg_operand_list = new_arg_operand;
         }  /* for */
-        get_sym = select_and_prepare_to_call_overloaded_function(
-                                            get_sym,
+        /* Do overlaod resolution to determine the function to call. */
+        getput_sym = select_and_prepare_to_call_overloaded_function(
+                                            getput_sym,
                                             /*have_selector=*/TRUE,
                                             &bound_function_selector,
                                             arg_operand_list,
@@ -5724,7 +5737,7 @@ declared for the field.
                                             &locator.source_position,
                                             &function_operand,
                                             &argument_list);
-        if (get_sym == NULL) {
+        if (getput_sym == NULL) {
           /* Some error. */
           conv_to_error_operand(operand);
         } else {
@@ -5735,7 +5748,7 @@ declared for the field.
       }  /* if */
     }  /* if */
   }  /* if */
-}  /* rewrite_rvalue_property_field_reference */
+}  /* rewrite_property_field_reference */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -5803,7 +5816,7 @@ transformations.
         /* This operand is a field selection for a field declared with
            __declspec(property(...)).  Change it to a call of the appropriate
            "get" function. */
-        rewrite_rvalue_property_field_reference(operand);
+        rewrite_property_field_reference(operand, (an_operand *)NULL);
       }  /* if */
     }  /* if */
   }  /* if */

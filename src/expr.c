@@ -8799,6 +8799,17 @@ This is used for checking/allowing assignment to "this" -- an anachronism.
 }  /* check_assignment_to_this_pointer */
 
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+/* Return TRUE if an operand is an eok_property_field selection.  Used for
+   fields declared with the Microsoft extension __declspec(property(...)). */
+#define is_property_selection_operand(operand) \
+  (is_expression_operand(operand) && \
+   is_operation_node((operand)->variant.expression) && \
+   (operand)->variant.expression->variant.operation.kind == \
+         (an_expr_operator_kind)eok_property_field)
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void scan_simple_assignment_operator(an_operand *operand_1,
                                             an_operand *result)
@@ -8833,6 +8844,15 @@ Scan the simple assignment operator ("=").  See section 3.3.16 of the standard.
     make_error_operand(result);
     change_operand_refs_to_error(operand_1);
     change_operand_refs_to_error(&operand_2);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (microsoft_mode &&
+             is_property_selection_operand(operand_1)) {
+    /* The operand is a field selection for a field declared with the
+       Microsoft extension __declspec(property(...)).  Rewrite it as
+       a call of the "put" function for the field. */
+    rewrite_property_field_reference(operand_1, &operand_2);
+    *result = *operand_1;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     if (C_dialect == C_dialect_cplusplus &&
         is_class_struct_union_type(operand_1->type)) {

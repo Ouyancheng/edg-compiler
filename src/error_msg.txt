@@ -957,6 +957,8 @@ ec_dupl_get_or_put;;"property has already been specified"
 ec_declspec_property_not_allowed;;"__declspec(property) is not allowed on this declaration"
 ec_no_get_property;;"member is declared with __declspec(property), but no \"get\" function was specified"
 ec_get_property_function_missing;;"the __declspec(property) \"get\" function %sq is missing"
+ec_no_put_property;;"member is declared with __declspec(property), but no \"put\" function was specified"
+ec_put_property_function_missing;;"the __declspec(property) \"put\" function %sq is missing"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
