@@ -2730,9 +2730,9 @@ typedef struct a_symbol_header {
 } a_symbol_header;
 
 
-#define SYMBOL_TABLE_SIZE 599
+#define SYMBOL_TABLE_SIZE 16381
 	  		/* The number of buckets in the symbol table.  This
-			    number should be prime. */
+			   number should be prime. */
 
 /*
 Top level structure for the hash-table portion of the symbol table.  Each

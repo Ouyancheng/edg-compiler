@@ -1,5 +1,10 @@
 Version 3.3
 
+7/29/03  Symbol table performance improvement
+
+The size of the symbol table has been increased to improve performance when
+compiling large programs.
+
 7/29/03  Abort in trans_copy.c on Microsoft asm in secondary translation unit
 
 The front end aborted in copy_string_entry in trans_copy.c on
