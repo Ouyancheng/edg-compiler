@@ -904,6 +904,7 @@ or the specific definition flag (if instantiate is FALSE).
          flag to its current value.  The purpose of this is to ensure
          that the entry is on the instantiations required list. */
       instantiation_required_flag = tip->instantiation_required;
+      tip->explicit_can_instantiate = TRUE;
     }  /* if */
     update_instantiation_required_flag(tip, instantiation_required_flag);
   }  /* if */
@@ -1069,14 +1070,24 @@ assumed if the return type is omitted.
   a_source_position	start_pos;
   a_boolean		instantiate = FALSE;
   a_boolean		do_not_instantiate = FALSE;
+  a_template_instantiation_mode
+			saved_instantiation_mode = instantiation_mode;
 
+  /* The instantiation mode is set to "none" while the pragma processing is
+     performed to ensure that no other instantiations are implicitly
+     requested as a consequence of scanning the pragma. */
+  instantiation_mode = tim_none;
   if (curr_id_is("instantiate")) {
     instantiate = TRUE;
   } else if (curr_id_is("do_not_instantiate")) {
     do_not_instantiate = TRUE;
   } else if (curr_id_is("can_instantiate")) {
     /* Don't set either flag.  Just make sure an entry exists on the
-       instantiations required list. */
+       instantiations required list.  The special instantiation mode
+       "can_instantiate" is used while processing this pragma.  This
+       causes any entries entered on the instantiations required list
+       to have the instantiation required flag set to FALSE. */
+    instantiation_mode = tim_can_instantiate;
   } else {
     unexpected_condition();
   }  /* if */
@@ -1255,6 +1266,7 @@ assumed if the return type is omitted.
   fetch_pp_tokens = save_fetch_pp_tokens;
   expand_macros = save_expand_macros;
   processing_C_code_in_pragma = save_processing_C_code_in_pragma;
+  instantiation_mode = saved_instantiation_mode;
 }  /* instantiation_pragma */
 
 
