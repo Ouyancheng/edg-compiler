@@ -149,6 +149,8 @@ The code is inserted at *insert_location, and *insert_location is updated.
       if (node_has_side_effects(arg, (a_boolean *)NULL)) {
         insert_expr_statement(arg, insert_location);
       }  /* if */
+      /* Change the entry to indicate that it does not contain a remapping. */
+      vrip->orig_variable = NULL;
     } else {
       /* The parameter is referenced, so it must be remapped. */
       if (!param_var->param_value_has_been_changed &&
@@ -238,9 +240,13 @@ calling context scope.
   for (vrip = variable_remappings_for_inlining;
        vrip != NULL;
        vrip = vrip->next) {
-    if (!vrip->is_constant) {
-      /* A temporary.  Add it to the current scope. */
-      add_temporary_to_scope(vrip->variant.variable, curr_context->scope);
+    /* Ignore entries that are on the list only to allow cleanup of
+       "next" pointers. */
+    if (vrip->orig_variable != NULL) {
+      if (!vrip->is_constant) {
+        /* A temporary.  Add it to the current scope. */
+        add_temporary_to_scope(vrip->variant.variable, curr_context->scope);
+      }  /* if */
     }  /* if */
   }  /* for */
 }  /* finish_variable_remapping_for_inlining */
