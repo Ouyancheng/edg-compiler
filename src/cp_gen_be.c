@@ -2062,9 +2062,19 @@ source sequence entry (NULL if no such reference was recorded).
     /* A primary declaration (e.g., a definition): Look through the name
        references used for the associated IL entry to find the one that
        was used for the primary declaration (if any). */
-    a_source_correspondence_ptr
+    a_source_correspondence_ptr  scp;
+    if (curr_source_sequence_entry->entity.kind ==
+                              (an_il_entry_kind)iek_instantiation_directive) {
+      /* For explicit template instantiation, we need the source
+         correspondence of the entry pointed to. */
+      an_instantiation_directive_ptr  idp =
+                                 ss_entry_ptr(curr_source_sequence_entry,
+                                              an_instantiation_directive_ptr);
+      scp = (a_source_correspondence_ptr)idp->entity.ptr;
+    } else {
       scp = ss_entry_ptr(curr_source_sequence_entry,
                          a_source_correspondence_ptr);
+    }  /* if */
     result = scp->name_references;
     for (;result != NULL; result = result->next) {
       if (result->used_in_primary_declarator) {
