@@ -1939,6 +1939,12 @@ Display the indicated variable.
     disp_ptr("aliased_variable", (char*)ptr->aliased_variable, iek_variable);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if DO_IL_LOWERING && IA64_ABI
+  if (ptr->comdat_group != NULL) {
+    disp_string_ptr("comdat_group", ptr->comdat_group, 
+                    iek_other_text, (sizeof_t)0);
+  }  /* if */
+#endif /* DO_IL_LOWERING && IA64_ABI */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   disp_source_range("initializer_range", &ptr->initializer_range);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -2437,6 +2443,28 @@ Display the indicated name and template arg list.
     }  /* for */
   }  /* if */
 }  /* disp_template_arg_list */
+
+#if IA64_ABI
+
+static void disp_ctor_or_dtor_kind_name(a_ctor_or_dtor_kind kind)
+/*
+Display the name of the indicated constructor or destructor kind.
+*/
+{
+  char *s;
+  
+  switch (kind) {
+    case cdk_none:      s = "none";                      break;
+    case cdk_complete:  s = "complete";                  break;
+    case cdk_subobject: s = "subobject";                 break;
+    case cdk_deleting:  s = "deleting";                  break;
+    default:            s = "**BAD CTOR OR DTOR KIND**"; break;
+  }  /* switch */
+  (void)printf(s);
+}  /* disp_ctor_or_dtor_kind_name */
+
+#endif /* IA64_ABI */
+
 #endif /* ifdef CFE */
 
 static void disp_routine(a_routine_ptr ptr)
@@ -2605,6 +2633,19 @@ Display the indicated routine.
     disp_boolean("contains_statement_expression", TRUE);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if IA64_ABI
+  if (ptr->inline_in_class_definition) {
+    disp_boolean("inline_in_class_definition", TRUE);
+  }  /* if */
+  if (ptr->use_comdat) {
+    disp_boolean("use_comdat", TRUE);
+  }  /* if */
+  if (ptr->ctor_dtor_kind != (a_ctor_or_dtor_kind)cdk_none) {
+    disp_name("ctor_dtor_kind");
+    disp_ctor_or_dtor_kind_name(ptr->ctor_dtor_kind);
+    (void)printf("\n");
+  }  /* if */
+#endif /* IA64_ABI */
 #if MAINTAIN_NEEDED_FLAGS
   disp_boolean("definition_needed", (a_boolean)ptr->definition_needed);
   /* Note: the keep_definition_in_il flag is not displayed, since it is
@@ -2653,6 +2694,23 @@ Display the indicated routine.
              (char *)ptr->overridden_function_for_covariant_return_type,
              iek_routine);
   }  /* if */
+#if IA64_ABI
+  if (ptr->delta != 0) {
+    disp_host_large_integer("delta", (a_host_large_integer)ptr->delta);
+  }  /* if */
+  if (ptr->vcall_index != 0) {
+    disp_host_large_integer("vcall_index", 
+                            (a_host_large_integer)ptr->vcall_index);
+  }  /* if */
+  if (ptr->return_delta != 0) {
+    disp_host_large_integer("return_delta", 
+                            (a_host_large_integer)ptr->return_delta);
+  }  /* if */
+  if (ptr->vbase_index != 0) {
+    disp_host_large_integer("vbase_index", 
+                            (a_host_large_integer)ptr->vbase_index);
+  }  /* if */
+#endif /* IA64_ABI */
 #endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 #if ONE_INSTANTIATION_PER_OBJECT
   if (ptr->instantiation_needed_bit_number != 0) {
@@ -4556,6 +4614,20 @@ Display the indicated vla_dimension entry.
   disp_source_position("position", &ptr->position);
 }  /* disp_vla_dimension */
 
+#if DO_IL_LOWERING && IA64_ABI
+
+static void disp_vcall_offset_entry(a_vcall_offset_entry_ptr ptr)
+/*
+Display the indicated vcall offset entry.
+*/
+{
+  disp_ptr("next", (char *)ptr->next, iek_vcall_offset_entry);
+  disp_ptr("routine", (char *)ptr->routine, iek_routine);
+  disp_host_large_integer("vcall_offset_index", 
+                          (a_host_large_integer)ptr->vcall_offset_index);
+}  /* disp_vcall_offset_entry */
+
+#endif /* DO_IL_LOWERING && IA64_ABI */
 
 static void disp_overriding_virtual_function (
 		an_overriding_virtual_function_ptr ptr)
@@ -4611,6 +4683,11 @@ Display the indicated base class entry.
 */
 {
   disp_ptr("next", (char *)ptr->next, iek_base_class);
+#if IA64_ABI
+  disp_ptr("next_preorder", (char *)ptr->next_preorder, iek_base_class);
+  disp_ptr("primary_base_class", (char *)ptr->primary_base_class, 
+           iek_base_class);
+#endif /* IA64_ABI */
   disp_ptr("type", (char *)ptr->type, iek_type);
   disp_ptr("derived_class", (char *)ptr->derived_class, iek_type);
   disp_source_position("decl_position", &ptr->decl_position);
@@ -4631,23 +4708,32 @@ Display the indicated base class entry.
              iek_base_class);
     disp_boolean("complete_subobject", (a_boolean)ptr->complete_subobject);
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
+#if !IA64_ABI
     disp_host_large_unsigned("pointer_offset",
                              (a_host_large_unsigned)ptr->pointer_offset);
     disp_ptr("pointer_base_class", (char *)ptr->pointer_base_class,
              iek_base_class);
+#endif /* !IA64_ABI */
   }  /* if */
   disp_ptr("derivation", (char *)ptr->derivation, iek_base_class_derivation);
   disp_ptr("overriding_virtual_functions",
            (char *)ptr->overriding_virtual_functions,
            iek_overriding_virtual_function );
 #if DO_IL_LOWERING
+#if IA64_ABI
   /* Do not print out ptr->virtual_function_table_var, which is used only
      during IL lowering. */
+#else /* !IA64_ABI */
+  /* Likewise for ptr->virtual_function_table_offset. */
+#endif /* !IA64_ABI */
 #if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
   /* Likewise for index_in_construction_vtbl_array,
      base_subarray_index_in_construction_vtbl_array, and
      base_construction_vtbls. */
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
+#if IA64_ABI
+  /* Likewise for vbase_offset_index. */
+#endif /* IA64_ABI */
 #endif /* DO_IL_LOWERING */
 }  /* disp_base_class */
 
@@ -4658,12 +4744,25 @@ Display the indicated class type supplement entry.
 */
 {
   disp_ptr("base_classes", (char *)ptr->base_classes, iek_base_class);
+#if IA64_ABI
+  disp_ptr("preorder_base_classes", (char *)ptr->preorder_base_classes,
+           iek_base_class);
+  disp_ptr("primary_base_class", (char *)ptr->primary_base_class, 
+           iek_base_class);
+#endif /* IA64_ABI */
   disp_host_large_unsigned("size_without_virtual_base_classes",
                 (a_host_large_unsigned)ptr->size_without_virtual_base_classes);
   disp_unsigned_long("alignment_without_virtual_base_classes",
                    (unsigned long)ptr->alignment_without_virtual_base_classes);
   disp_host_large_unsigned("highest_virtual_function_number",
                   (a_host_large_unsigned)ptr->highest_virtual_function_number);
+#if DO_IL_LOWERING && IA64_ABI
+  disp_host_large_integer("next_negative_virtual_table_index",
+                 (a_host_large_integer)ptr->next_negative_virtual_table_index);
+  disp_host_large_integer("first_vcall_offset_index",
+                          (a_host_large_integer)ptr->first_vcall_offset_index);
+  disp_ptr("vcall_offsets", (char*)ptr->vcall_offsets, iek_vcall_offset_entry);
+#endif /* DO_IL_LOWERING && IA64_ABI */
   /* virtual_function_info_offset and virtual_function_info_base_class are
      undefined if highest_virtual_function_number is zero. */
   if (ptr->highest_virtual_function_number > 0) {
@@ -4771,6 +4870,9 @@ Display the indicated class type supplement entry.
 #if DO_IL_LOWERING
   /* Do not print out ptr->virtual_function_table_var and
      ptr->type_as_subobject, which are used only during IL lowering. */
+#if IA64_ABI
+  /* Likewise ptr->virtual_table_table_var. */
+#endif /* IA64_ABI */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* Likewise ptr->uuid_variable. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -5196,6 +5298,11 @@ This routine is called during IL walking.
         case iek_vla_dimension:
           disp_vla_dimension((a_vla_dimension_ptr)entry_ptr);
           break;
+#if DO_IL_LOWERING && IA64_ABI
+        case iek_vcall_offset_entry:
+          disp_vcall_offset_entry((a_vcall_offset_entry_ptr)entry_ptr);
+          break;
+#endif /* DO_IL_LOWERING && IA64_ABI */
         case iek_overriding_virtual_function:
           disp_overriding_virtual_function(
                       (an_overriding_virtual_function_ptr)entry_ptr);

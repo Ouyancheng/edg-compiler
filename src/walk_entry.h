@@ -978,6 +978,9 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_string_ptr(ptr->section, iek_other_text, 0);
         walk_ptr(ptr->aliased_variable, a_variable_ptr, iek_variable);
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if DO_IL_LOWERING && IA64_ABI
+        walk_string_ptr(ptr->comdat_group, iek_other_text, 0);
+#endif /* DO_IL_LOWERING && IA64_ABI */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         walk_ptr(ptr->declared_type, a_type_ptr, iek_type);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -2340,6 +2343,16 @@ end_sizeof:;
       }
       break;
 #if !NEEDED_FLAG_WALK
+#if DO_IL_LOWERING && IA64_ABI
+    case iek_vcall_offset_entry:
+      {
+        a_vcall_offset_entry_ptr ptr = (a_vcall_offset_entry_ptr)entry_ptr;
+        remap_next_ptr(ptr->next, a_vcall_offset_entry_ptr, 
+                       iek_vcall_offset_entry);
+        walk_ptr(ptr->routine, a_routine_ptr, iek_routine);
+      }
+      break;
+#endif /* DO_IL_LOWERING && IA64_ABI */
     case iek_overriding_virtual_function:
       {
         an_overriding_virtual_function_ptr ptr =
@@ -2375,6 +2388,12 @@ end_sizeof:;
       {
         a_base_class_ptr ptr = (a_base_class_ptr)entry_ptr;
         remap_next_ptr(ptr->next, a_base_class_ptr, iek_base_class);
+#if IA64_ABI
+        remap_ptr_not_needed(ptr->next_preorder, a_base_class_ptr, 
+                             iek_base_class);
+        remap_ptr_not_needed(ptr->primary_base_class, a_base_class_ptr, 
+                             iek_base_class);
+#endif /* IA64_ABI */
         remap_ptr(ptr->type, a_type_ptr, iek_type);
         set_proper_definition_needed_flag(ptr->type);
         remap_ptr(ptr->derived_class, a_type_ptr, iek_type);
@@ -2384,15 +2403,19 @@ end_sizeof:;
         remap_ptr_not_needed(ptr->data_section_base_class, a_base_class_ptr,
                              iek_base_class);
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
+#if 1 || !IA64_ABI /* FIXME */
         remap_ptr_not_needed(ptr->pointer_base_class, a_base_class_ptr,
                              iek_base_class);
+#endif /* !IA64_ABI */
         walk_list_not_needed(ptr->derivation, a_base_class_derivation_ptr,
                              iek_base_class_derivation);
         walk_list_not_needed(ptr->overriding_virtual_functions,
                              an_overriding_virtual_function_ptr,
                              iek_overriding_virtual_function);
 #if DO_IL_LOWERING
+#if !IA64_ABI
         conditionally_clear_fe_pointer(ptr->virtual_function_table_var);
+#endif /* !IA64_ABI */
 #endif /* DO_IL_LOWERING */
       }
       break;
@@ -2461,10 +2484,20 @@ after_entry_from_class:
           /* Fields to be processed only if the definition of the class
              is to be processed: */
           walk_list(ptr->base_classes, a_base_class_ptr, iek_base_class);
+#if IA64_ABI
+          remap_ptr_not_needed(ptr->preorder_base_classes, a_base_class_ptr,
+                               iek_base_class);
+          remap_ptr_not_needed(ptr->primary_base_class, a_base_class_ptr, 
+                               iek_base_class);
+#endif /* IA64_ABI */
           remap_ptr(ptr->anonymous_union_field, a_field_ptr, iek_field);
           walk_ptr(ptr->assoc_scope, a_scope_ptr, iek_scope);
           remap_ptr_not_needed(ptr->virtual_function_info_base_class,
                                a_base_class_ptr, iek_base_class);
+#if DO_IL_LOWERING && IA64_ABI
+          walk_list_not_needed(ptr->vcall_offsets, a_vcall_offset_entry_ptr, 
+                               iek_vcall_offset_entry);
+#endif /* DO_IL_LOWERING && IA64_ABI */
           walk_list_not_needed(ptr->friend_routines, a_routine_list_entry_ptr,
                                iek_routine_list_entry);
           walk_list_not_needed(ptr->friend_classes, a_class_list_entry_ptr,
@@ -2491,6 +2524,9 @@ after_entry_from_class:
 #endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
 #if DO_IL_LOWERING
           conditionally_clear_fe_pointer(ptr->virtual_function_table_var);
+#if IA64_ABI
+          conditionally_clear_fe_pointer(ptr->virtual_table_table_var);
+#endif /* IA64_ABI */
           conditionally_clear_fe_pointer(ptr->type_as_subobject);
 #if MICROSOFT_EXTENSIONS_ALLOWED
           conditionally_clear_fe_pointer(ptr->uuid_variable);

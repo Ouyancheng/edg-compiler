@@ -733,6 +733,18 @@ may be called only for class, struct, and union types and only in C++ mode.
 #define base_classes_of(tp) \
   ((tp)->variant.class_struct_union.extra_info->base_classes)
 
+#if IA64_ABI
+
+/*
+Extract a pointer to a base classes list for a class type, as with
+"base_classes_of", but given in the order found by a preorder traversal
+of the class hierarchy.
+*/
+#define preorder_base_classes_of(tp) \
+  ((tp)->variant.class_struct_union.extra_info->preorder_base_classes)
+
+#endif /* IA64_ABI */
+
 /*
 Extract the pointer to the template that generated a class type.
 */

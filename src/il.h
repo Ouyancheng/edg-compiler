@@ -1095,6 +1095,15 @@ extern a_derivation_step_ptr cast_virtual_derivation_path_of(
 #define any_virtual_steps_in_derivation(bcp)                          \
   ((bcp)->is_virtual || (bcp)->derivation->path->base_class->is_virtual)
 
+/* Return TRUE if the given class needs a virtual function table. */
+#if !IA64_ABI
+#define needs_virtual_function_table(type)                            \
+  ((type)->variant.class_struct_union.any_virtual_functions)
+#else /* IA64_ABI */
+#define needs_virtual_function_table(type)                            \
+  ((type)->variant.class_struct_union.any_virtual_functions ||        \
+   (type)->variant.class_struct_union.any_virtual_base_classes)
+#endif /* !IA64_ABI */
 
 /* Return TRUE if two template nesting depths should be considered
    equivalent.  Depths are equivalent if they are the same, or if either

@@ -2724,7 +2724,10 @@ by rp.  number_ptr is the address of the field in a_class_type_supplement
 that tracks the highest number assigned thus far.
 */
 {
-  if (*number_ptr == MAX_VIRTUAL_FUNCTIONS_PER_CLASS) {
+  if (*number_ptr == VIRTUAL_FUNCTION_NUMBER_NONE) {
+    /* No previous numbers, start at the first value. */
+    *number_ptr = FIRST_VIRTUAL_FUNCTION_NUMBER;
+  } else if (*number_ptr == MAX_VIRTUAL_FUNCTIONS_PER_CLASS) {
     a_type_ptr  parent_class = rp->source_corresp.parent.class_type;
     if (parent_class->variant.class_struct_union.is_nonreal_class) {
       /* Don't issue an error, since the number may not be maintained
@@ -2733,14 +2736,23 @@ that tracks the highest number assigned thus far.
       pos_error(ec_too_many_virtual_functions,
                 &rp->source_corresp.decl_position);
     }  /* if */
-    /* Reset to zero, to avoid more such messages. */
-    *number_ptr = 0;
+    /* Reset to the first number, to avoid more such messages. */
+    *number_ptr = FIRST_VIRTUAL_FUNCTION_NUMBER;
+  } else {
+    /* Increment the number for the virtual functions declared so far in the
+       current class and enter it in the routine entry.  It is used by the
+       front end in managing virtual function override entries and can be used
+       by the back end for indexing into a virtual function table. */
+    ++(*number_ptr);
   }  /* if */
-  /* Increment the number for the virtual functions declared so far in the
-     current class and enter it in the routine entry.  It is used by the
-     front end in managing virtual function override entries and can be used
-     by the back end for indexing into a virtual function table. */
-  rp->virtual_function_number = ++(*number_ptr);
+  rp->virtual_function_number = *number_ptr;
+#if IA64_ABI
+  if (rp->special_kind == (a_special_function_kind)sfk_destructor) {
+    /* There are two entries for destructors: one for the complete object
+       entry point and one for the deleting entry point. */
+    ++(*number_ptr);
+  }  /* if */
+#endif /* IA64_ABI */
 }  /* update_virtual_function_number */
 
 
@@ -2770,7 +2782,8 @@ routine entry and return TRUE; otherwise return FALSE.
   a_symbol_ptr                    sym_for_override_registry;
   a_routine_ptr                   rout, rp;
   a_scope_ptr                     base_class_scope;
-  a_virtual_function_number       virtual_function_number = 0;
+  a_virtual_function_number       virtual_function_number 
+                                      = VIRTUAL_FUNCTION_NUMBER_NONE;
   a_boolean                       any_override_candidates = FALSE;
   an_override_registry_entry_ptr  *registry_ptr;
   a_base_class_ptr                return_adjustment_bcp;
@@ -2999,18 +3012,18 @@ done:
     class_type->variant.class_struct_union.any_virtual_functions = TRUE;
     class_type->variant.class_struct_union.
                  any_virtual_functions_including_in_base_classes = TRUE;
-    if (virtual_function_number != 0) {
+    if (virtual_function_number != VIRTUAL_FUNCTION_NUMBER_NONE) {
       /* The virtual base class is being shared between the current class
          and one of its base classes.  We reuse the existing number instead
          of reserving a new slot in the table. */
       rout->virtual_function_number = virtual_function_number;
     } else {
-#if ABI_COMPATIBILITY_VERSION >= 232
+#if ABI_COMPATIBILITY_VERSION >= 232 && !IA64_ABI
       /* For more current ABIs the virtual function numbers are updated after
          all routine declarations for the current class have been processed.
          This way all the functions in an overload set can be grouped
          together, providing better cfront object layout compatibility. */
-#else /* ABI_COMPATIBILITY_VERSION <  232 */
+#else /* ABI_COMPATIBILITY_VERSION < 232 || IA64_ABI */
       /* Don't try to do overload-set grouping -- use the declaration order
          instead.  Update the routine entry with the next available virtual
          function number. */
@@ -3018,14 +3031,14 @@ done:
       number_ptr = &class_type->variant.class_struct_union.extra_info->
                                           highest_virtual_function_number;
       update_virtual_function_number(rout, number_ptr);
-#endif /* ABI_COMPATIBILITY_VERSION >= 232 */
+#endif /* ABI_COMPATIBILITY_VERSION >= 232 && !IA64_ABI */
     }  /* if */
   }  /* if */
   db_exit();
   return rout->is_virtual;
 }  /* check_for_virtual_function */
 
-#if ABI_COMPATIBILITY_VERSION >= 232
+#if ABI_COMPATIBILITY_VERSION >= 232 && !IA64_ABI
 
 static void set_virtual_function_numbers_for_overload_set(
                                         a_symbol_ptr              sym,
@@ -3044,7 +3057,7 @@ number assigned thus far.
     if (sym->kind == (a_symbol_kind)sk_member_function) {
       rp = sym->variant.routine.ptr;
       if (rp->is_virtual) {
-        if (rp->virtual_function_number != 0) {
+        if (rp->virtual_function_number != VIRTUAL_FUNCTION_NUMBER_NONE) {
           /* The routine already has a virtual function number assigned.
              This occurs when the virtual base class is being shared between
              the current class and one of its base classes. */
@@ -3096,7 +3109,7 @@ function numbers of the virtual functions.
         rp = sym->variant.routine.ptr;
         if (rp->is_virtual) {
           /* The member function is virtual. */
-          if (rp->virtual_function_number != 0) {
+          if (rp->virtual_function_number != VIRTUAL_FUNCTION_NUMBER_NONE) {
             /* The routine already has a virtual-function number assigned.
                This occurs when the virtual base class is being shared between
                the current class and one of its base classes. */
@@ -3111,7 +3124,7 @@ function numbers of the virtual functions.
   }  /* if */
 }  /* set_virtual_function_numbers */
 
-#endif /* ABI_COMPATIBILITY_VERSION >= 232 */
+#endif /* ABI_COMPATIBILITY_VERSION >= 232 && !IA64_ABI */
 
 /* Previously allocated derivation-step entries available for reuse. */
 static a_derivation_step_ptr avail_derivation_steps;
@@ -3168,10 +3181,12 @@ Dump a linked list of derivation steps, for debug purposes.
       db_type_name(dsp->base_class->type);
       if (show_offset) {
         fprintf(f_debug, "@%lu", (unsigned long)dsp->base_class->offset);
+#if !IA64_ABI
         if (dsp->base_class->is_virtual) {
           fprintf(f_debug, "(ptr @%lu)",
                   (unsigned long)dsp->base_class->pointer_offset);
         }  /* if */
+#endif /* !IA64_ABI */
       }  /* if */
     }  /* for */
   }  /* if */
@@ -3232,6 +3247,7 @@ Dump a base class entry, for debug purposes.
   if (bcp->is_virtual) {
     if (comma_needed) fputs(", ", f_debug);
     fputs("virtual", f_debug);
+#if !IA64_ABI
     if (show_offset) {
       fprintf(f_debug, " (ptr offset = %lu",
               (unsigned long)bcp->pointer_offset);
@@ -3241,6 +3257,7 @@ Dump a base class entry, for debug purposes.
       }  /* if */
       fputc(')', f_debug);
     }  /* if */
+#endif /* !IA64_ABI */
     comma_needed = TRUE;
   }  /* if */
   if (bcp->shares_virtual_function_info) {
@@ -3476,6 +3493,7 @@ NULL, a pointer to step is returned.
   return new_path;
 }  /* copy_and_extend_path */
 
+#if !IA64_ABI
 
 static void set_pointer_base_class(a_base_class_ptr       base_class,
                                    a_derivation_step_ptr  path)
@@ -3536,6 +3554,8 @@ the pointer_base_class for both V1 and V2 is C.
     }  /* if */
   }  /* if */
 }  /* set_pointer_base_class */
+
+#endif /* !IA64_ABI */
 
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
 
@@ -3792,6 +3812,7 @@ path and access.
       bcdp->next = new_bcdp;
     }  /* if */
     /* Note that the preferred flag is set later. */
+#if !IA64_ABI
     /* Set the pointer-base-class (the nonvirtual base class in which a
        pointer to this virtual base class may be found) if appropriate. */
     if (path != NULL) {
@@ -3807,6 +3828,7 @@ path and access.
       }  /* if */
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
     }  /* if */
+#endif /* !IA64_ABI */
     /* Return a different path than the one stored in the base-class-
        derivation entry.  This is because each virtual base class is the
        start of a new segment. */
@@ -3829,7 +3851,11 @@ the base class.
 {
   a_type_ptr             tp = NULL;
   a_base_class_ptr       bcp, disambiguator;
+#if !IA64_ABI
   a_derivation_step_ptr  step;
+#else /* IA64_ABI */
+  a_base_class_ptr       primary_bcp;
+#endif /* !IA64_ABI */
 
   db_enter(4, "set_shares_virtual_function_info_flag");
   if (base_class == NULL) {
@@ -3840,10 +3866,10 @@ the base class.
        class. */
     tp = base_class->type;
   }  /* if */
-  if (tp->variant.class_struct_union.any_virtual_functions) {
+  if (needs_virtual_function_table(tp)) {
     /* The type (class type or base class type) does have virtual functions. */
     bcp = tp->variant.class_struct_union.extra_info->
-                                        virtual_function_info_base_class;
+                                              virtual_function_info_base_class;
     if (bcp != NULL) {
       /* A base class has been designated with which to share the virtual
          function info. */
@@ -3860,6 +3886,7 @@ the base class.
       /* It may be that bcp is not a direct base class of the type (class type
          or base class type), in which case it may be that flag has to be set
          on an intervening base class as well. */
+#if !IA64_ABI
       if (!bcp->direct) {
         step = bcp->derivation->path;
         if (base_class != NULL) {
@@ -3879,6 +3906,26 @@ the base class.
           }  /* if */
         }  /* while */
       }  /* if */
+#else /* IA64_ABI */
+      /* There may be virtual steps in the derivation so we must work down
+         from the derived class to the base class.  */
+      primary_bcp =
+        tp->variant.class_struct_union.extra_info->primary_base_class; 
+      while (primary_bcp != NULL) {
+        if (base_class != NULL) {
+          disambiguator = find_disambiguator(base_class, primary_bcp);
+          primary_bcp = corresponding_base_class(primary_bcp, class_type,
+                                                 disambiguator);
+        }  /* if */
+        if (primary_bcp == bcp) break;
+        if (needs_virtual_function_table(primary_bcp->type)) {
+          primary_bcp->shares_virtual_function_info = TRUE;
+        }  /* if */
+        base_class = primary_bcp;
+        primary_bcp = base_class->type->variant.class_struct_union.
+          extra_info->primary_base_class;
+      }  /* while */
+#endif /* !IA64_ABI */
     }  /* if */
   }  /* if */
   db_exit();
@@ -4229,6 +4276,134 @@ classes or explicitly specialized classes.
   }  /* if */
 }  /* mark_dependent_base_classes */
 
+#if IA64_ABI
+
+static a_base_class_ptr *compute_preorder_base_classes(
+                                                a_type_ptr        type_ptr,
+                                                a_base_class_ptr  base,
+                                                a_base_class_ptr  *end_of_list)
+/*
+Compute the preorder base class list for type_ptr.  base is the base of
+type_ptr whose bases should be added to the list, or NULL if the direct bases
+of type_ptr should be added.  *end_of_list points to the end of the preorder
+list.  Returns a pointer to the new end of the list.
+*/
+{
+  a_base_class_ptr bcp, disambiguator, new_base, old_base;
+
+  /* Walk through the direct bases of type_ptr. */
+  for (bcp = base_classes_of((base == NULL) ? type_ptr : base->type); 
+       bcp != NULL; bcp = bcp->next) {
+    /* Skip indirect base classes. */
+    if (!bcp->direct) continue;
+    /* Find the base of type_ptr that corresponds to bcp. */
+    if (base == NULL) {
+      new_base = bcp;
+    } else {
+      disambiguator = find_disambiguator(base, bcp);
+      new_base = corresponding_base_class(bcp, type_ptr, disambiguator);
+    } /* if */
+    /* If the new_base is virtual, we may already have a copy on the list. */
+    if (new_base->is_virtual) {
+      for (old_base = preorder_base_classes_of(type_ptr); old_base != NULL;
+           old_base = old_base->next_preorder) {
+        if (old_base == new_base) break;
+      }  /* for */
+      /* If the virtual base is already on the preorder list, skip this
+         base. */
+      if (old_base != NULL) continue;
+    }  /* if */
+    /* Add new_base to the list. */
+    *end_of_list = new_base;
+    end_of_list = &new_base->next_preorder;
+    /* Recursively add the base classes of new_base. */
+    end_of_list = compute_preorder_base_classes(type_ptr, new_base,
+                                                end_of_list);
+  }  /* for */
+  return end_of_list;
+}  /* compute_preorder_base_classes */
+
+
+static a_boolean is_nearly_empty_class(a_type_ptr type)
+/*
+Return TRUE if (and only if) the type (which must be a class, struct, or 
+union type) is "nearly empty", i.e, has no data except a virtual pointer,
+as defined in the IA64 ABI.
+*/
+{
+  a_boolean                   nearly_empty = FALSE;
+  a_base_class_ptr            bcp;
+  a_class_type_supplement_ptr ctsp;
+
+  check_assertion(is_immediate_class_type(type));
+  ctsp = type->variant.class_struct_union.extra_info;
+  /* If there is no virtual function table, then the class is not nearly 
+     empty. */
+  if ((needs_virtual_function_table(type) ||
+       ctsp->virtual_function_info_base_class != NULL) &&
+/* FIXME */
+      ctsp->size_without_virtual_base_classes == targ_sizeof_pointer) {
+    /* Check the base classes. */
+    for (bcp = base_classes_of(type); bcp != NULL; bcp = bcp->next) {
+      /* Virtual bases don't matter. */
+      if (bcp->is_virtual) continue;
+      /* Empty bases at non-zero offsets make a class not "nearly empty".  */
+      if (bcp->type->variant.class_struct_union.is_empty_class &&
+          bcp->offset != 0) {
+        break;
+      }  /* if */
+    }  /* for */
+    if (bcp == NULL) {
+      nearly_empty = TRUE;
+    }  /* if */
+  }  /* if */
+  return nearly_empty;
+}  /* is_nearly_empty_class */
+
+#endif /* !IA64_ABI */
+
+static void set_virtual_function_info_base_class(a_base_class_ptr bcp)
+/*
+Record the fact that bcp is the base with which bcp->derived_class
+shares virtual function info.
+*/
+{
+  a_type_ptr                  class_type, base_class_type;
+  a_class_type_supplement_ptr ctsp, base_ctsp;
+  a_base_class_ptr            base_bcp, disambiguator;
+
+  class_type = bcp->derived_class;
+  ctsp = class_type->variant.class_struct_union.extra_info;
+#if IA64_ABI
+  ctsp->primary_base_class = bcp;
+#endif /* IA64_ABI */
+  base_class_type = bcp->type;
+  base_ctsp = base_class_type->variant.class_struct_union.extra_info;
+  base_bcp = base_ctsp->virtual_function_info_base_class;
+  if (base_bcp == NULL) {
+    /* The base class does not share virtual function info with its
+       own base classes. */
+    ctsp->virtual_function_info_base_class = bcp;
+  } else {
+    /* Refer to the same virtual_function_info_base_class as the
+       direct base class does.  */
+    /* base_bcp is a base class of bcp->type; we need to find
+       the corresponding base class of type_ptr.  Find a disambiguator
+       in case what we are looking for is an ambiguous base class of
+       type_ptr. */
+    disambiguator = find_disambiguator(bcp, base_bcp);
+    ctsp->virtual_function_info_base_class =
+                       corresponding_base_class(base_bcp, class_type, 
+                                                disambiguator);
+  }  /* if */
+  /* Advance the virtual function count so that any new virtual
+     functions will be tacked on at the end of the shared virtual
+     function info block.  (Redeclarations will use the slot
+     already reserved for the function.) */
+  ctsp->highest_virtual_function_number =
+                                   base_ctsp->highest_virtual_function_number;
+}  /* set_virtual_function_info_base_class */
+
 
 static void scan_base_specifier_list(a_type_ptr             type_ptr,
                                      a_class_def_state_ptr  class_state)
@@ -4264,12 +4439,17 @@ or struct definition.  The syntax is
   a_boolean                     ambiguous;
   a_class_symbol_supplement_ptr cssp, bcp_cssp;
   a_boolean                     any_base_class_fixup_required;
+#if !IA64_ABI
   a_boolean                     first_direct_nonvirtual_base_class = TRUE;
+#endif /* !IA64_ABI */
   a_source_position             base_class_decl_pos;
   a_source_position             base_specifier_start_pos;
   a_derivation_step_ptr         path;
   a_boolean                     first_base_class = TRUE;
   a_base_class_sequence_number	direct_base_number = 0;
+#if IA64_ABI
+  a_base_class_ptr              first_indirect_primary_vbase = NULL;
+#endif /* IA64_ABI */
 
   db_enter(3, "scan_base_specifier_list");
 #if DEBUG
@@ -4669,7 +4849,11 @@ or struct definition.  The syntax is
           }  /* if */
         }  /* for */
       }  /* if */
-      if (first_direct_nonvirtual_base_class && !is_virtual) {
+      if (ctsp->virtual_function_info_base_class == NULL &&
+#if !IA64_ABI
+          first_direct_nonvirtual_base_class && 
+#endif /* IA64_ABI */
+          !is_virtual) {
         /* For the first direct nonvirtual base class it is possible to
            share virtual function info (e.g., virtual function tables and
            their associated pointers) between the base class and the
@@ -4677,43 +4861,15 @@ or struct definition.  The syntax is
         a_class_type_supplement_ptr  base_ctsp;
 
         base_ctsp = base_class_type->variant.class_struct_union.extra_info;
-        /* Check highest_virtual_function_number instead of the
-           any_virtual_functions flag, since the latter will be TRUE only if
-           the base class actually declared its own virtual functions, but
-           the highest number is "inherited" when it itself was eligible to
-           share with a base class of its own. For example:
-                  class A { virtual void f() };  // flag is TRUE, highest is 1
-                  class B : public A {};         // flag is FALSE, highest is 1
-                  class C : public B { ...
-           The virtual function table for C and the one for A-in-C can be
-           shared, even though B doesn't have a virtual function table.  B's
-           virtual_function_info_base_class will, however, still refer to A. */
-        if (base_ctsp->highest_virtual_function_number > 0) {
-          bcp = base_ctsp->virtual_function_info_base_class;
-          if (bcp == NULL) {
-            /* The base class does not share virtual function info with its
-               own base classes. */
-            ctsp->virtual_function_info_base_class = new_direct_bcp;
-          } else {
-            /* Refer to the same virtual_function_info_base_class as the
-               direct base class does.  (In the above example, set the field
-               to point to A.) */
-            /* bcp is a base class of new_direct_bcp->type; we need to find
-               the corresponding base class of type_ptr.  Find a disambiguator
-               in case what we are looking for is an ambiguous base class of
-               type_ptr. */
-            disambiguator = find_disambiguator(new_direct_bcp, bcp);
-            ctsp->virtual_function_info_base_class =
-                        corresponding_base_class(bcp, type_ptr, disambiguator);
-          }  /* if */
-          /* Advance the virtual function count so that any new virtual
-             functions will be tacked on at the end of the shared virtual
-             function info block.  (Redeclarations will use the slot
-             already reserved for the function.) */
-          ctsp->highest_virtual_function_number =
-                                   base_ctsp->highest_virtual_function_number;
+        bcp = base_ctsp->virtual_function_info_base_class;
+        /* Check to see whether or not the base has a virtual function table
+           that could be shared. */
+        if (needs_virtual_function_table(base_class_type) || bcp != NULL) {
+          set_virtual_function_info_base_class(new_direct_bcp);
         }  /* if */
+#if !IA64_ABI
         first_direct_nonvirtual_base_class = FALSE;
+#endif /* !IA64_ABI */
         /* If the derived class was already mentioned as the target of a
            conversion function, the base class should also have its
            target_of_conversion_function flag set.  Here's the kind of
@@ -4746,6 +4902,33 @@ skip_base_class:
        specifier. */
     remove_stop_token(tok_comma);
   } while (loop_token(tok_comma));
+#if IA64_ABI
+  /* Compute the list of base classes in preorder, now that the postorder list
+     is complete. */
+  (void)compute_preorder_base_classes(type_ptr, (a_base_class_ptr)NULL, 
+                                      &preorder_base_classes_of(type_ptr));
+  /* See if there are any virtual base classes with which we could share 
+     a virtual function table. */
+  if (ctsp != NULL && ctsp->virtual_function_info_base_class == NULL) {
+    for (bcp = preorder_base_classes_of(type_ptr); bcp != NULL; 
+         bcp = bcp->next_preorder) {
+      if (bcp->is_virtual && is_nearly_empty_class(bcp->type)) {
+        if (!bcp->shares_virtual_function_info) {
+          set_virtual_function_info_base_class(bcp);
+          break;
+        } else if (first_indirect_primary_vbase == NULL) {
+          first_indirect_primary_vbase = bcp;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+    /* If no satisfactory base has yet been found, use the first indirect
+       primary virtual base. */
+    if (ctsp->virtual_function_info_base_class == NULL &&
+        first_indirect_primary_vbase != NULL) {
+      set_virtual_function_info_base_class(first_indirect_primary_vbase);
+    }  /* if */
+  }  /* if */
+#endif /* !IA64_ABI */
   if (type_ptr->variant.class_struct_union.any_virtual_base_classes) {
     /* Make a pass over the base class list to resolve duplicate virtual base
        classes (if any). */
@@ -12039,13 +12222,13 @@ bits of information that were acquired while parsing.
          assignment operator was needed first. */
       cssp->is_POD = TRUE;
     }  /* if */
-#if ABI_COMPATIBILITY_VERSION >= 232
+#if ABI_COMPATIBILITY_VERSION >= 232 && !IA64_ABI
     /* Go though all the functions declared for this class and set the
        virtual function number of virtual functions.  (Note: with less
        current ABIs the numbers are updated on the fly as the member
        function declaration is processed.) */
     set_virtual_function_numbers(class_type);
-#endif /* ABI_COMPATIBILITY_VERSION >= 232 */
+#endif /* ABI_COMPATIBILITY_VERSION >= 232 && !IA64_ABI */
     /* Set shares_virtual_function_info for a base class of class_type, if
        appropriate. */
     set_shares_virtual_function_info_flag(class_type,
@@ -12139,6 +12322,9 @@ classes.
 #if GNU_EXTENSIONS_ALLOWED
   an_attribute_ptr                attributes;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if DO_IL_LOWERING && IA64_ABI
+  a_routine_ptr                   rout;
+#endif /* DO_IL_LOWERING && IA64_ABI */
 
   db_enter(3, "scan_class_definition");
   initialize_class_def_state(class_type, &class_state);
@@ -12730,6 +12916,16 @@ next_declaration:
         }  /* if */
       }  /* if */
     }  /* if */
+#if DO_IL_LOWERING && IA64_ABI
+    /* Keep track of which routines are marked inline at this point.  The IA64
+       ABI requires this information when deciding whether or not to emit a
+       virtual function table. */
+    if (C_dialect == C_dialect_cplusplus) {
+      for (rout = scope_ptr->routines; rout != NULL; rout = rout->next) {
+        if (rout->is_inline) rout->inline_in_class_definition = TRUE;
+      }  /* for */
+    }  /* if */
+#endif /* DO_IL_LOWERING && IA64_ABI */
   }  /* if */
   /* Decrement the counter of class definitions currently in progress. */
   pending_class_definitions--;

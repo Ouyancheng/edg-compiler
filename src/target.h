@@ -686,6 +686,7 @@ EXTERN a_targ_alignment
 			   Initialized to the default value but
 			   reconfigurable. */
 
+#if !IA64_ABI
 /*
 Pointer to virtual base class.
 */
@@ -708,6 +709,7 @@ EXTERN a_targ_alignment
 			/* Alignment of a "pointer-to-virtual-base-class"
 			   member.  Initialized to the default value but
 			   reconfigurable. */
+#endif /* !IA64_ABI */
 
 /*
 Miscellaneous

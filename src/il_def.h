@@ -418,6 +418,10 @@ typedef enum /*an_il_entry_kind*/ {
   iek_local_static_variable_init,
 			/* a_local_static_variable_init */
   iek_vla_dimension,    /* a_vla_dimension */
+#if DO_IL_LOWERING && IA64_ABI
+  iek_vcall_offset_entry,
+			/* a_vcall_offset_entry */ 
+#endif /* DO_IL_LOWERING && IA64_ABI */
   iek_overriding_virtual_function,
 			/* an_overriding_virtual_function */
   iek_derivation_step,  /* a_derivation_step */
@@ -566,6 +570,9 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 /* iek_dynamic_init */			"dynamic-init",
 /* iek_local_static_variable_init */	"local-static-variable-init",
 /* iek_vla_dimension */			"vla-dimension",
+#if DO_IL_LOWERING && IA64_ABI
+/* iek_vcall_offset_entry */		"vcall-offset-entry",
+#endif /* DO_IL_LOWERING && IA64_ABI */
 /* iek_overriding_virtual_function */	"overriding-virtual-function",
 /* iek_derivation_step */		"derivation-step",
 /* iek_base_class_derivation */		"base-class-derivation",
@@ -3818,8 +3825,24 @@ typedef struct a_base_class {
   a_base_class_ptr
                 next;
 			/* Next in linked list of base class entries. */
+#if IA64_ABI
+  a_base_class_ptr
+		next_preorder;
+			/* The next base class, in a preorder traversal of the
+			   base classes.  (The "next" pointer is the next
+			   class in a postorder traversal.) */
+  a_base_class_ptr
+  		primary_base_class;
+			/* The primary base class for this class, i.e., the
+			   most derived class with which this subobject shares
+			   virtual function info.  Note that this may be NULL,
+			   even if the primary_base_class for type is
+			   non-NULL; that indicates that a virtual primary
+			   base has been allocated as part of some other
+			   base. */
+#endif /* !IA64_ABI */
   a_type_ptr    type;
-                        /* Pointer to the tk_class or tk_struct type entry
+			/* Pointer to the tk_class or tk_struct type entry
 			   representing a base class of the current derived
 			   class.  (Unions may not be used as base classes.) */
   a_type_ptr	derived_class;
@@ -3895,6 +3918,10 @@ typedef struct a_base_class {
 			/* TRUE if and only if this is a direct empty base
 			   that has been optimized (i.e., allocated at the
 			   same offset as another subobject). */
+#if IA64_ABI
+  a_bit_field   offset_is_set:1;
+                        /* TRUE for a base after its offset has been set. */
+#endif /* IA64_ABI */
   bitfield_to_avoid_codecenter_warnings()
   a_base_class_sequence_number
 		direct_base_number;
@@ -3920,6 +3947,7 @@ typedef struct a_base_class {
 			   Only needed when layout compatibility with USL's
 			   cfront is required. */
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
+#if 1 || !IA64_ABI /* FIXME */
   a_targ_size_t	pointer_offset;
 			/* If is_virtual is TRUE, the byte offset from the
 			   start of derived_class to a pointer to the data
@@ -3943,6 +3971,7 @@ typedef struct a_base_class {
 			   pointer_base_class is non-NULL, pointer_offset
 			   specifies the offset (within derived_class) of a
 			   pointer field in the base class pointed to. */
+#endif /* !IA64_ABI */
   a_base_class_derivation_ptr
 		derivation;
 			/* If is_virtual is FALSE, pointer to a single entry
@@ -3962,12 +3991,20 @@ typedef struct a_base_class {
 			   virtual function number of the routine pointed
 			   to by the primary_function field. */
 #if DO_IL_LOWERING
+/* FIXME  -- conditional !IA64_ABI */
   a_variable_ptr
 		virtual_function_table_var;
 			/* When IL lowering is done, this points to the
 			   variable that contains the virtual function table
 			   for this base class/derived class combination.
 			   NULL until allocated and NULL if not needed. */
+#if IA64_ABI
+  a_virtual_table_index
+                virtual_function_table_offset;
+                        /* The index in the derived class virtual table group
+                           where the virtual table for this base begins, or
+                           -1 if this base has no virtual table. */
+#endif /* IA64_ABI */
 #if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
   a_construction_vtbl_array_index
 		index_in_construction_vtbl_array;
@@ -3985,7 +4022,9 @@ typedef struct a_base_class {
 			   pointer during the body of the derived class
 			   constructor when constructing a complete object
 			   of the derived class type. */
+#if !IA64_ABI
   /* When is_virtual is FALSE: */
+#endif /* !IA64_ABI */
   a_construction_vtbl_array_index
 		base_subarray_index_in_construction_vtbl_array;
 			/* Non-zero if the constructor or destructor for
@@ -3997,6 +4036,7 @@ typedef struct a_base_class {
 			   vtbl array for the whole current class at which
 			   the subarray that is to be passed to the base class
 			   constructor or destructor begins. */
+#if 1 || !IA64_ABI /* FIXME */
   /* When is_virtual is TRUE: */
   a_construction_vtbl_ptr
 		base_construction_vtbls;
@@ -4010,7 +4050,17 @@ typedef struct a_base_class {
 			   passed to the base class constructor or destructor
 			   when constructing or destroying this base class
 			   in a complete object. */
+#endif /* !IA64_ABI */
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
+#if IA64_ABI
+  a_virtual_table_index
+  		vbase_offset_index;
+			/* If is_virtual is TRUE, the index, counting from 
+			   the address point in the derived class primary
+			   virtual table to the location containing the
+			   base class's virtual base offset.  If
+			   is_virtual is FALSE, this field is unused. */
+#endif /* IA64_ABI */
 #endif /* DO_IL_LOWERING */
 } a_base_class;
 
@@ -4091,6 +4141,28 @@ EXTERN an_inheritance_kind
 			   pointer-to-member declaration. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+#if DO_IL_LOWERING && IA64_ABI
+
+typedef struct a_vcall_offset_entry *a_vcall_offset_entry_ptr;
+typedef struct a_vcall_offset_entry {
+  /* An entry associating a virtual function with a "virtual call offset".
+     Used in IL lowering as a work structure while developing the
+     virtual function tables. */
+  a_vcall_offset_entry_ptr
+		next;	/* Next in a linked list of virtual call offset
+			   entries. */
+  a_routine_ptr	routine;   
+			/* A pointer to the routine, which will always have
+			   the is_virtual flag set. */
+  a_virtual_table_index
+		vcall_offset_index;
+			/* The index into the virtual table where the virtual
+			   call offset will be located.	 This entry gives the
+			   offset from the virtual base to the overriding
+			   class. */
+} a_vcall_offset_entry;
+
+#endif /* DO_IL_LOWERING && IA64_ABI */
 
 /* Entry containing additional information about a class type (tk_class,
    tk_struct, or tk_union).  The list of nonstatic data members (i.e.,
@@ -4102,6 +4174,19 @@ typedef struct a_class_type_supplement {
                         /* A linked list of entries describing all the base
                            classes, both directly and indirectly inherited,
 			   that are included within this class. */
+#if IA64_ABI
+  a_base_class_ptr
+		preorder_base_classes;
+			/* A linked list with the same entries as are on the
+			   base_classes list, but as found in a preorder
+			   traversal of the inheritance hierarchy, rather than
+			   a postorder traversal. */
+  a_base_class_ptr
+		primary_base_class;
+			/* The primary base class for this class, i.e., the
+			   most derived class with which this class shares
+			   virtual function info. */
+#endif /* !IA64_ABI */
   a_targ_size_t size_without_virtual_base_classes;
                         /* The size in bytes of the class, excluding the
                            virtual base classes from which it derives. */
@@ -4122,9 +4207,30 @@ typedef struct a_class_type_supplement {
 			   the shared virtual functions, including those
 			   declared in the base class.  It follows that a
 			   class could have *no* directly declared virtual
-			   functions yet have a non-zero value in this field.
+			   functions yet have a value other than
+			   VIRTUAL_FUNCTION_NUMBER_NONE in this field.
 			   (Incidentally, this number also corresponds to
 			   the size of a virtual function table.) */
+#if DO_IL_LOWERING && IA64_ABI
+  a_virtual_table_index
+		next_negative_virtual_table_index;
+			/* The largest unused virtual table index in the
+			   backwards-growing part of the virtual table.	 If
+			   there is no virtual table, this field will still
+			   have a negative value, but that value is unused. */
+  a_virtual_table_index
+		first_vcall_offset_index;
+			/* The (negative) index to the first vcall offset in
+			   this class's virtual table.	Zero until set. */
+  a_vcall_offset_entry_ptr
+		vcall_offsets;
+			/* The association between virtual routines in this
+			   class and its direct and indirect non-virtual
+			   bases.  When this class is used as a virtual base,
+			   the offset from the virtual base to the subobject
+			   containing the overrider can be found at the
+			   location indicated on this list. */
+#endif /* DO_IL_LOWERING && IA64_ABI */
   a_targ_size_t	virtual_function_info_offset;
 			/* The offset within the class object to a field
 			   containing information about the virtual functions
@@ -4142,8 +4248,7 @@ typedef struct a_class_type_supplement {
 			   if the current class uses the virtual function
 			   table pointer of its base class), this is the
 			   base class involved in the sharing.  It is not
-			   necessarily a direct base class, but there are
-			   no virtual steps in its derivation.  This field is
+			   necessarily a direct base class.  This field is
 			   NULL if the virtual function info is not shared. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   char		*uuid_string;
@@ -4282,6 +4387,14 @@ typedef struct a_class_type_supplement {
 			   variable that contains the virtual function table
 			   for this class when it is the most derived class.
 			   NULL until allocated and NULL if not needed. */
+#if IA64_ABI
+  a_variable_ptr
+		virtual_table_table_var;
+			/* When IL lowering is done, this points to the
+			   variable that contains the virtual table table
+			   for this class.  NULL until allocated and NULL if
+			   not needed. */
+#endif /* IA64_ABI */
   a_type_ptr	type_as_subobject;
 			/* When IL lowering is done, this points to a type
 			   (possibly the same one) for this class as a
@@ -5655,6 +5768,12 @@ typedef struct a_variable {
 			/* If non-NULL, the variable for which this variable
 			   is an alias. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if DO_IL_LOWERING && IA64_ABI
+  char		*comdat_group;
+			/* The COMDAT group into which this variable
+			   should be placed, or NULL if this entity
+			   should not be placed into a COMDAT group. */
+#endif /* DO_IL_LOWERING && IA64_ABI */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_type_ptr	declared_type;
 			/* The type as it actually appears in the declaration
@@ -5762,6 +5881,10 @@ typedef struct a_field {
 			/* TRUE if the field was declared with the GNU "packed"
 			   attribute. */
 #endif /* GNU_EXTENSIONS_ALLOWED && USER_CONTROL_OF_STRUCT_PACKING */
+#if IA64_ABI
+  a_bit_field	offset_is_set:1;
+			/* TRUE if the offset for this field has been set. */
+#endif /* IA64_ABI */
   a_bit_field	is_bit_field:1;
 			/* TRUE if the field represents a bit field. */
   a_bit_field	bit_field_is_signed:1;
@@ -6165,6 +6288,30 @@ typedef a_byte an_ELF_visibility_kind;
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
+#if DO_IL_LOWERING && IA64_ABI
+
+/*
+An enumeration of the different kinds of constructor and destructor entry
+points.  These alternate entry points are generated by IL lowering for
+the IA64 ABI.
+*/
+enum a_ctor_or_dtor_kind_tag {
+  cdk_none,		/* A constructor or destructor as originally created
+			   by lowering. */
+  cdk_complete,		/* A version of a constructor or destructor for a
+			   complete object. */
+  cdk_subobject,	/* A version of a constructor or destructor for a
+			   subobject. */
+  cdk_deleting,		/* A version of a destructor that destroys a
+			   complete object and then deletes the storage
+			   associated with the object. */
+  cdk_last
+};
+/* Define as "a_byte" to explicitly control storage size. */
+typedef a_byte a_ctor_or_dtor_kind;
+
+#endif /* DO_IL_LOWERING && IA64_ABI */
+
 /*
 Data structures related to routines:
 */
@@ -6529,6 +6676,24 @@ typedef struct a_routine {
 			   statement expressions, i.e., ({...}), a GNU C
 			   extension. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if DO_IL_LOWERING && IA64_ABI
+  a_bit_field	inline_in_class_definition:1;
+			/* TRUE if this routine is a member of a class and was
+			   declared inline (explicitly or implicitly) in
+			   the class definition. */
+  a_bit_field	vcall_offset_index_set:1;
+			/* TRUE if the vcall offset associated with this
+			   routine has been set.  This flag is set and reset
+			   multiple times; it has no meaning outside of
+			   lowering. */
+  a_bit_field	use_comdat:1;
+			/* TRUE if this routine should be placed in a COMDAT
+			   group.  The group used should be the same as the
+			   mangled name of the routine.	 */
+  a_bit_field /* a_ctor_or_dtor_kind */
+		ctor_dtor_kind:2;
+			/* The kind of constructor or destructor. */
+#endif /* DO_IL_LOWERING && IA64_ABI */
   bitfield_to_avoid_codecenter_warnings()
 #if DECL_MODIFIERS_IN_USE
   a_decl_modifier
@@ -6601,6 +6766,29 @@ typedef struct a_routine {
 			   statement with an expression that is the proper
 			   cast on top of an enk_result_of_overriding_function
 			   node. */
+#if IA64_ABI
+  a_targ_ptrdiff_t
+		delta;	/* The offset that must be added to the "this" pointer
+			   on entry to the function, before any virtual base
+			   adjustments, or zero if none. */
+  a_virtual_table_index
+		vcall_index;
+			/* The virtual table entry containing the offset that
+			   should be added to the "this" pointer after delta
+			   has been added, or zero if none. */
+  a_targ_ptrdiff_t
+		return_delta;
+			/* The offset that should be added to the returned
+			   pointer or reference, after converting via the
+			   vbase index, or zero if no additional offset is
+			   required. */
+  a_virtual_table_index
+		vbase_index;
+			/* The virtual table entry containing the offset that
+			   should be added to the returned value to reach the
+			   virtual base, or zero if no virtual base conversion
+			   is required. */
+#endif /* IA64_ABI */
 #endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 #if ONE_INSTANTIATION_PER_OBJECT
   unsigned long	instantiation_needed_bit_number;
@@ -10006,6 +10194,9 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
   sizeof(a_dynamic_init),
   sizeof(a_local_static_variable_init),
   sizeof(a_vla_dimension),
+#if DO_IL_LOWERING && IA64_ABI
+  sizeof(a_vcall_offset_entry),
+#endif /* DO_IL_LOWERING && IA64_ABI */
   sizeof(an_overriding_virtual_function),
   sizeof(a_derivation_step),
   sizeof(a_base_class_derivation),

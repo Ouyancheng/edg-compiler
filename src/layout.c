@@ -1022,6 +1022,30 @@ targ_microsoft_bit_field_allocation is FALSE.)
 }  /* align_offsets_for_bit_field */
                               
 
+static a_boolean is_empty_class_type(a_type_ptr type)
+/*
+Returns TRUE if the type passed as argument is a class type with no nonstatic
+data members, no virtual functions or virtual bases, no nonempty bases and
+(except in ABIs compatible with versions prior to 3.0) no empty bases that
+take up their own space (making the size of the object larger than
+targ_minimum_struct_alignment).  Otherwise, FALSE is returned.
+*/
+{
+  a_boolean result = TRUE;
+
+  type = skip_typerefs(type);
+  if (!is_immediate_class_type(type)) {
+    result = FALSE;
+  } else {
+    result = type->variant.class_struct_union.is_empty_class;
+#if ABI_COMPATIBILITY_VERSION >= 300
+    result = result && (type->size == targ_minimum_struct_alignment);
+#endif /* ABI_COMPATIBILITY_VERSION >= 300 */
+  }  /* if */
+  return result;
+}  /* is_empty_class_type */
+
+
 /*
 Return the error code to be used when a class (or in C a struct/union)
 is too large.
@@ -1029,6 +1053,271 @@ is too large.
 #define struct_too_large_error()					\
   (C_mode() ? ec_struct_too_large : ec_class_too_large)
 
+
+#if !IA64_ABI
+/*ARGSUSED*/  /* <-- atype_bcp, consider_virtual_bases are not used
+                     in that case. */
+#endif /* !IA64_ABI */
+static a_boolean empty_base_conflict(a_type_ptr       etype, 
+                                     a_type_ptr       atype,
+                                     a_base_class_ptr atype_bcp,
+                                     a_targ_size_t    offset,
+                                     a_boolean        consider_virtual_bases)
+/*
+Determine whether a subobject of type etype (an empty class type) can be
+allocated at offset bytes from the start of another (not necessarily empty)
+class type atype.  If atype corresponds to a base of the complete class in
+which etype is being allocated, atype_bcp gives that base type; otherwise,
+atype_bcp is NULL.  Return TRUE if this is not the case (i.e., there is a type
+conflict that would cause to empty subobjects of the same type to end up at
+the same address); FALSE otherwise.  If consider_virtual_bases is TRUE,
+virtual bases of atype are considered; otherwise, they are ignored.
+*/
+{
+  a_boolean result = FALSE;
+
+#if CHECKING
+  check_assertion(is_empty_class_type(etype));
+#endif /* CHECKING */
+  if (offset == 0 && same_entities(etype, atype)) {
+    /* Is there a direct type conflict? */
+    result = TRUE;
+#if !IA64_ABI
+  } else {
+    /* Is there a type conflict with any of the bases of the empty base (they
+       are by definition also empty)? */
+    a_base_class_ptr bcp = base_classes_of(etype);
+    for (; bcp != NULL; bcp = bcp->next) {
+      if (same_entities(bcp->type, atype)) {
+        result = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+#endif /* !IA64_ABI */
+  }  /* if */
+  /* Apply these tests recursively to any base and field of atype. */
+  if (!result) {
+    a_base_class_ptr bcp = base_classes_of(atype);
+    for (; bcp != NULL; bcp = bcp->next) {
+      a_base_class_ptr eff_bcp;
+#if IA64_ABI
+      /* Skip indirect bases -- unless they are virtual and virtual bases are
+         under consideration. */
+      if (!bcp->direct && !(bcp->is_virtual && consider_virtual_bases)) {
+        continue;
+      }  /* if */
+      if (atype_bcp != NULL) {
+        eff_bcp = corresponding_base_class(bcp, atype_bcp->derived_class,
+                                           atype_bcp);
+      } else
+#endif /* IA64_ABI */
+      /* Do not add code here. */
+      {
+        eff_bcp = bcp;
+      }  /* if */
+      if (
+#if IA64_ABI
+          eff_bcp->offset_is_set && eff_bcp->offset <= offset &&
+#else /* !IA64_ABI */
+          eff_bcp->offset == 0 && 
+#endif /* !IA64_ABI */
+          empty_base_conflict(etype, eff_bcp->type, eff_bcp,
+                              offset - eff_bcp->offset,
+                              /*consider_virtual_bases=*/FALSE)) {
+        result = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  if (!result) {
+    a_field_ptr field = atype->variant.class_struct_union.field_list;
+    for (; 
+         field != NULL 
+#if IA64_ABI
+                       && field->offset_is_set
+#endif /* IA64_ABI */
+                                              ; 
+         field = field->next) {
+      a_type_ptr    field_type;
+      a_targ_size_t elt, num_array_elts, field_offset;
+      field_type = skip_typerefs(field->type);
+#if IA64_ABI
+      if (is_array_type(field_type) && 
+          !has_unknown_specified_bound(field_type)) {
+        num_array_elts = num_array_elements(field_type);
+        field_type =f_skip_typerefs(underlying_array_element_type(field_type));
+      } else 
+#endif /* IA64_ABI */
+      /* Do not add code here. */
+      {
+        num_array_elts = 1;
+      }  /* if */
+      if (is_class_struct_union_type(field_type)) {
+        for (elt = 0; elt < num_array_elts; ++elt) {
+          field_offset = field->offset + elt * field_type->size;
+#if IA64_ABI
+          if (field_offset > offset) break;
+#else /* !IA64_ABI */
+          if (field_offset != 0) break;
+#endif /* !IA64_ABI */
+          if (empty_base_conflict(etype, field_type, (a_base_class_ptr)NULL,
+                                  offset - field_offset,
+                                  /*consider_virtual_bases=*/TRUE)) {
+            result = TRUE;
+            break;
+          }  /* if */
+        }  /* for */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* empty_base_conflict */
+
+#if IA64_ABI
+
+static a_boolean subobject_conflict(a_type_ptr    class_type,
+                                    a_type_ptr    subobject_type,
+                                    a_targ_size_t offset,
+                                    a_boolean     consider_bases,
+                                    a_boolean     consider_virtual_bases)
+/*
+Return TRUE if placing a subobject (whose type is subobject_type) at the
+indicated offset would result in a conflict with some other subobject of
+class_type.  If consider_bases is FALSE, no base classes of the subobject type
+are examined.  If consider_virtual_bases is TRUE, virtual bases of
+subobject_type are considered in addition to direct bases.
+*/
+{
+  a_targ_size_t               size, elt, num_array_elts;
+  a_targ_size_t               field_elt, num_field_array_elts;
+  a_base_class_ptr            bcp;
+  a_field_ptr                 field;
+  a_type_ptr                  field_type;
+  a_boolean                   result = FALSE;
+
+  /* If the subobject is an array, get the (ultimate) element type. */
+  if (is_array_type(subobject_type) && 
+      !has_unknown_specified_bound(subobject_type)) {
+    num_array_elts = num_array_elements(subobject_type);
+    subobject_type = underlying_array_element_type(subobject_type);
+  } else {
+    num_array_elts = 1;
+  }  /* if */
+  if (is_class_struct_union_type(subobject_type)) {
+    /* The subobject is a class, struct, or union type, so there may be empty
+       subobjects which conflict with other, already-allocated, empty
+       subobjects. */
+    subobject_type = skip_typerefs(subobject_type);
+    /* If we're not considering virtual bases, it doesn't make sense for the
+       subobject to be an array type. */
+    check_assertion(consider_virtual_bases || num_array_elts == 1);
+    size = subobject_type->size;
+    /* Loop over all the elements of the array (treating the non-array case as
+       a degenerate case of the array case) looking for conflicts. */
+    for (elt = 0; !result && elt < num_array_elts; ++elt, offset += size) {
+      /* Try the subobject type itself. */
+      if (is_empty_class_type(subobject_type) && 
+          empty_base_conflict(subobject_type, class_type, 
+                              (a_base_class_ptr)NULL,
+                              offset, /*consider_virtual_bases=*/TRUE)) {
+        result = TRUE;
+      }  /* if */
+      /* Go through the base classes of the subobject type. */
+      if (!result && consider_bases) {
+        for (bcp = base_classes_of(subobject_type);
+             bcp != NULL;
+             bcp = bcp->next) {
+          if ((bcp->direct || (bcp->is_virtual && consider_virtual_bases)) &&
+              subobject_conflict(class_type, bcp->type, 
+                                 offset + bcp->offset,
+                                 /*consider_bases=*/TRUE,
+                                 /*consider_virtual_bases=*/FALSE)) {
+            result = TRUE;
+            break;
+          }  /* if */
+        }  /* for */
+      }  /* if */
+      /* Go through the fields of the subobject type. */
+      if (!result) {
+        for (field = subobject_type->variant.class_struct_union.field_list;
+             field != NULL;
+             field = field->next) {
+          /* If the field type is an array get the (ultimate) element type. */
+          if (is_array_type(field->type)) {
+            num_field_array_elts = num_array_elements(field->type);
+            field_type = underlying_array_element_type(field->type);
+          } else {
+            num_field_array_elts = 1;
+            field_type = field->type;
+          }  /* if */
+          if (is_empty_class_type(field_type)) {
+            /* Loop through the elements of the array. */
+            for (field_elt = 0; 
+                 field_elt < num_field_array_elts; 
+                 ++field_elt) {
+              if (subobject_conflict(class_type, field_type,
+                                     offset + field->offset + field_elt *
+                                                              field_type->size,
+                                     /*consider_bases=*/TRUE,
+                                     /*consider_virtual_bases=*/TRUE)) {
+                result = TRUE;
+                break;
+              }  /* if */
+            }  /* for */
+          }  /* if */
+        }  /* for */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* subobject_conflict */
+
+
+static a_boolean base_subobject_conflict(a_base_class_ptr bcp,
+                                         a_targ_size_t    offset)
+/*
+Return TRUE if placing bcp at offset would result in a subobject conflict.
+*/
+{
+  a_boolean        result = FALSE;
+  a_type_ptr       class_type, base_type;
+  a_base_class_ptr base_bcp, disambiguator, eff_bcp;
+
+  class_type = bcp->derived_class;
+  base_type = bcp->type;
+  /* See if there is a conflict with base_type itself. */
+  if (subobject_conflict(class_type, base_type, offset,
+                         /*consider_bases=*/FALSE,
+                         /*consider_virtual_bases=*/FALSE)) {
+    result = TRUE;
+  } else {
+    /* There is no conflict with non-virtual bases.  There might, however, be
+       a conflict with bases that are going to be allocated as part of
+       this base.  */
+    for (base_bcp = base_classes_of(base_type); 
+         base_bcp != NULL; 
+         base_bcp = base_bcp->next) {
+      disambiguator = find_disambiguator(bcp, base_bcp);
+      eff_bcp = corresponding_base_class(base_bcp, class_type, disambiguator);
+      if (bcp->primary_base_class == eff_bcp) {
+        /* The primary base is always at offset zero. */
+        if (base_subobject_conflict(eff_bcp, offset)) {
+          result = TRUE;
+          break;
+        }  /* if */
+      } else if (base_bcp->direct && !base_bcp->is_virtual) {
+        /* A direct base is at a fixed offset. */
+        if (base_subobject_conflict(eff_bcp, offset + base_bcp->offset)) {
+          result = TRUE;
+          break;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* base_subobject_conflict */
+
+#endif /* !IA64_ABI */
 
 static a_boolean set_field_size_and_offset(a_field_ptr         field,
                                            a_layout_block_ptr  lob)
@@ -1154,11 +1443,37 @@ there's no overflow TRUE is returned.
           }  /* if */
         }  /* if */
       } else {
-        /* For a normal field. */
-        overflow = !increment_field_offsets(&lob->byte_offset,
-                                            &lob->bit_offset,
-                                            (a_targ_size_t)field_type->size,
-                                            (an_unnormalized_bit_offset)0);
+#if IA64_ABI
+        /* Find an offset at which this field can be placed without creating a
+           conflict between empty subobjects. */
+        if (!C_mode()) {
+          while (subobject_conflict(lob->class_type, field_type,
+                                    save_byte_offset,
+                                    /*consider_bases=*/TRUE,
+                                    /*consider_virtual_bases=*/TRUE)) {
+            /* The field can't go at this offset.  Advance by the field
+               alignment. */
+            if (!increment_field_offsets(&lob->byte_offset,
+                                         &lob->bit_offset,
+                                         (a_targ_size_t)field_alignment,
+                                         (an_unnormalized_bit_offset)0)) {
+              overflow = TRUE;
+              break;
+            } else {
+              save_byte_offset = lob->byte_offset;
+            }  /* if */
+          }  /* while */
+        }  /* if */
+        if (!overflow) {
+#endif /* IA64_ABI */
+          /* For a normal field. */
+          overflow = !increment_field_offsets(&lob->byte_offset,
+                                              &lob->bit_offset,
+                                              (a_targ_size_t)field_type->size,
+                                              (an_unnormalized_bit_offset)0);
+#if IA64_ABI
+        }  /* if */
+#endif /* IA64_ABI */
       }  /* if */
       if (!overflow) {
         /* Now compute the field's bit offset within the struct.  We know the
@@ -1174,19 +1489,28 @@ there's no overflow TRUE is returned.
       lob->any_overflow = TRUE;
     }  /* if */
   }  /* if */
+#if IA64_ABI
+  field->offset_is_set = TRUE;
+#endif /* IA64_ABI */
   db_exit();
   return !overflow;
 }  /* set_field_size_and_offset */
 
 
-static a_targ_size_t set_offset_and_alignment(a_layout_block_ptr  lob,
-                                              a_targ_size_t       size,
-                                              a_targ_alignment    alignment)
+#if !IA64_ABI
+/*ARGSUSED*/ /* <-- bcp is not used in that case. */
+#endif /* !IA64_ABI */
+static a_targ_size_t set_offset_and_alignment(
+                                    a_layout_block_ptr  lob,
+                                    a_targ_size_t       size,
+                                    a_targ_alignment    alignment,
+                                    a_base_class_ptr    bcp)
 /*
 Given a subobject of the specified size in bytes and requiring the specified
 alignment, allocate space for it in the class whose current status is
 given in the layout block pointed to by lob.  Return the byte offset at
-which it is allocated.
+which it is allocated.  If bcp is non-NULL, it is the base class that is being
+allocated.
 */
 {
   a_targ_size_t  offset;
@@ -1200,6 +1524,26 @@ which it is allocated.
       lob->any_overflow = TRUE;
     }  /* if */
   }  /* if */
+#if IA64_ABI
+  /* If placing the subobject at this location, skip forward until we find
+     a location that works. */
+  if (bcp != NULL) {
+    while (base_subobject_conflict(bcp, lob->byte_offset)) {
+      if (!increment_field_offsets(&lob->byte_offset, &lob->bit_offset,
+                                   (a_targ_size_t)alignment, 
+                                   (an_unnormalized_bit_offset)0)) {
+        /* Not enough space remains available in this class for this
+           subobject. */
+        if (!lob->any_overflow) {
+          /* Issue an error only if one has not yet been put out. */
+          error(struct_too_large_error());
+          lob->any_overflow = TRUE;
+          break;
+        }  /* if */
+      }  /* if */
+    }  /* while */
+  }  /* if */
+#endif /* IA64_ABI */
   /* Save the offset at which space for the subobject is being reserved. */
   offset = lob->byte_offset;
   /* Adjust the overall alignment requirement for the current class, if
@@ -1222,29 +1566,241 @@ which it is allocated.
   return offset;
 }  /* set_offset_and_alignment */
 
+#if IA64_ABI
 
-static a_boolean is_empty_class_type(a_type_ptr type)
+static void allocate_empty_base(a_layout_block_ptr lob,
+                                a_base_class_ptr   bcp)
 /*
-Returns TRUE if the type passed as argument is a class type with no nonstatic
-data members, no virtual functions or virtual bases, no nonempty bases and
-(except in ABIs compatible with versions prior to 3.0) no empty bases that
-take up their own space (making the size of the object larger than
-targ_minimum_struct_alignment).  Otherwise, FALSE is returned.
+Allocate bcp (an empty base class).
 */
 {
-  a_boolean result = TRUE;
+  a_targ_size_t              offset, size;
+  an_unnormalized_bit_offset dummy = 0;
 
-  type = skip_typerefs(type);
-  if (!is_immediate_class_type(type)) {
-    result = FALSE;
+  /* Attempt to allocate the base at offset zero. */
+  if (!base_subobject_conflict(bcp, (a_targ_size_t)0)) {
+    bcp->offset = 0;
   } else {
-    result = type->variant.class_struct_union.is_empty_class;
-#if ABI_COMPATIBILITY_VERSION >= 300
-    result = result && (type->size == targ_minimum_struct_alignment);
-#endif /* ABI_COMPATIBILITY_VERSION >= 300 */
+    /* It didn't work at offset zero; try putting it at the end of the object 
+       as created so far. */
+    offset = lob->byte_offset;
+    size = bcp->type->variant.class_struct_union.extra_info->
+                                        alignment_without_virtual_base_classes;
+    while (base_subobject_conflict(bcp, offset)) {
+      if (!increment_field_offsets(&offset, &dummy, size, 
+                                   (an_unnormalized_bit_offset)0)) {
+        /* Not enough space remains available in this class for this
+           subobject. */
+        if (!lob->any_overflow) {
+          /* Issue an error only if one has not yet been put out. */
+          error(struct_too_large_error());
+          lob->any_overflow = TRUE;
+          break;
+        }  /* if */
+      }  /* if */
+    }  /* while */
+    bcp->offset = offset;
   }  /* if */
-  return result;
-}  /* is_empty_class_type */
+  bcp->is_optimized_empty_base = TRUE;
+}  /* allocate_empty_base */
+
+#endif /* IA64_ABI */
+
+static void set_base_class_offsets(a_base_class_ptr  proximate_derivation)
+/*
+The offset of base class proximate_derivation has been computed, but the
+offsets of its own base classes have not.  The confusing part of this
+processing is that two different base class entries are involved.  First,
+the "most derived class" contains a list of all its base classes, direct
+and indirect.  But each class from which it is derived has its own base
+class list, too.  For example:
+
+          A    A       class B points to base class A (path ==>A)
+          |    |
+          B    C       class C points to base class A (path ==>A)
+           \  /
+             D         class D points to base classes B (path ==>B)
+                                                      A (path ==>B==>A)
+                                                      C (path ==>C)
+                                                      A (path ==>C==>A)
+
+Thus, while the base classes for D, the "most derived class", are
+represented by only 3 type entries (A, B, and C), there are 4 base class
+entries involved, since 2 are associated with class A.  As for offsets, B's
+"A" base class entry indicates the offset of the "A" data section within
+the block occupied by class "B" entities, whereas the two "A" base classes
+associated with class D should have offsets representing their locations
+within a "D" object.  Computing the offset of an indirect base class (e.g.,
+A) within a most derived class (e.g., D) requires adding the offset of the
+base class immediately derived from it (e.g., B) to its own offset within
+that class (e.g., A's offset within B); in other words, the D::A offset
+equals the D::B offset plus the B::A offset.
+
+The algorithm involves going through direct base classes of
+proximate_derivation (in this example "B in D" is the proximate_derivation,
+and it has only one direct base class of its own, namely, "A in B"),
+finding the corresponding base class entry in the most derived class (e.g.,
+finding the appropriate "A in D" -- the one whose path is ==>B==A), and
+setting the offset field in the latter.
+*/
+{
+  a_base_class_ptr ref_bcp, bcp;
+
+  db_enter(4, "set_base_class_offsets");
+#if IA64_ABI
+  /* Remember that the offset for this base has been set. */
+  proximate_derivation->offset_is_set = TRUE;
+#endif /* IA64_ABI */
+  /* Get the first "reference" base class of the root class, which is itself
+     a base class of the most derived class.  It is called a reference base
+     class because it contains an offset relative to the root base class.
+     It is the offset value relative to the most derived class that we need
+     to determine and record. */
+  ref_bcp = base_classes_of(proximate_derivation->type);
+#if DEBUG
+  if (debug_level >= 4) {
+    if (ref_bcp != NULL) {
+      fputs("setting offsets for base classes of:\n  ", f_debug);
+      db_base_class(proximate_derivation, /*show_offset=*/TRUE);
+    }  /* if */
+  }  /* if */
+#endif /* DEBUG */
+  /* Loop through the reference base classes, the direct base classes of
+     the proximate_derivation base class. */
+  for (; ref_bcp != NULL; ref_bcp = ref_bcp->next) {
+    if (ref_bcp->direct) {
+      bcp = corresponding_base_class(ref_bcp,
+                                     proximate_derivation->derived_class,
+                                     proximate_derivation);
+      if (!bcp->is_virtual) {
+        /* Nonvirtual base class. */
+        bcp->offset = proximate_derivation->offset + ref_bcp->offset;
+#if IA64_ABI
+        bcp->offset_is_set = TRUE;
+#endif /* IA64_ABI */
+#if DEBUG
+        if (debug_level >= 4) {
+          fputs("reference base class ", f_debug);
+          db_base_class(ref_bcp, /*show_offset=*/TRUE);
+          fputs("new offset for ", f_debug);
+          db_base_class(bcp, /*show_offset=*/TRUE);
+        }  /* if */
+#endif /* DEBUG */
+#if IA64_ABI
+      } else if (proximate_derivation->primary_base_class == bcp) {
+        /* This virtual base class is the primary base class of the
+           proximate_derivation. */
+        bcp->offset = proximate_derivation->offset;
+        bcp->offset_is_set = TRUE;
+#endif /* IA64_ABI */
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
+      } else {
+        /* Virtual base class. */
+        if (bcp->data_section_base_class == proximate_derivation) {
+          /* bcp is a virtual base class whose data section is embedded in
+             the data section of another base class data section.  Update
+             the offset. */
+          bcp->offset = proximate_derivation->offset + ref_bcp->offset;
+#if DEBUG
+          if (debug_level >= 4) {
+            fputs("reference base class ", f_debug);
+            db_base_class(ref_bcp, /*show_offset=*/TRUE);
+            fputs("new offset for ", f_debug);
+            db_base_class(bcp, /*show_offset=*/TRUE);
+          }  /* if */
+#endif /* DEBUG */
+        }  /* if */
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
+      }  /* if */
+#if IA64_ABI
+      if (bcp->offset_is_set) {
+#endif /* IA64_ABI */
+        /* Make a recursive call to apply this processing to the next level of
+           base classes. */
+        set_base_class_offsets(bcp);
+#if IA64_ABI
+      }  /* if */
+#endif /* IA64_ABI */
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
+    } else if (ref_bcp->is_virtual) {
+      /* Virtual indirect base class. */
+      bcp = corresponding_base_class(ref_bcp,
+                                     proximate_derivation->derived_class,
+                                     (a_base_class_ptr)NULL);
+      if (bcp->data_section_base_class == proximate_derivation) {
+        /* bcp is a virtual base class whose data section is embedded in
+           the data section of another base class data section.  Update
+           the offset. */
+        bcp->offset = proximate_derivation->offset + ref_bcp->offset;
+#if DEBUG
+        if (debug_level >= 4) {
+          fputs("reference base class ", f_debug);
+          db_base_class(ref_bcp, /*show_offset=*/TRUE);
+          fputs("new offset for ", f_debug);
+          db_base_class(bcp, /*show_offset=*/TRUE);
+        }  /* if */
+#endif /* DEBUG */
+      }  /* if */
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
+    }  /* if */
+  }  /* for */
+  db_exit();
+}  /* set_base_class_offsets */
+
+
+static void set_offset_for_nonvirtual_base_class(a_layout_block_ptr lob,
+                                                 a_base_class_ptr   bcp)
+/*
+Lay out the nonvirtual direct base class bcp.
+*/
+{
+  a_targ_size_t     size;
+  a_targ_alignment  alignment;
+
+  check_assertion(!bcp->is_virtual && bcp->direct);
+  if (targ_optimize_empty_base_class_layout &&
+      is_empty_class_type(bcp->type)) {
+#if !IA64_ABI
+    /* Empty bases will be allocated later. */
+#else /* IA64_ABI */
+    allocate_empty_base(lob, bcp);
+#endif /* IA64_ABI */
+  } else 
+  /* Do not add code here. */
+  {
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
+    /* When cfront compatibility is required, space for a complete
+       subobject (i.e., including space for it virtual base classes)
+       is sometimes reserved, depending on how the complete_subobject
+       flag has been set during prior processing. */
+    if (bcp->complete_subobject) {
+      alignment = bcp->type->alignment;
+      size = bcp->type->size;
+    } else
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
+    /* Do not insert code here. */
+    {
+      /* For a nonvirtual base classes reserve space for all the base
+         class except what is required for its own virtual base classes.
+         The latter will be added at the end of the storage. */
+      alignment = bcp->type->variant.class_struct_union.extra_info->
+                                    alignment_without_virtual_base_classes;
+      size = bcp->type->variant.class_struct_union.extra_info->
+                                    size_without_virtual_base_classes;
+    }  /* if */
+    bcp->offset = set_offset_and_alignment(lob, size, alignment, bcp);
+#if DEBUG
+    if (debug_level >= 4) {
+      fputs("updated offset for ", f_debug);
+      db_base_class(bcp, /*show_offset=*/TRUE);
+    }  /* if */
+#endif /* DEBUG */
+  }  /* if */
+#if IA64_ABI
+  /* Set the offsets for all of the non-virtual bases of this base. */
+  set_base_class_offsets(bcp);
+#endif /* IA64_ABI */
+}  /* set_offset_for_nonvirtual_base_class */
 
 
 static void set_offsets_for_nonvirtual_base_classes(a_layout_block_ptr  lob)
@@ -1260,51 +1816,29 @@ subobjects of the direct nonvirtual base classes.)  Lob points to the
 layout block used to track the layout of the current class.
 */
 {
-  a_targ_size_t     size;
-  a_targ_alignment  alignment;
-  a_base_class_ptr  bcp;
-  
+  a_base_class_ptr            bcp;
+#if IA64_ABI
+  a_class_type_supplement_ptr ctsp;
+#endif /* IA64_ABI */
+
   db_enter(4, "set_offsets_for_nonvirtual_base_classes");
+#if IA64_ABI
+  ctsp = lob->class_type->variant.class_struct_union.extra_info;
+#endif /* IA64_ABI */
   /* Traverse the list of base classes. */
   for (bcp = base_classes_of(lob->class_type); bcp != NULL; bcp = bcp->next) {
-    if (bcp->direct && !bcp->is_virtual) {
-      if (targ_optimize_empty_base_class_layout &&
-          is_empty_class_type(bcp->type)) {
-        /* Empty bases will be allocated later. */
-        continue;
-      }  /* if */
-#if CFRONT_OBJECT_CODE_COMPATIBILITY
-      /* When cfront compatibility is required, space for a complete
-         subobject (i.e., including space for it virtual base classes)
-         is sometimes reserved, depending on how the complete_subobject
-         flag has been set during prior processing. */
-      if (bcp->complete_subobject) {
-        alignment = bcp->type->alignment;
-        size = bcp->type->size;
-      } else
-#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
-      /* Do not insert code here. */
-      {
-        /* For a nonvirtual base classes reserve space for all the base
-           class except what is required for its own virtual base classes.
-           The latter will be added at the end of the storage. */
-        alignment = bcp->type->variant.class_struct_union.extra_info->
-                                      alignment_without_virtual_base_classes;
-        size = bcp->type->variant.class_struct_union.extra_info->
-                                      size_without_virtual_base_classes;
-      }  /* if */
-      bcp->offset = set_offset_and_alignment(lob, size, alignment);
-#if DEBUG
-      if (debug_level >= 4) {
-        fputs("updated offset for ", f_debug);
-        db_base_class(bcp, /*show_offset=*/TRUE);
-      }  /* if */
-#endif /* DEBUG */
+    if (bcp->direct && !bcp->is_virtual 
+#if IA64_ABI
+        && bcp != ctsp->primary_base_class
+#endif /* IA64_ABI */
+                                          ) {
+      set_offset_for_nonvirtual_base_class(lob, bcp);
     }  /* if */
   }  /* for */
   db_exit();
 }  /* set_offsets_for_nonvirtual_base_classes */
 
+#if !IA64_ABI
 
 static a_base_class_ptr next_empty_nonvirtual_direct_base(a_base_class_ptr
                                                                          ebcp)
@@ -1388,72 +1922,6 @@ Also, in Microsoft mode we must skip over property fields.
 }  /* first_allocated_field */
 
 
-static a_boolean empty_base_conflict(a_type_ptr etype, a_type_ptr atype)
-/*
-Determine whether a subobject of type etype (an empty class type) can be
-allocated at the same offset as another (not necessarily empty) class type
-atype.  Return TRUE is this is not the case (i.e., there is a type conflict
-that would cause to empty subobjects of the same type to end up at the same
-address); FALSE otherwise.
-*/
-{
-  a_boolean result = FALSE;
-
-#if CHECKING
-  check_assertion(is_empty_class_type(etype));
-#endif /* CHECKING */
-  if (same_entities(etype, atype)) {
-    /* Is there a direct type conflict? */
-    result = TRUE;
-  } else {
-    /* Is there a type conflict with any of the bases of the empty base (they
-       are by definition also empty)? */
-    a_base_class_ptr bcp = base_classes_of(etype);
-    for (; bcp != NULL; bcp = bcp->next) {
-      if (same_entities(bcp->type, atype)) {
-        result = TRUE;
-        break;
-      }  /* if */
-    }  /* for */
-  }  /* if */
-  /* Apply these tests recursively to any base and field of atype that was
-     allocated at offset zero. */
-  if (!result) {
-    /* Check against base class types: */
-    a_base_class_ptr bcp = base_classes_of(atype);
-    for (; bcp != NULL; bcp = bcp->next) {
-      if (bcp->offset == 0 && empty_base_conflict(etype, bcp->type)) {
-        result = TRUE;
-        break;
-      }  /* if */
-    }  /* for */
-  }  /* if */
-  if (!result) {
-    /* Check against field types: */
-    a_field_ptr field = atype->variant.class_struct_union.field_list;
-    for (; field != NULL; field = field->next) {
-      if (field->offset == 0) {
-        a_type_ptr field_type = skip_typerefs(field->type);
-#if ABI_COMPATIBILITY_VERSION >= 300
-        if (is_array_type(field_type)) {
-          /* If the field has an array type, we're really only interested in
-             the type of the first element of that array. */
-          field_type = underlying_array_element_type(field_type);
-          field_type = skip_typerefs(field_type);
-        }  /* if */
-#endif /* ABI_COMPATIBILITY_VERSION >= 300 */
-        if (is_class_struct_union_type(field_type) &&
-            empty_base_conflict(etype, field_type)) {
-          result = TRUE;
-          break;
-        }  /* if */
-      }  /* if */
-    }  /* for */
-  }  /* if */
-  return result;
-}  /* empty_base_conflict */
-
-
 static void set_offsets_for_empty_nonvirtual_base_classes(
                                                       a_layout_block_ptr  lob)
 /*
@@ -1488,7 +1956,10 @@ necessary.
     }
     /* Next, verify if this offset causes a conflict with another empty
        subobject that has a common empty type at that location. */
-    if (nbcp != NULL && empty_base_conflict(ebcp->type, nbcp->type)) {
+    if (nbcp != NULL && empty_base_conflict(ebcp->type, nbcp->type, 
+                                            (a_base_class_ptr)NULL,
+                                            (a_targ_size_t)0,
+                                            /*consider_virtual_bases=*/TRUE)) {
       /* A conflict with a nonempty base subobject. */
       conflict = TRUE;
     } else {
@@ -1496,7 +1967,10 @@ necessary.
       a_base_class_ptr prior_ebcp = first_empty_base;
       while (prior_ebcp && prior_ebcp != ebcp) {
         if (prior_ebcp->offset == ebcp->offset &&
-            empty_base_conflict(ebcp->type, prior_ebcp->type)) {
+            empty_base_conflict(ebcp->type, prior_ebcp->type,
+                                (a_base_class_ptr)NULL,
+                                (a_targ_size_t)0,
+                                /*consider_virtual_bases=*/TRUE)) {
           conflict = TRUE;
           break;
         }  /* if */
@@ -1544,7 +2018,10 @@ necessary.
         ebcp = next_empty_nonvirtual_direct_base(base_classes_of(class_type));
         while (ebcp) {
           if (ebcp->offset == lob->byte_offset &&
-              empty_base_conflict(ebcp->type, field_type)) {
+              empty_base_conflict(ebcp->type, field_type, 
+                                  (a_base_class_ptr)NULL,
+                                  (a_targ_size_t)0,
+                                  /*consider_virtual_bases=*/TRUE)) {
             lob->byte_offset += targ_minimum_struct_alignment;
             break;
           }  /* if */
@@ -1644,6 +2121,7 @@ function to confirm the "is_optimized_empty_base" bit.
   }  /* if */
 }  /* check_if_last_empty_base_is_optimized */
 
+#endif /* !IA64_ABI */
 
 static void set_offsets_for_fields(a_layout_block_ptr  lob)
 /*
@@ -1743,7 +2221,7 @@ points to the layout block used to track the layout of the current class.
   a_base_class_ptr             bcp;
 
   db_enter(4, "set_offset_for_virtual_function_info");
-  if (lob->class_type->variant.class_struct_union.any_virtual_functions) {
+  if (needs_virtual_function_table(lob->class_type)) {
     a_class_type_supplement_ptr  ctsp, bcp_ctsp;
     ctsp = lob->class_type->variant.class_struct_union.extra_info;
     if (ctsp->virtual_function_info_base_class == NULL) {
@@ -1754,7 +2232,8 @@ points to the layout block used to track the layout of the current class.
       adjust_alignment_for_packing(&alignment, lob->class_type);
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
       ctsp->virtual_function_info_offset =
-                               set_offset_and_alignment (lob, size, alignment);
+                            set_offset_and_alignment (lob, size, alignment,
+                                                      (a_base_class_ptr)NULL);
     } else {
       bcp = ctsp->virtual_function_info_base_class;
 #if CHECKING
@@ -1771,6 +2250,7 @@ points to the layout block used to track the layout of the current class.
   db_exit();
 }  /* set_offset_for_virtual_function_info */
 
+#if !IA64_ABI
 
 static void pointer_offset_for_virtual_base_class(a_layout_block_ptr  lob,
                                                   a_base_class_ptr    bcp)
@@ -1798,7 +2278,8 @@ bcp.
      required. */
   adjust_alignment_for_packing(&alignment, lob->class_type);
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
-  bcp->pointer_offset = set_offset_and_alignment(lob, size, alignment);
+  bcp->pointer_offset = set_offset_and_alignment(lob, size, alignment,
+                                                 (a_base_class_ptr)NULL);
 #if DEBUG
   if (debug_level >= 4) {
     fputs("updated pointer offset for ", f_debug);
@@ -1807,6 +2288,8 @@ bcp.
 #endif /* DEBUG */
   db_exit();
 }  /* pointer_offset_for_virtual_base_class */
+
+#endif /* !IA64_ABI */
 
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
 
@@ -2052,6 +2535,8 @@ base classes, direct and indirect, and allocate pointers as needed for them.
 
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
 
+#if !IA64_ABI
+
 static void set_virtual_base_class_pointer_offsets(a_layout_block_ptr lob)
 /*
 Set the pointer_offset fields in direct virtual base classes where the pointer
@@ -2117,6 +2602,8 @@ is not shared (i.e., where the pointer from a base class is not used).
   }  /* if */
   db_exit();
 }  /* set_virtual_base_class_pointer_offsets */
+
+#endif /* !IA64_ABI */
 
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
 
@@ -2231,7 +2718,8 @@ designated).
         if (bcdp == NULL) {
           /* No virtual base classes on any of its derivations. */
           bcp->offset = set_offset_and_alignment(lob, bcp->type->size,
-                                                 bcp->type->alignment);
+                                                 bcp->type->alignment,
+                                                 (a_base_class_ptr)NULL);
 #if DEBUG
           if (debug_level >= 4) {
             fputs("updated offset for ", f_debug);
@@ -2348,6 +2836,70 @@ base class of class_type, and allocate space for the latter.
 
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
 
+#if IA64_ABI
+
+static void adjust_size_for_empty_bases(a_layout_block_ptr lob)
+/*
+There may be empty base classes that are located "off the end" of the
+class. Update lob->byte_offset to reflect the real end of the class.
+*/
+{
+  a_base_class_ptr bcp;
+
+  for (bcp = base_classes_of(lob->class_type); bcp != NULL; bcp = bcp->next) {
+    if (is_empty_class_type(bcp->type) && 
+        bcp->offset + bcp->type->size > lob->byte_offset) {
+      lob->byte_offset = bcp->offset + bcp->type->size;
+      lob->bit_offset = 0;
+    }  /* if */
+  }  /* for */
+}  /* adjust_size_for_empty_bases */
+
+#endif /* IA64_ABI */
+#if !CFRONT_OBJECT_CODE_COMPATIBILITY
+
+static void set_virtual_base_class_offset(a_layout_block_ptr lob,
+                                          a_base_class_ptr   bcp)
+/*
+Set bcp->offset.  The base class bcp must be a virtual base.
+*/
+{
+  a_targ_size_t      size;
+  a_targ_alignment   alignment;
+
+  check_assertion(bcp->is_virtual);
+  /* Record the current offset in the data_section_offset of the
+     virtual base class entry.  This allows for direct access of
+     its fields (rather than through a pointer) as an optimization
+     under certain circumstances. */
+#if IA64_ABI
+  if (targ_optimize_empty_base_class_layout && 
+      is_empty_class_type(bcp->type)) {
+    allocate_empty_base(lob, bcp);
+  } else 
+#endif /* IA64_ABI */
+  /* Do not add code here. */
+  {
+    size = bcp->type->variant.class_struct_union.extra_info->
+                                            size_without_virtual_base_classes;
+    alignment = bcp->type->variant.class_struct_union.extra_info->
+                                       alignment_without_virtual_base_classes;
+    bcp->offset = set_offset_and_alignment(lob, size, alignment, bcp);
+  }  /* if */
+#if IA64_ABI
+  /* Set the offsets for all of the non-virtual bases of this base. */
+  set_base_class_offsets(bcp);
+#endif /* IA64_ABI */
+#if DEBUG
+  if (debug_level >= 4) {
+    fputs("updated offset for ", f_debug);
+    db_base_class(bcp, /*show_offset=*/TRUE);
+  }  /* if */
+#endif /* DEBUG */
+}  /* set_virtual_base_class_offset */
+
+#endif /* !CFRONT_OBJECT_CODE_COMPATIBILITY */
+
 static void set_virtual_base_class_offsets(a_layout_block_ptr  lob)
 /*
 Reserve space at the end of the class object for virtual base classes.
@@ -2409,24 +2961,31 @@ Reserve space at the end of the class object for virtual base classes.
       /* Now add the virtual base classes to the storage.  This is done
          almost exactly as for nonvirtual base classes. */
       a_base_class_ptr   bcp;
-      a_targ_size_t      size;
-      a_targ_alignment   alignment;
 
-      for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
-        if (bcp->is_virtual) {
-          /* Allocate space for the virtual base class (not including any
-             virtual bases it may itself have). */
-          size = bcp->type->variant.class_struct_union.extra_info->
-                                             size_without_virtual_base_classes;
-          alignment = bcp->type->variant.class_struct_union.extra_info->
-                                        alignment_without_virtual_base_classes;
-          bcp->offset = set_offset_and_alignment(lob, size, alignment);
-#if DEBUG
-          if (debug_level >= 4) {
-            fputs("updated offset for ", f_debug);
-            db_base_class(bcp, /*show_offset=*/TRUE);
-          }  /* if */
-#endif /* DEBUG */
+      for (bcp = 
+#if !IA64_ABI
+                 ctsp->base_classes; 
+#else /* IA64_ABI */
+                 ctsp->preorder_base_classes;
+#endif /* IA64_ABI */
+           bcp != NULL; 
+           bcp = 
+#if !IA64_ABI
+                 bcp->next
+#else /* IA64_ABI */
+                 bcp->next_preorder
+#endif /* IA64_ABI */
+                                   ) {
+        if (bcp->is_virtual
+#if IA64_ABI
+            /* If the virtual base is primary, it will be allocated as part of
+               some other base. */
+            && !bcp->shares_virtual_function_info &&
+            /* Skip virtual bases that have already been processed. */
+            !bcp->offset_is_set
+#endif /* IA64_ABI */
+                                                    ) {
+          set_virtual_base_class_offset(lob, bcp);
         }  /* if */
       }  /* for */
     }  /* if */
@@ -2435,128 +2994,7 @@ Reserve space at the end of the class object for virtual base classes.
   db_exit();
 }  /* set_virtual_base_class_offsets */
 
-
-static void set_base_class_offsets(a_base_class_ptr  proximate_derivation)
-/*
-The offset of base class proximate_derivation has been computed, but the
-offsets of its own base classes have not.  The confusing part of this
-processing is that two different base class entries are involved.  First,
-the "most derived class" contains a list of all its base classes, direct
-and indirect.  But each class from which it is derived has its own base
-class list, too.  For example:
-
-          A    A       class B points to base class A (path ==>A)
-          |    |
-          B    C       class C points to base class A (path ==>A)
-           \  /
-             D         class D points to base classes B (path ==>B)
-                                                      A (path ==>B==>A)
-                                                      C (path ==>C)
-                                                      A (path ==>C==>A)
-
-Thus, while the base classes for D, the "most derived class", are
-represented by only 3 type entries (A, B, and C), there are 4 base class
-entries involved, since 2 are associated with class A.  As for offsets, B's
-"A" base class entry indicates the offset of the "A" data section within
-the block occupied by class "B" entities, whereas the two "A" base classes
-associated with class D should have offsets representing their locations
-within a "D" object.  Computing the offset of an indirect base class (e.g.,
-A) within a most derived class (e.g., D) requires adding the offset of the
-base class immediately derived from it (e.g., B) to its own offset within
-that class (e.g., A's offset within B); in other words, the D::A offset
-equals the D::B offset plus the B::A offset.
-
-The algorithm involves going through direct base classes of
-proximate_derivation (in this example "B in D" is the proximate_derivation,
-and it has only one direct base class of its own, namely, "A in B"),
-finding the corresponding base class entry in the most derived class (e.g.,
-finding the appropriate "A in D" -- the one whose path is ==>B==A), and
-setting the offset field in the latter.
-*/
-{
-  a_base_class_ptr  ref_bcp, bcp;
-
-  db_enter(4, "set_base_class_offsets");
-  /* Get the first "reference" base class of the root class, which is itself
-     a base class of the most derived class.  It is called a reference base
-     class because it contains an offset relative to the root base class.
-     It is the offset value relative to the most derived class that we need
-     to determine and record. */
-  ref_bcp = base_classes_of(proximate_derivation->type);
-#if DEBUG
-  if (debug_level >= 4) {
-    if (ref_bcp != NULL) {
-      fputs("setting offsets for base classes of:\n  ", f_debug);
-      db_base_class(proximate_derivation, /*show_offset=*/TRUE);
-    }  /* if */
-  }  /* if */
-#endif /* DEBUG */
-  /* Loop through the reference base classes, the direct base classes of
-     the proximate_derivation base class. */
-  for (; ref_bcp != NULL; ref_bcp = ref_bcp->next) {
-    if (ref_bcp->direct) {
-      bcp = corresponding_base_class(ref_bcp,
-                                     proximate_derivation->derived_class,
-                                     proximate_derivation);
-      if (!bcp->is_virtual) {
-        /* Nonvirtual base class. */
-        bcp->offset = proximate_derivation->offset + ref_bcp->offset;
-#if DEBUG
-        if (debug_level >= 4) {
-          fputs("reference base class ", f_debug);
-          db_base_class(ref_bcp, /*show_offset=*/TRUE);
-          fputs("new offset for ", f_debug);
-          db_base_class(bcp, /*show_offset=*/TRUE);
-        }  /* if */
-#endif /* DEBUG */
-#if CFRONT_OBJECT_CODE_COMPATIBILITY
-      } else {
-        /* Virtual base class. */
-        if (bcp->data_section_base_class == proximate_derivation) {
-          /* bcp is a virtual base class whose data section is embedded in
-             the data section of another base class data section.  Update
-             the offset. */
-          bcp->offset = proximate_derivation->offset + ref_bcp->offset;
-#if DEBUG
-          if (debug_level >= 4) {
-            fputs("reference base class ", f_debug);
-            db_base_class(ref_bcp, /*show_offset=*/TRUE);
-            fputs("new offset for ", f_debug);
-            db_base_class(bcp, /*show_offset=*/TRUE);
-          }  /* if */
-#endif /* DEBUG */
-        }  /* if */
-#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
-      }  /* if */
-      /* Make a recursive call to apply this processing to the next level of
-         base classes. */
-      set_base_class_offsets(bcp);
-#if CFRONT_OBJECT_CODE_COMPATIBILITY
-    } else if (ref_bcp->is_virtual) {
-      /* Virtual indirect base class. */
-      bcp = corresponding_base_class(ref_bcp,
-                                     proximate_derivation->derived_class,
-                                     (a_base_class_ptr)NULL);
-      if (bcp->data_section_base_class == proximate_derivation) {
-        /* bcp is a virtual base class whose data section is embedded in
-           the data section of another base class data section.  Update
-           the offset. */
-        bcp->offset = proximate_derivation->offset + ref_bcp->offset;
-#if DEBUG
-        if (debug_level >= 4) {
-          fputs("reference base class ", f_debug);
-          db_base_class(ref_bcp, /*show_offset=*/TRUE);
-          fputs("new offset for ", f_debug);
-          db_base_class(bcp, /*show_offset=*/TRUE);
-        }  /* if */
-#endif /* DEBUG */
-      }  /* if */
-#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
-    }  /* if */
-  }  /* for */
-  db_exit();
-}  /* set_base_class_offsets */
-
+#if !IA64_ABI
 
 static void set_offsets_for_indirect_base_classes(a_type_ptr  class_type)
 /*
@@ -2589,6 +3027,8 @@ addressed to indirect base classes.
   }  /* for */
   db_exit();
 }  /* set_offsets_for_indirect_base_classes */
+
+#endif /* !IA64_ABI */
 
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
 
@@ -2651,6 +3091,8 @@ classes.
 
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
 
+#if !IA64_ABI
+
 static void fixup_shared_virtual_base_class_offsets(a_type_ptr  class_type)
 /*
 Set the pointer_offset fields in direct virtual base classes where the
@@ -2691,6 +3133,7 @@ virtual base class pointer is shared with some other base class.
   db_exit();
 }  /* fixup_shared_virtual_base_class_offsets */
 
+#endif /* !IA64_ABI */
 
 static void check_base_class_offsets(a_layout_block *lob)
 /*
@@ -2729,11 +3172,32 @@ data members, virtual functions, virtual base classes or base classes with
 such things---and record the outcome in the type.
 */
 {
-  a_boolean  result;
+  a_boolean   result = TRUE;
+#if IA64_ABI
+  a_field_ptr field;
+#endif /* IA64_ABI */
 
-  if (type->variant.class_struct_union.field_list != NULL ||
-      type->variant.class_struct_union.any_virtual_base_classes ||
-      type->variant.class_struct_union.any_virtual_functions) {
+#if IA64_ABI
+  /* In the IA64 ABI, a zero-width bit field does not make a class 
+     non-empty. */
+  for (field = type->variant.class_struct_union.field_list;
+       field != NULL; 
+       field = field->next) {
+    if (!field->is_bit_field || field->bit_size != 0) {
+      result = FALSE;
+      break;
+    }  /* if */
+  }  /* for */
+#else /* !IA64_ABI */
+  /* In the Cfront-like ABI, any field makes the class non-empty. */
+  if (type->variant.class_struct_union.field_list != NULL) {
+    result = FALSE;
+  }  /* if */
+#endif /* IA64_ABI */
+  if (!result) {
+    /* The class is already known to be non-empty. */
+  } else if (type->variant.class_struct_union.any_virtual_base_classes ||
+             type->variant.class_struct_union.any_virtual_functions) {
     result = FALSE;
   } else {
     /* Also check that every base class is similarly empty
@@ -2753,6 +3217,56 @@ such things---and record the outcome in the type.
   type->variant.class_struct_union.is_empty_class = result;
 }  /* compute_empty_class_bit */
 
+#if IA64_ABI
+
+static void compute_primary_base_classes(a_type_ptr       class_type,
+                                         a_base_class_ptr bcp)
+/* 
+Set the primary_base_class for bcp and its bases.  The most derived type is
+class_type.  If bcp is NULL, do all of the bases of class_type.  The
+primary base class of class_type was already determined during class
+scanning (see set_virtual_function_info_base_class); this code
+propagates that decision into the base classes of class_type.
+*/
+{
+  a_type_ptr                  base_type;
+  a_class_type_supplement_ptr ctsp;
+  a_base_class_ptr            base_bcp, disambiguator, eff_bcp;
+
+  if (bcp != NULL) {
+    base_type = bcp->type;
+  } else {
+    base_type = class_type;
+  }  /* if */
+  ctsp = base_type->variant.class_struct_union.extra_info;
+  if (ctsp->primary_base_class != NULL) {
+    if (bcp != NULL) {
+      disambiguator = find_disambiguator(bcp, ctsp->primary_base_class);
+      eff_bcp = corresponding_base_class(ctsp->primary_base_class,
+                                         class_type, disambiguator);
+      if (!eff_bcp->offset_is_set) {
+        bcp->primary_base_class = eff_bcp;
+        eff_bcp->offset_is_set = TRUE;
+      }  /* if */
+    } else {
+      ctsp->primary_base_class->offset_is_set = TRUE;
+    }  /* if */
+  }  /* if */
+  for (base_bcp = base_classes_of(base_type); 
+       base_bcp != NULL; 
+       base_bcp = base_bcp->next) {
+    if (base_bcp->direct) {
+      if (bcp != NULL) {
+        eff_bcp = corresponding_base_class(base_bcp, class_type, bcp);
+      } else {
+        eff_bcp = base_bcp;
+      }  /* if */
+      compute_primary_base_classes(class_type, eff_bcp);
+    }  /* if */
+  }  /* for */
+}  /* compute_primary_base_classes */
+
+#endif /* IA64_ABI */
     
 void do_class_layout(a_type_ptr  class_type)
 /*
@@ -2785,18 +3299,46 @@ for handling virtual bases and functions.
   clear_layout_block(&lob, class_type);
   compute_empty_class_bit(class_type);
   if (C_dialect == C_dialect_cplusplus) {
+#if IA64_ABI
+    a_base_class_ptr            bcp;
+    a_class_type_supplement_ptr ctsp;
+    /* Identify all of the primary base classes. */
+    compute_primary_base_classes(class_type, (a_base_class_ptr)NULL);
+    /* Clear the offset_is_set flag which is used both by
+       compute_primary_base_classes and by other parts of the layout code. */
+    for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
+      bcp->offset_is_set = FALSE;
+    }  /* for */
+    ctsp = class_type->variant.class_struct_union.extra_info;
+    bcp = ctsp->primary_base_class;
+    if (bcp != NULL) {
+      /* If class_type shares virtual function table information with a base 
+         class, that base class comes first. */
+      if (bcp->is_virtual) {
+        set_virtual_base_class_offset(&lob, bcp);
+      } else {
+        set_offset_for_nonvirtual_base_class(&lob, bcp);
+      }  /* if */
+    } else {
+      /* If there is virtual function info, it comes first. */
+      set_offset_for_virtual_function_info(&lob);
+    }  /* if */
+#endif /* IA64_ABI */
     /* Reserve space in the current class for its nonvirtual base classes,
        which are located at the start of the object.  (Virtual base classes
        appear at the end.) */
     set_offsets_for_nonvirtual_base_classes(&lob);
+#if !IA64_ABI
     if (targ_optimize_empty_base_class_layout) {
       set_offsets_for_empty_nonvirtual_base_classes(&lob);
     }  /* if */
+#endif /* !IA64_ABI */
   }  /* if */
   /* Set offsets for nonstatic data members (fields) declared for the current
      class. */
   set_offsets_for_fields(&lob);
   if (C_dialect == C_dialect_cplusplus) {
+#if !IA64_ABI
     /* After the nonstatic data members allocate space for the virtual
        function info block (typically a pointer to the virtual function
        table. */
@@ -2804,14 +3346,17 @@ for handling virtual bases and functions.
     /* Next allocate space for pointers to the virtual base class data
        sections. */
     set_virtual_base_class_pointer_offsets(&lob);
+#endif /* !IA64_ABI */
     /* Finally, allocate space for the virtual base class data sections
        themselves. */
     set_virtual_base_class_offsets(&lob);
+#if !IA64_ABI
     /* Now verify if the last empty base really does overlap with a field,
        a virtual function info block or a pointer to a virtual base. */
     if (targ_optimize_empty_base_class_layout) {
       check_if_last_empty_base_is_optimized(&lob);
     }  /* if */
+#endif /* !IA64_ABI */
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   if (class_type->alignment_set_explicitly) {
@@ -2828,6 +3373,13 @@ for handling virtual bases and functions.
     }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if IA64_ABI
+  /* If there are empty bases "off the end" of the class, update the class
+     size now. */
+  if (C_dialect == C_dialect_cplusplus) {
+    adjust_size_for_empty_bases(&lob);
+  }  /* if */
+#endif /* IA64_ABI */
   /* Adjust the total size of the class to be consistent with the
      overall alignment required for the class. */
   if (!do_alignment(&lob.byte_offset, &lob.bit_offset, lob.alignment)) {
@@ -2837,6 +3389,7 @@ for handling virtual bases and functions.
     }  /* if */
   }  /* if */
   if (C_dialect == C_dialect_cplusplus) {
+#if !IA64_ABI
     /* Go through all the indirect base classes and compute their
        offsets within the current derived class. */
     set_offsets_for_indirect_base_classes(class_type);
@@ -2846,6 +3399,7 @@ for handling virtual bases and functions.
     fixup_shared_virtual_base_class_offsets(class_type);
     /* Issue a diagnostic if the offset assigned to any base class is too
        large. */
+#endif /* !IA64_ABI */
     check_base_class_offsets(&lob);
   }  /* if */
   /* Record the overall size and alignment in the class's type entry. */

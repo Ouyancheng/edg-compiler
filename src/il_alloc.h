@@ -55,6 +55,10 @@ extern a_derivation_step_ptr alloc_derivation_step(void);
 
 extern a_base_class_derivation_ptr alloc_base_class_derivation(void);
 
+#if DO_IL_LOWERING && IA64_ABI
+extern a_vcall_offset_entry_ptr alloc_vcall_offset_entry(void);
+#endif /* DO_IL_LOWERING && IA64_ABI */
+
 extern an_overriding_virtual_function_ptr
                                        alloc_overriding_virtual_function(void);
 

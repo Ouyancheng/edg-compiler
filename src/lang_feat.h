@@ -36,16 +36,6 @@ instead passed on to the back end verbatim.
 #endif /* ifndef ASM_FUNCTION_ALLOWED */
 
 /*
-Flag that is TRUE if assignment to "this" (a C++ anachronism) should
-be allowed.  This affects the source language accepted.  If assignment
-to "this" is allowed, the interface to and wrapper code within constructors
-and destructors may have to be changed.
-*/
-#ifndef ASSIGNMENT_TO_THIS_ALLOWED
-#define ASSIGNMENT_TO_THIS_ALLOWED TRUE
-#endif /* ifndef ASSIGNMENT_TO_THIS_ALLOWED */
-
-/*
 Flag that is TRUE to allow dollar signs ($) in identifiers.  This is the
 default value for the flag that can be modified by a command line
 option.

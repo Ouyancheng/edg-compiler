@@ -1289,11 +1289,16 @@ integer the same size as a pointer.
 			   targ_alignof_ptr_to_data_member. */
 #endif /* !defined(TARG_ALIGNOF_PTR_TO_DATA_MEMBER) */
 #ifndef TARG_SIZEOF_PTR_TO_MEMBER_FUNCTION
+#if IA64_ABI
+#define TARG_SIZEOF_PTR_TO_MEMBER_FUNCTION                            \
+ (TARG_SIZEOF_POINTER+TARG_SIZEOF_POINTER)
+#else /* !IA64_ABI */
 #define TARG_SIZEOF_PTR_TO_MEMBER_FUNCTION                            \
   ((((2*TARG_SIZEOF_SHORT+TARG_SIZEOF_POINTER-1)/TARG_ALIGNOF_POINTER)+1)* \
     TARG_ALIGNOF_POINTER)
 			/* Default value, used to initialize global variable
 			   targ_sizeof_ptr_to_member_function. */
+#endif /* IA64_ABI */
 #endif /* !defined(TARG_SIZEOF_PTR_TO_MEMBER_FUNCTION) */
 #ifndef TARG_ALIGNOF_PTR_TO_MEMBER_FUNCTION
 #define TARG_ALIGNOF_PTR_TO_MEMBER_FUNCTION TARG_ALIGNOF_POINTER
@@ -1313,8 +1318,13 @@ integer the same size as a pointer.
 			   targ_alignof_ptr_to_data_member. */
 #endif /* !defined(TARG_ALIGNOF_PTR_TO_DATA_MEMBER) */
 #ifndef TARG_SIZEOF_PTR_TO_MEMBER_FUNCTION
+#if IA64_ABI
+#define TARG_SIZEOF_PTR_TO_MEMBER_FUNCTION                            \
+          (TARG_SIZEOF_LONG+TARG_SIZEOF_LONG)
+#else /* !IA64_ABI */
 #define TARG_SIZEOF_PTR_TO_MEMBER_FUNCTION                            \
            (2*TARG_SIZEOF_SHORT+TARG_SIZEOF_LONG)
+#endif /* IA64_ABI */
 			/* Default value, used to initialize global variable
 			   targ_sizeof_ptr_to_member_function. */
 #endif /* !defined(TARG_SIZEOF_PTR_TO_MEMBER_FUNCTION) */
@@ -1459,9 +1469,68 @@ class is assigned a unique number which can (for instance) be used to
 define a virtual function table index value.
 */
 typedef unsigned short a_virtual_function_number;
+#ifndef MAX_VIRTUAL_FUNCTION_NUMBER
+#define MAX_VIRTUAL_FUNCTION_NUMBER USHRT_MAX
+#endif /* ifndef MAX_VIRTUAL_FUNCTION_NUMBER */
+
+/* The value of a_virtual_function_number that indicates that there is
+   no virtual function number, in the same way that NULL is the value
+   of a pointer that does not point anywhere.  */
+#if IA64_ABI
+#define VIRTUAL_FUNCTION_NUMBER_NONE \
+   MAX_VIRTUAL_FUNCTION_NUMBER /* Do not change this. */
+#else /* !IA64_ABI */
+#define VIRTUAL_FUNCTION_NUMBER_NONE 0 /* Do not change this. */
+#endif /* !IA64_ABI */
+
+/* The value of a_virtual_function_number assigned to the first
+   virtual function. */
+#if IA64_ABI
+#define FIRST_VIRTUAL_FUNCTION_NUMBER 0 /* Do not change this. */
+#else /* !IA64_ABI */
+#define FIRST_VIRTUAL_FUNCTION_NUMBER 1 /* Do not change this. */
+#endif /* !IA64_ABI */
+
+/* The largest virtual function number that can be assigned to a
+   virtual member function.  */
 #ifndef MAX_VIRTUAL_FUNCTIONS_PER_CLASS
-#define MAX_VIRTUAL_FUNCTIONS_PER_CLASS USHRT_MAX
+#if IA64_ABI
+#define MAX_VIRTUAL_FUNCTIONS_PER_CLASS (MAX_VIRTUAL_FUNCTION_NUMBER - 1)
+#else /* !IA64_ABI */
+#define MAX_VIRTUAL_FUNCTIONS_PER_CLASS MAX_VIRTUAL_FUNCTION_NUMBER
+#endif /* !IA64_ABI */
+#else /* ifndef MAX_VIRTUAL_FUNCTIONS_PER_CLASS */
+/* In previous versions of the front end, MAX_VIRTUAL_FUNCTIONS_PER_CLASS 
+   was a parameter that could be set by users.  Now,
+   MAX_VIRTUAL_FUNCTION_NUMBER should be set instead.  */
+ #error -- Must set MAX_VIRTUAL_FUNCTION_NUMBER instead.
 #endif /* ifndef MAX_VIRTUAL_FUNCTIONS_PER_CLASS */
+
+/* The type of an index into the virtual table. */
+#if IA64_ABI
+/* In the IA64 ABI, there are entries at negative vtable indices, so this type
+   must be signed. */
+typedef a_targ_ptrdiff_t a_virtual_table_index;
+#endif /* IA64_ABI */
+
+/*
+Flag that is TRUE if assignment to "this" (a C++ anachronism) should
+be allowed.  This affects the source language accepted.  If assignment
+to "this" is allowed, the interface to and wrapper code within constructors
+and destructors may have to be changed.
+*/
+#ifndef ASSIGNMENT_TO_THIS_ALLOWED
+#if IA64_ABI
+/* In the IA64 ABI, new cannot be folded into constructors, so assignment to
+   this is not supported. */
+#define ASSIGNMENT_TO_THIS_ALLOWED FALSE
+#else /* !IA64_ABI */
+#define ASSIGNMENT_TO_THIS_ALLOWED TRUE
+#endif /* IA64_ABI */
+#endif /* ifndef ASSIGNMENT_TO_THIS_ALLOWED */
+#if ASSIGNMENT_TO_THIS_ALLOWED && IA64_ABI
+ #error -- ASSIGNMENT_TO_THIS_ALLOWED and IA64_ABI cannot both be TRUE
+#endif /* ASSIGNMENT_TO_THIS_ALLOWED && IA64_ABI */
 
 /*
 Control over whether or not C++ "new" and "delete" operations are allowed
@@ -1474,7 +1543,11 @@ to be folded into the constructor or destructor if possible.
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
 #define NEW_CAN_BE_FOLDED_INTO_CTOR TRUE  /* cfront compatibility setting. */
 #else /* !CFRONT_OBJECT_CODE_COMPATIBILITY */
+#if IA64_ABI
+#define NEW_CAN_BE_FOLDED_INTO_CTOR FALSE /* Do not change this. */
+#else /* ! IA64_ABI */
 #define NEW_CAN_BE_FOLDED_INTO_CTOR TRUE  /* Can be changed. */
+#endif /* ! IA64_ABI */
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
 #endif /* !defined(NEW_CAN_BE_FOLDED_INTO_CTOR) */
 #ifndef DELETE_CAN_BE_FOLDED_INTO_DTOR
@@ -1493,6 +1566,10 @@ to be folded into the constructor or destructor if possible.
  #error -- DELETE_CAN_BE_FOLDED_INTO_DTOR may not be FALSE if \
            ASSIGNMENT_TO_THIS_ALLOWED is TRUE
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED ... */
+#if IA64_ABI && NEW_CAN_BE_FOLDED_INTO_CTOR 
+ #error -- NEW_CAN_BE_FOLDED_INTO_CTOR may not be TRUE if \
+           IA64_ABI is TRUE
+#endif /* IA64_ABI ... */
 
 /*
 Control over whether or not C++ "new" and "delete" operations for an array
@@ -1576,6 +1653,11 @@ supported.)
 #ifndef TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE
 #define TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE TRUE
 #endif /* ifndef TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE */
+
+#if IA64_ABI && !TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE
+ #error -- TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE FALSE is \
+           incompatible with IA64_ABI
+#endif /* IA64_ABI && ... */
 
 /*
 The minimum alignment required for class/struct/union objects in the target
@@ -1665,7 +1747,12 @@ base classes at the same offset as other subobjects.
  #error -- TARG_OPTIMIZE_EMPTY_BASE_CLASS_LAYOUT TRUE is incompatible \
            with ABI_COMPATIBILITY_VERSION <= 241
 #endif /* ABI_COMPATIBILITY_VERSION <= 242 */
-#endif /* TARG_OPTIMIZE_EMPTY_BASE_CLASS_LAYOUT */
+#else /* !TARG_OPTIMIZE_EMPTY_BASE_CLASS_LAYOUT */
+#if IA64_ABI
+ #error -- TARG_OPTIMIZE_EMPTY_BASE_CLASS_LAYOUT FALSE is incompatible \
+           with IA64_ABI
+#endif /* IA64_ABI */
+#endif /* !TARG_OPTIMIZE_EMPTY_BASE_CLASS_LAYOUT */
 
 /*
 A flag that is TRUE if an empty base that does not share its offset with
@@ -2254,6 +2341,9 @@ The typeinfo generated in that case is adequate for exception
 handling but not for RTTI.
 */
 #ifndef ABI_CHANGES_FOR_RTTI
+#if IA64_ABI
+#define ABI_CHANGES_FOR_RTTI TRUE /* Do not change this. */
+#else /* !IA64_ABI */
 /* This feature CAN be turned on when CFRONT_OBJECT_CODE_COMPATIBILITY is on,
    but that produces a cfront-like ABI rather than a cfront-compatible ABI. */
 #if ABI_COMPATIBILITY_VERSION <= 228 || CFRONT_OBJECT_CODE_COMPATIBILITY
@@ -2261,11 +2351,15 @@ handling but not for RTTI.
 #else /* ABI_COMPATIBILITY_VERSION > 228  && !CFRONT_... */
 #define ABI_CHANGES_FOR_RTTI TRUE  /* Versions after 2.28. */
 #endif /* ABI_COMPATIBILITY_VERSION <= 228 || CFRONT_... */
+#endif /* !IA64_ABI */
 #endif /* ifndef ABI_CHANGES_FOR_RTTI */
 #if ABI_CHANGES_FOR_RTTI && (ABI_COMPATIBILITY_VERSION <= 228)
  #error -- ABI_CHANGES_FOR_RTTI TRUE is incompatible with \
            ABI_COMPATIBILITY_VERSION <= 228
 #endif /* ABI_CHANGES_FOR_RTTI && (ABI_COMPATIBILITY_VERSION <= 228) */
+#if IA64_ABI && !ABI_CHANGES_FOR_RTTI
+ #error -- IA64_ABI requires ABI_CHANGES_FOR_RTTI
+#endif /* IA64_ABI && !ABI_CHANGES_FOR_RTTI */
 
 #if DO_IL_LOWERING && ABI_CHANGES_FOR_RTTI
 /*
@@ -2328,6 +2422,10 @@ this switch.
  #error -- ABI_CHANGES_FOR_PLACEMENT_DELETE TRUE is incompatible with \
            ABI_COMPATIBILITY_VERSION <= 233
 #endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE && ... */
+#if !ABI_CHANGES_FOR_PLACEMENT_DELETE && IA64_ABI
+ #error -- ABI_CHANGES_FOR_PLACEMENT_DELETE FALSE is incompatible with \
+           IA64_ABI
+#endif /* !ABI_CHANGES_FOR_PLACEMENT_DELETE && IA64_ABI */
 
 /*
 This switch controls whether or not ABI changes are made to support
@@ -2353,6 +2451,10 @@ errors will be issued when compiling programs using the feature).
            with ABI_COMPATIBILITY_VERSION <= 233
 #endif /* ABI_COMPATIBILITY_VERSION <= 233 */
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+#if IA64_ABI && !ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+ #error -- ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN FALSE is \
+           incompatible with IA64_ABI
+#endif /* IA64_ABI && !ABI_... */
 
 /*
 This switch controls whether or not ABI changes are made to fix problems
@@ -2414,9 +2516,16 @@ of the chosen copy.
 #if INSTANTIATE_EXTERN_INLINE
 #define LOWER_EXTERN_INLINE FALSE /* Do not change this. */
 #else /* !INSTANTIATE_EXTERN_INLINE */
+#if IA64_ABI
+#define LOWER_EXTERN_INLINE TRUE /* Do not change this. */
+#else /* !IA64_ABI */
 #define LOWER_EXTERN_INLINE TRUE /* You can change this. */
+#endif /* !IA64_ABI */
 #endif /* INSTANTIATE_EXTERN_INLINE */
 #endif /* ifndef LOWER_EXTERN_INLINE */
+#if IA64_ABI && !LOWER_EXTERN_INLINE
+ #error -- LOWER_EXTERN_INLINE FALSE is incompatible with IA64_ABI
+#endif /* IA64_ABI && !LOWER_EXTERN_INLINE */
 
 #if LOWER_EXTERN_INLINE && INSTANTIATE_EXTERN_INLINE
  #error -- extern inline functions cannot be instantiated when they are lowered
@@ -2430,12 +2539,20 @@ this switch is FALSE, but such code would not ordinarily be passed to
 a code generator.
 */
 #ifndef UNARY_PLUS_IN_IL
+#if IA64_ABI
+#define UNARY_PLUS_IN_IL FALSE /* Do not change this. */
+#else /* !IA64_ABI */
 #if BACK_END_IS_CP_GEN_BE
 #define UNARY_PLUS_IN_IL TRUE
 #else /* !BACK_END_IS_CP_GEN_BE */
 #define UNARY_PLUS_IN_IL FALSE
 #endif /* BACK_END_IS_CP_GEN_BE */
+#endif /* !IA64_ABI */
 #endif /* ifndef UNARY_PLUS_IN_IL */
+
+#if IA64_ABI && UNARY_PLUS_IN_IL
+ #error -- UNARY_PLUS_IN_IL is incompatible with IA64_ABI
+#endif /* IA64_ABI && UNARY_PLUS_IN_IL */
 
 /*
 Flag that is TRUE if variable length arrays (VLAs) are allowed.  A VLA is
@@ -2751,7 +2868,11 @@ TARG_SIZEOF_PTR_TO_MEMBER_FUNCTION, and possibly the related alignment
 macro as well.
 */
 #ifndef TARG_DELTA_INT_KIND
+#if IA64_ABI
+#define TARG_DELTA_INT_KIND targ_ptrdiff_t_int_kind
+#else /* !IA64_ABI */
 #define TARG_DELTA_INT_KIND ((an_integer_kind)ik_short)
+#endif /* !IA64_ABI */
 #endif /* ifndef TARG_DELTA_INT_KIND */
 
 /*

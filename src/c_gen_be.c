@@ -2489,6 +2489,26 @@ which has a declared size that is larger than its base type.
 }  /* dump_bit_field_padding */
 
 
+static a_targ_size_t offset_after_field(a_field_ptr field)
+/*
+Return the byte offset following the end of the indicated field.
+*/
+{
+  a_targ_size_t offset_after;
+
+  if (!field->is_bit_field) {
+    offset_after = field->offset + skip_typerefs(field->type)->size;
+  } else {
+    /* Bit field. */
+    offset_after = field->offset + (targ_char_bit - 1 + 
+                                    field->declared_bit_size +
+                                    field->offset_bit_remainder) /
+                                                                 targ_char_bit;
+  }  /* if */
+  return offset_after;
+}  /* offset_after_field */
+
+
 static void dump_struct_union_definition(a_type_ptr type,
                                          a_boolean  output_final_semi)
 /*
@@ -2496,7 +2516,7 @@ Output the definition of the indicated struct or union type.  Output the
 final semicolon if output_final_semi is TRUE.
 */
 {
-  a_field_ptr field;
+  a_field_ptr field, last_field = NULL;
   a_boolean   union_alignment_needed = FALSE;
 
   if (start_unreferenced_bracket(&type->source_corresp)) {
@@ -2677,6 +2697,14 @@ final semicolon if output_final_semi is TRUE.
         end_comment();
         write_space();
       }  /* if */
+      if (type->kind != (a_type_kind)tk_union || last_field == NULL) {
+        last_field = field;
+      } else {
+        /* For a union, remember the biggest field. */
+        if (offset_after_field(last_field) < offset_after_field(field)) {
+          last_field = field;
+        }  /* if */
+      }  /* if */
     }  /* for */
     if (union_alignment_needed) {
       /* Put out extra fields to force alignment for the struct when
@@ -2713,13 +2741,23 @@ final semicolon if output_final_semi is TRUE.
         }  /* if */
       }  /* for */
     }  /* if */
-    if (next_initializable_field(type->variant.class_struct_union.field_list)==
-                                                                        NULL) {
-      /* Avoid a zero-sized struct for the bizarre case "struct {int :0;}"
-         (which is undefined behavior) and for fieldless classes from C++
-         passed through IL lowering. */
-      write_tok_str("char __dummy;");
-    }  /* if */
+    {
+      /* Some padding may be required to account for empty bases or for a
+         completely empty class (in C++). */
+      a_targ_size_t padding;
+      if (last_field == NULL) {
+        padding = type->size;
+      } else {
+        padding = type->size - offset_after_field(last_field);
+      }  /* if */
+      if (padding == 1) {
+        write_tok_str("char __dummy;");
+      } else if (padding != 0) {
+        write_tok_str("char __dummy[");
+        write_unsigned_num((a_host_large_unsigned)padding);
+        write_tok_str("];");
+      }  /* if */
+    }
     indent -= 2;
     write_tok_ch('}');
 #if GNU_EXTENSIONS_ALLOWED

@@ -869,6 +869,25 @@ to it.
   return bcdp;
 }  /* alloc_base_class_derivation */
 
+#if DO_IL_LOWERING && IA64_ABI
+
+a_vcall_offset_entry_ptr alloc_vcall_offset_entry(void)
+/*
+Allocate a vcall offset entry, initialize its fields, and return a pointer to
+it.
+*/
+{
+  a_vcall_offset_entry_ptr voep;
+
+  voep = (a_vcall_offset_entry_ptr)alloc_il(sizeof(a_vcall_offset_entry));
+  voep->next               = NULL;
+  voep->routine            = NULL;
+  voep->vcall_offset_index = 0;
+
+  return voep;
+}  /* alloc_vcall_offset_entry */
+
+#endif /* DO_IL_LOWERING && IA64_ABI */
 
 an_overriding_virtual_function_ptr alloc_overriding_virtual_function(void)
 /*
@@ -997,6 +1016,10 @@ to it.
   num_base_classes_allocated++;
 #endif /* DEBUG */
   bcp->next                            = NULL;
+#if IA64_ABI
+  bcp->next_preorder                   = NULL;
+  bcp->primary_base_class              = NULL;
+#endif /* IA64_ABI */
   bcp->type                            = NULL;
   bcp->derived_class                   = NULL;
   bcp->trans_unit_corresp              = NULL;
@@ -1010,10 +1033,15 @@ to it.
   bcp->shares_virtual_function_info    = FALSE;
   bcp->ignore_during_dependent_lookup  = FALSE;
   bcp->is_optimized_empty_base         = FALSE;
+#if IA64_ABI
+  bcp->offset_is_set                   = FALSE;
+#endif /* IA64_ABI */
   bcp->direct_base_number	       = 0;
   bcp->offset                          = 0;
+#if !IA64_ABI
   bcp->pointer_offset                  = 0;
   bcp->pointer_base_class              = NULL;
+#endif /* !IA64_ABI */
   bcp->derivation                      = NULL;
   bcp->overriding_virtual_functions    = NULL;
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
@@ -1022,12 +1050,21 @@ to it.
   bcp->data_section_base_class         = NULL;
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
 #if DO_IL_LOWERING
+/* FIXME -- conditional !IA64_ABI */
   bcp->virtual_function_table_var      = NULL;
+#if IA64_ABI
+  bcp->virtual_function_table_offset   = -1;
+#endif /* IA64_ABI */
 #if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
   bcp->index_in_construction_vtbl_array = 0;
   bcp->base_subarray_index_in_construction_vtbl_array = 0;
+#if !IA64_ABI
   bcp->base_construction_vtbls         = NULL;
+#endif /* !IA64_ABI */
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
+#if IA64_ABI
+  bcp->vbase_offset_index              = 0;
+#endif /* IA64_ABI */
 #endif /* DO_IL_LOWERING */
 #if CHECKING
   bcp->avoid_codecenter_warnings       = 0;
@@ -1120,9 +1157,20 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
 */
 {
   ctsp->base_classes                      = NULL;
+#if IA64_ABI
+  ctsp->preorder_base_classes             = NULL;
+  ctsp->primary_base_class                = NULL;
+#endif /* IA64_ABI */
   ctsp->size_without_virtual_base_classes = 0;
   ctsp->alignment_without_virtual_base_classes = 1;
-  ctsp->highest_virtual_function_number   = 0;
+  ctsp->highest_virtual_function_number   = VIRTUAL_FUNCTION_NUMBER_NONE;
+#if DO_IL_LOWERING && IA64_ABI
+  /* There are always two entries below the address point of the virtual
+     table: the offset-to-top and RTTI information. */
+  ctsp->next_negative_virtual_table_index = -3;
+  ctsp->first_vcall_offset_index          = 0;
+  ctsp->vcall_offsets                     = NULL;
+#endif /* DO_IL_LOWERING && IA64_ABI */
   ctsp->virtual_function_info_offset      = 0;
   ctsp->virtual_function_info_base_class  = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -1159,6 +1207,9 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
 #endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
 #if DO_IL_LOWERING
   ctsp->virtual_function_table_var        = NULL;
+#if IA64_ABI
+  ctsp->virtual_table_table_var           = NULL;
+#endif /* IA64_ABI */
   ctsp->type_as_subobject                 = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   ctsp->uuid_variable                     = NULL;
@@ -1672,6 +1723,9 @@ to it.
   vp->section                     = NULL;
   vp->aliased_variable            = NULL;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if DO_IL_LOWERING && IA64_ABI
+  vp->comdat_group                = NULL;
+#endif /* DO_IL_LOWERING && IA64_ABI */
 #ifdef CIL
   vp->referenced_non_locally      = FALSE;
   vp->modified_within_try_block   = FALSE;
@@ -1754,6 +1808,9 @@ to it.
   fp->alignment            = 0;
   fp->is_packed            = 0;
 #endif /* GNU_EXTENSIONS_ALLOWED && USER_CONTROL_OF_STRUCT_PACKING */
+#if IA64_ABI
+  fp->offset_is_set        = FALSE;
+#endif /* IA64_ABI */
   fp->is_bit_field         = FALSE;
   fp->bit_field_is_signed  = FALSE;
   fp->is_anonymous_parent_object = FALSE;
@@ -1929,13 +1986,19 @@ to it.  The entry is allocated in the file scope memory region.
 #if GNU_EXTENSIONS_ALLOWED
   rp->contains_statement_expression = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if DO_IL_LOWERING && IA64_ABI
+  rp->inline_in_class_definition  = FALSE;
+  rp->vcall_offset_index_set      = FALSE;
+  rp->use_comdat                  = FALSE;
+  rp->ctor_dtor_kind              = (a_ctor_or_dtor_kind)cdk_none;
+#endif /* DO_IL_LOWERING && IA64_ABI */
 #if CHECKING
   rp->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */
 #if DECL_MODIFIERS_IN_USE
   rp->decl_modifiers              = DM_NONE;
 #endif /* DECL_MODIFIERS_IN_USE */
-  rp->virtual_function_number     = 0;
+  rp->virtual_function_number     = VIRTUAL_FUNCTION_NUMBER_NONE;
   rp->befriending_classes         = NULL;
   rp->template_arg_list           = NULL;
   rp->assoc_template              = NULL;
@@ -1950,6 +2013,12 @@ to it.  The entry is allocated in the file scope memory region.
 #if DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
   rp->overriding_function_for_covariant_return_type = NULL;
   rp->overridden_function_for_covariant_return_type = NULL;
+#if IA64_ABI
+  rp->delta                       = 0;
+  rp->vcall_index                 = 0;
+  rp->return_delta                = 0;
+  rp->vbase_index                 = 0;
+#endif /* IA64_ABI */
 #endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 #if ONE_INSTANTIATION_PER_OBJECT
   rp->instantiation_needed_bit_number = 0;
