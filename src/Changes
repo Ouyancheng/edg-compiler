@@ -1,5 +1,13 @@
 Version 2.44
 
+7/3/00   C++-generating back end: MSVC++ bug workarounds controlled by
+         msvc_is_generated_code_target
+
+Several workarounds for MSVC++ bugs in the C++-generating back end are
+now controlled by the msvc_is_generated_code_target switch instead of the
+microsoft_mode switch.  The latter is really related more to the source
+language rather than to the capabilities of the target compiler.
+
 6/28/00  Microsoft compatibility: bit-field cast to similar type gets error
 
 In Microsoft C++ compatibility mode, a bit field selection cast to a

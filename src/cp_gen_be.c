@@ -2167,7 +2167,7 @@ initialized is not a reference.
     gen_dynamic_init(constant->variant.dynamic_init, type,
                      /*parenthesized_init=*/FALSE,
                      /*force_parens=*/FALSE);
-  } else if ((!microsoft_mode || microsoft_version >= 1100) &&
+  } else if ((!msvc_is_generated_code_target || microsoft_version >= 1100) &&
              constant->kind == (a_constant_repr_kind)ck_ptr_to_member &&
              pm_cast_is_unambiguous(constant)) {
     /* A pointer-to-member constant cast to a derived class where there
@@ -2689,7 +2689,8 @@ suppress_def_args is TRUE if default arguments should be suppressed
                                      iek_variable);
           param_var = param_var->next;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        } else if (microsoft_mode && is_function_type(param->type)) {
+        } else if (msvc_is_generated_code_target &&
+                   is_function_type(param->type)) {
           /* MSVC++ 6.0 does not correctly parse a function-typed parameter
              if the parameter name is omitted, e.g.,
                void foo(void  (void*));  // gets error
@@ -3836,7 +3837,7 @@ this one is such a continuation.
                                                  extra_info->template_arg_list;
       adjust_namespace_state_for_specialization(&type->source_corresp,
                                                 &common_scope, &orig_scope);
-      if (microsoft_mode) {
+      if (msvc_is_generated_code_target) {
         /* Avoid a bug in the Microsoft VC++ 5.0 compiler on uses of
            template class arguments in a specialization argument list. */
         if (gen_typedefs_for_template_classes_in_specialization_arg_list(
@@ -5022,7 +5023,7 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
         suppress_this = TRUE;
       }  /* if */
     }  /* if */
-    if (!microsoft_mode || microsoft_version != 1000) {
+    if (!msvc_is_generated_code_target || microsoft_version != 1000) {
       /* Now that we've done all the work, suppress "this->" only in
          Microsoft version 4.2 mode, where it's needed to get around some
          bugs.  Otherwise, it doesn't seem to add much. */
@@ -7297,7 +7298,7 @@ is a condition variable if is_condition is TRUE.
   if (var->source_corresp.is_class_member &&
       init_kind == (an_init_kind)initk_dynamic &&
       initializer->dynamic->kind == (a_dynamic_init_kind)dik_constructor &&
-      !microsoft_mode) {
+      !msvc_is_generated_code_target) {
     /* cfront has a bug in initialization of static data members that are
        classes with constructors: it fails to activate the member names for
        the class.  For example:
@@ -8048,7 +8049,7 @@ TRUE if the declaration following this one is such a continuation.
       }  /* if */
     }  /* if */
   }  /* if */
-  if (microsoft_mode && decl_within_class) {
+  if (msvc_is_generated_code_target && decl_within_class) {
     /* Avoid a bug in the Microsoft VC++ 5.0 compiler on uses of
        template arguments in a default argument. */
     if (gen_typedefs_for_template_classes_in_default_arguments(
