@@ -3238,7 +3238,7 @@ Display the indicated class type supplement entry.
   if (ptr->assoc_scope != NULL) {
     /* The associated type does have a definition. */
     a_type_ptr  class_type = ptr->assoc_scope->variant.assoc_type;
-    if (class_type != NULL && class_type->kind != orig_type_kind) {
+    if (class_type != NULL && class_type->kind != ptr->orig_type_kind) {
       disp_name("orig_type_kind");
       switch (ptr->orig_type_kind) {
         case tk_struct:  (void)printf("struct\n"); break;
