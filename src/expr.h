@@ -80,9 +80,8 @@ typedef struct an_argument_match_summary {
 
 extern a_boolean node_has_side_effects(an_expr_node_ptr node);
 
-extern a_boolean scan_ctor_arguments(a_symbol_ptr     constructor_sym,
-                                     a_routine_ptr    *constr_rout,
-                                     an_expr_node_ptr *arg_expr_list);
+extern a_symbol_ptr scan_ctor_arguments(a_symbol_ptr     constructor_sym,
+                                        an_expr_node_ptr *arg_expr_list);
 
 extern an_expr_node_ptr scan_expression(a_boolean *err);
 
@@ -108,10 +107,9 @@ extern void scan_initializer_expression
 
 extern an_expr_node_ptr scan_argument_expression(void);
 
-extern a_boolean select_constructor(a_symbol_ptr      constructor_sym,
-                                    a_routine_ptr     *constr_rout,
-                                    an_expr_node_ptr  *arg_expr_list,
-                                    a_source_position *err_pos);
+extern a_symbol_ptr select_constructor(a_symbol_ptr      constructor_sym,
+                                       an_expr_node_ptr  *arg_expr_list,
+                                       a_source_position *err_pos);
 
 extern an_expr_node_ptr scan_boolean_controlling_expression(a_boolean *err);
 
