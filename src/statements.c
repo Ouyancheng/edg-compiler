@@ -5490,6 +5490,10 @@ Scan a case label definition.  The syntax is:
         /* Record the original constant as the expression the converted
            constant came from. */
         expr = alloc_node_for_constant(&constant);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        expr->expr_range.start = label_position;
+        expr->expr_range.end   = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       }  /* if */
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
       type_change_constant(&constant, sssep->switch_selector_type,
