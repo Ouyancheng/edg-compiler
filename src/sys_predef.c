@@ -1251,14 +1251,14 @@ Enter the standard predeclared functions for GCC.
   enter_gnu_builtin_function((a_builtin_function_kind)bfk_frexpf,
 			     floating_type,
 			     floating_type,
-			     int_type,
+			     make_pointer_type(int_type),
 			     (a_type_ptr)NULL,
 			     (a_type_ptr)NULL,
 			     /*is_varargs=*/FALSE);
   enter_gnu_builtin_function((a_builtin_function_kind)bfk_frexpl,
 			     long_double_type,
 			     long_double_type,
-			     int_type,
+			     make_pointer_type(int_type),
 			     (a_type_ptr)NULL,
 			     (a_type_ptr)NULL,
 			     /*is_varargs=*/FALSE);
