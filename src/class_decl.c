@@ -3011,6 +3011,15 @@ routine entry and return TRUE; otherwise return FALSE.
                  Set a flag, since some extra processing may be needed
                  later. */
               rout->covariant_return_virtual_override = TRUE;
+#if IA64_ABI
+              /* If the adjustment will always be trivial, reuse the
+                 virtual function slot from the base class. */
+              if (shares_virtual_function_info(class_type, bcp) &&
+                  return_adjustment_bcp->offset == 0 &&
+                  !any_virtual_steps_in_derivation(return_adjustment_bcp)) {
+                virtual_function_number = rp->virtual_function_number;
+              }  /* if */
+#endif /* IA64_ABI */
             } else if (shares_virtual_function_info(class_type, bcp)) {
               /* The virtual function table is being shared and there
                  is no base-class adjustment on the return type, so we
