@@ -210,10 +210,6 @@ extern a_type_ptr void_type(void);
 extern a_type_ptr ptr_to_member_type(a_type_ptr  member_type,
                                      a_type_ptr  class_type);
 
-extern a_type_ptr get_based_type(a_type_ptr        base_type,
-                                 a_based_type_kind kind,
-                                 a_type_ptr        class_type);
-
 extern void add_based_type_list_member(a_type_ptr        base_type,
                                        a_based_type_kind kind,
                                        a_type_ptr        based_type);
