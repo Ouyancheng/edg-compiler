@@ -4111,12 +4111,11 @@ translation unit correspondence pointer if one is found.
 }  /* find_namespace_correspondence */
 
 
-static a_boolean tag_conflicts_with_type(a_symbol_ptr  tag_sym,
-                                         a_symbol_ptr  sym)
+static a_boolean type_conflicts_with_tag(a_symbol_ptr  sym)
 /*
-tag_sym is a symbol for a tag type and sym is a symbol for an entity of the
-same name in the same scope (though not necessarily a type entity).  Return
-TRUE if sym represents a type that conflicts with tag_sym.
+sym is a symbol for an entity (not necessarily a type) of the same name and in
+the same scope as a tag.  Return TRUE if sym represents a type that conflicts
+with the tag of the same name.
 */
 {
   a_boolean  result = FALSE;
@@ -4129,7 +4128,7 @@ TRUE if sym represents a type that conflicts with tag_sym.
     result = may_have_correspondence(sym);
   }  /* if */
   return result;
-}  /* tag_conflicts_with_type */
+}  /* type_conflicts_with_tag */
 
 
 static void find_type_correspondence(a_type_ptr  type,
@@ -4192,11 +4191,11 @@ entities.
           /* A conflict, but errors are reported elsewhere for class
              members. */
         } else if ((is_tag_symbol(type_sym) &&
-                    !(tag_conflicts_with_type(type_sym, sym) ||
+                    !(type_conflicts_with_tag(sym) ||
                       is_namespace_symbol(sym) ||
                       symbol_is_or_contains_template(sym))) ||
                    (is_tag_symbol(sym) &&
-                    !tag_conflicts_with_type(sym, type_sym))) {
+                    !type_conflicts_with_tag(type_sym))) {
           /* Tag names have their own name space. */
         } else {
           f_report_bad_trans_unit_corresp((char*)type, &sym->decl_position);
