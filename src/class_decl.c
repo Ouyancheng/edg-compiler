@@ -4324,20 +4324,27 @@ virtual base class pointer is shared with some other base class.
                                   class_struct_union.extra_info->base_classes;
        virtual_base_class != NULL;
        virtual_base_class = virtual_base_class->next) {
-    if (virtual_base_class->is_virtual && virtual_base_class->direct) {
-      /* If the pointer_base_class field is non-NULL, the virtual base class
-         pointer for the derived class is the same as the pointer to the
-         corresponding virtual base class for pointer_base_class. */
-      pointer_base_class = virtual_base_class->pointer_base_class;
-      if (pointer_base_class != NULL) {
-        /* Look for the corresponding virtual base class. */
-        bcp = corresponding_base_class(virtual_base_class, class_type,
-                                       pointer_base_class->type);
-        /* The pointer_offset value in the context of the derived class
-           is the offset of the pointer base class plus the offset of the
-           virtual base class pointer within the latter. */
-        virtual_base_class->pointer_offset = bcp->pointer_offset +
+    if (virtual_base_class->is_virtual) {
+      if (virtual_base_class->direct) {
+        /* If the pointer_base_class field is non-NULL, the virtual base class
+           pointer for the derived class is the same as the pointer to the
+           corresponding virtual base class for pointer_base_class. */
+        pointer_base_class = virtual_base_class->pointer_base_class;
+        if (pointer_base_class != NULL) {
+          /* Look for the corresponding virtual base class. */
+          bcp = corresponding_base_class(virtual_base_class, class_type,
+                                         pointer_base_class->type);
+          /* The pointer_offset value in the context of the derived class
+             is the offset of the pointer base class plus the offset of the
+             virtual base class pointer within the latter. */
+          virtual_base_class->pointer_offset = bcp->pointer_offset +
                                                     pointer_base_class->offset;
+        }  /* if */
+      } else {
+        /* Pointer base class is defined only for direct virtual base classes,
+           but it may have been set tentatively before we knew it was not a
+           direct base class. */
+        virtual_base_class->pointer_base_class = NULL;
       }  /* if */
 #if CFRONT_CLASS_LAYOUT_COMPATIBILITY
       set_embedded_virtual_base_class_offset(virtual_base_class, class_type);
