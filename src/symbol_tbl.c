@@ -8211,7 +8211,11 @@ type, that type is ignored by this routine.
   }  /* if */
   if (type_2 != NULL && is_class_struct_union_type(type_2)) {
     type_2 = skip_typerefs(type_2);
-    nlep_2 = symbol_supplement_for_class(type_2)->operator_lookup_namespaces;
+    if (type_2 != type_1) {
+      /* If the two types are the same, we don't need to bother looking
+         though the same list twice. */
+      nlep_2 = symbol_supplement_for_class(type_2)->operator_lookup_namespaces;
+    }  /* if */
   }  /* if */
   /* See if there are any functions for this operator. */
   sym_hdr = opname_symbol_table[kind];
