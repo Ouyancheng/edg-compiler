@@ -3810,6 +3810,16 @@ or struct definition.  The syntax is
     fputc('\n', f_debug);
   }  /* if */
 #endif /* DEBUG */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  {
+  /* Save the current instantiation insert point -- it may be cleared and
+     will need to be restored to its current value. */
+  a_source_sequence_entry_ptr  saved_insert_point =
+                                        scope_stack[DEPTH_OF_FILE_SCOPE].
+                                          ss_list_instantiation_insert_point;
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (type_ptr->kind == (a_type_kind)tk_union) {
     /* Unions cannot have base classes.  Issue an error, but go ahead and scan
        the base class specifiers (without updating the type supplement). */
@@ -4359,6 +4369,10 @@ skip_base_class:
 #endif /* DEBUG */
     }  /* if */
   }  /* if */
+  /* Restore the instantiation insert point, in case it was modified. */
+  scope_stack[DEPTH_OF_FILE_SCOPE].ss_list_instantiation_insert_point =
+                                                          saved_insert_point;
+  }
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if DEBUG
