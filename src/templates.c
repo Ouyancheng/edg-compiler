@@ -2557,12 +2557,17 @@ user later during real instantiations.
   a_template_symbol_supplement_ptr  tssp;
   a_template_cache_ptr		    tcp;
   a_func_info_block		    *func_info_ptr;
+  a_template_instance_ptr	    tip;
 
   db_enter(3, "function_prototype_instantiation");
   tssp = template_supplement_for_symbol(template_sym);
   rout_ptr = tssp->variant.function.routine;
   rout_sym = (a_symbol_ptr)rout_ptr->source_corresp.assoc_info;
   check_assertion(rout_sym != NULL);
+  /* Set the referencing namespace for the prototype instantiation. */
+  tip = rout_sym->variant.routine.instance_ptr;
+  check_assertion(tip != NULL);
+  tip->referencing_namespace = parent_namespace_for_symbol(rout_sym);
   if (rout_ptr->assoc_scope != NULL_region_number) {
     /* The routine is already defined (a duplicate definition error should
        have already been issued). */
@@ -2712,12 +2717,17 @@ user later during real instantiations.
   a_template_symbol_supplement_ptr  tssp;
   a_variable_ptr		    var_ptr;
   a_template_cache_ptr		    tcp;
+  a_template_instance_ptr	    tip;
 
   db_enter(3, "static_data_member_prototype_instantiation");
   var_ptr = template_sym->variant.static_data_member.variable;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   var_ptr->declared_type = var_ptr->type;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  /* Set the referencing namespace for the prototype instantiation. */
+  tip = template_sym->variant.static_data_member.instance_ptr;
+  check_assertion(tip != NULL);
+  tip->referencing_namespace = parent_namespace_for_symbol(template_sym);
   tssp = template_sym->variant.static_data_member.instance_ptr->template_info;
   /* If the type of the static data member is a template class, make sure
      it is instantiated. */
