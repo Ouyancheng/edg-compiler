@@ -2955,7 +2955,7 @@ normal_comment:
             do {} while ((ch = *(++curr_char_loc)) == ' ' || ch == '\t');
           }  /* if */
           if (ch == 'N' && curr_char_loc[1] == 'O' &&
-              strncmp(curr_char_loc+2, "TREACHED", 8) == 0 &&
+              strncmp(curr_char_loc+2, "TREACHED", size_t_arg(8)) == 0 &&
               !isalpha((unsigned char)curr_char_loc[10])) {
             /* The special lint comment "notreached" (in caps), asserting that
                the code following is unreachable. */
@@ -2967,7 +2967,7 @@ normal_comment:
             lint_notreached_flag = TRUE;
             curr_char_loc += 10;
           } else if (ch == 'A' && curr_char_loc[1] == 'R' &&
-                     strncmp(curr_char_loc+2, "GSUSED", 6) == 0 &&
+                     strncmp(curr_char_loc+2, "GSUSED", size_t_arg(6)) == 0 &&
                      !isalpha((unsigned char)curr_char_loc[8])) {
             /* The special lint comment "argsused" (in caps), asserting that
                the arguments of the function following are all used (or more
@@ -2980,7 +2980,7 @@ normal_comment:
             lint_argsused_flag = TRUE;
             curr_char_loc += 8;
           } else if (ch == 'V' && curr_char_loc[1] == 'A' &&
-                     strncmp(curr_char_loc+2, "RARGS", 5) == 0 &&
+                     strncmp(curr_char_loc+2, "RARGS", size_t_arg(5)) == 0 &&
                      !isalpha((unsigned char)curr_char_loc[7])) {
             /* The special lint comment "varargs" (in caps), asserting that
                the function following takes a variable number of arguments.
@@ -6152,7 +6152,7 @@ of the front end.
     }  /* if */
   }  /* for */
   /* Compute opname_names from opname_kind_for_token and token_names. */
-  memzero((char *)opname_names, (int)sizeof(opname_names));
+  (void)memzero((char *)opname_names, sizeof(opname_names));
   { int  tok_kind, opname_kind;
     char *str;
 
