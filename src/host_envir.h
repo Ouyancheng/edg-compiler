@@ -48,7 +48,7 @@ alignment, or the front end is powerless to provide the requested
 alignment.
 */
 #ifndef HOST_ALIGNMENT_REQUIRED
-#define HOST_ALIGNMENT_REQUIRED 4
+#define HOST_ALIGNMENT_REQUIRED 8
 #endif /* ifndef HOST_ALIGNMENT_REQUIRED */
 
 /*
