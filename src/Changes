@@ -1,5 +1,12 @@
 Version 3.1
 
+7/16/02  Bug fix in mangled name truncation
+
+The code to do truncation of mangled names to ensure that they
+do not exceed a maximum length (given by DEFAULT_MAX_MANGLED_NAME_LENGTH)
+did not work correctly for names that are already within 10 characters
+of the maximum length.  Now fixed.
+
 7/15/02  GNU compatibility: Excess aggregate initializers
 
 In GNU mode, the front end already ignores excess array initializers

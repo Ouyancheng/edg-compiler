@@ -4259,12 +4259,12 @@ cannot be demangled.  scp, if non-NULL, points to the source
 correspondence entry for the entity whose name this is.
 */
 {
-  /* The suffix is of the form "__abcdabcd", i.e., one needs 10 characters
-     for it. */
-  sizeof_t max_allowed_length = max_mangled_name_length - 10;
-
-  if (max_mangled_name_length != 0 && mctl->length-1 > max_allowed_length) {
+  if (max_mangled_name_length != 0 &&
+      mctl->length-1 > max_mangled_name_length) {
     /* The name must be truncated. */
+    /* The suffix is of the form "__abcdabcd", i.e., one needs 10 characters
+       for it. */
+    sizeof_t max_allowed_length = max_mangled_name_length - 10;
     (void)sprintf(mangled_name+max_allowed_length, "__%08lx",
                   crc_32(mangled_name, (unsigned long)0));
     mctl->length = max_mangled_name_length+1;
