@@ -1335,7 +1335,7 @@ is a that of a constructor.
 }  /* is_constructor_decl */
 
 
-#if MICROSOFT_KEYWORDS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
 static
 a_decl_modifier scan_microsoft_extended_decl_modifiers(a_boolean *err)
 /*
@@ -1394,7 +1394,7 @@ keyword.
   }  /* if */
   return modifiers;
 }  /* scan_microsoft_extended_decl_modifiers */
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
 /* Enumerations used by decl_specifiers for its internal processing and
@@ -1870,7 +1870,7 @@ keywords.
 The syntax for the Microsoft extensions does not exactly match the syntax
 described in the Microsoft documentation.  It does, however, match the
 observed behavior of the Microsoft compiler.  The additional type
-qualifiers are only recognized when MICROSOFT_KEYWORDS_ALLOWED is TRUE.
+qualifiers are only recognized when MICROSOFT_EXTENSIONS_ALLOWED is TRUE.
 The additional storage class specifiers are recognized anywhere that
 storage classes are normally allowed.
 
@@ -2054,7 +2054,7 @@ Returns TRUE if there is an error in the specifiers.
         }  /* if */
         break;
 #endif /* ASM_FUNCTION_ALLOWED */
-#if MICROSOFT_KEYWORDS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
       case tok_microsoft_inline:
       case tok_declspec:
         /* A Microsoft specific storage class.  Note that Microsoft
@@ -2091,7 +2091,7 @@ Returns TRUE if there is an error in the specifiers.
           }  /* if */
         }
         break;
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case tok_const:
         /* const type qualifier (3.5.3). */
         if (*qualifiers & TQ_CONST) {

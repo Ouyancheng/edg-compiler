@@ -1631,7 +1631,7 @@ If "restrict" is seen, set *restrict_seen to TRUE.
 }  /* array_declarator */
 
 
-#if MICROSOFT_KEYWORDS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
 static a_calling_convention scan_microsoft_qualifiers(void)
 /*
 Scan a list of Microsoft calling conventions (__cdecl, __fastcall, __stdcall).
@@ -1729,14 +1729,14 @@ information should be ignored or if an error should be issued.
      reset it so that the caller does not attempt to reuse it later. */
   p_calling_convention->call_conv = (a_calling_convention)cc_default;
 }  /* update_calling_convention */
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
-#if !MICROSOFT_KEYWORDS_ALLOWED
+#if !MICROSOFT_EXTENSIONS_ALLOWED
 /*ARGSUSED*/ /* <-- because call_conv_allowed, p_calling_convention,
                     and p_unbound_calling_convention are only used when
                     Microsoft keywords are allowed. */
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 a_type_ptr pointer_declarator(
                       a_type_ptr            specifiers_type,
                       a_boolean   	    reference_allowed,
@@ -1797,7 +1797,7 @@ are NULL.
   a_boolean      		err;
   a_type_ptr     		class_type;
   a_type_ptr     		rout_type;
-#if MICROSOFT_KEYWORDS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
   a_call_conv_descr		unbound_call_conv;
   a_call_conv_descr		first_call_conv;
   a_boolean			first_loop = TRUE;
@@ -1805,7 +1805,7 @@ are NULL.
 
   unbound_call_conv.call_conv = (a_calling_convention)cc_default;
   first_call_conv.call_conv = (a_calling_convention)cc_default;
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_enter(3, "pointer_declarator");
   for (;;) {
@@ -1819,13 +1819,13 @@ are NULL.
        "const pointer to int" to "volatile pointer to const pointer to int"
        on successive iterations. */
     a_boolean	get_token_needed = TRUE;
-#if MICROSOFT_KEYWORDS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
     a_boolean	first_call_conv_allowed;
     /* Set a flag that indicates this is the first pass through the loop. */
     first_call_conv_allowed = first_loop;
     first_loop = FALSE;
     is_call_conv = FALSE;
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     err = FALSE;
     if (curr_token == tok_star ||
         (reference_allowed && curr_token == tok_ampersand)) {
@@ -1911,7 +1911,7 @@ are NULL.
         }  /* if */
         complete_type = ptr_to_member_type(complete_type, class_type);
       }  /* if */
-#if MICROSOFT_KEYWORDS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (is_microsoft_calling_convention()) {
       /* A Microsoft calling convention specifier. */
       a_call_conv_descr		ccd;
@@ -1959,7 +1959,7 @@ are NULL.
          the qualifiers below, as this will have been done when scanning
          the Microsoft qualifiers. */
       get_token_needed = FALSE;
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       /* Not a pointer, reference, or pointer-to-member declarator. */
       break;
@@ -1971,7 +1971,7 @@ are NULL.
 
       set_err_pos_to_curr_token();
       qualifiers = collect_type_qualifiers();
-#if MICROSOFT_KEYWORDS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
       if (is_call_conv) {
         /* A misplaced qualifier such as
              int (__cdecl volatile * x);
@@ -1979,7 +1979,7 @@ are NULL.
            what, if anything, this should mean.  They are discarded. */
         continue;
       }  /* if */
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if RESTRICT_ALLOWED
       /* Check for invalid use of the restrict qualifier. */
       if (qualifiers & TQ_RESTRICT &&
@@ -2021,13 +2021,13 @@ are NULL.
     }  /* if */
   }  /* if */
 #endif /* DEBUG */
-#if MICROSOFT_KEYWORDS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
   if (p_calling_convention != NULL) {
     check_assertion(p_unbound_calling_convention != NULL);
     *p_unbound_calling_convention = unbound_call_conv;
     *p_calling_convention = first_call_conv;
   }  /* if */
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   db_exit();
   return complete_type;
 }  /* pointer_declarator */
@@ -2470,7 +2470,7 @@ The syntax is:
         goto function_lparen;
       }  /* if */
     }  /* if */
-#if MICROSOFT_KEYWORDS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
     if (unbound_call_conv.call_conv !=
         (a_calling_convention)cc_default) {
       /* Constructs such as
@@ -2479,7 +2479,7 @@ The syntax is:
       pos_error(ec_calling_convention_may_not_precede_nested_declarator,
                 &declarator_pos);
     }  /* if */
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     add_stop_token(tok_rparen);
     /* Get the nested declarator, removing the flag allowing parenthesized
        initializers from the input_flags bit vector.  (The other flags are
@@ -2719,14 +2719,14 @@ function_lparen:
         nonconstant_dimension_allowed = FALSE;
       }  /* if */
     }  /* if */
-#if MICROSOFT_KEYWORDS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
     if (unbound_call_conv.call_conv != (a_calling_convention)cc_default) {
       /* There is an unbound calling convention.  Attempt to bind it
          to the array or function declarator just scanned. */
       update_calling_convention(&new_type_ptr, &unbound_call_conv,
                                 &locator->source_position);
     }  /* if */
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Add the new type to the bottom of the existing derived type list.
        Note that this involves error checking. */
     add_to_derived_type_list(new_type_ptr,
@@ -2768,7 +2768,7 @@ function_lparen:
       bottom_derived_type = NULL;
     }  /* if */
   }  /* if */
-#if MICROSOFT_KEYWORDS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
   if (unbound_call_conv.call_conv != (a_calling_convention)cc_default) {
     /* If there is an unbound calling convention, attempt to apply it to
        the complete type (if one exists).  If none exists, return the unbound
@@ -2784,7 +2784,7 @@ function_lparen:
       call_conv = unbound_call_conv;
     }  /* if */
   }  /* if */
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (specifiers_type != NULL) {
     /* This is a top-level call to declarator. */
     if (locator != NULL &&

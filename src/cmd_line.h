@@ -461,7 +461,7 @@ EXTERN a_boolean
                                                        ;
 			/* TRUE if microsoft extensions are to be accepted. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if MICROSOFT_KEYWORDS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
 EXTERN a_calling_convention
 		default_calling_convention
 #if VAR_INITIALIZERS
@@ -471,7 +471,7 @@ EXTERN a_calling_convention
 			/* The default calling convention.  cc_default is
 			   considered compatible with this calling
 			   convention. */
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 EXTERN a_boolean
 		wchar_t_is_keyword
