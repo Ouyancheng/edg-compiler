@@ -211,7 +211,7 @@ Dump the name from a source correspondence (if any).
     fputs("::", f_debug);
   }  /* if */
   if (sc->name != NULL) {
-    fputs(sc->name, f_debug);
+    fputs(unmangled_name_of(sc), f_debug);
   } else {
     fprintf(f_debug, "<NULL>@%lx", (unsigned long)sc);
   }  /* if */
