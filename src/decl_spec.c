@@ -382,7 +382,8 @@ declaration of a class member.
           /* Advance past "uuid". */
           (void)get_token();
           if (required_token(tok_lparen, ec_exp_lparen)) {
-            if (curr_token != tok_string_literal) {
+            if (curr_token != tok_string_literal ||
+                is_error_constant(&const_for_curr_token)) {
               /* Error. */
               syntax_error(ec_bad_uuid_string);
             } else {
@@ -390,10 +391,7 @@ declaration of a class member.
                                const_for_curr_token.variant.string.value;
               a_targ_size_t length = /* Without null. */
                             const_for_curr_token.variant.string.length-1;
-              if (str == NULL) {
-                check_assertion(total_errors != 0);
-                goto end_of_uuid_string;
-              } else if (*str == '{') {
+              if (*str == '{') {
                 /* Has surrounding braces. */
                 /* Check for matching closing brace. */
                 if (str[length-1] != '}') {
