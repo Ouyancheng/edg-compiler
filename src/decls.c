@@ -475,11 +475,15 @@ this is something other than a declaration; otherwise return FALSE.
     cache_curr_token(token_cache_ptr);
     /* Advance to the first token within the parentheses. */
     (void)get_token();
-    if (abstract_declarator_allowed &&
-        !prescan_abstract_declarator(token_cache_ptr)) {
-      /* It can't be an abstract declarator, so it must be treated as an
-         expression. */
-      is_decl = FALSE;
+    if (abstract_declarator_allowed) {
+      if (!prescan_abstract_declarator(token_cache_ptr)) {
+        /* It can't be an abstract declarator, so it must be treated as an
+           expression. */
+        is_decl = FALSE;
+      } else {
+        /* It looks like an abstract declarator, so the whole thing is a
+           declarator. */
+      }  /* if */
     } else {
       /* Cache all tokens up to the corresponding right paren.  (Note that
          tok_rparen is the only thing in the stop token array.) */
