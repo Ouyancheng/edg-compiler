@@ -493,6 +493,44 @@ primary translation unit IL.
 }  /* copy_function_bodies_from_secondary_to_primary_IL */
 
 
+static void establish_as_canonical(a_source_correspondence *scp)
+/*
+If the entity with the indicated source correspondence has a trans-unit
+correspondence, make it the canonical entry of the correspondence set.
+This is used when an entry is copied to the primary IL or overwrites
+the primary IL entry, to establish the copy as the canonical entry.
+*/
+{
+  a_trans_unit_corresp_ptr tucp = scp->trans_unit_corresp;
+
+  if (tucp != NULL) {
+    tucp->canonical = (char *)scp;
+  }  /* if */
+}  /* establish_as_canonical */
+
+
+static void switch_canonical_for_deleted_definition(
+                                                  a_source_correspondence *scp)
+/*
+The definition of the entity with the indicated source correspondence has
+been deleted.  If the entity is the canonical entry or a correspondence
+set, and there is a primary IL entry that's now just as good, switch the
+canonical entry to the primary IL entry.  Note that the entity passed
+in must not be a specialization (in that case, the secondary IL copy
+remains better than the primary IL copy).
+*/
+{
+  a_trans_unit_corresp_ptr tucp = scp->trans_unit_corresp;
+
+  if (tucp != NULL && tucp->canonical == (char *)scp) {
+    /* This entity is the canonical entry. */
+    if (tucp->primary != NULL) {
+      tucp->canonical = tucp->primary;
+    }  /* if */
+  }  /* if */
+}  /* switch_canonical_for_deleted_definition */
+
+
 static void remove_dynamic_initialization(a_dynamic_init_ptr dip)
 /*
 Remove the indicated dynamic initialization from any initialization
@@ -559,6 +597,9 @@ includes removing any initialization.
   if (variable->storage_class == (a_storage_class)sc_unspecified) {
     variable->storage_class = (a_storage_class)sc_extern;
   }  /* if */
+  if (!variable->is_specialized) {
+    switch_canonical_for_deleted_definition(&variable->source_corresp);
+  }  /* if */
 }  /* clear_variable_definition */
 
 
@@ -571,6 +612,9 @@ Eliminate the body of the indicated routine.
                             il_header.region_scope_entry[routine->assoc_scope];
   check_assertion(routine_scope != NULL);
   clear_function_body(routine_scope);
+  if (!routine->is_specialized) {
+    switch_canonical_for_deleted_definition(&routine->source_corresp);
+  }  /* if */
 }  /* clear_body_for_routine */
 
 
@@ -1527,6 +1571,8 @@ the secondary translation unit IL).
   a_boolean                   is_class = is_immediate_class_type(type);
   a_class_list_entry_ptr      saved_befriending_classes;
   a_class_type_supplement_ptr primary_ctsp;
+  a_symbol_ptr                sym =
+                               (a_symbol_ptr)(type->source_corresp.assoc_info);
   do_saves_for_overwrite(primary_type, a_type_ptr);
   if (is_class) {
     primary_ctsp = primary_type->variant.class_struct_union.extra_info;
@@ -1537,6 +1583,25 @@ the secondary translation unit IL).
   if (is_class) {
     primary_ctsp = primary_type->variant.class_struct_union.extra_info;
     primary_ctsp->befriending_classes = saved_befriending_classes;
+  }  /* if */
+  establish_as_canonical(&primary_type->source_corresp);
+  if (sym != NULL) {
+    /* Make the symbol (in a secondary translation unit) point to the
+       copy of the type in the primary IL. */
+    switch (sym->kind) {
+      case sk_type:
+        sym->variant.type.ptr = primary_type;
+        break;
+      case sk_enum_tag:
+        sym->variant.enumeration.type = primary_type;
+        break;
+      case sk_class_or_struct_tag:
+      case sk_union_tag:
+        sym->variant.class_struct_union.type = primary_type;
+        break;
+      default:
+        unexpected_condition_str("overwrite_primary_type: bad symbol kind");
+    }  /* switch */
   }  /* if */
 }  /* overwrite_primary_type */
 
@@ -1552,6 +1617,7 @@ the secondary translation unit IL).
   unsigned long saved_instantiation_needed_bit_number =
                                   primary_var->instantiation_needed_bit_number;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+  a_symbol_ptr  sym = (a_symbol_ptr)(var->source_corresp.assoc_info);
   do_saves_for_overwrite(primary_var, a_variable_ptr);
   *primary_var = *var;
   do_restores_for_overwrite(primary_var, var);
@@ -1559,6 +1625,22 @@ the secondary translation unit IL).
   primary_var->instantiation_needed_bit_number =
                                          saved_instantiation_needed_bit_number;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+  establish_as_canonical(&primary_var->source_corresp);
+  if (sym != NULL) {
+    /* Make the symbol (in a secondary translation unit) point to the
+       copy of the variable in the primary IL. */
+    switch (sym->kind) {
+      case sk_variable:
+        sym->variant.variable.ptr = primary_var;
+        break;
+      case sk_static_data_member:
+        sym->variant.static_data_member.variable = primary_var;
+        break;
+      default:
+        unexpected_condition_str(
+                                "overwrite_primary_variable: bad symbol kind");
+    }  /* switch */
+  }  /* if */
 }  /* overwrite_primary_variable */
 
 
@@ -1588,6 +1670,7 @@ the secondary translation unit IL).
                                              primary_rout->befriending_classes;
   a_boolean saved_on_inline_function_list =
                                          primary_rout->on_inline_function_list;
+  a_symbol_ptr sym = (a_symbol_ptr)(rout->source_corresp.assoc_info);
   do_saves_for_overwrite(primary_rout, a_routine_ptr);
   *primary_rout = *rout;
   do_restores_for_overwrite(primary_rout, rout);
@@ -1603,6 +1686,19 @@ the secondary translation unit IL).
   primary_rout->suppress_inline_body = saved_suppress_inline_body;
   primary_rout->befriending_classes = saved_befriending_classes;
   primary_rout->on_inline_function_list = saved_on_inline_function_list;
+  establish_as_canonical(&primary_rout->source_corresp);
+  if (sym != NULL) {
+    /* Make the symbol (in a secondary translation unit) point to the
+       copy of the routine in the primary IL. */
+    switch (sym->kind) {
+      case sk_routine:
+      case sk_member_function:
+        sym->variant.routine.ptr = primary_rout;
+        break;
+      default:
+        unexpected_condition_str("overwrite_primary_routine: bad symbol kind");
+    }  /* switch */
+  }  /* if */
 }  /* overwrite_primary_routine */
 
 
@@ -1794,14 +1890,7 @@ end_of_type_list_add:;
         merge = entry_to_be_merged(variable);
         if (merge_pass != merge) goto end_of_variable_list_add;
         if (merge) {
-          /* Merge the information from this variable into the primary IL
-             variable (for example, when the secondary translation unit
-             instance has a definition and the primary translation unit
-             instance does not).  If the secondary variable has a definition,
-             move the primary IL variable to the end of the variables list so
-             that it appears on the list at the point where the definition
-             appears, and then overwrite it.  Class members are not moved
-             to the end of the list. */
+          /* The entry gets merged into the corresponding variable. */
           a_variable_ptr primary_variable =
                      (a_variable_ptr)checked_trans_unit_copy_address_of(
                                                              corresp_variable);
@@ -1820,10 +1909,17 @@ end_of_type_list_add:;
                not). */
             clear_variable_definition(primary_variable);
           }  /* if */
-          move_to_end = !is_class_scope;
-          if (move_to_end) {
-            check_assertion(corresp_variable->storage_class ==
+          /* Copy this variable and its definition, overwriting the
+             existing primary variable.  Move the primary IL variable
+             to the end of the variables list so that it appears on
+             the list at the point where the definition appears.
+             Class members are not moved to the end of the list.
+             Also do not move if a specialization declaration replaces
+             an unspecialized variable (with or without a definition). */
+          move_to_end = (!is_class_scope &&
+                         corresp_variable->storage_class ==
                                               (a_storage_class)sc_unspecified);
+          if (move_to_end) {
             remove_from_variables_list(primary_variable, NO_SCOPE_DEPTH);
             last_variable = pointers_block->last_variable;
           }  /* if */
@@ -1941,8 +2037,8 @@ end_of_variable_list_add:;
              Class members are not moved to the end of the list.
              Also do not move if a specialization declaration replaces
              an unspecialized routine (with or without a definition). */
-          move_to_end = !is_class_scope &&
-                        corresp_routine->assoc_scope != NULL_region_number;
+          move_to_end = (!is_class_scope &&
+                         corresp_routine->assoc_scope != NULL_region_number);
           if (move_to_end) {
             remove_from_routines_list(primary_routine, NO_SCOPE_DEPTH);
             last_routine = pointers_block->last_routine;
