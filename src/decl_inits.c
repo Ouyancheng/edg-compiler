@@ -1865,8 +1865,8 @@ scan_arg_for_scan_initialization:
           a_symbol_ptr field_sym = (a_symbol_ptr)cip->variant.field->
                                                    source_corresp.assoc_info;
           if (ctor_rout->compiler_generated) {
-            pos_sy_warning(ec_cannot_initialize_field, &error_position,
-                           field_sym);
+            pos_syty_warning(ec_cannot_initialize_field, &error_position,
+                             field_sym, class_type);
           } else {
             pos_sy_warning(ec_missing_initializer_on_field, &error_position,
                            field_sym);
