@@ -3,17 +3,17 @@ Version 2.32
 4/29/96 IL CHANGE: new flags in a_routine and a_variable
 
 New flags related to explicit template specialization have been added to
-a_routine and a_variable: is_explicit_specialization is TRUE when an entity
-is specialized using the template<> syntax, and suppress_instantiation
+a_routine and a_variable: is_specialization is TRUE when an entity is
+specialized using the template<> syntax, and suppress_instantiation
 replaces the flag specific_def, which has been removed.
 
-In a related change, explicit_template_specialization has been added to
+In a related change, is_specialization has been added to
 a_src_seq_secondary_decl; it enables the C++-generating back end to
-distinguish between explicit specializations and guiding declarations:
+distinguish between specializations and guiding declarations:
 
   template <class T> void f(T);
   void f(int);                    // guiding declaration
-  template<> void f(int);         // explicit specialization
+  template<> void f(int);         // specialization
 
 4/29/96 Diagnostic issues for a missing type specifier in an explicit
         instantiation
