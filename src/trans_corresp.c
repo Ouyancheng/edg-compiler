@@ -1966,6 +1966,7 @@ is_inline flag.
   }  /* if */
   /* rp1 is not inline whereas rp2 is. */
   if (rp1->is_template_function && !rp1->is_specialized &&
+      !(rp1->is_prototype_instantiation && rp1->defined) &&
       rp1->assoc_scope == NULL_region_number) {
     /* An uninstantiated template function may not have had its is_inline
        flag set yet. */
