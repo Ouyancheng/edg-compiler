@@ -237,6 +237,26 @@ Return TRUE if the current name context is the indicated class.
   (curr_name_context_is_a_class() &&                                  \
    curr_name_context_class() == (class_type))
 
+/*
+Return TRUE if the current name context is a namespace.
+*/
+#define curr_name_context_is_a_namespace()                            \
+  (curr_name_context->assoc_scope != NULL &&                          \
+   curr_name_context->assoc_scope->kind == (a_scope_kind)sck_namespace)
+
+/*
+Given that the current name context is a namespace, return the namespace.
+*/
+#define curr_name_context_namespace()                                 \
+  (curr_name_context->assoc_scope->variant.assoc_namespace)
+
+/*
+Return TRUE if the current name context is the indicated namespace.
+*/
+#define curr_name_context_is_namespace(nsp)                           \
+  (curr_name_context_is_a_namespace() &&                              \
+   curr_name_context_namespace() == (nsp))
+
 
 /* Value to use to specify that no name is provided. */
 #define NO_NAME ((a_source_correspondence *)NULL)
@@ -1229,6 +1249,18 @@ class type.
 }  /* gen_class_qualifier */
 
 
+static void gen_namespace_qualifier(a_namespace_ptr nsp)
+/*
+Generate a namespace qualifier (e.g., "A::B::") that identifies the indicated
+namespace.
+*/
+{
+  /* Use recursion to handle multiple levels of nesting. */
+  gen_name(&nsp->source_corresp, iek_namespace, /*force_qualified_name=*/TRUE);
+  write_tok_str("::");
+}  /* gen_namespace_qualifier */
+  
+
 static void gen_name(a_source_correspondence *scp,
                      an_il_entry_kind        entry_kind,
                      a_boolean               force_qualified_name)
@@ -1242,7 +1274,8 @@ force_qualified_name is TRUE (this is used for things like pointer-to-member
 constants, which must have the form of a qualified name).
 */
 {
-  /* If the name is a member of a class in C++, output the class qualifier. */
+  /* If the name is a member of a class or namespace in C++, output the
+     class or namespace qualifier. */
   if (il_header.source_language == sl_Cplusplus) {
     if (scp->is_class_member) {
       a_type_ptr class_type = scp->parent.class_type;
@@ -1252,6 +1285,14 @@ constants, which must have the form of a qualified name).
         /* Qualifier not needed. */
       } else {
         gen_class_qualifier(class_type);
+      }  /* if */
+    } else if (scp->parent.namespace_ptr != NULL) {
+      /* The entity is a member of a namespace. */
+      a_namespace_ptr nsp = scp->parent.namespace_ptr;
+      if (curr_name_context_is_namespace(nsp)) {
+        /* We are inside the namespace, so the qualifier is not needed. */
+      } else {
+        gen_namespace_qualifier(nsp);
       }  /* if */
     } else if (scp->global_qualification_needed) {
       /* This is a reference to a file-scope entity from within a class
@@ -4103,6 +4144,85 @@ for #undef.
 
 #endif /* RECORD_MACROS_IN_IL */
 
+static void gen_namespace(void)
+/*
+Generate code for a namespace definition or namespace alias declaration.
+*/
+{
+  a_src_seq_secondary_decl_ptr sec_decl;
+  a_namespace_ptr              nsp;
+
+  /* Deal with the primary/secondary declaration difference. */
+  if (curr_src_seq_entry_is_secondary_decl(&sec_decl)) {
+    nsp = ss_entry_ptr(sec_decl, a_namespace_ptr);
+  } else {
+    nsp = ss_entry_ptr(curr_source_sequence_entry, a_namespace_ptr);
+  }  /* if */
+  /* Advance past the source sequence entry for the namespace. */
+  adv_curr_source_sequence_entry();
+  /* Position the output file to the declaration position. */
+  set_decl_position(&nsp->source_corresp, sec_decl);
+  write_tok_str("namespace");
+  if (has_name(nsp)) {
+    write_space();
+    /* Put out the name of the namespace. */
+    gen_decl_name(&nsp->source_corresp, iek_namespace);
+  }  /* if */
+  if (nsp->is_namespace_alias) {
+    /* A namespace alias declaration, e.g.,
+         namespace alias_name = existing_name;
+    */
+    write_tok_str(" = ");
+    gen_name(&nsp->variant.assoc_namespace->source_corresp,
+             iek_namespace, /*force_qualified_name=*/FALSE);
+    write_tok_ch(';');
+  } else {
+    /* Not a namespace alias, and therefore a namespace definition (either
+       the initial one or an extension thereof). */
+    write_tok_str(" { ");
+    push_name_context(nsp->variant.assoc_scope);
+    /* Go through the source sequence list and generate the members of the
+       class. */
+    while (ss_entry_kind(curr_source_sequence_entry) !=
+                                                iek_src_seq_end_of_construct) {
+      gen_declaration();
+    }  /* while */
+    /* This should be the end-of-construct marker for the namespace. */
+    { a_src_seq_end_of_construct_ptr ssecp = 
+                                  ss_entry_ptr(curr_source_sequence_entry,
+                                               a_src_seq_end_of_construct_ptr);
+      check_assertion_str(ss_entry_kind(ssecp) == iek_namespace &&
+                          ss_entry_ptr(ssecp, a_namespace_ptr) == nsp,
+                          "gen_namespace: bad end-of-construct");
+      /* Set the position for the closing "}". */
+      set_output_position(&ssecp->source_position);
+      adv_curr_source_sequence_entry();
+    }
+    pop_name_context();
+    write_tok_ch('}');
+  }  /* if */
+}  /* gen_namespace */
+
+
+static void gen_using_directive(void)
+/*
+Generate code for a namespace "using" directive.
+*/
+{
+  a_using_directive_ptr udp = ss_entry_ptr(curr_source_sequence_entry,
+                                           a_using_directive_ptr);
+
+  /* Advance past the source sequence entry for the "using" directive. */
+  adv_curr_source_sequence_entry();
+  /* Position the output file to the "using" position. */
+  set_output_position(&udp->position);
+  write_tok_str("using namespace ");
+  gen_name(&udp->assoc_namespace->source_corresp, iek_namespace,
+           /*force_qualified_name=*/FALSE);
+  write_tok_ch(';');
+}  /* gen_using_directive */
+
+
 static void gen_statement_list(a_statement_ptr stmt_list,
                                a_boolean       top_statement_of_switch)
 /*
@@ -5372,6 +5492,9 @@ source sequence entry identifies the entity.
     case iek_routine:
       gen_routine_decl();
       break;
+    case iek_namespace:
+      gen_namespace();
+      break;
     default:
       unexpected_condition_str("gen_secondary_decl: bad entity kind");
   }  /* switch */
@@ -5417,6 +5540,12 @@ sequence entry.
 #endif /* RECORD_MACROS_IN_IL */
     case iek_template:
       gen_template();
+      break;
+    case iek_namespace:
+      gen_namespace();
+      break;
+    case iek_using_directive:
+      gen_using_directive();
       break;
     default:
       unexpected_condition_str(
