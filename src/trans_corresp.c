@@ -463,6 +463,51 @@ the primary translation unit is preferred.
   }  /* if */
 }  /* update_canonical_entry */
 
+#if MAINTAIN_NEEDED_FLAGS
+
+static void transfer_needed_info(an_il_entry_kind          kind,
+                                 char                      *entity,
+                                 a_trans_unit_corresp_ptr  tcp)
+/*
+Transfer "needed" information from the given (new) entity to its canonical
+entry (if the canonical entry had been set previously, setting "needed" on the
+new entry would have set "needed" on the canonical entry, so we're catching up
+on what would have been done).  Do not process entities in the primary IL,
+because those flags get set correctly only with the final IL after copying.
+tcp is the correspondence node associated with entity.
+*/
+{
+  if (in_secondary_trans_unit(entity)) {
+    if (tcp->canonical != entity &&
+        in_secondary_trans_unit(tcp->canonical)) {
+      char *canonical = tcp->canonical;
+      if (kind != (an_il_entry_kind)iek_base_class) {
+        a_source_correspondence *new_scp= (a_source_correspondence *)entity;
+        if (new_scp->needed) {
+          mark_as_needed(canonical, kind);
+        }  /* if */
+      }  /* if */
+      if (il_entry_prefix_of(entity).keep_in_il) {
+        mark_to_keep_in_il(canonical, kind);
+      }  /* if */
+      if (kind == (an_il_entry_kind)iek_type) {
+        a_type_ptr can_type = (a_type_ptr)canonical;
+        a_type_ptr new_type = (a_type_ptr)entity;
+        if (is_immediate_class_type(new_type) &&
+            is_immediate_class_type(can_type)) {
+          if (new_type->variant.class_struct_union.definition_needed) {
+            set_class_definition_needed(can_type);
+          }  /* if */
+          if (new_type->variant.class_struct_union.keep_definition_in_il) {
+            set_class_keep_definition_in_il(can_type);
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* transfer_needed_info */
+
+#endif /* MAINTAIN_NEEDED_FLAGS */
 
 static void f_set_trans_unit_corresp(an_il_entry_kind  kind,
                                      char              *entity1,
@@ -536,41 +581,7 @@ this routine will create such a correspondence entry.
     (*tcp2)->primary = entity1;
   }  /* if */
 #if MAINTAIN_NEEDED_FLAGS
-  /* Transfer "needed" information from the new entry to the canonical
-     entry (if the canonical entry had been set previously, setting "needed"
-     on the new entry would have set "needed" on the canonical entry, so
-     we're catching up on what would have been done).  Do not process
-     entities in the primary IL, because those flags get set correctly
-     only with the final IL after copying. */
-  if (in_secondary_trans_unit(entity1)) {
-    a_trans_unit_corresp_ptr tcp = *tcp2;
-    if (tcp->canonical != entity1 &&
-        in_secondary_trans_unit(tcp->canonical)) {
-      char *canonical = tcp->canonical;
-      if (kind != (an_il_entry_kind)iek_base_class) {
-        a_source_correspondence *new_scp= (a_source_correspondence *)entity1;
-        if (new_scp->needed) {
-          mark_as_needed(canonical, kind);
-        }  /* if */
-      }  /* if */
-      if (il_entry_prefix_of(entity1).keep_in_il) {
-        mark_to_keep_in_il(canonical, kind);
-      }  /* if */
-      if (kind == (an_il_entry_kind)iek_type) {
-        a_type_ptr can_type = (a_type_ptr)canonical;
-        a_type_ptr new_type = (a_type_ptr)entity1;
-        if (is_immediate_class_type(new_type)) {
-          check_assertion(is_immediate_class_type(can_type));
-          if (new_type->variant.class_struct_union.definition_needed) {
-            set_class_definition_needed(can_type);
-          }  /* if */
-          if (new_type->variant.class_struct_union.keep_definition_in_il) {
-            set_class_keep_definition_in_il(can_type);
-          }  /* if */
-        }  /* if */
-      }  /* if */
-    }  /* if */
-  }  /* if */
+  transfer_needed_info(kind, entity1, *tcp2);
 #endif /* MAINTAIN_NEEDED_FLAGS */
 }  /* f_set_trans_unit_corresp */
 
@@ -1499,6 +1510,7 @@ also deals with the consequences of type becoming the new canonical entry.
     } else if (is_immediate_enum_type(type)) {
       clear_enum_type_correspondence(type, /*visited=*/TRUE);
     }  /* if */
+    expect_error();
   } else if (type == (a_type_ptr)canonical_il_entry_of(corresp_type)) {
     /* The canonical IL entry changed to type. */
     if (!type_has_definition(canon)) {
