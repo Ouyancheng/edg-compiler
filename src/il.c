@@ -1542,17 +1542,13 @@ at_file_scope == TRUE.
 }  /* alloc_param_type */
 
 
-static a_class_type_supplement_ptr alloc_class_type_supplement(
-                                        a_type_ptr     class_struct_union_type,
-                                        a_scope_number scope_number)
+static a_class_type_supplement_ptr alloc_class_type_supplement(void)
 /*
 Allocate a class-type-supplement entry, initialize its fields, and return
-a pointer to it.  The associated class/struct/union type is given by
-class_struct_union_type; the associated scope number is scope_number.
+a pointer to it.
 */
 {
   a_class_type_supplement_ptr ctsp;
-  a_scope_ptr                 class_scope;
 
   ctsp = (a_class_type_supplement_ptr)alloc_cil(
 			      sizeof(a_class_type_supplement));
@@ -1562,93 +1558,9 @@ class_struct_union_type; the associated scope number is scope_number.
   ctsp->base_classes                  = NULL;
   ctsp->access_adjustments            = NULL;
   ctsp->befriending_classes           = NULL;
-  ctsp->assoc_scope = class_scope     = alloc_scope(scope_number,
-                                         (a_scope_kind)sck_class_struct_union);
-  class_scope->variant.assoc_type = class_struct_union_type;
+  ctsp->assoc_scope                   = NULL;
   return ctsp;
 }  /* alloc_class_type_supplement */
-
-
-a_class_type_supplement_ptr make_class_type_supplement(a_type_ptr class_type)
-/*
-Make sure that the class/struct/union type pointed to by class_type
-has a class type supplement and associated IL scope, i.e., allocate
-and initialize those if they do not already exist.  If the type is
-also associated with an entry in the scope stack, set the IL scope
-pointer therein.  Return the class type supplement pointer.
-This routine is only used in C++ mode; C-style structs and unions do
-not need a type supplement or scope entries.
-*/
-{
-  a_scope_stack_entry_ptr	ssep;
-  a_class_type_supplement_ptr	ctsp;
-
-#if CHECKING
-  if (class_type == NULL) {
-    internal_error("make_class_type_supplement: NULL class type pointer");
-  }  /* if */
-#endif /* CHECKING */
-  /* See if there is already a class type supplement allocated. */
-  ctsp = class_type->variant.class_struct_union.extra_info;
-  if (ctsp == NULL) {
-    /* No, so allocate one. */
-#if 0
-    /* We really need to know the scope number even when the class type
-       is not represented on the scope stack. */
-#endif
-    ctsp = alloc_class_type_supplement(class_type, NO_SCOPE_NUMBER);
-    class_type->variant.class_struct_union.extra_info = ctsp;
-    /* See if the class type is associated with an entry on the scope stack.
-       If so, the IL scope pointer should be stored in it. */
-    for (ssep = &scope_stack[depth_scope_stack];
-         ssep != &scope_stack[DEPTH_OF_FILE_SCOPE];
-         ssep--) {
-      if (ssep->kind == (a_scope_kind)sck_class_struct_union &&
-          ssep->assoc_type == class_type) {
-        /* This scope stack entry is for the class we just modified. */
-        ssep->il_scope = ctsp->assoc_scope;
-#if 0
-        /* Following should be removed when correct scope number is known
-           when the scope is created. */
-#endif
-        ctsp->assoc_scope->number = ssep->number;
-        break;
-      }  /* if */
-    }  /* for */
-  }  /* if */
-  return ctsp;
-}  /* make_class_type_supplement */
-
-
-static a_scope_ptr ensure_il_scope_exists(a_scope_stack_entry_ptr ssep)
-/*
-Make sure that the scope stack entry pointed to by ssep points to an IL
-scope.  For block and class scopes, create the scope now if necessary.
-*/
-{
-  a_scope_ptr sp = ssep->il_scope;
-
-  if (sp == NULL) {
-    /* There is no IL scope. */
-    if (ssep->kind == (a_scope_kind)sck_block) {
-      /* Create the IL scope in a block scope. */
-      ssep->il_scope = sp = alloc_scope(ssep->number, (a_scope_kind)sck_block);
-      /* Add it to the scopes list for the scope enclosing the scope indicated
-         by ssep. */
-      add_to_scopes_list(sp, ssep-1);
-    } else if (ssep->kind == (a_scope_kind)sck_class_struct_union) {
-      /* Create the IL scope in a class scope.  That means creating the class
-         type supplement as well. */
-      (void)make_class_type_supplement(ssep->assoc_type);
-      sp = ssep->il_scope;
-#if CHECKING
-    } else if (ssep->kind != (a_scope_kind)sck_func_prototype) {
-      internal_error("ensure_il_scope_exists: NULL IL scope");
-#endif /* CHECKING */
-    }  /* if */
-  }  /* if */
-  return sp;
-}  /* ensure_il_scope_exists */
 
 
 a_type_ptr alloc_type(a_type_kind kind)
@@ -1699,8 +1611,12 @@ to default values.
     case tk_struct:
     case tk_union:
       pte->variant.class_struct_union.field_list       = NULL;
-      pte->variant.class_struct_union.extra_info       = NULL;
       pte->variant.class_struct_union.any_const_member = FALSE;
+      /* The class type supplement is only allocated in C++ mode. */
+      pte->variant.class_struct_union.extra_info       = 
+                                           (C_dialect == C_dialect_cplusplus) ?
+                                                alloc_class_type_supplement() :
+                                                NULL;
       break;
     case tk_routine:
       pte->variant.routine.return_type = NULL;
@@ -1733,6 +1649,32 @@ to default values.
   db_exit();
   return (pte);
 }  /* alloc_type */
+
+
+static a_scope_ptr ensure_il_scope_exists(a_scope_stack_entry_ptr ssep)
+/*
+Make sure that the scope stack entry pointed to by ssep points to an IL
+scope.  For block scopes, create the scope now if necessary.
+*/
+{
+  a_scope_ptr sp = ssep->il_scope;
+
+  if (sp == NULL) {
+    /* There is no IL scope. */
+    if (ssep->kind == (a_scope_kind)sck_block) {
+      /* Create the IL scope in a block scope. */
+      ssep->il_scope = sp = alloc_scope(ssep->number, (a_scope_kind)sck_block);
+      /* Add it to the scopes list for the scope enclosing the scope indicated
+         by ssep. */
+      add_to_scopes_list(sp, ssep-1);
+#if CHECKING
+    } else if (ssep->kind != (a_scope_kind)sck_func_prototype) {
+      internal_error("ensure_il_scope_exists: NULL IL scope");
+#endif /* CHECKING */
+    }  /* if */
+  }  /* if */
+  return sp;
+}  /* ensure_il_scope_exists */
 
 
 void add_to_types_list(a_type_ptr type_ptr,
