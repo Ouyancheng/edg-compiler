@@ -2640,63 +2640,6 @@ types list for the file scope.
 }  /* alloc_type */
 
 
-a_type_ptr alloc_named_type(a_type_kind kind)
-/*
-Allocate a new type entry in the file scope memory region and return a pointer
-to it.  Set general fields, set kind to the indicated value, and set the
-associated variant fields to default values.  The caller is responsible for
-calling add_to_types_list, since for named types it is sometimes desirable
-to delay linking them.
-*/
-{
-  a_type_ptr tp;
-
-  db_enter(5, "alloc_named_type");
-  tp = (a_type_ptr)alloc_il(sizeof(a_type));
-#if DEBUG
-  num_types_allocated++;
-#endif /* DEBUG */
-  clear_type(tp, kind);
-  db_exit();
-  return (tp);
-}  /* alloc_named_type */
-
-
-a_type_ptr alloc_local_scope_type(a_type_kind    kind,
-                                  a_scope_depth  scope_level,
-                                  a_boolean      in_old_style_param_decl_list)
-/*
-Allocate and initialize a new type entry of the specified kind and add it
-to the types list of the scope specified by scope_level.  Except when the
-current scope is a function prototype scope, allocate the entry in the memory
-region corresponding to scope_level.
-*/
-{
-  a_type_ptr tp;
-
-  db_enter(5, "alloc_local_scope_type");
-  if (scope_stack[scope_level].kind == (a_scope_kind)sck_func_prototype ||
-      in_old_style_param_decl_list) {
-    /* Types entered in the function prototype must be at file scope, since
-       the scope entry itself will always be allocated at file scope.
-       Types in old-style parameter lists are also put on the function
-       prototype scope list. */
-    tp = (a_type_ptr)alloc_il(sizeof(a_type));
-  } else {
-    tp = (a_type_ptr)alloc_cil(sizeof(a_type));
-  }  /* if */
-#if DEBUG
-  num_types_allocated++;
-#endif /* DEBUG */
-  clear_type(tp, kind);
-  if (kind != (a_type_kind)tk_error) {
-    add_to_types_list(tp, scope_level, in_old_style_param_decl_list);
-  }  /* if */
-  db_exit();
-  return (tp);
-}  /* alloc_local_scope_type */
-
-
 a_type_ptr integer_type(an_integer_kind kind)
 /*
 Make or find a type entry for an integer type of the indicated kind, and
@@ -3413,7 +3356,7 @@ enk_temp_init node.
 }  /* copy_temp_init_dynamic_init */
 
 
-a_variable_ptr alloc_variable(void)
+a_variable_ptr alloc_variable(a_storage_class  storage_class)
 /*
 Allocate a variable entry, clear it to default values, and return a pointer
 to it.
@@ -3423,7 +3366,15 @@ to it.
 
   db_enter(5, "alloc_variable");
 
-  vp = (a_variable_ptr)alloc_cil(sizeof(a_variable));
+  if (storage_class == (a_storage_class)sc_extern ||
+      storage_class == (a_storage_class)sc_unspecified ||
+      storage_class == (a_storage_class)sc_static) {
+    /* Variable that will have static storage should always be allocated in
+       the file scope memory region. */
+    vp = (a_variable_ptr)alloc_il(sizeof(a_variable));
+  } else {
+    vp = (a_variable_ptr)alloc_cil(sizeof(a_variable));
+  }  /* if */
 #if DEBUG
   num_variables_allocated++;
 #endif /* DEBUG */
@@ -3431,7 +3382,7 @@ to it.
   vp->next                        = NULL;
   vp->type                        = NULL;
   vp->assoc_param_type            = NULL;
-  vp->storage_class               = (a_storage_class)sc_unspecified;
+  vp->storage_class               = storage_class;
   vp->address_taken               = FALSE;
   vp->is_parameter                = FALSE;
   vp->init_kind                   = (an_init_kind)initk_none;
@@ -3501,25 +3452,26 @@ a_variable_ptr alloc_temporary_variable(a_type_ptr temp_type)
 Make a temporary variable whose type is temp_type.  Return a pointer to it.
 */
 {
-  a_variable_ptr temp_var;
-  a_scope_kind   scope_kind;
-  a_scope_depth  scope_depth = depth_scope_stack;
+  a_variable_ptr   temp_var;
+  a_scope_kind     scope_kind;
+  a_scope_depth    scope_depth = depth_scope_stack;
+  a_storage_class  storage_class;
 
-  temp_var = alloc_variable();
-  temp_var->type = temp_type;
-  /* Name linkage stays nlk_none. */
   /* Use auto storage class in functions, static elsewhere. */
   scope_kind = scope_stack[scope_depth].kind;
   if (scope_kind == (a_scope_kind)sck_function ||
       scope_kind == (a_scope_kind)sck_block) {
-    temp_var->storage_class = (a_storage_class)sc_auto;
+    storage_class = (a_storage_class)sc_auto;
   } else {
     /* If not inside a function, use the file scope.  This is important
        when inside a class -- the class goes into the file scope, so the
        temporary must also. */
-    temp_var->storage_class = (a_storage_class)sc_static;
+    storage_class = (a_storage_class)sc_static;
     scope_depth = DEPTH_OF_FILE_SCOPE;
   }  /* if */
+  temp_var = alloc_variable(storage_class);
+  temp_var->type = temp_type;
+  /* Name linkage stays nlk_none. */
   add_to_variables_list(temp_var, scope_depth);
   return temp_var;
 }  /* alloc_temporary_variable */

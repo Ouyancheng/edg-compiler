@@ -92,14 +92,7 @@ extern void clear_type(a_type_ptr  pte,
 
 extern a_type_ptr alloc_type(a_type_kind kind);
 
-extern a_type_ptr alloc_named_type(a_type_kind kind);
-
 extern a_type_ptr alloc_unlinked_type(a_type_kind kind);
-
-extern a_type_ptr alloc_local_scope_type(
-                                  a_type_kind    kind,
-                                  a_scope_depth  scope_level,
-                                  a_boolean      in_old_style_param_decl_list);
 
 extern void add_to_types_list(a_type_ptr     type_ptr,
                               a_scope_depth  scope_level,
@@ -203,7 +196,7 @@ extern a_dynamic_init_ptr alloc_dtor_dynamic_init(a_dynamic_init_kind kind,
 
 extern void add_to_dynamic_inits_list(a_dynamic_init_ptr dip);
 
-extern a_variable_ptr alloc_variable(void);
+extern a_variable_ptr alloc_variable(a_storage_class  storage_class);
 
 extern void add_to_variables_list(a_variable_ptr var_ptr,
                                   a_scope_depth  scope_depth);
