@@ -1466,8 +1466,12 @@ dik_constructor.
   int               a;
 
   fputs("ctor: ", f_debug);
-  db_name(&dip->variant.constructor.ptr->source_corresp);
-  db_function_param_list(dip->variant.constructor.ptr->type);
+  if (dip->variant.constructor.ptr == NULL) {
+    fputs("<null>", f_debug);
+  } else {
+    db_name(&dip->variant.constructor.ptr->source_corresp);
+    db_function_param_list(dip->variant.constructor.ptr->type);
+  }  /* if */
   if (dip->destructor != NULL) {
     fputs("; ", f_debug);
     db_destructor(dip);
