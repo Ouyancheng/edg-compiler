@@ -1832,7 +1832,12 @@ not used in that case, and can be NULL.
 #endif /* CHECKING */
     /* Determine the effective selector type. */
     selector_type = bound_function_selector->type;
-    if (!m_is_error_type(selector_type)) {
+    if (m_is_error_type(selector_type)) {
+      /* An error type matches anything, but not very well. */
+      clear_arg_match_summary(this_match_summary);
+      this_match_summary->match_level = aml_error;
+      this_match_summary->is_match_for_this_param = TRUE;
+    } else {
       if (selector_is_object_pointer) {
         if (is_template_param_type(selector_type)) {
           /* Unknown type, in a prototype instantiation. */
@@ -1841,13 +1846,13 @@ not used in that case, and can be NULL.
           selector_type = type_pointed_to(selector_type);
         }  /* if */
       }  /* if */
+      ptr_selector_type = make_pointer_type(selector_type);
+      /* See how well the selector type and the "this" parameter type
+         match up. */
+      determine_selector_match_level(ptr_selector_type,
+                                     this_param_type,
+                                     this_match_summary);
     }  /* if */
-    ptr_selector_type = make_pointer_type(selector_type);
-    /* See how well the selector type and the "this" parameter type
-       match up. */
-    determine_selector_match_level(ptr_selector_type,
-                                   this_param_type,
-                                   this_match_summary);
   }  /* if */
   db_exit();
 }  /* selector_match_with_this_param */
