@@ -2984,6 +2984,7 @@ precedence confusion.  Do the output in the way described by octl.
                                           (an_address_base_kind)abk_variable &&
              constant->variant.address.variant.variable->
                                               is_template_static_data_member &&
+             constant->variant.address.offset == 0 &&
              is_array_type(direct_achieved_type) &&
              !has_unknown_specified_bound(direct_achieved_type) &&
              direct_achieved_type->variant.array.variant.number_of_elements
