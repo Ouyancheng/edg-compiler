@@ -213,13 +213,6 @@ declarations.  In the past, such uses sometimes led to internal errors.
     return &a;
   }
 
-3/5/01   Variable length arrays with undefined bounds in typedef declarations
-
-The front end now issues an error on typedef declarations of function types
-involving variable length arrays with undefined bounds.  For example:
-
-  typedef void (*fp)(int [*]);  // Now an error
-
 3/5/01   Name mangling change for partially specialized classes
 
 The name mangling for partially specialized classes has been changed

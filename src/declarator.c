@@ -1360,10 +1360,7 @@ declaration.
           }  /* if */
           if (vla_enabled) {
             /* Permit a variable length array declaration. */
-            di_flags |= DI_VLA_ALLOWED;
-            if (!is_typedef_decl) {
-              di_flags |= DI_VLA_ASTERISK_ALLOWED;
-            }  /* if */
+            di_flags |= DI_VLA_ALLOWED | DI_VLA_ASTERISK_ALLOWED;
           }  /* if */
           declarator(di_flags, &do_flags, &array_qualifiers, param_type_ptr,
                      /*member_parent_type=*/(a_type_ptr)NULL,
