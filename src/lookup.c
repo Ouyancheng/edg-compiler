@@ -2373,12 +2373,58 @@ source_pos is the position to be used in the locator used for the lookup.
 }  /* look_up_conversion_function */
 
 
-/* Forward declaration. */
+/* Forward declarations. */
+static
+a_symbol_ptr scope_stack_lookup(a_symbol_locator    *locator,
+                                a_lookup_state_ptr  lookup_state,
+				a_scope_depth	    start_depth,
+				a_scope_depth       end_depth);
+
 static
 a_symbol_ptr instantiation_context_lookup(
 				a_scope_stack_entry_ptr		ssep,
 	                        a_symbol_locator	    	*locator,
                                 a_lookup_state_ptr	    	lookup_state);
+
+
+
+
+static a_symbol_ptr check_for_microsoft_hidden_template_bug(
+				a_symbol_ptr	    orig_sym,
+				a_symbol_locator    *locator,
+                                a_lookup_state_ptr  lookup_state,
+				a_scope_depth	    start_depth,
+				a_scope_depth       end_depth)
+/*
+"orig_sym" is a symbol found in a class reactivation scope.  We are doing
+a tentative template lookup.  If "orig_sym" is not a type symbol, continue
+looking for a template symbol.  If a template is found, return that symbol.  Otherwise,
+return the original symbol.
+
+This is done to accept examples like the following, which is accepted by the Microsoft
+7.0 compiler:
+
+  template<class T> struct A { };
+  template<class T> struct B {
+    class C : public A<T> { };
+    typedef C A;
+  };
+  B<int>::A ba;
+*/
+{
+  a_symbol_ptr	fund_orig_sym;
+  a_symbol_ptr	result_sym = orig_sym;
+
+  fund_orig_sym = fundamental_symbol_of(orig_sym);
+  if (is_type_symbol(fund_orig_sym) && !is_injected_template_symbol(fund_orig_sym)) {
+    /* If the symbol found is a type, look for a class template symbol in an
+       enclosing scope.  This is not done for an injected template symbol, which
+       could legally be followed by a template argument list. */
+    result_sym = scope_stack_lookup(locator, lookup_state, start_depth, end_depth);
+    if (!is_class_template_symbol(result_sym)) result_sym = orig_sym;
+  }  /* if */
+  return result_sym;
+}  /* check_for_microsoft_hidden_template_bug */
 
 
 static
@@ -2476,6 +2522,12 @@ that do normal id lookup processing.
         /* Skip class reactivation scopes for linkage lookups. */
       } else {
         sym = inactive_scope_lookup(kind, ssep, locator, lookup_state);
+        if (sym != NULL && microsoft_bugs && microsoft_version <= 1300 &&
+            lookup_state->tentative_template_lookup && !is_class_template_symbol(sym)) {
+          /* The Microsoft compiler sometimes finds a hidden template symbol. */
+          sym = check_for_microsoft_hidden_template_bug(sym, locator, lookup_state,
+                                                        ssep->previous_scope, end_depth);
+        }  /* if */
         if (sym == NULL && kind == (a_scope_kind)sck_template_instantiation) {
           /* For template instantiation scopes, also look on the active list if
              the symbol was not found on the inactive list.  This is done to

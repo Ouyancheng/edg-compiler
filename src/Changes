@@ -1,5 +1,19 @@
 Version 3.4
 
+8/10/03  Microsoft compatibility: nested template class lookup bug emulation
+
+The Microsoft 7.0 compiler accepts examples like the one below.  When the instantiation
+of B<int>::C is performed, the typedef "A" has already been declared in B<int>.  The
+Microsoft compiler ignores the typedef when looking for a template name.  We now
+emulate this in Microsoft bugs mode when Microsoft version is <= 1300.
+
+  template<class T> struct A { };
+  template<class T> struct B {
+    class C : public A<T> { };
+    typedef C A;
+  };
+  B<int>::A ba;
+
 8/10/03  Precompiled header problem with macro invocation that crosses file boundary
 
 If a header file ended with a macro invocation that crosses an include file boundary,
