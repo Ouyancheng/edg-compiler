@@ -2870,7 +2870,7 @@ comparision.
         same_file_identifiers(start1, start2)) {
       match = TRUE;
     }  /* if */
-#endif CAN_COMPARE_FILE_IDENTIFIERS
+#endif /* CAN_COMPARE_FILE_IDENTIFIERS */
     /* If equality has not been determined by the code above, compare the
        directory names now. */
     if (!match) {
