@@ -1080,10 +1080,18 @@ do_signed_char:;
         internal_error("type_after_integral_promotion: bad int kind");
 #endif /* CHECKING */
     }  /* switch */
+    /* In C++, enumeration types lose their enumeration identity when they
+       get promoted. */
+    if (C_dialect == C_dialect_cplusplus &&
+        promoted_type->variant.integer.enum_type) {
+      /* Make a "plain" version of this enum type, i.e., the same underlying
+         integral type but not tagged as an enum. */
+      promoted_type = integer_type(promoted_type->variant.integer.int_kind);
+    }  /* if */
   }  /* if */
 
   db_exit();
-  return(promoted_type);
+  return promoted_type;
 }  /* type_after_integral_promotion */
 
 
