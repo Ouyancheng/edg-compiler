@@ -330,7 +330,8 @@ restricted pointer.
 }  /* adjust_parameter_type */
 
 
-static void check_type_qualifiers(a_type_ptr *type_ptr)
+static void check_type_qualifiers(a_type_ptr         *type_ptr,
+                                  a_source_position  *error_pos)
 /*
 A parameter or variable is about to be declared with the given type.
 Check to see if any type qualifiers that are specified are meaningful.
@@ -346,7 +347,7 @@ Check to see if any type qualifiers that are specified are meaningful.
            typedef int F();
            const F g;
          -- we mark them as useless. */
-      warning(ec_useless_type_qualifiers);
+      pos_warning(ec_useless_type_qualifiers, error_pos);
       /* The useless qualifiers could be removed by the statement
       *type_ptr = make_unqualified_type(*type_ptr);
 	 but they are kept in case the back end assigns any meaning to them. */
@@ -380,7 +381,7 @@ error checking and type adjustments as required.
     } else {
       /* See if any type qualifiers were specified, and if they are
          okay. */
-      check_type_qualifiers(type_ptr);
+      check_type_qualifiers(type_ptr, error_pos);
       /* In C++ (except in cfront compatibility mode) disallow a parameter type
          that includes a pointer or reference to an array of unspecified size
          (WP 8.3.5 para 3). */
@@ -6882,6 +6883,7 @@ of local variables (and types, etc.) of functions and in blocks.
   a_boolean                    err = FALSE;
   a_boolean                    inline_specified;
   a_source_position            decl_start_pos, declarator_pos;
+  a_source_position            declarator_start_pos;
   a_boolean                    need_semicolon_remove_stop_token = FALSE;
   a_boolean                    need_comma_remove_stop_token     = FALSE;
   a_boolean                    need_assign_remove_stop_token    = FALSE;
@@ -7108,14 +7110,6 @@ continue_with_declaration:
         add_stop_token(tok_lbrace);
         need_lbrace_remove_stop_token = TRUE;
       }  /* if */
-      if (curr_token == tok_identifier &&
-          (locator_for_curr_id.is_operator_name ||
-           locator_for_curr_id.is_conversion_name)) {
-        copy_source_position(locator_for_curr_id.source_position,
-                             declarator_pos);
-      } else {
-        copy_source_position(pos_curr_token, declarator_pos);
-      }  /* if */
       clear_func_info(&func_info);
 #if ASM_FUNCTION_ALLOWED
       if (storage_class == (a_storage_class)sc_asm) {
@@ -7131,9 +7125,15 @@ continue_with_declaration:
                                 ss_list_instantiation_insert_point = NULL;
       }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+      /* Save the source position of the first token of the declarator. */
+      declarator_start_pos = pos_curr_token;
       declarator(di_flags, &do_flags, type_ptr, 
                  /*member_parent_type=*/(a_type_ptr)NULL, &locator,
                  &local_type_ptr, &declarator_ssep, &func_info);
+      /* declarator will have set error_position to the position of the
+         declarator-id if this is a real declarator and the the first token
+         of the whole declarator if it is an abstract declarator. */
+      declarator_pos = error_position;
       is_function = (storage_class != (a_storage_class)sc_typedef &&
                      is_function_type(local_type_ptr));
       is_main_function = FALSE;
@@ -7279,7 +7279,7 @@ continue_with_declaration:
         }  /* if */
       } else if (local_storage_class != (a_storage_class)sc_typedef) {
         /* See if any type qualifiers were specified, and if they are okay. */
-        check_type_qualifiers(&local_type_ptr);
+        check_type_qualifiers(&local_type_ptr, &declarator_pos);
       }  /* if */
       if (need_lbrace_remove_stop_token) {
         remove_stop_token(tok_lbrace);
@@ -7358,7 +7358,7 @@ continue_with_declaration:
               if (C_dialect != C_dialect_cplusplus ||
                   (!is_constructor_or_destructor &&
                    !locator.is_conversion_name)) {
-                pos_remark(ec_missing_type_specifier, &declarator_pos);
+                pos_remark(ec_missing_type_specifier, &decl_start_pos);
               }  /* if */
             }  /* if */
           }  /* if */
@@ -7423,9 +7423,9 @@ continue_with_declaration:
              as a declaration of an int variable.  (In C++ the decl specifiers
              may be omitted on function definitions.) */
           if (C_dialect == C_dialect_pcc) {
-            pos_warning(ec_missing_decl_specifiers, &declarator_pos);
+            pos_warning(ec_missing_decl_specifiers, &declarator_start_pos);
           } else {
-            pos_error(ec_missing_decl_specifiers, &declarator_pos);
+            pos_error(ec_missing_decl_specifiers, &declarator_start_pos);
           }  /* if */
         } else if (!has_explicit_type_specifier) {
           if (is_function) {
@@ -7442,16 +7442,17 @@ continue_with_declaration:
                      (but not a definition) must have decl-specifiers (WP 7
                      [dcl.dcl]), except for certain member functions. */
                   pos_diagnostic(es_discretionary_error,
-                                 ec_missing_decl_specifiers, &declarator_pos);
+                                 ec_missing_decl_specifiers,
+                                 &declarator_start_pos);
                 } else {
-                  pos_remark(ec_missing_type_specifier, &declarator_pos);
+                  pos_remark(ec_missing_type_specifier, &declarator_start_pos);
                 }  /* if */
               }  /* if */
             }  /* if */
           } else {
             /* For implicitly typed nonfunction declarations (variables,
                typedefs, etc.) issue a warning in all modes. */
-            pos_warning(ec_missing_type_specifier, &declarator_pos);
+            pos_warning(ec_missing_type_specifier, &declarator_start_pos);
           }  /* if */
         }  /* if */
       }  /* if */

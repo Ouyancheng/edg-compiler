@@ -2793,6 +2793,8 @@ The syntax is:
 
   db_enter(3, "r_declarator");
   set_err_pos_to_curr_token();
+  /* Set declarator_pos to the start of the declarator (which may not be the
+     position of the declarator-id).  It will be changed later if required. */
   copy_source_position(pos_curr_token, declarator_pos);
   *output_flags = DO_NO_OUTPUT_FLAGS;
   real_declarator_allowed = input_flags & DI_REAL_DECLARATOR_ALLOWED;
@@ -2882,6 +2884,8 @@ The syntax is:
                  declarator_ssep, func_info);
     if (local_do_flags & DO_REAL_DECLARATOR_SCANNED) {
       *output_flags |= DO_REAL_DECLARATOR_SCANNED;
+      /* Copy the position of the declarator-id into declarator_pos. */
+      declarator_pos = error_position;
     } else {
       parenthesized_initializer_allowed = FALSE;
     }  /* if */
@@ -2924,7 +2928,8 @@ The syntax is:
                       !is_unknown_type(specifiers_type));
       parenthesized_initializer_allowed = FALSE;
     } else {
-      /* Real (non-abstract) declarator. */
+      /* Real (non-abstract) declarator.  Reset declarator_pos to correspond
+         to the position of the declarator-id. */
       declarator_pos = pos_curr_token;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if DEBUG
