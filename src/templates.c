@@ -58,16 +58,22 @@ able to if the template itself has not yet been defined.
   a_symbol_ptr                      template_sym;
   a_template_symbol_supplement_ptr  tssp;
   a_token_cache                     *p_token_cache;
+  a_class_symbol_supplement_ptr     cssp;
 
   db_enter(3, "instantiate_template_class");
   if (is_array_type(tp)) tp = underlying_array_element_type(tp);
   if (tp != NULL && is_class_struct_union_type(tp)) {
     tp = skip_typerefs(tp);
-    template_sym = (symbol_supplement_for_class(tp))->class_template;
+    cssp = symbol_supplement_for_class(tp);
+    template_sym = cssp->class_template;
     if (template_sym == NULL) {
       /* Not a class based on a class template. */
+    } else if (!cssp->is_real_instantiation) {
+      /* Don't try to instantiate a template class without real template
+         arguments. */
     } else {
-      /* There is a class template from which to generate this class. */
+      /* There is a class template from which to generate this class and its
+         a real instantiation. */
       tssp = template_sym->variant.template.extra_info;
       p_token_cache = &tssp->body_token_cache;
       if (p_token_cache->first_token == NULL) {
@@ -339,6 +345,7 @@ no need to actually instantiate X<int> in the example above.
   a_template_arg_ptr                old_list;
   a_type_ptr                        class_type;
   a_template_symbol_supplement_ptr  tssp;
+  a_template_arg_ptr                tap;
 
   db_enter(3, "find_template_class");
   /* Make a pass over the symbols representing instantiations of the class
@@ -373,6 +380,23 @@ no need to actually instantiate X<int> in the example above.
        (but do not enter it into the symbol table, since class templates
        are always looked up through the template. */
     sym = make_template_class_symbol(class_template_sym, source_pos);
+    sym->variant.class_struct_union.extra_info->is_real_instantiation = TRUE;
+    for (tap = *new_list; tap != NULL; tap = tap->next) {
+      if (tap->is_type) {
+        if (tap->variant.type->kind == (a_type_kind)tk_template_param) {
+         sym->variant.class_struct_union.extra_info->
+                                               is_real_instantiation = FALSE;
+          break;
+        }  /* if */
+      } else {
+        /* Constant case. */
+#if 0
+/* Oops -- do we have any way to look at a constant entry and recognize it to
+   be a template parameter.  Bug here:  if there is no type param among the
+   template parameters, the flag will remain set incorrectly. */
+#endif /* if 0 */
+      }  /* if */
+    }  /* for */
     /* Add the new symbol to the head of the instantiation list. */
     sym->next = tssp->variant.class.instantiations;
     tssp->variant.class.instantiations = sym;
@@ -1515,10 +1539,11 @@ entry is pushed on the scope stack.
 */
 {
   a_template_param_ptr              tpp, template_param_list = NULL;
-  a_symbol_ptr                      sym;
+  a_symbol_ptr                      sym, param_sym, prototype_sym;
   a_template_symbol_supplement_ptr  tssp;
   a_boolean                         tag_resolution = FALSE;
-  a_type_ptr                        rout_type;
+  a_type_ptr                        rout_type, prototype_type;
+  a_template_arg_ptr                tap, *append_addr;
 
   db_enter(3, "template_declaration");
 #if CHECKING
@@ -1553,15 +1578,42 @@ entry is pushed on the scope stack.
     /* The declaration was successfully scanned as a class template
        declaration. */
     tssp = sym->variant.template.extra_info;
+    tssp->parameters = template_param_list;
+    tssp->declaration_scope = scope_stack[decl_scope_level].number;
+    prototype_sym = make_template_class_symbol(sym, &sym->decl_position);
+    /* Add the new symbol to the head of the instantiation list. */
+    tssp->variant.class.instantiations = prototype_sym;
+    /* Now create a new type entry. */
+    prototype_type = alloc_type(tssp->variant.class.type_kind);
+    prototype_sym->variant.class_struct_union.type = prototype_type;
+    set_source_corresp(&(prototype_type->source_corresp), prototype_sym);
+    prototype_type->source_corresp.name_linkage =
+                                        (a_name_linkage_kind)nlk_internal;
+    append_addr = &prototype_type->
+                     variant.class_struct_union.extra_info->template_arg_list;
+    for (tpp = template_param_list; tpp != NULL; tpp = tpp->next) {
+      param_sym = tpp->param_symbol;
+      if (param_sym->kind == (a_symbol_kind)sk_type) {
+        tap = alloc_template_arg(/*is_arg_type=*/TRUE);
+        tap->variant.type = param_sym->variant.type;
+      } else {
+        tap = alloc_template_arg(/*is_arg_type=*/FALSE);
+        tap->variant.constant = param_sym->variant.constant;
+      }  /* if */
+      *append_addr = tap;
+      append_addr = &tap->next;
+    }  /* for */
   } else {
     /* It must be a function template declaration. */
     function_template_declaration(&sym);
     /* Go back through the template params and be sure there are only type
        args.  The other kind is allowed only for class templates. */
     tssp = sym->variant.template.extra_info;
+    tssp->parameters = template_param_list;
+    tssp->declaration_scope = scope_stack[decl_scope_level].number;
     rout_type = tssp->variant.function.routine->type;
     for (tpp = template_param_list; tpp != NULL; tpp = tpp->next) {
-      a_symbol_ptr  param_sym = tpp->param_symbol;
+      param_sym = tpp->param_symbol;
       if (param_sym->kind != (a_symbol_kind)sk_type) {
         pos_error(ec_not_a_type_arg, &param_sym->decl_position);
       } else if (!param_sym->referenced ||
@@ -1575,8 +1627,6 @@ entry is pushed on the scope stack.
       }  /* if */
     }  /* for */
   }  /* if */
-  tssp->parameters = template_param_list;
-  tssp->declaration_scope = scope_stack[decl_scope_level].number;
   pop_scope();
   if (tag_resolution) {
     /* This is the resolution of a previously incomplete template declaration;
