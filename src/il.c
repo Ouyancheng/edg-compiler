@@ -10879,6 +10879,12 @@ eliminated, if appropriate.
       prev_rp = rp;
     }  /* if */
   }  /* for */
+  if (il_header.main_routine != NULL &&
+      !il_entry_prefix_of(il_header.main_routine).keep_in_il) {
+    /* The routine entry itself will already have been removed from the IL,
+       so remove this reference to it. */
+    il_header.main_routine = NULL;
+  }  /* if */
 #if RECORD_HIDDEN_NAMES_IN_IL
   /* Hidden name table entries need not be kept in the IL if they refer
      to entities that do not need to be kept. */
