@@ -13,6 +13,10 @@ between tokens, which could render assembler code invalid.  In addition
 to preserving the spacing, C++ style comments can now be preserved by
 setting INCLUDE_COMMENTS_IN_ASM_FUNC_BODY.
 
+In addition, the "asm" keyword is no longer accepted in Microsoft mode
+(as is the case with the Microsoft compiler).  Only the __asm and _asm
+forms of the keyword can be used to specify a Microsoft asm.
+
 IL CHANGE: The is_asm_block field has been removed from the an_asm_entry
 structure.  In addition,  the string pointed to by asm_string now contains
 the opening and closing braces ("{" and "}") when the string represents
