@@ -1015,7 +1015,7 @@ initializing declarations.
         free_control_flow_descr(new_cfdp);
         goto done;
       }  /* if */
-      if (!prev_parent->variant.block.is_switch_block) {
+      if (!prev_parent->variant.block.is_switch_block && !C_mode()) {
         fixup_curr_block_labels_and_gotos(prev_parent);
       }  /* if */
       /* No initialization remains "exposed" after the block is closed. */
