@@ -1148,6 +1148,8 @@ extern void eliminate_unneeded_scope_orphaned_list_entries(void);
 
 extern void eliminate_default_arg_object_lifetimes(a_type_ptr  rout_type);
 
+extern void eliminate_routine_default_arg_object_lifetimes(a_routine_ptr rout);
+
 extern void eliminate_unneeded_il_entries(a_scope_ptr scope);
 #endif /* MAINTAIN_NEEDED_FLAGS */
 

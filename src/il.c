@@ -11345,6 +11345,22 @@ lifetimes created for its default arguments have been removed, too.
 }  /* eliminate_default_arg_object_lifetimes */
 
 
+void eliminate_routine_default_arg_object_lifetimes(a_routine_ptr rout)
+/*
+The indicated routine is being eliminated from the IL.  Be sure that
+any object lifetimes created for its default arguments have been removed,
+too.
+*/
+{
+  eliminate_default_arg_object_lifetimes(rout->type);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  if (rout->declared_type != rout->type) {
+    eliminate_default_arg_object_lifetimes(rout->declared_type);
+  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+}  /* eliminate_routine_default_arg_object_lifetimes */
+
+
 static void eliminate_member_function_default_arg_object_lifetimes(
                                                    a_type_ptr  class_type)
 /*
@@ -11361,12 +11377,7 @@ functions have been removed from the IL.
   if (sp != NULL) {
     /* Traverse its member function list. */
     for (rp = sp->routines; rp != NULL; rp = rp->next) {
-      eliminate_default_arg_object_lifetimes(rp->type);
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-      if (rp->declared_type != rp->type) {
-        eliminate_default_arg_object_lifetimes(rp->declared_type);
-      }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+      eliminate_routine_default_arg_object_lifetimes(rp);
     }  /* for */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* Check the default arguments on the declared-type recorded in
@@ -11829,12 +11840,7 @@ eliminated, if appropriate.
       if (!C_mode()) {
         /* Remove any object lifetimes that may be associated with its default
            arguments. */
-        eliminate_default_arg_object_lifetimes(rp->type);
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-        if (rp->declared_type != rp->type) {
-          eliminate_default_arg_object_lifetimes(rp->declared_type);
-        }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+        eliminate_routine_default_arg_object_lifetimes(rp);
       }  /* if */
       /* Remove it from the routines list by linking around it. */
       if (prev_rp == NULL) {
