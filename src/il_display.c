@@ -670,9 +670,9 @@ Print the name of a pragma kind.
 #if USER_CONTROL_OF_STRUCT_PACKING
     case pk_pack:                 s = "pk_pack";                break;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
-#if IDENT_PRAGMA
+#if IDENT_DIRECTIVE_AND_PRAGMA
     case pk_ident:                s = "pk_ident";               break;
-#endif /* IDENT_PRAGMA */
+#endif /* IDENT_DIRECTIVE_AND_PRAGMA */
 #if INCLUDE_EDG_TEST_PRAGMAS
     /* For testing purposes. */
     case pk_test_next_statement:  s = "pk_test_next_statement"; break;
@@ -2209,11 +2209,11 @@ Display the indicated pragma entry.
   if (ptr->ignore_in_back_end) disp_boolean("ignore_in_back_end", TRUE);
   disp_name("kind");
   disp_pragma_kind_name(ptr->kind);
-#if IDENT_PRAGMA
+#if IDENT_DIRECTIVE_AND_PRAGMA
   if (ptr->kind == (a_pragma_kind)pk_ident) {
     disp_constant(ptr->variant.ident_string);
   }  /* if */
-#endif /* IDENT_PRAGMA */
+#endif /* IDENT_DIRECTIVE_AND_PRAGMA */
 }  /* disp_pragma */
 
 #if RECORD_HIDDEN_NAMES_IN_IL
