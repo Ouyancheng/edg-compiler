@@ -43,6 +43,19 @@ a cast (e.g., one that adjusts const at some level), the type of the
 rewritten "?" or "," was incorrect (it was the type before the adjustment
 done by the cast).  Now fixed.
 
+11/30/94 Top-level operations in boolean controlling expressions
+
+The IL has a convention that expressions that are boolean controlling
+expressions (e.g., the tested expression in an "if" statement, the
+operands of the "&&" operator) are normalized to something that produces
+a 0/1 integral value.  If necessary a "!= 0" is added on top of the
+expression to ensure that.  There has been a problem with IL lowering
+in that regard: some transformations would not preserve that property.
+For example, "expr != 0" as a top-level expression could be transformed
+into "temp = (expr != 0), destructor-calls, temp".  Now fixed, by
+checking again, after any transformations, that the IL convention
+is observed, and inserting a "!= 0" if necessary.
+
 11/30/94 Microsoft keyword support
 
 The front end optionally supports certain Microsoft keywords.  The
