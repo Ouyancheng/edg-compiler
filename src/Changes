@@ -1,14 +1,36 @@
 Version 2.39
 
+8/8/98    C++-generating back end: template instantiations triggered by
+          base specifiers
+
+When  CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE,
+the C++-generating back end now puts out better code to represent
+instantiations triggered by base specifiers.  The problematic case was
+when the instantiation referred to the class whose base classes were being
+specified, e.g.,
+
+  template<class T> struct X { };
+  struct D : X<D> { };
+
+The generated C++ now includes a forward declaration of the class being
+defined when there is such a dependency in the template argument list
+of a base class that is instantiated as the base specifiers list is being
+scanned.
+
+  template < class T > struct X { };
+  struct D;                          // New
+  template<> struct X<D > { };
+  struct D : public X<D > { };
+
 8/7/98    C++-generating back end: inline virtual function definition missing
 
-When CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE,
-invalid C++ code was sometimes produced.  Specifically, code that
-declares, but does not define, an inline virtual function.  This
-occurred because the generated class specializations declare inline
-virtual functions, but definitions are only provided for functions that
-are referenced.  The language requires inline virtual functions to be
-defined in every translation unit.  This has been fixed.
+When CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS was TRUE,
+invalid C++ code was sometimes produced that declared an inline virtual
+function without defining it.  This occurred because the generated class
+specializations declare inline virtual functions, but definitions are only
+provided for functions that are referenced.  The language requires inline
+virtual functions to be defined in every translation unit.  This has been
+fixed.
 
 8/6/98    C++-generating back end: position of template instantiations
           triggered by default argument expressions within class scope
