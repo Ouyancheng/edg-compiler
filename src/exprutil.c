@@ -6464,7 +6464,7 @@ the appropriate value instead.
     /* The actual number of threads will be determined at run time. */
     constant = alloc_constant(kind);
     constant->type = integer_type((an_integer_kind)ik_int);
-    if (1 || kind == (a_constant_repr_kind)ck_upc_threads) {
+    if (kind == (a_constant_repr_kind)ck_upc_threads) {
       /* Set the value to "1" so we can declared arrays of size THREADS. */
       set_integer_value(&constant->variant.integer_value,
                         (a_host_large_integer)1);

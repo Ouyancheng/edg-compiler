@@ -2523,7 +2523,7 @@ fields to default values.
       bp->lifetime               = NULL;
       bp->end_of_block_reachable = TRUE;
 #if UPC_EXTENSIONS_ALLOWED
-      bp->upc_access_method      = upc_access_unspecified;
+      bp->upc_access_method      = (a_upc_access_method)upc_access_unspecified;
 #endif /* UPC_EXTENSIONS_ALLOWED */
       break;
     case stmk_init:

@@ -1128,14 +1128,14 @@ Convert the specified type to pure block allocation.
         elem_type = underlying_array_element_type(tp);
         if (!upc_dynamic_threads()) {
           /* Make sure the result is rounded up. */
-          num_elements = (num_elements + upc_num_threads - 1)
+          num_elements = (a_targ_size_t)(num_elements + upc_num_threads - 1)
                                                             / upc_num_threads;
         }  /* if */
       } else {
         elem_type = tp;
         num_elements = 1;
       }  /* if */
-      while (elem_type->kind == tk_typeref &&
+      while (elem_type->kind == (a_type_kind)tk_typeref &&
              !typeref_is_shared_qualified(elem_type)) {
         elem_type = elem_type->variant.typeref.type;
       }  /* while */

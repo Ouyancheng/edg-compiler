@@ -4379,7 +4379,8 @@ Syntax:
       special_upc_size = upc_local_type_size(sizeof_type);
       use_special_upc_size = TRUE;
     } else if (kind == tok_upc_elemsizeof && is_array_type(sizeof_type)) {
-      sizeof_type = skip_typerefs(underlying_array_element_type(sizeof_type));
+      sizeof_type = underlying_array_element_type(sizeof_type);
+      sizeof_type = skip_typerefs(sizeof_type);
     }  /* if */
   }  /* if */
   if (err) {

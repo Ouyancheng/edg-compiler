@@ -839,20 +839,16 @@ extern a_targ_size_t upc_local_type_size(a_type_ptr tp);
 
 #define is_shared_qualified_type(tp)                                  \
   ((get_type_qualifiers(tp) & TQ_UPC_SHARED) != 0)
-#define is_relaxed_qualified_type(tp)                                 \
-  ((get_type_qualifiers(tp) & TQ_UPC_RELAXED) != 0)
-#define is_strict_qualified_type(tp)                                  \
-  ((get_type_qualifiers(tp) & TQ_UPC_STRICT) != 0)
 
 #define get_upc_block_size(tp)                                          \
-  (((tp)->kind == (a_type_kind)tk_typeref ||                           \
-    (tp)->kind == (a_type_kind)tk_array) ?                             \
+  (((tp)->kind == (a_type_kind)tk_typeref ||                            \
+    (tp)->kind == (a_type_kind)tk_array) ?                              \
       (f_get_upc_block_size((tp), /*top_level=*/C_mode())) :            \
       UPC_BLOCK_SIZE_NONE)
 
 #define get_underlying_upc_block_size(tp)                               \
-  (((tp)->kind == (a_type_kind)tk_typeref ||                           \
-    (tp)->kind == (a_type_kind)tk_array) ?                             \
+  (((tp)->kind == (a_type_kind)tk_typeref ||                            \
+    (tp)->kind == (a_type_kind)tk_array) ?                              \
       (f_get_upc_block_size((tp), /*top_level=*/FALSE)) :               \
       UPC_BLOCK_SIZE_NONE)
 
