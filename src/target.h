@@ -654,6 +654,7 @@ EXTERN a_boolean
 			/* If TRUE, template functions are given mangled names
 			   that are distinct from the names for nontemplate
 			   functions. */
+
 #endif /* NEED_NAME_MANGLING */
 
 #if DO_IL_LOWERING
@@ -728,6 +729,20 @@ EXTERN a_boolean
 			/* True when type qualifiers should be removed from
 			   function parameter types (e.g., a "const int"
 			   parameter is seen simply as "int"). */
+
+EXTERN a_boolean
+		c_and_cpp_function_types_are_distinct
+#if VAR_INITIALIZERS
+                              = DEFAULT_C_AND_CPP_FUNCTION_TYPES_ARE_DISTINCT
+#endif /* VAR_INITIALIZERS */
+                                                                             ;
+			/* If TRUE, function types are considered distinct if
+			   their only difference is that one has extern "C"
+			   routine linkage and the other has extern "C++"
+			   routine linkage.  This affects, among other things,
+			   overload resolution and name mangling.  (See also
+			   impl_conv_between_c_and_cpp_function_ptrs_allowed,
+			   defined in cmd_line.h.) */
 
 /* Aside from occasional references in targ_def.h, the following values
    should be used *only* to initialize the variables declared in this file.
