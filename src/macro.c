@@ -4913,7 +4913,7 @@ command line -D options.
     /* Enter a macro for the maximum size of an integral value. */
     { unsigned long int_max_size;
 #if LONG_LONG_ALLOWED
-      int_max_size = targ_sizeof_long_long;
+      int_max_size = (unsigned long)targ_sizeof_long_long;
 #else /* !LONG_LONG_ALLOWED */
       int_max_size = targ_sizeof_long;
 #endif /* LONG_LONG_ALLOWED */
