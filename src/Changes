@@ -169,7 +169,7 @@ as illustrated by the following example:
       inline void f() {}  // "inline" implies "static" in Sun mode
     }
   }
-  extern "C" { using X::f; }
+  using X::f;
   extern "C" void f();  // Redeclaration of X::f without a qualified name is
                         // possible because f has C name linkage
 
