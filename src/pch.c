@@ -526,6 +526,70 @@ Display a PCH event for debugging purposes.
 #endif /* DEBUG */
 
 
+static void find_last_event_to_use(void)
+/*
+Once the end of the file prefix has been found, this routine determines the
+last usable event in the list.  The last usable event is the last
+zero-level (i.e., not within a preprocessing if directive) event that
+precedes the header stop position.
+*/
+{
+  a_pch_event_ptr	last_if_event = NULL;
+  a_pch_event_ptr	pep = pch_event_list_head;
+  a_pch_event_ptr	last_event_to_use = NULL;
+  int			nesting_level = 0;
+
+  for (; pep != NULL; pep = pep->next) {
+    if (pep->kind == pchek_pp_directive) {
+      a_pp_directive_kind	ppd_kind = pep->variant.ppd_kind;
+      if (ppd_kind == ppd_if ||
+          ppd_kind == ppd_ifdef ||
+          ppd_kind == ppd_ifndef) {
+        /* This is an if directive, save a pointer to the last if event
+           and increment the if nesting level. */
+        pep->last_if_event = last_if_event;
+        last_if_event = pep;
+        nesting_level++;
+      } else if (ppd_kind == ppd_endif) {
+        /* On an endif, decrement the if nesting level.  If there is
+           an if/endif mismatch, don't try to do any further PCH
+           processing. */
+        if (nesting_level == 0) {
+          /* A nesting error occurred.  Don't do any PCH processing.
+             An error will be diagnosed when the file is compiled. */
+          abandon_pch_processing();
+          break;
+        } else {
+          nesting_level--;
+          if (last_if_event != NULL) {
+            last_if_event = last_if_event->last_if_event;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      if (nesting_level == 0 && 
+          (ppd_kind == ppd_include ||
+           ppd_kind == ppd_define ||
+           ppd_kind == ppd_pragma ||
+           ppd_kind == ppd_endif)) {
+        /* Update the pointer to the last zero level event.  When we've
+           scanned the whole event list, this will point to the last event
+           to be included in the prefix. */
+        last_event_to_use = pep;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  if (last_event_to_use != NULL) {
+    /* Discard any events that follow the new last one. */
+    last_event_to_use->next = NULL;
+    pch_event_list_tail = last_event_to_use;
+    header_stop_source_position = last_event_to_use->position;
+  } else {
+    /* We did not find an eligible event.  Suppress any PCH processing. */
+    abandon_pch_processing();
+  }  /* if */
+}  /* find_last_event_to_use */
+
+
 static void build_prefix_information(void)
 /*
 Do an initial scan of the primary source file to build the file prefix
@@ -548,32 +612,8 @@ information.
        and close the primary input file. */
     pop_input_stack();
   }  /* if */
-  if (pragma_hdrstop_found) {
-    a_pch_event_ptr	pep = pch_event_list_head;
-    a_pch_event_ptr	last_event_to_use = NULL;
-    /* Advance to the final #include, #define, or #pragma in the list. */
-    for (; pep != NULL; pep = pep->next) {
-      if (pep->kind == pchek_pp_directive) {
-        a_pp_directive_kind	ppd_kind = pep->variant.ppd_kind;
-        if (ppd_kind == ppd_include ||
-            ppd_kind == ppd_define ||
-            ppd_kind == ppd_pragma) {
-          last_event_to_use = pep;
-        }  /* if */
-      }  /* if */
-    }  /* for */
-    /* Discard any events that follow the new last one. */
-    last_event_to_use->next = NULL;
-    pch_event_list_tail = last_event_to_use;
-    header_stop_source_position = last_event_to_use->position;
-  } else {
-    if (pch_event_list_head != NULL) {
-      /* Only set the header stop position if there were some events
-         that preceded the first token. */
-      header_stop_source_position = pos_curr_token;
-      header_stop_is_end_of_source = (curr_token == tok_end_of_source);
-    }  /* if */
-  }  /* if */
+  /* Go through the event list and find the last eligible event. */
+  find_last_event_to_use();
   /* Reset the state information maintained by the lexical routines. */
   lexical_reset();
   /* Clear the primary source file pointer, otherwise, push_input_stack
@@ -1211,6 +1251,15 @@ current point.
 {
   open_pch_output_file();
   pch_message(ec_creating_pch, pch_file_name);
+#if DEBUG
+  if (debug_level >= 3) {
+    a_pch_event_ptr	pep;
+    fprintf(f_debug, "Events to be recorded in %s:\n", pch_file_name);
+    for (pep = pch_event_list_head; pep != NULL; pep = pep->next) {
+      db_pch_event(pep);
+    }  /* for */
+  }  /* if */
+#endif /* DEBUG */
   /* Write the string that identifies this file as a precompiled header
      file. */
   fwrite_with_check(pch_id_string, pch_id_string_length, f_pch_output);
@@ -1247,10 +1296,8 @@ write out the precompiled header file.
 {
 #define PCH_DECL_SEQ_THRESHOLD 1
 
-  if (using_a_pch_file) {
-    /* We are using input obtained from a precompiled header, don't
-       try to generate a new one. */
-  } else if (cannot_create_pch_file) {
+  db_enter(2, "generate_precompiled_header");
+  if (cannot_create_pch_file) {
     /* Some condition was encountered that makes creation of a precompiled
        header impossible. */
   } else if (depth_scope_stack != DEPTH_OF_FILE_SCOPE) {
@@ -1275,6 +1322,7 @@ write out the precompiled header file.
       write_precompiled_header_file();
     }  /* if */
   }  /* if */
+  db_exit();
 }  /* generate_precompiled_header */
 
 
@@ -1750,18 +1798,29 @@ be used as part of the applicability check in subsequent compilations.
   /* We have not encountered a condition that would prevent us from
      using a precompiled header. */
   build_prefix_information();
-  if (automatic_pch_processing) {
-    applicable_pch_found = find_applicable_pch();
-  }  /* if */
-  if (use_precompiled_header ||
-      (automatic_pch_processing && applicable_pch_found)) {
-    restore_precompiled_header_information();
+  if (cannot_do_pch_processing) {
+    /* Something happened that makes it impossible to generate or
+       use a precompiled header. */
   } else {
-    /* We can't use a PCH, see if we can create one. */
+    if (automatic_pch_processing) {
+      applicable_pch_found = find_applicable_pch();
+    }  /* if */
+    if (use_precompiled_header ||
+        (automatic_pch_processing && applicable_pch_found)) {
+      restore_precompiled_header_information();
+    }  /* if */
+    /* See if we can create a precompiled header file. */
     if (cmp_source_positions(header_stop_source_position,
                              null_source_position) != 0) {
       /* Only generate one if a header stop position was found. */
-      header_stop_position_pending = TRUE;
+      if (!using_a_pch_file ||
+          (cmp_source_positions(header_stop_source_position,
+                                pos_of_last_event_from_pch) > 0)) {
+        /* If we are also using a precompiled header file, make sure that
+           the new header stop position is beyond what is being obtained from
+           the PCH input file. */
+        header_stop_position_pending = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   db_exit();

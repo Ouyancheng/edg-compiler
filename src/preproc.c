@@ -61,6 +61,12 @@ static a_source_position
 			/* The source position of the current preprocessing
 			   directive. */
 
+static a_boolean
+		is_header_stop_dir;
+			/* TRUE when the directive being scanned in the
+			   header stop directive after which a precompiled
+			   header file should be generated. */
+
 
 /* Advance declaration needed because of mutual recursion: */
 static void skip_to_endif(a_boolean stop_skip_on_else_or_elif);
@@ -414,6 +420,7 @@ the newline of the preprocessing directive that is causing this skip.
 {
   a_boolean           condition;
   a_boolean           save_currently_in_pp_if_skip = currently_in_pp_if_skip;
+  a_source_position   start_of_dir_position;
 
   db_enter(3, "skip_to_endif");
   /* Before leaving the current directive, check that all of it was taken.
@@ -443,12 +450,16 @@ the newline of the preprocessing directive that is causing this skip.
     /* "#" found, and it is on a different line than the previous
        token, and thus the first token on its line.  This is a preprocessing
        directive. */
+    start_of_dir_position = pos_curr_token;
     in_preprocessing_directive = TRUE;
     /* Identify the directive and process it. */
     switch ((int)identify_dir_keyword()) {
       case ppd_endif:
         /* #endif, valid end of if-skip. */
         proc_endif();
+        /* See if this is an #endif that also marks a PCH header stop
+           position. */
+        is_header_stop_dir = is_header_stop_position(start_of_dir_position);
         goto end_skip;
       case ppd_else:
         proc_else(/*perform_else=*/FALSE);
@@ -1151,13 +1162,10 @@ Scan and process a #pragma directive.
         curr_ise->include_history->pragma_once = TRUE;
 	processed = TRUE;
       } else if (curr_id_is("hdrstop")) {
-        /* If we are generating a precompiled header file, this marks the
-           end of the tokens that comprise the precompiled header.
-           Write the precompiled header now, if possible. */
-        if (create_precompiled_header || automatic_pch_processing) {
-          generate_precompiled_header();
-          header_stop_no_longer_pending();
-        }   /* if */
+        /* A header stop pragma.  The actual processing of the header stop
+           pragma is handled in the special prefix processing code for
+           preprocessing directives.  When it is encountered during a
+           real compilation, it should just be ignored. */
         while (curr_token != tok_newline) (void)get_token();
         processed = TRUE;
       } else {
@@ -1312,7 +1320,6 @@ execute the preprocessor directive.
   a_source_position  	save_error_position;
   a_source_position  	start_of_dir_position;
   a_pp_directive_kind	dir_kind;
-  a_boolean		is_header_stop_dir = FALSE;
 
   db_enter(3, "pp_directive");
 
@@ -1339,14 +1346,7 @@ execute the preprocessor directive.
   /* See if this directive is marks the header stop position.  If so,
      after processing the directive, we need to call
      generate_precompiled_header. */
-  if (header_stop_position_pending) {
-    if (!curr_ise->is_include_file &&
-        curr_ise->actual_line == 
-                           (a_line_number)header_stop_source_position.seq &&
-        start_of_dir_position.column == header_stop_source_position.column) {
-      is_header_stop_dir = TRUE;
-    }  /* if */
-  }  /* if */
+  is_header_stop_dir = is_header_stop_position(start_of_dir_position);
   if (!building_pch_prefix) {
     switch ((int)dir_kind) {
       case ppd_not_valid:

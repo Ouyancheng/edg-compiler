@@ -13,6 +13,9 @@ pch.h -- Precompiled header declarations
 
 */
 
+#ifndef PCH_H
+#define PCH_H 1
+
 #ifndef PREPROC_H
 #include "preproc.h"
 #endif /* ifndef PREPROC_H */
@@ -92,6 +95,13 @@ typedef struct a_pch_event {
   a_source_position
 		position;
 			/* The source position of this event. */
+  a_pch_event_ptr
+		last_if_event;
+			/* Pointer to the nearest enclosing preprocessing
+			   if directive.  Present only for nested if
+			   directives.  This field is only used
+		           to find the last zero-level directive once the
+			   end of the prefix has been found. */
   a_byte_boolean
 		match_found;
 			/* Flag used while comparing the event list for
@@ -275,6 +285,19 @@ extern void pch_fixup_for_curr_source_file(void);
 extern void pch_init(void);
 
 extern void pch_one_time_init(void);
+
+/*
+Macro that returns TRUE if the line number indicated by the current input
+stack entry, and the column number from the supplied source position
+match the header stop positing.
+*/
+#define is_header_stop_position(pos)					\
+  (header_stop_position_pending &&					\
+   (!curr_ise->is_include_file &&					\
+    curr_ise->actual_line == (a_line_number)header_stop_source_position.seq &&\
+    (pos).column == header_stop_source_position.column))
+
+#endif /* ifndef PCH_H */
 
 
 /******************************************************************************
