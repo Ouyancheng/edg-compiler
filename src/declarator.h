@@ -133,12 +133,12 @@ abstract or real declarator.
 			/* If this bit was set a nonstandard member-function
 			   typedef declaration was seen; these are recognized
 			   in cfront-compatibility mode only. */
-#define DO_CLASS_SCOPE_DEACTIVATION_REQUIRED (a_decl_flag_set)(0x8)
+#define DO_SCOPE_DEACTIVATION_REQUIRED (a_decl_flag_set)(0x8)
 			/* If this bit was set a class scope was reactivated
-			   to handle a class member declaration.  This flag,
-			   used only when declarator is called recursively,
-			   lets the caller know that the scope needs to be
-			   popped. */
+			   or a namespace extension scope was pushed to handle
+			   (respectively) a class or namespace member
+			   declaration.  This flag lets the caller know that
+			   the scope needs to be popped. */
 #define DO_PARAM_TYPE_IS_RESTRICT_QUALIFIED_ARRAY (a_decl_flag_set)(0x10)
 			/* If this bit is set, the derived type constructed
 			   during declarator processing is an array type for
