@@ -249,8 +249,7 @@ symbols.
   a_symbol_ptr      sym, cctor_sym = NULL;
   a_boolean         is_overloaded_function, ambiguous = FALSE;
   a_boolean         const_object_okay, volatile_object_okay;
-  a_boolean         cctor_sym_accepts_const, cctor_sym_accepts_volatile;
-  a_boolean         sym_matches_exactly, cctor_sym_matches_exactly;
+  a_boolean         sym_matches_exactly, cctor_sym_matches_exactly = FALSE;
 
   *err = FALSE;
   class_type = skip_typerefs(class_type);
@@ -309,8 +308,6 @@ symbols.
         /* We've found one.  Record it, but keep looking.  If there's an
            ambiguity we need to report it. */
         cctor_sym = sym;
-        cctor_sym_accepts_const = const_object_okay;
-        cctor_sym_accepts_volatile = volatile_object_okay;
         cctor_sym_matches_exactly = sym_matches_exactly;
         ambiguous = FALSE;
       }  /* if */
@@ -1775,7 +1772,9 @@ scan_paren:
            destructor, in which case a dynamic init entry is also created.) */
         if (cssp->constructor != NULL) {
           str_error(ec_no_default_constructor,
-                     cip->variant.base_class->type->source_corresp.name);
+                     (cip->kind == (a_constructor_init_kind)cik_field) ?
+                         cip->variant.field->type->source_corresp.name :
+                         cip->variant.base_class->type->source_corresp.name);
         }  /* if */
         dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
       } else {
