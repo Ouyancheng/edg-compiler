@@ -498,9 +498,9 @@ Save an end-of-source token on the end of the list of tokens saved in *cache.
 
   /* Build an entry for the end-of-source token. */
   alloc_cached_token(ctp);
-  ctp->source_position = null_source_position;
+  ctp->source_position = pos_curr_token;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  ctp->end_source_position = null_source_position;
+  ctp->end_source_position = pos_curr_token;
 #endif /*  EXTRA_SOURCE_POSITIONS_IN_IL */
   ctp->token = (a_byte_token_kind)tok_end_of_source;
   ctp->token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
