@@ -6585,7 +6585,7 @@ Scan the simple assignment operator ("=").  See section 3.3.16 of the standard.
       do_operand_transformations(operand_1,
                                  TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
 #if ASSIGNMENT_TO_THIS_ALLOWED
-      if (C_dialect == C_dialect_cplusplus &&
+      if (C_dialect == C_dialect_cplusplus && !exceptions_enabled &&
           is_an_rvalue(operand_1) &&  /* For speed. */
           check_assignment_to_this_pointer(operand_1)) {
         /* Anachronism -- assigning to the "this" pointer. */
