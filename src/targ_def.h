@@ -1095,6 +1095,38 @@ the default for global variable remove_qualifiers_from_param_types.
 #endif /* ifndef DEFAULT_REMOVE_QUALIFIERS_FROM_PARAM_TYPES */
 
 /*
+Flag that is TRUE if, by default, function types are considered distinct
+when their only difference is that one has extern "C" routine linkage and
+the other has extern "C++" routine linkage.  It is the initial value of
+global variable c_and_cpp_function_types_are_distinct.  How to set this
+flag is both a language issue (overloading, type conversions) and an ABI
+issue (name mangling).  For example:
+  typedef void (*PF)();             // Pointer to an extern "C++" function
+  extern "C" typedef void (*PCF)(); // Pointer to an extern "C" function
+  void f(PF);
+  void f(PCF);
+When the flag is TRUE, "void f(PCF)" introduces a new function, which is
+consistent with the Working Paper; when it is FALSE, "void f(PCF)" is a
+compatible redeclaration of "void f(PF)" -- cfront's behavior.  (Note: when
+this flag is FALSE, a strictly conforming implementation is not possible;
+when it is TRUE, running in cfront compatibility mode is compromised -- but
+only rarely as long as if impl_conv_between_c_and_cpp_function_ptrs_allowed
+is TRUE.)  This is also an ABI issue, because it affects the representation
+of pointer-to-function types in a mangled name.  When the flag is TRUE, the
+name-mangling of "void f(PCF)" is distinct from that of "void f(PF)"; if it
+is FALSE, the two are mangled identically.
+*/
+#ifndef DEFAULT_C_AND_CPP_FUNCTION_TYPES_ARE_DISTINCT
+/* This feature CAN be turned on when CFRONT_OBJECT_CODE_COMPATIBILITY is on,
+   but that produces a cfront-like ABI rather than a cfront-compatible ABI. */
+#if ABI_COMPATIBILITY_VERSION < 233 || CFRONT_OBJECT_CODE_COMPATIBILITY
+#define DEFAULT_C_AND_CPP_FUNCTION_TYPES_ARE_DISTINCT FALSE
+#else /* !(ABI_COMPATIBILITY_VERSION < 233 || ...) */
+#define DEFAULT_C_AND_CPP_FUNCTION_TYPES_ARE_DISTINCT TRUE
+#endif /* ABI_COMPATIBILITY_VERSION < 233 || ... */
+#endif /* ifndef DEFAULT_C_AND_CPP_FUNCTION_TYPES_ARE_DISTINCT */
+
+/*
 Flag that is TRUE if the runtime library uses namespaces.  This
 causes the runtime library to define the library classes (e.g., type_info)
 in the "std" namespace.  It is also used by the standard header files
