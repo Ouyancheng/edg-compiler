@@ -4841,7 +4841,7 @@ in_instantiation:
                                           /*from_arg_dep_lookup=*/
                                                (symbol_list->symbol !=
                                                 normal_lookup_function_symbol),
-                                          symbol_list->
+                                          (a_boolean)symbol_list->
                                                  from_arg_dep_lookup_namespace,
                                           dependent_call,
                                           /*is_overloaded_operator=*/FALSE,
@@ -4877,7 +4877,8 @@ in_instantiation:
                                                (slep != symbol_list ||
                                                 function_symbol !=
                                                 normal_lookup_function_symbol),
-                                      slep->from_arg_dep_lookup_namespace,
+                                      (a_boolean)slep->
+                                                 from_arg_dep_lookup_namespace,
                                       dependent_call,
                                       /*known_to_be_visible=*/FALSE,
                                       /*is_overloaded_operator=*/FALSE,
@@ -9312,7 +9313,8 @@ such cases (where operator overloading might apply, but we can't tell).
                                                  (slep != symbol_list ||
                                                   nonmember_functions_symbol !=
                                                   normal_sym),
-                                         slep->from_arg_dep_lookup_namespace,
+                                         (a_boolean)slep->
+                                                 from_arg_dep_lookup_namespace,
                                          dependent_call,
                                          /*known_to_be_visible=*/FALSE,
                                          /*is_overloaded_operator=*/TRUE,

@@ -1352,7 +1352,7 @@ The current token must have been scanned as a pp-token.
     *buffer++ = LE_ESCAPE;
     *buffer++ = LE_INERT_MACRO;
   }  /* if */
-  (void)memcpy((void *)buffer, (void *)start_of_curr_token,
+  (void)memcpy((char *)buffer, (char *)start_of_curr_token,
                size_t_arg(len_of_curr_token));
 }  /* add_curr_token_text_to_buffer */
 
@@ -4484,7 +4484,7 @@ symbol entry is returned.
   /* Look for a previous definition of the predefined macro.  If found, it
      must have the same replacement string. */
   clear_locator(&locator, &null_source_position);
-  sym_ptr = find_macro_symbol_by_name(macro_name, strlen(macro_name),
+  sym_ptr = find_macro_symbol_by_name(macro_name, (sizeof_t)strlen(macro_name),
                                       &locator);
   if (sym_ptr != NULL) {
     /* Make sure that the replacement text is the same.  The "-1" is
