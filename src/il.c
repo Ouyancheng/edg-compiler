@@ -468,20 +468,22 @@ pointer_or_reference:
       fprintf(f_debug, ")[%lu]", tp->variant.array.number_of_elements);
       break;
     case tk_struct:
-      fputs("struct {", f_debug);
+      fputs("struct", f_debug);
       goto class_struct_union;
     case tk_union:
-      fputs("union {", f_debug);
+      fputs("union", f_debug);
       goto class_struct_union;
     case tk_class:
-      fputs("class {", f_debug);
+      fputs("class", f_debug);
 class_struct_union:
-      {
+      ctsp = tp->variant.class_struct_union.extra_info;
+      if (ctsp != NULL && ctsp->assoc_scope == NULL) {
+        fputs(" (undefined)", f_debug);
+      } else {
         a_base_class_ptr  bcp = NULL;
         a_boolean         any_virtual_base_classes = FALSE;
         a_boolean         any_indirect_base_classes = FALSE;
 
-        ctsp = tp->variant.class_struct_union.extra_info;
         if (ctsp != NULL) bcp = ctsp->base_classes;
         for (; bcp != NULL; bcp = bcp->next) {
           if (bcp->direct) {
@@ -494,7 +496,7 @@ class_struct_union:
         fputc('\n', f_debug);
         fp = tp->variant.class_struct_union.field_list;
         for (; fp != NULL; fp = fp->next) db_field(fp);
-        if (ctsp != NULL) {
+        if (ctsp != NULL && ctsp->assoc_scope != NULL) {
           a_variable_ptr           vp = ctsp->assoc_scope->variables;
           a_routine_ptr            rp = ctsp->assoc_scope->routines;
           an_access_adjustment_ptr aap = ctsp->access_adjustments;
