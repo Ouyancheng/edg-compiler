@@ -6920,7 +6920,7 @@ variables, and functions), old-style parameter declarations, and declarations
 of local variables (and types, etc.) of functions and in blocks.
 */
 {
-  a_boolean         is_parameter;
+  a_boolean         is_parameter, local_is_parameter;
   a_storage_class   storage_class, local_storage_class;
   a_type_ptr        type_ptr, old_type;
   a_type_ptr	    local_type_ptr;
@@ -6954,6 +6954,8 @@ of local variables (and types, etc.) of functions and in blocks.
   a_boolean         need_assign_remove_stop_token    = FALSE;
   a_boolean         need_lbrace_remove_stop_token    = FALSE;
   an_expr_node_ptr  dim_expr_ptr;
+  a_memory_region_number
+                    region_to_switch_back_to;
 #if ASM_FUNCTION_ALLOWED
   a_boolean         is_asm_function = FALSE;
 #endif /* ASM_FUNCTION_ALLOWED */
@@ -7204,17 +7206,21 @@ continue_with_declaration:
         }  /* if */
       }  /* if */
       local_storage_class = storage_class;
+      local_is_parameter = is_parameter;
       /* If this is a parameter (old-style), make sure it appears on
          the param_id_list.  Also adjust the type if necessary
          (for example, "array of x" becomes "pointer to x"). */
-      if (is_parameter) {
+      if (local_is_parameter) {
         param_id = param_id_on_list(&locator, param_id_list);
         if (param_id == NULL) {
           /* The identifier was not found on the list. */
           error(ec_decl_should_be_of_param);
-          /* Enter the declared object as a variable rather than 
-             as a parameter. */
-          is_parameter = FALSE;
+          /* Enter the declared object as a variable rather than as a
+             parameter.  */
+          local_is_parameter = FALSE;
+          /* Switch back to the function scope memory region for entering
+             the variable and processing an initializer, if any. */
+          switch_to_function_scope_region(&region_to_switch_back_to);
         } else if (param_id->symbol != NULL) {
           /* The parameter has already been declared.  We don't want to leave
              the old parameter symbol in the symbol table since it is in an
@@ -7435,7 +7441,7 @@ continue_with_declaration:
       }  /* if */
       /* Enter the symbol with the proper type. */
       linkage = idl_none;
-      if (is_parameter) {
+      if (local_is_parameter) {
         decl_parameter(&locator, &symbol_ptr);
         /* Save the symbol, type, and storage class for a parameter
            (they're needed so that the parameters can be entered later in
@@ -7482,8 +7488,9 @@ continue_with_declaration:
            error.  This is done rather than flagging the error here because
            the subroutine can scan over the initializer expression neatly. */
         initializer(symbol_ptr, &locator.source_position, linkage,
-                    has_parenthesized_initializer, is_parameter);
-        if (symbol_ptr->kind == (a_symbol_kind)sk_variable && !is_parameter) {
+                    has_parenthesized_initializer, local_is_parameter);
+        if (symbol_ptr->kind == (a_symbol_kind)sk_variable &&
+            !local_is_parameter) {
           /* Fetch the type of the symbol again, since it might have been
              changed if it was an incomplete array and was initialized. */
           local_type_ptr = symbol_ptr->variant.variable->type;
@@ -7502,7 +7509,7 @@ continue_with_declaration:
         }  /* if */
       } else if ((symbol_ptr->kind == (a_symbol_kind)sk_variable ||
                   symbol_ptr->kind == (a_symbol_kind)sk_static_data_member) &&
-                 !is_parameter && !is_error_locator(locator)) {
+                 !local_is_parameter && !is_error_locator(locator)) {
         a_variable_ptr  vp = symbol_ptr->variant.variable;
         if (vp->init_kind != (an_init_kind)initk_none) {
           /* Already initialized -- this must be a redeclaration. */
@@ -7573,12 +7580,19 @@ continue_with_declaration:
           }  /* if */
         }  /* if */
       }  /* if */
+      if (is_parameter && !local_is_parameter) {
+        /* We are in an old-style param declaration but switched from the
+           file scope memory region to the function scope memory region when
+           a name was found that was not on the param id list.  Switch back
+           to the file scope region for subsequent processing. */
+         switch_back_to_original_region(region_to_switch_back_to);
+      }  /* if */
       copy_source_position(locator.source_position, error_position);
       /* If a variable has no linkage, the type must be complete here.
          A case like "void i;" at file scope is also an error, since it
          can never be completed. */
-      if (symbol_ptr->kind == (a_symbol_kind)sk_variable && !is_parameter &&
-          is_incomplete_type(local_type_ptr) &&
+      if (symbol_ptr->kind == (a_symbol_kind)sk_variable &&
+          !local_is_parameter && is_incomplete_type(local_type_ptr) &&
           (linkage == idl_none ||
            (local_storage_class == (a_storage_class)sc_unspecified &&
             is_void_type(local_type_ptr)))) {
