@@ -4262,27 +4262,21 @@ declaration.
        keeps track of the full composite type behind the scenes.
        If we do not already have an IL entry, and the external symbol entry
        points to one, get a pointer to it and use it.
-       Note that in Microsoft bugs mode, an extern "C" declaration (or a
-       declaration with external linkage in C mode) in one scope does not
-       link up with an extern "C" declaration of the same name in another
-       scope (though the linker will catch redefinitions of such names).
-       Similarly, block- extern declarations can conflict with prior
-       declarations in K&R/pcc mode. */
+       Note that in Microsoft compilers, an extern "C" declaration (or a
+       declaration with external linkage in C mode) in one scope does not link
+       up with an extern "C" declaration of the same name in another scope
+       (though the linker will catch redefinitions of such names). */
     a_routine_ptr  dummy_rp;
-    a_boolean  suppress_incompatible_error =
-                           redecl_error_already_issued ||
-                           (C_dialect == C_dialect_pcc &&
-                            depth_innermost_function_scope != NO_SCOPE_DEPTH);
-    suppress_ext_sym_lookup =
-                     suppress_ext_sym_lookup ||
-                     ((microsoft_bugs || C_dialect == C_dialect_pcc) &&
-                      idlb.name_linkage == (a_name_linkage_kind)nlk_external);
+    suppress_ext_sym_lookup = suppress_ext_sym_lookup ||
+                              (microsoft_bugs &&
+                               idlb.name_linkage ==
+                                           (a_name_linkage_kind)nlk_external);
     *ext_sym = 
         create_external_symbol_for_linked_entity(locator, type_ptr,
                                                  idlb.name_linkage,
                                                  (a_func_info_block_ptr)NULL,
                                                  redeclaration,
-                                                 suppress_incompatible_error,
+                                                 redecl_error_already_issued,
                                                  suppress_ext_sym_lookup,
                                                  &variable_ptr, &dummy_rp);
   }  /* if */
@@ -5544,17 +5538,11 @@ skip_overloading:;
     /* Create an external symbol for the present linkable declaration.
        Ordinarily, this may involve some lookup to find a declaration in a
        previous scope to which the present one is linked.  However, in
-       Microsoft bugs mode, an extern "C" declaration (or a declaration with
+       Microsoft compilers, an extern "C" declaration (or a declaration with
        external linkage in C mode) in one scope does not link up with an
        extern "C" declaration of the same name in another scope (though the
-       linker will catch redefinitions of such names).  Similarly, block-
-       extern declarations can conflict with prior declarations in K&R/pcc
-       mode. */
+       linker will catch redefinitions of such names). */
     a_variable_ptr  dummy_vp;
-    a_boolean  suppress_incompatible_error =
-                           redecl_error_already_issued ||
-                           (C_dialect == C_dialect_pcc &&
-                            depth_innermost_function_scope != NO_SCOPE_DEPTH);
     suppress_ext_sym_lookup = suppress_ext_sym_lookup ||
                               (microsoft_bugs &&
                                idlb.name_linkage ==
@@ -5563,7 +5551,7 @@ skip_overloading:;
         create_external_symbol_for_linked_entity(locator, type_ptr,
                                                  idlb.name_linkage,
                                                  func_info, redeclaration,
-                                                 suppress_incompatible_error,
+                                                 redecl_error_already_issued,
                                                  suppress_ext_sym_lookup,
                                                  &dummy_vp, &routine_ptr);
   }  /* if */
