@@ -187,8 +187,6 @@ typedef enum /*a_token_kind*/ {
   tok_bool,
   tok_false,
   tok_true,
-  tok_array_new,
-  tok_array_delete,
   /* Recognized in cfront compatibility mode only. */
   tok_overload,
   /* Token used to indicate keywords that are not yet implemented. */
@@ -232,8 +230,7 @@ EXTERN char	*token_names[(int)tok_last+1]
    "template", "this", "throw", "try", "virtual", "wchar_t",
    "const_cast", "dynamic_cast", "mutable", "namespace",
    "reinterpret_cast", "static_cast", "typeid", "using",
-   "bool", "false", "true", "new[]", "delete[]",
-   "overload", "unimplemented", "error",
+   "bool", "false", "true", "overload", "unimplemented", "error",
    "last" /* used to check that initialization is right. */
   }
 #endif /* VAR_INITIALIZERS */
@@ -525,8 +522,6 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_bool */
    (an_opname_kind)onk_none,          /* tok_false */
    (an_opname_kind)onk_none,          /* tok_true */
-   (an_opname_kind)onk_array_new,
-   (an_opname_kind)onk_array_delete,
    (an_opname_kind)onk_none,          /* tok_overload */
    (an_opname_kind)onk_none,          /* tok_unimplemented */
    (an_opname_kind)onk_none,          /* tok_error */
