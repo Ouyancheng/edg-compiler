@@ -6,13 +6,25 @@ The linkage specification in effect at the point of a function type
 declaration is now recorded in the routine type supplement (field
 routine_name_linkage).  The front end makes this information available to
 the back end in case, for example, different linkages imply different
-calling conventions.  This is especially useful when a call is made
-through a function pointer or pointer-to-member.
+calling conventions.  This can be necessary to have this information in the
+routine type if a call is made through a function pointer or
+pointer-to-member.
+
+The only behavior difference to be expected is that an error is no longer
+issued for the following:
+
+  extern "C" typedef void FT();
+
+which is now handled identically to:
+
+  extern "C" { typedef void FT(); }
 
 (Note: the routine_name_linkage value does not necessarily correspond to
 the name linkage with which an associated function, if any, was declared.
 Moreover, it is expected that an implementation that makes use of it will
-layer additional functionality on top of it.)
+layer additional functionality on top of it.  For instance, macro
+routine_name_linkages_are_compatible in types.c might need to be
+customized.)
 
 2/24/95  SVR4 C compatibility mode
 
