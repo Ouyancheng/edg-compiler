@@ -7866,8 +7866,11 @@ Generate code for an instantiation directive.
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   a_boolean                      put_out = TRUE;
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-  a_name_reference_ptr           name_ref = get_current_name_ref();
+  a_name_reference_ptr           name_ref = NULL;
 
+#if RECORD_FORM_OF_NAME_REFERENCE
+  name_ref = get_current_name_ref();
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   /* Advance past the source sequence entry for the instantiation directive. */
   adv_curr_source_sequence_entry();
   kind = (an_il_entry_kind)idp->entity.kind;
@@ -8993,8 +8996,11 @@ declaration following this one is such a continuation.
 #if GNU_EXTENSIONS_ALLOWED
   a_boolean                    marked_as_gnu_extension = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  a_name_reference_ptr         name_ref = get_current_name_ref();
+  a_name_reference_ptr         name_ref = NULL;
                             
+#if RECORD_FORM_OF_NAME_REFERENCE
+  name_ref = get_current_name_ref();
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   /* Deal with the primary/secondary declaration difference. */
   if (curr_src_seq_entry_is_secondary_decl(&sec_decl)) {
     if (ss_entry_kind(sec_decl) == iek_template) {
@@ -9553,8 +9559,11 @@ TRUE if the declaration following this one is such a continuation.
   a_boolean                     marked_as_gnu_extension = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
   a_boolean                     discard_declaration = FALSE;
-  a_name_reference_ptr          name_ref = get_current_name_ref();
+  a_name_reference_ptr          name_ref = NULL;
 
+#if RECORD_FORM_OF_NAME_REFERENCE
+  name_ref = get_current_name_ref();
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   *another_decl_in_comma_list = FALSE;
   /* Note that compiler-generated routines don't appear on the source sequence
      lists, so they never get here. */
