@@ -2862,6 +2862,10 @@ or enum.
        If this is the initial declaration, put out the proper original kind. */
     if (il_header.source_language == sl_Cplusplus &&
         type->kind != (a_type_kind)tk_enum &&
+        /* Part of the point of the following test is to
+           preserve __interface. */
+        type->kind != type->variant.class_struct_union.extra_info->
+                                                              orig_type_kind &&
         type->first_declaration_pending) {
       tag_kind_str =
          tag_kind(type->variant.class_struct_union.extra_info->orig_type_kind);
