@@ -48,6 +48,8 @@ extern void cancel_il_file(void);
 
 extern void write_memory_region(a_memory_region_number region_number);
 
+extern void il_write_early_init(void);
+
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 
 #endif /* ifndef IL_WRITE_H */

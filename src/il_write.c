@@ -957,6 +957,16 @@ Write the indicated memory region to the file f_il_output.
   db_exit();
 }  /* write_memory_region */
 
+void il_write_early_init(void)
+/*
+One time initialization that must take place early on in the front end.
+This is done before command line processing.
+*/
+{
+  f_il_output = NULL;
+  il_file_name = NULL;
+}  /* il_write_early_init */
+
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 
 

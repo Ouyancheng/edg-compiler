@@ -770,6 +770,9 @@ line processing is done.
   cmd_line_early_init();
   mem_manage_early_init();
   error_early_init();
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+  il_write_early_init();
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
   depth_scope_stack = NO_SCOPE_DEPTH;
 #if NEAR_AND_FAR_ALLOWED
   il_header.near_and_far_are_enabled = DEFAULT_NEAR_AND_FAR_ENABLED;
