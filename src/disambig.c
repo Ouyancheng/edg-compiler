@@ -214,9 +214,9 @@ Prescan the Microsoft __declspec specifier:
 	__declspec ( extended-decl-modifier-seq )
 	__near
 	__far
-	__single_inheritence
-	__multiple_inheritence
-	__virtual_inheritence
+	__single_inheritance
+	__multiple_inheritance
+	__virtual_inheritance
 
 When this routine is called, the current token must be the __declspec
 keyword.
@@ -478,7 +478,7 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (microsoft_mode) {
           /* Check for a Microsoft decl modifier, such as
-             __single_inheritence. */
+             __single_inheritance. */
           prescan_microsoft_extended_decl_modifiers(state, flags);
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
