@@ -1637,8 +1637,12 @@ be NULL if the caller does not need to know whether a conversion was performed.
     type_kind = type->kind;
     /* Normalize the type kinds so that class and struct are treated as the
        same kind. */
-    if (templ_type_kind == (a_type_kind)tk_struct) templ_type_kind = tk_class;
-    if (type_kind == (a_type_kind)tk_struct) type_kind = tk_class;
+    if (templ_type_kind == (a_type_kind)tk_struct) {
+      templ_type_kind = (a_type_kind)tk_class;
+    }  /* if */
+    if (type_kind == (a_type_kind)tk_struct) {
+      type_kind = (a_type_kind)tk_class;
+    }  /* if */
     if (templ_type == type) {
       /* Identical type entries, so it's a match. */
       match = TRUE;
