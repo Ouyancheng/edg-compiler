@@ -1,5 +1,18 @@
 Version 2.44
 
+3/2/00   Internal error on redeclaration incompatibility in SVR4 mode
+
+The front end sometimes aborted its processing with an internal error when
+a block extern declaration was incompatible with a previous declaration of
+that entity.
+
+  extern int gi;
+  void f() {
+    extern void (*gi[])();  // User to trigger an internal error with --svr4
+  }
+
+This is fixed and a normal error message is issued.
+
 2/29/00  Spurious error on certain command-line macro definitions
 
 In 2.43, the processing of command-line macro definitions was modified

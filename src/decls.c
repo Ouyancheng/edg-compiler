@@ -2227,7 +2227,7 @@ cases.  Return TRUE if the two types are compatible by these relaxed rules.
       }  /* if */
     }  /* if */
   } else {
-    check_assertion(is_object_type(tp1) && is_object_type(tp2));
+    check_assertion(!is_function_type(tp2));
     if (is_array_type(tp1)) {
       /* Array object types are "compatible" if they have the same element
          type. */
