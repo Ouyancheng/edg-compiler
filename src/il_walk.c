@@ -1102,7 +1102,7 @@ and the entry pointer is to an entry in the file scope, just return
             case dik_nonconstant_aggregate:
               walk_ptr(ptr->variant.aggregate.aggr_const, a_constant_ptr,
                        iek_constant);
-              walk_list(ptr->variant.aggregate.dynamic_init_list,
+              remap_ptr(ptr->variant.aggregate.dynamic_init_list,
                         a_dynamic_init_ptr, iek_dynamic_init);
               break;
 #ifdef CHECKING
