@@ -1,5 +1,19 @@
 Version 2.17
 
+5/14/93 Diagnostic on initializing an aggregate without a initializer list
+
+In C++ mode an error is now issued if an array is initialized other than
+with a brace-enclosed initializer list.
+
+In pcc mode it is possible to initialize an aggregate by simply providing
+the value for the first field or array element.  For example:
+
+  int a[4] = 1;      // Okay in pcc mode -- same as "int a[4] = { 1 };"
+
+As an extension this is also allowed as the default in ordinary C mode --
+though a strict ANSI diagnostic may be issued.  It used to allowed in C++
+mode also (though only for arrays) but now it is an error.
+
 5/14/93  Tag names first used in an argument list inside a template class
 
 In this example struct X is now entered in the global scope
@@ -14,6 +28,25 @@ in the global scope during prototype instantiation.
 
 A more specific error is now issued when a template argument list
 follows a type name that is not a class template name.
+
+5/13/93 Uninitialized const objects created by operator new
+
+The logic used for detecting uninitialized const objects ("const objects"
+in a sense that includes aggregate objects containing const components) is
+now applied to objects created by operator new as well as to declared
+variables.  The defining declaration of a const variable produces an error
+in C++ when there is no initializer.  However, only a warning is issued on
+an uninitialized const object created by new; this is because this area of
+the language is not yet well defined (though we believe it will eventually
+be an error).  Examples:
+
+  typedef const int T;
+  T i;                         // error -- uninitialized const variable
+  T* pi = new T;               // warning -- uninitialized const object
+
+  struct S { const int j; };   // warning -- const "j" but no constructor
+  S s;                         // error -- uninitialized const member
+  S* ps = new S;               // warning -- uninitialized const member
 
 5/13/93 Warning on nonstandard preprocessing directives
 
