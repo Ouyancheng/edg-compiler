@@ -42,21 +42,36 @@ extern void fp_long_to_float(a_float_kind            kind,
                              an_internal_float_value *float_value,
                              a_boolean               *err);
 
+#ifdef CFE
 extern void fp_unsigned_long_to_float(
                       a_float_kind            kind, 
                       unsigned long           unsigned_long_value,
                       an_internal_float_value *float_value,
                       a_boolean               *err);
+#endif /* ifdef CFE */
 
 extern void fp_to_long(a_float_kind            kind,
                        an_internal_float_value *float_value,
                        long                    *long_value,
                        a_boolean               *err);
 
+#ifdef CFE
 extern void fp_to_unsigned_long(a_float_kind            kind,
                                 an_internal_float_value *float_value,
                                 unsigned long           *unsigned_long_value,
                                 a_boolean               *err);
+#endif /* ifdef CFE */
+#ifdef FFE
+
+extern a_byte fp_byte(an_internal_float_value *float_value,
+                      a_targ_size_t           byte_num);
+
+extern void fp_bytes_to_float(a_float_kind            float_kind,
+                              a_byte                  *bytes,
+                              a_targ_size_t           nbytes,
+                              an_internal_float_value *float_value,
+                              a_boolean               *err);
+#endif /* ifdef FFE */
 
 extern a_boolean fp_is_zero_constant(a_float_kind            kind,
                                      an_internal_float_value *float_value);
