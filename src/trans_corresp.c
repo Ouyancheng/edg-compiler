@@ -4016,8 +4016,8 @@ the two types are in fact compatible.
     if (class_type_has_body(type_1)) {
       /* In C mode, the substructure of class types consists solely of their
          fields. */
-      check_assertion(class_type_has_body(type_2));
       a_field_ptr  field = type_1->variant.class_struct_union.field_list;
+      check_assertion(class_type_has_body(type_2));
       for (; field != NULL; field = field->next) {
         trace_corresp_check(field);
         trans_unit_corresp_of(field) = NULL;
@@ -4088,11 +4088,11 @@ routine.
        by the fact that the canonical entry no longer belongs to the
        correspondence set itself. */
     if (tucp1 != trans_unit_corresp_of_unknown_entry(tucp1->canonical)) {
-      change_c_type_correspondence(type_1, (a_type_ptr)tucp1->canonical);
+      (void)change_c_type_correspondence(type_1, (a_type_ptr)tucp1->canonical);
       tucp1 = trans_unit_corresp_of(type_1);
     }  /* if */
     if (tucp2 != trans_unit_corresp_of_unknown_entry(tucp2->canonical)) {
-      change_c_type_correspondence(type_2, (a_type_ptr)tucp2->canonical);
+      (void)change_c_type_correspondence(type_2, (a_type_ptr)tucp2->canonical);
       tucp2 = trans_unit_corresp_of(type_2);
     }  /* if */
     if (tucp1 == tucp2) {
@@ -4203,7 +4203,7 @@ involved in the declaration of an entity with linkage).
       }  /* if */
     } else if (trans_unit_corresp_of_unknown_entry(tucp->canonical) != tucp) {
       check_assertion(C_mode());
-      change_c_type_correspondence(type, (a_type_ptr)tucp->canonical);
+      (void)change_c_type_correspondence(type, (a_type_ptr)tucp->canonical);
     }  /* if */
   }  /* for */
 }  /* set_correspondence_of_unvisited_entries */
