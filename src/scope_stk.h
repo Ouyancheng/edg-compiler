@@ -741,11 +741,11 @@ scopes.  It is also TRUE when is_nonreal_instantiation is TRUE.
 
 
 /*
-TRUE if we are in a context in which information about nondependent calls
-must be saved.  This is similar to is_template_dependent_context, but
-excludes nonreal instantiations.
+TRUE if we are in a template prototype instantiation context, which
+includes template declaration scopes.  This is similar to
+is_template_dependent_context, but excludes nonreal instantiations.
 */
-#define record_nondependent_calls()					\
+#define is_prototype_instantiation_context()				\
   (depth_template_declaration_scope != NO_SCOPE_DEPTH ||		\
    scope_stack[depth_scope_stack].in_prototype_instantiation)
 

@@ -4054,6 +4054,16 @@ and return NULL.  This routine is called only in C++ mode.
         *arg_match_list = NULL;
         goto have_function;
       }  /* if */
+      if (scope_stack[depth_scope_stack].in_nonreal_instantiation &&
+          do_dependent_name_processing) {
+        /* The current context is a nonreal instantiation (probably of
+           a default argument expression).  We needed to do the above
+           code so we wouldn't get confused on a call that is
+           dependent on template parameters, but now we should go to
+           the normal processing because this is, after all, an
+           instantiation. */
+        goto in_instantiation;
+      }  /* if */
     } else if (do_dependent_name_processing &&
                depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
       /* In a real (not prototype) instantiation, and doing dependent
@@ -4061,6 +4071,7 @@ and return NULL.  This routine is called only in C++ mode.
          dependent call in the prototype instantiation.  If it was a
          nondependent call, it was recorded, along with (usually) the
          symbol chosen by overload resolution. */
+in_instantiation:
       if (!do_arg_dep_lookup) {
         /* Calls where argument-dependent lookup is turned off are
            not recorded, but they're always considered non-dependent. */
@@ -4301,7 +4312,7 @@ and return NULL.  This routine is called only in C++ mode.
   /* Free the candidate functions list. */
   free_candidate_function_list(candidate_functions);
 have_function:
-  if (do_dependent_name_processing && record_nondependent_calls() &&
+  if (do_dependent_name_processing && is_prototype_instantiation_context() &&
       !dependent_call && do_arg_dep_lookup) {
     /* Record the outcome of overload resolution for a nondependent call
        in a prototype instantiation.  Dependent calls in such a context
@@ -7871,10 +7882,11 @@ such cases (where operator overloading might apply, but we can't tell).
         }  /* if */
         /* candidate_functions will contain the list of viable functions. */
         candidate_functions = NULL;
-        if (is_template_dependent_context()) {
+        if (is_prototype_instantiation_context()) {
           /* In a prototype instantiation.  If the operands are dependent,
              the code above should have spotted that and generated a generic
-             expression operator. */
+             expression operator.  Note that nonreal instantiations are
+             excluded. */
           check_assertion_str(!is_template_dependent_type(operand_1->type) &&
                               (unary_operator ||
                                !is_template_dependent_type(operand_2->type)),
@@ -8049,14 +8061,14 @@ select_best_function:
         arg_expr_list = NULL;
         arg_operand_list_not_used = FALSE;
         if (defer_overload_resolution) {
-          /* We're in a prototype instantiation, and some candidate function
-             was a block extern, so we can't really do overload resolution.
-             Create a generic expression. */
+          /* We're in a prototype or nonreal instantiation, and some
+             candidate function was a block extern, so we can't really do
+             overload resolution.  Create a generic expression. */
           make_generic_operation_operand(kind, unary_operator,
                                          operand_1, operand_2,
                                          result, operator_position);
           check_assertion(!dependent_call);
-          if (record_nondependent_calls()) {
+          if (is_prototype_instantiation_context()) {
             /* Make sure this call is treated as a nondependent call in
                a real instantiation. */
             record_nondependent_call((a_symbol_ptr)NULL,
@@ -8150,7 +8162,7 @@ select_best_function:
             function_symbol = fundamental_symbol_of(proj_function_symbol);
             routine_type = routine_symbol_type(function_symbol);
             if (do_dependent_name_processing &&
-                record_nondependent_calls()) {
+                is_prototype_instantiation_context()) {
               /* Record the outcome of overload resolution for a nondependent
                  call in a prototype instantiation.  Dependent calls in such
                  a context don't get here. */
