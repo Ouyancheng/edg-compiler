@@ -868,12 +868,35 @@ consistent with that of the previous declaration.
         }  /* if */
       }  /* if */
     } else if (new_tsp == NULL) {
-      /* Issue an error on the omission of a throw specification on the current
-         declaration (it must have been present on the previous one). */
-      pos_sy_error(is_redecl?
-                    ec_omitted_exception_specification :
-                    ec_omitted_exception_specification_on_specialization,
-                   throw_pos, rout_sym);
+      /* Issue a diagnostic on the omission of a throw specification on the
+         current declaration (it must have been present on the previous
+         one). */
+      an_error_severity  severity = es_error;
+      /* Unless we are in strict mode, only issue a warning if this is a user
+         redeclaration of a library new or delete routine: the restriction is
+         relaxed to ease upgrading of old code. */
+      if (!strict_ansi_mode &&
+          !rp->source_corresp.is_class_member &&
+          (is_new_operator(rp->opname_kind) ||
+           is_delete_operator(rp->opname_kind))) {
+        a_param_type_ptr  ptp = rp->type->
+                                  variant.routine.extra_info->param_type_list;
+        if (ptp != NULL) {
+          if (ptp->next == NULL
+#if 0
+              /* Not yet implemented */
+              || is_nothrow_t_type(ptp->next->type)
+#endif /* if 0 */
+                                                   ) {
+            severity = es_warning;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      pos_sy_diagnostic(severity,
+                        is_redecl?
+                          ec_omitted_exception_specification :
+                          ec_omitted_exception_specification_on_specialization,
+                        throw_pos, rout_sym);
     } else if (old_tsp->exception_specification_type_list == NULL) {
       /* Previous specification asserted that no exceptions will be thrown.
          It is compatible only with an identical specification on the current
