@@ -234,6 +234,14 @@ typedef struct an_arg_match_summary {
 			   that the match was possible only because of the
 			   anachronism that allows a non-const function to
 			   be called for a const object. */
+  a_routine_ptr	conversion_routine;
+			/* If match_level is aml_user_conversion, this is
+			   the user-defined conversion routine. */
+  a_byte_boolean
+		std_conversion_after_user_conversion;
+			/* If TRUE, a standard conversion was required after
+			   the user-defined conversion identified by
+			   conversion_routine. */
   an_error_code	warning_suggested;
 			/* If not ec_no_error, the code for a warning to be
 			   issued if this match is chosen. */

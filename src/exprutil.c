@@ -89,6 +89,11 @@ typedef struct a_candidate_function {
 		in_best_match_set;
 			/* TRUE if the function is in the set of best-matching
 			   functions. */
+  a_byte_boolean
+		std_conversion_after_conversion_function;
+			/* If TRUE, this entry is for a conversion function
+			   and a standard conversion is required after the
+			   conversion to get to the desired type. */
 } a_candidate_function;
 
 /*
@@ -117,14 +122,15 @@ static a_boolean conversion_to_class_possible(
                                   a_candidate_function_ptr *ambiguity_list);
 
 static a_boolean conversion_from_class_possible(
-                                  an_operand               *source_operand,
-                                  a_type_ptr               dest_type,
-                                  a_boolean                integral_allowed,
-                                  a_boolean                floating_allowed,
-                                  a_boolean                pointer_allowed,
-                                  a_routine_ptr            *conversion_routine,
-                                  a_boolean                *ambiguous,
-                                  a_candidate_function_ptr *ambiguity_list);
+                               an_operand               *source_operand,
+                               a_type_ptr               dest_type,
+                               a_boolean                integral_allowed,
+                               a_boolean                floating_allowed,
+                               a_boolean                pointer_allowed,
+                               a_routine_ptr            *conversion_routine,
+                               a_boolean                *std_conversion_needed,
+                               a_boolean                *ambiguous,
+                               a_candidate_function_ptr *ambiguity_list);
 
 static void prep_conversion_operand(an_operand         *source_operand,
                                     a_type_ptr         dest_type,
@@ -4108,6 +4114,9 @@ values.
   amsp->downward_cast_derivation = NULL;
   amsp->reversed_derivation      = FALSE;
   amsp->const_anachronism        = FALSE;
+  amsp->conversion_routine       = NULL;
+  amsp->std_conversion_after_user_conversion
+                                 = FALSE;
   amsp->warning_suggested        = ec_no_error;
 }  /* clear_arg_match_summary */
 
@@ -4209,6 +4218,7 @@ are used in resolving calls to overloaded functions.
   cfp->current_arg_match = NULL;
   cfp->prev_func_arg_match_with_same_match_level = NULL;
   cfp->in_best_match_set = FALSE;
+  cfp->std_conversion_after_conversion_function = FALSE;
   return cfp;
 }  /* alloc_candidate_function */
 
@@ -4238,9 +4248,9 @@ static void add_function_to_candidate_functions_list(
                                  an_arg_match_summary_ptr arg_matches,
                                  a_candidate_function_ptr *candidate_functions)
 /*
-Add the function identified by function_symbol to the candidate_functions
-list.  arg_matches gives information about how well the actual arguments
-we have match the function's formal parameters.
+Add the function identified by function_symbol to the front of the
+candidate_functions list.  arg_matches gives information about how well
+the actual arguments we have match the function's formal parameters.
 */
 {
   a_candidate_function_ptr candidate;
@@ -4437,7 +4447,7 @@ only if try_user_conversions is TRUE; it must be FALSE if arg_type is non-NULL.
   a_type_ptr       class_type, routine_type;
   a_boolean        less_desirable_case, param_is_reference;
   an_error_code    warning_suggested;
-  a_boolean        downward_cast;
+  a_boolean        downward_cast, std_conversion_needed;
   a_base_class_ptr bcp;
   a_routine_ptr    conversion_routine;
   a_boolean        ambiguous;
@@ -4703,6 +4713,7 @@ user_conversions:
                                                /*floating_allowed=*/FALSE,
                                                /*pointer_allowed=*/FALSE,
                                                &conversion_routine,
+                                               &std_conversion_needed,
                                                &ambiguous,
                                            (a_candidate_function_ptr *)NULL) ||
                 ambiguous)) {
@@ -4710,6 +4721,8 @@ user_conversions:
          argument class type into the parameter type or to some type that
          can be converted to the parameter type via a standard conversion. */
       arg_summary->match_level = aml_user_conversion;
+      arg_summary->conversion_routine = conversion_routine;
+      arg_summary->std_conversion_after_user_conversion= std_conversion_needed;
       goto have_level;
     }  /* if */
   }  /* if */
@@ -5137,8 +5150,27 @@ Compare two argument match summary entries and return
       cmp = -1;
     } else {
       /* derivation_1 == NULL, derivation_2 == NULL. */
-      /* The matches are equal. */
-      cmp = 0;
+      if (arg_match1->conversion_routine != NULL &&
+          arg_match1->conversion_routine == arg_match2->conversion_routine &&
+          arg_match1->std_conversion_after_user_conversion !=
+                            arg_match2->std_conversion_after_user_conversion) {
+        /* Two user-defined conversions involving the same conversion routine.
+           If one does not have a standard conversion after the user-defined
+           conversion and the other does, the one without the standard
+           conversion is better. */
+        if (arg_match1->std_conversion_after_user_conversion) {
+          /* arg_match1 has the standard conversion and arg_match2 does not,
+             so arg_match2 is better. */
+          cmp = -1;
+        } else {
+          /* arg_match2 has the standard conversion and arg_match1 does not,
+             so arg_match1 is better. */
+          cmp = 1;
+        }  /* if */
+      } else {
+        /* The matches are equal. */
+        cmp = 0;
+      }  /* if */
     }  /* if */
 have_cmp:
     if (cmp == 0 && cfront_compatibility_mode) {
@@ -5221,6 +5253,13 @@ the final test required for overload resolution (see ARM 13.2).
         advance_arg_match(best_cfp);
         advance_arg_match(cfp);
       }  /* for */
+      /* All the argument matches have the same level.  The fact that a
+         standard conversion is needed after a conversion function can still
+         serve as a tie-breaker. */
+      if (!best_cfp->std_conversion_after_conversion_function &&
+          cfp->std_conversion_after_conversion_function) {
+        goto check_next_function;
+      }  /* if */
       /* The chosen function is not any better than this other function. */
       match_is_better = FALSE;
       break;
@@ -5253,6 +5292,8 @@ is set to NULL.
   an_arg_match_summary_ptr best_match_for_curr_arg, curr_arg;
   int                      cmp;
   a_boolean                overall_ambiguity = FALSE, any_error_arg = FALSE;
+  a_boolean                some_require_std_conversion;
+  a_boolean                some_do_not_require_std_conversion;
 
   db_enter(4, "select_best_candidate_functions");
   *undecidable_because_of_error = FALSE;
@@ -5299,7 +5340,7 @@ is set to NULL.
           cfp->prev_func_arg_match_with_same_match_level = NULL;
         } else {
           /* The argument match being examined is at least as good as the
-             the best match so far. */
+             best match so far. */
           if (cmp > 0) {
             /* The argument match being examined is better than any seen
                so far.  Remember it as the best so far. */
@@ -5329,13 +5370,9 @@ is set to NULL.
           /* This function is not in the best-match set for the current
              argument, so remove it from the overall best-match set. */
           cfp->in_best_match_set = FALSE;
-          number_in_best_match_set--;
           /* If there aren't any functions left, there's no point in
              continuing. */
-          if (number_in_best_match_set == 0) {
-            overall_ambiguity = TRUE;
-            goto create_final_list;
-          }  /* if */
+          if (--number_in_best_match_set == 0) goto create_final_list;
          }  /* if */
         /* Advance the current argument to the next one, in preparation
            for the next iteration of the outer loop. */
@@ -5345,6 +5382,34 @@ is set to NULL.
     }  /* while */
     /* Here, the intersection of the best-match sets has been made, and
        the candidates with in_best_match_set TRUE are in that set. */
+    if (number_in_best_match_set > 1) {
+      /* If the set of functions being examined is the candidates to do
+         a conversion, and if some of the candidates require a standard
+         conversion after the user-defined conversion and others do not,
+         select the candidates that do not require the user-defined
+         conversion. */
+      some_require_std_conversion = FALSE;
+      some_do_not_require_std_conversion = FALSE;
+      for (cfp = candidates; cfp != NULL; cfp = cfp->next) {
+        if (cfp->std_conversion_after_conversion_function) {
+          some_require_std_conversion = TRUE;
+        } else {
+          some_do_not_require_std_conversion = TRUE;
+        }  /* if */
+      }  /* for */
+      if (some_require_std_conversion && some_do_not_require_std_conversion) {
+        /* Eliminate the candidates that require a standard conversion after
+           the user-defined conversion performed by the candidate function. */
+        for (cfp = candidates; cfp != NULL; cfp = cfp->next) {
+          if (cfp->std_conversion_after_conversion_function) {
+            cfp->in_best_match_set = FALSE;
+            /* If there aren't any functions left, there's no point in
+               continuing. */
+            if (--number_in_best_match_set == 0) goto create_final_list;
+          }  /* if */
+        }  /* for */
+      }  /* if */
+    }  /* if */
     /* If there is only one function in the overall best-match set, perform
        the additional check that it must be strictly better than every other
        function on at least one argument. */
@@ -5369,13 +5434,9 @@ is set to NULL.
           if (!match_is_better_on_at_least_one_arg(cfp, candidates)) {
             /* This function couldn't have been chosen. */
             cfp->in_best_match_set = FALSE;
-            number_in_best_match_set--;
             /* If there aren't any functions left, there's no point in
                continuing. */
-            if (number_in_best_match_set == 0) {
-              overall_ambiguity = TRUE;
-              goto create_final_list;
-            }  /* if */
+            if (--number_in_best_match_set == 0) goto create_final_list;
           }  /* if */
         }  /* if */
       }  /* for */
@@ -5390,6 +5451,9 @@ is set to NULL.
 create_final_list:
     /* Make the final list.  If overall_ambiguity is TRUE, leave all of
        the functions in the candidate functions set, i.e., do nothing. */
+    /* If there are no functions left in the best-match set, there is
+       overall ambiguity. */
+    if (number_in_best_match_set == 0) overall_ambiguity = TRUE;
     if (!overall_ambiguity) {
       /* Here, the best candidate functions have in_best_match_set TRUE.
          Make *candidate_functions a list of just those.  Discard the
@@ -5983,7 +6047,9 @@ to either
 
 If a conversion function to do that conversion exists, evaluate how
 well it matches the arguments and add it to the candidate_functions list.
-This routine is only used in C++ mode.
+If a standard conversion is needed after the conversion function,
+std_conversion_after_conversion_function will be set in the candidate
+function entry.  This routine is only used in C++ mode.
 */
 {
   a_symbol_ptr                conversion_symbol, base_conversion_symbol;
@@ -6061,26 +6127,19 @@ This routine is only used in C++ mode.
       /* Ignore this function if it cannot be called for this argument. */
       if (this_match.match_level == aml_none) goto next_function;
       /* The routine is viable. */
-      /* If a standard conversion was needed, indicate that in the match
-         level.  A difference of a standard conversion can be used
-         to distinguish between different user-defined conversions. */
-      if (std_conversion_needed) {
-        if ((int)this_match.match_level >= (int)aml_std_conversion) {
-          /* If the existing match level is the same as or worse than a
-             standard conversion, leave it alone.  Usually, it will be
-             an exact match. */
-        } else {
-          this_match.match_level = aml_std_conversion;
-        }  /* if */
-        /* Save any warning detected by the standard conversion. */
-        this_match.warning_suggested = warning_suggested;
-      }  /* if */
       /* Add the conversion function to the candidate functions list. */
       this_match_ptr = alloc_arg_match_summary();
       *this_match_ptr = this_match;
       add_function_to_candidate_functions_list(conversion_symbol,
                                                this_match_ptr,
                                                candidate_functions);
+      /* If a standard conversion was needed, remember that in the
+         candidate function entry.  A difference of a standard conversion
+         can be used to distinguish between different user-defined
+         conversions. */
+      if (std_conversion_needed) {
+        (*candidate_functions)->std_conversion_after_conversion_function= TRUE;
+      }  /* if */
     }  /* if */
 next_function:;
   }  /* for */
@@ -6152,7 +6211,7 @@ expression_kind indicates the current expression kind.
 */
 {
   a_routine_ptr            conversion_routine;
-  a_boolean                ambiguous;
+  a_boolean                ambiguous, std_conversion_needed;
   a_candidate_function_ptr ambiguity_list;
 
   /* Only look at this operand if it has a class type. */
@@ -6164,6 +6223,7 @@ expression_kind indicates the current expression kind.
                                        floating_allowed,
                                        pointer_allowed,
                                        &conversion_routine,
+                                       &std_conversion_needed,
                                        &ambiguous, &ambiguity_list)) {
       /* The conversion is possible -- do it. */
       user_convert_operand(operand, /*dest_type=*/(a_type_ptr)NULL,
@@ -6355,7 +6415,7 @@ pointer type).
   a_type_ptr               operand_type;
   an_error_code            warning_suggested;
   a_routine_ptr            conversion_routine;
-  a_boolean                ambiguous;
+  a_boolean                ambiguous, std_conversion_needed;
   a_boolean                pointer_normalization_needed;
 #if DEBUG
   unsigned long            narg;
@@ -6427,6 +6487,7 @@ pointer type).
                       /*pointer_allowed=*/ (type_code == POINTER_TYPE_CODE ||
                                             type_code == SCALAR_TYPE_CODE),
                       &conversion_routine,
+                      &std_conversion_needed,
                       &ambiguous, (a_candidate_function_ptr *)NULL) ||
             ambiguous) {
           /* The conversion can be done. */
@@ -6469,6 +6530,7 @@ pointer type).
                                            /*floating_allowed=*/FALSE,
                                            /*pointer_allowed=*/FALSE,
                                            &conversion_routine,
+                                           &std_conversion_needed,
                                            &ambiguous,
                                            (a_candidate_function_ptr *)NULL) ||
             ambiguous) {
@@ -7231,14 +7293,15 @@ free that list.  This routine is only used in C++.
 
 
 static a_boolean conversion_from_class_possible(
-                                  an_operand               *source_operand,
-                                  a_type_ptr               dest_type,
-                                  a_boolean                integral_allowed,
-                                  a_boolean                floating_allowed,
-                                  a_boolean                pointer_allowed,
-                                  a_routine_ptr            *conversion_routine,
-                                  a_boolean                *ambiguous,
-                                  a_candidate_function_ptr *ambiguity_list)
+                               an_operand               *source_operand,
+                               a_type_ptr               dest_type,
+                               a_boolean                integral_allowed,
+                               a_boolean                floating_allowed,
+                               a_boolean                pointer_allowed,
+                               a_routine_ptr            *conversion_routine,
+                               a_boolean                *std_conversion_needed,
+                               a_boolean                *ambiguous,
+                               a_candidate_function_ptr *ambiguity_list)
 /*
 If the class operand source_operand can be converted by a conversion function
 to either
@@ -7252,8 +7315,9 @@ then set *conversion_routine to point to the routine that can do the
 conversion, and return TRUE.  Otherwise return FALSE.  If more than one
 function matches, set *ambiguous to TRUE and return FALSE.  If ambiguity_list
 is non-NULL in that case, it is set to point to a list describing the set
-of ambiguous functions; the caller must free that list.  This routine
-is only used in C++ mode.
+of ambiguous functions; the caller must free that list.  If a standard
+conversion is required after the conversion function, return
+*std_conversion_needed TRUE.  This routine is only used in C++ mode.
 */
 {
   a_boolean                okay;
@@ -7264,6 +7328,7 @@ is only used in C++ mode.
   db_enter(4, "conversion_from_class_possible");
   /* This routine is similar to select_overloaded_function. */
   candidate_functions = NULL;
+  *std_conversion_needed = FALSE;
   /* Find any viable conversion functions. */
   try_conversion_function_match(source_operand, dest_type,
                                 integral_allowed,
@@ -7297,6 +7362,8 @@ is only used in C++ mode.
     if (!*ambiguous) {
       okay = TRUE;
       *conversion_routine = conversion_symbol->variant.routine;
+      *std_conversion_needed =
+                 candidate_functions->std_conversion_after_conversion_function;
     }  /* if */
   }  /* if */
   if (*ambiguous && ambiguity_list != NULL) {
@@ -7375,6 +7442,7 @@ equivalent pointer case).
 */
 {
   a_boolean                okay = FALSE, ambiguous, to_class;
+  a_boolean                std_conversion_needed;
   a_type_ptr               source_type;
   an_error_code            err_code;
   a_candidate_function_ptr ambiguity_list;
@@ -7426,8 +7494,9 @@ equivalent pointer case).
                                        /*integral_allowed=*/FALSE,
                                        /*floating_allowed=*/FALSE,
                                        /*pointer_allowed=*/FALSE,
-                                       conversion_routine, &ambiguous,
-                                       &ambiguity_list)) {
+                                       conversion_routine,
+                                       &std_conversion_needed,
+                                       &ambiguous, &ambiguity_list)) {
       /* There is a conversion function that converts from the source class
          type to the destination type. */
       okay = TRUE;
