@@ -4856,24 +4856,36 @@ class/struct/union is actually defined.
   db_enter(3, "class_specifier");
   *declares_something = FALSE;
   *defines_something = FALSE;
-  /* Skip over "class", "struct", or "union", remembering which appears. */
+  if (curr_token != tok_identifier) {
+    /* Skip over "class", "struct", or "union", remembering which appears. */
 #if CHECKING
-  if (curr_token != tok_class &&
-      curr_token != tok_struct &&
-      curr_token != tok_union) {
-    internal_error("class_specifier: expected class, struct, or union");
-  }  /* if */
+    if (curr_token != tok_class &&
+        curr_token != tok_struct &&
+        curr_token != tok_union) {
+      internal_error("class_specifier: expected class, struct, or union");
+    }  /* if */
 #endif /* CHECKING */
-  if (curr_token == tok_union) {
-    tag_kind = (a_symbol_kind)sk_union_tag;
-    type_kind = (a_type_kind)tk_union;
+    if (curr_token == tok_union) {
+      tag_kind = (a_symbol_kind)sk_union_tag;
+      type_kind = (a_type_kind)tk_union;
+    } else {
+      tag_kind = (a_symbol_kind)sk_class_or_struct_tag;
+      type_kind = (a_type_kind)(curr_token == tok_struct ?
+                                                    tk_struct : tk_class);
+    }  /* if */
+    /* If there is an identifier next, it is a tag.  It can be the declaration
+       of a new tag or a reference to an existing tag. */
+    tag_id_present = (get_token() == tok_identifier);
   } else {
+#if CHECKING
+    if (!is_friend_decl) {
+      internal_error("class_specifier: identifier but not friend decl");
+    }  /* if */
+#endif /* CHECKING */
     tag_kind = (a_symbol_kind)sk_class_or_struct_tag;
-    type_kind = (a_type_kind)(curr_token == tok_struct ? tk_struct : tk_class);
+    type_kind = (a_type_kind)tk_class;
+    tag_id_present = TRUE;
   }  /* if */
-  /* If there is an identifier next, it is a tag.  It can be the declaration
-     of a new tag or a reference to an existing tag. */
-  tag_id_present = (get_token() == tok_identifier);
   if (tag_id_present) {
     /* Find any current definition of this tag. */
     assoc_symbol = curr_tag_symbol(tag_kind);
@@ -5244,15 +5256,6 @@ class/struct/union is actually defined.
                          friend class A;
                  (which is the only form the ARM (see 11.4) allows. */
               (void)decl_friend_class(class_type, member_type);
-            } else if (is_class_struct_union_type(member_type) &&
-                       member_storage_class == (a_storage_class)sc_unspecified
-                       && !local_defines_something && !virtual_specified) {
-              /* This is a "non-standard" friend declaration of the form:
-                         friend A;
-                 where A is already defined as a class name.  Only a remark
-                 is issued since this is fairly common practice. */
-              pos_remark(ec_bad_friend_decl, &decl_start_pos);
-              (void)decl_friend_class(class_type, member_type);
             } else {
               /* Invalid friend declaration. */
               pos_error(ec_bad_friend_decl, &decl_start_pos);
@@ -5545,6 +5548,20 @@ next_declaration:
     /* Wrap up field allocation. */
     finish_laying_out_class(class_type, byte_offset, bit_offset, alignment,
                             any_overflow);
+    /* Adding the type to the current scope's types list is done after
+       reaching the closing brace to get the IL types list in the right
+       order. */
+    if (prototype_tag_resolution) {
+      /* Tags that were declared in a prototype scope were added to the types
+         list at the end of the prototype scope, so do not add them again. */
+    } else {
+      /* Add the class type to the list for the current scope.  Note that
+         incomplete structs/unions are not added to the type list (this code
+         is bypassed) because the actual definition has not yet appeared.  See
+         pop_scope; they get added at the end of the scope. */
+      add_to_types_list(class_type, /*at_file_scope=*/TRUE,
+                        in_old_style_param_decl_list);
+    }  /* if */
     /* Save a pointer to the list of member symbols in the tag symbol.  Note
        that there may be symbols even if there there were no declarations,
        since symbols may be inherited. */
@@ -5619,19 +5636,6 @@ next_declaration:
     remove_stop_token(tok_rbrace);
     /* Check for and ignore the closing brace. */
     (void)required_token(tok_rbrace, ec_exp_rbrace);
-    /* Adding the type to the current scope's types list is done after the
-       closing brace to get the IL types list in the right order. */
-    if (prototype_tag_resolution) {
-      /* Tags that were declared in a prototype scope were added to the types
-         list at the end of the prototype scope, so do not add them again. */
-    } else {
-      /* Add the class type to the list for the current scope.  Note that
-         incomplete structs/unions are not added to the type list (this code
-         is bypassed) because the actual definition has not yet appeared.  See
-         pop_scope; they get added at the end of the scope. */
-      add_to_types_list(class_type, /*at_file_scope=*/TRUE,
-                        in_old_style_param_decl_list);
-    }  /* if */
     /* If this is the resolution of a previously incomplete tag, and there
        is a list of array types to be resolved, look to see if any of them
        are arrays whose element type is this struct/union type.  (This

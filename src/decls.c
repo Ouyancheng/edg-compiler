@@ -4560,6 +4560,19 @@ Returns TRUE if there is an error in the specifiers.
 	} else {
           is_friend_decl = TRUE;
 	  *output_flags |= DSO_FRIEND;
+          if (get_token() == tok_identifier && next_token() == tok_semicolon) {
+            /* Special case -- a friend declaration of the form "friend T;"
+               which is taken to mean the same as "friend class T;" by cfront
+               (even if T has not yet been defined).  Although there is no
+               support for this syntax in the ARM, we accept it since it is
+               widely used in older C++ code. */
+            remark(ec_bad_friend_decl);
+            goto process_class_specifier;
+          } else {
+            /* Not the special case -- restore the current token and continue
+               processing. */
+            unget_token();
+          }  /* if */
 	}  /* if */
 	break;
       case tok_virtual:
@@ -4672,6 +4685,7 @@ Returns TRUE if there is an error in the specifiers.
       case tok_class:
       case tok_struct:
       case tok_union:
+process_class_specifier:
         /* A struct or union specifier (3.5.2.1). */
         if (!type_specifier_allowed) {
           error(ec_type_specifier_not_allowed);
