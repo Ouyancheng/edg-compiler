@@ -1,5 +1,15 @@
 Version 2.46
 
+4/16/01  C99 extern inline function definitions out-of-lined
+
+In C99 mode, the front end now keeps inline function bodies in translation
+units where a declaration marked "extern" also appeared.  Previously, such
+functions were discarded if they were unused and removal of unneeded IL
+entities was done. For example:
+
+  inline void f() {}
+  extern void f();  /* Causes an out-of-line copy to be kept. */
+
 4/16/01  Microsoft compatibility: reinterpret-like cast of pointer-to-member
          can be a constant
 

@@ -30,6 +30,9 @@ decls.c -- Scanning of declarations.
 #if USER_CONTROL_OF_STRUCT_PACKING
 #include "layout.h"
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
+#if MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM
+#include "il_walk.h"
+#endif /* MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM */
 
 /*
 Macro to test whether the current token is a Microsoft storage class
@@ -5347,6 +5350,12 @@ skip_overloading:;
        justified by every declaration of a given inline function. */
     if (redeclaration) {
       routine_ptr->suppress_inline_body &= suppress_inline_body;
+#if MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM
+      if (!suppress_inline_body && !routine_ptr->source_corresp.needed &&
+          routine_ptr->storage_class == (a_storage_class)sc_unspecified) {
+        mark_as_needed((char *)routine_ptr, (an_il_entry_kind)iek_routine);
+      }  /* if */
+#endif /* MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM */
     } else {
       routine_ptr->suppress_inline_body = suppress_inline_body;
     }  /* if */
