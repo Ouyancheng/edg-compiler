@@ -2379,16 +2379,16 @@ e.g., 1297 --> 4.
 
 
 /* Forward declaration needed because of mutual recursion: */
-static sizeof_t mangled_type_name(a_type_ptr type,
-                                  char       *store_at);
+static sizeof_t mangled_encoding_for_type(a_type_ptr type,
+                                          char       *store_at);
 
 
-static sizeof_t mangled_function_type_name(a_type_ptr type,
-                                           char       *store_at)
+static sizeof_t mangled_encoding_for_function_type(a_type_ptr type,
+                                                   char       *store_at)
 /*
-Determine the mangled form of the name of the function type "type".  Place the
-mangled name at *store_at if store_at != NULL, and (always) return the
-length of the name.  See ARM 7.2.1c for name encoding.
+Determine the mangled encoding for the function type "type".  Place the
+encoded form at *store_at if store_at != NULL, and (always) return the
+length of the encoding.  See ARM 7.2.1c for name encoding.
 */
 {
   sizeof_t                      mangled_name_length, section_length;
@@ -2398,7 +2398,7 @@ length of the name.  See ARM 7.2.1c for name encoding.
   unsigned long                 existing_param_num, num_matching_types;
   sizeof_t                      digits;
 
-  /* A mangled function type name is made up of:
+  /* A mangled function type encoding is made up of:
        (1)  If the function is a member function, the name of the
             class pointed to, followed by
               (a) if the function is nonstatic, "C", "V", or "CV" if there
@@ -2427,7 +2427,7 @@ length of the name.  See ARM 7.2.1c for name encoding.
     this_param_type = type_pointed_to(this_param_type);
     class_type = skip_typerefs(this_param_type);
     /* Start with the name of the class of which this function is a member. */
-    section_length = mangled_type_name(class_type, store_at);
+    section_length = mangled_encoding_for_type(class_type, store_at);
     mangled_name_length += section_length;
     if (store_at != NULL) store_at += section_length;
     /* Add any qualifiers on the "this" parameter type (actually, the type
@@ -2494,7 +2494,7 @@ length of the name.  See ARM 7.2.1c for name encoding.
       }  /* for */
       /* The parameter type does not match any of the previous parameter
          types, so just put it out. */
-      section_length = mangled_type_name(param->type, store_at);
+      section_length = mangled_encoding_for_type(param->type, store_at);
       mangled_name_length += section_length;
       if (store_at != NULL) store_at += section_length;
 arg_done:;
@@ -2506,29 +2506,7 @@ arg_done:;
     if (store_at != NULL) *store_at++ = 'e';
   }  /* if */
   return mangled_name_length;
-}  /* mangled_function_type_name */
-
-
-static void give_unnamed_class_a_name(a_type_ptr type)
-/*
-Give an unnamed class a name.  If the class already has a name, leave it
-alone.
-*/
-{
-  sizeof_t      name_length;
-  unsigned long unique_id;
-  char          *name;
-
-  if (type->source_corresp.name == NULL) {
-    /* The name is __Cnnnnnn, where nnnnnn is a unique number for the
-       class. */
-    unique_id = unique_id_for_il_pointer(type);
-    name_length = digits_to_represent(unique_id) + 3;  /* "__C" */
-    name = alloc_il((sizeof_t)(name_length+1));
-    (void)sprintf(name, "__C%lu", (unsigned long)unique_id);
-    type->source_corresp.name = name;
-  }  /* if */
-}  /* give_unnamed_class_a_name */
+}  /* mangled_encoding_for_function_type */
 
 
 static sizeof_t literal_representation(a_constant_ptr con,
@@ -2579,8 +2557,9 @@ static sizeof_t mangled_basic_class_name(a_type_ptr type,
 Determine the mangled form of the basic name of the class "type".  This is
 not the version that contains a leading count of the number of characters
 in the name; here, the name is usually just the original name, but is
-different if the class is a template class.  Place the mangled name at
-*store_at if store_at != NULL, and (always) return the length of the name.
+different if the class is a template class or is unnamed.  Place the mangled
+name at *store_at if store_at != NULL, and (always) return the length of
+the name.
 */
 {
   sizeof_t           mangled_name_length, digits, arg_length, total_arg_length;
@@ -2592,14 +2571,29 @@ different if the class is a template class.  Place the mangled name at
   a_template_arg_ptr tap;
   a_constant_ptr     con;
   int                pass;
+  unsigned long      unique_id;
 
   /* Always start with the name of the class, which applies even in the
      template class case. */
   name = type->source_corresp.name;
-  mangled_name_length = strlen(name);
-  if (store_at != NULL) {
-    (void)memcpy(store_at, name, (int)mangled_name_length);
-    store_at += mangled_name_length;
+  if (name == NULL) {
+    /* The class is unnamed, so make up a name. */
+    /* The name is __Cnnnnnn, where nnnnnn is a unique number for the
+       class.  This is not from the ARM.  cfront uses the __Cn form, but
+       the number is different. */
+    unique_id = unique_id_for_il_pointer(type);
+    mangled_name_length = digits_to_represent(unique_id) + 3;  /* "__C" */
+    if (store_at != NULL) {
+      (void)sprintf(store_at, "__C%lu", (unsigned long)unique_id);
+      store_at += mangled_name_length;
+    }  /* if */
+  } else {
+    /* The class is not unnamed. */
+    mangled_name_length = strlen(name);
+    if (store_at != NULL) {
+      (void)memcpy(store_at, name, (int)mangled_name_length);
+      store_at += mangled_name_length;
+    }  /* if */
   }  /* if */
   if (template_arg_list != NULL) {
     /* A template class.  The mangled form of the name is something like
@@ -2626,9 +2620,11 @@ different if the class is a template class.  Place the mangled name at
         if (tap->is_type) {
           /* Type argument. */
           if (pass == 1) {
-            arg_length = mangled_type_name(tap->variant.type, (char *)NULL);
+            arg_length = mangled_encoding_for_type(tap->variant.type,
+                                                   (char *)NULL);
           } else {
-            type_length = mangled_type_name(tap->variant.type, store_at);
+            type_length = mangled_encoding_for_type(tap->variant.type,
+                                                    store_at);
             mangled_name_length += type_length;
             store_at += type_length;
           }  /* if */
@@ -2645,13 +2641,13 @@ different if the class is a template class.  Place the mangled name at
           con = tap->variant.constant;
           if (pass == 1) {
             arg_length = 2; /* "XC" */
-            arg_length += mangled_type_name(con->type, (char *)NULL);
+            arg_length += mangled_encoding_for_type(con->type, (char *)NULL);
             arg_length += 1; /* "L" */
           } else {
             mangled_name_length += 2;
             *store_at++ = 'X';
             *store_at++ = 'C';
-            type_length = mangled_type_name(con->type, store_at);
+            type_length = mangled_encoding_for_type(con->type, store_at);
             mangled_name_length += type_length;
             store_at += type_length;
             mangled_name_length++;
@@ -2694,17 +2690,17 @@ different if the class is a template class.  Place the mangled name at
 }  /* mangled_basic_class_name */
 
 
-static sizeof_t mangled_qualified_name(a_type_ptr    type,
-                                       unsigned long nesting_level,
-                                       char          *store_at)
+static sizeof_t mangled_type_name(a_type_ptr    type,
+                                  unsigned long nesting_level,
+                                  char          *store_at)
 /*
 Determine the mangled form of the name of the type "type".  Place the
 mangled name at *store_at if store_at != NULL, and (always) return the
 length of the name.  See ARM 7.2.1c for name encoding.  This routine is
-used for named types (classes, enums, and typedefs) and handles nested
-class names.  A top-level call is made with nesting_level == 1; this
-routine then makes recursive calls to itself with higher nesting levels
-to process the initial parts of the qualified names.
+used for named types (classes, enums, and typedefs) and for unnamed classes.
+A top-level call is made with nesting_level == 1; this routine then makes
+recursive calls to itself with higher nesting levels to process the
+initial parts of the qualified names.
 */
 {
   sizeof_t   mangled_name_length, name_length;
@@ -2728,14 +2724,13 @@ to process the initial parts of the qualified names.
   parent_class = type->source_corresp.class_of_which_a_member;
   if (parent_class != NULL) {
     /* Nested class.  Do the containing class names. */
-    name_length = mangled_qualified_name(parent_class, nesting_level+1,
-                                         store_at);
+    name_length = mangled_type_name(parent_class, nesting_level+1, store_at);
     mangled_name_length += name_length;
     if (store_at != NULL) store_at += name_length;
   } else {
     /* Got to the topmost class. */
     /* If the class is a local class, put out "Lnn__" using the declaration
-       scope number for "nn".  This is not from the ARM. */
+       scope number for "nn".  This is not from the ARM or cfront. */
     { a_symbol_ptr assoc_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
       if (assoc_sym->decl_scope != scope_stack[DEPTH_OF_FILE_SCOPE].number) {
         /* This is a local name. */
@@ -2764,8 +2759,6 @@ to process the initial parts of the qualified names.
      the name. */
   if (is_immediate_class_type(type)) {
     /* Class name. */
-    /* If the class is unnamed, give it a name. */
-    give_unnamed_class_a_name(type);
     name_length = mangled_basic_class_name(type, (char *)NULL);
     digits = digits_to_represent((unsigned long)name_length);
     mangled_name_length += name_length + digits;
@@ -2790,15 +2783,15 @@ to process the initial parts of the qualified names.
     }  /* if */
   }  /* if */
   return mangled_name_length;
-}  /* mangled_qualified_name */
+}  /* mangled_type_name */
 
 
-static sizeof_t mangled_type_name(a_type_ptr type,
-                                  char       *store_at)
+static sizeof_t mangled_encoding_for_type(a_type_ptr type,
+                                          char       *store_at)
 /*
-Determine the mangled form of the name of the type "type".  Place the
-mangled name at *store_at if store_at != NULL, and (always) return the
-length of the name.  See ARM 7.2.1c for name encoding.
+Determine the mangled encoding for the type "type".  Place the encoding at
+*store_at if store_at != NULL, and (always) return the length of the name.
+See ARM 7.2.1c for name encoding.
 */
 {
   a_type_ptr named_type, named_typedef;
@@ -2848,8 +2841,7 @@ length of the name.  See ARM 7.2.1c for name encoding.
   /* If the type is named, use the name. */
   if (named_type != NULL) {
     /* Put out the mangled form of the name, e.g., "2AB" for "AB". */
-    section_length = mangled_qualified_name(named_type, (unsigned long)1,
-                                            store_at);
+    section_length = mangled_type_name(named_type, (unsigned long)1, store_at);
     mangled_name_length += section_length;
     if (store_at != NULL) store_at += section_length;
   } else {
@@ -2861,7 +2853,7 @@ length of the name.  See ARM 7.2.1c for name encoding.
       case tk_integer:
 #if CHECKING
         if (type->variant.integer.enum_type) {
-          internal_error("mangled_type_name: unnamed enum");
+          internal_error("mangled_encoding_for_type: unnamed enum");
         }  /* if */
 #endif /* CHECKING */
         switch (type->variant.integer.int_kind) {
@@ -2876,7 +2868,7 @@ length of the name.  See ARM 7.2.1c for name encoding.
           case ik_unsigned_long:  s = "Ul"; break;
 #if CHECKING
           default:
-            internal_error("mangled_type_name: bad int kind");
+            internal_error("mangled_encoding_for_type: bad int kind");
 #endif /* CHECKING */
         }  /* switch */
         break;
@@ -2887,7 +2879,7 @@ length of the name.  See ARM 7.2.1c for name encoding.
           case fk_long_double:    s = "r";  break;
 #if CHECKING
           default:
-            internal_error("mangled_type_name: bad float kind");
+            internal_error("mangled_encoding_for_type: bad float kind");
 #endif /* CHECKING */
         }  /* switch */
         break;
@@ -2914,25 +2906,26 @@ length of the name.  See ARM 7.2.1c for name encoding.
       case tk_routine:
         /* Function.  Put out the this-parameter-type (if any), "F",
            and the argument types. */
-        mangled_name_length = mangled_function_type_name(type, store_at);
+        mangled_name_length = mangled_encoding_for_function_type(type,
+                                                                 store_at);
         if (store_at != NULL) store_at += mangled_name_length;
         /* Add the return type at the end, as "_" followed by the type. */
         mangled_name_length++;
         if (store_at != NULL) *store_at++ = '_';
         mangled_name_length +=
-                          mangled_type_name(type->variant.routine.return_type,
+                  mangled_encoding_for_type(type->variant.routine.return_type,
                                             store_at);
         goto have_whole_mangled_name;
       case tk_class:
       case tk_struct:
       case tk_union:
-        /* Unnamed classes.  mangled_qualified_name will make up a name. */
-        mangled_name_length = mangled_qualified_name(type, (unsigned long)1,
-                                                     store_at);
+        /* Unnamed classes.  mangled_type_name will make up a name. */
+        mangled_name_length = mangled_type_name(type, (unsigned long)1,
+                                                store_at);
         goto have_whole_mangled_name;
 #if CHECKING
       default:
-        internal_error("mangled_type_name: bad type kind");
+        internal_error("mangled_encoding_for_type: bad type kind");
 #endif /* CHECKING */
     }  /* switch */
     /* s is now set to a type description string to be output. */
@@ -2946,20 +2939,21 @@ length of the name.  See ARM 7.2.1c for name encoding.
     switch (type->kind) {
       case tk_pointer:
         /* Put out the type pointed to. */
-        mangled_name_length += mangled_type_name(type->variant.pointer.type,
-                                                 store_at);
+        mangled_name_length +=
+                          mangled_encoding_for_type(type->variant.pointer.type,
+                                                    store_at);
         break;
       case tk_ptr_to_member:
         /* Put out the mangled name of the class for which this is a member
            pointer. */
-        section_length = mangled_type_name(type->variant.ptr_to_member.
+        section_length = mangled_encoding_for_type(type->variant.ptr_to_member.
                                                        class_of_which_a_member,
-                                           store_at);
+                                                   store_at);
         mangled_name_length += section_length;
         if (store_at != NULL) store_at += section_length;
         /* Put out the type pointed to. */
         mangled_name_length +=
-                            mangled_type_name(type->variant.ptr_to_member.type,
+                    mangled_encoding_for_type(type->variant.ptr_to_member.type,
                                               store_at);
         break;
       case tk_array:
@@ -2974,7 +2968,7 @@ length of the name.  See ARM 7.2.1c for name encoding.
           store_at += section_length;
         }  /* if */
         mangled_name_length +=
-                            mangled_type_name(type->variant.array.element_type,
+                    mangled_encoding_for_type(type->variant.array.element_type,
                                               store_at);
         break;
       default:;
@@ -2983,7 +2977,7 @@ length of the name.  See ARM 7.2.1c for name encoding.
   }  /* if */
 have_whole_mangled_name:      
   return mangled_name_length;
-}  /* mangled_type_name */
+}  /* mangled_encoding_for_type */
 
 
 static char *mangled_operator_name(an_opname_kind kind)
@@ -3139,14 +3133,14 @@ types; just put out the base encoded name.
   char         *name;
   a_type_ptr   class_type, conversion_type, routine_type;
 
-  /* Most of the processing is done in mangled_function_type_name, but this
-     routine handles:
+  /* Most of the processing is done in mangled_encoding_for_function_type,
+     but this routine handles:
        (1)  The output of the name of the function, followed by "__".
             For special member functions, a special name is used, e.g.,
             "__ct" for constructors.
        (2)  For static member functions, output of the class name followed
             by "S".
-     mangled_function_type_name is then called to do the rest of the
+     mangled_encoding_for_function_type is then called to do the rest of the
      processing.
   */
   routine_type = skip_typerefs(routine->type);
@@ -3191,7 +3185,7 @@ types; just put out the base encoded name.
   /* For a conversion function, add the type signature. */
   if (routine->special_kind == (a_special_function_kind)sfk_conversion) {
     conversion_type = routine_type->variant.routine.return_type;
-    section_length = mangled_type_name(conversion_type, store_at);
+    section_length = mangled_encoding_for_type(conversion_type, store_at);
     mangled_name_length += section_length;
     if (store_at != NULL) store_at += section_length;
   }  /* if */
@@ -3207,7 +3201,7 @@ types; just put out the base encoded name.
     if (class_type != NULL &&
         !routine_type_is_nonstatic_member_function(routine_type)) {
       /* Output the mangled class name followed by "S". */
-      section_length = mangled_type_name(class_type, store_at);
+      section_length = mangled_encoding_for_type(class_type, store_at);
       mangled_name_length += section_length + 1;
       if (store_at != NULL) {
         store_at += section_length;
@@ -3215,7 +3209,8 @@ types; just put out the base encoded name.
       }  /* if */
     }  /* if */
     /* Now output the function type. */
-    section_length = mangled_function_type_name(routine_type, store_at);
+    section_length = mangled_encoding_for_function_type(routine_type,
+                                                        store_at);
     mangled_name_length += section_length;
   }  /* if */
   return mangled_name_length;
@@ -3310,7 +3305,7 @@ the class of which the variable is a member.
     *store_at++ = '_';
   }  /* if */
   /* Output the mangled class name. */
-  section_length = mangled_type_name(class_type, store_at);
+  section_length = mangled_encoding_for_type(class_type, store_at);
   mangled_name_length += section_length;
   return mangled_name_length;
 }  /* mangled_static_data_member_name */
@@ -3349,7 +3344,41 @@ Mangle the name of the indicated class, if necessary.
   char     *mangled_name;
 
   error_position = class_type->source_corresp.decl_position;
-  give_unnamed_class_a_name(class_type);
+  if (class_type->variant.class_struct_union.extra_info->
+                                                   template_arg_list != NULL ||
+      class_type->source_corresp.name == NULL) {
+    /* Template class names must be mangled because otherwise all instances
+       of the same class template have the same name. */
+    /* Unnamed classes must be given names. */
+    /* Determine how long the mangled name is. */
+    mangled_name_length = mangled_basic_class_name(class_type, (char *)NULL);
+    /* Allocate space for the mangled name and build it.  The old name is
+       just thrown away. */
+    mangled_name = alloc_il(mangled_name_length + 1);
+    (void)mangled_basic_class_name(class_type, mangled_name);
+    mangled_name[mangled_name_length] = '\0';
+    /* Note that the mangled name is not put into the type until after it has
+       been completely built, because the old name is used in building the
+       mangled form. */
+    class_type->source_corresp.name = mangled_name;
+    /* Clear the template argument list as a way of recording the fact that
+       the name has been mangled. */
+    class_type->variant.class_struct_union.extra_info->template_arg_list =NULL;
+  }  /* if */
+}  /* mangle_class_name */
+
+
+static void mangle_nested_class_name(a_type_ptr class_type)
+/*
+Mangle the name of the indicated class, if it is nested.  This does special
+processing for nested class names that must be delayed until all of the
+other name mangling that might use the name is done.
+*/
+{
+  sizeof_t mangled_name_length;
+  char     *mangled_name;
+
+  error_position = class_type->source_corresp.decl_position;
   if (class_type->source_corresp.class_of_which_a_member != NULL) {
     /* Nested class names must be mangled (because they exist in a scope
        that does not exist in the generated C code).  The mangled form
@@ -3359,36 +3388,57 @@ Mangle the name of the indicated class, if necessary.
        name, and the prefix makes it unique (i.e., makes it distinct
        from all user identifiers). */
     /* Determine how long the mangled name is. */
-    mangled_name_length = mangled_type_name(class_type, (char *)NULL) +
+    mangled_name_length = mangled_encoding_for_type(class_type, (char *)NULL) +
                           2;  /* "__" */
     /* Allocate space for the mangled name and build it.  The old name is
        just thrown away. */
     mangled_name = alloc_il(mangled_name_length + 1);
     mangled_name[0] = '_';
     mangled_name[1] = '_';
-    (void)mangled_type_name(class_type, mangled_name + 2);
+    (void)mangled_encoding_for_type(class_type, mangled_name + 2);
     mangled_name[mangled_name_length] = '\0';
-    class_type->source_corresp.name = mangled_name;
-  } else if (class_type->variant.class_struct_union.extra_info->
-                                     template_arg_list != NULL) {
-    /* Template class names must be mangled because otherwise all instances
-       of the same class template have the same name. */
-    /* Determine how long the mangled name is. */
-    mangled_name_length = mangled_basic_class_name(class_type, (char *)NULL);
-    /* Allocate space for the mangled name and build it.  The old name is
-       just thrown away. */
-    mangled_name = alloc_il(mangled_name_length + 1);
-    (void)mangled_basic_class_name(class_type, mangled_name);
-    mangled_name[mangled_name_length] = '\0';
+    /* Note that the mangled name is not put into the type until after it has
+       been completely built, because the old name is used in building the
+       mangled form. */
     class_type->source_corresp.name = mangled_name;
   }  /* if */
-}  /* mangle_class_name */
+}  /* mangle_nested_class_name */
 
 
-static void do_scope_name_mangling(a_scope_ptr scope)
+static void do_scope_class_name_mangling(a_scope_ptr scope)
 /*
-Do any required name mangling of members of the indicated scope and all
-sub-scopes in the same memory region.
+Do name mangling for class names in scope and all its sub-scopes.  Note
+that this does not include special processing for nested class names.
+*/
+{
+  a_type_ptr  type;
+  a_scope_ptr class_scope, block_scope;
+
+  /* Visit all types to find all class types. */
+  /* Note that when processing a function or block scope we will be crossing
+     into the file scope here, but these class types are truly local types
+     and are not used in the file scope, so it's okay to change their names
+     now. */
+  for (type = scope->types; type != NULL; type = type->next) {
+    if (is_immediate_class_type(type)) {
+      mangle_class_name(type);
+      class_scope = type->variant.class_struct_union.extra_info->assoc_scope;
+      if (class_scope != NULL) do_scope_class_name_mangling(class_scope);
+    }  /* if */
+  }  /* for */
+  /* Visit all block scopes. */
+  for (block_scope = scope->scopes;
+       block_scope != NULL;
+       block_scope = block_scope->next) {
+    do_scope_class_name_mangling(block_scope);
+  }  /* for */
+}  /* do_scope_class_name_mangling */
+
+
+static void do_scope_other_name_mangling(a_scope_ptr scope)
+/*
+Do name mangling for functions and static data members in scope and all its
+sub-scopes.
 */
 {
   a_routine_ptr  routine;
@@ -3396,10 +3446,6 @@ sub-scopes in the same memory region.
   a_type_ptr     type;
   a_scope_ptr    class_scope, block_scope;
 
-  /* Visit any nested classes first so that when their names are mangled the
-     outer-scope names have not yet been mangled yet, which is necessary
-     since the names of the outer classes are used as part of the names of the
-     inner classes. */
   /* Visit all types to find all class types. */
   /* Note that when processing a function or block scope we will be crossing
      into the file scope here, but these class types are truly local types
@@ -3408,14 +3454,14 @@ sub-scopes in the same memory region.
   for (type = scope->types; type != NULL; type = type->next) {
     if (is_immediate_class_type(type)) {
       class_scope = type->variant.class_struct_union.extra_info->assoc_scope;
-      if (class_scope != NULL) do_scope_name_mangling(class_scope);
+      if (class_scope != NULL) do_scope_other_name_mangling(class_scope);
     }  /* if */
   }  /* for */
   /* Visit all block scopes. */
   for (block_scope = scope->scopes;
        block_scope != NULL;
        block_scope = block_scope->next) {
-    do_scope_name_mangling(block_scope);
+    do_scope_other_name_mangling(block_scope);
   }  /* for */
   /* Visit all routines. */
   for (routine = scope->routines; routine != NULL; routine = routine->next) {
@@ -3428,12 +3474,58 @@ sub-scopes in the same memory region.
          variable = variable->next) {
       mangle_static_data_member_name(variable, scope->variant.assoc_type);
     }  /* for */
-    /* Mangle the class name if necessary.  This must be done after the members
-       are processed, because the class name is used as part of the name of
-       those members. */
-    mangle_class_name(scope->variant.assoc_type);
   }  /* if */
-}  /* do_scope_name_mangling */
+}  /* do_scope_other_name_mangling */
+
+
+static void do_scope_nested_class_name_mangling(a_scope_ptr scope)
+/*
+Do name mangling for nested class names in scope and all its sub-scopes.
+This must be done separately from and later than normal class name mangling
+because the simple form of the name must remain available for use in
+mangled names (e.g., virtual function table variable names).
+*/
+{
+  a_type_ptr  type;
+  a_scope_ptr class_scope, block_scope;
+
+  /* Visit all types to find all class types. */
+  /* Note that when processing a function or block scope we will be crossing
+     into the file scope here, but these class types are truly local types
+     and are not used in the file scope, so it's okay to change their names
+     now. */
+  for (type = scope->types; type != NULL; type = type->next) {
+    if (is_immediate_class_type(type)) {
+      mangle_nested_class_name(type);
+      class_scope = type->variant.class_struct_union.extra_info->assoc_scope;
+      if (class_scope != NULL) {
+        do_scope_nested_class_name_mangling(class_scope);
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  /* Visit all block scopes. */
+  for (block_scope = scope->scopes;
+       block_scope != NULL;
+       block_scope = block_scope->next) {
+    do_scope_nested_class_name_mangling(block_scope);
+  }  /* for */
+}  /* do_scope_nested_class_name_mangling */
+
+
+static void do_memory_region_name_mangling(a_scope_ptr scope)
+/*
+Do any required name mangling of members of the indicated scope and all
+sub-scopes in the same memory region.
+*/
+{
+  /* Mangle class names, not including special processing for nested
+     class names. */
+  do_scope_class_name_mangling(scope);
+  /* Do function and static data member name mangling. */
+  do_scope_other_name_mangling(scope);
+  /* Mangle nested class names. */
+  do_scope_class_name_mangling(scope);
+}  /* do_memory_region_name_mangling */
 
 
 static sizeof_t mangled_derivation_name(a_derivation_step_ptr dsp,
@@ -3547,7 +3639,7 @@ function table is for class_type itself.  Place the mangled name at
     }  /* if */
   }  /* if */
   /* Add the derived class name. */
-  section_length = mangled_type_name(class_type, store_at);
+  section_length = mangled_encoding_for_type(class_type, store_at);
   mangled_name_length += section_length;
   if (store_at != NULL) store_at += section_length;
   return mangled_name_length;
@@ -11084,7 +11176,7 @@ C++ to C, so that a C back end can handle it without change.
     /* Do name mangling.  This must be done early so that original type
        information is available (for example, references are still
        references and not yet pointers). */
-    do_scope_name_mangling(scope);
+    do_memory_region_name_mangling(scope);
     /* Create definitions for virtual function tables. */
     define_scope_virtual_function_tables(scope);
     /* Lower the scope and its subscopes in the same memory region. */
