@@ -65,7 +65,7 @@ typedef struct an_il_entry_prefix *an_il_entry_prefix_ptr;
 typedef struct an_il_entry_prefix {
   /* Note that if you add bits here you must adjust NUM_OF_BIT_FIELDS_IN_PREFIX
      below. */
-  unsigned int	in_file_scope:1;
+  unsigned int	file_scope:1;
 			/* TRUE if this IL entry is allocated in the file
 			   scope memory region. */
   unsigned int	il_walk_flag:1;
@@ -140,15 +140,15 @@ IL entry prefix only if it exists.
 
 /*
 Initialize an IL entry prefix to default values.  ptr is a pointer (of
-any type) to the location containing the prefix.  file_scope is TRUE if
+any type) to the location containing the prefix.  is_in_file_scope is TRUE if
 the entry has been allocated in the file scope memory region, FALSE otherwise.
 */
-#define clear_il_entry_prefix(ptr, file_scope)                        \
+#define clear_il_entry_prefix(ptr, is_in_file_scope)                  \
 { an_il_entry_prefix_ptr epp = (an_il_entry_prefix_ptr)ptr;           \
-  epp->in_file_scope = file_scope;                                    \
+  epp->file_scope = is_in_file_scope;                                 \
   epp->il_walk_flag = 0;                                              \
   clear_il_lowering_flag(epp);                                        \
-  epp->check_bits = 067; /* Magix number */                           \
+  epp->check_bits = 067; /* Magic number */                           \
   clear_entry_written_flag(epp);                                      \
   clear_il_entry_number(epp);                                         \
 }  /* clear_il_entry_prefix */
