@@ -517,6 +517,23 @@ Initialize target machine characteristics.
               "target_init: TARG_PTRDIFF_T_INT_KIND in target.h is set wrong");
     }  /* if */
   }
+#if !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
+  /* When using the simulated large integer approach to represent target
+     integers, the sizes must be right. */
+  if (BITS_IN_HOST_LARGE_INTEGER != sizeof(a_host_large_integer)*CHAR_BIT) {
+    internal_error(
+           "target_init: BITS_IN_HOST_LARGE_INTEGER in target.h is set wrong");
+  }  /* if */
+  if (SIZEOF_INT_VALUE_PART > sizeof(an_int_value_part)) {
+    internal_error(
+                "target_init: SIZEOF_INT_VALUE_PART in target.h is set wrong");
+  }  /* if */
+  if (BITS_IN_INT_VALUE_PART != SIZEOF_INT_VALUE_PART*CHAR_BIT ||
+      2*BITS_IN_INT_VALUE_PART > BITS_IN_HOST_LARGE_INTEGER) {
+    internal_error(
+               "target_init: BITS_IN_INT_VALUE_PART in target.h is set wrong");
+  }  /* if */
+#endif /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
 #endif /* CHECKING */
 #if TARG_CHAR_BIT != CHAR_BIT
 ??=error -- the target and host characters must have the same number of bits.
