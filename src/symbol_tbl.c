@@ -1987,13 +1987,11 @@ the function.
      This will also create the symbol header if necessary. */
   token = (opname == (an_opname_kind)onk_new) ? tok_new : tok_delete;
   make_opname_locator(token, opname, &locator, pos);
-  /* Look up the symbol at file scope. */
-  file_scope_id_lookup(&locator, IDL_NO_OPTIONS);
-  /* If a symbol was found in the lookup, that's what we want to return.
-     If none was found, we will create a default global operator new or
-     delete and return that.  Even if we found a symbol we may need to
-     create a default global operator new. */
-  sym = return_sym = locator.specific_symbol;
+  /* Look up the symbol at file scope.  If a symbol was found in the lookup,
+    that's what we want to return.  If none was found, we will create a
+    default global operator new or delete and return that.  Even if we found
+    a symbol we may need to create a default global operator new. */
+  sym = return_sym = file_scope_id_lookup(&locator, IDL_NO_OPTIONS);
   if (make_default_new && sym != NULL) {
     /* We need to create the default new unless it's already there. */
     a_boolean is_overloaded = (sym->kind ==
@@ -2050,8 +2048,7 @@ the function.
     } else {
       /* Do the lookup again to get the overloaded function symbol. */
       locator.specific_symbol = NULL;
-      file_scope_id_lookup(&locator, IDL_NO_OPTIONS);
-      return_sym = locator.specific_symbol;
+      return_sym = file_scope_id_lookup(&locator, IDL_NO_OPTIONS);
     }  /* if */
   }  /* if */
 
