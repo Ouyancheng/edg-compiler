@@ -3671,7 +3671,7 @@ NULL.
       }  /* if */
 #if CHECKING
       scp = &var_ptr->source_corresp;
-#endif CHECKING
+#endif /* CHECKING */
       break;
     case sk_overloaded_function:
       rout_sym = sym->variant.overloaded_function.symbols;
