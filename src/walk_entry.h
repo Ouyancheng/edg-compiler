@@ -11,27 +11,44 @@
 
 walk_entry.h -- Routines used by il_walk.c to walk IL entries.
 
-Placed in a separate file so they can be included twice:
+Placed in a separate file so they can be expanded several ways:
 
 1)  With DO_SUBTREE_WALK TRUE, the routines walk not only the entry itself
     but also its subtree.
 
-2)  With DO_SUBTREE_WALK FALSE, the routines walk just the entry itself.
-    This is used for remapping of pointers.
+2)  With DO_SUBTREE_WALK and DO_NEEDED_FLAG_WALK TRUE, the routines walk
+    the subtree and do so in the special way required for setting the
+    needed flag.
 
+3)  With DO_SUBTREE_WALK FALSE, the routines walk just the entry itself.
+    This is used for remapping of pointers.
+  
 */
 
 /*
 Macro to remap a pointer from an "old" value to a "new" value.  ptr is
 the pointer, ptr_type the type of ptr, and entry_kind is the kind of entry
-pointed to.
+pointed to.  For the DO_NEEDED_FLAG_WALK case, just walks the pointer.
+This macro is used for secondary references to IL entities, e.g., a
+reference from executable code to a declarative entry, where it is known
+that the declarative entry will be reached from a primary pointer while
+walking the declarative structure.  When in doubt, a walk_ptr is the safer
+choice; it may be unnecessarily slow, but it will work correctly even if
+the entry is not reached from elsewhere.
 */
 #undef remap_ptr
+#if NEEDED_FLAG_WALK
+/* When doing the IL walk to set the "needed" flag, all references are
+   primary references and must be followed. */
+#define remap_ptr(ptr, ptr_type, entry_kind) \
+{ walk_ptr(ptr, ptr_type, entry_kind) }
+#else /* !NEEDED_FLAG_WALK */
 #define remap_ptr(ptr, ptr_type, entry_kind) \
 { if (walk_remap_func != NULL) { \
     (ptr) = (ptr_type)walk_remap_func((char *)(ptr), (entry_kind)); \
   }  /* if */ \
 }  /* remap_ptr */
+#endif /* NEEDED_FLAG_WALK */
 
 /*
 Like remap_ptr, but used for "next" pointers in entries.  These are
@@ -53,10 +70,15 @@ ptr_type is the type of ptr, and entry_kind is the kind of entry pointed to.
 */
 #undef walk_ptr
 #if DO_SUBTREE_WALK
+#if NEEDED_FLAG_WALK
+#define walk_ptr(ptr, ptr_type, entry_kind) \
+{ if ((ptr) != NULL) walk_tree_and_set_needed((char *)(ptr), (entry_kind)); }
+#else /* !NEEDED_FLAG_WALK */
 #define walk_ptr(ptr, ptr_type, entry_kind) \
 { remap_ptr((ptr), ptr_type, (entry_kind)); \
   if ((ptr) != NULL) walk_entry_and_subtree((char *)(ptr), (entry_kind)); \
 }  /* walk_ptr */
+#endif /* NEEDED_FLAG_WALK */
 #else /* !DO_SUBTREE_WALK */
 #define walk_ptr(ptr, ptr_type, entry_kind) \
   remap_ptr((ptr), ptr_type, (entry_kind))
@@ -69,10 +91,15 @@ the string length for iek_string_text entries, unused otherwise.
 */
 #undef walk_string_ptr
 #if DO_SUBTREE_WALK
+#if NEEDED_FLAG_WALK
+#define walk_string_ptr(ptr, entry_kind, entry_length) \
+{ walk_string_entry((char *)(ptr), (entry_kind), (sizeof_t)(entry_length)); }
+#else /* !NEEDED_FLAG_WALK */
 #define walk_string_ptr(ptr, entry_kind, entry_length) \
 { remap_ptr((ptr), a_char_ptr, (entry_kind)); \
   walk_string_entry((char *)(ptr), (entry_kind), (sizeof_t)(entry_length)); \
 }  /* walk_string_ptr */
+#endif /* NEEDED_FLAG_WALK */
 #else /* !DO_SUBTREE_WALK */
 #define walk_string_ptr(ptr, entry_kind, entry_length) \
   remap_ptr((ptr), a_char_ptr, (entry_kind))
@@ -120,21 +147,28 @@ Process the source correspondence field pointed to by ptr.
 #endif /* ifdef CFE */
 
 #undef remap_source_sequence_entry
-#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if GENERATE_SOURCE_SEQUENCE_LISTS && !NEEDED_FLAG_WALK
 #define remap_source_sequence_entry(ptr) \
   remap_ptr((ptr).source_sequence_entry, a_source_sequence_entry_ptr, \
             iek_source_sequence_entry);
-#else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
+#else /* !(GENERATE_SOURCE_SEQUENCE_LISTS && ...) */
 #define remap_source_sequence_entry(ptr) /* Nothing */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS & ... */
 
 #undef walk_source_corresp
+#if NEEDED_FLAG_WALK
+#define walk_source_corresp(ptr) \
+{ walk_string_ptr((ptr).name, iek_id_name, 0); \
+  remap_parent(ptr); \
+}  /* walk_source_corresp */
+#else /* !NEEDED_FLAG_WALK */
 #define walk_source_corresp(ptr) \
 { (ptr).assoc_info = NULL; \
   walk_string_ptr((ptr).name, iek_id_name, 0); \
   remap_parent(ptr); \
   remap_source_sequence_entry(ptr); \
 }  /* walk_source_corresp */
+#endif /* NEEDED_FLAG_WALK */
 
 #undef report_bad_init_kind
 #if CHECKING
@@ -166,8 +200,8 @@ Process the source correspondence field pointed to by ptr.
 
 
 
-/* The name is provided by a macro so it can be two different things, i.e.,
-    walk_entry_and_subtree and remap_pointers_in_il_entry.  Note that both
+/* The name is provided by a macro so it can be different things, e.g.,
+    walk_entry_and_subtree and remap_pointers_in_il_entry.  Note that all
     are made external even though only remap_pointers_in_il_entry really needs
     to be. */
 void WALK_ENTRY_ROUTINE_NAME(char             *entry_ptr,
@@ -182,17 +216,14 @@ the file scope, do not process it (but record an orphan in the latter case).
 {
 #if DO_SUBTREE_WALK
   /* Do a termination test (to prune the walk) if walking subtrees. */
-  if (walk_termination_test_func != NULL) {
-    /* There is a termination-test function provided by the caller.  Call
-       it to see if we just return on encountering this entry. */
-    if (walk_termination_test_func(entry_ptr, entry_kind)) {
-      goto end_of_routine;
-    }  /* if */
-  } else {
-    /* The default termination test is to see if the il_walk_flag is
-       already set appropriately or if we're crossing into another
-       memory region. */
-    an_il_entry_prefix_ptr epp = &il_entry_prefix_of(entry_ptr);
+#if NEEDED_FLAG_WALK
+  /* There is a termination-test function provided by the caller.  Call
+     it to see if we just return on encountering this entry. */
+  if (walk_termination_test_func(entry_ptr, entry_kind)) {
+    goto end_of_routine;
+  }  /* if */
+#else /* !NEEDED_FLAG_WALK */
+  { an_il_entry_prefix_ptr epp = &il_entry_prefix_of(entry_ptr);
     /* If we are walking through a function scope, and the entry here is
        in the file scope, just return. */
     if (!walking_file_scope && epp->file_scope) {
@@ -211,6 +242,7 @@ the file scope, do not process it (but record an orphan in the latter case).
     /* Set the flag to indicate that this entry has been visited. */
     epp->il_walk_flag = flag_value_meaning_visited;
   }
+#endif /* NEEDED_FLAG_WALK */
 #endif /* DO_SUBTREE_WALK */
 #if DEBUG
   if (debug_level >= 5) {
@@ -534,17 +566,15 @@ the file scope, do not process it (but record an orphan in the latter case).
 #ifdef CFE
         walk_list(ptr->befriending_classes, a_class_list_entry_ptr,
                   iek_class_list_entry);
-#if MAINTAIN_NEEDED_FLAGS
-        if (walking_to_set_needed_flags) {
-          /* If the routine has a definition, walk it. */
-          if (ptr->assoc_scope != NO_SCOPE_NUMBER) {
-            a_scope_ptr scope = il_header.region_scope_entry[ptr->assoc_scope];
-            check_assertion_str(scope != NULL,
-                 "walk_entry_and_subtree: needed routine scope not in memory");
-            walk_ptr(scope, a_scope_ptr, iek_scope);
-          }  /* if */
+#if NEEDED_FLAG_WALK
+        /* If the routine has a definition, walk it. */
+        if (ptr->assoc_scope != NULL_region_number) {
+          a_scope_ptr scope = il_header.region_scope_entry[ptr->assoc_scope];
+          check_assertion_str(scope != NULL,
+               "walk_tree_and_set_needed: needed routine scope not in memory");
+          walk_ptr(scope, a_scope_ptr, iek_scope);
         }  /* if */
-#endif /* MAINTAIN_NEEDED_FLAGS */
+#endif /* NEEDED_FLAG_WALK */
 #endif /* ifdef CFE */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         walk_ptr(ptr->declared_type, a_type_ptr, iek_type);
@@ -768,10 +798,10 @@ the file scope, do not process it (but record an orphan in the latter case).
       {
         a_statement_ptr ptr = (a_statement_ptr)entry_ptr;
         remap_next_ptr(ptr->next, a_statement_ptr, iek_statement);
-#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if GENERATE_SOURCE_SEQUENCE_LISTS && !NEEDED_FLAG_WALK
         remap_ptr(ptr->source_sequence_entry, a_source_sequence_entry_ptr,
                   iek_source_sequence_entry);
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && ... */
         walk_ptr(ptr->expr, an_expr_node_ptr, iek_expr_node);
         switch (ptr->kind) {
           case stmk_expr:
@@ -901,10 +931,10 @@ the file scope, do not process it (but record an orphan in the latter case).
         remap_next_ptr(ptr->next, a_pragma_ptr, iek_pragma);
         remap_ptr(ptr->entity.ptr, a_char_ptr,
                   (an_il_entry_kind)ptr->entity.kind);
-#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if GENERATE_SOURCE_SEQUENCE_LISTS && !NEEDED_FLAG_WALK
         remap_ptr(ptr->source_sequence_entry, a_source_sequence_entry_ptr,
                   iek_source_sequence_entry);
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && ...*/
         walk_string_ptr(ptr->pragma_text, iek_other_text, 0);
 #if IDENT_DIRECTIVE_AND_PRAGMA
         if (ptr->kind == (a_pragma_kind)pk_ident) {
@@ -1026,7 +1056,11 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_list(ptr->constants, a_constant_ptr, iek_constant);
 #ifdef CFE
 #if DO_SUBTREE_WALK
-        if (walking_file_scope || walking_to_set_needed_flags) {
+#if NEEDED_FLAG_WALK
+        walk_list(ptr->types, a_type_ptr, iek_type);
+        walk_list(ptr->variables, a_variable_ptr, iek_variable);
+#else /* !NEEDED_FLAG_WALK */
+        if (walking_file_scope) {
           walk_list(ptr->types, a_type_ptr, iek_type);
           walk_list(ptr->variables, a_variable_ptr, iek_variable);
         } else {
@@ -1038,6 +1072,7 @@ the file scope, do not process it (but record an orphan in the latter case).
           remap_ptr(ptr->types, a_type_ptr, iek_type);
           remap_ptr(ptr->variables, a_variable_ptr, iek_variable);
         }  /* if */
+#endif /* NEEDED_FLAG_WALK */
 #else /* !DO_SUBTREE_WALK */
         /* Not walking subtrees.  Just remap the pointers.  Do not test
            walking_file_scope, because it's not necessarily set correctly. */
@@ -1078,7 +1113,7 @@ the file scope, do not process it (but record an orphan in the latter case).
         } else {
           remap_ptr(ptr->assoc_block, a_statement_ptr, iek_statement);
         }  /* if */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if GENERATE_SOURCE_SEQUENCE_LISTS && !NEEDED_FLAG_WALK
         walk_list(ptr->source_sequence_list, a_source_sequence_entry_ptr,
                   iek_source_sequence_entry);
         /* The src_seq_sublist_list, which appears only on function scopes,
@@ -1086,7 +1121,7 @@ the file scope, do not process it (but record an orphan in the latter case).
            processing. */
         remap_ptr(ptr->src_seq_sublist_list, a_src_seq_sublist_ptr,
                   iek_src_seq_sublist);
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && ... */
 #if RECORD_HIDDEN_NAMES_IN_IL
         walk_list(ptr->hidden_names, a_hidden_name_ptr, iek_hidden_name);
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
@@ -1264,10 +1299,10 @@ the file scope, do not process it (but record an orphan in the latter case).
         a_using_directive_ptr ptr = (a_using_directive_ptr)entry_ptr;
         remap_next_ptr(ptr->next, a_using_directive_ptr, iek_using_directive);
         remap_ptr(ptr->assoc_namespace, a_namespace_ptr, iek_namespace);
-#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if GENERATE_SOURCE_SEQUENCE_LISTS && !NEEDED_FLAG_WALK
         remap_ptr(ptr->source_sequence_entry, a_source_sequence_entry_ptr,
                   iek_source_sequence_entry);
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && ... */
       }
       break;
     case iek_dynamic_init:
@@ -1339,6 +1374,7 @@ the file scope, do not process it (but record an orphan in the latter case).
         remap_ptr(ptr->base_class, a_base_class_ptr, iek_base_class);
       }
       break;
+#if !NEEDED_FLAG_WALK
     case iek_derivation_step:
       {
         a_derivation_step_ptr ptr = (a_derivation_step_ptr)entry_ptr;
@@ -1356,6 +1392,7 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_list(ptr->path, a_derivation_step_ptr, iek_derivation_step);
       }
       break;
+#endif /* !NEEDED_FLAG_WALK */
     case iek_base_class:
       {
         a_base_class_ptr ptr = (a_base_class_ptr)entry_ptr;
@@ -1367,8 +1404,13 @@ the file scope, do not process it (but record an orphan in the latter case).
                   iek_base_class);
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
         remap_ptr(ptr->pointer_base_class, a_base_class_ptr, iek_base_class);
+        /* Don't walk the derivation when setting the "needed" flag because
+           that data structure includes loops without a "needed" entry in
+           them. */
+#if !NEEDED_FLAG_WALK
         walk_list(ptr->derivation, a_base_class_derivation_ptr,
                   iek_base_class_derivation);
+#endif /* !NEEDED_FLAG_WALK */
         walk_list(ptr->overriding_virtual_functions,
                   an_overriding_virtual_function_ptr,
                   iek_overriding_virtual_function);
@@ -1539,7 +1581,7 @@ the file scope, do not process it (but record an orphan in the latter case).
       break;
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
 #endif /* ifdef CFE */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if GENERATE_SOURCE_SEQUENCE_LISTS && !NEEDED_FLAG_WALK
     case iek_source_sequence_entry:
       {
         a_source_sequence_entry_ptr ptr =
@@ -1615,7 +1657,7 @@ the file scope, do not process it (but record an orphan in the latter case).
       /* No pointers. */
       break;
 #endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && ... */
     case iek_scope_orphaned_list_header:
       {
         a_scope_orphaned_list_header_ptr ptr =
@@ -1625,10 +1667,10 @@ the file scope, do not process it (but record an orphan in the latter case).
         remap_ptr(ptr->assoc_routine, a_routine_ptr, iek_routine);
         walk_list(ptr->orphaned_types, a_type_ptr, iek_type);
         walk_list(ptr->orphaned_variables, a_variable_ptr, iek_variable);
-#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if GENERATE_SOURCE_SEQUENCE_LISTS && !NEEDED_FLAG_WALK
         walk_list(ptr->orphaned_src_seq_sublists, a_src_seq_sublist_ptr,
                   iek_src_seq_sublist);
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && ... */
       }
       break;
     case iek_id_name:

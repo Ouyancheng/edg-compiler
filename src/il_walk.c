@@ -64,12 +64,6 @@ static unsigned int
 			/* Value to be placed in the il_walk_flag field
 			   to indicate that an entry has been visited.
 			   The value alternates between 0 and 1. */
-#if MAINTAIN_NEEDED_FLAGS
-static a_boolean
-		walking_to_set_needed_flags;
-			/* TRUE if the IL walk is being done to set the
-			   "needed" flags in IL entries. */
-#endif /* MAINTAIN_NEEDED_FLAGS */
 typedef char	*a_char_ptr;
 			/* Useful to indicate "char *" as a type in calling
 			   remap_ptr or walk_ptr. */
@@ -83,6 +77,7 @@ static void walk_string_entry(char             *entry_ptr,
 
 /* Build a routine to walk entries and their subtrees. */
 #define DO_SUBTREE_WALK TRUE
+#define NEEDED_FLAG_WALK FALSE
 #define WALK_ENTRY_ROUTINE_NAME walk_entry_and_subtree
 #include "walk_entry.h"
 
@@ -285,13 +280,12 @@ typedef struct an_il_walk_state {
 		entry_process_func;
   a_string_entry_process_function_ptr
 		string_entry_process_func;
+  a_walk_termination_test_function_ptr
+		walk_termination_test_func;
   a_remap_function_ptr
 		walk_remap_func;
   a_boolean	walking_file_scope;
   int		flag_value_meaning_visited;
-#if MAINTAIN_NEEDED_FLAGS
-  a_boolean	walking_to_set_needed_flags;
-#endif /* MAINTAIN_NEEDED_FLAGS */
 } an_il_walk_state;
 
 
@@ -299,42 +293,26 @@ typedef struct an_il_walk_state {
 Save the current state of the global variables in the IL walk routines in
 the variable saved_state for later restoration.
 */
-
-#if MAINTAIN_NEEDED_FLAGS
-#define save_walking_to_set_needed_flags(saved_state)                 \
-  (saved_state).walking_to_set_needed_flags = walking_to_set_needed_flags;
-#else /* !MAINTAIN_NEEDED_FLAGS */
-#define save_walking_to_set_needed_flags(saved_state) /* Nothing */
-#endif /* MAINTAIN_NEEDED_FLAGS */
-
 #define save_il_walk_state(saved_state)                               \
 { (saved_state).entry_process_func         = entry_process_func;      \
   (saved_state).string_entry_process_func  = string_entry_process_func; \
+  (saved_state).walk_termination_test_func = walk_termination_test_func; \
   (saved_state).walk_remap_func            = walk_remap_func;         \
   (saved_state).walking_file_scope         = walking_file_scope;      \
   (saved_state).flag_value_meaning_visited = flag_value_meaning_visited; \
-  save_walking_to_set_needed_flags(saved_state)                       \
 }  /* save_il_walk_state */
 
 /*
 Restore the current state of the global variables in the IL walk routines
 from the saved values in the variable saved_state.
 */
-
-#if MAINTAIN_NEEDED_FLAGS
-#define restore_walking_to_set_needed_flags(saved_state)              \
-  walking_to_set_needed_flags = (saved_state).walking_to_set_needed_flags;
-#else /* !MAINTAIN_NEEDED_FLAGS */
-#define restore_walking_to_set_needed_flags(saved_state) /* Nothing */
-#endif /* MAINTAIN_NEEDED_FLAGS */
-
 #define restore_il_walk_state(saved_state)                            \
 { entry_process_func         = (saved_state).entry_process_func;      \
   string_entry_process_func  = (saved_state).string_entry_process_func; \
+  walk_termination_test_func = (saved_state).walk_termination_test_func; \
   walk_remap_func            = (saved_state).walk_remap_func;         \
   walking_file_scope         = (saved_state).walking_file_scope;      \
   flag_value_meaning_visited = (saved_state).flag_value_meaning_visited; \
-  restore_walking_to_set_needed_flags(saved_state)                    \
 }  /* restore_il_walk_state */
 
 
@@ -371,9 +349,6 @@ That is what the remap function does.
   walk_termination_test_func = NULL;
   walk_remap_func = remap_function;
   walking_file_scope = TRUE;
-#if MAINTAIN_NEEDED_FLAGS
-  walking_to_set_needed_flags = FALSE;
-#endif /* MAINTAIN_NEEDED_FLAGS */
 #ifdef FFE
   array_bound_walk_index = 0;
 #endif /* ifdef FFE */
@@ -439,9 +414,6 @@ can be NULL to indicate that the corresponding function is unnecessary.
   walk_remap_func = remap_function;
   /* Walking a routine scope, not the file scope. */
   walking_file_scope = FALSE;
-#if MAINTAIN_NEEDED_FLAGS
-  walking_to_set_needed_flags = FALSE;
-#endif /* MAINTAIN_NEEDED_FLAGS */
   scope = il_header.region_scope_entry[region_number];
   flag_value_meaning_visited = !il_entry_prefix_of(scope).il_walk_flag;
 #ifdef FFE
@@ -458,6 +430,18 @@ can be NULL to indicate that the corresponding function is unnecessary.
 
 
 #if MAINTAIN_NEEDED_FLAGS
+
+/* Generate walk_tree_and_set_needed from the walk_entry.h source. */
+#undef DO_SUBTREE_WALK
+#define DO_SUBTREE_WALK TRUE
+#undef NEEDED_FLAG_WALK
+#define NEEDED_FLAG_WALK TRUE
+#undef WALK_ENTRY_ROUTINE_NAME
+#define WALK_ENTRY_ROUTINE_NAME walk_tree_and_set_needed
+#undef UNDEF_WALK_ENTRY_MACROS_AT_END
+#define UNDEF_WALK_ENTRY_MACROS_AT_END
+#include "walk_entry.h"
+
 
 static a_boolean prune_needed_flag_il_walk(char             *entry_ptr,
                                            an_il_entry_kind entry_kind)
@@ -487,6 +471,39 @@ as needed.
 }  /* prune_needed_flag_il_walk */
 
 
+static void needed_flag_walk_entry_process(char             *entry_ptr,
+                                           an_il_entry_kind entry_kind)
+/*
+Routine called during the "needed" flag IL walk, to process an entry after
+its subtree has been walked.
+*/
+{
+  /* After we've processed the subtree of a function with a definition,
+     we can dispose of the IL for the function. */
+  if (entry_kind == iek_routine) {
+    a_routine_ptr rout = (a_routine_ptr)entry_ptr;
+    /* Note that we test the "defined" flag (and not assoc_scope !=
+       NULL_region_number) so we won't be fooled if we're in the middle of
+       processing the routine definition. */
+    if (rout->defined) {
+      /* The routine has a (completed) definition. */
+      a_memory_region_number scope_region_number = rout->assoc_scope;
+      a_scope_ptr scope = il_header.region_scope_entry[rout->assoc_scope];
+      if (scope->depth_in_scope_stack != NO_SCOPE_DEPTH) {
+        /* This function's scope is still on the scope stack, so do nothing
+           now.  check_for_done_with_memory_region will be called when the
+           scope is popped off the stack. */
+      } else {
+        /* This is a previously-defined function that has just been
+           identified as needed.  We may be able to dispose of the memory
+           region now. */
+        check_for_done_with_memory_region(scope_region_number);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* needed_flag_walk_entry_process */
+
+
 void mark_as_needed(char             *entry_ptr,
                     an_il_entry_kind entry_kind)
 /*
@@ -499,15 +516,14 @@ references.
   /* Save the state of global variables for later restoration. */
   save_il_walk_state(saved_state);
   /* Set up for this walk. */
-  entry_process_func = NULL;
+  entry_process_func = needed_flag_walk_entry_process;
   string_entry_process_func = NULL;
   walk_termination_test_func = prune_needed_flag_il_walk;
   walk_remap_func = NULL;
   /* walking_file_scope need not be set. */
-  walking_to_set_needed_flags = TRUE;
 
   /* Walk the IL tree. */
-  walk_entry_and_subtree(entry_ptr, entry_kind);
+  walk_tree_and_set_needed(entry_ptr, entry_kind);
 
   /* Restore the state of global variables. */
   restore_il_walk_state(saved_state);
@@ -719,8 +735,11 @@ running them through walk_remap_func.
 #if REMAP_ONLY_ROUTINES_NEEDED
 #undef DO_SUBTREE_WALK
 #define DO_SUBTREE_WALK FALSE
+#undef NEEDED_FLAG_WALK
+#define NEEDED_FLAG_WALK FALSE
 #undef WALK_ENTRY_ROUTINE_NAME
 #define WALK_ENTRY_ROUTINE_NAME remap_pointers_in_il_entry
+#undef UNDEF_WALK_ENTRY_MACROS_AT_END
 #define UNDEF_WALK_ENTRY_MACROS_AT_END
 #include "walk_entry.h"
 #endif /* REMAP_ONLY_ROUTINES_NEEDED */
