@@ -8631,16 +8631,6 @@ whether the nontype parameter is unnamed.
   /* Adjust the type if necessary (for example, "array of x"
      becomes "pointer to x"). */
   adjust_parameter_type(param_type_ptr, /*restrict_qualified=*/FALSE);
-  if (microsoft_mode && is_pointer_type(*param_type_ptr)) {
-    /* The Microsoft compiler treats a template parameter type of "X*" as
-       "X*&".  This transformation is not done for pointer-to-function
-       types because the Microsoft compiler permits a function pointer
-       rvalue to bind to a pointer-to-function template parameter (i.e.,
-       they don't seem to treat that case as a reference). */
-    if (!is_function_type(type_pointed_to(*param_type_ptr))) {
-      *param_type_ptr = make_reference_type(*param_type_ptr);
-    }  /* if */
-  }  /* if */
   /* Check for illegal nontype parameter types. */
   tp = skip_typerefs(*param_type_ptr);
   if (is_void_type(tp)) {

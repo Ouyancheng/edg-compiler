@@ -12080,38 +12080,33 @@ for the converted result in *constant.  Do various error checks.
 */
 {
   db_enter(3, "prep_nontype_template_argument_initializer");
-  if (microsoft_mode && is_reference_type(param_type)) {
-    /* In Microsoft mode, nontype template parameters of pointer type are
-       converted to reference-to-pointer-type to allow certain extension
-       behaviors.  However, it must still be possible to pass the standard
-       kind of actual argument for that parameter, an rvalue of that pointer
-       type.  We handle that by turning the rvalue pointer into an lvalue
-       with that address. */
-    a_type_ptr underlying_type = type_pointed_to(param_type);
-    if (is_pointer_type(underlying_type) &&
-        is_an_rvalue(operand) &&
-        identical_types(operand->type, underlying_type)) {
-      operand->state = (an_operand_state)os_lvalue;
-      operand->type = underlying_type;
+  if (microsoft_mode && is_pointer_type(param_type) &&
+      is_an_lvalue(operand) && is_constant_operand(operand) &&
+      identical_types(operand->type, param_type)) {
+    /* In Microsoft mode, an lvalue of type pointer to X can be used
+       as the actual argument for a nontype template parameter of type
+       pointer to X. */
+    /* Make a constant from the operand. */
+    extract_constant_from_operand(operand, constant);
+    constant->type = make_reference_type(param_type);
+  } else {
+    /* Convert to the required type if necessary.  Do not use user-defined
+       conversions. */
+    prep_initializer_operand(operand, param_type, (a_conv_descr_ptr)NULL,
+                             /*initializing_return_value=*/FALSE,
+                             /*initializing_variable=*/FALSE,
+                             /*static_lifetime=*/FALSE,
+                             /*is_copy_initialization=*/TRUE,
+                             ec_bad_nontype_template_arg);
+    /* Make a constant from the operand. */
+    extract_constant_from_operand(operand, constant);
+    /* If the template parameter has a reference type, give the constant
+       a reference type (instead of the pointer type it has). */
+    if (is_reference_type(param_type) && !is_error_operand(operand)) {
+      check_assertion(is_pointer_type(constant->type));
+      constant->type = param_type;
     }  /* if */
   }  /* if */
-  /* Convert to the required type if necessary.  Do not use user-defined
-     conversions. */
-  prep_initializer_operand(operand, param_type, (a_conv_descr_ptr)NULL,
-                           /*initializing_return_value=*/FALSE,
-                           /*initializing_variable=*/FALSE,
-                           /*static_lifetime=*/FALSE,
-                           /*is_copy_initialization=*/TRUE,
-                           ec_bad_nontype_template_arg);
-  /* Make a constant from the operand. */
-  extract_constant_from_operand(operand, constant);
-  /* If the template parameter has a reference type, give the constant
-     a reference type (instead of the pointer type it has). */
-  if (is_reference_type(param_type) && !is_error_operand(operand)) {
-    check_assertion(is_pointer_type(constant->type));
-    constant->type = param_type;
-  }  /* if */
-
 #if DEBUG
   if (debug_level >= 3) {
     db_constant(constant);

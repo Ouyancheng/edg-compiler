@@ -77,7 +77,7 @@ type is the only indication of the "volatile" attribute on the bit field.
           type
 
 The Microsoft compiler seems to treat nontype template parameters of
-pointer type (but not pointer-to-function type) as if they have
+pointer type (but not pointer-to-function type) somewhat as if they have
 reference-to-pointer type, while still allowing actual arguments that
 are rvalues of the proper pointer type.
 
@@ -87,11 +87,7 @@ are rvalues of the proper pointer type.
   char c;
   X<&c> y; // Standard, still allowed by MSVC++
 
-In Microsoft mode, we now do the same.  Note that the change of the
-type of the nontype template parameter will have an effect on some
-mangled names.  The impact of this change is believed to be negligible,
-however, given that the MSVC++ compiler seems to fail on all uses of
-a template having a nontype parameter of a reference-to-pointer type.
+In Microsoft mode, we now do the same.  (Additional change on 7/6/98.)
 
 6/18/98   Generated fall-through goto between switch clauses when switch
           is unreachable
