@@ -1864,6 +1864,7 @@ typedef struct a_base_class_derivation {
 			   preferred over one that has a virtual base class,
 			   and a direct derivation is preferred over an
 			   indirect derivation. */
+  bitfield_to_avoid_codecenter_warnings();
   an_access_specifier
 		access; /* The kind of derivation (public, protected, or
 			   private) specified for the final step of the
@@ -1930,6 +1931,7 @@ typedef struct a_base_class {
 			   scheme used to emulate cfront's ordering algorithm
 			   involves visiting a base class more than once.) */
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
+  bitfield_to_avoid_codecenter_warnings();
   a_targ_size_t	offset;
 			/* The byte offset from the start of the current
 			   derived class to the data section of this base
@@ -3274,6 +3276,7 @@ typedef struct a_routine {
 			   at least one "try" block.  This may affect
 			   optimization relating to local variables of the
 			   routine. */
+  bitfield_to_avoid_codecenter_warnings();
   a_class_list_entry_ptr
                 befriending_classes;
                         /* A linked list of entries identifying classes that
@@ -4430,6 +4433,7 @@ typedef struct a_statement {
 			   and bound to this statement.  The pragma entry,
 			   which will contain a pointer to this statement, is
 			   found by calling find_assoc_pragma. */
+  bitfield_to_avoid_codecenter_warnings();
   an_expr_node_ptr
                 expr;
                         /* The primary expression, if applicable
