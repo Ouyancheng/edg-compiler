@@ -1099,7 +1099,7 @@ error code.
       m = "more than one default constructor for class \"%s\"";
       break;
     case ec_temp_used_for_ref_init:
-      m = "reference initialized to copy of initial value";
+      m = "value copied to temporary, reference to temporary used";
       break;
     case ec_nonmember_operator_not_allowed:
       m = "\"operator%s\" must be a member function";
