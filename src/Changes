@@ -1,4 +1,6 @@
-Version 2.41
+Version 2.41, March 5, 1999
+
+3/2/99   IL version number changed to 2.33
 
 3/2/99   Microsoft C compatibility: relax restrictions on use of old-style
          function parameter lists
