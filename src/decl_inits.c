@@ -258,7 +258,8 @@ for unions and aggregates at that level).
   db_enter(4, "get_initializer");
   err = FALSE;
   local_type = skip_typerefs(*type);
-  if (C_dialect == C_dialect_cplusplus &&
+  check_for_opening_brace(&brace_flag);
+  if (!brace_flag && C_dialect == C_dialect_cplusplus &&
       is_class_struct_union_type(local_type)) {
 #if CHECKING
     a_class_symbol_supplement_ptr cssp =
@@ -303,13 +304,15 @@ for unions and aggregates at that level).
       *end_of_di_list = dip;
     }  /* if */
   } else if (is_aggregate_or_union_type(local_type) ||
-             (is_error_type(local_type) && curr_token == tok_lbrace)) {
+             (is_error_type(local_type) && brace_flag)) {
     /* Initialization of an array (complete or incomplete), struct, or
        union.  The result will be an aggregate constant except when an
        array of char is initialized by an string.  The initial
        values can either appear inside a brace-enclosed list, or at
        the current level. */
+#if 0
     check_for_opening_brace(&brace_flag);
+#endif /* if 0 */
     if (curr_token == tok_string_literal && is_string_type(local_type)) {
       /* The object being initialized has type array of char or wchar_t, and
          is being initialized with a string.  Handle this case specially. */
@@ -499,7 +502,9 @@ for unions and aggregates at that level).
        brace-enclosed) value. */
     a_dynamic_init  local_di;
 
+#if 0
     check_for_opening_brace(&brace_flag);
+#endif /* if 0 */
     scan_initializer_of_simple_object(/*nonconst_allowed=*/
                                             (C_dialect == C_dialect_cplusplus),
                                       local_type, &local_di);
@@ -1597,21 +1602,24 @@ scan_arg_for_scan_initialization:
            constructor.  Any subobject constructors must also be copy
            constructors, and fields and base classes that have no constructor
            must be accounted for, too. */
-        a_boolean  class_bitwise_copy = FALSE;
-
-        /* The flag const_object_okay describes whether the top-level
-           constructor can accept a const object for copying; if it can,
-           then all constructors called to copy subobjects *must* accept a
-           const object for copying (a conclusion based in part on ARM 12.8).
-           By extension, the same applies to the volatile qualifier.  Thus
-           the parameter name on the other end of this call stipulates a
-           requirement on the search for a copy constructor.  If construction
-           by bitwise copy is allowed for this class, class_bitwise_copy will
-           be returned TRUE. */
-        rp = select_copy_constructor(tp,
-                                     const_object_okay, volatile_object_okay,
-                                     &error_position, &class_bitwise_copy);
-        if (class_bitwise_copy) {
+        a_boolean  bitwise_copy = FALSE;
+        if (cssp == NULL) {
+          bitwise_copy = TRUE;
+        } else {
+          /* The flag const_object_okay describes whether the top-level
+             constructor can accept a const object for copying; if it can,
+             then all constructors called to copy subobjects *must* accept a
+             const object for copying (a conclusion based in part on ARM 12.8).
+             By extension, the same applies to the volatile qualifier.  Thus
+             the parameter name on the other end of this call stipulates a
+             requirement on the search for a copy constructor.  If construction
+             by bitwise copy is allowed for this class, class_bitwise_copy will
+             be returned TRUE. */
+          rp = select_copy_constructor(tp,
+                                       const_object_okay, volatile_object_okay,
+                                       &error_position, &bitwise_copy);
+        }  /* if */
+        if (bitwise_copy) {
           /* Construction by bitwise copy is allowed. */
           if (cip->kind == (a_constructor_init_kind)cik_field) {
             dip = alloc_dynamic_init((a_dynamic_init_kind)dik_member_copy);
