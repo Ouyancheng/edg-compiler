@@ -2627,8 +2627,8 @@ of the function, and again overloading is a possibility.
         !is_member_function_symbol(sym)) {
       /* sym represents a member of a class, but it is not a member function.
          Issue an error. */
-      pos_error(ec_not_compatible_with_previous_decl,
-                &locator->source_position);
+      pos_sy_error(ec_not_compatible_with_previous_decl,
+                   &locator->source_position, sym);
       sym = NULL;
       set_to_error_locator(*locator);
     }  /* if */
@@ -2670,7 +2670,8 @@ of the function, and again overloading is a possibility.
           str_error(ec_overloaded_function_incompatible_type,
                     locator->symbol_header->identifier);
         } else {
-          error(ec_not_compatible_with_previous_decl);
+          sym_error(ec_not_compatible_with_previous_decl,
+                    locator->specific_symbol);
         }  /* if */
         set_to_error_locator(*locator);
       } else {

@@ -3100,8 +3100,8 @@ otherwise, set *ext_sym to NULL.
 #endif /* CHECKING */
         *old_type = variable_ptr->type;
         if (!types_are_compatible(type_ptr, *old_type)) {
-          pos_error(ec_not_compatible_with_previous_decl,
-                    &locator->source_position);
+          pos_sy_error(ec_not_compatible_with_previous_decl,
+                       &locator->source_position, linked_symbol);
           redecl_error_already_issued = TRUE;
           linked_redecl_error = TRUE;
         } else {
@@ -3139,8 +3139,8 @@ otherwise, set *ext_sym to NULL.
            after old-style parameter declarations are scanned, if this
            declaration has a body (see function_definition). */
         if (!types_are_compatible(routine_ptr->type, type_ptr)) {
-          pos_error(ec_not_compatible_with_previous_decl,
-                    &locator->source_position);
+          pos_sy_error(ec_not_compatible_with_previous_decl,
+                       &locator->source_position, linked_symbol);
           redecl_error_already_issued = TRUE;
           if (!old_decl_has_body) {
             routine_ptr->type = type_ptr;
@@ -3159,8 +3159,8 @@ otherwise, set *ext_sym to NULL.
     } else {
       /* The linked symbol is a variable, while the new one is a routine,
          or vice-versa; error. */
-      pos_error(ec_not_compatible_with_previous_decl,
-                &locator->source_position);
+      pos_sy_error(ec_not_compatible_with_previous_decl,
+                   &locator->source_position, linked_symbol);
       redecl_error_already_issued = TRUE;
       linked_redecl_error = TRUE;
     }  /* if */
@@ -3549,8 +3549,8 @@ the symbol and its linkage (which is always "none").
       pos_error(ec_redefinition_not_allowed, &locator->source_position);
       err = TRUE;
     } else if (!types_are_compatible(type_ptr, var->type)) {
-      pos_error(ec_not_compatible_with_previous_decl,
-                &locator->source_position);
+      pos_sy_error(ec_not_compatible_with_previous_decl,
+                   &locator->source_position, sym);
       err = TRUE;
     } else {
       /* The type of the variable should be the composite of the two types. */
@@ -3570,8 +3570,8 @@ the symbol and its linkage (which is always "none").
                 &locator->source_position);
     } else if (is_member_function_symbol(sym)) {
       /* A member function -- this is treated as a type incompatibility. */
-      pos_error(ec_not_compatible_with_previous_decl,
-                &locator->source_position);
+      pos_sy_error(ec_not_compatible_with_previous_decl,
+                   &locator->source_position, sym);
     } else if (sym->kind == (a_symbol_kind)sk_projection) {
       /* A member of a base class. */
       pos_error(ec_inherited_member_not_allowed, &locator->source_position);
@@ -3636,7 +3636,8 @@ on a prior declaration.
   if (!is_member_function_symbol(locator->specific_symbol)) {
     /* We must have nonfunction class member.  This is an error, so set sym
        to NULL to force the creation of a fake member function symbol. */
-    pos_error(ec_not_compatible_with_previous_decl, &locator->source_position);
+    pos_sy_error(ec_not_compatible_with_previous_decl,
+                 &locator->source_position, locator->specific_symbol);
     sym = NULL;
   } else {
     /* Look for a member function symbol of this type in the symbol table.
@@ -3651,8 +3652,8 @@ on a prior declaration.
                      &locator->source_position,
                      locator->symbol_header->identifier);
       } else {
-        pos_error(ec_not_compatible_with_previous_decl,
-                  &locator->source_position);
+        pos_sy_error(ec_not_compatible_with_previous_decl,
+                     &locator->source_position, locator->specific_symbol);
       }  /* if */
     } else if (sym->variant.routine->compiler_generated) {
       /* Attempting to give a definition for a function that was implicitly
@@ -6726,8 +6727,9 @@ explicitly specified (rather than defaulted to "int").
            Note that there is a first test for compatibility in
            decl_var_or_routine.  If that one fails, old_type will be NULL,
            so we won't do this part of the test and won't give two errors. */
-        pos_error(ec_not_compatible_with_previous_decl, 
-                  &locator->source_position);
+        pos_sy_error(ec_not_compatible_with_previous_decl, 
+                     &locator->source_position,
+                     (a_symbol_ptr)routine_ptr->source_corresp.assoc_info);
         linked_redecl_error = TRUE;
       }  /* if */
     }  /* if */
