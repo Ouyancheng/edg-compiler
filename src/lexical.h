@@ -1104,7 +1104,7 @@ extern a_symbol_ptr coalesce_and_lookup_generalized_identifier
                          an_identifier_lookup_mode        ilm,
                          a_boolean                        *err);
 
-/* Macro that tests whether the f_is_generlized_identifier_start needs
+/* Macro that tests whether the f_is_generalized_identifier_start needs
    to be called.  We don't need to call it if we have an identifier that
    has already been coalesced.  There are other cases that could be
    eliminated such as tok_ptr_to_member (which returns FALSE) and current
