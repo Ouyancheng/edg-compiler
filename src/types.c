@@ -2446,7 +2446,7 @@ is allocated, it is allocated in the file scope.
               num_elems == base_type_2->variant.array.number_of_elements) {
             comp_type = base_type_2;
           } else {
-            comp_type = fs_type((a_type_kind)tk_array);
+            comp_type = alloc_type((a_type_kind)tk_array);
             comp_type->variant.array.element_type       = comp_elem;
             comp_type->variant.array.number_of_elements = num_elems;
             set_type_size(comp_type);
@@ -2603,7 +2603,7 @@ is allocated, it is allocated in the file scope.
           } else {
             /* Build a new function type. */
             a_routine_type_supplement_ptr extra_info, extra_info1;
-            comp_type = fs_type((a_type_kind)tk_routine);
+            comp_type = alloc_type((a_type_kind)tk_routine);
             comp_type->variant.routine.return_type = comp_elem;
             extra_info = comp_type->variant.routine.extra_info;
             extra_info1 = base_type_1->variant.routine.extra_info;
@@ -2874,6 +2874,7 @@ is returned.  If old_type == NULL, return NULL.
 */
 {
   a_type_ptr              new_type;
+#if 0
   a_routine_type_supplement_ptr
 			  extra_info;
   a_type_kind             kind;
@@ -3002,6 +3003,14 @@ is returned.  If old_type == NULL, return NULL.
       }  /* switch */
     }  /* if */
   }  /* if */
+#else
+#if CHECKING
+  if (!in_file_scope((char *)old_type)) {
+    internal_error("make_file_scope_type: not in file scope");
+  }  /* if */
+#endif /* CHECKING */
+  new_type = old_type;
+#endif /* if !0 */
   return new_type;
 }  /* make_file_scope_type */
 
