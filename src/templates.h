@@ -76,7 +76,9 @@ extern void delayed_scan_for_function_template_default_args
 			  a_template_symbol_supplement_ptr tssp);
 
 extern a_symbol_ptr template_declaration(a_boolean  *defines_something);
-
+extern void update_instantiation_required_flag(a_template_instance_ptr tip,
+                                               a_boolean               value);
+extern void instantiation_wrapup(void);
 extern void templates_init(void);
 
 /* If tp is a class in need of instantiation or an array whose underlying

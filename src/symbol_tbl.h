@@ -1892,9 +1892,6 @@ extern void reference_to_symbol(a_symbol_reference_kind kind,
 extern void set_source_corresp(a_source_correspondence *sc,
                                a_symbol_ptr            sp);
 extern a_boolean current_class_symbol_if_class_template(a_symbol_ptr *sym);
-extern void update_instantiation_required_flag(a_template_instance_ptr tip,
-                                               a_boolean               value);
-extern void instantiation_wrapup(void);
 
 /* Allocation */
 extern an_extern_type_fixup_ptr alloc_etype_fixup(void);
