@@ -482,9 +482,11 @@ on a prior declaration.
   a_symbol_ptr	 sym;
   a_type_ptr     class_type;
   a_routine_ptr  rp;
+  a_type_ptr	 rout_type;
 
   db_enter(3, "define_member_function");
   class_type = locator->specific_symbol->class_of_which_a_member;
+  rout_type = skip_typerefs(type_ptr);
   sym = locator->specific_symbol;
   if (!is_member_function_symbol(sym)) {
     /* We must have nonfunction class member.  This is an error, so set sym
@@ -531,14 +533,14 @@ on a prior declaration.
       /* Type was okay, but this member function has a body. */
       pos_sy_error(ec_function_redefinition, &locator->source_position, sym);
       other_rp = sym->variant.routine.ptr;
-      type_ptr->variant.routine.extra_info->implicit_this_param_type =
+      rout_type->variant.routine.extra_info->implicit_this_param_type =
           other_rp->type->variant.routine.extra_info->implicit_this_param_type;
     } else {
       /* In the error case assume the member function is nonstatic and give
          it an implicit this parameter type.  This will prevent an error from
          being issued on a direct reference to a nonstatic data member in the
          function body. */
-      type_ptr->variant.routine.extra_info->implicit_this_param_type =
+      rout_type->variant.routine.extra_info->implicit_this_param_type =
                                                make_pointer_type(class_type);
     }  /* if */
     /* An error has been detected.  Make a "fake" symbol and routine entry so
@@ -570,7 +572,7 @@ on a prior declaration.
        a composite type.  First copy the implicit this param type pointer
        into type_ptr:  it is always wrong for nonstatic member functions. */
     rp = sym->variant.routine.ptr;
-    type_ptr->variant.routine.extra_info->implicit_this_param_type =
+    rout_type->variant.routine.extra_info->implicit_this_param_type =
            (*old_type)->variant.routine.extra_info->implicit_this_param_type;
     reconcile_routine_types(sym->variant.routine.ptr, type_ptr,
                             /*preserve_rout_type=*/FALSE,
@@ -1446,7 +1448,7 @@ empty statement block.
     /* Associate the scope to the routine entry and the routine entry to its
        type entry. */
     rout_ptr->assoc_scope = curr_il_region_number;
-    rtsp = rout_ptr->type->variant.routine.extra_info;
+    rtsp = skip_typerefs(rout_ptr->type)->variant.routine.extra_info;
     rtsp->assoc_routine = rout_ptr;
     if (rtsp->implicit_this_param_type != NULL) {
       a_variable_ptr  vp = make_param_variable(rtsp->implicit_this_param_type,
