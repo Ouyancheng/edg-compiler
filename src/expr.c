@@ -2623,6 +2623,10 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
           /* Result is a bound function.  It can only be called or (as an
              anachronism) cast to a normal function pointer. */
           copy_operand(&operand_2, result);
+          /* Clear the reference list for the second operand, because
+             if any pointers-to-members are in there we don't want to change
+             the references from address-taken to reference on a call. */
+          result->ref_entries_list = NULL;
           copy_operand(operand_1, bound_function_selector);
           bind_member_function_operand_to_selector(result,
                                                    bound_function_selector);
