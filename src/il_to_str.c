@@ -447,7 +447,7 @@ Do the output in the way described by octl.
 #undef output_qualifier
 }  /* form_type_qualifier */
 
-#if MICROSOFT_KEYWORDS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
 
 static void form_calling_convention(
                      a_calling_convention                  calling_convention,
@@ -468,7 +468,7 @@ Do the output in the way described by octl.
 #endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
 }  /* form_calling_convention */
 
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #endif /* ifdef CFE */
 #ifdef FFE
@@ -792,13 +792,13 @@ Do the output in the way described by octl.
     /* This is a right-side declarator, so if it's under a left-side
        declarator parentheses are needed. */
     if (under_lhs_declarator) octl->output_str("(");
-#if MICROSOFT_KEYWORDS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
     /* A calling convention specifier is put out as a left-hand-side
        declarator. */
     form_calling_convention(type->variant.routine.extra_info->
                                                             calling_convention,
                             octl);
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #ifdef CFE
   } else if (kind == (a_type_kind)tk_array) {
     /* Array type. */

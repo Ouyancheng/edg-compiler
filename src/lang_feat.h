@@ -320,17 +320,6 @@ extension provided by Microsoft C and C++ compilers.
 #endif /* ifndef ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
 
 /*
-Flag that is TRUE if a set of keywords accepted by the 32-bit
-Microsoft C/C++ compilers should be accepted.  This enables recognition
-of __cdecl, __stdcall, __fastcall, __inline, and __declspec.
-__declspec in turn takes arguments used to implement dllexport, dllimport,
-thread, and naked.
-*/
-#ifndef MICROSOFT_KEYWORDS_ALLOWED
-#define MICROSOFT_KEYWORDS_ALLOWED MICROSOFT_EXTENSIONS_ALLOWED
-#endif /* ifndef MICROSOFT_KEYWORDS_ALLOWED */
-
-/*
 Flag that is TRUE if "#pragma pack(n)" and command-line option
 "--pack_alignment=n" are supported.  This feature allows for packing classes
 and structs by specifying a maximum alignment for nonstatic data members,

@@ -277,21 +277,21 @@ Bit flags for calls of f_types_are_compatible et al.
 			   redeclaration.  It's important in C++ because it's
 			   the only context in which known- and unknown-bound
 			   array types are "compatible" (WP 3.5). */
-#if MICROSOFT_KEYWORDS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
 #define TCF_IGNORE_CALLING_CONVENTIONS 0x8
 			/* Ignore the calling conventions on top-level
 			   function types. */
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #define TCF_NO_FLAGS 0x0
 typedef int a_type_compat_flags_set;
 
 extern a_boolean param_types_are_compatible(a_type_ptr              rout_type1,
                                             a_type_ptr              rout_type2,
                                             a_type_compat_flags_set flags);
-#if MICROSOFT_KEYWORDS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
 extern a_boolean calling_conventions_are_compatible(a_type_ptr type1,
                                                     a_type_ptr type2);
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 extern a_boolean f_types_are_compatible(a_type_ptr              type_1,
                                         a_type_ptr              type_2,
                                         a_type_compat_flags_set flags);
@@ -326,16 +326,16 @@ circuit some of the processing in common cases.
                           TCF_IGNORE_TYPE_QUALIFIERS))
 /* Use routine_types_are_compatible to check types of routines, ignoring
    calling convention modifiers. */
-#if MICROSOFT_KEYWORDS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
 #define routine_types_are_compatible(t1, t2, extra_flags)             \
          ((t1) == (t2) ||                                             \
           f_types_are_compatible((t1), (t2),                          \
                        TCF_IGNORE_CALLING_CONVENTIONS | (extra_flags)))
-#else /* !MICROSOFT_KEYWORDS_ALLOWED */
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #define routine_types_are_compatible(t1, t2, extra_flags)             \
          ((t1) == (t2) ||                                             \
           f_types_are_compatible((t1), (t2), TCF_NO_FLAGS | (extra_flags)))
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
 extern a_boolean same_type_with_added_qualifiers
