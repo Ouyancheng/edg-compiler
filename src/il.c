@@ -207,7 +207,7 @@ static a_constant_hash_value hash_constant(a_constant *cp);
 void db_type(a_type *tp);
 
 
-static void db_template_arg_list(a_template_arg_ptr tap)
+void db_template_arg_list(a_template_arg_ptr tap)
 /*
 Dump a list of template arguments, enclosed by angle brackets.
 */
