@@ -183,6 +183,9 @@ length of the name.
   /* Look for blank after type. */
   if (*pos++ != ' ') goto invalid_input;
 
+  /* Now look for a nonblank. */
+  while (*pos == ' ') pos++;
+
   /* Skip passed extra underscore at the start of every symbol if an
      underscore is present.  */
   if (skip_underscore_prefix && *pos == '_') pos++;
@@ -279,6 +282,8 @@ int main(int argc, char *argv[])
   }  /* while */
 
   while (read_input_line()) {
+    /* Skip empty lines. */
+    if (line_size == 0) continue;
     if (check_type_and_get_name(&name_pos, &name_length, &is_ctor)) {
       /* Make a copy of the routine name. */
       name_string = malloc_with_check(name_length + 1);

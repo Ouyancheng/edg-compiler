@@ -600,6 +600,8 @@ processed further.
     if (!isalpha((unsigned char)(*type))) pl_invalid_input();
     /* Look for blank after type. */
     if (*pos++ != ' ') pl_invalid_input();
+    /* Now look for a nonblank. */
+    while (*pos == ' ') pos++;
     /* Note that the Solaris format is not expected to contain
        extra leading underscores. */
     rest_of_line = pos;
@@ -2026,7 +2028,7 @@ int main(int argc, char *argv[])
       if (limit_recursion && ++number_of_iterations == PL_MAX_ITERATIONS) {
         pl_error("instantiation loop");
       }  /* if */
-      if (return_status != 0) done = TRUE;
+      if (return_status != 0 || suppress_compilation) done = TRUE;
       if (!done) pl_free_all();
     } while (!done);
   }  /* if */
