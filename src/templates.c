@@ -12065,9 +12065,6 @@ information).  See the definition of a_tmpl_decl_state for details.
       /* Bypass the "<". */
       (void)get_token();
       if (curr_token != tok_gt) {
-        /* Record that we have seen a template declaration.  (This means that
-           we should not eliminate unneeded entities.) */
-        il_header.templates_used = TRUE;
         /* Create a template declaration information entry for this
            declaration. A pointer to this entry will be stored in the
            template cache entries that contain tokens from this declaration. */

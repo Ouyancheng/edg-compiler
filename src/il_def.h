@@ -8293,10 +8293,6 @@ EXTERN struct il_header_tag {
 			   and IL lowering is being done, each name must
 			   be inspected when special processing is done
 			   for the mangling of names containing UCNs. */
-  a_byte_boolean
-		templates_used;
-			/* TRUE if a template declaration appears somewhere
-			   in the IL tree. */
 #if ONE_INSTANTIATION_PER_OBJECT
   char		*instantiation_dir_name;
 			/* When each instantiation is placed in its own object
