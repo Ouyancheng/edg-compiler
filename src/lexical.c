@@ -26,15 +26,16 @@ and parsing of them into tokens.
 #endif /* HDRSTOP_RECOGNIZED */
 
 /* Additional header files. */
-#include "preproc.h"
-#include "symbol_ref.h"
-#include "macro.h"
-#include "literals.h"
-#include "statements.h"
+#include "class_decl.h"
 #include "decls.h"
-#include "templates.h"
-#include "pragma.h"
+#include "literals.h"
+#include "macro.h"
 #include "pch.h"
+#include "pragma.h"
+#include "preproc.h"
+#include "statements.h"
+#include "symbol_ref.h"
+#include "templates.h"
 #if ASM_FUNCTION_ALLOWED
 #include "asm_func.h"
 #endif /* ASM_FUNCTION_ALLOWED */

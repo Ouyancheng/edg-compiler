@@ -35,9 +35,11 @@ Note: EVERY .h file that includes an external variable must be included in
 fe_init.c.  (Those which are already specified in fe_common.h are omitted in
 the following list.)  By defining the macro EXTERN as an empty string, the
 declarations in the include files will become external definitions for the
-symbols.
+symbols.  il.h, symbol_tbl.h, lexical.h, and types.h will already have
+been included by the inclusion of fe_common.h.
 */
 
+#include "class_decl.h"
 #include "decl_inits.h"
 #include "decls.h"
 #include "def_arg.h"
@@ -56,10 +58,8 @@ symbols.
 #include "preproc.h"
 #include "statements.h"
 #include "symbol_ref.h"
-#include "symbol_tbl.h"
 #include "sys_predef.h"
 #include "templates.h"
-#include "types.h"
 
 #if ASM_FUNCTION_ALLOWED
 #include "asm_func.h"
