@@ -669,6 +669,13 @@ and indentation is the indentation desired.
             fprintf(f_debug, "NULL");
           }  /* if */
           fprintf(f_debug, "\n");
+          fprintf(f_debug, "%*sparameter constant: ", indentation + 4, "");
+          if (tplep->param_constant != NULL) {
+            db_constant(tplep->param_constant);
+          } else {
+            fprintf(f_debug, "NULL");
+          }  /* if */
+          fprintf(f_debug, "\n");
           col = 0;
         }  /* for */
         if (sym->kind == (a_symbol_kind)sk_class_template) {
@@ -4887,11 +4894,7 @@ declaration is scanned and are used as placeholders between instantiations.
     if (param_symbol->kind == (a_symbol_kind)sk_type) {
       param_symbol->variant.type = tpp->param_type;
     } else {
-      param_symbol->variant.constant =
-                                 fs_constant((a_constant_repr_kind)ck_error);
-      /* Restore the correct type to the error constant from the value in
-	 the template parameter structure. */
-      param_symbol->variant.constant->type = tpp->param_type;
+      param_symbol->variant.constant = tpp->param_constant;
     }  /* if */
     tpp = tpp->next;
   }  /* while */
@@ -6431,9 +6434,10 @@ Allocate a new template parameter list entry and return a pointer to it.
 #if DEBUG
   num_template_params_allocated++;
 #endif /* DEBUG */
-  ptr->next          = NULL;
-  ptr->param_symbol  = NULL;
-  ptr->param_type    = NULL;
+  ptr->next           = NULL;
+  ptr->param_symbol   = NULL;
+  ptr->param_type     = NULL;
+  ptr->param_constant = NULL;
   
   db_exit();
   return ptr;

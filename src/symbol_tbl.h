@@ -584,8 +584,12 @@ typedef struct a_template_param {
   a_type_ptr    param_type;
                         /* Type entry for a formal parameter.  A unique type
                            entry is created for each template type
-                           parameter.  For non-type parameters, this points to
-			   the type specified for the parameter. */
+                           parameter. */
+  a_constant_ptr
+		param_constant;
+			/* Constant entry for a formal parameter.  A unique
+			   constant entry is created for each template constant
+			   parameter. */
 } a_template_param;
 
 
