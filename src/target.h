@@ -791,6 +791,7 @@ EXTERN a_boolean
 			   impl_conv_between_c_and_cpp_function_ptrs_allowed,
 			   defined in cmd_line.h.) */
 
+#if BACK_END_IS_CP_GEN_BE
 EXTERN a_boolean
 		old_specializations_for_generated_instances
 #if VAR_INITIALIZERS
@@ -801,6 +802,7 @@ EXTERN a_boolean
 			   instances in generated code (C++-generating back
 			   end) should use the old syntax instead of the
 			   modern "template <>" prefix form. */
+#endif /* BACK_END_IS_CP_GEN_BE */
 
 
 /* Aside from occasional references in targ_def.h, the following values
