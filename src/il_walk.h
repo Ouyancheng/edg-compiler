@@ -28,6 +28,7 @@ il_walk.h -- Declarations related to il_walk.c (walking the intermediate
 #include "il.h"
 #endif /* ifndef IL_H */
 
+#if ORPHAN_PROCESSING_NEEDED
 /* Macro to test whether or not an entry kind is a string kind. */
 #define is_string_entry_kind(entry_kind) \
   ((entry_kind) == iek_id_name || (entry_kind) == iek_string_text || \
@@ -36,8 +37,8 @@ il_walk.h -- Declarations related to il_walk.c (walking the intermediate
 /* Array giving, for each IL entry kind, the size of the entry in bytes.
    For string type entries, 1.  This must match the order of the
    enumeration an_il_entry_kind. */
-EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
 #define IEK_LAST_CHECK_SIZE 9999
+EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
 #if VAR_INITIALIZERS
 = {
   0 /* iek_none */,
@@ -88,13 +89,12 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
   sizeof(an_asm_entry),
   sizeof(a_template_arg),
 #endif /* ifdef CIL */
-#if ORPHAN_PROCESSING_NEEDED
   sizeof(an_orphaned_il_list),
-#endif /* ORPHAN_PROCESSING_NEEDED */
   IEK_LAST_CHECK_SIZE /* iek_last */
 }
 #endif /* VAR_INITIALIZERS */
 ;
+#endif /* ORPHAN_PROCESSING_NEEDED */
 
 #ifdef FFE
 /*
