@@ -5276,6 +5276,115 @@ done:
 }  /* access_adjustment_decl */
 
 
+static a_symbol_ptr find_corresp_prototype_tag_sym(a_symbol_ptr  curr_sym)
+/*
+If a given tag symbol (curr_sym) represents an instantiation of a class
+template, return the corresponding tag symbol for the prototype instantiation
+of the same template.  If curr_sym is not an instantiation or if it is
+itself a prototype instantiation, return NULL.
+
+For example, given
+
+  template <class T> class A {
+    class B {
+      class C { };
+    };
+  };
+  A<int> a;
+
+a prototype instantiation for A<T> will have been done, and in the process
+symbols for the nested classes A<T>::B and A<T>::B::C will have been created.
+With the real instantiation A<int> the "corresponding prototype instantiations"
+are:   A<T> for A<int>, A<T>::B for A<int>::B, and A<T>::B::C for A<int>::B::C.
+
+Note that the code for finding a nonnested prototype instantiation is quite
+different from that for finding the corresponding nested class.  For the
+latter case a recursive algorithm is used, since we have to navigate the
+parent chain (e.g., climb up from A<int>::B to A<int>, find A<T>, then climb
+back down to find A<T>::B).
+*/
+{
+  a_symbol_ptr    sym, templ_sym, corresp_prototype_tag_sym = NULL;
+
+  db_enter(3, "find_corresp_prototype_tag_sym");
+  if (is_within_unreal_instantiation(
+                          curr_sym->variant.class_struct_union.type)) {
+    /* Return NULL. */
+  } else if (curr_sym->class_of_which_a_member != NULL) {
+    /* curr_sym represents a nested class.  Find the corresponding prototype
+       tag symbol of its parent class; then find the corresponding nested
+       class within it. */
+    a_type_ptr      tp = curr_sym->class_of_which_a_member;
+    a_scope_number  decl_scope;
+
+    sym = find_corresp_prototype_tag_sym(
+                                 (a_symbol_ptr)tp->source_corresp.assoc_info);
+    if (sym != NULL) {
+      /* sym is the corresponding prototype tag symbol of the parent class.
+         It represents a prototype instantiation of a class template or a
+         class nested within a prototype instantiation. One of its own nested
+         classes will be the nested class that corresponds to curr_sym: find
+         a symbol with the same header as curr_sym and belonging to the scope
+         that sym established. */
+      decl_scope = sym->variant.class_struct_union.type->
+                    variant.class_struct_union.extra_info->assoc_scope->number;
+      for (sym = curr_sym->header->inactive_symbols;
+           sym != NULL;
+           sym = sym->next) {
+        if (sym->decl_scope == decl_scope && sym->kind == curr_sym->kind) {
+          corresp_prototype_tag_sym = sym;
+          break;
+        }  /* if */
+      }  /* for */
+#if CHECKING
+      if (corresp_prototype_tag_sym == NULL) {
+        internal_error("find_prototype_tag_sym: can't find nested prototype");
+      }  /* if */
+#endif /* CHECKING */
+    }  /* if */
+  } else {
+    /* curr_sym is not a nested class.  If it has a template symbol (signifying
+       that it is an instantiation of a class template) we want to find the
+       prototype instantiation of the template. */
+    templ_sym = curr_sym->
+                  variant.class_struct_union.extra_info->class_template;
+    if (templ_sym != NULL) {
+      /* There is a class template symbol.  Go through its instantiations
+         looking for the prototype instantiation (namely, a "nonreal"
+         instantiation for which there is also a definition). */
+      sym = templ_sym->
+              variant.template.extra_info->variant.class.instantiations;
+      for (; sym != NULL; sym = sym->next) {
+        if (sym->defined &&
+            !sym->variant.class_struct_union.extra_info->
+                                                  is_real_instantiation) {
+          /* Found it. */
+          corresp_prototype_tag_sym = sym;
+          break;
+        }  /* if */
+      }  /* for */
+#if CHECKING
+      if (corresp_prototype_tag_sym == NULL) {
+        internal_error(
+                    "find_prototype_tag_sym: can't find nonnested prototype");
+      }  /* if */
+#endif /* CHECKING */
+    }  /* if */
+  }  /* if */
+#if DEBUG
+  if (debug_level >= 3) {
+    if (corresp_prototype_tag_sym != NULL) {
+      fputs("returning symbol for ", f_debug);
+      db_name(&type_symbol_type(corresp_prototype_tag_sym)->source_corresp);
+      fputc('\n', f_debug);
+    }  /* if */
+  }  /* if */
+#endif /* DEBUG */
+  db_exit();
+  return corresp_prototype_tag_sym;
+}  /* find_corresp_prototype_tag_sym */
+
+
 a_boolean scan_class_definition(a_type_ptr    class_type,
                                 a_scope_depth effective_decl_level,
                                 a_boolean     is_local_class,
@@ -5304,10 +5413,19 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
   a_layout_block          layout_block;
   a_boolean               is_template_instantiation;
   a_boolean               is_unreal_instantiation;
+  a_scope_number          prototype_decl_scope = NO_SCOPE_NUMBER;
 
+  /* Set a flag to indicate whether we scanning a class template declaration
+     for the sake of producing a "prototype instantiation" of the template.
+     This amounts to scanning the declarative sections (i.e., no function
+     bodies or default arg expressions) and issuing such syntax errors as can
+     be detected. */
   is_template_instantiation = is_prototype_instantiation ||
                               (scope_stack[depth_scope_stack].kind ==
                                      (a_scope_kind)sck_template_instantiation);
+  /* Set a flag to indicate whether we are either doing a "prototype
+     instantiation" of a class template or scanning the nested class of
+     a prototype instantiation. */
   is_unreal_instantiation = is_prototype_instantiation ||
                             is_within_unreal_instantiation(class_type);
   tag_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
@@ -5380,6 +5498,16 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
       set_offsets_for_nonvirtual_base_classes(&layout_block);
       saved_routine_fixup = curr_routine_fixup;
       curr_routine_fixup = NULL;
+      /* Record the scope number used for the corresponding prototype
+         instantiation, if any. */
+      if (!is_unreal_instantiation) {
+        a_symbol_ptr  sym = find_corresp_prototype_tag_sym(tag_sym);
+        if (sym != NULL) {
+          prototype_decl_scope =
+               type_symbol_type(sym)->variant.class_struct_union.extra_info->
+                                                           assoc_scope->number;
+        }  /* if */
+      }  /* if */
     }  /* if */
     if (C_dialect == C_dialect_cplusplus && curr_token == tok_rbrace) {
       /* A member list is optional in C++. */
@@ -5824,10 +5952,15 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
                      virtual functions. */
                   scan_pure_specifier(rout_sym, class_type,
                                       suppress_pure_specifier_error);
-                  /* A comma-list of function definitions is not allowed. */
-                  remove_stop_token(tok_comma);
-                  /* Break out of the declarator loop. */
-                  break;
+                } else if (!friend_specified &&
+                           prototype_decl_scope != NO_SCOPE_NUMBER) {
+                  /* The class must be the instantiation of a class template
+                     (or a class nested within such an instantiation). Bind
+                     the current member function symbol to the function
+                     template symbol established during prototype
+                     instantiation. */
+                  find_member_function_template(rout_sym,
+                                                prototype_decl_scope);
                 }  /* if */
                 if (curr_token == tok_comma &&
                          (is_destructor || is_constructor)) {
