@@ -191,14 +191,15 @@ pruned at the entry pointed to by ptr, of kind "kind".
     prune = TRUE;
   } else if (!in_file_scope(ptr)) {
     /* This entry is in a function scope memory region of a secondary
-       translation unit.  Use the il_walk_flag in the conventional way,
-       by setting it once the entry has been processed. */
-    if (il_entry_prefix_of(ptr).il_walk_flag == !flag_value_meaning_visited) {
-      il_entry_prefix_of(ptr).il_walk_flag = flag_value_meaning_visited;
-      prune = FALSE;
-    } else {
-      prune = TRUE;
-    }  /* if */
+       translation unit.  Use the in_secondary_trans_unit flag as
+       a "visited" flag; it needs to get cleared anyway.  Using
+       il_walk_flag itself is a bad idea because flipping it would
+       cause the entries in the function scope memory region to
+       have a value different from that in other function scope
+       memory regions that weren't moved from secondary translation
+       units. */
+    il_entry_prefix_of(ptr).secondary_trans_unit = FALSE;
+    prune = FALSE;
   } else {
     /* This entry is in the file scope memory region of a secondary translation
        unit.  The il_walk_flag is on to indicate that copying is needed, and
@@ -313,12 +314,6 @@ and remap the pointers in the copy.
            copied, but the pointers need to be remapped. */
         a_scope_ptr rout_scope =
                                il_header.region_scope_entry[rout->assoc_scope];
-        /* Make sure the same "visited" value can be used for the function
-           scope memory as is being used for the file scope memory region.
-           This would not be possible if an unequal number of IL walks
-           have been done over those regions. */
-        check_assertion(flag_value_meaning_visited ==
-                        !il_entry_prefix_of(rout_scope).il_walk_flag);
         walk_routine_scope_il(rout->assoc_scope,
                               copy_entry,
                               copy_string_entry,
@@ -996,10 +991,12 @@ Copy everything from the current secondary translation unit IL to the
 primary translation unit IL.
 */
 {
+  db_enter(1, "copy_from_secondary_to_primary_il");
   walk_file_scope_il(copy_entry, copy_string_entry,
                      (a_remap_function_ptr)NULL,
                      copy_termination_test,
                      /*clear_fe_pointers=*/FALSE);
+  db_exit();
 }  /* copy_from_secondary_to_primary_IL */
 
 
@@ -1013,6 +1010,7 @@ secondary translation unit IL and therefore will not be copied.
 {
   a_scope_ptr primary_scope = il_header.primary_scope;
 
+  db_enter(1, "copy_secondary_trans_unit_IL_to_primary");
   check_assertion(total_errors == 0 && !is_primary_translation_unit);
   check_assertion(!il_entry_prefix_of(primary_scope).il_lowering_flag);
   initial_value_for_il_lowering_flag = FALSE;
@@ -1020,6 +1018,7 @@ secondary translation unit IL and therefore will not be copied.
   copy_from_secondary_to_primary_IL();
   finish_trans_unit_copy(primary_scope);
   merge_il_headers();
+  db_exit();
 }  /* copy_secondary_trans_unit_IL_to_primary */
 
 
