@@ -6759,7 +6759,7 @@ on the value of at_file_scope.
   a_scope_stack_entry_ptr  ssep = NULL;
 
   if (class_type != NULL && !C_mode()) {
-    /* The pramga is bound to a member of a class.  The binding may be
+    /* The pragma is bound to a member of a class.  The binding may be
        taking place in the scope of the class or may be taking place in
        some other scope.  A static data member definition may have a
        pragma bound to it at file scope and a friend declaration may have

@@ -9261,7 +9261,7 @@ definition.
                                  (a_statement_ptr)NULL,
                                  /*curr_scope_only=*/FALSE);
   if (ppp != NULL) {
-    /* There is a currenly active argsused comment. */
+    /* There is a currently active argsused comment. */
     rtsp->lint_argsused_flag = TRUE;
     /* The pending-pragma entry has been unlinked from the scope stack entry
        list, but it still must be returned to the available list. */
@@ -9274,7 +9274,7 @@ definition.
                                    rout_sym, (a_statement_ptr)NULL,
                                    /*curr_scope_only=*/FALSE);
     if (ppp != NULL) {
-      /* There is a currenly active varargs comment. */
+      /* There is a currently active varargs comment. */
       rtsp->lint_varargs_count = ppp->variant.lint_varargs_count;
       /* The pending-pragma entry has been unlinked from the scope stack entry
          list, but it still must be returned to the available list. */

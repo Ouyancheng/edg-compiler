@@ -1473,7 +1473,7 @@ typedef struct a_pragma {
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   char		*pragma_text;
 			/* For pragmas that are passed through to the
-			   back end as an uninterpretted character string,
+			   back end as an uninterpreted character string,
 			   this points to the null terminated string.  The
 			   string begins with the token immediately following
 			   the #pragma keyword. */
@@ -1713,8 +1713,8 @@ typedef struct an_access_adjustment {
   a_tagged_pointer
 		entity;
 			/* The entity (field, function, member type, etc.)
-			   whose access is being affect by the access
-			   adjustmemnt. */
+			   whose access is being affected by the access
+			   adjustment. */
 } an_access_adjustment;
 
 

@@ -142,7 +142,7 @@ suppress warnings that might otherwise be issued later.
                                  (a_symbol_ptr)NULL, (a_statement_ptr)NULL,
                                  /*curr_scope_only=*/FALSE);
   if (ppp != NULL) {
-    /* There is a currenly active notreached comment. */
+    /* There is a currently active notreached comment. */
     curr_reachability.reachable_considering_hints = FALSE;
     curr_reachability.suppress_unreachable_warning = TRUE;
     /* The pending-pragma entry has been unlinked from the scope stack entry
@@ -1215,7 +1215,7 @@ start of a sequence of declarations.
       check_assertion(prev_ssep != NULL);
       /* In the ordinary case, prev_ssep->next is the source sequence entry
          to which the stmk_decl statement should refer.  However, if any
-         pragmas have intervened, we advance past any that are not explcitly
+         pragmas have intervened, we advance past any that are not explicitly
          bound to the next declaration. */
       ssep = prev_ssep->next;
       while (ssep != NULL) {
@@ -2746,7 +2746,7 @@ See also 3.6.6.3.
   /* Binding a pragma to a break statement is disallowed.  This is partly
      a consequence of how break statements are implemented -- usually no
      explicit goto is added to the IL (so there's nothing to actually connect
-     the IL pragma entryd to). */
+     the IL pragma entry to). */
   cannot_bind_to_curr_construct();
   if (sssep == NULL) {
     /* No appropriate structured statement was found. */
