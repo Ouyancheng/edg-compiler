@@ -4148,37 +4148,6 @@ If a match is found, add the entry to to symbol_list.
 }  /* find_functions_for_namespace */
 
 
-static a_type_list_entry_ptr update_class_list_for_trans_unit(
-				a_type_list_entry_ptr	orig_class_list,
-				a_translation_unit_ptr	tup)
-/*
-Given a list of classes specified by orig_class_list, create a new list
-that refers to the corresponding class in the translation unit specified
-by tup.  If the other translation unit does not have a given class,
-that entry is excluded from the new list.  Return the new list.
-*/
-{
-  a_type_list_entry_ptr	new_list = NULL;
-  a_type_list_entry_ptr	tlep;
-
-  for (tlep = orig_class_list; tlep != NULL; tlep = tlep->next) {
-    a_symbol_ptr		orig_sym;
-    a_symbol_ptr		new_sym;
-    a_type_list_entry_ptr	new_tlep;
-    orig_sym = (a_symbol_ptr)tlep->type->source_corresp.assoc_info;
-    new_sym = find_corresponding_symbol_in_trans_unit(orig_sym, tup);
-    if (new_sym != NULL) {
-      new_tlep = alloc_type_list_entry();
-      new_tlep->type = type_symbol_type(new_sym);
-      /* Add this to the front of the list. */
-      new_tlep->next = new_list;
-      new_list = new_tlep;
-    }  /* if */
-  }  /* for */
-  return new_list;
-}  /* update_class_list_for_trans_unit */
-
-
 static a_namespace_list_entry_ptr update_namespace_list_for_trans_unit(
 			a_namespace_list_entry_ptr	orig_namespace_list,
 			a_translation_unit_ptr		tup)
@@ -4282,7 +4251,9 @@ Add the symbols for the names found to the list specified by symbol_list.
        translation unit. */
     if (tup != curr_translation_unit) {
       free_lists = TRUE;
-      class_list = update_class_list_for_trans_unit(orig_class_list, tup);
+      /* We don't need to create a transformed class list because the
+         class lookup is not translation unit dependent. */
+      class_list = NULL;
       namespace_list = update_namespace_list_for_trans_unit(
                                                      orig_namespace_list, tup);
     } else {
