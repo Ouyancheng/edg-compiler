@@ -15,18 +15,22 @@ This should be included first in every compilation unit.
 
 */
 
-/*
-Set one or both conditional compilation switches controlling C and Fortran
-front end data structures.  For the C front end, CFE must be defined, and
-and FFE is optional.  If FFE is undefined, Fortran specific data structures
-are omitted from the IL.
-*/
 #ifndef CFE
+/*
+Set the conditional compilation switch controlling C front end data
+structures.  CFE must be defined.
+*/
 #define CFE 1
 #endif /* ifndef CFE */
-/*#ifndef FFE*/
-/*#define FFE 1*/
-/*#endif*/ /* ifndef FFE */
+#ifdef FFE
+/* 
+The optional conditional compilation switch FFE may also be defined for the
+C front end to assure that Fortran-specific data structures are included.
+These would otherwise be omitted from the IL.  This feature is provided
+so that both front ends can share a common back end with an identical
+interface.
+*/
+#endif /* FFE */
 
 /*
 Determine if this is MS-DOS and if this is Turbo-C or Microsoft C.  No other
