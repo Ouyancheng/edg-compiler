@@ -5383,18 +5383,29 @@ This routine may only be called in C++ mode.
       is_vacuous_dtor = TRUE;
       class_symbol = NULL;
     } else {
+      an_id_lookup_options_set	lookup_kind;
+      a_boolean			might_be_vacuous_dtor;
       /* A normal qualified name or a vacuous destructor reference that
          begins with a normal qualified name (e.g., A::B::T::~T).
          If a vacuous destructor reference is allowed and the token
          following the "::" is a tilde, then the identifier we are looking
          up doesn't have to be a class name.  If the class lookup fails,
          do another lookup without the requirement that a class be found. */
-      a_boolean	might_be_vacuous_dtor = next_tok_2 == tok_compl;
+      might_be_vacuous_dtor = next_tok_2 == tok_compl;
+      /* The lookup of a class name in a qualified name is done as a
+         "must be class" lookup.  If, however, the name being scanned is
+         followed by a "<" we don't yet know whether this is a template
+         reference or simply a less than sign.  We must assume it could
+         be a less than sign and do a normal (nonclass) lookup. This
+         should not make any difference for file scope lookups because
+         class template names cannot coexist with other names at
+         file scope. */
+      lookup_kind = next_tok != tok_lt ? IDL_MUST_BE_CLASS : IDL_NO_OPTIONS;
       if (is_global_qualified_name) {
         /* There was a leading unary "::", so look up the name in the file
            scope. */
         class_symbol = file_scope_id_lookup(&locator_for_curr_id,
-                                            IDL_MUST_BE_CLASS);
+                                            lookup_kind);
         if (class_symbol == NULL && might_be_vacuous_dtor) {
           class_symbol = file_scope_id_lookup(&locator_for_curr_id,
                                               IDL_NO_OPTIONS);
@@ -5403,7 +5414,7 @@ This routine may only be called in C++ mode.
       } else {
         /* Usual case (no leading "::"). */
         class_symbol = normal_id_lookup(&locator_for_curr_id,
-                                        IDL_MUST_BE_CLASS);
+                                        lookup_kind);
         if (class_symbol == NULL && might_be_vacuous_dtor) {
           class_symbol = normal_id_lookup(&locator_for_curr_id,
                                           IDL_NO_OPTIONS);

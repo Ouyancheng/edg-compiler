@@ -1,5 +1,24 @@
 Version 2.16
 
+3/29/93  Local variables and class templates with the same name
+
+The lookup for a name followed by a "<" has been changed from
+a class lookup to a normal lookup.  Before this change case 1 was
+accepted and case 2 was rejected.  Now case 1 is rejected and case
+2 is accepted.
+
+template <int i> struct A {
+	struct B {};
+};
+
+void main()
+{
+	int	A;
+	int	j;
+	A<1>::B  b1;		// Case 1
+	if (A < 1) j = 2;	// Case 2
+}
+
 3/29/93  Default arguments containing template references
 
 Default arguments for which token caches are built (for member
