@@ -1155,33 +1155,40 @@ Syntax:
     a_symbol_ptr member_function_symbol;
     a_type_ptr   class_type = operand->type;
     class_type = skip_typerefs(class_type);
-    /* If the class is a template class make sure it is instantiated so its
-       operator() functions are visible. */
-    instantiate_template_class(class_type);
-    try_surrogate_functions = TRUE;
-    overloaded_function_case = TRUE;
-    /* routine_type = NULL;  -- already set. */
-    /* The operand becomes the selector object. */
-    copy_operand(operand, bound_function_selector);
-    conv_class_operand_to_object_pointer(bound_function_selector);
-    /* See if the class has an operator(). */
-    member_function_symbol = opname_member_function_symbol(
-                                      (an_opname_kind)onk_function_call,
-                                      class_type);
-    if (member_function_symbol != NULL) {
-      /* There is an operator() function.  The operand has become
-         the selector object, and the function call operator routine
-         becomes the operand. */
-      /* We can use an indefinite function operand whether the operator()
-         function is overloaded or not. */
-      make_indefinite_function_operand(member_function_symbol,
-                                       /*curr_id=*/FALSE,
-                                       operand);
-      overloaded_function_symbol = member_function_symbol;
-      bind_member_function_operand_to_selector(operand,
-                                               bound_function_selector);
-      /* The function position is the position of the "(". */
-      function_position = pos_curr_token;
+    if (class_type->variant.class_struct_union.is_nonreal_class) {
+      /* A call of an object of a nonreal class type in a prototype
+         instantiation cannot be resolved. */
+      routine_type = NULL;
+      prep_generic_operand(operand, /*lvalue_expected=*/FALSE);
+    } else {
+      /* If the class is a template class make sure it is instantiated so its
+         operator() functions are visible. */
+      instantiate_template_class(class_type);
+      try_surrogate_functions = TRUE;
+      overloaded_function_case = TRUE;
+      /* routine_type = NULL;  -- already set. */
+      /* The operand becomes the selector object. */
+      copy_operand(operand, bound_function_selector);
+      conv_class_operand_to_object_pointer(bound_function_selector);
+      /* See if the class has an operator(). */
+      member_function_symbol = opname_member_function_symbol(
+                                        (an_opname_kind)onk_function_call,
+                                        class_type);
+      if (member_function_symbol != NULL) {
+        /* There is an operator() function.  The operand has become
+           the selector object, and the function call operator routine
+           becomes the operand. */
+        /* We can use an indefinite function operand whether the operator()
+           function is overloaded or not. */
+        make_indefinite_function_operand(member_function_symbol,
+                                         /*curr_id=*/FALSE,
+                                         operand);
+        overloaded_function_symbol = member_function_symbol;
+        bind_member_function_operand_to_selector(operand,
+                                                 bound_function_selector);
+        /* The function position is the position of the "(". */
+        function_position = pos_curr_token;
+      }  /* if */
     }  /* if */
   } else {
     /* If the operand is the name of a nonstatic member function
