@@ -1222,7 +1222,16 @@ TRUE.
     *member_type = error_type();
   } else if (kind == (a_type_kind)tk_array) {
     /* Array.  Start with first element. */
-    *is_flexible_array = (type->size == 0);
+    if (type->size == 0) {
+      if (type->incomplete) {
+        /* A flexible array member (declared with a[]). */
+        *is_flexible_array = TRUE;
+      } else {
+        /* A zero-length array (a GNU extension).  This is different from a
+           flexible array, in that no initializers are allowed for it. */
+        *any_more_members = FALSE;
+      }  /* if */
+    }  /* if */
     *member_type = type->variant.array.element_type;
     /* Note that arrays of incomplete struct/union types (an extension)
        do not make it to here (they're caught as an error at the top
@@ -1952,7 +1961,7 @@ this function points to a tree that includes a dynamic-init entry.
           if (!any_more_members) {
             /* There are more undesignated initializers, but we've run out of
                members into which to put them. */
-            if (gnu_mode) {
+            if (gcc_mode) {
               /* In GNU C mode, excess initializers are ignored (with
                  a warning). */
               if (!discard_initializers) {
@@ -2030,7 +2039,7 @@ this function points to a tree that includes a dynamic-init entry.
                 }  /* if */
                 init_info->has_flexible_array_initializer = TRUE;
                 any_more_members = FALSE;
-              } else {
+              } else if (is_incomplete_type(member_type)) {
                 error(ec_cannot_initialize_flexible_array_member);
               }  /* if */
             } else {
