@@ -110,6 +110,7 @@ typedef enum /*an_option_kind*/ {
 #if USER_CONTROL_OF_STRUCT_PACKING
   optk_pack_alignment,
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
+  optk_disallow_operator_keywords,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -480,6 +481,11 @@ EXTERN a_targ_alignment
 			   value means that a member's alignment is based
 			   solely on its type.) */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
+
+EXTERN a_boolean
+                disallow_operator_keywords /* = FALSE*/;
+                        /* TRUE if the C++ operator keywords (such as
+			   "and", "or", "not", etc.) should not be allowed. */
 
 
 /* Process the command line arguments. */

@@ -4795,11 +4795,13 @@ start_of_token_scan:  /* Restart here after scanning white space. */
       ctoken = tok_compl;
       break;
     case ':':
-      /* In C++, "::" is a possibility. */
-      if (C_dialect == C_dialect_cplusplus &&
-          *(curr_char_loc+1) == ':') {
+      /* In C++, may be "::" or ":>". */
+      if ((ch = *(curr_char_loc+1)) == ':' && !C_mode()) {
         ctoken = tok_colon_colon;
         goto two_char_token;
+      } else if (ch == '>' && !C_mode()) {
+        ctoken = tok_rbracket;
+	goto two_char_token;
       }  /* if */
       ctoken = tok_colon;
       break;
@@ -4878,17 +4880,22 @@ start_of_token_scan:  /* Restart here after scanning white space. */
       ctoken = tok_ampersand;
       break;
     case '%':
-      /* One of "%=" or "%". */
+      /* One of "%=" or "%".  Or, in C++, "%>", "%:", "%:%:". */
       if (*(curr_char_loc+1) == '=') {
         ctoken = tok_remainder_assign;
+        goto two_char_token;
+      } else if ((ch = *(curr_char_loc+1)) == ':' && !C_mode()) {
+        goto check_start_of_pp_directive;
+      } else if (ch == '>' && !C_mode()) {
+        ctoken = tok_rbrace;
         goto two_char_token;
       }  /* if */
       /* Just plain "%". */
       ctoken = tok_remainder;
       break;
     case '<':
-      /* One of "<<", "<<=", "<=", or "<".  If exp_header_name is
-         TRUE, a header name of the form <filename>. */
+      /* One of "<<", "<<=", "<=", or "<". In C++, "<%" or "<:".
+         If exp_header_name is TRUE, a header name of the form <filename>. */
       if (exp_header_name) {
         ctoken = accum_quoted_string(tok_header_name, &num_chars, &err);
         goto end_of_token_scan;
@@ -4903,6 +4910,12 @@ start_of_token_scan:  /* Restart here after scanning white space. */
       } else if (ch == '=') {
         ctoken = tok_le;
         goto two_char_token;
+      } else if (ch == '%' && !C_mode()) {
+        ctoken = tok_lbrace;
+	goto two_char_token;
+      } else if (ch == ':' && !C_mode()) {
+        ctoken = tok_lbracket;
+	goto two_char_token;
       }  /* if */
       /* Just plain "<". */
       ctoken = tok_lt;
@@ -5158,76 +5171,91 @@ end_id_scan:
       }  /* if */
       /* No break needed, both branches end with a goto. */
     case '#':
-      /* As the first token on a line, "#" opens a preprocessing directive.
-         "#" and "##" are also allowed within the body of a #define
-         (for stringizing and pasting).  */
-#if ATT_PREPROCESSING_EXTENSIONS_ALLOWED
-      /* An AT&T System V release 4 extension uses #name(tokens) in a
-         preprocessing #if to test an #assert predicate name. */
-      if (in_pp_if_expression) {
-        /* Scan the #name(tokens) and create a 1 (TRUE) or 0 (FALSE) constant
-           value accordingly. */
+check_start_of_pp_directive:
+      {
+        a_boolean   first_char_is_digraph;
+	/* As the first token on a line, "#" opens a preprocessing directive.
+	   "#" and "##" are also allowed within the body of a #define
+	   (for stringizing and pasting).  */
+        first_char_is_digraph = *curr_char_loc == '%';
+	/* Advance past the initial "#" or "%:". */
         curr_char_loc++;
-        ctoken = make_pp_int_constant(scan_assert_predicate_reference() ?
-                                                                      1L : 0L);
-        goto end_of_token_scan;
-      }  /* if */
+        if (first_char_is_digraph) curr_char_loc++;
+#if ATT_PREPROCESSING_EXTENSIONS_ALLOWED
+	/* An AT&T System V release 4 extension uses #name(tokens) in a
+	   preprocessing #if to test an #assert predicate name. */
+	if (in_pp_if_expression) {
+	  /* Scan the #name(tokens) and create a 1 (TRUE) or 0 (FALSE) constant
+	     value accordingly. */
+	  ctoken = make_pp_int_constant(scan_assert_predicate_reference() ?
+					                              1L : 0L);
+	  goto end_of_token_scan;
+	} /* if */
 #endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */
-      if (!pcc_preprocessing_mode && in_preprocessing_directive &&
-	  !processing_C_code_in_pragma) {
-        /* We recognize and return these preprocessing tokens even if
-           we do not know that we are in the body of a #define; this
-           helps produce reasonable error messages. */
-        if (*(curr_char_loc+1) == '#') {
-          ctoken = tok_paste;
-          goto two_char_token;
-        } else {
-          ctoken = tok_sharp;
-        }  /* if */
-      } else if (!any_tokens_gotten_from_curr_source_line) {
-        /* A sharp that is the first thing on a line -- This is a
-           preprocessing directive. */
-        if (!currently_in_pp_if_skip) {
-          remember_token_start();  /* For the "#" pseudo-token. */
-          curr_char_loc++;  /* Skip over the "#". */
+	if (!pcc_preprocessing_mode && in_preprocessing_directive &&
+	    !processing_C_code_in_pragma) {
+	  /* We recognize and return these preprocessing tokens even if
+	     we do not know that we are in the body of a #define; this
+	     helps produce reasonable error messages. */
+	  if (*curr_char_loc == '#' && !first_char_is_digraph) {
+	    ctoken = tok_paste;
+	    curr_char_loc++;
+          } else if (*curr_char_loc == '%' &&
+		     *(curr_char_loc+1) == ':' && first_char_is_digraph) {
+	    ctoken = tok_paste;
+	    curr_char_loc += 2;
+	  } else {
+	    ctoken = tok_sharp;
+	  } /* if */
+	} else if (!any_tokens_gotten_from_curr_source_line) {
+	  /* A sharp that is the first thing on a line -- This is a
+	     preprocessing directive. */
+	  if (!currently_in_pp_if_skip) {
+	    remember_token_start(); /* For the "#" pseudo-token. */
 #if CHECKING
-	  {
-	  a_cached_token_ptr	curr_cached_token = cached_token_rescan_list;
+	    {
+	      a_cached_token_ptr curr_cached_token = cached_token_rescan_list;
 #endif /* CHECKING */
-          pp_directive();
+	      pp_directive();
 #if CHECKING
-	  if (curr_cached_token != cached_token_rescan_list) {
-	    internal_error("get_token: token cache affected by preprocessing directive");
-	  }  /* if */
-          }
+	      if (curr_cached_token != cached_token_rescan_list) {
+		internal_error("get_token: token cache affected by preprocessing directive");
+	      }	/* if */
+	    }
 #endif /* CHECKING */
-          /* After the directive has been processed, go skip white space and
-             scan another token. */
-          skip_white_space();
-          goto start_of_token_scan;
-        }  /* if */
-        /* Skipping because of an #if or the like, just return this
-           as a token for further checking. */
-        ctoken = tok_sharp;
-      } else {
-        /* "#" outside of a preprocessing directive, and not at the start of a
-           line; don't know what it means. */
-        err_code_for_error_token = ec_bad_use_of_sharp;
-        if (!fetch_pp_tokens) {
-          error_at_line_pos(err_code_for_error_token, start_of_curr_token);
-        }  /* if */
-        ctoken = tok_error;
-      }  /* if */
-      break;
+	    /* After the directive has been processed, go skip white space and
+	       scan another token. */
+	    skip_white_space();
+	    goto start_of_token_scan;
+	  } /* if */
+	  /* Skipping because of an #if or the like, just return this
+	     as a token for further checking. */
+	  ctoken = tok_sharp;
+	} else {
+	  /* "#" outside of a preprocessing directive, and not at the
+             start of a line; don't know what it means. */
+	  err_code_for_error_token = ec_bad_use_of_sharp;
+	  if (!fetch_pp_tokens) {
+	    error_at_line_pos(err_code_for_error_token, start_of_curr_token);
+	  } /* if */
+	  ctoken = tok_error;
+	} /* if */
+      }
+      /* When we reach this point, curr_char_loc should have already been
+         advanced past the characters that make up this token (unlike
+	 most cases in which curr_char_loc still points to the final
+	 character of the token. */
+      goto save_end_position;
+      /* No break needed. */
     default:
-bad_token:
+    bad_token:
       /* Something else, an error. */
       err_code_for_error_token = ec_bad_token;
       if (!fetch_pp_tokens) {
         error_at_line_pos(err_code_for_error_token, start_of_curr_token);
       }  /* if */
       ctoken = tok_error;
-  }  /* switch */
+    }  /* switch */
 
   /* Normal assumption on break from switch is that the current character
      is part of the token, and therefore the current position needs to be

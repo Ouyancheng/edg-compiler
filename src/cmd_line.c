@@ -394,6 +394,14 @@ Initialize the option information table.
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
+  add_option_description(optk_disallow_operator_keywords,
+			 "no_operator_keywords",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_disallow_operator_keywords,
+			 "operator_keywords",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -1221,6 +1229,11 @@ Process the arguments on the command line that invoked the compiler.
         }  /* if */
         break;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
+      case optk_disallow_operator_keywords:
+        /* Operator keywords such as "not", "and", etc. should or should not
+           be disallowed. */
+        disallow_operator_keywords = opt_value;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -1262,6 +1275,9 @@ Process the arguments on the command line that invoked the compiler.
     }  /* if */
     if (option_kind_used[(int)optk_wchar_t_is_keyword]) {
       command_line_error(ec_cl_wchar_t_option_only_in_cplusplus);
+    }  /* if */
+    if (option_kind_used[(int)optk_disallow_operator_keywords]) {
+      command_line_error(ec_cl_operator_keyword_option_only_in_cplusplus);
     }  /* if */
     /* Set wchar_t_is_keyword to FALSE, just in case the default value
        is TRUE.  The value must not be TRUE in C mode. */

@@ -271,30 +271,33 @@ Install the keywords in the symbol table.
     if (!C_mode() && wchar_t_is_keyword) {
       enter_keyword((a_token_kind)tok_wchar_t, "wchar_t");
     }  /* if */
+    /* Enter C++ keywords used as synonyms for operators. */
+    if (!disallow_operator_keywords) {
+      enter_keyword((a_token_kind)tok_and_and,        "and");
+      enter_keyword((a_token_kind)tok_and_assign,     "and_eq");
+      enter_keyword((a_token_kind)tok_ampersand,      "bitand");
+      enter_keyword((a_token_kind)tok_or,             "bitor");
+      enter_keyword((a_token_kind)tok_compl,          "compl");
+      enter_keyword((a_token_kind)tok_not,            "not");
+      enter_keyword((a_token_kind)tok_ne,             "not_eq");
+      enter_keyword((a_token_kind)tok_or_or,          "or");
+      enter_keyword((a_token_kind)tok_or_assign,      "or_eq");
+      enter_keyword((a_token_kind)tok_excl_or,        "xor");
+      enter_keyword((a_token_kind)tok_excl_or_assign, "xor_eq");
+    }  /* if */
     /* Enter keywords for things that are not yet implemented.  Note that
        "bool", "true", and "false" are not entered because it is anticipated
        that most current usage will be compatible with the new language
        feature when it is implemented so a diagnostic would not, in general,
        be helpful. */
-    enter_unimplemented_keyword("and");
-    enter_unimplemented_keyword("and_eq");
-    enter_unimplemented_keyword("bitand");
-    enter_unimplemented_keyword("bitor");
-    enter_unimplemented_keyword("compl");
     enter_unimplemented_keyword("const_cast");
     enter_unimplemented_keyword("dynamic_cast");
     enter_unimplemented_keyword("mutable");
     enter_unimplemented_keyword("namespace");
-    enter_unimplemented_keyword("not");
-    enter_unimplemented_keyword("not_eq");
-    enter_unimplemented_keyword("or");
-    enter_unimplemented_keyword("or_eq");
     enter_unimplemented_keyword("reinterpret_cast");
     enter_unimplemented_keyword("typeid");
     enter_unimplemented_keyword("static_cast");
     enter_unimplemented_keyword("using");
-    enter_unimplemented_keyword("xor");
-    enter_unimplemented_keyword("xor_eq");
   }  /* if */
   db_exit();
 }  /* keyword_init */
