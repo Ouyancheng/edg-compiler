@@ -396,6 +396,7 @@ static a_type_ptr
 Bit set values for the flags byte of base_class_spec.  These must
 match the runtime's definition.
 */
+typedef unsigned long a_base_class_flags_set;
 #define BCS_VIRTUAL		0x01
 			/* TRUE if the offset gives the position of a
 			   pointer to the (virtual) base class rather than
@@ -466,7 +467,8 @@ allocated in the file scope memory region.
   a_variable_ptr   typeinfo_var, bc_var;
   a_boolean        ovflo;
   a_constant_ptr   typeinfo_con, offset_con, flags_con;
-  unsigned long    flags_value;
+  a_base_class_flags_set
+                   flags_value;
   a_targ_size_t    offset;
 
   /* The current region is already the file scope memory region when
@@ -550,7 +552,7 @@ allocated in the file scope memory region.
                                                TARG_DELTA_INT_KIND);
       /* Make the flags constant. */
       flags_con = alloc_constant((a_constant_repr_kind)ck_integer);
-      set_unsigned_integer_constant(flags_con, flags_value,
+      set_unsigned_integer_constant(flags_con, (unsigned long)flags_value,
                                     (an_integer_kind)ik_unsigned_char);
       /* Link the constants together and make an aggregate constant. */
       typeinfo_con->next = offset_con;
@@ -1196,6 +1198,7 @@ exception handling.
 Bit set values for the flags byte of exception_type_spec.  These must
 match the runtime's definition.
 */
+typedef unsigned long an_eh_type_flags_set;
 #define ETS_IS_POINTER		0x01
 			/* A pointer to an object of the type specified
 			   by typeinfo. */
@@ -1213,8 +1216,8 @@ match the runtime's definition.
 			   the array. */
 
 
-static a_variable_ptr typeinfo_var_for_type(a_type_ptr    type,
-                                            unsigned long *flags_value)
+static a_variable_ptr typeinfo_var_for_type(a_type_ptr           type,
+                                            an_eh_type_flags_set *flags_value)
 /*
 Create the typeinfo variable for the indicated type, and return a pointer
 to it.  This is used to create the representation for a type used in
@@ -1264,7 +1267,7 @@ The indicated type is used in an exception context.  Put out any necessary
 information on it.
 */
 {
-  unsigned long flags_value;
+  an_eh_type_flags_set flags_value;
 
   /* We need a typeinfo variable for the underlying type.  Make it if it
      does not exist already. */
@@ -1385,44 +1388,12 @@ of an init position description.
 
 #endif /* !DO_FULL_PORTABLE_EH_LOWERING */
 
-/* Type used to carry information about the location of an entity in the
-   form used in the region table. */
-#if DO_FULL_PORTABLE_EH_LOWERING
-/* In the portable scheme, all that's needed is an index into the object
-   address table. */
-typedef a_handle_number a_handle;
-#else /* !DO_FULL_PORTABLE_EH_LOWERING */
-typedef struct a_handle {
-  /* Representation for the non-portable scheme, which can result in a
-     ck_stack_offset constant. */
-  a_variable_ptr
-		variable;
-			/* A variable whose offset in the stack is the base
-			   for the handle value, or NULL if there is no such
-			   variable.  If this is non-NULL, a ck_stack_offset
-			   constant will be required. */
-  a_targ_size_t	offset;	/* Offset relative to the variable if there is one, or
-			   constant value if there is no variable. */
-  unsigned long	flags;	/* Extra flag bits needed, e.g., RDF_INDIRECT. */
-} a_handle;
-
-static void clear_handle(a_handle *handle)
-/*
-Clear the fields of a handle to default values.  A handle is used to
-represent the address of an entity in the region table.
-*/
-{
-  handle->variable = NULL;
-  handle->offset = 0;
-  handle->flags = 0;
-}  /* clear_handle */
-
-#endif /* DO_FULL_PORTABLE_EH_LOWERING */
-
 /*
 Bit flags for the flags field of a region description.  These must match
 the runtime's definition.
 */
+typedef unsigned long a_region_descr_flags_set;
+#define RDF_NONE		0
 #define RDF_INDIRECT		0x01
 			/* TRUE if the address provided by the handle field
 			   is a pointer to the object.  Not used in the
@@ -1469,6 +1440,42 @@ by the EDG-supplied runtime.
 #define RDF_BASE_CLASS_SUBOBJECT	0x40
 			/* TRUE if the object is a base class of some other
 			   object and therefore is not a complete object. */
+
+
+/* Type used to carry information about the location of an entity in the
+   form used in the region table. */
+#if DO_FULL_PORTABLE_EH_LOWERING
+/* In the portable scheme, all that's needed is an index into the object
+   address table. */
+typedef a_handle_number a_handle;
+#else /* !DO_FULL_PORTABLE_EH_LOWERING */
+typedef struct a_handle {
+  /* Representation for the non-portable scheme, which can result in a
+     ck_stack_offset constant. */
+  a_variable_ptr
+		variable;
+			/* A variable whose offset in the stack is the base
+			   for the handle value, or NULL if there is no such
+			   variable.  If this is non-NULL, a ck_stack_offset
+			   constant will be required. */
+  a_targ_size_t	offset;	/* Offset relative to the variable if there is one, or
+			   constant value if there is no variable. */
+  a_region_descr_flags_set
+		flags;	/* Extra flag bits needed, e.g., RDF_INDIRECT. */
+} a_handle;
+
+static void clear_handle(a_handle *handle)
+/*
+Clear the fields of a handle to default values.  A handle is used to
+represent the address of an entity in the region table.
+*/
+{
+  handle->variable = NULL;
+  handle->offset = 0;
+  handle->flags = 0;
+}  /* clear_handle */
+
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
 
 
 #if !DO_FULL_PORTABLE_EH_LOWERING
@@ -1852,10 +1859,10 @@ a pointer to the aggregate constant created.
 
 
 static a_constant_ptr add_region_table_entry(
-                                         a_routine_ptr           dtor_routine,
-                                         a_handle                *handle,
-                                         a_cleanup_region_number next_region,
-                                         unsigned long           flags_value)
+                                         a_routine_ptr            dtor_routine,
+                                         a_handle                 *handle,
+                                         a_cleanup_region_number  next_region,
+                                         a_region_descr_flags_set flags_value)
 /*
 Create an entry in the exception cleanup region table.  dtor_routine,
 handle, next_region, and flags_value give the values for the various
@@ -1900,7 +1907,7 @@ the aggregate constant.
                                 TARG_REGION_NUMBER_INT_KIND);
   /* Make the flags constant. */
   flags_con = alloc_constant((a_constant_repr_kind)ck_integer);
-  set_unsigned_integer_constant(flags_con, flags_value,
+  set_unsigned_integer_constant(flags_con, (unsigned long)flags_value,
                                 (an_integer_kind)ik_unsigned_char);
   /* Link the constants together to make an aggregate constant. */
   dtor_con->next = handle_con;
@@ -1938,7 +1945,8 @@ to the aggregate constant for the region table entry.
 */
 {
   a_handle        handle;
-  unsigned long   flags_value = 0;
+  a_region_descr_flags_set
+                  flags_value = 0;
   a_constant_ptr  region_table_entry;
   a_boolean       need_array_info = FALSE;
 
@@ -2003,7 +2011,7 @@ to the aggregate constant for the region table entry.
     (void)add_region_table_entry((a_routine_ptr)NULL,
                                  conditional_flag_handle,
                                  null_eh_region_number,
-                                 (unsigned long)0);
+                                 (a_region_descr_flags_set)RDF_NONE);
   }  /* if */
   return region_table_entry;
 }  /* make_region_table_entry */
@@ -2341,7 +2349,8 @@ value of the variable.  If type is NULL, add an ellipsis entry.
 */
 {
   a_variable_ptr typeinfo_var;
-  unsigned long  flags_value;
+  an_eh_type_flags_set
+                 flags_value;
   a_constant_ptr typeinfo_con, flags_con, sub_aggr_con;
 
   /* Each element of the array is an exception_type_spec struct
@@ -2384,9 +2393,9 @@ type specification entries.  var is the variable, and aggr_con is
 the aggregate constant that is its initial value.
 */
 {
-  a_constant_ptr sub_aggr_con, flags_con;
-  unsigned long  flags_value;
-  a_boolean      ovflo;
+  a_constant_ptr       sub_aggr_con, flags_con;
+  an_eh_type_flags_set flags_value;
+  a_boolean            ovflo;
 
   /* Put the ETS_LAST bit on in the last entry. */
   sub_aggr_con = aggr_con->variant.aggregate.last_constant;
@@ -3585,7 +3594,8 @@ Lower an enk_throw expression node.
   a_variable_ptr     temp_var, typeinfo_var;
   an_expr_node_ptr   call_node, typeinfo_node, size_node, flags_node;
   an_expr_node_ptr   assign_node;
-  unsigned long      flags_value;
+  an_eh_type_flags_set
+                     flags_value;
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
 
   /* Check for a throw with no operand, i.e., a rethrow. */
@@ -3725,7 +3735,7 @@ location in the program) to cleanup_state, and generate code at
   node = node_for_integer_constant((long)cleanup_region_number(cleanup_state),
                                    TARG_REGION_NUMBER_INT_KIND);
   assign_to_eh_curr_region(node, insert_location);
-#else /* DO_FULL_PORTABLE_EH_LOWERING */
+#else /* !DO_FULL_PORTABLE_EH_LOWERING */
   /* In the other schemes, generate an enk_lower_eh_construct/
      leck_cleanup_state expression node. */
   node = alloc_lowered_eh_construct_node(
