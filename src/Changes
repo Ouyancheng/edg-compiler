@@ -1,5 +1,23 @@
 Version 2.30
 
+8/28/95  C++-generating back end: bug with address of class temporary
+
+A program like the following, which casts a class rvalue to a reference
+in order to take its address, got an internal error in the C++-generating
+back end.  Now fixed.
+
+  struct A {
+    A();
+    A(const A& f);
+  };
+  A g(A& f);
+  void m()
+  {
+    A f;
+    A* fp;
+    fp = &(A&)(g(f));
+  }
+
 8/28/95  Lowering of nonconstant aggregates in Microsoft C mode
 
 Microsoft mode allows a nonconstant aggregate initializer for an auto
