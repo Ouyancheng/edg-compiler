@@ -317,16 +317,26 @@ function-definitions, since they can start with the declarator.
 
 static a_boolean prescan_arg_decl_list(a_token_cache  *token_cache_ptr)
 {
-  return TRUE;
+  a_boolean is_arg_decl;
+
+  if (curr_token == tok_rparen) {
+    is_arg_decl = TRUE;
+  } else {
+    is_arg_decl = is_decl_not_expr(/*abstract_declarator_allowed=*/TRUE);
+  }  /* if */
+  return is_arg_decl;
 }  /* prescan_arg_decl_list */
 
 
-static void prescan_ptr_operator(a_token_cache  *token_cache_ptr)
+static a_boolean prescan_ptr_operator(a_token_cache  *token_cache_ptr)
 {
+  a_boolean  ptr_operator_found = FALSE;
+
   for (;;) {
     if (curr_token == tok_star || curr_token == tok_ampersand) {
       cache_curr_token(token_cache_ptr);
       (void)get_token();
+      ptr_operator_found = TRUE;
       /* Keep looping. */
     } else if (curr_token == tok_identifier &&
                is_ptr_to_member_declarator_start()) {
@@ -342,6 +352,7 @@ static void prescan_ptr_operator(a_token_cache  *token_cache_ptr)
       /* Cache the "*" and advance past it. */
       cache_curr_token(token_cache_ptr);
       (void)get_token();
+      ptr_operator_found = TRUE;
       /* Keep looping. */
     } else {
       break;
@@ -351,6 +362,7 @@ static void prescan_ptr_operator(a_token_cache  *token_cache_ptr)
       (void)get_token();
     }  /* while */
   }  /* for */
+  return ptr_operator_found;
 }  /* prescan_ptr_operator */
 
 
@@ -365,7 +377,10 @@ static a_boolean prescan_abstract_declarator(a_token_cache  *token_cache_ptr)
     is_abstract_declarator = FALSE;
   } else {
     is_abstract_declarator = TRUE;
-    prescan_ptr_operator(token_cache_ptr);
+    if (prescan_ptr_operator(token_cache_ptr) && curr_token == tok_rparen) {
+      cache_curr_token(token_cache_ptr);
+      (void)get_token();
+    }  /* if */
     if (curr_token == tok_lparen) {
       cache_curr_token(token_cache_ptr);
       (void)get_token();
@@ -382,7 +397,7 @@ static a_boolean prescan_abstract_declarator(a_token_cache  *token_cache_ptr)
         (void)get_token();
       }  /* if */
     }  /* if */
-    for (;;) {
+    while (curr_token != tok_rparen) {
       if (curr_token == tok_lparen) {
         cache_curr_token(token_cache_ptr);
         (void)get_token();
@@ -397,6 +412,10 @@ func_param_decl:
         if (curr_token == tok_rparen) {
           cache_curr_token(token_cache_ptr);
           (void)get_token();
+          while (curr_token == tok_const || curr_token == tok_volatile) {
+            cache_curr_token(token_cache_ptr);
+            (void)get_token();
+          }  /* while */
         }  /* if */
       } else if (curr_token == tok_lbracket) {
         /* This is definitely a declarator. */
