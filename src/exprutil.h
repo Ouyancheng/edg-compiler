@@ -456,6 +456,8 @@ extern a_type_ptr get_logical_result_type(an_expression_kind expression_kind,
 
 extern a_boolean op_is_zero_constant(an_operand *operand);
 
+extern void add_reference_indirection(an_operand *result);
+
 extern void make_lvalue_variable_operand(a_variable_ptr    variable,
                                          an_operand        *result,
                                          an_xref_entry_ptr xep);
