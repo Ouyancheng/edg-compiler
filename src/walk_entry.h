@@ -774,6 +774,10 @@ the file scope, do not process it (but record an orphan in the latter case).
         remap_next_ptr(ptr->next, a_pragma_ptr, iek_pragma);
         remap_ptr(ptr->entity.ptr, a_char_ptr,
                   (an_il_entry_kind)ptr->entity.kind);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+        remap_ptr(ptr->source_sequence_entry, a_source_sequence_entry_ptr,
+                  iek_source_sequence_entry);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       }
       break;
     case iek_scope:
