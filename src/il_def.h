@@ -1601,7 +1601,10 @@ typedef struct a_routine_type_supplement {
 			   is NULL because the parameters have not been
 			   scanned yet.  Also useful in recognizing a function
 			   declared with a prototype and defined with an
-			   old-style definition. */
+			   old-style definition.  Note that when IL lowering
+			   is used and MAKE_ALL_FUNCTIONS_UNPROTOTYPED is
+			   TRUE, there will be functions with prototyped FALSE
+			   and old_style_params_scanned also FALSE. */
   unsigned int  lint_argsused_flag:1;
                         /* TRUE if this function declaration is subject
                            to a lint-style "argsused" flag, indicating that
