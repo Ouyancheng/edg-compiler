@@ -4510,14 +4510,17 @@ contains it among its operands (in a position that can be deduced from).
 }  /* expr_tree_contains_template_param_constant */
 
 
-a_boolean constant_references_non_external_entity(a_constant_ptr constant)
+a_boolean nontype_templ_arg_constant_references_non_external_entity(
+                                                       a_constant_ptr constant)
 /*
-Return TRUE if the indicated constant references a non-external entity,
-e.g., a local variable.
+Return TRUE if the indicated constant is not valid as a nontype template
+argument because it references a non-external entity, e.g., a local variable.
 */
 {
-  a_boolean               refs_non_ext = FALSE;
+  a_boolean               invalid = FALSE;
   a_source_correspondence *scp = NULL;
+  a_boolean               null_is_invalid =
+                                        !(microsoft_mode || any_cfront_mode());
 
   if (constant->kind == (a_constant_repr_kind)ck_address) {
     /* An address constant.  See if the object referenced is external. */
@@ -4540,11 +4543,10 @@ e.g., a local variable.
       case abk_label:
         scp = &constant->variant.address.variant.label->source_corresp;
         break;
-#if CHECKING
       default:
-        internal_error(
-                  "constant_references_non_external_entity: bad address kind");
-#endif /* CHECKING */
+        unexpected_condition_str2(
+                  "nontype_templ_arg_constant_references_non_external_entity:",
+                  "bad address kind");
     }  /* switch */
     if (scp == NULL) {
       /* Nothing referenced. */
@@ -4554,19 +4556,35 @@ e.g., a local variable.
          to be external by this reference. */
       a_type_ptr class_type = scp->parent.class_type;
       if (class_type->source_corresp.is_local_to_function) {
-        refs_non_ext = TRUE;
+        invalid = TRUE;
       } else {
         /* Force the class to be external. */
         set_force_external_linkage_flag(class_type);
       }  /* if */
     } else {
       /* Not a class member. */
-      refs_non_ext = (scp->name_linkage == (a_name_linkage_kind)nlk_none ||
-                      scp->name_linkage == (a_name_linkage_kind)nlk_internal);
+      invalid = (scp->name_linkage == (a_name_linkage_kind)nlk_none ||
+                 scp->name_linkage == (a_name_linkage_kind)nlk_internal);
+    }  /* if */
+  } else if (constant->kind == (a_constant_repr_kind)ck_ptr_to_member) {
+    if (null_is_invalid &&
+        (constant->variant.ptr_to_member.is_function_ptr ?
+                    (constant->variant.ptr_to_member.variant.routine == NULL) :
+                    (constant->variant.ptr_to_member.variant.field == NULL))) {
+      /* A null pointer-to-member is invalid. */
+      invalid = TRUE;
+    }  /* if */
+  } else if (constant->kind == (a_constant_repr_kind)ck_integer) {
+    if (null_is_invalid &&
+        is_pointer_type(constant->type) &&
+        /* Can't use is_null_pointer_constant here. */
+        cmplit_integer_constant(constant, (a_host_large_integer)0) == 0) {
+      /* A null pointer is invalid. */
+      invalid = TRUE;
     }  /* if */
   }  /* if */
-  return refs_non_ext;
-}  /* constant_references_non_external_entity */
+  return invalid;
+}  /* nontype_templ_arg_constant_references_non_external_entity */
 
 
 static a_boolean has_non_file_scope_ref(a_constant *cp)
