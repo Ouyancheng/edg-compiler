@@ -646,23 +646,24 @@ EXTERN a_targ_alignment
 
 #if NEED_NAME_MANGLING
 EXTERN a_boolean
-		name_mangling_for_templates_distinct_from_nontemplates
+		distinct_mangling_for_templates
 #if VAR_INITIALIZERS
-               = DEFAULT_NAME_MANGLING_FOR_TEMPLATES_DISTINCT_FROM_NONTEMPLATES
+                                      = DEFAULT_DISTINCT_MANGLING_FOR_TEMPLATES
 #endif /* VAR_INITIALIZERS */
-                                                                      ;
+                                               ;
 			/* If TRUE, template functions are given mangled names
 			   that are distinct from the names for nontemplate
 			   functions. */
 EXTERN a_boolean
-		special_mangling_for_user_specializations
+		distinct_mangling_for_specializations
 #if VAR_INITIALIZERS
-                            = DEFAULT_SPECIAL_MANGLING_FOR_USER_SPECIALIZATIONS
+                           = DEFAULT_DISTINCT_MANGLING_FOR_SPECIALIZATIONS
 #endif /* VAR_INITIALIZERS */
-                                                         ;
-			/* If TRUE, user-written specializations get different
-			   name mangling than the corresponding compiler-
-			   generated instantiation would get. */
+                                                     ;
+			/* If TRUE, explicit specializations are given
+			   mangled names that are distinct from the names for
+			   the corresponding compiler-generated
+			   instantiations. */
 #endif /* NEED_NAME_MANGLING */
 
 #if DO_IL_LOWERING

@@ -1219,42 +1219,42 @@ errors are still generated for type mismatches.
 #if NEED_NAME_MANGLING
 
 /*
-Default value for name_mangling_for_templates_distinct_from_nontemplates.
+Default value for distinct_mangling_for_templates.
 Controls whether the signatures for template functions can match those
-for non-template functions.  In the modern C++ language, a normal
-function cannot be used to satisfy the need for a template instance.
-For example, a function "void f(int)" could not be used to satisfy
-the need for an instantiation of a template "void f(T)" with T set to
-int.  In older versions of the language, the name mangling for templates
-was the same as for nontemplates, and a nontemplate function could
-satisfy the need for a template function.
+for non-template functions across separate compilation units.
+In the modern C++ language, a normal function cannot be used to
+satisfy the need for a template instance.  For example, a function
+"void f(int)" could not be used to satisfy the need for an instantiation
+of a template "void f(T)" with T set to int.  In older versions of the
+language, the name mangling for templates was the same as for nontemplates,
+and a nontemplate function could satisfy the need for a template function.
 */
-#ifndef DEFAULT_NAME_MANGLING_FOR_TEMPLATES_DISTINCT_FROM_NONTEMPLATES
+#ifndef DEFAULT_DISTINCT_MANGLING_FOR_TEMPLATES
 /* This feature CAN be turned on when CFRONT_OBJECT_CODE_COMPATIBILITY is on,
    but that produces a cfront-like ABI rather than a cfront-compatible ABI. */
 #if ABI_COMPATIBILITY_VERSION < 232 || CFRONT_OBJECT_CODE_COMPATIBILITY
-#define DEFAULT_NAME_MANGLING_FOR_TEMPLATES_DISTINCT_FROM_NONTEMPLATES FALSE
+#define DEFAULT_DISTINCT_MANGLING_FOR_TEMPLATES FALSE
 #else /* !(ABI_COMPATIBILITY_VERSION < 232 || ...) */
-#define DEFAULT_NAME_MANGLING_FOR_TEMPLATES_DISTINCT_FROM_NONTEMPLATES TRUE
+#define DEFAULT_DISTINCT_MANGLING_FOR_TEMPLATES TRUE
 #endif /* ABI_COMPATIBILITY_VERSION < 232 || ... */
-#endif /* ifndef DEFAULT_NAME_MANGLING_FOR_TEMPLATES_DISTINCT_... */
+#endif /* ifndef DEFAULT_DISTINCT_MANGLING_FOR_TEMPLATES */
 
 /*
-Default value for special_mangling_for_user_specializations.
-Controls whether the mangled name for a user-written specialization
-is different from the mangling that the compiler-generated version
+Default value for distinct_mangling_for_specializations.
+Controls whether the mangled name for an explicit specialization
+is different from the mangled name that the compiler-generated version
 would get.  Having a difference allows detection of certain errors
 at link time.
 */
-#ifndef DEFAULT_SPECIAL_MANGLING_FOR_USER_SPECIALIZATIONS
+#ifndef DEFAULT_DISTINCT_MANGLING_FOR_SPECIALIZATIONS
 /* This feature CAN be turned on when CFRONT_OBJECT_CODE_COMPATIBILITY is on,
    but that produces a cfront-like ABI rather than a cfront-compatible ABI. */
 #if ABI_COMPATIBILITY_VERSION < 232 || CFRONT_OBJECT_CODE_COMPATIBILITY
-#define DEFAULT_SPECIAL_MANGLING_FOR_USER_SPECIALIZATIONS FALSE
+#define DEFAULT_DISTINCT_MANGLING_FOR_SPECIALIZATIONS FALSE
 #else /* !(ABI_COMPATIBILITY_VERSION < 232 || ...) */
-#define DEFAULT_SPECIAL_MANGLING_FOR_USER_SPECIALIZATIONS TRUE
+#define DEFAULT_DISTINCT_MANGLING_FOR_SPECIALIZATIONS TRUE
 #endif /* ABI_COMPATIBILITY_VERSION < 232 || ... */
-#endif /* ifndef DEFAULT_SPECIAL_MANGLING_FOR_USER_SPECIALIZATIONS */
+#endif /* ifndef DEFAULT_DISTINCT_MANGLING_FOR_SPECIALIZATIONS */
 
 #endif /* NEED_NAME_MANGLING */
 
