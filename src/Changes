@@ -1,5 +1,39 @@
 Version 2.45
 
+10/5/00  C99 support
+
+We are adding support for the 1999 version of the ISO C standard.
+We have added a --c99 command-line option, and also the configuration
+macro DEFAULT_C99_MODE which controls whether the default dialect
+of C is C99 or the old C89.  The following features are enabled in
+C99 mode:
+
+-- Variable-length arrays
+-- The restrict keyword
+-- Intermixed declarations and statements
+-- Digraph tokens
+-- // end-of-line comments
+-- Designated initializers
+-- Compound literals
+-- Flexible array members (an empty array at the end of a struct)
+-- The inline keyword
+-- The __generic pseudo-macro, an EDG extension used to implement the
+   type-generic math <tgmath.h> header
+-- A trailing comma is allowed on an enum declaration
+
+The following features are disabled:
+
+-- implicit int
+-- implicit function declarations
+
+Regarding inline in C, note that the field suppress_inline_body,
+which formerly was present only when INSTANTIATE_EXTERN_INLINE is
+TRUE, is now present in all cases and is used to indicate C99
+inline definitions.
+
+Some repackaging of cmd_line.c was done to make it easier to add the
+--c99 option.
+
 10/5/00  Spurious error on function try block on template constructor
 
 A spurious error was issued when a class template constructor with a
