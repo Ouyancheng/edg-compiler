@@ -528,6 +528,12 @@ typedef struct a_source_line_modif {
 			   the source position associated with this
 			   modification.  This is particularly useful when
 			   the modification is for a multi-line macro call. */
+  char		*text_from_primary_source_line;
+			/* If non-NULL, text from the location pointed to
+			   to the final null character is from the primary
+			   source line, placed in this modification so that
+			   it can be token-pasted with the end of a macro
+			   expansion in pcc mode. */
 } a_source_line_modif;
 
 EXTERN a_source_line_modif_ptr
