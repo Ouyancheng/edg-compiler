@@ -861,6 +861,7 @@ first line of the file.
                /*is_include_file=*/FALSE,
                /*is_system_include=*/FALSE,
                /*is_preinclude=*/FALSE,
+               /*is_implicit_include=*/FALSE,
                /*is_include_next=*/FALSE);
   if (preinclude_file_name != NULL && !using_a_pch_file) {
     /* There is a preinclude file to be included at the beginning of
@@ -872,6 +873,7 @@ first line of the file.
                /*is_include_file=*/TRUE,
                /*is_system_include=*/FALSE,
                /*is_preinclude=*/TRUE,
+               /*is_implicit_include=*/FALSE,
                /*is_include_next=*/FALSE);
   }  /* if */
   /* Read the first line. */

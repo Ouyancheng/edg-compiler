@@ -1744,6 +1744,7 @@ extern void open_file_and_push_input_stack(char      *file_name,
                                            a_boolean is_include_file,
                                            a_boolean is_system_include,
                                            a_boolean is_preinclude,
+                                           a_boolean is_implicit_include,
                                            a_boolean is_include_next);
 extern FILE *open_file_for_input(
                            char                       *file_name,
@@ -1762,6 +1763,7 @@ extern void push_input_stack(
 			a_boolean                   is_include_file,
 			a_boolean                   is_system_include,
                         a_boolean                   is_preinclude,
+                        a_boolean                   is_implicit_include,
                         a_directory_name_entry_ptr  dir_entry,
 			an_include_file_history_ptr ifhp);
 

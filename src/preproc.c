@@ -977,6 +977,7 @@ in which the current file was found).
                                      /*is_include_file=*/TRUE,
                                      is_system_include,
                                      /*is_preinclude=*/FALSE,
+                                     /*is_implicit_include=*/FALSE,
                                      is_include_next);
     }  /* if */
   }  /* if */
@@ -1035,6 +1036,7 @@ simply include that.
                                    /*is_include_file=*/TRUE,
                                    /*is_system_include=*/FALSE,
                                    /*is_preinclude=*/FALSE,
+                                   /*is_implicit_include=*/FALSE,
                                    /*is_include_next=*/FALSE);
   }  /* if */
 }  /* proc_import */

@@ -3136,6 +3136,7 @@ void open_file_and_push_input_stack(char      *file_name,
 				    a_boolean is_include_file,
                                     a_boolean is_system_include,
                                     a_boolean is_preinclude,
+                                    a_boolean is_implicit_include,
                                     a_boolean is_include_next)
 /*
 Push the indicated file onto the input stack, so that the next time a line
@@ -3148,8 +3149,9 @@ is_include_file is TRUE if the file is being read as the result of a
 FALSE for implicitly included files.  is_system_include is TRUE for
 files included with the #include <file.h> notation and FALSE for
 all other files.  is_preinclude is TRUE for files included via the
---preinclude command-line option.  is_include_next is TRUE if the
-file is being pushed for an #include_next directive.
+--preinclude command-line option.  is_implicit_include is TRUE for
+files included for template implicit inclusion.  is_include_next is
+TRUE if the file is being pushed for an #include_next directive.
 */
 {
   char				*full_file_name;
@@ -3187,7 +3189,7 @@ file is being pushed for an #include_next directive.
   }  /* if */
   push_input_stack(input_file, file_name, display_name, full_file_name,
                    is_include_file, is_system_include, is_preinclude,
-                   dir_entry, ifhp);
+                   is_implicit_include, dir_entry, ifhp);
 done:
   db_exit();
 }  /* open_file_and_push_input_stack */
@@ -3473,6 +3475,7 @@ void push_input_stack(
 		a_boolean			is_include_file,
 		a_boolean		 	is_system_include,
                 a_boolean                       is_preinclude,
+                a_boolean			is_implicit_include,
                 a_directory_name_entry_ptr      dir_entry,
 		an_include_file_history_ptr	ifhp)
 /*
@@ -3483,8 +3486,9 @@ is_include_file is TRUE if the file is being read as the result of a
 for implicitly included files.  is_system_include is TRUE for files
 included with the #include <file.h> notation and FALSE for all other
 files.  is_preinclude is TRUE for files included via the --preinclude
-command-line option.  dir_entry points to the entry on the search path
-that was used to find this file.
+command-line option.  is_implicit_include is TRUE for files included
+for template implicit inclusion.  dir_entry points to the entry on
+the search path that was used to find this file.
 */
 {
   int                times_name_appears;
@@ -3567,20 +3571,17 @@ that was used to find this file.
      useful later in converting sequence numbers into file name/line
      information. */
   if (depth_input_stack == 0) {
-#if !INSTANTIATION_BY_IMPLICIT_INCLUSION
-    parent_file = NULL;
-#else /* if INSTANTIATION_BY_IMPLICIT_INCLUSION */
-    /* Parent file will be set to NULL if this is the primary source file
-       (which won't yet have been recorded in il_header), but if this is
-       a file included as a result of the implicit inclusion feature of
-       automatic instantiation, its parent should be the (already closed)
-       primary source file. */
-    parent_file = il_header.primary_source_file;
-    /* after_end_of_all_source was set TRUE when we reached the end of the
-       primary source file.  Reset it so that we can continue accepting
-       input from the implicitly included template definition files. */
-    after_end_of_all_source = FALSE;
-#endif /* !INSTANTIATION_BY_IMPLICIT_INCLUSION */
+    if (!is_implicit_include) {
+      parent_file = NULL;
+    } else {
+      /* A file included for template implicit inclusion is put under
+         the primary file. */
+      parent_file = il_header.primary_source_file;
+      /* after_end_of_all_source was set TRUE when we reached the end of the
+         primary source file.  Reset it so that we can continue accepting
+         input from the implicitly included template definition files. */
+      after_end_of_all_source = FALSE;
+    }  /* if */
   } else {
     parent_file = input_stack[depth_input_stack-1].assoc_il_file;
   }  /* if */
@@ -3638,7 +3639,7 @@ that was used to find this file.
   if (list_included_files && depth_input_stack != 0) {
     display_included_file_name(depth_input_stack, curr_ise->file_name);
   }  /* if */
-  if (curr_ise->assoc_actual_il_file != il_header.primary_source_file) {
+  if (!curr_ise->assoc_actual_il_file->top_level_file) {
     /* Modify the search rules for #include directives found within this source
        file, so that the directory containing the current include file will be
        searched first.  Note that this is not done for the primary source
@@ -3721,7 +3722,7 @@ at the next level down.
        included template definition file then update the last sequence
        number of the primary source file to include the sequence numbers
        of the statements read from the template definition file. */
-    if (curr_ise->assoc_actual_il_file != il_header.primary_source_file) {
+    if (!curr_ise->assoc_actual_il_file->top_level_file) {
       record_end_of_source_file(il_header.primary_source_file,
                                 seq_number_last_read);
       is_end_of_primary_source_file = FALSE;
@@ -3883,7 +3884,9 @@ at the next level down.
             push_input_stack(f_source, (char *)NULL, display_name,
                              full_file_name, /*is_include_file=*/FALSE,
                              (a_boolean)sfp->included_by_system_include,
-			     /*is_preinclude=*/FALSE, dir_entry, ifhp);
+			     /*is_preinclude=*/FALSE,
+                             /*is_implicit_include=*/TRUE,
+                             dir_entry, ifhp);
           }  /* if */
         }  /* if */
       }  /* if */

@@ -624,6 +624,9 @@ Display a_source_file entry.
   if (ptr->from_system_include_dir) {
     disp_boolean("from_system_include_dir", TRUE);
   }  /* if */
+  if (ptr->top_level_file) {
+    disp_boolean("top_level_file", TRUE);
+  }  /* if */
 }  /* disp_source_file */
 
 

@@ -13693,7 +13693,7 @@ file we simply return.
   sfp = source_file_for_seq(decl_position->seq, &line_number,
                             &at_end_of_source, &nesting_depth,
                             /*physical_line=*/FALSE);
-  if (sfp != NULL && sfp != il_header.primary_source_file &&
+  if (sfp != NULL && !sfp->top_level_file &&
       sfp->name_as_written != NULL) {
     /* A source file was found and it does not refer to the primary source
        file.  sfp->name_as_written will be NULL if the file name came from
@@ -13747,6 +13747,7 @@ file we simply return.
             push_input_stack(f_source, (char *)NULL, display_name,
                              full_file_name, /*is_include_file=*/FALSE,
                              is_system_include, /*is_preinclude=*/FALSE,
+                             /*is_implicit_include=*/TRUE,
                              dir_entry, ifhp);
             scan_implicitly_included_template_definition_file();
             if (in_instantiation_wrapup ) {

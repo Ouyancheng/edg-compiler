@@ -173,6 +173,13 @@ typedef struct a_source_file {
 			   directory marked as a "system" include directory.
 			   Warnings are suppressed when processing system
 			   include directories. */
+  a_bit_field	top_level_file:1;
+			/* TRUE if this file is a top-level file, i.e., it
+			   wasn't included by another file.  TRUE for the
+			   primary source file and for secondary files
+			   read when processing exported templates.  FALSE
+			   for files brought in by template implicit
+			   inclusion. */
 } a_source_file;
 
 /*

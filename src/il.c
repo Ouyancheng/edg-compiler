@@ -2214,8 +2214,19 @@ in a directory marked as a system include directory.
   sfp->from_system_include_dir = from_system_include_dir;
   /* Link the parent or the preceding sibling file to this one. */
   if (parent_file == NULL) {
-    /* No parent, so link the il_header to this primary source file. */
-    il_header.primary_source_file = sfp;
+    /* No parent, so link the il_header to this primary source file.
+       When exported templates are processed, secondary files can be read,
+       and they are added to the end of the top-level list. */
+    a_source_file_ptr last_primary_file = il_header.primary_source_file;
+    sfp->top_level_file = TRUE;
+    if (last_primary_file == NULL) {
+      il_header.primary_source_file = sfp;
+    } else {
+      while (last_primary_file->next != NULL) {
+        last_primary_file = last_primary_file->next;
+      }  /* while */
+      last_primary_file->next = sfp;
+    }  /* if */
   } else {
     if (parent_file->first_child_file == NULL) {
       /* First child for this parent. */
