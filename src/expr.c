@@ -12227,6 +12227,20 @@ a thrown exception) if that is appropriate.
     /* Go down to the first member. */
     required_type = first_field->type;
     (*levels_down)++;
+    if (is_array_type(required_type)) {
+      /* An array is also an aggregate.  However, generally the whole
+         array is not initialized -- the first member is initialized. */
+      if (is_string_type(required_type) &&
+          is_simple_string_literal(&result)) {
+        /* char array initialized by string literal, either one possibly
+           wide.  Don't go down to the member type. */
+        break;
+      } else {
+        /* Normal case: initialize the first member of the array. */
+        required_type = array_element_type(required_type);
+        (*levels_down)++;
+      }  /* if */
+    }  /* if */
   }  /* while */
   if (is_class_struct_union_type(required_type)) {
     /* The entity being initialized has a class type. */
