@@ -1,5 +1,21 @@
 Version 3.0
 
+4/3/02   Non-constant expressions not allowed inside sizeof in nontype template
+         argument expression
+
+Expressions inside a sizeof that appears in a nontype template argument
+expression are now restricted to be constant expressions.  It's not
+clear that the standard supports this (see Core Issue 339), but this
+restriction avoids some aborts in the front end.  We'll revisit this
+once the standards committee has ruled on the issue.
+
+  template <int I> struct A {};
+  char xxx(int);
+  template <class T> A<sizeof(xxx((T)0))> f(T){}  // Error now
+  int main() {
+    f(1);
+  }
+
 4/3/02   Spurious "incomplete type not allowed" during automatic instantiation
 
 Instantiations of functions and static data members are deferred while
