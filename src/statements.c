@@ -522,6 +522,18 @@ the associated il statement.
 }  /* push_stmt_stack */
 
 
+static void end_stmt_sequence(a_struct_stmt_stack_entry_ptr sssep)
+/*
+End a statement sequence under a structured statement, i.e., clear
+the flags used by add_statement to add statements at the end of a
+sequence.
+*/
+{
+  sssep->extra_block        = NULL;
+  sssep->last_dep_statement = NULL;
+}  /* end_stmt_sequence */
+
+
 static void start_stmt_clause(a_struct_stmt_stack_entry_ptr sssep)
 /*
 Start a new clause of a structured statement.  sssep points to the
@@ -532,8 +544,7 @@ be the topmost one).
   /* The start of a clause is reachable if the start of the structured
      statement is reachable. */
   curr_reachability = sssep->start_reachable;
-  sssep->extra_block        = NULL;
-  sssep->last_dep_statement = NULL;
+  end_stmt_sequence(sssep);
 }  /* start_stmt_clause */
 
 
@@ -546,8 +557,7 @@ struct_stmt_stack entry for the structured statement.
   /* If the end of the clause is reachable, then the end of the whole
      structured statement is reachable. */
   merge_reachability(&curr_reachability, &sssep->end_reachable);
-  sssep->extra_block        = NULL;
-  sssep->last_dep_statement = NULL;
+  end_stmt_sequence(sssep);
 }  /* term_stmt_clause */
 
 
@@ -1115,8 +1125,7 @@ Scan the initializing expression or, in C++, declaration of a for statement.
   /* Clear the fields that will have been updated if the for-init required
      more than one stmk_init statement, e.g.:
        for (int i = 0, j = 10; j > i; --j, ++i) { }    */
-  sssep->extra_block        = NULL;
-  sssep->last_dep_statement = NULL;
+  end_stmt_sequence(sssep);
 }  /* for_init_statement */
 
 
