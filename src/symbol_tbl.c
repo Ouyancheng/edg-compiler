@@ -6281,7 +6281,7 @@ deeper base classes, while a symbol that is not a type does hide
 symbols from deeper base classes that may be types.
 
 can_create_nonreal is TRUE if, when looking for a projected symbol in a
-class with a nonreal base, that a member of the nonreal base should be
+class with a nonreal base, a member of the nonreal base should be
 created if a projected symbol cannot be found in any of the real bases.
 */
 {
