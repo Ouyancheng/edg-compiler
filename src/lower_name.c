@@ -1820,10 +1820,9 @@ Add to the mangled name the encoding for the type "type".
           /* Mangling of __intN types in certain Microsoft modes (Visual C++
              6.0 started treating these as new intrinsic types. */
           an_integer_kind  kind = type->variant.integer.int_kind;
-          if (kind == (an_integer_kind)ik_signed_char ||
-              kind == (an_integer_kind)ik_char) {
+          if (kind == targ_int8_int_kind) {
             s = "m1";
-          } else if (kind == (an_integer_kind)ik_unsigned_char) {
+          } else if (kind == targ_unsigned_int8_int_kind) {
             s = "Um1";
           } else if (kind == targ_int16_int_kind) {
             s = "m2";

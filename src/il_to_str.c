@@ -474,10 +474,9 @@ are delegated to int_kind_name, but for intrinsic Microsoft __intN types
   if (type->variant.integer.microsoft_sized_int_type) {
     an_integer_kind  kind = type->variant.integer.int_kind;
 
-    if (kind == (an_integer_kind)ik_signed_char ||
-        kind == (an_integer_kind)ik_char) {
+    if (kind == targ_int8_int_kind) {
       result = "__int8";
-    } else if (kind == (an_integer_kind)ik_unsigned_char) {
+    } else if (kind == targ_unsigned_int8_int_kind) {
       result = "unsigned __int8";
     } else if (kind == targ_int16_int_kind) {
       result = "__int16";
@@ -492,7 +491,7 @@ are delegated to int_kind_name, but for intrinsic Microsoft __intN types
     } else if (kind == targ_unsigned_int64_int_kind) {
       result = "unsigned __int64";
     } else {
-      result = "**BAD-SIZE-INT-KIND**";
+      result = "**BAD-SIZED-INT-KIND**";
     }  /* if */
   } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

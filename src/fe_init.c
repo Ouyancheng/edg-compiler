@@ -479,6 +479,7 @@ Initialize target machine characteristics.
   /* Map __int8 to plain char if and only if 8-bit chars are being used. */
   if (targ_char_bit == 8) {
     targ_int8_int_kind = plain_char_int_kind;
+    targ_unsigned_int8_int_kind = (an_integer_kind)ik_unsigned_char;
   }  /* if */
   /* For the other cases, find the first integer kinds, signed and unsigned,
      that hold exactly 16, 32 and 64 bits, respectively. */  
