@@ -226,7 +226,7 @@ perhaps it will be completed later in this compilation).
      be in the right place on the type list relative to this type. */
   if (typeinfo_type == NULL) {
     /* The call here will result in a recursive call to the present routine,
-       but that one will find typeinfo_type != NULL and will get into a
+       but that one will find typeinfo_type != NULL and will not get into a
        recursion loop. */
     (void)make_typeinfo_type();
   }  /* if */
