@@ -50,6 +50,8 @@ static unsigned long
 		num_conversion_headers_allocated,
 		symbol_name_string_space,
 		num_class_symbol_supplements_allocated,
+		num_template_symbol_supplements_allocated,
+                num_template_param_list_entries_allocated,
                 num_conversion_list_entries_allocated,
 		num_extern_symbol_descrs_allocated,
 		num_extern_type_fixups_allocated,
@@ -433,6 +435,23 @@ and indentation is the indentation desired.
         col = 0;
       }  /* if */
       break;
+    case sk_class_template:
+    case sk_function_template:
+      {
+        a_template_symbol_supplement_ptr  tssp;
+        a_template_param_list_entry_ptr   tplep;
+        tssp = sym->variant.template.extra_info;
+        /* Output information from the template symbol supplement. */
+        put_string("template parameters =\n");
+        for (tplep = tssp->parameters; tplep != NULL; tplep = tplep->next) {
+          fprintf(f_debug, "%*s", indentation, "");
+          db_symbol(tplep->param_symbol, "", indentation + 2);
+        }  /* for */
+        if (tssp->template_body.first_token != NULL) {
+          put_string("template body cached");
+        }  /* if */
+      }
+      break;
 #if CHECKING
     default:
       put_string("UNEXPECTED SYMBOL KIND");
@@ -794,6 +813,27 @@ state.
     case sk_overloaded_function:
       sym_ptr->variant.overloaded_function.symbols = NULL;
       sym_ptr->variant.overloaded_function.mixed_static_nonstatic = FALSE;
+      break;
+    case sk_class_template:
+    case sk_function_template:
+      {
+        a_template_symbol_supplement_ptr  tssp;
+        if (sym_kind == sk_class_template) {
+          sym_ptr->variant.template.variant.class_instantiations = NULL;
+        } else {
+          sym_ptr->variant.template.variant.function_instantiations = NULL;
+        }  /* if */
+        /* Allocate a template symbol supplement. */
+        tssp = (a_template_symbol_supplement_ptr)
+                   alloc_fe(sizeof(a_template_symbol_supplement));
+#if DEBUG
+        num_template_symbol_supplements_allocated++;
+#endif /* DEBUG */
+        sym_ptr->variant.template.extra_info = tssp;
+        /* Initialize fields in the template symbol supplement. */
+        tssp->parameters = NULL;
+        clear_token_cache(&tssp->template_body);
+      }
       break;
 #if CHECKING
     default:
@@ -5210,6 +5250,27 @@ should act like a stack if the same entity has several fixups).
 }  /* alloc_etype_fixup */
 
 
+a_template_param_list_entry_ptr alloc_template_param_list_entry(void)
+/*
+Allocate a new template parameter list entry and return a pointer to it.
+*/
+{
+  register a_template_param_list_entry_ptr ptr;
+
+  db_enter(5, "alloc_template_param_list_entry");
+  ptr = (a_template_param_list_entry_ptr)
+            alloc_fe(sizeof(a_template_param_list_entry));
+#if DEBUG
+  num_template_param_list_entries_allocated++;
+#endif /* DEBUG */
+  ptr->next          = NULL;
+  ptr->param_symbol  = NULL;
+  
+  db_exit();
+  return ptr;
+}  /* alloc_conversion_header */
+
+
 #if DEBUG
 unsigned long show_symbol_space_used(void)
 /*
@@ -5239,6 +5300,12 @@ for space tracking purposes.
             an_extern_type_fixup);
   write_one("class symbol supplements", num_class_symbol_supplements_allocated,
             a_class_symbol_supplement);
+  write_one("template symbol suppl.",
+            num_template_symbol_supplements_allocated,
+            a_template_symbol_supplement);
+  write_one("template param list entry",
+            num_template_param_list_entries_allocated,
+            a_conversion_list_entry);
   write_one("conversion list entry", num_conversion_list_entries_allocated,
             a_conversion_list_entry);
   write_one("projection symbol descr", num_projection_descrs_allocated,
@@ -5313,7 +5380,8 @@ to avoid an 8-character external name clash with symbol_table.)
   name_space_for_symbol_kind[(int)sk_extern_variable]     = nsk_extern;
   name_space_for_symbol_kind[(int)sk_extern_routine]      = nsk_extern;
   name_space_for_symbol_kind[(int)sk_projection]          = nsk_other;
-  name_space_for_symbol_kind[(int)sk_overloaded_function] = nsk_other;
+  name_space_for_symbol_kind[(int)sk_class_template]      = nsk_other;
+  name_space_for_symbol_kind[(int)sk_function_template]   = nsk_other;
 #if CHECKING
   /* "undefined" and "routine" must be in the same name space.  See
       decl_default_function. */
@@ -5360,21 +5428,23 @@ to avoid an 8-character external name clash with symbol_table.)
   /* Initialize the conversion header list. */
   conversion_header_list = NULL;
 #if DEBUG
-  num_symbols_allocated                  = 0;
-  num_symbol_headers_allocated           = 0;
-  num_symbol_headers_in_hash_table       = 0;
-  num_conversion_headers_allocated       = 0;
-  symbol_name_string_space               = 0;
-  num_class_symbol_supplements_allocated = 0;
-  num_conversion_list_entries_allocated  = 0;
-  num_extern_symbol_descrs_allocated     = 0;
-  num_extern_type_fixups_allocated       = 0;
-  num_projection_descrs_allocated        = 0;
-  num_used_symbol_buckets                = 0;
-  num_searches_for_symbols               = 0;
-  num_compares_for_symbols               = 0;
-  num_fast_id_lookups                    = 0;
-  num_slow_id_lookups                    = 0;
+  num_symbols_allocated                     = 0;
+  num_symbol_headers_allocated              = 0;
+  num_symbol_headers_in_hash_table          = 0;
+  num_conversion_headers_allocated          = 0;
+  symbol_name_string_space                  = 0;
+  num_class_symbol_supplements_allocated    = 0;
+  num_template_symbol_supplements_allocated = 0;
+  num_template_param_list_entries_allocated = 0;
+  num_conversion_list_entries_allocated     = 0;
+  num_extern_symbol_descrs_allocated        = 0;
+  num_extern_type_fixups_allocated          = 0;
+  num_projection_descrs_allocated           = 0;
+  num_used_symbol_buckets                   = 0;
+  num_searches_for_symbols                  = 0;
+  num_compares_for_symbols                  = 0;
+  num_fast_id_lookups                       = 0;
+  num_slow_id_lookups                       = 0;
 #if CHECKING
   /* Check that the table of symbol kind names is correctly initialized.
      This guards against someone changing the enumeration and forgetting to

@@ -202,6 +202,8 @@ enum a_symbol_kind_tag {
 			   into a derived class. */
   sk_overloaded_function, /* C++ overloaded function (member or non-member). */
   sk_parameter,         /* Parameter name in a function prototype. */
+  sk_class_template,    /* Definition of a class template. */
+  sk_function_template, /* Definition of a function template. */
   sk_last
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -218,7 +220,8 @@ EXTERN char	*db_sym_names[(int)sk_last + 1]
    "keyword", "macro", "constant", "type", "class-or-struct", "union",
    "enum", "variable", "field", "static-data-member", "member-function",
    "routine", "label", "undefined", "extern-variable", "extern-routine",
-   "projection", "overloaded-function", "parameter",
+   "projection", "overloaded-function", "parameter", "class-template",
+   "function-template",
    "last" /* used to check that initialization is right. */
 }
 #endif /* VAR_INITIALIZERS */
@@ -460,6 +463,53 @@ typedef struct a_class_symbol_supplement {
 } a_class_symbol_supplement;
 
 
+
+typedef struct a_template_param_list_entry *a_template_param_list_entry_ptr;
+typedef struct a_template_param_list_entry {
+  /* Information describing a template formal parameter.  Pointed to by the
+     template symbol supplement. */
+  a_template_param_list_entry_ptr
+                next;
+                        /* Pointer to the next template parameter. */
+  a_symbol_ptr	param_symbol;
+			/* Symbol entry for a formal parameters of the
+                           template. */
+
+} a_template_param_list_entry;
+
+
+
+typedef struct a_template_symbol_supplement *a_template_symbol_supplement_ptr;
+typedef struct a_template_symbol_supplement {
+  /* Additional information about a C++ class or function template
+     supplementing the information residing in the class's symbol entry. */
+  a_template_param_list_entry_ptr
+                parameters;
+			/* Symbol entries for formal parameters of the
+                           template. */
+  a_token_cache template_body;
+                        /* The body of the template is stored as a token
+                           cache which can be rescanned later during
+                           instantiation. */
+} a_template_symbol_supplement;
+
+
+typedef struct a_function_instantiation_entry
+                   *a_function_instantiation_entry_ptr;
+
+typedef struct a_function_instantiation_entry {
+  /* Information describing an instantiation of a function template.
+     Pointed to by the symbol entry for a function template. */
+  a_function_instantiation_entry_ptr
+                next;
+                        /* Pointer to the next instance of a given
+                           function template. */
+  a_routine_ptr routine;
+                        /* Pointer to the IL entry that describes this
+                           template function instance. */
+} a_function_instantiation_entry;
+
+
 typedef struct an_extern_symbol_descr *an_extern_symbol_descr_ptr;
 typedef struct an_extern_symbol_descr {
   /* Information on an sk_extern_variable or sk_extern_routine entry, i.e.,
@@ -646,6 +696,27 @@ typedef struct a_symbol {
 			   declared "static"; applies to sk_member_function
 			   overloading only. */
     } overloaded_function;
+    /* When kind = sk_class_template or sk_function_template. */
+    struct {
+      a_template_symbol_supplement_ptr
+                extra_info;
+			/* Pointer to an entry providing additional info about
+			   a C++ class template or function template. */
+      union {
+        /* When kind = sk_class_template. */
+        a_symbol_ptr
+                class_instantiations;
+                        /* Pointer to a list of symbols describing template
+                           classes that have been instantiated from this
+                           class template. */
+        /* When kind = sk_function_template. */
+        a_function_instantiation_entry_ptr
+                function_instantiations;
+                        /* Pointer to a list of entries describing template
+                           functions that have been instantiated from this
+                           function template. */
+      } variant;
+    } template;
   } variant;
 } a_symbol;
 
