@@ -2412,8 +2412,13 @@ do_assignment:;
      termination routine. */
   if (dip->destructor != NULL) {
     a_cleanup_action_ptr cap;
+    /* The action applies on block exit except when we are processing the
+       wrapper of a constructor (ctor_init != NULL).  In that case the
+       destructor part of the initialization is only there for exception
+       cleanup.  For the file-scope initialization routine "on block exit"
+       gets interpreted as "in the the file-scope termination routine." */
     cap = alloc_cleanup_action(cak_destruction,
-                               /*applies_on_block_exit=*/TRUE,
+                               /*applies_on_block_exit*/(ctor_init == NULL),
                                /*applies_on_exception_cleanup=*/TRUE);
     /* Copy the entire dynamic init entry because it may be modified below
        to make it a valid C dynamic initialization. */
