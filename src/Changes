@@ -1,3 +1,7 @@
+6/1/92  Fixed bug in computing offsets for zero-length unnamed bit field.
+
+The bug caused too much padding to be added.
+
 6/1/92  Special handling of ":" in a class declaration when context is
         a "new" expression.
 

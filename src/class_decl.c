@@ -2199,6 +2199,11 @@ must be unsigned.
 }  /* check_enum_type_for_bit_field */
 
 
+/* A value used by class declaration processing only to represent the
+   size of a an unnamed bit field with a declared length of zero. */
+#define UNNAMED_ZERO_LENGTH_BIT_FIELD_SIZE (TARG_MAX_BIT_FIELD_SIZE + 1)
+
+
 static void scan_bit_field_size(a_boolean  unnamed_bit_field,
                                 a_type_ptr *p_base_type,
                                 long       *p_bit_field_size)
@@ -2274,6 +2279,13 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
       if (!unnamed_bit_field) {
         error(ec_zero_length_bit_field_must_be_unnamed);
         bit_field_size = 1;
+      } else {
+        /* Use a special value other than zero for the size of an unnamed
+           zero length bit field.  This is required for distinguishing a
+           field entry of type bit_field_type representing a zero length
+           bit field from a field entry for an ordinary field of the same
+           type that is unnamed (an extension). */
+        bit_field_size = UNNAMED_ZERO_LENGTH_BIT_FIELD_SIZE;
       }  /* if */
     } else if (bit_field_type->variant.integer.enum_type) {
       /* The integral type is an enum type.  Give a warning if any of the
@@ -3419,6 +3431,7 @@ if there's no overflow TRUE is returned.
   a_boolean	   overflow;
   a_targ_size_t    save_byte_offset;
   int		   save_bit_offset;
+  a_boolean        unnamed_zero_length_bit_field = FALSE;
 
   db_enter(4, "set_field_size_and_offset");
   /* Set the size and alignment for the field's type, if necessary. */
@@ -3426,6 +3439,12 @@ if there's no overflow TRUE is returned.
   set_type_size(field_type);
   /* Check for a bit-field. */
   if (field->bit_size != 0) {
+    if (field->bit_size == UNNAMED_ZERO_LENGTH_BIT_FIELD_SIZE) {
+      /* A special value was used to mark the field entry as representing
+         an unnamed zero-length bit field.  Restore bit_size to zero. */
+      field->bit_size = 0;
+      unnamed_zero_length_bit_field = TRUE;
+    }  /* if */
     /* Do any necessary alignment for a bit-field. */
     overflow = !align_offsets_for_bit_field((int)field->bit_size,
                                             p_byte_offset, p_bit_offset,
@@ -3447,7 +3466,7 @@ if there's no overflow TRUE is returned.
     save_byte_offset = *p_byte_offset;
     save_bit_offset = *p_bit_offset;
     /* Increment the current offsets to account for the field. */
-    if (field->bit_size != 0) {
+    if (field->bit_size != 0 || unnamed_zero_length_bit_field) {
       /* For a bit-field. */
       overflow = !increment_field_offsets(p_byte_offset, p_bit_offset,
                                           (a_targ_size_t)0,
