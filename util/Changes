@@ -3,7 +3,7 @@ Version 2.42
 8/4/99   Prelinker: Default SGI nm options changed for Irix 6.x
 
 The options passed to the nm command on Irix have been changed from
-"-Bopg" to "-Bop", which we are told are the appropriate set of options
+"-Bopg" to "-Bop", which we are told is the appropriate set of options
 for Irix 6.x.
 
 7/28/99  Prelinker: informational messages now directed to stderr
