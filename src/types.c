@@ -4496,7 +4496,7 @@ static a_type_ptr traverse_and_modify_type_tree(
 /*
 Traverse the type tree represented by type and at each level call func to
 perform optional modification of the subtree.  If the subtree is modified,
-a new tree is to contain it is built.
+a new tree is built.
 */
 {
   a_type_ptr              new_type = type;
@@ -4505,7 +4505,6 @@ a new tree is to contain it is built.
   a_type_ptr              new_return_type, new_this_param_type;
   a_type_ptr              first_new_type_for_param_types_list;
   unsigned long           reusable_param_types;
-  a_memory_region_number  region_to_switch_back_to;
   a_source_position       dummy_decl_pos;
 
   /* Traverse the tree. */
@@ -4570,9 +4569,7 @@ make_new_type:
       /* Make a routine type based on "type".  Checking for reusable types
          has already been done for the return type and possibly for some of
          the parameter types. */
-      switch_to_file_scope_region(&region_to_switch_back_to);
       new_type = alloc_type((a_type_kind)tk_routine);
-      switch_back_to_original_region(region_to_switch_back_to);
       /* Fill in the return type.  It has already been determined. */
       new_type->variant.routine.return_type = new_return_type;
       /* Clone the routine type supplement, except for the pointers. */
@@ -4612,7 +4609,8 @@ make_new_type:
         if (ptp->has_default_arg) {
           new_ptp->has_default_arg = TRUE;
           if (!ptp->type_involves_template_param) {
-            new_ptp->default_arg_expr= copy_expr_tree(ptp->default_arg_expr);
+            new_ptp->default_arg_expr =
+                             duplicate_default_arg_expr(ptp->default_arg_expr);
           }  /* if */
         }  /* if */
         /* Recompute the value of the flag, if necessary. */
@@ -4635,9 +4633,7 @@ make_new_type:
          require modification, we don't create a new type entry. */
       if (func(type->variant.array.element_type, flags, &tp)) {
         /* Create a new array type. */
-        switch_to_file_scope_region(&region_to_switch_back_to);
         new_type = alloc_type((a_type_kind)tk_array);
-        switch_back_to_original_region(region_to_switch_back_to);
         *new_type = *type;
         new_type->variant.array.element_type = tp;
       }  /* if */
