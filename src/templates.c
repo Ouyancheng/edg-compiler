@@ -360,7 +360,11 @@ If it involves no template-parameter type, simply return "type".
          required) of the type pointed to. */
       tp = type->variant.pointer.type;
       tp = copy_type_with_substitution(tp, templ_arg_list);
-      type = make_pointer_type(tp);
+      if (type->variant.pointer.is_reference) {
+        type = make_reference_type(tp);
+      } else {
+        type = make_pointer_type(tp);
+      }  /* if */
       break;
     case tk_typeref:
       /* Make an identically qualified type of a copy (or reuse) of the type
@@ -697,6 +701,7 @@ templ_sym).
   rp->special_kind = templ_rout->special_kind;
   rp->opname_kind = templ_rout->opname_kind;
   rp->is_inline = templ_rout->is_inline;
+  set_source_corresp(&rp->source_corresp, sym);
   /* Add it to the file scope routines list. */
   add_to_routines_list(rp, /*at_file_scope=*/TRUE);
   /* Create the associated function instantiation entry and link it
