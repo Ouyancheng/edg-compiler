@@ -2783,7 +2783,9 @@ static void write_position_and_severity(an_error_severity severity,
                                         a_boolean         *src_text_needed,
                                         int               *line_len)
 /*
-
+Write the source position (file name and line number) and severity to
+stderr.  If the actual source line is not available, the column number is
+added into the output.
 */
 {
   char          *severity_string, *full_name;
@@ -2872,7 +2874,7 @@ static void write_position_and_severity(an_error_severity severity,
 #if CHECKING
     case es_none:
     default:
-      internal_error("write_position_and_severity_to_stderr: bad severity");
+      internal_error("write_position_and_severity: bad severity");
 #endif /* CHECKING */
   }  /* switch */
   if (capitalize_severity && *severity_string != '\0') {
@@ -2883,7 +2885,7 @@ static void write_position_and_severity(an_error_severity severity,
   } else {
     *line_len += fprintf(stderr, "%s", severity_string);
   }  /* if */
-}  /* write_position_and_severity_to_stderr */
+}  /* write_position_and_severity */
 
 
 static void write_diag_to_raw_listing(an_error_severity          severity,
