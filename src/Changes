@@ -2,10 +2,11 @@ Version 2.39
 
 3/31/98   dynamic_cast should cause definition of typeinfo
 
-A bug was introduced in 2.37 that could cause linker errors due to missing
-typeinfo definitions if a template class with virtual functions was used
-in a dynamic_cast but was not otherwise used in a way that would cause its
-virtual functions to be instantiated.  This has been fixed.
+A bug was introduced in 2.37 that could cause linker errors due to
+missing typeinfo definitions if a template class with virtual
+functions was used in a dynamic_cast but was not otherwise used in a
+way that would cause its virtual functions to be instantiated.  This
+has been fixed.
 
 3/31/98   Template static data members are only instantiated if referenced
 
