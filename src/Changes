@@ -1,5 +1,16 @@
 Version 2.46
 
+1/19/01  Spurious error on explicit destructor call in prototype instantiation
+
+When doing nonclass prototype instantiations, a spurious error was issued
+on an explicit destructor call where the destructor type name was a typedef
+to a template parameter type.  This has been fixed.
+
+  template <class T> void f(T t) {
+    typedef typename T::some_type xxx;
+    t.x->~xxx();
+  }
+
 1/19/01  Suppression of "expression has no effect" warning on comma
          expressions
 
