@@ -5705,8 +5705,8 @@ points to the template parameter list.
             /* Not a match. */
           } else {
             /* Qualifiers match.  See if the underlying types do, too. */
-            tp = type->variant.typeref.type;
-            ttp = templ_type->variant.typeref.type;
+            tp = skip_typerefs(type->variant.typeref.type);
+            ttp = skip_typerefs(templ_type->variant.typeref.type);
             match = matches_template_type(tp, ttp, templ_arg_list,
                                           templ_param_list,
                                           new_flags);

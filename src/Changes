@@ -1,5 +1,14 @@
 Version 3.1
 
+10/27/02 Deduction problem with cv-qualified typedef
+
+The template argument deduction/matching process could fail when a type
+was specified using a cv-qualified typedef.  This has been fixed.
+
+  template <typename T> void f(T const (&)()) {}
+  typedef int volatile volatile_int;
+  template void f<int volatile>(volatile_int const (&)());
+
 10/21/02 Problem with GNU asm operand list IL entry "next" pointer
 
 The "next" pointer in the IL an_asm_operand IL entry (used when GNU
