@@ -2859,6 +2859,7 @@ Return TRUE if the parameter lists are compatible.  Otherwise, return FALSE.
       if (new_tpp->param_symbol->kind == (a_symbol_kind)sk_constant) {
         /* Only constant parameters have default arguments. */
         a_boolean type_involves_template_param;
+        a_boolean constant_involves_template_param;
         a_boolean old_has_default;
         a_boolean new_has_default;
         old_has_default = old_tpp->variant.param_constant.has_default_arg;
@@ -2884,9 +2885,14 @@ Return TRUE if the parameter lists are compatible.  Otherwise, return FALSE.
           to_tpp->variant.param_constant.has_default_arg = TRUE;
           type_involves_template_param =
                 from_tpp->variant.param_constant.type_involves_template_param;
+          constant_involves_template_param =
+             from_tpp->variant.param_constant.constant_involves_template_param;
           to_tpp->variant.param_constant.type_involves_template_param =
                                                  type_involves_template_param;
-          if (type_involves_template_param) {
+          to_tpp->variant.param_constant.constant_involves_template_param =
+                                              constant_involves_template_param;
+          if (type_involves_template_param ||
+              constant_involves_template_param) {
             to_tpp->variant.param_constant.default_arg.token_cache =
                      from_tpp->variant.param_constant.default_arg.token_cache;
           } else {
@@ -3489,7 +3495,9 @@ to represent the template parameters.
   do {
     a_boolean      has_default_arg = FALSE;
     a_boolean	   const_type_involves_template_param = FALSE;
+    a_boolean	   constant_involves_template_param = FALSE;
     a_token_cache  def_arg_cache;
+    a_boolean	   def_arg_cache_used = FALSE;
     a_constant_ptr default_arg_constant;
 
     ++template_param_list_pos;
@@ -3571,17 +3579,24 @@ to represent the template parameters.
 	has_default_arg = TRUE;
 	/* Skip past the equals sign. */
         (void)get_token();
+        /* Cache the tokens that make up the default argument expression. */
+        prescan_default_arg_expr(&def_arg_cache, /*is_template_param=*/TRUE);
         if (const_type_involves_template_param) {
 	  /* The type of the constant parameter involve a template parameter
-	     type so we can't scan the expression now.  Cache the tokens
-	     that comprise the default argument. */
-	  prescan_default_arg_expr(&def_arg_cache, /*is_template_param=*/TRUE);
+	     type so we can't scan the expression now. */
         } else {
 	  /* The type doesn't involve a template parameter type.  Scan the
-	     default argument expression. */
+	     default argument expression.  Rescan a copy of the cache.
+             This is done so that when the default argument is scanned, the
+             last token of the cache is followed by the token that followed
+             it in the original source program with no intervening
+             tok_end_of_source. */
+          rescan_copy_of_cache(&def_arg_cache);
           default_arg_constant = fs_constant((a_constant_repr_kind)ck_error);
           scan_template_argument_constant_expression(param_type_ptr,
 						     default_arg_constant);
+          constant_involves_template_param = default_arg_constant->kind ==
+                                      (a_constant_repr_kind)ck_template_param;
         }  /* if */
       }  /* if */
     } else {
@@ -3597,18 +3612,23 @@ to represent the template parameters.
     }  /* if */
     /* Allocate a template parameter and set its fields based on sym. */
     template_param = alloc_template_param(sym);
-    if (const_type_involves_template_param) {
-      template_param->
-	    variant.param_constant.type_involves_template_param = TRUE;
+    if (const_type_involves_template_param ||
+        constant_involves_template_param) {
+      template_param->variant.param_constant.type_involves_template_param =
+                                            const_type_involves_template_param;
+      template_param->variant.param_constant.constant_involves_template_param =
+                                              constant_involves_template_param;
       template_param->token_cache = param_cache;
       parameter_cache_used = TRUE;
     }  /* if */
     if (has_default_arg) {
       /* Update the default argument information in the template parameter. */
       template_param->variant.param_constant.has_default_arg = TRUE;
-      if (const_type_involves_template_param) {
+      if (const_type_involves_template_param ||
+          constant_involves_template_param) {
         template_param->
 	    variant.param_constant.default_arg.token_cache = def_arg_cache;
+        def_arg_cache_used = TRUE;
       } else {
         template_param->
             variant.param_constant.default_arg.constant = default_arg_constant;
@@ -3622,6 +3642,11 @@ to represent the template parameters.
     }  /* if */
     /* Discard the parameter token cache if it is not needed for later use. */
     if (!parameter_cache_used) discard_token_cache(&param_cache);
+    if (has_default_arg && !def_arg_cache_used) {
+      /* Discard the default argument token cache if it is not needed for
+         later use. */
+      discard_token_cache(&def_arg_cache);
+    }  /* if */
     end_of_template_param_list = template_param;
     remove_stop_token(tok_comma);
     /* Keep looping on a comma. */

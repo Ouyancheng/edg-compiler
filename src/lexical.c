@@ -5785,23 +5785,37 @@ static void flush_to_end_of_arg_list(void)
 
 
 static a_type_ptr rescan_template_constant_parameter
-                                          (a_symbol_ptr		template_sym,
-					   a_template_param_ptr param_ptr,
-					   a_template_arg_ptr   arg_list)
+                                     (a_symbol_ptr	   template_sym,
+                                      a_symbol_ptr	   param_sym,
+			              a_template_param_ptr param_ptr,
+				      a_template_arg_ptr   arg_list,
+                                      a_boolean		   do_default_arg,
+                                      a_constant_ptr       *constant)
 /*
-Rescan the tokens of a template parameter declaration using the current
-values of any previous parameters so that the declaration is processed
-with the types with which the class is to be instantiated.  This is
-used to get the correct types for template parameters whose types depend
-on other template parameters.
+Rescan the tokens of a template parameter declaration and/or default
+argument using the current values of any previous parameters so that
+the declaration and/or default argument is processed with the types
+with which the class is to be instantiated.  This is used to get the
+correct types for template parameters whose types depend on other
+template parameters.  If the type of the constant depends on a
+template parameter, then the type is rescanned.  Otherwise, the
+existing type is simply used.  If do_default_arg is TRUE, then the
+default argument constant is processed too.  A pointer to the
+resulting constant is stored in the pointer pointed to by "constant".
 */
 {
   a_template_symbol_supplement_ptr	tssp;
-  a_type_ptr				param_type_ptr;
+  a_type_ptr				constant_type;
   a_symbol_locator   			param_locator;
   a_source_position  			saved_pos_curr_token;
   a_source_position  			saved_error_position;
+  a_boolean				type_involves_template_param;
+  a_boolean				constant_involves_template_param;
 
+  type_involves_template_param =
+               param_ptr->variant.param_constant.type_involves_template_param;
+  constant_involves_template_param =
+            param_ptr->variant.param_constant.constant_involves_template_param;
   tssp = template_sym->variant.template_info;
   /* Push the template instantiation scope.  Note that the instance symbol
      passed to push_scope is NULL because we don't yet know which instance
@@ -5811,21 +5825,36 @@ on other template parameters.
                    tssp->declaration_scope, (a_type_ptr)NULL,
                    (a_routine_ptr)NULL, (a_symbol_ptr)NULL, template_sym,
                    arg_list);
-  /* Rescan the tokens of the function declaration. */
   saved_pos_curr_token = pos_curr_token;
   saved_error_position = error_position;
-  rescan_reusable_cache(&param_ptr->token_cache);
-  /* Scan the declaration specifiers. */
-  scan_a_template_parameter_declaration(&param_locator, &param_type_ptr);
+  if (type_involves_template_param) {
+    /* Rescan the tokens of the function declaration. */
+    rescan_reusable_cache(&param_ptr->token_cache);
+    /* Scan the declaration specifiers. */
+    scan_a_template_parameter_declaration(&param_locator, &constant_type);
+    /* Skip past any tokens remaining in the cache.  Extra tokens will
+       be present under certain error conditions and when a default argument
+       has been supplied. */
+    flush_past_token_cache_terminator();
+  } else {
+    constant_type = param_sym->variant.constant->type;
+  }  /* if */
+  if (do_default_arg) {
+    /* This parameter has a default argument whose value is to be used. */
+    if (type_involves_template_param || constant_involves_template_param) {
+      rescan_reusable_cache(&param_ptr->variant.param_constant.
+                                                     default_arg.token_cache);
+      *constant = fs_constant((a_constant_repr_kind)ck_error);
+      delayed_scan_of_template_default_arg_expr(constant_type, *constant);
+    } else {
+      *constant = param_ptr->variant.param_constant.default_arg.constant;
+    }  /* if */
+  }  /* if */
   error_position = saved_error_position;
   pos_curr_token = saved_pos_curr_token;
-  /* Skip past any tokens remaining in the cache.  Extra tokens will
-     be present under certain error conditions and when a default argument
-     has been supplied. */
-  flush_past_token_cache_terminator();
   /* Pop the template instantiation scope. */
   pop_scope();
-  return param_type_ptr;
+  return constant_type;
 }  /* rescan_template_constant_parameter */
 
 
@@ -5986,9 +6015,9 @@ a routine to lookup the appropriate instance (or generate one if needed).
          rescan the declaration of the parameter type to get the type
          to be used in this argument list. */
       if (param_ptr->variant.param_constant.type_involves_template_param) {
-	constant_type = rescan_template_constant_parameter(template_sym,
-							   param_ptr,
-							   arg_list);
+	constant_type = rescan_template_constant_parameter
+                             (template_sym, sym, param_ptr, arg_list,
+                              /*do_default_arg=*/FALSE, (a_constant_ptr*)NULL);
       }  /* if */
       constant = fs_constant((a_constant_repr_kind)ck_error);
       scan_template_argument_constant_expression(constant_type, constant);
@@ -6027,28 +6056,14 @@ a routine to lookup the appropriate instance (or generate one if needed).
           constant = fs_constant((a_constant_repr_kind)ck_error);
           arg_ptr->variant.constant = constant;
         } else {
-          a_type_ptr  constant_type = sym->variant.constant->type;
           /* A constant parameter.  The default value can be either a
-	     constant value or a token cache that needs to be scanned. */
-	  if (param_ptr->variant.param_constant.type_involves_template_param) {
-            /* If the type of a constant involves a template parameter type,
-               rescan the declaration of the parameter type to get the type
-               to be used in this argument list. */
-            if (param_ptr->variant.param_constant.
-						type_involves_template_param) {
-              constant_type = rescan_template_constant_parameter(template_sym,
-							         param_ptr,
-							         arg_list);
-            }  /* if */
-	    rescan_reusable_cache(&param_ptr->variant.param_constant.
-						default_arg.token_cache);
-            constant = fs_constant((a_constant_repr_kind)ck_error);
-	    delayed_scan_of_template_default_arg_expr(constant_type, constant);
-	    arg_ptr->variant.constant = constant;
-          } else {
-	    arg_ptr->variant.constant =
-		      param_ptr->variant.param_constant.default_arg.constant;
-          }  /* if */
+	     constant value or a token cache that needs to be scanned.
+             Call a routine that will rescan the type declaration and/or
+             default argument expression. */
+          (void)rescan_template_constant_parameter
+                                    (template_sym, sym, param_ptr, arg_list,
+                                     /*do_default_arg=*/TRUE, &constant);
+          arg_ptr->variant.constant = constant;
         }  /* if */
         /* Link this entry on to the argument list. */
         if (arg_list == NULL) arg_list = arg_ptr;
