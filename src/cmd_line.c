@@ -2751,6 +2751,11 @@ enable_microsoft_mode:
       command_line_error(ec_cl_import_only_in_microsoft);
     }  /* if */
   }  /* if */
+  /* If no directory was specified for #import, use the current directory. */
+  if (import_dir_name == NULL) {
+    import_dir_name = ".";
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Do nonclass prototype instantiations when dependent name processing
      is being done. */
   nonclass_prototype_instantiations = do_dependent_name_processing;
@@ -2759,11 +2764,6 @@ enable_microsoft_mode:
     arg_dependent_lookup_enabled = TRUE;
     implicit_typename_enabled = FALSE;
   }  /* if */
-  /* If no directory was specified for #import, use the current directory. */
-  if (import_dir_name == NULL) {
-    import_dir_name = ".";
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (sun_mode) {
     check_and_set_sun_mode_options();
   }  /* if */
