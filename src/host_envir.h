@@ -935,8 +935,8 @@ file dependencies for a makefile.
 
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
 /*
-Instantiation file suffix.  This is added to the base name of the primary
-input file to get the instantiation list file name.
+Template instantiation request file suffix.  This is added to the base
+name of the primary input file to get the request file name.
 */
 #ifndef INSTANTIATION_FILE_SUFFIX
 #define INSTANTIATION_FILE_SUFFIX ".ii"
