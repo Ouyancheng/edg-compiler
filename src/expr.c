@@ -1702,8 +1702,8 @@ that is called.
       err = TRUE;
     }  /* if */
   } else {
-    /* Not a pointer type.  Be sure the type is a class type for which
-       operator-> is defined. */
+    /* Not a pointer type.  Be sure the type is a class type or a
+       reference to a class type. */
     if (is_reference_type(return_type)) {
       return_type = type_pointed_to(return_type);
     }  /* if */
