@@ -154,9 +154,6 @@ the code here should not be changed.
 */
 #ifndef STANDALONE_IL_DISPLAY
 #define STANDALONE_IL_DISPLAY FALSE /* Do not change this. */
-#else /* defined(STANDALONE_IL_DISPLAY) */
-#undef STANDALONE_IL_DISPLAY
-#define STANDALONE_IL_DISPLAY TRUE /* Do not change this. */
 #endif /* ifndef STANDALONE_IL_DISPLAY */
 
 /*
@@ -166,55 +163,49 @@ line if needed; the code here should not be changed.
 */
 #ifndef STANDALONE_C_GEN_BE
 #define STANDALONE_C_GEN_BE FALSE /* Do not change this. */
-#else /* defined(STANDALONE_C_GEN_BE) */
-#undef STANDALONE_C_GEN_BE
-#define STANDALONE_C_GEN_BE TRUE /* Do not change this. */
 #endif /* ifndef STANDALONE_C_GEN_BE */
 
 /*
 The flag STANDALONE_UTILITY_PROGRAM is set to TRUE when compiling one of
 the standalone utility programs (the C-generating back end c_gen_be or
-the IL display utility il_display).  It should NOT be set on the
-command line; but should be set indirectly by setting either 
-STANDALONE_IL_DISPLAY or STANDALONE_C_GEN_BE if needed.  The code here
-should not be changed.
+the IL display utility il_display).  It is forced to TRUE if either
+STANDALONE_IL_DISPLAY or STANDALONE_C_GEN_BE is TRUE
 */
-#ifdef STANDALONE_UTILITY_PROGRAM
-??=error Define either STANDALONE_IL_DISPLAY or STANDALONE_C_GEN_BE on \
-         the compilation command line.
-#undef STANDALONE_UTILITY_PROGRAM
-#else /* !defined(STANDALONE_UTILITY_PROGRAM) */
 #if STANDALONE_IL_DISPLAY || STANDALONE_C_GEN_BE
+#undef STANDALONE_UTILITY_PROGRAM
 #define STANDALONE_UTILITY_PROGRAM TRUE /* Do not change this. */
-#else /* !STANDALONE_UTILITY_PROGRAM */
+#else /* !(STANDALONE_IL_DISPLAY || STANDALONE_C_GEN_BE) */
+#ifndef STANDALONE_UTILITY_PROGRAM
 #define STANDALONE_UTILITY_PROGRAM FALSE  /* Do not change this. */
+#endif /* ifndef STANDALONE_UTILITY_PROGRAM */
 #endif /* STANDALONE_IL_DISPLAY || STANDALONE_C_GEN_BE */
-#endif /* ifdef STANDALONE_UTILITY_PROGRAM */
 
 /*
 Flag that is TRUE if the code necessary to display the IL in a readable
 form on stdout is to be compiled.  This flag may be set on the command
 line or will be forced to TRUE if STANDALONE_IL_DISPLAY is TRUE.
 */
-#ifndef NEED_IL_DISPLAY
 #if STANDALONE_IL_DISPLAY
+#undef NEED_IL_DISPLAY
 #define NEED_IL_DISPLAY TRUE /* Do not change this. */
 #else /* !STANDALONE_IL_DISPLAY */
+#ifndef NEED_IL_DISPLAY
 #define NEED_IL_DISPLAY FALSE
-#endif /* STANDALONE_IL_DISPLAY */
 #endif /* ifndef NEED_IL_DISPLAY */
+#endif /* STANDALONE_IL_DISPLAY */
 
 /*
 Flag that is TRUE if the intermediate language should be written to a file.
 FALSE means the IL is passed in memory to the back end.
 */
-#ifndef IL_SHOULD_BE_WRITTEN_TO_FILE
 #if STANDALONE_UTILITY_PROGRAM
-#define IL_SHOULD_BE_WRITTEN_TO_FILE TRUE
+#undef IL_SHOULD_BE_WRITTEN_TO_FILE
+#define IL_SHOULD_BE_WRITTEN_TO_FILE TRUE /* Do not change this. */
 #else /* !STANDALONE_UTILITY_PROGRAM */
+#ifndef IL_SHOULD_BE_WRITTEN_TO_FILE
 #define IL_SHOULD_BE_WRITTEN_TO_FILE FALSE
-#endif /* STANDALONE_UTILITY_PROGRAM */
 #endif /* ifndef IL_SHOULD_BE_WRITTEN_TO_FILE */
+#endif /* STANDALONE_UTILITY_PROGRAM */
 
 /*
 If the IL is written to a file, this flag selects the file format.
@@ -228,13 +219,13 @@ the entries on the receiving side (e.g., enlarging them to add extra
 information required in the back end); the disadvantage is that it's 
 slower.
 */
-
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
 #ifndef ALTERNATE_IL_FILE_FORMAT
 #define ALTERNATE_IL_FILE_FORMAT TRUE
 #endif /* ifndef ALTERNATE_IL_FILE_FORMAT */
 #else /* !IL_SHOULD_BE_WRITTEN_TO_FILE */
-#define ALTERNATE_IL_FILE_FORMAT FALSE
+#undef ALTERNATE_IL_FILE_FORMAT
+#define ALTERNATE_IL_FILE_FORMAT FALSE /* Do not change this. */
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 
 /*
@@ -242,11 +233,13 @@ The flag IL_WALK_NEEDED controls the compilation of the routines required
 to walk the IL.  These routines are needed if NEED_IL_DISPLAY is TRUE or
 IL_SHOULD_BE_WRITTEN_TO_FILE is TRUE.
 */
-#undef IL_WALK_NEEDED
 #if IL_SHOULD_BE_WRITTEN_TO_FILE || NEED_IL_DISPLAY
-#define IL_WALK_NEEDED TRUE
+#undef IL_WALK_NEEDED
+#define IL_WALK_NEEDED TRUE /* Do not change this. */
 #else /* !IL_WALK_NEEDED */
+#ifndef IL_WALK_NEEDED
 #define IL_WALK_NEEDED FALSE
+#endif /* ifndef IL_WALK_NEEDED */
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE || NEED_IL_DISPLAY */
 
 /*
@@ -322,14 +315,15 @@ to C IL, allowing the C++ front end to be used with a C back end.
 #define DO_IL_LOWERING TRUE
 #endif /* ifndef DO_IL_LOWERING */
 #if BACK_END_IS_C_GEN_BE && !DO_IL_LOWERING
-error -- IL lowering must be done for the C-generating back end.
+??=error -- IL lowering must be done for the C-generating back end.
 #endif /* BACK_END_IS_C_GEN_BE && !DO_IL_LOWERING */
 
 /*
 If DO_IL_LOWERING is TRUE, this gives the routine names used for the
 C++ file-scope initialization and termination routines.  The names are
-not really significant, but the C-generating back end needs to know what
-they are in order to recognize them for special handling.
+not really significant (except as a cfront compatibility issue), but
+the C-generating back end needs to know what they are in order to
+recognize them for special handling.
 */
 #if DO_IL_LOWERING
 #ifndef IL_LOWERING_INIT_ROUTINE_PREFIX
@@ -345,13 +339,15 @@ Flag that is TRUE to cause support for orphaned file scope IL entries to
 be part of the compiler.  This flag is automatically TRUE if either
 DO_IL_LOWERING or IL_WALK_NEEDED is TRUE.
 */
-#ifndef ORPHAN_PROCESSING_NEEDED
 #if DO_IL_LOWERING || IL_WALK_NEEDED
-#define ORPHAN_PROCESSING_NEEDED TRUE
+#undef ORPHAN_PROCESSING_NEEDED
+#define ORPHAN_PROCESSING_NEEDED TRUE /* Do not change this. */
 #else /* !(DO_IL_LOWERING || IL_WALK_NEEDED) */
+#ifndef ORPHAN_PROCESSING_NEEDED
 #define ORPHAN_PROCESSING_NEEDED FALSE
-#endif /* DO_IL_LOWERING || IL_WALK_NEEDED */
 #endif /* ifndef ORPHAN_PROCESSING_NEEDED */
+#endif /* DO_IL_LOWERING || IL_WALK_NEEDED */
+
 /*
 Flag that is TRUE to specify that source files should be read in
 binary mode under MS-DOS.  In this mode, carriage return and control-Z
