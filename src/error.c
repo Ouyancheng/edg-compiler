@@ -98,7 +98,7 @@ static a_boolean
 				/* TRUE if context information (such as
 				   information about templates currently
 				   being instantiated) is required after
-				   an error message is issued.. */
+				   an error message is issued. */
 				   
 /*
 Diagnostics messages being generated can be one of several category of
