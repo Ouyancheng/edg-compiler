@@ -752,7 +752,7 @@ If a true error is issued mark *locator as an error locator.
                                         ec_allocation_operator_in_namespace :
                                         ec_deallocation_operator_in_namespace;
       *bad_scope = TRUE;
-    } else if (storage_class == sc_static) {
+    } else if (storage_class == (a_storage_class)sc_static) {
       severity = strict_ansi_mode ? strict_ansi_error_severity : es_warning;
       error_code = ec_no_internal_linkage_for_new_or_delete;
     }  /* if */
