@@ -5424,6 +5424,7 @@ block.
   a_boolean                   original_def = FALSE;
   a_scope_pointers_block_ptr  pointers_block;
   a_boolean                   err = FALSE;
+  a_symbol_reference_kind     srk_flags = SRK_DECLARATION;
 
   /* Save the source position of the declaration. */
   namespace_pos = pos_curr_token;
@@ -5522,17 +5523,32 @@ block.
           /* Either nothing was found or what was found was not a namespace. */
           error(ec_missing_namespace_name);
         } else {
-          /* Create a namespace entry to represent the alias.  It will point
-             to the namespace entry that was just looked up. */
-          nsp = alloc_namespace(/*is_alias=*/TRUE);
-          nsp->variant.assoc_namespace = sym->variant.namespace_info.ptr;
-          set_source_corresp(&nsp->source_corresp, ns_sym);
-          set_namespace_membership(ns_sym, &nsp->source_corresp,
-                                   (a_namespace_ptr)NULL);
-          ns_sym->variant.namespace_info.ptr = nsp;
-          ns_sym->variant.namespace_info.extra_info =
-                                       alloc_namespace_symbol_supplement();
-          add_to_namespaces_list(nsp);
+          if (ns_sym->variant.namespace_info.ptr != NULL) {
+            if (skip_namespace_aliases(ns_sym->variant.namespace_info.ptr) ==
+                     skip_namespace_aliases(sym->variant.namespace_info.ptr)) {
+              /* Redefining the alias to the same thing. */
+              record_symbol_declaration(srk_flags, ns_sym,
+                                        &locator.source_position,
+                                        (a_source_sequence_entry_ptr)NULL);
+            } else {
+              pos_sy_error(ec_already_defined, &locator.source_position,
+                           ns_sym);
+            }  /* if */
+          } else {
+            /* Create a namespace entry to represent the alias.  It will point
+               to the namespace entry that was just looked up. */
+            nsp = alloc_namespace(/*is_alias=*/TRUE);
+            nsp->variant.assoc_namespace = sym->variant.namespace_info.ptr;
+            set_source_corresp(&nsp->source_corresp, ns_sym);
+            set_namespace_membership(ns_sym, &nsp->source_corresp,
+                                     (a_namespace_ptr)NULL);
+            ns_sym->variant.namespace_info.ptr = nsp;
+            ns_sym->variant.namespace_info.extra_info =
+                                         alloc_namespace_symbol_supplement();
+            add_to_namespaces_list(nsp);
+            mark_defined(ns_sym, &locator.source_position);
+          }  /* if */
+          mark_referenced(sym, &pos_curr_token);
         }  /* if */
       }  /* if */
       /* Bypass the identifier. */
@@ -5558,12 +5574,15 @@ block.
         /* Push a scope for the scanning the namespace body. */
         (void)push_namespace_scope((a_scope_kind)sck_namespace, nsp);
         nsp->variant.assoc_scope->variant.assoc_namespace = nsp;
+        srk_flags |= SRK_DEFINITION;
       } else {
         /* An extension of the original defintion of this namespace -- push
            a scope for the scanning the namespace body. */
         nsp = ns_sym->variant.namespace_info.ptr;
         (void)push_namespace_scope((a_scope_kind)sck_namespace_extension, nsp);
       }  /* if */
+      record_symbol_declaration(srk_flags, ns_sym, &namespace_pos,
+                                (a_source_sequence_entry_ptr)NULL);
       /* Scan the namespace body. */
       add_stop_token(tok_rbrace);
       while (curr_token != tok_rbrace && curr_token != tok_end_of_source) {
@@ -5575,6 +5594,13 @@ block.
       /* Save the source position of the right brace, in case it's needed. */
       pos = pos_curr_token;
       (void)required_token(tok_rbrace, ec_exp_rbrace);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      /* Add a source sequence entry marking the end of the namespace
+         definition. */
+      add_end_of_construct_source_sequence_entry(
+                                        (char *)nsp,
+                                        (a_byte_il_entry_kind)iek_namespace);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       /* Pop the namespace or namespace-extension scope. */
       pop_scope();
       if (original_def && is_unnamed_namespace) {
