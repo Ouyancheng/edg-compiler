@@ -8951,7 +8951,7 @@ It also may do fix up on entries it removes.
     } else if (C_mode()) {
       /* Special processing in C mode, which does not have nested structs and
          enums in the sense that C++ does. */
-      if (il_entry_prefix_of(ssep->entity.ptr).keep_in_il) {
+      if (il_entry_prefix_of(ssep).keep_in_il) {
         /* A struct or enum definition that should be retained in the IL. */
         a_type_ptr  tp = ss_entry_ptr(ssep, a_type_ptr);
         check_assertion_str2(ss_entry_kind(ssep) ==
@@ -8967,28 +8967,7 @@ It also may do fix up on entries it removes.
         ssep->prev = prev_ssep;
         ssep = ssep->next;
         for (;;) {
-          if (ss_entry_kind(ssep) ==
-                   (an_il_entry_kind)iek_src_seq_end_of_construct) {
-#if 0
-/* Temporary special casing for end-of-construct for a nested struct/enum
-   because the keep-in-il flag isn't being set properly. */
-#endif /* if 0 */
-            if (ss_entry_ptr(ssep, a_src_seq_end_of_construct_ptr)->
-                                                entity.ptr == (char *)tp) {
-              /* We've located the end-of-construct entry for the struct/enum
-                 definition.  Reset the prev-link state and break out of the
-                 loop. */
-              prev_ssep = ssep;
-              prev_link_addr = &ssep->next;
-              break;
-            } else {
-              /* End-of-construct for something else.  Keep going. */
-              ssep = ssep->next;
-            }  /* if */
-          } else if (il_entry_prefix_of(ssep->entity.ptr).keep_in_il) {
-            /* Keep going. */
-            ssep = ssep->next;
-          } else {
+          if (!il_entry_prefix_of(ssep).keep_in_il) {
             /* An unneeded struct/enum definition embedded within the needed
                one.  Remove it.  Note that ssep will, upon return from
                the recursive call, point to the entry immediately following
@@ -8998,6 +8977,20 @@ It also may do fix up on entries it removes.
             /* Reset the prev-link state. */
             prev_ssep = ssep->prev;
             prev_link_addr = &ssep->prev->next;
+          } else if (ss_entry_kind(ssep) ==
+                         (an_il_entry_kind)iek_src_seq_end_of_construct &&
+                     ss_entry_ptr(ssep, a_src_seq_end_of_construct_ptr)->
+                                                entity.ptr == (char *)tp) {
+            /* We've located the end-of-construct entry for the struct/enum
+               definition.  Reset the prev-link state and break out of the
+               loop. */
+            prev_ssep = ssep;
+            prev_link_addr = &ssep->next;
+            tp->autonomous_primary_tag_decl = TRUE;
+            break;
+          } else {
+            /* Keep going. */
+            ssep = ssep->next;
           }  /* if */
         }  /* for */
       }  /* if */
@@ -9708,13 +9701,7 @@ eliminated, if appropriate.
       /* The processing whereby the keep_in_il flag is set guarantees that
          the keep_in_il setting of the source sequence entry and that of the
          IL entry to which it corresponds will be the same. */
-      if (!il_entry_prefix_of(ssep).keep_in_il
-#if 0
-#else
-          && ss_entry_kind(ssep) !=
-                           (an_il_entry_kind)iek_src_seq_end_of_construct
-#endif /* if 0 */
-                                              ) {
+      if (!il_entry_prefix_of(ssep).keep_in_il) {
         a_byte_il_entry_kind  kind = ssep->entity.kind;
         check_assertion(!il_entry_prefix_of(ssep->entity.ptr).keep_in_il);
         if (kind == (a_byte_il_entry_kind)iek_src_seq_secondary_decl) {
@@ -9733,22 +9720,36 @@ eliminated, if appropriate.
            where s can be eliminated but struct S must be kept.  Without s in
            the IL we have to mark the entry for struct S as defined in an
            autonomous declaration. */
-        if (next_ssep != NULL && !il_entry_prefix_of(next_ssep).keep_in_il &&
-            ss_entry_kind(ssep) ==
+        if (ss_entry_kind(ssep) ==
                            (an_il_entry_kind)iek_src_seq_end_of_construct) {
-          /* The current source sequence entry is the end of a struct or enum
-             definition, and the next entry is not needed.  Mark the type
-             associated with the unneeded entry as autonomously declared;
-             if may already be -- there's no need to distinguish the example
-             given above from something like this:
-               struct S { int i; };
-               static struct S s;
-             (The only difference as far as source sequence lists are
-             concerned is how the autonomous_primary_tag_decl flag is set.) */
-          sseocp = ss_entry_ptr(ssep, a_src_seq_end_of_construct_ptr);
-          check_assertion(sseocp->entity.kind ==
+          while (next_ssep != NULL &&
+                 (ss_entry_kind(next_ssep) == (an_il_entry_kind)iek_pragma
+#if RECORD_MACROS_IN_IL
+                  || ss_entry_kind(next_ssep) == (an_il_entry_kind)iek_macro
+#endif /* RECORD_MACROS_IN_IL */
+                                                                          )) {
+            /* No macros or pragmas that are added to the IL are eliminated;
+               skip over any that intervene between the struct/enum definition
+               and whatever follows. */
+            next_ssep = next_ssep->next;
+          }  /* while */
+          if (next_ssep != NULL && !il_entry_prefix_of(next_ssep).keep_in_il) {
+            /* The current source sequence entry is the end of a struct/enum
+               definition, and the next entry is not needed.  Mark the type
+               associated with the unneeded entry as autonomously declared;
+               it may already be -- there's no need to distinguish the example
+               given above from something like this:
+                 struct S { int i; };
+                 static struct S s;
+               (The only difference as far as source sequence lists are
+               concerned is how the autonomous_primary_tag_decl flag is
+               set.) */
+            sseocp = ss_entry_ptr(ssep, a_src_seq_end_of_construct_ptr);
+            check_assertion(sseocp->entity.kind ==
                                      (a_byte_il_entry_kind)iek_type);
-          ((a_type_ptr)sseocp->entity.ptr)->autonomous_primary_tag_decl = TRUE;
+            ((a_type_ptr)sseocp->entity.ptr)->
+                                     autonomous_primary_tag_decl = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
