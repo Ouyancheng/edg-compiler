@@ -185,8 +185,8 @@ is done according to the output control block octl.
        parent; use the symbol name directly. */
     if (il_header.source_language == sl_Cplusplus) {
       /* Put out the class or namespace qualifier on a member. */
-      form_class_or_namespace_qualifier(sym->is_class_member, sym->parent,
-                                        octl);
+      form_class_or_namespace_qualifier((a_boolean)sym->is_class_member,
+                                        sym->parent, octl);
     }  /* if */
     octl->output_str(sym->header->identifier);
   }  /* if */
