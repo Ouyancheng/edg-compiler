@@ -1404,20 +1404,15 @@ node is a field selection expression.  If it refers to a field in an anonymous
 union, adjust it to make the anonymous union reference(s) explicit.
 */
 {
-  a_field_ptr	field, au_field;
-  an_expr_node_ptr
-		op1, op2, new_op1, au_field_node;
-  a_type_ptr	field_class, new_selection_type;
-  a_class_type_supplement_ptr
-		ctsp;
-  an_expr_operator_kind
-		op, new_op;
+  a_field_ptr                 field, au_field;
+  an_expr_node_ptr            op2;
+  a_type_ptr                  field_class;
+  a_class_type_supplement_ptr ctsp;
 
   /* The loop here is for cases where there are several nested anonymous
      unions. */
   for (;;) {
-    op1 = node->variant.operation.operands;
-    op2 = op1->next;
+    op2 = node->variant.operation.operands->next;
     field = op2->variant.field;
     /* See if the field is from an anonymous union. */
     field_class = field->source_corresp.class_of_which_a_member;
@@ -1431,45 +1426,12 @@ union, adjust it to make the anonymous union reference(s) explicit.
        first operand as a field selection of the proper anonymous union out
        of the original first operand. */
     au_field = ctsp->anonymous_union_field;
-    /* If the original field selection takes an lvalue as its first operand,
-       the added field selection is an eok_field; if the original field
-       selection takes an rvalue as its first operand, the added field
-       selection is an eok_value_field.  Here are the operators:
-                                 in       out
-         eok_field             lvalue   lvalue
-         eok_value_field       rvalue   rvalue
-         eok_bit_field         lvalue   lvalue
-         eok_value_bit_field   rvalue   rvalue
-         eok_extract_bit_field lvalue   rvalue
-       Note that eok_field and eok_value_field produce as output that is
-       the same as their input, which is why they are used for the added
-       field selection -- whatever the first operand of the original field
-       was, it's preserved by adding the right one of those two selections. */
-    op = node->variant.operation.kind;
-    new_selection_type = au_field->type;
-    if (op == (an_expr_operator_kind)eok_value_field ||
-        op == (an_expr_operator_kind)eok_value_bit_field) {
-      /* These operators take an rvalue as their input, so use an
-         eok_value_field for the added field selection. */
-      new_op = (an_expr_operator_kind)eok_value_field;
-    } else {
-      /* These operators take an lvalue as their input, so use an
-         eok_field for the added field selection. */
-      new_op = (an_expr_operator_kind)eok_field;
-      new_selection_type = make_pointer_type(new_selection_type);
-    }  /* if */
-    au_field_node = alloc_expr_node((an_expr_node_kind)enk_field);
-    au_field_node->type = au_field->type;
-    au_field_node->variant.field = au_field;
-    op1->next = au_field_node;
-    new_op1 = make_operator_node(new_op, new_selection_type, op1);
-    /* Attach the new selection to the original selection. */
-    new_op1->next = op2;
-    node->variant.operation.operands = new_op1;
+    /* Change "x.y" to "x.au_field.y". */
+    adjust_anonymous_union_field_selection(node, au_field);
     /* Loop to see if the rewritten first operand still refers to an
        anonymous union field (because there are several nested anonymous
        unions), and if so, to rewrite it. */
-    node = new_op1;
+    node = node->variant.operation.operands;
   }  /* for */
 }  /* adjust_field_selection_for_anonymous_union_references */
 
