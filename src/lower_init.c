@@ -5070,7 +5070,8 @@ to a constructor to be called after the zeroing have been done.
   /* Build the routine entry.  It has two parameters: a pointer to an entity
      of the indicated type and a count of the number of entities to
      initialize. */
-  pointer_type = make_pointer_type(skip_typerefs(type));
+  type = skip_typerefs(type);
+  pointer_type = make_pointer_type(type);
   count_type = integer_type(targ_size_t_int_kind);
   rp = make_rout_entry((char *)NULL, (a_storage_class)sc_static,
                        void_type(), pointer_type);
@@ -5102,7 +5103,7 @@ to a constructor to be called after the zeroing have been done.
                                          count_type,
                                          var_lvalue_expr(count_var));
     /* The access to the entity increments it each time a store is done. */
-    entity_expr = make_operator_node((an_expr_operator_kind)eok_ipost_incr,
+    entity_expr = make_operator_node((an_expr_operator_kind)eok_ppost_incr,
                                      pointer_type,
                                      var_lvalue_expr(entity_var));
     if (ctor_routine != NULL) {

@@ -1,5 +1,20 @@
 Version 3.3
 
+5/15/03  Incorrect IL increment operator, IA-64 ABI zeroing helper routine
+
+In the code created by IL lowering in a generated routine that
+deals with zeroing of an array containing a pointer to data member
+in the IA-64 ABI, an increment operator in a loop increments a
+pointer but had the operator for integer incrementation.  The
+operator is now the pointer post-increment operator.
+
+  struct A {
+    int A::*p;
+  };
+  int main() {
+    new A[10]();
+  }
+
 5/14/03  Abort on lowering of default initialization of anonymous union
 
 IL lowering aborted in adjust_nonstandard_anonymous_union_references
