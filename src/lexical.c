@@ -4074,9 +4074,9 @@ token.
     }  /* for */
 #if LONG_LONG_ALLOWED
     if (strict_ansi_mode && !fetch_pp_tokens && l_seen == 2) {
-      an_error_severity  es = strict_ansi_error_severity;
-      if (es == es_error) es = es_discretionary_error;
-      diagnostic_at_line_pos(es, ec_nonstd_long_long, start_of_curr_token);
+      /* "long long" type is nonstandard. */
+      diagnostic_at_line_pos(strict_ansi_discretionary_severity,
+                             ec_nonstd_long_long, start_of_curr_token);
     }  /* if */
 #endif /* LONG_LONG_ALLOWED */
   }

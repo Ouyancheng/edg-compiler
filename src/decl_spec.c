@@ -2546,9 +2546,8 @@ Returns TRUE if there is an error in the specifiers.
           /* long long.  This is an extension. */
           size = size_long_long;
           if (strict_ansi_mode) {
-            es = strict_ansi_error_severity;
-            if (es == es_error) es = es_discretionary_error;
-            diagnostic(es, ec_nonstd_long_long);
+            diagnostic(strict_ansi_discretionary_severity,
+                       ec_nonstd_long_long);
           }  /* if */
 #endif /* LONG_LONG_ALLOWED */
         } else if (size != size_none) {
