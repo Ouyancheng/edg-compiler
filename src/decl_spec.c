@@ -3938,9 +3938,9 @@ from decl_specifiers only.
         if ((*qualifiers &
              f_get_type_qualifiers(*type_ptr, /*top_level=*/FALSE)) != 0) {
           /* Duplication of type qualifier (probably because of a typedef
-             that is already qualified).  In strict ANSI mode issue an
+             that is already qualified).  In strict ANSI C89 mode issue an
              error or warning; otherwise, just issue a remark. */
-          if (strict_ansi_mode) {
+          if (strict_ansi_mode && !c99_mode) {
             severity = strict_ansi_error_severity;
             if (severity == es_error) err = TRUE;
           } else {
