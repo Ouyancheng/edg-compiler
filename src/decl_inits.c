@@ -270,9 +270,10 @@ This routine is called from get_initializer to deal with the case where an
 array whose elements require constructor initialization (and/or destruction
 by calling a destructor) has been only partially initialized.  The remaining
 elements of the array receive initialization by the default constructor.
-array_type is a pointer to the type entry for the array object.
-curr_element identifies the next element to be initialized.  *con_list is a
-list of constant entries that represents the initialization of the array;
+array_type is a pointer to the type entry for the array object.  curr_element
+identifies the next element to be initialized.  If static_lifetime is TRUE,
+the underlying entity has static storage duration.  *con_list is a list of
+constant entries that represents the initialization of the array;
 *end_of_con_list points to the terminal entry on the list.  *incomplete_init
 is set to TRUE if a reference or const member remains uninitialized.  TRUE
 is returned if the remaining array elements are indeed initialized.  This
@@ -424,6 +425,7 @@ class object is only partially initialized.  It checks whether any of the
 uninitialized fields is itself of class (or array of class) type and if so
 does the appropriate default initialization (i.e., looks for and calls the
 default constructor).  *curr_field is the first of the uninitialized fields.
+If static_lifetime is TRUE, the underlying entity has static storage duration.
 *con_list is a list of constant entries that represents the initialization of
 the array; *end_of_con_list points to the terminal entry on the list.
 *incomplete_init is set to TRUE if a reference or const member remains
