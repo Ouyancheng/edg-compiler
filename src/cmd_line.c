@@ -3109,7 +3109,7 @@ enable_microsoft_mode:
       case optk_stdarg_builtin:
         /* Enable passing of references to stdarg.h macros to the output
            unchanged. */
-        pass_stdarg_references_to_generated_code = !opt_value;
+        pass_stdarg_references_to_generated_code = opt_value;
         break;
       default:
         /* It should not be possible to get here. */
