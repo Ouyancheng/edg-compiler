@@ -4650,11 +4650,10 @@ there's some possibility of precedence confusion and need_parens is TRUE.
             /* Use the type name to create a "destructor" name. */
             gen_type(type);
             write_str("::~");
-            if (is_class_type_kind(type->kind)) {
-              /* Class case. */
+            if (has_name(type)) {
               /* Don't use gen_type here, because we don't want the template
-                 arguments, if any, listed.  Also, we want to output a
-                 partial token. */
+                 arguments, if any, listed, and we don't want a qualified
+                 name. */
               write_str(type->source_corresp.name);
             } else {
               /* Case like "int::~int". */
