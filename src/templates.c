@@ -10909,6 +10909,19 @@ that follows.
                find_template_function. */
             rp->declared_type = NULL;
             set_routine_declared_type(rp, declared_type);
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+            if (rp->source_corresp.source_sequence_entry != NULL &&
+                rp->source_corresp.source_sequence_entry->entity.kind ==
+                             (an_il_entry_kind)iek_src_seq_secondary_decl) {
+              /* This must be a member or friend function definition inside
+                 the definition of a nonlocal class.  A source sequence
+                 entry representing the function definition will be inserted
+                 following the class definition and a secondary source
+                 sequence entry has been put out here. */
+              (void)set_src_seq_secondary_decl_type((char *)rp, declared_type,
+                                                    /*new_style_spec=*/TRUE);
+            }  /* if */
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
           } else {
             (void)set_src_seq_secondary_decl_type((char *)rp, declared_type,
                                                   /*new_style_spec=*/TRUE);
