@@ -3488,7 +3488,6 @@ supplement already associated with ft_symbol.
       rp->is_inline = orig_rp->is_inline;
       rp->storage_class = orig_rp->storage_class;
       rp->source_corresp.name_linkage = orig_rp->source_corresp.name_linkage;
-      rp->defined_outside_of_parent = orig_rp->defined_outside_of_parent;
     }
   }  /* if */
 error_exit:
@@ -3717,8 +3716,20 @@ Instantiate the body of the template function associated with tip.
   }  /* if */
   /* Set the defined_outside_of_parent flag based on the setting of the
      template itself. */
-  rout_sym->variant.routine.ptr->defined_outside_of_parent =
+  if (template_sym->kind == (a_symbol_kind)sk_function_template) {
+    /* For function templates, use the prototype template if there is one. */
+    a_symbol_ptr			proto_sym;
+    a_template_symbol_supplement_ptr	proto_tssp;
+    proto_sym = prototype_template_of(template_sym);
+    proto_tssp = template_supplement_for_symbol(proto_sym);
+    rout_sym->variant.routine.ptr->defined_outside_of_parent =
+               proto_tssp->variant.function.routine->defined_outside_of_parent;
+  } else {
+    /* A member function of a class template -- just use the template
+       supplement of the member function. */
+    rout_sym->variant.routine.ptr->defined_outside_of_parent =
                      tssp->variant.function.routine->defined_outside_of_parent;
+  }
   /* Notify the correspondence routines that a definition of this function
      is now present. */
   establish_function_instantiation_corresp(rout_ptr);
