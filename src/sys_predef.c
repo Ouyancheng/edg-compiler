@@ -1212,7 +1212,7 @@ that such memory regions have names in the implementation namespace.
   a_named_address_space_descr  *nas = &named_address_spaces[1];
 
   for (;nas->name != NULL; ++nas) {
-    a_symbol_ptr  sym = enter_named_address_space(nas->name, nas->parent_id);
+    a_symbol_ptr  sym = enter_named_address_space(nas->name);
     check_assertion(sym->variant.named_address_space.id == 
                                                 (nas - named_address_spaces));
   }  /* while */

@@ -3176,11 +3176,7 @@ extern void enter_keyword(a_token_kind token,
                           char         *keyword);
 
 #if NAMED_ADDRESS_SPACES_ALLOWED
-extern char *name_of_named_address_space(a_named_address_space_id  id);
-
-extern a_symbol_ptr enter_named_address_space(
-                                          char                      *name,
-                                          a_named_address_space_id  parent_id);
+extern a_symbol_ptr enter_named_address_space(char  *name);
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
 
 extern void make_symbol_for_predeclared_type(a_type_ptr  predeclared_type,

@@ -2979,6 +2979,7 @@ enum a_type_qualifier_tag {
 	tqt_lsb_named_address_space + NUM_BITS_FOR_NAMED_ADDRESS_SPACE -1,
 			/* Most significant bit of named address space
 			   representation. */
+	/*lint -esym(769,a_type_qualifier_tag::tqt_msb_named_address_space)*/
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
   tqt_last		/* Must be last. */
 };

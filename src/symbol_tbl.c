@@ -5150,12 +5150,9 @@ token that corresponds to it.
 
 #if NAMED_ADDRESS_SPACES_ALLOWED
 
-a_symbol_ptr enter_named_address_space(char                      *name,
-                                       a_named_address_space_id  parent_id)
+a_symbol_ptr enter_named_address_space(char  *name)
 /*
-Enter a new symbol for a memory region with the given name whose enclosing
-memory region is described by parent_id (if parent_id is zero, the memory
-region is not enclosed by any other named address space).
+Enter a new symbol for a memory region with the given name.
 */
 {
   a_symbol_ptr  sym;
