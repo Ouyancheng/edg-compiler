@@ -5417,9 +5417,9 @@ transformations.
 a_boolean still_an_lvalue(a_type_ptr type_before_cast,
 			  a_type_ptr type_cast_to)
 /*
-In pcc mode certain lvalues when cast remain as lvalues after the cast.
-Return TRUE if a cast with the before/after types given should leave
-its result still an lvalue.
+In pcc, SVR4, and Microsoft modes certain lvalues when cast remain as lvalues
+after the cast.  Return TRUE if a cast with the before/after types given
+should leave its result still an lvalue.
 */
 {
   a_boolean is_still_an_lvalue = FALSE;
@@ -5431,8 +5431,23 @@ its result still an lvalue.
      source type size.  However, casts involving floats require actual
      changes in representation, and are not lvalue-preserving. */
   if (identical_types(type_cast_to, type_before_cast)) {
-    /* Same type, operand stays an lvalue. */
+    /* Same type, operand stays an lvalue.  This applies in pcc mode,
+       SVR4 C mode, and in both C and C++ in Microsoft mode. */
     is_still_an_lvalue = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (microsoft_mode) {
+    /* Microsoft mode -- C++ mode allows nothing more, but C mode has a
+       special case for integral types. */
+    if (C_mode() &&
+        is_integral_type(type_before_cast) &&
+        is_integral_type(type_cast_to)) {
+      /* In Microsoft C mode lvalue casts involving integral types of different
+         sizes are allowed -- e.g.,
+           long l; ++(char)l;   // affects only the low-order 8 bits
+      */
+      is_still_an_lvalue = TRUE;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if (is_floating_type(type_before_cast) ||
              is_floating_type(type_cast_to)) {
     /* The source or destination types are floating types, so there's
@@ -5443,16 +5458,6 @@ its result still an lvalue.
     /* The types are not floating types, and they have the same size
        and alignment. */
     is_still_an_lvalue = TRUE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (microsoft_mode && C_mode() &&
-             is_integral_type(type_before_cast) &&
-             is_integral_type(type_cast_to)) {
-    /* In Microsoft C mode lvalue casts involving integral types of different
-       sizes are allowed -- e.g.,
-         long l; ++(char)l;   // affects only the low-order 8 bits
-    */
-    is_still_an_lvalue = TRUE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
 
   return is_still_an_lvalue;

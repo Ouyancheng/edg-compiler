@@ -1,5 +1,11 @@
 Version 2.32
 
+4/9/96  Lvalue casts in Microsoft C++ mode
+
+In Microsoft C++ mode, an lvalue of an integral type cast to the same
+integral type is now considered still to be an lvalue.  (Lvalue casts
+were formerly supported only for C programs in Microsoft mode.)
+
 4/9/96  IL lowering bug when lowering is used for C code in Microsoft mode
 
 In Microsoft C mode, brace-enclosed initializers for a local aggregate can
