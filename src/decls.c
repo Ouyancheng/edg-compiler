@@ -40,11 +40,6 @@ decls.c -- Scanning of declarations.
 #if ASM_FUNCTION_ALLOWED
 #include "asm_func.h"
 #endif /* ASM_FUNCTION_ALLOWED */
-#if 0
-#else
-/* Only needed as long as generate_precompiled_header remains in decls.c */
-#include "macro.h"
-#endif /* if 0 */
 
 /*
 Macro that is TRUE if the current token is the start of a storage class
@@ -5352,45 +5347,6 @@ Scan a block-level declaration.
               /*extern_implied=*/FALSE, /*is_old_style_param_decl=*/FALSE,
               (a_param_id_ptr)NULL);
 }  /* local_declaration */
-
-
-static void generate_precompiled_header(void)
-/*
-Processing has reached the "header stop" point.  Check for conditions that
-would prevent generation of a precompiled header file, and if none exists,
-write out the precompiled header file.
-*/
-{
-#define PCH_DECL_SEQ_THRESHOLD 0
-
-  if (using_a_pch_file) {
-    /* We are using input obtained from a precompiled header, don't
-       try to generate a new one. */
-  } else if (depth_scope_stack != DEPTH_OF_FILE_SCOPE) {
-    /* Don't save the header files if we are not currently at file scope. */
-  } else if (macro_depth != 0 || pp_if_stack_depth != -1) {
-    /* Nor if we are in the midst of a macro definition or a #if construct. */
-  } else if (total_errors > 0 && total_warnings > 0) {
-    /* Nor if there have been diagnostics. */
-  } else if (def_external_linkage.is_explicit) {
-    /* Nor if we are in the middle of a linkage specifier block. */
-  } else {
-    /* The state justifies creating a precompiled header. */
-    check_assertion(curr_il_region_number == FILE_SCOPE_REGION_NUMBER);
-    check_assertion(depth_stmt_stack == -1);
-    /* Be sure there the overhead in generating a precompiled header is
-       justified "quantitatively". */
-    if (curr_ise->include_history == NULL) {
-      /* There haven't been any include files. */
-    } else if (decl_seq_counter < PCH_DECL_SEQ_THRESHOLD) {
-      /* There haven't been enough declarations to justify writing out and
-         restoring the header information. */
-    } else {
-      /* Okay -- go ahead and do it. */
-      write_precompiled_header_file();
-    }  /* if */
-  }  /* if */
-}  /* generate_precompiled_header */
 
 
 void translation_unit(void)
