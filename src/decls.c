@@ -988,6 +988,13 @@ consistent with that of the previous declaration.
   }  /* if */
   if (exceptions_enabled && prev_type->kind != (a_type_kind)tk_typeref) {
     an_error_severity  severity = es_error;
+    if (microsoft_mode && microsoft_version >= 1300) {
+      /* Recent Microsoft compilers do not require exception specification
+         on multiple declarations to match.  We issue a warning in case of
+         a mismatch.  Note that calls to composite_type will ensure that
+         the original specification is retained. */
+      severity = es_warning;
+    }  /* if */
     old_tsp = skip_typerefs(prev_type)->
                          variant.routine.extra_info->exception_specification;
     new_tsp = skip_typerefs(new_rout_type)->
@@ -997,14 +1004,6 @@ consistent with that of the previous declaration.
       /* This a function redeclaration -- the exception specifications have to
          match. */
       error_code = ec_incompatible_exception_specification;
-      if (is_redecl && microsoft_mode && microsoft_version >= 1300 &&
-          rp != NULL) {
-        /* Recent Microsoft compilers do not require the exception
-           specification of a class member to be repeated on redeclarations.
-           We issue a warning in that case.  Note that calls to composite_type
-           will ensure that the original specification is retained. */
-        severity = es_warning;
-      }  /* if */
     } else {
       /* Not a redeclaration -- probably a template specialization.
          In diagnostics refer to template rather than a previous declaration
