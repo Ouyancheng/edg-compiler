@@ -459,7 +459,9 @@ the newline of the preprocessing directive that is causing this skip.
         proc_endif();
         /* See if this is an #endif that also marks a PCH header stop
            position. */
-        is_header_stop_dir = is_header_stop_position(start_of_dir_position);
+        if (is_header_stop_position(start_of_dir_position)) {
+          is_header_stop_dir = TRUE;
+        }  /* if */
         goto end_skip;
       case ppd_else:
         proc_else(/*perform_else=*/FALSE);
@@ -1324,6 +1326,7 @@ execute the preprocessor directive.
   a_source_position  	save_error_position;
   a_source_position  	start_of_dir_position;
   a_pp_directive_kind	dir_kind;
+  a_boolean		local_is_header_stop_dir;
 
   db_enter(3, "pp_directive");
 
@@ -1350,7 +1353,19 @@ execute the preprocessor directive.
   /* See if this directive is marks the header stop position.  If so,
      after processing the directive, we need to call
      generate_precompiled_header. */
-  is_header_stop_dir = is_header_stop_position(start_of_dir_position);
+  local_is_header_stop_dir =is_header_stop_position(start_of_dir_position);
+  if (is_header_stop_dir || local_is_header_stop_dir) {
+    if (dir_kind == ppd_include) {
+      /* When we have completed scanning of this include file, generate
+         the precompiled header.  This test is done here, because
+         the flag must be set before the input stack is pushed.  If the
+         include is optimized away, pop_scope won't be able to
+         generate the PCH file. */
+      is_header_stop_dir = FALSE;
+      local_is_header_stop_dir = FALSE;
+      generate_pch_on_return_to_primary_source_file = TRUE;
+    }  /* if */
+  }  /* if */
   if (!building_pch_prefix) {
     switch ((int)dir_kind) {
       case ppd_not_valid:
@@ -1464,14 +1479,11 @@ execute the preprocessor directive.
   do_string_literal_concatenation = save_do_string_literal_concatenation;
   /* Restore the error position as at entry. */
   copy_source_position(save_error_position, error_position);
-  if (is_header_stop_dir) {
-    if (dir_kind == ppd_include) {
-      /* When we have completed scanning of this include file, generate
-         the precompiled header. */
-      generate_pch_on_return_to_primary_source_file = TRUE;
-    } else {
+  if (is_header_stop_dir || local_is_header_stop_dir) {
+    if (dir_kind != ppd_include) {
       /* This is the last directive in a precompiled header file that is
          to be generated. */
+      is_header_stop_dir = FALSE;
       generate_precompiled_header();
       header_stop_no_longer_pending();
     }  /* if */
@@ -1554,6 +1566,7 @@ established by init_predefined_macros.)
   currently_in_pp_if_skip = FALSE;
   pp_if_stack_depth = -1;
   base_pp_if_stack_depth = -1;
+  is_header_stop_dir = FALSE;
 }  /* preproc_init */
 
 

@@ -2149,11 +2149,21 @@ notation and FALSE for all other files.
           file_name);
     }  /* if */
 #endif /* DEBUG */
-    db_exit();
-    return;
+    if (depth_input_stack == 0 && 
+        generate_pch_on_return_to_primary_source_file) {
+      /* A PCH file should be generated after this include file has been
+         processed.  We've decided that we don't actually need to include
+         the file, however.  That means we should generate the PCH file
+         now. */
+      generate_pch_on_return_to_primary_source_file = FALSE;
+      generate_precompiled_header();
+      header_stop_no_longer_pending();
+    }  /* if */
+    goto done;
   }  /* if */
   push_input_stack(input_file, file_name, display_name, full_file_name,
                    is_include_file, is_system_include, &fstate);
+done:
   db_exit();
 }  /* open_file_and_push_input_stack */
 
