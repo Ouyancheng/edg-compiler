@@ -1436,6 +1436,24 @@ specific symbol which is an error symbol.
 }  /* make_specific_symbol_error_locator */
 
 
+void clear_qualifier_from_locator(a_symbol_locator  *locator)
+/*
+Reset the fields in the specified locator to remove traces of a class,
+global, or namespace qualifier.
+*/
+{
+  locator->is_qualified_name = FALSE;
+  locator->is_file_scope_qualified_name = FALSE;
+  locator->is_global_qualified_name = FALSE;
+  if (locator->is_class_member) {
+    locator->is_class_member = FALSE;
+    locator->parent.class_type = NULL;
+  } else {
+    locator->parent.namespace_ptr = NULL;
+  }  /* if */
+}  /* clear_qualifier_from_locator */
+
+
 static void clear_scope_pointers_block(a_scope_pointers_block_ptr  spbp)
 /*
 Initialize the fields in a scope-pointers-block substructure.
