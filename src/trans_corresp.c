@@ -4165,6 +4165,7 @@ way, determine to which other IL entry this might correspond.
     if (scp->is_class_member) {
       root = scp->parent.class_type;
       if (kind == (an_il_entry_kind)iek_type &&
+          is_immediate_class_type((a_type_ptr)scp) &&
           has_name((a_type_ptr)scp) &&
           ((a_type_ptr)scp)
                     ->variant.class_struct_union.is_prototype_instantiation &&
