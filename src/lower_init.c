@@ -1904,6 +1904,7 @@ Pop function corresponding to push_generated_routine_context.
      routine. */
   add_scope_orphaned_il_lists(scope);
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
+  scope->function_body_processing_finished = TRUE;
 #if MAINTAIN_NEEDED_FLAGS
   /* Walk subtrees of local types and variables that have already been
      marked as needed. */

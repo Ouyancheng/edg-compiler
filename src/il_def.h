@@ -8161,6 +8161,12 @@ typedef struct a_scope {
   a_scope_kind	kind;
 			/* Kind of scope (file, function, block, function
 			   prototype, etc.).  */
+  a_byte_boolean
+		function_body_processing_finished;
+			/* Front-end only, for sck_function scopes: set to
+			   TRUE once the function body processing is
+			   finished.  That includes IL lowering if
+			   appropriate.  FALSE otherwise. */
   union {
     /* When kind == sck_file, no variant fields. */
 #ifdef FIL

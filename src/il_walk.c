@@ -31,12 +31,6 @@ il_walk.c -- Routines to walk the intermediate language tree.
 
 #if IL_WALK_NEEDED || MAINTAIN_NEEDED_FLAGS
 
-#if !STANDALONE_UTILITY_PROGRAM
-#if DO_IL_LOWERING && MAINTAIN_NEEDED_FLAGS
-#include "lower_il.h"
-#endif /* DO_IL_LOWERING && MAINTAIN_NEEDED_FLAGS */
-#endif /* !STANDALONE_UTILITY_PROGRAM */
-
 #if !ORPHAN_PROCESSING_NEEDED
  #error -- ORPHAN_PROCESSING_NEEDED must be set if IL walking is needed.
 #endif /* !ORPHAN_PROCESSING_NEEDED */
@@ -477,19 +471,14 @@ definition of the routine is needed, and not just the declaration.
       check_assertion_str(mem_region_table[rout->assoc_scope] != NULL,
                           "set_routine_definition_needed: memory region gone");
       scope = il_header.region_scope_entry[rout->assoc_scope];
-#if DO_IL_LOWERING
-      /* Don't sweep functions in the primary IL until they have been
-         lowered.  This comes up when lowering is delayed, e.g., to
+      /* Don't sweep functions until the bodies have been completely processed.
+         In particular, don't sweep bodies in the primary IL until they
+         have been lowered.  This comes up when lowering is delayed, e.g., to
          wait until references to secondary-translation-unit IL have
          been rewritten.  finish_function_body_processing calls
          remark_routine_definition_needed later to ensure that the
          sweep gets done. */
-      if (il_entry_prefix_of(scope).il_lowering_flag ||
-          !il_lowering_needed() ||
-          in_secondary_trans_unit(scope))
-#endif /* DO_IL_LOWERING */
-      /* Do not insert code here. */
-      {
+      if (scope->function_body_processing_finished) {
         /* Set curr_il_region_number for the duration of the sweeps here.
            This is necessary in case some
            a_per_instantiation_needed_flags_entry entries need to be

@@ -2647,6 +2647,7 @@ points to the associated routine if the kind is sck_function.
 #endif /* DEBUG */
   sp->next   = NULL;
   sp->number = number;
+  sp->function_body_processing_finished = FALSE;
   set_scope_kind(sp, kind, assoc_routine);
   sp->assoc_block                 = NULL;
   sp->lifetime                    = NULL;

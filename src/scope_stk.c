@@ -4437,6 +4437,7 @@ thrown away by the caller.
     fprintf(f_debug, "\n");
   }  /* if */
 #endif /* DEBUG */
+  check_assertion(!scope->function_body_processing_finished);
   /* Do not do lowering and related processing of functions in secondary
      translation units until they are copied to the primary IL.
      When this routine is called after copying for functions from
@@ -4476,6 +4477,7 @@ thrown away by the caller.
     /* Clear out the shareable constants table for the function scope. */
     empty_func_shareable_constants_table();
   }  /* if */
+  scope->function_body_processing_finished = TRUE;
 #if MAINTAIN_NEEDED_FLAGS
   { a_boolean is_needed = FALSE;
     /* Walk subtrees of local types and variables that have already been

@@ -322,6 +322,8 @@ and remap the pointers in the copy by calling remap_function.
         /* For a routine with a body, the code in the function scope memory
            region needs to be processed too.  It doesn't need to be
            copied, but the pointers need to be remapped. */
+        a_scope_ptr scope = il_header.region_scope_entry[rout->assoc_scope];
+        check_assertion(scope != NULL);
         /* This shouldn't happen in the
            rewrite_secondary_trans_unit_IL_entity_pointers_used_in_primary
            phase. */
@@ -332,6 +334,7 @@ and remap the pointers in the copy by calling remap_function.
                               (a_remap_function_ptr)NULL,
                               copy_termination_test,
                               /*clear_fe_pointers=*/FALSE);
+        scope->function_body_processing_finished = FALSE;
       }  /* if */
     }  /* if */
   }  /* if */

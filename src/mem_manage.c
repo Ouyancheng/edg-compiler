@@ -40,9 +40,6 @@ extern char *realloc(char *ptr, unsigned size);
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 
 #if !STANDALONE_UTILITY_PROGRAM
-#if DO_IL_LOWERING
-#include "lower_il.h"
-#endif /* DO_IL_LOWERING */
 #include "pch.h"
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
@@ -1121,16 +1118,12 @@ memory or with an IL file.
        away before this routine is called. */
     keep_memory = TRUE;
 #if !STANDALONE_UTILITY_PROGRAM
-#if DO_IL_LOWERING
   } else if (rout != NULL &&
-             any_lowering_needed() &&
-             !il_entry_prefix_of(scope).il_lowering_flag) {
-    /* If we are doing lowering, and the function body has not been
-       lowered yet, we cannot write it out.  This comes up for function
-       bodies copied from secondary translation units but not lowered
-       yet. */
+             !scope->function_body_processing_finished) {
+    /* If we haven't finished processing the function body, don't write
+       it out.  In particular, if IL lowering has not been done yet,
+       do not write out the body. */
     keep_memory = TRUE;
-#endif /* DO_IL_LOWERING */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
   } else if (rout != NULL &&
              keep_function_body_for_possible_inlining(rout)) {
