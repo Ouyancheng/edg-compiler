@@ -3386,8 +3386,13 @@ where a cv-qualifier-list consists of const or volatile or both.
 Only the first form is accepted in C.
 */
 {
-  a_type_ptr	complete_type = specifiers_type;
-  a_boolean     err;
+  a_type_ptr     complete_type = specifiers_type;
+  a_boolean      err;
+  a_type_ptr     class_type;
+  a_boolean      is_file_scope_qualifier, has_global_qualifier;
+  a_boolean      qualifier_err;
+  a_token_cache  token_cache;
+
 
   db_enter(4, "pointer_declarator");
   for (;;) {
@@ -3444,27 +3449,32 @@ Only the first form is accepted in C.
         }  /* if */
         complete_type = new_type_ptr;
       }  /* if */
+    /* Check for C++ a pointer-to-member declarator. */
     } else if (C_dialect == C_dialect_cplusplus &&
-               is_qualified_name_start()) {
-      a_type_ptr     class_type;
-      a_boolean      is_file_scope_qualifier, has_global_qualifier;
-      a_boolean      qualifier_err;
-      a_token_cache  cache;
-
-      clear_token_cache(&cache);
-      if (get_class_qualifier(&cache, &class_type,
-                              &is_file_scope_qualifier,
-                              &has_global_qualifier, &qualifier_err)) {
-        if (curr_token == tok_star) {
-          complete_type = ptr_to_member_type(complete_type, class_type);
-        } else {
-          rescan_cached_tokens(&cache);
-          break;
+               is_qualified_name_start() &&
+               get_class_qualifier(&token_cache, &class_type,
+                                   &is_file_scope_qualifier,
+                                   &has_global_qualifier, &err)) {
+      /* A class qualifier is present.  This is a pointer-to-member
+         declarator if the current token is a "*". */
+      if (curr_token == tok_star) {
+#if 0
+        if (is_file_scope_qualifier) {
+          error(ec...);
+          err = TRUE;
+          complete_type = error_type();
         }  /* if */
+#endif /* if 0 */
+        /* It is a pointer-to-member declarator.  Construct the type entry. */
+        complete_type = ptr_to_member_type(complete_type, class_type);
       } else {
+        /* The class qualifier is not followed by a "*", so back up to the
+           start of the class qualifier and exit the loop. */
+        rescan_cached_tokens(&token_cache);
         break;
-      }  /* if */          
+      }  /* if */
     } else {
+      /* Not a pointer, reference, or pointer-to-member declarator. */
       break;
     }  /* if */
     if (err || *bottom_pointer_derived_type == NULL) {
