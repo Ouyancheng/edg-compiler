@@ -4264,6 +4264,7 @@ Do IL lowering of an enk_temp_init expression node.
             !il_identical_types(type_pointed_to(expr->type),
                                 type_pointed_to(first_operand->type))) {
           first_operand->next = NULL;
+          first_operand->result_is_not_used = FALSE;
           first_operand = add_cast(first_operand, expr->type);
         }  /* if */
         overwrite_node(expr, first_operand);
