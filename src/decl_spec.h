@@ -113,7 +113,7 @@ extern a_boolean decl_specifiers(a_decl_flag_set      input_flags,
 			/* If this bit is set the function specifier "inline"
 			   was found. */
 #define DSO_VIRTUAL 		(a_decl_flag_set)(0x4)
-			/* If this bit is set the function specifier "volatile"
+			/* If this bit is set the function specifier "virtual"
 			   was found. */
 #define DSO_FRIEND		 (a_decl_flag_set)(0x8)
 			/* If this bit is set the declaration specifier
