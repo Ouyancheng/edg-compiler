@@ -1,3 +1,20 @@
+Version 2.20, November 4, 1993
+
+11/04/93  Exception Handling support
+
+This version includes support for a portable exception handling
+implementation.  The config.h file should be inspected to ensure
+that the settings are appropriate for your system.
+
+Most of the EH implementation is in EH specific files such as throw.c
+and eh_util.c.  There have been changed made to vec_newdel.c to
+handle cleanup of partially constructed arrays.
+
+The library now contains a version of exit with C++ linkage.  This change
+is also a result of the EH implementation and requires that the header
+files that define exit be modified accordingly.
+
+-------------------------------------------------------------------------------
 Version 2.13, January 22, 1993
 
 12/07/92  More portable means of calling static destructors
