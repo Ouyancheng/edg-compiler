@@ -6809,7 +6809,7 @@ Generate code for a stmk_init (dynamic initialization) statement.
 }  /* lower_stmk_init */
 
 
-extern void insert_temp_init_statements(a_statement_ptr  statement)
+void insert_temp_init_statements(a_statement_ptr  statement)
 /*
 If there are any pending statements (as the result of lowering an enk_temp_init
 node), insert them before the given statement.  (This happens when lowering
