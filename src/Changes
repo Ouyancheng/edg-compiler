@@ -1,5 +1,29 @@
 Version 2.27
 
+10/24/94 Prelinker, eccp, and .ii file format changes
+
+The instantiation information file (i.e., .ii file) format has
+been changed to support some additional options that have been
+added to the prelinker and eccp.  The format change adds two
+additional lines to the header.  The new lines contain the directory name
+in which the compilation was done, and the name of the file compiled.
+The name of the file compiled is no longer part of the command line
+in the .ii file.  The default value of INSTANTIATION_INFO_LINES_RESERVED
+in host_envir.h has been changed from 1 to 3.
+
+An eccp option (--old_ii_format) has been added that preserves the
+old behavior.  This option assumes that the front end that is executed
+was built with INSTANTIATION_INFO_LINES_RESERVED set to 1.  A new
+edg_prelink option has been added that specifies the number of reserved
+.ii file lines to be used.  The --old_ii_format option to eccp results
+in the -R1 option being passed to the prelinker.  This option allows
+the new eccp script and prelinker to be used with an older version
+of the front end.  Setting the environment variable EDG_OLD_II_FORMAT to
+1 has the same effect as providing the --old_ii_format option.
+
+For additional information on the new eccp and prelinker options,
+see the Changes file in the util directory.
+
 10/24/94 Bug when both using and generating a PCH file
 
 A bug has been fixed that resulted in an internal error when both using
