@@ -675,7 +675,7 @@ Establish this new region as the current il region.
 {
   switch_il_region(new_memory_region());
   /* Clear the list of function-local shared constants, since anything on
-     the list at this poiint is from a previous function. */
+     the list at this point is from a previous function. */
   func_shareable_constants_list = NULL;
 }  /* new_il_region */
   
@@ -1572,7 +1572,6 @@ a pointer to it.
   ctsp->access_adjustments            = NULL;
   ctsp->befriending_classes           = NULL;
   ctsp->types                         = NULL;
-  ctsp->template_args                 = NULL;
 }  /* alloc_class_type_supplement */
 
 
