@@ -1257,6 +1257,7 @@ ec_invalid_token_after_template;;"\"template\" must be followed by an identifier
 ec_mythread_constant_not_allowed;;"MYTHREAD not allowed in this context"
 ec_bad_upc_shared_pointer_layout_qualifier;;"layout qualifier cannot qualify pointer to shared"
 ec_bad_upc_shared_array_layout_qualifier;;"layout qualifier cannot qualify an incomplete array"
+ec_decl_hides_catch_parameter;;"declaration of %sq hides handler parameter"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

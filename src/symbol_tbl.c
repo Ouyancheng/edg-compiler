@@ -3040,6 +3040,11 @@ this is not allowed, an error will be issued by the caller.
       /* A declaration can hide a handler parameter in g++ mode.  Note that
          the kind of the new symbol is not important. */
       err = FALSE;
+      if (!suppress_error) {
+        pos_st_warning(ec_decl_hides_catch_parameter,
+                       &new_sym->decl_position,
+                       new_sym->header->identifier);
+      }  /* if */
     } else {
       a_symbol_ptr fund_new_sym = fundamental_symbol_of(new_sym);
       a_symbol_ptr fund_old_sym = fundamental_symbol_of(old_sym);
