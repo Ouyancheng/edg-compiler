@@ -1166,12 +1166,33 @@ values.
   operand->access_control_error_reported = FALSE;
   operand->is_operand_of_address_of = FALSE;
   operand->is_template_id = FALSE;
-  operand->position.seq = 0;
-  operand->position.column = SP_COL_UNKNOWN;
+  operand->position = null_source_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  operand->end_position = null_source_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   operand->ref_entries_list = NULL;
   operand->template_arg_list = NULL;
   set_operand_kind(operand, kind);
 }  /* clear_operand */
+
+
+static void set_operand_position_to_pos_curr_token(an_operand *operand)
+/*
+Set the position in the given operand to the current token position.
+*/
+{
+  operand->position = pos_curr_token;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  operand->end_position = end_pos_curr_token;
+  /* If the operand has kind ok_expression, set the position in the
+     expression too. */
+  if (is_expression_operand(operand)) {
+    an_expr_node_ptr expr = operand->variant.expression;
+    expr->expr_range.start = operand->position;
+    expr->expr_range.end   = operand->end_position;
+  }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+}  /* set_operand_position_to_pos_curr_token */
 
 #if DEBUG
 
@@ -1344,6 +1365,7 @@ expression node.
         /* Create a constant node and copy the constant in the operand to the
            node. */
         node = alloc_node_for_constant(con);
+        copy_operand_position_to_expr(operand, node);
       }  /* if */
       break;
 #if CHECKING
@@ -1400,6 +1422,9 @@ destroyed its source position, etc.  Restore such things from
 */
 {
   operand->position = orig_operand->position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  operand->end_position = orig_operand->end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   operand->bound_function = orig_operand->bound_function;
   operand->is_qualified_name = orig_operand->is_qualified_name;
   operand->access_control_error_reported =
@@ -1527,7 +1552,7 @@ current token will be used as the operand position.
     operand->type = constant->type;
   }  /* if */
   operand->state = (an_operand_state)os_rvalue;
-  copy_source_position(pos_curr_token, operand->position);
+  set_operand_position_to_pos_curr_token(operand);
 }  /* make_constant_operand */
 
 
@@ -1606,7 +1631,7 @@ Make a constant operand and set it to some integer value.
                        (an_integer_kind)ik_int);
   operand->type = operand->variant.constant.type;
   operand->state = (an_operand_state)os_rvalue;
-  copy_source_position(pos_curr_token, operand->position);
+  set_operand_position_to_pos_curr_token(operand);
 }  /* make_integer_constant_operand */
 
 
@@ -1624,7 +1649,7 @@ operand position.
   operand->type = type;
   operand->state = (an_operand_state)os_rvalue;
   operand->variant.expression = node;
-  copy_source_position(pos_curr_token, operand->position);
+  set_operand_position_to_pos_curr_token(operand);
 }  /* make_expression_operand */
 
 
@@ -1650,7 +1675,7 @@ template_arg_list is the template argument list.  The operand is put into
   operand->is_template_id = is_template_id;
   operand->variant.symbol = routine_sym;
   operand->template_arg_list = template_arg_list;
-  copy_source_position(pos_curr_token, operand->position);
+  set_operand_position_to_pos_curr_token(operand);
 }  /* make_indefinite_function_operand */
 
 
@@ -1686,7 +1711,7 @@ symbol is a function, an rvalue otherwise.
   }  /* if */
   operand->variant.symbol = member_sym;
   operand->is_qualified_name = is_qualified_name;
-  copy_source_position(pos_curr_token, operand->position);
+  set_operand_position_to_pos_curr_token(operand);
   operand->ref_entries_list = rep;
 }  /* make_sym_for_member_operand */
 
@@ -4062,7 +4087,6 @@ reference entry, or is NULL if none is needed.
     */
     make_expression_operand(var_rvalue_expr(variable), variable_type,
                             result);
-    copy_source_position(pos_curr_token, result->position);
   } else {
     if (variable->storage_class == (a_storage_class)sc_register ||
         variable->storage_class == (a_storage_class)sc_auto) {
@@ -4082,7 +4106,6 @@ reference entry, or is NULL if none is needed.
       result->type = variable_type;
     }  /* if */
     result->state = (an_operand_state)os_lvalue;
-    copy_source_position(pos_curr_token, result->position);
     /* Start a list of reference entries related to the operand. */
     result->ref_entries_list = rep;
     /* If the variable has a reference type, add an implicit indirection. */
@@ -4090,6 +4113,7 @@ reference entry, or is NULL if none is needed.
       add_reference_indirection(result);
     }  /* if */
   }  /* if */
+  set_operand_position_to_pos_curr_token(result);
 }  /* make_lvalue_variable_operand */
 
 
@@ -5541,6 +5565,9 @@ not an lvalue, it is left alone.
            constant-valued variable has been replaced by its value,
            which are allowed in C++. */
         operand->position = orig_operand.position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        operand->end_position = orig_operand.end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         error_in_operand(ec_expr_not_constant, operand);
       }  /* if */
     }  /* if */

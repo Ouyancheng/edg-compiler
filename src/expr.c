@@ -440,6 +440,49 @@ current expression (used to decide how a comma should be treated).
   return done;
 }  /* token_ends_expr */
 
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+
+static void f_set_operand_position(an_operand        *result,
+                                   a_source_position *start_pos,
+                                   a_source_position *end_pos,
+                                   a_source_position *operator_pos)
+/*
+Record the source position in an_operand at the end of scanning
+an expression.  result is the result operand.  start_pos and end_pos
+give the beginning and ending source positions.  operator_pos gives
+the operator position.  Global variables error_position and
+curr_construct_end_position are set appropriately.
+*/
+{
+  error_position = result->position = *start_pos;
+  curr_construct_end_position = result->end_position = *end_pos;
+  /* If the operand is an expression, record positions in the expression
+     itself. */
+  if (is_expression_operand(result)) {
+    an_expr_node_ptr expr = result->variant.expression;
+    expr->expr_range.start = *start_pos;
+    expr->expr_range.end = *end_pos;
+    expr->operator_position = *operator_pos;
+  }  /* if */
+}  /* f_set_operand_position */
+
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+
+/*
+Macro to record source positions in an_operand at the end of scanning
+an expression.  result is the result operand.  start_pos and end_pos
+give the beginning and ending source positions.  operator_pos gives
+the operator position.  Some of these used only if
+EXTRA_SOURCE_POSITIONS_IN_IL is TRUE.
+*/
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+#define set_operand_position(result, start_pos, end_pos, operator_pos) \
+  f_set_operand_position(result, start_pos, end_pos, operator_pos)
+#else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
+#define set_operand_position(result, start_pos, end_pos, operator_pos) \
+{ error_position = (result)->position = *(start_pos); }
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+
 
 static a_boolean is_overloadable_type_operand(an_operand *operand)
 /*
@@ -468,6 +511,9 @@ Syntax:
   an_operand         operand_2, operand_temp;
   a_type_ptr         result_type;
   a_source_position  operator_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position  end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_boolean          err = FALSE, processed = FALSE;
 
   db_enter(4, "scan_subscript_operator");
@@ -594,11 +640,15 @@ Syntax:
     }  /* if */
   }  /* if */
 
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  /* Save the position of the "]". */
+  end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   (void)required_token(tok_rbracket, ec_exp_rbracket);
   remove_matching_stop_token(tok_rbracket);
 
-  copy_source_position(operand_1->position, error_position);
-  copy_source_position(operand_1->position, result->position);
+  set_operand_position(result, &operand_1->position, &end_position,
+                       &operator_position);
 
   db_exit();
 }  /* scan_subscript_operator */
@@ -1283,6 +1333,9 @@ build an argument operand list and return a pointer to it in
   }  /* if */
 
   /* Check for the closing paren. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  curr_construct_end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   (void)required_token(tok_rparen, ec_exp_rparen);
   remove_matching_stop_token(tok_rparen);
   /* Return argument list pointer to caller. */
@@ -1325,8 +1378,11 @@ error err_code.  The entity being initialized is assumed not to be a
 variable.
 */
 {
-  an_expr_node_ptr expr;
-  an_operand       result;
+  an_expr_node_ptr  expr;
+  an_operand        result;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   add_matching_stop_token(tok_rparen);
   /* Since the syntax has an expression-list even in the single-expression
@@ -1339,10 +1395,16 @@ variable.
                            /*static_lifetime=*/FALSE,
                            /*is_copy_initialization=*/FALSE,
                            err_code);
-   /* Check for the required closing parenthesis. */
+  /* Check for the required closing parenthesis. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   check_closing_paren_after_expr_list();
   remove_matching_stop_token(tok_rparen);
   expr = make_node_from_operand(&result);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  curr_construct_end_position = end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   return expr;
 }  /* scan_parenthesized_initializer_expression */
 
@@ -1550,6 +1612,9 @@ Syntax:
   a_boolean         overloaded_function_case = FALSE;
   a_boolean         vacuous_destructor_case = FALSE;
   a_source_position call_position, function_position, first_arg_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position operator_position, end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   an_arg_match_summary
                     this_match_summary;
   an_arg_operand_ptr
@@ -1561,6 +1626,10 @@ Syntax:
 
   db_enter(4, "scan_function_call");
 
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  /* Save the position of the "(". */
+  operator_position = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   call_position = operand->position;
   function_position = call_position;
   if (curr_expr_kind_is_const()) {
@@ -1729,6 +1798,9 @@ Syntax:
                       already_after_left_paren, &argument_list,
                       overloaded_function_case, &arg_operand_list);
   error_position = call_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  end_position = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   if (overloaded_function_case) {
     /* Choose the proper function out of a set of overloaded functions based
@@ -1805,11 +1877,9 @@ Syntax:
     /* Build the call node and an operand for it. */
     assemble_function_call(operand, bound_function_selector, argument_list,
                            result);
-    /* Adjust the operand position (needed for the operator() case). */
-    result->position = call_position;
   }  /* if */
-  copy_source_position(call_position, error_position);
-
+  set_operand_position(result, &call_position, &end_position,
+                       &operator_position);
   db_exit();
 }  /* scan_function_call */
                            
@@ -3646,9 +3716,8 @@ operation is a pointer-to-member (see ARM 5.3).
     }  /* if */
   }  /* if */
 
-  error_position = start_position;
-  result->position = start_position;
-
+  set_operand_position(result, &start_position, &operand.end_position,
+                       &start_position);
   db_exit();
 }  /* scan_ampersand_operator */
 
@@ -3734,9 +3803,8 @@ See section 3.3.3.2 of the standard.
     }  /* if */
   }  /* if */
 
-  copy_source_position(start_position, error_position);
-  copy_source_position(start_position, result->position);
-
+  set_operand_position(result, &start_position, &operand.end_position,
+                       &start_position);
   db_exit();
 }  /* scan_indirection_operator */
 
@@ -3923,9 +3991,8 @@ arithmetic type.  The operand of "~" must have integral type.  See section
     }  /* if */
   }  /* if */
 
-  copy_source_position(start_position, error_position);
-  copy_source_position(start_position, result->position);
-
+  set_operand_position(result, &start_position, &operand.end_position,
+                       &start_position);
   db_exit();
 }  /* scan_arith_prefix_operator */
 
@@ -3944,6 +4011,9 @@ Syntax:
 {
   a_source_position     start_position, type_position;
   a_source_position     lparen_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position     end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   an_operand            operand;
   a_constant            constant;
   a_boolean             is_parenthesized = FALSE, is_type = FALSE;
@@ -4013,12 +4083,18 @@ Syntax:
       /* Scan the type-name for a parenthesized type. */
       add_matching_stop_token(tok_rparen);
       type_name(&sizeof_type);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       (void)required_token(tok_rparen, ec_exp_rparen);
       remove_matching_stop_token(tok_rparen);
     } else {
       /* Unparenthesized type, e.g., "sizeof T" (Microsoft extension). */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       sizeof_type = simple_type_specifier_sequence();
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      end_position = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
       unexpected_condition();
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -4059,6 +4135,9 @@ Syntax:
     }  /* if */
     sizeof_type = operand.type;
     copy_source_position(operand.position, type_position);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_position = operand.end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
 
   sizeof_type = skip_typerefs(sizeof_type);
@@ -4113,10 +4192,8 @@ Syntax:
     make_constant_operand(&constant, result);
   }  /* if */
 
-  /* Set the error position to the starting position. */
-  copy_source_position(start_position, error_position);
-  copy_source_position(start_position, result->position);
-
+  set_operand_position(result, &start_position, &end_position,
+                       &start_position);
   pop_expr_stack();
 
   db_exit();
@@ -4139,6 +4216,9 @@ be inappropriate, because the feature is probably used to implement
 */
 {
   a_source_position   start_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position   end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   an_operand          operand;
   a_constant          constant;
   a_type_ptr          alignof_type;
@@ -4192,14 +4272,15 @@ be inappropriate, because the feature is probably used to implement
                                   targ_size_t_int_kind);
   }  /* if */
   make_constant_operand(&constant, result);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Check for and pass over the right parenthesis. */
   (void)required_token(tok_rparen, ec_exp_rparen);
   remove_matching_stop_token(tok_rparen);
 
-  /* Set the error position to the starting position. */
-  copy_source_position(start_position, error_position);
-  copy_source_position(start_position, result->position);
-
+  set_operand_position(result, &start_position, &end_position,
+                       &start_position);
   pop_expr_stack();
 
   db_exit();
@@ -4218,6 +4299,9 @@ This is the C++ syntax.  C++ type-id is the same as C type-name.
 */
 {
   a_source_position start_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   an_operand        operand;
   an_expr_node_ptr  expr = NULL, typeid_node;
   a_type_ptr        typeid_type;
@@ -4299,6 +4383,9 @@ This is the C++ syntax.  C++ type-id is the same as C type-name.
     error(ec_incomplete_type_not_allowed);
     err = TRUE;
   }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Check for and pass over the right parenthesis. */
   (void)required_token(tok_rparen, ec_exp_rparen);
   remove_matching_stop_token(tok_rparen);
@@ -4319,9 +4406,8 @@ This is the C++ syntax.  C++ type-id is the same as C type-name.
     make_expression_operand(typeid_node, const_type_info, result);
     result->state = (an_operand_state)os_lvalue;
   }  /* if */
-  /* Set the error position to the starting position. */
-  error_position = start_position;
-  result->position = start_position;
+  set_operand_position(result, &start_position, &end_position,
+                       &start_position);
   db_exit();
 }  /* scan_typeid_operator */
 
@@ -4376,6 +4462,9 @@ and last_param is the last parameter before the "..." of the function.
 */
 {
   a_source_position start_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   an_operand        operand;
   an_expr_node_ptr  node1, node2;
   a_boolean         err = FALSE;
@@ -4421,6 +4510,9 @@ and last_param is the last parameter before the "..." of the function.
     }  /* if */
     err = TRUE;
   }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Check for and pass over the right parenthesis. */
   (void)required_token(tok_rparen, ec_exp_rparen);
   remove_matching_stop_token(tok_rparen);
@@ -4435,9 +4527,8 @@ and last_param is the last parameter before the "..." of the function.
                                        void_type(), node1);
     make_expression_operand(va_start_node, va_start_node->type, result);
   }  /* if */
-  /* Set the error position to the starting position. */
-  error_position = start_position;
-  result->position = start_position;
+  set_operand_position(result, &start_position, &end_position,
+                       &start_position);
   db_exit();
 }  /* scan_va_start_operator */
 
@@ -4454,6 +4545,9 @@ and type is the type of the argument to be extracted.
 */
 {
   a_source_position start_position, type_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   an_expr_node_ptr  node;
   a_type_ptr        type;
   a_boolean         err = FALSE;
@@ -4492,6 +4586,9 @@ and type is the type of the argument to be extracted.
     pos_error(ec_bad_va_arg, &type_position);
     err = TRUE;
   }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Check for and pass over the right parenthesis. */
   (void)required_token(tok_rparen, ec_exp_rparen);
   remove_matching_stop_token(tok_rparen);
@@ -4503,9 +4600,8 @@ and type is the type of the argument to be extracted.
              make_operator_node((an_expr_operator_kind)eok_va_arg, type, node);
     make_expression_operand(va_arg_node, type, result);
   }  /* if */
-  /* Set the error position to the starting position. */
-  error_position = start_position;
-  result->position = start_position;
+  set_operand_position(result, &start_position, &end_position,
+                       &start_position);
   db_exit();
 }  /* scan_va_arg_operator */
 
@@ -4521,6 +4617,9 @@ where va_list_var is a variable declared with the builtin type va_list.
 */
 {
   a_source_position start_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   an_expr_node_ptr  node;
   a_boolean         err = FALSE;
 
@@ -4542,6 +4641,9 @@ where va_list_var is a variable declared with the builtin type va_list.
   add_matching_stop_token(tok_rparen);
   /* Scan the expression. */
   node = scan_va_list_lvalue_expr(/*value_used=*/TRUE, ec_bad_va_end, &err);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Check for and pass over the right parenthesis. */
   (void)required_token(tok_rparen, ec_exp_rparen);
   remove_matching_stop_token(tok_rparen);
@@ -4553,9 +4655,8 @@ where va_list_var is a variable declared with the builtin type va_list.
       make_operator_node((an_expr_operator_kind)eok_va_end, void_type(), node);
     make_expression_operand(va_end_node, va_end_node->type, result);
   }  /* if */
-  /* Set the error position to the starting position. */
-  error_position = start_position;
-  result->position = start_position;
+  set_operand_position(result, &start_position, &end_position,
+                       &start_position);
   db_exit();
 }  /* scan_va_end_operator */
 
@@ -4573,6 +4674,9 @@ The value of the operation is an lvalue of type "const struct _GUID".
 */
 {
   a_source_position start_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   an_operand        operand;
   a_type_ptr        uuidof_type;
   a_boolean         err = FALSE;
@@ -4643,6 +4747,9 @@ The value of the operation is an lvalue of type "const struct _GUID".
       err = TRUE;
     }  /* if */
   }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Check for and pass over the right parenthesis. */
   (void)required_token(tok_rparen, ec_exp_rparen);
   remove_matching_stop_token(tok_rparen);
@@ -4665,21 +4772,25 @@ The value of the operation is an lvalue of type "const struct _GUID".
     result->state = (an_operand_state)os_lvalue;
     result->type = const_guid_type;
   }  /* if */
-  /* Set the error position to the starting position. */
-  error_position = start_position;
-  result->position = start_position;
+  set_operand_position(result, &start_position, &end_position,
+                       &start_position);
   db_exit();
 }  /* scan_uuidof_operator */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+#if !EXTRA_SOURCE_POSITIONS_IN_IL
+/*ARGSUSED*/ /* <-- end_position is not used in that case. */
+#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 static a_boolean scan_new_style_cast(a_type_ptr        *cast_type,
                                      a_source_position *type_position,
+                                     a_source_position *end_position,   
                                      an_operand        *operand)
 /*
 Scan the sequence "< type-id > ( expression )" as part of a new-style cast.
 Return the type in *cast_type (and its position in *type_position) and
-the expression in *operand.  Various error cases are checked for (e.g.,
+the expression in *operand.  The position of the final ")" is returned
+in *end_position.  Various error cases are checked for (e.g.,
 the type defines something); FALSE is returned if there is an error.
 */
 {
@@ -4703,6 +4814,9 @@ the type defines something); FALSE is returned if there is an error.
   /* Scan the expression. */
   scan_expr(operand, PREC_LOWEST, EOPT_NO_OPTIONS);
   /* Check for and pass over the ")". */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  *end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   (void)required_token(tok_rparen, ec_exp_rparen);
   remove_matching_stop_token(tok_rparen);
   return !err;
@@ -4718,7 +4832,7 @@ Syntax:
 
 */
 {
-  a_source_position start_position, type_position;
+  a_source_position start_position, type_position, end_position;
   an_operand        operand;
   a_type_ptr        cast_type, underlying_cast_type, operand_type;
   a_type_ptr        operation_type, underlying_operand_type;
@@ -4749,7 +4863,8 @@ Syntax:
   /* Advance past dynamic_cast. */
   (void)get_token();
   /* Scan "< type-id > ( expression )". */
-  if (!scan_new_style_cast(&cast_type, &type_position, &operand)) {
+  if (!scan_new_style_cast(&cast_type, &type_position, &end_position,
+                           &operand)) {
     err = TRUE;
   }  /* if */
   if (!err) {
@@ -4898,9 +5013,8 @@ Syntax:
       conv_object_pointer_to_lvalue(result);
     }  /* if */
   }  /* if */
-  /* Set the error position to the starting position. */
-  error_position = start_position;
-  result->position = start_position;
+  set_operand_position(result, &start_position, &end_position,
+                       &start_position);
   db_exit();
 }  /* scan_dynamic_cast_operator */
 
@@ -4966,6 +5080,9 @@ because the feature is used to implement offsetof, a standard feature.
 */
 {
   a_source_position start_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   db_enter(4, "scan_intaddr_operator");
   /* Save the position of the __INTADDR__ keyword. */
@@ -4981,12 +5098,14 @@ because the feature is used to implement offsetof, a standard feature.
   cast_operand(integer_type(targ_size_t_int_kind), result,
                /*check_cast_access=*/TRUE, /*is_implicit_cast=*/TRUE,
                /*is_reinterpret_cast=*/FALSE);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Check for and pass over the right parenthesis. */
   (void)required_token(tok_rparen, ec_exp_rparen);
   remove_matching_stop_token(tok_rparen);
-  /* Set the error position to the starting position. */
-  error_position = start_position;
-  result->position = start_position;
+  set_operand_position(result, &start_position, &end_position,
+                       &start_position);
   db_exit();
 }  /* scan_intaddr_operator */
 
@@ -5178,6 +5297,9 @@ specification allow a variable-sized array as the top type.
 {
   a_boolean         err = FALSE;
   a_source_position start_position, type_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_source_position new_position;
   a_type_ptr        new_type, base_new_type, ptr_new_type, element_type;
   a_type_ptr        unqual_new_type, unqual_base_new_type;
@@ -5266,6 +5388,9 @@ specification allow a variable-sized array as the top type.
   copy_source_position(pos_curr_token, type_position);
   /* Scan the new-type-name or ( type-name ). */
   new_type_name(trapped_left_paren, &new_type);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  end_position = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   unqual_new_type = skip_typerefs(new_type);
   /* Instantiate the type if it is a template class. */
   complete_type_is_needed(new_type);
@@ -5593,6 +5718,9 @@ specification allow a variable-sized array as the top type.
       /* Scan the constructor arguments. */
       scan_ctor_arguments(ctor_sym, &init_arg_expr_list, &ctor_routine,
                           &lparen_pos, base_new_type);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      end_position = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       /* In the array case (an error), throw away the argument list. */
       if (array_new) init_arg_expr_list = NULL;
       needs_initialization = (ctor_routine != NULL);
@@ -5609,11 +5737,17 @@ specification allow a variable-sized array as the top type.
                                                       err ? error_type() :
                                                             new_type,
                                                       ec_bad_initializer_type);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        end_position = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         needs_initialization = TRUE;
       } else {
         /* The initializer is empty, i.e., "()".  This means
            zero-initialization. Note that "()" for class types with
            (nontrivial) constructors is handled above. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         (void)get_token();
         needs_initialization = TRUE;
         zero_initialization = TRUE;
@@ -5698,10 +5832,8 @@ specification allow a variable-sized array as the top type.
     free_arg_operand_list(arg_operand_list);
   }  /* if */
   free_arg_match_summary_list(arg_match_list);
-  /* Set the error position to the starting position. */
-  copy_source_position(start_position, error_position);
-  copy_source_position(start_position, result->position);
-
+  set_operand_position(result, &start_position, &end_position,
+                       &start_position);
   db_exit();
 }  /* scan_new_operator */
 
@@ -6015,10 +6147,8 @@ As an anachronism, allow an expression inside the [ ].
     }  /* if */
   }  /* if */
 
-  /* Set the error position to the starting position. */
-  copy_source_position(start_position, error_position);
-  copy_source_position(start_position, result->position);
-
+  set_operand_position(result, &start_position, &operand.end_position,
+                       &start_position);
   db_exit();
 }  /* scan_delete_operator */
 
@@ -6799,7 +6929,7 @@ Syntax:
 
 */
 {
-  a_source_position start_position, type_position;
+  a_source_position start_position, type_position, end_position;
   an_operand        operand;
   a_type_ptr        cast_type, underlying_cast_type, operand_type;
   a_type_ptr        operation_type;
@@ -6822,7 +6952,8 @@ Syntax:
   /* Advance past const_cast. */
   (void)get_token();
   /* Scan "< type-id > ( expression )". */
-  if (!scan_new_style_cast(&cast_type, &type_position, &operand)) {
+  if (!scan_new_style_cast(&cast_type, &type_position, &end_position,
+                           &operand)) {
     err = TRUE;
   }  /* if */
   /* Except when casting to a reference type, do operand transformations
@@ -6929,9 +7060,8 @@ Syntax:
       conv_object_pointer_to_lvalue(result);
     }  /* if */
   }  /* if */
-  /* Set the error position to the starting position. */
-  error_position = start_position;
-  result->position = start_position;
+  set_operand_position(result, &start_position, &end_position,
+                       &start_position);
   db_exit();
 }  /* scan_const_cast_operator */
 
@@ -6945,7 +7075,7 @@ Syntax:
 
 */
 {
-  a_source_position start_position, type_position;
+  a_source_position start_position, type_position, end_position;
   a_type_ptr        type_cast_to, orig_type_cast_to, source_type;
   a_boolean         err = FALSE, processed = FALSE;
   an_error_code     warning_suggested;
@@ -6966,7 +7096,8 @@ Syntax:
   /* Advance past static_cast. */
   (void)get_token();
   /* Scan "< type-id > ( expression )". */
-  if (!scan_new_style_cast(&type_cast_to, &type_position, result)) {
+  if (!scan_new_style_cast(&type_cast_to, &type_position, &end_position,
+                           result)) {
     err = TRUE;
   } else {
     a_boolean cast_to_reference = is_reference_type(type_cast_to);
@@ -7066,9 +7197,8 @@ Syntax:
     }  /* if */
   }  /* if */
   if (err) conv_to_error_operand(result);
-  /* Set the error position to the starting position. */
-  error_position = start_position;
-  result->position = start_position;
+  set_operand_position(result, &start_position, &end_position,
+                       &start_position);
   db_exit();
 }  /* scan_static_cast_operator */
 
@@ -7082,7 +7212,7 @@ Syntax:
 
 */
 {
-  a_source_position start_position, type_position;
+  a_source_position start_position, type_position, end_position;
   a_type_ptr        type_cast_to, orig_type_cast_to, source_type;
   a_boolean         cast_to_reference = FALSE, err = FALSE;
   an_error_code     warning_suggested;
@@ -7103,7 +7233,8 @@ Syntax:
   /* Advance past reinterpret_cast. */
   (void)get_token();
   /* Scan "< type-id > ( expression )". */
-  if (!scan_new_style_cast(&type_cast_to, &type_position, result)) {
+  if (!scan_new_style_cast(&type_cast_to, &type_position, &end_position,
+                           result)) {
     err = TRUE;
   } else {
     orig_type_cast_to = type_cast_to;
@@ -7177,9 +7308,8 @@ Syntax:
     }  /* if */
   }  /* if */
   if (err) conv_to_error_operand(result);
-  /* Set the error position to the starting position. */
-  error_position = start_position;
-  result->position = start_position;
+  set_operand_position(result, &start_position, &end_position,
+                       &start_position);
   db_exit();
 }  /* scan_reinterpret_cast_operator */
 
@@ -7239,6 +7369,9 @@ or
 */
 {
   a_source_position start_position, type_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_type_ptr        type_cast_to;
   a_boolean         err = FALSE;
   a_boolean         cast_to_func_ptr;
@@ -7280,6 +7413,9 @@ or
     scan_cast_expression(type_cast_to, cast_to_func_ptr,
                          /*allow_comma=*/TRUE, PREC_CAST,
                          result, &local_bound_function_selector);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_position = result->end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* Check compatibility of the types and do the cast. */
     do_cast(type_cast_to, result, &local_bound_function_selector,
             local_options, err, cast_to_func_ptr, &type_position,
@@ -7298,14 +7434,15 @@ or
       options |= (local_options & EOPT_OPERAND_OF_ADDRESS_OF);
     }  /* if */
     scan_expr_full(result, bound_function_selector, PREC_LOWEST, options);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     (void)required_token(tok_rparen, ec_exp_rparen);
     remove_matching_stop_token(tok_rparen);
   }  /* if */
 
-  /* Set the error position to the starting position. */
-  copy_source_position(start_position, error_position);
-  copy_source_position(start_position, result->position);
-
+  set_operand_position(result, &start_position, &end_position,
+                       &start_position);
   db_exit();
 }  /* scan_cast_or_expr */
 
@@ -7363,6 +7500,9 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
 */
 {
   a_source_position             lparen_pos;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position             end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_boolean                     err = FALSE;
   a_boolean                     cast_to_func_ptr;
   a_symbol_ptr                  ctor_sym;
@@ -7406,6 +7546,9 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
     scan_ctor_arguments(ctor_sym, &arg_expr_list, &ctor_routine, &lparen_pos,
 			type_cast_to);
     error_position = *start_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_position = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     if (err || ctor_routine == NULL) {
       /* Error of some sort. */
       make_error_operand(result);
@@ -7495,13 +7638,14 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
               local_options, err, cast_to_func_ptr, start_position,
               start_position);
     }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* Check for the closing parenthesis. */
     check_closing_paren_after_expr_list();
     remove_matching_stop_token(tok_rparen);
   }  /* if */
-  /* Set the error position to the starting position. */
-  error_position = *start_position;
-  result->position = *start_position;
+  set_operand_position(result, start_position, &end_position, start_position);
   db_exit();
 }  /* scan_functional_notation_type_conversion */
 
@@ -7626,10 +7770,8 @@ be of integral type.  See section 3.3.5 of the standard.
                         result_type, result, &operator_position);
   }  /* if */
 
-  /* Set the error position to the starting position. */
-  copy_source_position(operand_1->position, error_position);
-  copy_source_position(operand_1->position, result->position);
-
+  set_operand_position(result, &operand_1->position, &operand_2.end_position,
+                       &operator_position);
   db_exit();
 }  /* scan_mult_operator */
 
@@ -7821,10 +7963,8 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
     }  /* if */
   }  /* if */
 
-  /* Set the error position to the starting position. */
-  copy_source_position(operand_1->position, error_position);
-  copy_source_position(operand_1->position, result->position);
-
+  set_operand_position(result, &operand_1->position, &operand_2.end_position,
+                       &operator_position);
   db_exit();
 }  /* scan_add_operator */
 
@@ -7916,10 +8056,8 @@ Scan the "<<" and ">>" operators.  See section 3.3.7 of the standard.
                         &error_position);
   }  /* if */
 
-  /* Set the error position to the starting position. */
-  copy_source_position(operand_1->position, error_position);
-  copy_source_position(operand_1->position, result->position);
-
+  set_operand_position(result, &operand_1->position, &operand_2.end_position,
+                       &operator_position);
   db_exit();
 }  /* scan_shift_operator */
 
@@ -8140,10 +8278,8 @@ standard.
                         &operator_position);
   }  /* if */
 
-  /* Set the error position to the starting position. */
-  copy_source_position(operand_1->position, error_position);
-  copy_source_position(operand_1->position, result->position);
-
+  set_operand_position(result, &operand_1->position, &operand_2.end_position,
+                       &operator_position);
   db_exit();
 }  /* scan_rel_operator */
 
@@ -8280,10 +8416,8 @@ Scan the "==" and "!=" operators.  See section 3.3.9 in the standard.
                         &operator_position);
   }  /* if */
 
-  /* Set the error position to the starting position. */
-  copy_source_position(operand_1->position, error_position);
-  copy_source_position(operand_1->position, result->position);
-
+  set_operand_position(result, &operand_1->position, &operand_2.end_position,
+                       &operator_position);
   db_exit();
 }  /* scan_eq_operator */
 
@@ -8358,10 +8492,8 @@ Scan the "&", "^", and "|" operators.  See sections 3.3.10, 3.3.11, and
                         &operator_position);
   }  /* if */
 
-  /* Set the error position to the starting position. */
-  copy_source_position(operand_1->position, error_position);
-  copy_source_position(operand_1->position, result->position);
-
+  set_operand_position(result, &operand_1->position, &operand_2.end_position,
+                       &operator_position);
   db_exit();
 }  /* scan_bit_operator */
 
@@ -8557,10 +8689,8 @@ standard.
     }  /* if */
   }  /* if */
 
-  /* Set the error position to the starting position. */
-  copy_source_position(operand_1->position, error_position);
-  copy_source_position(operand_1->position, result->position);
-
+  set_operand_position(result, &operand_1->position, &operand_2.end_position,
+                       &operator_position);
   db_exit();
 }  /* scan_logical_operator */
 
@@ -8763,6 +8893,9 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
   an_operand            operand_2;
   an_operand            operand_3;
   a_source_position     operator_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position     question_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_boolean             operand_1_is_const = FALSE;
   a_boolean             operand_1_is_false = FALSE;
   a_boolean             result_is_an_lvalue = FALSE;
@@ -8781,6 +8914,9 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
 
   db_enter(4, "scan_conditional_operator");
 
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  question_position = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Check the first operand's type. */
   process_boolean_controlling_expression(operand_1);
   /* There is a sequence point after the first operand. */
@@ -9197,10 +9333,8 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
 
 error_exit:
 
-  /* Set the error position to the starting position. */
-  copy_source_position(operand_1->position, error_position);
-  copy_source_position(operand_1->position, result->position);
-
+  set_operand_position(result, &operand_1->position, &operand_3.end_position,
+                       &question_position);
   db_exit();
 }  /* scan_conditional_operator */
 
@@ -9358,10 +9492,8 @@ Scan the simple assignment operator ("=").  See section 3.3.16 of the standard.
     }  /* if */
   }  /* if */
 
-  /* Set the error position to the starting position. */
-  copy_source_position(operand_1->position, error_position);
-  copy_source_position(operand_1->position, result->position);
-
+  set_operand_position(result, &operand_1->position, &operand_2.end_position,
+                       &operator_position);
   db_exit();
 }  /* scan_simple_assignment_operator */
 
@@ -9617,10 +9749,8 @@ See section 3.3.16 of the standard.
     operand_will_not_be_used_because_of_error(&operand_1_clone);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  /* Set the error position to the starting position. */
-  copy_source_position(operand_1->position, error_position);
-  copy_source_position(operand_1->position, result->position);
-
+  set_operand_position(result, &operand_1->position, &operand_2.end_position,
+                       &operator_position);
   db_exit();
 }  /* scan_compound_assignment_operator */
 
@@ -9673,6 +9803,9 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
 {
   an_operand          operand;
   a_source_position   start_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position   end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_boolean           err = FALSE, expr_present;
   an_expr_node_ptr    node, throw_node;
   a_dynamic_init_ptr  dip;
@@ -9705,6 +9838,9 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
     internal_error("scan_throw_operator: expected throw");
   }  /* if */
 #endif /* CHECKING */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   (void)get_token();
 
   /* See if the expression is present. */
@@ -9729,6 +9865,9 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
     expr_stack->in_cctor_elision_initializer = TRUE;
     /* Scan the expression. */
     scan_expr(&operand, PREC_ASSIGNMENT, EOPT_NO_OPTIONS);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_position = operand.end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* Instantiate the type if it is a template class.  The type has to be
        complete so we can copy it (and we do this now so we can test whether
        the type is an abstract class). */
@@ -9806,9 +9945,8 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
     /* Pop the expression stack entry pushed above. */
     pop_expr_stack();
   }  /* if */
-  error_position = start_position;
-  result->position = start_position;
-
+  set_operand_position(result, &start_position, &end_position,
+                       &start_position);
   db_exit();
 }  /* scan_throw_operator */
 
@@ -9898,10 +10036,8 @@ EOPT_DISALLOW_COMMA_OPERATOR).
     }  /* if */
   }  /* if */
 
-  /* Set the error position to the starting position. */
-  copy_source_position(operand_1->position, error_position);
-  copy_source_position(operand_1->position, result->position);
-
+  set_operand_position(result, &operand_1->position, &operand_2.end_position,
+                       &operator_position);
   db_exit();
 }  /* scan_comma_operator */
 
@@ -11186,6 +11322,9 @@ is TRUE if this is the expression in a switch statement.
   expression = make_node_from_operand(&result);
   expression = wrap_up_full_expression(expression);
   pop_expr_stack();
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  curr_construct_end_position = result.end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
 #if DEBUG
   if (debug_level >= 3) {
@@ -11225,6 +11364,9 @@ scan full expressions.
   /* Indicate that the value of the node is not used. */
   set_expr_result_not_used(expression);
   pop_expr_stack();
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  curr_construct_end_position = result.end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
 #if DEBUG
   if (debug_level >= 3) {
@@ -11277,6 +11419,9 @@ in a template instantiation) just do the scan.
   node = wrap_up_full_expression(node);
   if (ptp != NULL) ptp->default_arg_expr = node;
   pop_expr_stack();
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  curr_construct_end_position = result.end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   expr_stack = saved_expr_stack;
 #if DEBUG
   if (debug_level >= 3) {
@@ -11478,6 +11623,9 @@ the appropriate dynamic initialization entry and return NULL.
     expression = wrap_up_full_expression(expression);
   }  /* if */
   pop_expr_stack();
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  curr_construct_end_position = result.end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
 #if DEBUG
   if (debug_level >= 3 && expression != NULL) {
@@ -11512,6 +11660,9 @@ Scan a pre-processor expression.  See sections 3.4 and 3.8.1 in the standard.
   do_operand_transformations(&result, TOPT_NO_OPTIONS);
   extract_constant_from_operand(&result, constant);
   pop_expr_stack();
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  curr_construct_end_position = result.end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   expr_stack = saved_expr_stack;
 #if DEBUG
   if (debug_level >= 3) {
@@ -11540,6 +11691,9 @@ Scan an integral constant expression.  See section 3.4 in the C standard.
   do_operand_transformations(&result, TOPT_NO_OPTIONS);
   extract_constant_from_operand(&result, constant);
   pop_expr_stack();
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  curr_construct_end_position = result.end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
 #if DEBUG
   if (debug_level >= 3) {
@@ -11642,6 +11796,9 @@ FALSE and a pointer to the expression tree in *expression.
 #endif /* CHECKING */
   }  /* switch */
   pop_expr_stack();
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  curr_construct_end_position = result.end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
 #if DEBUG
   if (debug_level >= 3) {
@@ -11717,6 +11874,9 @@ Return the constant in *constant.
      conversions. */
   prep_nontype_template_argument_initializer(&result, param_type, constant);
   pop_expr_stack();
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  curr_construct_end_position = result.end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
 #if DEBUG
   if (debug_level >= 3) {
@@ -11751,6 +11911,9 @@ at some later point call free_arg_operand_list to free the entry.
      They are given to the caller. */
   curr_expr_ref_entries = NULL;
   pop_expr_stack();
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  curr_construct_end_position = arg_operand->operand.end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
 #if DEBUG
   if (debug_level >= 3) {
@@ -11880,6 +12043,9 @@ copy-initialization ("="-form).
   /* Make a constant from the operand. */
   extract_constant_from_operand(&result, constant);
   pop_expr_stack();
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  curr_construct_end_position = result.end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
 #if DEBUG
   if (debug_level >= 3) {
@@ -11921,6 +12087,9 @@ nonstandard class member constants.  Assumes copy-initialization
   /* Make a constant from the operand. */
   extract_constant_from_operand(&result, constant);
   pop_expr_stack();
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  curr_construct_end_position = result.end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
 #if DEBUG
   if (debug_level >= 3) {
@@ -12002,6 +12171,9 @@ copy constructor elision is possible; see scan_class_initializer_expression.
 #endif /* CHECKING */
   }  /* switch */
   pop_expr_stack();
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  curr_construct_end_position = result.end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
 #if DEBUG
   if (debug_level >= 3) {
@@ -12093,6 +12265,9 @@ will be indicated in the dynamic initialization.
   /* *dip == NULL means there was an error. */
   if (*dip == NULL) okay = FALSE;
   pop_expr_stack();
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  curr_construct_end_position = result.end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   db_exit();
   return okay;
 }  /* scan_class_initializer_expression */
@@ -12130,6 +12305,9 @@ overall errors.
   a_class_symbol_supplement_ptr cssp;
   an_expr_node_ptr              arg_list;
   a_routine_ptr                 conversion_routine;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position             end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   db_enter(4, "scan_class_parenthesized_initializer");
   check_assertion(expr_stack == NULL); /* Check this is a full expression. */
@@ -12142,6 +12320,9 @@ overall errors.
   /* Scan the constructor argument list. */
   scan_ctor_arguments(cssp->constructor, &arg_list, &conversion_routine,
                       source_pos, object_class_type);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  end_position = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   if (conversion_routine == NULL) {
     /* An error. */
     *dip = NULL;
@@ -12166,6 +12347,9 @@ overall errors.
     wrap_up_dynamic_init_full_expression(*dip);
   }  /* if */
   pop_expr_stack();
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  curr_construct_end_position = end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   db_exit();
 }  /* scan_class_parenthesized_initializer */
 
@@ -12196,6 +12380,9 @@ class type that can be converted to those types.
   expr = make_node_from_operand(&result);
   expr = wrap_up_full_expression(expr);
   pop_expr_stack();
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  curr_construct_end_position = result.end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
 #if DEBUG
   if (debug_level >= 3) {
@@ -12315,6 +12502,9 @@ this routine is called only when microsoft_mode is TRUE.
     }  /* if */
   }  /* if */
   pop_expr_stack();
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  curr_construct_end_position = operand.end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   return variable;
 }  /* based_variable */
 

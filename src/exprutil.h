@@ -236,6 +236,11 @@ typedef struct an_operand {
   a_source_position
 		position;
 			/* The source position for the operand. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position
+		end_position;
+			/* The source position of the end of the operand. */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_ref_entry_ptr
 		ref_entries_list;
 			/* A list of reference entries that are related
@@ -293,6 +298,18 @@ typedef struct an_arg_operand {
   an_operand	operand;
 			/* The argument value. */
 } an_arg_operand;
+
+
+/*
+Copy the source position from an expression operand into an expression node.
+*/
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+#define copy_operand_position_to_expr(operand, node) \
+  {(node)->expr_range.start = (operand)->position; \
+   (node)->expr_range.end   = (operand)->end_position;}
+#else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
+#define copy_operand_position_to_expr(operand, node) /* Nothing */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
 
 /*
