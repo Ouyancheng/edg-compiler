@@ -8172,11 +8172,10 @@ done using the disambiguation routines.
       arg_ptr->variant.type = argument_type;
     } else if (is_nontype_templ_arg(arg_ptr)) {
       if (is_nonreal) {
-        /* Scan a constant.  We can't know the type, so use the special
-           type of an unknown template parameter constant. */
+        /* Scan a constant.  We can't know the type, so pass in a NULL
+           type to indicate this. */
         constant = fs_constant((a_constant_repr_kind)ck_error);
-        scan_template_argument_constant_expression(
-                               type_of_unknown_templ_param_nontype, constant);
+        scan_template_argument_constant_expression((a_type_ptr)NULL, constant);
         arg_ptr->variant.constant = constant;
       } else {
         /* Scan the expression, but retain it in the form of an operand so
