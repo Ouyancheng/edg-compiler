@@ -4762,11 +4762,13 @@ function_lparen:
 }  /* declarator */
 
 
-static a_symbol_ptr curr_tag_symbol(a_symbol_kind tag_kind)
+a_symbol_ptr curr_tag_symbol(a_symbol_kind  tag_kind,
+                             a_boolean      any_class_tag_allowed)
 /*
-The current token is an identifier.  If it is a tag of the indicated kind,
-do ambiguity and access control checking and return a pointer to the tag
-symbol.  Otherwise, return NULL.
+The current token is an identifier.  If it is a tag of the indicated kind --
+or if any_class_tag_allowed is TRUE and the tag symbol is a class, struct,
+or union symbol -- do ambiguity and access control checking and return a
+pointer to the tag symbol.  Otherwise, return NULL.
 */
 {
   a_symbol_ptr assoc_symbol;
@@ -4774,7 +4776,8 @@ symbol.  Otherwise, return NULL.
   /* Look up the current token.  Note that a qualified name is not allowed. */ 
   assoc_symbol = normal_id_lookup(&locator_for_curr_id, IDL_MUST_BE_TAG);
   if (assoc_symbol != NULL) {
-    if (assoc_symbol->kind != tag_kind) {
+    if (assoc_symbol->kind != tag_kind &&
+        (!any_class_tag_allowed || !is_class_symbol(assoc_symbol))) {
       /* A tag, but the wrong kind of tag (e.g., struct when union is
          required). */
       assoc_symbol = NULL;
@@ -4938,7 +4941,7 @@ caution when modifying this routine.
            scope or a base class.  This can be ascertained by doing a full
            lookup of the tag name (before, it was done just for the current
            scope). */
-        tag_sym = curr_tag_symbol(tag_kind);
+        tag_sym = curr_tag_symbol(tag_kind, /*any_class_tag_allowed=*/FALSE);
         if (tag_sym == NULL) {
           /* We will need to enter an incomplete tag that may be resolved
              later.  Just leave tag_sym NULL.  In C it will be entered at
