@@ -7299,7 +7299,7 @@ The caller must guarantee that is_generalized_identifier_start is TRUE
          will point to the namespace. */
       qualifier_is_type = locator_for_curr_id.is_class_member;
       qualifier_type = qualifier_class_type(locator_for_curr_id);
-      qualifier_namespace = qualifier_namespace(locator_for_curr_id);
+      qualifier_namespace = qualifier_namespace_ptr(locator_for_curr_id);
       is_vacuous_dtor = locator_for_curr_id.is_vacuous_destructor_reference;
       return_value = TRUE;
       /* Perform error checks as specified in "options". */

@@ -235,7 +235,7 @@ type, otherwise return NULL.
 If a locator refers to a namespace member, return a pointer to the parent
 namespace, otherwise return NULL.
 */
-#define qualifier_namespace(locator)					\
+#define qualifier_namespace_ptr(locator)				\
   ((locator).is_class_member ? (a_namespace_ptr)NULL			\
                              : (locator).parent.namespace_ptr)
 
