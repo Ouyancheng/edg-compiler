@@ -1,5 +1,12 @@
 Version 3.1
 
+9/24/02  Cleaner output of floating-point values
+
+Floating-poing values in generated C code (and, in some configurations,
+in template arguments in diagnostics) are now output in simple
+floating-point form, e.g., 1.5, instead of always in scientific
+notation, e.g., 1.500000000e+00.
+
 9/24/02  Signedness of bool bit fields
 
 By default, the underlying type representation of "bool" is (plain) "char".

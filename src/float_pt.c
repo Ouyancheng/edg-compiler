@@ -1263,28 +1263,40 @@ be NULL if the corresponding return value is not needed.
     (void)strcpy(str, "-0.0");
   } else
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
+  /* Do not insert code here. */
+  {
 #if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
-  if (kind == (a_float_kind)fk_float) {
-    (void)sprintf(str, "%.9Le", temp);
-  } else if (kind == (a_float_kind)fk_double) {
-    (void)sprintf(str, "%.18Le", temp);
-  } else {
-    /* In theory LDBL_DIG digits should be enough as the precision,
-       but LDBL_DIG+1 seems to help on some systems.  However, on Solaris,
-       with 128-bit long doubles, LDBL_DIG+1 hits the conversion of
-       LDBL_MIN in a funny place with regard to rounding and the Sun CC
-       compiler doesn't accept that value converted in that way.  So on
-       systems with 128-bit long double, just stick with LDBL_DIG. */
-    (void)sprintf(str, "%.*Le",
-                  (LDBL_DIG>30) ? LDBL_DIG : LDBL_DIG + 1, temp);/*lint !e506*/
-  }  /* if */
+    if (kind == (a_float_kind)fk_float) {
+      (void)sprintf(str, "%.10Lg", temp);
+    } else if (kind == (a_float_kind)fk_double) {
+      (void)sprintf(str, "%.19Lg", temp);
+    } else {
+      /* In theory LDBL_DIG digits should be enough as the precision,
+         but LDBL_DIG+1 seems to help on some systems.  However, on Solaris,
+         with 128-bit long doubles, LDBL_DIG+1 hits the conversion of
+         LDBL_MIN in a funny place with regard to rounding and the Sun CC
+         compiler doesn't accept that value converted in that way.  So on
+         systems with 128-bit long double, just stick with LDBL_DIG. */
+      (void)sprintf(str, "%.*Lg",
+              (LDBL_DIG>30) ? LDBL_DIG + 1 : LDBL_DIG + 2, temp);/*lint !e506*/
+    }  /* if */
 #else /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
-  if (kind == (a_float_kind)fk_float) {
-    (void)sprintf(str, "%.9e", temp);
-  } else {
-    (void)sprintf(str, "%.18e", temp);
-  }  /* if */
+    if (kind == (a_float_kind)fk_float) {
+      (void)sprintf(str, "%.10g", temp);
+    } else {
+      (void)sprintf(str, "%.19g", temp);
+    }  /* if */
 #endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+    /* Add trailing ".0" if no decimal point was put out (meaning the
+       value is a whole number). */
+    if (strchr(str, '.') == NULL &&
+        strchr(str, 'e') == NULL) {
+      char *p = str + strlen(str);
+      *p++ = '.';
+      *p++ = '0';
+      *p++ = '\0';
+    }  /* if */
+  }  /* if */
   return str;
 }  /* fp_to_string */
 
