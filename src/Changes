@@ -2,11 +2,11 @@ Version 2.32
 
 3/25/96   Include search path bug when using implicit inclusion
 
-The include search path entry that represents the directory of the
-primary source file was not being updated properly when using
-implicit inclusion.  This could result in the failure to find a
-file to be implicitly included when that file is located in the
-same directory as the primary source file.
+The include search path entry that represents the directory of the primary
+source file was not being updated properly when using implicit inclusion.
+This could result in the failure to find a file to be implicitly included
+when that file is located in the same directory as the primary source
+file.
 
 3/23/96   IL CHANGE: new field for stmk_for statement
 
@@ -24,11 +24,10 @@ scoping rules for for-init declarations (WP 6.5.3 [stmt.for]) -- e.g.,
     }                           //   but the standard says to return 0.
   }
 
-Global variable default_use_nonstandard_for_init_scope determines whether
+Global variable default_use_nonstandard_for_init_scope determines whether 
 the standard-conforming or cfront-compatible rules are observed; its
 default value is DEFAULT_USE_NONSTANDARD_FOR_INIT_SCOPE, and it may be
-controlled on the command line by --old_for_variable_scope and
---new_for_variable_scope.
+controlled on the command line by --old_for_init and --new_for_init.
 
 3/22/96   Bug in setting source-sequence entry for stmk_decl statement
 

@@ -135,7 +135,7 @@ typedef enum /*an_option_kind*/ {
   optk_special_subscript_cost,
   optk_suppress_instantiation_flags,
   optk_old_style_preprocessing,
-  optk_old_for_variable_scope,
+  optk_old_for_init,
   optk_last		/* Must be last. */
 } an_option_kind;
 
