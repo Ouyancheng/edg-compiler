@@ -2270,19 +2270,19 @@ Display the indicated object lifetime.
            (an_il_entry_kind)ptr->entity.kind);
   disp_name("kind");
   switch (ptr->kind) {
-    olk_global_static:
+    case olk_global_static:
       (void)printf("olk_global_static\n");
       break;
-    olk_local:
+    case olk_local:
       (void)printf("olk_local\n");
       break;
-    olk_function_static:
+    case olk_function_static:
       (void)printf("olk_function_static\n");
       break;
-    olk_expr_temporary:
+    case olk_expr_temporary:
       (void)printf("olk_expr_temporary\n");
       break;
-    olk_constructor_init:
+    case olk_constructor_init:
       (void)printf("olk_constructor_init\n");
       break;
     default:
