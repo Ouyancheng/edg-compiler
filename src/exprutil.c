@@ -4159,6 +4159,19 @@ not an lvalue, it is left alone.
 }  /* conv_lvalue_to_rvalue */
 
 
+a_type_ptr type_after_array_to_pointer_transformation(a_type_ptr type)
+/*
+Do the array --> pointer type transformation and return the transformed
+type.
+*/
+{
+  /* The array --> pointer transformation converts "array of X" to
+     "pointer to X". */
+  type = make_pointer_type(array_element_type(type));
+  return type;
+}  /* type_after_array_to_pointer_transformation */
+
+
 void conv_array_operand_to_pointer_operand(an_operand *operand)
 /*
 Apply the implicit array to pointer-to-first-element-of-array transformation
@@ -4180,7 +4193,7 @@ are left alone.
       orig_operand = *operand;
       /* Convert to an rvalue that is the pointer, and change its type
          from pointer-to-array to pointer-to-array-element. */
-      ptr_type = make_pointer_type(array_element_type(operand->type));
+      ptr_type = type_after_array_to_pointer_transformation(operand->type);
       take_address_of_lvalue(operand);
       cast_operand(ptr_type, operand, /*is_implicit_cast=*/TRUE);
       /* Restore the original source position, etc.  Keep the
@@ -4194,6 +4207,38 @@ are left alone.
 }  /* conv_array_operand_to_pointer_operand */
 
 
+a_type_ptr type_after_function_to_pointer_transformation(
+                                                       a_type_ptr arg_type,
+                                                       an_operand *arg_operand)
+/*
+Determine the type of an argument of type arg_type (a function type) after
+the function --> pointer transformation.  Return the resulting pointer type.
+If arg_operand is non-NULL, it points to an operand for the argument.
+*/
+{
+  a_type_ptr ptr_type;
+
+  if (arg_operand != NULL && is_sym_for_member_operand(arg_operand)) {
+    /* Member function, so the pointer is a pointer to member.
+       This is actually an extension -- the ARM doesn't allow
+       a member function reference to decay to a pointer to
+       member implicitly.  No warning is needed here, even in
+       strict mode; the diagnostic is issued later. */
+    a_symbol_ptr  func_sym = arg_operand->variant.symbol;
+    a_symbol_ptr  fund_sym = fundamental_symbol_of(func_sym);
+    a_routine_ptr rout;
+    check_assertion(fund_sym->kind == (a_symbol_kind)sk_member_function);
+    rout = fund_sym->variant.routine.ptr;
+    ptr_type = ptr_to_member_type(rout->type,
+                                 rout->source_corresp.class_of_which_a_member);
+  } else {
+    /* Nonmember function. */
+   ptr_type = make_pointer_type(arg_type);
+  }  /* if */
+  return ptr_type;
+}  /* type_after_function_to_pointer_transformation */
+
+
 void conv_function_designator_to_ptr_to_function(an_operand *operand)
 /*
 Convert a function designator operand to a pointer to function expression 
@@ -4203,8 +4248,9 @@ operand.
   an_operand   orig_operand;
   a_symbol_ptr func_sym, fund_sym;
 
-  /* If you change this routine, see also the code in determine_arg_match_level
-     that does a similar transformation without generating errors. */
+  /* If you change this routine, see also the code in
+     type_after_function_to_pointer_transformation that does a similar
+     transformation without generating errors. */
   orig_operand = *operand;
   /* See if there's an underlying symbol. */
   if (is_sym_for_member_operand(operand) ||
@@ -4272,6 +4318,23 @@ operand.
   /* Change the kind in the reference entries to address-taken. */
   change_ref_kinds(operand->ref_entries_list, SRK_ADDRESS_TAKEN);
 }  /* conv_function_designator_to_ptr_to_function */
+
+
+a_type_ptr do_implicit_type_transformations(a_type_ptr type,
+                                            an_operand *operand)
+/*
+Do the implicit array --> pointer and function --> pointer transformations on
+a type.  If operand != NULL, it is the associated operand (needed for the
+member function --> pointer to member function transformation).
+*/
+{
+  if (is_array_type(type)) {
+    type = type_after_array_to_pointer_transformation(type);
+  } else if (is_function_type(type)) {
+    type = type_after_function_to_pointer_transformation(type, operand);
+  }  /* if */
+  return type;
+}  /* do_implicit_type_transformations */
 
 
 void do_operand_transformations(an_operand                   *operand,

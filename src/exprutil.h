@@ -526,8 +526,6 @@ extern void change_binary_operand_types(a_type_ptr type,
 				        an_operand *operand_1,
 				        an_operand *operand_2);
 
-extern void conv_function_designator_to_ptr_to_function(an_operand *operand);
-
 extern void do_operand_transformations(an_operand                   *operand,
                                        a_transformation_options_set options);
 
@@ -680,7 +678,18 @@ extern void build_binary_result_operand(an_operand            *operand_1,
 
 extern a_boolean check_integral_operand(an_operand *operand);
 
+extern a_type_ptr type_after_array_to_pointer_transformation(a_type_ptr type);
+
 extern void conv_array_operand_to_pointer_operand(an_operand *operand);
+
+extern a_type_ptr type_after_function_to_pointer_transformation(
+                                                      a_type_ptr arg_type,
+                                                      an_operand *arg_operand);
+
+extern void conv_function_designator_to_ptr_to_function(an_operand *operand);
+
+extern a_type_ptr do_implicit_type_transformations(a_type_ptr type,
+                                                   an_operand *operand);
 
 extern void error_and_make_error_operand(an_error_code error_code,
 				         an_operand    *operand);
