@@ -679,7 +679,7 @@ routine modifies some entry that might be earlier on the list, set
         /* This is an end-of-construct entry. */
         ecp = ss_entry_ptr(ssep, a_src_seq_end_of_construct_ptr);
         entry_ptr = ecp->entity.ptr;
-        entry_kind = ecp->entity.kind;
+        entry_kind = (an_il_entry_kind)ecp->entity.kind;
       } else {
         /* This is a primary declaration. */
         entry_ptr = ssep->entity.ptr;
