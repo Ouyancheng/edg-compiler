@@ -1646,8 +1646,7 @@ issued a similar error).  Return FALSE if there is some error.
   an_extern_symbol_descr_ptr esdp;
   a_type_ptr                 old_type;
   a_boolean                  okay = TRUE;
-  a_boolean                  is_routine =
-                           (ext_sym->kind == (a_symbol_kind)sk_extern_routine);
+  a_boolean                  is_routine;
   an_error_severity          severity;
 
   esdp = ext_sym->variant.extern_symbol_descr;
@@ -1658,33 +1657,119 @@ issued a similar error).  Return FALSE if there is some error.
     /* Use a special comparison for routine types, to ignore calling
        convention differences.  In C mode, overloading is not possible, so
        allow error type mismatches on routine types. */
-    if (is_routine ? !routine_types_are_compatible(old_type, type_ptr,
+    is_routine = ext_sym->kind == (a_symbol_kind)sk_extern_routine;
+    if (is_routine ? routine_types_are_compatible(old_type, type_ptr,
                            C_mode() ? TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING :
                                       TCF_NO_FLAGS) :
-                     !types_are_redecl_compatible(old_type, type_ptr)) {
-      /* The old and new types are incompatible.  Issue a warning instead of
-         an error for certain cases (namely, all routine declarations and
-         some variable declarations) in SVR4 C compatibility mode. */
-      if (SVR4_C_mode && types_are_SVR4_compatible(old_type, type_ptr)) {
-        severity = es_warning;
-        /* Record the most recent type as the external symbol's type. */
-        esdp->type = type_ptr;
-      } else {
-        severity = es_error;
-        /* Record an error type as the external symbol's type, to avoid
-           future errors. */
-        esdp->type = error_type();
-        okay = FALSE;
-      }  /* if */
-      /* The old and new types are incompatible.  Error. */
-      if (!suppress_incompatible_error) {
-        pos_sy_diagnostic(severity, ec_decl_incompatible_with_previous_use,
-			  position, ext_sym);
-      }  /* if */
-    } else {
+                     types_are_redecl_compatible(old_type, type_ptr)) {
       /* The old and new types are compatible.  Form the composite of
          those types, and save that as the type of the external symbol. */
       esdp->type = composite_type(old_type, type_ptr);
+    } else {
+      /* The old and new types are incompatible.  Issue a warning instead of
+         an error for certain cases in SVR4 C compatibility mode. */
+      if (SVR4_C_mode && decl_scope_level != DEPTH_OF_FILE_SCOPE) {
+        /* The SVR4 algorithm is such that an error is issued if the
+           incompatibility of a block extern declaration is with a visible
+           declaration, but only a warning is given otherwise.  For example:
+             extern int f();
+             extern int ff();
+             void g() { extern float f(); }                    // Error
+             void gg() { int ff = 0; { extern float ff(); } }  // Warning
+           Determine whether there's an intervening declaration that hides
+           an original at file scope by looping through the symbol list.
+           Since this only happens in C mode it is pretty straightforward. */
+        a_symbol_ptr  sym;
+        a_boolean     non_file_scope_decl_found = FALSE;
+        a_boolean     file_scope_decl_found = FALSE;
+
+        for (sym = ext_sym->header->symbol; sym != NULL; sym = sym->next) {
+          if (name_space_for_symbol_kind[(int)sym->kind] == nsk_other) {
+            /* Found a symbol of the right sort. */
+            if (sym->decl_scope == scope_stack[DEPTH_OF_FILE_SCOPE].number) {
+              if (is_tag_symbol(sym)) {
+                /* Ignore a tag symbol and look for a routine or variable
+                   at file scope. */
+              } else {
+                /* Special handling of symbols encountered at file scope. */
+                if ((is_routine && sym->kind == (a_symbol_kind)sk_routine) ||
+                    (!is_routine && sym->kind == (a_symbol_kind)sk_variable)) {
+                  file_scope_decl_found = TRUE;
+                }  /* if */
+                break;
+              }  /* if */
+            } else if (non_file_scope_decl_found) {
+              /* We've already located an intervening declaration. */
+            } else if (is_routine) {
+              /* Current declaration is a routine. */
+              if (sym->kind != (a_symbol_kind)sk_routine) {
+                /* An intervening declaration of something other than a
+                   function.  This redeclaration is hidden from the original
+                   declaration, so issue a warning instead of an error. */
+                non_file_scope_decl_found = TRUE;
+              }  /* if */
+            } else {
+              /* Current declaration is a variable. */
+              if (sym->kind == (a_symbol_kind)sk_variable) {
+                if (sym->variant.variable.ptr == NULL) {
+                  /* This is a symbol not yet bound to an IL entry, and so it
+                     it is the one just now being created.  Skip past it. */
+                } else if (sym->defined &&
+                           sym->decl_scope !=
+                                    scope_stack[DEPTH_OF_FILE_SCOPE].number) {
+                  /* This is an intervening declaration of a local variable or
+                     a parameter. (We check the defined flag to rule out an
+                     intervening block extern declaration.) */
+                  non_file_scope_decl_found = TRUE;
+                }  /* if */
+              } else {
+                /* An intervening declaration of something other than a
+                   variable.  This redeclaration is hidden from the original
+                   declaration, so issue a warning instead of an error. */
+                non_file_scope_decl_found = TRUE;
+              }  /* if */
+            }  /* if */
+          }  /* if */
+        }  /* for */
+        if (non_file_scope_decl_found || !file_scope_decl_found) {
+          /* Either there was no other declaration in scope (e.g., when the
+             external symbol records another block extern declaration) or else
+             there was an intervening declaration.  Just issue a warning. */
+          severity = es_warning;
+          if (types_are_SVR4_compatible(old_type, type_ptr)) {
+            /* Record the most recent type as the external symbol's type. */
+            esdp->type = type_ptr;
+          } else {
+            okay = FALSE;
+            if (file_scope_decl_found) {
+              /* Retain the IL entry on the external symbol. */
+            } else {
+              /* Force "abandonment" of the IL entry associated with the
+                 current external symbol. */
+              if (is_routine) {
+                esdp->variant.routine.ptr->superseded_external = TRUE;
+                esdp->variant.routine.ptr = NULL;
+              } else {
+                esdp->variant.variable->superseded_external = TRUE;
+                esdp->variant.variable = NULL;
+              }  /* if */
+              esdp->type = type_ptr;
+            }  /* if */
+          }  /* if */
+          goto issue_diagnostic;
+        }  /* if */
+      }  /* if */
+      severity = es_error;
+      /* Record an error type as the external symbol's type, to avoid
+         future errors. */
+      esdp->type = error_type();
+      okay = FALSE;
+issue_diagnostic:
+      /* The old and new types are incompatible.  Error. */
+      if (!suppress_incompatible_error) {
+        pos_sy_diagnostic(severity, ec_decl_incompatible_with_previous_use,
+                          position, ext_sym);
+      }  /* if */
     }  /* if */
   }  /* if */
   return okay;
@@ -2802,6 +2887,17 @@ skip_overloading:;
          internal or external linkage, it is entered at the file scope. */
       variable_ptr = make_variable(type_ptr, storage_class, at_file_scope);
       source_corresp_ptr = &variable_ptr->source_corresp;
+      if (!linked_redecl_error && *ext_sym != NULL &&
+          (*ext_sym)->variant.extern_symbol_descr->variant.variable != NULL) {
+        /* A new variable entry has been created, yet the external symbol
+           already refers to a different variable.  This can occur when there
+           is an error, but it can also occur in SVR4 C mode -- for example:
+             unsigned int i;
+             void f(int i) { { extern int i; } }
+           where the second declaration of i has an incompatible type, yet
+           no error is issued. */
+        variable_ptr->superseded_external = TRUE;
+      }  /* if */
     } else {
       /* There is an existing IL entry that we are reusing. */
       /* Check for internal linkage on the old but not the new, or
@@ -2870,7 +2966,8 @@ skip_overloading:;
                                    redeclaration);
     /* Link the symbol to the IL variable entry. */
     sym->variant.variable.ptr = variable_ptr;
-    if (*ext_sym != NULL) {
+    if (*ext_sym != NULL &&
+        (*ext_sym)->variant.extern_symbol_descr->variant.variable == NULL) {
       /* Link the external symbol to the IL variable entry. */
       (*ext_sym)->variant.extern_symbol_descr->variant.variable = variable_ptr;
     }  /* if */
@@ -2907,6 +3004,18 @@ skip_overloading:;
           routine_ptr->special_kind = (a_special_function_kind)sfk_operator;
           routine_ptr->opname_kind = locator->variant.opname;
         }  /* if */
+      }  /* if */
+      if (!linked_redecl_error && *ext_sym != NULL &&
+          (*ext_sym)->variant.extern_symbol_descr->
+                                              variant.routine.ptr != NULL) {
+        /* A new routine entry has been created, yet the external symbol
+           already refers to a different routine.  This can occur when there
+           is an error, but it can also occur in SVR4 C mode -- for example:
+             extern int ff();
+             void f(int ff) { { extern float ff(); } }
+           where the second declaration of ff has an incompatible type, yet
+           no error is issued. */
+        routine_ptr->superseded_external = TRUE;
       }  /* if */
     } else {
       /* There is an existing IL entry that we are reusing. */
@@ -2977,10 +3086,11 @@ skip_overloading:;
                                   is_function_def);
     /* Link the symbol to the IL routine entry. */
     sym->variant.routine.ptr = routine_ptr;
-    if (*ext_sym != NULL) {
+    if (*ext_sym != NULL &&
+        (*ext_sym)->variant.extern_symbol_descr->variant.routine.ptr == NULL) {
       /* Link the external symbol to the IL routine entry. */
-      (*ext_sym)->variant.extern_symbol_descr->variant.routine.ptr =
-                                                                 routine_ptr;
+      (*ext_sym)->variant.extern_symbol_descr->
+                                  variant.routine.ptr = routine_ptr;
     }  /* if */
     if (any_deferred_access_checks()) {
       /* Now that we know which function has been declared, recheck any
