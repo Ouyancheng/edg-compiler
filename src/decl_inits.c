@@ -1654,8 +1654,8 @@ initialized.  These are addressed in the course of the processing.
                visible according to the ARM lookup rules but is returned
                in support of the nested class anachronism (ARM 18.3.5).
                Issue a warning. */
-            str_warning(ec_nested_class_anachronism,
-                        name_of_symbol(locator_for_curr_id.specific_symbol));
+            sym_warning(ec_nested_class_anachronism,
+                        locator_for_curr_id.specific_symbol);
           }  /* if */
           init_type = type_symbol_type(member_or_base_sym);
            /* The symbol's type entry could be a "tag typeref".  If so, get
@@ -1861,11 +1861,11 @@ scan_arg_for_scan_initialization:
           a_symbol_ptr field_sym = (a_symbol_ptr)cip->variant.field->
                                                    source_corresp.assoc_info;
           if (ctor_rout->compiler_generated) {
-            pos_st_warning(ec_cannot_initialize_field, &error_position,
-                           name_of_symbol(field_sym));
+            pos_sy_warning(ec_cannot_initialize_field, &error_position,
+                           field_sym);
           } else {
-            pos_st_warning(ec_missing_initializer_on_field, &error_position,
-                           name_of_symbol(field_sym));
+            pos_sy_warning(ec_missing_initializer_on_field, &error_position,
+                           field_sym);
           }  /* if */
           if (prev_cip == NULL) {
             cip_list = cip->next;
