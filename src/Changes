@@ -1,5 +1,10 @@
 Version 2.45
 
+12/16/00 Warning on conversion from integer to smaller pointer
+
+A warning is now issued on a conversion from an integral type to a
+smaller pointer type, e.g., from long long to a 32-bit pointer.
+
 12/14/00 "\n" in name in #line directive
 
 A "\n" appearing in the file name specified in a #line directive is now

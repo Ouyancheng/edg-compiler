@@ -3135,9 +3135,9 @@ Clear a standard conversion description to default values.
 static a_boolean dest_of_ptr_cast_big_enough(a_type_ptr source_type,
                                              a_type_ptr dest_type)
 /*
-Return TRUE if a pointer of type "source_type" will fit in an entity of
-type "dest_type" (an integral or pointer type).  This is used in testing
-whether or not non-portable casts involving pointers should be allowed.
+Return TRUE if a value of type "source_type" will fit in an entity of
+type "dest_type".  This is used in testing whether or not non-portable
+casts involving pointers should be allowed.
 */
 {
   source_type = skip_typerefs(source_type);
@@ -4778,13 +4778,18 @@ well as C++ mode.
             not big enough but we're compiling in Microsoft mode. */
     okay = TRUE;
     if (!dest_of_ptr_cast_big_enough(source_type, dest_type)) {
-      /* The destination it not large enough to hold all of the bits
+      /* The destination is not large enough to hold all of the bits
          of the pointer.  Issue a warning. */
       *warning_suggested = ec_pointer_conversion_loses_bits;
     }  /* if */
   } else if (is_integral_or_enum(source_type) && is_pointer(dest_type)) {
     /* Integral or enum --> pointer. */
     okay = TRUE;
+    if (!dest_of_ptr_cast_big_enough(source_type, dest_type)) {
+      /* The destination is not large enough to hold all of the bits
+         of the integer.  Issue a warning. */
+      *warning_suggested = ec_conversion_to_pointer_loses_bits;
+    }  /* if */
   } else if (is_pointer(source_type) && is_pointer(dest_type)) {
     /* Pointer --> pointer.  Get the types pointed to. */
     a_type_ptr source_type_pointed_to, dest_type_pointed_to;
