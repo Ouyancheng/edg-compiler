@@ -2675,7 +2675,7 @@ to indicate whether an enumeration is actually defined.
     /* If the underlying integer type of enums can be larger than "int" (as
        is standard in C++) and if the type has not already been adjusted to
        be smaller than int, keep checking. */
-    if (enum_types_can_be_larger_than_int &&
+    if (min_max_set && enum_types_can_be_larger_than_int &&
         enum_type->variant.integer.int_kind == (an_integer_kind)ik_int) {
       if (in_range_for_integer_kind(&min_value, &max_value,
                                     (an_integer_kind)ik_int)) {
