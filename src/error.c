@@ -2626,14 +2626,24 @@ declaration position to eliminate redundant file names in a diagnostic.
       }  /* if */
       goto symbol_name;
     case sk_class_or_struct_tag:
-      if (C_dialect == C_dialect_cplusplus) {
-        entity_kind = "class ";
-      } else {
-        entity_kind = "struct ";
-      }  /* if */
-      goto symbol_name;
     case sk_union_tag:
-      entity_kind = "union ";
+      if (C_dialect == C_dialect_cplusplus &&
+          fund_sym->variant.class_struct_union.extra_info->is_nonreal_class) {
+        /* This is a symbol for a prototype instantiation of a class template.
+           It is preferable to display "class template X<T>" instead of
+           "class X<T>", so fall through to code for sk_class_template. */
+      } else {
+        if (fund_sym->kind == (a_symbol_kind)sk_union_tag) {
+          entity_kind = "union ";
+        } else if (C_dialect == C_dialect_cplusplus) {
+          entity_kind = "class ";
+        } else {
+          entity_kind = "struct ";
+        }  /* if */
+        goto symbol_name;
+      }  /* if */
+    case sk_class_template:
+      entity_kind = "class template ";
       goto symbol_name;
     case sk_enum_tag:
       entity_kind = "enum ";
@@ -2687,11 +2697,6 @@ declaration position to eliminate redundant file names in a diagnostic.
       } else {
         entity_kind = "field ";
       }  /* if */
-      goto symbol_name;
-    case sk_class_template:
-      entity_kind = "class template ";
-      /* There is no specific type information available; this entity cannot
-         be expressed as a declaration. */
       goto symbol_name;
     case sk_function_template:
       entity_kind = "function template ";
