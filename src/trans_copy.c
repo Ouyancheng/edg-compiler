@@ -1970,7 +1970,8 @@ secondary translation unit IL and therefore will not be copied.
   { a_boolean okay = !BACK_END_IS_CP_GEN_BE;
     check_assertion(okay);
   }
-  check_assertion(!il_entry_prefix_of(top_scope).il_lowering_flag);
+  check_assertion(!il_entry_prefix_of(top_scope).
+                  il_lowering_flag);/*lint !e527*/
   initial_value_for_il_lowering_flag = FALSE;
   (void)prepare_for_trans_unit_copy(top_scope, &any_removed_function_bodies);
   copy_from_secondary_to_primary_IL();
