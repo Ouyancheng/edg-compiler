@@ -72,6 +72,12 @@ is TRUE (by default, it is set when db_active is TRUE).
 #endif /* STANDALONE_C_GEN_BE */
 
 
+#if !LOWER_LVALUE_RETURNING_OPERATIONS
+??=error -- The C-generating back end requires
+            LOWER_LVALUE_RETURNING_OPERATIONS TRUE
+#endif /* !LOWER_LVALUE_RETURNING_OPERATIONS */
+
+
 /* CAREFUL: These variables must be initialized by assignments at the
    start of the routine c_gen_be, NOT by static initialization.  That's
    because the back end can be called more than once when compiling
@@ -943,22 +949,7 @@ omit the space.
       break;
 #ifdef CFE
     case sc_register:
-      if (il_header.source_language == sl_Cplusplus) {
-        /* Use of "?" or "," with lvalues can cause the addresses of variables
-           to be used in the C code even though the address_taken flag is
-           FALSE.  Suppress the "register" storage class. */
-#if INCLUDE_ANNOTATIONS
-        if (annotate) {
-          start_comment();
-          fputs("register", f_C_output);
-          end_comment();
-          /* "auto" is not put out because it's not valid for parameters. */
-          fputc(' ', f_C_output);;
-        }  /* if */
-#endif /* INCLUDE_ANNOTATIONS */
-      } else {
-        fputs("register ", f_C_output);
-      }  /* if */
+      fputs("register ", f_C_output);
       break;
     case sc_typedef:
       fputs("typedef ", f_C_output);
@@ -3288,22 +3279,6 @@ expression.  Check that its result_is_not_used flag is set correctly.
 {
   if (!node->result_is_not_used) {
     internal_error("check_result_not_used_flag: flag is not set");
-  }  /* if */
-  /* For some operations, subnodes get marked too. */
-  if (node->kind == (an_expr_node_kind)enk_operation) {
-    an_expr_operator_kind op = node->variant.operation.kind;
-    an_expr_node_ptr      operand_1 = node->variant.operation.operands;
-
-    if (op == (an_expr_operator_kind)eok_comma) {
-      /* Given a comma operation, the second operand is not used if the
-         entire operation is not used. */
-      check_result_not_used_flag(operand_1->next);
-    } else if (op == (an_expr_operator_kind)eok_question) {
-      /* Given a question mark operation, the second and third operands
-         are not used if the entire operation is not used. */
-      check_result_not_used_flag(operand_1->next);
-      check_result_not_used_flag(operand_1->next->next);
-    }  /* if */
   }  /* if */
 }  /* check_result_not_used_flag */
 
@@ -7259,6 +7234,9 @@ Generate C for a statement.
       startline(seq_number_from_stmt_source_position(statement->position));
       fputs("for (", f_C_output);
       if (init_expr != NULL) {
+#if CHECKING
+        check_result_not_used_flag(init_expr);
+#endif /* CHECKING */
         dump_expression(init_expr, /*need_parens=*/FALSE);
       }  /* if */
       fputs("; ", f_C_output);
@@ -7267,8 +7245,12 @@ Generate C for a statement.
       }  /* if */
       fputs("; ", f_C_output);
       if (statement->variant.for_loop.extra_info->increment != NULL) {
-        dump_expression(statement->variant.for_loop.extra_info->increment,
-                        /*need_parens=*/FALSE);
+        an_expr_node_ptr incr =
+                             statement->variant.for_loop.extra_info->increment;
+#if CHECKING
+        check_result_not_used_flag(incr);
+#endif /* CHECKING */
+        dump_expression(incr, /*need_parens=*/FALSE);
       }  /* if */
       fputs(")", f_C_output);
       indent += 2;
