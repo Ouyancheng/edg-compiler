@@ -1817,6 +1817,25 @@ the region table for the portable implementation of EH.
 #endif /* ABI_COMPATIBILITY_VERSION <= 238 */
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
 
+/*
+Flag that is TRUE if the definition of extern inline functions
+should be controlled by the template instantiation mechanism.
+
+When this flag is set, only one out-of-line copy of an extern inline
+function is generated.  This is more standard conforming as it
+ensures that the address of an inline function remains constant
+across translation units.  The disadvantage is that it requires that
+the template instantiation mechanism be employed for inline functions.
+Extern inline functions cannot be lowered when this flag is set.
+
+When this flag is FALSE, multiple copies of extern inline functions
+are generated.  Note that if the function has local static variables,
+multiple copies of the variables are *not* generated.
+*/
+#ifndef INSTANTIATE_EXTERN_INLINE
+#define INSTANTIATE_EXTERN_INLINE FALSE
+#endif /* ifndef INSTANTIATE_EXTERN_INLINE */
+
 #if DO_IL_LOWERING
 
 /* Switches that control aspects of IL lowering: */
@@ -2024,25 +2043,6 @@ tree.
 #ifndef LOWER_LVALUE_RETURNING_OPERATIONS
 #define LOWER_LVALUE_RETURNING_OPERATIONS TRUE
 #endif /* !defined(LOWER_LVALUE_RETURNING_OPERATIONS) */
-
-/*
-Flag that is TRUE if the definition of extern inline functions
-should be controlled by the template instantiation mechanism.
-
-When this flag is set, only one out-of-line copy of an extern inline
-function is generated.  This is more standard conforming as it
-ensures that the address of an inline function remains constant
-across translation units.  The disadvantage is that it requires that
-the template instantiation mechanism be employed for inline functions.
-Extern inline functions cannot be lowered when this flag is set.
-
-When this flag is FALSE, multiple copies of extern inline functions
-are generated.  Note that if the function has local static variables,
-multiple copies of the variables are *not* generated.
-*/
-#ifndef INSTANTIATE_EXTERN_INLINE
-#define INSTANTIATE_EXTERN_INLINE FALSE
-#endif /* ifndef INSTANTIATE_EXTERN_INLINE */
 
 /*
 This switch controls whether "extern inline" functions are rewritten as
