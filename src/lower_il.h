@@ -144,6 +144,10 @@ typedef struct an_init_pos_descr {
 		whole_array;
 			/* TRUE if the entity is a whole array being
 			   initialized as one unit. */
+  a_byte_boolean
+		base_class_subobject;
+			/* TRUE if the entity is a base class of an object,
+			   and therefore not a complete object. */
   a_type_ptr	base_type;
 			/* Base entity type. */
   an_init_pos_modifier_ptr

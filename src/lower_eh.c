@@ -1471,6 +1471,9 @@ by the EDG-supplied runtime.
                            More detailed information on RDF_LET_THIS
                            is available from KAI. */
 #endif /* !DO_FULL_PORTABLE_EH_LOWERING && USING_KAI_INLINER */
+#define RDF_BASE_CLASS_SUBOBJECT	0x40
+			/* TRUE if the object is a base class of some other
+			   object and therefore is not a complete object. */
 
 
 #if !DO_FULL_PORTABLE_EH_LOWERING
@@ -1979,6 +1982,11 @@ to the aggregate constant for the region table entry.
   if (is_delete) {
     /* Indicate the delete case. */
     flags_value |= RDF_NEW_ALLOCATION;
+  }  /* if */
+  if (ipdp->base_class_subobject) {
+    /* The entity is a base class subobject (in a constructor or
+       destructor). */
+    flags_value |= RDF_BASE_CLASS_SUBOBJECT;
   }  /* if */
   /* Make the variable for the region table if it has not yet been made. */
   if (region_table_var == NULL) {

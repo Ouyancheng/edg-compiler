@@ -656,6 +656,7 @@ Clear an initialization position description entry to default values.
 #endif /* !DO_FULL_PORTABLE_EH_LOWERING */
   ipdp->indirect_through_variable = FALSE;
   ipdp->whole_array               = FALSE;
+  ipdp->base_class_subobject      = FALSE;
   ipdp->base_type                 = NULL;
   ipdp->modifiers                 = NULL;
   ipdp->array_element_count       = 0;
@@ -823,6 +824,7 @@ init position modifier.
       add_init_pos_modifier(ipmp, ipdp);
       ipmp->curr_base = ctor_init->variant.base_class;
       ipmp->type = ctor_init->variant.base_class->type;
+      ipdp->base_class_subobject = TRUE;
       break;
     case cik_field:
       /* Add a modifier that selects the field relative to the "this"
@@ -4414,6 +4416,7 @@ created are inserted at *insert_location, and *insert_location is updated.
                                                         base_class_type,
                                                         this_param_var);
       set_var_indirect_init_pos_descr(vbase_param_var, &ipd);
+      ipd.base_class_subobject = TRUE;
     } else {
       /* Simple case; develop the entity position description. */
       develop_ctor_init_pos_descr(ctor_init, this_param_var, &ipd, &ipm);
