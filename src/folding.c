@@ -1477,8 +1477,7 @@ to the constant is maintained, by adding a cast if necessary.
   }  /* if */
   if (!C_mode() &&
       (constant->kind == (a_constant_repr_kind)ck_template_param ||
-       (in_front_end && is_template_dependent_context() &&
-        is_template_dependent_type(new_type)))) {
+       (in_front_end && is_template_dependent_type(new_type)))) {
     /* Casting a template parameter constant, or casting to a template
        parameter type.  Use a special tpck_cast constant. */
     make_template_param_cast_constant(constant, &new_constant, new_type,
