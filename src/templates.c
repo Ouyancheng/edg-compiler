@@ -1172,6 +1172,7 @@ static void function_template_declaration(a_symbol_ptr  *sym)
   remove_stop_token(tok_semicolon);
   tssp = (*sym)->variant.template.extra_info;
   tssp->variant.function.decl_token_cache = decl_token_cache;
+  tssp->variant.function.func_info = func_info;
   if (curr_token == tok_end_of_source) {
     /* Advance past the end-of-source token. */
     (void)get_token();
