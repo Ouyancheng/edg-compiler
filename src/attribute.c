@@ -875,8 +875,6 @@ function returns the address of the last attribute.
       (void)get_token();
       if (curr_token == tok_lparen) {
         /* There are arguments to the attribute. */
-        /* Bypass the lparen. */
-        (void)get_token();
         add_stop_token(tok_rparen);
         switch (attribute_kind) {
 #if USER_CONTROL_OF_STRUCT_PACKING
@@ -891,6 +889,8 @@ function returns the address of the last attribute.
           case ak_visibility:
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
           case ak_init_priority:
+            /* Bypass the lparen. */
+            (void)get_token();
             if (!scan_attribute_arguments(attribute)) {
               /* If the arguments were erroneous, it sometimes makes
                  sense to ignore the attribute completely so that we
@@ -901,14 +901,14 @@ function returns the address of the last attribute.
             break;
           case ak_error:
             /* Skip over the arguments. */
-            flush_tokens();
+            flush_until_matching_token();
             break;
           default:
             /* There should not have been an argument. */
             str_error(ec_arguments_provided_for_attribute,
                       attribute_name);
             /* Skip over the arguments. */
-            flush_tokens();
+            flush_until_matching_token();
             break;
         }  /* switch */
         /* Look for the closing rparen. */

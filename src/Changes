@@ -1,5 +1,17 @@
 Version 3.2
 
+5/2/03   GNU mode: Unrecognized attributes with multiple arguments
+
+In GNU mode, unrecognized attributes are normally ignored with a warning.
+However, the front end used to not correctly skip a list of multiple
+arguments following an unrecognized attribute.  This resulted in spurious
+syntax errors.  For example:
+
+  void f() __attribute__((unknown(1, 2)));
+    // Used to result in a warning followed by errors.  Now just a warning.
+
+This is now fixed.
+
 5/1/03   Microsoft mode: Redeclaration of dllexport/dllimport functions
 
 In Microsoft mode, when a function first declared with a dllexport or
