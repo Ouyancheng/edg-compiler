@@ -454,6 +454,9 @@ extern void make_integer_constant_operand(an_operand *operand,
 extern void promote_operand(an_operand         *operand,
                             an_expression_kind expression_kind);
 
+extern void arg_default_promote_operand(an_operand         *argument_operand,
+                                        an_expression_kind expression_kind);
+
 extern void make_constant_operand(a_constant *constant,
 			          an_operand *operand);
 
@@ -465,6 +468,8 @@ extern void set_operand_kind(an_operand      *operand,
 
 extern void error_in_operand(an_error_code error_code,
 		             an_operand    *operand);
+
+extern void error_on_indefinite_function(an_operand *operand);
 
 extern a_boolean check_modifiable_lvalue_operand(an_operand *operand);
 
