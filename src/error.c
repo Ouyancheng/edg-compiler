@@ -1216,6 +1216,9 @@ error code.
     case ec_missing_object_name:
       m = "declaration requires an object name";
       break;
+    case ec_virtual_function_in_union:
+      m = "virtual member function not allowed in a union";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

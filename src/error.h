@@ -424,7 +424,8 @@ typedef enum /*an_error_code*/ {
   ec_ambiguous_assignment_operator,
   ec_const_volatile_not_allowed,
   ec_missing_typedef_name,
-  ec_missing_object_name
+  ec_missing_object_name,
+  ec_virtual_function_in_union
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
