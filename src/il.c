@@ -11787,6 +11787,8 @@ the same effect), and return a pointer to the new expression.
     }  /* if */
     if (is_template_param_type(node->type)) {
       new_type = type_of_unknown_templ_param_nontype;
+    } else if (is_error_type(node->type)) {
+      new_type = node->type;
     } else {
       /* The new type for the node is the type pointed to. */
       new_type = type_pointed_to(node->type);
