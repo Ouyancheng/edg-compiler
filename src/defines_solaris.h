@@ -53,7 +53,6 @@ Definitions for Solaris:
 #define MAKE_ALL_FUNCTIONS_UNPROTOTYPED 0
 #define USE_INIT_SECTION_IN_GENERATED_C 1
 #define LONG_LONG_ALLOWED 1
-#define USE_LONG_DOUBLE_FOR_HOST_FP_VALUE 1
 #define INTEGER_VALUE_REPR_IS_A_HOST_INTEGER 0
 #define TARG_EXTERNAL_NAMES_GET_UNDERSCORE_ADDED 0
 #define TARG_ZERO_WIDTH_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT 0
@@ -62,6 +61,9 @@ Definitions for Solaris:
 #define GUARD_MACRO_FOR_VA_LIST "_VA_LIST"
 #define IGNORE_CARRIAGE_RETURN_IN_SOURCE 1
 
+#ifndef USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+#define USE_LONG_DOUBLE_FOR_HOST_FP_VALUE 1
+#endif /* indef USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
 
 /******************************************************************************
 *                                                             \  ___  /       *

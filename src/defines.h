@@ -58,11 +58,15 @@ Flags to be set when using the KAI inliner.
 
 #ifdef sun
 
-#include "defines_solaris.h"
-
 #ifndef SUN_TEST_VERSION
 #define SUN_TEST_VERSION 1
 #endif /* ifndef SUN_TEST_VERSION */
+
+#if SUN_TEST_VERSION
+#define USE_LONG_DOUBLE_FOR_HOST_FP_VALUE 0
+#endif /* SUN_TEST_VERSION */
+
+#include "defines_solaris.h"
 
 #if SUN_TEST_VERSION
 
@@ -71,8 +75,6 @@ Flags to be set when using the KAI inliner.
 #define COMPILE_MULTIPLE_SOURCE_FILES 1
 #define MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED 1
 #define USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING 1
-#undef USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
-#define USE_LONG_DOUBLE_FOR_HOST_FP_VALUE 0
 #undef TARG_SIZEOF_LONG_DOUBLE
 #define TARG_SIZEOF_LONG_DOUBLE 8
 #define DESIGNATED_INITIALIZER_ENABLING_POSSIBLE 1
