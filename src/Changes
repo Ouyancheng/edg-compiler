@@ -1,5 +1,11 @@
 Version 2.39
 
+7/7/98    Default for CFRONT_2_1_OBJECT_CODE_COMPATIBILITY now FALSE
+
+In targ_def.h, CFRONT_2_1_OBJECT_CODE_COMPATIBILITY is now FALSE by
+default.  If you want it to be TRUE, you'll have to set it in your
+defines.h.
+
 7/6/98    IL-to-string routines, forming an lvalue: bit field problem
 
 The IL-to-string routines had a bug in forming a description of an
