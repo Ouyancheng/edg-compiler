@@ -419,6 +419,12 @@ Display the indicated source correspondence entry.
   if (scp->name != NULL) {
     disp_string_ptr("  name", scp->name, iek_id_name, (sizeof_t)0);
   }  /* if */
+#if NEED_NAME_MANGLING
+  if (scp->unmangled_name != NULL) {
+    disp_string_ptr("  unmangled_name", scp->unmangled_name, iek_id_name,
+                    (sizeof_t)0);
+  }  /* if */
+#endif /* NEED_NAME_MANGLING */
   if (scp->decl_position.seq != 0 ||
       scp->decl_position.column != 0 ) {
     disp_unsigned_long("  decl_position.seq",

@@ -254,8 +254,16 @@ Process the source correspondence field pointed to by ptr.
 #define walk_source_corresp(ptr) \
   remap_parent(ptr)
 #else /* !NEEDED_FLAG_WALK */
+#undef walk_unmangled_name
+#if NEED_NAME_MANGLING
+#define walk_unmangled_name(ptr) \
+  walk_string_ptr((ptr).unmangled_name, iek_id_name, 0)
+#else /* !NEED_NAME_MANGLING */
+#define walk_unmangled_name(ptr) /* Nothing */
+#endif /* NEED_NAME_MANGLING */
 #define walk_source_corresp(ptr) \
 { walk_string_ptr((ptr).name, iek_id_name, 0); \
+  walk_unmangled_name(ptr); \
   remap_parent(ptr); \
   remap_source_sequence_entry(ptr); \
 }  /* walk_source_corresp */
@@ -2081,6 +2089,7 @@ Get rid of the macros defined in this file so they aren't used accidentally.
 #undef remap_parent
 #undef remap_source_sequence_entry
 #undef walk_source_corresp
+#undef walk_unmangled_name
 #undef report_bad_init_kind
 #undef walk_initializer
 #undef walk_orphan_entry_list

@@ -723,6 +723,11 @@ typedef struct a_source_correspondence {
   char          *name;
                         /* Pointer to null-terminated name, or NULL if
                            there is no corresponding source entity. */
+#if NEED_NAME_MANGLING
+  char		*unmangled_name;
+			/* If name_has_been_mangled is TRUE, points to the
+			   original name before mangling.  Otherwise, NULL. */
+#endif /* NEED_NAME_MANGLING */
 #ifdef CIL
   a_parent_class_or_namespace
 		parent;
