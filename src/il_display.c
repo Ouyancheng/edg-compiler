@@ -2817,7 +2817,10 @@ Display the indicated label.
 #endif /* defined(FFE) || GNU_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   if (ptr->locally_declared) {
-    disp_boolean("locally_declared", (a_boolean)ptr->locally_declared);
+    disp_boolean("locally_declared", TRUE);
+  }  /* if */
+  if (ptr->has_gnu_unused_attribute) { 
+    disp_boolean("has_gnu_unused_attribute", TRUE);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #ifdef FFE

@@ -1889,6 +1889,30 @@ underlying type.
 }  /* apply_attributes_to_typedef */
 
 
+void apply_attributes_to_label(an_attribute_ptr  attributes,
+                               a_label_ptr       label)
+/*
+Apply the given attributes to the indicated label (if applicable).
+*/
+{
+  an_attribute_ptr  ap;
+
+  for (ap = attributes; ap != NULL; ap = ap->next) {
+    switch (ap->kind) {
+      case ak_unused:
+        label->has_gnu_unused_attribute = TRUE;
+        break;
+      default:
+        /* An invalid attribute. */
+        pos_sy_warning(ec_attribute_does_not_apply,
+                       &ap->position,
+                       (a_symbol_ptr)label->source_corresp.assoc_info);
+        break;
+    }  /* switch */
+  }  /* for */
+}  /* apply_attributes_to_label */
+
+
 void check_for_invalid_param_attributes(a_symbol_ptr     sym,
                                         an_attribute_ptr attributes)
 /*

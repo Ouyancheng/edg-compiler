@@ -7072,6 +7072,9 @@ typedef struct a_label {
   a_bit_field	locally_declared:1;
 			/* TRUE if this label was declared in a GNU C
 			   __label__ declaration. */
+  a_bit_field   has_gnu_unused_attribute:1;
+			/* TRUE if this label was declared with the
+			   GNU "unused" attribute. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   bitfield_to_avoid_codecenter_warnings()
 #ifdef FIL

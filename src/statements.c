@@ -6105,6 +6105,19 @@ Parse a statement of the form
 
 #endif /* UPC_EXTENSIONS_ALLOWED */
 
+static void gnu_attributes_for_label(a_label_ptr  label)
+/*
+Scan the attributes following a label and apply them to that label.
+*/
+{
+  an_attribute_ptr  attributes = scan_attributes();
+
+  if (attributes != NULL) {
+    apply_attributes_to_label(attributes, label);
+  }  /* if */
+}  /* gnu_attributes_for_label */
+
+
 static void statement(a_boolean is_dependent_statement,
                       a_boolean marked_as_gnu_extension)
 /*
@@ -6297,6 +6310,9 @@ rescan_statement:
         }  /* if */
 #endif /* CHECKING */
         (void)get_token();
+        if (gnu_mode && curr_token == tok_attribute) {
+          gnu_attributes_for_label(label);
+        }  /* if */
         prev_was_label = TRUE;
         get_another_statement = TRUE;
         break;

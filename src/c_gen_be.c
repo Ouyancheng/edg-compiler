@@ -1679,6 +1679,17 @@ Write out attributes that apply to the indicated routine.
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 }  /* write_routine_attributes */
 
+
+static void write_label_attributes(a_label_ptr  label)
+/*
+Write out attributes that apply to the indicated label.
+*/
+{
+  if (label->has_gnu_unused_attribute) {
+    write_tok_str(" __attribute__((__unused__))");
+  }  /* if */
+}  /* write_routine_attributes */
+
 #if GCC_IS_GENERATED_CODE_TARGET
 
 static void write_asm_name(char *asm_name)
@@ -7269,6 +7280,10 @@ statement expression, i.e., ({...}).
         set_output_position_for_stmt(&statement->position);
         dump_label_name(statement->variant.label.ptr);
         write_tok_ch(':');
+#if GNU_EXTENSIONS_ALLOWED
+      /* Emit attributes associated with the label. */
+      write_label_attributes(statement->variant.label.ptr);
+#endif /* GNU_EXTENSIONS_ALLOWED */
         end_unreferenced_bracket(
                                 &statement->variant.label.ptr->source_corresp);
       }  /* if */

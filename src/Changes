@@ -1,5 +1,11 @@
 Version 3.2
 
+3/21/03  GNU compatibility: Label attributes
+
+The front end now parses attributes following a label as being associated
+with that label.  In particular, the "unused" attribute is now recognized for
+labels: It inhibits warnings about a label being unreferenced.
+
 3/21/03  Remark no longer issued for unused template parameter
 
 Formerly, a remark was issued if a template parameter was not used

@@ -2205,6 +2205,7 @@ to it.
 #endif /* defined(FIL) || GNU_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   lp->locally_declared = FALSE;
+  lp->has_gnu_unused_attribute = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if CHECKING
   lp->avoid_codecenter_warnings = 0;

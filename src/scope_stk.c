@@ -3709,8 +3709,16 @@ NULL.
         pos_sy_error(ec_never_defined, &sym->decl_position, sym);
       } else if (!sym->referenced) {
         /* An unreferenced label. */
-        report_unreferenced(sym, ec_declared_but_not_referenced,
-			    es_warning);
+#if GNU_EXTENSIONS_ALLOWED
+        if (sym->variant.label.ptr->has_gnu_unused_attribute) {
+          /* This label was explicitly marked as not being used. */
+        } else
+#endif /* GNU_EXTENSIONS_ALLOWED */
+        /* Do not insert code here. */
+        {
+          report_unreferenced(sym, ec_declared_but_not_referenced,
+                              es_warning);
+        }  /* if */
       }  /* if */
       break;
     case sk_extern_variable:

@@ -264,6 +264,9 @@ extern void apply_attributes_to_typedef(an_attribute_ptr  attributes,
                                         a_type_ptr        tp,
                                         a_boolean         linkage_name);
 
+extern void apply_attributes_to_label(an_attribute_ptr  attributes,
+                                      a_label_ptr       label);
+
 extern void check_for_invalid_param_attributes(a_symbol_ptr     sym,
                                                an_attribute_ptr attributes);
 

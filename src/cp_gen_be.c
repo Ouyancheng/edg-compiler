@@ -3320,6 +3320,17 @@ Write out attributes that apply to the indicated routine.
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 }  /* write_routine_attributes */
 
+
+static void write_label_attributes(a_label_ptr  label)
+/*
+Write out attributes that apply to the indicated label.
+*/
+{
+  if (label->has_gnu_unused_attribute) {
+    write_tok_str(" __attribute__((__unused__))");
+  }  /* if */
+}  /* write_routine_attributes */
+
 #if GCC_IS_GENERATED_CODE_TARGET
 
 static void write_asm_name(char *asm_name)
@@ -8631,7 +8642,12 @@ statement unless suppress_trailing_space is TRUE.
          "break" and "continue" were thrown away above and do not get here. */
       gen_unqualified_name(&statement->variant.label.ptr->source_corresp,
                            iek_label);
-      write_tok_str(":;");
+      write_tok_ch(':');
+#if GNU_EXTENSIONS_ALLOWED
+      /* Emit attributes associated with the label. */
+      write_label_attributes(statement->variant.label.ptr);
+#endif /* GNU_EXTENSIONS_ALLOWED */
+      write_tok_ch(';');
       break;
     case stmk_return:
       /* "return" statement: generate "return;" or "return expr;". */
