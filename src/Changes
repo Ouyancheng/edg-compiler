@@ -13,7 +13,8 @@ subobjects.
 
 A change in version 3.3 exposed a bug in the setting of the scope stack
 links used for access checking.  This could result in an infinite loop
-in the front end in Microsoft and Sun modes.  Now fixed.
+in the front end in Microsoft and Sun modes (in symbol_tbl.c in
+have_particular_member_access_privilege).  Now fixed.
 
 8/29/03  Incorrect space used output for an_overriding_virtual_function
 
