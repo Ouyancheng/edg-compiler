@@ -167,7 +167,8 @@ extern a_symbol_ptr enter_local_symbol(a_symbol_kind    kind,
 extern void declarator(a_boolean         real_declarator_allowed,
                        a_boolean         abstract_declarator_allowed,
 		       a_type_ptr        specifiers_type,
-                       a_type_ptr        member_function_parent_type,
+                       a_type_ptr        member_parent_type,
+                       a_boolean         static_specified,
                        a_symbol_locator  *locator,
                        a_type_ptr        *p_complete_type,
                        a_type_ptr        *p_bottom_derived_type,
@@ -229,10 +230,14 @@ typedef int a_decl_flag_set;
 			/* If this bit is set the declaration specifiers
 			   actually declare something (a tag or enumeration
 			   members). */
-#define DSO_JUST_VOID 0x80
+#define DSO_DEFINES_SOMETHING 0x80
+			/* If this bit is set the declaration specifiers
+			   actually define something (a class, struct, union,
+			   or enumeration). */
+#define DSO_JUST_VOID 0x100
 			/* If this bit is set the keyword "void" was found,
 			   and nothing else. */
-#define DSO_DANGLING_TYPE_SPECIFIER 0x100
+#define DSO_DANGLING_TYPE_SPECIFIER 0x200
 			/* If this bit is set a malformed type specification
 			   was detected, probably caused by a missing
 			   semicolon following an class, struct, union, or
