@@ -1,5 +1,14 @@
 Version 2.42
 
+7/6/99   Diagnose referenced functions that are declared inside unnamed
+         namespaces, but not defined
+
+The front end now issues an error for the following example because a function
+declared inside an unnamed namespace is referenced but not defined:
+
+  namespace { void g(); } // Error: g is referenced but not defined
+  int main() { g(); }
+
 7/6/99   Extra source positions for "__except" and "__finally" tokens
 
 In Microsoft mode, when EXTRA_SOURCE_POSITIONS_IN_IL is TRUE, the source

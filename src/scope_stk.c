@@ -2464,6 +2464,30 @@ associated template.
 }  /* routine_defined */
 
 
+static a_boolean in_unnamed_namespace(a_source_correspondence *scp)
+{
+  a_boolean result = FALSE;
+  while (scp) {
+    if (scp->is_class_member) {
+      scp = &scp->parent.class_type->source_corresp;
+    } else {
+      /* Presumably a namespace member: */
+      a_namespace *nsp = scp->parent.namespace_ptr;
+      if (nsp) {
+        scp = &nsp->source_corresp;
+        if (scp->name == NULL) {
+          result = TRUE;
+          break;
+        }  /* if */
+      } else {
+        break;
+      } /* if */
+    }  /* if */
+  }  /* while */
+  return result;
+}  /* in_unnamed_namespace */
+
+
 static void check_referenced_member_functions(a_scope_ptr scope,
                                               a_boolean   is_function_local,
                                               a_boolean   within_unnamed_class)
@@ -2799,9 +2823,10 @@ NULL.
       } else if (rout_ptr->source_corresp.referenced) {
         /* Referenced function.  We check the IL referenced flag because
            a reference in, say, a sizeof operation doesn't count. */
-        if (storage_class == (a_storage_class)sc_static &&
-            depth_scope_stack == DEPTH_OF_FILE_SCOPE &&
-            rout_ptr->assoc_scope == NULL_region_number) {
+        if (depth_scope_stack == DEPTH_OF_FILE_SCOPE &&
+            ((storage_class == (a_storage_class)sc_static &&
+              rout_ptr->assoc_scope == NULL_region_number) ||
+             in_unnamed_namespace(&rout_ptr->source_corresp))) {
           /* A non-external routine that is referenced was never given
              a body (3.7, constraints).  This is checked only at the file
              scope because there can be symbols with linkage defined in
