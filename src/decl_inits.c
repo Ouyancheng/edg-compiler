@@ -290,7 +290,13 @@ routine is called in C++ mode only.
           array_type->variant.array.variant.number_of_elements - curr_element;
   if (number_of_uninitialized_elements > 0) {
     /* There are one or more uninitialized elements. */
-    element_type = array_element_type(array_type);
+    element_type = skip_typerefs(array_element_type(array_type));
+    if (is_array_type(element_type)) {
+      a_type_ptr  tp = element_type;
+      element_type = skip_typerefs(underlying_array_element_type(tp));
+      number_of_uninitialized_elements *=
+                                    array_element_count(tp, element_type);
+    }  /* if */
     if (is_class_struct_union_type(element_type)) {
       /* It is an array of class objects. */
       cssp = symbol_supplement_for_class(element_type);
@@ -1052,7 +1058,7 @@ field of a class object (or an array of same) remains uninitialized.
           *type = local_type;
           any_more_members = FALSE;
         } else if (C_dialect == C_dialect_cplusplus) {
-          if (brace_flag && kind == (a_type_kind)tk_array) {
+          if (curr_token == tok_rbrace && kind == (a_type_kind)tk_array) {
             /* When the number of initializers is fewer than the number of
                array elements to be initialized, and when the element type is
                such that a constructor is required to initialize the elements,
