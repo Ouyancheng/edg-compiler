@@ -86,7 +86,6 @@ Flags to be set for any version that uses the C++ generating back end.
 #define BACK_END_IS_CP_GEN_BE 1
 #define DO_IL_LOWERING 0
 #define AUTOMATIC_TEMPLATE_INSTANTIATION 0
-#define INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL 0
 #define NEW_CAN_BE_FOLDED_INTO_CTOR 0
 #define DELETE_CAN_BE_FOLDED_INTO_DTOR 0
 #define ASSIGNMENT_TO_THIS_ALLOWED 0
