@@ -4090,22 +4090,22 @@ done_with_access_control_setting:;
             (kind != (a_scope_kind)sck_class_reactivation)) break;
   }  /* for */
   /* Maintain the depth of the innermost function scope. */
-  if (depth_innermost_function_scope <= depth_scope_stack &&
-      depth_innermost_function_scope > DEPTH_OF_FILE_SCOPE) {
+  if (depth_innermost_function_scope != NO_SCOPE_DEPTH &&
+      depth_innermost_function_scope <= depth_scope_stack) {
     /* Value doesn't have to be recomputed. */
   } else {
     /* There may or may not be a function scope on the stack, so look for
-       one.  (When the variable has the value DEPTH_OF_FILE_SCOPE, it may
+       one.  (When the variable has the value NO_SCOPE_DEPTH, it may
        mean that a class-struct-union scope had hidden the function scope.) */
     for (depth_innermost_function_scope = depth_scope_stack;
-         depth_innermost_function_scope > DEPTH_OF_FILE_SCOPE;
+         depth_innermost_function_scope >= DEPTH_OF_FILE_SCOPE;
          depth_innermost_function_scope--) {
       a_scope_kind kind = scope_stack[depth_innermost_function_scope].kind;
       if (kind == (a_scope_kind)sck_function) {
         break;
       } else if (C_dialect == C_dialect_cplusplus &&
                  kind == (a_scope_kind)sck_class_struct_union) {
-        depth_innermost_function_scope == DEPTH_OF_FILE_SCOPE;
+        depth_innermost_function_scope = NO_SCOPE_DEPTH;
         break;
       }  /* if */
     }  /* for */
