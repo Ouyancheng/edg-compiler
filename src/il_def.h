@@ -2378,21 +2378,57 @@ support, such as restrict).
 typedef unsigned int a_type_qualifier_set;
 
 /*
+Enumeration of type qualifiers that are accepted.  The enumeration values
+are used to create bit masks that are used to represent the qualifiers.
+*/
+enum a_type_qualifier_tag {
+  tqt_const,
+			/* Const qualifier. */
+  tqt_volatile,
+			/* Volatile qualifier. */
+#if RESTRICT_ALLOWED
+  tqt_restrict,
+			/* Restrict qualifier. */
+#endif /* RESTRICT_ALLOWED */
+#if MICROSOFT_KEYWORDS_ALLOWED
+  tqt_cdecl,
+			/* Microsoft __cdecl calling convention. */
+  tqt_fastcall,
+			/* Microsoft __fastcall calling convention. */
+  tqt_stdcall,
+			/* Microsoft __stdcall calling convention. */
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+  tqt_last
+			/* Must be last. */
+};
+
+/*
 Definitions of the bits comprising bit vectors of type a_type_qualifier.
 */
-#define TQ_NONE 0x0
+#define TQ_NONE		0x0
 			/* No type qualifiers. */
-#define TQ_CONST 0x1
+#define TQ_CONST	(1 << (int)tqt_const)
 			/* This bit is set to represent const. */
-#define TQ_VOLATILE 0x2
+#define TQ_VOLATILE	(1 << (int)tqt_volatile)
 			/* This bit is set to represent volatile. */
 #if RESTRICT_ALLOWED
-#define TQ_RESTRICT 0x4
+#define TQ_RESTRICT	(1 << (int)tqt_restrict)
 			/* This bit is set to represent restrict. */
-#define NUM_BITS_FOR_TYPE_QUALIFIER_SET 3
-#else /* !RESTRICT_ALLOWED */
-#define NUM_BITS_FOR_TYPE_QUALIFIER_SET 2
 #endif /* RESTRICT_ALLOWED */
+#if MICROSOFT_KEYWORDS_ALLOWED
+#define TQ_CDECL	(1 << (int)tqt_cdecl)
+			/* This bit is set to represent __cdecl. */
+#define TQ_FASTCALL	(1 << (int)tqt_fastcall)
+			/* This bit is set to represent __fastcall. */
+#define TQ_STDCALL	(1 << (int)tqt_stdcall)
+			/* This bit is set to represent __stdcall. */
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+
+/*
+The last type qualifier tag value is used as the number of bits required
+to represent a type qualifier.
+*/
+#define NUM_BITS_FOR_TYPE_QUALIFIER_SET ((int)tqt_last)
 
 
 typedef struct a_type {
