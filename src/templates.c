@@ -4908,7 +4908,7 @@ declaration.
   a_symbol_ptr                     sym = NULL;
   a_template_symbol_supplement_ptr tssp = NULL;
 
-  db_enter(4, "template_function_declaratation");  
+  db_enter(4, "function_template_declaration");  
   /* Set a flag in each param type entry whose associated type is or
      contains a template parameter. */
   set_type_involves_template_param_flags(type);
