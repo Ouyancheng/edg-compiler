@@ -558,15 +558,15 @@ typedef struct an_include_file_history {
 			   file. */
   sizeof_t	name_length;
 			/* Length of full_name. */
-  unsigned int	suppress_subsequent_include:1;
+  a_bit_field	suppress_subsequent_include:1;
 			/* TRUE if this file is potentially one that can
 			   have subsequence includes suppressed. */
-  unsigned int	pragma_once:1;
+  a_bit_field	pragma_once:1;
 			/* TRUE if this file contained a "#pragma once"
 			   directive. */
-  unsigned int	ifdef_guard:1;
+  a_bit_field	ifdef_guard:1;
 			/* TRUE if this file was guarded by a #ifdef. */
-  unsigned int	ifndef_guard:1;
+  a_bit_field	ifndef_guard:1;
 			/* TRUE if this file was guarded by a #ifndef. */
   char          *controlling_macro_name;
 			/* The name of the macro used to guard the include
@@ -668,26 +668,18 @@ typedef struct an_input_stack_entry {
 			/* The next physical line number whose file position
 			   should be recorded in file position index table
 			   maintained for diagnostic generation. */
-  unsigned int
-		is_include_file:1;
+  a_bit_field	is_include_file:1;
 			/* TRUE if this file was added to the input stack
 			   as the result of a #include directive.  FALSE
 			   for all other cases including implicitly included
 			   source files. */
-  unsigned int
-	        nested_inclusion:1;
+  a_bit_field	nested_inclusion:1;
 			/* TRUE if this is a nested inclusion of a file
 			   already on the input stack. */
-  unsigned int	saved_any_tokens_fetched:1;
+  a_bit_field	saved_any_tokens_fetched:1;
 			/* Used to save and restore the value of the global
 			   variable any_tokens_fetched_from_curr_input_file. */
-#if CHECKING
-      unsigned int
-		dummy:2;
-			/* Extra field that can be initialized to prevent
-			   spurious reference to uninitialized data warnings
-			   from CodeCenter. */
-#endif /* CHECKING */
+  bitfield_to_avoid_codecenter_warnings()
   a_byte        ifg_state;
 			/* Include file guard state information used to
                            determine whether subsequent inclusions of this
@@ -928,15 +920,15 @@ typedef struct a_source_line_modif {
 			   (beginning at line_loc).  Greater than zero
 			   (except that when line_loc == NULL, this is
 			   zero). */
-  unsigned int	is_isolated_text:1;
+  a_bit_field	is_isolated_text:1;
 			/* TRUE if this modification is a temporary one
 			   that inserts the text so that it can be
 			   macro-expanded.  Such an entry is not truly
 			   part of the logical source line. */
-  unsigned int	is_for_comment:1;
+  a_bit_field	is_for_comment:1;
 			/* TRUE if this modification is due to a comment
 			   in the source (as opposed to a macro expansion). */
-  unsigned int	parent_modif_determined:1;
+  a_bit_field	parent_modif_determined:1;
 			/* TRUE if a value has been determined for
 			   parent_modif. */
   char		orig_char;

@@ -167,8 +167,8 @@ typedef struct a_hidden_name_fixup {
   a_hidden_name_fixup_ptr
 		next;	/* Next fixup on the list, or NULL if this is the
 			   last entry. */
-  unsigned int	global_qualification_needed:1;
-  unsigned int	elaborated_type_specifier_needed:1;
+  a_bit_field	global_qualification_needed:1;
+  a_bit_field	elaborated_type_specifier_needed:1;
 			/* Flag values to restore. */
   a_tagged_pointer
 		entity;	/* Pointer to the entity to be fixed up. */
