@@ -1123,6 +1123,8 @@ ec_export_after_definition;;"a template cannot be declared \"export\" after it h
 ec_labeled_declaration;;"a declaration cannot have a label"
 ec_no_export_support;;"support for exported templates is disabled"
 ec_cannot_open_exported_template_file;;"cannot open exported template file: %sq"
+ec_entity_defined_in_other_trans_unit;;"%n already defined during compilation of %sq"
+ec_entity_defined_twice;;"%n already defined in another translation unit"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -225,12 +225,11 @@ EXTERN a_boolean
                 cfront_3_0_mode /* = FALSE */;
                         /*  accept language features supported
                             by cfront release 3.0. */
-#if ENABLE_TRANS_UNIT_TEST_MODE
+
 EXTERN a_boolean
                 trans_unit_test_mode /* = FALSE */;
                         /*  enable mode to test compilation of multiple
                             (possibly identical) translation units. */
-#endif /* ENABLE_TRANS_UNIT_TEST_MODE */
 
 /*
 Macro that is TRUE if any cfront mode has been selected.

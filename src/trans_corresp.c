@@ -177,13 +177,17 @@ entity1 point to the IL node pointed to by entity2.
   f_record_trans_unit_corresp((char*)(entity1), (char*)(entity2))
 
 
-static void f_report_bad_trans_unit_corresp(char                   *entity1,
-                                            a_source_position_ptr  pos2)
+static void report_corresp_error(char                   *entity1,
+                                 a_source_position_ptr  pos2,
+                                 an_error_code          same_src_error,
+                                 an_error_code          distinct_src_error)
 /*
 The given IL node has a source correspondence and an associated symbol.  It
-also has a non-NULL translation unit correspondence, but it points to a node
-that does not actually correspond to the given entity.  Therefore, issue a
-diagnostic.
+also has a non-NULL translation unit correspondence.  If the two corresponding
+IL indentities result from the same source construct (e.g., because the same
+header file was included in two translation units), use the message associated
+with same_src_error; otherwise, use distinct_src_error.  The position of the
+corresponding entity is pos2.
 */
 {
   a_symbol_ptr   sym = (a_symbol_ptr)((a_source_correspondence_ptr)entity1)
@@ -207,14 +211,29 @@ diagnostic.
     /* The entities correspond to the same source construct, but resulted in
        incompatible IL (perhaps due to preprocessor effects). */
     a_source_file_ptr  primary_file2 = primary_source_file_for_seq(pos2->seq);
-    pos_stsy_error(ec_entity_differs_in_other_trans_unit, &sym->decl_position,
+    pos_stsy_error(same_src_error, &sym->decl_position,
                    primary_file2->name_as_written, sym);
   } else {
-
-    pos_sy_start_error(ec_corresp_decl_incompatible, &sym->decl_position, sym);
+    /* The corresponding entities result from distinct source constructs. */
+    pos_sy_start_error(distinct_src_error, &sym->decl_position, sym);
     add_diag_info_with_pos_insert(ec_corresp_decl_at, pos2);
     end_error();
   }  /* if */
+}  /* report_corresp_error */
+
+
+static void f_report_bad_trans_unit_corresp(char                   *entity1,
+                                            a_source_position_ptr  pos2)
+/*
+The given IL node has a source correspondence and an associated symbol.  It
+also has a non-NULL translation unit correspondence, but it points to a node
+that does not actually correspond to the given entity.  Therefore, issue a
+diagnostic.
+*/
+{
+  report_corresp_error(entity1, pos2,
+                       ec_entity_differs_in_other_trans_unit,
+                       ec_corresp_decl_incompatible);
 }  /* f_report_bad_trans_unit_corresp */
 
 #define report_bad_trans_unit_corresp(entity)                               \
@@ -237,6 +256,25 @@ pointer.
 #define process_bad_trans_unit_corresp(entity)                        \
   f_process_bad_trans_unit_corresp((char*)(entity))
 
+
+static void f_report_multiple_definitions(char                   *entity1,
+                                          a_source_position_ptr  pos2)
+/*
+The given IL node has a source correspondence and an associated symbol.  It
+also has a non-NULL translation unit correspondence.  Issue a diagnostic
+reporting that both entries are definitions.
+*/
+{
+  report_corresp_error(entity1, pos2,
+                       ec_entity_defined_in_other_trans_unit,
+                       ec_entity_defined_twice);
+}  /* f_report_multiple_definitions */
+
+#define report_multiple_definitions(entity)                               \
+  f_report_multiple_definitions(                                          \
+    (char*)(entity),                                                        \
+    &((a_source_correspondence_ptr)trans_unit_corresp_pointer_of(entity))   \
+      ->decl_position)
 
 static a_boolean same_parents(a_symbol_ptr  sym1,
                               a_symbol_ptr  sym2)
@@ -711,6 +749,11 @@ is in fact valid.
       match = FALSE;
       process_bad_trans_unit_corresp(routine);
     }  /* if */
+    if (match && !trans_unit_test_mode && !routine->is_inline &&
+        routine->defined && corresp_routine->defined) {
+      /* Multiple definition. */
+      report_multiple_definitions(routine);
+    }  /* if */
   }  /* if */
   return match;
 }  /* verify_routine_correspondence */
@@ -741,6 +784,15 @@ is in fact valid.
          scp->name_linkage != corresp_scp->name_linkage)) {
       match = FALSE;
       process_bad_trans_unit_corresp(var);
+    }  /* if */
+    if (match && !trans_unit_test_mode &&
+        var->storage_class == (a_storage_class)sc_unspecified &&
+        corresp_var->storage_class == (a_storage_class)sc_unspecified &&
+        (!C_mode() ||
+         (var->init_kind != (an_init_kind)initk_none &&
+          corresp_var->init_kind != (an_init_kind)initk_none))) {
+      /* Two nontentative definitions. */
+      report_multiple_definitions(var);
     }  /* if */
   }  /* if */
   return match;
