@@ -7733,6 +7733,7 @@ Do IL lowering of an enk_temp_init expression node.
         /* We need to zero an automatic temporary, which can't be done by
            setting its init_kind to initk_zero, because we don't know that
            the block of the temporary will be entered at the top. */
+        set_variable_address_taken(temp_var);
         insert_call_to_zero_entity(temp_type, /*have_complete_object=*/TRUE,
                                    var_lvalue_expr(temp_var),
                                    (an_expr_node_ptr)NULL,
