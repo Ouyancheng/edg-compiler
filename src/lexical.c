@@ -350,7 +350,10 @@ static an_id_lookup_options_set idl_options_for_lookup_mode[(int)ilm_last+1]= {
   /* ilm_normal */		IDL_NO_OPTIONS,
   /* ilm_tag */			IDL_MUST_BE_TAG,
   /* ilm_tentative_type */	IDL_TENTATIVE_TYPE_LOOKUP,
-  /* ilm_ctor_initializer_name */ IDL_SKIP_CURR_SCOPE,
+  /* ilm_ctor_initializer_name */
+                                IDL_SKIP_CURR_SCOPE,
+  /* ilm_qualified_ctor_initializer_name */
+                                IDL_SKIP_CURR_SCOPE | IDL_MUST_BE_CLASS,
   /* ilm_namespace */           IDL_MUST_BE_NAMESPACE,
   /* ilm_typename */            IDL_TYPENAME_LOOKUP,
   /* ilm_class */  	        IDL_MUST_BE_CLASS,

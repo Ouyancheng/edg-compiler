@@ -3555,7 +3555,10 @@ initialized.  These are addressed in the course of the processing.
         {
           a_boolean gid_err;
           member_or_base_sym = coalesce_and_lookup_generalized_identifier
-                                   (GID_NO_OPTIONS, ilm_ctor_initializer_name,
+                                   (GID_NO_OPTIONS,
+                                    locator_for_curr_id.is_qualified_name
+                                      ? ilm_qualified_ctor_initializer_name
+                                      : ilm_ctor_initializer_name,
                                     &gid_err);
           if ((!class_name_injection_enabled || microsoft_mode) &&
               !is_error_locator(locator_for_curr_id) &&
