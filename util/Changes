@@ -1,5 +1,23 @@
 Version 3.4
 
+4/14/04 Demangling of constructor name for class named __ctype
+
+In general, user code is not allowed to use double underscores in
+names, and demangling of such names cannot be guaranteed to work
+in the Cfront-like ABI.  However, in the particular case in this
+example, we were able to do a special-case workaround to allow a
+class whose name begins with "__ct", for which the constructor name
+__ct__7__ctypeFv was not correctly demangled previously.
+
+  #define NAME __ctype
+  class NAME {
+  public:
+      NAME(){};
+  };
+  int main(){
+    NAME x;
+  }
+
 1/19/04 Demangling of vtable name with class beginning with "S"
 
 Some virtual function table names were not demangled correctly in

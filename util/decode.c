@@ -1280,7 +1280,7 @@ template parameters.
   if (get_char(ptr, dctl) == '_' && get_char(ptr+1, dctl) == '_') {
     /* Name beginning with two underscores. */
     p = ptr + 2;
-    if (start_of_id_is("ct", p, dctl)) {
+    if (start_of_id_is("ct__", p, dctl)) {
       /* Constructor. */
       end_ptr = p + 2;
       if (mclass == NULL) {
@@ -1294,7 +1294,7 @@ template parameters.
                                               (a_template_param_block_ptr)NULL,
                                       dctl);
       }  /* if */
-    } else if (start_of_id_is("dt", p, dctl)) {
+    } else if (start_of_id_is("dt__", p, dctl)) {
       /* Destructor. */
       end_ptr = p + 2;
       if (mclass == NULL) {
