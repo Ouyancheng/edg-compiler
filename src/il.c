@@ -248,7 +248,9 @@ template arguments on template classes.
   }  /* if */
 }  /* db_name */
 
+#endif /* DEBUG */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
+#if DEBUG
 
 /*
 Buffer into which names are written for db_name_str
@@ -286,6 +288,7 @@ entity is not from the primary translation unit.
     db_name_str_buffer = alloc_text_buffer(1000);
   }  /* if */
   db_name_str_buffer->size = 0;
+#if !STANDALONE_UTILITY_PROGRAM
   /* Generate a translation unit name if this entity's symbol is
      not from the primary translation unit. */
   trans_unit_name = db_symbol_trans_unit((a_symbol_ptr)scp->assoc_info);
@@ -294,13 +297,16 @@ entity is not from the primary translation unit.
     add_string_to_text_buffer(db_name_str_buffer, trans_unit_name);
     add_char_to_text_buffer(db_name_str_buffer, ']');
   }  /* if */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
   /* Generate the name of this entity. */
   form_name(scp, kind, &octl);
   add_char_to_text_buffer(db_name_str_buffer, '\0');
   return db_name_str_buffer->buffer;
 }  /* db_name_str */
 
+#endif /* DEBUG */
 #if !STANDALONE_UTILITY_PROGRAM
+#if DEBUG
 
 void db_entity_info(char             *entry,
                     an_il_entry_kind kind)
