@@ -964,7 +964,7 @@ when it is a secondary file.
 #endif /* DO_C99_IL_LOWERING */
 #endif /* DO_IL_LOWERING */
   /* Suppress PCH processing on secondary translation units. */
-  abandon_pch_processing();
+  if (!is_primary_translation_unit) abandon_pch_processing();
   /* Initialize the symbol table (keywords and predefined macros).  Note that
      keyword_init is called first, so that predefined macros will have
      priority over keywords.  Also, macro_init must have been called, so
