@@ -311,7 +311,11 @@ typedef int a_gen_name_options_set;
 			/* Do not generate the template arguments. */
 #define GN_TEMPLATE 0x80
 			/* The name to generate is that of a template. */
-
+#define GN_PURE_VIRTUAL_FUNCTION 0x100
+			/* The name is a pure virtual function being declared
+			   outside its class.  This is used in Microsoft mode
+			   to support the extension in which pure virtual
+			   functions can be defined in derived classes. */
 
 /* Needed because of forward references: */
 static a_boolean is_default_dynamic_init(a_dynamic_init_ptr dip);
@@ -2104,7 +2108,8 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
       if (!force_qualified_name &&
           if_microsoft_extensions(!scp->member_of_unknown_super &&)
           (!scp->qualification_needed ||
-           (options & GN_DECLARATION) ||
+           ((options & GN_DECLARATION) &&
+            !(options & GN_PURE_VIRTUAL_FUNCTION)) ||
            (scp->partially_hidden_by_microsoft_injected_class_name &&
             msvc_target_version_number < 1300 &&
             !(options & GN_QUALIFIER))) &&
@@ -2495,6 +2500,27 @@ a definition.
         /* Parentheses are not needed when the return type is void. */
         may_need_parens = FALSE;
       }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (msvc_is_generated_code_target && rout->pure_virtual) {
+        /* The Microsoft dialect allows base class pure virtual functions to
+           be defined in derived classes.  We need to allow qualification in
+           such cases to avoid ambiguities, for example:
+
+               struct B1 { virtual void f() = 0; };
+               struct B2 { virtual void f() = 0; };
+               struct D: B1, B2 {
+                 void B1::f() { }  // <--- must be qualified
+                 void B2::f() { }  // <--- must be qualified
+               };
+        */
+
+        if (!class_is_in_name_context_stack(scp->parent.class_type,
+                                            /*include_base_classes=*/FALSE)) {
+          /* Only allow qualification in a derived class. */
+          options |= GN_PURE_VIRTUAL_FUNCTION;
+        }
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
     if (may_need_parens) {
       options |= GN_PARENS_IF_GLOBAL_QUALIFIER;
