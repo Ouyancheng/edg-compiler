@@ -1,5 +1,23 @@
 Version 2.32
 
+4/19/96 C++-generating back end: generating reinterpret_cast
+
+The C++-generating back end now puts out reinterpret_cast for casts that
+cannot be written as old-style casts.
+
+  struct A { int i; };
+  struct AA { int j; };
+  struct B : public AA, A {};
+  main () {
+    B b;
+    A *pa;
+    pa = reinterpret_cast<A *>(&b);
+    int A::*pma = &A::i;
+    int B::*pmb;
+    pmb = reinterpret_cast<int B::*>(pma);
+    A &r = reinterpret_cast<A &>(b);
+  }
+
 4/18/96 Invalid source-sequence entry when removing unneeded IL entries
 
 In the following case a class name is initially introduced in a parameter
