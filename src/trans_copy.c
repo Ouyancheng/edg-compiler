@@ -3232,6 +3232,21 @@ on the file-scope types list (i.e., struct, union, enum, or typedef).
     prev_type = *insert_pointer;
     temp_type = prev_type->next;
   }  /* if */
+#if DEBUG
+  if (temp_type != type &&
+      db_trace("trans_copy", type, iek_type)) {
+    (void)fprintf(f_debug, "Moving type earlier to fix ordering problem:\n");
+    db_abbreviated_type(type);
+    (void)fprintf(f_debug, "\n");
+    if (*insert_pointer == NULL) {
+      (void)fprintf(f_debug, "Moving to front of type list\n");
+    } else {
+      (void)fprintf(f_debug, "Moving to after type:\n");
+      db_abbreviated_type(*insert_pointer);
+      (void)fprintf(f_debug, "\n");
+    }  /* if */
+  }  /* if */
+#endif /* DEBUG */
   for (; temp_type != type;
        prev_type = temp_type, temp_type = temp_type->next) {
 #if CHECKING
