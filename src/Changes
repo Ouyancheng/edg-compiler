@@ -1,5 +1,13 @@
 Version 2.15
 
+3/5/93  Casting class non-lvalues to a reference type
+
+The checking for explicit casts to reference types has been relaxed
+to allow casting of a non-lvalue class to a reference type.  It's
+not entirely clear that the ARM allows this case, but since it
+says "object" and not "lvalue" it's reasonable to allow non-class
+lvalues.
+
 3/3/93  Lexical special characters moved
 
 The special characters END_OF_TOKEN_MARKER and ATTENTION_MARKER used
