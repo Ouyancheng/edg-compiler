@@ -380,10 +380,13 @@ primary translation unit IL.
 
 static void remove_dynamic_initialization(a_dynamic_init_ptr dip)
 /*
-Remove the indicated dynamic initialization from any destruction lists.
-Also remove any nested object lifetimes.
+Remove the indicated dynamic initialization from any initialization
+and destruction lists.  Also remove any nested object lifetimes.
 */
 {
+  a_variable_ptr variable = dip->variable;
+
+  check_assertion(variable != NULL);
   if (dip->init_expr_lifetime) {
     /* There is a nested object lifetime.  Eliminate it and everything in
        it. */
@@ -391,6 +394,34 @@ Also remove any nested object lifetimes.
     dip->init_expr_lifetime = NULL;
   }  /* if */
   remove_from_destruction_list(dip);
+  if (!variable->source_corresp.is_local_to_function) {
+    /* Remove the dynamic initialization from the file-scope initializations
+       list. */
+    a_dynamic_init_ptr prev_dip;
+    a_scope_ptr        sp = il_header.primary_scope;
+    a_scope_pointers_block_ptr
+                       pointers_block =
+                             &curr_translation_unit->file_scope_pointers_block;
+    if (dip == sp->dynamic_inits) {
+      /* The entry is first on the list. */
+      sp->dynamic_inits = dip->next;
+      prev_dip = NULL;
+    } else {
+      /* The entry is not the first on the list. */
+      for (prev_dip = sp->dynamic_inits;
+           ;
+           prev_dip = prev_dip->next) {
+        check_assertion_str(prev_dip != NULL,
+                            "remove_dynamic_initialization: entry not found");
+        if (prev_dip->next == dip) break;
+      }  /* for */
+      prev_dip->next = dip->next;
+    }  /* if */
+    if (dip->next == NULL) {
+      pointers_block->last_dynamic_init = prev_dip;
+    }  /* if */
+    dip->next = NULL;  /* To be neat. */
+  }  /* if */
 }  /* remove_dynamic_initialization */
 
 
