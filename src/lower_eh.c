@@ -770,16 +770,9 @@ have been called on it at some previous point.
       dtor_sym = symbol_supplement_for_class(type)->destructor;
       if (dtor_sym != NULL) {
         dtor_routine = dtor_sym->variant.routine.ptr;
-        if (dtor_routine->assoc_scope == NULL_region_number &&
-            !dtor_routine->source_corresp.referenced &&
-            typeinfo_var->storage_class == (a_storage_class)sc_static) {
-          /* The destructor is not defined and not referenced, and the typeinfo
-             variable is local to this compilation.  This can happen if
-             a class with a destructor is mentioned in a throw-specification
-             but no objects of the class type are created in the compilation.
-             No definition for the destructor is needed in that case.
-             Put a null pointer into the typeinfo variable so as not to
-             get a link-time error about a missing destructor. */
+        if (dtor_routine->assoc_scope == NULL_region_number) {
+          /* The destructor is declared but not defined.  Use a null
+             pointer. */
           dtor_routine = NULL;
         }  /* if */
       }  /* if */
