@@ -2046,11 +2046,14 @@ is the one associated with the definition of the enum.
   /* Position the output file to the definition position. */
   set_output_position(&type->source_corresp.decl_position);
   /* Generate "enum <name>". */
-  write_tok_str("enum ");
-  /* (Note that a name will be generated for an unnamed enum.  That's
-     necessary in C mode to allow the necessary casts of enumerator
-     constants, and it's not a bad thing in general.) */
-  gen_decl_name(&type->source_corresp, iek_type);
+  write_tok_str("enum");
+  /* Put out the name if the enum is named.  In C mode, invent a name for
+     an unnamed enum because it may be needed for casts to enum types defined
+     in prototype scopes. */
+  if (has_name(type) || il_header.source_language == sl_C) {
+    write_space();
+    gen_decl_name(&type->source_corresp, iek_type);
+  }  /* if */
   write_tok_str(" { ");
   enum_con = type->variant.integer.enum_info.constant_list;
   if (enum_con != NULL) {
