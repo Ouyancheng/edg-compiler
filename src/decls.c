@@ -4454,24 +4454,15 @@ otherwise it is NULL.  The syntax is:
             rescan_cached_tokens(&cache);
           }  /* if */
           if (!is_function_decl) {
-            /* Be sure that a parenthesized initializer is allowed. */
+#if CHECKING
             a_type_ptr  tp = skip_typerefs(complete_type);
             if (!is_scalar_type(tp) && !is_ptr_or_ref_type(tp)) {
-#if CHECKING
               /* Should have been checked when the input flag was defined. */
               if (!is_class_struct_union_type(tp)) {
                 internal_error("declarator: unexpected type for paren init");
               }  /* if */
-#endif /* CHECKING */
-              if (((a_symbol_ptr)tp->source_corresp.assoc_info)->
-                  variant.class_struct_union.extra_info->constructor == NULL) {
-                /* Parenthesized initializer is not allowed for classes and
-                   structs that are not initialized by constructor.  Note that
-                   we still go ahead and scan expressions between the parens,
-                   but no initialization will be performed. */
-                pos_error(ec_paren_initialization_not_allowed, &lparen_pos);
-              }  /* if */
             }  /* if */
+#endif /* CHECKING */
             *output_flags |= DO_PARENTHESIZED_INITIALIZER;
             /* Function_declarator should not be called, so exit the loop. */
             break;

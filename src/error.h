@@ -329,7 +329,7 @@ typedef enum /*an_error_code*/ {
   ec_unary_colon_colon_in_declarator,
   ec_name_not_found_in_file_scope,
   ec_qualified_name_not_allowed,
-  ec_paren_initialization_not_allowed,
+  ec_null_reference,
   ec_brace_initialization_not_allowed,
   ec_ambiguous_base_class,
   ec_ambiguous_derived_class,
@@ -443,8 +443,7 @@ typedef enum /*an_error_code*/ {
   ec_member_function_redeclaration,
   ec_ptr_to_incomplete_class_type_not_allowed,
   ec_ref_to_nested_function_var,
-  ec_single_arg_postfix_incr_decr_anachronism,
-  ec_null_reference
+  ec_single_arg_postfix_incr_decr_anachronism
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 

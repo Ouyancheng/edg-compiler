@@ -918,9 +918,8 @@ error code.
     case ec_qualified_name_not_allowed:
       m = "qualified name is not allowed";
       break;
-    case ec_paren_initialization_not_allowed:
-      m =
-       "initialization with \"(...)\" is not allowed -- no constructor exists";
+    case ec_null_reference:
+      m = "NULL reference is not allowed";
       break;
     case ec_brace_initialization_not_allowed:
       m = "initialization with \"{...}\" is not allowed for this object";
@@ -1274,9 +1273,6 @@ error code.
     case ec_single_arg_postfix_incr_decr_anachronism:
       m =
     "single-argument function used for postfix \"++\" or \"--\" (anachronism)";
-      break;
-    case ec_null_reference:
-      m = "NULL reference is not allowed";
       break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
