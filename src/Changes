@@ -40,25 +40,6 @@ GNU C and C++ compilers only issue a warning in such cases.  For example:
 The front end now only issues a warning in GNU mode, in accordance with
 newer version of the GNU compilers.  (See also Changes entry of 1/22/02.)
 
-4/25/03  Emulation of GNU layout of overlong bit fields in unions
-
-When DEFAULT_EMULATE_GNU_ABI_BUGS is TRUE, our implementation of the IA-64
-ABI now emulates a GNU C++ 3.2 layout bug when computing the size of an
-overlong bit field in a union.  Specifically, let T be the declared type
-of the bit field, and T' be the largest signed integer type that will fit
-in the declared length of the bit field.  Then, the portion of the bit
-field size exceeding the bit length of T' is decreased by the bit length
-of T'.  For example (assuming 64-bit long long support):
-
-  union U1 {
-    char c: 15;    // T and T' are "char" (8 bits).  The 7 excess bits of c
-  };               // are trimmed and the size of U1 is 1.
-  union U2 {
-    short s: 256;  // T is "short" and T' is "long long".  The excess 192
-  };               // bits are reduced by 64.  The total field length is
-                   // therefore 64+(192-64) = 192 (and hence the union size
-                   // is 192/8 = 24).
-
 4/23/03  Spurious correspondence errors on inline functions
 
 When support for "extern inline" functions was disabled (e.g., in Sun mode),
