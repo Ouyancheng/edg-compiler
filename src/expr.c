@@ -1516,17 +1516,17 @@ Syntax:
   a_symbol_ptr      function_symbol, member_function_symbol;
   a_boolean         overloaded_function_case = FALSE;
   a_boolean         vacuous_destructor_case = FALSE;
-  a_source_position call_position, open_paren_position;
+  a_source_position call_position, first_arg_position;
   an_arg_match_summary
                     this_match_summary;
   an_arg_operand_ptr
                     arg_operand_list;
   a_routine_ptr     routine = NULL;
+  a_boolean         already_after_left_paren = FALSE;
 
   db_enter(4, "scan_function_call");
 
   call_position = operand->position;
-  open_paren_position = pos_curr_token;
   if (is_const_expr_kind(expression_kind)) {
     /* Routine calls not allowed in constant expressions. */
     error_in_operand(ec_bad_constant_function_call, operand);
@@ -1539,6 +1539,10 @@ Syntax:
     */
     vacuous_destructor_case = TRUE;
     /* routine = NULL; -- already set. */
+    /* Move to after the left parenthesis. */
+    (void)get_token();
+    first_arg_position = pos_curr_token;
+    already_after_left_paren = TRUE;
   } else {
     if (C_dialect == C_dialect_cplusplus &&
         is_class_struct_union_type(operand->type) &&
@@ -1620,7 +1624,7 @@ Syntax:
 
   /* Scan the arguments of the call. */
   scan_call_arguments(routine_type, expression_kind,
-                      /*already_after_left_paren=*/FALSE, &argument_list,
+                      already_after_left_paren, &argument_list,
                       overloaded_function_case, &arg_operand_list);
 
   if (overloaded_function_case) {
@@ -1651,7 +1655,8 @@ Syntax:
     /* A vacuous destructor call.  The argument list should have no
        arguments. */
     if (argument_list != NULL) {
-      pos_error(ec_too_many_arguments, &open_paren_position);
+      pos_error(ec_too_many_arguments, &first_arg_position);
+      conv_to_error_operand(operand);
     }  /* if */
   } else {
     /* Non-overloaded function case. */
@@ -2404,7 +2409,7 @@ nonstatic_member_function:
   /* The position of the operand is the start position of the selection
      except when the operand is a bound function, in which case it's the
      position of the function name. */
-  if (result->bound_function || is_vacuous_destructor_reference) {
+  if (result->bound_function) {
     result->position = member_position;
   } else {
     result->position = operand_1->position;
