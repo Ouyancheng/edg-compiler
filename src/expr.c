@@ -3996,7 +3996,14 @@ arithmetic type.  The operand of "~" must have integral type.  See section
       promote_operand(&operand);
       result_type = operand.type;
     }  /* if */
-
+    if (op == (an_expr_operator_kind)eok_inegate) {
+      /* Warn on negation of an unsigned quantity. */
+      if (!is_signed_integral_type(result_type)) {
+        if (!is_error_type(result_type)) {
+          pos_warning(ec_unsigned_negation, &start_position);
+        }  /* if */
+      }  /* if */
+    }  /* if */
     if (is_error_operand(&operand)) {
       make_error_operand(result);
     } else {
