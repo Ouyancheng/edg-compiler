@@ -1717,12 +1717,9 @@ return FALSE.
   for (tip = tssp->variant.function.instantiations;
        tip != NULL;
        tip = tip->next) {
-    if (tip->specific_decl) {
-      /* A function that matches this template but has a user declaration.
-         If it is the function we seek it will already have been found
-         directly -- ignore such cases in this search. */
-      goto get_next_sym;
-    }  /* if */
+    /* We used to skip entries that represent specific declarations.
+       This is no longer done because these entries must be examined this
+       routine is called during instantiation pragma processing. */
     sym = tip->instance_sym;
     rout_type = sym->variant.routine.ptr->type;
     /* Return type must match exactly. */
@@ -3311,6 +3308,13 @@ entry is pushed on the scope stack.
           err = TRUE;
         }  /* if */
         sym->defined = TRUE;
+      } else {
+        if (sym->kind == (a_symbol_kind)sk_member_function) {
+          /* A non-defining declaration of a member function is not
+             allowed. */
+          pos_error(ec_member_function_redecl_outside_class,
+                    &locator.source_position);
+        }  /* if */
       }  /* if */
       if (sym->kind == (a_symbol_kind)sk_member_function) {
         tssp = sym->variant.routine.instance_ptr->template_info;
