@@ -1,5 +1,13 @@
 Version 3.2
 
+4/15/03  IA-64: __cxa_finalize problem if non-null DSO handle is used
+
+The runtime provides a version of the __cxa_finalize routine that can be
+used if the host runtime does not provide one.  This routine did not
+correctly handle cases where the caller provides a non-null DSO handle.
+The runtime nevers calls the routine in such a way, but this could
+cause incorrect behavior if the user explicitly called __cxa_finalize.
+
 3/31/03  IA-64: _main no longer called
 
 The library _main routine is no longer called at program start when using

@@ -169,6 +169,7 @@ dso_handle is NULL.
     /* Skip destructions that do not apply to this DSO. */
     if (dso_handle != NULL && ndp->dso_handle != dso_handle) {
       ndpp = &ndp->next;
+      continue;
     }  /* if */
     /* Note that the value of needed_destruction_head may change
        during the execution of the destructor.  Consequently, the
