@@ -2034,7 +2034,8 @@ the symbol table, this routine is not called for them.
   if (class_sym->header == member_sym->header) {
     /* Member has the same name as the class to which it belongs. */
     /* If no constructor already exists we permit a field with the same
-       name its class, as long as it's not an anonymous union field. */
+       name its class, as long as it's not an anonymous union field being
+       promoted to a containing class with the same name. */
     if (member_sym->kind == (a_symbol_kind)sk_field &&
         class_sym->variant.
                     class_struct_union.extra_info->constructor == NULL &&
@@ -2042,7 +2043,9 @@ the symbol table, this routine is not called for them.
          member_sym->class_of_which_a_member ==
                                 member_sym->variant.field.ptr->
                                     source_corresp.class_of_which_a_member)) {
-      /* No error. */
+      /* No error.  Either the field has not yet been bound to the symbol
+         (never true for anonymous union symbol promotions) or the parent
+         classes correspond (also untrue for anonymous union promotions). */
     } else {
       /* Error: an identifier that is not a constructor and that has the
          same name as a class is being defined within the class. */
