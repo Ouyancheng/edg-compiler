@@ -1404,7 +1404,7 @@ region.
 #endif /* DEBUG */
   esp->exception_specification_type_list = NULL;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  esp->throw_position = null_source_position;
+  esp->source_range = null_source_range;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   return esp;
@@ -1428,6 +1428,9 @@ region.
   estp->next = NULL;
   estp->type = NULL;
   estp->redundant = FALSE;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  estp->source_position = null_source_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   return estp;
 }  /* alloc_exception_specification_type */

@@ -796,7 +796,7 @@ specification is handled later (see check_exception_specification).
                                           ec_exceptions_in_embedded_cplusplus);
     esp = alloc_exception_specification();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    esp->throw_position = pos_curr_token;
+    esp->source_range.start = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   } else if (!exception_spec_allowed) {
     /* This is a declaration on which an exception specification is not
@@ -817,6 +817,11 @@ specification is handled later (see check_exception_specification).
     if (curr_token == tok_rparen) {
       /* Case is "throw ()" -- which means "no exception will be thrown by
          this routine." */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      if (esp != NULL) {
+        esp->source_range.end = pos_curr_token;
+      }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       /* Bypass the right paren. */
       (void)get_token();
       goto done;
@@ -837,6 +842,9 @@ specification is handled later (see check_exception_specification).
     add_stop_token(tok_comma);
     /* Allocate the throw spec type entry. */
     estp = alloc_exception_specification_type();
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    estp->source_position = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     type_pos = pos_curr_token;
     if (!is_decl_start(/*expr_context=*/FALSE,
                        /*real_declarator_allowed=*/FALSE) ||
@@ -934,6 +942,11 @@ specification is handled later (see check_exception_specification).
     }  /* if */
   } while (loop_token(tok_comma));
   /* List should be terminated by a right paren. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  if (esp != NULL) {
+    esp->source_range.end = pos_curr_token;
+  }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   remove_stop_token(tok_rparen);
   (void)required_token(tok_rparen, ec_exp_rparen);
   remove_stop_token(tok_lbrace);

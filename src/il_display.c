@@ -2475,6 +2475,9 @@ Display the indicated exception-specification-type entry.
   disp_ptr("next", (char *)ptr->next, iek_exception_specification_type);
   disp_ptr("type", (char *)ptr->type, iek_type);  
   disp_boolean("redundant", (a_boolean)ptr->redundant);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  disp_source_position("source_position", &ptr->source_position);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* disp_exception_specification_type */
 
 
@@ -2487,7 +2490,7 @@ Display the indicated exception-specification entry.
            (char *)ptr->exception_specification_type_list,
            iek_exception_specification_type);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  disp_source_position("throw_position", &ptr->throw_position);
+  disp_source_range("source_range", &ptr->source_range);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* disp_exception_specification */
 

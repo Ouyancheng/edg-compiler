@@ -1,5 +1,13 @@
 Version 2.42
 
+7/13/99  Extra position information on throw specifications
+
+When EXTRA_SOURCE_POSITIONS_IN_IL is TRUE, the front end will now record the
+source position range of an exception specification (from the start of the
+"throw" token to end closing parenthesis) and the starting position of each
+type specified (if any).  Previously, only the start of the "throw" token was
+recorded.
+
 7/13/99  Abort on redefinition of predefined macro
 
 In Microsoft mode, a redefinition of a predefined macro that cannot be
