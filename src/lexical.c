@@ -3940,7 +3940,7 @@ set to NULL and return FALSE.
             } else {
               /* The identifier could not be found in the class. */
               if (class_scope != NO_SCOPE_NUMBER) {
-                error(ec_name_not_found_in_class);
+                error(ec_not_a_member);
               }  /* if */
             }  /* if */
           }  /* if */

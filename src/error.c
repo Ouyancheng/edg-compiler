@@ -449,7 +449,7 @@ error code.
         m = "expected a field name";
       }  /* if */
       break;
-    case ec_field_not_a_member:
+    case ec_not_a_member:
       if (C_dialect == C_dialect_cplusplus) {
         m = "no such member in this class";
       } else {
@@ -793,9 +793,6 @@ error code.
       break;
     case ec_missing_class_definition:
       m = "class or struct definition is missing";
-      break;
-    case ec_name_not_found_in_class:
-      m = "name is not known in the indicated class";
       break;
     case ec_member_ref_requires_object:
       m = "a nonstatic member reference must be relative to a specific object";
