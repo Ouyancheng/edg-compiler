@@ -4038,12 +4038,13 @@ on for use in generating cross-reference output describing this declaration.
         } else if (microsoft_mode &&
                    !calling_conventions_are_compatible(routine_ptr->type,
                                                        type_ptr)) {
-          /* Error -- calling conventions are compatible. */
+          /* Error -- calling conventions are not compatible. */
           routines_compat = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else if (!C_mode() && !func_info->is_main_function &&
                    !routine_name_linkages_are_compatible(routine_ptr->type,
                                                          type_ptr)) {
+          /* Error -- routine-name-linkages are not compatible. */
           routines_compat = FALSE;
           error_code = ec_incompatible_linkage_specifier;
         }  /* if */
