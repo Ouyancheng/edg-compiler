@@ -8567,11 +8567,20 @@ continue_with_declaration:
       pos_error(ec_enum_not_allowed, &decl_start_pos);
     } else {
       if (storage_class == (a_storage_class)sc_typedef) {
-        /* A case like "typedef int;" or "typedef struct { int i; };" */
-        set_err_pos_to_curr_token();
-        diagnostic(strict_ansi_mode ?
-                     strict_ansi_error_severity : es_warning,
-                   ec_missing_typedef_name);
+        if (declares_something ||
+            (defines_something && is_enum_type(type_ptr))) {
+          /* No diagnostic on a case like "typedef struct S { int i; };" or
+             "typedef enum { red, green, blue };" -- see first constraint,
+             Section 3.5 of the ANSI C standard. */
+        } else {
+          /* A case like "typedef int;" or "typedef struct { int i; };" --
+             gets a warning by default but may get an error in strict ANSI
+             mode. */
+          set_err_pos_to_curr_token();
+          diagnostic(strict_ansi_mode ?
+                       strict_ansi_error_severity : es_warning,
+                     ec_missing_typedef_name);
+        }  /* if */
       } else if (!declares_something) {
         if (defines_something &&
             (storage_class != (a_storage_class)sc_unspecified ||
@@ -8582,11 +8591,8 @@ continue_with_declaration:
              class or qualifier -- e.g., "extern struct { int i; };".  Tell
              the user an object name is missing. */
           set_err_pos_to_curr_token();
-          if (C_dialect == C_dialect_cplusplus) {
-            error(ec_missing_object_name);
-          } else {
-            warning(ec_missing_object_name);
-          }  /* if */
+          diagnostic(C_dialect == C_dialect_cplusplus ? es_error : es_warning,
+                     ec_missing_object_name);
         } else {
           /* The specifiers should have declared something or this declaration
              is pointless.  An example would be
