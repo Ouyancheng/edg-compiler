@@ -7488,7 +7488,7 @@ mode) at *err_pos if not.
                         ec_uncallable_elided_cctor,
                         err_pos, cctor_sym);
     } else if (cctor_sym == NULL) {
-      /* No applicable copy constructor.  This includes */
+      /* No applicable copy constructor. */
       pos_ty_diagnostic(strict_ansi_discretionary_severity,
                         ec_no_suitable_copy_constructor, err_pos, class_type);
     } else if (!have_access_to_symbol(cctor_sym)) {
