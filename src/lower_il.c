@@ -7670,7 +7670,7 @@ Display and return the amount of space used for various IL lowering tables.
                      num_return_memos_allocated, a_return_memo);
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   db_space_used_general_buffer("mangled name buffer",
-                               size_mangled_name_buffer);
+                               (unsigned long)size_mangled_name_buffer);
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
   db_space_used_total();

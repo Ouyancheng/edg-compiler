@@ -3709,7 +3709,7 @@ made is returned.
     fprintf(f_debug, "Updated error file index entries:\n");
     for (index = 0;
          index < NUMBER_OF_ERROR_FILE_INDEX_TABLE_ENTRIES; ++index) {
-      fprintf(f_debug, "entry %0d=%5d\n", index,
+      fprintf(f_debug, "entry %0d=%5lu\n", index,
               curr_file->line_number[index]);
     }  /* for */
     fprintf(f_debug, "\n");

@@ -1913,11 +1913,12 @@ examine_children:
     if (debug_level >= 5) {
       fprintf(f_debug, "Cached source sequence conversion information:\n");
       fprintf(f_debug, "  file=%s\n", curr_file->file_name);
-      fprintf(f_debug, "  first_seq_number: %d\n", seq_cache.first_seq_number);
-      fprintf(f_debug, "  last_seq_number: %d\n", seq_cache.last_seq_number);
-      fprintf(f_debug, "  line_offset: %d\n", seq_cache.line_offset);
+      fprintf(f_debug, "  first_seq_number: %lu\n",
+                       seq_cache.first_seq_number);
+      fprintf(f_debug, "  last_seq_number: %lu\n", seq_cache.last_seq_number);
+      fprintf(f_debug, "  line_offset: %l\n", seq_cache.line_offset);
       fprintf(f_debug, "  physical_line: %d\n", seq_cache.physical_line);
-      fprintf(f_debug, "  seq number requested=%d\n", seq_number);
+      fprintf(f_debug, "  seq number requested=%lu\n", seq_number);
     }  /* if */
 #endif /* DEBUG */
     /* Compute the line number to be returned to the caller. */
@@ -1925,7 +1926,8 @@ examine_children:
   }  /* if */
 #if DEBUG
   if (debug_level >= 5) {
-    fprintf(f_debug, "File=%s, Line=%d\n", curr_file->file_name, *line_number);
+    fprintf(f_debug, "File=%s, Line=%lu\n",
+                     curr_file->file_name, *line_number);
   }  /* if */
 #endif /* DEBUG */
   return curr_file;

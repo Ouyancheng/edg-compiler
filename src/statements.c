@@ -164,7 +164,7 @@ purposes.
 
   switch (cfdp->kind) {
     case cfdk_block:
-      fprintf(f_debug, "block #%d (line %d)", cfdp->id_number,
+      fprintf(f_debug, "block #%lu (line %lu)", cfdp->id_number,
               cfdp->source_pos.seq);
       if (cfdp->variant.block.is_handler_block) {
         fprintf(f_debug, ", handler");
@@ -176,21 +176,21 @@ purposes.
       }  /* if */
       if (cfdp->variant.block.any_labels) fprintf(f_debug, ", labels");
       if (cfdp->variant.block.goto_count > 0) {
-        fprintf (f_debug, ", %d goto%s",
+        fprintf (f_debug, ", %lu goto%s",
                  cfdp->variant.block.goto_count,
                  cfdp->variant.block.goto_count == 1 ? "" : "s");
       }  /* if */
       if (cfdp->variant.block.last_case_label != NULL) {
-        fprintf(f_debug, ", last case label #%d",
+        fprintf(f_debug, ", last case label #%lu",
                 cfdp->variant.block.last_case_label->id_number);
       }  /* if */
       if (cfdp->variant.block.end_of_block != NULL) {
-        fprintf(f_debug, ", EOB #%d",
+        fprintf(f_debug, ", EOB #%lu",
                 cfdp->variant.block.end_of_block->id_number);
       }  /* if */
       break;
     case cfdk_goto:
-      fprintf(f_debug, "goto %s (line %d)",
+      fprintf(f_debug, "goto %s (line %lu)",
               cfdp->variant.goto_statement.ptr->
                            variant.label->source_corresp.name,
               cfdp->source_pos.seq);
@@ -211,23 +211,23 @@ purposes.
       } else {
         db_name(&vp->source_corresp);
       }  /* if */
-      fprintf(f_debug, " (line %d)", cfdp->source_pos.seq);
+      fprintf(f_debug, " (line %lu)", cfdp->source_pos.seq);
       break;
     case cfdk_end_of_block:
-      fprintf(f_debug, "EOB (line %d)",
+      fprintf(f_debug, "EOB (line %lu)",
               cfdp->source_pos.seq);
       if (cfdp->variant.start_of_block != NULL) {
-        fprintf(f_debug, " for block #%d",
+        fprintf(f_debug, " for block #%lu",
                 cfdp->variant.start_of_block->id_number);
       }  /* if */
       break;
     case cfdk_case_label:
-      fprintf(f_debug, "case label (line %d)", cfdp->source_pos.seq);
+      fprintf(f_debug, "case label (line %lu)", cfdp->source_pos.seq);
       break;
     default:
       fprintf(f_debug, "***UNKNOWN KIND***");
   }  /* switch */
-  fprintf(f_debug, "\t[#%d]\n", cfdp->id_number);
+  fprintf(f_debug, "\t[#%lu]\n", cfdp->id_number);
 }  /* db_cfd */
 
 
