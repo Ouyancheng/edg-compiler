@@ -947,16 +947,16 @@ do_struct_union:
       } else if (ptr->variant.typeref.qualifiers != TQ_NONE) {
         a_boolean  space_needed = FALSE;
         disp_name("qualifiers");
-        if (typeref_is_const_qualified(tp)) {
+        if (typeref_is_const_qualified(ptr)) {
           (void)printf("const");
           space_needed = TRUE;
         }  /* if */
-        if (typeref_is_volatile_qualified(tp)) {
+        if (typeref_is_volatile_qualified(ptr)) {
           (void)printf("%svolatile", space_needed ? " ":"");
 #if RESTRICT_ALLOWED
           space_needed = TRUE;
         }  /* if */
-        if (typeref_is_restrict_qualified(tp)) {
+        if (typeref_is_restrict_qualified(ptr)) {
           (void)printf("%srestrict", space_needed ? " ":"");
 #endif /* RESTRICT_ALLOWED */
         }  /* if */
