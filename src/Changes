@@ -1,3 +1,11 @@
+3/14/97   Error recovery abort with extern "C" declaration
+
+A null-pointer failure has been fixed on the following:
+
+  extern "C" void f();
+  extern "C" int f();
+
+
 Version 2.36
 
 3/8/97   Generated operator= calling base-class operator= that takes
