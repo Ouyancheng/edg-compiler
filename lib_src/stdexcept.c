@@ -18,7 +18,7 @@ Functions that implement the "exception" class (19.1.1).
 
 #if EXCEPTION_HANDLING
 
-#include "exception.h"
+#include <exception>
 
 /*
 If the runtime should be defined in the std namespace, open

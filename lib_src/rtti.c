@@ -19,7 +19,7 @@ Run-time type identification.
 #include "rtti.h"
 
 #if ABI_CHANGES_FOR_RTTI
-#include "typeinfo.h"
+#include <typeinfo>
 #include "vtbl.h"
 #endif /* ABI_CHANGES_FOR_RTTI */
 

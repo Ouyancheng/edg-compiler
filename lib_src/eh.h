@@ -18,7 +18,7 @@ Declarations for exception handling.
 
 #include <stdlib.h>
 #include "runtime.h"
-#include "exception.h"
+#include <exception>
 #include "rtti.h"
 #include "vec_newdel.h"
 

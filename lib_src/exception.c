@@ -18,7 +18,7 @@ Functions that implement the "bad_exception" class (18.6.2.1).
 
 #if EXCEPTION_HANDLING
 
-#include "exception.h"
+#include <exception>
 
 /*
 If the runtime should be defined in the std namespace, open

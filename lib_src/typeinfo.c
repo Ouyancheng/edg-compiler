@@ -19,7 +19,7 @@ Run-time type identification -- user callable functions.
 #if ABI_CHANGES_FOR_RTTI
 
 #include "rtti.h"
-#include "typeinfo.h"
+#include <typeinfo>
 
 /*
 If the runtime should be defined in the std namespace, open
