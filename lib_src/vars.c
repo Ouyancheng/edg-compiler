@@ -16,7 +16,6 @@ Performs initialization of global variables used by the runtime.
 #define VAR_INITIALIZERS 1
 
 #include "main.h"
-#include "newdel.h"
 
 
 

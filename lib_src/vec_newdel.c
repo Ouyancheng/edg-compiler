@@ -14,8 +14,40 @@ C++ runtime routines to provide vector new() and delete() functionality.
 */
 
 #include <stdlib.h>
-#include "newdel.h"
 
+/*
+For arrays, _vec_new() and _vec_delete() will maintain a linked list of 
+"hidden" information on each array allocated and subsequently deleted.
+This information will be used by _vec_ctor() and _vec_dtor() to determine
+the size of undimensioned arrays.
+*/
+
+/*
+Hidden structure of information for each array "allocated" by new().
+*/
+typedef struct vec_info *vec_info_ptr;
+				/* Pointer to a vector information struct. */
+typedef struct vec_info {
+  vec_info_ptr next;		/* Pointer to the next structure in a linked
+				   list. */
+  void 	       *array_ptr;	/* Pointer to array. */
+  size_t       array_size;	/* Size of memory in the array. */
+} vec_info;
+
+
+static vec_info_ptr _head_vec_info = NULL;
+				/* Pointer to the beginning of the linked list
+				   of array information. */
+
+static vec_info_ptr _free_vec_info = NULL;
+				/* Pointer to a list of free array information
+				   structures. */
+
+
+extern "C" void _array_pointer_not_from_vec_new();
+                               /* Function called when an invalid pointer that
+                                  was not allocated by vec_new is passed
+                                  to one of the vector handling routines. */
 
 
 #if CFRONT_COMPATIBILITY_MODE
