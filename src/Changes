@@ -1,5 +1,27 @@
 Version 3.2
 
+3/11/03  Folding "new" into constructor or runtime routine, with unusual
+         delete
+
+In two cases, IL lowering generated incorrect code for "new" operations
+where the operator new routine is the default one and the operator
+delete is unusual, and exceptions are enabled:
+
+  a)  A ::new of a class type, where the class declares a class-specific
+      operator delete but no class-specific operator new, and
+      NEW_CAN_BE_FOLDED_INTO_CTOR is TRUE (default for the Cfront-like
+      ABI).  The allocation was performed by the contructor, which
+      would call the wrong operator delete if an exception is thrown.
+      The allocation is now done before calling the constructor.
+  b)  A new of an array type, where the class declares a class-specific
+      operator delete[] but no class-specific operator new[], and
+      NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE
+      is TRUE (default).  A default runtime vector-allocation
+      routine was called, which would call the wrong operator delete[]
+      if an exception is thrown.  A general-purpose vector-allocation
+      routine, which has a parameter that can be used to specify
+      the appropriate operator delete[] routine, is now called.
+
 3/11/03  IA-64 ABI: Virtual bases should not reuse the tail padding of
          nonvirtual empty bases
 

@@ -6543,9 +6543,11 @@ initialization is scanned (so the cleanup entry gets onto the object
 lifetime list in the right place).
 */
 /* Do not record the deletion if no delete routine is needed or if
-   allocation is folded into a constructor (new_routine == NULL). */
+   allocation is folded into a constructor (new_routine == NULL
+   on a non-array new). */
 #define make_dyn_init_for_deletion_for_throw()                        \
-{ if (delete_routine != NULL && new_routine != NULL) {                \
+{ if (delete_routine != NULL &&                                       \
+      (new_routine != NULL || array_new)) {                           \
     dyn_init_to_free_storage =                                        \
       f_make_dyn_init_for_deletion_for_throw(delete_routine, array_new); \
   }  /* if */                                                         \
@@ -6915,6 +6917,20 @@ specification allow a variable-sized array as the top type.
     a_boolean access_error_reported;
     /* Work out the "new" routine and its arguments. */
     new_routine = function_symbol->variant.routine.ptr;
+    /* Determine the delete routine to be called if an exception is
+       thrown before the initialization completes. */
+    if (exceptions_enabled
+#if !ABI_CHANGES_FOR_PLACEMENT_DELETE
+        /* When placement delete is not supported do not look for a delete
+           routine. */
+        && !placement_new
+#endif /* !ABI_CHANGES_FOR_PLACEMENT_DELETE */
+                         ) {
+      delete_routine = determine_deletion_for_new(base_new_type,
+                                                  function_symbol,
+                                                  use_global_new,
+                                                  &new_position);
+    }  /* if */
 #if NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE
     if (array_new) {
       /* If a allocating an array and a runtime routine will be used, the
@@ -6950,8 +6966,15 @@ specification allow a variable-sized array as the top type.
                                 next_token() == tok_rparen);
         if (!value_init) {
           set_class_assoc_operator_new_routine(unqual_base_new_type);
+          if (exceptions_enabled) {
+            set_class_assoc_operator_delete_routine(unqual_base_new_type,
+                                                    (a_routine_ptr)NULL);
+          }  /* if */
           if (unqual_base_new_type->variant.class_struct_union.extra_info->
-                                   assoc_operator_new_routine == new_routine) {
+                                   assoc_operator_new_routine == new_routine &&
+              (!exceptions_enabled ||
+               unqual_base_new_type->variant.class_struct_union.extra_info->
+                            assoc_operator_delete_routine == delete_routine)) {
             new_routine = NULL;
           }  /* if */
         }  /* if */
@@ -6988,20 +7011,6 @@ specification allow a variable-sized array as the top type.
     /* Avoid freeing the lists twice. */
     arg_operand_list = NULL;
     arg_match_list = NULL;
-  }  /* if */
-  if (!err && exceptions_enabled && function_symbol != NULL
-#if !ABI_CHANGES_FOR_PLACEMENT_DELETE
-      /* When placement delete is not supported do not look for a delete
-         routine. */
-      && !placement_new
-#endif /* !ABI_CHANGES_FOR_PLACEMENT_DELETE */
-                                                           ) {
-    /* Determine the delete routine to be called if an exception is
-       thrown before the initialization completes. */
-    delete_routine = determine_deletion_for_new(base_new_type,
-                                                function_symbol,
-                                                use_global_new,
-                                                &new_position);
   }  /* if */
   /* If the new routine will be called (and not folded into a constructor),
      the initializer expression is actually inside a conditional expression
