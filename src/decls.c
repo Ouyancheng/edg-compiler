@@ -3888,42 +3888,64 @@ return a pointer to it in *symbol_ptr.
          symbol, in which case the error message will be issued by
          enter_symbol. */
     }  /* if */
-  } else if (C_dialect == C_dialect_cplusplus) {
-    /* No symbol by this name.  See if this is a tagless class, struct, or
-       union type.  If so, the present name will serve as the tag (ARM 7.1.3).
-       Note that we do NOT want to do a skip_typerefs on the type; only if
-       *type_ptr itself lacks an associated tag symbol with a name do we want
-       to create a new symbol. */
-    if (!is_error_type(type_ptr) && type_ptr->source_corresp.name == NULL &&
-        !is_error_locator(*locator)) {
-      sym = (a_symbol_ptr)type_ptr->source_corresp.assoc_info;
-      if (sym != NULL && is_unnamed_tag_symbol(sym)) {
-        if (any_cfront_mode()) {
-          /* An unnamed tag symbol was created for the class and can be reused
-             now that we have a name to assign to it.  We need to unlink it
-             from the symbol table, give it the name, and relink it into the
-             symbol table. */
-          relink_unnamed_tag_symbol(sym, locator);
-          /* Call set_source_corresp, but preserve the current IL referenced
-             setting, which set_source_corresp will clear. */
-          saved_referenced_flag = type_ptr->source_corresp.referenced;
-          set_source_corresp(&(type_ptr->source_corresp), sym);
-          type_ptr->source_corresp.referenced = saved_referenced_flag;
-          suppress_redecl_error = TRUE;
-          /* Note that we do not look for conflicts between the class's new
-             name and the names of its members.  This is an area where the
-             wording of the ARM (7.1.3) has been clarified and/or amended by
-             the X3J16 working paper, and so the restrictions specified in
-             ARM 9.2 do not apply. */
-        } else {
-          /* The typedef name is the name of the class "for linkage purposes".
-             That means the typedef name should be recorded in the source
-             correspondence field for the type.  However, we won't reenter
-             the symbol into the symbol table; this keeps the typedef name
-             from being used in an elaborated type specifier (7.1.3 para 5,
-             9.1 para 5). */
-          type_ptr->source_corresp.name = locator->symbol_header->identifier;
+  } else if (C_dialect == C_dialect_cplusplus && !is_error_locator(*locator)) {
+    /* No symbol by this name.  See if this is a tagless type for which the
+       typedef name will serve as the "name for linkage purposes" (ARM 7.1.3).
+       If so, set the name pointer in the type entry to point to the same
+       name as the current typedef name. */
+    tp = NULL;
+    if (is_immediate_class_type(type_ptr)) {
+      if (type_ptr->source_corresp.name == NULL) {
+        /* A class/struct/union type with no name. */
+        tp = type_ptr;
+      }  /* if */
+    } else if (any_cfront_mode()) {
+      /* Normally, inferring a linkage name from a typedef name is allowed
+         only for unqualified class/struct/union types.  However, in
+         cfront mode it is done for enum types, too -- and it is even done
+         when there is a type qualifier on top of the tagless class or enum:
+           typedef struct { ... } A;         // linkage name "A" (all modes)
+           typedef const struct { ... } B;   // linkage name "B" (cfront mode)
+           typedef enum { ... } C;           // linkage name "C" (cfront mode)
+           typedef const enum { ... } D;     // linkage name "D" (cfront mode)
+      */
+      if (is_class_struct_union_type(type_ptr) || is_enum_type(type_ptr)) {
+        if (skip_typedefs(type_ptr) == type_ptr &&
+            skip_typerefs(type_ptr)->source_corresp.name == NULL) {
+          /* A possibly qualified class or enum type with no name.  Get at
+             the underlying type. */
+          tp = skip_typerefs(type_ptr);
         }  /* if */
+      }  /* if */
+    }  /* if */
+    if (tp != NULL) {
+      if (any_cfront_mode()) {
+        /* An unnamed tag symbol was created for the class and can be reused
+           now that we have a name to assign to it.  We need to unlink it
+           from the symbol table, give it the name, and relink it into the
+           symbol table. */
+        sym = (a_symbol_ptr)tp->source_corresp.assoc_info;
+        check_assertion(sym != NULL && is_unnamed_tag_symbol(sym));
+        relink_unnamed_tag_symbol(sym, locator);
+        /* Call set_source_corresp, but preserve the current IL referenced
+           setting, which set_source_corresp will clear. */
+        saved_referenced_flag = tp->source_corresp.referenced;
+        set_source_corresp(&(tp->source_corresp), sym);
+        tp->source_corresp.referenced = saved_referenced_flag;
+        suppress_redecl_error = TRUE;
+        /* Note that we do not look for conflicts between the class's new
+           name and the names of its members.  This is an area where the
+           wording of the ARM (7.1.3) has been clarified and/or amended by
+           the X3J16 working paper, and so the restrictions specified in
+           ARM 9.2 do not apply. */
+      } else {
+        /* The typedef name is the name of the class "for linkage purposes".
+           That means the typedef name should be recorded in the source
+           correspondence field for the type.  However, we won't reenter
+           the symbol into the symbol table; this keeps the typedef name
+           from being used in an elaborated type specifier (7.1.3 para 5,
+           9.1 para 5). */
+        tp->source_corresp.name = locator->symbol_header->identifier;
       }  /* if */
     }  /* if */
   }  /* if */
