@@ -969,7 +969,7 @@ class will be instantiated if necessary so that its base classes are known.
          template class.  This is necessary so that we can see what its base
          classes are.  Note that this can potentially force instantiation
          of the base class as well. */
-      complete_class_type_is_needed(derived_class);
+      instantiate_template_class(derived_class);
     }  /* if */
     /* Check that both classes are complete, i.e., that their definitions have
        been seen. */
