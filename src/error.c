@@ -2742,8 +2742,8 @@ declaration position to eliminate redundant file names in a diagnostic.
       goto symbol_name;
     case sk_function_template:
       entity_kind = "function template ";
-      /* There is no specific type information available; this entity cannot
-         be expressed as a declaration. */
+      routine = fund_sym->variant.template_info->variant.function.routine;
+      type = routine->type;
       goto symbol_name;
 symbol_name:
       /* Add the entity kind if not specified as name only or full type for
