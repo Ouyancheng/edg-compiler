@@ -2810,8 +2810,7 @@ at file scope.
      type entry; this is useful for function arg matching. */
   ptp->type_involves_template_param =
                      (C_dialect == C_dialect_cplusplus &&
-                      traverse_type_tree(type, ttt_is_template_param,
-                                         TTT_PARAM_TYPES | TTT_RETURN_TYPE));
+                      is_or_contains_template_param(type));
   set_arg_transfer_method_flag(ptp);
 
   db_exit();
