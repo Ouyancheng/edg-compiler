@@ -375,7 +375,11 @@ is not affected; such types are not considered to be identical, and
 errors are still generated for type mismatches.
 */
 #ifndef SAME_REPR_INTS_INTERCHANGEABLE_IN_IL
+#if BACK_END_IS_CP_GEN_BE
+#define SAME_REPR_INTS_INTERCHANGEABLE_IN_IL FALSE
+#else /* !BACK_END_IS_CP_GEN_BE */
 #define SAME_REPR_INTS_INTERCHANGEABLE_IN_IL TRUE
+#endif /* BACK_END_IS_CP_GEN_BE */
 #endif /* !defined(SAME_REPR_INTS_INTERCHANGEABLE_IN_IL) */
 
 /* Maximum size of a bit-field.  Must not be larger than the size of a
