@@ -176,7 +176,9 @@ Cache the tokens that comprise an initializer of the form
 }  /* prescan_initializer */
 
 
-static void get_token_and_coalesce_if_identifier(a_disambig_flag_set flags)
+static void f_get_token_and_coalesce_if_identifier(
+				a_disambig_flag_set		flags,
+				an_identifier_options_set	gid_flags)
 /*
 Get a token and, if it is a tok_identifier, call
 is_generalized_identifier_start to coalesce it in case it is the
@@ -188,8 +190,17 @@ scanned are coalesced prior to analysis.
   (void)get_token();
   (void)is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL |
                                         GID_IS_EXPR_CONTEXT |
-                                        gid_flags_for_template(flags));
-}  /* get_token_and_coalesce_if_identifier */
+                                        gid_flags_for_template(flags) |
+                                        gid_flags);
+}  /* f_get_token_and_coalesce_if_identifier */
+
+
+/*
+Macro that calls f_get_token_and_coalesce_if_identifier and provides
+the general identifier option.
+*/
+#define get_token_and_coalesce_if_identifier(flags)			\
+  f_get_token_and_coalesce_if_identifier((flags), GID_NO_OPTIONS)
 
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -427,7 +438,9 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
            lists, and other contexts that are involved in disambiguation.
            We assume this is an elaborated type specifier */
         cache_curr_token(&state->cache);
-        get_token_and_coalesce_if_identifier(flags);
+        f_get_token_and_coalesce_if_identifier(
+                       flags, curr_token == tok_typename ? GID_IS_TYPENAME
+                                                         : GID_NO_OPTIONS);
         if (type_specifier_seen) {
           /* We've already seen a type specifier, this is probably an
              error. */
