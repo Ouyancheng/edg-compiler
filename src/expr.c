@@ -14207,6 +14207,11 @@ required_type will be void if the expression should have void type
       expression = make_node_from_void_expression_operand(&result);
       if (microsoft_mode && C_mode()) {
         /* The type is not checked in Microsoft C mode. */
+      } else if (gcc_mode) {
+        /* In GNU C mode a type mismatch results in a warning only. */
+        if (!is_void_type(result.type)) {
+          pos_warning(err_code, &result.position);
+        }  /* if */
       } else {
         /* Check that the expression has void type. */
         if (!is_void_type(result.type) &&

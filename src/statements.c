@@ -5079,15 +5079,20 @@ See also 3.6.6.4.
            Microsoft C allows an expression of any type.  cfront 2.1 allows
            a void expression.  cfront 3.0 does not allow any expression. */
         if (C_mode()) {
-          if (microsoft_mode) {
-            /* In Microsoft C mode a return statement in a void function may
-               have the form "return expr;".  For this case the return
-               statement is allocated later so that the expression can be put
-               out first as a freestanding expression statement.  This feature
-               is standard in C++, and the rewrite in that case is handled by
-               IL lowering. */
+          if (microsoft_mode || gcc_mode) {
+            /* In Microsoft and GNU C modes a return statement in a void
+               function may have the form "return expr;".  For this case the
+               return statement is allocated later so that the expression can
+               be put out first as a freestanding expression statement.  This
+               feature is standard in C++, and the rewrite in that case is
+               handled by IL lowering. */
             check_assertion(is_void_type(return_type));
-            warning(ec_value_returned_in_void_function);
+            if (!gcc_mode) {
+              /* In GNU C mode a warning is issued only if the return
+                 expression doesn't have void type (done in
+                 scan_return_expression). */
+              warning(ec_value_returned_in_void_function);
+            }  /* if */
             microsoft_C_mode_void_return = TRUE;
           } else {
             /* Other C modes.  An expression is not allowed. */
@@ -5146,8 +5151,8 @@ See also 3.6.6.4.
   if (!return_stmt_allowed) {
     sp = NULL;
   } else if (microsoft_C_mode_void_return) {
-    /* Microsoft C mode.  A warning was already issued above. Put out the
-       expression statement holding the return expression.  The return
+    /* Microsoft or GNU C mode.  A warning was already issued above. Put out
+       the expression statement holding the return expression.  The return
        statement will come a little later. */
     sp = add_statement((a_statement_kind)stmk_expr);
   } else {
@@ -5167,9 +5172,9 @@ See also 3.6.6.4.
     if (!microsoft_C_mode_void_return) {
       sp->variant.return_dynamic_init = dip;
     } else {
-      /* The Microsoft C compatibility case: "return expr" in a void function.
-         The statement already put out is an expression statement. Follow it
-         now by a return statement with a null expression. */
+      /* The Microsoft/GNU C compatibility case: "return expr" in a void
+         function.  The statement already put out is an expression statement.
+         Follow it now by a return statement with a null expression. */
       sp = add_statement_at_stmt_pos((a_statement_kind)stmk_return,
                                      &return_pos);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
