@@ -1937,6 +1937,7 @@ the template.
     if (ssep != NULL &&
         ss_entry_kind(ssep) == iek_src_seq_secondary_decl) {
       sssdp = (a_src_seq_secondary_decl_ptr)ssep->entity.ptr;
+      check_assertion(sssdp->decl_pos_info == NULL);
       dpsp = alloc_decl_position_supplement(in_file_scope(sssdp));
       dpsp->specifiers_range = local_decl_pos_block.specifiers_range;
       if (is_friend_decl) {
@@ -2023,7 +2024,7 @@ to indicate whether an enumeration is actually defined.
   a_boolean                is_redeclaration;
   a_boolean                namespace_extension_pushed = FALSE;
   a_source_position        tag_position;
-  a_decl_pos_block        local_decl_pos_block;
+  a_decl_pos_block         local_decl_pos_block;
 
   db_enter(3, "enum_specifier");
 
@@ -2549,6 +2550,32 @@ to indicate whether an enumeration is actually defined.
       if (tag_id_present) {
         dpsp->identifier_range = local_decl_pos_block.identifier_range;
       }  /* if */
+    }  /* if */
+  }  /* if */
+  if (*declares_something && !(*defines_something)) {
+    /* Update source range information in the secondary-decl entry. */
+    a_source_sequence_entry_ptr     ssep;
+    a_src_seq_secondary_decl_ptr    sssdp;
+    a_decl_position_supplement_ptr  dpsp;
+
+    /* Ordinarily secondary declarations of enum types (e.g., forward
+       declarations) are not allowed, but they are sometimes allowed as an
+       extension. */
+    check_assertion(!strict_ansi_mode || !is_redeclaration);
+    /* Look for the secondary-decl entry. */
+    ssep = last_matching_source_sequence_entry((char *)enum_type);
+    if (ssep != NULL &&
+        ss_entry_kind(ssep) == iek_src_seq_secondary_decl) {
+      sssdp = (a_src_seq_secondary_decl_ptr)ssep->entity.ptr;
+      check_assertion(sssdp->decl_pos_info == NULL);
+      /* Allocate the supplement, set its fields, and link it to the
+         secondary-decl entry that was just located for enum_type. */
+      dpsp = alloc_decl_position_supplement(in_file_scope(sssdp));
+      dpsp->specifiers_range = local_decl_pos_block.specifiers_range;
+      if (tag_id_present) {
+        dpsp->identifier_range = local_decl_pos_block.identifier_range;
+      }  /* if */
+      sssdp->decl_pos_info = dpsp;
     }  /* if */
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
