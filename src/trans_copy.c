@@ -1809,23 +1809,21 @@ entries in the primary IL.
 }  /* update_namespace_pointers_block */
 
 
-static void finish_trans_unit_copy(a_scope_ptr scope,
-                                   a_boolean   merge_pass)
+static void finish_trans_unit_copy(a_scope_ptr scope)
 /*
 scope is a file, namespace, or class scope from the secondary file IL.  Do
 processing required after the IL walk has copied IL entries from the
-secondary scope to the primary file IL.  If merge_pass is TRUE, do (only)
-merges of secondary entries into primary entries; otherwise, put copied
-(not merged) entries on the ends of primary IL lists.  This routine is
-called with the current translation unit set to the primary translation
-unit.
+secondary scope to the primary file IL.  This includes putting copied
+entries on primary IL lists and merging entries into the corresponding
+primary IL entries.  This routine is called with the current translation
+unit set to the primary translation unit.
 */
 {
   a_scope_ptr            primary_scope;
   a_scope_pointers_block *pointers_block;
   a_boolean              is_class_scope =
                          (scope->kind == (a_scope_kind)sck_class_struct_union);
-  a_boolean              move_to_end, merge;
+  a_boolean              move_to_end;
 
   check_assertion(is_primary_translation_unit);
   /* Process only scopes that must be merged into their counterparts. */
@@ -1854,11 +1852,9 @@ unit.
           /* A class with a scope.  Do a recursive call to process it. */
           a_scope_ptr class_scope = type->variant.class_struct_union.
                                                        extra_info->assoc_scope;
-          finish_trans_unit_copy(class_scope, merge_pass);
+          finish_trans_unit_copy(class_scope);
         }  /* if */
-        merge = entry_to_be_merged(type);
-        if (merge_pass != merge) goto end_of_type_list_add;
-        if (!merge) {
+        if (!entry_to_be_merged(type)) {
           /* An entry that was simply copied. */
 #if DEBUG
           if (db_trace("trans_copy", corresp_type, iek_type)) {
@@ -1941,9 +1937,7 @@ end_of_type_list_add:;
            variable = variable->next) {
         a_variable_ptr corresp_variable =
                   (a_variable_ptr)checked_trans_unit_copy_address_of(variable);
-        merge = entry_to_be_merged(variable);
-        if (merge_pass != merge) goto end_of_variable_list_add;
-        if (merge) {
+        if (entry_to_be_merged(variable)) {
           /* The entry gets merged into the corresponding variable. */
           a_variable_ptr primary_variable =
                      (a_variable_ptr)checked_trans_unit_copy_address_of(
@@ -2010,10 +2004,9 @@ end_of_type_list_add:;
         }  /* if */
 end_of_variable_list_add:;
 #if MAINTAIN_NEEDED_FLAGS
-        if (!merge_pass &&
-            (corresp_variable->storage_class ==
+        if (corresp_variable->storage_class ==
                                              (a_storage_class)sc_unspecified ||
-             corresp_variable->init_kind == (an_init_kind)initk_dynamic)) {
+            corresp_variable->init_kind == (an_init_kind)initk_dynamic) {
           /* Mark an externally-defined variable or one with initialization
              side effects as "needed". */
           mark_as_needed((char *)corresp_variable,
@@ -2022,7 +2015,7 @@ end_of_variable_list_add:;
 #endif /* MAINTAIN_NEEDED_FLAGS */
       }  /* for */
     }  /* if */
-    if (scope->dynamic_inits != NULL && !merge_pass) {
+    if (scope->dynamic_inits != NULL) {
       /* Add the dynamic initializations of "scope" to the end of the
          dynamic initializations list of "primary scope". */
       a_dynamic_init_ptr copied_inits =
@@ -2057,9 +2050,7 @@ end_of_variable_list_add:;
            routine = routine->next) {
         a_routine_ptr corresp_routine =
                     (a_routine_ptr)checked_trans_unit_copy_address_of(routine);
-        merge = entry_to_be_merged(routine);
-        if (merge_pass != merge) goto end_of_routine_list_add;
-        if (merge) {
+        if (entry_to_be_merged(routine)) {
           /* The entry gets merged into the corresponding routine. */
           a_routine_ptr primary_routine =
                    (a_routine_ptr)checked_trans_unit_copy_address_of(
@@ -2136,7 +2127,7 @@ end_of_variable_list_add:;
 end_of_routine_list_add:;
       }  /* for */
     }  /* if */
-    if (scope->templates != NULL && !merge_pass) {
+    if (scope->templates != NULL) {
       a_template_ptr templ, last_templ;
       /* Merge the templates in the scope into the primary IL scope. */
       /* Get a pointer to the last template in the primary scope. */
@@ -2177,8 +2168,7 @@ end_of_routine_list_add:;
       for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
         a_namespace_ptr corresp_nsp =
                       (a_namespace_ptr)checked_trans_unit_copy_address_of(nsp);
-        merge = entry_to_be_merged(nsp);
-        if (merge_pass == merge && !merge) {
+        if (!entry_to_be_merged(nsp)) {
           /* An entry that was simply copied.  Add it to the end of the
              list. */
           if (last_nsp == NULL) {
@@ -2191,11 +2181,11 @@ end_of_routine_list_add:;
           pointers_block->last_namespace = last_nsp;
         }  /* if */
         if (!nsp->is_namespace_alias) {
-          finish_trans_unit_copy(nsp->variant.assoc_scope, merge_pass);
+          finish_trans_unit_copy(nsp->variant.assoc_scope);
         }  /* if */
       }  /* for */
     }  /* if */
-    if (scope->pragmas != NULL && !merge_pass) {
+    if (scope->pragmas != NULL) {
       a_pragma_ptr pragma, last_pragma;
       /* Merge the pragmas in the scope into the primary IL scope. */
       /* Get a pointer to the last pragma in the primary scope. */
@@ -2226,7 +2216,7 @@ end_of_routine_list_add:;
         if (pointers_block != NULL) pointers_block->last_pragma = last_pragma;
       }  /* for */
     }  /* if */
-    if (scope->asm_entries != NULL && !merge_pass) {
+    if (scope->asm_entries != NULL) {
       an_asm_entry_ptr asm_entry, last_asm_entry;
       /* Merge the asm entries in the scope into the primary IL scope. */
       /* Get a pointer to the last asm entry in the primary scope. */
@@ -2263,17 +2253,15 @@ end_of_routine_list_add:;
         }  /* if */
       }  /* for */
     }  /* if */
-    if (merge_pass) {
-      /* Merge the object lifetime from "scope" into that from
-         "primary_scope". */
-      merge_object_lifetimes(scope, primary_scope);
-    }  /* if */
+    /* Merge the object lifetime from "scope" into that from
+       "primary_scope". */
+    merge_object_lifetimes(scope, primary_scope);
   } else {
     /* This scope is not being merged into a counterpart in the primary
        IL.  It was just copied over. */
     /* For a namespace scope, update the end-of-list pointers in the
        pointers block to match to addresses of the copies. */
-    if (!merge_pass && scope->kind == (a_scope_kind)sck_namespace) {
+    if (scope->kind == (a_scope_kind)sck_namespace) {
       update_namespace_pointers_block(scope);
     }  /* if */
   }  /* if */
@@ -2513,7 +2501,6 @@ therefore will not be copied.
 {
   a_translation_unit_ptr tup;
   a_scope_ptr            top_scope;
-  a_boolean              merge_pass;
 
   db_enter(1, "copy_secondary_trans_unit_IL_to_primary");
   check_assertion(total_errors == 0 && !trans_unit_test_mode);
@@ -2574,35 +2561,25 @@ therefore will not be copied.
   /* Loop over each translation unit, linking copied entities into the
      primary IL.  Note that this part runs while switched to the
      primary translation unit. */
-  /* Do two passes, one to add copied entries to lists, and one to handle
-     merges (which have to be done later, because they sometimes involve
-     removing an entry from the list and moving it to the end). */
-  for (merge_pass = FALSE;;) {
-    for (tup = translation_units->next; tup != NULL; tup = tup->next) {
+  for (tup = translation_units->next; tup != NULL; tup = tup->next) {
 #if DEBUG
-      if (debug_level >= 1) {
-        fprintf(f_debug,
-                "Wrapping up copy from sec trans unit %s (merge_pass = %s):\n",
-                curr_translation_unit->source_file->name_as_written,
-                merge_pass ? "TRUE" : "FALSE");
-      }  /* if */
+    if (debug_level >= 1) {
+      fprintf(f_debug, "Wrapping up copy from sec trans unit %s:\n",
+                       curr_translation_unit->source_file->name_as_written);
+    }  /* if */
 #endif /* DEBUG */
-      top_scope = tup->primary_scope;
-      finish_trans_unit_copy(top_scope, merge_pass);
-      if (merge_pass) merge_il_headers(tup);
+    top_scope = tup->primary_scope;
+    finish_trans_unit_copy(top_scope);
+    merge_il_headers(tup);
 #if DEBUG
-      if (debug_level >= 1) {
-        fprintf(f_debug,
-           "Done wrapping up copy from sec trans unit %s (merge_pass = %s):\n",
-                curr_translation_unit->source_file->name_as_written,
-                merge_pass ? "TRUE" : "FALSE");
-      }  /* if */
+    if (debug_level >= 1) {
+      fprintf(f_debug, "Done wrapping up copy from sec trans unit %s:\n",
+                       curr_translation_unit->source_file->name_as_written);
+    }  /* if */
 #endif /* DEBUG */
-    }  /* for */
-    if (merge_pass) break;
-    merge_pass = TRUE;
   }  /* for */
   /* Do lowering of moved functions, in the primary IL. */
+  /* This also runs while switched to the primary translation unit. */
   for (tup = translation_units->next; tup != NULL; tup = tup->next) {
 #if DEBUG
     if (debug_level >= 1) {
@@ -2611,13 +2588,13 @@ therefore will not be copied.
               curr_translation_unit->source_file->name_as_written);
     }  /* if */
 #endif /* DEBUG */
+    /* Two passes are done.  The first lowers inline functions so that they
+       are available for inlining during the second pass. */
     finish_moved_function_processing(tup->primary_scope, /*do_inlines=*/TRUE);
     finish_moved_function_processing(tup->primary_scope, /*do_inlines=*/FALSE);
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
-    if (!merge_pass) {
-      finish_scope_orphaned_list_processing(
+    finish_scope_orphaned_list_processing(
                                    tup->il_header.scope_orphaned_list_headers);
-    }  /* if */
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
 #if DEBUG
     if (debug_level >= 1) {
