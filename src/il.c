@@ -9853,18 +9853,18 @@ back to the associated symbols.
   a_symbol_ptr anon_parent_sym = field_sym;
   a_field_ptr  field;
 
-  check_assertion(field_sym->kind == (a_symbol_kind)sk_field);
-  field = field_sym->variant.field.ptr;
-#if DO_IL_LOWERING
-  if (il_lowering_underway) {
-    /* When secondary translation units are involved, the symbol we
-       got may be from a secondary translation unit, so make sure we
-       get the field in the primary IL. */
-    field = (a_field_ptr)canonical_il_entry_of(field);
-  }  /* if */
-#endif /* DO_IL_LOWERING */
   /* Loop for multiple levels of anonymous parent objects. */
   for (;;) {
+    check_assertion(anon_parent_sym->kind == (a_symbol_kind)sk_field);
+    field = anon_parent_sym->variant.field.ptr;
+#if DO_IL_LOWERING
+    if (il_lowering_underway) {
+      /* When secondary translation units are involved, the symbol we
+         got may be from a secondary translation unit, so make sure we
+         get the field in the primary IL. */
+      field = (a_field_ptr)canonical_il_entry_of(field);
+    }  /* if */
+#endif /* DO_IL_LOWERING */
     anon_parent_sym = anon_parent_sym->variant.field.anonymous_parent_object;
     /* Stop if there's no anonymous parent, meaning we've handled all
        the levels of anonymous parents. */
