@@ -350,7 +350,7 @@ typedef enum /*an_error_code*/ {
   ec_ambiguous_constructor,
   ec_bad_default_arg_type,
   ec_return_type_cannot_distinguish_functions,
-  ec_no_conversion_constructor,
+  ec_no_user_defined_conversion,
   ec_function_qualifier_not_allowed,
   ec_virtual_static_not_allowed,
   ec_unqual_function_with_qual_object,
@@ -386,7 +386,7 @@ typedef enum /*an_error_code*/ {
   ec_too_few_args_for_operator,
   ec_no_args_with_class_type,
   ec_default_arg_expr_not_allowed,
-  ec_ambiguous_conversion_constructor,
+  ec_ambiguous_user_defined_conversion,
   ec_no_matching_operator_function,
   ec_ambiguous_operator_function,
   ec_bad_arg_type_for_operator_new,
@@ -452,7 +452,11 @@ typedef enum /*an_error_code*/ {
   ec_unimplemented_keyword,
   ec_asm_not_allowed,
   ec_no_conversion_function,
-  ec_delete_of_incomplete_class
+  ec_delete_of_incomplete_class,
+  ec_no_constructor_for_conversion,
+  ec_ambiguous_constructor_for_conversion,
+  ec_ambiguous_conversion_function,
+  ec_ambiguous_conversion_to_builtin
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 

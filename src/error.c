@@ -1135,9 +1135,8 @@ error code.
     case ec_return_type_cannot_distinguish_functions:
       m = "cannot overload functions distinguished by return type alone";
       break;
-    case ec_no_conversion_constructor:
-      m =
-      "no appropriate constructor or conversion function to class %t exists";
+    case ec_no_user_defined_conversion:
+      m = "no suitable user-defined conversion from %t1 to %t2 exists";
       break;
     case ec_function_qualifier_not_allowed:
       m = "const or volatile qualifier on this function is not allowed";
@@ -1244,8 +1243,8 @@ error code.
     case ec_default_arg_expr_not_allowed:
       m = "default argument is not allowed";
       break;
-    case ec_ambiguous_conversion_constructor:
-      m = "more than one constructor or conversion function applies";
+    case ec_ambiguous_user_defined_conversion:
+      m = "more than one user-defined conversion from %t1 to %t2 applies";
       break;
     case ec_no_matching_operator_function:
       m = "none of the available operator functions matches these operands";
@@ -1447,10 +1446,23 @@ error code.
       m = "\"asm\" declaration not allowed";
       break;
     case ec_no_conversion_function:
-      m = "no appropriate conversion function from class %t exists";
+      m = "no suitable conversion function from %t1 to %t2 exists";
       break;
     case ec_delete_of_incomplete_class:
       m = "delete of pointer to incomplete class";
+      break;
+    case ec_no_constructor_for_conversion:
+      m = "no suitable constructor exists to convert from %t1 to %t2";
+      break;
+    case ec_ambiguous_constructor_for_conversion:
+      m = "more than one constructor applies to convert from %t1 to %t2";
+      break;
+    case ec_ambiguous_conversion_function:
+      m = "more than one conversion function from %t1 to %t2 applies";
+      break;
+    case ec_ambiguous_conversion_to_builtin:
+      m =
+        "more than one conversion function from %t to a built-in type applies";
       break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
