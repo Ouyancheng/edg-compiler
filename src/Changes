@@ -21,11 +21,11 @@ template <class T> N::A<T>::A(const A<T>&s){}
 1/11/01  Error issued on types declared as members of anonymous unions
 
 The front end now emits an error when a type is declared as a member of 
-an anonymous union (except in Sun and Microsoft modes).
+an anonymous union (except in Sun, Microsoft and Cfront modes).
 
   struct S {
-    union { class C {} c; };  // Error (accepted in Sun and Microsoft modes)
-  };
+    union { class C {} c; };  // Error (accepted in Sun, Microsoft
+  };                          //        and Cfront modes)
 
 1/11/01  Setting assoc_template for prototype instantiations of function
          templates

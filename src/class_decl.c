@@ -7818,7 +7818,7 @@ nonstandard anonymous unions is_nonstd is TRUE.
       case sk_class_or_struct_tag:
       case sk_union_tag:
       case sk_enum_tag:
-        if (!(microsoft_mode || sun_mode)) {
+        if (!(microsoft_mode || sun_mode || any_cfront_mode())) {
           pos_error(ec_type_decl_in_anon_union, &sym->decl_position);
         } else {
           /* Unlink the symbol from the inactive list and link it back into
