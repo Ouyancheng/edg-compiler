@@ -3246,8 +3246,9 @@ given type.
         /* Since the canonical entry has changed, extra actions may be needed.
            Force the verification of the previous canonical entry against the
            new one. */
-        (void)verify_class_type_correspondence(type);
-        if (type->variant.class_struct_union.extra_info->assoc_scope != NULL) {
+        a_boolean  match = verify_class_type_correspondence(type);
+        if (type->variant.class_struct_union.extra_info->assoc_scope != NULL &&
+            match) {
           /* The master instance is found using the canonical entry.  We are
              creating a new canonical entry, so we must make sure its master
              instance pointer is set for the class members. */
