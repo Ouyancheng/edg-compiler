@@ -1,5 +1,19 @@
 Version 2.29
 
+4/7/95   Declaring static data members as member constants
+
+A static data member declaration inside the class definition may now
+specify an initializer if the member has const integral type (see 9.5.2).
+
+4/7/95   IL CHANGE:  defined flag in a_variable.
+
+Entries of type a_variable have a new flag, "defined".  It is usually TRUE;
+it will only be FALSE for static data members that have been declared but
+not yet defined, for variables declared "extern" and not yet defined, and
+in C mode for variables with "tentative definitions".  (Note: a variable
+representing a static data member may now be initialized but not yet
+defined.)
+
 4/6/95   Casts of pointer-to-data-members to related classes
 
 The recent change of representation for pointers to data members (in 2.28)
