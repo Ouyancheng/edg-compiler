@@ -217,11 +217,9 @@ SUPPRESS_TYPEINFO_VARIABLES_WHEN_RTTI_DISABLED TRUE and --no_rtti.
 First, the virtual function tables generated were incorrect:
 they had a missing offset-to-base preceding the null typeinfo
 pointer (which means the entries were all off by one position).
-Second, the fix described in the Changes entry of 6/24/03 was
-also needed in the IA-64 mode.  Third, a base class that has
-a virtual base always needs its own virtual function table,
-because it needs its own set of offsets to virtual bases in
-the negative part of the table.  All three problems are now fixed.
+Second, base class virtual function tables were sometimes not
+generated when required, which caused an internal error in
+vptr_index.  Both problems are now fixed.
 
 10/6/03  Microsoft compatibility: nonmember using-declaration of class member
 

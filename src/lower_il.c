@@ -4593,6 +4593,17 @@ FALSE means either the base class does not need a virtual function table
           base class or with class_type itself, so it does not need its own
           virtual function table instance. */
       needed = FALSE;
+#if IA64_ABI
+    } else {
+      /* The IA-64 ABI requires a separate vtable for this base class
+         because the typeinfo pointer identifies the derived class.
+         This is true even if --no_rtti is used: we put a null typeinfo
+         pointer in the vtable, but we don't change whether a
+         base class needs a vtable, because the ABI spec has some
+         rather specific requirements about which bases classes have
+         their own vtables. */
+      needed = TRUE;
+#else /* !IA64_ABI */
 #if ABI_CHANGES_FOR_RTTI
     } else if (generate_rtti_typeinfo) {
       /* When RTTI information is generated, an entry in the virtual function
@@ -4601,19 +4612,6 @@ FALSE means either the base class does not need a virtual function table
          class does not override any virtual functions. */
       needed = TRUE;
 #endif /* ABI_CHANGES_FOR_RTTI */
-#if IA64_ABI
-    } else if (bcp->type->variant.class_struct_union.any_virtual_base_classes){
-      /* A base class that has virtual bases needs its own virtual function
-         table because it has its own virtual base class offsets. */
-      needed = TRUE;
-    } else if (!needs_virtual_function_table(bcp->derived_class) &&
-               is_primary_base_class(bcp)) {
-      /* If this is the primary base class of a derived class that has
-         no virtual functions, we need this base class virtual function
-         table because it ends up being the derived class virtual function
-         table. */
-      needed = TRUE;
-#endif /* IA64_ABI */
     } else if (bcp->overriding_virtual_functions != NULL) {
       /* Some of the virtual functions in the base class are overridden
          in class_type, so a separate virtual function table instance is
@@ -4653,6 +4651,7 @@ FALSE means either the base class does not need a virtual function table
     } else {
       /* In other cases, no separate instance is needed. */
       needed = FALSE;
+#endif /* IA64_ABI */
     }  /* if */
   }  /* if */
   return needed;
