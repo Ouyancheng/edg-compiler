@@ -1390,9 +1390,12 @@ id-linkage block) is a friend declaration in a local class.
 */
 {
   a_boolean  result = FALSE;
+  a_scope_depth decl_level = idlbp->effective_decl_level;
+
   if (idlbp->is_friend_decl &&
-      idlbp->effective_decl_level != depth_innermost_namespace_scope &&
-      scope_stack[idlbp->effective_decl_level].assoc_routine != NULL) {
+      decl_level != depth_innermost_namespace_scope &&
+      (scope_stack[decl_level].kind == (a_scope_kind)sck_block ||
+       scope_stack[decl_level].kind == (a_scope_kind)sck_function)) {
       result = TRUE;
   }  /* if */
   return result;
