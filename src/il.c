@@ -183,7 +183,7 @@ Dump the name from a source correspondence (if any).
 }  /* db_name */
 
 
-static void db_abbreviated_type(a_type *tp)
+void db_abbreviated_type(a_type *tp)
 /*
 Dump a type in abbreviated form.  This is particularly required for
 classes, structs, unions, which may contain fields that point to
@@ -407,9 +407,7 @@ class_struct_union:
       break;
     case tk_routine:
       fputs("routine ", f_debug);
-      if (tp->variant.routine.extra_info->assoc_routine == NULL) {
-	fputs("<null assoc routine>", f_debug);
-      } else {
+      if (tp->variant.routine.extra_info->assoc_routine != NULL) {
 	db_name(&tp->variant.routine.extra_info->
 			    	assoc_routine->source_corresp);
       }  /* if */
@@ -418,6 +416,12 @@ class_struct_union:
       }  /* if */
       fputs("(", f_debug);
       ptp = tp->variant.routine.extra_info->param_type_list;
+      if (tp->variant.routine.extra_info->implicit_this_param_type != NULL) {
+	fputs("this: ", f_debug);
+        db_abbreviated_type(tp->variant.routine.extra_info->
+						implicit_this_param_type);
+        if (ptp != NULL) fputs("; ", f_debug);
+      }  /* if */
       comma_required = FALSE;
       while (ptp != NULL) {
 	if (comma_required) fputs(", ", f_debug);
@@ -429,14 +433,7 @@ class_struct_union:
 	if (comma_required) fputs(", ", f_debug);
         fputs("...", f_debug);
       }  /* if */
-      fputc(')', f_debug);
-      if (tp->variant.routine.extra_info->implicit_this_param_type != NULL) {
-	fputs(", this = ", f_debug);
-        db_abbreviated_type(tp->variant.routine.extra_info->
-						implicit_this_param_type);
-        fputc(',', f_debug);
-      }  /* if */
-      fputs(" returning ", f_debug);
+      fputs(") returning ", f_debug);
       db_type(tp->variant.routine.return_type);
       break;
     case tk_typeref:
