@@ -8849,12 +8849,14 @@ and create a function instantiation entry to bind the two symbols together.
                       variant.class_struct_union.extra_info->conversion_list;
          slep != NULL;
          slep = slep->next) {
-      a_template_symbol_supplement_ptr	tssp;
-      tssp = slep->symbol->variant.routine.instance_ptr->template_info;
-      if (tssp->token_sequence_number == curr_token_sequence_number) {
-        /* slep->symbol is the template function symbol for rout_sym. */
-        sym = slep->symbol;
-        break;
+      if (slep->symbol->kind != (a_symbol_kind)sk_projection) {
+        a_template_symbol_supplement_ptr	tssp;
+        tssp = slep->symbol->variant.routine.instance_ptr->template_info;
+        if (tssp->token_sequence_number == curr_token_sequence_number) {
+          /* slep->symbol is the template function symbol for rout_sym. */
+          sym = slep->symbol;
+          break;
+        }  /* if */
       }  /* if */
     }  /* for */
     if (sym == NULL) {

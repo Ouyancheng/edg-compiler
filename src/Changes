@@ -1,5 +1,21 @@
 Version 3.4
 
+9/26/03  Abort in find_member_function_template
+
+An abort could occur in find_member_function_template if a class template
+with a conversion operator also contained a using-declaration to another
+conversion operator.  Now fixed.
+
+  struct A {
+    operator int();
+  };
+  struct X {};
+  template <class T> struct B : public A {
+    operator X();
+    using A::operator int;
+  };
+  B<int> b;
+
 9/25/03  IA-64 ABI: Flag offset_is_set on generated fields
 
 The flag offset_is_set of a_field entries (present only in configurations
