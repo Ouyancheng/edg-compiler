@@ -2472,6 +2472,50 @@ pointed to by scope_ptr.
 
 #if MAINTAIN_NEEDED_FLAGS
 
+static void set_needed_flags_for_typedefs(a_scope_ptr scope)
+/*
+Make a pass through the IL tree looking for typeref types that should be
+marked as "needed" because they are involved in declarations of unnamed
+classes -- e.g.,
+  typedef struct { ... } S;
+If struct S is needed, the typeref type that points to it and from which
+it acquired its name should be marked as needed, too.  The reason this is
+done separately from set_needed_flags_at_end_of_file_scope, and after it
+is done, is that all the classes have to have been marked first.
+*/
+{
+  a_type_ptr                   tp, class_type;
+  a_class_type_supplement_ptr  ctsp;
+  a_namespace_ptr              nsp;
+
+  for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
+    if (!nsp->is_namespace_alias) {
+      /* Nested namespace scope.  Apply the check to each of its types. */
+      set_needed_flags_for_typedefs(nsp->variant.assoc_scope);
+    }  /* if */
+  }  /* for */
+  for (tp = scope->types; tp != NULL; tp = tp->next) {
+    if (tp->kind == (a_type_kind)tk_typeref) {
+      /* If a typeref type points to a class that is needed, has a name, and
+         was originally unnamed, the typeref type is needed, too. */
+      if (!tp->source_corresp.needed &&
+          is_immediate_class_type(class_type = tp->variant.typeref.type)) {
+        if (class_type->variant.class_struct_union.originally_unnamed &&
+            class_type->source_corresp.needed) {
+          mark_as_needed((char *)tp, (an_il_entry_kind)iek_type);
+        }  /* if */
+      }  /* if */
+    } else if (is_immediate_class_type(tp)) {
+      ctsp = tp->variant.class_struct_union.extra_info;
+      if (ctsp != NULL && ctsp->assoc_scope != NULL) {
+        /* Apply the check to each of the types defined in the class. */
+        set_needed_flags_for_typedefs(ctsp->assoc_scope);
+      }  /* if */
+    }  /* if */
+  }  /* for */
+}  /* set_needed_flags_for_typedefs */
+
+
 static void set_needed_flags_at_end_of_file_scope(a_scope_ptr  scope)
 /*
 scope is a pointer to the file scope, a namespace scope, or a class scope.
@@ -2558,6 +2602,15 @@ been completed.
       rp->defined = saved_defined;
     }  /* if */
   }  /* for */
+  if (!C_mode() && scope->kind == (a_scope_kind)sck_file) {
+    /* Check for cases like this:
+         typedef struct { ... } T;
+       where the struct has been marked as needed but the typedef has not.
+       The typedef really is needed in some cases -- e.g., in producing the
+       proper definition by the C++-generating back end.  Mark the typedef,
+       too. */
+    set_needed_flags_for_typedefs(scope);
+  }  /* if */
 #if BACK_END_IS_CP_GEN_BE
   if (scope->templates != NULL) {
     /* The very presence of templates in the IL means pruning the IL of
