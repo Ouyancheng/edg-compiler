@@ -352,15 +352,15 @@ Write any common code needed in all C output files.
     startline((a_seq_number)0);
     fputs("#define __trunc(i,n) (i&((1<<n)-1))", f_C_output);
     /* Definition of __inline__ depending on whether or not compiler
-       supports "inline". */
+       supports "inline".  gcc supports __inline__ directly. */
     startline((a_seq_number)0);
-    fputs("#if __GNUC__ || __SUPPORTS_INLINE__", f_C_output);
+    fputs("#ifndef __inline__", f_C_output);
     startline((a_seq_number)0);
-    fputs("#define __inline__ inline", f_C_output);
-    startline((a_seq_number)0);
-    fputs("#else", f_C_output);
+    fputs("#ifndef __GNUC__", f_C_output);
     startline((a_seq_number)0);
     fputs("#define __inline__ static", f_C_output);
+    startline((a_seq_number)0);
+    fputs("#endif", f_C_output);
     startline((a_seq_number)0);
     fputs("#endif", f_C_output);
   }  /* if */
