@@ -2113,7 +2113,7 @@ performed.  templ_param_list points to the template parameter list.
 }  /* matches_template_type */
 
 
-a_boolean member_of_overload_set_matches_template_type(
+a_boolean tentatively_matches_template_type(
 			       a_type_ptr           type,
 		  	       a_type_ptr           templ_type,
                                a_template_param_ptr templ_param_list)
@@ -2121,22 +2121,23 @@ a_boolean member_of_overload_set_matches_template_type(
 This routine calls matches_template_type to determine whether the
 type specified by "type" matches the type specified by "templ_type" with
 appropriate substitution of the template parameters in "templ_type".
-We return TRUE if the types match.  This routine is used to determine
-whether any of the members of an overload set match a given parameter.
-It is called once for each member of the overload set.
+We return TRUE if the types match.  This routine is an interface to
+matches template type that is used to evaluate the match for a
+single function parameter and then discard any template arguments that
+may have been deduced.
 */
 {
   a_template_arg_ptr   templ_arg_list = NULL;
   a_boolean            result;
 
-  db_enter(5, "member_of_overload_set_matches_template_type");
+  db_enter(5, "tentatively_matches_template_type");
   result = matches_template_type(type, templ_type, &templ_arg_list,
                                  templ_param_list, /*allow_conversion=*/FALSE,
                                  (a_base_class_ptr*)NULL);
   if (templ_arg_list != NULL) free_template_arg_list(templ_arg_list);
   db_exit();
   return result;
-}  /* member_of_overload_set_matches_template_type */
+}  /* tentatively_matches_template_type */
 
 
 a_boolean verify_function_template_nontype_args(

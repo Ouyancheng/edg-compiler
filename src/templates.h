@@ -47,7 +47,7 @@ a_boolean matches_template_type(a_type_ptr           type,
                                 a_base_class_ptr     *base_class_conv_needed);
 
 extern
-a_boolean member_of_overload_set_matches_template_type(
+a_boolean tentatively_matches_template_type(
 			       a_type_ptr           type,
 		  	       a_type_ptr           templ_type,
                                a_template_param_ptr templ_param_list);

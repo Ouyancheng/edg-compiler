@@ -284,9 +284,9 @@ param_type.
         ptr_routine_type = ptr_to_member_type(routine_type,
                                               sym->class_of_which_a_member);
       }  /* if */
-      if (member_of_overload_set_matches_template_type(ptr_routine_type,
-                                                       param_type,
-                                                       tssp->parameters)) {
+      if (tentatively_matches_template_type(ptr_routine_type,
+                                            param_type,
+                                            tssp->parameters)) {
         /* This function matches.  Only one is allowed to match, so if
            a previous one matched, the overall match fails. */ 
         if (can_be_arg) {
@@ -1971,9 +1971,8 @@ templ_param_list is the template parameter list.
      parameter is explicitly a reference to an array and it it can be
      made to match. */
   if (is_array_type(base_param_type) &&
-      member_of_overload_set_matches_template_type(arg_type,
-                                                   base_param_type,
-                                                   templ_param_list)) {
+      tentatively_matches_template_type(arg_type, base_param_type,
+                                        templ_param_list)) {
     transform_needed = FALSE;
   }  /* if */
   return transform_needed;
@@ -1999,9 +1998,8 @@ templ_param_list is the template parameter list.
      parameter is explicitly a reference to a function and it it can be
      made to match. */
   if (is_function_type(base_param_type) &&
-      member_of_overload_set_matches_template_type(arg_type,
-                                                   base_param_type,
-                                                   templ_param_list)) {
+      tentatively_matches_template_type(arg_type, base_param_type,
+                                        templ_param_list)) {
     transform_needed = FALSE;
   }  /* if */
   return transform_needed;
