@@ -493,7 +493,7 @@ the newline of the preprocessing directive that is causing this skip.
         /* Unrecognized directive.  Issue a warning in strict mode, and then
            ignore it. */
         if (strict_ansi_mode) {
-          diagnostic(strict_ansi_error_severity, ec_bad_pp_directive_keyword);
+          warning(ec_bad_pp_directive_keyword);
           some_error_in_curr_directive = TRUE;
         }  /* if */
         break;
