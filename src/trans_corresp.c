@@ -1895,6 +1895,7 @@ symbols are listed under the same header).
 {
   char       *entity2 = canonical_il_entry_of(entity1);
   a_boolean  match = same_name(entity1, entity2);
+
   if (!match) {
     /* Only class members have a correspondence pointer set without testing
        whether the names match.  If the names don't match, an error
@@ -1905,11 +1906,27 @@ symbols are listed under the same header).
        */
     a_source_correspondence_ptr  scp1 = (a_source_correspondence_ptr)entity1;
     a_source_correspondence_ptr  scp2 = (a_source_correspondence_ptr)entity2;
+    a_symbol_ptr                 sym1 = (a_symbol_ptr)scp1->assoc_info;
+    a_symbol_ptr                 sym2 = (a_symbol_ptr)scp2->assoc_info;
     if (scp1->is_class_member) {
-      if (!C_mode()) {
+      if (C_mode()) {
         /* In C mode, two structs with the same name (and file scope) but with
            incompatible fields can coexist.  The correspondence will be cleared
            in that case, but no diagnostic should be produced. */
+      } else if (sym1 != NULL && sym2 != NULL &&
+                 sym1->kind == (a_symbol_kind)sk_member_function &&
+                 sym2->kind == (a_symbol_kind)sk_member_function &&
+                 sym1->variant.routine.ptr->special_kind ==
+                                    (a_special_function_kind)sfk_conversion &&
+                 sym2->variant.routine.ptr->special_kind ==
+                                    (a_special_function_kind)sfk_conversion) {
+        /* Conversion functions don't really have names, so there is no need
+           to check the name (a name is created for the entry, but it may
+           involve typedef names that were not actually used in the declaration
+           of the operator; this would cause a simple name comparison to fail
+           even though the declarations were compatible). */
+        match = TRUE;
+      } else {
         a_type_ptr  parent_to_diagnose = scp1->parent.class_type;
         if (parent_to_diagnose ==
                        (a_type_ptr)canonical_il_entry_of(parent_to_diagnose) &&
@@ -1923,8 +1940,6 @@ symbols are listed under the same header).
          represent members of templates (or friends of templates).  No
          diagnostic is issued here, because one will be issued on the
          prototype instantiation. */
-      a_symbol_ptr  sym1 = (a_symbol_ptr)scp1->assoc_info;
-      a_symbol_ptr  sym2 = (a_symbol_ptr)scp2->assoc_info;
 #if CHECKING
       if (!(sym1->is_class_member ||
             sym1->kind == (a_symbol_kind)sk_member_function ||
@@ -2200,19 +2215,7 @@ is in fact valid.
     }  /* if */
     scp = &routine->source_corresp,
     corresp_scp = &corresp_routine->source_corresp;
-    if (routine->special_kind == (a_special_function_kind)sfk_conversion ||
-        corresp_routine->special_kind ==
-                                     (a_special_function_kind)sfk_conversion) {
-      /* Conversion operators aren't identified by name.  For example,
-         different instantiations could differ in name because different
-         typedefs were used to identify them (and that's OK). */
-      if (routine->special_kind != corresp_routine->special_kind) {
-        match = FALSE;
-        process_bad_trans_unit_corresp(iek_routine, routine, corresp_routine);
-      }  /* if */
-    } else {
-      match = verify_name_correspondence(routine);
-    }  /* if */
+    match = verify_name_correspondence(routine);
     if (match &&
         (!f_types_are_compatible(routine->type, corresp_routine->type,
                                  TCF_SEEK_CORRESP |
