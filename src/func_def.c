@@ -29,6 +29,9 @@ func_def.c -- Processing for function definitions (both user supplied and
 #include "exprutil.h"
 #include "lower_il.h"
 #include "statements.h"
+#if USER_CONTROL_OF_STRUCT_PACKING
+#include "layout.h"
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
 #if ASM_FUNCTION_ALLOWED
 
@@ -671,6 +674,9 @@ and for the instantiation of template functions.
   a_boolean                      is_instantiation;
   a_param_type_ptr               ptp;
   a_namespace_ptr                nsp = NULL;
+#if USER_CONTROL_OF_STRUCT_PACKING
+  a_pack_alignment_state         saved_pack_alignment_state;
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
   db_enter(3, "scan_function_body");
   if (rout_ptr->source_corresp.is_class_member) {
@@ -688,7 +694,8 @@ and for the instantiation of template functions.
      just in case. */
   rout_type = skip_typerefs(rout_ptr->type);
   rtsp = rout_type->variant.routine.extra_info;
-  if (!C_mode() && !(flags & SFB_IS_INSTANTIATION)) {
+  is_instantiation = (flags & SFB_IS_INSTANTIATION) != 0;
+  if (!C_mode() && !is_instantiation) {
     /* Reactivate the class and/or namespace of which the function body is
        a member.  For template instantiations this is done when the
        instantiation scope is pushed, so it should not be done here. */
@@ -724,7 +731,6 @@ and for the instantiation of template functions.
       }  /* if */
     }  /* if */
   }  /* if */
-  is_instantiation = (flags & SFB_IS_INSTANTIATION) != 0;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (!func_info->function_type_from_typedef &&
       func_info->prototype_scope_ss_entry_start != NULL) {
@@ -877,6 +883,20 @@ and for the instantiation of template functions.
     fixup_parameters(scope_ptr->variant.routine.parameters,
                      rtsp->param_type_list);
   }  /* if */
+#if USER_CONTROL_OF_STRUCT_PACKING
+  /* Change the defaults for packing class members in a struct definition.
+     This is especially important when the definition is encountered "out
+     of sequence" relative to the rest of the program (e.g., delayed
+     processing of inline-defined member functions and instantiations of
+     function templates), since the defaults at the point of definition
+     (textual) may be different from the defaults at the point where the
+     body is actually scanned (now). */
+  if (flags & SFB_PRAGMA_PACK_IS_LOCAL) {
+    reset_pack_alignment_state(func_info->max_member_alignment,
+                               &saved_pack_alignment_state);
+    scope_stack[depth_scope_stack].pragma_pack_is_local = TRUE;
+  }  /* if */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if CHECKING
   if (total_errors == 0) {
     /* Except where there are invalid declarations, the flags in the types
@@ -924,6 +944,13 @@ and for the instantiation of template functions.
 #if ASM_FUNCTION_ALLOWED
   }  /* if */
 #endif /* ASM_FUNCTION_ALLOWED */
+#if USER_CONTROL_OF_STRUCT_PACKING
+  /* Restore defaults for packing class members in a struct definition to
+     what it was before the routine body was entered. */
+  if (flags & SFB_PRAGMA_PACK_IS_LOCAL) {
+    restore_pack_alignment_state(&saved_pack_alignment_state);
+  }  /* if */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
   /* Pop the function scope. */
   pop_scope();
   if (flags & SFB_NEW_STRUCT_STMT_STACK_REQUIRED) {
@@ -932,7 +959,7 @@ and for the instantiation of template functions.
        wrapup_control_flow_processing. */
     restore_struct_stmt_stack(&saved_sss_state);
   }  /* if */
-  if (!(flags & SFB_IS_INSTANTIATION)) {
+  if (!is_instantiation) {
     /* For templates, the class and/or namespace scopes are pushed and
        popped when the instantiation scope is pushed/popped. */
     if (class_type != NULL) {
