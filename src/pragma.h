@@ -220,7 +220,7 @@ typedef struct a_pending_pragma {
 			   an entry retrieved from a reusable token cache. */
   char		*pragma_text;
 			/* For pragmas that are passed through to the
-			   back end as an uninterpretted character string,
+			   back end as an uninterpreted character string,
 			   this points to the null terminated string.  The
 			   string begins with the token immediately following
 			   the #pragma keyword.  The string is allocated in
