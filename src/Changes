@@ -1,5 +1,19 @@
 Version 3.4
 
+12/9/03  Spurious warning on "if" of weak external symbol
+
+The front end gave a warning ("controlling expression is constant")
+on a conditional test of the address of a function that is a weak
+external.  However, since the point of a weak external is
+that sometimes its address is zero, the warning was spurious.
+It's no longer issued.
+
+  extern void func(void) __attribute__((weak));
+  void try_func(void) {
+    if (func)  // Formerly got a warning
+      func();
+  }
+
 12/8/03  C/C++-generating back end: asm constructs for GNU C compilers
 
 Previously the C- and C++-generating back ends always put out asm constructs
