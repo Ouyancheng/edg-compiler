@@ -1520,7 +1520,8 @@ initialized is not a reference.
     }  /* if */
     /* Loop through the list of initializer constants. */
     sub_con = constant->variant.aggregate.first_constant;
-    if (sub_con->kind == (a_constant_repr_kind)ck_init_repeat) {
+    if (sub_con != NULL &&
+        sub_con->kind == (a_constant_repr_kind)ck_init_repeat) {
       /* A ck_init_repeat constant is used to do default initialization
          (via constructor) on all the elements of an array. */
       check_assertion(array_case);
