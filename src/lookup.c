@@ -811,6 +811,9 @@ symbols by the caller.
       result = sym1->variant.variable.ptr == sym2->variant.variable.ptr;
     } else if (sym1->kind == (a_symbol_kind)sk_routine) {
       result = sym1->variant.routine.ptr == sym2->variant.routine.ptr;
+    } else if (is_type_symbol(sym1)) {
+      a_type_ptr  tp1 = type_symbol_type(sym1), tp2 = type_symbol_type(sym2);
+      result = identical_types(tp1, tp2);
     }  /* if */
   }  /* if */
   return result;
