@@ -42,6 +42,7 @@ static void prep_conversion_operand(
 static a_boolean operand_is_temp_init(an_operand *operand);
 static a_boolean type_matches_type_code(a_type_ptr type,
                                         char       type_code);
+static a_boolean microsoft_can_bind_ref_to_rvalue(an_operand *operand);
 static a_boolean variable_this_exists(a_variable_ptr *this_var);
 
 #if DEBUG
@@ -1920,8 +1921,13 @@ have_level:;
                                             (a_variable_ptr *)NULL))) {
         /* A reference to non-const that's deduced can bind to an rvalue in
            Microsoft bugs mode (VC++ 6.0, 7.0 beta) if the operand
-           is a constant.  As of real 7.0, this is allowed only if the
-           operand is "this". */
+           is a constant (fixed as of the real 7.0).  Binding to "this"
+           is allowed in all versions (at least up to 7.1). */
+      } else if (microsoft_bugs &&
+                 arg_operand != NULL &&
+                 microsoft_can_bind_ref_to_rvalue(arg_operand)) {
+        /* A reference to non-const can bind to an rvalue in Microsoft bugs
+           mode in certain cases. */
       } else {
         arg_summary->match_level = aml_none;
       }  /* if */
@@ -12250,6 +12256,10 @@ non-const to the indicated (rvalue) operand.
 {
   a_boolean can_bind = FALSE;
 
+  /* Note that the testing here is for reference binding in general,
+     e.g., for the initializer of the declaration of a reference
+     variable.  Argument matching is more permissive in some cases;
+     see determine_arg_match_level. */
   if (is_an_rvalue(operand)) {
     if (is_expression_operand(operand)) {
       an_expr_node_ptr expr = operand->variant.expression;
