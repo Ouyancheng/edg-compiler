@@ -3160,7 +3160,7 @@ list), and liberate the constants therein by clearing their "next" fields.
 }  /* empty_func_shareable_constants_table */
 
 
-static a_scope_ptr ensure_il_scope_exists(a_scope_stack_entry_ptr ssep)
+a_scope_ptr ensure_il_scope_exists(a_scope_stack_entry_ptr ssep)
 /*
 Make sure that the scope stack entry pointed to by ssep points to an IL
 scope.  If it does not and the current scope stack entry is for a block
@@ -3184,9 +3184,33 @@ caller is responsible for sorting that out.)
       /* Add it to the scopes list for the scope enclosing the scope indicated
          by ssep. */
       add_to_scopes_list(sp, ssep-1);
+    } else if (ssep->kind == (a_scope_kind)sck_func_prototype) {
+      a_type_ptr              routine_type;
+
+      /* A prototype scope must be allocated -- allocated in the file scope
+         memory region because it is pointed to from the routine type
+         supplement, which is always at file scope. */
+      check_assertion(curr_il_region_number == FILE_SCOPE_REGION_NUMBER);
+      sp = alloc_scope((a_scope_kind)sck_func_prototype, ssep->number,
+                       (a_routine_ptr)NULL);
+      ssep->il_scope = sp;
+      routine_type = ssep->assoc_type;
+      /* Call add_to_scopes_list only if this is a function prototype nested
+         within another function prototype. */
+      if ((ssep-1)->kind == (a_scope_kind)sck_func_prototype) {
+        add_to_scopes_list(sp, ssep-1);
+      }  /* if */
 #if CHECKING
-    } else if (ssep->kind != (a_scope_kind)sck_func_prototype &&
-               ssep->kind != (a_scope_kind)sck_pragma) {
+      if (routine_type == NULL) {
+        internal_error("add_to_types_list: routine_type is NULL");
+      }  /* if */
+#endif /* CHECKING */
+      /* Link the routine type to the prototype scope entry. */
+      routine_type->variant.routine.extra_info->prototype_scope = sp;
+      /* Link the prototype scope entry to the routine type. */
+      sp->variant.assoc_type = routine_type;
+#if CHECKING
+    } else if (ssep->kind != (a_scope_kind)sck_pragma) {
       internal_error("ensure_il_scope_exists: NULL IL scope");
 #endif /* CHECKING */
     }  /* if */
@@ -3835,7 +3859,6 @@ scope_level.
   /* Get a pointer to the current or file scope entry. */
   ssep = &scope_stack[scope_level];
   /* Create the IL scope if necessary (for block scopes). */
-  sp = ensure_il_scope_exists(ssep);
   /* If we are currently inside the declaration list for the old-style
      parameters of a function -- e.g., in the "struct" declaration in
 
@@ -3853,39 +3876,15 @@ scope_level.
      allocated by default.  It is allocated here in this routine the first
      time it is needed.  It is saved in il_scope of the current scope stack
      entry and also under the associated routine type. */
-  if (sp == NULL && ssep->kind == (a_scope_kind)sck_func_prototype) {
-    a_type_ptr              routine_type;
-
-    /* A prototype scope must be allocated.  add_to_scopes_list is not
-       called because this is not a scope for a statement block.  It is
-       allocated in the file scope memory region because it is pointed to
-       from the routine type supplement, which is always at file scope. */
-    switch_to_file_scope_region(&region_to_switch_back_to);
-    sp = alloc_scope((a_scope_kind)sck_func_prototype, ssep->number,
-                     (a_routine_ptr)NULL);
-    switch_back_to_original_region(region_to_switch_back_to);
-    ssep->il_scope = sp;
-    routine_type = ssep->assoc_type;
-#if CHECKING
-    if (routine_type == NULL) {
-      internal_error("add_to_types_list: routine_type is NULL");
-    }  /* if */
-#endif /* CHECKING */
-    /* Link the routine type to the prototype scope entry. */
-    routine_type->variant.routine.extra_info->prototype_scope = sp;
-    /* Link the prototype scope entry to the routine type. */
-    sp->variant.assoc_type = routine_type;
+  sp = ensure_il_scope_exists(ssep);
+  /* Add the type to the list of types for this scope. */
+  if (sp->types == NULL) {
+    sp->types = type_ptr;
+  } else {
+    ssep->last_type->next = type_ptr;
   }  /* if */
-  if (sp != NULL) {
-    /* Add the type to the list of types for this scope. */
-    if (sp->types == NULL) {
-      sp->types = type_ptr;
-    } else {
-      ssep->last_type->next = type_ptr;
-    }  /* if */
-    ssep->last_type = type_ptr;
-    type_ptr->next = NULL;
-  }  /* if */
+  ssep->last_type = type_ptr;
+  type_ptr->next = NULL;
 }  /* add_to_types_list */
 
 
@@ -5943,9 +5942,10 @@ No dynamic initialization entry is attached under the node (the caller
 must do that).
 */
 {
-  an_expr_node_ptr temp_init_node =
-                             alloc_expr_node((an_expr_node_kind)enk_temp_init);
+  an_expr_node_ptr         temp_init_node;
+  a_scope_stack_entry_ptr  ssep = &scope_stack[decl_scope_level];
 
+  temp_init_node = alloc_expr_node((an_expr_node_kind)enk_temp_init);
   temp_init_node->variant.init.result_is_addr = result_is_addr;
   if (result_is_addr) {
     /* The result is the address of the temporary, so the type is a pointer
@@ -5963,7 +5963,9 @@ must do that).
      created for a default argument in the context of a function prototype
      scope, no IL scope will be created; that's okay, since the expression
      will be copied in a context that will have an IL scope.) */
-  (void)ensure_il_scope_exists(&scope_stack[decl_scope_level]);
+  if (ssep->kind != (a_scope_kind)sck_func_prototype) {
+    (void)ensure_il_scope_exists(ssep);
+  }  /* if */
   return temp_init_node;
 }  /* alloc_temp_init_node */
 
