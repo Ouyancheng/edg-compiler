@@ -11209,12 +11209,6 @@ for the converted result in *constant.  Do various error checks.
     check_assertion(is_pointer_type(constant->type));
     constant->type = param_type;
   }  /* if */
-  /* Make the sure that the constant does not use any local variables,
-     etc., since the template will be created at the file scope. */
-  if (constant_references_non_external_entity(constant)) {
-    pos_error(ec_nonexternal_entity_in_template_arg, &operand->position);
-    set_error_constant(constant);
-  }  /* if */
 
 #if DEBUG
   if (debug_level >= 3) {
