@@ -1,5 +1,17 @@
 Version 2.25
 
+8/15/94  Applying type qualifier to a typedef
+
+A change has been made to make_qualified_type to preserve typedef
+information in the type that is returned.  For example:
+
+  typedef const int CI;
+  volatile CI x;           // Type recorded for x is now "volatile CI"
+                           //   rather than "const volatile int"
+  const volatile CI y;     // Type recorded for y is now "volatile CI"
+                           //   rather than "const volatile int" (C++
+                           //   only -- it's an error in C mode)
+
 8/15/94  Wide character constants with more than one character
 
 A wide character constant like L'ab' contains more information than can be
