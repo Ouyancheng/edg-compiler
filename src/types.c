@@ -1610,15 +1610,29 @@ expects to receive an rvalue type.
   db_enter(5, "type_after_integral_promotion");
 
   if (is_integral_or_enum(unqual_type)) {
+    an_integer_kind ikind = unqual_type->variant.integer.int_kind;
     if (unqual_type->variant.integer.bool_type) {
       /* bool always promotes to int. */
-      promoted_type = integer_type((an_integer_kind)(ik_int));
-    } else {
+      promoted_type = integer_type((an_integer_kind)ik_int);
+    } else if (!C_mode() &&
+                (unqual_type->variant.integer.enum_type ||
+                 unqual_type->variant.integer.wchar_t_type) &&
+                targ_sizeof_int == targ_sizeof_long &&
+               (ikind == (an_integer_kind)ik_long ||
+                ikind == (an_integer_kind)ik_unsigned_long)) {
       /* In C++, enums and wchar_t (when a keyword) go through the
          normal promotion processing for the underlying type.  If the type
          is unchanged, it will be converted to the corresponding plain
-         integral type (see below). */
-      switch (unqual_type->variant.integer.int_kind) {
+         integral type (see below).  However, there's one anomaly:
+         if long and int are the same size, enums and wchar_t of
+         size long promote to int or unsigned int. */
+      if (ikind == (an_integer_kind)ik_long) {
+        promoted_type = integer_type((an_integer_kind)ik_int);
+      } else { /* ikind == (an_integer_kind)ik_unsigned_long */
+        promoted_type = integer_type((an_integer_kind)ik_unsigned_int);
+      }  /* if */
+    } else {
+      switch (ikind) {
         case ik_char:
           if (targ_has_signed_chars) goto do_signed_char;
           goto do_unsigned_char;
@@ -1665,8 +1679,8 @@ do_signed_char:;
                  to unsigned int. */
               promoted_type = integer_type((an_integer_kind)ik_unsigned_int);
             }  /* if */
-	}  /* if */
-	break;
+          }  /* if */
+          break;
         case ik_int:
         case ik_unsigned_int:
         case ik_long:
@@ -1683,17 +1697,17 @@ do_signed_char:;
           internal_error("type_after_integral_promotion: bad int kind");
 #endif /* CHECKING */
       }  /* switch */
-    }  /* if */
-    if (C_dialect == C_dialect_cplusplus) {
-      /* enums and wchar_t get promoted to the corresponding integral type
-         (and lose their special properties) if they were not promoted
-         above. */
-      unqual_type = skip_typerefs(promoted_type);
-      if (unqual_type->variant.integer.enum_type ||
-          unqual_type->variant.integer.wchar_t_type) {
-        /* Make a "plain" version of this type, i.e., the same underlying
-           integral type but not tagged as an enum or wchar_t. */
-        promoted_type = integer_type(unqual_type->variant.integer.int_kind);
+      if (C_dialect == C_dialect_cplusplus) {
+        /* enums and wchar_t get promoted to the corresponding integral type
+           (and lose their special properties) if they were not promoted
+           above. */
+        unqual_type = skip_typerefs(promoted_type);
+        if (unqual_type->variant.integer.enum_type ||
+            unqual_type->variant.integer.wchar_t_type) {
+          /* Make a "plain" version of this type, i.e., the same underlying
+             integral type but not tagged as an enum or wchar_t. */
+          promoted_type = integer_type(unqual_type->variant.integer.int_kind);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */

@@ -1,5 +1,20 @@
 Version 2.38
 
+12/17/97  Integral promotion on long wchar_t when sizeof(long) == sizeof(int)
+
+If wchar_t is defined as long (or unsigned long), and sizeof(long) ==
+sizeof(int), wchar_t is supposed to promote to int (or unsigned int).
+This is a quirk of the C++ standard, but since we're pretty sure now
+that the quirk will not be fixed, we've implemented it.
+
+  #include <stddef.h>
+  void f(int) {}
+  void f(long);
+  int main () {
+    wchar_t w = 0;
+    f(w);  // If wchar_t is long, and long == int, should call f(int)
+  }
+
 12/16/97  Test whether functions of template class are inline, as part
           of decision to generate virtual function table definition
 
