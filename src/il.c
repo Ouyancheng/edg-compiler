@@ -2754,7 +2754,7 @@ BEGIN_EXTERN_C_BLOCK
 static int compare_seq_info(a_const_void_ptr arg1,
                             a_const_void_ptr arg2)
 /*
-Function called by bsearch to compare two sequence number lookup entries based.
+Function called by bsearch to compare two sequence number lookup entries.
 The first pointer represents the sequence number to be found.  The second
 pointer points into the lookup array.
 */
