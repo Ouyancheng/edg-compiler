@@ -1,5 +1,16 @@
 Version 2.46
 
+2/13/02  __ALIGNOF__ no longer requires parentheses around argument expressions
+
+The __ALIGNOF__ (or __alignof__) operator now more closely matches the
+standard sizeof operator in that it can be followed by an expression that
+is not parenthesized.  For example:
+
+	int a = __ALIGNOF__ a;
+
+This change makes the __ALIGNOF__ extension more compatible with similar
+extensions in other (non-EDG) front ends.  (See also Changes entry of 9/10/01.)
+
 2/13/02  Instantiation of function used in pointer to member in default
          argument
 

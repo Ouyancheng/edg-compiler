@@ -4449,20 +4449,21 @@ to sizeof, but returns the alignment requirement rather than the size.
 
 Syntax:
         __ALIGNOF__ ( type-name )    or   __alignof__ ( type-name )
-        __ALIGNOF__ ( expression )   or   __alignof__ ( expression )
+        __ALIGNOF__ expression       or   __alignof__ expression
 
-The parentheses are required, unlike for sizeof.  Fewer error checks
-are done.  A warning about the use of this nonstandard feature would
-be inappropriate, because the feature is probably used to implement
-<stdarg.h>, a standard feature.
+Fewer error checks are done.  A warning about the use of this nonstandard
+feature would be inappropriate, because the feature is probably used to
+implement <stdarg.h>, a standard feature.
 */
 {
-  a_source_position   start_position;
+  a_source_position     start_position, type_position;
+  a_source_position     lparen_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position   end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   an_operand          operand;
   a_constant          constant;
+  a_boolean           is_parenthesized = FALSE, is_type = FALSE;
   a_type_ptr          alignof_type;
   an_expr_stack_entry expr_stack_entry;
 #if GNU_EXTENSIONS_ALLOWED
@@ -4479,45 +4480,95 @@ be inappropriate, because the feature is probably used to implement
   /* Save the position of the __ALIGNOF__ keyword. */
   copy_source_position(pos_curr_token, start_position);
   (void)get_token();
-  /* Check for and pass over the left parenthesis. */
-  (void)required_token(tok_lparen, ec_exp_lparen);
-  add_matching_stop_token(tok_rparen);
-  if (is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
-                       DFS_SINGLE_TYPE_REQUIRED)) {
-    /* Scan a type name. */
-    type_name(&alignof_type);
+
+  if (curr_token == tok_lparen) {
+    /* A left parenthesis could indicate a type in parentheses or an expression
+       in parentheses, i.e.,
+         __ALIGNOF__ (int)  vs.
+         __ALIGNOF__ (i)
+       We can distinguish the two using the first token inside the parentheses.
+       However, if the construct is an expression in parentheses, we must
+       then scan it with a special flag indicating that a left parenthesis was
+       trapped.  It's not enough to just scan the expression to the matching
+       right parenthesis, as shown by the following:
+         __ALIGNOF__ (v).b
+       The __ALIGNOF__ should be applied to "(v).b", not just "(v)". */
+    is_parenthesized = TRUE;
+    copy_source_position(pos_curr_token, lparen_position);
+    (void)get_token();
+    if (is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
+                         DFS_SINGLE_TYPE_REQUIRED)) {
+      /* This is a type-name in parentheses. */
+      is_type = TRUE;
+    }  /* if */
+  }  /* if */
+
+  if (is_type) {
+    copy_source_position(pos_curr_token, type_position);
+    if (is_parenthesized) {
+      /* Scan the type-name for a parenthesized type. */
+      add_matching_stop_token(tok_rparen);
+      type_name(&alignof_type);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      (void)required_token(tok_rparen, ec_exp_rparen);
+      remove_matching_stop_token(tok_rparen);
+      if (compound_literals_allowed && curr_token == tok_lbrace) {
+        /* Something like __ALIGNOF__ (int){37} -- the type is the beginning
+           of a compound literal. */
+        scan_compound_literal(&alignof_type, &type_position, result,
+                              EOPT_NO_OPTIONS);
+        alignof_type = result->type;
+      }  /* if */
+    }  /* if */
+    /* If the top type is a reference, drop the reference so that the operator
+       applies to the type referenced (ARM 5.3.2). */
+    if (is_reference_type(alignof_type)) {
+      alignof_type = type_pointed_to(alignof_type);
+    }  /* if */
   } else {
-    /* Scan an expression. */
-    scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
-    /* Do not convert lvalues to rvalues, arrays to pointers,
-       or functions to pointers. */
+    /* It has been determined that the operand of __ALIGNOF__ is an expression
+       and not a type.  Scan the operand. */
+    a_local_expr_options_set  local_options = EOPT_NO_OPTIONS;
+    if (is_parenthesized) local_options |= EOPT_TRAPPED_LEFT_PAREN;
+    scan_expr(&operand, PREC_PREFIX, local_options);
+    /* Do not convert a type of "routine returning type" to "pointer to
+       routine returning type".  See section 3.2.2.1 in the C standard.
+       Likewise do not convert arrays to pointers, or lvalues to rvalues. */
     do_operand_transformations(&operand,
                                TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
                                TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
                                TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION |
                                TOPT_SUPPRESS_MEMBER_FUNC_TO_PM_CONVERSION);
     conv_gcc_lvalue_question_to_rvalue(&operand);
+    if (is_parenthesized) {
+      /* When scanning the expression with a trapped left parenthesis, the
+         position returned in the operand indicates the token following
+         the left parenthesis, which is wrong.  Correct it. */
+      copy_source_position(lparen_position, operand.position);
+    }  /* if */
     alignof_type = operand.type;
 #if GNU_EXTENSIONS_ALLOWED
     if (gcc_mode) {
       /* If the expression is an lvalue for a variable with an
-	 explicit alignment, use it. */
+         explicit alignment, use it. */
       if (is_an_lvalue(&operand)) {
-	if (is_expression_operand(&operand) &&
-	    is_variable_address_node(operand.variant.expression) &&
-	    operand.variant.expression->variant.variable->alignment != 0) {
-	  alignment = operand.variant.expression->variant.variable->alignment;
-	} else if (is_constant_operand(&operand) && 
-		   operand.variant.constant.kind ==
-	                                (a_constant_repr_kind)ck_address &&
-		   operand.variant.constant.variant.address.kind ==
-		                      (an_address_base_kind)abk_variable &&
-		   operand.variant.constant.variant.address.offset == 0 &&
-		   operand.variant.constant.variant.address.
-		                           variant.variable->alignment != 0) {
-	  alignment = operand.variant.constant.variant.address.
+        if (is_expression_operand(&operand) &&
+            is_variable_address_node(operand.variant.expression) &&
+            operand.variant.expression->variant.variable->alignment != 0) {
+          alignment = operand.variant.expression->variant.variable->alignment;
+        } else if (is_constant_operand(&operand) && 
+                   operand.variant.constant.kind ==
+                                        (a_constant_repr_kind)ck_address &&
+                   operand.variant.constant.variant.address.kind ==
+                                      (an_address_base_kind)abk_variable &&
+                   operand.variant.constant.variant.address.offset == 0 &&
+                   operand.variant.constant.variant.address.
+                                           variant.variable->alignment != 0) {
+          alignment = operand.variant.constant.variant.address.
                                                 variant.variable->alignment;
-	}  /* if */
+        }  /* if */
       }  /* if */
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -4539,9 +4590,8 @@ be inappropriate, because the feature is probably used to implement
     constant.type = integer_type(targ_size_t_int_kind);
 #if GNU_EXTENSIONS_ALLOWED
   } else if (alignment != 0) {
-    set_unsigned_integer_constant(
-		     &constant, (a_host_large_unsigned)alignment,
-		     targ_size_t_int_kind);
+    set_unsigned_integer_constant(&constant, (a_host_large_unsigned)alignment,
+                                  targ_size_t_int_kind);
 #endif /* GNU_EXTENSIONS_ALLOWED */
   } else {
     set_unsigned_integer_constant(
@@ -4552,10 +4602,6 @@ be inappropriate, because the feature is probably used to implement
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  /* Check for and pass over the right parenthesis. */
-  (void)required_token(tok_rparen, ec_exp_rparen);
-  remove_matching_stop_token(tok_rparen);
-
   set_operand_position(result, &start_position, &end_position,
                        &start_position);
   pop_expr_stack();
