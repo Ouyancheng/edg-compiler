@@ -28,12 +28,12 @@ debug.c -- Debug routines.
 
 #include "fe_common.h"
 
-#if __ANSIC__
+#if __ANSIC__ || defined(__cplusplus)
 /* Get atoi definition. */
 #include <stdlib.h>
-#else /* !__ANSIC__ */
+#else /* !(_ANSIC__ || defined(__cplusplus)) */
 EXTERN_C int atoi(char *);
-#endif /* __ANSIC__ */
+#endif /* __ANSIC__ || defined(__cplusplus) */
 
 /*
 The stop token checksum test is only done when CHECKING code is included
