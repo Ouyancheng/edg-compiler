@@ -2756,7 +2756,7 @@ the macro definition.
       case rt_charized_raw_argument:
         /* #parameter or #@parameter */
         put_str_to_temp_text_buffer(
-                           rts_kind == rt_charized_raw_argument ? "#@" : "#");
+           rts_kind == rt_charized_raw_argument ? (char *)"#@" : (char *)"#");
         put_str_to_temp_text_buffer(macro_param_name(rts_number, mdp));
         break;
       case rt_argument:
