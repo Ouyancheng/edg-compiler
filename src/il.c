@@ -1112,9 +1112,16 @@ fields to default values.
       cp->variant.address.variant.variable = NULL;
       cp->variant.address.offset = 0;
       break;
+    case ck_dynamic_init:
+      cp->variant.dynamic_init = NULL;
+      break;
     case ck_aggregate:
       cp->variant.aggregate.first_constant = NULL;
       cp->variant.aggregate.last_constant  = NULL;
+      break;
+    case ck_init_repeat:
+      cp->variant.init_repeat.constant = NULL;
+      cp->variant.init_repeat.count = 0;
       break;
 #if CHECKING
     default:
@@ -2423,9 +2430,14 @@ its kind to kind and its variable to variable, and return a pointer to it.
     case dik_expression:
       dip->variant.expression = NULL;
       break;
-    case dik_statement:
-      dip->variant.statement.constructor = NULL;
-      dip->variant.statement.destructor  = NULL;
+    case dik_constructor:
+      dip->variant.constructor.routine = NULL;
+      dip->variant.constructor.args = NULL;
+      dip->variant.constructor.corresp_destructor = NULL;
+      break;
+    case dik_aggregate:
+      dip->variant.aggregate.aggr_const = NULL;
+      dip->variant.aggregate.dynamic_init = NULL;
       break;
 #if CHECKING
     default:

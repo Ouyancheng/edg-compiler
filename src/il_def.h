@@ -220,12 +220,13 @@ enum a_constant_repr_kind_tag {
 #endif /* ifdef FIL */
 #ifdef CIL
   ck_address,           /* Address. */
+  ck_dynamic_init,
 #endif /* ifdef CIL */
   ck_aggregate,         /* For list of constants in initialization. */
+  ck_init_repeat,       /* Used to specify a repeated initialization constant
+                           in an aggregate. */
 #ifdef FIL
   ck_init_position,     /* Used to specify an explicit initialization position
-                           in an aggregate. */
-  ck_init_repeat,       /* Used to specify a repeated initialization constant
                            in an aggregate. */
   ck_hex_octal,         /* Hex and octal constants; does not appear in the
                            final IL. */
@@ -257,6 +258,88 @@ typedef struct an_internal_complex_value {
 } an_internal_complex_value;
 
 #endif /* ifdef FIL */
+
+/*
+Data structure a_dynamic_init describes a dynamic initialization of a simple
+(non-aggregate) variable, an aggregate variable (class or array), or a
+component of an aggregate variable (field or array element).  Dynamic-init
+entries are pointed to directly from variables being initialized, from
+ck_dynamic_init constant entries (when a component of a variable requires
+non-constant initialization), and from stmk_init statements (which mark the
+point in an execution stream at which the initialization takes place).
+*/
+enum a_dynamic_init_kind_tag {
+  dik_constant,		/* Initial value of a simple object is a constant. */
+  dik_expression,	/* Initial value of a simple object is an expression. */
+  dik_constructor,	/* Initial value of a simple object is established by
+			   a constructor call (and/or a destructor may also be
+			   required when the object ceases to exist). */
+  dik_aggregate         /* Initial values of an aggregate object (array or
+			   class) are represented by a list of constant entries
+			   (some of which may refer to non-constants). */
+};
+/* Define as "a_byte" to explicitly control storage size. */
+typedef a_byte a_dynamic_init_kind;
+
+typedef struct a_dynamic_init *a_dynamic_init_ptr;
+typedef struct a_dynamic_init {
+  a_dynamic_init_ptr
+		next;	/* Pointer to the next dynamic initialization in the
+			   same scope or in the list of dynamic initializations
+                           recorded for an aggregate, or NULL if none. */
+  a_variable_ptr
+		variable;
+			/* The file-scope variable to be initialized; NULL
+			   for initializations at other than file scope. */
+  a_dynamic_init_kind
+		kind;	/* Kind of dynamic initialization (constant,
+			   expression, constructor, aggregate). */
+  union {
+    /* When kind == dik_constant: */
+    a_constant_ptr
+		constant;
+			/* The constant initial value. */
+    /* When kind == dik_expression: */
+    an_expr_node_ptr
+		expression;
+			/* The expression that gives the initial value. */
+    /* When kind == dik_constructor: */
+    struct {
+      a_routine_ptr
+		routine;
+			/* If non-NULL, the constructor routine to be invoked
+			   to initialize this object; if NULL, no constructor
+			   call is required. */
+      an_expr_node_ptr
+		args;
+			/* The actual arguments (not including an implicit this
+			   parameter) with which the constructor should be
+			   called. */
+      a_routine_ptr
+		corresp_destructor;
+			/* If non-NULL, the destructor routine to be invoked
+			   when this object ceases to exist; if NULL, no
+			   destructor call is required. */
+    } constructor;
+    /* When kind == dik_aggregate: */
+    struct {
+      a_constant_ptr
+		aggr_const;
+			/* Pointer to a ck_aggregate constant entry that heads
+			   a linked list of constant entries to be applied to
+			   the initialization of the components (fields or
+			   array elements) of the aggregate object. */
+      a_dynamic_init_ptr
+		dynamic_init;
+			/* Pointer to a linked list of dynamic-init entries
+			   representing all non-constant initializers in the
+			   ck_aggregate "constant" list; NULL when all entries
+			   in the list represent constants. */
+    } aggregate;
+  } variant;
+} a_dynamic_init;
+
+
 typedef struct a_constant {
   /* Description of a constant. */
   /* The source_corresp field must be first. */
@@ -353,6 +436,14 @@ typedef struct a_constant {
                 offset;
                         /* Byte offset from the base address. */
     } address;
+    /* When kind = ck_dynamic_init: */
+    a_dynamic_init_ptr
+		dynamic_init;
+			/* A pointer to the dynamic-init entry that describes
+                           the required initialization when the constant entry
+                           represents an initializer on a ck_aggregate list
+                           but the initializer is an executable expression or
+                           a constructor. */
 #endif /* ifdef CIL */
     /* When kind == ck_aggregate: */
     struct {
@@ -362,6 +453,15 @@ typedef struct a_constant {
                         /* List of constants in { } in an initialization.
                            Both pointers are NULL if the list is empty. */
     } aggregate;
+    /* When kind == ck_init_repeat: */
+    struct {
+      a_constant_ptr
+                constant;
+                        /* The constant to be repeated. */
+      unsigned long
+                count;
+                        /* The repeat count (greater than zero). */
+    } init_repeat;
 #ifdef FIL
     /* When kind == ck_init_position: */
     /* Specify the position at which the initialization for the constant
@@ -379,15 +479,6 @@ typedef struct a_constant {
                            initialization or to the end of the variable
                            being initialized. */
     } init_position;
-    /* When kind == ck_init_repeat: */
-    struct {
-      a_constant_ptr
-                constant;
-                        /* The constant to be repeated. */
-      unsigned long
-                count;
-                        /* The repeat count (greater than zero). */
-    } init_repeat;
     /* When kind == ck_hex_octal: */
     /* (Does not appear outside of the Fortran front end.) */
     struct {
@@ -1034,50 +1125,6 @@ typedef struct a_type {
   } variant;
 } a_type;
 
-/*
-Data structure that describes a dynamic initialization of a variable:
-*/
-enum a_dynamic_init_kind_tag {
-  dik_constant,		/* Initial value is a constant. */
-  dik_expression,	/* Initial value is an expression. */
-  dik_statement		/* Initial value is established by a statement
-			   calling a constructor (and there may be also a
-			   statement calling a destructor). */
-};
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte a_dynamic_init_kind;
-typedef struct a_dynamic_init *a_dynamic_init_ptr;
-typedef struct a_dynamic_init {
-  a_dynamic_init_ptr
-		next;	/* Pointer to the next dynamic initialization in
-			   the same scope, or NULL if none. */
-  a_variable_ptr
-		variable;
-			/* The variable to be initialized. */
-  a_dynamic_init_kind
-		kind;	/* Kind of dynamic initialization (constant,
-			   expression, constructor). */
-  union {
-    /* When kind == dik_constant: */
-    a_constant_ptr
-		constant;
-			/* The constant initial value. */
-    /* When kind == dik_expression: */
-    an_expr_node_ptr
-		expression;
-			/* The expression that gives the initial value. */
-    /* When kind == dik_statement: */
-    struct {
-      a_statement_ptr
-		constructor,
-		destructor;
-			/* Statements to be called for construction/destruction
-			   of the variable.  Either may be NULL to indicate
-			   no action is necessary.  Each pointer is a pointer
-			   to a single statement, not a list of statements. */
-    } statement;
-  } variant;
-} a_dynamic_init;
 
 /*
 Data structures related to variables:
@@ -2240,10 +2287,11 @@ typedef struct a_statement {
 #ifdef CIL
                         /* Also:
                              The expression to test for stmk_end_test_while.
-                             The switch expression for stmk_switch.
                            Note that the "expression to test" in each of the
                            three cases is always standardized to an integer/
-                           logical expression. */
+                           logical expression.
+                             The switch expression for stmk_switch.
+			     The address to be initialized for stmk_init. */
 #endif /* ifdef CIL */
 #ifdef FIL
                         /* Also:
@@ -2314,9 +2362,10 @@ typedef struct a_statement {
     /* When kind == stmk_init: */
     a_dynamic_init_ptr
 		dynamic_init;
-			/* The description of the dynamic initialization
-			   to be performed (including a pointer to the
-			   variable to be initialized). */
+			/* The description of the dynamic initialization to be
+			   performed; the object to be initialized (variable,
+			   array element, or field) is identified by the expr
+			   field. */
     /* When kind == stmk_asm: */
     a_constant_ptr
                 asm_string;
