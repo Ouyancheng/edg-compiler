@@ -1,5 +1,13 @@
 Version 2.35
 
+1/23/97 Memory mapping portability change
+
+The map_file_region routine in host_envir.c has been changed to no longer
+allocate an additional byte of memory when mapping a file region.  This
+was originally done to suppress a warning produced by CodeCenter.  It
+has been removed because it causes the unmap operation to fail on some
+systems (HP/UX for example).
+
 1/23/97 Microsoft compatibility: linkage specification and storage class
 
 In Microsoft compatibility mode a declaration with a direct linkage

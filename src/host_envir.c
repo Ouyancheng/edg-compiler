@@ -2359,8 +2359,6 @@ page size.
     /* Write a character at the last allocated position and
        make sure the write to the file is actually done. */
     if (fputc(0, f_mmap_file) != EOF && fflush(f_mmap_file) == 0) {
-      /* An extra byte is added to the size to stop CodeCenter from complaining
-         about the after_end_of_block comparison in mem_manage.c. */
 #if USE_FIXED_ADDRESS_FOR_MMAP
       /* Suppress the CodeCenter warning that would be issued because we
          build an address that is not yet valid. */
@@ -2374,7 +2372,7 @@ page size.
                            PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_FIXED,
                            mmap_file_number, (off_t)file_offset);
 #else /* !USE_FIXED_ADDRESS_FOR_MMAP */
-      addr = (caddr_t)mmap((char*)0, incremental_size + 1,
+      addr = (caddr_t)mmap((char*)0, incremental_size,
                            PROT_WRITE | PROT_READ, MAP_PRIVATE,
                            mmap_file_number, (off_t)file_offset);
 #endif /* USE_FIXED_ADDRESS_FOR_MMAP */
