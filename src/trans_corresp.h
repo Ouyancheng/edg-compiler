@@ -171,10 +171,12 @@ of the "corresponding_*" macros).
 This is an interface to the function version of same_entities.  This is
 a macro too so that the source correspondence pointer can be used as
 the function argument so that any IL entity with a source correspondence
-can be used as an argument.
+can be used as an argument.  A cast is used instead of &(ptrn)->source_corresp
+because the pointers are allowed to be NULL.
 */
 #define f_same_entities(ptr1, ptr2)					\
-  (ff_same_entities(&(ptr1)->source_corresp, &(ptr2)->source_corresp))
+  (ff_same_entities((a_source_correspondence *)(ptr1),			\
+                    (a_source_correspondence *)(ptr2)))
 
 
 extern a_boolean ff_same_entities(a_source_correspondence	*ptr1,
