@@ -1,5 +1,11 @@
 Version 2.43
 
+11/10/99 Incorrect temporary file name on DOS/Windows
+
+If the temporary directory environment variable ended in a backslash,
+the generated temporary file name would omit the backslash.  This
+has been fixed.
+
 11/10/99 Internal error in ensure_il_scope_exists
 
 Certain obscure and erroneous uses of elaborated type names appearing as part
