@@ -9604,6 +9604,65 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
   }  /* if */
 }  /* db_source_sequence_entry */
 
+#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+#if RECORD_TEMPLATES_IN_IL
+
+static a_boolean is_ss_entry_for_class_template_definition(
+                                       a_source_sequence_entry_ptr  ssep,
+                                       a_symbol_ptr                 *sym)
+/*
+If the indicated source sequence entry represents a class template definition,
+return TRUE and set *sym to point to the associated sk_class_template symbol.
+*/
+{
+  a_boolean       flag = FALSE;
+  a_template_ptr  tp = ss_entry_ptr(ssep, a_template_ptr);
+  a_symbol_ptr    local_sym = (a_symbol_ptr)tp->source_corresp.assoc_info;
+
+  if (local_sym != NULL && is_class_template_symbol(local_sym)) {
+    /* Be sure this is the defining declaration of this template, in
+       case it was declared more than once. */
+    if (local_sym->variant.template_info->il_template_entry == tp) {
+      *sym = local_sym;
+      flag = TRUE;
+    }  /* if */
+  }  /* if */
+  return flag;
+}  /* is_ss_entry_for_class_template_definition */
+
+#endif RECORD_TEMPLATES_IN_IL
+
+static void db_ss_list_for_prototype_instantiation(a_symbol_ptr  sym,
+                                                   int           indent)
+/*
+Display the list of source sequence entries associated with the class
+template referred to by sym.  Indent each source-sequence entry by "indent"
+spaces.
+*/
+{
+  a_source_sequence_entry_ptr  ssep;
+  int                          i;
+
+  check_assertion(sym != NULL && is_class_template_symbol(sym));
+  ssep = sym->variant.template_info->
+                        variant.class_template.source_sequence_list;
+  for (; ssep != NULL; ssep = ssep->next) {
+    for (i = 0; i < indent; i++) fputc(' ', f_debug);
+    db_source_sequence_entry(ssep);
+#if RECORD_TEMPLATES_IN_IL
+    /* If ssep represents a class template definition, put out the
+       associated source sequence entries at this point. */
+    if (ss_entry_kind(ssep) == (an_il_entry_kind)iek_template) {
+      a_symbol_ptr  sym;
+      if (is_ss_entry_for_class_template_definition(ssep, &sym)) {
+        db_ss_list_for_prototype_instantiation(sym, indent+2);
+      }  /* if */
+    }  /* if */
+#endif /* RECORD_TEMPLATES_IN_IL */
+  }  /* for */
+}  /* db_ss_list_for_prototype_instantiation */
+
+#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 
 void db_source_sequence_list(a_source_sequence_entry_ptr  ssep)
 /*
@@ -9620,6 +9679,18 @@ purposes.
     fputs("  ", f_debug);
     db_source_sequence_entry(ssep);
     prev = ssep;
+#if RECORD_TEMPLATES_IN_IL
+#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+    /* If ssep represents a class template definition, put out the
+       associated source sequence entries at this point. */
+    if (ss_entry_kind(ssep) == (an_il_entry_kind)iek_template) {
+      a_symbol_ptr  sym;
+      if (is_ss_entry_for_class_template_definition(ssep, &sym)) {
+        db_ss_list_for_prototype_instantiation(sym, 4);
+      }  /* if */
+    }  /* if */
+#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* RECORD_TEMPLATES_IN_IL */
   }  /* for */
 }  /* db_source_sequence_list */
 
@@ -10257,6 +10328,58 @@ sequence list.
     if (force_alloc_in_filescope) {
       switch_back_to_original_region(region_to_switch_back_to);
     }  /* if */
+#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+    /* If this represents the end of a class definition for the prototype
+       instantiation of a class template, the source-sequence entries that
+       belong the class can't be left in the IL (since they refer to
+       template parameters and non-real types that are not in the IL).
+       Move the list to the template symbol supplement. */
+    if (scope_stack[depth_scope_stack].in_prototype_instantiation &&
+        kind == (a_byte_il_entry_kind)iek_type) {
+      a_type_ptr                        tp = (a_type_ptr)ptr;
+      a_source_sequence_entry_ptr       ss_list;
+      a_template_symbol_supplement_ptr  tssp;
+      a_scope_stack_entry_ptr           scope_stack_ptr;
+
+      if (is_immediate_class_type(tp)) {
+        tssp = symbol_supplement_for_class(tp)->template_info;
+        if (tssp != NULL) {
+          scope_stack_ptr = &scope_stack[DEPTH_OF_FILE_SCOPE];
+          /* Find the head of the list; ssep is its tail. */
+          ss_list = tp->source_corresp.source_sequence_entry;
+          check_assertion(ss_list != NULL);
+          /* Adjust the links that follow the list. */
+          if (ssep->next != NULL) {
+            ssep->next->prev = ss_list->prev;
+          } else {
+            scope_stack_ptr->last_source_sequence_entry = ss_list->prev;
+          }  /* if */
+          /* Adjust the links that precede the list. */
+          if (ss_list->prev != NULL) {
+            ss_list->prev->next = ssep->next;
+          } else {
+            scope_stack_ptr->il_scope->source_sequence_list = ssep->next;
+          }  /* if */
+          /* Clear the prev pointer for the head of the list and the next
+             pointer for the tail. */
+          ss_list->prev = NULL;
+          ssep->next = NULL;
+          /* Attach the list to the template symbol supplement for the
+             class template. */
+          tssp->variant.class_template.source_sequence_list = ss_list;
+#if DEBUG
+          if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
+            fputs("ss-list for prototype instantiation of ", f_debug);
+            db_type_name(tp);
+            fputs(":\n", f_debug);
+            db_ss_list_for_prototype_instantiation(
+                        symbol_supplement_for_class(tp)->class_template, 2);
+          }  /* if */
+#endif /* DEBUG */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   }  /* if */
 }  /* add_end_of_construct_source_sequence_entry */
 

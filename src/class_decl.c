@@ -4467,6 +4467,17 @@ of the function, and again overloading is a possibility.
     if (symbol_supplement_for_class(class_type)->is_nonreal_class) {
       /* Scan past friend functions during prototype instantiation. */
       set_to_error_locator(*locator);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      if (func_info->declarator_ssep != NULL) {
+        /* In certain configurations source sequence entries are put out for
+           prototype instantiations.  However, friend declarations are not
+           processed at all: there is no routine entry, so there can be no
+           source sequence entry. */
+        a_src_seq_sublist_ptr  dummy = NULL;
+        remove_from_source_sequence_list(func_info->declarator_ssep, &dummy);
+        func_info->declarator_ssep = NULL;
+      }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     }  /* if */
   }  /* if */
   if (!is_error_locator(*locator)) {

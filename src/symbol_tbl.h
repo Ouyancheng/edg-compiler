@@ -1431,6 +1431,13 @@ typedef struct a_template_symbol_supplement {
 			/* If the template is a member of a class, this
                            specifies the access for the member. */
       bitfield_to_avoid_codecenter_warnings()
+#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+      a_source_sequence_entry_ptr
+		source_sequence_list;
+			/* List of source-sequence entries collected during
+			   prototype instantiation of the class template;
+			   May be NULL. */
+#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
     } class_template;
     /* When symbol kind = sk_function_template: */
     struct {

@@ -1,5 +1,13 @@
 Version 2.39
 
+5/13/98   Source-sequence entries during prototype instantiation
+
+When CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is configured
+to TRUE, source-sequence entries are now generated during the prototype
+instantiation of class templates.  This list is not left in the IL proper,
+however; it is attached to the template symbol supplement for the class
+template.
+
 5/11/98   Microsoft compatibility: static data member redeclaration
 
 In Microsoft-bugs mode, rules of pointer-to-member compatibility are

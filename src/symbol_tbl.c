@@ -1793,6 +1793,9 @@ and return a pointer to it.
 #if CHECKING 
       tssp->variant.class_template.avoid_codecenter_warnings = FALSE;
 #endif /* CHECKING */
+#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+      tssp->variant.class_template.source_sequence_list = NULL;
+#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
       break;
     case sk_function_template:
     case sk_member_function:

@@ -1214,9 +1214,14 @@ issue an error if a default argument expression is encountered.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         /* Make adjustments on the param source sequence entry before it is
            bound to the param_id entry. */
-        if (func_info == &local_func_info_block) {
+        if (func_info == &local_func_info_block ||
+            scope_stack[depth_scope_stack].in_prototype_instantiation) {
           /* If a parameter id was specified in a non-top-level function
-             declarator, a source sequence entry created for it is useless. */
+             declarator, a source sequence entry created for it is useless.
+             In certain configurations source sequence entries are put during
+             prototype instantiation of class templates -- but since the
+             function body won't be scanned at this time, the source sequence
+             entry for the param id should be eliminated in that case, too. */
           if (param_ssep != NULL) {
             a_src_seq_sublist_ptr  dummy = NULL;
             remove_from_source_sequence_list(param_ssep, &dummy);

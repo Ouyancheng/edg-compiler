@@ -1468,12 +1468,18 @@ to the declaration information for the template declaration scope being pushed.
     ssep->source_sequence_entries_disallowed =
       source_sequence_entries_disallowed = TRUE;
   } else if (kind == (a_scope_kind)sck_template_instantiation) {
-    if (ssep->in_prototype_instantiation || instance_sym == NULL) {
-      /* Under no circumstances should source sequence entries be generated
-         during a prototype instantiation.  Also, if instance_sym is NULL we
-         are pushing the scope for the declaration (but not the body) of a
-         template function -- no source sequence entries would be involved. */
+    if (instance_sym == NULL) {
+      /* If instance_sym is NULL we are pushing the scope for the declaration
+         (but not the body) of a template function -- no source sequence
+         entries would be involved. */
       source_sequence_entries_disallowed = TRUE;
+#if !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+    } else if (ssep->in_prototype_instantiation) {
+      /* Source sequence entries are normally not generated during a
+         prototype instantiation.  (When they are, they are placed on a list
+         that is not part of the IL proper.) */
+      source_sequence_entries_disallowed = TRUE;
+#endif /* !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
     } else if (scope_stack[DEPTH_OF_FILE_SCOPE].
                                     source_sequence_entries_disallowed) {
       check_assertion(source_sequence_entries_disallowed == TRUE);

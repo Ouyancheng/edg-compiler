@@ -2303,6 +2303,16 @@ A pointer to the head of the list is returned in tcsp.
 				    prototype_type,
 				    (a_routine_ptr)NULL, instance_sym,
 				    template_sym, template_arg_list);
+#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  /* If source sequence entries are being generated during prototype
+     instantiation, be sure the entry for the prototype class itself is also
+     on the list.  The entire list associated with this non-real class will
+     eventually be moved out of the IL proper and attached to the template
+     symbol supplement. */
+  add_to_source_sequence_list((char *)prototype_type,
+                              (an_il_entry_kind)iek_type);
+  set_autonomous_tag_decl_flag(prototype_type, /*is_definition=*/TRUE);
+#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   /* Reactivate any pragmas that should be bound to the generated
      instance. */
   reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
@@ -10281,14 +10291,12 @@ any non-empty template parameter lists that were scanned.
       extract_member_bodies(tssp, cache_segments);
     } /* if */
 #if RECORD_TEMPLATES_IN_IL
-    if (!decl_state->in_prototype_instantiation) {
-      complete_il_template_entry(decl_state, sym, p_template_body_cache);
-      /* If this is a template definition or the initial declaration, update
-         the template symbol supplement to point to the IL entry . */
-      if (tssp != NULL &&
-          (decl_state->defines_something || tssp->il_template_entry == NULL)) {
-        tssp->il_template_entry = decl_state->il_template_entry;
-      }  /* if */
+    complete_il_template_entry(decl_state, sym, p_template_body_cache);
+    /* If this is a template definition or the initial declaration, update
+       the template symbol supplement to point to the IL entry . */
+    if (tssp != NULL &&
+        (decl_state->defines_something || tssp->il_template_entry == NULL)) {
+      tssp->il_template_entry = decl_state->il_template_entry;
     }  /* if */
 #endif /* RECORD_TEMPLATES_IN_IL */
   }
@@ -11048,11 +11056,17 @@ are either the specialization of a template or a template declaration.
     decl_state.effective_decl_level = depth_scope_stack;
   }  /* if */
 #if RECORD_TEMPLATES_IN_IL
-  if (!decl_state.is_full_specialization &&
-      !decl_state.in_prototype_instantiation) {
+  if (decl_state.is_full_specialization) {
+    /* No IL template entry required. */
+#if !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  } else if (decl_state.in_prototype_instantiation) {
+    /* Unless class templates are being included in source sequence lists,
+       no IL template entry is required. */
+#endif /* !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+  } else {
     /* Create an IL template entry for this declaration.  This is only done
        for template declarations and specializations that are still templates.
-       IL entries are not created for templates found during the prototype
+       IL entries are usually not created for templates found during prototype
        instantiation of other templates because they will be included in
        the template string of the enclosing template. */
     decl_state.il_template_entry =
