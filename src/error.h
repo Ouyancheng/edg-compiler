@@ -244,14 +244,14 @@ extern void pos_ty_remark(an_error_code     error_code,
                           a_source_position *error_pos,
                           struct a_type     *type);
 #if 0
-/* This routine is not currently used by the compiler. */
+/* These routines are not currently used by the compiler. */
 extern void pos_ty2_remark(an_error_code     error_code,
                            a_source_position *error_pos,
                            struct a_type     *type1,
                            struct a_type     *type2);
-#endif /* 0 */
 extern void type_remark(an_error_code error_code,
                         struct a_type *type);
+#endif /* 0 */
 #if !STANDALONE_UTILITY_PROGRAM
 extern void pos_sy_remark(an_error_code     error_code,
                           a_source_position *error_pos,

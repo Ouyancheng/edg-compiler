@@ -2967,7 +2967,7 @@ indicated position.
 }  /* pos_ty_remark */
 
 #if 0
-/* This routine is not currently used by the compiler. */
+/* These routines are not currently used by the compiler. */
 
 void pos_ty2_remark(an_error_code     error_code,
                     a_source_position *error_pos,
@@ -2984,8 +2984,6 @@ indicated position.
   diag_message(error_code, error_pos, es_remark, dck_standalone);
 }  /* pos_ty2_remark */
 
-#endif /* 0 */
-
 void type_remark(an_error_code error_code,
                  a_type_ptr    type)
 /*
@@ -2995,6 +2993,8 @@ indicated by error_position.
 {
   pos_ty_remark(error_code, &error_position, type);
 }  /* type_remark */
+
+#endif /* 0 */
 
 #if !STANDALONE_UTILITY_PROGRAM
 
