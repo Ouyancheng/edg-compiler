@@ -2152,7 +2152,6 @@ Generate a cast to the indicated type.
   m_write_tok_ch(')');
 }  /* dump_cast */
 
-#if !C_GEN_BE_GENERATES_ANSI_C
 
 static void dump_cast_to_pointer_to(a_type_ptr type)
 /*
@@ -2166,7 +2165,6 @@ Generate a cast to pointer-to the indicated type.
   write_tok_ch(')');
 }  /* dump_cast_to_pointer_to */
 
-#endif /* !C_GEN_BE_GENERATES_ANSI_C */
 
 static void dump_ampersand(a_type_ptr type)
 /*
@@ -2240,6 +2238,31 @@ selection operation).
 }  /* dump_field_from_second_operand */
 
 
+static void dump_variable_reference_node(an_expr_node_ptr node)
+/*
+Output a reference to the variable indicated by the given enk_variable
+or enk_variable_address node.  The output is usually just the variable name.
+*/
+{
+  a_variable_ptr var = node->variant.variable;
+
+  if (var->superseded_external) {
+    /* Superseded variable (there are multiple incompatible block-scope
+       extern declarations in SVR4 C mode, but they're all promoted to
+       the file scope).  Only the primary declaration is put out, so
+       references to the others need a cast to the right type. */
+    write_tok_str("(*");
+    dump_cast_to_pointer_to(var->type);
+    dump_ampersand(var->type);
+    dump_variable_name(var);
+    write_tok_str(")");
+  } else {
+    /* Normal case.  Just put out the variable name. */
+    dump_variable_name(var);
+  }  /* if */
+}  /* dump_variable_reference_node */
+
+
 static void dump_adding_indirection(an_expr_node_ptr node)
 /*
 Dump the indicated expression with an additional indirection on the front
@@ -2253,7 +2276,7 @@ of an assignment).  It's also used for a normal "*" for indirection.
 
   if (kind == (an_expr_node_kind)enk_variable_address) {
     /* Address of variable: just write the variable name. */
-    dump_variable_name(node->variant.variable);
+    dump_variable_reference_node(node);
     processed = TRUE;
   } else if (kind == (an_expr_node_kind)enk_operation) {
     an_expr_operator_kind op = node->variant.operation.kind;
@@ -2543,7 +2566,8 @@ of a routine.
   a_type_ptr    expr_rout_type = type_pointed_to(expr->type);
   a_boolean     need_parens = FALSE;
 
-  if (skip_typerefs(expr_rout_type) != skip_typerefs(rout_type)) {
+  if (rout->superseded_external ||
+      skip_typerefs(expr_rout_type) != skip_typerefs(rout_type)) {
     /* The type of the routine and the type in the call are different.
        This is probably because the call was generated and then
        the routine type was updated by a redeclaration.  Use a cast to
@@ -2625,7 +2649,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
               write_tok_ch('&');
               end_comment();
             }  /* if */
-            dump_variable_name(operand_1->variant.variable);
+            dump_variable_reference_node(operand_1);
           } else if (is_pointer_type(operand_1->type) &&
                      is_integral_type(expr_type) &&
                      expr_type->size < targ_sizeof_pointer) {
@@ -3109,11 +3133,11 @@ done_with_operation:
     case enk_variable_address:
       if (need_parens) m_write_tok_ch('(');
       dump_ampersand(expr->variant.variable->type);
-      dump_variable_name(expr->variant.variable);
+      dump_variable_reference_node(expr);
       if (need_parens) m_write_tok_ch(')');
       break;
     case enk_variable:
-      dump_variable_name(expr->variant.variable);
+      dump_variable_reference_node(expr);
       break;
     case enk_routine_address:
       dump_routine_address(expr);
@@ -4109,6 +4133,10 @@ parameters.
   } else if (!dump_initializers && forced_static) {
     /* Suppress the first declaration of forced-static variables. */
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
+  } else if (variable->superseded_external) {
+    /* Superseded variable (there are multiple incompatible block-scope
+       extern declarations in SVR4 C mode, but they're all promoted to
+       the file scope; put out only the primary one). */
   } else {
     /* See if the variable is unreferenced, but always put out magic
        variables anyway.  Putting __link out if unreferenced is necessary
@@ -5191,6 +5219,10 @@ if this routine has a body (dump nothing if it has no body).
   } else if (!dump_defn && rout->storage_class == (a_storage_class)sc_asm) {
     /* Suppress forward declaration of an asm function. */
 #endif /* ASM_FUNCTION_ALLOWED */
+  } else if (rout->superseded_external) {
+    /* Superseded routine (there are multiple incompatible block-scope
+       extern declarations in SVR4 C mode, but they're all promoted to
+       the file scope; put out only the primary one). */
   } else if (!start_unreferenced_bracket(&rout->source_corresp)) {
     /* Unreferenced routine. */
   } else {
