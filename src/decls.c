@@ -1500,14 +1500,18 @@ by id_linkage.
         }  /* if */
       }  /* for */
       if (other_decl == NULL && function_template_seen &&
-          (guiding_decls_allowed || locator->is_template_id)) {
+          (guiding_decls_allowed ||
+           locator->is_template_id ||
+           locator->is_qualified_name)) {
         a_partial_order_candidate_ptr	candidates_list = NULL;
         /* We didn't find a match, but there was at least one function
            template.  See if it either provides a match with an
            existing instance of the template or if a new instance can
-           be created based on the current type.  This is only done if
-           guiding declarations are recognized, or if the function name
-           was specified using the explicit template argument list syntax. */
+           be created based on the current type.  This is done if
+           guiding declarations are recognized, or if the declaration is
+           known to refer to a previously declared template.  The latter
+	   is the case when the name was specified as a qualified name or
+           includes an explicit template argument list. */
         a_symbol_ptr sym, match = NULL;
 
         for (other_decl = other_decl_saved;
@@ -3089,9 +3093,17 @@ namespace-extension scope.
              void N::f(int) { ... }          // Okay
              void N::f(double) { ... }       // Error
         */
-        if (!linked_symbol->variant.routine.instance_ptr->is_guiding_decl) {
-          pos_sy_error(ec_no_prior_declaration, &locator->source_position,
-                       linked_symbol);
+        if (guiding_decls_allowed) {
+          if (!linked_symbol->variant.routine.instance_ptr->is_guiding_decl) {
+            pos_sy_error(ec_no_prior_declaration, &locator->source_position,
+                         linked_symbol);
+          }  /* if */
+        } else {
+          /* When guiding declarations are not allowed, an out-of-scope
+             definition is an old-style specialization.  Check whether
+             such specializations are permitted. */
+          check_old_specialization_allowed(linked_symbol,
+                                           &locator->source_position);
         }  /* if */
       }  /* if */
     } else {
@@ -3695,17 +3707,19 @@ on for use in generating cross-reference output describing this declaration.
        to which this declaration is linked. */
     if (linked_symbol->kind == (a_symbol_kind)sk_routine &&
         linked_symbol->variant.routine.instance_ptr != NULL) {
-      if (locator->is_template_id) {
+      if (locator->is_template_id ||
+          (locator->is_qualified_name && is_friend_decl)) {
         /* This is a reference to an instance of a function template that was
            made using the explicit template argument syntax. */
         explicit_template_reference = TRUE;
-      } else {
+      } else if (!locator->is_qualified_name) {
         /* This is not actually a redeclaration -- linked_symbol refers to a
            function template instantiation. */
         check_assertion(guiding_decls_allowed);
         template_function_specific_decl = TRUE;
       }  /* if */
-    } else {
+    }  /* if */
+    if (!explicit_template_reference && !template_function_specific_decl) {
       /* The new declaration must be compatible with the old. */
       redeclaration = TRUE;
     }  /* if */

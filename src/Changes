@@ -1,5 +1,20 @@
 Version 2.36
 
+6/5/97    Spurious error on namespace template instance friend declaration
+          when guiding declarations are disabled
+
+With guiding declarations disabled, a spurious error was issued on a friend
+declaration that refers to an instance of a function template declared in
+a namespace.  In addition, when guiding declarations are enabled, such
+a friend declaration was incorrectly treated as a guiding declaration.
+
+  namespace N {
+    template <class T> void f(T);
+  }
+  class B {
+    friend void N::f(int);
+  };
+
 6/5/97    INDICATE_CLEANUP_STATE_IN_UNREACHABLE_CODE
 
 Heretofore, when partial lowering of exception handling features was
