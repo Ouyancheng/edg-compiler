@@ -1302,6 +1302,12 @@ error code.
     case ec_nonstd_member_function_redeclaration:
       m = "redeclaring a member function is nonstandard";
       break;
+    case ec_static_main:
+      m = "\"main()\" may not be declared static";
+      break;
+    case ec_inline_main:
+      m = "\"main()\" may not be declared inline";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

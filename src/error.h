@@ -452,7 +452,9 @@ typedef enum /*an_error_code*/ {
   ec_class_with_op_delete_but_no_op_new,
   ec_class_with_virtual_func_but_no_virtual_dtor,
   ec_no_access_to_constructors,
-  ec_nonstd_member_function_redeclaration
+  ec_nonstd_member_function_redeclaration,
+  ec_static_main,
+  ec_inline_main
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
