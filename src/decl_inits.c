@@ -190,12 +190,67 @@ for unions and aggregates at that level).
   an_expr_node_ptr    expression;
   a_boolean           is_constant;
   a_dynamic_init_ptr  dip;
+  a_routine_ptr       rp;
+  a_source_position   expr_pos;
+  a_class_symbol_supplement_ptr
+                      cssp;
 
   db_enter(4, "get_initializer");
   err = FALSE;
   local_type = skip_typerefs(*type);
-  if (is_aggregate_or_union_type(local_type) ||
-      (is_error_type(local_type) && curr_token == tok_lbrace)) {
+  if (is_class_struct_union_type(local_type)) {
+    cssp = ((a_symbol_ptr)local_type->source_corresp.assoc_info)->
+                                     variant.class_struct_union.extra_info;
+  } else {
+    cssp = NULL;
+  }  /* if */
+  if (cssp != NULL && cssp->constructor != NULL) {
+#if CHECKING
+    if (top_level) {
+      internal_error("get_initializer: constructor encountered at top level");
+#if 0
+    } else if (cssp->copy_constructor == NULL) {
+      internal_error("get_initializer: missing copy constructor");
+#endif /* if 0 */
+    }  /* if */
+#endif /* CHECKING */
+    /* This is an array element that can only be initialized by a
+       constructor.  Treat the expression as an argment for the constructor
+       call. */
+    copy_source_position(pos_curr_token, expr_pos);
+    expression = scan_argument_expression();
+    /* Look for a constructor to convert the right hand side to the
+       required class type. */
+    if (!select_constructor(cssp->constructor, &rp, &expression, &expr_pos)) {
+      /* No such constructor was found.  Abort the initialization. */
+      err = TRUE;
+#if 0
+    } else if (rp != cssp->copy_constructor->variant.routine) {
+      /* Something other than the copy constructor was returned, so be sure
+         the copy constructor is accessible. */
+      if (!have_access_to_symbol(cssp->copy_constructor)) {
+        /* It is an error if the copy constructor is inaccessible, even
+           though it is being optimized away. */
+        pos_error(ec_inaccessible_copy_constructor, &expr_pos);
+        err = TRUE;
+      }  /* if */
+#endif /* if 0 */
+    }  /* if */
+    if (!err) {
+      init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
+      init_con->variant.dynamic_init = dip =
+                  alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
+      dip->variant.constructor.routine = rp;
+      dip->variant.constructor.args = expression;
+      if (*di_list == NULL) {
+        *di_list = dip;
+      } else {
+        (*end_of_di_list)->next = dip;
+      }  /* if */
+      *end_of_di_list = dip;
+    }  /* if */
+  } else if (is_aggregate_or_union_type(local_type) ||
+             (is_error_type(local_type) && curr_token == tok_lbrace)) {
     /* Initialization of an array (complete or incomplete), struct, or
        union.  The result will be an aggregate constant except when an
        array of char is initialized by an string.  The initial
@@ -728,9 +783,11 @@ The syntax is:
       a_routine_ptr   rp;
 
 #if CHECKING
+#if 0
       if (cssp->copy_constructor == NULL) {
         internal_error("initializer: missing copy constructor");
       }  /* if */
+#endif /* if 0 */
 #endif /* CHECKING */
       /* Look for a constructor to convert the right hand side to the
          required class type. */
@@ -738,6 +795,7 @@ The syntax is:
                               &expression, source_pos)) {
         /* No such constructor was found.  Abort the initialization. */
         err = TRUE;
+#if 0
       } else if (rp != cssp->copy_constructor->variant.routine) {
         /* Something other than the copy constructor was returned, so be sure
            the copy constructor is accessible. */
@@ -747,6 +805,7 @@ The syntax is:
           pos_error(ec_inaccessible_copy_constructor, source_pos);
           err = TRUE;
         }  /* if */
+#endif /* if 0 */
       }  /* if */
       if (!err) {
         /* Set the dynamic init entry to represent constructor
