@@ -661,6 +661,7 @@ check_abbreviation()
 --no_sun
 --no_sun_linker_scope
 --no_svr4
+--no_thread_local_storage
 --no_typename
 --no_upc
 --no_use_before_set_warnings
@@ -724,6 +725,7 @@ check_abbreviation()
 --svr4
 --sys_include
 --template_directory
+--thread_local_storage
 --time_limit
 --timing
 --trace_includes
@@ -1216,6 +1218,8 @@ process_option()
          --no_named_registers | \
          --embedded_c | \
          --no_embedded_c | \
+         --thread_local_storage | \
+         --no_thread_local_storage | \
          --force_vtbl)
       feoptions=$feoptions" $curr_arg"
 #     Options that require additional processing
