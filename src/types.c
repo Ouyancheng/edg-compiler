@@ -2302,7 +2302,13 @@ conversions (constructors and conversion functions).
     if (source_class == dest_class ||
         find_base_class_of(source_class, dest_class) != NULL ||
         find_base_class_of(dest_class, source_class) != NULL) {
-      okay = TRUE;
+      /* The ARM doesn't say this, but pointers-to-data-members and
+         pointers-to-member-functions should not be compatible.  This
+         follows cfront. */
+      if (is_function_type(pm_member_type(source_type)) ==
+          is_function_type(pm_member_type(dest_type))) {
+        okay = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (!okay && impl_okay) {
