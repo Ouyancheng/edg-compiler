@@ -556,8 +556,11 @@ do
   # templates then the a .ii file will exist after the compilation.
   # If a .ii file exists that means that the compilation used templates in
   # some way.  Generate a new .ii file using the current command line.
+  # The front end only generates the .ii file when the back end is run
+  # (i.e., no "fe-only" options were specified and no errors occurred.
   #
-  if [ $automatic_instantiation -ne 0 -a $preprocessor_only -eq 0 ] ; then
+  if [ $automatic_instantiation -ne 0 -a $preprocessor_only -eq 0 \
+       -a $fe_only -eq 0 -a $status -eq 0 ] ; then
     ii_file_name=$basefile.ii
     if [ -f $ii_file_name ] ; then
       # An instantiation file exists which means the compilation involves
