@@ -3829,7 +3829,7 @@ leave the current token and return FALSE.
 */
 {
   a_boolean      is_qualified_name = FALSE;
-  a_symbol_ptr   class_symbol, name_symbol;
+  a_symbol_ptr   class_symbol, name_symbol, inactive_symbol_list;
   a_scope_number class_scope;
 
   if (C_dialect == C_dialect_cplusplus) {
@@ -3859,27 +3859,41 @@ leave the current token and return FALSE.
 #if 0
 #else
           /* Temporary code to get scope number. */
-          class_scope = ((a_symbol_ptr)class_symbol->
-                         variant.class_struct_union.type->
-                         variant.class.field_list->source_corresp.assoc_info)->
-                         decl_scope;
+          class_scope = class_symbol->variant.class_struct_union.symbols->
+                                                                    decl_scope;
 #endif /* 0 */
           if (curr_token != tok_identifier) {
             syntax_error(ec_exp_identifier);
           } else {
             /* Search for the identifier in the given scope. */
+            inactive_symbol_list =
+                        inactive_symbol_list_from_locator(locator_for_curr_id);
+            for (name_symbol = inactive_symbol_list;
+                 name_symbol != NULL;
+                 name_symbol = name_symbol->next) {
+              if (name_symbol->decl_scope == class_scope) {
+                is_qualified_name = TRUE;
+                curr_token = tok_qualified_name;
+                qualified_name_symbol = name_symbol;
+                goto found_name;
+              }  /* if */
+            }  /* for */
+            /* The name was not found on the inactive symbols list.
+               Try the active symbols list.  This would come up when a
+               qualified name is used when it's not really necessary, i.e.,
+               we're inside the class mentioned in the qualifier. */
             for (name_symbol = symbol_list_for_curr_id;
                  name_symbol != NULL;
                  name_symbol = name_symbol->next) {
               if (name_symbol->decl_scope == class_scope) {
                 is_qualified_name = TRUE;
                 curr_token = tok_qualified_name;
-                break;
+                qualified_name_symbol = name_symbol;
+                goto found_name;
               }  /* if */
             }  /* for */
-            if (name_symbol == NULL) {
-              internal_error("get_qualified_name: not implemented");
-            }  /* if */
+            internal_error("get_qualified_name: name not found unimplemented");
+found_name:;
           }  /* if */
         }  /* if */
       }  /* if */

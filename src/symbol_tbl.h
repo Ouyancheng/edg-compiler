@@ -415,6 +415,10 @@ EXTERN a_symbol_locator
 			/* If curr_token == tok_identifier, this is information
 			   necessary for a later call to enter_symbol to enter
 			   this identifier. */
+EXTERN a_symbol_ptr
+		qualified_name_symbol;
+			/* If curr_token == tok_qualified_name, this points
+			   to the symbol for the qualified name. */
 
 /*
 Entries on a list of array types whose sizes must be fixed up.  These
@@ -679,6 +683,10 @@ extern an_extern_type_fixup_ptr alloc_etype_fixup(void);
 
 /* Test a locator to see if it is an error locator. */
 #define is_error_locator(loc) ((loc).symbol_header == NULL)
+
+/* Retrieve a pointer to the inactive symbol list from a locator. */
+#define inactive_symbol_list_from_locator(loc)                        \
+  ((loc).symbol_header->inactive_symbols)
 
 #if DEBUG
 /* Show and return the amount of memory used by symbol table entries. */
