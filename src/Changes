@@ -1,5 +1,19 @@
 Version 2.43
 
+8/23/99  C++-generating back end: qualified access to an otherwise
+         inaccessible base class
+
+The C++-generating back end used to drop qualifiers on names used in a class
+scope when even when the unqualified (or less qualified) version of that name
+is inaccessible (due to private inheritance).  For example:
+
+  struct A { static int i; };
+  struct B: private A {};
+  struct C: B { void f(); };
+  void C::f() { ::A::i = 42; }; <-- Must remain "::A::i": just "A::i" fails.
+
+This is now fixed.
+
 8/23/99  Assertion failure when defining a file-scope variable in a namespace
 
 The front end used to abort its processing when encountering the definition

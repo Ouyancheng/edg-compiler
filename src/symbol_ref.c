@@ -375,6 +375,60 @@ and hidden_by refer to the same IL entry, no hidden-name entry is produced.
 }  /* record_defeatable_name_hiding */
 
 
+static void check_defeatable_base_inaccessibility(
+                                              a_type_ptr        class_type,
+                                              a_base_class_ptr  bcp)
+/*
+If a base class bcp is inaccessible (privately but not directly inherited),
+the C++ generating back-end can not access it using an unqualified name in the
+class scope of class_type.  Therefore, we treat the base type as hidden in the
+scope of the class class_type and mark it as needing qualified access.
+This allows the following example to work:
+   struct A { static int i; };
+   struct B: private A {};
+   struct C: B { void f(); };
+   void C::f() { ::A::i = 42; }; <-- Needs to remain "::A::i": just "i" or
+                                     "A::i" fails.
+*/
+{
+  a_base_class_derivation_ptr  preferred_derivation;
+
+  /* First check if we have access to public members of this base class.
+     If so, there is no problem and no need for extra work. */
+  preferred_derivation = preferred_derivation_of(bcp);
+  if (access_to_end_of_path((an_access_specifier)as_public,
+                            preferred_derivation->path,
+                            preferred_derivation) ==
+                                       (an_access_specifier)as_inaccessible) {
+    /* This base is inaccessible because of private inheritance. */
+    a_symbol_ptr            hidden_sym;
+    a_scope_ptr             scope;
+    a_scope_depth           scope_depth;
+    a_hidden_name_ptr       hnp;
+    a_memory_region_number  region_to_switch_back_to;
+    an_il_entry_kind        kind;
+
+    scope =  class_type->variant.class_struct_union.extra_info->assoc_scope;
+    if (in_file_scope(scope)) {
+      scope_depth = DEPTH_OF_FILE_SCOPE;
+    } else {
+      scope_depth = scope->depth_in_scope_stack;
+      check_assertion(scope_depth != NO_SCOPE_DEPTH);
+    }  /* if */
+    switch_to_scope_region(scope_depth, &region_to_switch_back_to);
+    hnp = alloc_hidden_name();
+    switch_back_to_original_region(region_to_switch_back_to);
+    hidden_sym = (a_symbol_ptr)bcp->type->source_corresp.assoc_info;
+    hnp->entity.ptr = il_entry_for_symbol(hidden_sym, &kind);
+    hnp->entity.kind = (a_byte_il_entry_kind)kind;
+    hnp->qualification_needed = TRUE;
+    /* Add it to the start of the hiden_names list for the current scope. */
+    hnp->next = scope->hidden_names;
+    scope->hidden_names = hnp;
+  }  /* if */
+}  /* check_defeatable_base_inaccessibility */
+
+
 static void check_hiding_by_inherited_names(a_type_ptr  class_type,
                                             a_scope_ptr sp,
                                             a_boolean   top_level)
@@ -406,6 +460,11 @@ hidden name checking on its own members, too.
   for (; bcp != NULL; bcp = bcp->next) {
     if (bcp->direct || (top_level && bcp->is_virtual)) {
       check_hiding_by_inherited_names(bcp->type, sp, /*top_level=*/FALSE);
+    }  /* if */
+    if (!bcp->direct) {
+      /* The base class may be inaccessible or ambiguous by inheritance, but
+         it may be able to refer to it through qualified access. */
+      check_defeatable_base_inaccessibility(class_type, bcp);
     }  /* if */
   }  /* for */
   if (!top_level) {
