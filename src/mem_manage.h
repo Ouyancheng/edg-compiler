@@ -156,7 +156,8 @@ extern void free_memory_region(a_memory_region_number region_number);
 extern void free_all_memory_regions(void);
 /* Free the unused space in the final block of a memory region. */
 extern void trim_memory_region(a_memory_region_number region_number);
-
+extern void f_register_trans_unit_variable(a_void_ptr	var,
+					   sizeof_t	size);
 
 /*
 Macro used to register a variable that is related to a specific translation
