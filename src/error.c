@@ -490,7 +490,7 @@ error code.
       m = "duplicate parameter name";
       break;
     case ec_id_already_declared:
-      m = "name has already been declared in the current scope";
+      m = "%sq has already been declared in the current scope";
       break;
     case ec_nonstd_forward_def_enum:
       m = "forward-defined enum type is nonstandard";
@@ -626,7 +626,7 @@ error code.
       m = "incorrect initial value type";
       break;
     case ec_cannot_initialize:
-      m = "this entity may not be initialized";
+      m = "%n may not be initialized";
       break;
     case ec_too_many_initializer_values:
       m = "too many initializer values";
@@ -635,7 +635,7 @@ error code.
       m = "declaration is incompatible with %nfd";
       break;
     case ec_already_initialized:
-      m = "this variable has already been initialized";
+      m = "%n has already been initialized";
       break;
     case ec_bad_file_scope_storage_class:
       m = "a global-scope declaration may not have this storage class";
@@ -969,7 +969,7 @@ error code.
       m = "type definition is not allowed";
       break;
     case ec_bad_type_name_redeclaration:
-      m = "invalid redeclaration of type name";
+      m = "invalid redeclaration of type name %sq";
       break;
     case ec_missing_initializer_on_const:
       m = "initializer for const variable is missing";
