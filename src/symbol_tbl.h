@@ -2514,16 +2514,6 @@ extern void determine_operator_lookup_namespaces(a_type_ptr	class_type);
   (is_template_class_symbol((sym)) &&					\
    !(sym)->variant.class_struct_union.extra_info->is_specific_template_def)
 
-/* Return TRUE if the symbol is a template class symbol for a class template
-   instance or a class nested within a class template. */
-#define is_template_instance_class_symbol(sym)				\
-  ((sym)->variant.class_struct_union.extra_info->is_instance)
-
-/* Return TRUE if the symbol is a specific definition of a class template
-   instance or a class nested within a class template. */
-#define is_template_instance_specific_def_symbol(sym)			\
-  ((sym)->variant.class_struct_union.extra_info->is_specific_template_def)
-
 /* Return TRUE if the symbol is a class template symbol. */
 #define is_class_template_symbol(sym)					\
   ((sym)->kind == (a_symbol_kind)sk_class_template)
@@ -2534,6 +2524,18 @@ extern void determine_operator_lookup_namespaces(a_type_ptr	class_type);
   (((sym)->kind == (a_symbol_kind)sk_class_or_struct_tag ||           \
     (sym)->kind == (a_symbol_kind)sk_union_tag) &&		      \
     !(sym)->variant.class_struct_union.extra_info->is_nonreal_class)
+
+/* Return TRUE if the symbol is a template class symbol for a class template
+   instance or a class nested within a class template. */
+#define is_template_instance_class_symbol(sym)				\
+  (is_real_class_symbol(sym) &&						\
+   (sym)->variant.class_struct_union.extra_info->is_instance)
+
+/* Return TRUE if the symbol is a specific definition of a class template
+   instance or a class nested within a class template. */
+#define is_template_instance_specific_def_symbol(sym)			\
+  (is_real_class_symbol(sym) &&						\
+   (sym)->variant.class_struct_union.extra_info->is_specific_template_def)
 
 /* Return TRUE if a symbol is a tag symbol.   A tag symbol is
    one defined as a class, struct, union, or enum (but not as a typedef
