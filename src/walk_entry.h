@@ -619,6 +619,10 @@ the file scope, do not process it (but record an orphan in the latter case).
           case ck_ptr_to_member:
             remap_ptr(ptr->variant.ptr_to_member.casting_base_class,
                       a_base_class_ptr, iek_base_class);
+#if RECORD_FORM_OF_NAME_REFERENCE
+            remap_ptr(ptr->variant.ptr_to_member.name_reference,
+                      a_name_reference_ptr, iek_name_reference);
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
             set_proper_definition_needed_flag(pm_class_type(ptr->type));
             if (ptr->variant.ptr_to_member.cast_to_base) {

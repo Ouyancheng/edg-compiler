@@ -662,6 +662,9 @@ fields to default values.
       break;
     case ck_ptr_to_member:
       cp->variant.ptr_to_member.casting_base_class = NULL;
+#if RECORD_FORM_OF_NAME_REFERENCE
+      cp->variant.ptr_to_member.name_reference     = NULL;
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
       cp->variant.ptr_to_member.cast_to_base    = FALSE;
       cp->variant.ptr_to_member.is_function_ptr = FALSE;
 #if CHECKING

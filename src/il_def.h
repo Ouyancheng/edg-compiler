@@ -2053,6 +2053,12 @@ typedef struct a_constant {
 			   to which the pointer-to-member has been cast.
 			   Always NULL for a NULL pointer-to-member
 			   constant. */
+#if RECORD_FORM_OF_NAME_REFERENCE
+      a_name_reference_ptr
+		name_reference;
+			/* The form of the expression that the creation of
+			   this entry. */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
       a_bit_field
 		cast_to_base:1;
 			/* If TRUE, the base class given by casting_base_class

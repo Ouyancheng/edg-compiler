@@ -10237,6 +10237,9 @@ Initialize for the C++/C-generating back end.
   octl.output_class_qualifier = gen_class_qualifier_wrapper;
   octl.output_func_declarator = gen_function_declarator;
   octl.output_expression = f_gen_expression;
+#if RECORD_FORM_OF_NAME_REFERENCE
+  octl.output_name_reference = gen_name_from_name_reference;
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   octl.gen_compilable_code = TRUE;
   octl.gen_pcc_code = il_header.pcc_compatibility_mode;
   octl.suppress_not_yet_defined_typedefs = TRUE;

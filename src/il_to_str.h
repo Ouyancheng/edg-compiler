@@ -38,6 +38,13 @@ typedef an_output_func_declarator_function
                                        *an_output_func_declarator_function_ptr;
 typedef void an_output_expression_function(an_expr_node_ptr expr);
 typedef an_output_expression_function *an_output_expression_function_ptr;
+#if RECORD_FORM_OF_NAME_REFERENCE
+typedef void an_output_name_reference_function(a_name_reference_ptr,
+                                               a_source_correspondence*,
+                                               an_il_entry_kind);
+typedef an_output_name_reference_function
+                                        *an_output_name_reference_function_ptr;
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
 typedef void an_output_temp_name_function(char *entry);
 typedef an_output_temp_name_function *an_output_temp_name_function_ptr;
 typedef struct an_il_to_str_output_control_block
@@ -84,6 +91,14 @@ typedef struct an_il_to_str_output_control_block {
 			/* Function to output expressions in various contexts
 			   (e.g., VLA declarators).  NULL if a default routine
 			   should be used (it puts out non-compilable code). */
+#if RECORD_FORM_OF_NAME_REFERENCE
+  an_output_name_reference_function_ptr
+	output_name_reference;
+			/* Function to output a name as described by a given
+			   name reference (which describes the qualification
+			   of the name).  NULL if name reference information
+			   should be ignored. */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   a_byte_boolean
 	gen_compilable_code;
 			/* TRUE if the generated string is intended to be

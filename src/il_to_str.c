@@ -53,6 +53,9 @@ Clear an output control block to default values.
   octl->output_temp_name          = NULL;
   octl->output_func_declarator    = NULL;
   octl->output_expression         = NULL;
+#if RECORD_FORM_OF_NAME_REFERENCE
+  octl->output_name_reference     = NULL;
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   octl->gen_compilable_code       = FALSE;
   octl->gen_pcc_code              = FALSE;
   octl->suppress_local_typedefs   = FALSE;
@@ -2205,11 +2208,22 @@ Do the output in the way described by octl.
     }  /* if */
     octl->output_str("&");
     /* Output the name, forcing it to be a qualified name. */
-    { a_boolean saved_force_qualified_name = octl->force_qualified_name;
+#if RECORD_FORM_OF_NAME_REFERENCE
+    if (constant->variant.ptr_to_member.name_reference != NULL &&
+        octl->output_name_reference != NULL) {
+      /* Use the recorded qualifiers to reproduce a source expression for the
+         constant. */
+      octl->output_name_reference(
+            constant->variant.ptr_to_member.name_reference, scp, iek_constant);
+    } else
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
+    /* Do not insert code here. */
+    {
+      a_boolean saved_force_qualified_name = octl->force_qualified_name;
       octl->force_qualified_name = TRUE;
       form_name(scp, entry_kind, octl);
       octl->force_qualified_name = saved_force_qualified_name;
-    }
+    }  /* if */
     output_optional_close_paren(need_pm_close_paren, octl);
   }  /* if */
   output_optional_close_paren(need_cast_close_paren, octl);

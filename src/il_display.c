@@ -912,6 +912,11 @@ display_constant_value:
       disp_ptr("casting_base_class",
                (char *)ptr->variant.ptr_to_member.casting_base_class,
                iek_base_class);
+#if RECORD_FORM_OF_NAME_REFERENCE
+      disp_ptr("name_reference",
+               (char *)ptr->variant.ptr_to_member.name_reference,
+               iek_name_reference);
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
       disp_boolean("cast_to_base",
                    (a_boolean)ptr->variant.ptr_to_member.cast_to_base);
       disp_boolean("is_function_ptr",

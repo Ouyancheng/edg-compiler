@@ -3717,6 +3717,16 @@ operation is a pointer-to-member (see ARM 5.3).
           }  /* if */
           make_error_operand(result);
         }  /* if */
+#if RECORD_FORM_OF_NAME_REFERENCE
+        if (is_constant_operand(result) &&
+            result->variant.constant.kind ==
+                                      (a_constant_repr_kind)ck_ptr_to_member) {
+          a_constant_ptr  constant = &result->variant.constant;
+          constant->variant.ptr_to_member.name_reference =
+                                make_name_reference(&locator_for_curr_id,
+                                                    &constant->source_corresp);
+        }  /* if */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
       }  /* if */
     }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
