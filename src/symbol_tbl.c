@@ -14,6 +14,7 @@ symbol_tbl.c - Symbol table management routines.
 */
 
 #include "basics.h"
+#include "const_ints.h"
 #include "symbol_tbl.h"
 #include "mem_manage.h"
 #include "error.h"
@@ -174,6 +175,147 @@ from db_symbol.
 }  /* str_access */
 
 
+/* Forward reference for recursion. */
+static char *str_qualified_name(char         buffer[],
+                                a_symbol_ptr sym);
+
+static char *str_type(char        buffer[],
+                      a_type_ptr  tp)
+/*
+Construct a string in buffer that represents a type.
+*/
+#if 0
+/*
+This should be integrated with db_type eventually, and be extended to
+handle routine types, etc.  Maybe it should be integrated with the
+facility in error.c for displaying types in error messages.  In any case,
+it's strange to have routines in three different files doing very similar
+work.  The reason this is used instead of db_type is that the latter
+simply writes to f_debug.  The buffer is needed for formatting, especially
+putting line-feeds at more or less the right places.
+*/
+#endif /* if 0 */
+{
+  char *s = NULL;
+
+  if (tp == NULL) {
+    s = "???";
+  } else {
+    switch (tp->kind) {
+      case tk_error:
+        s = "<error>";
+        break;
+      case tk_unknown:
+        s = "<unknown>";
+        break;
+      case tk_void:
+        s = "void";
+        break;
+      case tk_integer:
+        switch (tp->variant.integer.int_kind) {
+          case ik_char:               s = "char";       break;
+          case ik_signed_char:        s = "signedchar"; break;
+          case ik_unsigned_char:      s = "uchar";      break;
+          case ik_short:              s = "short";      break;
+          case ik_unsigned_short:     s = "ushort";     break;
+          case ik_int:                s = "int";        break;
+          case ik_unsigned_int:       s = "uint";       break;
+          case ik_long:               s = "long";       break;
+          case ik_unsigned_long:      s = "ulong";      break;
+#if LONG_LONG_ALLOWED
+          case ik_long_long:          s = "longlong";   break;
+          case ik_unsigned_long_long: s = "ulonglong";  break;
+#endif /* LONG_LONG_ALLOWED */
+          default:                    s = "???";        break;
+        }  /* switch */
+        break;
+      case tk_float:
+        switch (tp->variant.float_kind) {
+          case fk_float:              s = "float";      break;
+          case fk_double:             s = "double";     break;
+          case fk_long_double:        s = "longdouble"; break;
+          default:                    s = "???";        break;
+        }  /* switch */
+        break;
+      case tk_pointer:
+        (void)sprintf(&buffer[strlen(buffer)], "%s to ",
+                        (tp->variant.pointer.is_reference) ? "ref" : "ptr");
+        str_type(&buffer[strlen(buffer)], tp->variant.pointer.type);
+        break;
+      case tk_array:
+        (void)sprintf(&buffer[strlen(buffer)], "array [%lu] of ",
+                      tp->variant.array.number_of_elements);
+        str_type(&buffer[strlen(buffer)], tp->variant.pointer.type);
+        break;
+      case tk_typeref:
+        if (!tp->variant.typeref.is_const &&
+            !tp->variant.typeref.is_volatile) {
+          (void)sprintf(&buffer[strlen(buffer)], "typeref ");
+        } else {
+          if (tp->variant.typeref.is_const) {
+            (void)sprintf(&buffer[strlen(buffer)], "const ");
+          }  /* if */
+          if (tp->variant.typeref.is_volatile) {
+            (void)sprintf(&buffer[strlen(buffer)], "volatile ");
+          }  /* if */
+        }  /* if */
+        str_type(&buffer[strlen(buffer)], tp->variant.typeref.type);
+        break;
+      case tk_ptr_to_member:
+        /* Should be fixed. */
+        s = "<ptr-to-member>";
+        break;
+      case tk_routine:
+        /* Should be fixed. */
+        s = "<routine>";
+      case tk_class:
+      case tk_struct:
+      case tk_union:
+        str_qualified_name(&buffer[strlen(buffer)],
+                           (a_symbol_ptr)tp->source_corresp.assoc_info);
+        break;
+      case tk_template_param:
+        s = (tp->source_corresp.name == NULL) ? "???" :
+                                                tp->source_corresp.name;
+        break;
+      default:
+        s = "???";
+    }  /* switch */
+  }  /* if */
+  if (s != NULL) (void)sprintf(&buffer[strlen(buffer)], s);
+  return buffer;
+}  /* str_type */
+
+
+static char *str_constant(char           buffer[],
+                          a_constant_ptr cp)
+/*
+Construct a string in buffer that represents a constant.
+*/
+#if 0
+See comment on str_type above.  Similar concerns apply to str_constant.
+Note that this is a very minimal implementation.  Needs to be beefed up.
+#endif /* if 0 */
+{
+  char *s;
+
+  if (cp == NULL) {
+    s = "<null const>";
+  } else {
+    switch (cp->kind) {
+      case ck_integer:
+        s = str_for_integer_constant(cp);
+        break;
+      default:
+        s = "<const ???>";
+        break;
+    }  /* switch */
+  }  /* if */
+  (void)sprintf(&buffer[strlen(buffer)], s);
+  return buffer;
+} /* str_constant */
+
+
 static char *str_class_qualifier(char        buffer[],
                                  a_type_ptr  tp)
 /*
@@ -182,14 +324,33 @@ of a qualified name (e.g., A::).  This routine calls itself recursively
 to deal with nested classes.
 */
 {
-  char*  name_ptr;
+  char*               name_ptr;
+  a_template_arg_ptr  tap;
 
   if (tp != NULL) {
     (void)str_class_qualifier(&buffer[strlen(buffer)],
                               tp->source_corresp.class_of_which_a_member);
     name_ptr = tp->source_corresp.name;
-    (void)sprintf(&buffer[strlen(buffer)], "%s::", name_ptr == NULL ?
-                                                     "<null>" : name_ptr);
+    if (name_ptr == NULL) {
+      (void)sprintf(&buffer[strlen(buffer)], "<null>::");
+    } else {
+      (void)sprintf(&buffer[strlen(buffer)], "%s", name_ptr);
+      tap = tp->variant.class_struct_union.extra_info->template_arg_list;
+      if (tap != NULL) {
+        (void)sprintf(&buffer[strlen(buffer)], "<");
+        do {
+          if (tap->is_type) {
+            str_type(&buffer[strlen(buffer)], tap->variant.type);
+          } else {
+            str_constant(&buffer[strlen(buffer)], tap->variant.constant);
+          }  /* if */
+          tap = tap->next;
+          if (tap != NULL) (void)sprintf(&buffer[strlen(buffer)], ",");
+        } while (tap != NULL);
+        (void)sprintf(&buffer[strlen(buffer)], ">");
+      }  /* if */
+      (void)sprintf(&buffer[strlen(buffer)], "::");
+    }  /* if */
   }  /* if */
   return buffer;
 }  /* str_class_qualifier */
