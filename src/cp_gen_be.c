@@ -65,6 +65,10 @@ called in the same program as the front end is produced (if needed).
             GENERATE_SOURCE_SEQUENCE_LISTS
 #endif /* !GENERATE_SOURCE_SEQUENCE_LISTS */
 
+#if DO_IL_LOWERING
+??=error -- The C++/C-generating back end is incompatible with IL lowering.
+(For one thing, initk_zero is unimplemented.)
+#endif /* DO_IL_LOWERING */
 
 /* CAREFUL: These variables must be initialized by assignments at the
    start of the routine cp_gen_be, NOT by static initialization.  That's
@@ -100,6 +104,50 @@ static void unimplemented(void)
   internal_error("unimplemented feature");
 }  /* unimplemented */
 
+
+#if 0 && !STANDALONE_UTILITY_PROGRAM
+
+/* In the normal case, we can use the functions in types.c. */
+#ifndef TYPES_H
+#include "types.h"
+#endif /* ifndef TYPES_H */
+
+#else /* STANDALONE_UTILITY_PROGRAM */
+/* Many support functions and macros that are generally available in the
+   front end are duplicated here so that cp_gen_be.c can be compiled
+   independently of a front end. */
+
+#define is_pointer_type(tp) \
+	(skip_typerefs(tp)->kind == (a_type_kind)tk_pointer)
+#define is_integer_type(tp) \
+	(skip_typerefs(tp)->kind == (a_type_kind)tk_integer)
+/* Macro to strip tk_typeref entries from a type. */
+#define skip_typerefs(tp)                                             \
+  ((tp)->kind != (a_type_kind)tk_typeref ? (tp) : local_skip_typerefs(tp))
+
+
+static a_type_ptr local_skip_typerefs(a_type_ptr type_ptr)
+/*
+Strip any typeref entries off the given type to get to the real type, and
+return a pointer to that.  Note that the typeref may have some type
+qualifiers (const, volatile), and they will be dropped here.  Therefore,
+this routine should not be used when checking type qualifiers.  Note
+that ordinarily this routine should not be called directly; use the macro
+"skip_typerefs".
+*/
+{
+  while (type_ptr->kind == (a_type_kind)tk_typeref) {
+    type_ptr = type_ptr->variant.typeref.type;
+#if CHECKING
+    if (type_ptr == NULL) {
+      internal_error("local_skip_typerefs: NULL referenced type");
+    }  /* if */
+#endif /* CHECKING */
+  }  /* while */
+  return(type_ptr);
+}  /* local_skip_typerefs */
+
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 static void end_output_line(void)
 /*
@@ -179,6 +227,18 @@ etc.
 }  /* set_output_position */
 
 
+static void write_ch(char ch)
+/*
+Write the indicated character to the output file.
+*/
+{
+  if (curr_output_column == 0) curr_output_column = 1;
+  fputc(ch, f_C_output);
+  /* Keep track of the current column number on output. */
+  curr_output_column++;
+}  /* write_ch */
+
+
 static void write_str(char *str)
 /*
 Write the indicated string to the output file.
@@ -191,6 +251,17 @@ Write the indicated string to the output file.
 }  /* write_str */
 
 
+static void write_num(long num)
+/*
+Write the indicated signed number to the output file.
+*/
+{
+  char buffer[50];
+  (void)sprintf(buffer, "%ld", num);
+  write_str(buffer);
+}  /* write_num */
+
+
 static void write_unsigned_num(unsigned long num)
 /*
 Write the indicated unsigned number to the output file.
@@ -199,7 +270,216 @@ Write the indicated unsigned number to the output file.
   char buffer[50];
   (void)sprintf(buffer, "%lu", num);
   write_str(buffer);
-}  /* write_str */
+}  /* write_unsigned_num */
+
+
+static void gen_name(a_source_correspondence *scp)
+/*
+Output the name of the entity whose source correspondence information
+is given by scp.
+*/
+{
+  char *name = scp->name;
+
+  check_assertion_str(scp->name, "gen_name: NULL name");
+#if 0
+  /* Qualified name, template names. */
+#endif /* 0 */
+  write_str(name);
+}  /* gen_name */
+
+
+static void gen_cast(a_type_ptr type)
+/*
+Generate a cast to the indicated type.
+*/
+{
+  write_str("(");
+  gen_type(type, (a_source_correspondence *)NULL);
+  write_str(")");
+}  /* gen_cast */
+
+
+static void gen_char(char ch)
+/*
+Output the indicated character as part of a string literal or character
+constant.  Handle unprintable characters and necessary escapes.
+*/
+{
+  if (isprint((unsigned char)ch)
+#ifdef sun
+    /* The Sun cc (4.1.2) in -O mode when outputting assembly language
+       has a bug that transforms quote into accent grave.  Avoid it. */
+      && ch != '\''
+#endif /* ifdef sun */
+                 ) {
+    /* Escape some characters, e.g., quotes. */
+    if (ch == '"' || ch == '\'' || ch == '\\') write_str("\\");
+    write_ch(ch);
+  } else {
+    /* Use the \nnn form for unprintable characters. */
+    char buffer[10];
+    (void)sprintf(buffer, "\\%03o",
+                  (unsigned int)(ch&((1<<TARG_HOST_STRING_CHAR_BIT)-1)));
+    write_str(buffer);
+  }  /* if */
+}  /* gen_char */
+
+
+static void gen_constant(a_constant_ptr constant)
+/*
+Output the indicated constant.
+*/
+{
+  an_integer_kind  ikind;
+  a_float_kind     fkind;
+  a_type_ptr       con_type, orig_type;
+  a_boolean        need_cast_close_paren = FALSE, need_close_paren;
+  a_boolean        ptr_implicit_cast_case, scaled_offset_cast;
+  a_targ_ptrdiff_t offset;
+
+  orig_type = constant->type;
+  con_type = skip_typerefs(orig_type);
+  if (constant->implicit_cast) {
+    /* If the constant is implicitly cast to another type, put out the
+       requisite cast. */
+    write_str("(");
+    gen_cast(orig_type);
+    need_cast_close_paren = TRUE;
+  }  /* if */
+  switch (constant->kind) {
+    case ck_integer:
+      need_close_paren = FALSE;
+      if (sign_of_integer_constant(constant) < 0) {
+        /* Negative value.  Put in parentheses. */
+        need_close_paren = TRUE;
+        write_str("(");
+      }  /* if */
+      /* Write the literal form of the constant. */
+      write_str(str_for_integer_constant(constant));
+      ikind = con_type->variant.integer.int_kind;
+      /* Put out a suffix if needed. */
+      if (!int_kind_is_signed[(int)ikind]) {
+        /* Unsigned constant. */
+        write_str("U");
+      }  /* if */
+      if (ikind == (an_integer_kind)ik_long           ||
+          ikind == (an_integer_kind)ik_unsigned_long) {
+        write_str("L");
+#if LONG_LONG_ALLOWED
+      } else if (ikind == (an_integer_kind)ik_long_long ||
+                 ikind == (an_integer_kind)ik_unsigned_long_long) {
+        write_str("LL");
+#endif /* LONG_LONG_ALLOWED */
+      }  /* if */
+      if (need_close_paren) write_str(")");
+      break;
+    case ck_string:
+      { a_targ_size_t a;
+        char          ch;
+        write_str("\"");
+        for (a = 0; a < constant->variant.string.length; a++) {
+          ch = constant->variant.string.value[a];
+          /* Suppress the last character if it is a null. */
+          if ((a != (constant->variant.string.length - 1)) || (ch != '\0')) {
+            gen_char(ch);
+          }  /* if */
+        }  /* for */
+        write_str("\"");
+      }
+      break;
+    case ck_float:
+      /* Put parentheses around the constant in case it's negative. */
+#if 0
+      /* Could avoid the parentheses for non-negative constants. */
+#endif /* 0 */
+      write_str("(");
+      fkind = con_type->variant.float_kind;
+      /* Output the floating-point constant. */
+      write_str(fp_to_string(fkind, &constant->variant.float_value));
+      /* Add a suffix if necessary. */
+      if (fkind == (a_float_kind)fk_float) {
+        write_str("F");
+      } else if (fkind == (a_float_kind)fk_long_double) {
+        write_str("L");
+      }  /* if */
+      write_str(")");
+      break;
+    case ck_address:
+      /* Address constant. */
+      /* Look for cases where a pointer is implicitly cast to a strange type
+         (e.g., "char").  The original code probably did this conversion
+         as two casts, but the implicit_cast mechanism only retains information
+         on the final type.  In such cases, go by way of a cast to unsigned
+         long. */
+      ptr_implicit_cast_case = FALSE;
+      if (constant->implicit_cast) {
+        if (is_pointer_type(con_type) ||
+            (is_integer_type(con_type) &&
+                                      con_type->size >= TARG_SIZEOF_POINTER)) {
+          /* Okay. */
+        } else {
+          ptr_implicit_cast_case = TRUE;
+          write_str("((unsigned long)");
+        }  /* if */
+      }  /* if */
+      offset = constant->variant.address.offset;
+      if (offset != 0) {
+        /* Non-zero offset.  Deal with scaling issues. */
+        write_str("(");
+        scaled_offset_cast = FALSE;
+        if ((offset % con_type->size) == 0) {
+          /* The offset is divisible by the size of the object, so adjust
+             the offset to the proper units. */
+          offset /= con_type->size;
+        } else {
+          /* The offset is not evenly divisible by the object size, so
+             cast to "char *" and back again.  If the implicit_cast flag
+             is set, the final type cast was already generated above and
+             need not be repeated here. */
+          if (!constant->implicit_cast) {
+            gen_cast(orig_type);
+            write_str("(");
+            scaled_offset_cast = TRUE;
+          }  /* if */
+          write_str("(char *)");
+        }  /* if */
+      }  /* if */
+      /* Surround the "&name" with parentheses to avoid precedence problems. */
+      write_str("(&");
+      switch (constant->variant.address.kind) {
+        case abk_routine:
+          gen_name(&constant->variant.address.variant.routine->source_corresp);
+          break;
+        case abk_variable:
+          gen_name(&constant->variant.address.variant.variable->
+                                                               source_corresp);
+          break;
+        case abk_constant:
+          /* Address of a constant, specifically a string. */
+          check_assertion_str(constant->variant.address.variant.constant->kind
+                              == (a_constant_repr_kind)ck_string,
+                              "gen_constant: address of nonstring con");
+          gen_constant(constant->variant.address.variant.constant);
+          break;
+        default:
+          unexpected_condition_str("gen_constant: bad address constant kind");
+      }  /* switch */
+      write_str(")");
+      if (offset != 0) {
+        /* Add in the (signed) offset. */
+        write_str(" + ");
+        write_num((long)offset);
+        if (scaled_offset_cast) write_str(")");
+        write_str(")");
+      }  /* if */
+      if (ptr_implicit_cast_case) write_str(")");
+      break;
+    default:
+      unexpected_condition_str("gen_constant: bad constant kind");
+  }  /* switch */
+  if (need_cast_close_paren) write_str(")");
+}  /* gen_constant */
 
 
 static void gen_storage_class(a_storage_class storage_class)
@@ -348,22 +628,6 @@ qualifier.
 }  /* gen_type_qualifier */
 
 
-static void gen_name(a_source_correspondence *scp)
-/*
-Output the name of the entity whose source correspondence information
-is given by scp.
-*/
-{
-  char *name = scp->name;
-
-  check_assertion_str(scp->name, "gen_name: NULL name");
-#if 0
-  /* Qualified name, template names. */
-#endif /* 0 */
-  write_str(name);
-}  /* gen_name */
-
-
 static void gen_typedef_definition(a_type_ptr type)
 /*
 Output the definition of the indicated typedef.
@@ -408,9 +672,8 @@ Output the definition of the indicated enum type.
       gen_name(&enum_con->source_corresp);
       /* Output the value if it's not the next value in sequence. */
       if (cmp_integer_constants(enum_con, &next_enum_value) != 0) {
-        char *str = str_for_integer_constant(enum_con);
         write_str(" = ");
-        write_str(str);
+        write_str(str_for_integer_constant(enum_con));
         next_enum_value = *enum_con;
       }  /* if */
       enum_con = enum_con->next;
@@ -800,6 +1063,39 @@ information about the secondary declaration.
 }  /* gen_type_decl */
 
 
+static void gen_dynamic_init(a_dynamic_init_ptr dip)
+/*
+Output the indicated dynamic initialization.
+*/
+{
+  unimplemented();
+}  /* gen_dynamic_init */
+
+
+static void gen_initializer(a_variable_ptr var)
+/*
+Output the initializer, if any, for the indicated variable.
+*/
+{
+  switch (var->init_kind) {
+    case initk_none:
+      /* No initializer. */
+      break;
+    case initk_static:
+      write_str(" = ");
+      gen_constant(var->initializer.constant);
+      break;
+    case initk_dynamic:
+      gen_dynamic_init(var->initializer.dynamic);
+      break;
+    case initk_zero:
+      /* initk_zero is only produced by IL lowering. */
+    default:
+      unexpected_condition_str("gen_initializer: bad init kind");
+  }  /* switch */
+}  /* gen_initializer */
+
+
 static void gen_variable_decl(a_variable_ptr               var,
                               a_src_seq_secondary_decl_ptr sec_decl)
 /*
@@ -814,6 +1110,8 @@ information about the secondary declaration.
   gen_storage_class(var->storage_class);
   /* Output the variable name and its type. */
   gen_type(var->type, &var->source_corresp);
+  /* Output the initializer, if any. */
+  gen_initializer(var);
   /* Finish the declaration. */
   write_str(";");
 }  /* gen_variable_decl */
