@@ -786,6 +786,7 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
 #endif /* ifdef CFE */
 
 #ifdef CFE
+  options &= ~FTO_SUPPRESS_CONST;
   /* Remove type qualifiers but not typedefs.  Also drop typedefs
      that aren't visible here.  Accumulate the type qualifier set. */
   while (type->kind == (a_type_kind)tk_typeref) {
@@ -801,7 +802,6 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
          suppress_const flag. */
       if (suppress_const && (qualifiers & TQ_CONST)) {
         qualifiers &= ~TQ_CONST;
-        options &= ~FTO_SUPPRESS_CONST;
         suppress_const = FALSE;
       }  /* if */
     }  /* if */
@@ -1091,6 +1091,7 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
 #endif /* ifdef CFE */
 
 #ifdef CFE
+  options &= ~FTO_SUPPRESS_CONST;
   /* Remove type qualifiers but not typedefs.  Also drop typedefs
      that aren't visible here.  Accumulate the type qualifier set. */
   while (type->kind == (a_type_kind)tk_typeref) {
@@ -1106,7 +1107,6 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
          suppress_const flag. */
       if (suppress_const && (qualifiers & TQ_CONST)) {
         qualifiers &= ~TQ_CONST;
-        options &= ~FTO_SUPPRESS_CONST;
         suppress_const = FALSE;
       }  /* if */
     }  /* if */
