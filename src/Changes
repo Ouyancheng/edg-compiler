@@ -119,6 +119,13 @@ named a conversion template instance.  This has been fixed.
     using A::operator int*;
   };
 
+2/4/97  ABI_CHANGES_... macros defined even when IL lowering is not used
+
+The several configuration macros with names beginning ABI_CHANGES_FOR_...
+are now defined even when IL lowering is not being used.  This is
+important because they need to be set to get the associated language
+features fully implemented in the front end proper.
+
 2/4/97  Abort on use of invalid conversion operator
 
 An abort could occur when calling a template conversion operator using an
