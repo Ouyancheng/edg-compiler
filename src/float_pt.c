@@ -26,14 +26,14 @@ for a production version.
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
 /* Additional header files. */
-#if __ANSIC__
+#if __ANSIC__ || defined(__cplusplus)
 /* For strtod: */
 #include <stdlib.h>
 /* For FLT_MAX: */
 #include <float.h>
-#else
+#else/* !(__ANSIC__ || defined(__cplusplus)) */
 EXTERN_C double strtod(char *, char **);
-#endif /* __ANSIC__ */
+#endif /* __ANSIC__ || defined(__cplusplus) */
 #include <errno.h>
 #if __BSD__
 /* BSD errno.h doesn't define "errno". */
