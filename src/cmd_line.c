@@ -895,6 +895,14 @@ Initialize the option information table.
                          "no_export_template",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_stdarg_builtin,
+                         "stdarg_builtin",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_stdarg_builtin,
+                         "no_stdarg_builtin",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -3097,6 +3105,11 @@ enable_microsoft_mode:
       case optk_export_template:
         /* Enable use of exported templates. */
         export_template_allowed = opt_value;
+        break;
+      case optk_stdarg_builtin:
+        /* Enable passing of references to stdarg.h macros to the output
+           unchanged. */
+        pass_stdarg_references_to_generated_code = !opt_value;
         break;
       default:
         /* It should not be possible to get here. */

@@ -1,5 +1,12 @@
 Version 2.46
 
+2/19/01  Command-line option to enable/disable special <stdarg.h> processing
+
+The front end can be configured to pass references to the macros defined
+in stdarg.h to the output instead of expanding the macros as would usually
+be done.  The --[no_]stdarg_builtin options have been added to permit the
+default behavior to be overridden.
+
 2/15/01  Deduction fails with dependent pointer to member and explicit
          template arguments
 

@@ -192,6 +192,7 @@ typedef enum /*an_option_kind*/ {
   optk_parse_nonclass_templates,
   optk_c99_mode,
   optk_export_template,
+  optk_stdarg_builtin,
   optk_last		/* Must be last. */
 } an_option_kind;
 
