@@ -165,8 +165,14 @@ By default, configure for ANSI C if __STDC__ is set, and for BSD4.n otherwise.
 
 #include <stdio.h>
 #if __BSD__
-/* Some stdio.h's do not define sprintf. */
+/* Some stdio.h's do not define sprintf.  This declaration will be included
+   if NEED_SPRINTF_DECL is TRUE. */
+#ifndef NEED_SPRINTF_DECL
+#define NEED_SPRINTF_DECL 0
+#endif /* defined(NEED_SPRINTF_DECL) */
+#if NEED_SPRINTF_DECL
 EXTERN_C char *sprintf(char *, const char *, ...);
+#endif /* NEED_SPRINTF_DECL */
 #endif /* __BSD__ */
 /* Some stdio.h's do not define SEEK_SET. */
 #ifndef SEEK_SET
