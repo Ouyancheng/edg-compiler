@@ -141,15 +141,18 @@ these constants to a boolean constant is also inhibited.
 
 In Microsoft bugs mode, Sun mode, and Cfront mode, no diagnostic is issued
 for classes defined in such a way that a virtual function is ambiguously
-overridden in some base classes.  For example:
+overridden in some base classes when all but one of those base classes is
+ambiguous.  For example:
 
-  struct B { virtual void f(); };
-  struct D1: B { virtual void f(); };
+  struct V { virtual void f(); };
+  struct B: virtual V { virtual void f(); };
+  struct D1: B {};
   struct D2: B { virtual void f(); };
   struct X: D1, D2 {};  // Normally an error, but not in Microsoft bugs mode,
                         // Sun mode, or Cfront mode.
 
-In such cases, the overrider selected by the front end is arbitrary.
+In such cases, the overrider selected by the front end is the one from
+the unambiguous base class.
 
 2/10/03  Unspecified array size computed from extended designator
 

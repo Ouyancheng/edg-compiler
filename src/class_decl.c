@@ -1865,23 +1865,38 @@ ambiguity.
         /* The virtual functions (member functions of the base class to which
            bcp refers) are the same -- i.e., both ovfp and ovfp->next
            represent an override of the same function. */
-        if (!is_nonreal_instantiation &&
-            !(microsoft_bugs || sun_mode || any_cfront_mode())) {
-          /* Many other compilers do not diagnose this. */
-          a_symbol_ptr sym = (a_symbol_ptr)vfp->source_corresp.assoc_info;
-          sym_diagnostic(es_discretionary_error,
-                         ec_ambiguous_virtual_function_override, sym);
-        }  /* if */
+        /* This is an error, unless we're dealing with a nonreal class.
+           Also, many other compilers do not diagnose the problem if all but
+           one of the conflicting overriders are in ambiguous base classes. */
+        a_base_class_sequence_number  overriders_in_unambiguous_bases;
+        overriders_in_unambiguous_bases = ovfp->base_class->ambiguous ? 0 : 1;
         /* Remove the next entry and any successors that also have the same
            virtual function number. */
         for (;;) {
-          ovfp->next = ovfp->next->next;
+          if (ovfp->next->base_class->ambiguous) {
+            ovfp->next = ovfp->next->next;
+          } else {
+            ++overriders_in_unambiguous_bases;
+            if (overriders_in_unambiguous_bases == 0) {
+              /* Keep this overrider in case we do not issue an error. */
+              *ovfp = *ovfp->next;
+            } else {
+              ovfp->next = ovfp->next->next;
+            }  /* if */
+          }  /* if */
           if (ovfp->next == NULL ||
               ovfp->next->primary_function != vfp) {
             /* No more duplicates on the list. */
             break;
           }  /* if */
         }  /* for */
+        if (!is_nonreal_instantiation &&
+            !(overriders_in_unambiguous_bases == 1 &&
+              (microsoft_bugs || sun_mode || any_cfront_mode()))) {
+          a_symbol_ptr sym = (a_symbol_ptr)vfp->source_corresp.assoc_info;
+          sym_diagnostic(es_discretionary_error,
+                         ec_ambiguous_virtual_function_override, sym);
+        }  /* if */
 #if DEBUG
         if (debug_level >= 4) {
           fputs("  vfnum sequence after pruning: ", f_debug);
