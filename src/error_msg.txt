@@ -970,6 +970,8 @@ ec_cl_invalid_output_file;;"invalid output file "
 ec_cl_cannot_open_output_file;;"cannot open output file "
 ec_cl_ii_file_name_incompatible_with_multiple_inputs;;"an instantiation information file name may not be specified when compiling several input files"
 ec_cl_one_instantiation_per_object_incompatible_with_multiple_inputs;;"option \"one_instantiation_per_object\" may not be used when compiling several input files"
+ec_cl_ambiguous_option;;"more than one command line option matches the abbreviation \"--%s\":"
+ec_cl_ambiguous_fill_in;INTERNAL;"--%s"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -328,6 +328,10 @@ nm_on_objects=0
 #
 ii_file_specified=0
 #
+#  Temporary file used by command line processing
+#
+cmd_tmp_file=$TMPDIR/cl$$
+#
 # Function that compiles a generated C file
 #
 compile_int_c()
@@ -389,14 +393,213 @@ compile_int_c()
 }  # compile_int_c #
 
 #
-# Go through every argument, identify it, and add it to a list if appropriate.
+# Function to expand an abbreviated command line option
 #
-while [ -n "$1" ]
-do
+check_abbreviation()
+{
+  arg_present=0
+  keyword_option=0
+  case $orig_arg in
+    --*=*)
+      arg_present=1
+      keyword_option=1
+      opt_name=`expr $arg : '\(.*\)'=.*`    # Get the string before the =
+      arg_value=`expr $arg : '.*=\(.*\)'`    # Get the string after the =
+      ;;
+    --*)
+      keyword_option=1
+      opt_name=$1
+      ;;
+  esac
+  if [ $keyword_option -ne 0 ] ; then
+    egrep "^$opt_name" <<END_OF_INPUT >$cmd_tmp_file
+--alternative_tokens
+--anachronisms
+--array_new_and_delete
+--auto_instantiation
+--bool
+--brief_diagnostics
+--building_runtime
+--c
+--c++
+--cfront_2.1
+--cfront_3.0
+--command
+--comments
+--compile
+--cpfe_only
+--create_pch
+--db
+--debug
+--define_macro
+--dependencies
+--diag_error
+--diag_remark
+--diag_suppress
+--diag_warning
+--display_error_number
+--distinct_template_signatures
+--driver_debug
+--embedded_c++
+--enum_overloading
+--error_limit
+--error_output
+--exceptions
+--explicit
+--extern_inline
+--far_code_pointers
+--far_data_pointers
+--force_vtbl
+--guiding_decls
+--implicit_extern_c_type_conversion
+--implicit_include
+--implicit_typename
+--include_directory
+--inlining
+--instantiate
+--instantiation_dir
+--keep_gen_c
+--library_directory
+--list
+--long_lifetime_temps
+--long_preserving_rules
+--microsoft
+--microsoft_16
+--microsoft_bugs
+--microsoft_version
+--module_init
+--multibyte_chars
+--munch
+--namespaces
+--near_code_pointers
+--near_data_pointers
+--new_for_init
+--nm
+--no_alternative_tokens
+--no_anachronisms
+--no_array_new_and_delete
+--no_auto_instantiation
+--no_bool
+--no_brief_diagnostics
+--no_code_gen
+--no_distinct_template_signatures
+--no_enum_overloading
+--no_exceptions
+--no_explicit
+--no_extern_inline
+--no_guiding_decls
+--no_il_lowering
+--no_implicit_extern_c_type_conversion
+--no_implicit_include
+--no_implicit_typename
+--no_inlining
+--no_line_commands
+--no_long_preserving_rules
+--no_microsoft
+--no_microsoft_bugs
+--no_multibyte_chars
+--no_namespaces
+--no_nonconst_ref_anachronism
+--no_nonstd_qualifier_deduction
+--no_old_specializations
+--no_pch_messages
+--no_preproc_only
+--no_remove_unneeded_entities
+--no_restrict
+--no_rtti
+--no_special_subscript_cost
+--no_standard_includes
+--no_svr4
+--no_typename
+--no_use_before_set_warnings
+--no_using_std
+--no_vla
+--no_warnings
+--no_wchar_t_keyword
+--no_wrap_diagnostics
+--nonconst_ref_anachronism
+--nonstd_qualifier_deduction
+--old_c
+--old_for_init
+--old_ii_format
+--old_line_commands
+--old_specializations
+--old_style_preprocessing
+--one_instantiation_per_object
+--optimize
+--output
+--pack_alignment
+--patch
+--pch
+--pch_dir
+--pch_mem
+--pch_messages
+--pch_test_mode
+--pic
+--prelink_copy_if_nonlocal
+--prelink_local_only
+--prelink_objects
+--preprocess
+--purify
+--quantify
+--remarks
+--remove_instantiation_flags
+--remove_unneeded_entities
+--restrict
+--rtti
+--short_lifetime_temps
+--signed_chars
+--special_subscript_cost
+--strict
+--strict_warnings
+--strip
+--strip_line_dirs
+--suppress_c_to_obj_diagnostics
+--suppress_instantiation_flags
+--suppress_vtbl
+--svr4
+--timing
+--trace_includes
+--typename
+--undefine_macro
+--unsigned_chars
+--use_pch
+--using_std
+--version
+--vla
+--wchar_t_keyword
+--wrap_diagnostics
+--xref
+END_OF_INPUT
+    opt_name_found=0
+    new_opt_name=$opt_name
+    for line in `cat $cmd_tmp_file`
+    do
+      if [ $opt_name_found -ne 0 ] ; then
+        echo "eccp: more than one command line option matches the abbreviation $opt_name:"
+        cat $cmd_tmp_file
+        rm -f $cmd_tmp_file
+        exit 1
+      fi
+      new_opt_name=$line
+      opt_name_found=1
+    done
+    if [ $arg_present -ne 0 ] ; then
+      arg="$new_opt_name=$arg_value"
+    else
+      arg=$new_opt_name
+    fi
+  fi
+}  # check_abbreviation
+
+
+process_option()
+{
   add_to_instantiation_command=1
-  curr_param=$1
   used_two_params=0
-  case $1 in
+  invalid_keyword_option=0
+  curr_param=$2
+  case $arg in
 ###############################################################################
 # Options used by the driver
 ###############################################################################
@@ -410,12 +613,12 @@ do
       ;;
     -O*)
 #     Generate optimized code (e.g., -O2)
-      c_to_obj_options=$c_to_obj_options" $1";
+      c_to_obj_options=$c_to_obj_options" $arg";
       ;;
     --optimize=*)
 #     Generate optimized code (e.g., --optimize=2)
-      arg=`expr $1 : '.*=\(.*\)'`    # Get the string after the =
-      c_to_obj_options=$c_to_obj_options" -O$arg";
+      arg_value=`expr $arg : '.*=\(.*\)'`    # Get the string after the =
+      c_to_obj_options=$c_to_obj_options" -O$arg_value";
       ;;
     -S | --cpfe_only)
 #     Run front end only.
@@ -430,54 +633,51 @@ do
     -command | --command)
 #     The command name to be used in the .ii file in place of what is
 #     found in argument 0.
-      shift
-      compile_command=$1
+      compile_command=$curr_param
       used_two_params=1
       add_to_instantiation_command=0
       ;;
     -o | --output)
 #     Explicitly name the executable.
-      shift;
       used_two_params=1
-      executable=$1;
+      executable=$curr_param
       output_file_specified=1
       add_to_instantiation_command=0
       ;;
     -o*)
 #     Explicitly name the executable.
-      executable=`expr $1 : '-o\(.*\)'`    # Get the string after the -o
+      executable=`expr $arg : '-o\(.*\)'`    # Get the string after the -o
       output_file_specified=1
       add_to_instantiation_command=0
       ;;
     --output=*)
 #     Explicitly name the executable.
-      executable=`expr $1 : '.*=\(.*\)'`    # Get the string after the =
+      executable=`expr $arg : '.*=\(.*\)'`    # Get the string after the =
       output_file_specified=1
       add_to_instantiation_command=0
       ;;
     $library_option | --library_directory)
 #     Collect a list of -L options to pass to the linker.
-      shift;
-      Loptions=$Loptions" -L"$1;
+      Loptions=$Loptions" -L"$curr_param
       used_two_params=1
       ;;
     ${library_option}*)
 #     Collect a list of -L options to pass to the linker.
-      Loptions=$Loptions" "$1
+      Loptions=$Loptions" "$arg
       ;;
     --library_directory=*)
 #     Collect a list of -L options to pass to the linker.
-      arg=`expr $1 : '.*=\(.*\)'`    # Get the string after the =
-      Loptions=$Loptions" "-L$arg
+      arg_value=`expr $arg : '.*=\(.*\)'`    # Get the string after the =
+      Loptions=$Loptions" "-L$arg_value
       ;;
     -l*)
 #     Collect a list of -l options to pass to the linker.
-      object_files=$object_files" "$1
+      object_files=$object_files" "$arg
       any_l_or_o_files=1
       ;;
     -g*)
 #     Generate debugging information
-      c_to_obj_options="$c_to_obj_options $1"
+      c_to_obj_options="$c_to_obj_options $arg"
       ;;
     --debug)
 #     Generate debugging information
@@ -485,8 +685,8 @@ do
       ;;
     --debug=*)
 #     Generate debugging information
-      arg=`expr $1 : '.*=\(.*\)'`    # Get the string after the =
-      c_to_obj_options="$c_to_obj_options -g$arg"
+      arg_value=`expr $arg : '.*=\(.*\)'`    # Get the string after the =
+      c_to_obj_options="$c_to_obj_options -g$arg_value"
       ;;
     -h | --no_standard_includes)
 #     Suppress standard include directory.
@@ -499,7 +699,7 @@ do
     -G)
 #     Linker mode used to build shared libraries
       suppress_patch_munch=1
-      ldoptions=$ldoptions" "$1
+      ldoptions=$ldoptions" "$arg
       ;;
     -munch | --munch)
 #     Use "munch" for handling static constructors and destructors
@@ -519,18 +719,17 @@ do
       ;;
     -p | -pg)
 #     Generate profiling code and use profiling version of libraries
-      c_to_obj_options="$c_to_obj_options $1"
+      c_to_obj_options="$c_to_obj_options $arg"
       EDG_LIB_SUFFIX="_p"
       ;;
     -target)
 #     SunOS 4.n option, as in "-target sun4" -- ignored.
-      shift;
       used_two_params=1
       ;;
     -Bstatic | -Bdynamic)
 #     Pass through to linker in the object file list.  This is needed
 #     because the position of these options is significant
-      object_files=$object_files" "$1
+      object_files=$object_files" "$arg
       ;;
     -purify | --purify)
 #     Link using the purify command
@@ -553,14 +752,13 @@ do
 #     Note that this has the same name as the option that is passed to the
 #     front end, but that option controls where the .int.c files are
 #     written, while this option controls where the .o files are written.
-      instantiation_dir=$2
+      instantiation_dir=$curr_param
       use_default_instantiation_dir=0
       used_two_params=1
-      shift
       ;;
     --instantiation_dir=*)
-      arg=`expr $1 : '.*=\(.*\)'`    # Get the string after the =
-      instantiation_dir=$arg
+      arg_value=`expr $arg : '.*=\(.*\)'`    # Get the string after the =
+      instantiation_dir=$arg_value
       use_default_instantiation_dir=0
       ;;
     --prelink_local_only)
@@ -599,28 +797,28 @@ do
       ;;
     *\.a)
 #     Collect a list of library archive (.a) files.
-      object_files=$object_files" "$1
+      object_files=$object_files" "$arg
       any_l_or_o_files=1
       add_to_instantiation_command=0
       ;;
     *\.so | *\.so\.*)
 #     Collect a list of library shared object (.so) files.
-      object_files=$object_files" "$1
+      object_files=$object_files" "$arg
       any_l_or_o_files=1
       add_to_instantiation_command=0
       ;;
     *\.c | *\.C | *\.cc | *\.cpp | *\.CPP | *\.cxx | *\.CXX)
 #     Collect a list of .c files.
       if [ "$cfiles" ]; then more_than_one_c_file=1; fi;
-      cfiles=$cfiles" "$1;
-      obj_file_name=`expr //$1 : '.*/\(.*\)\.'`.o  # Get basename.o
+      cfiles=$cfiles" "$arg;
+      obj_file_name=`expr //$arg : '.*/\(.*\)\.'`.o  # Get basename.o
       object_files=$object_files" "$obj_file_name
       any_c_files=1
       add_to_instantiation_command=0
       ;;
     *\.o)
 #     Collect a list of .o files.
-      object_files=$object_files" "$1
+      object_files=$object_files" "$arg
       any_l_or_o_files=1
       add_to_instantiation_command=0
       ;;
@@ -729,9 +927,9 @@ do
          --no_nonstd_qualifier_deduction | \
          --one_instantiation_per_object | \
          --force_vtbl)
-      feoptions=$feoptions" $1"
+      feoptions=$feoptions" $curr_arg"
 #     Options that require additional processing
-      case $curr_param in
+      case $arg in
         -m | --c | -K | --old_c | --svr4 | --no_svr4)
           c_mode=1
           ;;
@@ -757,14 +955,14 @@ do
          --pch | \
          --pch_messages | \
          --no_pch_messages)
-      feoptions=$1" $feoptions"
+      feoptions=$curr_arg" $feoptions"
       ;;
 ###############################################################################
 # Front end options with no arguments that suppress code generation.
 ###############################################################################
     -n | --no_code_gen | \
     -N | --no_il_lowering)
-      feoptions=$feoptions" $1";
+      feoptions=$feoptions" $curr_arg";
       fe_only=1
       ;;
 ###############################################################################
@@ -787,27 +985,22 @@ do
          --diag_error | \
          --microsoft_version | \
          --pack_alignment)
-      feoptions=$feoptions" $1 $2"
-      shift
+      feoptions=$feoptions" $curr_arg $curr_param"
       used_two_params=1
 #     See if an instantiation mode was specified
-      case $curr_param in
+      case $arg in
         -t | --instantiate)
           instantiation_mode_specified=1
           ;;
         -I | --include_directory)
           # Convert relative -I paths to absolute ones, if necessary.
           if [ $EDG_USE_ABSOLUTE_INCL_DIR_PATHS -eq 1 -a \
-               "$1" != "-" ] ; then
-            absolute_path=`expr match $1 '/.*'`
+               "$curr_param" != "-" ] ; then
+            absolute_path=`expr match $curr_param '/.*'`
             if [ $absolute_path -eq 0 ] ; then
               # The directory is a relative path.  Add the current directory
               # to convert it to an absolute path
-              curr_param=$curr_param" "$curr_dir/$1
-              # used_two_params is reset because the second parameter is
-              # added to the first one here, so the second should not be
-              # added to the .ii file command line below.
-              used_two_params=0
+              curr_param=$curr_dir/$curr_param
             fi
           fi
           ;;
@@ -821,8 +1014,7 @@ do
          --pch_dir | \
          --create_pch | \
          --use_pch)
-      feoptions=$1" $2 $feoptions"
-      shift
+      feoptions=$curr_arg" $curr_param $feoptions"
       used_two_params=1
      ;;
 ###############################################################################
@@ -845,22 +1037,22 @@ do
           --diag_error=* | \
           --microsoft_version=* | \
           --pack_alignment=*)
-      feoptions=$feoptions" $1"
+      feoptions=$feoptions" $curr_arg"
 #     See if an instantiation mode was specified
-      case $curr_param in
+      case $arg in
         -t* | --instantiate=*)
           instantiation_mode_specified=1
           ;;
         -I*)
           # Convert relative -I paths to absolute ones, if necessary.
           if [ $EDG_USE_ABSOLUTE_INCL_DIR_PATHS -eq 1 ] ; then
-            dir_name=`expr $1 : '-I\(.*\)'`    # Get the string after the -I
+            dir_name=`expr $arg : '-I\(.*\)'`    # Get the string after the -I
             if [ "$dir_name" != "-" ] ; then
               absolute_path=`expr match $dir_name '/.*'`
               if [ $absolute_path -eq 0 ] ; then
                 # The directory is a relative path.  Add the current directory
                 # to convert it to an absolute path
-                curr_param=-I$curr_dir/$dir_name
+                curr_arg=-I$curr_dir/$dir_name
               fi
             fi
           fi
@@ -869,13 +1061,13 @@ do
           # Convert relative --include_directory  paths to absolute ones,
           # if necessary.
           if [ $EDG_USE_ABSOLUTE_INCL_DIR_PATHS -eq 1 ] ; then
-            dir_name=`expr $1 : '.*=\(.*\)'`    # Get the string after the =
+            dir_name=`expr $arg : '.*=\(.*\)'`    # Get the string after the =
             if [ "$dir_name" != "-" ] ; then
               absolute_path=`expr match $dir_name '/.*'`
               if [ $absolute_path -eq 0 ] ; then
                 # The directory is a relative path.  Add the current directory
                 # to convert it to an absolute path
-                curr_param=--include_directory=$curr_dir/$dir_name
+                curr_arg=--include_directory=$curr_dir/$dir_name
               fi
             fi
           fi
@@ -890,7 +1082,7 @@ do
          --pch_dir=* | \
          --create_pch=* | \
          --use_pch=*)
-      feoptions=$1" $feoptions"
+      feoptions=$curr_arg" $feoptions"
       ;;
 ###############################################################################
 # Preprocessing options
@@ -900,33 +1092,63 @@ do
     -M | --dependencies | \
     -P | --no_line_commands)
       preprocessor_only=1
-      feoptions=$feoptions" $1";
+      feoptions=$feoptions" $curr_arg";
       ;;
 ###############################################################################
+    --*)
+      # An invalid keyword option -- this is handled by the caller
+      invalid_keyword_option=1
+      ;;
     -*)
-      echo "eccp: unknown option: $1";
+      echo "eccp: unknown option: $arg";
       error=1;
       add_to_instantiation_command=0
       ;;
     *)
-      echo "eccp: unrecognizable argument: $1";
+      echo "eccp: unrecognizable argument: $arg";
       error=1;
       ;;
   esac
-  if [ $automatic_instantiation -eq 1 -a \
+  if [ $invalid_keyword_option -eq 0 -a $automatic_instantiation -eq 1 -a \
        $add_to_instantiation_command -eq 1 ] ; then
     # In automatic instantiation mode build a version of the command line
     # that can be used to compile one file.  This is mostly like the
     # original command without any file names and without certain linker
     # options.
-    instantiation_command_line=$instantiation_command_line" "$curr_param
+    instantiation_command_line=$instantiation_command_line" "$curr_arg
     if [ $used_two_params -eq 1 ] ; then
       # The option took an argument -- append the argument.
-      instantiation_command_line=$instantiation_command_line" "$1
+      instantiation_command_line=$instantiation_command_line" "$curr_param
+    fi
+  fi
+}  # process_option
+
+
+#
+# Go through every argument, identify it, and add it to a list if appropriate.
+#
+while [ -n "$1" ]
+do
+  arg=$1
+  orig_arg=$arg
+  curr_arg=$arg
+  process_option $arg $2
+  if [ $invalid_keyword_option -ne 0 ] ; then
+    check_abbreviation $arg
+    process_option $arg $2
+    if [ $invalid_keyword_option -ne 0 ] ; then
+      echo "eccp: unknown option: $arg";
+      error=1;
     fi
   fi
   shift;
+  if [ $used_two_params -eq 1 ] ; then
+    shift
+  fi
 done
+
+# Remove the temporar file used by command line processing.
+rm -f $cmd_tmp_file
 
 if [ $any_l_or_o_files -eq 0 -a $any_c_files -eq 0 ] ; then
   echo "eccp: no source, object, or library files were specified"

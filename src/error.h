@@ -440,6 +440,11 @@ extern void embedded_cplusplus_noncompliance_diagnostic(
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 extern void end_error(void);
 
+extern void start_command_line_error(an_error_code      error_code,
+			             char		 *error_string);
+
+extern DOES_NOT_RETURN end_command_line_error(void);
+
 /* Report a syntax error, flush to a token in the stop set. */
 extern void syntax_error(an_error_code error_code);
 

@@ -4110,6 +4110,34 @@ Complete the multiple message diagnostic currently being processed.
   diag_message(ec_no_error, (a_source_position *)NULL, es_none, dck_end_list);
 }  /* end_error */
 
+void start_command_line_error(an_error_code      error_code,
+			      char		 *error_string)
+/*
+Begin a multiple message command line error.
+*/
+{
+  init_error_params();
+  error_position.seq = 0;
+  error_position.column = SP_COL_CMD_LINE;
+  error_msg_strings[1] = error_string;
+  diag_message(error_code, &error_position, es_command_line_error,
+               dck_primary);
+}  /* start_command_line_error */
+
+
+DOES_NOT_RETURN end_command_line_error(void)
+/*
+Complete the multiple command line error being processed.
+*/
+{
+  init_error_params();
+  diag_message(ec_no_error, (a_source_position *)NULL, es_none, dck_end_list);
+#ifdef __GNUC__
+  /* Avoid gcc warning.  diag_message does not return in this case. */
+  exit_compilation(es_internal_error);
+#endif /* __GNUC__ */
+}  /* end_command_line_error */
+
 
 /******************************************************************************
 *                                                             \  ___  /       *

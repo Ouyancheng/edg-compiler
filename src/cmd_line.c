@@ -721,6 +721,7 @@ to is the option letter.
 {
   an_option_description_ptr	odp;
   a_boolean			match = FALSE;
+  a_boolean			ambiguous = FALSE;
   int				n;
 
   for (n = 0; n < option_descriptions_used; ++n) {
@@ -734,7 +735,35 @@ to is the option letter.
     }  /* if */
     if (match) break;
   }  /* for */
-  if (!match) odp = NULL;
+  /* If no match was found for a keyword option, look again to see if
+     the option is an abbreviation. */
+  if (!match && is_keyword_option) {
+    an_option_description_ptr	odp_found;
+    for (n = 0; n < option_descriptions_used; ++n) {
+      odp = &option_descriptions[n];
+      if (odp->keyword != NULL &&
+          strncmp(optchar, odp->keyword, size_t_arg(keyword_length)) == 0) {
+        if (match) ambiguous = TRUE;
+        odp_found = odp;
+        match = TRUE;
+      }  /* if */
+    }  /* for */
+    if (ambiguous) {
+      /* If the command line option was ambiguous, issue an error and list
+         the possible options. */
+      start_command_line_error(ec_cl_ambiguous_option, optchar);
+      for (n = 0; n < option_descriptions_used; ++n) {
+        odp = &option_descriptions[n];
+        if (odp->keyword != NULL &&
+            strncmp(optchar, odp->keyword, size_t_arg(keyword_length)) == 0) {
+          str_add_diag_info(ec_cl_ambiguous_fill_in, odp->keyword);
+        }  /* if */
+      }  /* for */
+      end_command_line_error();
+    }  /* if */
+    odp = odp_found;
+  }  /* if */
+  if (!match || ambiguous) odp = NULL;
   /* Record the fact that this option kind has been used. */
   if (odp != NULL) option_kind_used[(int)odp->kind] = TRUE;
   return odp;
