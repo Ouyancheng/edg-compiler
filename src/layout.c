@@ -312,9 +312,6 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
   if (is_error_constant(&constant)) {
     /* Use small value to avoid more errors, but not 1 which is special. */
     bit_field_size = TARG_CHAR_BIT;
-  } else if (constant.kind == (a_constant_repr_kind)ck_template_param) {
-    /* We're in a prototype instantiation -- pick an arbitrary value. */
-    bit_field_size = TARG_CHAR_BIT;
   } else {
 #if CHECKING
     if (constant.kind != (a_constant_repr_kind)ck_integer) {

@@ -1896,15 +1896,6 @@ token.
     scan_integral_constant_expression(&constant);
     if (is_error_constant(&constant)) {
       err = TRUE;
-    } else if (constant.kind == (a_constant_repr_kind)ck_template_param) {
-      /* We are in the midst of a prototype instantiation of a class.  Treat
-         this array as an error type, since there is no way to represent
-         an array with an unspecified number of elements. */
-#if 0
-      /* Maybe tk_unknown type, with some appropriate modifier to indicate
-         that this is an array, would be better. */
-#endif /* if 0 */
-      err = TRUE;
     } else {
 #if CHECKING
       if (constant.kind != (a_constant_repr_kind)ck_integer) {
