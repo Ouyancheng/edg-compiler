@@ -1761,7 +1761,7 @@ base class of the complete object).
     /* Spurious conflicts occur with fields that start in the first N bytes
        of their enclosing class, where N depends on the platform (but not
        necessarily within the first N bytes of the complete object they
-       belong too).  Within those N bytes, the fields are treated as if
+       belong to).  Within those N bytes, the fields are treated as if
        they appeared at offset zero. */
 #if (defined(__sun) || defined(sun)) && (defined(sparc) || defined(__sparc))
 /* N is 8 on SPARC Solaris. */
@@ -2397,10 +2397,11 @@ Allocate bcp (an empty base class).
         bcp->offset = offset;
         goto done;
       } else if (!bcp->direct) {
-        /* Indirect virtual bases can with an offset larger than the size of
-           a class.  This is a dangerous GNU layout bug and we therefore do
-           not emulate it.  By setting offset to zero, we return to the
-           normal layout rules. */
+        /* Indirect virtual bases can end up with an offset larger than the
+           size of a class.  This is a dangerous GNU layout bug and we
+           therefore do not emulate it.  By setting offset to zero, we return
+           to the normal layout rules. */
+        pos_warning(ec_no_gnu_virtual_base_gap, &bcp->decl_position);
         offset = 0;
       }  /* if */
     }  /* if */
