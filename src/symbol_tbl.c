@@ -1791,8 +1791,8 @@ is set only if insert_sym is not NULL.
 
 In pcc mode and in cfront compatibility mode local variables of a
 function are allowed to hide function parameters.  A warning is
-issued for this case.  In modes where this is not allowed an error will
-be issued by the caller.
+issued for this case, except if suppress_error is TRUE.  In modes where
+this is not allowed, an error will be issued by the caller.
 */
 {
   a_boolean  err = TRUE;
