@@ -977,7 +977,7 @@ simply include that.
     /* Push the name and associated search directory onto the input stack,
        thus starting input from that file. */
     open_file_and_push_input_stack(name,
-                                   /*use_search_path=*/TRUE,
+                                   /*use_search_path=*/FALSE,
                                    /*is_include_file=*/TRUE,
                                    /*is_system_include=*/FALSE,
                                    /*is_preinclude=*/FALSE);

@@ -2730,7 +2730,7 @@ enable_microsoft_mode:
   }  /* if */
   /* If no directory was specified for #import, use the current directory. */
   if (import_dir_name == NULL) {
-    import_dir_name = current_directory_name;
+    import_dir_name = ".";
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (sun_mode) {
