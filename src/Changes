@@ -34,7 +34,7 @@ the primary slice.
 2/26/98   Microsoft compatibility: __declspec permitted on "extern template"
           declaration
 
-A spurious error is no longer issued when an __declspec modifier appears
+A spurious error is no longer issued when a __declspec modifier appears
 on an "extern template" declaration in Microsoft compatibility mode.
 
 2/26/98   Microsoft compatibility: bound function converts to pointer to
