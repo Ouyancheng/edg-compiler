@@ -201,23 +201,23 @@ int main(int argc, char *argv[])
   FILE		*message_input_file;
   char		*tag_input_file_name;
   FILE		*tag_input_file;
-  char		*message_output_file_name;
-  FILE		*message_output_file;
-  char		*tag_output_file_name;
-  FILE		*tag_output_file;
+  char		*codes_output_file_name;
+  FILE		*codes_output_file;
+  char		*data_output_file_name;
+  FILE		*data_output_file;
   int		number_of_errors = 0;
   int		number_of_tags = 0;
   int		i;
 
   if (argc < 4) {
     me_error
-      ("usage: mk_errinfo message_input_file_name tag_input_file_name message_output_file tag_output_file\n",
+      ("usage: mk_errinfo message_input_file_name tag_input_file_name codes_output_file data_output_file\n",
        (char *)NULL);
   }  /* if */
   message_input_file_name = argv[1];
   tag_input_file_name = argv[2];
-  message_output_file_name = argv[3];
-  tag_output_file_name = argv[4];
+  codes_output_file_name = argv[3];
+  data_output_file_name = argv[4];
   message_input_file = fopen(message_input_file_name, "r");
   if (message_input_file == NULL) {
     me_error("cannot open %s", message_input_file_name);
@@ -226,13 +226,13 @@ int main(int argc, char *argv[])
   if (tag_input_file == NULL) {
     me_error("cannot open %s", tag_input_file_name);
   }  /* if */
-  message_output_file = fopen(message_output_file_name, "w");
-  if (message_output_file == NULL) {
-    me_error("cannot open %s", message_output_file_name);
+  codes_output_file = fopen(codes_output_file_name, "w");
+  if (codes_output_file == NULL) {
+    me_error("cannot open %s", codes_output_file_name);
   }  /* if */
-  tag_output_file = fopen(tag_output_file_name, "w");
-  if (message_output_file == NULL) {
-    me_error("cannot open %s", tag_output_file_name);
+  data_output_file = fopen(data_output_file_name, "w");
+  if (codes_output_file == NULL) {
+    me_error("cannot open %s", data_output_file_name);
   }  /* if */
   /* Read the input file. */
   while (me_read_input_line(message_input_file)) {
@@ -301,31 +301,30 @@ int main(int argc, char *argv[])
   }  /* while */
   fclose(message_input_file);
   /* Generate the output file.  Start with the error code enumeration. */
-  fprintf(message_output_file, "typedef enum /*an_error_code*/ {\n");
+  fprintf(codes_output_file, "typedef enum /*an_error_code*/ {\n");
   for (i = 0; i < number_of_errors; ++i) {
     /* If this is not the first time through, terminate the previous line. */
-    if (i != 0) fprintf(message_output_file, ",\n");
-    fprintf(message_output_file, "  %s /* = %0d */",
+    if (i != 0) fprintf(codes_output_file, ",\n");
+    fprintf(codes_output_file, "  %s /* = %0d */",
             error_info[i].enumerator, i);
   }  /* for */
-  fprintf(message_output_file, "\n} an_error_code;\n\n");
+  fprintf(codes_output_file, "\n} an_error_code;\n\n");
   /* Generate the error text array. */
-  fprintf(message_output_file, "char *error_text[%0d] = {\n",
+  fprintf(data_output_file, "char *error_text[%0d] = {\n",
           number_of_errors);
   for (i = 0; i < number_of_errors; ++i) {
     char	*ptr;
     /* If this is not the first time through, terminate the previous line. */
-    if (i != 0) fprintf(message_output_file, ",\n");
-    fprintf(message_output_file, "  /* %s */\n", error_info[i].enumerator);
-    putc(' ', message_output_file);
-    putc(' ', message_output_file);
+    if (i != 0) fprintf(data_output_file, ",\n");
+    fprintf(data_output_file, "  /* %s */\n", error_info[i].enumerator);
+    putc(' ', data_output_file);
+    putc(' ', data_output_file);
     for (ptr = error_info[i].text; *ptr != '\0'; ++ptr) {
       char ch = *ptr;
-      putc(ch, message_output_file);
+      putc(ch, data_output_file);
     }  /* for */
   }  /* for */
-  fprintf(message_output_file, "\n};\n");
-  fclose(message_output_file);
+  fprintf(data_output_file, "\n};\n");
   /* Sort the error information by enumeration code so that the enumerations
      can be looked up while processing the tag file. */
   qsort((void *)error_info, (size_t)number_of_errors, sizeof(an_error_info),
@@ -371,17 +370,21 @@ int main(int argc, char *argv[])
   /* Sort the tag information by tag. */
   qsort((void *)tag_info, (size_t)number_of_tags, sizeof(a_tag_info),
         compare_tag_info);
-  /* Generate the sorted list of tags and associated enumerators. */
-  fprintf(tag_output_file, "an_error_tag_entry *error_tags[%0d] = {\n",
+  /* Output the number of tags to the error code file. */
+  fprintf(codes_output_file, "#define NUMBER_OF_ERROR_TAGS %0d\n",
           number_of_tags);
+  /* Generate the sorted list of tags and associated enumerators. */
+  fprintf(data_output_file,
+          "an_error_tag_entry *error_tags[NUMBER_OF_ERROR_TAGS] = {\n");
   for (i = 0; i < number_of_tags; ++i) {
     /* If this is not the first time through, terminate the previous line. */
-    if (i != 0) fprintf(tag_output_file, ",\n");
-    fprintf(tag_output_file, "  \"%s\", %s", tag_info[i].tag,
+    if (i != 0) fprintf(data_output_file, ",\n");
+    fprintf(data_output_file, "  \"%s\", %s", tag_info[i].tag,
             tag_info[i].enumerator);
   }  /* for */
-  fprintf(tag_output_file, "\n};\n");
-  fclose(tag_output_file);
+  fprintf(data_output_file, "\n};\n");
+  fclose(codes_output_file);
+  fclose(data_output_file);
   return (0);
 }  /* main */
 
