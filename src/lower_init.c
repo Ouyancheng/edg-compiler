@@ -1248,7 +1248,7 @@ we know we are calling the destructor for a complete object.
 {
   a_type_ptr class_type;
 
-  /* IF you change this, see also dtor_needs_implied_arg_list, above. */
+  /* If you change this, see also dtor_needs_implied_arg_list, above. */
   *implied_arg_node = NULL;
   /* Get the class type. */
   class_type = dtor_routine->source_corresp.parent.class_type;
