@@ -9686,7 +9686,7 @@ the expression have already been lowered.
     /* Scale the offset by the size of a vtable entry.  Note that this
        drops off the low-order bit that indicates that the function is
        virtual. */
-    offset_node->next = node_for_integer_constant(vtbl_entry_size(),
+    offset_node->next = node_for_integer_constant((long)vtbl_entry_size(),
                                                   targ_ptrdiff_t_int_kind);
     offset_node = make_operator_node((an_expr_operator_kind)eok_idivide,
                                      offset_node->type,

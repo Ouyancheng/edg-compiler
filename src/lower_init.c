@@ -209,7 +209,7 @@ element.
   if (bcp != NULL) {
     vtbl_index += bcp->virtual_function_table_offset;
   }  /* if */
-  addr_constant.variant.address.offset = vtbl_index * vtbl_entry_size();
+  addr_constant.variant.address.offset = vtbl_index * (long)vtbl_entry_size();
 #endif /* IA64_ABI */
   var_node = alloc_node_for_constant(&addr_constant);
   return var_node;
@@ -7999,7 +7999,7 @@ given by the elements.
     /* In the IA64 ABI, the value of the vptr in the object is not the same as
        the address of the virtual function table variable.  */
     vtbl_index = elements->virtual_function_table_index;
-    con.variant.address.offset = vtbl_index * vtbl_entry_size();
+    con.variant.address.offset = vtbl_index * (long)vtbl_entry_size();
 #endif /* IA64_ABI */
     elements->virtual_function_table_var->source_corresp.referenced = TRUE;
     conp = alloc_unshared_constant(&con);
