@@ -8061,6 +8061,10 @@ Generate code for a stmk_init (dynamic initialization) statement.
          caller instead; its address is given by an implicit parameter. */
       set_var_indirect_init_pos_descr(return_value_pointer_variable, &ipd);
       dip->variable = NULL;
+      /* The current code in lower_temp_init can't handle an
+         optimized class rvalue "?" that sets the return value directly.
+         The front end proper is supposed to rule this out. */
+      check_assertion(!dip->is_optimized_class_rvalue_question_mark);
     } else {
       /* Normal case (not the return value optimization variable). */
       set_var_init_pos_descr(var, &ipd);

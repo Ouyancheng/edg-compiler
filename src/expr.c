@@ -16649,7 +16649,15 @@ lowering or a back end to do the rewriting.
         if (!return_var->is_parameter &&
             return_var->storage_class != (a_storage_class)sc_static &&
             types_are_compatible(return_var->type,
-                                 func_type->variant.routine.return_type)) {
+                                 func_type->variant.routine.return_type)
+#if DO_IL_LOWERING
+            /* Rule out a case IL lowering can't handle: returning an
+               optimized class rvalue "?" via the return value optimization. */
+            && (return_var->init_kind != (an_init_kind)initk_dynamic ||
+                !return_var->initializer.dynamic->
+                                    is_optimized_class_rvalue_question_mark)
+#endif /* DO_IL_LOWERING */
+                                                                            ) {
           a_symbol_ptr sym =
                            (a_symbol_ptr)return_var->source_corresp.assoc_info;
           if (sym->decl_scope == ssep->number) {
