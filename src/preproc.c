@@ -710,73 +710,94 @@ Scan and process an #undef directive.
 }  /* proc_undef */
 
 
+static void process_system_header_name(void)
+/*
+A header name has just been scanned for a directive like a #include.
+If the header name is of the form <xxx.h>, only the initial "<" has
+been scanned.  Fetch the rest of the header name by scanning pp-tokens
+and assembling them into a header name in the temp_text_buffer.
+(This is necessary so that macro expansion can be done.)  Return with
+the current token variables set to indicate the complete header name
+as a pseudo-token.
+*/
+{
+  char              *p;
+  a_source_position saved_pos_curr_token;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position saved_end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+
+  if (*start_of_curr_token == '<' && len_of_curr_token == 1) {
+    check_assertion(expand_macros);
+    saved_pos_curr_token = pos_curr_token;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    saved_end_pos_curr_token = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    pos_in_temp_text_buffer = 0;
+    put_str_to_temp_text_buffer("<");
+    /* Fetch tokens until ">" and put the text for them into the
+       temp_text_buffer. */
+    while (get_token() != tok_gt) {
+      if (curr_token == tok_newline) {
+        curr_token = tok_error;
+        pos_in_temp_text_buffer = 0;
+        goto end_of_header_name;
+      }  /* if */
+      for (p = start_of_curr_token; p <= end_of_curr_token; p++) {
+        put_ch_to_temp_text_buffer(*p);
+      }  /* for */
+    }  /* while */
+    put_str_to_temp_text_buffer(">");
+    curr_token = tok_header_name;
+end_of_header_name:
+    start_of_curr_token = temp_text_buffer;
+    len_of_curr_token = pos_in_temp_text_buffer;
+    end_of_curr_token = start_of_curr_token+len_of_curr_token-1;
+    pos_curr_token = saved_pos_curr_token;
+    error_position = pos_curr_token;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_pos_curr_token = saved_end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  }  /* if */
+}  /* process_system_header_name */
+
+
 static char *copy_header_name(a_boolean process_escapes)
 /*
 Allocate and copy the file name from the current token (a header name).
-Escapes in the string are processed only if processes_escapes is TRUE.
-There may be end-of-token markers in the string, which must be removed
-(this is because header names that result from macro expansions can be
-made up of several preprocessing tokens; see 3.8.2 and also
-accum_quoted_string).
+Escapes in the string are processed only if process_escapes is TRUE.
 */
 {
   char		*name_start_pos, *in_pos, *out_pos;
-  sizeof_t	name_len;
-  int           remaining_mbc_char_count = 0, pass;
+  sizeof_t	name_len, i;
+  int           remaining_mbc_char_count = 0;
   unsigned long ch;
   unsigned long centity_mask;
-  a_source_line_modif_ptr
-                slmp;
 
   /* Build a mask used to mask individual characters. */
   centity_mask = (unsigned long)1 << (targ_host_string_char_bit-1);
   centity_mask = centity_mask | (centity_mask-1);
-  name_len = 0;
-  /* Copy the string, removing end-of-token markers and (if appropriate)
-     processing escapes. On the first pass, just determine a rough size,
-     at least as large as the actual size.  This is not just a matter
-     of computing end_of_curr_token-start_of_curr_token+1 because of
-     the possibility of macro expansions in the header name.  When the
-     header name involves escapes, the size computed will be larger than
-     necessary, which will cause a small amount of wasted space. */
-  for (pass = 1; pass <= 2; pass++) {
-    in_pos = start_of_curr_token+1;
-    if (pass == 2) {
-      /* Allocate an IL region for the header name. */
-      name_start_pos = alloc_il((sizeof_t)name_len + 1);
-      out_pos = name_start_pos;
+  name_start_pos = alloc_il((sizeof_t)(
+           (name_len = len_of_curr_token - 2 /* Drop quoting characters. */)
+           + 1 /* Space for null. */));
+  in_pos = start_of_curr_token+1;
+  out_pos = name_start_pos;
+  /* Copy the string, processing escapes if appropriate.  Note that space
+     including unprocessed escapes was allocated in the output string, so
+     there may be a bit of wasted space. */
+  for (i = 1; i <= name_len; i++) {
+    check_assertion_str(*in_pos != LE_ESCAPE,
+                        "copy_header_name: lexical escape in header name");
+    if (process_escapes) {
+      /* Process the character, considering escape characters. */
+      char *prev_pos = in_pos;
+      conv_single_char(&in_pos, &remaining_mbc_char_count, &ch, centity_mask);
+      i += (in_pos - prev_pos) - 1;
+      *out_pos++ = (char)ch;
+    } else {
+      /* Escapes should not be considered; just copy one character. */
+      *out_pos++ = *in_pos++;
     }  /* if */
-    for (;;) {
-      if (*in_pos == LE_ESCAPE) {
-        if (in_pos[1] == LE_END_OF_INSERTION) {
-          /* Leave a macro expansion. */
-          slmp = assoc_source_line_modif(in_pos);
-          leave_insertion(slmp, in_pos);
-        } else {
-          check_assertion_str(in_pos[1] == LE_END_OF_TOKEN,
-                              "copy_header_name: bad lexical escape");
-          /* Ignore an end-of-token marker. */
-          in_pos += LE_ESCAPE_LEN;
-        }  /* if */
-      } else if (*in_pos == ATTENTION_MARKER) {
-        /* Enter a macro expansion. */
-        go_into_insertion(slmp, in_pos);
-      } else if (process_escapes && pass == 2) {
-        /* Process the character, considering escape characters. */
-        conv_single_char(&in_pos, &remaining_mbc_char_count, &ch,
-                         centity_mask);
-        *out_pos++ = (char)ch;
-      } else {
-        /* Escapes should not be considered; just copy one character. */
-        if (pass == 1) {
-          name_len++;
-        } else {
-          *out_pos++ = *in_pos;
-        }  /* if */
-        in_pos++;
-      }  /* if */
-      if (in_pos == end_of_curr_token) break;
-    }  /* for */
   }  /* for */
   *out_pos = '\0';
   return name_start_pos;
@@ -848,6 +869,8 @@ Scan and process a #include directive.
   exp_header_name = TRUE;
   (void)get_token();
   exp_header_name = FALSE;
+  /* Special processing for <xxx.h> form header names. */
+  process_system_header_name();
   if (curr_token != tok_header_name) {
     /* Missing include file name. */
     catastrophe(ec_exp_file_name);
@@ -918,6 +941,8 @@ simply include that.
   exp_header_name = TRUE;
   (void)get_token();
   exp_header_name = FALSE;
+  /* Special processing for <xxx.h> form header names. */
+  process_system_header_name();
   if (curr_token != tok_header_name) {
     /* Missing include file name. */
     catastrophe(ec_exp_file_name);

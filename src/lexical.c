@@ -5618,8 +5618,6 @@ for header names in #include and #line directives.
   a_boolean     may_have_zero_characters = (ctoken == tok_string_literal);
   a_boolean     is_header_name = (ctoken == tok_header_name);
   a_boolean     is_wide = (*curr_char_loc == 'L');
-  a_source_line_modif_ptr
-                slmp;
 
   *err = FALSE;
   *num_chars = 0;
@@ -5646,7 +5644,8 @@ for header names in #include and #line directives.
       ch = *(++curr_char_loc);
       if (ch == LE_ESCAPE) {
         /* Token ends after the "\" -- this is an unclosed string.  This can
-           happen because of macro definitions on the command line. */
+           happen because of macro definitions on the command line, e.g.,
+           -DX="\ */
         err_code_for_error_token = ec_unclosed_string;
         if (fetch_pp_tokens) {
           ctoken = tok_error;
@@ -5656,10 +5655,10 @@ for header names in #include and #line directives.
         *err = TRUE;
         goto return_point;
       } else if ((ch == 'u' || ch == 'U') && !C_mode()) {
-        /* A universal character name escape sequence. Skip past the characters
-           that make up the universal character.  Ignore any errors at this
-           point -- they will be issued when the escape is converted to a
-           character. */
+        /* A universal character name escape sequence.  Skip past the
+           characters that make up the universal character.  Ignore any
+           errors at this point -- they will be issued when the escape
+           is converted to a character. */
         /* Back up one character because the routine expects the opening
            backslash to be the current character. */
         curr_char_loc--;
@@ -5689,37 +5688,18 @@ for header names in #include and #line directives.
       }  /* if */
     } else if (ch == LE_ESCAPE) {
       /* Lexical escape, e.g., newline. */
-      ch = curr_char_loc[1];
-      if (ch == LE_END_OF_TOKEN && is_header_name) {
-        /* End-of-token markers do not terminate header names, because
-           header names can result from several adjacent preprocessing tokens
-           when macro expansion is involved (see 3.8.2).  The end-of-token
-           markers are removed when the file name is constructed later
-           (see proc_include). */
-        curr_char_loc += LE_ESCAPE_LEN;
-      } else if (ch == LE_END_OF_INSERTION && is_header_name) {
-        /* In header names, there can be macro expansions. */
-        check_assertion(is_header_name);
-        slmp = assoc_source_line_modif(curr_char_loc);
-        leave_insertion(slmp, curr_char_loc);
+      /* Error, quoted string unclosed. */
+      /* Similar error for other strange cases of incomplete strings, which
+         can come up with preprocessing. */
+      /* Message is generic -- "Missing closing quote". */
+      err_code_for_error_token = ec_unclosed_string;
+      if (fetch_pp_tokens) {
+        ctoken = tok_error;
       } else {
-        /* Newline -- error, quoted string unclosed. */
-        /* Similar error for other strange cases of incomplete strings, which
-           can come up with preprocessing. */
-        /* Message is generic -- "Missing closing quote". */
-        err_code_for_error_token = ec_unclosed_string;
-        if (fetch_pp_tokens) {
-          ctoken = tok_error;
-        } else {
-          error_at_line_pos(err_code_for_error_token, start_of_curr_token);
-        }  /* if */
-        *err = TRUE;
-        goto return_point;
+        error_at_line_pos(err_code_for_error_token, start_of_curr_token);
       }  /* if */
-    } else if (ch == ATTENTION_MARKER) {
-      /* In header names, there can be macro expansions. */
-      check_assertion(is_header_name);
-      go_into_insertion(slmp, curr_char_loc);
+      *err = TRUE;
+      goto return_point;
     } else {
       /* Normal character. */
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
@@ -6335,8 +6315,10 @@ start_of_token_scan:  /* Restart here after scanning white space. */
       /* One of "<<", "<<=", "<=", or "<". In C++, "<%" or "<:".
          If exp_header_name is TRUE, a header name of the form <filename>. */
       if (exp_header_name) {
-        ctoken = accum_quoted_string(tok_header_name, &num_chars, &err);
-        goto end_of_token_scan;
+        /* Take just the opening "<" now; let the preprocessing code fetch
+           the rest as tokens, to allow macro expansion. */
+        ctoken = tok_header_name;
+        break;
       } else if ((ch = *(curr_char_loc+1)) == '<') {
         if (*(curr_char_loc+2) == '=') {
           ctoken = tok_shift_left_assign;
@@ -6777,10 +6759,7 @@ end_of_token_scan_b:;
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 return_from_token_scan:
-  if (start_of_curr_token != NULL &&
-      /* Header names can include macro expansions and therefore the
-         characters of the token are not necessarily contiguous. */
-      ctoken != tok_header_name) {
+  if (start_of_curr_token != NULL) {
     len_of_curr_token = end_of_curr_token - start_of_curr_token + 1;
   }  /* if */
   curr_token_is_inert_macro = is_inert_macro;
@@ -6791,10 +6770,7 @@ return_from_token_scan:
                      gotten_from_cache ? " (from cache)" : "",
                      pos_curr_token.seq, pos_curr_token.column,
                      token_names[(int)ctoken]);
-    if (start_of_curr_token != NULL &&
-        /* Header names can include macro expansions and therefore the
-           characters of the token are not necessarily contiguous. */
-        ctoken != tok_header_name) {
+    if (start_of_curr_token != NULL) {
       /* Print token string if valid. */
       fprintf(f_debug, ", \"%.*s\"", (int)len_of_curr_token,
                                      start_of_curr_token);
