@@ -1,5 +1,11 @@
 Version 2.24
 
+6/30/94  Error on parameter type
+
+In accord with a recent change to WP 8.3.5, we now issue an error on a
+function parameter type that involves a pointer or reference to an array
+of unknown bounds.
+
 6/29/94  Template abort fixed
 
 Use of a nested class within a nonreal instantiation as a template argument
@@ -19,36 +25,35 @@ could result in a compiler abort.  This has been fixed.
 
 6/29/94  Overridding the severity of diagnostic messages
 
-Command line options have been added that allow a user to
-override the severity of specified diagnostics.  The new severity
-may only be used to alter the severity of diagnostics whose original
-severity is less severe than an error.  A new severity called
-discretionary error has been added.  A discretionary error may have
-its severity altered by the severity overriding mechanism.
+Command line options have been added that allow a user to override the
+severity of specified diagnostics.  The new severity may only be used to
+alter the severity of diagnostics whose original severity is less severe
+than an error.  A new severity called discretionary error has been added.
+A discretionary error may have its severity altered by the severity
+overriding mechanism.
 
 6/29/94  Option to display error numbers
 
-When using the severity overridding mechanism, it is sometimes helpful
-to know the error number of a given diagnostic.  The --display_error_number
-command line option causes the error number to be displayed as part
-of the diagnostic output.
+When using the severity overridding mechanism, it is sometimes helpful to
+know the error number of a given diagnostic.  The --display_error_number
+command line option causes the error number to be displayed as part of the
+diagnostic output.
 
 6/29/94  New error message files
 
-As part of the error severity overriding mechanism, the method used
-to add and modify error messages has been changed.  Two new files
-(error_msg.txt and error_tag.txt) have been added.  A new utility
-program (mk_errinfo) translates these files into header files
-(err_codes.h and err_date.h) compiled into the front end.
-See the comments in the .txt files and the utilities chapter in
-the internals manual for more information.
+As part of the error severity overriding mechanism, the method used to add
+and modify error messages has been changed.  Two new files (error_msg.txt
+and error_tag.txt) have been added.  A new utility program (mk_errinfo)
+translates these files into header files (err_codes.h and err_date.h)
+compiled into the front end.  See the comments in the .txt files and the
+utilities chapter in the internals manual for more information.
 
 6/29/94 result_is_not_used flag maintenance in IL lowering
 
 A bug in IL lowering has been fixed.  The problem was that some
 constructor calls used in field selections were marked with
-result_is_not_used TRUE even though the result of the call was used
-by the field selection.
+result_is_not_used TRUE even though the result of the call was used by the
+field selection.
 
 6/29/94 cfront compatibility: ptr-to-member-function cast to ptr-to-function
 
