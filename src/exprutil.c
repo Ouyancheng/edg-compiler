@@ -6611,7 +6611,7 @@ gives the source position of the call.
 	      break;
 #if C99_IL_EXTENSIONS_SUPPORTED
 	    case tk_complex:
-	      tck = (a_type_class_kind)tck_float;
+	      tck = (a_type_class_kind)tck_complex;
 	      break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 	    case tk_routine:
@@ -6631,6 +6631,9 @@ gives the source position of the call.
 		tck = (a_type_class_kind)tck_array;
 	      }  /* if */
 	      break;
+            case tk_error:
+              tck = (a_type_class_kind)tck_none;
+              break;
 	    default:
 	      unexpected_condition();
 	      break;

@@ -133,6 +133,8 @@ typedef enum a_type_class_kind {
 			   correct. */
 			/*lint -esym(769,a_type_class_kind::tck_offset)*/
   tck_float,            /* float, double, long double */
+  tck_complex,		/* float complex, double complex, long double
+			   complex */
   tck_routine,          /* functions */
   tck_method,           /* Unused in C or C++. */
 			/*lint -esym(769,a_type_class_kind::tck_method)*/
@@ -140,6 +142,11 @@ typedef enum a_type_class_kind {
   tck_union,            /* unions */
   tck_array,            /* arrays -- but not strings */
   tck_string            /* strings */
+/* Unused type classes:
+  tck_set
+  tck_file
+  tck_lang
+*/
 } a_type_class_kind;
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
