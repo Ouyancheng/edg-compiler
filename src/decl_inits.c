@@ -1466,6 +1466,11 @@ the default constructor (if one exists) is called.
        and that require constructor initialization. */
     if (is_class_struct_union_type(tp) &&
         var->storage_class != (a_storage_class)sc_extern) {
+      if (sym->kind == (a_symbol_kind)sk_static_data_member) {
+        /* Perform the default initialization of a static data member with
+           its parent class reactivated. */
+        push_class_reactivation_scope(sym->class_of_which_a_member);
+      }  /* if */
       cssp = symbol_supplement_for_class(tp);
       if (cssp->constructor != NULL) {
         if (is_incomplete_type(var_type)) {
@@ -1588,6 +1593,9 @@ the default constructor (if one exists) is called.
           /* Don't set def_init_performed.  A dik_none dynamic initialization
              doesn't count as initialization. */
         }  /* if */
+      }  /* if */
+      if (sym->kind == (a_symbol_kind)sk_static_data_member) {
+        pop_class_reactivation_scope();
       }  /* if */
     }  /* if */
   }  /* if */
