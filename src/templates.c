@@ -8016,7 +8016,7 @@ list (the one specified by param_list).
         old_tptsp = old_type->variant.template_param.extra_info;
         old_type->variant.template_param.extra_info = old_tptsp;
         new_type->variant.template_param.extra_info = old_tptsp;
-    }  /* if */
+      }  /* if */
       old_tpp = old_tpp->next;
       new_tpp = new_tpp->next;
     }  /* while */
