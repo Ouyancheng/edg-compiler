@@ -3790,14 +3790,17 @@ This is the C++ syntax.  C++ type-id is the same as C type-name.
     make_error_operand(result);
   } else {
     /* Create a typeid expression node. */
+    a_type_ptr const_type_info =
+                           make_qualified_type(type_of_type_info,
+                                               (a_type_qualifier_set)TQ_CONST);
     typeid_node = alloc_expr_node((an_expr_node_kind)enk_typeid);
     typeid_node->variant.typeid_info.expr = expr;
     typeid_node->variant.typeid_info.type = typeid_type;
     typeid_node->implicit_reference_indirection = TRUE;
     /* The result is a reference to type_info, which means a pointer to
        type_info as an lvalue address. */
-    typeid_node->type = make_pointer_type(type_of_type_info);
-    make_expression_operand(typeid_node, type_of_type_info, result);
+    typeid_node->type = make_pointer_type(const_type_info);
+    make_expression_operand(typeid_node, const_type_info, result);
     result->state = (an_operand_state)os_lvalue;
   }  /* if */
   /* Set the error position to the starting position. */
