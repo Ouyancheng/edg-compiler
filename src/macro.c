@@ -24,6 +24,7 @@ macro.c -- Macro definition and expansion routines.
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
 /* Additional header files. */
+#include "decls.h"
 #include "macro.h"
 #include "pch.h"
 #include "preproc.h"
@@ -1993,6 +1994,8 @@ associated global variables will also have been set).
                      macro_symbol->header->identifier);
   }  /* if */
 #endif /* DEBUG */
+  /* One we begin rescanning a macro, don't allow a PCH to be generated at this point. */
+  next_token_is_top_level_decl_start = FALSE;
   copy_source_position(pos_curr_token, start_pos);
   /* If possible, clear the macro buffer (a buffer where characters of
      expansions are put).  This is tricky in that we can't clear the

@@ -1,5 +1,22 @@
 Version 3.4
 
+8/10/03  Precompiled header problem with macro invocation that crosses file boundary
+
+If a header file ended with a macro invocation that crosses an include file boundary,
+and that header file terminated a precompiled header file, the resulting PCH file
+would not result in the correct behavior when used.  This kind of usage now suppresses
+the creation of a PCH file.
+
+  file: test.c:
+  #define f(x) 
+  #include "test.h"
+  (1)
+  int i;
+
+  file: test.h
+  f
+
+
 8/8/03   GNU IA-64 ABI: Additional base class conflicts
 
 If a direct nonvirtual base contains an field of empty class type E at a small
