@@ -2401,6 +2401,7 @@ confusion.  Do the output in the way described by octl.
         /* ... then prefix the constant with an explicit cast. */
         output_optional_open_paren(&need_parens, &need_cast_close_paren, octl);
         form_cast(orig_type, octl);
+        suppress_cast_on_integer_constant = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
