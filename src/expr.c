@@ -348,8 +348,15 @@ transformations are done in all cases.
   if (!is_expression_operand(operand)) {
     /* An operand that is not an expression cannot have side effects.
        For error operands, assume that the original form might have had
-       an effect, and suppress the warning. */
-    suppress_warning = is_error_operand(operand);
+       an effect, and suppress the warning.  Likewise for template-dependent
+       constants. */
+    if (is_error_operand(operand)) {
+      suppress_warning = TRUE;
+    } else if (is_constant_operand(operand) &&
+               operand->variant.constant.kind ==
+                                     (a_constant_repr_kind)ck_template_param) {
+      suppress_warning = TRUE;
+    }  /* if */
   } else {
     /* For an expression, traverse the tree to see if it has side effects
        and to simplify it. */
