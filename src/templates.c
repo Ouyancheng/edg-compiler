@@ -5714,7 +5714,7 @@ points to the template parameter list.
             if (identical_types(type, tap->variant.type)) {
               /* Okay. */
               match = TRUE;
-            } else if (microsoft_bugs &&
+            } else if (microsoft_bugs && microsoft_version <= 1300 &&
                        f_identical_types(f_skip_typerefs(type),
                                          f_skip_typerefs(tap->variant.type),
                                          ITF_NO_FLAGS)) {

@@ -1,5 +1,21 @@
 Version 3.4
 
+8/4/03   Microsoft compatibility: template deduction qualifier bug emulation
+
+Version 7.1 of the Microsoft compiler fixes a template argument
+deduction bug in which it ignored qualifiers when comparing deduced
+types.  As a result, we have updated our emulation of this bug to
+apply in Microsoft bugs mode only when Microsoft version is <= 1300.
+This example is accepted when the bug is emulated:
+
+  template <class T> void f(T& t1, T& t2) { }
+  int main() {
+    int i1, i2;
+    const int ci1 = 1;
+    f(i1, i2);
+    f(ci1, i2); // calls f(const T&, const T&)
+  }
+
 8/4/03   Microsoft compatibility: deduced reference to non-const can
          no longer bind to rvalue
 
