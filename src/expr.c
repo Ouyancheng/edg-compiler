@@ -583,6 +583,9 @@ See 4.9.6.1 in the standard for printf, 4.9.6.2 for scanf.
   char                *fmt_string = *fmt_string_ptr;
   a_printf_scan_state pss = *pss_ptr;
   a_boolean           l_size, L_size, h_size, add_pointer;
+#if LONG_LONG_ALLOWED
+  a_boolean           ll_size;
+#endif /* LONG_LONG_ALLOWED */
   a_boolean           suppress_assignment = FALSE;
 
   /* Pick up in the middle if the previous call returned a field width
@@ -649,9 +652,22 @@ after_precision:;
     /* The optional size character is next.  l indicates long integer
        (sometimes double), L long double, and h short integer. */
     l_size = L_size = h_size = FALSE;
+#if LONG_LONG_ALLOWED
+    ll_size = FALSE;
+#endif /* LONG_LONG_ALLOWED */
     if (*fmt_string == 'l') {
-      l_size = TRUE;
-      fmt_string++;
+#if LONG_LONG_ALLOWED
+      if (fmt_string[1] == 'l') {
+        /* "ll" for long long.  This is nonstandard. */
+        if (strict_ansi_mode) goto default_case;
+        ll_size = TRUE;
+        fmt_string += 2;
+      } else
+#endif /* LONG_LONG_ALLOWED */
+      {
+        l_size = TRUE;
+        fmt_string++;
+      }
     } else if (*fmt_string == 'L') {
       L_size = TRUE;
       fmt_string++;
@@ -668,8 +684,15 @@ after_precision:;
       case 'i':
         /* int conversion.  If "l" was specified, long conversion;
            if "h" was specified for scanf, short conversion. */
+#if LONG_LONG_ALLOWED
+        /* If "ll" was specified, long long conversion. */
+#endif /* LONG_LONG_ALLOWED */
         if (l_size) {
           required_type = integer_type((an_integer_kind)ik_long);
+#if LONG_LONG_ALLOWED
+        } else if (ll_size) {
+          required_type = integer_type((an_integer_kind)ik_long_long);
+#endif /* LONG_LONG_ALLOWED */
         } else if (h_size && is_scanf) {
           required_type = integer_type((an_integer_kind)ik_short);
         } else {
@@ -683,8 +706,15 @@ after_precision:;
         /* Unsigned int conversion.  If "l" was specified, unsigned long
            conversion; if "h" was specified for scanf, unsigned short 
            conversion. */
+#if LONG_LONG_ALLOWED
+        /* If "ll" was specified, unsigned long long conversion. */
+#endif /* LONG_LONG_ALLOWED */
         if (l_size) {
           required_type = integer_type((an_integer_kind)ik_unsigned_long);
+#if LONG_LONG_ALLOWED
+        } else if (ll_size) {
+          required_type = integer_type((an_integer_kind)ik_unsigned_long_long);
+#endif /* LONG_LONG_ALLOWED */
         } else if (h_size && is_scanf) {
           required_type = integer_type((an_integer_kind)ik_unsigned_short);
         } else {
