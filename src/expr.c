@@ -6429,6 +6429,12 @@ nonstatic_member_function:
                                              result);
           }  /* if */
           break;
+        case sk_function_template:
+          /* Function template. */
+          make_indefinite_function_operand(projection_sym_ptr,
+                                           /*is_qualified_name=*/FALSE,
+                                           result);
+          break;
         case sk_undefined:
           /* Symbol was found in the symbol table, but it is undefined.  This
              means that it was encountered earlier but was never turned into a

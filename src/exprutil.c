@@ -26,6 +26,7 @@ exprutil.c -- Expression scanning utility routines.
 #include "cmd_line.h"
 #include "types.h"
 #include "decls.h"
+#include "templates.h"
 
 /*
 Information used when creating cross-reference information.  This is
@@ -54,6 +55,9 @@ typedef struct a_candidate_function {
   a_symbol_ptr	function_symbol;
 			/* Pointer to the symbol for the function.  NULL if
 			   the "function" is a built-in operator. */
+  a_byte_boolean
+		is_function_template;
+			/* TRUE if function_symbol is a function template. */
   char		*operand_type_pattern;
 			/* For a built-in operator, the operand type pattern
 			   string (see operand_type_pattern_for_operator).
@@ -70,6 +74,10 @@ typedef struct a_candidate_function {
 			   argument matches this function's corresponding
 			   formal parameter.  If there was a selector object
 			   (for the "this" parameter), it appears first. */
+  an_arg_operand_ptr
+		arg_operand_list;
+			/* If is_function_template is TRUE, the list of
+			   argument operands for the call.  NULL otherwise. */
   /* Fields used by select_best_candidate_functions: */
   an_arg_match_summary_ptr
 		current_arg_match;
@@ -1072,73 +1080,156 @@ except for casts to ambiguous or inaccessible base classes.
 
 
 static a_symbol_ptr find_addr_of_overloaded_function_match(
-                                                        a_symbol_ptr sym,
-                                                        a_type_ptr   dest_type)
+                                               a_symbol_ptr       ovl_sym,
+                                               a_type_ptr         dest_type,
+                                               a_source_position  *source_pos,
+                                               an_arg_match_level *match_level,
+                                               a_boolean          *ambiguous)
 /*
-sym is the symbol from an indefinite function operand representing the address
-of an overloaded function.  It is being converted to a destination type
+ovl_sym is the symbol from an indefinite function operand representing the
+address of an overloaded function.  It is being converted to a destination type
 dest_type.  If dest_type is a pointer or pointer-to-member type that could be
 a pointer to one of the overloaded functions, return a pointer to that
-function's symbol; otherwise, return NULL.  See ARM 13.3, "Address of
-Overloaded Function".
+function's symbol; otherwise, return NULL.  Also set *match_level to indicate
+whether or not any conversion is needed after the coercion to a specific
+function pointer.  If more than one function matches, return NULL and
+*ambiguous TRUE.  source_pos is the source position of the reference.
+See ARM 13.3, "Address of Overloaded Function".
 */
 {
   a_boolean     is_ptr = FALSE, is_ptr_to_member = FALSE;
+  a_boolean     any_function_templates;
   a_type_ptr    routine_type, dest_class, ptr_routine_type;
+  a_type_ptr    dest_underlying_type;
   an_error_code warning_suggested;
+  a_symbol_ptr  sym, match_sym = NULL, instance_sym;
+  unsigned long number_of_matches = 0;
 
   db_enter(4, "find_addr_of_overloaded_function_match");
+  *ambiguous = FALSE;
   if (is_pointer_type(dest_type)) {
+    dest_class = NULL;
     is_ptr = TRUE;
+    dest_underlying_type = type_pointed_to(dest_type);
   } else if (is_ptr_to_member_type(dest_type)) {
     dest_class = pm_class_type(dest_type);
     is_ptr_to_member = TRUE;
+    dest_underlying_type = pm_member_type(dest_type);
   }  /* if */
   if (is_ptr || is_ptr_to_member) {
-    reduce_projection_symbol_to_fundamental_symbol(sym);
+    reduce_projection_symbol_to_fundamental_symbol(ovl_sym);
 #if CHECKING
-    if (sym->kind != (a_symbol_kind)sk_overloaded_function) {
+    if (ovl_sym->kind != (a_symbol_kind)sk_overloaded_function) {
       internal_error(
                 "find_addr_of_overloaded_function_match: not overloaded func");
     }  /* if */
 #endif /* CHECKING */
+    dest_underlying_type = skip_typerefs(dest_underlying_type);
     /* Check each function in the overload set to see if its type matches
-       the one desired. */
-    for (sym = sym->variant.overloaded_function.symbols;
+       the one desired.  The algorithm is the one for template matching
+       (ARM 14.4):
+         (1)  Look for an exact match.
+         (2)  Look for a function template that can yield a function with
+              exactly the right type.
+         (3)  Look for a match involving a conversion (this is possible only
+              for pointers-to-members, because there are no implicit
+              conversions defined on pointers).
+       If there is more than one match at any level, the operation is
+       ambiguous.  That's probably possible only when function templates
+       are involved. */
+    /* Check first for an exact match. */
+    any_function_templates = FALSE;
+    for (sym = ovl_sym->variant.overloaded_function.symbols;
          sym != NULL;
          sym = sym->next) {
-      routine_type = routine_symbol_type(sym);
-      if (is_ptr) {
-        ptr_routine_type = make_pointer_type(routine_type);
+      if (sym->kind == (a_symbol_kind)sk_function_template) {
+        /* Function template.  Ignore on this pass, but enable a second pass
+           to try matching it. */
+        any_function_templates = TRUE;
       } else {
-        ptr_routine_type = ptr_to_member_type(routine_type, dest_class);
-      }  /* if */
-      /* Note that while there are no implicit conversions of one pointer-to-
-         function type to another, there are implicit conversions between
-         pointer-to-member types, so use impl_conversion_possible. */
-      if (impl_conversion_possible(ptr_routine_type,
-                                   /*source_is_constant=*/FALSE,
-                                   (a_constant_ptr)NULL,
-                                   dest_type,
-                                   /*suppress_extensions=*/TRUE,
-                                   ec_no_error,
-                                   &warning_suggested)) {
-        /* A match. */
-        break;
+        /* Not a function template (i.e., a normal function). */
+        routine_type = routine_symbol_type(sym);
+        /* Note that the type qualifiers on both types have already been
+           dropped. */
+        if (identical_types(routine_type, dest_underlying_type) &&
+            sym->class_of_which_a_member == dest_class) {
+          /* Exact match. */
+          match_sym = sym;
+          *match_level = (an_arg_match_level)aml_exact;
+          number_of_matches++;
+        }  /* if */
       }  /* if */
     }  /* for */
+    if (number_of_matches == 0 && any_function_templates) {
+      /* Try matching function templates. */
+      for (sym = ovl_sym->variant.overloaded_function.symbols;
+           sym != NULL;
+           sym = sym->next) {
+        if (sym->kind == (a_symbol_kind)sk_function_template) {
+          /* Function template. */
+          instance_sym = find_template_function(sym, dest_underlying_type,
+                                                source_pos);
+          if (instance_sym != NULL) {
+            /* Template match. */
+            match_sym = instance_sym;
+            *match_level = (an_arg_match_level)aml_exact;
+            number_of_matches++;
+          }  /* if */
+        }  /* if */
+      }  /* for */
+    }  /* if */
+    if (number_of_matches == 0) {
+      /* Try matches involving an implicit conversion.  This is here
+         primarily for the pointer-to-member case, but it makes sense to
+         handle the normal pointer case too in case the implicit conversion
+         rules change (also, it makes the error message clearer in the
+         case where dest_type is "void *"). */
+      for (sym = ovl_sym->variant.overloaded_function.symbols;
+           sym != NULL;
+           sym = sym->next) {
+        if (sym->kind != (a_symbol_kind)sk_function_template) {
+          /* Not a function template (i.e., a normal function). */
+          routine_type = routine_symbol_type(sym);
+          if (is_ptr) {
+            ptr_routine_type = make_pointer_type(routine_type);
+          } else {
+            ptr_routine_type = ptr_to_member_type(routine_type, dest_class);
+          }  /* if */
+          if (impl_conversion_possible(ptr_routine_type,
+                                       /*source_is_constant=*/FALSE,
+                                       (a_constant_ptr)NULL,
+                                       dest_type,
+                                       /*suppress_extensions=*/TRUE,
+                                       ec_no_error,
+                                       &warning_suggested)) {
+            /* A match. */
+            match_sym = sym;
+            *match_level = (an_arg_match_level)aml_std_conversion;
+            number_of_matches++;
+          }  /* if */
+        }  /* if */
+      }  /* for */
+    }  /* if */
+    if (number_of_matches > 1) {
+      /* Ambiguous case. */
+      *ambiguous = TRUE;
+      match_sym = NULL;
+    }  /* if */
   } else {
     /* dest_type is not a pointer type, so no function can match. */
-    sym = NULL;
   }  /* if */
 #if DEBUG
   if (debug_level >= 4) {
-    fprintf(f_debug, "find_addr_of_overloaded_function_match: %s\n",
-                     (sym != NULL) ? "found" : "not found");
+    if (match_sym == NULL) {
+      fprintf(f_debug, "find_addr_of_overloaded_function_match: %s\n",
+              *ambiguous ? "ambiguous" : "no match");
+    } else {
+      db_symbol(match_sym, "find_addr_of_overloaded_function_match: ", 2);
+    }  /* if */
   }  /* if */
 #endif /* DEBUG */
   db_exit();
-  return sym;
+  return match_sym;
 }  /* find_addr_of_overloaded_function_match */
 
 
@@ -1156,11 +1247,13 @@ The caller must have already determined that the conversion is allowed,
 except for casts to ambiguous or inaccessible base classes.
 */
 {
-  a_boolean         did_not_fold, access_error_reported;
+  a_boolean         did_not_fold, access_error_reported, ambiguous;
   a_constant        local_constant;
   an_expr_node_ptr  node;
   an_operand        orig_operand;
   a_symbol_ptr      overloaded_function_symbol, function_symbol;
+  an_arg_match_level
+                    match_level;
 
 #if CHECKING
   if (!is_an_rvalue(operand) && !is_error_operand(operand)) {
@@ -1234,7 +1327,10 @@ except for casts to ambiguous or inaccessible base classes.
           overloaded_function_symbol = operand->variant.symbol;
           function_symbol = find_addr_of_overloaded_function_match(
                                                     overloaded_function_symbol,
-                                                    new_type);
+                                                    new_type,
+                                                    &operand->position,
+                                                    &match_level,
+                                                    &ambiguous);
 #if CHECKING
           if (function_symbol == NULL) {
             internal_error("cast_operand: bad func symbol");
@@ -4235,9 +4331,11 @@ are used in resolving calls to overloaded functions.
   }  /* if */
   cfp->next = NULL;
   cfp->function_symbol = NULL;
+  cfp->is_function_template = FALSE;
   cfp->operand_type_pattern = NULL;
   cfp->pointer_type = NULL;
   cfp->arg_matches = NULL;
+  cfp->arg_operand_list = NULL;
   cfp->current_arg_match = NULL;
   cfp->prev_func_arg_match_with_same_match_level = NULL;
   cfp->in_best_match_set = FALSE;
@@ -4260,53 +4358,12 @@ Free the list of candidate function entries pointed to by cfp.
     if (cfp->arg_matches != NULL) {
       free_arg_match_summary_list(cfp->arg_matches);
     }  /* if */
+    /* arg_operand_list is deliberately not freed. */
     /* Add the entry to the available list. */
     cfp->next = avail_candidate_functions;
     avail_candidate_functions = cfp;
   }  /* for */
 }  /* free_candidate_function */
-
-
-static void add_function_to_candidate_functions_list(
-                                 a_symbol_ptr             function_symbol,
-                                 an_arg_match_summary_ptr arg_matches,
-                                 a_candidate_function_ptr *candidate_functions)
-/*
-Add the function identified by function_symbol to the front of the
-candidate_functions list.  arg_matches gives information about how well
-the actual arguments we have match the function's formal parameters.
-*/
-{
-  a_candidate_function_ptr candidate;
-
-  candidate = alloc_candidate_function();
-  candidate->function_symbol = function_symbol;
-  candidate->arg_matches = arg_matches;
-  candidate->next = *candidate_functions;
-  *candidate_functions = candidate;
-}  /* add_function_to_candidate_functions_list */
-
-
-static void add_builtin_operator_to_candidate_functions_list(
-                                char                     *operand_type_pattern,
-                                a_type_ptr               pointer_type,
-                                an_arg_match_summary_ptr arg_matches,
-                                a_candidate_function_ptr *candidate_functions)
-/*
-Add the built-in operator identified by operand_type_pattern and pointer_type
-to the candidate_functions list.  arg_matches gives information about how well
-the operands we have match the operator's required operand types.
-*/
-{
-  a_candidate_function_ptr candidate;
-
-  candidate = alloc_candidate_function();
-  candidate->operand_type_pattern = operand_type_pattern;
-  candidate->pointer_type = pointer_type;
-  candidate->arg_matches = arg_matches;
-  candidate->next = *candidate_functions;
-  *candidate_functions = candidate;
-}  /* add_builtin_operator_to_candidate_functions_list */
 
 #if DEBUG
 
@@ -4330,13 +4387,17 @@ Print a candidate function entry for debugging purposes.
     }  /* if */
     fprintf(f_debug, "\n");
   }  /* if */
-  /* Display the arg match list. */
-  for (narg = 1, amsp = cfp->arg_matches;
-       amsp != NULL;
-       narg++, amsp = amsp->next) {
-    fprintf(f_debug, "  arg %lu: ", narg);
-    db_arg_match_summary(amsp);
-  }  /* for */
+  if (cfp->is_function_template) {
+    fprintf(f_debug, "(function template)\n");
+  } else {
+    /* Display the arg match list. */
+    for (narg = 1, amsp = cfp->arg_matches;
+         amsp != NULL;
+         narg++, amsp = amsp->next) {
+      fprintf(f_debug, "  arg %lu: ", narg);
+      db_arg_match_summary(amsp);
+    }  /* for */
+  }  /* if */
 }  /* db_candidate_function */
 
 #endif /* DEBUG */
@@ -4361,6 +4422,93 @@ Print a candidate function entry list for debugging purposes.
 }  /* db_candidate_function_list */
 
 #endif /* DEBUG */
+
+static void add_function_to_candidate_functions_list(
+                                 a_symbol_ptr             function_symbol,
+                                 an_arg_match_summary_ptr arg_matches,
+                                 a_candidate_function_ptr *candidate_functions)
+/*
+Add the function identified by function_symbol to the front of the
+candidate_functions list.  arg_matches gives information about how well
+the actual arguments we have match the function's formal parameters.
+*/
+{
+  a_candidate_function_ptr candidate;
+
+  candidate = alloc_candidate_function();
+  candidate->function_symbol = function_symbol;
+  candidate->arg_matches = arg_matches;
+  candidate->next = *candidate_functions;
+  *candidate_functions = candidate;
+#if DEBUG
+  if (debug_level >= 4) {
+    fprintf(f_debug, "add_function_to_candidate_functions_list: added\n"); 
+    db_candidate_function(candidate);
+  }  /* if */
+#endif /* DEBUG */
+}  /* add_function_to_candidate_functions_list */
+
+
+static void add_builtin_operator_to_candidate_functions_list(
+                                char                     *operand_type_pattern,
+                                a_type_ptr               pointer_type,
+                                an_arg_match_summary_ptr arg_matches,
+                                a_candidate_function_ptr *candidate_functions)
+/*
+Add the built-in operator identified by operand_type_pattern and pointer_type
+to the candidate_functions list.  arg_matches gives information about how well
+the operands we have match the operator's required operand types.
+*/
+{
+  a_candidate_function_ptr candidate;
+
+  candidate = alloc_candidate_function();
+  candidate->operand_type_pattern = operand_type_pattern;
+  candidate->pointer_type = pointer_type;
+  candidate->arg_matches = arg_matches;
+  candidate->next = *candidate_functions;
+  *candidate_functions = candidate;
+#if DEBUG
+  if (debug_level >= 4) {
+    fprintf(f_debug,
+            "add_builtin_operator_to_candidate_functions_list: added\n"); 
+    db_candidate_function(candidate);
+  }  /* if */
+#endif /* DEBUG */
+}  /* add_builtin_operator_to_candidate_functions_list */
+
+
+static void add_function_template_to_candidate_functions_list(
+                                 a_symbol_ptr             function_symbol,
+                                 an_arg_match_summary_ptr arg_matches,
+                                 an_arg_operand_ptr       arg_operand_list,
+                                 a_candidate_function_ptr *candidate_functions)
+/*
+Add the function template identified by function_symbol to the front of the
+candidate_functions list.    arg_matches gives information about how well
+the actual arguments we have match the function's formal parameters (but
+the entries are really just place-holders).  arg_operand_list gives the
+operand list.
+*/
+{
+  a_candidate_function_ptr candidate;
+
+  candidate = alloc_candidate_function();
+  candidate->function_symbol = function_symbol;
+  candidate->is_function_template = TRUE;
+  candidate->arg_matches = arg_matches;
+  candidate->arg_operand_list = arg_operand_list;
+  candidate->next = *candidate_functions;
+  *candidate_functions = candidate;
+#if DEBUG
+  if (debug_level >= 4) {
+    fprintf(f_debug,
+            "add_function_template_to_candidate_functions_list: added\n"); 
+    db_candidate_function(candidate);
+  }  /* if */
+#endif /* DEBUG */
+}  /* add_function_template_to_candidate_functions_list */
+
 
 /*
 Type codes used in type patterns that describe built-in operators
@@ -4524,7 +4672,6 @@ function calls.  See ARM 13.2.  User-defined conversions will be attempted
 only if try_user_conversions is TRUE; it must be FALSE if arg_type is non-NULL.
 */
 {
-  a_type_ptr       class_type, routine_type;
   a_boolean        param_is_reference;
   a_boolean        ref_type_qualifiers_dropped, ref_type_qualifiers_added;
   an_error_code    warning_suggested;
@@ -4532,7 +4679,6 @@ only if try_user_conversions is TRUE; it must be FALSE if arg_type is non-NULL.
   a_base_class_ptr bcp;
   a_routine_ptr    conversion_routine;
   a_boolean        ambiguous;
-  a_symbol_ptr     function_symbol;
   a_boolean        arg_operand_is_constant;
   a_constant_ptr   arg_operand_constant;
   an_operand       implicit_arg_operand;
@@ -4542,35 +4688,6 @@ only if try_user_conversions is TRUE; it must be FALSE if arg_type is non-NULL.
   if (arg_type == NULL) {
     /* Get the actual argument type from arg_operand. */
     arg_type = arg_operand->type;
-    if (is_indefinite_function_operand(arg_operand)) {
-      /* The source is an indefinite function, i.e., the address of an
-         overloaded function.  It can be converted to an appropriate
-         pointer (ARM 13.3) or pointer-to-member type (not mentioned in ARM,
-         but sensible).  Note that in the pointer-to-member case standard
-         conversions (to a derived class) may apply later. */
-      function_symbol = find_addr_of_overloaded_function_match(
-                                                   arg_operand->variant.symbol,
-                                                   param_type);
-      if (function_symbol != NULL) {
-        /* There is a suitable indefinite function.  Get the type of a pointer
-           to the function and use it as the argument type. */
-        routine_type = routine_symbol_type(function_symbol);
-        if (routine_type_is_nonstatic_member_function(routine_type)) {
-          /* Nonstatic member function, so the pointer is a pointer-to-member-
-             function. */
-          class_type = function_symbol->class_of_which_a_member;
-          arg_type = ptr_to_member_type(routine_type, class_type);
-        } else {
-          /* Non-member function, or static member function, so the pointer
-             is a normal pointer. */
-          arg_type = make_pointer_type(routine_type);
-        }  /* if */
-      }  /* if */
-      /* Continue through the match-determination process.  At least in
-         the pointer-to-member case, a standard conversion might still
-         be done.  The operand is probably still a function designator
-         at this point, and will be converted to a pointer below. */
-    }  /* if */
   } else {
     /* arg_type is supplied, so arg_operand should be ignored. */
     arg_operand = NULL;
@@ -4723,6 +4840,22 @@ only if try_user_conversions is TRUE; it must be FALSE if arg_type is non-NULL.
           arg_summary->less_desirable_exact_match = TRUE;
           goto have_level;
         }  /* if */
+      }  /* if */
+    }  /* if */
+    if (arg_operand != NULL && is_indefinite_function_operand(arg_operand)) {
+      /* The source is an indefinite function, i.e., the address of an
+         overloaded function.  It can be converted to an appropriate
+         pointer (ARM 13.3) or pointer-to-member type (not mentioned in ARM,
+         but sensible).  Note that in the pointer-to-member case standard
+         conversions (to a derived class) may also be required. */
+      if (find_addr_of_overloaded_function_match(arg_operand->variant.symbol,
+                                                 param_type,
+                                                 &arg_operand->position,
+                                                 &arg_summary->match_level,
+                                                 &ambiguous) || ambiguous) {
+        /* There is a suitable indefinite function, or more than one.
+           arg_summary->match_level has been set appropriately. */
+        goto have_level;
       }  /* if */
     }  /* if */
     /* Try a match involving promotions.  This is case [2] in the ARM.
@@ -4970,6 +5103,7 @@ TRUE; that allows a different error message.
   an_arg_match_summary_ptr arg_match, arg_match_list, end_arg_match_list;
   an_arg_operand_ptr       arg_operand;
   a_boolean                function_is_nonstatic_member_function;
+  a_boolean                function_template_case;
 #if DEBUG
   unsigned long            narg;
 #endif /* DEBUG */
@@ -4998,7 +5132,18 @@ TRUE; that allows a different error message.
     }  /* if */
     narg = 0;
 #endif /* DEBUG */
-    routine_type = routine_symbol_type(function_symbol);
+    function_template_case = (function_symbol->kind ==
+                                          (a_symbol_kind)sk_function_template);
+    if (function_template_case) {
+      /* The symbol is a function template. */
+      routine_type = function_symbol->variant.template.extra_info->
+                                                variant.function.routine->type;
+      routine_type = skip_typerefs(routine_type);      
+    } else {
+      /* The symbol is not a function template (i.e., it's a normal
+         function). */
+      routine_type = routine_symbol_type(function_symbol);
+    }  /* if */
     /* Look at each argument and see whether or not it can match the formal
        parameter, and if so, how well. */
     param = routine_type->variant.routine.extra_info->param_type_list;
@@ -5038,14 +5183,16 @@ TRUE; that allows a different error message.
         }  /* if */
 #endif /* DEBUG */
       } else {
-        /* Both the actual argument and formal parameter are available, so
-           compare their types. */
-        determine_arg_match_level(&arg_operand->operand, (a_type_ptr)NULL,
-                                  param->type,
-                                  try_user_conversions,
-                                  arg_match);
-        /* If no match is possible, go on to the next function. */
-        if (arg_match->match_level == aml_none) goto reject_function;
+        /* Both the actual argument and formal parameter are available. */
+        if (!function_template_case) {
+          /* Compare their types. */
+          determine_arg_match_level(&arg_operand->operand, (a_type_ptr)NULL,
+                                    param->type,
+                                    try_user_conversions,
+                                    arg_match);
+          /* If no match is possible, go on to the next function. */
+          if (arg_match->match_level == aml_none) goto reject_function;
+        }  /* if */
       }  /* if */
       /* Go on to the next parameter. */
       if (!reached_ellipsis) param = param->next;
@@ -5063,56 +5210,69 @@ TRUE; that allows a different error message.
     }  /* if */
     /* All the arguments can be made to match the parameters. */
     /* See if the "this" parameter, if any, matches. */
-    function_is_nonstatic_member_function =
+    /* Template functions do not have "this" parameters. */
+    if (!function_template_case) {
+      function_is_nonstatic_member_function =
                        routine_type_is_nonstatic_member_function(routine_type);
-    if (have_selector) {
-      /* We have a selector. */
-      /* Put a match entry for it on the front of the match list. */
-      this_match = alloc_arg_match_summary();
-      this_match->next = this_match_next = arg_match_list;
-      arg_match_list = this_match;
-      if (!function_is_nonstatic_member_function) {
-        /* The function has no "this" parameter, so it does not need a
-           selector.  We would discard it if this function is chosen,
-           but we still need a match entry for it.  It counts as an
-           exact match. */
-        this_match->match_level = aml_exact;
-      } else {
-        /* The function requires a "this" parameter. */
-        if (bound_function_selector == NULL) {
-          /* We're dealing with a constructor case, the selector
-             expression is not available, and we can assume that it matches
-             perfectly (const- and volatile- qualifiers are not allowed
-             on constructors). */
+      if (have_selector) {
+        /* We have a selector. */
+        /* Put a match entry for it on the front of the match list. */
+        this_match = alloc_arg_match_summary();
+        this_match->next = this_match_next = arg_match_list;
+        arg_match_list = this_match;
+        if (!function_is_nonstatic_member_function) {
+          /* The function has no "this" parameter, so it does not need a
+             selector.  We would discard it if this function is chosen,
+             but we still need a match entry for it.  It counts as an
+             exact match. */
           this_match->match_level = aml_exact;
         } else {
-          /* See how the selector expression matches the "this" parameter
-             type. */
-          selector_match_with_this_param(bound_function_selector,
-                                         selector_is_object_pointer,
-                                         /*conversion_function_case=*/FALSE,
-                                         function_symbol->variant.routine.ptr,
-                                         routine_type, this_match);
-          /* Set the "next" pointer again, because it is cleared by
-             selector_match_with_this_param. */
-          this_match->next = this_match_next;
-          if (this_match->match_level == aml_none) goto reject_function;
+          /* The function requires a "this" parameter. */
+          if (bound_function_selector == NULL) {
+            /* We're dealing with a constructor case, the selector
+               expression is not available, and we can assume that it matches
+               perfectly (const- and volatile- qualifiers are not allowed
+               on constructors). */
+            this_match->match_level = aml_exact;
+          } else {
+            /* See how the selector expression matches the "this" parameter
+               type. */
+            selector_match_with_this_param(bound_function_selector,
+                                           selector_is_object_pointer,
+                                           /*conversion_function_case=*/FALSE,
+                                          function_symbol->variant.routine.ptr,
+                                           routine_type, this_match);
+            /* Set the "next" pointer again, because it is cleared by
+               selector_match_with_this_param. */
+            this_match->next = this_match_next;
+            if (this_match->match_level == aml_none) goto reject_function;
+          }  /* if */
         }  /* if */
-      }  /* if */
-    } else {
-      /* We have no selector. */
-      if (function_is_nonstatic_member_function) {
-        /* The function has a "this" parameter, so it is not suitable.
-           Remember this case to select a different error message if it
-           turns out no function matches. */
-        *matched_except_for_missing_selector = TRUE;
-        goto reject_function;
+      } else {
+        /* We have no selector. */
+        if (function_is_nonstatic_member_function) {
+          /* The function has a "this" parameter, so it is not suitable.
+             Remember this case to select a different error message if it
+             turns out no function matches. */
+          *matched_except_for_missing_selector = TRUE;
+          goto reject_function;
+        }  /* if */
       }  /* if */
     }  /* if */
     /* The function is a viable candidate.  Add it to the candidates
        list. */
-    add_function_to_candidate_functions_list(function_symbol, arg_match_list,
-                                             candidate_functions);
+    if (function_template_case) {
+      /* The symbol is a function template. */
+      add_function_template_to_candidate_functions_list(function_symbol,
+                                                        arg_match_list,
+                                                        arg_operand_list,
+                                                        candidate_functions);
+    } else {
+      /* The symbol is a normal function. */
+      add_function_to_candidate_functions_list(function_symbol,
+                                               arg_match_list,
+                                               candidate_functions);
+    }  /* if */
     goto next_function;
 reject_function:
     /* The function is not suitable. */
@@ -5399,6 +5559,93 @@ entry to the next argument match.
   ((cfp)->current_arg_match = (cfp)->current_arg_match->next)
 
 
+static a_boolean function_template_matches_operand_list(
+                                           a_symbol_ptr       templ_sym,
+                                           an_arg_operand_ptr arg_operand_list,
+                                           a_source_position  *source_pos,
+                                           a_symbol_ptr       *instance_symbol)
+/*
+Find out whether or not an instantiation of the function template
+templ_sym can be made to match the operands in arg_operand_list.
+If so, return TRUE and set *instance_symbol to the symbol for the specific
+instance of the template.  *source_pos is the source position of the
+reference.  Note that it has already been determined that the function
+template has the right number of parameters.
+*/
+{
+  a_param_type_ptr   ptp;
+  a_template_arg_ptr templ_arg_list = NULL;
+  a_symbol_ptr       sym = NULL;
+  a_routine_ptr      routine;
+  an_arg_operand_ptr arg_operand;
+  a_routine_type_supplement_ptr
+                     rtsp;
+  a_type_ptr         param_type;
+
+  db_enter(4, "function_template_matches_operand_list");
+#if CHECKING
+  if (templ_sym->kind != (a_symbol_kind)sk_function_template) {
+    internal_error("function_template_matches_operand_list: bad symbol");
+  }  /* if */
+#endif /* CHECKING */
+  routine = templ_sym->variant.template.extra_info->variant.function.routine;
+  rtsp = routine->type->variant.routine.extra_info;
+  /* Compare the types of the arguments to the parameter types. */
+  ptp = rtsp->param_type_list;
+  arg_operand = arg_operand_list;
+  for (;ptp != NULL && arg_operand != NULL;
+       ptp = ptp->next, arg_operand = arg_operand->next) {
+    /* Try to match up the parameter type and the argument type. */
+    param_type = ptp->type;
+    if (is_reference_type(param_type)) {
+      /* For a reference type, the argument must be an lvalue or a function
+         designator. */
+      /* Also allow error operands. */
+      if (is_an_rvalue(&arg_operand->operand)) goto done;
+      /* Drop the reference type. */
+      param_type = type_pointed_to(param_type);
+    }  /* if */
+    /* As the matching is attempted, templ_arg_list is filled in with
+       the bindings for the template arguments.  This is needed during the
+       matching process to ensure that each argument is used consistently
+       and also later in this routine to build the instantiation. */
+    if (!matches_template_type(arg_operand->operand.type, param_type,
+                               &templ_arg_list)) {
+      goto done;
+    }  /* if */
+  }  /* for */
+#if CHECKING
+  if (arg_operand != NULL) {
+    /* We ran out of parameters, but we still have arguments.  There should
+       be an ellipsis. */
+    if (!rtsp->has_ellipsis) {
+      internal_error(
+                   "function_template_matches_operand_list: missing ellipsis");
+    }  /* if */
+  } else if (ptp != NULL) {
+    /* We ran out of arguments, but we still have parameters.  The parameter
+       should have a default argument expression. */
+    if (ptp->default_arg_expr == NULL) {
+      internal_error(
+           "function_template_matches_operand_list: missing default arg expr");
+    }  /* if */
+  }  /* if */
+#endif /* CHECKING */
+  /* The function template matches the operand list.  Make an instantiation
+     of the template. */
+  sym = make_template_function(templ_sym, /*rout_type=*/NULL, templ_arg_list,
+                               source_pos);
+done:
+  if (sym == NULL && templ_arg_list != NULL) {
+    /* Free the template argument list if we did not use it. */
+    free_template_arg_list(templ_arg_list);
+  }  /* if */
+  *instance_symbol = sym;
+  db_exit();
+  return (sym != NULL);
+}  /* function_template_matches_operand_list */
+
+
 static a_boolean match_is_better_on_at_least_one_arg(
                                            a_candidate_function_ptr best_cfp,
                                            a_candidate_function_ptr candidates)
@@ -5461,6 +5708,7 @@ check_next_function:;
 
 static void select_best_candidate_functions(
                         a_candidate_function_ptr *candidate_functions,
+                        a_source_position        *source_pos,
                         a_boolean                *undecidable_because_of_error)
 /*
 *candidate_functions is the list of viable functions for a particular
@@ -5469,8 +5717,9 @@ and set *candidate_functions to that set.  Other candidate functions
 that do not make the "best" set are freed.  On return from this function,
 the *candidate_functions list has no elements if there are no viable
 functions, has more than one element if the call is ambiguous, and
-has exactly one member if the call is valid.  If the best functions
-could not be selected because there were error arguments in the matches,
+has exactly one member if the call is valid.  *source_pos is the source
+position of the reference.  If the best functions could not be selected
+because there were error arguments in the matches,
 *undecidable_because_of_error is returned TRUE and *candidate_functions
 is set to NULL.
 */
@@ -5483,11 +5732,119 @@ is set to NULL.
   a_boolean                overall_ambiguity = FALSE, any_error_arg = FALSE;
   a_boolean                some_require_std_conversion;
   a_boolean                some_do_not_require_std_conversion;
+  a_boolean                any_function_templates;
+  a_symbol_ptr             instance_symbol;
 
   db_enter(4, "select_best_candidate_functions");
   *undecidable_because_of_error = FALSE;
-  /* If there are no candidate functions, do nothing.  Likewise, if there
-     is exactly one function, the list is already correct. */
+  /* See if there are any function templates. */
+  any_function_templates = FALSE;
+  for (cfp = candidates; cfp != NULL; cfp = cfp->next) {
+    if (cfp->is_function_template) {
+      any_function_templates = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  if (any_function_templates) {
+    /* There is at least one function template.  The resolution algorithm
+       is therefore the one described in ARM 14.4:
+         (1)  Look for an exact match on a normal function.  If there is
+              exactly one, take it.  There shouldn't be more than one
+              because two such functions shouldn't be allowed to be
+              declared.
+         (2)  Look for a function template that can match the arguments
+              we have.  If there is exactly one, take it.  If there is
+              more than one, the call is ambiguous.
+         (3)  Remove the function templates from the candidate functions
+              set and do the normal overload resolution.
+    */
+    /* Look for exact matches. */
+    number_in_best_match_set = 0;
+    for (cfp = candidates; cfp != NULL; cfp = cfp->next) {
+      cfp->in_best_match_set = FALSE;
+      cfp->in_best_match_set_for_some_argument = FALSE;
+      if (!cfp->is_function_template) {
+        set_first_arg_match(cfp);
+        /* Loop for each argument. */
+        while (cfp->current_arg_match != NULL) {
+          if (cfp->current_arg_match->match_level !=
+                                               (an_arg_match_level)aml_exact) {
+            /* This argument, and therefore this function, is not an exact
+               match. */
+            goto end_exact_test;
+          }  /* if */
+          cfp->in_best_match_set_for_some_argument = TRUE;
+          advance_arg_match(cfp);
+        }  /* while */
+        /* This function is an exact match. */
+        cfp->in_best_match_set = TRUE;
+        number_in_best_match_set++;
+end_exact_test:;
+      }  /* if */
+    }  /* for */
+    if (number_in_best_match_set != 0) {
+      /* There is an exact match. */
+#if CHECKING
+      if (number_in_best_match_set > 1) {
+        /* It shouldn't be possible to get more than one exact match, because
+           it shouldn't be possible to declare two functions with
+           type signatures that close.  See overload_distinguishable. */
+        internal_error("select_best_candidate_functions: >1 exact match");
+      }  /* if */
+#endif /* CHECKING */
+      /* Take the exact match. */
+      goto create_final_list;
+    }  /* if */
+    /* There is no exact match.  Try matching the function templates. */
+    number_in_best_match_set = 0;
+    for (cfp = candidates; cfp != NULL; cfp = cfp->next) {
+      cfp->in_best_match_set = FALSE;
+      cfp->in_best_match_set_for_some_argument = FALSE;
+      if (cfp->is_function_template) {
+        if (function_template_matches_operand_list(cfp->function_symbol,
+                                                   cfp->arg_operand_list,
+                                                   source_pos,
+                                                   &instance_symbol)) {
+          /* The template function can be made to match the operands
+             we have. */
+          cfp->in_best_match_set = TRUE;
+          cfp->function_symbol = instance_symbol;
+          cfp->is_function_template = FALSE;
+          number_in_best_match_set++;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+    if (number_in_best_match_set != 0) {
+      /* Exactly one function template matches, or more than one function
+         template matches.  Either way, the best-match set is correct. */
+      goto create_final_list;
+    }  /* if */
+    /* No function templates match, so take them out of the candidate
+       functions set and free the entries. */
+    *candidate_functions = end_candidate_functions = NULL;
+    for (cfp = candidates; cfp != NULL; cfp = cfp_next) {
+      cfp_next = cfp->next;
+      cfp->next = NULL;
+      if (cfp->is_function_template) {
+        /* Free the candidate function entry for a function template.
+           Note that this call only frees one entry because the "next"
+           pointer has been cleared. */
+        free_candidate_function_list(cfp);
+      } else {
+        /* Not a function template entry, so keep it on the list. */
+        if (end_candidate_functions == NULL) {
+          *candidate_functions = candidates = cfp;
+        } else {
+          end_candidate_functions->next = cfp;
+        }  /* if */
+        end_candidate_functions = cfp;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  /* At this point, there are no function template entries on the
+     candidate functions list. */
+  /* If there are no functions or there is exactly one function the
+     list is already correct. */
   if (candidates != NULL && candidates->next != NULL) {
     /* The algorithm here is the one described in ARM 13.2: "The best-matching
        function is the intersection of sets of functions that best match on
@@ -6104,7 +6461,7 @@ C++ mode.
                                 &matched_except_for_missing_selector);
   /* The candidate_functions list now contains all the viable functions.
      Find the best one(s). */
-  select_best_candidate_functions(&candidate_functions,
+  select_best_candidate_functions(&candidate_functions, call_position,
                                   &undecidable_because_of_error);
   function_symbol = NULL;
   *arg_expr_list = NULL;
@@ -7225,6 +7582,7 @@ functions could still apply).
         /* The candidate_functions list now contains all the viable
            functions.  Find the best. */
         select_best_candidate_functions(&candidate_functions,
+                                        operator_position,
                                         &undecidable_because_of_error);
         function_symbol = NULL;
         arg_expr_list = NULL;
@@ -7453,6 +7811,7 @@ free that list.  This routine is only used in C++.
   /* The candidate_functions list now contains all the viable functions.
      Find the best ones. */
   select_best_candidate_functions(&candidate_functions,
+                                  &source_operand->position,
                                   &undecidable_because_of_error);
   *conversion_routine = NULL;
   *ambiguous = FALSE;
@@ -7546,6 +7905,7 @@ conversion is required after the conversion function, return
                                 &candidate_functions);
   /* Of the viable functions, select the best. */
   select_best_candidate_functions(&candidate_functions,
+                                  &source_operand->position,
                                   &undecidable_because_of_error);
   *ambiguous = FALSE;
   *conversion_routine = NULL;
@@ -7769,9 +8129,11 @@ type may not be a reference type (the caller should have rewritten that
 case in terms of the equivalent pointer case).
 */
 {
-  a_boolean     okay = FALSE, failed = FALSE;
+  a_boolean     okay = FALSE, failed = FALSE, ambiguous;
   a_type_ptr    source_type;
   an_error_code warning_suggested;
+  an_arg_match_level
+                match_level;
 
   db_enter(4, "conversion_possible");
   *conversion_routine = NULL;
@@ -7812,8 +8174,16 @@ case in terms of the equivalent pointer case).
        pointer (ARM 13.3) or pointer-to-member type (not mentioned in ARM,
        but sensible). */
     if (find_addr_of_overloaded_function_match(source_operand->variant.symbol,
-                                               dest_type) != NULL) {
+                                               dest_type,
+                                               &source_operand->position,
+                                               &match_level, &ambiguous)
+                                                                     != NULL) {
       okay = TRUE;
+    } else if (ambiguous) {
+      /* More than one function matches. */
+      pos_sy_error(ec_ambiguous_ptr_to_overloaded_function, err_pos,
+                   source_operand->variant.symbol);
+      conv_to_error_operand(source_operand);
     } else {
       /* No match. */
       pos_sy_error(ec_no_match_for_addr_of_overloaded_function, err_pos,
