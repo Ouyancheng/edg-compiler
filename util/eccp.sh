@@ -521,48 +521,28 @@ do
   then
     echo $cfile: 1>$2
   fi
-  using_ii_file=0
-  ii_option=
-  if [ $cmode -eq 0 -a $automatic_instantiation -eq 1 -a\
-       $preprocess_only -eq 0 ] ; then
-    #
-    # See if the .ii file exists.  If it does, extract the instantiation
-    # list to a temporary file.
-    #
-    using_ii_file=1
-    had_old_ii_file=0
-    ii_file_name=$basefile.ii
-    if [ -f $ii_file_name ] ; then
-      had_old_ii_file=1
-      ii_tmp_file=/usr/tmp/$$edgII
-      sed -e "1,1 d" $ii_file_name >$ii_tmp_file
-      ii_option="-F $ii_tmp_file"
-    fi
-  fi
   if [ -z "$CPFE" ]
   then
-    cpfe $feoptions $ii_option $cfile
+    cpfe $feoptions $cfile
   else
-    $CPFE $feoptions $ii_option $cfile
+    $CPFE $feoptions $cfile
   fi
   status=$?
   #
   # If we are doing automatic instantiation and if the program involves
   # templates then the a .ii file will exist after the compilation.
   # If a .ii file exists that means that the compilation used templates in
-  # some way.  Generate a new .ii file using the current command line
-  # and the saved instantiation list, if any.
+  # some way.  Generate a new .ii file using the current command line.
   #
-  if [ $using_ii_file -eq 1 ] ; then
+  if [ $automatic_instantiation -ne 0 ] ; then
+    ii_file_name=$basefile.ii
     if [ -f $ii_file_name ] ; then
       # An instantiation file exists which means the compilation involves
       # templates.  Construct the new .ii file.
+      ii_tmp_file=/usr/tmp/$$edgII
+      sed -e "1,1 d" $ii_file_name >$ii_tmp_file
       echo $instantiation_command_line $cfile >$ii_file_name
-      if [ $had_old_ii_file -eq 1 ] ; then
-        cat $ii_tmp_file >>$ii_file_name
-      fi
-    fi
-    if [ $had_old_ii_file -eq 1 ] ; then
+      cat $ii_tmp_file >>$ii_file_name
       rm -f $ii_tmp_file
     fi
   fi

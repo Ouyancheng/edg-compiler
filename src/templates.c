@@ -75,6 +75,17 @@ static a_boolean
 			   whether or not the instantiations are provided
 			   by this file.  This is used to determine whether
 			   to create an instantiation information file. */
+
+static char	*instantiation_info_file_name;
+                        /* The name of a file containing a list of names
+			   of template functions and static data members to
+			   be instantiated.  Intended to be used for linker
+			   feedback mechanisms to provide automatic
+			   instantiation. */
+static FILE	*f_instantiation_info;
+			/* File from which the instantiation list should be
+			   read.  Only valid when do_auto_instantiation is
+			   TRUE. */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
 typedef struct a_can_instantiate_entry *a_can_instantiate_entry_ptr;
@@ -3742,34 +3753,49 @@ updated but not removed from the list.
 
 
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
+static a_boolean open_instantiation_info_file(void)
+/*
+Open the instantiation information file associated with the primary source
+file.  Return TRUE if the file was successfully opened.
+*/
+{
+  f_instantiation_info = NULL;
+  if (strcmp(primary_source_file_name, FILE_NAME_FOR_STDIN) != 0) {
+    /* Only open the file if the input is coming from a file. */
+    instantiation_info_file_name =
+            derived_name(primary_source_file_name, INSTANTIATION_FILE_SUFFIX);
+    f_instantiation_info = fopen(instantiation_info_file_name, "r");
+  }  /* if */
+  return f_instantiation_info != NULL;
+}  /* open_instantiation_info_file */
+
+
 void create_or_remove_instantiation_information_file(void)
 {
-  char		*ii_file_name;
   FILE		*f_ii_file;
 
   if (strcmp(primary_source_file_name, FILE_NAME_FOR_STDIN) != 0) {
-    /* Only create the file if the input is coming from a file. */
-    ii_file_name = derived_name(primary_source_file_name,
-                                INSTANTIATION_FILE_SUFFIX);
-    f_ii_file = fopen(ii_file_name, "r");
+    /* Only create the file if the input is coming from a file.  Note
+       that the file will have been closed after all input was read so
+       it must be reopened now. */
+    f_ii_file = fopen(instantiation_info_file_name, "r");
     if (f_ii_file != NULL) (void)fclose(f_ii_file);
     if (any_instantiations_required) {
       /* If the file does not exist, create it. */
       if (f_ii_file == NULL) {
-        f_ii_file = fopen(ii_file_name, "a");
+        f_ii_file = fopen(instantiation_info_file_name, "a");
         if (f_ii_file == NULL) {
           str_catastrophe(ec_cannot_create_instantiation_information_file,
-                          ii_file_name);
+                          instantiation_info_file_name);
         }  /* if */
       }  /* if */
     } else {
       /* No instantiation information needed.  Delete the file if it
          already exits. */
       if (f_ii_file != NULL) {
-        delete_file(ii_file_name);
+        delete_file(instantiation_info_file_name);
       }  /* if */
     }  /* if */
-    purify_discard_memory(ii_file_name);
   }  /* if */
 }  /* create_or_remove_instantiation_information_file */
 
@@ -3876,7 +3902,7 @@ a line of input is being returned.  Returns FALSE at end-of-file.
   }  /* if */
   buffer_pos = input_line;
 
-  while (ch = getc(f_instantiation_information), ch != EOF && ch != '\n') {
+  while (ch = getc(f_instantiation_info), ch != EOF && ch != '\n') {
     if (++size == info_file_line_size) {
       /* The input line needs to be expanded.  This occurs one character
          before the actual end of the buffer to ensure that there will be
@@ -3903,7 +3929,7 @@ a line of input is being returned.  Returns FALSE at end-of-file.
 }  /* read_info_file */
 
 
-static a_boolean read_instantiation_information_file(void)
+static a_boolean read_instantiation_info_file(void)
 /*
 Read the list of names from the instantiation information file and
 enter the names into a hash table.  Returns TRUE if any entries
@@ -3912,18 +3938,26 @@ were entered in the hash table; otherwise returns FALSE.
 {
   char				*line;
   a_boolean			result = FALSE;
+  int				i;
 
-  if (process_instantiation_list_file) {
+  if (open_instantiation_info_file()) {
+    /* If the file does not exist, the open routine will return FALSE. */
+    /* Skip over initial lines of the instantiation information file
+       that don't contain instantiation entries. */
+    for (i = 1; i < INSTANTIATION_INFO_LINES_TO_BE_SKIPPED; ++i) {
+      /* Read and discard the line. */
+      (void)read_info_file();
+    }  /* if */
     /* The variable do_auto_instantiation indicates that an instantiation
        list file is present. */
     while ((line = read_info_file()) != NULL) {
       (void)find_instance(line, /*add=*/TRUE);
       result = TRUE;
     }  /* while */
-    (void)fclose(f_instantiation_information);
+    (void)fclose(f_instantiation_info);
   }  /* if */
   return result;
-}  /* read_instantiation_information_file */
+}  /* read_instantiation_info_file */
 
 
 static a_boolean can_be_instantiated(a_template_instance_ptr tip)
@@ -3987,7 +4021,7 @@ performed.
      compare mangled names unless there are actually instantiations that
      we need to do.   The read routine returns a flag that indicates whether
      any information was present in the instantiation file. */
-  instantiations_needed = read_instantiation_information_file();
+  instantiations_needed = read_instantiation_info_file();
   tip = instantiations_required;
   for (; tip != NULL; tip = tip->next_in_instantiation_list) {
     char	*name;
@@ -4237,6 +4271,8 @@ Initializations for template.
   can_instantiate_list = NULL;
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   any_instantiations_required = FALSE;
+  instantiation_info_file_name = NULL;
+  f_instantiation_info = NULL;
   memzero((char *)instance_lookup_table, sizeof(instance_lookup_table));
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 }  /* templates_init */

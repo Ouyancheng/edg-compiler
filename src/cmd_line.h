@@ -262,36 +262,6 @@ EXTERN a_boolean
 			   performed.  This includes both the generation of
  			   the instantiation flags and the processing of the
 			   instantiation list. */
-
-EXTERN a_boolean	process_instantiation_list_file
-#if VAR_INITIALIZERS
-			          = FALSE
-#endif /* VAR_INITIALIZERS */
-                                         ;
-                        /* When automatic_instantiation_mode is TRUE this
-			   flag indicates whether there is an instantiation
-			   list file to be read.  When this flag is FALSE
-			   and automatic_instantiation_mode is TRUE it means
-			   that no files have been assigned to this compilation
-			   for automatic instantiation but the front end should
-			   still generate automatic instantiation flags to
-			   be passed to the back end. */
-
-EXTERN char	*instantiation_list_filename
-#if VAR_INITIALIZERS
-			          = NULL
-#endif /* VAR_INITIALIZERS */
-                                        ;
-                        /* The name of a file containing a list of names
-			   of template functions and static data members to
-			   be instantiated.  Intended to be used for linker
-			   feedback mechanisms to provide automatic
-			   instantiation. */
-
-EXTERN FILE	*f_instantiation_information /* = NULL */;
-			/* File from which the instantiation list should be
-			   read.  Only valid when do_auto_instantiation is
-			   TRUE. */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION

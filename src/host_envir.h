@@ -466,6 +466,14 @@ input file to get the instantiation list file name.
 #ifndef INSTANTIATION_FILE_SUFFIX
 #define INSTANTIATION_FILE_SUFFIX ".ii"
 #endif /* ifndef INSTANTIATION_FILE_SUFFIX */
+
+/*
+The number of lines of the instantiation information file that are reserved
+and do not contain instantiation list entries.
+*/
+#ifndef INSTANTIATION_INFO_LINES_TO_BE_SKIPPED
+#define INSTANTIATION_INFO_LINES_TO_BE_SKIPPED 1
+#endif /* ifndef INSTANTIATION_INFO_LINES_TO_BE_SKIPPED */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
