@@ -1,5 +1,13 @@
 Version 2.27
 
+10/21/94 Using .init section for startup initialization (C-generating back end)
+
+If USE_INIT_SECTION_IN_GENERATED_C is set to TRUE, the C-generating back
+end will emit asm directives that put a call of any startup routine into
+the .init section.  This can be used to eliminate the need for "patch"
+and "munch".  The code generated is right for Solaris 2.n, but may have
+to be changed for other systems.
+
 10/20/94 IL CHANGE: representation of type qualification
 
 Since we have several clients who have added new type qualifiers (i.e.,
