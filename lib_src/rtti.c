@@ -46,6 +46,7 @@ FALSE.
 {
   a_boolean result = FALSE;
   a_boolean is_accessible;
+  void	    *ptr_sought = *p_new_ptr;
 
   if (typeid(*class_info) == typeid(abi::__si_class_type_info)) {
     /* Single, non-virtual, public inheritance. */
@@ -57,7 +58,8 @@ FALSE.
                                      si_obj_info->__base_type,
                                      base_info, p_is_ambiguous,
                                      &is_accessible)) {
-      if ((*p_new_ptr != NULL && ptr != *p_new_ptr) || *p_is_ambiguous) {
+      if ((ptr_sought != NULL && ptr_sought != *p_new_ptr) ||
+          *p_is_ambiguous) {
         /* The base class is ambiguous. */
         *p_is_ambiguous = TRUE;
         *p_new_ptr = NULL;
