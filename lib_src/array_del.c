@@ -19,7 +19,7 @@ C++ operator delete();
 
 #if ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE
 
-void operator delete[](void *ptr)
+void operator delete[](void *ptr) THROW_NOTHING()
 /*
 Default array operator delete.  Just call the normal operator delete.
 */

@@ -77,7 +77,7 @@ void *operator new(size_t, void*) throw();
 
 /* Placement delete. */
 #ifdef __PLACEMENT_DELETE
-void operator delete(void*, void*);
+void operator delete(void*, void*) throw();
 #endif /* ifdef __PLACEMENT_DELETE */
 
 #ifdef __ARRAY_OPERATORS
@@ -93,7 +93,7 @@ void *operator new[](size_t, void*) throw();
 
 /* Placement array delete. */
 #ifdef __PLACEMENT_DELETE
-void operator delete[](void*, void*);
+void operator delete[](void*, void*) throw();
 #endif /* ifdef __PLACEMENT_DELETE */
 
 /* Nothrow version of array new. */

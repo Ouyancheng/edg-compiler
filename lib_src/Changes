@@ -1,5 +1,10 @@
 Version 2.42
 
+5/5/99   Operator delete routines missing exception specifications
+
+The operator delete routines in the runtime were missing exception
+specifications.  Now fixed.
+
 3/17/99  name field in typeinfo now const
 
 The "name" field in the type_info_impl data structure now has "const

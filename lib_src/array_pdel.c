@@ -19,7 +19,7 @@ C++ operator delete[](size_t, void*);
 
 #if ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE && ABI_CHANGES_FOR_PLACEMENT_DELETE
 
-void operator delete[](void*, void*)
+void operator delete[](void*, void*) THROW_NOTHING()
 /*
 Placement operator delete -- does nothing.
 */

@@ -1,5 +1,10 @@
 Version 2.42
 
+5/5/99   Placement delete functions missing exception specifications
+
+The placement delete and placement array delete operators in new.h
+were missing exception specifications.  Now fixed.
+
 5/3/99   Implicitly declared delete functions missing from new.h
 
 The new.h header file was missing the implicitly declared delete

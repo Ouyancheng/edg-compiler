@@ -17,7 +17,7 @@ C++ operator delete();
 #include "runtime.h"
 
 
-void operator delete(void *ptr)
+void operator delete(void *ptr) THROW_NOTHING()
 /*
 Free the memory pointed to by ptr.
 */
