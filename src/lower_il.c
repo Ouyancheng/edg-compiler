@@ -7182,28 +7182,31 @@ constructor.  Change it to add an indirection to the type.
 
 
 #if !NEW_CAN_BE_FOLDED_INTO_CTOR && !ASSIGNMENT_TO_THIS_ALLOWED
-/*ARGSUSED*/  /* <-- routine is not used in those cases. */
+/*ARGSUSED*/  /* <-- routine or routine_type are not used in those cases. */
 #endif /* !NEW_CAN_BE_FOLDED_INTO_CTOR && !ASSIGNMENT_TO_THIS_ALLOWED */
 static a_boolean should_drop_const_on_this_param_variable(
-                                                         a_routine_ptr routine)
+                                                    a_routine_ptr routine,
+                                                    a_type_ptr    routine_type)
 /*
 Return TRUE if the top-level "const" on the "this" parameter variable of the
-indicated routine should be dropped.
+indicated routine should be dropped.  routine_type is the routine type.
+routine is NULL if the routine is unknown or does not have a definition.
 */
 {
   a_boolean drop_const = FALSE;
 
-  /* If an assignment to "this" will be done in this routine, because it
-     contains a user-written assignment to "this" or because it's a
-     constructor that will do the "new" allocation internally, drop the
-     top-level "const" on the "this" parameter variable type. */
 #if NEW_CAN_BE_FOLDED_INTO_CTOR
-  if (routine->special_kind == (a_special_function_kind)sfk_constructor) {
+  check_assertion(routine_type->kind == (a_type_kind)tk_routine);
+  /* If this is a constructor that can handle the allocation for a "new",
+     drop const because the allocation code assigns to "this". */
+  if (routine_type->variant.routine.extra_info->assoc_routine_is_ctor) {
     drop_const = TRUE;
   }  /* if */
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
 #if ASSIGNMENT_TO_THIS_ALLOWED
-  if (routine->assignment_to_this_done) drop_const = TRUE;
+  /* If this is a constructor that contains a user-written assignment
+     to "this" (an anachronism), drop const. */
+  if (routine != NULL && routine->assignment_to_this_done) drop_const = TRUE;
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
   return drop_const;
 }  /* should_drop_const_on_this_param_variable */
@@ -7330,9 +7333,8 @@ Do IL lowering of the indicated type and everything under it.
             /* The "this" parameter variable is const even though the
                const doesn't appear on the interface (see
                make_implicit_this_param_variable). */
-            if (rtsp->assoc_routine == NULL ||
-                !should_drop_const_on_this_param_variable(
-                                                        rtsp->assoc_routine)) {
+            if (!should_drop_const_on_this_param_variable(rtsp->assoc_routine,
+                                                          type)) {
               ptp->qualifiers = TQ_CONST;
             }  /* if */
 #if IA64_ABI
@@ -15392,7 +15394,7 @@ Do IL lowering of the indicated scope and everything under it.
       /* this_param_variable is not cleared.  It's harmless and it's
          helpful to be able to check it when one does not know whether or
          not it has been lowered. */
-      if (should_drop_const_on_this_param_variable(routine)) {
+      if (should_drop_const_on_this_param_variable(routine, routine_type)) {
         /* Drop the top-level "const" on the "this" parameter because it has
            to be modifiable.  Do this in a way that preserves "restrict" if
            that's present. */
