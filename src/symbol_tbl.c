@@ -10210,6 +10210,18 @@ are handled in symbol_tbl_init.)
     };
     register_pch_saved_variables(saved_vars);
   }  /* if */
+  register_trans_unit_variable(global_namespace_list_entry);
+  register_trans_unit_variable(symbol_for_namespace_std);
+  register_trans_unit_variable(builtin_va_list_type);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  register_trans_unit_variable(predeclared_size_t_symbol);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  register_trans_unit_variable(conversion_header_list);
+  register_trans_unit_variable(decl_seq_counter);
+#if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
+  register_trans_unit_variable(last_ctor_or_dtor_sym);
+#endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
+  register_trans_unit_variable(error_class_template_symbol);
 }  /* symbol_tbl_one_time_init */
 
 
