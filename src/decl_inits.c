@@ -1067,7 +1067,7 @@ In C99 mode, the processing is similar to that in C++.
              Set string_literal to TRUE to indicate that this is not a
              whole object initializer and that the constant should be
              remembered for later processing. */
-          check_assertion(gcc_mode);
+          check_assertion(gcc_mode || levels_down != 0);
           string_literal = TRUE;
         }  /* if */
       } else {
