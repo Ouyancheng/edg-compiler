@@ -9024,7 +9024,8 @@ normal_function:
             error_and_make_error_operand(ec_expr_not_constant, result);
           } else {
             make_indefinite_function_operand(projection_sym_ptr,
-                                             /*is_qualified_name=*/FALSE,
+                                             (a_boolean)locator_for_curr_id.
+                                                             is_qualified_name,
                                              result);
           }  /* if */
           break;
