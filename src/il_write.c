@@ -13,8 +13,11 @@ il_write.c -- Write the intermediate language to a file.
 
 */
 
+#include "basic_hdrs.h"
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
 /* Header files common to all files. */
 #include "fe_common.h"
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 
 #if HDRSTOP_RECOGNIZED
 /* Mark the end of the sequence of headers subject to precompiled header
