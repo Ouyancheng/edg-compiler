@@ -16,7 +16,7 @@ example:
 
 When the front end is compiled on a MacOS X system, a number of macros
 (e.g., __APPLE__, __ppc__, and __BIG_ENDIAN__) are now predefined.  To
-change this, sys_predef.c must be modified.
+change that, see sys_predef.c.
 
 3/15/05  GNU compatibility: white space inside line splice
 

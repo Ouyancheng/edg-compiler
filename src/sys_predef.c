@@ -122,12 +122,10 @@ Enter the standard predefined macros for a SPARC system.
 
 static void enter_macosx_predefined_macros(void)
 /*
-Enter some predefined macros for a MacOS X (Apple).
+Enter some predefined macros for a MacOS X (Apple) system.
 */
 {
   (void)enter_predef_macro("1", "__APPLE__", /*cannot_be_redefined=*/FALSE,
-                           /*ref_suppresses_pch_file=*/FALSE);
-  (void)enter_predef_macro("", "__unix__", /*cannot_be_redefined=*/FALSE,
                            /*ref_suppresses_pch_file=*/FALSE);
   (void)enter_predef_macro("1", "_BIG_ENDIAN", /*cannot_be_redefined=*/FALSE,
                            /*ref_suppresses_pch_file=*/FALSE);
