@@ -6065,7 +6065,7 @@ to indicate whether an enumeration is actually defined.
   a_type_ptr               enum_con_type;
   a_symbol_ptr             enum_sym;
   a_constant               constant;
-  a_boolean                err;
+  a_boolean                err, did_not_fold;
   a_constant_ptr           enum_con;
   a_constant_ptr           end_of_enum_con_list;
   a_constant               max_value, min_value;
@@ -6254,8 +6254,20 @@ to indicate whether an enumeration is actually defined.
                constraints) */
             if (!in_range_for_integer_kind(&constant, &constant,
                                            (an_integer_kind)ik_int)) {
-              error(ec_enum_value_out_of_int_range);
-              err = TRUE;
+              if (!strict_ansi_mode &&
+                  f_skip_typerefs(constant.type)->size <= TARG_SIZEOF_INT) {
+                /* In non-strict mode, allow unsigned constants that can be
+                   coerced into an int. */
+                type_change_constant(&constant,
+                                     integer_type((an_integer_kind)ik_int),
+                                     /*is_implicit_cast=*/TRUE,
+                                     /*constant_context=*/TRUE,
+                                     &did_not_fold,
+                                     &error_position);
+              } else {
+                error(ec_enum_value_out_of_int_range);
+                err = TRUE;
+              }  /* if */
             }  /* if */
           }  /* if */
         } else {
