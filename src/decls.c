@@ -5825,7 +5825,7 @@ recorded in the IL, the template header is passed via template_decl.
 #endif /* DECL_MODIFIERS_IN_USE */
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
-  if (prototype_instantiations_in_il) {
+  if (nonclass_prototype_instantiations) {
     a_source_sequence_entry_ptr  ssep;
     if (sym->kind == (a_symbol_kind)sk_function_template) {
       /* We have already record (mark_defined/mark_declared) the template in
@@ -5853,6 +5853,20 @@ recorded in the IL, the template header is passed via template_decl.
     } else {
       set_routine_declared_type(rout_ptr, func_info->declared_type);
       rout_ptr->template_decl = template_decl;
+    }  /* if */
+  } else {
+    /* We're not making function prototype instantiations.  Remove the
+       source sequence entry that was created for the declarator. */
+    if (func_info->declarator_ssep != NULL) {
+      remove_from_src_seq_list(func_info->declarator_ssep);
+      func_info->declarator_ssep = NULL;
+    }  /* if */
+    if (sym->is_class_member) {
+      /* The call to mark_defined may have created a source sequence entry
+         outside the prototype class scope. */
+      a_source_correspondence_ptr  scp = source_corresp_entry_for_symbol(sym);
+      remove_from_src_seq_list(scp->source_sequence_entry);
+      scp->source_sequence_entry = NULL;
     }  /* if */
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL */

@@ -8902,6 +8902,9 @@ instantiation.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   an_extended_decl_info_block       extended_decl_info;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
+  a_boolean                         saved_sses_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL */
 
   db_enter(3, "class_template_declaration");
   if (curr_token == tok_typedef || curr_token == tok_auto ||
@@ -9405,6 +9408,7 @@ instantiation.
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
   if (prototype_instantiations_in_il) {
+    /* Record the prototype instantiation in the IL. */
     a_symbol_ptr  proto_sym = tssp->variant.class_template.
                                                       prototype_instantiation;
     a_type_ptr  proto_type = type_symbol_type(proto_sym);
@@ -9414,6 +9418,12 @@ instantiation.
 
     depth_scope_stack = decl_state->effective_decl_level;
     ssep = add_empty_source_sequence_entry();
+    /* Since we record a prototype instantiation, remove the source sequence
+       entry for the corresponding a_template entry.  (We never want both in
+       the IL.) */
+    remove_from_src_seq_list(
+         decl_state->il_template_entry->source_corresp.source_sequence_entry);
+    decl_state->il_template_entry->source_corresp.source_sequence_entry = NULL;
     depth_scope_stack = saved_depth;
     if (is_definition) srk_flags |= SRK_DEFINITION;
     if (decl_state->is_template_friend) srk_flags |= SRK_FRIEND;
@@ -9447,6 +9457,14 @@ instantiation.
        partial specialization template argument list. */
     check_partial_spec_template_param_usage(decl_state, sym);
   }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
+  if (prototype_instantiations_in_il) {
+    /* Prevent the generation of a source sequence entry for the a_template
+       entry since we have one for the recorded prototype instantiation. */
+    saved_sses_disallowed = source_sequence_entries_disallowed;
+    source_sequence_entries_disallowed = TRUE;
+  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL */
   if (is_definition) {
     a_token_sequence_number   first_token_number = curr_token_sequence_number;
     a_token_sequence_number   last_token_number = NO_TOKEN_SEQUENCE_NUMBER;
@@ -9528,6 +9546,13 @@ instantiation.
     /* This is not a class template definition, so we have no need to
        cache the tokens. */
   }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
+  if (prototype_instantiations_in_il) {
+    /* Prevent the generation of a source sequence entry for the a_template
+       entry since we have one for the recorded prototype instantiation. */
+    source_sequence_entries_disallowed = saved_sses_disallowed;
+  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL */
   if (sym != NULL) {
     if (sym->kind == (a_symbol_kind)sk_class_template &&
         is_definition && tssp->cache.decl_info != NULL) {
@@ -11926,13 +11951,11 @@ also for template template parameters (when is_template_param is TRUE).
            subsequent missing parameter list is an error. */
         param_list_seen = TRUE;
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-        {
+        if (prototype_instantiations_in_il) {
           a_template_decl_ptr template_decl =
                         make_template_decl(decl_state->decl_info->parameters);
           template_decl->parent = decl_state->template_decl;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
           template_decl->template_pos = template_pos;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
           decl_state->template_decl = template_decl;
         }
 #endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
@@ -12270,7 +12293,12 @@ any non-empty template parameter lists that were scanned.
                                                 class_templ_cache_segments,
                                                 /*keep_default_args=*/TRUE);
   } /* if */
-  complete_il_template_entry(decl_state, sym, p_template_body_cache);
+  if (!prototype_instantiations_in_il ||
+      (!is_class_template && !nonclass_prototype_instantiations)) {
+    /* Link in the a_template entry only if no prototype instantiation was
+       recorded. */
+    complete_il_template_entry(decl_state, sym, p_template_body_cache);
+  }  /* if */
   if (class_templ_cache_segments != NULL) {
     /* Remove any default arguments that may remain in the cache. */
     (void)extract_member_bodies(&tssp->cache, class_templ_cache_segments,

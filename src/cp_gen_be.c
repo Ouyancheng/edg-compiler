@@ -6336,7 +6336,7 @@ is the one associated with the template.
   
   /* Advance past the source sequence entry for the template. */
   adv_curr_source_sequence_entry();
-  if (!prototype_instantiations_in_il) {
+  if (!prototype_instantiations_in_il || !nonclass_prototype_instantiations) {
     /* If prototype instantiations are recorded in the IL, the templates will
        be generated from those. */
     set_output_position(&tp->source_corresp.decl_position);
@@ -7930,7 +7930,9 @@ TRUE if the declaration following this one is such a continuation.
     }  /* if */
     if (rout->assoc_scope == NULL_region_number) {
       /* A member function of a template class might not be instantiated. */
-      check_assertion_str(rout->is_template_function,
+      check_assertion_str(rout->is_template_function ||
+                          (rout->is_prototype_instantiation &&
+                           !nonclass_prototype_instantiations),
                           "gen_routine_decl: missing definition");
       is_definition = FALSE;
     }  /* if */
