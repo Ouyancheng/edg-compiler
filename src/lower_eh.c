@@ -1627,11 +1627,15 @@ pointer can be examined.
        };
   */
   /* Make the destructor pointer. */
-#if 0
-  /* This needs to deal with delete routines too. */
-#endif
   dtor_con = alloc_constant((a_constant_repr_kind)ck_address);
-  dtor_routine = cap->variant.object.dynamic_init.destructor;
+  if (cap->kind == (a_cleanup_action_kind)cak_new_allocation) {
+    /* For the new-allocation case, put the delete routine in the entry. */
+    dtor_routine = cap->variant.object.delete_routine;
+    flags_value |= RDF_NEW_ALLOCATION;
+  } else {
+    /* Normal case; put the destructor routine in the entry. */
+    dtor_routine = cap->variant.object.dynamic_init.destructor;
+  }  /* if */
   /* Create the generic function pointer type if it does not exist already. */
   ptr_func_type = make_vptp_type();
   if (dtor_routine == NULL) {
