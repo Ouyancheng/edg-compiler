@@ -79,11 +79,13 @@ member instantiation has access to the complete class.
   rout = ctsp->assoc_scope->routines;
   while (rout != NULL) {
     sym = (a_symbol_ptr)rout->source_corresp.assoc_info;
-    tip = sym->variant.routine.instance_ptr;
-    check_assertion(tip != NULL);
-    if (instantiation_mode == tim_all ||
-        sym->variant.routine.ptr->is_virtual) {
-      update_instantiation_required_flag(tip, /*value=*/TRUE);
+    if (!rout->compiler_generated) {
+      tip = sym->variant.routine.instance_ptr;
+      check_assertion(tip != NULL);
+      if (instantiation_mode == tim_all ||
+          sym->variant.routine.ptr->is_virtual) {
+        update_instantiation_required_flag(tip, /*value=*/TRUE);
+      }  /* if */
     }  /* if */
     rout = rout->next;
   }  /* while */
