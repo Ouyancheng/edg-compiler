@@ -691,6 +691,7 @@ be TRUE to indicate an alternate syntax (ARM 8.4):
   a_class_symbol_supplement_ptr  cssp = NULL;
   a_routine_ptr                  conversion_routine;
   a_source_position              expr_pos;
+  a_memory_region_number         region_to_switch_back_to = NULL_region_number;
 
   db_enter(3, "initializer");
 
@@ -750,6 +751,19 @@ be TRUE to indicate an alternate syntax (ARM 8.4):
     /* The initializer of a static data member is scanned with the original
        class reactivated. */
     push_class_reactivation_scope(symbol_ptr->class_of_which_a_member);
+#if CHECKING
+    /* Though static data members may be given storage class of extern or
+       unspecified, that fixup up should not have taken place yet. */
+    if (vp != NULL && vp->storage_class != (a_storage_class)sc_static) {
+      internal_error("initializer: bad storage class for static data member");
+    }  /* if */
+#endif /* CHECKING */
+  }  /* if */
+  if (vp != NULL && vp->storage_class == (a_storage_class)sc_static) {
+    /* Variables with static storage class, even when declared at function
+       scope, will have been allocated in the file scope memory region.  Be
+       sure the initializers are also at file scope. */
+    switch_to_file_scope_region(&region_to_switch_back_to);
   }  /* if */
   if (C_dialect == C_dialect_cplusplus &&
       is_class_struct_union_type(vp_type)) {
@@ -923,6 +937,9 @@ be TRUE to indicate an alternate syntax (ARM 8.4):
       if (brace_flag && curr_token == tok_comma) (void)get_token();
       check_for_matching_closing_brace(brace_flag);
     }  /* if */
+  }  /* if */
+  if (region_to_switch_back_to != NULL_region_number) {
+    switch_back_to_original_region(region_to_switch_back_to);
   }  /* if */
   if (symbol_ptr->kind == (a_symbol_kind)sk_static_data_member) {
     /* The initializer of a static data member was scanned with the original
