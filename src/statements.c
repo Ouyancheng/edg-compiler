@@ -431,9 +431,7 @@ struct_stmt_stack_container, and struct_stmt_stack.
   }  /* if */
 
 
-void new_struct_stmt_stack(a_ptrdiff               *saved_container_pos,
-                           int                     *saved_depth_stmt_stack,
-                           a_reachability_summary  *saved_code_reachability)
+void new_struct_stmt_stack(a_struct_stmt_stack_state *saved_state)
 /*
 Save the state of the current structured statement stack, returning it to
 the caller, and create a new structured statement stack.  This is used to
@@ -444,36 +442,35 @@ algorithmic limit on the number of levels of nesting supported.
 {
   /* Expand the structured statement stack if necessary. */
   ensure_struct_stmt_stack_space();
-  *saved_container_pos = struct_stmt_stack - struct_stmt_stack_container;
-  *saved_depth_stmt_stack = depth_stmt_stack;
+  saved_state->container_pos = struct_stmt_stack - struct_stmt_stack_container;
+  saved_state->depth_stmt_stack = depth_stmt_stack;
   struct_stmt_stack = &struct_stmt_stack[depth_stmt_stack+1];
   depth_stmt_stack = -1;
-  *saved_code_reachability = curr_reachability;
+  saved_state->code_reachability = curr_reachability;
 }  /* new_struct_stmt_stack */
 
 
-void restore_struct_stmt_stack(a_ptrdiff              saved_container_pos,
-                               int                    saved_depth_stmt_stack,
-                               a_reachability_summary *saved_code_reachability)
+void restore_struct_stmt_stack(a_struct_stmt_stack_state *saved_state)
 /*
 Using state values returned from new_struct_stmt_stack, restore the original
 statement stack.
 */
 {
 #if CHECKING
-  if (saved_container_pos < 0 ||
-      saved_container_pos > (a_ptrdiff)size_struct_stmt_stack_container) {
+  if (saved_state->container_pos < 0 ||
+      saved_state->container_pos >
+                              (a_ptrdiff)size_struct_stmt_stack_container) {
     internal_error(
-              "restore_struct_stmt_stack: saved_container_pos out of range");
-  } else if (saved_container_pos + saved_depth_stmt_stack >
+             "restore_struct_stmt_stack: saved container_pos out of range");
+  } else if (saved_state->container_pos + saved_state->depth_stmt_stack >
                                       (int)size_struct_stmt_stack_container) {
     internal_error(
-          "restore_struct_stmt_stack: saved_depth_stmt_stack out of range");
+          "restore_struct_stmt_stack: saved depth_stmt_stack out of range");
   }  /* if */
 #endif /* CHECKING */  
-  struct_stmt_stack = &struct_stmt_stack_container[saved_container_pos];
-  depth_stmt_stack = saved_depth_stmt_stack;
-  curr_reachability = *saved_code_reachability;
+  struct_stmt_stack = &struct_stmt_stack_container[saved_state->container_pos];
+  depth_stmt_stack = saved_state->depth_stmt_stack;
+  curr_reachability = saved_state->code_reachability;
 }  /* restore_struct_stmt_stack */
 
 

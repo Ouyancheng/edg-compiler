@@ -33,6 +33,7 @@ decls.c -- Scanning of declarations.
 #include "decl_inits.h"
 #include "preproc.h"
 #include "const_ints.h"
+#include "folding.h"
 #include "templates.h"
 #include "types.h"
 #if ASM_FUNCTION_ALLOWED
@@ -8068,9 +8069,7 @@ and for the instantiation of template functions.
   a_scope_number                 scope_number;
   a_param_id_ptr                 param_id;
   a_scope_ptr                    scope_ptr;
-  int                            saved_depth_stmt_stack;
-  a_ptrdiff                      saved_container_pos;
-  a_reachability_summary         saved_curr_reachability;
+  a_struct_stmt_stack_state      saved_sss_state;
   a_boolean                      is_instantiation;
   a_param_type_ptr               ptp;
 
@@ -8178,8 +8177,7 @@ and for the instantiation of template functions.
        statement stack.  This is required for function definitions in classes
        defined within a function definition.  An indefinite nesting depth is
        supported */
-    new_struct_stmt_stack(&saved_container_pos, &saved_depth_stmt_stack,
-                          &saved_curr_reachability);
+    new_struct_stmt_stack(&saved_sss_state);
   }  /* if */
   /* Scan the compound statement defining the function.  The closing "}"
      is not swallowed by compound_statement, so that the pop_scope call
@@ -8190,8 +8188,7 @@ and for the instantiation of template functions.
                            /*is_catch_clause=*/FALSE);
   if (flags & SFB_NEW_STRUCT_STMT_STACK_REQUIRED) {
     /* Restore the original structured statement stack. */
-    restore_struct_stmt_stack(saved_container_pos, saved_depth_stmt_stack,
-                              &saved_curr_reachability);
+    restore_struct_stmt_stack(&saved_sss_state);
   }  /* if */
   /* Pop the function scope. */
   pop_scope();

@@ -153,14 +153,25 @@ extern a_statement_ptr compound_statement(a_boolean at_function_level,
                                           a_boolean explicit_return_type,
                                           a_boolean is_catch_clause);
 extern a_boolean curr_code_reachable(void);
-extern void new_struct_stmt_stack(
-                           a_ptrdiff               *saved_container_pos,
-                           int                     *saved_depth_stmt_stack,
-                           a_reachability_summary  *saved_code_reachability);
-extern void restore_struct_stmt_stack(
-                              a_ptrdiff              saved_container_pos,
-                              int                    saved_depth_stmt_stack,
-                              a_reachability_summary *saved_code_reachability);
+
+/* Structure for saving the current state of the structured statement stack
+   so that it can be reinitialized to handle a nested function and then
+   restored to continue processing the current function. */
+typedef struct a_struct_stmt_stack_state {
+  a_ptrdiff	container_pos;
+			/* Saved position of the current struct_stmt_stack
+			   within struct_statement_stack_container (a static
+			   variable of statements.c). */
+  int		depth_stmt_stack;
+			/* Saved value of global variable depth_stmt_stack. */
+  a_reachability_summary
+		code_reachability;
+			/* Saved value of code_reachability (a static variable
+			   of statements.c). */
+} a_struct_stmt_stack_state;
+
+extern void new_struct_stmt_stack(a_struct_stmt_stack_state *saved_state);
+extern void restore_struct_stmt_stack(a_struct_stmt_stack_state *saved_state);
 
 #endif /* ifndef STATEMENTS_H */
 
