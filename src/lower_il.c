@@ -9448,9 +9448,10 @@ the top node of the indicated statement (which is an expression statement).
       first_arg->variant.routine = routine;
       first_arg->type = make_pointer_type(routine->type);
     }  /* if */
-#endif /* IA64_ABI */
+#else /* !IA64_ABI */
     /* If the call is of a destructor, add the implied argument. */
     add_implied_args_to_call(expr, routine);
+#endif /* IA64_ABI */
     lower_virtual_function_call(expr);
   } else if (op == (an_expr_operator_kind)eok_pm_call) {
     /* Call of a function specified by a pointer-to-member. */
