@@ -548,17 +548,20 @@ and to find existing entries only when appropriate.  Exercise great
 caution when modifying this routine.
 */
 {
-  a_symbol_ptr      tag_sym = NULL, templ_sym = NULL;
-  a_token_kind      next_tok;
-  a_boolean	    err = FALSE;
-  a_boolean	    tag_err = FALSE;
-  a_boolean	    is_tag_definition = FALSE;
+  a_symbol_ptr               tag_sym = NULL, templ_sym = NULL;
+  a_token_kind               next_tok;
+  a_boolean	             err = FALSE;
+  a_boolean	             tag_err = FALSE;
+  a_boolean	             is_tag_definition = FALSE;
+  an_identifier_options_set  options;
 
   db_enter(3, "scan_tag_name");
   *tag_resolution = FALSE;
   /* Coalesce the identifier that follows the class, struct, union, or
      enum keyword. */
-  if (is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL)) {
+  options = GID_TEMPLATE_ARGS_OPTIONAL;
+  if (is_ref_within_new_expr) options |= GID_IS_NEW_TYPE_NAME;
+  if (is_generalized_identifier_start(options)) {
     /* Determine whether this is a definition or something else (a
        declaration or an elaborated type specifier). */
     next_tok = next_token();
@@ -580,8 +583,7 @@ caution when modifying this routine.
   if (!C_mode() && !tag_err) {
     /* Check for the presence of a qualified name.  If we have a qualified
        name, do the lookup in a manner that will only find tag names. */
-    if (coalesce_and_lookup_qualified_name(GID_TEMPLATE_ARGS_OPTIONAL,
-                                           ilm_tag, &err) ||
+    if (coalesce_and_lookup_qualified_name(options, ilm_tag, &err) ||
         (curr_token == tok_identifier &&
          locator_for_curr_id.is_template_id)) {
       if (err) {
