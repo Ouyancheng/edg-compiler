@@ -1809,6 +1809,43 @@ have_kind:;
 }  /* int_kind_for_size_and_alignment */
 
 
+an_integer_kind int_kind_for_bit_size(unsigned int  number_of_bits,
+                                      a_boolean     is_signed)
+/*
+Return the integer kind that corresponds to the given number_of_bits and
+signedness.  If none is found, ik_none is returned.
+*/
+{
+  an_integer_kind  int_kind;
+  a_targ_size_t    size, int_size;
+  a_targ_alignment int_alignment;
+  a_boolean        int_signed;
+
+  /* Compute the size in bits, making sure no bits are lost. */
+  size = number_of_bits / targ_char_bit;
+  if (number_of_bits == size * targ_char_bit) {
+    for (int_kind = (an_integer_kind)0;
+         (int)int_kind < (int)ik_last;
+         int_kind = (an_integer_kind)((int)int_kind + 1)) {
+#ifdef FIL
+      if (int_kind == (an_integer_kind)ik_unsized) continue;
+#endif /* ifdef FIL */
+      get_integer_size_and_alignment(int_kind, &int_size, &int_alignment);
+      int_signed = int_kind_is_signed[(int)int_kind];
+      if (int_size == size && int_signed == is_signed) {
+        /* This is the kind to use. */
+        goto have_kind;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  /* Getting here means no integer kind matches the specified size and
+     signedness. */
+  int_kind = (an_integer_kind)ik_none;
+have_kind:;
+  return int_kind;
+}  /* int_kind_for_bit_size */
+
+
 static void init_int_kind_min_max_values(an_integer_kind ikind)
 /*
 Initialize the elements of min_integer_value_of_kind and
