@@ -24,7 +24,6 @@ src_seq.c -- Support for source sequence list management
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if !STANDALONE_UTILITY_PROGRAM
-#include "decls.h"
 
 #if DEBUG
 

@@ -9300,8 +9300,8 @@ moreover, several fields of *decl_info may be updated by this routine.
     if (dso_flags & DSO_DEFINES_SOMETHING) {
       tp->autonomous_primary_tag_decl = TRUE;
     } else {
-      set_src_seq_secondary_decl_fields((char *)tp, (a_type_ptr)NULL,
-                                          SSSD_AUTONOMOUS_TAG_DECL);
+      (void)set_src_seq_secondary_decl_fields((char *)tp, (a_type_ptr)NULL,
+                                              SSSD_AUTONOMOUS_TAG_DECL);
     }  /* if */
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */

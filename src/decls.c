@@ -7851,13 +7851,14 @@ TRUE if an error was reported while the decl-specifiers were scanned.
                    ec_decl_should_be_of_param);
       }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-      if (defines_something) {
-        skip_typerefs(type_ptr)->autonomous_primary_tag_decl = TRUE;
-      } else {
-        set_src_seq_secondary_decl_fields((char *)(skip_typerefs(type_ptr)),
-                                          (a_type_ptr)NULL,
-                                          SSSD_AUTONOMOUS_TAG_DECL);
-      }  /* if */
+      { a_type_ptr  tp = skip_typerefs(type_ptr);
+        if (defines_something) {
+          tp->autonomous_primary_tag_decl = TRUE;
+        } else {
+          (void)set_src_seq_secondary_decl_fields((char *)tp, (a_type_ptr)NULL,
+                                                  SSSD_AUTONOMOUS_TAG_DECL);
+        }  /* if */
+      }
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     } else if (!declares_something && C_dialect == C_dialect_cplusplus &&
                defines_something && type_ptr->kind == (a_type_kind)tk_union &&
@@ -7947,8 +7948,9 @@ TRUE if an error was reported while the decl-specifiers were scanned.
           if (defines_something) {
             tp->autonomous_primary_tag_decl = TRUE;
           } else {
-            set_src_seq_secondary_decl_fields((char *)tp, (a_type_ptr)NULL,
-                                              SSSD_AUTONOMOUS_TAG_DECL);
+            (void)set_src_seq_secondary_decl_fields((char *)tp,
+                                                    (a_type_ptr)NULL,
+                                                    SSSD_AUTONOMOUS_TAG_DECL);
           }  /* if */
         }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
