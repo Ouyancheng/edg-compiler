@@ -251,6 +251,8 @@ extern a_template_arg_ptr alloc_template_arg(a_boolean is_type_arg);
 
 extern void free_template_arg_list(a_template_arg_ptr  tap);
 
+extern a_template_param_type_descr_ptr alloc_template_param_type_descr(void);
+
 extern a_base_class_ptr alloc_base_class(void);
 
 extern void set_type_kind(a_type_ptr  pte,
