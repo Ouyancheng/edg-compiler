@@ -6418,6 +6418,10 @@ to process, or NULL if the complete object should be processed.
        rout = rout->next) {
     /* Skip non-virtual functions. */
     if (!rout->is_virtual) continue;
+    /* We don't expect that alternate entry points for virtual destructors
+       will have been added yet, since this processing happens at
+       prelowering time. */
+    check_assertion(rout->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_none);
     /* Look for an overrider.  Assume it will be the original function until
        shown otherwise. */
     overrider = rout;
