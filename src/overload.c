@@ -4049,6 +4049,7 @@ match, promotion, etc.) for the operand.
 static void try_builtin_operands_match(
                        an_opname_kind           kind,
                        char                     *operand_type_pattern,
+                       a_boolean                first_operand_must_be_lvalue,
                        an_arg_operand_ptr       arg_operand_list,
                        a_candidate_function_ptr *candidate_functions,
                        char                     *pointer_type_pattern_position,
@@ -4058,9 +4059,11 @@ static void try_builtin_operands_match(
 Subroutine for try_conversions_for_builtin_operator.  Check to see how
 well the operand values given by arg_operand_list match the operand type
 pattern string given by operand_type_pattern.  If they match, add
-the built-in operator to the candidate_functions list.  The operator
-being considered is described by "kind".  This is used for the case
-where the pattern string contains no corresponding pointer or pointer to
+the built-in operator to the candidate_functions list.  The first
+operand must be an lvalue if first_operand_must_be_lvalue (but this
+routine need only check for the class cases).  The operator being
+considered is described by "kind".  This is used for the case where
+the pattern string contains no corresponding pointer or pointer to
 member types, with pointer_type_pattern_position == pointer_type ==
 NULL, and with those set non-NULL for pattern strings containing
 corresponding pointer or pointer to member types types (they indicate
@@ -4076,7 +4079,7 @@ ptr_to_member_case is TRUE for the pointer to member case.
   an_arg_match_summary_ptr arg_match, arg_match_list, end_arg_match_list;
   a_type_ptr               operand_type;
   a_conv_descr             conversion;
-  a_boolean                ambiguous;
+  a_boolean                ambiguous, need_lvalue_result;
 #if DEBUG
   unsigned long            narg;
 #endif /* DEBUG */
@@ -4092,11 +4095,13 @@ ptr_to_member_case is TRUE for the pointer to member case.
 #endif /* DEBUG */
   arg_match_list = end_arg_match_list = NULL;
   okay = TRUE;
+  need_lvalue_result = first_operand_must_be_lvalue;
   /* Go through the operands and determine the match level on each operand. */
   for (type_pattern_position = operand_type_pattern,
          arg_operand = arg_operand_list;
        arg_operand != NULL;
-       type_pattern_position++, arg_operand = arg_operand->next) {
+       type_pattern_position++, need_lvalue_result = FALSE,
+                                             arg_operand = arg_operand->next) {
 #if CHECKING
     if (*type_pattern_position == ';' ||
         *type_pattern_position == '\0') {
@@ -4133,7 +4138,7 @@ ptr_to_member_case is TRUE for the pointer to member case.
         if (conversion_from_class_possible(&arg_operand->operand,
                                            (a_type_ptr)NULL,
                                      builtin_type_set_for_type_code(type_code),
-                                           /*need_lvalue_result=*/FALSE,
+                                           need_lvalue_result,
                                            /*is_reference_binding=*/FALSE,
                                            &conversion,
                                            &ambiguous,
@@ -4185,7 +4190,7 @@ ptr_to_member_case is TRUE for the pointer to member case.
            set in the arg_match entry. */
         if (conversion_from_class_possible(&arg_operand->operand, pointer_type,
                                            (a_builtin_type_kind_set)BTK_NONE,
-                                           /*need_lvalue_result=*/FALSE,
+                                           need_lvalue_result,
                                            /*is_reference_binding=*/FALSE,
                                            &conversion,
                                            &ambiguous,
@@ -4298,15 +4303,18 @@ if non-NULL, indicates the pointer type of a previous non-class operand.
 
 
 static void try_pointer_builtin_operands_match(
-                                an_opname_kind           kind,
-                                char                     *operand_type_pattern,
-                                an_arg_operand_ptr       arg_operand_list,
-                                a_candidate_function_ptr *candidate_functions)
+                         an_opname_kind           kind,
+                         char                     *operand_type_pattern,
+                         a_boolean                first_operand_must_be_lvalue,
+                         an_arg_operand_ptr       arg_operand_list,
+                         a_candidate_function_ptr *candidate_functions)
 /*
 Subroutine for try_conversions_for_builtin_operator.  Check to see how
 well the operand values given by arg_operand_list match the operand type
 pattern string given by operand_type_pattern.  If they match, add
-the built-in operator to the candidate_functions list.  The operator being
+the built-in operator to the candidate_functions list.  The first
+operand must be an lvalue if first_operand_must_be_lvalue (but this
+routine need only check for the class cases).  The operator being
 considered is described by "kind".  This is used for the case where the
 pattern string contains "pp", meaning two pointer operands that must
 have the same type, or "mm", meaning two pointer-to-member operands that
@@ -4374,6 +4382,7 @@ must have the same type.
                as the target type for operands that must be pointers. */
             any_ptr_conversion_function_this_operand = TRUE;
             try_builtin_operands_match(kind, operand_type_pattern,
+                                       first_operand_must_be_lvalue,
                                        arg_operand_list,
                                        candidate_functions,
                                        type_pattern_position,
@@ -4407,6 +4416,7 @@ must have the same type.
           /* Try matching the operands, with the chosen pointer type
              as the target type for operands that must be pointers. */
           try_builtin_operands_match(kind, operand_type_pattern,
+                                     first_operand_must_be_lvalue,
                                      arg_operand_list,
                                      candidate_functions,
                                      type_pattern_position,
@@ -4435,6 +4445,7 @@ can be used, it is added to the candidate_functions list.
 {
   char       *operand_type_pattern;
   an_operand *first_operand;
+  a_boolean  first_operand_must_be_lvalue = FALSE;
 
   db_enter(4, "try_conversions_for_builtin_operator");
   /* Determine the argument pattern for the operator, and whether or not
@@ -4455,6 +4466,9 @@ can be used, it is added to the candidate_functions list.
        built-in operator will do that if necessary.  In fact, the
        processing for the built-in operator will do full checking, so
        the checking here is just looking for obvious mismatches. */
+    /* In cfront 2.1 mode, do not require that conversions from class types
+       yield lvalues; the error check gets done by the builtin operator. */
+    if (!cfront_2_1_mode) first_operand_must_be_lvalue = TRUE;
     first_operand = &arg_operand_list->operand;
     if (!is_an_lvalue(first_operand) &&
         !is_class_struct_union_type(first_operand->type)) {
@@ -4476,11 +4490,13 @@ can be used, it is added to the candidate_functions list.
          pointer types that can be generated by the applicable conversion
          functions. */
       try_pointer_builtin_operands_match(kind, operand_type_pattern,
+                                         first_operand_must_be_lvalue,
                                          arg_operand_list,
                                          candidate_functions);
     } else {
       /* There are no corresponding pointer types in the argument pattern. */
       try_builtin_operands_match(kind, operand_type_pattern,
+                                 first_operand_must_be_lvalue,
                                  arg_operand_list,
                                  candidate_functions,
                                  (char *)NULL, (a_type_ptr)NULL,
