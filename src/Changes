@@ -1,5 +1,13 @@
 Version 3.2
 
+3/26/03  Lookup error when using multiple translation units
+
+When using exported templates or compiling multiple translation units,
+a lookup in translation unit X using a namespace from translation unit
+Y could produce an incorrect result.  This could, for example, cause
+certain functions to be ignored when doing argument-dependent lookup.
+This has been fixed.
+
 3/26/03  GNU mode: Rendering of asm operands by C/C++-generating back ends
 
 The C- and C++-generating back ends incorrectly omitted a colon when

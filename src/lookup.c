@@ -167,7 +167,7 @@ the options being used for the lookup.
          symbols from other translation units. */
       if (sym->synthesized_namespace_projection &&
           (a_boolean)sym->qualified_lookup == qualified_lookup &&
-          sym->parent.namespace_ptr == qualifier_namespace &&
+          same_entities(sym->parent.namespace_ptr, qualifier_namespace) &&
           (qualifier_namespace != NULL ||
            sym->decl_scope == file_scope_number) &&
           (a_boolean)sym->must_be_class_or_namespace_lookup ==
@@ -3294,7 +3294,7 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
     must_be_class ||						      \
     must_be_tag ||						      \
     !same_entities(class_type, (fund_sym)->variant.type.ptr)) &&      \
-   (sym)->parent.class_type == class_type &&                          \
+   same_entities((sym)->parent.class_type, class_type) &&             \
    (!must_be_class_or_namespace ||				      \
     symbol_may_precede_qualifier(fund_sym)) &&	     		      \
    (!must_be_class ||						      \
@@ -4065,7 +4065,7 @@ namespace_qualified_id_lookup.
 #define is_acceptable_symbol(sym, fund_sym)                           \
   ((!(fund_sym->is_invisible) || is_linkage_or_friend_lookup) &&      \
    (!(sym)->is_class_member) &&                                       \
-   (sym)->parent.namespace_ptr == ns_ptr &&                           \
+   same_entities((sym)->parent.namespace_ptr, ns_ptr) &&              \
    (!must_be_class_or_namespace ||				      \
     symbol_may_precede_qualifier(fund_sym)) &&     		      \
    (!must_be_class ||				     		      \
