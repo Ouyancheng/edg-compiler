@@ -1040,8 +1040,7 @@ scope is that of a class definition.
                      &do_flags, param_type_ptr,
                      /*member_parent_type=*/(a_type_ptr)NULL,
                      &param_locator, &param_type_ptr,
-                     (a_decl_modifier_ptr)NULL, &param_ssep,
-                     (a_func_info_block_ptr)NULL);
+                     &param_ssep, (a_func_info_block_ptr)NULL);
 #if RESTRICT_ALLOWED
           restrict_qualified = 
                 (do_flags & DO_PARAM_TYPE_IS_RESTRICT_QUALIFIED_ARRAY) != 0;
@@ -1858,7 +1857,7 @@ a_type_ptr pointer_declarator(
 		      a_boolean		    call_conv_allowed,
                       a_call_conv_descr_ptr p_calling_convention,
                       a_call_conv_descr_ptr p_unbound_calling_convention,
-                      a_decl_modifier       *decl_modifiers)
+                      a_type_qualifier_set  *unbound_qualifiers)
 /*
 Scan the pointer component of a declarator.  Syntax for C++ (ARM 8.0):
 
@@ -1908,9 +1907,10 @@ When pointer_declarator is called from elsewhere in the compiler
 (e.g., new_type_name), p_calling_convention and p_unbound_calling_convention
 are NULL.
 
-If any unbound near/far modifiers are scanned, they are added to whatever is
-already in *decl_modifiers.  decl_modifiers is NULL if unbound declaration
-modifiers should be discarded.
+If any unbound near/far type qualifiers (an extension) are scanned,
+they are returned in *unbound_qualifiers.  unbound_qualifiers is NULL
+if the caller cannot handle unbound qualifiers, in which case they are
+thrown away.
 */
 {
   a_type_ptr     		complete_type = specifiers_type;
@@ -1952,6 +1952,7 @@ modifiers should be discarded.
     err = FALSE;
     if (curr_token == tok_star ||
         (reference_allowed && curr_token == tok_ampersand)) {
+      /* A pointer "*" or reference "&". */
       set_err_pos_to_curr_token();
       if (complete_type != NULL) {
         /* Normal case -- the specifiers type is given, and the pointer or
@@ -2547,7 +2548,7 @@ void r_declarator(a_decl_flag_set             input_flags,
                   a_type_ptr                  *p_complete_type,
                   a_type_ptr                  *p_bottom_derived_type,
                   a_call_conv_descr_ptr       p_calling_convention,
-                  a_decl_modifier             *decl_modifiers,
+                  a_type_qualifier_set        *unbound_qualifiers,
                   a_source_sequence_entry_ptr *declarator_ssep,
                   a_func_info_block           *func_info)
 /*
@@ -2566,17 +2567,13 @@ entry, *p_complete_type points to just the declarator derived type list
 (with nothing attached to the bottom), or is NULL if there is no derived
 type list.  *p_bottom_derived_type is set to point to the bottom type in
 the declarator derived type list, or NULL if there is no derived type
-list.  Any declaration modifiers encountered (these are extensions,
-e.g., near/far) are added to the set already in *decl_modifiers.
-decl_modifiers can be NULL if the caller is not willing to handle
-declaration modifiers.  If source sequence entries are enabled,
-*declarator_ssep is set to point to a source sequence entry for the
-declaration.  If the top type in the declarator derived type list
-is a function, *func_info is filled with extra information about
-the parameter list, for use if a function body follows.  For declarators
-that may turn out to be member functions, member_parent_type is a
-pointer to the class (or struct or union) type of which it is a member;
-otherwise it is NULL.
+list.  If source sequence entries are enabled, *declarator_ssep is set
+to point to a source sequence entry for the declaration.  If the top
+type in the declarator derived type list is a function, *func_info is
+filled with extra information about the parameter list, for use if a
+function body follows.  For declarators that may turn out to be member
+functions, member_parent_type is a pointer to the class (or struct or
+union) type of which it is a member; otherwise it is NULL.
 
 The routine "declarator" is called at the top level, and it calls
 this routine to do the actual work.  This routine can call itself
@@ -2588,6 +2585,10 @@ processed at that level, it is returned to the caller in
 p_calling_convention, otherwise the value returned in p_calling_convention
 is cc_default.  When a nested declarator is not involved,
 p_calling_convention should be NULL.
+
+If any unbound near/far type qualifiers (an extension) are scanned, they
+are returned in *unbound_qualifiers.  unbound_qualifiers is NULL if the
+caller cannot handle unbound qualifiers, in which case they are thrown away.
 
 The syntax is:
 
@@ -2669,7 +2670,7 @@ The syntax is:
                                      /*call_conv_allowed=*/TRUE,
                                      &call_conv,
                                      &unbound_call_conv,
-                                     decl_modifiers);
+                                     unbound_qualifiers);
   derived_type = NULL;
   bottom_derived_type = NULL;
   /* The next thing is an identifier, or a parenthesis that begins a
@@ -2712,7 +2713,7 @@ The syntax is:
                  &local_do_flags, /*specifiers_type=*/(a_type_ptr)NULL,
                  member_parent_type, locator, &derived_type,
                  &bottom_derived_type, &unbound_call_conv,
-                 decl_modifiers, declarator_ssep, func_info);
+                 unbound_qualifiers, declarator_ssep, func_info);
     if (local_do_flags & DO_REAL_DECLARATOR_SCANNED) {
       *output_flags |= DO_REAL_DECLARATOR_SCANNED;
     } else {
@@ -3069,7 +3070,6 @@ void declarator(a_decl_flag_set             input_flags,
                 a_type_ptr                  member_parent_type,
                 a_symbol_locator            *locator,
                 a_type_ptr                  *p_complete_type,
-                a_decl_modifier             *decl_modifiers,
                 a_source_sequence_entry_ptr *declarator_ssep,
                 a_func_info_block           *func_info)
 /*
@@ -3084,7 +3084,7 @@ the parameters.
   r_declarator(input_flags, output_flags, specifiers_type,
                member_parent_type, locator, p_complete_type,
                &bottom_derived_type, (a_call_conv_descr_ptr)NULL,
-               decl_modifiers, declarator_ssep, func_info);
+               (a_type_qualifier_set *)NULL, declarator_ssep, func_info);
 }  /* declarator */
 
 

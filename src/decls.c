@@ -2331,14 +2331,6 @@ diagnostics.
     if ((new_modifiers & modifier_value) != 0) {
       /* This bit is set. */
       switch (bit_number) {
-        case dmt_near:
-          /* near and far are incompatible. */
-          if (is_redecl && (old_modifiers & DM_FAR)) invalid_redecl = TRUE;
-          break;
-        case dmt_far:
-          /* near and far are incompatible. */
-          if (is_redecl && (old_modifiers & DM_NEAR)) invalid_redecl = TRUE;
-          break;
         case dmt_dllimport:
         case dmt_dllexport:
           /* Any previous declaration must have been declared
@@ -2407,14 +2399,6 @@ diagnostics.
     if ((new_modifiers & modifier_value) != 0) {
       /* This bit is set. */
       switch (bit_number) {
-        case dmt_near:
-          /* near and far are incompatible. */
-          if (is_redecl && (old_modifiers & DM_FAR)) invalid_redecl = TRUE;
-          break;
-        case dmt_far:
-          /* near and far are incompatible. */
-          if (is_redecl && (old_modifiers & DM_NEAR)) invalid_redecl = TRUE;
-          break;
         case dmt_dllimport:
         case dmt_dllexport:
           /* Any previous declaration must have been declared
@@ -4940,7 +4924,7 @@ In C++ mode an error is issued if a type definition appears in a type-name
   if (is_abstract_declarator_start()) {
     declarator(DI_ABSTRACT_DECLARATOR_ALLOWED | DI_QUALIFIED_NAME_ALLOWED,
                &do_flags, *type_ptr, /*member_parent_type=*/(a_type_ptr)NULL,
-               (a_symbol_locator *)NULL, type_ptr, (a_decl_modifier_ptr)NULL,
+               (a_symbol_locator *)NULL, type_ptr,
                &declarator_ssep, (a_func_info_block_ptr)NULL);
   }  /* if */
   if (any_cfront_mode() &&
@@ -5035,7 +5019,7 @@ within this routine if is_parenthesized comes in FALSE.
                     DI_DIMENSION_EXPRESSION_ALLOWED,
                  &do_flags, *type_ptr,
                  /*member_parent_type=*/(a_type_ptr)NULL,
-                 (a_symbol_locator *)NULL, type_ptr, (a_decl_modifier_ptr)NULL,
+                 (a_symbol_locator *)NULL, type_ptr,
                  &declarator_ssep, (a_func_info_block_ptr)NULL);
     }  /* if */
     (void)required_token(tok_rparen, ec_exp_rparen);
@@ -5049,7 +5033,7 @@ within this routine if is_parenthesized comes in FALSE.
                                        /*call_conv_allowed=*/FALSE,
 				       (a_call_conv_descr_ptr)NULL,
 				       (a_call_conv_descr_ptr)NULL,
-                                       (a_decl_modifier_ptr)NULL);
+                                       (a_type_qualifier_set *)NULL);
     derived_type = NULL;
     bottom_derived_type = NULL;
     add_stop_token(tok_lbracket);
@@ -5169,7 +5153,7 @@ is no parent.
                                        /*call_conv_allowed=*/FALSE,
 				       (a_call_conv_descr_ptr)NULL,
 				       (a_call_conv_descr_ptr)NULL,
-                                       (a_decl_modifier_ptr)NULL);
+                                       (a_type_qualifier_set *)NULL);
     if (any_cfront_mode() &&
         check_member_function_typedef(complete_type, &type_pos)) {
       /* The type is a cfront-style member function typedef -- it is an error
@@ -5538,7 +5522,7 @@ clause is to be attached.  catch_pos is the source position of "catch".
                        DI_ABSTRACT_DECLARATOR_ALLOWED,
                      &do_flags, type_ptr,
                      /*member_parent_type=*/(a_type_ptr)NULL, &locator,
-                     &type_ptr, (a_decl_modifier_ptr)NULL, &declarator_ssep,
+                     &type_ptr, &declarator_ssep,
                      (a_func_info_block_ptr)NULL);
           if (do_flags & DO_REAL_DECLARATOR_SCANNED) {
             sym = enter_symbol((a_symbol_kind)sk_variable, &locator,
@@ -5881,7 +5865,7 @@ Return a pointer to the variable that is declared.
        array. */
     declarator(DI_REAL_DECLARATOR_ALLOWED, &do_flags, type_ptr,
                /*member_parent_type=*/(a_type_ptr)NULL, &locator, &type_ptr,
-               &decl_modifiers, &declarator_ssep, (a_func_info_block_ptr)NULL);
+               &declarator_ssep, (a_func_info_block_ptr)NULL);
   } else {
     /* No declarator.  Issue a single diagnostic on this malformed
        condition declaration. */
@@ -6913,8 +6897,7 @@ continue_with_declaration:
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       declarator(di_flags, &do_flags, type_ptr, 
                  /*member_parent_type=*/(a_type_ptr)NULL, &locator,
-                 &local_type_ptr, &decl_modifiers, &declarator_ssep,
-                 &func_info);
+                 &local_type_ptr, &declarator_ssep, &func_info);
       is_function = (storage_class != (a_storage_class)sc_typedef &&
                      is_function_type(local_type_ptr));
       is_main_function = FALSE;

@@ -23,6 +23,18 @@ decl_spec.h -- Declarations related to decl_spec.c (having to with
 #endif /* ifndef DECLS_H */
 
 /*
+Macro that is TRUE if the current token is one of the extension keywords
+that can appear in a declarator in Microsoft mode.
+*/
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define is_microsoft_declarator_keyword()                             \
+  (is_microsoft_calling_convention() ||                               \
+   curr_token == tok_near || curr_token == tok_far)
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#define is_microsoft_declarator_keyword() FALSE
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+/*
 Macro that is TRUE if the current token is the start of a declarator
 (3.5.4 -- real, not abstract).
 */
@@ -30,7 +42,7 @@ Macro that is TRUE if the current token is the start of a declarator
   (curr_token == tok_identifier ?                                    \
      (C_mode() || !identifier_is_template_id()) :                    \
      (curr_token == tok_star || curr_token == tok_lparen ||          \
-      is_microsoft_calling_convention() ||				     \
+      is_microsoft_declarator_keyword() ||                           \
       (C_dialect == C_dialect_cplusplus &&                           \
        (curr_token == tok_ampersand || curr_token == tok_operator))))
 
@@ -51,7 +63,7 @@ declarator (3.5.5).
 #define is_abstract_declarator_start()                                \
   (curr_token == tok_star || curr_token == tok_lbracket ||            \
    curr_token == tok_lparen ||                                        \
-   is_microsoft_calling_convention() ||				      \
+   is_microsoft_declarator_keyword() ||				      \
    (C_dialect == C_dialect_cplusplus &&                               \
     (is_ptr_to_member_declarator_start() ||                           \
      curr_token == tok_ampersand)))
@@ -62,7 +74,7 @@ abstract or real declarator.
 */
 #define is_abstract_or_real_declarator_start()                        \
   (is_declarator_start() || curr_token == tok_lbracket ||             \
-   is_microsoft_calling_convention() ||				      \
+   is_microsoft_declarator_keyword() ||				      \
    (C_dialect == C_dialect_cplusplus &&                               \
     is_ptr_to_member_declarator_start()))
 
@@ -170,7 +182,6 @@ void declarator(a_decl_flag_set             input_flags,
                 a_type_ptr                  member_parent_type,
                 a_symbol_locator            *locator,
                 a_type_ptr                  *p_complete_type,
-                a_decl_modifier             *decl_modifiers,
                 a_source_sequence_entry_ptr *declarator_ssep,
                 a_func_info_block           *func_info);
 
@@ -181,7 +192,7 @@ a_type_ptr pointer_declarator(
 		      a_boolean		    call_conv_allowed,
                       a_call_conv_descr_ptr p_calling_convention,
                       a_call_conv_descr_ptr p_unbound_calling_convention,
-                      a_decl_modifier       *decl_modifiers);
+                      a_type_qualifier_set  *unbound_qualifiers);
 
 extern void array_declarator(a_type_ptr *new_type_ptr,
                              a_boolean  nonconstant_dimension_allowed,

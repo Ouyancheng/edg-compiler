@@ -6259,17 +6259,6 @@ definition.  pos is the error position.
                                            (int)dmt_dllexport)]);
       decl_modifiers &= ~(DM_DLLIMPORT | DM_DLLEXPORT);
     }  /* if */
-    if (microsoft_16_mode) {
-      if ((class_decl_modifiers & (DM_NEAR | DM_FAR)) != DM_NONE &&
-          (decl_modifiers & (DM_NEAR | DM_FAR)) != DM_NONE) {
-        /* near and far appear more than once. */
-        pos_st_warning(ec_decl_modifiers_invalid_for_this_decl, pos,
-                       decl_modifier_names[(decl_modifiers & DM_NEAR ?
-                                             (int)dmt_near :
-                                             (int)dmt_far)]);
-        decl_modifiers &= ~(DM_NEAR | DM_FAR);
-      }  /* if */
-    }  /* if */
     if (is_definition && (class_decl_modifiers & DM_DLLIMPORT)) {
       /* Put no dll attribute on an inline member function. */
     } else {
@@ -6994,8 +6983,7 @@ completed (C++ only).
             declarator(declarator_input_flags, &declarator_output_flags,
                        member_type,
                        friend_specified ? (a_type_ptr)NULL : class_type,
-                       &locator, &local_type, &decl_modifiers,
-                       &declarator_ssep, &func_info);
+                       &locator, &local_type, &declarator_ssep, &func_info);
             if (!C_mode()) {
               /* Check whether this is a non-standard typedef declaration. */
               cfront_member_function_typedef =

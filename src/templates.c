@@ -2407,7 +2407,7 @@ of a function template.
     *do_flags = 0;
   } else {
     declarator(di_flags, do_flags, *type, (a_type_ptr)NULL, locator, type,
-               (a_decl_modifier_ptr)NULL, &declarator_ssep, func_info);
+               &declarator_ssep, func_info);
     if (invalid_decl_scope_err) {
       /* Just to be sure a template symbol doesn't get added to a scope that
          is not equipped to handle it, create an error locator based on the
@@ -4142,7 +4142,7 @@ Scan the declaration of a single template nontype parameter.
   /* Scan the declarator. */
   declarator(DI_REAL_DECLARATOR_ALLOWED, &do_flags,
              *param_type_ptr, /*member_parent_type=*/(a_type_ptr)NULL,
-             param_locator, param_type_ptr, (a_decl_modifier_ptr)NULL,
+             param_locator, param_type_ptr,
              &declarator_ssep, (a_func_info_block_ptr)NULL);
   /* Adjust the type if necessary (for example, "array of x"
      becomes "pointer to x"). */
@@ -6687,7 +6687,7 @@ assumed if the return type is omitted.
       declarator((DI_REAL_DECLARATOR_ALLOWED | DI_QUALIFIED_NAME_ALLOWED |
                   DI_OPERATOR_NAME_ALLOWED),
                  &do_flags, type, (a_type_ptr)NULL, &locator, &type,
-                 &decl_modifiers, &declarator_ssep, &func_info);
+                 &declarator_ssep, &func_info);
       done_with_func_info(func_info);
 #if 0
       /* Presumably, declarator_ssep will often be returned pointing at an
