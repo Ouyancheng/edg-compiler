@@ -546,7 +546,7 @@ also create an stmk_init statement at the current point in the code.
   a_dynamic_init_ptr      new_dip;
   a_statement_ptr         init_stmt;
 
-  db_enter(4, "gen_dynamic_initiailization");
+  db_enter(4, "gen_dynamic_initialization");
   /* Build the dynamic initialization entry. */
   new_dip = alloc_dynamic_init(dip->kind);
   switch (dip->kind) {
