@@ -5670,7 +5670,7 @@ can be avoided.
       ch = *curr_char_loc;
       ch_is_punct = ispunct((unsigned char)ch);
     }  /* if */
-   if (ch_is_punct) {
+    if (ch_is_punct) {
       /* The next token begins with a punctuation character.  Check for the
          special cases. */
       if (ch == ':' && curr_char_loc[1] == ':') {
