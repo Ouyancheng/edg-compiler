@@ -1,5 +1,11 @@
 Version 2.46
 
+1/19/01  Linux configuration has incorrect alignment of long long
+
+The defines_linux.h file does not specify an alignment for long long.
+This results in the use of the default value, which is not correct
+for Linux.  This has been fixed.
+
 1/19/01  Spurious error on explicit destructor call in prototype instantiation
 
 When doing nonclass prototype instantiations, a spurious error was issued
