@@ -1514,8 +1514,6 @@ the way described by octl.
      because the implicit_cast flag is set. */
   for (; path->next != NULL; path = path->next) {
     /* Make a temporary pointer-to-member type with the right class type by
-       modifying the pm_type. */
-    /* Make a temporary pointer-to-member type with the right class type by
        modifying a copy of the pm_type. */
     temp_type = *pm_type;
     temp_type.variant.ptr_to_member.class_of_which_a_member =
