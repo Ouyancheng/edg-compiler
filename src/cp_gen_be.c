@@ -1561,10 +1561,12 @@ entity is a template class, add the template arguments.
 }  /* gen_unqualified_name */
 
 
-static void gen_class_qualifier(a_type_ptr class_type)
+static void gen_class_qualifier(a_type_ptr class_type,
+                                a_boolean  bound_function)
 /*
 Generate a class qualifier (e.g., "A::B::") that identifies the indicated
-class type.
+class type.  If bound_function is TRUE, this class qualifier is for a
+reference to a bound function.
 */
 {
   /* Ignore anonymous union levels. */
@@ -1574,6 +1576,14 @@ class type.
   if (class_type->variant.class_struct_union.extra_info->anonymous_union_kind
                                     == (an_anonymous_union_kind)auk_variable) {
     /* Put out no name for the topmost level in a non-field anonymous union. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (bound_function && microsoft_mode &&
+             class_type->source_corresp.is_class_member) {
+    /* MSVC++ 5.0 has a bug with multi-level qualified names for bound
+       functions.  Just put out a single-level qualified name. */
+    gen_unqualified_name(&class_type->source_corresp, iek_type);
+    write_tok_str("::");
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     /* Use recursion to handle multiple levels of nesting. */
     gen_name(&class_type->source_corresp, iek_type,
@@ -1637,7 +1647,7 @@ constants, which must have the form of a qualified name).
         /* MSVC++ chokes on use of a qualified name for a class member within
            the definition of that class, so avoid that in the output. */
       } else {
-        gen_class_qualifier(class_type);
+        gen_class_qualifier(class_type, /*bound_function=*/FALSE);
       }  /* if */
     } else if (scp->parent.namespace_ptr != NULL) {
       /* The entity is a member of a namespace. */
@@ -3156,7 +3166,7 @@ declaration following this one is such a continuation.
                                                  FTO_NO_OPTIONS,
                            &octl);
       /* Write the (qualified) name. */
-      gen_class_qualifier(class_type);
+      gen_class_qualifier(class_type, /*bound_function=*/FALSE);
       gen_unqualified_name(&type->source_corresp, iek_type);
       /* Write the second part of the declarator. */
       form_type_second_part_simple(under_type, /*under_lhs_declarator=*/FALSE,
@@ -3485,7 +3495,9 @@ this selection.
     /* Use a qualified name if the class in which we want to name the member
        is not the class indicated by the pointer. */
     selection_class = skip_typerefs(selection_class);
-    if (selection_class != naming_class) gen_class_qualifier(naming_class);
+    if (selection_class != naming_class) {
+      gen_class_qualifier(naming_class, /*bound_function=*/FALSE);
+    }  /* if */
   }  /* if */
   gen_field_reference(field_expr);
 }  /* gen_simple_field_selection */
@@ -4176,7 +4188,7 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
   if (suppress_virtual && rout->is_virtual) {
     /* The routine being called is a virtual function, and we're supposed
        to suppress its virtual-ness in this call, so use a qualified name. */
-    gen_class_qualifier(naming_class);
+    gen_class_qualifier(naming_class, /*bound_function=*/TRUE);
     gen_unqualified_name(&rout->source_corresp, iek_routine);
   } else {
     /* Normal case. */
@@ -4184,7 +4196,9 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
        is not the class indicated by the pointer. */
     selection_class = type_pointed_to(object_expr->type);
     selection_class = skip_typerefs(selection_class);
-    if (selection_class != naming_class) gen_class_qualifier(naming_class);
+    if (selection_class != naming_class) {
+      gen_class_qualifier(naming_class, /*bound_function=*/TRUE);
+    }  /* if */
     gen_unqualified_name(&rout->source_corresp, iek_routine);
   }  /* if */
 }  /* gen_bound_function */
@@ -5298,7 +5312,7 @@ Generate code for a class member or nonmember using-declaration.
        then valid access declarations as input should produce valid access
        declarations as output. */
     /* Write the access declaration, which is just a qualified name. */
-    gen_class_qualifier(udp->qualifier.class_type);
+    gen_class_qualifier(udp->qualifier.class_type, /*bound_function=*/FALSE);
   } else {
     /* A nonmember using-declaration. */
     write_tok_str("using ");
@@ -6407,6 +6421,16 @@ a constructor.
       }  /* if */
       switch (ctor_init->kind) {
         case cik_virtual_base_class:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          if (microsoft_mode) {
+            /* MSVC++ 4.2 and 5.0 have a bug that prevents use of a qualified
+               name for a virtual base class. */
+            type = ctor_init->variant.base_class->type;
+            gen_unqualified_name(&type->source_corresp, iek_type);
+            break;
+          }  /* if */
+          /* FALLTHROUGH */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         case cik_direct_base_class:
           /* Initializing a base class. */
           type = ctor_init->variant.base_class->type;

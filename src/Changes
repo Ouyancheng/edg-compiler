@@ -1,5 +1,18 @@
 Version 2.37
 
+8/25/97   C++-generating back end: qualified name changes to deal with
+          MSVC++ bugs
+
+Two changes have been made in generation of C++ code by the C++-generating
+back end in Microsoft mode to deal with bugs in MSVC++:
+
+  1)  In a ctor-initializer, the name of a virtual base class is
+      always put out as an unqualified name.
+  2)  In a call of a member function, if a qualified name that requires
+      multi-level qualification, e.g., "A::B::C::x", is used,
+      the qualified name is put out with a single level of
+      qualification, e.g., "C::x".
+
 8/23/97   Temporary in default argument expression inside conditional
           expression destroyed when not constructed
 
