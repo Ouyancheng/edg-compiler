@@ -5261,7 +5261,16 @@ list of a template function.  Returns TRUE if a match is found.
           }  /* if */
         }  /* if */
       }  /* if */
-    } else {
+      /* The is_deductible_constant_param test below is necessary for certain
+         partial ordering cases.
+
+                 template <class T, T I> void f( A<T, I> );
+                 template <class T> void f( A<T, 1> );
+         
+         In this example, when templ_constant is (T)1 and constant is "I",
+         it is important that deduction fail so that partial ordering
+         produces the desired result. */
+    } else if (!is_deducible_constant_param(constant)) {
       /* A template parameter constant in an expression context.  Check
          for the special case of a constant cast to a template parameter
          type.  This is needed, for examples such as this:

@@ -1,5 +1,21 @@
 Version 3.4
 
+2/23/04  Abort or internal error during partial ordering processing
+
+If a nontype template parameter has a type that depends on another
+template parameter, and that nontype parameter is specialized in a
+function template declaration that should be preferred by the partial
+ordering process, an internal error or abort could occur.  This has
+been fixed.
+
+  template <class T, T I> struct A {};
+  template <class T, T I> void f(A<T, I>);
+  template <class T> void f(A<T, 1>);
+  int main() {
+    A<int, 1> a1;
+    f( a1 );
+  }
+
 2/23/04  Deduction should fail if a nontype parameter is given an invalid type
 
 Core issue 368 specifies that an attempt to give a nontype template parameter
