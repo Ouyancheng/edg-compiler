@@ -356,6 +356,10 @@ of parent block, and the control flow entry itself.
 
 static void db_ssse_with_indentation(a_struct_stmt_kind  kind,
                                      char                *str)
+/*
+Display a structured statement stack entry in a special format, for use when
+dump_control_flow has been enabled at the command line.
+*/
 {
   fprintf(f_debug, "SS-%.4d    %*.10s", (int)pos_curr_token.seq,
          strlen(str)+2*depth_stmt_stack, str);
@@ -1647,7 +1651,10 @@ static an_object_lifetime_ptr common_object_lifetime(
                                               an_object_lifetime_ptr  olp2)
 /*
 Return the innermost olk_block or olk_block_after_label lifetime that is
-common to olp1 and olp2.  This function should only be called in C++ mode.
+common to the parent lists of olp1 and olp2.  It is assumed that olp1 and
+olp2 appear in the same function context and therefore that the current
+function scope object lifetime, at least, appears on both ancestries.  This
+function should only be called in C++ mode.
 */
 {
   an_object_lifetime_ptr  olp;
@@ -1673,9 +1680,9 @@ done:
 static void define_implicit_label(a_label_ptr               label,
                                   a_control_flow_descr_ptr  goto_cfdp)
 /*
-Define the specified label, which (if non-null) will have been referenced
-by one or more goto statements represented by the linked list of control
-flow entries headed by goto_cfdp.
+Define the specified label, which will have been referenced by one or more
+goto statements represented by the linked list of control flow entries
+headed by goto_cfdp.
 */
 {
   an_object_lifetime_ptr         label_olp, *goto_olp_addr;
