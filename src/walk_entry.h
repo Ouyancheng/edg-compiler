@@ -609,7 +609,13 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_ptr(ptr->exception_specification, an_exception_specification_ptr,
                  iek_exception_specification);
 #endif /* ifdef CFE */
-        remap_ptr_not_needed(ptr->assoc_routine, a_routine_ptr, iek_routine);
+#if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
+        /* Do not walk the assoc_routine pointer for the needed or keep-in-il
+           traversal.  We don't want this to force keeping of the routine
+           definition if it's not otherwise needed. */
+#else /* !(NEEDED_FLAG_WALK || KEEP_IN_IL_WALK) */
+        remap_ptr(ptr->assoc_routine, a_routine_ptr, iek_routine);
+#endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
       }
       break;
 #if !NEEDED_FLAG_WALK
