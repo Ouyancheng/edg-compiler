@@ -4877,42 +4877,6 @@ that have bodies.
   }  /* for */
 }  /* dump_scope_routines */
 
-#if !C_GEN_BE_GENERATES_ANSI_C
-
-static void change_non_id_characters(char *str)
-/*
-Change any non-identifier characters in the indicated string to underscores.
-*/
-{
-  for (; *str != '\0'; str++) if (!isalnum((unsigned char)*str)) *str = '_';
-}  /* change_non_id_characters */
-
-#endif /* !C_GEN_BE_GENERATES_ANSI_C */
-#if !C_GEN_BE_GENERATES_ANSI_C
-
-static void make_module_id(void)
-/*
-Make a string that is based on the name of the current module and is used to
-qualify static names that are put out as external names, to make them unique.
-Set module_id to the string.
-*/
-{
-  char     *file_name = il_header.primary_source_file->file_name;
-  char     *date_time = il_header.time_of_compilation;
-  sizeof_t file_name_len = strlen(file_name);
-
-  /* The identifier is made of the primary source file name plus the
-     current date and time, with non-identifier characters changed to
-     underscores. */
-  module_id = alloc_general(file_name_len + 1 + strlen(date_time) + 1);
-  (void)strcpy(module_id, file_name);
-  module_id[file_name_len] = '_';
-  (void)strcpy(module_id+file_name_len+1, date_time);
-  /* Change non-identifier characters to "_". */
-  change_non_id_characters(module_id);
-}  /* make_module_id */
-
-#endif /* !C_GEN_BE_GENERATES_ANSI_C */
 
 static void dump_source_file_correspondence_info(a_source_file_ptr source_file)
 /*
@@ -4995,7 +4959,7 @@ Generate C from the intermediate language.
 #if !C_GEN_BE_GENERATES_ANSI_C
   /* Make a string based on the module name that is used to qualify
      static names to make them unique. */
-  make_module_id();
+  module_id = make_module_id();
   /* Get module name for use in name of file-scope init routine. */
   module_init_id = module_id;
 #if !USE_INIT_SECTION_IN_GENERATED_C

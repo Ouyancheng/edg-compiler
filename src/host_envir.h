@@ -1060,6 +1060,19 @@ extern sizeof_t seek_to_page_alignment(FILE *file);
 extern void open_mapped_il_temp_file(void);
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
 
+#if (BACK_END_IS_C_GEN_BE && !C_GEN_BE_GENERATES_ANSI_C) || DO_IL_LOWERING
+#define MODULE_ID_NEEDED TRUE
+#else /* !(BACK_END_IS_C_GEN_BE && !C_GEN_BE_GENERATES_ANSI_C) || DO_IL_LOWERING */
+#define MODULE_ID_NEEDED FALSE
+#endif /* (BACK_END_IS_C_GEN_BE && !C_GEN_BE_GENERATES_ANSI_C) || DO_IL_LOWERING */
+
+#if MODULE_ID_NEEDED
+extern void change_non_id_characters(char *str);
+extern char *make_module_id(void);
+#endif /* MODULE_ID_NEEDED */
+
+extern void host_envir_init(void);
+
 /*
 Define a macro that can be used to compare two file names.
 */

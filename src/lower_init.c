@@ -2230,49 +2230,6 @@ Make the code that will ensure that the file-scope initialization routine
 }  /* make_code_to_invoke_file_scope_init_routine */
 
 
-/*
-String made from the primary source file name and the current date/time,
-used to generate a unique name for the initialization routine.
-NULL until set by make_module_id.
-*/
-static char	*module_id;
-
-
-static void change_non_id_characters(char *str)
-/*
-Change any non-identifier characters in the indicated string to underscores.
-*/
-{
-  for (; *str != '\0'; str++) if (!isalnum((unsigned char)*str)) *str = '_';
-}  /* change_non_id_characters */
-
-
-static void make_module_id(void)
-/*
-Make a string that is based on the name of the current module and is used to
-qualify static names that are put out as external names, to make them unique.
-Set module_id to the string.  Do not make the string again if it has already
-been made.
-*/
-{
-  char     *file_name = il_header.primary_source_file->file_name;
-  char     *date_time = il_header.time_of_compilation;
-  sizeof_t file_name_len = strlen(file_name);
-
-  if (module_id == NULL) {
-    /* The identifier is made of the primary source file name plus the
-       current date and time, with non-identifier characters changed to
-       underscores. */
-    module_id = alloc_general(file_name_len + 1 + strlen(date_time) + 1);
-    (void)strcpy(module_id, file_name);
-    module_id[file_name_len] = '_';
-    (void)strcpy(module_id+file_name_len+1, date_time);
-    /* Change non-identifier characters to "_". */
-    change_non_id_characters(module_id);
-  }  /* if */
-}  /* make_module_id */
-
-
 static a_routine_ptr make_file_scope_init_or_term_routine(
                                        char                   *prefix,
                                        an_insert_location_ptr insert_location,
@@ -2300,7 +2257,8 @@ if unnamed.
   } else {
     /* Combine the prefix and an identifier for the current module to make
        a name that is likely to be unique. */
-    make_module_id();
+    char	*module_id;
+    module_id = make_module_id();
     prefix_len = strlen(prefix);
     alloc_length = prefix_len + strlen(module_id) + 1;
     name = alloc_lowered_name_string(alloc_length);
@@ -5210,7 +5168,6 @@ of the front end.
   /* Variable in lower_init.h: */
   processing_file_scope_init_routine = FALSE;
   /* Static variables in lower_init.c: */
-  module_id = NULL;
   vec_new_routine = vec_new_eh_routine = vec_cctor_routine =
                                                      vec_delete_routine = NULL;
   record_needed_destruction_routine = NULL;

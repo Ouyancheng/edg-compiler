@@ -1882,6 +1882,85 @@ buffer.
 }  /* get_curr_dir_name */
 
 
+#if !C_GEN_BE_GENERATES_ANSI_C || DO_IL_LOWERING
+/*
+Routines used by lower_init.c and c_gen_be.c to generate module IDs
+used to create unique external names.
+*/
+
+void change_non_id_characters(char *str)
+/*
+Change any non-identifier characters in the indicated string to underscores.
+*/
+{
+  for (; *str != '\0'; str++) if (!isalnum((unsigned char)*str)) *str = '_';
+}  /* change_non_id_characters */
+
+
+static char	*module_id /* = NULL */;
+			/* A string used to qualify static names that are put
+			   out as external names to make them unique. */
+
+char *make_module_id(void)
+/*
+Make a string that is based on the name of the current module and is used to
+qualify static names that are put out as external names, to make them unique.
+Set module_id to the string.
+*/
+{
+  char			*file_name = il_header.primary_source_file->file_name;
+  sizeof_t		file_name_len = strlen(file_name);
+  a_scope_ptr		scope = il_header.primary_scope;
+  a_variable_ptr	variable;
+  a_routine_ptr		routine;
+  char			*external_name = NULL;
+
+  /* Only generate the module ID the first time that this routine is called
+     for a given primary source file. */
+  if (module_id == NULL) {
+    /* Find an externally visible variable or routine definition  whose name
+       can be used as part of the module ID. */
+    for (variable = scope->variables;
+         variable != NULL; variable = variable->next) {
+      if (variable->storage_class == (a_storage_class)sc_unspecified) {
+        external_name = variable->source_corresp.name;
+        check_assertion(external_name != NULL);
+        break;
+      }  /* if */
+    }  /* for */
+    if (external_name == NULL) {
+      /* No external variable was found, look for an external routine. */
+      for (routine = scope->routines;
+           routine != NULL; routine = routine->next) {
+        if (routine->storage_class == (a_storage_class)sc_unspecified) {
+          external_name = routine->source_corresp.name;
+          check_assertion(external_name != NULL);
+          break;
+        }  /* if */
+      }  /* for */
+    }  /* if */
+    if (external_name == NULL) {
+      /* In the very unlikely event that the file does not define any
+         externally visible variables or routines, only the file
+         name is used in the module ID. */
+      external_name = "";
+    }  /* if */
+    /* The identifier is made of the primary source file name plus the
+       name of an externally defined variable or routine (or the
+       current date and time if no such externally visible name exists), with
+       non-identifier characters changed to underscores. */
+    module_id = alloc_general(file_name_len + 1 + strlen(external_name) + 1);
+    (void)strcpy(module_id, file_name);
+    module_id[file_name_len] = '_';
+    (void)strcpy(module_id+file_name_len+1, external_name);
+    /* Change non-identifier characters to "_". */
+    change_non_id_characters(module_id);
+  }  /* if */
+  return module_id;
+}  /* make_module_id */
+#endif /* !C_GEN_BE_GENERATES_ANSI_C || DO_IL_LOWERING */
+
+
 #if USE_MMAP_FOR_MEMORY_REGIONS
 
 
@@ -2293,6 +2372,20 @@ current file position.
 }  /* seek_to_page_alignment */
 
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
+
+
+void host_envir_init(void)
+/*
+Initialize static variables related to the host specific routines. 
+This is done as a subroutine (rather than relying on static initialization)
+so that it can be redone to compile more than one source file in a single
+invocation of the front end.
+*/
+{
+#if MODULE_ID_NEEDED
+  module_id = NULL;
+#endif /* MODULE_ID_NEEDED */
+}  /* host_envir_init */
 
 
 /******************************************************************************

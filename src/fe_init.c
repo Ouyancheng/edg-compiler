@@ -484,6 +484,7 @@ to replace the initial portion of this compilation.
 
   error_init();
   mem_manage_init();
+  host_envir_init();
   host_init();
   il_init();
   lexical_init();
