@@ -1536,7 +1536,6 @@ one and the one previously declared.
   a_routine_type_supplement_ptr  rtsp;
 
   db_enter(4, "add_throw_specification");
-  check_assertion(new_tsp != NULL || exceptions_disabled);
   rout_sym = (a_symbol_ptr)rp->source_corresp.assoc_info;
   rtsp = rp->type->variant.routine.extra_info;
   if (exceptions_disabled) {
@@ -2487,7 +2486,7 @@ a_routine_ptr make_routine(a_type_ptr      type_ptr,
                            a_boolean       at_file_scope,
                            a_boolean       add_to_list)
 /*
-Allocate an entry for a routine with return type type_ptr and storage class
+Allocate an entry for a routine with function type type_ptr and storage class
 storage_class, and return a pointer to it.  The entry is allocated at the
 file scope.  type_ptr must be in the file scope.  If add_to_list is TRUE,
 add the new routine entry to the routines list.
@@ -2499,7 +2498,7 @@ add the new routine entry to the routines list.
   /* Always allocate routines at the file scope. */
   switch_to_file_scope_region(&region_to_switch_back_to);
   rp = alloc_routine();
-  rp->type = type_ptr;
+  rp->type = skip_typerefs(type_ptr);
   rp->storage_class = storage_class;
   if (add_to_list) add_to_routines_list(rp, at_file_scope);
   switch_back_to_original_region(region_to_switch_back_to);
