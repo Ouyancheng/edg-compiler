@@ -3805,27 +3805,6 @@ Programming Language", 2nd Edition.
 }  /* have_protected_member_access_privilege */
 
 
-
-/*
-Entry used to keep track of stacking in processing virtual steps on
-a derivation path in have_access_across_path.  These are allocated as
-auto variables and chained together.
-*/
-typedef struct a_virtual_step_stack_entry *a_virtual_step_stack_entry_ptr;
-typedef struct a_virtual_step_stack_entry {
-  a_virtual_step_stack_entry_ptr
-		next;	/* Next entry on the list. */
-  a_derivation_step_ptr
-		virtual_step;
-			/* Derivation step for a virtual base class, being
-			   expanded. */
-  a_base_class_derivation_ptr
-		derivation;
-			/* The base class derivation of whose path virtual_step
-			   is a step. */
-} a_virtual_step_stack_entry;
-
-
 static an_access_specifier access_to_end_of_virtual_step_stack(
                              an_access_specifier            access,
                              a_virtual_step_stack_entry_ptr virtual_step_stack)
