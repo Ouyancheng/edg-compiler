@@ -480,6 +480,9 @@ Print the contents of a region description entry.
       if (ehrdp->flags & RDF_BASE_CLASS_SUBOBJECT) {
         fprintf(__f_debug, " subobject");
       }  /* if */
+      if (ehrdp->flags & RDF_GUARD_VAR_FOR_LOCAL_STATIC) {
+        fprintf(__f_debug, " local static guard");
+      }  /* if */
     }  /* if */
     fprintf(__f_debug, "  destr/delete=%p\n",
             (void*)ehrdp->destructor_or_delete_routine);
@@ -607,7 +610,16 @@ requires cleanup.
     }  /* if */
 #endif /* DEBUG */
     /* Do the actual cleanup of the object. */
-    if (!(flags & RDF_NEW_ALLOCATION)) {
+    if ((flags & RDF_GUARD_VAR_FOR_LOCAL_STATIC) != 0) {
+      /* The cleanup object is the variable that is set when a local static
+         variable is initialized.  When such an entry is on the cleanup list
+         it means that the exception was thrown while the local static was
+         being initialized.  The cleanup action is to reset the guard
+         variable so that it will be initialized again the next time the
+         declaration of the local static is reached. */
+      flag_addr = (a_conditional_flag*)obj_addr;
+      *flag_addr = 0;
+    } else if (!(flags & RDF_NEW_ALLOCATION)) {
       /* A normal (not a new allocation) region.  Call the destructor for
          the object. */
       a_destructor_ptr	dtor_ptr;
