@@ -24,7 +24,6 @@ decls.c -- Scanning of declarations.
 #endif /* HDRSTOP_RECOGNIZED */
 
 /* Additional header files. */
-#include "lexical.h"
 #include "statements.h"
 
 
