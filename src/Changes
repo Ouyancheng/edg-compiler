@@ -1,5 +1,33 @@
 Version 2.23
 
+4/28/94  Diagnostic on branching over an initialization
+
+By default a warning is now issued instead of an error for branching
+over a variable initialization when no destructor is involved; in strict
+ANSI mode (-A) an error continues to be put out.  For example:
+
+  struct X { X(); };
+  struct Y { Y(); ~Y(); };
+  void f(int i) {
+      if (i) goto L1;         // error with -A, warning otherwise
+      int j = 0;
+  L1: if (i) goto L2;         // error with -A, warning otherwise
+      X x;
+  L2: if (i) goto L3;         // always an error -- Y has a destructor
+      Y y;
+  L3:;
+  }
+
+This policy is implemented for both gotos and branches to case labels.
+
+4/28/94  Qualified name on member function declarations
+
+A bug has been fixed and the following is now handled correctly:
+
+  class A {
+    static A::f();
+  };
+  
 4/27/94  Unions with const and ref members
 
 We used to issue diagnostics on certain unions with one or more members of
