@@ -3823,6 +3823,10 @@ wide string constant so that its address can be used.
   } else if (is_addr_of_wide_string_constant(constant)) {
     con = constant->variant.address.variant.constant;
     dump_var_for_wide_string_constant(con);
+  } else if (is_wide_string_constant(constant)) {
+    /* This case comes up when wide constants are used in a dynamic
+       initialization of an array. */
+    dump_var_for_wide_string_constant(constant);
   }  /* if */
 }  /* prescan_for_addrs_of_wide_string_constants */
 

@@ -1,5 +1,16 @@
 Version 2.28
 
+2/2/95   C-generating back end initialization of wchar_t array
+
+The wide string literals used in an initialization of a wchar_t array
+are now turned into arrays of char.
+
+  main () {
+    wchar_t aa[] = L"yyy";
+  }
+
+This formerly produced an L"yyy" constant in the output.
+
 2/1/95   Support for #ident and #pragma ident
 
 When IDENT_DIRECTIVE_AND_PRAGMA is TRUE (see lang_feat.h), the #ident and
