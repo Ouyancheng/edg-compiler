@@ -2791,7 +2791,7 @@ the options being used for the lookup.
   sym_ptr->is_error = location->is_error;
   /* Set the locator to point to the symbol entered. */
   location->specific_symbol = sym_ptr;
-  location->is_qualified_name = FALSE;
+  location->is_qualified_name = qualified_lookup;
   /* Synthesized projection symbols are not entered into the symbol table.
      They are put on the "other" symbols list and are added to a separate
      list in the scope stack. */
