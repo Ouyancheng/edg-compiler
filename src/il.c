@@ -8432,42 +8432,6 @@ If not, return the indicated source sequence entry.
 }  /* find_end_of_tag_construct */
 
 
-static a_source_sequence_entry_ptr scan_to_end_of_construct(
-                                           a_source_sequence_entry_ptr  ssep)
-/*
-*/
-{
-  a_source_sequence_entry_ptr  last_ssep;
-  a_src_seq_secondary_decl_ptr sssdp;
-
-  check_assertion(ssep->entity.kind == (a_byte_il_entry_kind)iek_type &&
-                  (is_immediate_class_type((a_type_ptr)ssep->entity.ptr) ||
-                   is_immediate_enum_type((a_type_ptr)ssep->entity.ptr)));
-  last_ssep = ssep->next;
-  for (;;) {
-    if (last_ssep->entity.kind ==
-                     (a_byte_il_entry_kind)iek_src_seq_end_of_construct &&
-        ((a_src_seq_end_of_construct_ptr)last_ssep->entity.ptr)->
-                                          entity.ptr == ssep->entity.ptr) {
-      break;
-    }  /* if */
-    if (last_ssep->entity.kind ==
-                 (a_byte_il_entry_kind)iek_src_seq_secondary_decl) {
-      sssdp = (a_src_seq_secondary_decl_ptr)last_ssep->entity.ptr;
-      if (sssdp->friend_decl &&
-          sssdp->entity.kind == (a_byte_il_entry_kind)iek_routine) {
-        a_routine_ptr rp = (a_routine_ptr)sssdp->entity.ptr;
-        if (rp->source_corresp.source_sequence_entry == last_ssep) {
-          rp->source_corresp.source_sequence_entry = NULL;
-        }  /* if */
-      }  /* if */
-    }  /* if */
-    last_ssep = last_ssep->next;
-  }  /* for */
-  return last_ssep;
-}  /* scan_to_end_of_construct */
-
-
 static a_source_sequence_entry_ptr remove_tag_def_from_src_seq_list(
                                      a_source_sequence_entry_ptr  ssep,
                                      a_boolean                    retain_first)
