@@ -508,6 +508,7 @@ and indentation is the indentation desired.
     case sk_class_or_struct_tag:
     case sk_union_tag:
       type = sym->variant.class_struct_union.type;
+      if (type == NULL) break;
       /* The result of skip_typerefs() is copied to a temporary variable to
          work around a problem with Borland C++. */
       temp_type = skip_typerefs(type);
@@ -2051,9 +2052,6 @@ indicated in the locator is supposed to be ignored.
   sym_ptr = alloc_symbol(sym_kind, location->symbol_header,
                          &location->source_position);
   sym_ptr->is_error = location->is_error;
-  mark_declared(sym_ptr, &location->source_position,
-                /*save_as_decl_position=*/FALSE);  /* FALSE because done by
-                                                      alloc_symbol. */
   /* Set the locator to point to the symbol entered. */
   location->specific_symbol = sym_ptr;
   location->is_qualified_name = FALSE;
@@ -2238,9 +2236,6 @@ a locator for the new symbol.  Return a pointer to the new symbol.
   sym_ptr = alloc_symbol(sym_kind, location->symbol_header,
                          &location->source_position);
   sym_ptr->decl_scope = other_sym->decl_scope;
-  mark_declared(sym_ptr, &location->source_position,
-                /*save_as_decl_position=*/FALSE);  /* FALSE because done by
-                                                      alloc_symbol. */
   /* Set the locator to point to the symbol entered. */
   location->specific_symbol = sym_ptr;
   location->is_qualified_name = FALSE;
@@ -2361,8 +2356,7 @@ for old style parameter declaration.
 
   sym = alloc_symbol((a_symbol_kind)sk_parameter, locator->symbol_header,
                      &locator->source_position);
-  mark_declared(sym, &locator->source_position,
-                /*save_as_decl_position=*/FALSE);
+  mark_declared(sym, &locator->source_position);
   /* Set the locator to point to the symbol entered. */
   locator->specific_symbol = sym;
   locator->is_qualified_name = FALSE;
@@ -2400,7 +2394,6 @@ ct_symbol is the symbol of the class template.
   sym = alloc_symbol(kind, ct_symbol->header, pos);
   /* Set the pointer that points back to the original class template symbol. */
   sym->variant.class_struct_union.extra_info->class_template = ct_symbol;
-  mark_declared(sym, pos, /*save_as_decl_position=*/TRUE);
   /* Make the declaration scope the same as the class template's. */
   sym->decl_scope = ct_symbol->decl_scope;
 
@@ -2418,7 +2411,6 @@ table, since it is accessed from the associated function instantiation entry.
   a_symbol_ptr  sym;
 
   sym = alloc_symbol((a_symbol_kind)sk_routine, templ_sym->header, pos);
-  mark_declared(sym, pos, /*save_as_decl_position=*/TRUE);
   /* Template functions will be in the same scope as the template (which
      should always be the file scope. */
   sym->decl_scope = templ_sym->decl_scope;;
@@ -3316,6 +3308,69 @@ This routine is only used in C++ mode.
 }  /* select_copy_constructor */
 
 
+static char *il_entry_for_symbol(a_symbol_ptr      sym,
+                                 an_il_entry_kind  *kind)
+/*
+*/
+{
+  char  *entry_ptr = NULL;
+
+  *kind = iek_none;
+  switch (sym->kind) {
+    case sk_macro:
+      /* Only manifest constant macros have an associated IL entry. */
+      if (!sym->variant.macro_def->is_manifest_constant) break;
+      entry_ptr = (char *)sym->variant.macro_def->constant_value;
+#if 0
+      *kind = iek_macro;
+#endif /* if 0 */
+      break;
+    case sk_constant:
+      entry_ptr = (char *)sym->variant.constant;
+      *kind = iek_constant;
+      break;
+    case sk_type:
+    case sk_enum_tag:
+      entry_ptr = (char *)sym->variant.type;
+      *kind = iek_type;
+      break;
+    case sk_class_or_struct_tag:
+    case sk_union_tag:
+      entry_ptr = (char *)sym->variant.class_struct_union.type;
+      *kind = iek_type;
+      break;
+    case sk_variable:
+      entry_ptr = (char *)sym->variant.variable.ptr;
+      *kind = iek_variable;
+      break;
+    case sk_static_data_member:
+      entry_ptr = (char *)sym->variant.static_data_member.variable;
+      *kind = iek_variable;
+      break;
+    case sk_field:
+      entry_ptr = (char *)sym->variant.field.ptr;
+      *kind = iek_field;
+      break;
+    case sk_routine:
+    case sk_member_function:
+      entry_ptr = (char *)sym->variant.routine.ptr;
+      *kind = iek_routine;
+      break;
+    case sk_label:
+      entry_ptr = (char *)sym->variant.label.ptr;
+      *kind = iek_label;
+      break;
+    default:;
+      /* Other cases ignored. */
+  }  /* switch */
+#if CHECKING
+  if (entry_ptr == NULL && *kind != iek_none) {
+    internal_error("il_entry_for_symbol: NULL assoc IL entry ptr");
+  }  /* if */
+#endif /* CHECKING */
+  return entry_ptr;
+}  /* il_entry_for_symbol */
+
 static a_source_correspondence *source_corresp_entry_for_symbol(
                                                           a_symbol_ptr sym_ptr)
 /*
@@ -3324,54 +3379,11 @@ for the given symbol.  Return NULL if there isn't one (if that's
 allowed for that kind of symbol).
 */
 {
-  a_source_correspondence *scptr = NULL;
-  a_constant_ptr          entry_ptr;
+  a_constant_ptr    entry_ptr;
+  an_il_entry_kind  dummy;
 
-  switch (sym_ptr->kind) {
-    case sk_macro:
-      /* Only manifest constant macros have an associated IL entry. */
-      if (!sym_ptr->variant.macro_def->is_manifest_constant) goto no_il_entry;
-      entry_ptr = sym_ptr->variant.macro_def->constant_value;
-      break;
-    case sk_constant:
-      entry_ptr = sym_ptr->variant.constant;
-      break;
-    case sk_type:
-    case sk_enum_tag:
-      entry_ptr = (a_constant_ptr)sym_ptr->variant.type;
-      break;
-    case sk_class_or_struct_tag:
-    case sk_union_tag:
-      entry_ptr = (a_constant_ptr)sym_ptr->variant.class_struct_union.type;
-      break;
-    case sk_variable:
-      entry_ptr = (a_constant_ptr)sym_ptr->variant.variable.ptr;
-      break;
-    case sk_static_data_member:
-      entry_ptr = (a_constant_ptr)sym_ptr->variant.static_data_member.variable;
-      break;
-    case sk_field:
-      entry_ptr = (a_constant_ptr)sym_ptr->variant.field.ptr;
-      break;
-    case sk_routine:
-    case sk_member_function:
-      entry_ptr = (a_constant_ptr)sym_ptr->variant.routine.ptr;
-      break;
-    case sk_label:
-      entry_ptr = (a_constant_ptr)sym_ptr->variant.label.ptr;
-      break;
-    default:
-      /* Other cases ignored. */
-      goto no_il_entry;
-  }  /* switch */
-#if CHECKING
-  if (entry_ptr == NULL) {
-    internal_error("source_corresp_entry_for_symbol: NULL assoc IL entry ptr");
-  }  /* if */
-#endif /* CHECKING */
-  scptr = &entry_ptr->source_corresp;
-no_il_entry:;
-  return scptr;
+  entry_ptr = (a_constant_ptr)il_entry_for_symbol(sym_ptr, &dummy);
+  return (entry_ptr == NULL ? NULL : &entry_ptr->source_corresp);
 }  /* source_corresp_entry_for_symbol */
 
 
@@ -6773,17 +6785,9 @@ End a name scope by popping an entry off the scope stack.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if DEBUG
   if (debug_level >= 3) {
-    if (il_scope != NULL) {
-      a_source_sequence_entry_ptr  src_seq_ptr;
-
-      src_seq_ptr = il_scope->source_sequence_list;
-      if (src_seq_ptr != NULL) {
-        fprintf(f_debug, "source sequence list:\n");
-        for (; src_seq_ptr != NULL; src_seq_ptr = src_seq_ptr->next) {
-          fputs("  ", f_debug);
-          db_source_sequence_entry(src_seq_ptr);
-        }  /* for */            
-      }  /* if */
+    if (il_scope != NULL && il_scope->source_sequence_list != NULL) {
+      fprintf(f_debug, "source sequence list:\n");
+      db_source_sequence_list(il_scope->source_sequence_list);
     }  /* if */
   }  /* if */
 #endif /* DEBUG */
@@ -7091,19 +7095,21 @@ should only be called if cross-reference information is being generated
        symbol-id name X file-name line-number column-number
 
        The separator character between the fields is a horizontal tab.
-       where X is "D" for declaration,
+       where X is "d" for declaration,
+                  "D" for definition,
                   "M" for modification,
                   "A" for address taken,
-                  "U" for use
+                  "U" for use,
                   "C" for changed (i.e., used and modified in one
-                      operation, such as an increment operation)
-                  "R" for generic reference
-                  "E" for error
+                      operation, such as an increment operation),
+                  "R" for generic reference, or
+                  "E" for error.
        The symbol-id is a unique number for the symbol, generated by 
        casting the symbol pointer to unsigned long.
     */
     switch (kind) {
-      case srk_declaration:   code = 'D'; break;
+      case srk_declaration:   code = 'd'; break;
+      case srk_definition:    code = 'D'; break;
       case srk_modification:  code = 'M'; break;
       case srk_address_taken: code = 'A'; break;
       case srk_use:           code = 'U'; break;
@@ -7148,77 +7154,127 @@ Set the "value_has_been_set" flag of the variable symbol pointed to by sym.
 }  /* mark_variable_value_set */
 
 
-void mark_declared(a_symbol_ptr      sym_ptr,
-                   a_source_position *source_position,
-                   a_boolean         save_as_decl_position)
+#if GENERATE_SOURCE_SEQUENCE_LISTS
 /*
-Indicate that the given symbol is declared at the given position.  If
-save_as_decl_position is TRUE, the position is saved as the decl_position
-for the symbol.
+Allocate a source sequence entry for statement sp and add it to the list for
+the appropriate scope.
+*/
+#define sym_update_source_sequence_list(sym, pos)                       \
+{                                                                       \
+  char              *il_entry_ptr;                                      \
+  an_il_entry_kind  kind;                                               \
+  if ((il_entry_ptr = il_entry_for_symbol(sym, &kind)) != NULL) {       \
+    update_source_sequence_list(il_entry_ptr, kind, pos);               \
+  }  /* if */                                                           \
+}
+#else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
+#define stmt_update_source_sequence_list(sym, pos) /* Nothing */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
+
+void mark_defined(a_symbol_ptr      sym_ptr,
+                  a_source_position *source_position)
+/*
+Indicate that the given symbol is defined.  The source position will be
+recorded in the symbol as its "decl_position" (overwriting what's there
+already, if necessary).  A cross-reference entry for a definition will
+be put out.
 */
 {
-  if (f_xref_info != NULL) {
-    /* If writing cross-reference information, write an entry for this
-       declaration. */
-    write_xref_entry(srk_declaration, sym_ptr, source_position);
-  }  /* if */
-  /* Put the decl_position in the symbol. */
-  if (save_as_decl_position) {
-    /* This is a defining declaration. */
+  a_source_correspondence       *scp;
+  a_source_sequence_entry_ptr   ssep;
+  a_src_seq_secondary_decl_ptr  sssdp;
+  a_boolean                     force_alloc_in_filescope;
+  a_memory_region_number        region_to_switch_back_to;
+
+  check_assertion(!sym_ptr->defined);
+  sym_ptr->decl_position = *source_position;
+  sym_ptr->defined = TRUE;
+  if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH) {
+    if (f_xref_info != NULL) {
+      /* If writing cross-reference information, write an entry for this
+         declaration. */
+      write_xref_entry(srk_declaration, sym_ptr, source_position);
+    }  /* if */
+    /* Put the decl_position in the symbol. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-    if (sym_ptr->decl_position.seq != source_position->seq ||
-        sym_ptr->decl_position.column != source_position->column) {
-      /* What's more, it is a definition that follows a previous declaration.
-         The previous declaration should be recorded as a secondary. */
-      a_source_correspondence       *scp;
-      a_source_sequence_entry_ptr   ssep;
-      a_src_seq_secondary_decl_ptr  sssdp;
+    /* If this is a definition that follows a previous declaration, the latter
+       should be recorded as a secondary. */
+    scp = source_corresp_entry_for_symbol(sym_ptr);
+    if (scp != NULL && (ssep = scp->source_sequence_entry) != NULL) {
+      /* A source sequence entry has been located. */
+      if (ssep->entity.kind ==
+                         (a_byte_il_entry_kind)iek_source_sequence_entry) {
+        ssep = (a_source_sequence_entry_ptr)ssep->entity.ptr;
+      }  /* if */
+      if (ssep->entity.kind !=
+                         (a_byte_il_entry_kind)iek_src_seq_secondary_decl) {
+        /* It is not already a secondary declaration, so create one.
+           Current:               Change to:
 
-      scp = source_corresp_entry_for_symbol(sym_ptr);
-      if (scp != NULL && (ssep = scp->source_sequence_entry) != NULL) {
-        /* A source sequence entry has been located. */
-        if (ssep->entity.kind !=
-                           (a_byte_il_entry_kind)iek_src_seq_secondary_decl) {
-          /* It is not already a secondary declaration, so create one.
-             Current:               Change to:
+               entity                       entity
+                  ^                           ^
+                  |                           |
+                  |         ==>       src-seq-secondary-decl
+                  |                           ^
+                  v                           |
+             src-seq-entry             src-seq-entry
 
-                 entity                       entity
-                    ^                           ^
-                    |                           |
-                    |         ==>       src-seq-secondary-decl
-                    |                           ^
-                    v                           |
-               src-seq-entry             src-seq-entry
+           which eventually will look like this:
 
-             which eventually will look like this:
+                                  entity
+                                   ^   ^
+                                   |   |
+                src-seq-secondary-decl |
+                        ^              |
+                        |              v
+                 src-seq-entry ... src-seq-entry
 
-                                    entity
-                                     ^   ^
-                                     |   |
-                  src-seq-secondary-decl |
-                          ^              |
-                          |              v
-                   src-seq-entry ... src-seq-entry
-
-             where the second source-sequence-entry in the new construct
-             (the one at which the entity will point back) has not yet been
-             created at this point in the processing. */
-          sssdp = alloc_src_seq_secondary_decl();
-          sssdp->decl_position = sym_ptr->decl_position;
-          sssdp->entity = ssep->entity;
-          /* Update the tagged-pointer of the current source sequence entry
-             to refer to the secondary-decl entry. */
-          ssep->entity.kind = (a_byte_il_entry_kind)iek_src_seq_secondary_decl;
-          ssep->entity.ptr = (char *)sssdp;
-          /* Note that there is no back pointer from the entity to the
-             secondary-decl entry.   When the new source sequence entry is
-             created, the back pointer will refer to it. */
-          scp->source_sequence_entry = NULL;
+           where the second source-sequence-entry in the new construct (the
+           one at which the entity will point back) has not yet been created
+           at this point in the processing. */
+        if (curr_il_region_number != FILE_SCOPE_REGION_NUMBER &&
+            in_file_scope(ssep)) {
+          force_alloc_in_filescope = TRUE;
+          switch_to_file_scope_region(&region_to_switch_back_to);
+        } else {
+          force_alloc_in_filescope = FALSE;
         }  /* if */
+        sssdp = alloc_src_seq_secondary_decl();
+        if (force_alloc_in_filescope) {
+          switch_back_to_original_region(region_to_switch_back_to);
+        }  /* if */
+        sssdp->decl_position = scp->decl_position;
+        sssdp->entity = ssep->entity;
+        /* Update the tagged-pointer of the current source sequence entry
+           to refer to the secondary-decl entry. */
+        ssep->entity.kind = (a_byte_il_entry_kind)iek_src_seq_secondary_decl;
+        ssep->entity.ptr = (char *)sssdp;
+        /* Note that there is no back pointer from the entity to the
+           secondary-decl entry.   When the new source sequence entry is
+           created, the back pointer will refer to it. */
+        scp->source_sequence_entry = NULL;
       }  /* if */
     }  /* if */
+    sym_update_source_sequence_list(sym_ptr, source_position);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    sym_ptr->decl_position = *source_position;
+  }  /* if */
+}  /* mark_defined */
+
+
+void mark_declared(a_symbol_ptr      sym_ptr,
+                   a_source_position *source_position)
+/*
+Indicate that the given symbol is declared at the given position.
+*/
+{
+  if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH) {
+    if (f_xref_info != NULL) {
+      /* If writing cross-reference information, write an entry for this
+         declaration. */
+      write_xref_entry(srk_declaration, sym_ptr, source_position);
+    }  /* if */
+    sym_update_source_sequence_list(sym_ptr, source_position);
   }  /* if */
 }  /* mark_declared */
 
@@ -7236,10 +7292,12 @@ symbol "used" or "set", if appropriate.
 {
   a_source_correspondence *scptr;
  
-  if (f_xref_info != NULL) {
-    /* If writing cross-reference information, write an entry for this
-       declaration. */
-    write_xref_entry(kind, sym_ptr, source_position);
+  if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH) {
+    if (f_xref_info != NULL) {
+      /* If writing cross-reference information, write an entry for this
+         declaration. */
+      write_xref_entry(kind, sym_ptr, source_position);
+    }  /* if */
   }  /* if */
   /* Set the referenced flag in the symbol. */
   sym_ptr->referenced = TRUE;
@@ -7545,6 +7603,7 @@ storage_class are the type and storage class for the parameter.
          scope when it is changed to sk_variable. */
       sym = enter_symbol((a_symbol_kind)sk_parameter, locator,
                          depth_scope_stack, /*suppress_redecl_error=*/FALSE);
+      mark_declared(sym, &locator->source_position);
     } else {
       /* Must be an old-style parameter declaration.  The type and storage
          class will be supplied later.  We won't actually enter this symbol
