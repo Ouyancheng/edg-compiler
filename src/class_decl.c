@@ -6542,6 +6542,7 @@ declared member functions.
     tip->instance_sym = tip->template_sym = sym;
     tip->template_info = tssp = alloc_template_symbol_supplement(sym->kind);
     tssp->variant.function.routine = rtn;
+    tssp->variant.function.func_info = *func_info;
     rtn->is_prototype_instantiation = TRUE;
     rtn->is_template_function = TRUE;
     tip->prototype_scope_symbols = func_info->prototype_scope_symbols;
