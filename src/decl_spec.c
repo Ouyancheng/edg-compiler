@@ -5159,10 +5159,12 @@ Returns TRUE if there is an error in the specifiers.
             case tok_microsoft_inline:
 	      extended_decl_info.decl_modifiers.flags = DM_MICROSOFT_INLINE;
               decl_specifiers_seen |= DS_MICROSOFT_INLINE;
+              *output_flags |= DSO_INLINE;
               break;
             case tok_forceinline:
 	      extended_decl_info.decl_modifiers.flags = DM_FORCEINLINE;
               decl_specifiers_seen |= DS_FORCEINLINE;
+              *output_flags |= DSO_INLINE;
               break;
             default:
               unexpected_condition();

@@ -1,5 +1,13 @@
 Version 3.1
 
+10/31/02 Microsoft __inline and __forceinline specifiers set is_inline flag
+
+In Microsoft mode, the front end accepts the __inline and __forceinline
+specifiers.  Until now, however, these specifiers did not cause the is_inline
+flag of a routine entry to be set.  This has now been changed: Both the
+is_inline flag and a bit in the decl_modifiers field are set when either of
+these specifiers appear on a function declaration.
+
 10/31/02 Uninitialized bit fields
 
 Two bit fields in front end data structures were not initialized,
