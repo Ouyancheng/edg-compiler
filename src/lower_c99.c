@@ -15,6 +15,8 @@ lower_c99.c -- Routines to transform C99 IL constructs into constructs
 
 */
 
+#if C99_IL_EXTENSIONS_SUPPORTED && DO_C99_IL_LOWERING
+
 /* Header files common to all files. */
 #include "fe_common.h"
 
@@ -22,7 +24,6 @@ lower_c99.c -- Routines to transform C99 IL constructs into constructs
 #include "lower_il.h"
 #include "lower_init.h"
 
-#if C99_IL_EXTENSIONS_SUPPORTED
 
 /* Complex arithmetic and comparison routines. */
 a_routine_ptr  xnegate_routine = NULL;
@@ -727,7 +728,7 @@ void lower_c99_nonreal_float_types(void)
   lower_c99_complex_type((a_float_kind)fk_long_double, "_Complex_long_double");
 }  /*  */
 
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED && DO_C99_IL_LOWERING */
 
 /******************************************************************************
 *                                                             \  ___  /       *
