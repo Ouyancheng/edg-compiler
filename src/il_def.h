@@ -682,8 +682,6 @@ enum an_integer_kind_tag {
                         /* Not used in pcc mode; ik_signed_char or
                            ik_unsigned_char is used instead. */
 #endif /* ifdef CIL */
-  /* Note that the unsigned version must immediately follow the signed
-     version in each case. */
   ik_signed_char,
   ik_unsigned_char,
   ik_short,
