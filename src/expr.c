@@ -3861,7 +3861,9 @@ See section 3.3.3.2 of the standard.
     operand_will_not_be_used_because_of_error(&operand);
   } else {
     if (C_dialect == C_dialect_cplusplus &&
-        is_overloadable_type_operand(&operand)) {
+        /* Note: not is_overloadable_type_operand on purpose; we want
+           to handle pointer-to-template-param better than the generic way. */
+        is_overloadable_type(operand.type)) {
       /* Look for C++ operator overloading cases. */
       check_for_operator_overloading((an_opname_kind)onk_star,
                                      /*unary_operator=*/TRUE,
