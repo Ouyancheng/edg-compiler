@@ -22,9 +22,7 @@ mem_manage.c -- Memory management routines.
 #pragma hdrstop
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
-#if __ANSIC__ || defined(__cplusplus)
-#include <stdlib.h>
-#else /* !(__ANSIC__ || defined(__cplusplus)) */
+#ifndef STDLIB_H_INCLUDED
 #if __BSD__
 extern char *malloc(unsigned size);
 extern int free(char *); /* int to match old-style definition. */
@@ -32,7 +30,7 @@ extern char *realloc(char *ptr, unsigned size);
 #else /* __SYSV__ */
 #include <malloc.h>
 #endif /* __BSD__ */
-#endif /* __ANSIC__ || defined(__cplusplus) */
+#endif /* ifndef STDLIB_H_INCLUDED */
 
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
 #include "il_file.h"

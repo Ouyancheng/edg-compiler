@@ -27,18 +27,17 @@ for a production version.
 
 /* Additional header files. */
 #if __ANSIC__ || defined(__cplusplus)
-/* For strtod: */
-#include <stdlib.h>
 /* For FLT_MAX: */
 #include <float.h>
-#else/* !(__ANSIC__ || defined(__cplusplus)) */
-EXTERN_C double strtod(char *, char **);
 #endif /* __ANSIC__ || defined(__cplusplus) */
 #include <errno.h>
 #if __BSD__
 /* BSD errno.h doesn't define "errno". */
 EXTERN_C int errno;
 #endif /* __BSD__ */
+#ifndef STDLIB_H_INCLUDED
+EXTERN_C double strtod(char *, char **);
+#endif /* ifndef STDLIB_H_INCLUDED */
 
 
 #ifdef FFE

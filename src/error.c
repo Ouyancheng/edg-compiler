@@ -30,17 +30,14 @@ error.c -- Error reporting routines.
 #include "pch.h"
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
-#if __ANSIC__
-/* Get bsearch definition. */
-#include <stdlib.h>
-#else /* __ANSIC__ */
+#ifndef STDLIB_H_INCLUDED
 EXTERN_C a_void_ptr bsearch(a_const_void_ptr key,
                             a_const_void_ptr base,
                             sizeof_t         nmemb,
                             sizeof_t         size,
                             int(*compar)(a_const_void_ptr,
                                          a_const_void_ptr));
-#endif /* __ANSIC__ */
+#endif /* ifndef STDLIB_H_INCLUDED */
 
 
 /*

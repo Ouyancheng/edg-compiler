@@ -96,18 +96,16 @@ typedef int a_signal_handler_return_value;
 #endif /* defined(SIGNAL_HANDLER_RETURNS_VOID) */
 
 #include <errno.h>
-#if __ANSIC__ || defined(__cplusplus)
-/* Files that are included for functions that conform to ANSI C libraries. */
-#include <stdlib.h>
-#else /* !(__ANSIC__ || defined(__cplusplus) */
-EXTERN_C char *getenv(char *name);
-EXTERN_C int abort(void);
-EXTERN_C void exit(int status);
 #if __BSD__
 /* BSD errno.h doesn't define "errno". */
 EXTERN_C int errno;
 #endif /* __BSD__ */
-#endif /* __ANSIC__ || defined(__cplusplus) */
+
+#ifndef STDLIB_H_INCLUDED
+EXTERN_C char *getenv(char *name);
+EXTERN_C int abort(void);
+EXTERN_C void exit(int status);
+#endif /* ifndef STDLIB_H_INCLUDED */
 
 /*
 Header files needed to use the system routines to get the elapsed clock

@@ -355,9 +355,13 @@ EXTERN_C char *sprintf(char *, const char *, ...);
 #define SEEK_SET 0 /* Normal Unix value. */
 #endif /* ifndef SEEK_SET */
 
+#if __ANSIC__ || defined(__cplusplus)
+#define STDLIB_H_INCLUDED 1
+#include <stdlib.h>
+#endif /* __ANSIC__ || defined(__cplusplus) */
+
 /* String and block routines: */
 #if __ANSIC__
-#include <stdlib.h>
 #include <string.h>
 #define memzero(dest, nbytes) memset(dest, 0, nbytes)
 #else /* !__ANSIC__ */
