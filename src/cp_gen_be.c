@@ -2026,9 +2026,17 @@ is called.
 
   check_assertion(type->kind == (a_type_kind)tk_typeref &&
                   typeref_is_typedef(type));
-  if (!type->typedef_definition_has_been_put_out) {
+  if (!type->typedef_definition_has_been_put_out &&
+      !(type->source_corresp.is_class_member &&
+        type->source_corresp.parent.class_type->
+                               variant.class_struct_union.is_template_class)) {
     /* The typedef definition has not been put out yet, so the typedef
-       name cannot be referenced. */
+       name cannot be referenced. (Except when
+       CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE,
+       typedef members of instances of class templates are never generated
+       and thus always satisfy the !typedef_definition_has_been_put_out
+       test; they are still referenceable, however, and should not be
+       treated as invisible.) */
     invisible = TRUE;
 #if GCC_BUILTIN_VARARGS
     /* The definition of the va_list type is never put out, but it's
