@@ -5223,7 +5223,7 @@ at_function_level is TRUE if this compound-statement is the body of a
 function (rather than an enclosed block).  In that case, the closing "}"
 is not swallowed by this routine.  This is unusual, but desirable in
 that it gets any error messages (like those for unresolved labels) to 
-come out on the closing "}".  If is_catch_clause is TRUE this being called
+come out on the closing "}".  If is_catch_clause is TRUE this is being called
 to scan the body of an exception handler.  The scope stack has already been
 pushed, but otherwise this is handled like an ordinary block (except that
 branching into it is disallowed).
@@ -5404,6 +5404,9 @@ branching into it is disallowed).
                                      &null_source_position);
       sp->expr = alloc_expr_node((an_expr_node_kind)enk_throw);
       sp->expr->type = void_type();
+      /* There is no throw expression (i.e., this is a rethrow), so discard
+         the throw supplement. */
+      sp->expr->variant.throw_info = NULL;
       set_unreachable(curr_reachability);
     }  /* if */
   }  /* if */
