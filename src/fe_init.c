@@ -522,10 +522,10 @@ to replace the initial portion of this compilation.
   name_lower_init();
 #endif /* NEED_NAME_MANGLING */
 
-  /* Push the file scope for the symbol table.  This is done after
-     names (like predefined macros) are entered so that they are
-     not part of the file scope. */
-  /* Put a pointer to the scope entry into the intermediate language header. */
+  /* Push an entry for the file scope onto the scope stack, saving the
+     pointer to the scope in the IL header.  This is done after the entry
+     of keywords and predefined macros, because they do not belong to the
+     file scope. */
   il_header.primary_scope =
                     push_scope((a_scope_kind)sck_file,
                                NO_SCOPE_NUMBER, (a_type_ptr)NULL,
@@ -584,11 +584,7 @@ to replace the initial portion of this compilation.
     make_global_operator_new_or_delete_symbol((an_opname_kind)onk_new);
     make_global_operator_new_or_delete_symbol((an_opname_kind)onk_delete);
   }  /* if */
-  /* The following (source file initialization) is done last so that any
-     initialization errors or uses of source position will correctly
-     identify the position as before the start of source. */
-  /* Push the primary source input file onto the input stack.  Make
-     a copy of the file name in IL storage. */
+  /* The primary souce file pointer is updated when the file is opened. */
   il_header.primary_source_file = NULL;
 
   db_exit();
@@ -635,9 +631,17 @@ the IL data structures and opens the primary source file to do the actual
 compilation.
 */
 {
+  /* The following (source file initialization) is done last so that any
+     initialization errors or uses of source position will correctly
+     identify the position as before the start of source. */
+  /* Push the primary source input file onto the input stack.  Make
+     a copy of the file name in IL storage. */
   open_primary_source_file();
   if (using_a_pch_file) {
-    /* If we are using input from a precompiled header file, then we need
+    /* The symbol table has been restored from a precompiled header file, so
+       the symbols for the __DATE__ and __TIME__ macros have to be updated. */
+    fixup_predefined_macros(curr_date_time);
+    /* Since we are using input from a precompiled header file, we need
        to skip over the initial portion of the primary input file that
        corresponds to what has been obtained from the PCH.  Go into
        the "prefix scanning" mode.  This flag will be reset when we
