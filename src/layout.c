@@ -878,7 +878,7 @@ overflow error.
     *byte_offset += byte_incr;
   }  /* if */
   if (bit_incr != 0) {
-    if (*bit_offset > INT_MAX-bit_incr) {
+    if (*bit_offset > MAX_HOST_LARGE_UNSIGNED-bit_incr) {
       overflow = TRUE;
     } else {
       *bit_offset += bit_incr;
