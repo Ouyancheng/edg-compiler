@@ -5621,7 +5621,9 @@ make_new_comp_type:
     rtsp->prototyped = comp_prototyped;
     rtsp->has_ellipsis = rtsp1->has_ellipsis;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    rtsp->calling_convention = comp_calling_convention;
+    if (microsoft_mode) {
+      rtsp->calling_convention = comp_calling_convention;
+    }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (!C_mode()) {
       /* Set the implicit-this-parameter type. */
