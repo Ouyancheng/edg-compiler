@@ -49,12 +49,14 @@ extern void scan_initializer_expression(a_type_ptr       required_type,
                                         an_expr_node_ptr *expression,
                                         a_constant       *constant);
 
-extern a_symbol_ptr select_copy_constructor(
+extern a_routine_ptr select_default_constructor(a_type_ptr        class_type,
+                                                a_source_position *err_pos);
+
+extern a_routine_ptr select_copy_constructor(
                                     a_type_ptr        class_type,
                                     a_boolean         const_object_required,
                                     a_boolean         volatile_object_required,
-                                    a_source_position *err_pos,
-                                    a_boolean         *err);
+                                    a_source_position *err_pos);
 
 extern an_expr_node_ptr scan_class_initializer_expression(
                                             a_type_ptr    required_type,
