@@ -2698,17 +2698,11 @@ Instantiate the body of the template function associated with tip.
   {
   a_source_sequence_entry_ptr  new_insert_point;
 
-  if (in_instantiation_wrapup && !rout_ptr->is_inline) {
-    /* During instantiation wrapup, each non-inline function instance should
-       be put out in place instead of "floating" to another location. */
-    scope_stack[DEPTH_OF_FILE_SCOPE].ss_list_instantiation_insert_point = NULL;
-    new_insert_point = NULL;
-  } else {
-    /* If a function is instantiated on the spot, the source sequence entry
-       for it should float out if necessary. */
-    new_insert_point = scope_stack[DEPTH_OF_FILE_SCOPE].
+  /* If a function instantiation is triggered in the midst of processing
+     another declaration or a function body, the source sequence entry for
+     it should "float" out. */
+  new_insert_point = scope_stack[DEPTH_OF_FILE_SCOPE].
                                      ss_list_instantiation_insert_point;
-  }  /* if */
   if (new_insert_point != NULL) {
     /* A non-NULL insert point is the point *before which* the source
        sequence entries for the instantiation should be added.  Clip off the
@@ -12325,6 +12319,13 @@ that might be required.
       if ((instantiation_mode == tim_all || tip->instantiation_required) &&
           !tip->already_instantiated) {
         if (should_be_instantiated(tip, /*implicit_inclusion_ok=*/TRUE)) {
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+          /* Reset the insert point for instantiations to NULL.  This assures
+             that the source sequence entry for the instantiation will be
+             added to the end of the source-sequence list. */
+          scope_stack[DEPTH_OF_FILE_SCOPE].
+                       ss_list_instantiation_insert_point = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
           instantiate_entity(tip);
         }  /* if */
       }  /* if */
