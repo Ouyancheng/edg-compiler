@@ -26,6 +26,70 @@ exprutil.h -- Declarations related to expression parsing.
 
 /* Include of overload.h comes later. */
 
+/*
+The operators and their precedences are:
+
+Operators			Precedence	Associativity
+[] () . -> ++ --		17		L       [] subscripting
+							() function call
+							++ -- postfix
+++ -- & * + - ~ ! sizeof	16		R	Prefix operators
+cast				15		R
+.* ->* (C++ only)		14		L
+* / %				13		L
++ -				12		L
+<< >>				11		L
+< > <= >=			10		L
+== !=				9		L
+&				8		L
+^				7		L
+|				6		L
+&&				5		L
+||				4		L
+?				3		R
+= += -= *= /= %=
+&= ^= |= <<= >>=		2		R	Assignment operators
+,				1		L
+
+Higher-valued precedence means an operator binds more tightly.
+Precedence level 0 is used to bracket a complete expression.
+*/
+#define LEFT_ASSOC  TRUE
+#define RIGHT_ASSOC FALSE
+#define PREC_POSTFIX    17
+#define PREC_PREFIX     16
+#define PREC_CAST       15
+#define PREC_PTR_TO_MEMBER 14
+#define PREC_MULT_DIV   13
+#define PREC_PLUS_MINUS 12
+#define PREC_SHIFT      11
+#define PREC_RELATIONAL 10
+#define PREC_EQ_NE       9
+#define PREC_AND         8
+#define PREC_EXCL_OR     7
+#define PREC_OR          6
+#define PREC_AND_AND     5
+#define PREC_OR_OR       4
+#define PREC_QUEST_MARK  3
+#define PREC_ASSIGNMENT  2
+#define PREC_COMMA       1
+#define PREC_LOWEST      0
+
+
+/*
+Interfaces to add_stop_token and remove_stop_token to be used for matching
+closing tokens, like ")" for "(".  These mark the beginning and end of
+a nested construct.
+*/
+#define add_matching_stop_token(token)                                \
+{ add_stop_token(token);                                              \
+  expr_stack->nested_construct_depth++;                               \
+}  /* add_matching_stop_token */
+#define remove_matching_stop_token(token)                             \
+{ remove_stop_token(token);                                           \
+  expr_stack->nested_construct_depth--;                               \
+}  /* remove_matching_closing_token */
+
 
 /* Define the categories of expressions that are allowed. */
 enum an_expression_kind_tag {
