@@ -7193,6 +7193,8 @@ that follows.
           scan_function_body(sym->variant.routine.ptr, &func_info,
                              SFB_NO_FLAGS);
         } else {
+          /* Update xref info on param ids. */
+          record_param_id_list_declarations(func_info.param_id_list);
           /* No function body, so there ought to be a semicolon following the
              declaration. */
           (void)required_token_no_advance(tok_semicolon, ec_exp_semicolon);

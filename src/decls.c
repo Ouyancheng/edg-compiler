@@ -7606,36 +7606,16 @@ continue_with_declaration:
           }  /* if */
         }  /* if */
       }  /* if */
-      if (top_declarator_type_is_function) {
-        a_param_id_ptr  pid = func_info.param_id_list;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-        a_src_seq_sublist_ptr  sublist = NULL;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-        if (pid != NULL) {
-          /* If the function has a non-empty old-style identifier list of
-             parameters, a body should have been present. */
-          if (!skip_typerefs(local_type_ptr)->
-                                    variant.routine.extra_info->prototyped) {
-            error(ec_param_id_list_needs_function_def);
-          }  /* if */
-          /* After updating xref information on each symbol, free the list
-             of parameter identifiers -- they're not needed if there's no
-             definition. */
-          for (; pid != NULL; pid = pid->next) {
-            if (pid->symbol != NULL) {
-              mark_declared(pid->symbol, &pid->symbol->decl_position);
-            }  /* if */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-            if (pid->source_sequence_entry != NULL) {
-              check_assertion(ss_entry_kind(pid->source_sequence_entry) ==
-                                                 (an_il_entry_kind)iek_none);
-              remove_from_source_sequence_list(pid->source_sequence_entry,
-                                               &sublist);
-              pid->source_sequence_entry = NULL;
-            }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-          }  /* for */
+      if (top_declarator_type_is_function &&
+          func_info.param_id_list != NULL) {
+        /* If the function has a non-empty old-style identifier list of
+           parameters, a body should have been present. */
+        if (!skip_typerefs(local_type_ptr)->
+                                  variant.routine.extra_info->prototyped) {
+          error(ec_param_id_list_needs_function_def);
         }  /* if */
+        /* Update xref info on param ids. */
+        record_param_id_list_declarations(func_info.param_id_list);
       }  /* if */
       /* Do some checking of storage classes, but not for typedefs. */
       if (local_storage_class != (a_storage_class)sc_typedef) {

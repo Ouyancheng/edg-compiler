@@ -144,7 +144,9 @@ extern void record_symbol_reference(a_symbol_reference_kind  kind,
   record_symbol_reference(SRK_REFERENCE, (sym), (err_pos),              \
                           /*update_il_entry=*/TRUE)
 
-void reference_to_invalid_name(a_symbol_locator *locator);
+extern void reference_to_invalid_name(a_symbol_locator *locator);
+
+extern void record_param_id_list_declarations(a_param_id_ptr  pid);
 
 extern void record_class_member_using_decl(a_class_member_using_decl_ptr cmudp,
                                            a_symbol_ptr                  sym,

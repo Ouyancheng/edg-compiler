@@ -8680,29 +8680,8 @@ following the member declaration.
         }  /* if */
       }  /* if */
       if (!function_def_present) {
-        if (func_info.param_id_list != NULL) {
-          /* After updating xref information on each symbol, free the list
-             of parameter identifiers -- they're not needed if there's no
-             definition. */
-          a_param_id_ptr  pid = func_info.param_id_list;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-          a_src_seq_sublist_ptr  sublist = NULL;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-          for (; pid != NULL; pid = pid->next) {
-            if (pid->symbol != NULL) {
-              mark_declared(pid->symbol, &pid->symbol->decl_position);
-            }  /* if */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-            if (pid->source_sequence_entry != NULL) {
-              check_assertion(ss_entry_kind(pid->source_sequence_entry) ==
-                                                (an_il_entry_kind)iek_none);
-              remove_from_source_sequence_list(pid->source_sequence_entry,
-                                               &sublist);
-              pid->source_sequence_entry = NULL;
-            }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-          }  /* for */
-        }  /* if */
+        /* Update xref info on param ids. */
+        record_param_id_list_declarations(func_info.param_id_list);
       }  /* if */
       if (curr_routine_fixup != NULL) {
         /* Update the symbol pointer in the fixup entry -- it's needed when

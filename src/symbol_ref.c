@@ -1073,6 +1073,36 @@ information on the reference, if required.
 }  /* reference_to_invalid_name */
 
 
+void record_param_id_list_declarations(a_param_id_ptr  pid)
+/*
+The function with which the param-id list headed by pid is associated has
+been declared but not defined.  The symbols associated with the parameter
+declarations should be recorded for cross referencing and any associated
+source-sequence entries should be removed from the list.
+*/
+{
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_src_seq_sublist_ptr  sublist = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
+  /* Update xref information on each symbol. */
+  for (; pid != NULL; pid = pid->next) {
+    if (pid->symbol != NULL) {
+      mark_declared(pid->symbol, &pid->symbol->decl_position);
+    }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    if (pid->source_sequence_entry != NULL) {
+      check_assertion(ss_entry_kind(pid->source_sequence_entry) ==
+                                             (an_il_entry_kind)iek_none);
+      remove_from_source_sequence_list(pid->source_sequence_entry,
+                                       &sublist);
+      pid->source_sequence_entry = NULL;
+    }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  }  /* for */
+}  /*  */
+
+
 #if !GENERATE_SOURCE_SEQUENCE_LISTS
 /*ARGSUSED*/ /* cmudp is used only when a source sequence entry is created. */
 #endif /* !GENERATE_SOURCE_SEQUENCE_LISTS */
