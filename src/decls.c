@@ -6068,7 +6068,7 @@ declaration.
           if (func_info->is_inline && !routine_ptr->is_inline) {
             changed_to_inline = TRUE;
           }  /* if */
-          set_inline_flag(routine_ptr, func_info->is_inline);
+          set_inline_flag(routine_ptr, (a_boolean)func_info->is_inline);
           routine_ptr->source_corresp.name_linkage =
                           (storage_class == (a_storage_class)sc_static) ?
                                 (a_name_linkage_kind)nlk_internal :
@@ -6205,7 +6205,7 @@ declaration.
         if (func_info->is_inline && !routine_ptr->is_inline) {
           changed_to_inline = TRUE;
         }  /* if */
-        set_inline_flag(routine_ptr, func_info->is_inline);
+        set_inline_flag(routine_ptr, (a_boolean)func_info->is_inline);
         routine_ptr->source_corresp.name_linkage =
                           (storage_class == (a_storage_class)sc_static) ?
                                 (a_name_linkage_kind)nlk_internal :

@@ -3650,7 +3650,7 @@ supplement already associated with ft_symbol.
          removed. */
       tssp->variant.function.func_info.is_inline =
                                orig_tssp->variant.function.func_info.is_inline;
-      set_inline_flag(rp, orig_rp->is_inline);
+      set_inline_flag(rp, (a_boolean)orig_rp->is_inline);
       rp->storage_class = orig_rp->storage_class;
       rp->source_corresp.name_linkage = orig_rp->source_corresp.name_linkage;
     }
@@ -8362,7 +8362,7 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
                                                    : templ_rout->storage_class;
     set_routine_special_kind(rp, templ_rout->special_kind);
     rp->variant = templ_rout->variant;
-    set_inline_flag(rp, templ_rout->is_inline);
+    set_inline_flag(rp, (a_boolean)templ_rout->is_inline);
 #if DO_IL_LOWERING && IA64_ABI
     rp->inline_in_class_definition = templ_rout->inline_in_class_definition;
 #endif /* DO_IL_LOWERING && IA64_ABI */
@@ -16039,7 +16039,7 @@ that follows.
         }
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         rp->is_specialized = TRUE;
-        set_inline_flag(rp, func_info.is_inline);
+        set_inline_flag(rp, (a_boolean)func_info.is_inline);
         if ((func_info.is_inline && !extern_inline_allowed) ||
             rp->storage_class == (a_storage_class)sc_static) {
           /* Function was declared "static" or it was declared "inline" and
