@@ -3319,6 +3319,12 @@ typedef struct a_variable {
 			     union { int i, j };
 			   the IL to represent the source construct "i" is
 			   "<anonymous-parent-object>.i". */
+  unsigned int	defined:1;
+			/* TRUE if the variable has actually been defined.
+			   (It is only FALSE for static data members that have
+			   been declared but not defined, for uninitialized
+			   variables declared "extern", and in C for variables
+			   with "tentative definitions".) */
 #if DO_IL_LOWERING
   unsigned int  initialization_rewritten_as_assignment:1;
 			/* TRUE if IL lowering has rewritten some part of

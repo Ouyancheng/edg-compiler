@@ -5576,6 +5576,9 @@ to it.
   vp->is_this_parameter           = FALSE;
   vp->is_partially_initialized    = FALSE;
   vp->is_anonymous_parent_object  = FALSE;
+  /* The defined flag initialized to TRUE and then reset to FALSE if this is
+     a named variable. */
+  vp->defined                     = TRUE;
 #if DO_IL_LOWERING
   vp->initialization_rewritten_as_assignment = FALSE;
 #if MINIMAL_INLINING
