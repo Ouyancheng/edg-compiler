@@ -849,7 +849,7 @@ encountered.
 }  /* instantiate_class_template */
 
 
-void instantiate_template_function(a_template_instance_ptr  tip)
+static void instantiate_template_function(a_template_instance_ptr  tip)
 /*
 Instantiate the body of the template function associated with tip.
 */
@@ -983,7 +983,7 @@ done:;
 }  /* instantiate_template_function */
 
 
-void define_template_static_data_member(a_template_instance_ptr  tip)
+static void define_template_static_data_member(a_template_instance_ptr  tip)
 /*
 Generate a definition of a static data member of a template class.  The
 definition may be based on a template definition of the static data
@@ -1984,9 +1984,9 @@ of a function template.
 }  /* scan_template_declaration */
 
 
-a_symbol_ptr make_template_function(a_symbol_ptr        templ_sym,
-                                    a_template_arg_ptr  templ_arg_list,
-                                    a_source_position   *source_pos)
+static a_symbol_ptr make_template_function(a_symbol_ptr        templ_sym,
+                                           a_template_arg_ptr  templ_arg_list,
+                                           a_source_position   *source_pos)
 /*
 Allocate the symbol and routine entry for a template function, based on
 the function template (represented by templ_sym), and allocate and enter
@@ -2136,7 +2136,8 @@ type based on the template argument list and the template parameter list
 }  /* make_template_function */
 
 
-a_boolean is_match_for_function_template(a_symbol_ptr       templ_sym,
+static a_boolean is_match_for_function_template(
+                                         a_symbol_ptr       templ_sym,
                                          a_type_ptr         curr_type,
                                          a_template_arg_ptr *templ_arg_list,
                                          a_symbol_ptr       *instance_sym)
@@ -3356,7 +3357,7 @@ pointed to by the template symbol supplement.
 }  /* prescan_function_template_default_arg_expr */
 
 
-void prescan_template_param_decl(a_token_cache	*token_cache)
+static void prescan_template_param_decl(a_token_cache	*token_cache)
 /*
 Place the tokens for a template parameter into a token cache.
 */
@@ -4202,7 +4203,7 @@ a pointer to it.
 }  /* alloc_can_instantiate_entry */
 
 
-void add_to_can_instantiate_list(a_type_ptr class_type)
+static void add_to_can_instantiate_list(a_type_ptr class_type)
 /*
 Add an entry to the can_instantiate list.
 */

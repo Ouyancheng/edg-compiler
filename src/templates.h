@@ -60,10 +60,6 @@ extern void f_check_for_uninstantiated_template_class(a_type_ptr  type);
 
 extern void f_instantiate_template_class(a_type_ptr  type);
 
-extern void instantiate_template_function(a_template_instance_ptr  tip);
-
-extern void define_template_static_data_member(a_template_instance_ptr  tip);
-
 extern a_boolean equiv_template_arg_lists(a_template_arg_ptr list1,
                                           a_template_arg_ptr list2,
                                           a_boolean          is_func_template);
@@ -76,7 +72,6 @@ extern void delayed_scan_for_function_template_default_args
 			  a_template_symbol_supplement_ptr tssp);
 
 extern a_symbol_ptr template_declaration(a_boolean  *defines_something);
-extern void add_to_can_instantiate_list(a_type_ptr class_type);
 extern void update_instantiation_required_flag(a_template_instance_ptr tip,
                                                a_boolean               value);
 extern void instantiation_wrapup(void);
