@@ -2797,7 +2797,7 @@ created; the caller must set it.
     } else {
       scp = &esdp->variant.routine.ptr->source_corresp;
     }  /* if */
-    if (C_dialect == C_dialect_pcc && ext_sym != NULL &&
+    if (C_dialect == C_dialect_pcc &&
         depth_innermost_function_scope != NO_SCOPE_DEPTH) {
       /* In pcc mode, block-external declarations declared in other function
          scopes need not be compatible with the current declaration. */
@@ -2811,35 +2811,33 @@ created; the caller must set it.
         }  /* if */
       }
     }  /* if */
-    if (ext_sym != NULL) {
-      if (suppress_incompatible_error) {
-        incomp_severity = es_none;
+    if (suppress_incompatible_error) {
+      incomp_severity = es_none;
+    }  /* if */
+    if (ext_sym_kind != ext_sym->kind) {
+      /* The old entity is a variable and the new one is a routine, or
+         vice-versa; error. */
+      if (!suppress_incompatible_error) {
+        pos_sy_diagnostic(incomp_severity,
+                          ec_decl_incompatible_with_previous_use,
+                          &locator->source_position, ext_sym);
       }  /* if */
-      if (ext_sym_kind != ext_sym->kind) {
-        /* The old entity is a variable and the new one is a routine, or
-           vice-versa; error. */
-        if (!suppress_incompatible_error) {
-          pos_sy_diagnostic(incomp_severity,
-                            ec_decl_incompatible_with_previous_use,
-                            &locator->source_position, ext_sym);
-        }  /* if */
-        err = TRUE;
-        /* Force creation of a new external symbol. */
-        ext_sym = NULL;
-      } else {
-        /* Both are variables, or both are routines.  Compare the old and
-           new types; they must be compatible. */
-        err = !reconcile_external_symbol_types(ext_sym,
-                                               &locator->source_position,
-                                               type_ptr,
-                                               incomp_severity);
-        if (ext_sym_kind == (a_symbol_kind)sk_extern_routine) {
-          /* If this declaration is not the result of an implicit
-             declaration, clear the is_implicit_declaration flag in the
-             external symbol entry. */
-          if (!is_implicit_declaration) {
-            esdp->variant.routine.is_implicit_declaration = FALSE;
-          }  /* if */
+      err = TRUE;
+      /* Force creation of a new external symbol. */
+      ext_sym = NULL;
+    } else {
+      /* Both are variables, or both are routines.  Compare the old and
+         new types; they must be compatible. */
+      err = !reconcile_external_symbol_types(ext_sym,
+                                             &locator->source_position,
+                                             type_ptr,
+                                             incomp_severity);
+      if (ext_sym_kind == (a_symbol_kind)sk_extern_routine) {
+        /* If this declaration is not the result of an implicit
+           declaration, clear the is_implicit_declaration flag in the
+           external symbol entry. */
+        if (!is_implicit_declaration) {
+          esdp->variant.routine.is_implicit_declaration = FALSE;
         }  /* if */
       }  /* if */
     }  /* if */
@@ -2854,7 +2852,7 @@ created; the caller must set it.
       old_name = scp->name;
       new_name = locator->symbol_header->identifier;
       check_assertion(old_name != NULL);
-      if ((!C_mode() &&
+      if ((!C_mode() && !is_function &&
            (a_name_linkage_kind)scp->name_linkage != name_linkage &&
            ((a_name_linkage_kind)scp->name_linkage ==
                                            (a_name_linkage_kind)nlk_external ||
