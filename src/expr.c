@@ -12163,13 +12163,15 @@ a_boolean scan_aggregate_class_initializer_expression(
                                             a_dynamic_init_ptr *dip,
                                             a_constant         *constant)
 /*
-Scan an expression that is the initial value of an entity of aggregate
+Scan an expression that is the initial value of an entity of
 class type.  required_type indicates the class type (it may have some
 qualifiers on top of it).  This is copy-initialization.  static_lifetime
 is TRUE if the variable being initialized has static lifetime.  Either
 create a dynamic initialization entry and return a pointer to it in
 *dip (along with *is_constant FALSE), or set *constant to a constant
-value (along with *is_constant TRUE).
+value (along with *is_constant TRUE).  This routine exists to deal
+with initialization of aggregate class types, but it can be called for
+non-aggregate class types as well.
 
 The initializer for an aggregate class can initialize either the whole
 class or the first member of the class (or its first member, etc.).
