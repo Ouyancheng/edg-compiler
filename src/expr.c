@@ -4760,7 +4760,7 @@ the position to be used for errors.
 }  /* determine_deletion_for_new */
 
 
-static a_dynamic_init_ptr f_determine_deletion_for_throw_before_new_init_done(
+static a_dynamic_init_ptr f_make_dyn_init_for_deletion_for_throw(
                                                   a_routine_ptr delete_routine)
 /*
 Exceptions are enabled, and a "new" with initialization is being scanned.
@@ -4787,13 +4787,13 @@ that describes the deallocation and return a pointer to it.
                                      /*static_lifetime=*/FALSE,
                                      /*block_lifetime=*/FALSE);
   return dyn_init_to_free_storage;
-}  /* f_determine_deletion_for_throw_before_new_init_done */
+}  /* f_make_dyn_init_for_deletion_for_throw */
 
 
 /*
-Macro used to call f_determine_deletion_for_throw_before_new_init_done
-from within scan_new_operator.  Sets dyn_init_to_free_storage, if necessary,
-to point to a dynamic init entry that will free the storage allocated by
+Macro used to call f_make_dyn_init_for_deletion_for_throw from within
+scan_new_operator.  Sets dyn_init_to_free_storage, if necessary, to
+point to a dynamic init entry that will free the storage allocated by
 the "new" if an exception is thrown before the initialization of the
 storage is completed.  This must be called only after it has been
 determined that the "new" has initialization, but before that
@@ -4802,12 +4802,12 @@ lifetime list in the right place).
 */
 /* Do not record the deletion if no delete routine is needed or if
    allocation is folded into a constructor (new_routine == NULL). */
-#define determine_deletion_for_throw_before_new_init_done()           \
+#define make_dyn_init_for_deletion_for_throw()                        \
 { if (delete_routine != NULL && new_routine != NULL) {                \
     dyn_init_to_free_storage =                                        \
-      f_determine_deletion_for_throw_before_new_init_done(delete_routine); \
+      f_make_dyn_init_for_deletion_for_throw(delete_routine);         \
   }  /* if */                                                         \
-}  /* determine_deletion_for_throw_before_new_init_done */
+}  /* make_dyn_init_for_deletion_for_throw */
 
 
 static void scan_new_operator(an_operand *result)
@@ -5180,13 +5180,13 @@ specification allow a variable-sized array as the top type.
     arg_operand_list = NULL;
     arg_match_list = NULL;
   }  /* if */
-  if (exceptions_enabled
+  if (!err && exceptions_enabled && function_symbol != NULL
 #if !ABI_CHANGES_FOR_PLACEMENT_DELETE
       /* When placement delete is not supported do not look for a delete
          routine. */
       && !placement_new
 #endif /* !ABI_CHANGES_FOR_PLACEMENT_DELETE */
-                        ) {
+                                                           ) {
     /* Determine the delete routine to be called if an exception is
        thrown before the initialization completes. */
     delete_routine = determine_deletion_for_new(base_new_type,
@@ -5221,7 +5221,7 @@ specification allow a variable-sized array as the top type.
            if an exception is thrown before the initialization is finished.
            This must be done after it has been determined that initialization
            is required, but before the initialization is actually processed. */
-        determine_deletion_for_throw_before_new_init_done();
+        make_dyn_init_for_deletion_for_throw();
         ctor_routine = select_default_constructor(base_new_type,
                                                   &type_position,
                                                   base_new_type,
@@ -5282,7 +5282,7 @@ specification allow a variable-sized array as the top type.
          if an exception is thrown before the initialization is finished.
          This must be done after it has been determined that initialization
          is required, but before the initialization is actually processed. */
-      determine_deletion_for_throw_before_new_init_done();
+      make_dyn_init_for_deletion_for_throw();
       /* Scan the constructor arguments. */
       scan_ctor_arguments(ctor_sym, &init_arg_expr_list, &ctor_routine,
                           &lparen_pos, base_new_type);
@@ -5300,7 +5300,7 @@ specification allow a variable-sized array as the top type.
            if an exception is thrown before the initialization is finished.
            This must be done after it has been determined that initialization
            is required, but before the initialization is actually processed. */
-        determine_deletion_for_throw_before_new_init_done();
+        make_dyn_init_for_deletion_for_throw();
         init_val_node = scan_parenthesized_initializer_expression(
                                                       err ? error_type() :
                                                             new_type,
