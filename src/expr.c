@@ -4677,7 +4677,7 @@ the type, stripped of typerefs.
     tp = skip_typerefs(operand.type);
     if (is_integral_or_enum_type(tp)) {
       /* Integral types are converted to double. */
-      tp = float_type((a_type_kind)fk_double);
+      tp = float_type((a_float_kind)fk_double);
     } else if (!is_arithmetic_or_enum_type(tp)) {
       pos_error(ec_expr_not_arithmetic, &operand.position);
       tp = error_type();
