@@ -5786,6 +5786,7 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
             } else {
               /* Non-static data member (= field). */
               /* The type specified must be complete. */
+              check_for_uninstantiated_template_class(local_type);
               if (is_incomplete_type(local_type)) {
                 /* As a C extension (but not C++), allow an incomplete array
                    as the last member of a struct.  It can't be the first
@@ -5801,8 +5802,6 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
                     diagnostic(strict_ansi_error_severity,
                                ec_incomplete_type_not_allowed);
                   }  /* if */
-                } else if (try_template_class_instantiation(local_type)) {
-                  /* Okay. */
                 } else {
                   error(ec_incomplete_type_not_allowed);
                   local_type = error_type();

@@ -902,23 +902,26 @@ type is legal.
         temp_type = skip_typerefs(new_type_ptr);
         if (is_object_type(temp_type) || is_pointer_type(temp_type) ||
             (temp_type->kind == (a_type_kind)tk_array &&
-             temp_type->variant.array.number_of_elements != 0) ||
-             try_template_class_instantiation(temp_type)) {
+             temp_type->variant.array.number_of_elements != 0)) {
           /* Okay. */
         } else if (is_ptr_to_member_type(temp_type) &&
                    pm_member_type(temp_type) == NULL) {
           /* This is an incomplete ptr-to-member type, presumably a
              pointer to member function.  Okay. */
         } else if (is_class_struct_union_type(temp_type)) {
-          /* As an extension in C mode, allow an array of incomplete struct or
-             union type.  In C++ this is apparently not an extension, since
-             the ARM imposes no restriction.  Obviously, the element type has
-             to be completed before the arrays is actually used.  Add the
-             array type to a list of array types to be fixed up when the the
-             class/struct/union declaration is completed. */
-          array_of_incomp_struct_or_union = TRUE;
-          if (strict_ansi_mode && C_dialect != C_dialect_cplusplus) {
-            diagnostic(strict_ansi_error_severity, ec_bad_array_element_type);
+          check_for_uninstantiated_template_class(temp_type);
+          if (is_incomplete_type(temp_type)) {
+            /* As an extension in C mode, allow an array of incomplete struct
+               or or union type.  In C++ this is apparently not an extension,
+               since the ARM imposes no restriction.  Obviously, the element
+               type has to be completed before the arrays is actually used.
+               Add the array type to a list of array types to be fixed up when
+               the class/struct/union declaration is completed. */
+            array_of_incomp_struct_or_union = TRUE;
+            if (strict_ansi_mode && C_dialect != C_dialect_cplusplus) {
+              diagnostic(strict_ansi_error_severity,
+                         ec_bad_array_element_type);
+            }  /* if */
           }  /* if */
         } else {
           /* Element type is not okay.  Select a specific error message. */
@@ -3999,8 +4002,8 @@ a pointer to it in *symbol_ptr.
   a_variable_ptr vp;
 
   db_enter(3, "decl_parameter");
-  if (is_incomplete_type(ptp->type) &&
-      !try_template_class_instantiation(ptp->type)) {
+  check_for_uninstantiated_template_class(ptp->type);
+  if (is_incomplete_type(ptp->type)) {
     /* Incomplete type is not allowed. */
     pos_error(ec_incomplete_type_not_allowed, &param_id->type_pos);
     ptp->type = error_type();
@@ -6756,12 +6759,10 @@ explicitly specified (rather than defaulted to "int").
      add_to_derived_type_list.  In C++ a reference type (including a
      reference to an array or function) may also be returned (ARM 8.2.5). */
   return_type = unqualified_rout_type->variant.routine.return_type;
+  check_for_uninstantiated_template_class(return_type);
   if (is_void_type(return_type) ||
       (is_object_type(return_type) && !is_array_type(return_type)) ||
       is_reference_type(return_type)) {
-    /* Okay. */
-  } else if (is_incomplete_type(return_type) &&
-             try_template_class_instantiation(return_type)) {
     /* Okay. */
   } else if (!is_error_type(return_type)) {
     /* Bad return type. */
@@ -7083,12 +7084,10 @@ processing of function definition.
      add_to_derived_type_list.  In addition, a reference type (including a
      reference to an array or function) may also be returned (ARM 8.2.5). */
   return_type = rout_type->variant.routine.return_type;
+  check_for_uninstantiated_template_class(return_type);
   if (is_void_type(return_type) ||
       (is_object_type(return_type) && !is_array_type(return_type)) ||
       is_reference_type(return_type)) {
-    /* Okay. */
-  } else if (is_incomplete_type(return_type) &&
-             try_template_class_instantiation(return_type)) {
     /* Okay. */
   } else {
     /* Bad return type. */
@@ -8123,9 +8122,8 @@ continue_with_declaration:
            code are definitions. */
         is_definition = TRUE;
       }  /* if */
-      if (is_definition && C_dialect == C_dialect_cplusplus &&
-          is_incomplete_type(local_type_ptr)) {
-        (void)try_template_class_instantiation(local_type_ptr);
+      if (is_definition) {
+        check_for_uninstantiated_template_class(local_type_ptr);
       }  /* if */
       incomplete_type_error_reported = FALSE;
       if (has_initializer) {
