@@ -1135,6 +1135,10 @@ secondary scope to the primary file IL.
         } else {
           a_type_ptr primary_type =
                (a_type_ptr)checked_trans_unit_corresp_pointer_of(corresp_type);
+          /* If both copies have a definition, leave the primary definition
+             alone.  The class was presumably marked to be merged because
+             some of its member definitions needed to be merged. */
+          if (class_type_has_body(primary_type)) goto end_of_type_list_add;
           /* Merge the information from this type into the primary IL type
              (the secondary translation unit instance has a definition and
              the primary translation unit instance does not).  Move the
