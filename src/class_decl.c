@@ -2246,7 +2246,7 @@ without it.
      types are compatible with the current type. */
   for (; sym != NULL; sym = is_overloaded_function ? sym->next : NULL) {
     orig_type = sym->variant.routine->type;
-    orig_rts = orig_type->variant.routine.extra_info;
+    orig_rts = (skip_typerefs(orig_type))->variant.routine.extra_info;
     orig_this_type = orig_rts->implicit_this_param_type;
     orig_function_is_qualified =
                  (orig_this_type != NULL &&
@@ -2563,14 +2563,6 @@ special function kind (e.g., constructor, destructor), if any.
   a_conversion_list_entry_ptr    clep;
 
   db_enter(3, "decl_member_function");
-  /* The routine type should never be a typedef, but instead the base
-     type referred to in a typedef declaration. */
-#if CHECKING
-  if (is_qualified_type(member_type)) {
-    internal_error("decl_var_or_routine: qualified function type");
-  }  /* if */
-#endif /* CHECKING */
-  member_type = skip_typerefs(member_type);
 #if 0
   /* We have at least one unresolved problem when a member function is
      declared using a typedef name.  The referenced type will have no
@@ -2705,7 +2697,7 @@ special function kind (e.g., constructor, destructor), if any.
       if (!overload_sym->variant.overloaded_function.mixed_static_nonstatic) {
         if (routine_type_is_nonstatic_member_function(member_type) !=
             routine_type_is_nonstatic_member_function(
-                                          other_sym->variant.routine->type)) {
+                                          routine_symbol_type(other_sym))) {
           overload_sym->
                    variant.overloaded_function.mixed_static_nonstatic = TRUE;
         }  /* if */
@@ -3192,9 +3184,8 @@ function, return TRUE if at least one of the functions qualifies.  Set
     /* Loop through the one or more symbols looking for one with the right
        argument type. */
     for (; sym != NULL; sym = sym_is_overloaded ? sym->next : NULL) {
-      tp = sym->variant.routine->type->
-                variant.routine.extra_info->param_type_list->type;
-      tp = skip_typerefs(tp);
+      tp = skip_typerefs(routine_symbol_type(sym)->
+                            variant.routine.extra_info->param_type_list->type);
       /* We are looking for a reference to the current class. */
       if (is_reference_type(tp)) {
         tp = type_pointed_to(tp);
@@ -4308,8 +4299,8 @@ class.
   }  /* if */
   /* Find an assignment operator. */
   for (; sym != NULL; sym = (is_overloaded_function ? sym->next : NULL)) {
-    tp = sym->variant.routine->type->variant.routine.extra_info->
-                                                      param_type_list->type;
+    tp = routine_symbol_type(sym)->
+                          variant.routine.extra_info->param_type_list->type;
     if (is_reference_type(tp)) tp = type_pointed_to(tp);
     if (skip_typerefs(tp) != class_type) {
       /* Not an assignment operator that can be used for copying.  Keep
@@ -4367,8 +4358,8 @@ assignment operator.
   /* Find an assignment operator whose argument is ref-class (pass by
      reference) or class (pass_by_value). */
   for (; sym != NULL; sym = (is_overloaded_function ? sym->next : NULL)) {
-    arg_type = sym->variant.routine->type->variant.routine.extra_info->
-                                                      param_type_list->type;
+    arg_type = routine_symbol_type(sym)->
+                          variant.routine.extra_info->param_type_list->type;
     tp = arg_type;
     if (is_reference_type(tp)) tp = type_pointed_to(tp);
     if (skip_typerefs(tp) != class_type) {
