@@ -2123,7 +2123,7 @@ end_of_routine_list_add:;
        IL.  It was just copied over. */
     /* For a namespace scope, update the end-of-list pointers in the
        pointers block to match to addresses of the copies. */
-    if (scope->kind == (a_scope_kind)sck_namespace) {
+    if (!merge_pass && scope->kind == (a_scope_kind)sck_namespace) {
       update_namespace_pointers_block(scope);
     }  /* if */
   }  /* if */
