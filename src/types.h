@@ -85,7 +85,6 @@ extern a_boolean is_abstract_class_type(a_type_ptr tp);
 extern a_boolean is_template_param_type(a_type_ptr tp);
 extern a_boolean is_template_class_type(a_type_ptr tp);
 extern a_boolean is_polymorphic_class_type(a_type_ptr tp);
-extern a_boolean is_empty_class_type(a_type_ptr tp);
 
 extern a_type_ptr array_element_type(a_type_ptr array_type);
 extern a_type_ptr underlying_array_element_type(a_type_ptr array_type);

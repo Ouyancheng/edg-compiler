@@ -1181,6 +1181,30 @@ which it is allocated.
 }  /* set_offset_and_alignment */
 
 
+static a_boolean is_empty_class_type(a_type_ptr type)
+/*
+Returns TRUE if the type passed as argument is a class type with no nonstatic
+data members, no virtual functions or virtual bases, no nonempty bases and
+(except in ABIs compatible with versions prior to 3.0) no empty bases that
+take up their own space (making the size of the object larger than
+targ_minimum_struct_alignment).  Otherwise, FALSE is returned.
+*/
+{
+  a_boolean result = TRUE;
+
+  type = skip_typerefs(type);
+  if (!is_immediate_class_type(type)) {
+    result = FALSE;
+  } else {
+    result = type->variant.class_struct_union.is_empty_class;
+#if ABI_COMPATIBILITY_VERSION >= 300
+    result = result && (type->size == targ_minimum_struct_alignment);
+#endif /* ABI_COMPATIBILITY_VERSION >= 300 */
+  }  /* if */
+  return result;
+}  /* is_empty_class_type */
+
+
 static void set_offsets_for_nonvirtual_base_classes(a_layout_block_ptr  lob)
 /*
 Lay out the class_type object to store the nonvirtual direct base classes.
@@ -1353,6 +1377,7 @@ address); FALSE otherwise.
   /* Apply these tests recursively to any base and field of atype that was
      allocated at offset zero. */
   if (!result) {
+    /* Check against base class types: */
     a_base_class_ptr bcp = base_classes_of(atype);
     for (; bcp != NULL; bcp = bcp->next) {
       if (bcp->offset == 0 && empty_base_conflict(etype, bcp->type)) {
@@ -1362,14 +1387,23 @@ address); FALSE otherwise.
     }  /* for */
   }  /* if */
   if (!result) {
+    /* Check against field types: */
     a_field_ptr field = atype->variant.class_struct_union.field_list;
     for (; field != NULL; field = field->next) {
-      a_type_ptr field_type = skip_typerefs(field->type);
-
-      if (field->offset == 0 && is_class_struct_union_type(field_type) &&
-          empty_base_conflict(etype, field_type)) {
-        result = TRUE;
-        break;
+      if (field->offset == 0) {
+        a_type_ptr field_type = skip_typerefs(field->type);
+#if ABI_COMPATIBILITY_VERSION >= 300
+        if (is_array_type(field_type)) {
+          /* If the field has an array type, we're really only interested in
+             the type of the first element of that array. */
+          field_type = underlying_array_element_type(field_type);
+        }  /* if */
+#endif /* ABI_COMPATIBILITY_VERSION >= 300 */
+        if (is_class_struct_union_type(field_type) &&
+            empty_base_conflict(etype, field_type)) {
+          result = TRUE;
+          break;
+        }  /* if */
       }  /* if */
     }  /* for */
   }  /* if */
@@ -1437,8 +1471,8 @@ necessary.
       } else {
         /* We were already at the end of the list of nonempty bases.  So the
            conflict was with a previously allocated empty base. Move to the
-           next byte. */
-        ++lob->byte_offset;
+           next available byte. */
+        lob->byte_offset += targ_minimum_struct_alignment;
         /* The previously allocated empty base takes up its own space after
            all. */
         last_optimized_base->is_optimized_empty_base = FALSE;
@@ -1453,13 +1487,21 @@ necessary.
   } else {
     a_field_ptr field = first_allocated_field(class_type);
     if (field) {
+      /* There is a field. */
       a_type_ptr field_type = skip_typerefs(field->type);
-      if (field && is_class_struct_union_type(field_type)) {
+#if ABI_COMPATIBILITY_VERSION >= 300
+      if (is_array_type(field_type)) {
+        /* If the field has an array type, we are really interested in the
+           type of its first element. */
+        field_type = underlying_array_element_type(field_type);
+      }  /* if */
+#endif /* ABI_COMPATIBILITY_VERSION >= 300 */
+      if (is_class_struct_union_type(field_type)) {
         ebcp = next_empty_nonvirtual_direct_base(base_classes_of(class_type));
         while (ebcp) {
           if (ebcp->offset == lob->byte_offset &&
               empty_base_conflict(ebcp->type, field_type)) {
-            ++lob->byte_offset;
+            lob->byte_offset += targ_minimum_struct_alignment;
             break;
           }  /* if */
           ebcp = next_empty_nonvirtual_direct_base(ebcp->next);
@@ -1477,16 +1519,16 @@ necessary.
            base. */
       } else {
         /* Check if there is a direct virtual base: if so, there will be a
-           virtual base pointer  whose offset can be shared by the last empty
+           virtual base pointer whose offset can be shared by the last empty
            base. */
         a_base_class_ptr  bcp = base_classes_of(class_type);
         for (; bcp != NULL; bcp = bcp->next) {
           if (bcp->direct && bcp->is_virtual) { break; }
         }  /* for */
         if (bcp == NULL) {
-          /* We did not find anything to share an offset with, so allocate a
-             byte for the last empty base. */
-          ++lob->byte_offset;
+          /* We did not find anything to share an offset with, so allocate
+             space for the last empty base. */
+          lob->byte_offset += targ_minimum_struct_alignment;
         }  /* if */
       }  /* if */
     }  /* if */

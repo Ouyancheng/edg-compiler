@@ -685,25 +685,6 @@ Return TRUE if the given type is a class type with virtual functions
 }  /* is_polymorphic_class_type */
 
 
-a_boolean is_empty_class_type(a_type_ptr type)
-/*
-Returns TRUE if the type passed as argument is a class type with no nonstatic
-data members, no virtual functions or virtual bases, and no nonempty bases.
-Otherwise, FALSE is returned.
-*/
-{
-  a_boolean result = TRUE;
-
-  type = skip_typerefs(type);
-  if (!is_class_struct_union(type)) {
-    result = FALSE;
-  } else {
-    result = type->variant.class_struct_union.is_empty_class;
-  }  /* if */
-  return result;
-}  /* is_empty_class_type */
-
-
 a_type_ptr array_element_type(a_type_ptr array_type)
 /*
 Return the element type of the given array type.

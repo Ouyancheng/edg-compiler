@@ -1,5 +1,31 @@
 Version 3.0
 
+5/2/02   Corrections to optimization of empty base classes
+
+Two corrections were made to the empty base class optimization algorithm.
+The first ensures that an empty base class is not allocated at the same
+address as a field whose type is an array of that same empty class type.
+E.g.:
+
+  struct E {};
+  struct S: E {
+    E m[2];  // Used to be allocated at offset zero (causing a conflict
+  };         // with the base class); now allocated at a positive offset.
+
+The second correction avoids the optimization of empty classes with 
+nonoptimized empty bases.  Without this change, a derived class could
+end up being larger than its base class.  E.g.:
+
+  struct S1 {};
+  struct S2 : public S1{};
+  struct S3 : public S1, public S2 {};  // Cannot optimize both S1 and S2
+                                        // (hence: sizeof(S3)>1)
+  struct S4 : public S3 { char c; };    // Base S3 used to be optimized so
+                                        // that sizeof(S4) could be 1
+
+This is an ABI change.  The previous behavior is restored if
+ABI_COMPATIBILITY_VERSION is less than 300.
+
 5/2/02   Microsoft compatibility: Qualified constructor declarations
 
 In Microsoft mode, the front end now accepts nested class constructors
