@@ -1,5 +1,16 @@
 Version 2.20
 
+11/02/93 Name mangling for pointers to member functions
+
+The name mangling done by IL lowering for pointers to member functions
+was missing one detail -- if the function type is "const" or "volatile"
+that was not indicated in the encoding.
+
+  struct A {};
+  void f(void (A::*pmf1)(double));       // f__FM1AFd_v
+  void g(void (A::*pmf2)(double) const); // g__FM1ACFd_v (was missing "C")
+
+
 11/01/93 Error handling in vec_new
 
 If vec_new is unable to obtain memory for either the requested storage
