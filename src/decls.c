@@ -6786,6 +6786,7 @@ destructor_name:
           if (num_specifiers == 0) {
             *output_flags |= DSO_NO_DECL_SPECIFIERS;
           }  /* if */
+#if 0
           /* The only specifiers that are allowed with a destructor are
              virtual (ARM 12.4) and inline.  Additional checking is done
              in declarator. */
@@ -6797,6 +6798,16 @@ destructor_name:
             *output_flags |= DSO_DESTRUCTOR;
             basic_type = bt_no_type;
           }  /* if */
+#else
+          *output_flags |= DSO_DESTRUCTOR;
+          if (basic_type == bt_none && sign == sign_none &&
+              size == size_none) {
+            basic_type = bt_no_type;
+          } else {
+            /* It is an error to specify the type on a destructor, but it
+               will be reported later. */
+          }  /* if */
+#endif /* if 0 */
           goto exit_loop;
         }  /* if */
         /* If destructors aren't expected, fall through into the default

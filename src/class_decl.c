@@ -5943,7 +5943,9 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
             /* Set the various flags for declarator processing. */
             declarator_input_flags = DI_REAL_DECLARATOR_ALLOWED;
             if (dso_flags & DSO_DESTRUCTOR) {
-              declarator_input_flags |= DI_DESTRUCTOR_SPECIFIERS;
+              if (!type_explicitly_specified && !friend_specified) {
+                declarator_input_flags |= DI_DESTRUCTOR_SPECIFIERS;
+              }  /* if */
             }  /* if */
             if (dso_flags & DSO_CONSTRUCTOR) {
               declarator_input_flags |= DI_IS_CONSTRUCTOR;
