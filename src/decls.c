@@ -918,15 +918,15 @@ type is legal.
                    pm_member_type(temp_type) == NULL) {
           /* This is an incomplete ptr-to-member type, presumably a
              pointer to member function.  Okay. */
-        } else if (C_dialect != C_dialect_cplusplus &&
-                   is_class_struct_union_type(temp_type)) {
-          /* As an extension in C mode, allow arrays of incomplete struct or
-             union types.  Obviously, these have to be completed before they
-             are actually used.  Add the array type to a list of array
-             types to be fixed up when struct or union declarations are
-             completed. */
+        } else if (is_class_struct_union_type(temp_type)) {
+          /* As an extension in C mode, allow an array of incomplete struct or
+             union type.  In C++ this is apparently not an extension, since
+             the ARM imposes no restriction.  Obviously, the element type has
+             to be completed before the arrays is actually used.  Add the
+             array type to a list of array types to be fixed up when the the
+             class/struct/union declaration is completed. */
           array_of_incomp_struct_or_union = TRUE;
-          if (strict_ansi_mode) {
+          if (strict_ansi_mode && C_dialect != C_dialect_cplusplus) {
             diagnostic(strict_ansi_error_severity, ec_bad_array_element_type);
           }  /* if */
         } else {
@@ -939,9 +939,6 @@ type is legal.
             err = TRUE;
           } else if (is_reference_type(temp_type)) {
 	    error(ec_array_of_reference);
-	    err = TRUE;
-          } else if (is_incomplete_type(temp_type)) {
-	    error(ec_array_of_incomplete_type);
 	    err = TRUE;
           } else if (temp_type->kind == (a_type_kind)tk_error) {
             /* Error already put out. */
