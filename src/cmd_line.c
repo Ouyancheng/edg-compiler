@@ -80,6 +80,11 @@ typedef struct an_option_description {
 	       	arg_required;
 			/* TRUE if this option requires that an argument be
 			   specified. */
+  a_byte_boolean
+		enabled;
+			/* TRUE if the feature with which this option is
+			   associated is enabled in the current
+			   configuration. */
   sizeof_t	keyword_length;
 			/* Length of the keyword (not including the null
 			   terminator). */
@@ -118,12 +123,15 @@ static a_boolean
 			   used in ANSI C or C++ mode. */
 
 
-static void add_option_description(an_option_kind	kind,
-				   char			*keyword,
-				   char			letter,
-				   a_boolean		value,
-				   a_boolean		arg_required,
-				   a_pch_event_kind	pch_event_kind)
+static void add_config_dependent_option_description(
+				an_option_kind		kind,
+				char			*keyword,
+				char			letter,
+				a_boolean		value,
+				a_boolean		arg_required,
+				a_pch_event_kind	pch_event_kind,
+				a_boolean		enabled)
+
 /*
 Add an entry to the linked list of option descriptions.  "keyword" is
 the string to be used as the keyword form of the option and may be
@@ -135,7 +143,9 @@ on (TRUE) or off (FALSE).  "arg_required" indicates whether an
 option must be followed by an argument.  Note that optional arguments
 are not supported.  "pch_event_kind" specifies how this argument should
 be compared with a similar argument for precompiled header prefix
-matching.
+matching.  "enabled" indicates whether or not the feature with which this
+option is associated is enabled in the current configuration.  If "enabled"
+is FALSE an error will be issued if the option is used.
 */
 {
   int				option_description_number;
@@ -174,7 +184,25 @@ matching.
     odp->value = value;
     odp->arg_required = arg_required;
     odp->pch_event_kind = pch_event_kind;
+    odp->enabled = enabled;
   }  /* if */
+}  /* add_config_dependent_option_description */
+
+
+static void add_option_description(an_option_kind	kind,
+				   char			*keyword,
+				   char			letter,
+				   a_boolean		value,
+				   a_boolean		arg_required,
+				   a_pch_event_kind	pch_event_kind)
+/*
+Interface to add_config_dependent_option_description that provides
+a default value for the "enabled" parameter.
+*/
+{
+  add_config_dependent_option_description(kind, keyword, letter, value,
+                                          arg_required, pch_event_kind,
+                                          /*enabled=*/TRUE);
 }  /* add_option_description */
 
 
@@ -1021,15 +1049,16 @@ Initialize the option information table.
                          /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
 #endif /* NAMED_REGISTERS_ALLOWED */
-#if FIXED_POINT_ALLOWED && NAMED_ADDRESS_SPACES_ALLOWED && \
-    NAMED_REGISTERS_ALLOWED
-  add_option_description(optk_embedded_c, "embedded_c", '\0',
-                         /*value=*/TRUE, /*arg_required=*/FALSE,
-                         pchek_command_line);
-  add_option_description(optk_embedded_c, "no_embedded_c", '\0',
-                         /*value=*/FALSE, /*arg_required=*/FALSE,
-                         pchek_command_line);
-#endif /* FIXED_POINT_ALLOWED && NAMED_ADDRESS_SPACES_ALLOWED && NAMED_... */
+  { a_boolean embedded_c_allowed = FIXED_POINT_ALLOWED &&
+                                   NAMED_ADDRESS_SPACES_ALLOWED &&
+                                   NAMED_REGISTERS_ALLOWED;
+    add_config_dependent_option_description(
+               optk_embedded_c, "embedded_c", '\0', /*value=*/TRUE,
+               /*arg_required=*/FALSE, pchek_command_line, embedded_c_allowed);
+    add_config_dependent_option_description(
+               optk_embedded_c, "no_embedded_c", '\0', /*value=*/FALSE,
+               /*arg_required=*/FALSE, pchek_command_line, embedded_c_allowed);
+  }
 }  /* initialize_option_descriptions */
 
 
@@ -1209,7 +1238,7 @@ The following option formats are supported:
   odp = look_up_option_description(optchar, is_keyword_option,
                                    keyword_length);
   /* See if the option letter appears in the string of legal options. */
-  if (odp == NULL) invalid_argument_error(argc, argv);
+  if (odp == NULL || !odp->enabled) invalid_argument_error(argc, argv);
   /* See if the option takes an argument. */
   if (odp->arg_required) {
     if (is_keyword_option) {
