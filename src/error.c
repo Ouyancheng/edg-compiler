@@ -956,6 +956,9 @@ error code.
     case ec_bad_union_field:
       m = "invalid union member -- disallowed member function in class \"%s\"";
       break;
+    case ec_overloaded_function_types_too_similar:
+      m = "overloaded function type is too similar to previous function type";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
