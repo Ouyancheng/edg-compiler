@@ -6836,13 +6836,15 @@ of parameters (remaining arguments will be processed under an ellipsis).
     }  /* if */
 #endif /* CHECKING */
     arg = param->default_arg_expr;
-#if CHECKING
-    if (arg == NULL) {
-      internal_error(
-              "node_for_arg_of_overloaded_function_call: missing default arg");
+    if (arg != NULL) {
+      arg = copy_expr_tree(arg, /*clone_temps=*/TRUE);
+    } else {
+      /* In cases where there was an error in the declaration of a function
+         template (a parameter with an default argument expression was
+         followed by one without), put in an error node for the default
+         expression for the parameter without one. */
+      arg = error_node();
     }  /* if */
-#endif /* CHECKING */
-    arg = copy_expr_tree(arg, /*clone_temps=*/TRUE);
   } else {
     /* Actual argument is present (normal case). */
     /* Issue any warning about the conversion detected while evaluating the
