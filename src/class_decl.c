@@ -4962,27 +4962,6 @@ done:
 }  /* access_adjustment_decl */
 
 
-static a_symbol_ptr curr_scope_tag_symbol(a_symbol_kind kind)
-/*
-The current token is an identifier.  If it represents a tag of the indicated
-kind from the current scope, return a pointer to the corresponding symbol.
-Otherwise, return NULL.
-*/
-{
-  a_symbol_ptr  sym = symbol_list_from_locator(locator_for_curr_id);
-
-  /* Look for a symbol in the current scope for which the kind matches that
-     specified by the caller. */
-  for (; sym != NULL; sym = sym->next) {
-    if (sym->decl_scope == decl_scope_level && sym->kind == kind) {
-      /* Found it. */
-      break;
-    }  /* if */
-  }  /* for */
-  return sym;
-}  /* curr_scope_tag_symbol */
-
-
 a_boolean class_specifier(a_boolean  first_specifier,
                           a_boolean  is_friend_decl,
                           a_type_ptr *type_ptr,
