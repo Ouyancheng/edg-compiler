@@ -3010,21 +3010,25 @@ See 3.2.1.1 in the standard.  The operand must be an rvalue.
 }  /* promote_operand */
 
 
-static void conv_array_rvalue_operand_to_pointer_operand(an_operand *operand)
+static void handle_nonstandard_array_rvalue(an_operand *operand)
 /*
-operand is an array rvalue in C mode.  Convert it to a pointer to the
-first element of the array.  This is nonstandard.  A diagnostic is issued
-in strict mode.
+If operand is an array rvalue, convert it to a pointer to the first
+element of the array.  This is used for the nonstandard conversion
+in pre-C99 C.  A diagnostic is issued in strict mode.
 */
 {
-  if (strict_ansi_mode) {
-    pos_diagnostic(strict_ansi_discretionary_severity,
-                   ec_bad_rvalue_array, &operand->position);
+  if (is_an_rvalue(operand) && is_array_type(operand->type)) {
+    /* For C++ and C99 mode, this should have been done earlier. */
+    check_assertion(C_mode() && !c99_mode);
+    if (strict_ansi_mode) {
+      pos_diagnostic(strict_ansi_discretionary_severity,
+                     ec_bad_rvalue_array, &operand->position);
+    }  /* if */
+    /* Convert the array rvalue to a pointer to the first element. */
+    conv_array_rvalue_to_lvalue(operand);
+    conv_array_operand_to_pointer_operand(operand);
   }  /* if */
-  /* Convert the array rvalue to a pointer to the first element. */
-  conv_array_rvalue_to_lvalue(operand);
-  conv_array_operand_to_pointer_operand(operand);
-}  /* conv_array_rvalue_operand_to_pointer_operand */
+}  /* handle_nonstandard_array_rvalue */
 
 
 void arg_default_promote_operand(an_operand *argument_operand)
@@ -3037,14 +3041,10 @@ an lvalue, it is converted to an rvalue before doing the promotions.
 
   /* Convert the operand to an rvalue if necessary. */
   do_operand_transformations(argument_operand, TOPT_NO_OPTIONS);
+  /* Catch array rvalues in pre-C99 C.  In strict mode they are not allowed.
+     Otherwise, do the special array --> pointer decay as an extension. */
+  handle_nonstandard_array_rvalue(argument_operand);
   arg_type = argument_operand->type;
-  if (C_mode() && is_array_type(arg_type)) {
-    /* Catch array rvalues in C.  In strict mode they are not allowed.
-       Otherwise, do the special array --> pointer decay as an extension. */
-    check_assertion(is_an_rvalue(argument_operand));
-    conv_array_rvalue_operand_to_pointer_operand(argument_operand);
-    arg_type = argument_operand->type;
-  }  /* if */
   /* Do the integral promotions part of the default argument promotions
      directly on the operand because of the special case with 
      bit-fields (which can't be handled from just the type). */
@@ -4175,11 +4175,9 @@ If there is an error, make "operand" into an error operand.
 {
   a_boolean okay = TRUE;
 
-  if (C_mode() && is_an_rvalue(operand) && is_array_type(operand->type)) {
-    /* Attempt to use an array rvalue in C.  This is nonstandard.
-       Convert it to a pointer to the first element of the array. */
-    conv_array_rvalue_operand_to_pointer_operand(operand);
-  }  /* if */
+  /* Catch an array rvalue in pre-C99 C.  This is nonstandard.
+     Convert it to a pointer to the first element of the array. */
+  handle_nonstandard_array_rvalue(operand);
   if (is_error_operand(operand)) {
     /* If it is an error operand, an error message has already been issued. */
     okay = FALSE;
@@ -7298,7 +7296,7 @@ not an lvalue, it is left alone.
     /* An lvalue becomes an rvalue. */
     operand_type = operand->type;
 #if CHECKING
-    /* Array rvalues are not allowed. */
+    /* Array lvalues are not allowed. */
     if (is_array_type(operand_type)) {
       internal_error("conv_lvalue_to_rvalue: array lvalue");
     }  /* if */
@@ -7585,17 +7583,17 @@ void conv_array_operand_to_pointer_operand(an_operand *operand)
 Apply the implicit array to pointer-to-first-element-of-array transformation
 of 3.2.2.1 in the standard to the operand.  If the operand is an array
 lvalue it is changed to a pointer to the first element of the array.
-If the operand is an rvalue array, an error is issued.  All other cases
-are left alone.
+If the operand is an array rvalue, the conversion is done in some modes
+(C++, C99) and not in others.  All other cases are left alone.
 */
 {
   a_type_ptr ptr_type;
 
   if (is_array_type(operand->type)) {
-    if (is_an_rvalue(operand) && !C_mode()) {
-      /* In C++ (but not in C), an array rvalue is converted to a pointer
-         to its first element.  Make an lvalue so the conversion below
-         will apply. */
+    if (is_an_rvalue(operand) && (!C_mode() || c99_mode)) {
+      /* In C++ or C99 (but not in older C), an array rvalue is converted
+         to a pointer to its first element.  Make an lvalue so the
+         conversion below will apply. */
       conv_array_rvalue_to_lvalue(operand);
     }  /* if */
     if (is_an_lvalue(operand)) {
