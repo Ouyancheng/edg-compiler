@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1996 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -38,6 +38,27 @@ EXTERN_C int errno;
 #ifndef STDLIB_H_INCLUDED
 EXTERN_C double strtod(char *, char **);
 #endif /* ifndef STDLIB_H_INCLUDED */
+#if TARG_HAS_IEEE_FLOATING_POINT
+#if EDG_WIN32
+/* Windows NT, 95, etc. */
+#include <float.h>
+#define is_NaN(x) (_isnan(x))
+#define is_finite(x) (_finite(x))
+#else /* !EDG_WIN32 */
+#ifdef sun
+/* SunOS, Solaris. */
+extern int isnan(double);
+extern int finite(double);
+#define is_NaN(x) (isnan(x))
+#define is_finite(x) (finite(x))
+#else /* !defined(sun) */
+/* Not Windows, not Solaris, not SunOS. */
+#include <math.h>
+#define is_NaN(x) (isnan(x))
+#define is_finite(x) (isfinite(x))
+#endif /* ifdef sun */
+#endif /* EDG_WIN32 */
+#endif /* TARG_HAS_IEEE_FLOATING_POINT */
 
 
 #ifdef FFE
@@ -221,7 +242,12 @@ conversion can be done, return the result in "result".
     float_flt_max = (float)host_fp_flt_max;
     init_done = TRUE;
   }  /* if */
-  if ((temp >= 0.0) ? temp > host_fp_flt_max : temp < -host_fp_flt_max) {
+  if (
+#if TARG_HAS_IEEE_FLOATING_POINT
+      /* Don't test NaNs and Infinities. */
+      is_finite(temp) &&
+#endif /* TARG_HAS_IEEE_FLOATING_POINT */
+      ((temp >= 0.0) ? temp > host_fp_flt_max : temp < -host_fp_flt_max)) {
 #if __MSC__
     /* The Microsoft compiler (VC 6.0) produces incorrect code when
        compiling with optimization if this variable is not declared
@@ -331,8 +357,13 @@ conversion can be done, return the result in "result".
                          "error on conversion of DBL_MAX");
     double_dbl_max = (double)host_fp_dbl_max;
   }  /* if */
-  if ((temp >= 0.0) ? temp > host_fp_dbl_max
-                    : temp < -host_fp_dbl_max) {
+  if (
+#if TARG_HAS_IEEE_FLOATING_POINT
+      /* Don't test NaNs and Infinities. */
+      is_finite(temp) &&
+#endif /* TARG_HAS_IEEE_FLOATING_POINT */
+      ((temp >= 0.0) ? temp > host_fp_dbl_max
+                     : temp < -host_fp_dbl_max)) {
     double double_temp = (double)temp;
     if ((temp >= 0.0) ? (double_temp == double_dbl_max) :    /*lint !e777*/
                         (double_temp == -double_dbl_max)) {  /*lint !e777*/
@@ -469,6 +500,8 @@ Fetch the value from float_value (of kind kind) and return it.
   return temp;
 }  /* fetch_host_fp_value */
 
+#if TARG_HAS_IEEE_FLOATING_POINT
+#ifndef __CENTERLINE__
 
 static float float_zero = 0.0;
 			/* Value used to compute a NaN.  This used by
@@ -476,12 +509,15 @@ static float float_zero = 0.0;
 			   hope that optimizers will permit the division
 			   by zero without giving a warning. */
 
+#endif /* ifndef __CENTERLINE__ */
+#endif /* TARG_HAS_IEEE_FLOATING_POINT */
 
 void make_fp_nan(an_internal_float_value *value)
 /*
 Make a float quiet Not-a-Number value in *value.
 */
 {
+#if TARG_HAS_IEEE_FLOATING_POINT
   float nan;
 
 #ifdef __CENTERLINE__
@@ -498,6 +534,9 @@ Make a float quiet Not-a-Number value in *value.
 #endif /* ifdef __CENTERLINE__ */
   memzero((char *)value, sizeof(an_internal_float_value));
   (void)memcpy((char *)value, (char *)&nan, sizeof(float));
+#else /* !TARG_HAS_IEEE_FLOATING_POINT */
+  unexpected_condition_str("make_fp_nan called");
+#endif /* TARG_HAS_IEEE_FLOATING_POINT */
 }  /* make_fp_nan */
 
 
@@ -506,6 +545,7 @@ void make_fp_infinity(an_internal_float_value *value)
 Make a float positive Infinity value in *value.
 */
 {
+#if TARG_HAS_IEEE_FLOATING_POINT
   float infinity;
 
 #ifdef __CENTERLINE__
@@ -522,6 +562,9 @@ Make a float positive Infinity value in *value.
 #endif /* ifdef __CENTERLINE__ */
   memzero((char *)value, sizeof(an_internal_float_value));
   (void)memcpy((char *)value, (char *)&infinity, sizeof(float));
+#else /* !TARG_HAS_IEEE_FLOATING_POINT */
+  unexpected_condition_str("make_fp_infinity called");
+#endif /* TARG_HAS_IEEE_FLOATING_POINT */
 }  /* make_fp_infinity */
 
 
@@ -1049,16 +1092,52 @@ look like an integer).  It may have a leading "-" sign.
 
 
 char *fp_to_string(a_float_kind            kind,
-                   an_internal_float_value *float_value)
+                   an_internal_float_value *float_value,
+                   a_boolean               *pos_infinity,
+                   a_boolean               *neg_infinity,
+                   a_boolean               *not_a_number)
 /*
-Convert the float value float_value to a string in an internal static
-variable, and return a pointer to that null-terminated string.
+Convert the float value float_value (with precision as indicated by kind)
+to a string in an internal static variable, and return a pointer to that
+null-terminated string.  If the floating-point value is positive
+infinity or negative infinity, return *pos_infinity or *neg_infinity
+set to TRUE.  If the floating-point value is a NaN, return *not_a_number
+set to TRUE.  In the above special cases, a display string is still
+returned (e.g., "NaN").  pos_infinity, neg_infinity, and not_a_number can
+be NULL if the corresponding return value is not needed.
 */
 {
   static char		str[60];
   a_host_fp_value	temp;
+#if TARG_HAS_IEEE_FLOATING_POINT
+  a_host_fp_value	zero = 0.0;
+#endif /* TARG_HAS_IEEE_FLOATING_POINT */
 
+  if (pos_infinity != NULL) *pos_infinity = FALSE;
+  if (neg_infinity != NULL) *neg_infinity = FALSE;
+  if (not_a_number != NULL) *not_a_number = FALSE;
   temp = fetch_host_fp_value(kind, float_value);
+#if TARG_HAS_IEEE_FLOATING_POINT
+  if (is_NaN(temp)) {
+    /* Not-a-number. */
+    (void)strcpy(str, "NaN");
+    if (not_a_number != NULL) *not_a_number = TRUE;
+  } else if (!is_finite(temp)) {
+    /* Infinity. */
+    if (temp < 0.0) {
+      (void)strcpy(str, "-Infinity");
+      if (neg_infinity != NULL) *neg_infinity = TRUE;
+    } else {
+      (void)strcpy(str, "+Infinity");
+      if (pos_infinity != NULL) *pos_infinity = TRUE;
+    }  /* if */
+  } else if (temp == 0.0 &&
+             memcmp((char *)&temp, (char *)&zero, sizeof(zero)) != 0) {
+    /* Special handling to ensure that -0.0 comes out with the leading "-";
+       some sprintfs do not process that correctly. */
+    (void)strcpy(str, "-0.0");
+  } else
+#endif /* TARG_HAS_IEEE_FLOATING_POINT */
 #if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
   if (kind == (a_float_kind)fk_float) {
     (void)sprintf(str, "%.9Le", temp);
@@ -1074,7 +1153,7 @@ variable, and return a pointer to that null-terminated string.
     (void)sprintf(str, "%.18e", temp);
   }  /* if */
 #endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
-  return (str);
+  return str;
 }  /* fp_to_string */
 
 
@@ -1150,6 +1229,13 @@ Convert float_value to a host large integer value in int_value.  Return
   *err = FALSE;
   *depends_on_rounding_mode = FALSE;
   temp = fetch_host_fp_value(kind, float_value);
+#if TARG_HAS_IEEE_FLOATING_POINT
+  if (!is_finite(temp)) {
+    /* A NaN or Infinity. */
+    *err = TRUE;
+  } else
+#endif /* TARG_HAS_IEEE_FLOATING_POINT */
+  /* Do not insert code here; this is the "else" of an "if". */
   if (temp > (a_host_fp_value)MAX_HOST_LARGE_INTEGER ||
       temp < (a_host_fp_value)MIN_HOST_LARGE_INTEGER) {
     /* Floating value is too big or too small. */
@@ -1313,11 +1399,15 @@ to TRUE.  If the result depends on the rounding mode,
   *depends_on_rounding_mode = FALSE;
   temp1 = fetch_host_fp_value(kind, value_1);
   temp2 = fetch_host_fp_value(kind, value_2);
+#if !TARG_HAS_IEEE_FLOATING_POINT
   if (temp2 == 0.0) {
     /* Division by zero.  This is also checked by the caller for a specific
        error message. */
     *err = TRUE;
-  } else {
+  } else
+#endif /* !TARG_HAS_IEEE_FLOATING_POINT */
+  /* Do not insert code here; this is the "else" of an "if". */
+  {
     tempr = temp1 / temp2;
     store_host_fp_value(tempr, kind, result, err);
   }  /* if */
@@ -1327,9 +1417,9 @@ to TRUE.  If the result depends on the rounding mode,
 int fp_compare(a_float_kind            kind,
                an_internal_float_value *value_1,
                an_internal_float_value *value_2,
-               a_boolean               *unordered)
+               a_boolean               *unord)
 /*
-Compare two floating-point values.  Return *unordered set to TRUE if they
+Compare two floating-point values.  Return *unord set to TRUE if they
 are unordered with respect to each other.  Otherwise, return strcmp-like
 values:
        value_1 > value_2   1
@@ -1342,7 +1432,13 @@ values:
 
   temp1 = fetch_host_fp_value(kind, value_1);
   temp2 = fetch_host_fp_value(kind, value_2);
-  *unordered = FALSE;
+  *unord = FALSE;
+#if TARG_HAS_IEEE_FLOATING_POINT
+  if (is_NaN(temp1) || is_NaN(temp2)) {
+    *unord = TRUE;
+    cmp = 0;
+  } else
+#endif /* TARG_HAS_IEEE_FLOATING_POINT */
   if (temp1 > temp2) {
     cmp = 1;
   } else if (temp1 < temp2) {
@@ -1350,7 +1446,7 @@ values:
   } else {
     cmp = 0;
   }  /* if */
-  return (cmp);
+  return cmp;
 }  /* fp_compare */
 
 
@@ -1407,6 +1503,6 @@ Initialize static variables related to float_pt.c.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1996 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -993,6 +993,25 @@ typedef long double a_host_fp_value;
 typedef double a_host_fp_value;
 #endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
 
+#ifndef TARG_HAS_IEEE_FLOATING_POINT
+/*
+TRUE if the target supports IEEE floating point, i.e., it has NaNs
+and Infinities.  Note that unless float_pt.c is rewritten this also
+implies that the host supports IEEE floating point, because the
+default float_pt.c support uses the host floating point.
+*/
+/* Include <math.h> to see if the C99 NAN macro is defined. */
+#include <math.h>
+#if defined(NAN) || defined(sparc) || defined(__linux__) || EDG_WIN32
+/* Systems with NAN defined support IEEE floating point. */
+/* SPARC supports IEEE floating point. */
+/* Linux (X86, Alpha, PowerPC, SPARC) supports IEEE floating point. */
+/* Windows X86 supports IEEE floating point. */
+#define TARG_HAS_IEEE_FLOATING_POINT TRUE
+#else /* defined(NAN) */
+#define TARG_HAS_IEEE_FLOATING_POINT FALSE
+#endif /* if defined(NAN) ... */
+#endif /* ifndef TARG_HAS_IEEE_FLOATING_POINT */
 
 /*
 Type used to represent float quantities internally:
@@ -2612,6 +2631,6 @@ aren't enabled.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

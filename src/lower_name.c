@@ -570,7 +570,8 @@ of length specification in the mangling for lengths of literals.
        ^--------- "L" indicates a number.
      cfront 3.0.1 does not implement this, so we made it up. */
   str = fp_to_string(skip_typerefs(con->type)->variant.float_kind,
-                     &con->variant.float_value);
+                     &con->variant.float_value,
+                     (a_boolean *)NULL, (a_boolean *)NULL, (a_boolean *)NULL);
   str_length = strlen(str);  /* Includes "-" sign if any. */
   /* Remove unnecessary trailing zeroes, e.g., change
      "1.50000e+10" to "1.5    e+10".  The blanks are then dropped

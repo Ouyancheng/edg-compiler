@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1998 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -197,6 +197,11 @@ Included from basic_hdrs.h in every compilation.
 extern int fileno(FILE *);
 /*lint -esym(526,fileno)*/
 #endif /* ifdef SOLARIS */
+#ifdef sun
+/*lint -esym(526,isnan)*/
+/*lint -esym(526,finite)*/
+#endif /* ifdef sun */
+
 
 /******************************************************************************
 *                                                             \  ___  /       *
@@ -204,6 +209,6 @@ extern int fileno(FILE *);
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1998 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

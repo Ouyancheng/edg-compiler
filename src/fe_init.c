@@ -242,10 +242,12 @@ Install the keywords in the symbol table.
     enter_keyword((a_token_kind)tok_c99_imaginary, "_Imaginary");
     /* EDG-specific token representing the imaginary number "i" (i*i == -1). */
     enter_keyword((a_token_kind)tok_imaginary_unit, "__I__");
+#if TARG_HAS_IEEE_FLOATING_POINT
     /* EDG-specific token for C99 Not-a-Number constant. */
     enter_keyword((a_token_kind)tok_nan, "__NAN__");
     /* EDG-specific token for C99 Infinity constant. */
     enter_keyword((a_token_kind)tok_infinity, "__INFINITY__");
+#endif /* TARG_HAS_IEEE_FLOATING_POINT */
   }  /* if */
   /* __ALIGNOF__(type) returns the alignment requirement for a type.
      __INTADDR__(addr_expr) scans its argument as an initializer

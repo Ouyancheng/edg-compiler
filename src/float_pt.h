@@ -4,7 +4,7 @@
 * Edison Design Group C Front End                            - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1991 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -50,7 +50,10 @@ extern void fp_string_to_float(a_float_kind            kind,
                                a_boolean               *err);
 
 extern char *fp_to_string(a_float_kind            kind,
-                          an_internal_float_value *float_value);
+                          an_internal_float_value *float_value,
+                          a_boolean               *pos_infinity,
+                          a_boolean               *neg_infinity,
+                          a_boolean               *not_a_number);
 
 extern
 void fp_host_large_integer_to_float(a_float_kind            kind,
@@ -135,7 +138,7 @@ extern void float_pt_init(void);
 * Edison Design Group C Front End                            - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1991 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 

@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1994 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -2894,23 +2894,56 @@ Output the given floating-point value with the proper suffix (or cast in
 K&R/pcc mode) determined by fkind.
 */
 {
+  char      *str, *suffix = "";
+  char      buf[20];
+  a_boolean pos_infinity, neg_infinity, not_a_number;
+
   if (!octl->gen_pcc_code) {
-    /* Output the floating-point constant. */
-    output_partial_token_str(fp_to_string(fkind, float_value), octl);
-    /* Add a suffix if necessary. */
+    /* Determine the suffix. */
     if (fkind == (a_float_kind)fk_float) {
-      output_partial_token_str("F", octl);
+      suffix = "F";
     } else if (fkind == (a_float_kind)fk_long_double) {
-      output_partial_token_str("L", octl);
+      suffix = "L";
     }  /* if */
   } else {
     /* Generating K&R C.  Suffixes are not allowed. */
     /* Cast to float if type is float (by default it would be double). */
     if (fkind == (a_float_kind)fk_float) {
-      output_partial_token_str("(float)", octl);
+      octl->output_str("(float)");
     }  /* if */
-    /* Output the floating-point constant. */
-    output_partial_token_str(fp_to_string(fkind, float_value), octl);
+  }  /* if */
+  str = fp_to_string(fkind, float_value,
+                     &pos_infinity, &neg_infinity, &not_a_number);
+  if (octl->gen_compilable_code &&
+      (pos_infinity || neg_infinity || not_a_number)) {
+    /* In compilable code, generate NaNs and Infinities as expressions.
+       0.0/0.0 gives a NaN, 1.0/0.0 gives an infinity. */
+    char *dividend;
+    if (not_a_number) {
+      dividend = "0.0";
+    } else if (pos_infinity) {
+      dividend = "1.0";
+    } else {
+      dividend = "-1.0";
+    }  /* if */
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
+    if (msvc_is_generated_code_target) {
+      /* MSVC++ gives an error on (x/0.0), so use a comma operator to
+         fool it. */
+      (void)sprintf(buf, "(%s%s/(0,0.0%s))", dividend, suffix, suffix);
+    } else
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+    {
+      (void)sprintf(buf, "(%s%s/0.0%s)", dividend, suffix, suffix);
+    }  /* if */
+    str = buf;
+    suffix = "";
+  }  /* if */
+  if (suffix[0] == '\0') {
+    octl->output_str(str);
+  } else {
+    output_partial_token_str(str, octl);
+    output_partial_token_str(suffix, octl);
   }  /* if */
 }  /* form_float_constant */
 
@@ -3367,19 +3400,6 @@ precedence confusion.  Do the output in the way described by octl.
       octl->output_str(")");
       break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#if defined(FFE) && !C99_IL_EXTENSIONS_SUPPORTED
-    case ck_complex:
-      /* Complex constant. */
-      fkind = con_type->variant.float_kind;
-      octl->output_str("(");
-      octl->output_str(fp_to_string(fkind,
-                                    &constant->variant.complex_value->real));
-      octl->output_str(", ");
-      octl->output_str(fp_to_string(fkind,
-                                    &constant->variant.complex_value->imag));
-      octl->output_str(")");
-      break;
-#endif /* defined(FFE) && !C99_IL_EXTENSIONS_SUPPORTED */
 #ifdef CFE
     case ck_address:
       /* Address constant. */
@@ -3600,6 +3620,6 @@ way described by octl.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1994 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

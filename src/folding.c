@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -432,8 +432,14 @@ depending on the rounding mode.
   if (err) {
     /* Try again with larger precision by converting the float to a
        character string then converting the string to an integer value. */
-    char *str = fp_to_string(float_kind, float_value);
-    conv_float_string_to_integer_value(str, &result_value, is_signed, &err);
+    a_boolean pos_infinity, neg_infinity, not_a_number;
+    char *str = fp_to_string(float_kind, float_value,
+                             &pos_infinity, &neg_infinity, &not_a_number);
+    if (pos_infinity || neg_infinity || not_a_number) {
+      err = TRUE;
+    } else {
+      conv_float_string_to_integer_value(str, &result_value, is_signed, &err);
+    }  /* if */
   }  /* if */
 #endif /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
   if (!err) {
@@ -3945,6 +3951,6 @@ through the usual interface because a field cannot be passed as a constant.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
