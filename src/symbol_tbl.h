@@ -1365,7 +1365,8 @@ typedef struct a_scope_stack_entry {
                            a pointer to the symbol for a symbol providing
 			   information about the template on which the
 			   instantiation is based.  When a template class is
-			   being instantiated it points to an sk_class_template				  symbol; for a nonmember function it points to an
+			   being instantiated it points to an sk_class_template
+			   symbol; for a nonmember function it points to an
 			   sk_function_template symbol; for member functions
 			   and static data members of an instance of a class
 			   template, it points to an sk_member_function or
