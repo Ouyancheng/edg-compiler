@@ -4114,6 +4114,13 @@ class template.
        a redeclaration of a function template. */
     (void)id_linkage(locator, &storage_class, effective_decl_level, type_ptr,
                      func_info, &sym, &homonym_symbol);
+    if (sym != NULL && sym->kind != (a_symbol_kind)sk_function_template) {
+      /* Invalid redeclaration. */
+      pos_sy_error(ec_not_compatible_with_previous_decl,
+                   &locator->source_position, sym);
+      sym = NULL;
+      set_to_error_locator(*locator);
+    }  /* if */
     if (sym == NULL) {
       /* Not a redeclaration. */
       an_error_code error_code;
