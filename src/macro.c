@@ -4212,6 +4212,7 @@ Scan and process a #define directive.
       sizeof_t new_length = next_avail_in_macro_buffer - buffer_start;
       mdp = assoc_symbol->variant.macro_def;
       if ((a_boolean)mdp->object_like == object_like &&
+          (a_boolean)mdp->variadic == variadic &&
           equiv_replacement_text(buffer_start, new_length, mdp)) {
         /* Check parameter lists to make sure they match. */
         for (pp = param_list, pp2 = mdp->param_list;
