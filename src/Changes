@@ -55,7 +55,7 @@ Here are cases in which the entries are created:
   }                      //   unhidden if a leading "::" is used.
 
 This data structure is used by the C++-generating back end to avoid
-leading "::" qualifiers and elaborated types specifiers when they are not
+leading "::" qualifiers and elaborated type specifiers when they are not
 needed.
 
 6/11/94 Change in STAT_FIRST_PARAM_IS_CONST and GETOPT_PARAMS_ARE_NOT_CONST
