@@ -9915,7 +9915,6 @@ declaration (following any template clauses).
   }  /* if */
   if (sym != NULL) {
     a_scope_stack_entry_ptr	ssep;
-    check_assertion(sym->is_class_member);
     /* The symbol is a class member, find the symbol to which this
        declaration refers. */
     new_sym = member_function_redecl_sym(sym, type,
@@ -9931,6 +9930,7 @@ declaration (following any template clauses).
       new_sym = NULL;
     }  /* if */
     sym = new_sym;
+    check_assertion(sym == NULL || sym->is_class_member);
     ssep = &scope_stack[decl_state->effective_decl_level];
     if (sym != NULL && !namespace_is_enclosed_by_scope(sym, ssep)) {
       /* Specializations of namespace members can only occur within the
