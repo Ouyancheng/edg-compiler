@@ -589,19 +589,23 @@ its corresponding primary template supplement will be used instead.
     a_line_number  line;
     char           *file_name, *full_name;
     a_boolean      at_end_of_source;
-    a_symbol_ptr   templ_sym = (a_symbol_ptr)tssp->il_template_entry
-                                                 ->source_corresp.assoc_info;
     fprintf(f_debug, "DBG> ! Adding ");
     db_symbol_name(inst);
     fprintf(f_debug, " (%s) to all_instantiations list for ",
             symbol_kind_names[(int)inst->kind]);
-    db_symbol_name(templ_sym);
-    conv_seq_to_file_and_line(templ_sym->decl_position.seq, &file_name,
-                              &full_name, &line, &at_end_of_source);
-    if (line != 0) {
-      fprintf(f_debug, " in file %s (line %ld)\n", file_name, line);
+    if (tssp->il_template_entry != NULL) {
+      a_symbol_ptr   templ_sym = (a_symbol_ptr)tssp->il_template_entry
+                                                   ->source_corresp.assoc_info;
+      db_symbol_name(templ_sym);
+      conv_seq_to_file_and_line(templ_sym->decl_position.seq, &file_name,
+                                &full_name, &line, &at_end_of_source);
+      if (line != 0) {
+        fprintf(f_debug, " in file %s (line %ld)\n", file_name, line);
+      } else {
+        fprintf(f_debug, " (built-in; line %ld)\n", line);
+      }  /* if */
     } else {
-      fprintf(f_debug, " (built-in; line %ld)\n", line);
+      fprintf(f_debug, "unknown symbol\n");
     }  /* if */
   }  /* if */
 #endif /* DEBUG */
@@ -867,7 +871,8 @@ symbols are listed under the same header).
          represent members of templates.  No diagnostic is issued here,
          because one will be issued on the prototype instantiation. */
       a_symbol_ptr  sym1 = (a_symbol_ptr)scp1->assoc_info;
-      check_assertion(sym1->is_class_member);
+      check_assertion(sym1->is_class_member ||
+                      sym1->kind == (a_symbol_kind)sk_member_function);
       expect_error();
     }  /* if */
   }  /* if */
@@ -1181,7 +1186,7 @@ type is in fact valid.
   a_boolean   match = verify_name_correspondence(type);
   a_boolean   report_error = FALSE;
   a_boolean   both_defined = TRUE;
-  a_type_ptr  corresp_type = (a_type_ptr)canonical_il_entry_of(type);
+  a_type_ptr  corresp_type = (a_type_ptr)trans_unit_corresp_pointer_of(type);
 
   if (!match) {
     /* An error was already issued. */
@@ -1872,7 +1877,7 @@ are not checked.
                so a diagnostic will be issued. */
             set_unvisited_trans_unit_corresp(mem_type);
             record_trans_unit_corresp(mem_type, corresp_mem_type);
-            expect_error();
+            process_bad_trans_unit_corresp(mem_type);
           } else if (is_immediate_class_type(mem_type)) {
             establish_trans_unit_correspondences_for_class(mem_type);
             /* This could be a member of a template class.  If we're dealing
@@ -2609,21 +2614,9 @@ entities.
     } else if (corresp_templ != NULL) {
       /* Record the correspondence. */
       if (class_template && first_definition) {
-        /* This is the first definition of the template. Either make
-           it the root of the correspondence chain, or make it point to the
-           root if a root already exists in the primary translation unit. */ 
-        a_template_ptr  root = (a_template_ptr)
-                                         canonical_il_entry_of(corresp_templ);
-        if (in_secondary_trans_unit(root)) {
-          corresp_templ = templ;
-          templ = root;
-          clear_instantations_correspondence(templ, /*visited=*/FALSE);
-          set_unvisited_trans_unit_corresp(templ);
-          clear_instantations_correspondence(corresp_templ, /*visited=*/TRUE);
-          set_no_trans_unit_corresp(corresp_templ);
-        } else {
-          corresp_templ = root;
-        }  /* if */
+        /* This is the first definition of a class template.  Make it
+           point to the root. */
+        corresp_templ = (a_template_ptr)canonical_il_entry_of(corresp_templ);
       }  /* if */
       record_trans_unit_corresp(templ, corresp_templ);
       establish_instantiation_correspondences(templ);
