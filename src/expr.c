@@ -9723,8 +9723,10 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
         result->state = (an_operand_state)os_lvalue;
       }  /* if */
       result->type = result_type;
-      result->variant.expression->variant.operation.
+      if (is_expression_operand(result)) {
+        result->variant.expression->variant.operation.
                                  returns_lvalue_instead_of_usual_rvalue = TRUE;
+      }  /* if */
       result->ref_entries_list = merge_ref_lists(operand_2.ref_entries_list,
                                                  operand_3.ref_entries_list);
     }  /* if */
