@@ -1002,7 +1002,15 @@ must make a copy if tp may already be shared.
                        &ap->position, tp);
         } else if (is_typedef && is_incomplete_type(tp)) {
           pos_warning(ec_transparent_attribute_ignored, &ap->position);
+        } else if (!is_typedef) {
+          /* We cannot do any checking in the non-typedef case because
+             the type has not yet been laid out.  When do_class_layout
+             processes the type, it will call check_transparent_union 
+             to make sure that the attribute is legal. */
+          tp->variant.class_struct_union.is_transparent = TRUE;
         } else if (check_transparent_union(tp, &ap->position)) {
+          /* In the typedef case, the type has already been laid out
+             so we can do the check now. */
           tp->variant.class_struct_union.is_transparent = TRUE;
         }  /* if */
         break;
