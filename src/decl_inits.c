@@ -2827,9 +2827,11 @@ returned set to TRUE.
       }  /* if */
     }  /* if */
     check_assertion((init_dip == NULL) != (init_con == NULL));
-    if (init_dip != NULL &&
-        (prototype_instantiations_in_il ||
-         !scope_stack[depth_scope_stack].in_prototype_instantiation)) {
+    if (!prototype_instantiations_in_il &&
+        scope_stack[depth_scope_stack].in_prototype_instantiation) {
+      /* Do not attach an initializer that may be template dependent in the
+         IL tree. */
+    } else if (init_dip != NULL) {
       /* Generate a dynamic initialization entry, attach it to the variable,
          and generate an stmk_init statement. */
       a_statement_ptr init_stmt;
