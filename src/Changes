@@ -1,5 +1,25 @@
 Version 2.29
 
+3/20/95  Checking callability of elided copy constructor
+
+When a copy constructor call is elided, the WP requires that the
+elided copy constructor be callable.  We have been checking access,
+but we now also check that the copy constructor parameter can be bound
+to an rvalue, which is necessary if one were to call the copy
+constructor.  This check is only done in strict mode.
+
+  struct A {
+    A(A&);
+    A(int);
+  };
+  A a(1);
+  A b = 1;   // Error in strict mode
+  struct B {
+    B(int);
+    B(const volatile B&);
+  };
+  B bb = 1;  // Error in strict mode
+
 3/18/95  Putting out ellipsis-only param list in generated C
 
 A new configuration flag, ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C, may be

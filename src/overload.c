@@ -6068,8 +6068,9 @@ static void check_access_to_elided_copy_constructor(
 /*
 A conversion from source_type (a possibly-qualified class type) is being done
 by eliding a copy constructor.  Check that the copy constructor that would
-have been referenced exists and is accessible (ARM 12.6.1).  Issue an error
-at *err_pos if not.
+have been referenced exists and is accessible (ARM 12.6.1) and callable
+(we assume that the thing being copied is an rvalue because it's the result
+of a constructor call).  Issue an error *err_pos if not.
 */
 {
   a_type_ptr   class_type = skip_typerefs(source_type);
@@ -6098,6 +6099,30 @@ at *err_pos if not.
                           err_pos, cctor_sym);
       } else {
         pos_sy_warning(ec_inaccessible_special_function, err_pos, cctor_sym);
+      }  /* if */
+    } else {
+      /* The copy constructor is accessible.  Is it callable?  Specifically,
+         you can't call a copy constructor with an input parameter that is
+         a reference to nonconst with an rvalue, which is what we have here.
+         References to const volatile cannot be bound to rvalues either, so the
+         same problem exists there.  Check this only in strict mode. */
+      if (strict_ansi_mode) {
+        /* Get the "this" parameter type qualifiers. */
+        a_type_ptr cctor_type = routine_symbol_type(cctor_sym);
+        a_param_type_ptr ptp =
+                       cctor_type->variant.routine.extra_info->param_type_list;
+        a_type_ptr this_type = type_pointed_to(ptp->type);
+        a_type_qualifier_set qualifiers = get_type_qualifiers(this_type);
+        if ((qualifiers & TQ_CONST) == 0) {
+          pos_diagnostic(strict_ansi_discretionary_severity,
+                         ec_nonconst_ref_init_from_rvalue,
+                         err_pos);
+        } else if ((qualifiers & (TQ_CONST | TQ_VOLATILE)) ==
+                                 (TQ_CONST | TQ_VOLATILE)) {
+          pos_diagnostic(strict_ansi_discretionary_severity,
+                         ec_const_volatile_ref_init_from_rvalue,
+                         err_pos);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
