@@ -1168,9 +1168,7 @@ declaration.
   a_func_info_block       local_func_info_block;
   a_token_cache           decl_token_cache;
   a_boolean               is_top_level_declarator = TRUE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean               microsoft_C_leading_ellipsis = FALSE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_enter(3, "function_declarator");
   copy_source_position(pos_curr_token, start_pos);
