@@ -607,7 +607,7 @@ the base if necessary.
 
   /* Split the name into its parts. */
   split_path(filename, drive, dir, file, ext);
-#if BACK_END_IS_C_GEN_BE
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
   /* See if the file name ends with the suffix used for C output. */
   { char *C_file_suffix = GEN_C_FILE_SUFFIX;
     if (strlen(filename) > strlen(C_file_suffix) &&
@@ -626,7 +626,7 @@ the base if necessary.
       }  /* if */
     }  /* if */
   }
-#endif /* BACK_END_IS_C_GEN_BE */
+#endif /* BACK_END_IS_C_GEN_BE || ... */
   /* Truncate the filename part at the end (this may be unnecessary). */
   file[__MAXFILE__-1] = '\0';
   /* Truncate the extension part at the end (this may be unnecessary). */
@@ -975,12 +975,13 @@ writing.  This helps avoid problems with clobbering of input files.
       if (strcmp(last_dot, ".a") == 0 ||
           strcmp(last_dot, ".f") == 0 ||
           (strcmp(last_dot, ".c") == 0
-#if BACK_END_IS_C_GEN_BE
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
           /* However, the generated C suffix is allowed if using c_gen_be. */
+#define PRE_SUFFIX_LEN (sizeof(GEN_C_FILE_SUFFIX)-sizeof(".c"))
                                        &&
-           (last_dot-name_start <= 4 ||
-            (strcmp(last_dot-4, GEN_C_FILE_SUFFIX) != 0))
-#endif /* BACK_END_IS_C_GEN_BE */
+           (last_dot-name_start <= PRE_SUFFIX_LEN ||
+            (strcmp(last_dot-PRE_SUFFIX_LEN, GEN_C_FILE_SUFFIX) != 0))
+#endif /* BACK_END_IS_C_GEN_BE || ... */
                                       )) {
         okay = FALSE;
       } else {
