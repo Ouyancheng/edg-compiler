@@ -97,6 +97,11 @@ struct an_array_alloc_eh_info {
   a_boolean	is_two_arg;
 			/* TRUE if the delete routine is the two argument
 			   form.  FALSE if it is the single argument form. */
+#ifdef __EDG_IA64_ABI
+  a_boolean     terminate_immediately;
+                        /* TRUE if any exception during the destruction of the
+                           array elements should result in termination.  */
+#endif /* defined(__EDG_IA64_ABI) */
 };
 
 
@@ -472,6 +477,9 @@ use.
     aaehi.delete_routine	 = delete_routine;
     aaehi.is_two_arg		 = is_two_arg;
     aaehi.array_ptr              = array_ptr;
+#ifdef __EDG_IA64_ABI
+    aaehi.terminate_immediately  = FALSE;
+#endif /* defined(__EDG_IA64_ABI) */
   }  /* if */
 #endif /* EXCEPTION_HANDLING */
   /* Call the constructor, if any, for each member of the array.  Note that
@@ -807,6 +815,11 @@ an exception.
   a_sizeof_t			i;
   a_sizeof_t		        first_element;
 
+#ifdef __EDG_IA64_ABI
+  if (aaehip->terminate_immediately) {
+    __call_terminate();
+  }  /* if */
+#endif /* defined(__EDG_IA64_ABI) */
   array_ptr = (void *)aaehip->array_ptr;
   element_size = aaehip->element_size;
   if (aaehip->is_vec_new) {
@@ -845,6 +858,9 @@ an exception.
 #endif /* EXCEPTION_HANDLING */
 
 
+#ifndef __EDG_IA64_ABI
+/*ARGSUSED*/ /* terminate_immediately is used only in the IA-64 ABI. */
+#endif /* ifndef __EDG_IA64_ABI */
 static void array_delete_general(void                *array_ptr,
                                  int                 number_of_elements,
                                  size_t              element_size,
@@ -852,7 +868,8 @@ static void array_delete_general(void                *array_ptr,
                                  a_destructor_ptr    dtor,
 				 int		     delete_flag,
                                  a_delete_ptr	     delete_routine,
-				 int		     is_two_arg)
+				 int		     is_two_arg,
+                                 int                 terminate_immediately)
                                      
 /*
 Call a destructor for each element of an array, then delete the storage
@@ -863,7 +880,10 @@ the size of the prefix is given by prefix_size.  If array_ptr is NULL, this
 routine does nothing and returns.  If dtor is non-NULL, it points to a
 destructor function to be called for each element of the array.  If
 delete_flag is TRUE, the storage for the array is deallocated after the
-destruction; number_of_elements must be -1 for that case.
+destruction; number_of_elements must be -1 for that case.  If
+terminate_immediately is TRUE, std::terminate will be called if any of the
+destructor elements throws an exception; otherwise, the remainder of the
+elements will be destroyed and the exception will be rethrown.
 */
 {
   int                   i;
@@ -875,7 +895,8 @@ destruction; number_of_elements must be -1 for that case.
 #if EXCEPTION_HANDLING
     an_eh_stack_entry		ehse;
     an_array_alloc_eh_info	aaehi;
-    add_vec_new_or_delete_eh_stack_entry(&ehse, &aaehi, /*is_vec_new=*/FALSE);
+    add_vec_new_or_delete_eh_stack_entry(&ehse, &aaehi, 
+                                         /*is_vec_new=*/FALSE);
     aaehi.free_memory_on_cleanup = delete_flag;
     aaehi.array_ptr              = array_ptr;
     aaehi.number_of_elements     = number_of_elements;
@@ -884,6 +905,9 @@ destruction; number_of_elements must be -1 for that case.
     aaehi.destructor		 = dtor;
     aaehi.delete_routine	 = delete_routine;
     aaehi.is_two_arg		 = is_two_arg;
+#ifdef __EDG_IA64_ABI
+    aaehi.terminate_immediately  = terminate_immediately;
+#endif /* defined(__EDG_IA64_ABI) */
 #endif /* EXCEPTION_HANDLING */
     /* Determine the number of elements in the array, if unknown. */
     if (number_of_elements == -1 && prefix_size != 0) {
@@ -950,7 +974,7 @@ parameter is there for cfront compatibility.
                        (number_of_elements == -1) ? 
                                                  __array_new_prefix_size : 0,
                        dtor, delete_flag, (a_delete_ptr)NULL,
-                         /*is_two_arg=*/FALSE);
+                       /*is_two_arg=*/FALSE, /*terminate_immediately=*/FALSE);
 }  /* __vec_delete */
 
 
@@ -972,7 +996,7 @@ requires two arguments.
                        (number_of_elements == -1) ? 
                                                 __array_new_prefix_size : 0,
                        dtor, /*delete_flag=*/TRUE, delete_routine, 
-                       is_two_arg);
+                       is_two_arg, /*terminate_immediately=*/FALSE);
 }  /* __array_delete */
 #endif /* ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE */
 #else /* defined(__EDG_IA64_ABI) */
@@ -987,7 +1011,8 @@ Run the destructors for an array of objects.
 {
   array_delete_general(array_ptr, number_of_elements, element_size,
                        /*prefix_size=*/0, dtor, /*delete_flag=*/FALSE,
-                       (a_delete_ptr)NULL, /*is_two_arg=*/FALSE);
+                       (a_delete_ptr)NULL, /*is_two_arg=*/FALSE,
+                       /*terminate_immediately=*/FALSE);
 }  /* __cxa_vec_dtor */
 
 
@@ -1001,7 +1026,8 @@ The entry point for ordinary array delete.
 {
   array_delete_general(array_ptr, /*number_of_elements=*/-1, element_size,
                        prefix_size, dtor, /*delete_flag=*/TRUE,
-                       (a_delete_ptr)NULL, /*is_two_arg=*/FALSE);
+                       (a_delete_ptr)NULL, /*is_two_arg=*/FALSE,
+                       /*terminate_immediately=*/FALSE);
 }  /* __cxa_vec_delete */
 
 
@@ -1016,7 +1042,8 @@ The entry point for array delete with a class-specific operator delete.
 {
   array_delete_general(array_ptr, /*number_of_elements=*/-1, element_size,
                        prefix_size, dtor, /*delete_flag=*/TRUE,
-                       delete_routine, /*is_two_arg=*/FALSE);
+                       delete_routine, /*is_two_arg=*/FALSE,
+                       /*terminate_immediately=*/FALSE);
 }  /* __cxa_vec_delete2 */
 
 
@@ -1033,7 +1060,8 @@ delete.
 {
   array_delete_general(array_ptr, /*number_of_elements=*/-1, element_size,
                        prefix_size, dtor, /*delete_flag=*/TRUE,
-                       (a_delete_ptr)delete_routine, /*is_two_arg=*/TRUE);
+                       (a_delete_ptr)delete_routine, /*is_two_arg=*/TRUE,
+                       /*terminate_immediately=*/FALSE);
 }  /* __cxa_vec_delete3 */
 
 #endif /* defined(__EDG_IA64_ABI) */
