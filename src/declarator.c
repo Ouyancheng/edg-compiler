@@ -2186,17 +2186,6 @@ function_lparen:
       complete_type = bottom_derived_type = error_type();
     }  /* if */
   }  /* if */
-  {
-    a_scope_stack_entry_ptr	ssep = &scope_stack[decl_scope_level];
-    /* If any access checks may have been deferred (and not yet rechecked),
-       check them now.  This will cause errors to be issued for access
-       errors on nonmember functions.  Member function tests will have
-       been handled earlier when the class reactivation scope was
-       pushed. */
-    if (ssep->defer_access_checks) {
-      perform_deferred_access_checks();
-    }  /* if */
-  }
   if (class_scope_deactivation_required) {
     /* A class scope was reactivated when a qualified name was seen. */
     if (specifiers_type != NULL) {
@@ -2208,6 +2197,17 @@ function_lparen:
       *output_flags |= DO_CLASS_SCOPE_DEACTIVATION_REQUIRED;
     }  /* if */
   }  /* if */
+  {
+    a_scope_stack_entry_ptr	ssep = &scope_stack[decl_scope_level];
+    /* If any access checks may have been deferred (and not yet rechecked),
+       check them now.  This will cause errors to be issued for access
+       errors on nonmember functions.  Member function tests will have
+       been handled earlier when the class reactivation scope was
+       pushed. */
+    if (ssep->defer_access_checks) {
+      perform_deferred_access_checks();
+    }  /* if */
+  }
   *p_complete_type = complete_type;
   *p_bottom_derived_type = bottom_derived_type;
 #if DEBUG

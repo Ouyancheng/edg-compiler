@@ -4436,10 +4436,10 @@ the scope stack that indicates that access checks should be deferred.
         }  /* if */
       }  /* for */
       free_access_error_descr_list(aedp);
-      ssep->defer_access_checks = FALSE;
       ssep->deferred_access_checks = NULL;
       ssep->last_deferred_access_check = NULL;
     }  /* if */
+    ssep->defer_access_checks = FALSE;
   }  /* if */
 }  /* perform_deferred_access_checks */
 
@@ -7741,8 +7741,7 @@ End a name scope by popping an entry off the scope stack.
     /* Issue diagnostics on any pragmas that are still on the pending list. */
     end_of_scope_pragma_processing(ssep->pending_pragmas);
   }  /* if */
-  check_assertion_str2(ssep->defer_access_checks == FALSE &&
-                       ssep->deferred_access_checks == NULL,
+  check_assertion_str2(ssep->deferred_access_checks == NULL,
                        "pop_scope:", "deferred access checks still on list");
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if DEBUG
