@@ -1,5 +1,22 @@
 Version 2.20
 
+10/1/93  Spurious or redundant error on calls to operator new and delete
+
+Spurious and/or redundant errors (complaining about ambiguity or
+inaccessibility) have been eliminated on certain calls to member operator
+new and delete.
+
+10/1/93 Warnings on typedef declarations with no declarator
+
+We now issue a warning on typedef declarations with no declarator even
+if the type is a declaration (or even a definition) of a class or enum.
+For instance:
+
+  typedef struct S { int i; };     // Warning is now issued
+  typedef struct T;                // Warning is now issued
+  typedef enum E { e1, e2, e3 };   // Warning is now issued
+  typedef enum { e = 100 };        // Warning is now issued
+
 9/29/93  Cross-reference output for overloaded function call
 
 The cross-reference output line for a call of an overloaded function
