@@ -2004,6 +2004,12 @@ file to a memory region.
 }  /* map_input_file_to_region */
 
 
+#if __BSD__
+/* Some BSD systems (e.g., SunOS 4.1.3) don't declare munmap. */
+extern int munmap(caddr_t addr, sizeof_t size);
+#endif /* __BSD__ */
+
+
 void unmap_memory(a_void_ptr	addr,
 	          sizeof_t	size)
 /*

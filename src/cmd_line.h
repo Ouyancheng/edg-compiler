@@ -408,8 +408,10 @@ EXTERN a_boolean
 			   use of precompiled header files should be
 			   suppressed. */
 
+#if !USE_MMAP_FOR_MEMORY_REGIONS
 EXTERN sizeof_t	pch_mem_size;
 			/* Size of the preallocated PCH memory area. */
+#endif /* !USE_MMAP_FOR_MEMORY_REGIONS */
 
 EXTERN char	*pch_dir_name /* = NULL*/;
 			/* Directory in which PCH files are to be stored.
