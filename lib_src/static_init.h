@@ -23,7 +23,6 @@ initialization and destruction.
 
 extern void __call_ctors();
 extern void __call_dtors();
-EXTERN_C void __record_needed_destruction(a_needed_destruction_ptr ndp);
 
 #endif /* STATIC_INIT_H */
 

@@ -20,6 +20,7 @@ static_init.c -- called by _main to handle calling of static constructors
 #include "main.h"
 #include "config.h"
 #include "static_init.h"
+#include "dtor_list.h"
 
 
 /*
@@ -28,49 +29,6 @@ of static initialization.  If this is FALSE then it is assumed that
 the "munch" method is being used.
 */
 static int use_patch_info = TRUE;
-
-
-/*
-The list of static objects that require destruction.  An entry is
-added to the front of this list each time a new destructable static
-object is created.
-*/
-static a_needed_destruction_ptr
-		needed_destruction_head /* = NULL*/;
-
-
-static void process_needed_destructions(void)
-/*
-Go through the needed destructions list and perform the required
-destructions.
-*/
-{
-  a_needed_destruction_ptr	ndp;
-  while (needed_destruction_head != NULL) {
-    void	*object_ptr;
-    /* Note that the value of needed_destruction_head may change
-       during the execution of the destructor.  Consequently, the
-       current entry is removed from the list before the destructor
-       routine is called. */
-    ndp = needed_destruction_head;
-    needed_destruction_head = needed_destruction_head->next;
-    object_ptr = ndp->object;
-    /* Choose between a simple and complex destruction based on whether
-       or not the object pointer is NULL. */
-    if (object_ptr != NULL) {
-      /* Destroy the object by calling a destructor.  The flag value of 2
-         indicates the object should be destroyed, but operator delete
-         should not be called. */
-      check_assertion(ndp->variant.simple_destruction != NULL);
-      (ndp->variant.simple_destruction)(object_ptr, 2);
-    } else {
-      /* Destroy the object by calling a special function that will do the
-         destruction of this specific object. */
-      check_assertion(ndp->variant.complex_destruction != NULL);
-      (ndp->variant.complex_destruction)();
-    }  /* if */
-  }  /* while */
-}  /* process_needed_destructions */
 
 
 void __call_dtors()
@@ -112,7 +70,7 @@ the "patch"/"munch" destructions will be handled.
       while (pos--) (_dtors[pos])();
     }  /* if */
     /* Do the destructions specified by the needed destructions list. */
-    process_needed_destructions();
+    __process_needed_destructions();
   }  /* if */
 }  /* __call_dtors */
 
@@ -206,20 +164,6 @@ call the static initializer functions.
   on_exit(__call_dtors, (char *)NULL);
 #endif /* USE_ATEXIT */
 }  /* __call_ctors */
-
-
-EXTERN_C void __record_needed_destruction(a_needed_destruction_ptr ndp)
-/*
-Called when a static object has been constructed to register a
-destruction that must be done at program termination.  ndp points to
-a needed destruction entry that is to be added to the front of the
-list of needed destructions.
-*/
-{
-  ndp->next = needed_destruction_head;
-  needed_destruction_head = ndp;
-}  /* __record_needed_destruction */
-
 
 /******************************************************************************
 *                                                             \  ___  /       *
