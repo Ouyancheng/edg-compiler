@@ -8458,6 +8458,7 @@ pointr to it.
 #endif /* DEBUG */
   } else {
     htnfp = avail_hidden_template_name_fixups;
+    avail_hidden_template_name_fixups = htnfp->next;
   }  /* if */
   htnfp->next = NULL;
   htnfp->tag_hidden_by_nontag = FALSE;
