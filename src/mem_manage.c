@@ -1077,8 +1077,7 @@ memory or with an IL file.
     check_assertion(scope != NULL);
     if (scope->kind == (a_scope_kind)sck_function) {
 #if MAINTAIN_NEEDED_FLAGS
-      if (okay_to_eliminate_unneeded_il_entries &&
-          !il_entry_prefix_of(scope).keep_in_il) {
+      if (!il_entry_prefix_of(scope).keep_in_il) {
         /* This is the memory region for a function scope that may not be
            needed.  As an optimization to keep the IL file from growing too
            large, don't write it out.  If we later discover that it's needed,
@@ -1114,6 +1113,7 @@ memory or with an IL file.
   db_exit();
 }  /* check_for_done_with_memory_region */
 
+#if MAINTAIN_NEEDED_FLAGS
 
 void check_for_done_with_all_function_memory_regions(void)
 /*
@@ -1126,6 +1126,7 @@ eliminated after all (e.g., because template declarations were encountered).
 */
 {
   db_enter(5, "check_for_done_with_all_function_memory_regions");
+  check_assertion(!okay_to_eliminate_unneeded_il_entries);
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
   {
   /* Loop through the memory regions.  Skip the front end and file scope
@@ -1135,10 +1136,13 @@ eliminated after all (e.g., because template declarations were encountered).
     if (mem_region_table[n] == NULL) {
       /* This memory has already been freed. */
     } else {
-#if CHECKING
       a_scope_ptr  sp = il_header.region_scope_entry[n];
+
       check_assertion(sp->kind == (a_scope_kind)sck_function);
-#endif /* CHECKING */
+      /* Since this routine is called only when elimination of unneeded IL
+         entries is suppressed, mark the routine to be kept in the IL, to
+         assure it will be written out. */
+      il_entry_prefix_of(sp).keep_in_il = TRUE;
       check_for_done_with_memory_region(n);
     }  /* if */
   }  /* for */
@@ -1147,6 +1151,7 @@ eliminated after all (e.g., because template declarations were encountered).
   db_exit()
 }  /* check_for_done_with_all_function_memory_regions */
 
+#endif /* MAINTAIN_NEEDED_FLAGS */
 
 #if DEBUG
 #if !STANDALONE_UTILITY_PROGRAM
