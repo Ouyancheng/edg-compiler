@@ -4019,14 +4019,18 @@ and the class instantiation will detect the runaway case.
   /* Push a template instantiation scope.  The real values of the template
      arguments will be associated with the template parameter names. */
   /* For static data members, the argument list comes from the enclosing
-     class that is reactivated by push_template_instantiation_scope. */
+     class that is reactivated by push_template_instantiation_scope.
+     Class reactivations are ignored for the initial portion of the
+     static data member rescan.  They are considered once the declarator
+     portion of the declaration is reached. */
   push_template_instantiation_scope(tssp->cache.decl_info,
                                     (a_type_ptr)NULL,
                                     (a_routine_ptr)NULL,
                                     static_data_member_sym,
                                     tip->template_sym,
                                     (a_template_arg_ptr)NULL,
-                                    /*push_stop_tokens=*/TRUE, PS_NO_OPTIONS);
+                                    /*push_stop_tokens=*/TRUE,
+                                    PS_IGNORE_CLASS_REACTIVATIONS);
   /* Rescan the declaration of the static data member.  This should result
      in the same type as the declaration in the class, except in the case
      where the class declared an incomplete array type. */
@@ -7953,7 +7957,7 @@ where the class declared an incomplete array type.
                             (a_routine_ptr)NULL, tip, &attributes,
 			    &decl_pos_block);
   (void)reconcile_static_data_member_types(sym, type,
-                                           &decl_pos_block.decl_pos);
+                                           &locator.source_position);
 }  /* rescan_static_data_member_declaration */
 
 

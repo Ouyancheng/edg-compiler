@@ -2494,6 +2494,8 @@ that do normal id lookup processing.
        scopes on the stack. */
     if (ssep->kind == (a_scope_kind)sck_template_declaration &&
         lookup_state->skip_template_decl_scopes) continue;
+    /* Skip scopes that are marked to be ignored for normal lookup. */
+    if (ssep->ignore_during_normal_lookup) continue;
     /* The "skip_curr_scope" flag is used to skip the initial lookup scope
        when a hidden name lookup is done.  Reset this flag after the first
        iteration of the loop. */

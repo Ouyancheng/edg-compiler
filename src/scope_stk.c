@@ -1715,6 +1715,7 @@ the scope being pushed.
   ssep->microsoft_specialization_instantiation_scope =
                                   (options & PS_MICROSOFT_SPECIALIZATION) != 0;
   ssep->is_instantiation_context = FALSE;
+  ssep->ignore_during_normal_lookup = FALSE;
 #if USER_CONTROL_OF_STRUCT_PACKING
   ssep->pragma_pack_is_local     = FALSE;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
@@ -2632,7 +2633,8 @@ void reactivate_class_and_instantiation_scopes(
                       a_type_ptr		parent_class,
                       a_symbol_ptr		instance_sym,
 		      a_type_ptr		assoc_type,
-		      a_routine_ptr		assoc_routine)
+		      a_routine_ptr		assoc_routine,
+		      a_push_scope_options_set	options) 
 /*
 Reactivate the class specified by parent_class and any classes that enclose
 parent class.  If any of the classes are template classes, push
@@ -2642,7 +2644,7 @@ information for the template being instantiated.  instance_sym is the
 symbol to be used (if not NULL) as the instance symbol for the outermost
 instantiation scope that is pushed.   Likewise, assoc_type and assoc_routine
 are non-NULL when they should be used for the outermost instantiation scope.
-
+"options" is the set of option flags passed to the push scope routines.
 */
 {
   a_type_ptr                        class_type;
@@ -2712,7 +2714,8 @@ are non-NULL when they should be used for the outermost instantiation scope.
                                               class_sym->parent.class_type,
                                               enclosing_instance_sym,
                                               enclosing_assoc_type,
-                                              enclosing_assoc_routine);
+                                              enclosing_assoc_routine,
+					      options);
   }  /* if */
   if (is_template) {
     if (tssp->variant.class_template.prototype_instantiation_complete) {
@@ -2735,7 +2738,34 @@ are non-NULL when they should be used for the outermost instantiation scope.
   }  /* if */
   /* Reactivate the enclosing class scope. */
   push_single_class_reactivation_scope(class_type);
+  if ((options & PS_IGNORE_CLASS_REACTIVATIONS) != 0) {
+    /* During normal lookups, ignore the scope just pushed.  This is used
+       during the instantiation of static data members.  They are unusual in
+       that the declaration that is rescanned is the one that appeared outside
+       of the class, so class members should not be visible until the
+       declarator is reached. */
+    scope_stack[depth_scope_stack].ignore_during_normal_lookup = TRUE;
+  }  /* if */
 }  /* reactivate_class_and_instantiation_scopes */
+
+
+void make_class_reactivations_visible(void)
+/*
+When a static data member is instantiated, most of the declaration is
+scanned without class members being visible.  Once we reach the point at
+which the class scope should be reactivated, we need to update the scope
+stack so that the class reactivation scopes will be considered.
+*/
+{
+  a_scope_stack_entry_ptr	ssep;
+
+  for (ssep = &scope_stack[depth_of_initial_lookup_scope]; ssep != NULL;
+       ssep = previous_scope_of(ssep)) {
+    if (ssep->kind == (a_scope_kind)sck_class_reactivation) {
+      ssep->ignore_during_normal_lookup = FALSE;
+    }  /* if */
+  }  /* for */
+}  /* make_class_reactivations_visible */
 
 
 static void push_instantiation_context(
@@ -2749,7 +2779,8 @@ static void push_instantiation_context(
                 a_scope_depth			*p_after_definition_depth,
                 a_symbol_ptr			instance_sym,
                 a_type_ptr			assoc_type,
-		a_routine_ptr			assoc_routine)
+		a_routine_ptr			assoc_routine,
+		a_push_scope_options_set	options)
 /*
 Pushes the scopes necessary to create the appropriate context for a
 particular instantiation.  This process includes
@@ -2782,7 +2813,8 @@ the outermost class instantiation scope and is non-NULL for nontemplate
 member instantiations when the outermost instantiation scope is actually
 the instantiation scope for the member, not the class that is being
 reactivated.  Likewise, assoc_type and assoc_routine are non-NULL when
-they should be used for the outermost instantiation scope.
+they should be used for the outermost instantiation scope.  "options" is
+the set of option flags passed into the push scope routines.
 */
 {
   a_scope_depth		common_depth;
@@ -2878,7 +2910,7 @@ they should be used for the outermost instantiation scope.
        push an instantiation scope for the class as well. */
     reactivate_class_and_instantiation_scopes(decl_info, definition_class,
                                               instance_sym, assoc_type,
-                                              assoc_routine);
+                                              assoc_routine, options);
   }  /* if */
   /* Return the calculated scope depths to the caller. */
   *p_common_depth = common_depth;
@@ -3193,7 +3225,7 @@ is pushed here, and popped when the instantiation scope is popped.
                                reference_nsp, &common_depth, &definition_depth,
                                &context_depth, &after_definition_depth,
                                enclosing_instance_sym, enclosing_assoc_type,
-                               enclosing_assoc_routine);
+                               enclosing_assoc_routine, options);
     /* At this point, definition_depth points to the parent scope
        of the template being instantiated.  Save this value before it
        is potentially modified below. */

@@ -3556,6 +3556,13 @@ to FALSE if the entity being declared is not initializable.
             /* The dimensions of static data members (if any) are scanned
                with the original class reactivated. */
             reactivate_scope = TRUE;
+            if (is_nonspecialized_instantiation_context()) {
+              /* When instantiating a template static data member, we need
+                 to update scopes pushed for instantiation purposes so that
+                 class reactivations will be visible from this point on in
+                 the declaration. */
+              make_class_reactivations_visible();
+	    }  /* if */
           }  /* if */
           if (reactivate_scope) {
             /* Reactivate the scope of the parent class.  It will be
