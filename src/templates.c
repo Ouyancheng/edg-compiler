@@ -1646,6 +1646,7 @@ templ_sym).
                               /*nonglobal_decl_err=*/FALSE,
                               &dso_flags, &do_flags, &locator,
                               &rout_type, &func_info, &storage_class);
+    done_with_func_info(func_info);
     error_position = saved_error_position;
     pos_curr_token = saved_pos_curr_token;
     /* Pop the template instantiation scope. */
@@ -3332,6 +3333,7 @@ entry is pushed on the scope stack.
     a_storage_class    storage_class;
 
     /* Scan the decl. specifiers and the declaration. */
+    clear_func_info(&func_info);
     scan_template_declaration(/*is_initial_decl=*/TRUE, nonglobal_decl_err,
                               &dso_flags, &do_flags, &locator, &type,
                               &func_info, &storage_class);
@@ -3490,7 +3492,11 @@ entry is pushed on the scope stack.
         discard_token_cache(&local_token_cache);
       } else {
 	a_def_arg_expr_fixup_ptr  daefp;
+
+        /* Copy the func_info block and then null out its the param-id pointer
+           so that it won't be freed. */
         tssp->variant.function.func_info = func_info;
+        func_info.param_id_list = NULL;
 	/* Link the default argument list from the template supplement
 	   onto the end of the list of current default arguments.  The
 	   list in the supplement must be for arguments that follow the
@@ -3552,6 +3558,7 @@ entry is pushed on the scope stack.
                      locator.symbol_header->identifier);
       }  /* if */
     }  /* if */
+    done_with_func_info(func_info);
   } else {
     /* Template parameters are declared, but the declaration is missing. */
     pos_error(ec_exp_declaration, &pos_curr_token);
@@ -4905,7 +4912,6 @@ assumed if the return type is omitted.
     a_type_ptr         type;
     a_symbol_locator   locator;
     a_decl_flag_set    do_flags, dso_flags;
-    a_func_info_block  func_info;
     a_type_ptr         bottom_derived_type = NULL;
     a_symbol_ptr       orig_sym;
     a_symbol_ptr       new_sym;
@@ -4920,10 +4926,14 @@ assumed if the return type is omitted.
       /* Error of some sort. */
       set_to_error_locator(locator);
     } else {
+      a_func_info_block  func_info;
+
+      clear_func_info(&func_info);
       declarator((DI_REAL_DECLARATOR_ALLOWED | DI_QUALIFIED_NAME_ALLOWED |
                   DI_OPERATOR_NAME_ALLOWED),
                  &do_flags, type, (a_type_ptr)NULL, &locator, &type,
                  &bottom_derived_type, &declarator_ssep, &func_info);
+      done_with_func_info(func_info);
 #if 0
       /* Presumable, declarator_ssep will often be returned pointing at an
          empty source sequence entry.  How should this be handled? */
