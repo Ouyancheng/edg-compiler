@@ -1903,7 +1903,16 @@ IA-64 ABI; see comments below.
     ctor_addr_node->next = dtor_addr_node;
     if (entity_node != NULL) {
       call_node = make_runtime_rout_call("__cxa_vec_ctor", &vec_ctor_routine,
-                                         void_star_type(), arg_expr_list);
+                                         void_type(), arg_expr_list);
+      /* Unfortunately, __cxa_vec_ctor actually returns void, so we can't
+         use its return value.  Instead we have to return the value of the
+       entity_node. */
+      {
+        an_expr_node_ptr entity_copy =
+                                  make_reusable_copy(entity_node,
+                                                     /*vars_can_change=*/TRUE);
+        call_node = make_comma_node(call_node, entity_copy);
+      }
     } else {
       call_node = make_runtime_rout_call("__cxa_vec_new", &vec_new_routine,
                                          void_star_type(), arg_expr_list);

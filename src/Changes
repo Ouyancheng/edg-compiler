@@ -1,5 +1,11 @@
 Version 3.2
 
+3/5/03   IA-64 ABI: __cxa_vec_ctor returns void
+
+The IA-64 ABI runtime routine __cxa_vec_ctor returns void, not
+void * as we thought.  The front end and the runtime have been
+changed accordingly.
+
 3/5/03   GNU C++ mode: cast from pointer to smaller integer allowed
 
 In GNU C++ mode, a cast from a pointer type to an integer type that
