@@ -370,6 +370,10 @@ enum a_symbol_kind_tag {
 		        /* Projection of a member of a namespace into another
 			   scope (either through a using-declaration or as a
 			   by-product of a lookup). */
+#if NAMED_MEMORY_REGIONS_ALLOWED
+  sk_named_memory_region,
+                        /* Embedded C (TR 18037) named memory region. */
+#endif /* NAMED_MEMORY_REGIONS_ALLOWED */
   sk_last
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -387,6 +391,9 @@ EXTERN char	*symbol_kind_names[(int)sk_last + 1]
    "routine", "label", "undefined", "extern variable", "extern routine",
    "projection", "overloaded function", "parameter", "class template",
    "function template", "namespace", "namespace projection",
+#if NAMED_MEMORY_REGIONS_ALLOWED
+   "named memory region",
+#endif /* NAMED_MEMORY_REGIONS_ALLOWED */
    "last" /* used to check that initialization is right. */
 }
 #endif /* VAR_INITIALIZERS */
@@ -2259,6 +2266,14 @@ typedef struct a_projection_descr {
 			   and the member specified by fundamental_symbol. */
 } a_projection_descr;
 
+#if NAMED_MEMORY_REGIONS_ALLOWED
+
+/*
+Named memory regions are identified using small integers of the following type.
+*/
+typedef int a_named_memory_region_id;
+
+#endif /* NAMED_MEMORY_REGIONS_ALLOWED */
 
 typedef struct a_symbol {
   /* A symbol as used by the front end. */
@@ -2716,6 +2731,15 @@ typedef struct a_symbol {
 			   created for members of the fundamental namespace's
 			   overload set. */
     } namespace_projection;
+#if NAMED_MEMORY_REGIONS_ALLOWED
+    /* When kind == sk_named_memory_region: */
+    struct {
+      a_named_memory_region_id
+		id;
+			/* A small integer identifying the named memory
+			   region. */
+    } named_memory_region;
+#endif /* NAMED_MEMORY_REGIONS_ALLOWED */
   } variant;
 } a_symbol;
 
@@ -3158,6 +3182,12 @@ extern a_symbol_ptr full_enter_symbol(char          *identifier,
 
 extern void enter_keyword(a_token_kind token,
                           char         *keyword);
+
+#if NAMED_MEMORY_REGIONS_ALLOWED
+extern a_symbol_ptr enter_named_memory_region(
+                                          char                      *name,
+                                          a_named_memory_region_id  parent_id);
+#endif /* NAMED_MEMORY_REGIONS_ALLOWED */
 
 extern void make_symbol_for_predeclared_type(a_type_ptr  predeclared_type,
                                              char        *name);

@@ -1486,6 +1486,23 @@ or when Microsoft extensions (including Microsoft asms) are allowed.
 #endif /* ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
+Flag that is TRUE if the IL and the front end code supporting Embedded C
+(TR 18037) named memory regions should be enabled.
+*/
+#ifndef NAMED_MEMORY_REGIONS_ALLOWED
+#define NAMED_MEMORY_REGIONS_ALLOWED FALSE
+#endif /* NAMED_MEMORY_REGIONS_ALLOWED */
+
+/*
+Flag that is true if Embedded C (TR 18037) named memory region specifiers
+should be recognized by default.  This is the default initial value of
+named_memory_regions_allowed.
+*/
+#ifndef DEFAULT_NAMED_MEMORY_REGIONS_ALLOWED
+#define DEFAULT_NAMED_MEMORY_REGIONS_ALLOWED FALSE
+#endif /* DEFAULT_NAMED_MEMORY_REGIONS_ALLOWED */
+
+/*
 Check that no mutually exclusive dialect emulations are simultaneously
 enabled.
 */

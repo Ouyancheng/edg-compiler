@@ -350,6 +350,11 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_inexact_fxp_conversion)*/
 /*lint -esym(769,ec_operation_may_not_fit_in_fixed_point_result)*/
 #endif /* !FIXED_POINT_EXTENSIONS_ALLOWED */
+#if !NAMED_MEMORY_REGIONS_ALLOWED
+/*lint -esym(759,named_memory_regions_allowed)*/
+/*lint -esym(765,named_memory_regions_allowed)*/
+/*lint -esym(769,ec_cl_named_memory_regions_option_only_in_C)*/
+#endif /* !NAMED_MEMORY_REGIONS_ALLOWED */
 
 
 /******************************************************************************

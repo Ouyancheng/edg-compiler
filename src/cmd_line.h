@@ -222,6 +222,9 @@ typedef enum /*an_option_kind*/ {
 #if FIXED_POINT_EXTENSIONS_ALLOWED
   optk_fixed_point,
 #endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#if NAMED_MEMORY_REGIONS_ALLOWED
+  optk_named_memory_regions,
+#endif /* NAMED_MEMORY_REGIONS_ALLOWED */
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -698,6 +701,21 @@ EXTERN a_boolean
                                                                  ;
 			/* TRUE if the fixed-point extensions of ISO TR 18037
 			   (aka. "Embedded C") should be accepted. */
+
+EXTERN a_boolean
+		named_memory_regions_allowed
+#if VAR_INITIALIZERS
+		                    =
+#if NAMED_MEMORY_REGIONS_ALLOWED
+		                      DEFAULT_NAMED_MEMORY_REGIONS_ALLOWED
+#else /* !NAMED_MEMORY_REGIONS_ALLOWED */
+		                      FALSE
+#endif /* NAMED_MEMORY_REGIONS_ALLOWED */
+#endif /* VAR_INITIALIZERS */
+                                                                          ;
+			/* TRUE if the extension of ISO TR 18037 (aka.
+			   "Embedded C") for named memory regions should be
+			    accepted. */
 
 EXTERN a_boolean
 		pointer_to_member_call_optimization_allowed

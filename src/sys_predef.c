@@ -1201,6 +1201,27 @@ Enter macros as requires by the UPC specification.  Called in UPC modes only.
 }  /* enter_upc_predefined_macros */
 
 #endif /* UPC_EXTENSIONS_ALLOWED */
+#if NAMED_MEMORY_REGIONS_ALLOWED
+
+static void enter_predefined_named_memory_regions(void)
+/*
+Enter any predefined named memory regions.  TR 18037 ("Embedded C") requires
+that such memory regions have names in the implementation namespace.
+*/
+{
+#if INCLUDE_EDG_TEST_NAMED_MEMORY_REGIONS
+  a_symbol_ptr  edg_nmr_a;
+#endif /* INCLUDE_EDG_TEST_NAMED_MEMORY_REGIONS */
+
+#if INCLUDE_EDG_TEST_NAMED_MEMORY_REGIONS
+  edg_nmr_a = enter_named_memory_region("_EDG_NMR_A", /*parent_id=*/0);
+  (void)enter_named_memory_region("_EDG_NMR_B",
+                                  edg_nmr_a->variant.named_memory_region.id);
+  (void)enter_named_memory_region("_EDG_NMR_C", /*parent_id=*/0);
+#endif /* INCLUDE_EDG_TEST_NAMED_MEMORY_REGIONS */
+}  /* enter_predefined_named_memory_regions */
+
+#endif /* NAMED_MEMORY_REGIONS_ALLOWED */
 
 void enter_system_specific_predeclared_symbols(void)
 /*
@@ -1293,6 +1314,11 @@ Enter predeclared symbols as required by the implementation.
     enter_upc_predefined_macros();
   }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
+#if NAMED_MEMORY_REGIONS_ALLOWED
+  if (named_memory_regions_allowed) {
+    enter_predefined_named_memory_regions();
+  }  /* if */
+#endif /* NAMED_MEMORY_REGIONS_ALLOWED */
 }  /* enter_system_specific_predeclared_symbols */
 
 

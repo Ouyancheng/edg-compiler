@@ -898,6 +898,7 @@ declaration position to eliminate redundant file names in a diagnostic.
   /* Determine the fundamental symbol of this symbol. */
   fund_sym = fundamental_symbol_of(sym);
   switch (fund_sym->kind) {
+/* FIXME: Add support for named memory regions. */
     case sk_keyword:
       /* The name of a keyword is extracted from the token_names array, and
          is handled differently from other symbols. */
