@@ -1,5 +1,15 @@
 Version 2.45
 
+9/11/00  Error recovery on invalid partial specialization
+
+An internal error could occur if a partial specialization was (incorrectly)
+declared within the defintion of the primary template (although this
+example does not result in such an internal error).  This has been fixed.
+
+  template <class T> struct A {
+    template <class T2> struct A<T2*> { };
+  };
+
 9/8/00   Abort on friend declarations with default arguments
 
 The front end used to produce invalid IL when redeclaring a function as a

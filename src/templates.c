@@ -9365,6 +9365,15 @@ instantiation.
         pos_error(ec_member_partial_spec_not_in_class,
                   &locator.source_position);
         err = TRUE;
+      } else if (!decl_state->is_template_friend &&
+                 decl_state->class_declared_in != NULL &&
+                 (!sym->is_class_member ||
+                   sym->parent.class_type != decl_state->class_declared_in)) {
+        /* A partial specialization in a class, but the entity found is from
+           a different scope. */
+        pos_sy_error(ec_cannot_be_declared_in_scope, &locator.source_position,
+                     sym);
+        err = TRUE;
       } else if (!sym->is_class_member &&
                  ssep->assoc_namespace != sym->parent.namespace_ptr) {
         pos_error(ec_member_partial_spec_not_in_namespace,
