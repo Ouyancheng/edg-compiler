@@ -1479,6 +1479,7 @@ subobject_type are considered in addition to direct bases.
           }  /* if */
           field_type = skip_typerefs(field_type);
           if (is_immediate_class_type(field_type) &&
+              field_type->source_corresp.assoc_info != NULL &&
               symbol_supplement_for_class(field_type)
                                                  ->has_empty_class_subobject) {
             /* Loop through the elements of the array. */
