@@ -3470,6 +3470,22 @@ a template parameter.
 }  /* template_arg_involves_template_param */
 
 
+a_boolean template_arg_list_involves_template_param(a_template_arg_ptr	tap)
+/*
+Return TRUE if the template argument list pointed to by tap is or
+contains a template parameter.
+*/
+{
+  a_boolean	result = FALSE;
+
+  for (; tap != NULL; tap = tap->next) {
+    result = template_arg_involves_template_param(tap);
+    if (result) break;
+  }  /* for */
+  return result;
+}  /* template_arg_list_involves_template_param */
+
+
 a_symbol_ptr find_template_class(
 			     a_symbol_ptr        class_template_sym,
                              a_template_arg_ptr  *new_list,
@@ -12921,7 +12937,6 @@ specified by "tip" depend on a template parameter.
 {
   a_symbol_ptr		sym;
   a_template_arg_ptr	arg_list;
-  a_template_arg_ptr	tap;
 
   sym = tip->instance_sym;
   /* Get the template argument list for the routine or static data member. */
@@ -12949,12 +12964,9 @@ specified by "tip" depend on a template parameter.
     check_assertion(type != NULL);
     arg_list = type->variant.class_struct_union.extra_info->template_arg_list;
   }  /* if */
-  for (tap = arg_list; tap != NULL; tap = tap->next) {
-    a_boolean	result;
-    result = template_arg_involves_template_param(tap);
-    check_assertion_str2(!result, "check_for_nonreal_instance:",
-                         "nonreal instance on instantiation required list");
-  }  /* for */
+  check_assertion_str2(!template_arg_list_involves_template_param(arg_list),
+                       "check_for_nonreal_instance:",
+                       "nonreal instance on instantiation required list");
 }  /* check_for_nonreal_instance */
 
 #endif /* EXPENSIVE_CHECKING */
