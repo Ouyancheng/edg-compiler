@@ -11571,6 +11571,79 @@ Add the IL macro entry pointed to by mp to the list for the file scope.
 }  /* add_to_macros_list */
 
 #endif /* RECORD_MACROS_IN_IL */
+
+static unsigned long num_local_statics_with_assoc_pragmas(a_scope_ptr scope)
+/*
+Return the number of local static variables with associated pragmas in
+the indicated scope (a function or block scope) and its subscopes.
+*/
+{
+  unsigned long  count = 0;
+  a_variable_ptr variable;
+  a_scope_ptr    sub_scope;
+
+  for (variable = scope->variables;
+       variable != NULL;
+       variable = variable->next) {
+    if (variable->source_corresp.has_associated_pragma) {
+      count++;
+    }  /* if */
+  }  /* for */
+  for (sub_scope = scope->scopes;
+       sub_scope != NULL;
+       sub_scope = sub_scope->next) {
+    count += num_local_statics_with_assoc_pragmas(sub_scope);
+  }  /* for */
+  return count;
+}  /* num_local_statics_with_assoc_pragmas */
+
+
+void eliminate_pragmas_for_local_statics(a_scope_ptr scope)
+/*
+The indicated scope is the function scope of a function that is being
+eliminated.  Eliminate any pragmas that reference its local static variables.
+*/
+{
+  unsigned long count = num_local_statics_with_assoc_pragmas(scope);
+  if (count > 0) {
+    a_translation_unit_ptr tup = trans_unit_for_scope[scope->number];
+    a_scope_ptr            primary_scope = tup->primary_scope;
+    a_pragma_ptr           pp, prev_pp;
+
+    for (prev_pp = NULL, pp = primary_scope->pragmas;
+         pp != NULL;
+         pp = pp->next) {
+      a_boolean remove_entry = FALSE;
+      if ((an_il_entry_kind)pp->entity.kind == iek_variable) {
+        a_variable_ptr variable = (a_variable_ptr)pp->entity.ptr;
+        if (variable->source_corresp.is_local_to_function &&
+            /* find_scope_of_variable finds the variable only if it
+               is in the hierarchy of scopes, so it can be used to test
+               whether the variable is in the given function. */
+            find_scope_of_variable(variable, scope) != NULL) {
+          /* This pragma applies to a local static of the function. */
+          remove_entry = TRUE;
+        }  /* if */
+      }  /* if */
+      if (remove_entry) {
+        /* Unlink the pragma. */
+        if (prev_pp == NULL) {
+          il_header.primary_scope->pragmas = pp->next;
+        } else {
+          prev_pp->next = pp->next;
+        }  /* if */
+        if (pp->next == NULL) {
+          tup->file_scope_pointers_block.last_pragma = prev_pp;
+        }  /* if */
+        count--;
+        if (count == 0) break;
+      } else {
+        prev_pp = pp;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* eliminate_pragmas_for_local_statics */
+
  
 void clear_function_body(a_scope_ptr sp)
 /*
@@ -11609,6 +11682,11 @@ eliminate_unneeded_scope_orphaned_list_entries).
       vdp->type->variant.array.has_assoc_vla_dimension = FALSE;
     }  /* for */
   }  /* if */
+#if !SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
+  /* If scope orphaned lists are maintained, the local statics can stay
+     around even if the function is eliminated. */
+  eliminate_pragmas_for_local_statics(sp);
+#endif /* !SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
   rp->defined = FALSE;
   rp->defined_in_friend_decl = FALSE;
   rp->assoc_scope = NULL_region_number;

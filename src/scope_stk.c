@@ -4638,6 +4638,8 @@ thrown away by the caller.
        the list are generated anew after the function body is (lowered
        and) moved over, rather than copying the lists. */
     add_scope_orphaned_il_lists(scope);
+  } else {
+    eliminate_pragmas_for_local_statics(scope);
   }  /* if */
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
   if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {

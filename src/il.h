@@ -1181,6 +1181,8 @@ extern void add_scope_orphaned_il_lists(a_scope_ptr scope);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
 
+void eliminate_pragmas_for_local_statics(a_scope_ptr scope);
+
 extern void clear_function_body(a_scope_ptr sp);
 
 void detach_from_object_lifetime_tree(an_object_lifetime_ptr olp);
