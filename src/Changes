@@ -1,5 +1,16 @@
 Version 2.29
 
+4/5/95   Binding of a next-construct pragma
+
+When a declaration involving an elaborated-type specifier of the form enum
+E followed a bind-to-next-construct pragma, the pragma was improperly bound
+to the enum type.  This has been fixed.
+
+  enum E { a, b, c };
+  #pragma xxx              // "xxx" binds to next construct
+  enum E e;                // the pragma now binds to variable e rather
+                           //   than to type E.
+
 4/5/95   Enhanced support for #pragma pack
 
 It is now possible to maintain a stack of pack alignment values using
