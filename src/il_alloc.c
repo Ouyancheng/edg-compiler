@@ -1272,50 +1272,51 @@ to it.  The entry is allocated in the file scope memory region.
   num_routines_allocated++;
 #endif /* DEBUG */
   set_default_source_corresp(rp->source_corresp);
-  rp->next                    = NULL;
-  rp->type                    = NULL;
-  rp->assoc_scope             = NULL_region_number;
-  rp->storage_class           = (a_storage_class)sc_unspecified;
-  rp->special_kind            = (a_special_function_kind)sfk_none;
-  rp->opname_kind             = (an_opname_kind)onk_none;
-  rp->address_taken           = FALSE;
-  rp->is_virtual              = FALSE;
-  rp->pure_virtual            = FALSE;
-  rp->is_inline               = FALSE;
-  rp->compiler_generated      = FALSE;
-  rp->defined                 = FALSE;
-  rp->called                  = FALSE;
+  rp->next                      = NULL;
+  rp->type                      = NULL;
+  rp->assoc_scope               = NULL_region_number;
+  rp->storage_class             = (a_storage_class)sc_unspecified;
+  rp->special_kind              = (a_special_function_kind)sfk_none;
+  rp->opname_kind               = (an_opname_kind)onk_none;
+  rp->address_taken             = FALSE;
+  rp->is_virtual                = FALSE;
+  rp->pure_virtual              = FALSE;
+  rp->is_inline                 = FALSE;
+  rp->compiler_generated        = FALSE;
+  rp->defined                   = FALSE;
+  rp->called                    = FALSE;
 #if ASSIGNMENT_TO_THIS_ALLOWED
-  rp->assignment_to_this_done = FALSE;
+  rp->assignment_to_this_done   = FALSE;
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
-  rp->is_template_function    = FALSE;
+  rp->is_template_function      = FALSE;
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
-  rp->can_be_instantiated     = FALSE;
-  rp->do_not_instantiate      = FALSE;
-  rp->instance_required       = FALSE;
+  rp->can_be_instantiated       = FALSE;
+  rp->do_not_instantiate        = FALSE;
+  rp->instance_required         = FALSE;
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
-  rp->specific_def            = FALSE;
-  rp->contains_try_block      = FALSE;
-  rp->superseded_external     = FALSE;
+  rp->specific_def              = FALSE;
+  rp->contains_try_block        = FALSE;
+  rp->superseded_external       = FALSE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  rp->defined_in_friend_decl  = FALSE;
+  rp->defined_outside_of_parent = FALSE;
+  rp->defined_in_friend_decl    = FALSE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if MINIMAL_INLINING
-  rp->inlinable               = FALSE;
-  rp->need_out_of_line_copy   = FALSE;
+  rp->inlinable                 = FALSE;
+  rp->need_out_of_line_copy     = FALSE;
 #endif /* MINIMAL_INLINING */
 #if DECL_MODIFIERS_IN_USE
-  rp->decl_modifiers              = DM_NONE;
+  rp->decl_modifiers            = DM_NONE;
 #endif /* DECL_MODIFIERS_IN_USE */
-  rp->befriending_classes     = NULL;
-  rp->virtual_function_number = 0;
+  rp->befriending_classes       = NULL;
+  rp->virtual_function_number   = 0;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  rp->declared_type           = NULL;
+  rp->declared_type             = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #ifdef FIL
-  rp->is_fortran_entry        = FALSE;
-  rp->local_routine_scope     = NULL;
-  rp->intrinsic_func_code     = (an_intrinsic_function_code)ifc_none;
+  rp->is_fortran_entry          = FALSE;
+  rp->local_routine_scope       = NULL;
+  rp->intrinsic_func_code       = (an_intrinsic_function_code)ifc_none;
 #endif /* ifdef FIL */
 
   db_exit();

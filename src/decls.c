@@ -4096,7 +4096,11 @@ skip_overloading:;
                           "decl_routine: type and declared type don't match");
       routine_ptr->declared_type = type_ptr;
     }  /* if */
-    if (is_friend_decl) routine_ptr->defined_in_friend_decl = TRUE;
+    if (is_friend_decl) {
+      routine_ptr->defined_in_friend_decl = TRUE;
+    } else if (qualifier_namespace_ptr(*locator) != NULL) {
+      routine_ptr->defined_outside_of_parent = TRUE;
+    }  /* if */
   } else {
     /* A function declaration but not a definition.  Set the type in the
        secondary declaration entry. */

@@ -1550,6 +1550,9 @@ Display the indicated routine.
     disp_boolean("superseded_external", TRUE);
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
+  if (ptr->defined_outside_of_parent) {
+    disp_boolean("defined_outside_of_parent", TRUE);
+  }  /* if */
   if (ptr->defined_in_friend_decl) {
     disp_boolean("defined_in_friend_decl", TRUE);
   }  /* if */

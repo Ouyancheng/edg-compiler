@@ -7428,6 +7428,7 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
       a_boolean                     autonomous = FALSE;
       a_boolean                     is_friend = FALSE;
       a_boolean                     is_implicit = FALSE;
+      a_boolean                     other_scope_def = FALSE;
       a_type_ptr                    declared_type = NULL;
       a_boolean                     print_type = FALSE;
       a_src_seq_secondary_decl_ptr  sssdp = NULL;
@@ -7456,9 +7457,9 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
               autonomous = TRUE;
             }  /* if */
           } else if (kind == (an_il_entry_kind)iek_routine) {
-            if (((a_routine_ptr)ssep->entity.ptr)->defined_in_friend_decl) {
-              is_friend = TRUE;
-            }  /* if */
+            a_routine_ptr  rp = (a_routine_ptr)ssep->entity.ptr;
+            if (rp->defined_in_friend_decl) is_friend = TRUE;
+            if (rp->defined_outside_of_parent) other_scope_def = TRUE;
           }  /* if */
         }  /* if */
         sym = (a_symbol_ptr)scp->assoc_info;
@@ -7479,6 +7480,11 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
         }  /* if */
         if (is_friend) {
           fprintf(f_debug, "%sfriend",
+                           (lparen_printed ? ", " : " ("));
+          lparen_printed = TRUE;
+        }  /* if */
+        if (other_scope_def) {
+          fprintf(f_debug, "%soutside of parent",
                            (lparen_printed ? ", " : " ("));
           lparen_printed = TRUE;
         }  /* if */
@@ -8538,17 +8544,16 @@ for the function body that is being eliminated.
 
 void eliminate_bodies_of_unneeded_functions(void)
 /*
-Go through all the memory regions looking for those associated with
-routines that are not needed.  Eliminate the body -- the IL scope and entry
-and everything dependent on it.  The routine entry itself is dealt with
-later.
+Go through all the memory regions looking for those associated with routines
+that are not needed.  Eliminate the body -- the IL scope entry and everything
+dependent on it.  The routine entry itself is dealt with later.
 */
 {
   a_memory_region_number  n;
   a_scope_ptr             sp;
   a_routine_ptr           rp;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  a_source_sequence_entry_ptr   ssep;
+  a_source_sequence_entry_ptr   ssep, next_ssep;
   a_src_seq_secondary_decl_ptr  sssdp;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
@@ -8568,21 +8573,30 @@ later.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         ssep = rp->source_corresp.source_sequence_entry;
         if (ssep != NULL) {
-          /* Turn the associated source sequence entry into a secondary-decl
-             source sequence entry.  This is done even though the entry
-             may be thrown away later, since it is easier to do it at this
-             point than later, when we decide whether the routine entry itself
-             will be kept. */
-          check_assertion(ssep->entity.ptr == (char *)rp);
-          sssdp = alloc_src_seq_secondary_decl();
-          sssdp->entity = ssep->entity;
-          ssep->entity.ptr = (char *)sssdp;
-          ssep->entity.kind = (a_byte_il_entry_kind)iek_src_seq_secondary_decl;
-          sssdp->decl_position = rp->source_corresp.decl_position;
-          sssdp->declared_type = rp->type;
-          sssdp->friend_decl = rp->defined_in_friend_decl;
+          if (rp->defined_outside_of_parent) {
+            /* Definition of a class member outside the class definition or
+               a namespace member outside the namespace definition.  Just
+               drop the source sequence entry altogether. */
+            drop_from_file_scope_source_sequence_list(ssep, &next_ssep);
+          } else {
+            /* Turn the associated source sequence entry into a secondary-decl
+               source sequence entry.  This is done even though the entry
+               may be thrown away later, since it is easier to do it at this
+               point than later, when we decide whether the routine entry
+               itself will be kept. */
+            check_assertion(ssep->entity.ptr == (char *)rp);
+            sssdp = alloc_src_seq_secondary_decl();
+            sssdp->entity = ssep->entity;
+            ssep->entity.ptr = (char *)sssdp;
+            ssep->entity.kind =
+                          (a_byte_il_entry_kind)iek_src_seq_secondary_decl;
+            sssdp->decl_position = rp->source_corresp.decl_position;
+            sssdp->declared_type = rp->type;
+            sssdp->friend_decl = rp->defined_in_friend_decl;
+          }  /* if */
         }  /* if */
         rp->defined_in_friend_decl = FALSE;
+        rp->defined_outside_of_parent = FALSE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         /* Reset the routine entry to undefined state. */
         rp->defined = FALSE;

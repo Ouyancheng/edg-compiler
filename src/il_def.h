@@ -3992,6 +3992,13 @@ typedef struct a_routine {
 			   file-scope routine with the same name, where the
 			   latter is treated as the "official" routine. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_bit_field	defined_outside_of_parent:1;
+			/* TRUE for a routine that is defined in a scope other
+			   than the scope to which it really belongs -- i.e.,
+			   a class member function defined outside the class
+			   definition or a namespace member defined outside
+			   the namespace definition.  It does not apply to a
+			   friend declaration that supplies a definition. */
   a_bit_field	defined_in_friend_decl:1;
 			/* TRUE when the routine definition appears in a
 			   friend declaration.  When this flag is set, a
