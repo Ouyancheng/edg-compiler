@@ -1,5 +1,13 @@
 Version 2.30
 
+8/30/95  Instantiation of classes in expression processing
+
+Template classes are instantiated automatically when needed in expression
+processing.  Now, they are instantiated on an lvalue to rvalue conversion
+instead of when the lvalue is constructed.  This fixes a bug with
+calling a function that returns a reference to an uninstantiated template
+class, and matches the newer Working Paper specification.
+
 8/28/95  C++-generating back end: bug with address of class temporary
 
 A program like the following, which casts a class rvalue to a reference
