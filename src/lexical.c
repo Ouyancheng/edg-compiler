@@ -735,10 +735,8 @@ tokens have been rescanned.
   /* Make sure that this cache is reusable. */
   check_assertion(cache->is_reusable);
   if (cache->first_token != NULL) {
-    /* Create a token cache for the current token so that (a) it is
-       not lost, and (b) the lint/pragma state is properly updated in
-       the transition from the end of the new list to the existing
-       current token. */
+    /* Create a token cache for the current token so that it is
+       not lost. */
     clear_token_cache(&cache_for_curr_token, /*reusable=*/FALSE);
     cache_curr_token(&cache_for_curr_token);
     /* Append the current rescan list to the end of the cache just created
@@ -4970,7 +4968,7 @@ This routine cannot be used when fetching raw preprocessing tokens.
     /* There are tokens on the reusable rescan list. */
     ctp = reusable_cache_stack->next_cached_token;
   }  /* if */
-  /* Get the next token that is not a lint/pragma state entry. */
+  /* Get the next token that is not a pragma state entry. */
   while (ctp != NULL &&
          ctp->extra_info_kind ==
                              (a_token_extra_info_kind)teik_pragma) {
@@ -5015,6 +5013,7 @@ cannot be used when fetching raw preprocessing tokens.
   a_token_cache 	cache;
   a_token_kind		ntoken;
   a_cached_token_ptr	ctp = NULL;
+  a_boolean		tokens_found = FALSE;
 
   db_enter(3, "next_two_tokens");
   if (in_preprocessing_directive && curr_token == tok_newline) {
@@ -5038,23 +5037,43 @@ cannot be used when fetching raw preprocessing tokens.
     /* There are tokens on the reusable rescan list. */
     ctp = reusable_cache_stack->next_cached_token;
   }  /* if */
-  /* Get the next token that is not a lint/pragma state entry. */
+  /* Get the next token that is not a pragma entry. */
   while (ctp != NULL &&
          ctp->extra_info_kind ==
                              (a_token_extra_info_kind)teik_pragma) {
     ctp = ctp->next;
-  }  /* for */
+  }  /* while */
   /* If there is no cached token or if the token is the end-of-source token
      which is used to terminate the token cache, then disregard this token
-     and fetch the next token using the slower method.  Also do this if the
-     second token is NULL or end-of-source. */
-  if (ctp != NULL && ctp->token != (a_byte_token_kind)tok_end_of_source &&
-      ctp->next != NULL &&
-      ctp->next->token != (a_byte_token_kind)tok_end_of_source) {
+     and fetch the next token using the slower method. */
+  if (ctp != NULL && ctp->token != (a_byte_token_kind)tok_end_of_source) {
     /* There is a cached token from which we can get then token kind. */
     ntoken = (a_token_kind)ctp->token;
-    *token_2 = (a_token_kind)ctp->next->token;
-  } else {
+    if (ntoken != first_token_must_be) {
+      /* The first token indicates that the second token is not needed. */
+      *token_2 = tok_error;
+      tokens_found = TRUE;
+    } else {
+      ctp = ctp->next;
+      /* Get the next token that is not a pragma entry. */
+      while (ctp != NULL &&
+             ctp->extra_info_kind ==
+                                 (a_token_extra_info_kind)teik_pragma) {
+        ctp = ctp->next;
+      }  /* while */
+      if (ctp != NULL && ctp->token != (a_byte_token_kind)tok_end_of_source) {
+        /* We have found the next token in the cache that can be used to
+           return the value of token_2.  Return the value and set tokens_found
+           to indicate that no further processing is needed. */
+        *token_2 = (a_token_kind)ctp->next->token;
+        tokens_found = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  /* The next token information could not be determined just by looking at
+     the token cache.  Scan forward by getting and caching the necessary
+     tokens. */
+  if (!tokens_found) {
     /* Put the current token into a token cache so it can be rescanned. */
     clear_token_cache(&cache, /*reusable=*/FALSE);
     cache_curr_token(&cache);
