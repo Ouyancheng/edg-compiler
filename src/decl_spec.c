@@ -2681,6 +2681,7 @@ Returns TRUE if there is an error in the specifiers.
   a_source_position          restrict_pos;
   a_boolean                  bad_type_name_error;
   a_decl_specifiers_set      decl_specifiers_seen;
+  a_boolean                  any_decl_specifiers_seen = FALSE;
 
   db_enter(3, "decl_specifiers");
   *output_flags = DSO_NO_OUTPUT_FLAGS;
@@ -3263,7 +3264,7 @@ Returns TRUE if there is an error in the specifiers.
               internal_error("decl_specifiers: bad type specifier");
 #endif /* CHECKING */
           }  /* switch */
-          if (curr_token == tok_void && decl_specifiers_seen == DS_NONE) {
+          if (curr_token == tok_void && !any_decl_specifiers_seen) {
             decl_specifiers_seen = DS_VOID;
           } else {
             decl_specifiers_seen |= DS_TYPE;
@@ -3384,7 +3385,7 @@ process_class_specifier:
           err = TRUE;
         } else {
           if (basic_type == bt_none) {
-            if (decl_specifiers_seen != DS_NONE) vacuous_decl_allowed = FALSE;
+            if (any_decl_specifiers_seen) vacuous_decl_allowed = FALSE;
             if (!class_specifier(
                           vacuous_decl_allowed,
                           (decl_specifiers_seen & DS_FRIEND) != 0,
@@ -3423,7 +3424,7 @@ process_class_specifier:
           err = TRUE;
         } else {
           if (basic_type == bt_none) {
-            if (decl_specifiers_seen != DS_NONE || strict_ansi_mode) {
+            if (any_decl_specifiers_seen || strict_ansi_mode) {
               vacuous_decl_allowed = FALSE;
             }  /* if */
             enum_specifier(vacuous_decl_allowed, type_ptr,
@@ -3684,7 +3685,7 @@ process_class_specifier:
           /* An error was detected in scanning a class template id.  Since
              a template id can only be a type, treat it as an error type. */
           bad_type_name_error = TRUE;
-        } else if (decl_specifiers_seen == DS_NONE &&
+        } else if (!any_decl_specifiers_seen &&
                    !(input_flags & DSI_EMPTY_DECL_SPECIFIERS_ALLOWED)) {
           /* If this is the first specifier, and this identifier is undefined,
              assume that we are dealing with a name that was supposed to be
@@ -3693,7 +3694,7 @@ process_class_specifier:
              only to things like prototyped parameter declarations and
              members of structs/unions. */
           bad_type_name_error = TRUE;
-        } else if (decl_specifiers_seen == DS_NONE &&
+        } else if (!any_decl_specifiers_seen &&
                    is_error_locator(locator_for_curr_id) &&
                    locator_for_curr_id.is_global_qualified_name) {
           /* An error was detected in scanning a qualified name that started
@@ -3745,7 +3746,7 @@ process_class_specifier:
         if (!(decl_specifiers_seen & ~(DS_FRIEND | DS_INLINE))) {
           /* A function declaration without declaration specifiers is
              permitted. */
-          if (decl_specifiers_seen == DS_NONE) {
+          if (!any_decl_specifiers_seen) {
             *output_flags |= DSO_NO_DECL_SPECIFIERS;
           }  /* if */
           /* Set the type appropriately if this the name of a constructor
@@ -3828,7 +3829,7 @@ operator_or_conversion_name:
       case tok_compl:
 destructor_name:
         if (is_member_decl) {
-          if (decl_specifiers_seen == DS_NONE) {
+          if (!any_decl_specifiers_seen) {
             *output_flags |= DSO_NO_DECL_SPECIFIERS;
           }  /* if */
           *output_flags |= DSO_DESTRUCTOR;
@@ -3848,7 +3849,7 @@ destructor_name:
            the loop (we've taken all we're supposed to).  The first time,
            this is an error. */
 something_unexpected:
-        if (decl_specifiers_seen == DS_NONE) {
+        if (!any_decl_specifiers_seen) {
           if (!(input_flags & DSI_EMPTY_DECL_SPECIFIERS_ALLOWED)) {
             syntax_error(ec_exp_type_specifier);
             err = TRUE;
@@ -3861,6 +3862,7 @@ something_unexpected:
     }  /* switch */
     (void)get_token();
 no_get_token:
+    any_decl_specifiers_seen = TRUE;
     /* Check for special conditions that will cause this loop to terminate. */
     if (input_flags & DSI_COLLECT_DECLARATOR_TYPE_QUALIFIERS) {
       /* We are only interested in scanning type qualifiers in a
