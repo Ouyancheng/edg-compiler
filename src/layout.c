@@ -519,23 +519,23 @@ aligned according to container_alignment.
     /* A zero-width bit field is declared for alignment only.  The container
        size is not significant. */
     container_size = 1;
-    /* TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT is
+    /* targ_zero_width_bit_field_alignment is
          >  0 to indicate a particular alignment
          == 0 to indicate minimal alignment
          <  0 to indicate "use the alignment of the base type from the
               declaration as the container alignment".
     */
-#if TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT > 0
-    container_alignment = TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT;
-#else
-#if TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT == 0
-    container_alignment = 1;
-#else /* if TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT < 0 */
-    /* Use the base type alignment. */
-    base_type = skip_typerefs(base_type);
-    container_alignment = base_type->alignment;
-#endif /* TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT == 0 */
-#endif /* TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT > 0 */
+    if (targ_zero_width_bit_field_alignment > 0) {
+      container_alignment =
+                       (a_targ_alignment)targ_zero_width_bit_field_alignment;
+    } else if (targ_zero_width_bit_field_alignment == 0) {
+      container_alignment = (a_targ_alignment)1;
+    } else {
+      /* targ_zero_width_bit_field_alignment < 0 */
+      /* Use the base type alignment. */
+      base_type = skip_typerefs(base_type);
+      container_alignment = base_type->alignment;
+    }  /* if */
   } else {
     /* targ_bit_field_container_size is
          >  0 to indicate a particular size for the bit-field container.
