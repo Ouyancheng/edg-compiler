@@ -1111,10 +1111,10 @@ error code.
       m = "no arguments allowed on user-defined conversion";
       break;
     case ec_too_many_args_for_operator:
-      m = "too many arguments for overloaded operator";
+      m = "too many arguments for operator function";
       break;
     case ec_too_few_args_for_operator:
-      m = "too few arguments for overloaded operator";
+      m = "too few arguments for operator function";
       break;
     case ec_no_args_with_class_type:
       m = "nonmember operator requires an argument with class type";
@@ -1138,19 +1138,19 @@ error code.
       m = "conversion function is inaccessible";
       break;
     case ec_bad_arg_type_for_operator_new:
-      m = "operator new requires first argument of type \"size_t\"";
+      m = "operator new() requires first argument of type \"size_t\"";
       break;
     case ec_bad_return_type_for_operator_new:
-      m = "operator new requires return type of \"void*\"";
+      m = "operator new() requires return type of \"void*\"";
       break;
     case ec_bad_return_type_for_operator_delete:
-      m = "operator delete requires return type of \"void\"";
+      m = "operator delete() requires return type of \"void\"";
       break;
     case ec_bad_first_arg_type_for_operator_delete:
-      m = "operator delete requires first argument of type \"void*\"";
+      m = "operator delete() requires first argument of type \"void*\"";
       break;
     case ec_bad_second_arg_type_for_operator_delete:
-      m = "second argument of operator delete must be of type \"size_t\"";
+      m = "second argument of operator delete() must be of type \"size_t\"";
       break;
     case ec_type_must_be_object_type:
       m = "type must be an object type";
