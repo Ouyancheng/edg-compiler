@@ -24,7 +24,7 @@ of exit being declared.
 
 extern "C++" void exit(int val)
 /*
-This routine just provides a means of transfering control to our own
+This routine just provides a means of transferring control to our own
 version of exit which will do some processing and then call the system
 exit routine.  This is needed because one file cannot refer to both
 the C and C++ versions of void exit(int).
