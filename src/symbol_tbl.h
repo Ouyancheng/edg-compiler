@@ -444,6 +444,10 @@ to the first byte of the number; it is advanced past the number on return.
 }  /* put_macro_repl_text_number */
 
 
+/* Unique sequence number identifying a declaration in a given scope. */
+typedef unsigned long a_decl_sequence_number;
+
+
 typedef struct a_conversion_list_entry *a_conversion_list_entry_ptr;
 typedef struct a_conversion_list_entry {
   /* Entry representing a user-defined conversion functions for a given class
@@ -506,6 +510,11 @@ typedef struct a_class_symbol_supplement {
 			   normal classes this is set by push_scope.  For
 			   proxy and nonreal classes this is assigned when
 			   a lookup is done. */
+  a_decl_sequence_number
+		final_decl_seq;
+			/* A second decl_sequence number assigned to mark
+			   where the class definition terminates relative to
+			   other declarations; 0 for undefined classes. */
   a_type_ptr    template_param_for_proxy_class;
 			/* If the class is a proxy class associated with
 			   a template parameter type this field points
@@ -999,8 +1008,6 @@ typedef struct a_projection_descr {
 			   and the member specified by fundamental_symbol. */
 } a_projection_descr;
 
-/* Unique sequence number identifying a declaration in a given scope. */
-typedef unsigned long a_decl_sequence_number;
 
 typedef struct a_symbol {
   /* A symbol as used by the front end. */
@@ -1973,6 +1980,7 @@ extern void reference_to_symbol(a_symbol_reference_kind  kind,
 
 extern void mark_variable_value_set(a_symbol_ptr  sym);
 
+extern a_decl_sequence_number get_decl_sequence_number(void);
 extern void set_source_corresp(a_source_correspondence *sc,
                                a_symbol_ptr            sp);
 extern a_boolean current_class_symbol_if_class_template(a_symbol_ptr *sym);

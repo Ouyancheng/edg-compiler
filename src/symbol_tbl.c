@@ -479,6 +479,14 @@ and indentation is the indentation desired.
 
   if (sym->decl_seq > 0) {
     (void)sprintf(buffer, "#%lu", sym->decl_seq);
+    if (sym->kind == (a_symbol_kind)sk_class_or_struct_tag ||
+        sym->kind == (a_symbol_kind)sk_union_tag) {
+      a_decl_sequence_number  final_decl_seq = sym->variant.
+                                 class_struct_union.extra_info->final_decl_seq;
+      if (final_decl_seq > 0) {
+        (void)sprintf(&buffer[strlen(buffer)],"/#%lu", final_decl_seq);
+      }  /* if */
+    }  /* if */
   }  /* if */
   put_separator("", strlen(buffer));
   fputs(buffer, f_debug);
@@ -1407,6 +1415,7 @@ state.
         cssp->routine_fixup_list = NULL;
         cssp->class_template = NULL;
         cssp->member_decl_scope = NO_SCOPE_NUMBER;
+        cssp->final_decl_seq = 0;
         cssp->template_param_for_proxy_class = NULL;
         cssp->constructor_required = FALSE;
         cssp->destructor_required = FALSE;
@@ -7080,17 +7089,14 @@ is called only in C++.
 }  /* pop_class_reactivation_scope */
 
 
-#if 0
-static void set_decl_sequence_number(a_symbol_ptr  sym)
+a_decl_sequence_number get_decl_sequence_number(void)
 /*
-Set the delaration sequence number of the symbol pointed to by sym.
+Return the next declaration sequence number.
 */
 {
-  sym->decl_seq = ++decl_seq_counter;
-}  /* set_decl_sequence_number */
-#else
-#define set_decl_sequence_number(sym) (sym)->decl_seq = ++decl_seq_counter
-#endif /* if 0 */
+  return ++decl_seq_counter;
+}  /* get_decl_sequence_number */
+
 
 static void write_xref_entry(a_symbol_reference_kind kind,
                              a_symbol_ptr            sym_ptr,
@@ -7303,7 +7309,7 @@ be put out.
        associated with this declaration (again, unconditionally, since this is
        the definition). */
     sym_ptr->decl_position = *source_position;
-    set_decl_sequence_number(sym_ptr);
+    sym_ptr->decl_seq = get_decl_sequence_number();
   }  /* if */
   /* Update the cross reference file if it exists and if this is not a
      template instantiation. */
@@ -7342,7 +7348,7 @@ Indicate that the given symbol is declared at the given position.
                                     /*is_primary_decl=*/FALSE);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
-  if (sym_ptr->decl_seq == 0) set_decl_sequence_number(sym_ptr);
+  if (sym_ptr->decl_seq == 0) sym_ptr->decl_seq = get_decl_sequence_number();
 }  /* mark_declared */
 
 
