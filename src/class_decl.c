@@ -7714,10 +7714,9 @@ return a pointer to it.
          is FALSE, fall through to the internal error -- the routine should
          not have been called. */
 #endif /* RECORD_TEMPLATES_IN_IL */
-#if CHECKING
     default:
-      internal_error("new_class_member_using_decl: unexpected symbol kind");
-#endif /* CHECKING */
+      unexpected_condition_str2("new_class_member_using_decl:",
+                                "unexpected symbol kind");
   }  /* switch */
   /* Allocate a class member using declb entry of the appropriate kind. */
   cmudp = alloc_class_member_using_decl(kind);
