@@ -556,8 +556,10 @@ Display the indicated source correspondence entry.
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if RECORD_FORM_OF_NAME_REFERENCE
-  disp_ptr("  name_references", (char *)scp->name_references,
-           iek_name_reference);
+  if (scp->name_references != NULL) {
+    disp_ptr("  name_references", (char *)scp->name_references,
+             iek_name_reference);
+  }  /* if */
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
 #ifdef CFE
   if (scp->is_class_member) {
