@@ -1,5 +1,16 @@
 Version 2.35
 
+1/24/97 Spurious error in selection of partial specialization
+
+A spurious ambiguity error was issued when selecting between several
+partial specializations.  This has been fixed.
+  
+  template <class T, class U, class Z> struct A {};
+  template <class T2> struct A<int, int, T2> {};
+  template <class T, class T2> struct A<int, T, T2> {};
+  template <class T, class T2> struct A<T, int, T2> {};
+  A<int, int, int> a;  // Spurious error during instantiation
+
 1/24/97 Exception specification on predeclared operator delete
 
 An exception specification corresponding to "throw()" is now added to the

@@ -943,12 +943,14 @@ associated with new_sym.
 */
 {
   a_partial_spec_candidate_ptr	prev_pscp = NULL;
+  a_partial_spec_candidate_ptr	next_pscp;
   a_partial_spec_candidate_ptr	pscp;
   a_boolean			do_not_add = FALSE;
 
-  for (pscp = *psc_list; pscp != NULL; prev_pscp = pscp, pscp = pscp->next) {
+  for (pscp = *psc_list; pscp != NULL;  pscp = next_pscp) {
     a_boolean	new_is_more_specialized;
     a_boolean	curr_is_more_specialized;
+    next_pscp = pscp->next;
     new_is_more_specialized = is_more_specialized(new_sym, pscp->symbol);
     curr_is_more_specialized = is_more_specialized(pscp->symbol, new_sym);
     if (new_is_more_specialized && !curr_is_more_specialized) {
@@ -962,11 +964,14 @@ associated with new_sym.
       }  /* if */
       /* Free the entry.  This also frees the template argument list. */
       free_partial_spec_candidate(pscp);
-    } else if (curr_is_more_specialized && !new_is_more_specialized) {
-      /* The new entry is not more specialized than the one on the list.
-         Set a flag that indicates that this entry should not be added
-         to the list. */
-      do_not_add = TRUE;
+    } else {
+      prev_pscp = pscp;
+      if (curr_is_more_specialized && !new_is_more_specialized) {
+        /* The new entry is not more specialized than the one on the list.
+           Set a flag that indicates that this entry should not be added
+           to the list. */
+        do_not_add = TRUE;
+      }  /* if */
     }  /* if */
   }  /* for */
   if (!do_not_add) {
