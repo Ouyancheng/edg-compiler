@@ -6489,7 +6489,9 @@ initializer has previously been found to be acceptable, and
                is_pointer_type(unqual_source_type) &&
                same_type_with_added_qualifiers(unqual_dest_type,
                                                unqual_source_type,
-                                               /*ignore_qualifiers=*/FALSE)) {
+                                               /*ignore_qualifiers=*/FALSE,
+					       /*nonstandard_test=*/TRUE,
+					       (a_boolean*)NULL)) {
       /* The type is a pointer type and is correct, except that the
          destination type has some qualifiers that are not present on
          the source type (at any level).  Standard C++ processing can

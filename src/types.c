@@ -2442,49 +2442,112 @@ Return TRUE if the given constant is the address of a string constant.
 
 a_boolean same_type_with_added_qualifiers(a_type_ptr dest_type,
                                           a_type_ptr source_type,
-                                          a_boolean  ignore_qualifiers)
+                                          a_boolean  ignore_qualifiers,
+					  a_boolean  nonstandard_test,
+					  a_boolean  *p_qualifiers_added)
 /*
 Return TRUE if source_type and dest_type are compatible types except that
 dest_type may have some additional type qualifiers at some level(s).
+This is used to determine whether a qualification conversion (as
+described in 4.4 [conv.qual] in the Working Paper) may be applied.
+This conversion is used for conversions such as T** to T const * const *.
+When ignore_qualifiers and nonstandard_test are both FALSE the
+standard test is done.
+
+The conversion specified in the WP permits the conversion of
+
+    T cv1,n * ... cv1,1 * cv1,0
+to
+    T cv2,n * ... cv2,1 * cv2,0
+
+provided that:
+
+- cv2,x contains all of the qualifiers present in cv1,x.
+
+- if cv2,x contains additional qualifiers, all previous qualifiers
+  (cv2,1 through cv2,x-1) must contain a const qualifier.
+
+If any qualifiers are added, the flag pointed to by p_qualifiers_added
+is set to TRUE.  Otherwise it is set to FALSE.  This flag is only
+meaningful when nonstandard_test is FALSE.  If the caller doesn't
+need to know if qualifiers were added, p_qualifiers_added may be NULL.
+
 If ignore_qualifiers is TRUE, qualifiers are ignored at all levels,
 which makes this routine something like a types_are_compatible that
-ignores type qualifiers.  This routine is used to deal with pointer
-conversions that add a type qualifier somewhere other than the top
-level, e.g., int ** --> const int **.  Right now, this is a cfront
-compatibility feature.  In the future, the version of this feature
-specified in the Working Paper will be implemented and this routine
-will probably handle it.
+ignores type qualifiers.
+
+If nonstandard_test is TRUE, this routine is used to determine
+whether a cfront compatibility conversion can be performed.  This
+conversion that adds a type qualifier somewhere other than the top
+level, e.g., int ** --> const int **.
 */
 {
-  a_boolean same = FALSE;
+  a_boolean   same;
+  a_boolean   previous_qualifiers_include_const = TRUE;
+  a_boolean   qualifiers_added = FALSE;
 
-  if (!ignore_qualifiers && any_qualifier_missing(dest_type, source_type)) {
-    /* Some qualifier is missing. */
-    same = FALSE;
-  } else {
-    dest_type = skip_typerefs(dest_type);
-    source_type = skip_typerefs(source_type);
-    if (is_pointer_type(dest_type) && is_pointer_type(source_type)) {
-      /* Continue at the next level for pointers. */
-      same = same_type_with_added_qualifiers(type_pointed_to(dest_type),
-                                             type_pointed_to(source_type),
-                                             ignore_qualifiers);
-    } else if (is_array_type(dest_type) && is_array_type(source_type) &&
-               !dest_type->variant.array.is_variable_size_array &&
-               !source_type->variant.array.is_variable_size_array &&
-               dest_type->variant.array.variant.number_of_elements ==
-                  source_type->variant.array.variant.number_of_elements) {
-      /* Continue at the next level for arrays. */
-      same = same_type_with_added_qualifiers(array_element_type(dest_type),
-                                             array_element_type(source_type),
-                                             ignore_qualifiers);
+  for (same = TRUE; same == TRUE;) {
+    if (!ignore_qualifiers && any_qualifier_missing(dest_type, source_type)) {
+      /* Some qualifier is missing. */
+      same = FALSE;
     } else {
-      /* For other types, the underlying types must be the same. */
-      same = types_are_compatible(dest_type, source_type);
+      if (!nonstandard_test) {
+        /* In standard mode, if the destination has additional qualifiers
+           not found in the source, any previous qualifiers must have
+           included const. */
+	if (any_qualifier_missing(source_type, dest_type)) {
+          qualifiers_added = TRUE;
+	  same = previous_qualifiers_include_const;
+	  if (!same) break;
+	}  /* if */
+        /* See if this qualifier includes const. */
+	if ((get_type_qualifiers(dest_type) & TQ_CONST) == 0) {
+	  previous_qualifiers_include_const = FALSE;
+	}  /* if */
+      }  /* if */
+      dest_type = skip_typerefs(dest_type);
+      source_type = skip_typerefs(source_type);
+      if (is_pointer_type(dest_type) && is_pointer_type(source_type)) {
+	/* Continue at the next level for pointers. */
+        dest_type = type_pointed_to(dest_type);
+	source_type = type_pointed_to(source_type);
+      } else if (is_ptr_to_member_type(dest_type) &&
+		 is_ptr_to_member_type(source_type)) {
+	dest_type = pm_member_type(dest_type);
+	source_type = pm_member_type(source_type);
+      } else if (is_array_type(dest_type) && is_array_type(source_type) &&
+		 !dest_type->variant.array.is_variable_size_array &&
+		 !source_type->variant.array.is_variable_size_array &&
+		 dest_type->variant.array.variant.number_of_elements ==
+		     source_type->variant.array.variant.number_of_elements) {
+	/* Continue at the next level for arrays. */
+        dest_type = array_element_type(dest_type);
+	source_type = array_element_type(source_type);
+      } else {
+	/* For other types, the underlying types must be the same. */
+	same = types_are_compatible(dest_type, source_type);
+        break;
+      }  /* if */
     }  /* if */
-  }  /* if */
+  }  /* for */
+  /* If there were any qualifiers added, set the flag specified by the
+     caller. */
+  if (p_qualifiers_added != NULL) *p_qualifiers_added = qualifiers_added;
   return same;
 }  /* same_type_with_added_qualifiers */
+
+
+/*
+Macro used as an interface to same_type_with_added_qualifiers.  This
+interface is used to determine whether a C++ qualification conversion
+is possible.  See the comments for same_type_with_added_qualifiers for
+more information.
+*/
+#define qualification_conversion_possible(dest, source, qualifiers_added)     \
+  same_type_with_added_qualifiers(dest, source,                         \
+				  /*ignore_qualifiers=*/FALSE,          \
+				  /*nonstandard_test=*/FALSE,           \
+				  qualifiers_added)
 
 
 a_boolean impl_pointer_conversion(
@@ -2526,6 +2589,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
   a_type_ptr       dest_type_pointed_to, source_type_pointed_to;
   a_type_ptr       unqual_dest_type_pointed_to, unqual_source_type_pointed_to;
   a_base_class_ptr bcp;
+  a_boolean        qualifiers_added;
 
   db_enter(5, "impl_pointer_conversion");
 #if DEBUG
@@ -2676,11 +2740,18 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
            with a warning. */
         okay = TRUE;
         std_conv->warning_suggested = default_warning_code;
+      } else if (!C_mode() &&
+		 qualification_conversion_possible(dest_type_pointed_to,
+						   source_type_pointed_to,
+						   &qualifiers_added)) {
+	okay = TRUE;
+        std_conv->type_qualifiers_added = qualifiers_added;
       } else if ((!suppress_extensions || any_cfront_mode()) &&
-                 same_type_with_added_qualifiers(dest_type_pointed_to,
-                                                 source_type_pointed_to,
-                                                 /*ignore_qualifiers=*/
-                                           check_as_operands_not_conversion)) {
+                 same_type_with_added_qualifiers
+                      (dest_type_pointed_to,
+		       source_type_pointed_to,
+  		       /*ignore_qualifiers=*/check_as_operands_not_conversion,
+		       /*nonstandard_test=*/TRUE, (a_boolean*)NULL)) {
         /* Allow conversion between pointers where type qualifiers are
            being added at levels other than the first, e.g.,
            "int **" -> "const int **".  This is an extension, and a
@@ -2866,32 +2937,35 @@ are the destination and source types of a conversion.
 
 
 static a_boolean member_types_correspond(
-                                   a_type_ptr member_type_1,
-                                   a_type_ptr member_type_2,
-                                   a_boolean  check_as_operands_not_conversion)
+                                   a_type_ptr dest_type,
+                                   a_type_ptr source_type,
+                                   a_boolean  check_as_operands_not_conversion,
+				   a_boolean  *qualifiers_added)
 /*
 Return TRUE if the member types from two pointer-to-member types match
 allowing for a possible difference due to the associated class type.
 Specifically, this means that when comparing function types, the
 difference in the underlying class of the "this" parameter type must
 be ignored.  If check_as_operands_not_conversion is TRUE, the two types
-are the types of the operands of an operation; if FALSE, member_type_1
-and member_type_2 are the destination and source types of a conversion.
+are the types of the operands of an operation; if FALSE, dest_type
+and source_type are the destination and source types of a conversion.
 */
 {
   a_boolean correspond;
 
-  if (!is_function_type(member_type_1) || !is_function_type(member_type_2)) {
+  *qualifiers_added = FALSE;
+  if (!is_function_type(dest_type) || !is_function_type(source_type)) {
     /* This is not the special function case, so the normal
        types_are_compatible check will work. */
-    correspond = types_are_compatible(member_type_1, member_type_2);
+    correspond = qualification_conversion_possible(dest_type, source_type,
+						   qualifiers_added);
   } else {
     /* We have two function types from member pointers.  See if they
        match when we allow for the difference in the underlying type
        of the "this" parameter.  Note that this test must be done even
        when the class types are the same, because the routines may
        be from base classes. */
-    correspond = function_types_correspond(member_type_1, member_type_2,
+    correspond = function_types_correspond(dest_type, source_type,
                                            check_as_operands_not_conversion);
   }  /* if */
   return correspond;
@@ -2947,14 +3021,17 @@ pointers to members).
        to are the same (ignoring the difference in "this" parameter types)
        and the classes involved are the same or the destination class is an
        unambiguous derived (sic) class of the source class.  See ARM 4.8. */
+    a_boolean  qualifiers_added;
     source_type_pointed_to = pm_member_type(source_type);
     dest_type_pointed_to = pm_member_type(dest_type);
-    if (member_types_correspond(skip_typerefs(dest_type_pointed_to),
-                                skip_typerefs(source_type_pointed_to),
-                                check_as_operands_not_conversion)) {
+    if (member_types_correspond(dest_type_pointed_to,
+                                source_type_pointed_to,
+                                check_as_operands_not_conversion,
+				&qualifiers_added)) {
       a_type_ptr       source_class_type = pm_class_type(source_type);
       a_type_ptr       dest_class_type = pm_class_type(dest_type);
       a_base_class_ptr bcp;
+      std_conv->type_qualifiers_added = qualifiers_added;
       /* The types pointed to are the same.  Check the classes. */
       if (source_class_type == dest_class_type) {
         /* Same class, okay. */
@@ -2971,6 +3048,7 @@ pointers to members).
       }  /* if */
     }  /* if */
     if (okay && !check_as_operands_not_conversion) {
+      a_boolean  qualifiers_added;
       /* The types pointed to must be such that the type pointed to by the
          left has all the qualifiers of the type pointed to by the right.
          It might have additional qualifiers.  This is not mentioned in
@@ -2982,14 +3060,11 @@ pointers to members).
                                    get_type_qualifiers(source_type_pointed_to);
       if (dest_type_qualifiers == source_type_qualifiers) {
         /* The qualifiers are the same. */
-      } else if (any_qualifier_in_set_missing(dest_type_qualifiers,
-                                              source_type_qualifiers)) {
-        /* Qualifiers are being dropped. */
-        okay = FALSE;
-      } else {
-        /* Qualifiers are being added. */
-        std_conv->type_qualifiers_added =
-                              (dest_type_qualifiers & ~source_type_qualifiers);
+      } else if (qualification_conversion_possible(dest_type_pointed_to,
+						   source_type_pointed_to,
+						   &qualifiers_added)) {
+        /* This is an allowed qualification conversion. */
+        std_conv->type_qualifiers_added = qualifiers_added;
       }  /* if */
     }  /* if */
   } else if (source_is_constant &&
