@@ -1937,8 +1937,8 @@ come out on the closing "}".
   /* Skip over the opening brace.  Note that this is NOT an internal error
      check; when a compound statement is the body of a function, it's
      required. */
-  (void)required_token(tok_lbrace, ec_exp_lbrace);
   add_stop_token(tok_rbrace);
+  (void)required_token(tok_lbrace, ec_exp_lbrace);
 
   /* Scan the sequence of statements. */
   while (curr_token != tok_rbrace && curr_token != tok_end_of_source) {
