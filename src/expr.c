@@ -1115,7 +1115,7 @@ given operand by a constant operand if appropriate.
           /* A "huge" floating-point value.  (I.e., positive Infinity if
              that is available, or the largest possible value of the
              associated floating-point type.) */
-          if (args == NULL && is_floating_type(call->type)) {
+          if (args == NULL && is_floating_type(result_type)) {
             clear_constant(&result, (a_constant_repr_kind)ck_float);
             result.type = call->type;
             folded = make_huge_fp_val(&result.variant.float_value,
@@ -1130,7 +1130,7 @@ given operand by a constant operand if appropriate.
           if (args != NULL && args->next == NULL &&
               args->kind == (an_expr_node_kind)enk_constant &&
               is_empty_string_literal(args->variant.constant) &&
-              is_floating_type(call->type)) {
+              is_floating_type(result_type)) {
             clear_constant(&result, (a_constant_repr_kind)ck_float);
             result.type = call->type;
             folded = make_fp_nan(&result.variant.float_value,
@@ -1231,8 +1231,8 @@ Syntax:
                        is_foldable_gnu_builtin_function_operand(operand);
 #endif /* GNU_EXTENSIONS_ALLOWED */
   if (!call_may_be_folded && curr_expr_kind_is_const()) {
-    /* Routine calls not allowed in constant expressions appearing in
-       preprocessor directives. */
+    /* Routine calls that cannot be folded should not appear in constant-
+       expressions. */
     error_in_operand(ec_bad_constant_function_call, operand);
   } else if (is_expression_operand(operand) &&
              is_operation_node(operand->variant.expression) &&
@@ -1656,7 +1656,8 @@ Syntax:
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
-  if (call_may_be_folded && !call_folded_to_constant) {
+  if (call_may_be_folded && !call_folded_to_constant &&
+      curr_expr_kind_is_const()) {
     /* Unfolded routine calls are not allowed in constant expressions. */
     error_in_operand(ec_bad_constant_function_call, result);
   }  /* if */
