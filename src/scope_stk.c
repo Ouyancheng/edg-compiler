@@ -3655,7 +3655,7 @@ End a name scope by popping an entry off the scope stack.
       /* There is at least one anonymous union parent variable that was not
          yet marked as needed when it was encountered.  In case it and others
          subsequently turn out to be needed, make a separate pass for them. */
-      set_needed_flags_for_anon_union_parent_vars(scope);
+      set_needed_flags_for_anon_union_parent_vars(il_scope);
     }  /* if */
 #endif /* !DO_IL_LOWERING */
     end_of_file_scope_needed_flags_phase = FALSE;
