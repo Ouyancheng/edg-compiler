@@ -183,6 +183,22 @@ specifies a diagnostic message to be issued if the keyword is used.
 }  /* enter_unimplemented_keyword */
 
 
+static void enter_preproc_op_keyword(a_token_kind token,
+                                     char         *keyword)
+/*
+Like enter_keyword but for keywords that also have a meaning when parsing
+preprocessing directives (i.e., operators like "and").
+*/
+{
+  register a_symbol_ptr sym_ptr;
+
+  sym_ptr = full_enter_symbol(keyword, (sizeof_t)(strlen(keyword)),
+			      (a_symbol_kind)sk_keyword, NO_SCOPE_DEPTH);
+  sym_ptr->variant.keyword.token = token;
+  sym_ptr->is_preprocessing_op_or_punc = TRUE;
+}  /* enter_preproc_op_keyword */
+
+
 static void keyword_init(void)
 /*
 Install the keywords in the symbol table.
@@ -337,11 +353,9 @@ Install the keywords in the symbol table.
     /* Enter C++ keywords that are not also C keywords. */
     enter_keyword((a_token_kind)tok_catch,     "catch");
     enter_keyword((a_token_kind)tok_class,     "class");
-    enter_keyword((a_token_kind)tok_delete,    "delete");
     enter_keyword((a_token_kind)tok_friend,    "friend");
     enter_keyword((a_token_kind)tok_inline,    "inline");
     enter_keyword((a_token_kind)tok_mutable,   "mutable");
-    enter_keyword((a_token_kind)tok_new,       "new");
     enter_keyword((a_token_kind)tok_operator,  "operator");
     enter_keyword((a_token_kind)tok_private,   "private");
     enter_keyword((a_token_kind)tok_protected, "protected");
@@ -354,6 +368,9 @@ Install the keywords in the symbol table.
     enter_keyword((a_token_kind)tok_const_cast,       "const_cast");
     enter_keyword((a_token_kind)tok_static_cast,      "static_cast");
     enter_keyword((a_token_kind)tok_reinterpret_cast, "reinterpret_cast");
+    /* Operators new and delete are also recognized during preprocessing. */
+    enter_preproc_op_keyword((a_token_kind)tok_delete,    "delete");
+    enter_preproc_op_keyword((a_token_kind)tok_new,       "new");
     if (allow_anachronisms) {
       enter_keyword((a_token_kind)tok_overload, "overload");
     }  /* if */
@@ -380,17 +397,17 @@ Install the keywords in the symbol table.
     }  /* if */
     /* Enter C++ keywords used as synonyms for operators. */
     if (alternative_tokens_allowed) {
-      enter_keyword((a_token_kind)tok_and_and,        "and");
-      enter_keyword((a_token_kind)tok_and_assign,     "and_eq");
-      enter_keyword((a_token_kind)tok_ampersand,      "bitand");
-      enter_keyword((a_token_kind)tok_or,             "bitor");
-      enter_keyword((a_token_kind)tok_compl,          "compl");
-      enter_keyword((a_token_kind)tok_not,            "not");
-      enter_keyword((a_token_kind)tok_ne,             "not_eq");
-      enter_keyword((a_token_kind)tok_or_or,          "or");
-      enter_keyword((a_token_kind)tok_or_assign,      "or_eq");
-      enter_keyword((a_token_kind)tok_excl_or,        "xor");
-      enter_keyword((a_token_kind)tok_excl_or_assign, "xor_eq");
+      enter_preproc_op_keyword((a_token_kind)tok_and_and,        "and");
+      enter_preproc_op_keyword((a_token_kind)tok_and_assign,     "and_eq");
+      enter_preproc_op_keyword((a_token_kind)tok_ampersand,      "bitand");
+      enter_preproc_op_keyword((a_token_kind)tok_or,             "bitor");
+      enter_preproc_op_keyword((a_token_kind)tok_compl,          "compl");
+      enter_preproc_op_keyword((a_token_kind)tok_not,            "not");
+      enter_preproc_op_keyword((a_token_kind)tok_ne,             "not_eq");
+      enter_preproc_op_keyword((a_token_kind)tok_or_or,          "or");
+      enter_preproc_op_keyword((a_token_kind)tok_or_assign,      "or_eq");
+      enter_preproc_op_keyword((a_token_kind)tok_excl_or,        "xor");
+      enter_preproc_op_keyword((a_token_kind)tok_excl_or_assign, "xor_eq");
     }  /* if */
     /* Enter keywords connected with RTTI only if RTTI support is enabled.
        Otherwise treat them as "unimplemented keywords". */

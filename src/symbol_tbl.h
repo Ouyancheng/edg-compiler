@@ -2132,6 +2132,9 @@ typedef struct a_symbol {
   a_bit_field	is_nonreal_member:1;
 			/* TRUE if this symbol represents a member of a
 			   nonreal class. */
+  a_bit_field  is_preprocessing_op_or_punc:1;
+			/* TRUE for symbols corresponding to keywords that
+			   are also preprocessing tokens (e.g., "and"). */
   /* bitfield_to_avoid_codecenter_warnings() -- at byte boundary right now. */
   union {
     /* When kind == sk_undefined, no variant fields. */

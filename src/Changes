@@ -1,5 +1,15 @@
 Version 2.46
 
+7/13/01  Operator keywords in #if directives
+
+The front end now correctly processes operator keywords (like "compl" or
+"new") in #if directives.  For example:
+
+  #if 0 or 1    // Now tests positive when alternative tokens are enabled
+  #if delete 0  // Still invalid, but different diagnostic
+  #endif
+  #endif
+
 7/13/01  Error on implicit conversion to abstract class type
 
 An error is now issued on any attempt to create an object of

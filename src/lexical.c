@@ -7208,11 +7208,13 @@ id_scan:
           } else if (id_kind == (a_symbol_kind)sk_keyword) {
             /* Keyword, return the proper token for it.  When fetching raw
                preprocessing tokens, or inside a preprocessing directive,
-               the keywords mean nothing.  An exception is when we are
+               the keywords mean nothing (except the keywords that correspond
+               to operators).  An exception is when we are
 	       processing a pragma that is explicitly designated as requiring
 	       keyword recognition. */
             if (!fetch_pp_tokens &&
                 (!in_preprocessing_directive ||
+                 assoc_symbol->is_preprocessing_op_or_punc ||
                  (caching_pragma_tokens && recognize_keywords_in_pragma))) {
               ctoken = assoc_symbol->variant.keyword.token;
               /* Check for a keyword that is not yet implemented.  If one is
