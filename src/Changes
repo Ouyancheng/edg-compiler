@@ -1,5 +1,13 @@
 Version 2.33
 
+9/30/96  Microsoft mode disables language features not support by
+         the Microsoft compiler
+
+Use of Microsoft mode now, by default, disables language features
+that are not supported by the Microsoft compiler.  These features
+can usually be explicitly enabled through the use of command line
+options (for example, --bool).
+
 9/29/96  IL lowering of exception handling: freeing storage on new
 
 When an exception is thrown before a "new" has completed, the storage

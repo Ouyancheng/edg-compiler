@@ -961,6 +961,36 @@ processing routine to update the severity.
 }  /* process_diag_override_option */
 
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+static void set_microsoft_mode_flags(void)
+/*
+Set other options whose values should be changed when Microsoft mode
+is enabled.
+*/
+{
+  bool_is_keyword = FALSE;
+  explicit_keyword_enabled = FALSE;
+#if !RUNTIME_USES_TYPENAME
+  typename_enabled = FALSE;
+#endif /* !RUNTIME_USES_TYPENAME */
+  implicit_typename_enabled = TRUE;
+  old_specializations_allowed = TRUE;
+#if IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE
+  impl_conv_between_c_and_cpp_function_ptrs_allowed = TRUE;
+#endif /* IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE */
+  extern_inline_allowed = FALSE;
+  targ_enum_types_can_be_smaller_than_int = FALSE;
+  stack_referenced_include_directories = TRUE;
+  allow_copy_assignment_op_with_base_class_param = FALSE;
+#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+  allow_nonstandard_anonymous_unions = TRUE;
+#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
+  use_nonstandard_for_init_scope =
+                              MICROSOFT_DEFAULT_USE_NONSTANDARD_FOR_INIT_SCOPE;
+}  /* set_microsoft_mode_flags */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+
 #if COMPILE_MULTIPLE_SOURCE_FILES
 static char	**argv_file_list;
 static int	argc_file_list;
@@ -1013,6 +1043,13 @@ Process the arguments on the command line that invoked the compiler.
   }
 #endif /* ifdef HOSTID */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode) {
+    /* If Microsoft mode is enabled by default, set the flags for other
+       language features whose setting depends on the Microsoft mode flag. */
+    set_microsoft_mode_flags();
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Start with empty include file search paths.  Entries may be added
      because of command line options, and others will be added as defaults. */
   incl_search_path = end_incl_search_path = sys_incl_search_path = NULL;
@@ -1477,12 +1514,14 @@ common_cfront_mode_settings:
         /* Enable or disable Microsoft extensions, in 32-bit mode. */
         microsoft_mode = opt_value;
         il_header.microsoft_16_mode = FALSE;
+        set_microsoft_mode_flags();
         break;
       case optk_microsoft_16_mode:
         /* Enable or disable Microsoft extensions, in 16-bit mode. */
         check_assertion(opt_value == TRUE);
         microsoft_mode = TRUE;
         il_header.microsoft_16_mode = TRUE;
+        set_microsoft_mode_flags();
         break;
       case optk_far_data_pointers:
         /* Set size of data pointers in Microsoft 16-bit mode. */
@@ -1920,17 +1959,6 @@ common_cfront_mode_settings:
     /* cfront mode is incompatible with Microsoft mode. */
     if (any_cfront_mode()) {
       command_line_error(ec_cl_cfront_incompatible_with_microsoft);
-    }  /* if */
-    /* Set features implied by Microsoft compatibility. */
-    targ_enum_types_can_be_smaller_than_int = FALSE;
-    stack_referenced_include_directories = TRUE;
-    allow_copy_assignment_op_with_base_class_param = FALSE;
-#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
-    allow_nonstandard_anonymous_unions = TRUE;
-#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
-    if (!option_kind_used[(int)optk_old_for_init]) {
-      use_nonstandard_for_init_scope =
-                              MICROSOFT_DEFAULT_USE_NONSTANDARD_FOR_INIT_SCOPE;
     }  /* if */
   } else {
     il_header.microsoft_16_mode = FALSE;
