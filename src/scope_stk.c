@@ -2545,14 +2545,18 @@ been completed.
      members). */
   for (vp = scope->variables; vp != NULL; vp = vp->next) {
     if (vp->storage_class == (a_storage_class)sc_unspecified ||
-        vp->source_corresp.needed) {
+        vp->source_corresp.needed ||
+        vp->init_kind == (an_init_kind)initk_dynamic) {
       /* This is an externally linked variable that has been defined or
          (whatever its linkage) has been marked as "needed" (typically
          because it has not been referenced in a function that is needed).
-         Mark it as needed now, along with the type with which it was
-         declared and its initializer, if appropriate.  (Even if it was
-         already marked as needed, the initializer is not scanned till this
-         end-of-file-scope phase, so we have to do it again.) */
+         Or else it is a variable local to this translation unit but with
+         dynamic initialization, in which case it is treated as "needed"
+         because the initialization may have side effects.  Mark it as
+         needed now, along with the type with which it was declared and its
+         initializer, if appropriate.  (Even if it was already marked as
+         needed, the initializer is not scanned till this end-of-file-scope
+         phase, so we have to do it again.) */
       vp->source_corresp.needed = FALSE;
       mark_as_needed((char *)vp, (an_il_entry_kind)iek_variable);
     }  /* if */
