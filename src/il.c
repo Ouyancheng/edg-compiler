@@ -2466,14 +2466,18 @@ Make sure that the scope stack entry pointed to by ssep points to an IL
 scope.  For block scopes, create the scope now if necessary.
 */
 {
-  a_scope_ptr sp = ssep->il_scope;
+  a_scope_ptr            sp = ssep->il_scope;
+  a_memory_region_number region_to_switch_back_to;
 
   if (sp == NULL) {
     /* There is no IL scope. */
     if (ssep->kind == (a_scope_kind)sck_block) {
       /* Create the IL scope in a block scope. */
+      region_to_switch_back_to = curr_il_region_number;
+      switch_il_region(ssep->il_memory_region);
       ssep->il_scope = sp = alloc_scope((a_scope_kind)sck_block, ssep->number,
                                         (a_routine_ptr)NULL);
+      switch_il_region(region_to_switch_back_to);
       /* Add it to the scopes list for the scope enclosing the scope indicated
          by ssep. */
       add_to_scopes_list(sp, ssep-1);
