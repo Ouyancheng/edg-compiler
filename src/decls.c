@@ -3365,10 +3365,13 @@ skip_overloading:;
   /* Do processing required for the rest of the pragmas, if any, that are
      bound to the current declaration. */
   process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
-  if (!is_function && is_volatile_qualified_type(type_ptr)) {
+  if (is_variable_def && is_volatile_qualified_type(type_ptr)) {
     /* A variable with a volatile type is considered to be used and modified
-       from "elsewhere".  Note that this must be done after set_source_corresp
-       because the latter clears the IL referenced flag. */
+       from "elsewhere".  (We use "is_variable_def" to exclude cases like
+       "extern volatile int x", for which the flags shouldn't be set unless
+       there is an explicit use in this translation unit.)  Note that this
+       must be done after set_source_corresp because the latter clears the
+       IL referenced flag. */
     source_corresp_ptr->referenced = TRUE;
     sym->referenced = TRUE;
     sym->variant.variable.used = TRUE;
