@@ -4759,14 +4759,6 @@ otherwise it is NULL.  The syntax is:
       /* Real (non-abstract) declarator. */
       declarator_pos = pos_curr_token;
       *output_flags |= DO_REAL_DECLARATOR_SCANNED;
-      if (C_dialect == C_dialect_cplusplus) {
-        /* If this declaration appears in the immediate context of a class
-           definition and the current token is an identifier representing
-           the name of the current class, see if this is a qualified name
-           and if so change it into a simple name (e.g., A::x becomes x,
-           its equivalent in A's scope). */
-        (void)simplify_curr_class_qualified_name();
-      }  /* if */
       /* Process the identifier.  This is done if we are at the beginning of
          a qualified name.  A special test is done to exclude a destructor
          name that is not part of a qualified name -- this case is handled
@@ -4823,6 +4815,16 @@ otherwise it is NULL.  The syntax is:
                         &locator_for_curr_id.source_position);
           }  /* if */
         }  /* if */
+        if (C_dialect == C_dialect_cplusplus) {
+          /* If this declaration appears in the immediate context of a class
+             definition and the current token is an identifier representing
+             the name of the current class, see if this is a qualified name
+             and if so change it into a simple name (e.g., A::x becomes x,
+             its equivalent in A's scope).
+             This needs to be done after the check for the cfront member
+	     typedef processing that is done above. */
+          (void)simplify_curr_class_qualified_name();
+        }  /* if */
         /* The declarator may be a qualified name or a normal name. */
         if (coalesce_and_lookup_qualified_name(options, ilm_normal, &err)) {
           /* See if the name is a qualified name, like "A::x" or "::j". */
@@ -4876,11 +4878,15 @@ otherwise it is NULL.  The syntax is:
         /* Save information on the identifier to be declared. */
         *locator = locator_for_curr_id;
         (void)get_token();
-      } else if (locator_for_curr_id.is_destructor_name ||
-                 get_destructor_name()) {
+      } else if (simplify_curr_class_qualified_name(),
+		 (locator_for_curr_id.is_destructor_name ||
+                   get_destructor_name())) {
         /* A destructor name, like "~A".  It must have the same name as
            the class currently being defined, it must be followed by a
-           left paren, and the specifiers must include no type. */
+           left paren, and the specifiers must include no type.
+	   The call to simplify_curr_class_qualified_name is placed here
+           so that it will be done at this point for all cases other than
+           the normal identifier case handled above. */
         if (is_error_locator(locator_for_curr_id)) {
           /* There is some error in the destructor name. */
         } else {
