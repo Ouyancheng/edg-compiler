@@ -1437,7 +1437,7 @@ called by id_linkage.
   a_symbol_locator  *locator = idlbp->locator;
   a_boolean     is_guiding_decl = FALSE;
 
-  db_enter(4, "find_linked_symbol");
+  db_enter(3, "find_linked_symbol");
   if (locator->specific_symbol != NULL &&
       (qualifier_namespace_ptr(*locator) != NULL ||
        locator->is_file_scope_qualified_name ||
@@ -1730,7 +1730,24 @@ called by id_linkage.
       }  /* if */
     }  /* if */
   }  /* if */
-done:
+done:;
+#if DEBUG
+  if (debug_level >= 3) {
+    if (idlbp->linked_symbol != NULL) {
+      db_symbol(idlbp->linked_symbol, "linked symbol: ", 2);
+    }  /* if */
+    if (idlbp->homonym_symbol != NULL) {
+      db_symbol(idlbp->homonym_symbol, "homonym symbol: ", 2);
+    }  /* if */
+    if (idlbp->overload_symbol != NULL) {
+      db_symbol(idlbp->overload_symbol, "overload symbol: ", 2);
+    }  /* if */
+    if (idlbp->prior_decl_in_enclosing_scope != NULL) {
+      db_symbol(idlbp->prior_decl_in_enclosing_scope,
+                "prior decl in enclosing scope: ", 2);
+    }  /* if */
+  }  /* if */
+#endif /* DEBUG */
   db_exit();
 }  /* find_linked_symbol */
 
@@ -1743,17 +1760,16 @@ the same name that may affect the linkage.  Return the information in the
 specified id-linkage block.
 */
 {
-  a_boolean          is_object, is_function;
-  a_symbol_ptr       prior_decl;
-  a_storage_class    local_storage_class = idlbp->storage_class;
-  a_boolean	     is_template_instance = FALSE;
+  a_boolean        is_object, is_function;
+  a_symbol_ptr     prior_decl;
+  a_storage_class  local_storage_class = idlbp->storage_class;
+  a_boolean        is_template_instance = FALSE;
+  a_boolean        is_const_variable = FALSE;
 
   db_enter(3, "id_linkage");
   check_assertion(local_storage_class != (a_storage_class)sc_typedef);
   check_assertion(idlbp->locator->specific_symbol == NULL ||
                   !idlbp->locator->specific_symbol->is_class_member);
-  /* Is this type an object or function, and is it going to be declared
-     at file scope? */
   is_function = idlbp->func_info != NULL;
   is_object = !is_function;
   if (is_error_locator(*idlbp->locator)) {
@@ -1783,6 +1799,16 @@ specified id-linkage block.
     } else if (idlbp->within_unnamed_namespace &&
                !idlbp->extern_C_name_linkage_specified) {
       idlbp->linkage = idl_internal;
+    } else if (!C_mode() && is_object &&
+               is_const_qualified_type(idlbp->type) &&
+               decl_scope_level == depth_innermost_namespace_scope &&
+               idlbp->storage_class == (a_storage_class)sc_unspecified &&
+               !idlbp->extern_C_name_linkage_specified) {
+      /* In C++ all const qualified objects at file or namespace scope with
+         no explicit storage class are internally linked (unless previously
+         declared to be extern -- see below). */
+      idlbp->linkage = idl_internal;
+      is_const_variable = TRUE;
     } else {
       idlbp->linkage = idl_external;
     }  /* if */
@@ -1799,11 +1825,12 @@ specified id-linkage block.
       /* An asm function has internal linkage. */
       idlbp->linkage = idl_internal;
       prior_decl = NULL;
+    }  /* if */
 #endif /* ASM_FUNCTION_ALLOWED */
     if (prior_decl != NULL &&
         is_object == (prior_decl->kind == (a_symbol_kind)sk_variable)) {
       /* The current declaration matches the prior declaration, so the latter
-         can used to determine the linkage of the former. */
+         can be used to determine the linkage of the former. */
     } else {
       /* Ignore the previous declaration. */
       prior_decl = NULL;
@@ -1853,19 +1880,25 @@ specified id-linkage block.
         } else {
           idlbp->linkage = idl_external;
         }  /* if */
+      } else if (is_const_variable &&
+                 prior_decl->variant.variable.ptr->storage_class !=
+                                              (a_storage_class)sc_static) {
+        /* Prior declaration of this variable had external linkage, so that
+           is retained. */
+        idlbp->linkage = idl_external;
       } else {
         if (local_storage_class == (a_storage_class)sc_extern ||
             (is_function &&
              local_storage_class == (a_storage_class)sc_unspecified)) {
           /* An object or function with extern storage class, or a function
              with no storage class, has the same linkage as any visible
-             declaration of this identifier with file scope. */
+             declaration of this identifier in the enclosing namespace
+             scope. */
           if (prior_decl != NULL &&
               prior_decl->decl_scope ==
                     scope_stack[depth_innermost_namespace_scope].number) {
-            /* There is a declaration with file scope that is visible from
-               here.  Set the flags to describe this identifier, and go
-               retry the determination of the linkage. */
+            /* There is a prior declaration at namespace scope that is
+               visible from here. */
             switch (prior_decl->kind) {
               case sk_routine:
                 local_storage_class = prior_decl->variant.routine.ptr->
@@ -1896,7 +1929,7 @@ specified id-linkage block.
     }  /* if */
   }  /* if */
 #if DEBUG
-  if (debug_level >= 4) {
+  if (debug_level >= 3) {
     fprintf(f_debug, "Linkage for %s is ",
                      is_error_locator(*idlbp->locator) ?
                         "<error>" : idlbp->locator->symbol_header->identifier);
@@ -3526,21 +3559,6 @@ cross-reference output describing this declaration.
     sym = enter_local_symbol((a_symbol_kind)sk_variable, locator,
                              effective_decl_level,
                              redecl_error_already_issued);
-  }  /* if */
-  if (C_dialect == C_dialect_cplusplus) {
-    if (decl_scope_level == depth_innermost_namespace_scope &&
-        storage_class == (a_storage_class)sc_unspecified &&
-        is_const_qualified_type(type_ptr)) {
-      /* In C++ all const qualified objects at file scope with no explicit
-         storage class are internally linked unless previously declared to
-         be extern (ARM 7.1.1).  The storage class has been left "unspecified"
-         because till now we didn't know whether this was a redeclaration. */
-      if (variable_ptr == NULL ||
-          variable_ptr->storage_class != (a_storage_class)sc_extern) {
-        storage_class = (a_storage_class)sc_static;
-        linkage = idl_internal;
-      }  /* if */
-    }  /* if */
   }  /* if */
   *ext_sym = NULL;
   if (linkage != idl_none) {
@@ -9037,9 +9055,10 @@ continue_with_declaration:
                instance of a member template.  If it does, assume that it is
                an attempt to declare a specialization with the incorrect
                old-style specialization syntax. */
-            a_symbol_ptr	tmp_sym = locator.specific_symbol;
-            a_boolean		is_member_redecl;
-            a_boolean		is_template_instance;
+            a_symbol_ptr  tmp_sym = locator.specific_symbol;
+            a_boolean     is_member_redecl;
+            a_boolean     is_template_instance;
+
             is_member_redecl = member_function_redecl_sym(
                                           tmp_sym, local_type_ptr,
                                           (a_template_param_ptr)NULL) != NULL;
