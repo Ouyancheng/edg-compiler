@@ -697,7 +697,7 @@ and for the instantiation of template functions.
             if (param_id == NULL) {
               /* This source sequence entry is not associated with one of the
                  parameters.  For instance:
-                   void f(a) int a(enum e{x, y}); { ... } 
+                   void f(a) int a(int); { ... } 
                  for which an empty source sequence entry will have been
                  created for the omitted parameter of function a. */
             } else {
