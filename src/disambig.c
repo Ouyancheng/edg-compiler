@@ -113,6 +113,9 @@ Macros to test bits in a disambiguation flag set.
 #define is_template_decl(flags)					\
   (((flags) & DFS_IS_TEMPLATE_DECL) != 0)
 
+#define is_template_argument(flags)					\
+  (((flags) & DFS_IS_TEMPLATE_ARGUMENT) != 0)
+
 
 /*
 Macro that returns GID_USE_PROTOTYPE_NOT_NONREAL if is_template_decl is TRUE.
@@ -986,6 +989,11 @@ types separated by commas (when single_type_required is FALSE).
           /* All other declarations must end in a semicolon. */
           if (curr_token != tok_semicolon) state.may_be_decl = FALSE;
         }  /* if */
+      }  /* if */
+    } else if (is_template_argument(flags)) {
+      /* A template argument may be followed by a comma or a greater-than. */
+      if (curr_token != tok_comma && curr_token != tok_gt) {
+        state.may_be_decl = FALSE;
       }  /* if */
     } else {
       /* Otherwise, if we are scanning one or more types.  We should be

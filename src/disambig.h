@@ -45,6 +45,9 @@ typedef a_byte a_disambig_flag_set;
 			/* This is a namespace scope template declaration
 			   that is being prescanned to determine the class
 			   of the entity being declared. */
+#define DFS_IS_TEMPLATE_ARGUMENT	0x80
+			/* This is a template argument that is being
+			   prescanned. */
 
 /*
 Macro called in various contexts to distinguish expressions from declarations. 

@@ -7340,7 +7340,8 @@ done using the disambiguation routines.
     add_stop_token(tok_comma);
     /* Determine the kind of template argument. */
     is_type_param = is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
-                                     DFS_SINGLE_TYPE_REQUIRED);
+                                     DFS_SINGLE_TYPE_REQUIRED |
+                                     DFS_IS_TEMPLATE_ARGUMENT);
     arg_ptr = alloc_template_arg(is_type_param);
     if (is_type_param) {
       type_name(&argument_type);
