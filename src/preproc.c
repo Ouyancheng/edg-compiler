@@ -1347,7 +1347,7 @@ is_microsoft_pragma_operator is TRUE, scan to the closing parenthesis.
     if (curr_token == tok_lparen) {
       paren_count++;
     } else if (curr_token == tok_rparen) {
-      paren_count--;
+      if (paren_count > 0) paren_count--;
     }  /* if */
     /* The +1 in the following call is to make sure there is space for
        a null terminator to be added. */
