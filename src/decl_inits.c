@@ -503,9 +503,6 @@ also create an stmk_init statement at the current point in the code.
   /* Make the variable point at the dynamic initialization. */
   vp->init_kind = (an_init_kind)initk_dynamic;
   vp->initializer.dynamic = new_dip;
-  /* Set the referenced flag for the variable, because there is a
-     reference now -- the dynamic initialization. */
-  vp->source_corresp.referenced = TRUE;
   new_dip->variable = vp;
   if (ssep->kind == (a_scope_kind)sck_file) {
     /* A dynamic file-scope initialization (possible only in C++) has
