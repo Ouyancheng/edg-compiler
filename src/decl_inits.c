@@ -2000,13 +2000,25 @@ scan_paren:
                a constructor exists.  Otherwise, it will be initialized
                like any scalar. */
             an_expr_node_ptr  arg_list;
+            a_type_ptr        object_class_type;
+
+            /* If it is a base class, the object being constructed is the
+               whole class (and the base class is an incomplete subobject
+               thereof).  If it is a field, the object being constructed is
+               field itself.  Set the object class type accordingly. */
+            if (new_cip->kind == (a_constructor_init_kind)cik_field) {
+              object_class_type = init_type;
+            } else {
+              object_class_type = class_type;
+            }  /* if */
             /* This is treated like an initialization of the form
                S x (arg [, ...]), where S is a class type name.  Depending
                on the arguments present, a constructor will be selected and
                returned.  The scan function returns FALSE if it finds no
                constructor for which the arguments match. */
             scan_ctor_arguments(cssp->constructor, &arg_list,
-                                &conversion_routine, &lparen_pos, class_type);
+                                &conversion_routine, &lparen_pos,
+                                object_class_type);
             if (conversion_routine == NULL) err = TRUE;
             if (!err) {
               /* Set the dynamic init entry to represent constructor
