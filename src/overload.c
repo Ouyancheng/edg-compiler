@@ -7886,7 +7886,7 @@ direct binding is "possible" and not whether it is "valid".
                                 unqual_dest_type) != NULL) {
     /* The initializer has a derived type. */
     type_is_correct_or_derived = TRUE;
-  } else if ((any_cfront_mode() || microsoft_mode) &&
+  } else if ((any_cfront_mode() || microsoft_bugs) &&
              is_pointer_type(unqual_dest_type) &&
              is_pointer_type(unqual_source_type) &&
              same_type_with_added_qualifiers(unqual_source_type,
