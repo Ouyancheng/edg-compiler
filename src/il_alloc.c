@@ -848,7 +848,7 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
   ctsp->inheritance_kind_is_explicit      = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if BACK_END_IS_CP_GEN_BE
-  ctsp->surrounding_name_linkage_state    = nlk_none;
+  ctsp->surrounding_name_linkage_state    = (a_name_linkage_kind)nlk_none;
 #endif /* BACK_END_IS_CP_GEN_BE */
 #if NEAR_AND_FAR_ALLOWED
   ctsp->qualifiers                        = TQ_NONE;
