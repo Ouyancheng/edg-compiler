@@ -1746,7 +1746,7 @@ Add the first of possibly two parts of a type reference.
   if (is_pointer_or_reference_type(type)) {
     local_type = skip_typerefs(type)->variant.pointer.type;
     /* Recursive call to print out any lower indirections. */
-    form_type_first_part(local_type, /*need_parens=*/FALSE, seg_ptr);
+    form_type_first_part(local_type, /*need_parens=*/TRUE, seg_ptr);
     /* Print out the star for this indirection. */
     if (skip_typerefs(type)->variant.pointer.is_reference) {
       /* This is a C++ reference type */
@@ -1755,9 +1755,11 @@ Add the first of possibly two parts of a type reference.
       add_string_to_segment("*", seg_ptr);
     }  /* if */
     form_type_qualifier(type, seg_ptr);
+    if (need_parens) add_string_to_segment("(", seg_ptr);
   } else if (type->kind == (a_type_kind)tk_array) {
     form_type_first_part(type->variant.array.element_type,
                          /*need_parens=*/TRUE, seg_ptr);
+    if (need_parens) add_string_to_segment("(", seg_ptr);
   } else if (type->kind == (a_type_kind)tk_ptr_to_member) {
     /* C*++ pointer to member type */
     form_type_first_part(type->variant.ptr_to_member.type,
@@ -1765,15 +1767,15 @@ Add the first of possibly two parts of a type reference.
     form_class_name(type->variant.ptr_to_member.class_of_which_a_member,
                     seg_ptr);
     add_string_to_segment("*", seg_ptr);
+    if (need_parens) add_string_to_segment("(", seg_ptr);
   } else if (type->kind == (a_type_kind)tk_routine) {
     form_type_first_part(type->variant.routine.return_type,
-                         /*need_parens=*/FALSE, seg_ptr);
+                         /*need_parens=*/TRUE, seg_ptr);
+    if (need_parens) add_string_to_segment("(", seg_ptr);
   } else {
     form_type_qualifier(type, seg_ptr);
     form_type_specifier(type, seg_ptr);
-  }  /* if */
-  if (need_parens) {
-    add_string_to_segment("(", seg_ptr);
+    if (need_parens) add_string_to_segment(" ", seg_ptr);
   }  /* if */
 }  /* form_type_first_part */
 
@@ -1793,15 +1795,11 @@ array, print out the dimension information.
      on the indirection. */
   if (is_pointer_or_reference_type(type)) {
     local_type = skip_typerefs(type);
-    if (need_parens) {
-      add_string_to_segment(")", seg_ptr);
-    }  /* if */
+    if (need_parens) add_string_to_segment(")", seg_ptr);
     form_type_second_part(local_type->variant.pointer.type,
-                          /*need_parens=*/FALSE, seg_ptr);
+                          /*need_parens=*/TRUE, seg_ptr);
   } else if (type->kind == (a_type_kind)tk_array) {
-    if (need_parens) {
-      add_string_to_segment(")", seg_ptr);
-    }  /* if */
+    if (need_parens) add_string_to_segment(")", seg_ptr);
     if (type->variant.array.number_of_elements == 0) {
       add_string_to_segment("[]", seg_ptr);
     } else {
@@ -1816,24 +1814,20 @@ array, print out the dimension information.
 #endif /* CHECKING */
       (void)sprintf(buffer, "[%lu]",
                     (unsigned long)type->variant.array.number_of_elements);
-      add_string_to_segment(&buffer[0], seg_ptr);
+      add_string_to_segment(buffer, seg_ptr);
     }  /* if */
     form_type_second_part(type->variant.array.element_type,
                           /*need_parens=*/TRUE, seg_ptr);
   } else if (type->kind == (a_type_kind)tk_ptr_to_member) {
     /* C*++ pointer to member type */
-    if (need_parens) {
-      add_string_to_segment(")", seg_ptr);
-    }  /* if */
+    if (need_parens) add_string_to_segment(")", seg_ptr);
     form_type_second_part(type->variant.ptr_to_member.type,
                           /*needs_parens=*/TRUE, seg_ptr);
   } else if (type->kind == (a_type_kind)tk_routine) {
-    if (need_parens) {
-      add_string_to_segment(")", seg_ptr);
-    }  /* if */
+    if (need_parens) add_string_to_segment(")", seg_ptr);
     form_param_list(type->variant.routine.extra_info, seg_ptr);
     form_type_second_part(type->variant.routine.return_type,
-                          /*need_parens=*/FALSE, seg_ptr);
+                          /*need_parens=*/TRUE, seg_ptr);
   }  /* if */
 }  /* form_type_second_part */
 
@@ -1881,20 +1875,19 @@ segment described by *seg_ptr.
 }  /* summarize_type */
 
 
-sizeof_t format_type_string(a_type_ptr tp,
-                            char       **addr_str_ptr)
+char *format_type_string(a_type_ptr tp,
+                         int        *len_ptr)
 /*
-A character string representation of the type pointed to by tp is formatted
-into the first segment of the error diagnostic segment list (pointed to
-by the static variable error_message_head).  The address of the string
-created is returned along with the length of the string created.  Note that
-the string length does not include the terminating NULL character.  The
-caller should make a copy of the string immediately into whichever memory
-region is appropriate.
+A NULL terminated character string representation of the type pointed to
+by tp is formatted into the first segment of the error diagnostic segment
+list (pointed to by the static variable error_message_head).  The address
+of the string created is returned and the length of the string is passed 
+to the caller by *len_ptr.  Note that the string length does not include
+the terminating NULL character.  The caller should make a copy of the
+string immediately into whichever memory region is appropriate.
 */
 {
-  msg_segment_ptr
-		curr_segment;
+  msg_segment_ptr curr_segment;
 
   curr_segment = establish_first_segment();
   /* Make certain that there is a string buffer and that it contains an
@@ -1902,9 +1895,10 @@ region is appropriate.
   add_string_to_segment("", curr_segment);
   form_type_first_part(tp, /*need_parens=*/FALSE, curr_segment);
   form_type_second_part(tp, /*need_parens=*/FALSE, curr_segment);
-  /* Provide the address of the string buffer to the caller. */
-  *addr_str_ptr = curr_segment->segment;
-  return curr_segment->length;
+  /* Provide the length of the string and the address of the string
+     buffer to the caller. */
+  *len_ptr = curr_segment->length;
+  return curr_segment->segment;
 }  /* format_type_string */
 
 #if !STANDALONE_UTILITY_PROGRAM
