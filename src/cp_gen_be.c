@@ -85,8 +85,6 @@ static FILE	*f_C_output;
 /* Current output position -- file, line, sequence number, column: */
 static a_source_file_ptr
 		curr_output_file;
-static a_line_number
-		curr_output_line;
 static a_seq_number
 		curr_output_seq_number;
 static a_column_number
@@ -97,9 +95,11 @@ static a_column_number
 
 static a_source_sequence_entry_ptr
 		file_scope_source_sequence_entry,
-		func_scope_source_sequence_entry;
+		func_scope_source_sequence_entry,
+		class_scope_source_sequence_entry;
 			/* The current source sequence entry for the file
-			   scope and the function scope. */
+			   scope, the current function scope, and the
+			   current class scope. */
 
 static a_scope_ptr
 		curr_function_scope,
@@ -123,6 +123,13 @@ static void gen_type(a_type_ptr              type,
                      a_source_correspondence *scp);
 static void gen_statement(a_statement_ptr statement);
 static void gen_file_scope_entity(a_source_sequence_entry_ptr ssep);
+static void gen_type_decl(a_type_ptr                   type,
+                          a_src_seq_secondary_decl_ptr sec_decl);
+static void gen_variable_decl(a_variable_ptr               var,
+                              a_src_seq_secondary_decl_ptr sec_decl);
+static void gen_routine_decl(a_routine_ptr                rout,
+                             a_src_seq_secondary_decl_ptr sec_decl);
+static void gen_secondary_decl(a_src_seq_secondary_decl_ptr sec_decl);
 static void gen_curr_func_declaration(void);
 static void gen_statement_list(a_statement_ptr stmt_list,
                                a_boolean       top_statement_of_switch,
@@ -184,22 +191,26 @@ that ordinarily this routine should not be called directly; use the macro
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
-static a_source_sequence_entry_ptr
-                     first_signif_file_scope_source_sequence_entry
-                                             (a_source_sequence_entry_ptr ssep)
+static void adv_to_signif_file_scope_source_sequence_entry(void)
 /*
-Return a pointer to the first significant source sequence entry on the
-indicated list (part of the file-scope list).  Return NULL if there is no
-significant entry on the list.
+If the current entry on the file-scope source sequence list is not
+"significant" to the file-scope scan, advance the list until a significant
+entry is found.
 */
 {
+  a_source_sequence_entry_ptr ssep = file_scope_source_sequence_entry;
+
   for (; ssep != NULL; ssep = ssep->next) {
     /* Ignore unimportant entries. */
     switch (ssep->entity.kind) {
-      case iek_constant:
+      case iek_constant:  /* These show up for enum constants and manifest
+                             constant macros. */
 #if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
       case iek_comment:
 #endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
+      case iek_field:  /* These show up only in C mode.  They're ignored
+                          here because they should be considered to be
+                          inside the "scope" of the class. */
         /* Not significant. */
         break;
       case iek_type:
@@ -211,12 +222,12 @@ significant entry on the list.
         goto done;
       default:
         unexpected_condition_str(
-             "first_signif_file_scope_source_sequence_entry: bad entity kind");
+            "adv_to_signif_file_scope_source_sequence_entry: bad entity kind");
     }  /* switch */
   }  /* for */
 done:
-  return ssep;
-}  /* first_signif_file_scope_source_sequence_entry */
+  file_scope_source_sequence_entry = ssep;
+}  /* adv_to_signif_file_scope_source_sequence_entry */
 
 
 static a_source_sequence_entry_ptr next_file_scope_source_sequence_entry(void)
@@ -225,48 +236,62 @@ Advance the file-scope source sequence list to the next (significant) entry,
 and return a pointer to it.  Return NULL if there are no more entries.
 */
 {
-  a_source_sequence_entry_ptr ssep = file_scope_source_sequence_entry;
-
   /* Advance to the next entry. */
-  ssep = first_signif_file_scope_source_sequence_entry(ssep->next);
-  file_scope_source_sequence_entry = ssep;
-  return ssep;
+  file_scope_source_sequence_entry = file_scope_source_sequence_entry->next;
+  adv_to_signif_file_scope_source_sequence_entry();
+  return file_scope_source_sequence_entry;
 }  /* next_file_scope_source_sequence_entry */
 
 
-static a_source_sequence_entry_ptr
-                     first_signif_func_scope_source_sequence_entry
-                                             (a_source_sequence_entry_ptr ssep)
+static void adv_to_signif_func_scope_source_sequence_entry(void)
 /*
-Return a pointer to the first significant source sequence entry on the
-indicated list (part of a function-scope list).  Return NULL if there is no
-significant entry on the list.
+If the current entry on the function-scope source sequence list is not
+"significant" to the function-scope scan, advance the list until a significant
+entry is found.
 */
 {
+  a_source_sequence_entry_ptr ssep = func_scope_source_sequence_entry;
+
   for (; ssep != NULL; ssep = ssep->next) {
     /* Ignore unimportant entries. */
     switch (ssep->entity.kind) {
 #if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
       case iek_comment:
+#endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
+      case iek_field:  /* These show up only in C mode.  They're ignored
+                          here because they should be considered to be
+                          inside the "scope" of the class. */
+      case iek_constant:  /* These show up for enum constants. */
         /* Not significant. */
         break;
-#endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
       case iek_type:
       case iek_variable:
-      case iek_source_sequence_entry:  /* A proxy for a file-scope entity. */
       case iek_statement:
       case iek_label:
       case iek_switch_clause:
         /* Significant. */
         goto done;
+      case iek_source_sequence_entry:
+        /* A proxy for a file-scope entity.  Usually significant, but not
+           if the associated entity is not significant in the file scope,
+           e.g., if it's an iek_field. */
+        { an_il_entry_kind kind =
+                  ((a_source_sequence_entry_ptr)ssep->entity.ptr)->entity.kind;
+          if (kind == iek_field || kind == iek_constant) {
+            /* Not significant. */
+            break;
+          }  /* if */
+        }
+        /* Significant. */
+        goto done;
       default:
         unexpected_condition_str(
-             "first_signif_func_scope_source_sequence_entry: bad entity kind");
+            "adv_to_signif_func_scope_source_sequence_entry: bad entity kind");
     }  /* switch */
   }  /* for */
 done:
-  return ssep;
-}  /* first_signif_func_scope_source_sequence_entry */
+  func_scope_source_sequence_entry = ssep;
+}  /* adv_to_signif_func_scope_source_sequence_entry */
 
 
 static a_source_sequence_entry_ptr next_func_scope_source_sequence_entry(void)
@@ -275,12 +300,10 @@ Advance the function-scope source sequence list to the next (significant)
 entry, and return a pointer to it.  Return NULL if there are no more entries.
 */
 {
-  a_source_sequence_entry_ptr ssep = func_scope_source_sequence_entry;
-
   /* Advance to the next entry. */
-  ssep = first_signif_func_scope_source_sequence_entry(ssep->next);
-  func_scope_source_sequence_entry = ssep;
-  return ssep;
+  func_scope_source_sequence_entry = func_scope_source_sequence_entry->next;
+  adv_to_signif_func_scope_source_sequence_entry();
+  return func_scope_source_sequence_entry;
 }  /* next_func_scope_source_sequence_entry */
 
 
@@ -295,10 +318,18 @@ function list.
 #if CHECKING
   if (func_scope_source_sequence_entry != ssep || ssep == NULL) {
 #if DEBUG
-    if (func_scope_source_sequence_entry) {
-      db_source_sequence_entry(func_scope_source_sequence_entry);
+    fprintf(f_debug, "Expected:    ");
+    if (ssep != NULL) {
+      db_source_sequence_entry(ssep);
+    } else {
+      fprintf(f_debug, "nothing\n");
     }  /* if */
-    if (ssep != NULL) db_source_sequence_entry(ssep);
+    fprintf(f_debug, "Got instead: ");
+    if (func_scope_source_sequence_entry != NULL) {
+      db_source_sequence_entry(func_scope_source_sequence_entry);
+    } else {
+      fprintf(f_debug, "nothing\n");
+    }  /* if */
 #endif /* DEBUG */
     internal_error("check_for_and_take_func_source_seq_entry: wrong entry");
   }  /* if */
@@ -331,6 +362,87 @@ a declaration.
   }  /* if */
   return is_decl;
 }  /* curr_func_scope_source_seq_entry_is_decl */
+
+
+static void adv_to_signif_class_scope_source_sequence_entry(void)
+/*
+If the current entry on the class-scope source sequence list is not
+"significant" to the class-scope scan, advance the list until a significant
+entry is found.
+*/
+{
+  a_source_sequence_entry_ptr ssep = class_scope_source_sequence_entry;
+  a_constant_ptr              con;
+
+  /* This routine is not used in C mode. */
+  check_assertion(il_header.source_language != sl_C);
+  /* C++ mode; the class list is a separate list. */
+  for (; ssep != NULL; ssep = ssep->next) {
+    /* Ignore unimportant entries. */
+    switch (ssep->entity.kind) {
+#if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
+      case iek_comment:
+        /* Not significant. */
+        break;
+#endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
+      case iek_field:     /* Nonstatic data member. */
+      case iek_type:      /* Nested type. */
+      case iek_variable:  /* Static data member. */
+      case iek_routine:   /* Member function. */
+      case iek_source_sequence_entry:  /* A proxy for a file-scope entity,
+                                          e.g., a friend declaration. */
+        /* Significant. */
+        goto done;
+      case iek_constant:
+        /* Ignore constants if they're enum constants, but otherwise they're
+           significant. */
+        con = (a_constant_ptr)ssep->entity.ptr;
+        if (con->kind == (a_constant_repr_kind)ck_integer &&
+            con->type->kind == (a_type_kind)tk_integer &&
+            con->type->variant.integer.enum_type != NULL) break;
+        goto done;
+      default:
+        unexpected_condition_str(
+           "adv_to_signif_class_scope_source_sequence_entry: bad entity kind");
+    }  /* switch */
+  }  /* for */
+  class_scope_source_sequence_entry = ssep;
+done:;
+}  /* adv_to_signif_class_scope_source_sequence_entry */
+
+
+static a_source_sequence_entry_ptr next_class_scope_source_sequence_entry(void)
+/*
+Advance the class-scope source sequence list to the next (significant)
+entry, and return a pointer to it.  Return NULL if there are no more entries.
+*/
+{
+  if (il_header.source_language == sl_C) {
+    /* In C mode, advance by following the "next" pointer in the field
+       entries.  This is necessary because the field entries are not
+       segregated in their own scope. */
+    a_field_ptr field;
+    check_assertion_str(class_scope_source_sequence_entry->entity.kind ==
+                                                                     iek_field,
+                      "next_class_scope_source_sequence_entry: not iek_field");
+    field = (a_field_ptr)class_scope_source_sequence_entry->entity.ptr;
+    field = field->next;
+    if (field == NULL) {
+      /* This is the end of the list, so the pointer becomes NULL. */
+      class_scope_source_sequence_entry = NULL;
+    } else {
+      /* Not the end of the list, so get the source sequence entry. */
+      class_scope_source_sequence_entry =
+                                   field->source_corresp.source_sequence_entry;
+    }  /* if */
+  } else {
+    /* C++ mode. */
+    /* Advance to the next entry. */
+    class_scope_source_sequence_entry= class_scope_source_sequence_entry->next;
+    adv_to_signif_class_scope_source_sequence_entry();
+  }  /* if */
+  return class_scope_source_sequence_entry;
+}  /* next_class_scope_source_sequence_entry */
 
 
 static void end_output_line(void)
@@ -411,8 +523,7 @@ etc.
 #endif /* 0 */
         (void)fprintf(f_C_output, "\"%s\" ", curr_output_file->file_name);
       }  /* if */
-      curr_output_line = line_number;
-      (void)fprintf(f_C_output, "%lu\n", curr_output_line);
+      (void)fprintf(f_C_output, "%lu\n", line_number);
       curr_output_seq_number = seq;
       /* There must be a line following a #line directive, and the line's
          number is already set, so consider the line started already. */
@@ -909,8 +1020,7 @@ static void gen_typedef_definition(a_type_ptr type)
 Output the definition of the indicated typedef.
 */
 {
-  /* set_output_position has already been called for the type
-     if that's appropriate. */
+  /* set_output_position has already been called for the type. */
   write_str("typedef ");
   gen_type(type->variant.typeref.type, &type->source_corresp);
 }  /* gen_typedef_definition */
@@ -927,6 +1037,7 @@ Output the definition of the indicated enum type.
   check_assertion_str(type->kind == (a_type_kind)tk_integer &&
                       type->variant.integer.enum_type,
                       "gen_enum_definition: not an enum type");
+  type->source_corresp.definition_put_out = TRUE;
   /* set_output_position has already been called for the enum type itself
      if that's appropriate. */
   /* Generate "enum <name>". */
@@ -983,15 +1094,60 @@ Return a string that describes the tag kind for the indicated type, i.e.,
 }  /* tag_kind */
 
 
+static void gen_unnamed_bit_fields(a_field_ptr field,
+                                   a_field_ptr prev_field,
+                                   a_field_ptr field_list)
+/*
+Generate any unnamed bit fields that precede "field" in its class field
+list.  If field is NULL, generate any unnamed bit fields that appear
+at the end of the class field list.  prev_field is the field preceding
+field, or NULL if there is no such field.  field_list is the complete
+field list.
+*/
+{
+#if 0
+  /* Not implemented yet. */
+#endif /* 0 */
+}  /* gen_unnamed_bit_fields */
+
+
+static void gen_field_decl(a_field_ptr field,
+                           a_field_ptr prev_field,
+                           a_field_ptr field_list)
+/*
+Generate the declaration for a field (a nonstatic data member).  prev_field
+points to the field processed before this one, or is NULL if no fields
+were processed before this one; field_list is the complete list of fields
+for the current class.  These are used to spot unnamed fields that must
+be put out (they don't have sequence entries).
+*/
+{
+  /* See if any unnamed bit fields precede the field.  If so, they are put
+     out now. */
+  gen_unnamed_bit_fields(field, prev_field, field_list);
+  set_output_position(&field->source_corresp.decl_position);
+  /* Generate the field type and name. */
+  gen_type(field->type, &field->source_corresp);
+  if (field->bit_size != 0) {
+    /* A bit field.  Put out the size. */
+    write_str(":");
+    write_unsigned_num((unsigned long)field->bit_size);
+  }  /* if */
+  write_str("; ");
+}  /* gen_field_decl */
+
+
 static gen_class_definition(a_type_ptr type)
 /*
 Output the definition of the indicated class type.
 */
 {
-  a_field_ptr                 field;
+  a_field_ptr                 field_list, field, prev_field;
   a_class_type_supplement_ptr ctsp;
-  a_boolean                   has_definition;
+  a_scope_ptr                 scope;
+  a_source_sequence_entry_ptr ssep;
 
+  type->source_corresp.definition_put_out = TRUE;
   /* set_output_position has already been called for the class type itself
      it that's appropriate. */
   write_str(tag_kind(type->kind));
@@ -1000,13 +1156,85 @@ Output the definition of the indicated class type.
     gen_type_name(type);
   }  /* if */
   /* See if this class is defined. */
-  field = type->variant.class_struct_union.field_list;
+  field_list = type->variant.class_struct_union.field_list;
   ctsp = type->variant.class_struct_union.extra_info;
-  has_definition = (field != NULL ||
-                    (ctsp != NULL && ctsp->assoc_scope != NULL));
-  if (has_definition) {
+  scope = NULL;
+  if (ctsp != NULL) scope = ctsp->assoc_scope;
+  if (field_list != NULL || scope != NULL) {
+    /* Yes, the class is defined. */
+    /* Save class_scope_source_sequence_entry for later restoration. */
+    a_source_sequence_entry_ptr saved_class_scope_source_sequence_entry =
+                                             class_scope_source_sequence_entry;
     write_str(" { ");
-    write_str(" }");
+    if (scope != NULL) {
+      /* C++ -- the class has a scope. */
+      class_scope_source_sequence_entry = scope->source_sequence_list;
+      /* Skip non-significant source sequence entries. */
+      adv_to_signif_class_scope_source_sequence_entry();
+    } else {
+      /* C -- the class has no scope, so start with the source sequence entry
+         for the first field (which is part of the file scope list). */
+      if (field_list != NULL) {
+        class_scope_source_sequence_entry =
+                              field_list->source_corresp.source_sequence_entry;
+        check_assertion_str(class_scope_source_sequence_entry != NULL,
+                          "gen_class_definition: missing field src seq entry");
+      } else {
+        /* No fields.  (Yes, this can happen in C if the only fields are
+           unnamed bit fields.) */
+        class_scope_source_sequence_entry = NULL;
+      }  /* if */
+    }  /* if */
+    /* Go through the source sequence list and generate the members of the
+       class. */
+    prev_field = NULL;
+    while ((ssep = class_scope_source_sequence_entry) != NULL) {
+      char *entity_ptr = ssep->entity.ptr;
+      /* Advance the source sequence list for the next iteration of the
+         loop. */
+      (void)next_class_scope_source_sequence_entry();
+      switch (ssep->entity.kind) {
+        case iek_field:
+          /* Generate the declaration for a field (nonstatic data member). */
+          field = (a_field_ptr)entity_ptr;
+          gen_field_decl(field, prev_field, field_list);
+          prev_field = field;
+          break;
+        case iek_type:
+          /* Nested type. */
+          gen_type_decl((a_type_ptr)entity_ptr,
+                        (a_src_seq_secondary_decl_ptr)NULL);
+          break;
+        case iek_variable:
+          /* Static data member. */
+          gen_variable_decl((a_variable_ptr)entity_ptr,
+                            (a_src_seq_secondary_decl_ptr)NULL);
+          break;
+        case iek_routine:
+          /* Member function */
+          gen_routine_decl((a_routine_ptr)entity_ptr,
+                           (a_src_seq_secondary_decl_ptr)NULL);
+          break;
+        case iek_src_seq_secondary_decl:
+          /* A secondary declaration, i.e., a declaration of something that
+             is also defined/declared elsewhere. */
+          gen_secondary_decl((a_src_seq_secondary_decl_ptr)entity_ptr);
+          break;
+        case iek_source_sequence_entry:
+          /* A proxy for a file-scope entity.  This will only happen in
+             C++ mode. */
+          gen_file_scope_entity((a_source_sequence_entry_ptr)entity_ptr);
+          break;
+        default:
+          unexpected_condition_str("gen_class_definition: bad entity kind");
+      }  /* switch */
+    }  /* while */
+    /* Generate any unnamed bit fields at the end of the class. */
+    gen_unnamed_bit_fields((a_field_ptr)NULL, prev_field, field_list);
+    /* Restore the previous value of class_scope_source_sequence_entry. */
+    class_scope_source_sequence_entry= saved_class_scope_source_sequence_entry;
+    end_output_line();
+    write_str("}");
   }  /* if */
 }  /* gen_class_definition */
 
@@ -1017,8 +1245,9 @@ Generate a reference to the indicated type, which is a class, struct, union,
 or enum.
 */
 {
-  if (!has_name(type)) {
-    /* The type is unnamed, so we have to generate a full definition.
+  if (!type->source_corresp.definition_put_out) {
+    /* No definition has yet been put out, so we have to generate a full
+       definition.  This happens for unnamed types, for example.
        This is presumably the only reference to the type, so that's fine. */
     if (type->kind == (a_type_kind)tk_integer) {
       gen_enum_definition(type);
@@ -1171,6 +1400,9 @@ is not empty, because it contains a name or a derived type).
     if (need_paren) write_str("(");;
   } else {
     /* No declarator part to process.  Handle the specifier type. */
+#if 0
+    /* Suppress this for constructors and destructors. */
+#endif /* 0 */
     gen_type_specifier(qual_type);
     if (need_trailing_space) write_str(" ");
   }  /* if */
@@ -1195,14 +1427,16 @@ is non-NULL, in which case that is the function scope.
     /* Old-style list. */
     if (scope != NULL) {
       /* This is the definition, so put out the parameter names. */
-      for (;;) {
-        gen_variable_name(param_var);
-        /* Stop after the last parameter. */
-        param_var = param_var->next;
-        if (param_var == NULL) break;
-        /* Put out a separator and keep looping. */
-        write_str(", ");
-      }  /* for */
+      if (param_var != NULL) {
+        for (;;) {
+          gen_variable_name(param_var);
+          /* Stop after the last parameter. */
+          param_var = param_var->next;
+          if (param_var == NULL) break;
+          /* Put out a separator and keep looping. */
+          write_str(", ");
+        }  /* for */
+      }  /* if */
     }  /* if */
   } else {
     /* Prototyped list. */
@@ -1997,6 +2231,7 @@ Generate code for the indicated switch statement.
 */
 {
   a_statement_ptr saved_switch_statement = curr_switch_statement;
+  a_statement_ptr body_statement;
 
   write_str("switch (");
   gen_expression(statement->expr);
@@ -2005,7 +2240,24 @@ Generate code for the indicated switch statement.
      that correspond to case labels turn up, the case labels will be
      emitted. */
   curr_switch_statement = statement;
-  gen_statement(statement->variant.switch_stmt.body_statement);
+  body_statement = statement->variant.switch_stmt.body_statement;
+  if (body_statement != NULL ||
+      statement->variant.switch_stmt.clause_list == NULL) {
+    gen_statement(body_statement);
+  } else {
+    /* For a case like
+         switch (i) case 1: i = 1;
+       in C, make sure the switch clause gets dumped out. */
+    a_switch_clause_ptr scp;
+    if (curr_source_seq_entry_is_for_switch_clause(&scp)) {
+      /* gen_switch_clause is not used because we don't have a statement
+         list and we don't want a "break" at the end. */
+      gen_case_label(scp);
+      gen_statement(scp->statements);
+    } else {
+      unexpected_condition_str("gen_switch_statement: missing switch clause");
+    }  /* if */
+  }  /* if */
   curr_switch_statement = saved_switch_statement;
 }  /* gen_switch_statement */
 
@@ -2309,7 +2561,7 @@ entry if sec_decl is non-NULL.
 }  /* set_decl_position */
 
 
-static void gen_type_decl(a_type_ptr               type,
+static void gen_type_decl(a_type_ptr                   type,
                           a_src_seq_secondary_decl_ptr sec_decl)
 /*
 Generate a declaration of the indicated type.  If sec_decl is non-NULL,
@@ -2319,28 +2571,44 @@ information about the secondary declaration.
 {
   a_type_kind kind = type->kind;
 
-  /* Position the output file to the declaration position. */
-  set_decl_position(&type->source_corresp, sec_decl);
-  if (sec_decl != NULL) {
-    /* For a secondary declaration, generate a reference to the type
-       instead of a definition. */
-    gen_type_reference(type);
-  } else if (kind == (a_type_kind)tk_typeref) {
-    /* A typedef definition. */
-    gen_typedef_definition(type);
-  } else if (kind == (a_type_kind)tk_integer) {
-    /* An enum type definition. */
-    gen_enum_definition(type);
+  /* Treat this type declaration as embedded in another declaration, and
+     do not put the declaration out at this point, if (a) the type is
+     unnamed or (b) we are inside a struct in C mode.  Ordinarily, it's
+     okay to render
+       struct A { int i; } x;     as
+       struct A { int i; }; struct A x;
+     but that's not legal in the cases listed above. */
+  if (!has_name(type) ||
+      (il_header.source_language == sl_C &&
+       class_scope_source_sequence_entry != NULL)) {
+    /* Do not process the declaration (yet). */
+  } else if (type->source_corresp.definition_put_out) {
+    /* The definition has already been put out, so don't do it again.
+       This can happen in C mode when one struct is defined inside another. */
   } else {
-    check_assertion_str(kind == (a_type_kind)tk_class ||
-                        kind == (a_type_kind)tk_struct ||
-                        kind == (a_type_kind)tk_union,
-                        "gen_type_decl: bad type on list");
-    /* A class type definition. */
-    gen_class_definition(type);
+    /* Position the output file to the declaration position. */
+    set_decl_position(&type->source_corresp, sec_decl);
+    if (sec_decl != NULL) {
+      /* For a secondary declaration, generate a reference to the type
+         instead of a definition. */
+      gen_type_reference(type);
+    } else if (kind == (a_type_kind)tk_typeref) {
+      /* A typedef definition. */
+      gen_typedef_definition(type);
+    } else if (kind == (a_type_kind)tk_integer) {
+      /* An enum type definition. */
+      gen_enum_definition(type);
+    } else {
+      check_assertion_str(kind == (a_type_kind)tk_class ||
+                          kind == (a_type_kind)tk_struct ||
+                          kind == (a_type_kind)tk_union,
+                          "gen_type_decl: bad type on list");
+      /* A class type definition. */
+      gen_class_definition(type);
+    }  /* if */
+    /* Finish the declaration. */
+    write_str(";");
   }  /* if */
-  /* Finish the declaration. */
-  write_str(";");
 }  /* gen_type_decl */
 
 
@@ -2399,7 +2667,12 @@ information about the secondary declaration.
   /* Position the output file to the declaration position. */
   set_decl_position(&var->source_corresp, sec_decl);
   /* Output the storage class. */
-  gen_storage_class(var->storage_class);
+  if (var->source_corresp.class_of_which_a_member != NULL) {
+    /* Static data member. */
+    write_str("static ");
+  } else {
+    gen_storage_class(var->storage_class);
+   }  /* if */
   /* Output the variable name and its type. */
   gen_type(var->type, &var->source_corresp);
   /* Output the initializer, if any. */
@@ -2491,15 +2764,21 @@ information about the secondary declaration.
   set_decl_position(&rout->source_corresp, sec_decl);
   /* Output the storage class. */
   storage_class = rout->storage_class;
-  /* The storage class in the entry is the definition storage class.
-     If this isn't the definition, adjust it. */
-  if (!is_definition) {
+  /* Determine the proper storage class to display. */
+  if (rout->source_corresp.class_of_which_a_member != NULL) {
+    /* Member function.  "static" means something else here. */
+    if (!is_definition || storage_class == (a_storage_class)sc_static) {
+      storage_class = (a_storage_class)sc_unspecified;
+    }  /* if */
+  } else if (!is_definition) {
+    /* The function is not defined (here), so use "extern". */
     if (storage_class != (a_storage_class)sc_static) {
       storage_class = (a_storage_class)sc_extern;
     }  /* if */
   }  /* if */
   gen_storage_class(storage_class);
   if (rout->is_inline) write_str("inline ");
+  if (rout->is_virtual) write_str("virtual ");
   /* Output the routine name and its type. */
   if (!is_definition) {
     /* A declaration of the routine. */
@@ -2518,9 +2797,8 @@ information about the secondary declaration.
     scope = il_header.region_scope_entry[scope_region_number];
     curr_function_scope = scope;
     /* Start at the beginning of the source sequence list for the function. */
-    func_scope_source_sequence_entry = 
-                                 first_signif_func_scope_source_sequence_entry
-                                                 (scope->source_sequence_list);
+    func_scope_source_sequence_entry = scope->source_sequence_list;
+    adv_to_signif_func_scope_source_sequence_entry();
     /* Generate the routine name and the parameter declarations. */
     gen_func_definition_type(rout, scope);
     /* Generate the body statement. */
@@ -2543,6 +2821,8 @@ Generate the declaration and advance to the next source sequence entry.
   a_source_sequence_entry_ptr ssep = func_scope_source_sequence_entry;
   char                        *entity_ptr = ssep->entity.ptr;
 
+  /* Advance to the next source sequence entry. */
+  (void)next_func_scope_source_sequence_entry();
   switch (ssep->entity.kind) {
     case iek_type:
       gen_type_decl((a_type_ptr)entity_ptr,
@@ -2571,8 +2851,6 @@ Generate the declaration and advance to the next source sequence entry.
               "gen_curr_func_declaration: bad entity kind on source seq list");
   }  /* switch */
   write_str(" ");
-  /* Advance to the next source sequence entry. */
-  (void)next_func_scope_source_sequence_entry();
 }  /* gen_curr_func_declaration */
 
 
@@ -2584,6 +2862,7 @@ points to the entry for the secondary declaration.
 */
 {
   char *entity_ptr = sec_decl->entity.ptr;
+
   switch (sec_decl->entity.kind) {
     case iek_type:
       gen_type_decl((a_type_ptr)entity_ptr, sec_decl);
@@ -2608,6 +2887,9 @@ list pointer.
 */
 {
   char *entity_ptr = ssep->entity.ptr;
+
+  /* Advance to the next file-scope entry. */
+  (void)next_file_scope_source_sequence_entry();
   switch (ssep->entity.kind) {
     case iek_type:
       gen_type_decl((a_type_ptr)entity_ptr,
@@ -2639,8 +2921,6 @@ list pointer.
                   "gen_file_scope_entity: bad entity kind on source seq list");
   }  /* switch */
   write_str(" ");
-  /* Advance to the next file-scope entry. */
-  (void)next_file_scope_source_sequence_entry();
 }  /* gen_file_scope_entity */
 
 
@@ -2652,8 +2932,8 @@ Process all the file scope entities, and everything under those.
   /* Use the global-scope source sequence list to visit all the right
      entries in the right order. */
   file_scope_source_sequence_entry =
-                           first_signif_file_scope_source_sequence_entry
-                               (il_header.primary_scope->source_sequence_list);
+                                 il_header.primary_scope->source_sequence_list;
+  adv_to_signif_file_scope_source_sequence_entry();
   while (file_scope_source_sequence_entry != NULL) {
     /* Generate one entity. */
     gen_file_scope_entity(file_scope_source_sequence_entry);
@@ -2712,11 +2992,11 @@ Initialize for the C++/C-generating back end.
   error_position.column = SP_COL_UNKNOWN;
   /* Output position is unknown. */
   curr_output_file = NULL;
-  curr_output_line = 0;
   curr_output_seq_number = 0;
   curr_output_column = 0;  /* Special value meaning there is no output line. */
   file_scope_source_sequence_entry = NULL;
   func_scope_source_sequence_entry = NULL;
+  class_scope_source_sequence_entry = NULL;
   curr_function_scope = NULL;
   curr_scope_within_function = NULL;
   curr_switch_statement = NULL;
