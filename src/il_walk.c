@@ -2794,9 +2794,11 @@ as specified in the control block.
       { a_switch_clause_ptr scp;
         traverse_expr(statement->expr, tblock);
         if (tblock->terminate) goto end_of_routine;
-        traverse_statement(statement->variant.switch_stmt.body_statement,
-                           tblock);
-        if (tblock->terminate) goto end_of_routine;
+        if (statement->variant.switch_stmt.body_statement != NULL) {
+          traverse_statement(statement->variant.switch_stmt.body_statement,
+                             tblock);
+          if (tblock->terminate) goto end_of_routine;
+        }  /* if */
         for (scp = statement->variant.switch_stmt.clause_list;
              scp != NULL;
              scp = scp->next) {
