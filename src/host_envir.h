@@ -616,10 +616,6 @@ extern DOES_NOT_RETURN exit_compilation(an_error_severity severity);
 /* Set up signal handlers. */
 extern void set_signal_handlers(void);
 
-#ifdef NEED_F_SIZE_T_ARG
-size_t f_size_t_arg(sizeof_t arg);
-#endif /* ifdef NEED_F_SIZE_T_ARG */
-
 #endif /* ifndef HOST_ENVIR_H */
 
 /******************************************************************************
