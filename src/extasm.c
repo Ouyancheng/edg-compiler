@@ -207,7 +207,9 @@ placemarker" values.
       /* Modifiers ignored in asm(): */
       case '%':  case '*':  case '#':  case '?':  case '!':
         errletter[0] = *p;
+#if !ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS
         pos_st_warning(ec_asm_modifier_ignored, &operand->position, errletter);
+#endif /* !ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS */
         break;
       default:
         goto done_with_modifiers;
@@ -382,11 +384,13 @@ done_with_modifiers:
 #endif /* GNU_X86_ASM_EXTENSIONS_ALLOWED */
       default:
         errletter[0] = *p;
+#if !ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS
         pos_st_error(ispunct((unsigned char)*p) ? 
                      ec_bad_asm_constraint_modifier : 
                      ec_bad_asm_constraint_letter,
                      &operand->position, errletter);
         error_occurred = TRUE;
+#endif /* !ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS */
         break;
     }  /* switch */
     /* Create a new constraint and add it to the list.  */
@@ -494,7 +498,7 @@ even if they are invalid.
 #if ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS
           /* Ignore entries for unrecognized registers. */
           if (r == (a_named_register)anr_unrecognized) continue;
-#endif /* ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS */
+#else /* !ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS */
           /* Test used == 1 so the error is issued once per register. */
           if (r != (a_named_register)anr_invalid &&
               ((input && regs_used_in[(int)r] == 1) ||
@@ -502,6 +506,7 @@ even if they are invalid.
             pos_st_error(ec_register_used_twice, &operand->position,
                          named_register_names[(int)r]);
           }  /* if */
+#endif /* ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS */
           if (input) ++regs_used_in[(int)r];
           if (output) ++regs_used_out[(int)r];
         }  /* if */
@@ -513,7 +518,7 @@ even if they are invalid.
 #if ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS
     /* Ignore entries for unrecognized registers. */
     if (r == (a_named_register)anr_unrecognized) continue;
-#endif /* ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS */
+#else /* !ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS */
     /* Test used and not clobbered so the error is issued once per register. */
     if ((regs_used_in[(int)r] || regs_used_out[(int)r]) &&
         !regs_clobbered[(int)r]) {
@@ -523,6 +528,7 @@ even if they are invalid.
                regs_clobbered[(int)r] == 1) {
       str_error(ec_register_clobbered_twice, named_register_names[(int)r]);
     }  /* if */
+#endif /* ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS */
     regs_clobbered[(int)r]++;
   }  /* for */
   for (i = 0; fixed_registers[i] != (a_named_register)anr_last; i++) {
@@ -530,12 +536,13 @@ even if they are invalid.
 #if ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS
     /* Ignore entries for unrecognized registers. */
     if (r == (a_named_register)anr_unrecognized) continue;
-#endif /* ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS */
+#else /* !ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS */
     if (regs_used_in[(int)r] || regs_used_out[(int)r]) {
       str_error(ec_fixed_register_used, named_register_names[(int)r]);
     } else if (regs_clobbered[(int)r]) {
       str_error(ec_fixed_register_clobbered, named_register_names[(int)r]);
     }  /* if */
+#endif /* ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS */
   }  /* for */
 }  /* validate_operands_and_clobbers */
 
