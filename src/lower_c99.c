@@ -1194,8 +1194,10 @@ Replace the given enk_runtime_sizeof node by an expression representing the
 number of bytes of the VLA type underlying the sizeof expression.
 */
 {
+#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
   an_expr_node_ptr  byte_count;
   a_type_ptr        vla_type;
+#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
 
   if (!expr->variant.runtime_sizeof.is_type) {
     lower_c99_expr(expr->variant.runtime_sizeof.variant.expr,
