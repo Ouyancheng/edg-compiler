@@ -8772,6 +8772,8 @@ placeholder.
              point at which the class should go, and that's where promotion
              of class members should happen, so do nothing now except taking
              the type out of the list. */
+          /* Note that for the case of a nested class of a class template
+             the class is on its parent class's type list. */
 #if DEBUG
           if (debug_level >= 4) {
             (void)fprintf(f_debug, "Taking instantiation out of list: ");
@@ -8780,7 +8782,8 @@ placeholder.
           }  /* if */
 #endif /* DEBUG */
           check_assertion(scope->kind == (a_scope_kind)sck_file ||
-                          scope->kind == (a_scope_kind)sck_namespace);
+                          scope->kind == (a_scope_kind)sck_namespace ||
+                          scope->kind == (a_scope_kind)sck_class_struct_union);
           do_unlink = TRUE;
         } else if (type->variant.class_struct_union.
                                       nested_class_defined_outside_of_parent) {
