@@ -2720,6 +2720,7 @@ the file is flagged as requiring recompilation.
       while (psp != NULL) {
         a_boolean		remove_from_request_file = FALSE;
         a_boolean		recompile_file = FALSE;
+        a_boolean		remove_one_inst_per_obj_file = FALSE;
         if (psp->multiple_definition || psp->do_not_instantiate) {
           /* An existing instantiation should be removed.  A symbol will
 	     be multiply defined when a new specialization has been
@@ -2740,6 +2741,9 @@ the file is flagged as requiring recompilation.
              when a file that was assigned a given instantiation no
              longer requires that particular instantiation. */
           remove_from_request_file = TRUE;
+          /* Only remove the one-instantiation-per-object object file
+             if it is not defined somewhere else. */
+          remove_one_inst_per_obj_file = psp->defined_in == NULL;
           recompile_file = TRUE;
         } else if (!psp->is_template) {
           /* The symbol no longer represents a template.  Remove it from the
@@ -2755,6 +2759,7 @@ the file is flagged as requiring recompilation.
 #endif /* 0 */
           remove_from_request_file = TRUE;
           recompile_file = TRUE;
+          remove_one_inst_per_obj_file = TRUE;
         } else {
           /* Mark this symbol has having been instantiated. */
           psp->instantiated = TRUE;
@@ -2779,7 +2784,8 @@ the file is flagged as requiring recompilation.
           /* This code has to be disabled when one instantiation per object
              is not enabled because the routine to generate the instantiation
              file name is not present. */
-          if (one_instantiation_per_object) {
+          if (one_instantiation_per_object &&
+              remove_one_inst_per_obj_file) {
             /* In one instantiation per object mode, remove the file
                associated with the instantiation that is no longer
                needed. */

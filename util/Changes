@@ -1,5 +1,14 @@
 Version 2.46
 
+8/2/01   Prelinker: removal of one-instantiation-per-object files
+
+The prelinker removes object files created in one-instantiation-per-object
+mode when it detects the files are no longer needed.  If an explicit
+instantiation of a template was added to some other file, the prelinker
+could mistakenly remove the object created by the compilation of the
+other file.  This could result in a prelinker loop or other incorrect
+behavior.  This has been fixed.
+
 7/19/01  Prelinker: handling of internal errors
 
 The prelinker now uses the front end configuration flag EXIT_ON_INTERNAL_ERROR
