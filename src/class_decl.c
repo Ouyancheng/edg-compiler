@@ -5391,33 +5391,31 @@ class/struct/union is actually defined.
            scope (i.e., is allocated in the function scope memory region and
            is on the function scope's types list) and that points to the class
            type itself in the file scope. */
-        a_type_ptr tp;
+        a_type_ptr  tag_typeref_type = NULL;
 
         /* Switch to the function scope region before allocating the "tag
            typeref" type entry, and switch back afterwards. */
         switch_to_function_scope_region(&region_to_switch_back_to);
-        tp = alloc_type((a_type_kind)tk_typeref);
+        tag_typeref_type = alloc_type((a_type_kind)tk_typeref);
         switch_back_to_original_region(region_to_switch_back_to);
-        tp->variant.typeref.type = class_type;
-        tp->variant.typeref.is_function_scope_tag = TRUE;
-        set_source_corresp(&(tp->source_corresp), tag_sym);
-        /* The tag symbol will point to the typeref type, which is in the
-           the current scope, rather than to the class type.  This assures
-           that the IL will reflect more closely the original source when
-           the class name is used in a declaration. */
-        tag_sym->variant.class_struct_union.type = tp;
-      } else {
-        tag_sym->variant.class_struct_union.type = class_type;
+        tag_typeref_type->variant.typeref.type = class_type;
+        tag_typeref_type->variant.typeref.is_function_scope_tag = TRUE;
+        set_source_corresp(&(tag_typeref_type->source_corresp), tag_sym);
+        add_to_types_list(tag_typeref_type, effective_decl_level,
+                          in_old_style_param_decl_list);
       }  /* if */
     } else {
       /* Tagless class, struct, or union.  Create a symbol to represent it;
-         though not be entered in the symbol table, it is needed to carry
-         around some information about classes that of interest to the front
-         end only. */
-      tag_sym = make_unnamed_class_symbol(tag_kind, class_type,
-                                          &pos_curr_token);
-      tag_sym->variant.class_struct_union.type = class_type;
+         though not entered in the symbol table, it is needed to carry
+         around some information about classes that is of interest to the
+         front end only. */
+      tag_sym = make_unnamed_class_symbol(tag_kind, &pos_curr_token);
+      /* Although the symbol header has a name of sorts, it should not appear
+         in the type, so NULL it out after the call to set_source_corresp. */
+      set_source_corresp(&(class_type->source_corresp), tag_sym);
+      class_type->source_corresp.name = NULL;
     }  /* if */
+    tag_sym->variant.class_struct_union.type = class_type;
     if (C_dialect == C_dialect_cplusplus) {
       /* In C classes have no linkage.  In C++ classes have either internal
          linkage or, for classes declared at file scope and with other
@@ -5430,7 +5428,7 @@ class/struct/union is actually defined.
     }  /* if */
   } else {
     /* Using an existing type.  Fetch the type pointer from it. */
-    class_type = skip_typerefs(tag_sym->variant.class_struct_union.type);
+    class_type = tag_sym->variant.class_struct_union.type;
     /* Record cross-reference information. */
     if (curr_token == tok_lbrace ||
         (C_dialect == C_dialect_cplusplus && curr_token == tok_colon)) {
@@ -5588,15 +5586,6 @@ class/struct/union is actually defined.
         add_stop_token(tok_colon);
         (void)decl_specifiers(dsi_flags, &dso_flags, &member_storage_class,
                               &member_type);
-        /* Strip off any typerefs that represent function scope pointers
-           to file scope types. */
-        while (member_type->kind == (a_type_kind)tk_typeref &&
-               member_type->variant.typeref.is_function_scope_tag) {
-          member_type = member_type->variant.typeref.type;
-        }  /* while */
-        /* Make a copy in the file scope.  This is necessarily mainly for
-           arrays. */
-        member_type = make_file_scope_type(member_type);
         dangling_type_specifier = dso_flags & DSO_DANGLING_TYPE_SPECIFIER;
         local_defines_something = dso_flags & DSO_DEFINES_SOMETHING;
         local_declares_something = dso_flags & DSO_DECLARES_SOMETHING;
@@ -5998,10 +5987,6 @@ next_declaration:
          pop_scope; they get added at the end of the scope. */
       add_to_types_list(class_type, DEPTH_OF_FILE_SCOPE,
                         /*in_old_style_param_decl_list=*/FALSE);
-      if (tag_sym->variant.type != class_type) {
-        add_to_types_list(tag_sym->variant.type, effective_decl_level,
-                          in_old_style_param_decl_list);
-      }  /* if */
     }  /* if */
     /* Save a pointer to the list of member symbols in the tag symbol.  Note
        that there may be symbols even if there there were no declarations,
