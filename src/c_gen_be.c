@@ -4769,9 +4769,11 @@ parameters.
   a_boolean      has_magic_name, suppress_const = FALSE;
   char           *name;
   an_init_kind   init_kind;
-#if !C_GEN_BE_GENERATES_ANSI_C
+#if C_GEN_BE_GENERATES_ANSI_C
+  a_type_ptr     underlying_var_type;
+#else /* !C_GEN_BE_GENERATES_ANSI_C */
   a_boolean      forced_static;
-#endif /* !C_GEN_BE_GENERATES_ANSI_C */
+#endif /* C_GEN_BE_GENERATES_ANSI_C */
   a_storage_class
                  storage_class = variable->storage_class;
   a_boolean      forced_referenced;
@@ -4906,16 +4908,27 @@ parameters.
 #endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if C_GEN_BE_GENERATES_ANSI_C
-      if (variable->initialization_rewritten_as_assignment ||
-          (init_kind == (an_init_kind)initk_dynamic && init_con == NULL)) {
+      underlying_var_type = var_type;
+      if (is_array_type(var_type)) {
+        underlying_var_type = underlying_array_element_type(var_type);
+      }  /* if */
+      underlying_var_type = skip_typerefs(underlying_var_type);
+      if (is_class_struct_union_type(underlying_var_type) &&
+          underlying_var_type->variant.class_struct_union.any_mutable_member) {
+        /* When the variable has a class type with a mutable member,
+           suppress const so the variable will not be put into read-only
+           storage. */
+        suppress_const = TRUE;
+      } else if (variable->initialization_rewritten_as_assignment ||
+                 (init_kind == (an_init_kind)initk_dynamic &&
+                  init_con == NULL)) {
         /* When generating ANSI C, "const" will be put out.  However, if
            the variable's initialization was turned into executable code
            (either here or in IL lowering), the initialization code is
            going to have problems assigning to a "const" entity.  For those
            cases, suppress the "const" from the variable type. */
         suppress_const = TRUE;
-      }  /* if */
-      if (is_void_type(var_type) && is_const_qualified_type(var_type)) {
+      } else if (is_void_type(var_type) && is_const_qualified_type(var_type)) {
         /* A declaration like "extern const void x;" is valid ANSI/ISO C,
            but some compilers don't like it, so remove the "const". */
         suppress_const = TRUE;

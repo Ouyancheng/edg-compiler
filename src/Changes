@@ -1,5 +1,12 @@
 Version 2.38
 
+11/27/97  C-generating back end: const classes with mutable members
+
+The C-generating back end now suppresses "const" on definitions of
+variables with const class type, where the class type has a mutable
+member.  This prevents the underlying C compiler from putting the
+variable into read-only storage.
+
 11/27/97  Inlining of function containing char array initialized to string
 
 When MINIMAL_INLINING is enabled, an attempt to inline a function that
