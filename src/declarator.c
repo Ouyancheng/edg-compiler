@@ -899,11 +899,13 @@ scope is that of a class definition.
         pos_error(ec_bad_asm_func_ellipsis, &pos_curr_token);
       } else
 #endif /* ASM_FUNCTION_ALLOWED */
+#if ALLOW_ELLIPSIS_ONLY_PARAM_IN_C_MODE
       if (C_mode() && strict_ansi_mode) {
         /* Issue a diagnostic on use of a nonstandard feature. */
         pos_diagnostic(strict_ansi_error_severity,
                        ec_nonstd_ellipsis_only_param, &pos_curr_token);
       }  /* if */
+#endif /* ALLOW_ELLIPSIS_ONLY_PARAM_IN_C_MODE */
     }  /* if */
     /* Advance past the ellipsis. */
     (void)get_token();
