@@ -614,21 +614,23 @@ request file if names were not provided on the command line.
          based on the primary source file name. */
       template_info_file_name = 
             derived_name(primary_source_file_name, TEMPLATE_INFO_FILE_SUFFIX);
-      /* The name of the instantiation request file can be specified on the
-         command line.  If none is specified, then a default name is
-         generated. */
-      if (ii_file_name != NULL) {
-        instantiation_request_file_name = ii_file_name;
-      } else {
-        instantiation_request_file_name =
-            derived_name(primary_source_file_name, INSTANTIATION_FILE_SUFFIX);
-      }  /* if */
     } else {
       /* If the input is coming from standard input and no template information
          file name was specified, use a default value.  This should be
          supplied by the driver, so this is only intended for testing
          purposes. */
       template_info_file_name = "default.ti";
+    }  /* if */
+  }  /* if */
+  /* The name of the instantiation request file can be specified on the
+     command line.  If none is specified, then a default name is
+     generated.  This file is only used when input is coming from a file. */
+  if (strcmp(primary_source_file_name, FILE_NAME_FOR_STDIN) != 0) {
+    if (ii_file_name != NULL) {
+      instantiation_request_file_name = ii_file_name;
+    } else {
+      instantiation_request_file_name =
+          derived_name(primary_source_file_name, INSTANTIATION_FILE_SUFFIX);
     }  /* if */
   }  /* if */
 }  /* generate_template_file_names */
