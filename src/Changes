@@ -52,7 +52,7 @@ MSVC++ 6.0 were more complicated than we thought.
 
 8/21/01  Templates referenced from prototype instantiations
 
-The instantiation required was flag template functions and static data
+The instantiation required flag for template functions and static data
 members was being set for references from prototype instantiations.  Such
 references should not result in the setting of the flag.  This has
 been fixed.
