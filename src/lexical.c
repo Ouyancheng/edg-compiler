@@ -5706,7 +5706,7 @@ the kind of token.
   register char	ch;
   register enum {k_decimal, k_octal, k_hex, k_fixed_point, k_float} kind;
 #if !FIXED_POINT_EXTENSIONS_ALLOWED
-    /*lint -esym(769,k_fixed_point)*/
+    /*lint -esym(749,k_fixed_point)*/
 #endif /* !FIXED_POINT_EXTENSIONS_ALLOWED */
   register a_token_kind 
 		ctoken;
