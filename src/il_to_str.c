@@ -2882,6 +2882,15 @@ confusion.  Do the output in the way described by octl.
           }  /* if */
           /*FALLTHROUGH*/
         case tpck_unknown_function:
+          if (constant->variant.template_param.variant.conversion_type!=NULL) {
+            /* The associated function is a conversion function.  Generate
+               its name from the type. */
+            octl->output_str("operator ");
+            form_type(constant->variant.template_param.variant.conversion_type,
+                      octl);
+            break;
+          }  /* if */
+          /*FALLTHROUGH*/
         case tpck_param:
           form_name(&constant->source_corresp, iek_constant, octl);
           break;
