@@ -2729,7 +2729,8 @@ precedence confusion.  Do the output in the way described by octl.
   }  /* if */
   /* See if we need a final cast to the desired type. */
   direct_achieved_type = skip_typedefs(achieved_type);
-  direct_desired_type = skip_typedefs(desired_type);
+  direct_desired_type = (desired_type == NULL) ? (a_type_ptr)NULL
+                                               : skip_typedefs(desired_type);
   if (desired_type == NULL ||
       !same_entities(direct_achieved_type, direct_desired_type)) {
     if (!constant->implicit_cast &&
