@@ -3606,7 +3606,7 @@ value.  Several fields are cleared or adjusted.
         kind == (a_template_param_constant_kind)tpck_unknown_function) {
       /* For some template parameter constants, the name in the source
          correspondence is part of the value.  It was cleared by
-         break_source_correspondence, so restore it. */
+         break_source_corresp, so restore it. */
       ucp->source_corresp.name = cp->source_corresp.name;
       ucp->source_corresp.is_class_member = cp->source_corresp.is_class_member;
       ucp->source_corresp.member_of_unknown_base =
