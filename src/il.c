@@ -10997,7 +10997,12 @@ the case if the return type was incomplete at the point of definition.
                                            (a_byte_il_entry_kind)iek_type,
                                            err_pos);
         } else if (!symbol_supplement_for_class(return_type)->
-                                        construction_by_bitwise_copy_allowed) {
+                                        construction_by_bitwise_copy_allowed
+#if IA64_ABI
+                   || symbol_supplement_for_class(return_type)->
+                                                          destructor != NULL
+#endif /* IA64_ABI */
+                                                                            ) {
           rtsp->value_returned_by_cctor = TRUE;
           /* If the return type is an abstract class, issue an error.  Note
              that construction_by_bitwise_copy_allowed will never be TRUE
