@@ -2160,7 +2160,7 @@ is called.
     invisible = TRUE;
     if (!type_is_publicly_accessible(underlying_type)) {
       /* The underlying type is not generally accessible, but if we're inside
-         the scope of the underlying types's containing class, we will still
+         the scope of the underlying type's containing class, we will still
          have access. */
       a_type_ptr parent_of_underlying_type =
                              underlying_type->source_corresp.parent.class_type;
