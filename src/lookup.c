@@ -2608,7 +2608,7 @@ that do normal id lookup processing.
     fprintf(f_debug, "common=%d\n", common_depth);
   }  /* if */
 #endif /* DEBUG */
-  if (do_dependent_name_processing || gpp_dependent_name_lookup) {
+  if (do_dependent_name_processing) {
     /* Only consider names visible at the point at which the template was
        defined. */
     lookup_state->decl_seq = get_effective_decl_seq();

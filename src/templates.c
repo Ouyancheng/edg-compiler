@@ -1114,20 +1114,21 @@ itself recursively to process classes nested within this class.
         /* Simply add the function to the instantiation list, without setting
            the flag. */
         a_boolean	flag_value = FALSE;
-#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
         { a_routine_ptr	templ_rout;
           /* The instantiation required flag is set for virtual functions
-             when generating class template instantiation information in the
-             source sequence lists.  This is necessary when using the C++
-             generating back end in this mode because inline virtual functions
-             must have definitions. */
+             in g++ mode.  It is also set when generating class template instantiation
+             information in the source sequence lists.  This is necessary when using the C++
+             generating back end in this mode because inline virtual functions must have
+             definitions. */
           templ_rout = sym->variant.routine.ptr;
+#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
           if (templ_rout->is_virtual && templ_rout->is_inline) {
             flag_value = TRUE;
           }  /* if */
-        }
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-        set_instance_required(sym, flag_value, SIR_DEFER_INLINE);
+          if (gpp_mode && templ_rout->is_virtual) flag_value = TRUE;
+        }
+        set_instance_required(sym, flag_value, SIR_DEFER_INLINE | SIR_GPP_FORCE_INLINE);
       }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
@@ -17328,8 +17329,10 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
   db_enter(5, "update_instantiation_required_flag");
   defer_inline = (options & SIR_DEFER_INLINE) != 0;
   /* Inline functions are not treated differently for instantiation purposes
-     in Microsoft mode. */
-  if (microsoft_bugs) defer_inline = TRUE;
+     in Microsoft mode and g++ mode.  However, in g++ mode virtual functions
+     are instantiated when the enclosing class is defined. */
+  if (microsoft_bugs || gpp_mode) defer_inline = TRUE;
+  if (gpp_mode && (options & SIR_GPP_FORCE_INLINE)) defer_inline = FALSE;
   sym = tip->instance_sym;
   tssp = template_supplement_for_symbol(tip->template_sym);
 #if DEBUG
