@@ -1361,26 +1361,13 @@ constants, which must have the form of a qualified name).
 }  /* gen_name */
 
 
-static void gen_decl_name(a_source_correspondence *scp,
-                          an_il_entry_kind        entry_kind)
 /*
 Output the name of the entity whose source correspondence information
 is given by scp.  This name is being declared in this use.  entry_kind
 indicates the IL entry kind.  If the entity is unnamed, generate a name.
-If the entity is a class member, generate a qualified name (if required
-in the current name context).
 */
-{
-  /* Write the name. */
-  if (!scp->is_class_member) {
-    /* For a non class member, don't go through gen_name because we
-       don't want a leading "::" on the name. */
-    gen_unqualified_name(scp, entry_kind);
-  } else {
-    /* Class member. */
-    gen_name(scp, entry_kind, /*force_qualified_name=*/FALSE);
-  }  /* if */
-}  /* gen_decl_name */
+#define gen_decl_name(scp, entry_kind)                                \
+  gen_name((scp), (entry_kind), /*force_qualified_name=*/FALSE);
 
 
 /* Interface routines to gen_name. */
