@@ -5556,6 +5556,8 @@ constant_accumulated:
             pp-number nondigit
             pp-number e sign
             pp-number E sign
+            pp-number p sign    (C99)
+            pp-number P sign    (C99)
             pp-number .
 
      digit is any decimal digit (0-9).
@@ -5566,9 +5568,11 @@ constant_accumulated:
   if ((strict_ansi_mode || fetch_pp_tokens) && C_dialect != C_dialect_pcc) {
     while (is_id_char[(ch = *curr_char_loc)-CHAR_MIN] || ch == '.' ||
            ((ch == '+' || ch == '-') &&
-            ((ch = *(curr_char_loc-1)) == 'e' || ch == 'E'))) {
-      /* 0-9, a-z, A-Z, "_", ".", or sign preceded by "e" or "E".
-         Keep accumulating. */
+            ((ch = *(curr_char_loc-1)) == 'e' || ch == 'E' ||
+             (hex_floating_point_constants_allowed &&
+              (ch == 'p' || ch == 'P'))))) {
+      /* 0-9, a-z, A-Z, "_", ".", or sign preceded by "e" or "E" or "p"
+         or "P".  Keep accumulating. */
       curr_char_loc++;
     }  /* while */
 #if DEBUG

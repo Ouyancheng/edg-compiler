@@ -1,5 +1,13 @@
 Version 2.46
 
+7/17/01  "p" and "P" in pp-numbers when hex floating-point literals accepted
+
+In strict mode, when hexadecimal floating-point constants are
+accepted (e.g., in C99 mode), the sequences "p+", "p-", "P+" and
+and "P-" are allowed as part of preprocessing numbers.  The
+front end now implements that.  This has little if any visible effect
+on the set of valid programs.
+
 7/13/01  Information on object type in overload resolution errors
 
 Overload resolution errors now list the type of the object in
