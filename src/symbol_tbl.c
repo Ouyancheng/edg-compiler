@@ -7868,6 +7868,8 @@ Indicate that the given symbol is defined.  The source position will be
 recorded in the symbol as its "decl_position" (overwriting what's there
 already, if necessary); the same will be done for the decl_position field of
 the IL entry.  A cross-reference entry for a definition will be put out.
+If source sequence entries are being generated, ssep may point to an "empty"
+entry already created for this entity; otherwise, it is NULL.
 */
 {
   a_source_correspondence *scptr;
@@ -7925,7 +7927,9 @@ void f_mark_declared(a_symbol_ptr                 sym_ptr,
                      a_source_position            *source_position,
                      a_source_sequence_entry_ptr  ssep)
 /*
-Indicate that the given symbol is declared at the given position.
+Indicate that the given symbol is declared at the given position.  If source
+sequence entries are being generated, ssep may point to an "empty" entry
+already created for this entity; otherwise, it is NULL.
 */
 {
   if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH) {
@@ -7935,6 +7939,7 @@ Indicate that the given symbol is declared at the given position.
       write_xref_entry(SRK_DECLARATION, sym_ptr, source_position);
     }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
+    /* Record the declaration in the source sequence list. */
     sym_update_source_sequence_list(sym_ptr, source_position,
                                     /*is_primary_decl=*/FALSE, ssep);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
