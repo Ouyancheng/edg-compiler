@@ -180,7 +180,7 @@ to be compiled.
 #define AUTOMATIC_TEMPLATE_INSTANTIATION TRUE
 #endif /* ifndef AUTOMATIC_TEMPLATE_INSTANTIATION */
 
-#ifdef AUTOMATIC_TEMPLATE_INSTANTIATION
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
 /*
 Flag that is TRUE if automatic instantiation processing is to be performed
 by default.  This flag does not affect whether code is compiled but
