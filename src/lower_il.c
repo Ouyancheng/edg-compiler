@@ -8436,6 +8436,7 @@ original expressions have not been lowered yet.
           }  /* if */
         }  /* if */
       }  /* if */
+      internal_error("lower_array_new: bad size expr");
 check_okay:;
 #endif /* CHECKING */
       /* Remove the multiplication, leaving the original first operand
