@@ -2358,7 +2358,7 @@ typedef struct a_class_member_using_decl {
 		hidden;
 			/* TRUE if a base class member brought into a derived
 			   class by a using-declaration is subsequently
-			   hidden by declaration in the derived class. */
+			   hidden by a declaration in the derived class. */
   a_tagged_pointer
 		entity;
 			/* The entity (field, function, member type, etc.)
