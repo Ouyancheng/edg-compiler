@@ -5,9 +5,9 @@ stdexcept.h -- Include file for exception handling (see 19.1.1)
 #ifndef _STDEXCEPT_H
 #define _STDEXCEPT_H
 
-#if 0
+#if __EDG_RUNTIME_USES_NAMESPACES
 namespace std {
-#endif /* 0 */
+#endif /* __EDG_RUNTIME_USES_NAMESPACES */
   class exception {
   public:
     exception() throw();
@@ -15,9 +15,9 @@ namespace std {
     virtual ~exception() throw();
     virtual const char* what() const throw();
   };
-#if 0
+#if __EDG_RUNTIME_USES_NAMESPACES
 }  /* namespace std */
-#endif /* 0 */
+#endif /* __EDG_RUNTIME_USES_NAMESPACES */
 
 #endif /* _STDEXCEPT_H */
 

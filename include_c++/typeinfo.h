@@ -16,9 +16,9 @@ typedef bool _bool;
 typedef int _bool;
 #endif /* ifdef _BOOL */
 
-#if 0
+#if __EDG_RUNTIME_USES_NAMESPACES
 namespace std {
-#endif /* 0 */
+#endif /* __EDG_RUNTIME_USES_NAMESPACES */
 /* The following pragma is used so that the compiler knows that this definition
    of type_info is the one that corresponds to the type returned by typeid. */
 #pragma define_type_info
@@ -58,8 +58,8 @@ namespace std {
     virtual const char* what() const throw();
   };
 
-#if 0
+#if __EDG_RUNTIME_USES_NAMESPACES
 }  /* namespace std */
-#endif /* 0 */
+#endif /* __EDG_RUNTIME_USES_NAMESPACES */
 
 #endif /* _TYPEINFO_H */
