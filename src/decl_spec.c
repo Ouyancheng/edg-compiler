@@ -2424,8 +2424,8 @@ to indicate whether an enumeration is actually defined.
         } else {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if DEBUG
-          if (debug_level >= 4) {
-            fprintf(f_debug, "adding empty ss entry for enum_con \"%s\":\n",
+          if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
+            fprintf(f_debug, "enum_specifier: empty ss entry for \"%s\":\n",
                     locator_for_curr_id.symbol_header->identifier);
           }  /* if */
 #endif /* DEBUG */

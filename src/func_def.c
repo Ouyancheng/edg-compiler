@@ -982,6 +982,15 @@ and for the instantiation of template functions.
 
       stack_ptr = &scope_stack[DEPTH_OF_FILE_SCOPE];
       ssep = func_info->prototype_scope_ss_list;
+#if DEBUG
+      if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
+        if (ssep != NULL) {
+          fputs("scan_function_body: fixing up func prototype ss list:\n",
+                f_debug);
+          db_ss_list(ssep);
+        }  /* if */
+      }  /* if */
+#endif /* DEBUG */
       for (; ssep != NULL; ssep = next_ssep) {
         next_ssep = ssep->next;
         ssep->prev = ssep->next = NULL;
@@ -996,6 +1005,13 @@ and for the instantiation of template functions.
             for (; param_id != NULL; param_id = param_id->next) {
               if (param_id->source_sequence_entry == ssep) break;
             }  /* for */
+#if DEBUG
+            if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
+              fprintf(f_debug, "%sparam_id match for ",
+                               param_id == NULL ? "no " : "");
+              db_source_sequence_entry(ssep);
+            }  /* if */
+#endif /* DEBUG */
             if (param_id == NULL) {
               /* This source sequence entry is not associated with one of the
                  parameters.  For instance:
@@ -1020,6 +1036,8 @@ and for the instantiation of template functions.
             /* No action. */
         }  /* switch */
       }  /* for */
+      /* Just to be neat. */
+      func_info->prototype_scope_ss_list = NULL;
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     if (func_info->any_prototype_names_omitted) {
