@@ -649,12 +649,24 @@ requires cleanup.
 
     ehrdp = &ehsep->variant.function.regions[region];
     flags = ehrdp->flags;
+#if DEBUG
+    if (__debug_level >= 2) {
+      fprintf(__f_debug, "Region: %d, descr address=%p\n", region,
+              (void*)ehrdp);
+      db_eh_region_descr(ehrdp);
+    }  /* if */
+#endif /* DEBUG */
     if (flags & RDF_CONDITIONAL_FLAG) {
       /* This cleanup action is conditional.  The next region entry
          contains a handle that points to the flag.  Check the flag and
          only process this entry if it is TRUE. */
       /* The object information is pointed to directly by the region entry. */
       flag_addr = (a_conditional_flag*)*(obj_addr_array + (ehrdp + 1)->handle);
+#if DEBUG
+    if (__debug_level >= 2) {
+      fprintf(__f_debug, "Conditional flag=%0d\n", *flag_addr);
+    }  /* if */
+#endif /* DEBUG */
       /* Skip processing of this entry if the flag is not set. */
       if (!*flag_addr) continue;
     }  /* if */
@@ -676,9 +688,6 @@ requires cleanup.
     }  /* if */
 #if DEBUG
     if (__debug_level >= 2) {
-      fprintf(__f_debug, "Region: %d, descr address=%p\n", region,
-              (void*)ehrdp);
-      db_eh_region_descr(ehrdp);
       fprintf(__f_debug, "  object address=%p\n", (void*)obj_addr);
     }  /* if */
 #endif /* DEBUG */
