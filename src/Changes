@@ -1,5 +1,10 @@
 Version 3.2
 
+3/10/03  IL field not initialized and not displayed
+
+The field "range_end" in switch case entry fields was neither initialized
+(in il_alloc.c) nor displayed (in il_display.c).  This has been fixed.
+
 3/6/03   Spurious type incompatibility errors with multiple translation units
 
 I some relative rare situations, the front end would issue an error that

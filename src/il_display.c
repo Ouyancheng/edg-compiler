@@ -3469,6 +3469,9 @@ static void disp_switch_case_entry(a_switch_case_entry_ptr ptr)
 {
   disp_ptr("next", (char *)ptr->next, iek_switch_case_entry);
   disp_ptr("constant", (char *)ptr->constant, iek_constant);
+#if GNU_EXTENSIONS_ALLOWED
+  disp_ptr("range_end", (char *)ptr->range_end, iek_constant);
+#endif /* GNU_EXTENSIONS_ALLOWED */
   disp_source_position("keyword_position", &ptr->keyword_position);
   disp_source_position("colon_position", &ptr->colon_position);
 }  /* disp_switch_case_entry */

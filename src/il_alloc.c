@@ -2543,6 +2543,9 @@ values, and return a pointer to it.
   info = (a_switch_case_entry_ptr)alloc_cil(sizeof(a_switch_clause));
   info->next = NULL;
   info->constant = NULL;
+#if GNU_EXTENSIONS_ALLOWED
+  info->range_end = NULL;
+#endif /* GNU_EXTENSIONS_ALLOWED */
   info->keyword_position = null_source_position;
   info->colon_position = null_source_position;
 #if DEBUG
