@@ -1,5 +1,10 @@
 Version 2.12
 
+11/14/92 Subscript checking on negative subscripts
+
+Warnings are now issued in nonconstant contexts for negative subscripts
+where it's clear what the underlying array type is.
+
 11/13/92 Remark on invalid tokens during macro expansion
 
 The warning on invalid tokens encountered during macro expansion has
