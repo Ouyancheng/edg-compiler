@@ -1135,6 +1135,9 @@ Display the indicated variable.
     case initk_zero:
       (void)printf ("initk_zero\n");
       break;
+    case initk_function_local:
+      (void)printf ("initk_function_local\n");
+      break;
     default:
       (void)printf("**BAD INITIALIZATION KIND**\n");
   }  /* switch */
@@ -2321,6 +2324,12 @@ do_assoc_type:
   disp_ptr("asm_entries", (char *)ptr->asm_entries, iek_asm_entry);
   disp_ptr("scopes", (char *)ptr->scopes, iek_scope);
   disp_ptr("dynamic_inits", (char *)ptr->dynamic_inits, iek_dynamic_init);
+  if (ptr->kind == (a_scope_kind)sck_function ||
+      ptr->kind == (a_scope_kind)sck_block) {
+    disp_ptr("local_static_variable_inits",
+             (char *)ptr->local_static_variable_inits,
+             iek_local_static_variable_init);
+  }  /* if */
 #endif /* ifdef CFE */
   disp_ptr("pragmas", (char *)ptr->pragmas, iek_pragma);
 #if RECORD_HIDDEN_NAMES_IN_IL
@@ -2673,6 +2682,34 @@ do_constant:
       (void)printf("**BAD DYNAMIC INIT KIND**\n");
   }  /* switch */
 }  /* disp_dynamic_init */
+
+
+static void disp_local_static_variable_init(
+                                         a_local_static_variable_init_ptr ptr)
+/*
+Display the indicated local_static_variable_init entry.
+*/
+{
+  disp_ptr("next", (char *)ptr->next, iek_local_static_variable_init);
+  disp_ptr("variable", (char *)ptr->variable, iek_variable);
+  disp_name("init_kind");
+  switch (ptr->init_kind) {
+    case initk_static:
+      (void)printf("initk_static\n");
+      disp_ptr("constant", (char *)ptr->initializer.constant, iek_constant);
+      break;
+    case initk_dynamic:
+      (void)printf("initk_dynamic\n");
+      disp_ptr("dynamic", (char *)ptr->initializer.dynamic, iek_dynamic_init);
+      break;
+    default:
+      (void)printf("**BAD INITIALIZATION KIND**\n");
+  }  /* switch */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  disp_ptr("declared_type", (char *)ptr->declared_type, iek_type);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
+}  /* disp_local_static_variable_init */
 
 
 static void disp_access_adjustment(an_access_adjustment_ptr ptr)
@@ -3111,6 +3148,10 @@ This routine is called during IL walking.
 #ifdef CFE
         case iek_dynamic_init:
           disp_dynamic_init((a_dynamic_init_ptr)entry_ptr);
+          break;
+        case iek_local_static_variable_init:
+          disp_local_static_variable_init(
+                                 (a_local_static_variable_init_ptr)entry_ptr);
           break;
         case iek_access_adjustment:
           disp_access_adjustment((an_access_adjustment_ptr)entry_ptr);
