@@ -7355,10 +7355,12 @@ void mark_defined(a_symbol_ptr      sym_ptr,
 /*
 Indicate that the given symbol is defined.  The source position will be
 recorded in the symbol as its "decl_position" (overwriting what's there
-already, if necessary).  A cross-reference entry for a definition will
-be put out.
+already, if necessary); the same will be done for the decl_position field of
+the IL entry.  A cross-reference entry for a definition will be put out.
 */
 {
+  a_source_correspondence *scptr;
+ 
   if (sym_ptr->defined) {
     /* This is a redefinition -- allowed for C variables at file scope and
        macros.  Don't update the source position or the decl-sequence number
@@ -7370,6 +7372,15 @@ be put out.
        the definition). */
     sym_ptr->decl_position = *source_position;
     set_decl_sequence_number(sym_ptr);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    /* The source position in the IL entry is not updated until after
+       the source sequence list is updated.  This is to assure that a
+       secondary declaration entry gets the right source position in the
+       case of a redeclaration. */
+#else
+    scptr = source_corresp_entry_for_symbol(sym_ptr);
+    if (scptr != NULL) scptr->decl_position = *source_position;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
   /* Update the cross reference file if it exists and if this is not a
      template instantiation. */
@@ -7386,6 +7397,10 @@ be put out.
        recorded as a secondary declaration. */
     sym_update_source_sequence_list(sym_ptr, source_position,
                                     /*is_primary_decl=*/!sym_ptr->defined);
+    if (!sym_ptr->defined) {
+      scptr = source_corresp_entry_for_symbol(sym_ptr);
+      if (scptr != NULL) scptr->decl_position = *source_position;
+    }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
   sym_ptr->defined = TRUE;
