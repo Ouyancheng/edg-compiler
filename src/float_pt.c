@@ -1583,6 +1583,13 @@ Initialize static variables related to float_pt.c.
   data_size_of_host_fp_value = (LDBL_MANT_DIG == 64
                               ? ((LDBL_MANT_DIG + 16) / CHAR_BIT)
                               : sizeof(a_host_fp_value));
+  /* The routines that handle hex floating point constants must know the
+     bit layout of the floating point values.  Make sure the configuration
+     is for one of the supported layouts. */
+  check_assertion_str2(targ_ldbl_mant_dig == 64 ||
+                       targ_ldbl_mant_dig == 113,
+                       "float_pt_init:",
+                       "unsupported long double mantissa size");
 #else /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
   data_size_of_host_fp_value = sizeof(a_host_fp_value);
 #endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
