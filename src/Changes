@@ -1,5 +1,21 @@
 Version 3.1
 
+5/23/02  Spurious error on destructor reference
+
+When a destructor is called using a qualified name that names a base
+class, and the base class is a template class, a spurious ambiguity
+error could result.  This has been fixed.
+
+  namespace N {
+    template <class T> struct A { };
+  }
+  template <class T> struct B : public N::A<int> {
+    void f(B *bp);
+  };
+  template <class T> void B<T>::f(B *bp) {
+    bp->N::A<int>::~A();
+  }
+
 5/17/02  Dependent name lookup: base class incorrectly treated as dependent
 
 When using dependent name lookup mode, a dependent base class of a

@@ -8507,6 +8507,11 @@ present.
   } else if (!no_normal_lookup) {
     type_sym = normal_id_lookup(locator, options);
   }  /* if */
+  if (type_sym != NULL && type_sym->kind == (a_symbol_kind)sk_class_template) {
+    /* If we found a class template symbol, ignore it.  This should result
+       in the normal lookup symbol being used. */
+    type_sym = NULL;
+  }  /* if */
   return type_sym;
 }  /* look_up_destructor_name */
 

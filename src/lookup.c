@@ -3107,6 +3107,7 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
    (!is_injected_class_symbol(sym) ||				      \
     is_field_selection_operand ||				      \
     must_be_class_or_namespace ||				      \
+    must_be_class ||						      \
     must_be_tag ||						      \
     !same_entities(class_type, (fund_sym)->variant.type.ptr)) &&	      \
    (sym)->parent.class_type == class_type &&                          \
