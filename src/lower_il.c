@@ -8848,7 +8848,17 @@ Lower an eok_dynamic_cast expression.  The subtree has already been lowered.
      doesn't turn references into pointers. */
   reference_case = is_reference_type(cast_type);
   /* Make the src argument for the call. */
-  src_copy = make_reusable_copy(src, /*vars_can_change=*/FALSE);
+  /* A copy is needed (because the expression is used twice) except
+     in the IA-64 reference case. */
+#if IA64_ABI
+  if (reference_case) {
+    src_copy = src;
+  } else
+#endif /* IA64_ABI */
+  /* Do not insert code here. */
+  {
+    src_copy = make_reusable_copy(src, /*vars_can_change=*/FALSE);
+  }  /* if */
 #if IA64_ABI
   /* For a dynamic_cast to `void *', we don't call __dynamic_cast.
      Instead, we simply extract the offset-to-top field from the
