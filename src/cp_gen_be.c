@@ -5241,7 +5241,7 @@ lists of declarations, as in for-init statements.
     storage_class = (a_storage_class)sc_static;
   } else {
     /* A declaration or definition outside of a class (at file scope or
-       inside a function). */
+       namespace scope or inside a function). */
     if (is_definition) {
       /* This is the definition of the variable, so by and large the
          storage class from the IL entry applies. */
@@ -5252,11 +5252,10 @@ lists of declarations, as in for-init statements.
     } else {
       /* A declaration of a variable. */
       /* The variable is not defined (here), so use "extern" instead of no
-         storage class.  Also use "extern" for file-scope static variables
-         declared extern inside functions. */
+         storage class.  Also use "extern" for nonlocal static variables
+         declared extern. */
       if (storage_class == (a_storage_class)sc_unspecified ||
           (storage_class == (a_storage_class)sc_static &&
-           curr_function_scope != NULL &&
            !var->source_corresp.is_local_to_function)) {
         storage_class = (a_storage_class)sc_extern;
       }  /* if */
