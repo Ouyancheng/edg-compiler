@@ -8855,6 +8855,7 @@ expression node.  options is a set of options for the copy.
 
   new_dip = alloc_dynamic_init(dip->kind);
   *new_dip = *dip;
+  dip->last_copied_to = new_dip;
   if (options & CE_INSIDE_CONDITIONAL_EXPRESSION) {
     new_dip->inside_conditional_expression = TRUE;
   }  /* if */
@@ -8950,7 +8951,6 @@ expression node.  options is a set of options for the copy.
     new_dip->master_entry = dip->master_entry->last_copied_to;
     check_assertion(dip->master_entry->last_copied_to != NULL);
   }  /* if */
-  dip->last_copied_to = new_dip;
   return new_dip;
 }  /* copy_dynamic_init */
 
