@@ -1300,6 +1300,7 @@ and return a pointer to it.
   tssp->pragmas_bound_to_template = NULL;
   tssp->token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
   clear_token_cache(&tssp->token_cache, /*reusable=*/TRUE);
+  tssp->befriending_classes = NULL;
   switch (kind) {
     case sk_class_template:
       tssp->variant.class_template.instantiations = NULL;

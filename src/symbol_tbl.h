@@ -1012,6 +1012,16 @@ typedef struct a_template_symbol_supplement {
 			   declarations found inside real instantiations.
 			   This field contains the token sequence number
 			   of a certain token within the declaration. */
+  a_class_list_entry_ptr
+                befriending_classes;
+                        /* A linked list of entries identifying classes
+			   that have declared the current class a friend
+			   (i.e., classes that have befriended the this
+			   template).  If the template friend declaration
+			   appears as part of a class template definition,
+			   a new entry will be added to this list for
+			   each class instantiated from the class
+			   template. */
   union {
     /* When symbol kind = sk_class_template: */
     struct {
