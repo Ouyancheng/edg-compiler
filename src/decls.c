@@ -3363,6 +3363,7 @@ namespace-extension scope.
       }  /* if */
       if (storage_class == (a_storage_class)sc_static) {
         idlbp->linkage = idl_internal;
+        idlbp->storage_class = (a_storage_class)sc_static;
       } else {
         idlbp->linkage = idl_external;
       }  /* if */
