@@ -1475,7 +1475,9 @@ is TRUE, this is for the heading of a function being declared with a body.
        to handle variable argument lists.  The name "__builtin_va_alist"
        is recognized by the compiler along with some other reserved identifiers
        found in the stdarg.h include file. */
-    fputs(", __builtin_va_alist", f_C_output);
+    /* Suppress the comma if the ellipsis is the only argument. */
+    if (extra_info->param_type_list != NULL) fputs(", ", f_C_output);
+    fputs("__builtin_va_alist", f_C_output);
   }  /* if */
 #endif /* sun & sparc */
   } else {
