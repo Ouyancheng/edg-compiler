@@ -2382,6 +2382,10 @@ the file is flagged as requiring recompilation.
           pifp->request_file_updated = TRUE;
           pifp->recompile = recompile_file;
           done = FALSE;
+#if ONE_INSTANTIATION_PER_OBJECT
+          /* This code has to be disabled when one instantiation per object
+             is not enabled because the routine to generate the instantiation
+             file name is not present. */
           if (one_instantiation_per_object) {
             /* In one instantiation per object mode, remove the file
                associated with the instantiation that is no longer
@@ -2392,6 +2396,7 @@ the file is flagged as requiring recompilation.
                     INSTANTIATION_OBJECT_SUFFIX);
             unlink(pl_file_name_buffer);
           }  /* if */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
           if (verbose) {
             fprintf(stdout, pl_error_text(pl_ec_no_longer_needed),
                     message_prefix, pl_decoded_name(psp->name),
@@ -2615,9 +2620,9 @@ information.
   } else {
     /* Create a path name consisting of the original directory and the
        file name. */
-    free(pifp->compilation_file_name);
-    sprintf(pl_file_name_buffer, "%s/%s\n", pifp->compilation_directory,
+    sprintf(pl_file_name_buffer, "%s/%s", pifp->compilation_directory,
             pifp->compilation_file_name);
+    free(pifp->compilation_file_name);
     pifp->compilation_file_name = pl_copy_string(pl_file_name_buffer);
   }  /* if */
   /* Construct the new compilation directory and compilation file name. */
@@ -3170,10 +3175,12 @@ int main(int argc, char *argv[])
           }  /* if */
         }
         break;
+#if ONE_INSTANTIATION_PER_OBJECT
       case 'O':
         /* "One instantiation per object" mode. */
         one_instantiation_per_object = TRUE;
         break;
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
       case 'W':
         /* Alternate form of the library directory name option (e.g.,
            -Wl,-L/edg/cpfe/lib). */
