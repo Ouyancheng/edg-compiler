@@ -54,7 +54,9 @@ typedef a_byte a_base_class_spec_flag_set;
 			   in the array. */
 
 #define BCS_PUBLIC      0x04
-                        /* TRUE if this base class is a public base. */
+			/* TRUE if the base class is public.  For non-direct
+			   base classes, TRUE if the cumulative access across
+			   the all derivation steps gives public access. */
 
 #define BCS_AMBIGUOUS	0x08
 			/* TRUE if this base class is ambiguous. */
