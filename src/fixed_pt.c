@@ -549,7 +549,7 @@ to be issued; otherwise set err_code to ec_no_error.
     *err_code = ec_integer_to_fixed_conversion;
     *err_severity = es_error;
   } else if (inexact) {
-    /* The conversion looses precision.  This doesn't seem like it should be
+    /* The conversion loses precision.  This doesn't seem like it should be
        possible for an integer to fixed conversion, but is provided for
        in case there is some fixed format where this would be possible. */
     *err_code = ec_inexact_fixed_conversion;
@@ -614,7 +614,7 @@ to be issued; otherwise set err_code to ec_no_error.
     *err_code = ec_float_to_fixed_conversion;
     *err_severity = es_error;
   } else if (inexact) {
-    /* The conversion looses precision. */
+    /* The conversion loses precision. */
     *err_code = ec_inexact_fixed_conversion;
     *err_severity = es_warning;
   } else if (is_negative && fxp_descr->is_unsigned) {
