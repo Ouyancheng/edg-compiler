@@ -4622,7 +4622,7 @@ TRUE, "()" is put out.
          the top-level operator is a ",". */
       if (parenthesized_init) write_tok_ch('(');
       gen_initializer_expr(dip->variant.expression, init_entity_type,
-                           /*need_parens=*/!parenthesized_init);
+                           /*need_parens=*/TRUE);
       if (parenthesized_init) write_tok_ch(')');
       break;
     case dik_call_returning_class_via_cctor:
