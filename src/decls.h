@@ -116,7 +116,7 @@ extern a_type_ptr type_keyword(void);
 
 extern a_boolean check_function_return_type(a_type_ptr         return_type,
                                             a_source_position  *err_pos,
-                                            a_boolean          is_call);
+                                            a_boolean          is_expr_use);
 
 extern void adjust_parameter_type(a_type_ptr *type_ptr);
 
