@@ -3084,8 +3084,8 @@ ct_symbol is the symbol of the class template.
       internal_error("make_template_class_symbol: bad type kind");
 #endif /* CHECKING */
   }  /* switch */
-  /* Create the symbol.  Use the current source position as the declaration
-     position. */
+  /* Create the symbol.  Use the position of the template declaration as its
+     declaration position. */
   sym = alloc_symbol(kind, ct_symbol->header, &ct_symbol->decl_position);
   /* Set the pointer that points back to the original class template symbol. */
   cssp = sym->variant.class_struct_union.extra_info;
