@@ -103,7 +103,7 @@ of another instance of the same template.  Here's an example:
   };
   template <class U> struct M  {
     static int id;
-    virtual void f();
+    virtual U f() { }
   };
   int  M<B<B<B<char> > > > ::id;
 
