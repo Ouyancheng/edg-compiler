@@ -7383,18 +7383,20 @@ curr_token is already set in that case.
     do_string_literal_concatenation = FALSE;
     (void)get_token();
     do_string_literal_concatenation = TRUE;
-    if (token_is_function_name_string_literal(curr_token)) {
-      /* In some modes, function-name keywords like __FUNCTION__ are
-         treated as string literals.  The case where these appear
-         as the first literal is handled in expression processing;
-         cases where they appear after a string are handled by
-         calling here. */
-      set_curr_token_to_function_name_string(/*do_concat=*/FALSE);
+    if (function_name_case) {
+      if (token_is_function_name_string_literal(curr_token)) {
+        /* In some modes, function-name keywords like __FUNCTION__ are
+           treated as string literals.  The case where these appear
+           as the first literal is handled in expression processing;
+           cases where they appear after a string are handled by
+           calling here. */
+        set_curr_token_to_function_name_string(/*do_concat=*/FALSE);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (curr_token == tok_microsoft_lprefix) {
-      /* Similar handling for the Microsoft __LPREFIX operator. */
-      (void)set_curr_token_to_microsoft_lprefix_operator_string();
+      } else if (curr_token == tok_microsoft_lprefix) {
+        /* Similar handling for the Microsoft __LPREFIX operator. */
+        (void)set_curr_token_to_microsoft_lprefix_operator_string();
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      }  /* if */
     }  /* if */
     /* End the loop if the new token is not a string literal. */
     if (curr_token != tok_string_literal) break;

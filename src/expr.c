@@ -14888,7 +14888,12 @@ see expr.h).
       break;
     case tok_string_literal:
       { a_boolean is_simple_string = TRUE;
-        if (token_is_function_name_string_literal(next_token())) {
+        a_token_kind nextt = next_token();
+        if (token_is_function_name_string_literal(nextt)
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            || nextt == tok_microsoft_lprefix
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                             ) {
           /* Handle cases where a string is followed by a function-name
              keyword like __FUNCTION__ that is treated like a string literal
              and therefore must be concatenated, e.g.,
