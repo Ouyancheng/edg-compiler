@@ -330,10 +330,12 @@ corresponding encoded entry number, and return that number cast to "char *".
       }  /* if */
 #endif /* CHECKING */
       if (entry_kind == iek_type &&
-          ((a_type_ptr)entry_ptr)->kind == (a_type_kind)tk_template_param) {
+          ((a_type_ptr)entry_ptr)->kind == (a_type_kind)tk_template_param &&
+          !prototype_instantiations_in_il) {
         /* Template parameter types can leak out of the front end on based
            types lists.  Just write a null pointer and don't assign an
-           entry number. */
+           entry number.  (Unless of course prototype instantiations are
+           recorded in IL; in that case template parameters are expected.) */
         encoded_number = 0;
       } else {
         /* Assign an entry number. */
