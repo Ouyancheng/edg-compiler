@@ -1483,12 +1483,12 @@ to the declaration information for the template declaration scope being pushed.
       if (assoc_type != NULL) {
         /* We are pushing the scope for a class template instantiation. */
         source_sequence_entries_disallowed =
-                  !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS;
+        !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS; /*lint !e506*/
       } else {
         /* We are pushing the scope for a function template instantiation
            or for the definition of a template static data member. */
         source_sequence_entries_disallowed =
-                  !NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS;
+     !NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS; /*lint !e506*/
       }  /* if */
     }  /* if */
     ssep->source_sequence_entries_disallowed =
@@ -2290,7 +2290,7 @@ scopes.
     fprintf(f_debug, "Pushed instantiation scope for: ");
     db_symbol(instance_sym, "", 0);
     if (!nested_in_prototype_instantiation) {
-      fprintf(f_debug, "context_depth=%0d, common_depth=%0d\n", context_depth,
+      fprintf(f_debug, "context_depth=%d, common_depth=%d\n", context_depth,
               common_depth);
     }  /* if */
     fprintf(f_debug, "scope stack after instantiation scope:\n");
@@ -2937,6 +2937,7 @@ NULL.
         }  /* if */
       }  /* for */
       }
+      break;
     default:
       /* No processing for other kinds. */
       break;
@@ -3288,6 +3289,7 @@ unit.
         break;
       case sck_namespace:
         if (!is_namespace_wrapup) break;
+        /*FALLTHROUGH*/
       default:
         db_decl_pos_info_for_scope(scope_ptr, pointers_block);
     }  /* switch */
@@ -3484,7 +3486,8 @@ is done, is that all the classes have to have been marked first.
     if (tp->kind == (a_type_kind)tk_typeref) {
       /* If a typeref type points to a class that is needed, has a name, and
          was originally unnamed, the typeref type is needed, too. */
-      if (is_immediate_class_type(class_type = tp->variant.typeref.type) &&
+      if ((class_type = tp->variant.typeref.type,
+           is_immediate_class_type(class_type)) &&
           class_type->variant.class_struct_union.originally_unnamed) {
         mark_as_needed_like((char *)tp, (an_il_entry_kind)iek_type,
                             &class_type->source_corresp,
@@ -3662,7 +3665,7 @@ e.g., because it's externally defined.
         /* The instance exists as a result of an explicit instantiation
            directive, or as a result of being assigned to this file by
            the automatic instantiation mechanism. */
-       } else {
+      } else {
         is_needed = FALSE;
       }  /* if */
     }  /* if */
