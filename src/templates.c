@@ -7424,8 +7424,9 @@ list (the one specified by param_list).
       } else if (new_has_default && !default_allowed) {
         /* A default argument was specified on a member of a class template.
            This is not permitted. */
-        pos_error(ec_default_arg_on_member_decl,
-                  &new_tpp->param_symbol->decl_position);
+        pos_diagnostic(microsoft_mode ? es_warning : es_error,
+                       ec_default_arg_on_member_decl,
+                       &new_tpp->param_symbol->decl_position);
       } else if (old_has_default || new_has_default) {
         /* One or the other has a default argument, or we are in Microsoft
            mode and both have default arguments. */

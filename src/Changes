@@ -1,5 +1,18 @@
 Version 2.44
 
+12/10/99 Microsoft compatibility: default arguments on class template
+         member declarations
+
+In version 2.42 we began to diagnose the use of an invalid template
+default argument in the declaration of a member of a class template.
+Such default arguments are now accepted and ignored in Microsoft mode.
+A warning is issued.
+
+  template <class T> struct A {
+    void f();
+  };
+  template <class T = int> void A<T>::f(){}
+
 -------------------------------------------------------------------------------
 Version 2.43, December 8, 1999
 
