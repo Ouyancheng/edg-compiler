@@ -110,6 +110,17 @@ Return the given entry to the list of available entries.
 }  /* free_verification_entry */
 
 
+/*
+Finding correspondences for class template instantiations is dependent on
+finding the correspondences for the associates templates.  However, the
+processing of templates must occur before the corresponding instantiations
+to avoid infinite recursion.  Therefore, we build a list of instantiations
+to process as we find correspondences for templates.  The list is then
+processed later.
+*/
+static a_symbol_list_entry_ptr  instantiations_to_process;
+
+
 /* Forward declarations. */
 static void clear_scope_correspondence(a_scope_ptr  scope,
                                        a_boolean    visited);
@@ -130,6 +141,7 @@ static void verify_trans_unit_correspondences_for_scope(a_scope_ptr  scope);
 static void establish_instantiation_correspondences(
                                                a_template_ptr  templ,
                                                a_template_ptr  corresp_templ);
+static void process_pending_instantiations(void);
 
 
 static a_boolean type_has_definition(a_type_ptr  type)
@@ -3169,6 +3181,9 @@ given type.
         type = canon;
       }  /* if */
       establish_trans_unit_correspondences_for_class(type);
+      /* Find correspondences for any instances that might have been
+         discovered. */
+      process_pending_instantiations();
       if (new_canon) {
         /* Since the canonical entry has changed, extra actions may be needed.
            Force the verification of the previous canonical entry against the
@@ -3426,8 +3441,10 @@ supplement for an instantiation that matches inst.
 */
 {
   a_type_ptr  class_type = type_symbol_type(inst);
+  a_symbol_list_entry
+              guard;
   a_symbol_list_entry_ptr
-              sym_entry;
+              result = NULL, sym_entry, *last_ptr, *guard_ptr;
   a_class_type_supplement_ptr
               ctsp = class_type->variant.class_struct_union.extra_info;
   if (is_type_symbol(inst)) {
@@ -3435,12 +3452,38 @@ supplement for an instantiation that matches inst.
                                                  ->source_corresp.assoc_info)
                                                       ->variant.template_info;
   }  /* if */
-  sym_entry = tssp->all_instantiations;
-  for (; sym_entry != NULL; sym_entry = sym_entry->next) {
-    a_type_ptr  corresp_type = type_symbol_type(sym_entry->symbol);
-    a_class_type_supplement_ptr
-                corresp_ctsp =
-                      corresp_type->variant.class_struct_union.extra_info;
+  /* Special measures must be taken to avoid infinite recursion while
+     still correctly handling unusual nested instantiations.  E.g., if this
+     is X<X<int> > and the symbol entry is for X<X<X<int> > > the argument
+     comparison would have to compare X<int> against X<X<int> > which may
+     lead back to here to find if X<X<int> > has a correspondence.  By
+     placing a "guard" at the end of the list and moving instantiations
+     that are already known not to match class_type behind the guard
+     (so they can still be found by recursive invocations of this function
+     that look for other instantiations) we achieve the desired effect. */
+  last_ptr = &tssp->all_instantiations;
+  while (*last_ptr != NULL) { last_ptr = &(*last_ptr)->next; }
+  guard.next = NULL;
+  guard.symbol = inst;
+  *last_ptr = &guard;
+  while (tssp->all_instantiations != &guard) {
+    a_type_ptr                    corresp_type;
+    a_class_type_supplement_ptr   corresp_ctsp;
+    /* Move the current entry to the end of the all_instantiations list. */
+    sym_entry = tssp->all_instantiations;
+    while (*last_ptr != NULL) { last_ptr = &(*last_ptr)->next; }
+    *last_ptr = sym_entry;
+    tssp->all_instantiations = sym_entry->next;
+    sym_entry->next = NULL;
+    /* Get the type information associated with sym_entry. */
+    corresp_type = type_symbol_type(sym_entry->symbol);
+    if (corresp_type == class_type) {
+      /* Apparently, we're already trying to find a correspondence for this
+         entry.  Sym_entry is the guard entry from another search loop
+         (for the same instance). */
+      break;
+    }  /* if */
+    corresp_ctsp = corresp_type->variant.class_struct_union.extra_info;
     /* Check that the template arguments and possibly the partial
        specialization arguments are equivalent.  The ETA_IS_NONREAL_MEMBER
        option allows differing length for the argument lists.  Do not confuse
@@ -3464,11 +3507,16 @@ supplement for an instantiation that matches inst.
                                  ctsp->partial_spec_template_arg_list,
                                  corresp_ctsp->partial_spec_template_arg_list,
                                  ETA_IS_NONREAL_MEMBER)) {
+        result = sym_entry;
         break;
       }  /* if */
     }  /* if */
   }  /* for */
-  return sym_entry;
+  /* Find and remove the guard: */
+  guard_ptr = &tssp->all_instantiations;
+  while (*guard_ptr != &guard) { guard_ptr = &(*guard_ptr)->next; }
+  *guard_ptr = guard.next;
+  return result;
 }  /* find_class_template_instantiation */
 
 
@@ -3513,17 +3561,9 @@ symbol supplement.
     corresp_tssp = ((a_symbol_ptr)corresp_templ->source_corresp.assoc_info)
                          ->variant.template_info;
     /* Mark the type as visited to avoid infinite recursion. */
-#if DEBUG
-    if (db_trace("trans_corresp", class_type, iek_type)) {
-      fprintf(f_debug, "Guard: ");
-    }  /* if */
-#endif /* DEBUG */
-    set_no_trans_unit_corresp(iek_type, class_type);
     sym_entry = find_class_template_instantiation(corresp_tssp, inst);
     if (sym_entry == NULL) {
       /* The instantiation was not found on the canonical list.  Add it now. */
-      /* Undo the recursion guard. */
-      set_unvisited_trans_unit_corresp(iek_type, class_type);
       mark_canonical_instantiation(corresp_tssp, inst);
     } else {
       /* Record the necessary correspondences. */
@@ -3687,11 +3727,30 @@ done:
 }  /* record_instantiation */
 
 
+static void process_pending_instantiations(void)
+/*
+Find correspondences for the pending list of class instantiations to process.
+If any instantiations are generated during that process, also find instances
+for those.
+*/
+{
+  while (instantiations_to_process != NULL) {
+    a_symbol_list_entry_ptr  entries = instantiations_to_process, entry;
+    instantiations_to_process = NULL;
+    for (entry = entries; entry != NULL; entry = entry->next) {
+      record_class_template_instantiation(entry->symbol);
+    }  /* if */
+    free_list_of_symbol_list_entries(entries);
+  }  /* while */
+}  /* process_pending_instantiations */
+
+
 static void establish_instantiation_correspondences(
                                                 a_template_ptr  templ,
                                                 a_template_ptr  corresp_templ)
 /*
-Find correspondences for every instantiation of the given template.
+Find correspondences for every instantiation of the given template (for class
+templates the actual search is delayed until all templates are processed).
 This routine should only be called for templates that have an associated
 sk_class_template or sk_function_template symbol.  Other template entries
 correspond to class members (e.g., a member function of a class template)
@@ -3711,7 +3770,12 @@ be templ itself and therefore unusable).
   } else if (templ_sym->kind == (a_symbol_kind)sk_class_template) {
     a_symbol_ptr  inst = tssp->variant.class_template.instantiations;
     for (; inst != NULL; inst = next_instance_sym(inst)) {
-      record_class_template_instantiation(inst);
+      /* Record the instantiations for later processing to avoid infinite
+         recursion. */
+      a_symbol_list_entry_ptr slep = alloc_symbol_list_entry();
+      slep->next = instantiations_to_process;
+      instantiations_to_process = slep;
+      slep->symbol = inst;
     }  /* for */
     /* Also process the prototype instantiation. */
     if (tssp->variant.class_template.prototype_instantiation != NULL) {
@@ -3731,7 +3795,7 @@ be templ itself and therefore unusable).
         set_type_corresp(class_type,
                          corresp_proto->variant.class_struct_union.type);
       } else {
-	clear_type_correspondence(class_type, /*visited=*/TRUE);
+        clear_type_correspondence(class_type, /*visited=*/TRUE);
       }  /* if */
     }  /* if */
   } else if (templ_sym->kind == (a_symbol_kind)sk_function_template) {
@@ -4493,6 +4557,8 @@ scope.  The process is repeated in nested class and namespace scopes.
                                    /*parent_found=*/FALSE);
     }  /* for */
   }
+
+  process_pending_instantiations();
 }  /* establish_trans_unit_correspondences_for_scope */
 
 
@@ -5003,6 +5069,7 @@ for each compilation.
   canonical_il_bool_type = NULL;
   verification_list = NULL;
   avail_verification_entries = NULL;
+  instantiations_to_process = NULL;
 }  /* corresp_init */
 
 
