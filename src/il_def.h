@@ -419,7 +419,6 @@ underlying type is not, since interfaces will use it.
 */
 typedef struct a_source_sequence_entry *a_source_sequence_entry_ptr;
 
-#if GENERATE_SOURCE_SEQUENCE_LISTS
 /*
 A structure containing a kind and a generic pointer to some entity.  Before
 it can be used, the pointer must be cast (based on the kind) to a pointer to
@@ -433,6 +432,7 @@ typedef struct a_tagged_pointer {
 			/* A generic pointer to the entry. */
 } a_tagged_pointer;
 
+#if GENERATE_SOURCE_SEQUENCE_LISTS
 
 /*
 A entry on a list that represents the order in which declarations,
