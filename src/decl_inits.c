@@ -2707,10 +2707,10 @@ the type of that entity.
                                             /*suppress_object_lifetime=*/FALSE,
                                             /*is_copy_initialization=*/TRUE,
                                             vp_type, init_dip);
-  if (microsoft_bugs) {
-    /* The microsoft compiler accepts things like "int x = { f(), { 3 } }"
-       and has the last value replace previous ones (though side-effects
-       take place), unless they're both constants and x is not automatic. */
+  if (microsoft_bugs && microsoft_version < 1310) {
+    /* Earlier microsoft compilers accept things like "int x = { f(), { 3 } }".
+       The last value replace previous ones (though side-effects take place),
+       unless they're both constants and x is not automatic. */
     while (curr_token == tok_comma && next_token() == tok_lbrace) {
       /* Eat the comma, parse the next constant (recursive) and combine
          initializer expressions: */
