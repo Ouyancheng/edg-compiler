@@ -92,7 +92,7 @@ Perform consistency check on target configuration variables.
      host integer selected is large enough. */
   /* Use variable err instead of testing directly to avoid warnings about
      testing invariant values on some compilers. */
-  err = (sizeof_largest_targ_integer*targ_char_bit >
+  err = (TARG_SIZEOF_LARGEST_INTEGER*targ_char_bit >
          sizeof(an_integer_value)*CHAR_BIT);
   if (err) {
     internal_error("check_target_config: an_integer_value is too small");
