@@ -1,5 +1,25 @@
 Version 2.29
 
+4/22/95  dynamic_cast and typeid
+
+The dynamic_cast and typeid operators (part of RTTI) are now implemented.
+There are new IL expression nodes of kind enk_typeid and operator nodes
+of kind eok_dynamic_cast.  These are rewritten by IL lowering.
+New runtime routines __dynamic_cast, __dynamic_cast_ref, and __get_typeid
+are required (and provided in our runtime).
+
+ABI_CHANGES_FOR_RTTI must be TRUE if you want to be able to use
+these features with IL lowering, and the ABI changes break binary
+compatibility, so you'll have to make your own decision about when
+and if to make these features available to your users.
+
+4/22/95 __throw_setup
+
+The runtime routine __throw_alloc has been replaced by __throw_setup,
+which has one fewer argument.  The access string argument is no longer
+required, because the language definition has been changed to allow
+simpler access checking for throws at runtime.
+
 4/21/95  Incorrect line numbers when using precompiled headers
 
 If the last preprocessing directive included in a precompiled header file
