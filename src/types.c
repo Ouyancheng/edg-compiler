@@ -2274,6 +2274,7 @@ Only callable in C++ mode.  See ARM 13.
   a_routine_type_supplement_ptr
                    old_extra_info, new_extra_info;
   a_type_ptr       old_this_param_type, new_this_param_type;
+  a_boolean        old_this_qualified, new_this_qualified;
 
   db_enter(5, "overload_distinguishable");
   *err_code = ec_no_error;
@@ -2286,6 +2287,9 @@ Only callable in C++ mode.  See ARM 13.
   }  /* if */
   new_type = skip_typerefs(new_type);
   new_extra_info = new_type->variant.routine.extra_info;
+  new_this_param_type = new_extra_info->implicit_this_param_type;
+  new_this_qualified = (new_this_param_type != NULL &&
+                      is_qualified_type(type_pointed_to(new_this_param_type)));
   do {
     /* See if old_sym_ptr and new_type are distinguishable. */
     distinguishable = FALSE;
@@ -2297,12 +2301,19 @@ Only callable in C++ mode.  See ARM 13.
        distinguishable by overload resolution. */
     /* See if the "this" parameter is distinguishable if it exists.
        Note that if one function has a "this" parameter and the other
-       does not, they cannot be distinguished on that basis. */
+       does not, they cannot be distinguished on that basis.
+       However, a type qualifier on the "this" parameter type
+       makes a nonstatic function different from a static function.
+       (The ARM doesn't say that, but cfront seems to do it that
+       way; if you change this, see also member_function_redecl_sym,
+       which does a similar check.) */
     old_this_param_type = old_extra_info->implicit_this_param_type;
-    new_this_param_type = new_extra_info->implicit_this_param_type;
-    if (old_this_param_type != NULL && new_this_param_type != NULL &&
-        types_distinguishable(old_this_param_type, new_this_param_type,
-                              &params_all_compatible)) {
+    old_this_qualified = (old_this_param_type != NULL &&
+                      is_qualified_type(type_pointed_to(old_this_param_type)));
+    if (old_this_qualified != new_this_qualified ||
+        (old_this_param_type != NULL && new_this_param_type != NULL &&
+         types_distinguishable(old_this_param_type, new_this_param_type,
+                               &params_all_compatible))) {
       /* "this" parameter types are distinguishable; this probably means
          one function is const or volatile and the other isn't. */
       distinguishable = TRUE;
