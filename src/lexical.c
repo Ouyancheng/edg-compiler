@@ -5644,7 +5644,7 @@ can be avoided.
        from a cache. */
     /* delim_does_not_follow = FALSE;  -- already set. */
   } else {
-    a_boolean	check_further = TRUE;
+    register a_boolean	ch_is_punct;
     /* Skip over any initial white space blanks and horizontal tabs.
        These are very common, so they're handled inline here. */
     if ((ch = *curr_char_loc) == ' ' || ch == '\t') {
@@ -5654,24 +5654,23 @@ can be avoided.
        or if the current character is alphabetic then we know we don't have
        to check for the more complex forms of white space; otherwise call
        skip_white_space to handle the other cases. */
-    if (ispunct((unsigned char)ch) && ch != '/') {
+    ch_is_punct = ispunct((unsigned char)ch);
+    if (ch_is_punct && ch != '/') {
       /* Not the start of a comment but possibly a character that could
          be a qualifier delimiter. */
     } else if (isalpha((unsigned char)ch)) {
       /* An alphabetic character.  This might be a macro call so we
          can't tell whether or not this might be a qualifier delimiter.
          No need to check further below. */
-      check_further = FALSE;
+      goto done;
     } else {
       /* Not one of the special cases.  Call the general skip white space
          routine before further checking. */
       (void)skip_white_space();
+      ch = *curr_char_loc;
+      ch_is_punct = ispunct((unsigned char)ch);
     }  /* if */
-    ch = *curr_char_loc;
-    if (!check_further) {
-      /* We have already determined that we can't tell the answer. */
-      /* delim_does_not_follow = FALSE;  -- already set. */
-    } else if (ispunct((unsigned char)ch)) {
+   if (ch_is_punct) {
       /* The next token begins with a punctuation character.  Check for the
          special cases. */
       if (ch == ':' && curr_char_loc[1] == ':') {
@@ -5695,6 +5694,7 @@ can be avoided.
       delim_does_not_follow = TRUE;
     }  /* if */
   }  /* if */
+done:
   return delim_does_not_follow;
 }  /* qualifier_delimiter_does_not_follow_token */
 
