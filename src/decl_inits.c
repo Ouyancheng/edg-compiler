@@ -1199,7 +1199,8 @@ otherwise TRUE is returned and *subscript is set to the scanned value.
       all_OK = FALSE;
     } break;
     default: {
-      internal_error("array intialization designator: bad constant kind");
+      unexpected_condition_str(
+                         "array intialization designator: bad constant kind");
     }
   }  /* switch */
   return all_OK;
@@ -1315,7 +1316,8 @@ returned, else FALSE.
     if (member_sym->kind != (a_symbol_kind)sk_field) {
       found_field_designator = FALSE;
       *field = NULL;
-      internal_error("field intialization designator: non-field member");
+      unexpected_condition_str(
+                          "field intialization designator: non-field member");
     } else { /* We seem to have a valid field designator. */
       *field = member_sym->variant.field.ptr;
     }  /* if */
