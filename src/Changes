@@ -1,5 +1,10 @@
 Version 2.31
 
+12/19/95  Setting depth_in_scope_stack in block scopes
+
+A bug has been fixed in setting the field depth_in_scope_stack for
+sck_block scopes.  (The field is used only during front-end processing.)
+
 12/19/95  Typedef to template parameter used in qualified name
 
 A bug has been fixed that caused a spurious error when a typedef
