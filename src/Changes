@@ -1,5 +1,19 @@
 Version 2.32
 
+3/6/96    Warning on inaccessible elided copy constructor eliminated in
+          default mode
+
+The warning in default mode about inaccessibity of a copy constructor that
+has been optimized away has been eliminated.  This is a check required
+in strict mode, but the warning in default mode doesn't seem to add anything.
+
+  struct A {
+    A(int);
+  private:
+    A(const A&);
+  };
+  A a = 1;  // No warning in default mode about A(const A&) being private
+
 3/6/96    Bug in hidden-name support (friend declaration in local class)
 
 When RECORD_HIDDEN_NAMES_IN_IL set to TRUE (e.g., when the C++-generating

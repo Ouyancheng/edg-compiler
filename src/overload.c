@@ -6749,50 +6749,44 @@ mode) at *err_pos if not.
   a_symbol_ptr cctor_sym;
   a_boolean    ambiguous;
   a_boolean    class_bitwise_copy;
-  an_error_severity
-               severity;
 
-  /* Most diagnostics here are issued as errors only in strict mode. */
-  severity = strict_ansi_mode ? strict_ansi_discretionary_severity :
-                                es_warning;
-  cctor_sym = find_copy_constructor(class_type,
-                                    get_type_qualifiers(source_type),
-                                    &ambiguous, &class_bitwise_copy);
-  if (class_bitwise_copy) {
-    /* A bitwise copy is allowed, so the "copy constructor" is accessible. */
-  } else if (ambiguous) {
-    /* More than one applicable copy constructor. */
-    pos_ty_diagnostic(severity, ec_ambiguous_copy_constructor,
-                      err_pos, class_type);
-  } else if (cctor_sym == NULL) {
-    /* No applicable copy constructor. */
-    pos_ty_diagnostic(severity, ec_no_suitable_copy_constructor,
-                      err_pos, class_type);
-  } else {
-    if (!have_access_to_symbol(cctor_sym)) {
+  /* The diagnostics here are issued only in strict mode. */
+  if (strict_ansi_mode) {
+    cctor_sym = find_copy_constructor(class_type,
+                                      get_type_qualifiers(source_type),
+                                      &ambiguous, &class_bitwise_copy);
+    if (class_bitwise_copy) {
+      /* A bitwise copy is allowed, so the "copy constructor" is accessible. */
+    } else if (ambiguous) {
+      /* More than one applicable copy constructor. */
+      pos_ty_diagnostic(strict_ansi_discretionary_severity,
+                        ec_ambiguous_copy_constructor, err_pos, class_type);
+    } else if (cctor_sym == NULL) {
+      /* No applicable copy constructor. */
+      pos_ty_diagnostic(strict_ansi_discretionary_severity,
+                        ec_no_suitable_copy_constructor, err_pos, class_type);
+    } else if (!have_access_to_symbol(cctor_sym)) {
       /* The copy constructor is inaccessible. */
-      pos_sy_diagnostic(severity, ec_inaccessible_elided_cctor,
-                        err_pos, cctor_sym);
+      pos_sy_diagnostic(strict_ansi_discretionary_severity,
+                        ec_inaccessible_elided_cctor, err_pos, cctor_sym);
     } else {
       /* The copy constructor is accessible.  Is it callable?  Specifically,
          you can't call a copy constructor with an input parameter that is
          a reference to nonconst with an rvalue, which is what we have here.
          References to const volatile cannot be bound to rvalues either, so the
-         same problem exists there.  Check this only in strict mode. */
-      if (strict_ansi_mode) {
-        /* Get the "this" parameter type qualifiers. */
-        a_type_ptr cctor_type = routine_symbol_type(cctor_sym);
-        a_param_type_ptr ptp =
+         same problem exists there. */
+      /* Get the "this" parameter type qualifiers. */
+      a_type_ptr cctor_type = routine_symbol_type(cctor_sym);
+      a_param_type_ptr ptp =
                        cctor_type->variant.routine.extra_info->param_type_list;
-        a_type_ptr this_type = type_pointed_to(ptp->type);
-        a_type_qualifier_set qualifiers = get_type_qualifiers(this_type);
-        if ((qualifiers & TQ_CONST) == 0 ||
-            (qualifiers & (TQ_CONST | TQ_VOLATILE)) ==
-                          (TQ_CONST | TQ_VOLATILE)) {
-          pos_sy_diagnostic(strict_ansi_discretionary_severity,
-                            ec_uncallable_elided_cctor,
-                            err_pos, cctor_sym);
-        }  /* if */
+      a_type_ptr this_type = type_pointed_to(ptp->type);
+      a_type_qualifier_set qualifiers = get_type_qualifiers(this_type);
+      if ((qualifiers & TQ_CONST) == 0 ||
+          (qualifiers & (TQ_CONST | TQ_VOLATILE)) ==
+                        (TQ_CONST | TQ_VOLATILE)) {
+        pos_sy_diagnostic(strict_ansi_discretionary_severity,
+                          ec_uncallable_elided_cctor,
+                          err_pos, cctor_sym);
       }  /* if */
     }  /* if */
   }  /* if */
