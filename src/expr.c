@@ -4810,6 +4810,9 @@ C-style casts and C++ functional-notation type conversions.
       /* Check that the combination of the source and target types is
          allowed, then do the cast.  See 3.4 in the ANSI C standard. */
       if (!err) {
+        a_boolean      operand_is_constant = is_constant_operand(operand);
+        a_constant_ptr operand_con;
+        if (operand_is_constant) operand_con = &operand->variant.constant;
         /* The bound function test is done first to make sure bound functions
            cannot wander into the rest of the cases. */
         if (operand->bound_function) {
@@ -4857,16 +4860,41 @@ C-style casts and C++ functional-notation type conversions.
           conv_lvalue_to_rvalue(operand);
           /* Do the cast to void as an expression. */
           cast_operand_to_void(operand, type_cast_to);
+        } else if (any_cfront_mode() && operand_is_constant &&
+                   operand_con->kind ==
+                                      (a_constant_repr_kind)ck_ptr_to_member &&
+                   !operand_con->implicit_cast &&
+                   operand_con->variant.ptr_to_member.is_function_ptr &&
+                   !cast_to_reference &&
+                   is_pointer_type(type_cast_to) &&
+                   is_function_type(type_pointed_to(type_cast_to))) {
+          /* In cfront mode, it's okay to cast a pointer-to-member constant
+             to a pointer to function:
+               struct A {int f();};
+               main () {
+                 int (*p)() = (int (*)())A::f;
+               }
+          */
+          a_routine_ptr routine = operand_con->variant.ptr_to_member.
+                                                               variant.routine;
+          a_symbol_ptr  rout_sym =
+                            (a_symbol_ptr)(routine->source_corresp.assoc_info);
+          pos_warning(ec_bad_cast, start_position);
+          make_function_designator_operand(rout_sym,
+                                         (a_boolean)operand->is_qualified_name,
+                                           start_position,
+                                           (a_ref_entry_ptr)NULL,
+                                           operand);
+          conv_function_designator_to_ptr_to_function(operand);
+          cast_operand(type_cast_to, operand, /*is_implicit_cast=*/FALSE);
         } else if (!is_scalar_type(source_type) &&
                    !is_ptr_to_member_type(type_cast_to)) {
           /* Not casting to void or a class, and not casting to a
              pointer-to-member type, so the source type must be scalar. */
           error(ec_expr_not_scalar);
           err = TRUE;
-        } else if (expl_conversion_possible(source_type,
-                                            is_constant_operand(operand),
-                                            &operand->variant.constant,
-                                            type_cast_to,
+        } else if (expl_conversion_possible(source_type, operand_is_constant,
+                                            operand_con, type_cast_to,
                                             ec_bad_cast, &warning_suggested)) {
           /* Valid explicit conversion.  Issue warning on oddball cases. */
           if (warning_suggested != ec_no_error) {
