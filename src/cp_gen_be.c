@@ -5200,7 +5200,10 @@ lists of declarations, as in for-init statements.
   if (!suppress_specifiers) {
     /* Check for `extern "C"'.  This applies even on a definition. */
     if (il_header.source_language == sl_Cplusplus &&
-        var->source_corresp.name_linkage ==(a_name_linkage_kind)nlk_external) {
+        var->source_corresp.name_linkage ==(a_name_linkage_kind)nlk_external &&
+        /* Inside a function, this is not allowed, and can only have come from
+           an extern "C" { ... } wrapped around the function. */
+        curr_function_scope == NULL) {
       write_tok_str("extern \"C\" ");
     } else {
       /* Put out the storage class determined above. */
@@ -5507,7 +5510,10 @@ declaration or definition.
                         (rout->source_corresp.name != NULL &&
                          strcmp(rout->source_corresp.name, "main") == 0)) &&
       /* Don't put it out on a friend either. */
-      !friend_decl) {
+      !friend_decl &&
+      /* Inside a function, this is not allowed, and can only have come from
+         an extern "C" { ... } wrapped around the function. */
+      curr_function_scope == NULL) {
     write_tok_str("extern \"C\" ");
   } else {
     /* Put out the storage class determined above. */
