@@ -143,16 +143,16 @@ macro DEFAULT_GUIDING_DECLS_ALLOWED to TRUE.
     f('c', 1);
   }
 
-10/9/02  GNU compatibility: Extended asm memory operands can have class type
+10/9/02  GNU compatibility: Extended asm operands can have class type
 
-In GNU C and C++ modes, the front end used to require that "m" (memory)
-operands have a scalar type.  Now, class types are also accepted in such
-situations.
+In GNU C and C++ modes, the front end used to require that operands have
+a scalar type.  Now, class types are also accepted.
 
   void f() {
     struct S { int i; } *p;
-    __asm__("xchgl %0, %1": : "m"(*p));  // Used to trigger an error in GNU
-  }                                      // C mode; now accepted.
+    __asm__("xchgl %0, %1": "=r"(*p): "m"(*p));
+                  // Used to trigger an error in GNU mode; now accepted.
+  }
 
 10/8/02  GNU compatibility: Attributes in parenthesized declarator
 

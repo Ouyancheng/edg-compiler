@@ -3850,7 +3850,7 @@ to scan_integer_expression with slightly different checks.
                                                  BTK_BOOL,
                                                  &processed);
   }  /* if */
-  if (!processed && !is_class_struct_union_type(result.type)) {
+  if (!processed) {
     /* Non-class (i.e., normal) case. */
     do_operand_transformations(&result,
                                output ?
@@ -3858,7 +3858,8 @@ to scan_integer_expression with slightly different checks.
                                TOPT_NO_OPTIONS); 
     /* Can't check the type of a template parameter in a prototype
        instantiation. */
-    if (!is_template_param_type(result.type)) {
+    if (!is_template_param_type(result.type) &&
+        !is_class_struct_union_type(result.type)) {
       (void)check_scalar_operand(&result);
     }  /* if */
   }  /* if */
