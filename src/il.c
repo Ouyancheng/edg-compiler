@@ -7248,7 +7248,7 @@ about it).
   }  /* switch */
   fprintf(f_debug, "%s [", str);
   if (olp->kind == (an_object_lifetime_kind)olk_block_after_label) {
-    if (olp->entity.kind == (an_il_entry_kind)iek_statement) {
+    if (olp->entity.kind == (a_byte_il_entry_kind)iek_statement) {
       a_statement_ptr  sp = (a_statement_ptr)olp->entity.ptr;
       if (sp->kind == (a_statement_kind)stmk_label) {
         fputc('"', f_debug);
@@ -7265,7 +7265,7 @@ about it).
         }  /* switch */
         if (str != NULL) fprintf(f_debug, "%s-stmt ", str);
       }  /* if */
-    } else if (olp->entity.kind == (an_il_entry_kind)iek_switch_clause) {
+    } else if (olp->entity.kind == (a_byte_il_entry_kind)iek_switch_clause) {
       a_constant_ptr  cp;
       cp = ((a_switch_clause_ptr)olp->entity.ptr)->constant_list;
       if (cp != NULL) {
