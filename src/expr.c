@@ -7028,6 +7028,7 @@ This is used for checking/allowing assignment to "this" -- an anachronism.
           make_lvalue_variable_operand(this_var, operand,
                                        operand->ref_entries_list);
           current_routine_entry()->assignment_to_this_done = TRUE;
+          this_var->param_value_has_been_changed = TRUE;
         }  /* if */
       }  /* if */
     }  /* if */
