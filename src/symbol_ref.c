@@ -295,18 +295,20 @@ this case and add it to the list for the current scope.
 #endif /* DEBUG */
         if (hnp == NULL) {
           /* No existing entry.  Allocate a new one. */
+          a_scope_depth           scope_depth;
           a_memory_region_number  region_to_switch_back_to;
-          a_boolean               force_alloc_in_filescope = FALSE;
 
-          if (curr_il_region_number != FILE_SCOPE_REGION_NUMBER &&
-              in_file_scope(sp)) {
-            switch_to_file_scope_region(&region_to_switch_back_to);
-            force_alloc_in_filescope = TRUE;
+          /* Get the scope depth from which to determine the appropriate
+             memory region in which to allocate the hidden-name entry. */
+          if (in_file_scope(sp)) {
+            scope_depth = DEPTH_OF_FILE_SCOPE;
+          } else {
+            scope_depth = sp->depth_in_scope_stack;
+            check_assertion(scope_depth != NO_SCOPE_DEPTH);
           }  /* if */
+          switch_to_scope_region(scope_depth, &region_to_switch_back_to);
           hnp = alloc_hidden_name();
-          if (force_alloc_in_filescope) {
-            switch_back_to_original_region(region_to_switch_back_to);
-          }  /* if */
+          switch_back_to_original_region(region_to_switch_back_to);
           hnp->entity.ptr = entity;
           hnp->entity.kind = (a_byte_il_entry_kind)kind;
           /* Add it to the start of the hiden_names list for the current
@@ -344,7 +346,6 @@ hiding.
   a_scope_ptr       sp;
   a_namespace_ptr   nsp;
   a_boolean         tag_hidden_by_nontag, global_hidden_by_nonglobal;
-  a_routine_ptr     rp;
 
   if (sym_ptr->is_error) {
     /* Ignore error symbols. */
@@ -364,13 +365,11 @@ hiding.
              scope_stack[depth_scope_stack].in_prototype_instantiation) {
     /* We don't deal with templates yet. */
   } else {
-#if 0
 #if DEBUG
     if (debug_level >= 4 || db_flag_is_set("dump_hidden")) {
       db_symbol(sym_ptr, "Hidden name check: ", 2);
     }  /* if */
 #endif /* DEBUG */
-#endif /* if 0 */
     clear_locator(&locator, &sym_ptr->decl_position);
     locator.symbol_header = sym_ptr->header;
     if (!is_tag_symbol(sym_ptr)) {
