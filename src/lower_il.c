@@ -7091,11 +7091,11 @@ static void promote_local_entities_to_file_scope(a_scope_ptr   scope,
                                                  a_routine_ptr routine)
 /*
 Promote the local types and static variables of the indicated
-scope and its subscopes to the file scope.  The scope is (directly or
-indirectly) part of the indicated routine.  Note that the entities
-being promoted have not been lowered yet; they will get lowered (as
-normal list members, not as orphans) as part of the lowering of
-the file scope memory region.
+scope and its subscopes to the file scope.  The scope is a function or
+block scope and is (directly or indirectly) part of the indicated routine.
+Note that the entities being promoted have not been lowered yet; they will
+get lowered (as normal list members, not as orphans) as part of the
+lowering of the file scope memory region.
 */
 {
   a_type_ptr     type, next_type;
@@ -7115,6 +7115,15 @@ the file scope memory region.
          function). */
       mangle_promoted_entity_name(&type->source_corresp, routine);
       add_to_types_list(type, DEPTH_OF_FILE_SCOPE);
+      /* If the type is an enum, mangle the names of its constants. */
+      if (is_immediate_enum_type(type)) {
+        a_constant_ptr enum_con;
+        for (enum_con = type->variant.integer.enum_info.constant_list;
+             enum_con != NULL;
+             enum_con = enum_con->next) {
+          mangle_promoted_entity_name(&enum_con->source_corresp, routine);
+        }  /* for */
+      }  /* if */
     }  /* for */
     /* Clear the types list now that all types have been promoted. */
     scope->types = NULL;
