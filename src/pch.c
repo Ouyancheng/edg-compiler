@@ -2037,8 +2037,10 @@ may be used.
                    (sizeof_t)(new_alloc_history_entries *
                                              sizeof(a_mem_alloc_history)));
     }  /* if */
-    /* Save the sequence number as of this point. */
-    saved_curr_seq_number = curr_seq_number;
+    /* Save the sequence number as of this point.  seq_number_last_read is
+       used rather than curr_seq_number because in some cases curr_seq_number
+       may not have been updated to reflect the latest seq_number read. */
+    saved_curr_seq_number = seq_number_last_read;
     /* Update the IL header to reflect the information in the PCH file. */
     pch_fixup_part_1();
     /* Clear the primary source file pointer, otherwise, push_input_stack

@@ -1,5 +1,18 @@
 Version 2.29
 
+4/21/95  Incorrect line numbers when using precompiled headers
+
+If the last preprocessing directive included in a precompiled header file
+included continuation lines, line numbers reported by the front end
+in diagnostics and __LINE__ directives were incorrect.  This has
+been fixed.
+
+  #define X(a) \
+                a \
+                a \
+                a
+  int i = __LINE__;  // Incorrect value when using a PCH
+
 4/20/95  Setting autonomous_primary_tag_decl flag in template class
 
 If source sequence lists are being generated, autonomous_primary_tag_decl
