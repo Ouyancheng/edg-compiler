@@ -338,6 +338,16 @@ extern int fileno(FILE *);
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /*lint -esym(769,an_ms_attribute_kind_tag::msak_last)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if !FIXED_POINT_EXTENSIONS_ALLOWED
+/*lint -esym(759,fixed_point_allowed)*/
+/*lint -esym(765,fixed_point_allowed)*/
+/*lint -esym(769,ec_nonstd_fixed_point_suffix)*/
+/*lint -esym(769,ec_cl_fixed_point_option_only_in_C)*/
+/*lint -esym(769,ec_integer_may_not_fit_in_fixed_point_result)*/
+/*lint -esym(769,ec_bad_fixed_point_value)*/
+/*lint -esym(769,ec_inexact_fxp_conversion)*/
+
+#endif /* !FIXED_POINT_EXTENSIONS_ALLOWED */
 
 
 /******************************************************************************

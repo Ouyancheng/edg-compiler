@@ -4300,9 +4300,12 @@ adding an integer to fixed-point type.)
 
 #endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
 
+#if !FIXED_POINT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/  /* <-- op not used in that case. */
+#endif /* !FIXED_POINT_EXTENSIONS_ALLOWED */
 void change_binary_operand_types(a_type_ptr             type,
-				 an_operand             *operand_1,
-				 an_operand             *operand_2,
+                                 an_operand             *operand_1,
+                                 an_operand             *operand_2,
                                  an_expr_operator_kind  op)
 /*
 The given operation will be applied to the given operands.  If type is not a
