@@ -11333,9 +11333,9 @@ the IL, the template header is passed via template_decl.
   a_boolean            any_decl_other_than_nonstatic_data_member = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   char                 *asm_name = NULL;
-  a_source_position    asm_name_pos;
   an_attribute_ptr     specifier_attributes = NULL;
 #if GNU_EXTENSIONS_ALLOWED
+  a_source_position    asm_name_pos;
   an_attribute_ptr     *last_specifier_attribute;
   a_boolean            has_postfix_attributes = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
