@@ -7099,7 +7099,7 @@ As an anachronism, allow an expression inside the [ ].
   an_expr_node_ptr   ptr_node, delete_node;
   a_boolean          use_global_delete = FALSE, is_constant, array_delete;
   a_boolean          err = FALSE, processed = FALSE, template_case = FALSE;
-  a_routine_ptr      delete_routine, dtor_routine;
+  a_routine_ptr      delete_routine = NULL, dtor_routine = NULL;
   an_operand         operand;
   a_constant         constant;
   an_expr_node_ptr   expr;
@@ -7161,8 +7161,9 @@ As an anachronism, allow an expression inside the [ ].
                                                  (a_builtin_type_kind_set)
                                                                   BTK_POINTER,
                                                  &processed);
-    if (is_template_param_type(operand.type)) template_case = TRUE;
-  } else if (is_template_param_type(operand.type)) {
+  }  /* if */
+  if (is_template_dependent_context() &&
+      is_template_dependent_type(operand.type)) {
     /* A template parameter type is acceptable in a prototype instantiation. */
     template_case = TRUE;
     processed = TRUE;
@@ -7211,8 +7212,7 @@ As an anachronism, allow an expression inside the [ ].
       base_delete_type = skip_typerefs(base_delete_type);
     }  /* if */
     /* See if the object needs destruction. */
-    dtor_routine = NULL;
-    if (is_class_struct_union_type(base_delete_type)) {
+    if (is_class_struct_union_type(base_delete_type) && !template_case) {
       /* Instantiate the class if it is a template class. */
       complete_type_is_needed(base_delete_type);
       if (is_incomplete_type(base_delete_type)) {
@@ -7252,13 +7252,15 @@ As an anachronism, allow an expression inside the [ ].
     /* Select the proper "delete" routine.  If the type is a class type and
        the class has a "delete" operator, use it.  However, if "::" preceded
        the keyword "delete", always use the global ::delete. */
-    delete_routine = select_delete_routine(base_delete_type,
-                                           use_global_delete,
-                                           array_delete,
-                                           &delete_position);
+    if (!template_case) {
+      delete_routine = select_delete_routine(base_delete_type,
+                                             use_global_delete,
+                                             array_delete,
+                                             &delete_position);
+    }  /* if */
     /* Note that delete_routine will be NULL if an ambiguity was found. */
 #if NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE
-    if (array_delete) {
+    if (array_delete && !template_case) {
       /* If a deleting an array and a runtime routine will be used, the
          delete routine can be implicit if it is the default global
          delete. */

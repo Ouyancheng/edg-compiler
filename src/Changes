@@ -108,6 +108,8 @@ were possible on certain configurations.  Now fixed.  This happened
 only when prototype instantiations were done, i.e., in strict mode
 or with --parse_templates.
 
+A similar problem also existed with "delete" operations, also now fixed.
+
 2/12/02  RECORD_CONSTANT_EXPRESSIONS_IN_IL: parenthesized constants
 
 When RECORD_CONSTANT_EXPRESSIONS_IN_IL is TRUE, an expression is now
