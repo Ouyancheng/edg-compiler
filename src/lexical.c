@@ -590,6 +590,7 @@ possible.
   ppp->discard_cache_when_done = TRUE;
   ppp->has_been_scanned = FALSE;
   ppp->pragma_text = NULL;
+  ppp->il_pragma_entry = NULL;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   ppp->source_sequence_entry = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */

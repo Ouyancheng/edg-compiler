@@ -457,6 +457,9 @@ typedef struct a_pending_pragma {
 			   this points to the null terminated string.  The
 			   string begins with the token immediately following
 			   the #pragma keyword. */
+  a_pragma_ptr	il_pragma_entry;
+			/* A pointer to the IL pragma entry associated with
+			   this pending pragma, if any. */
 
   /* Pragma-specific information.  This union contains other information
      about the pragma and may be used to preserve information about the
