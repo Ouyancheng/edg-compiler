@@ -1757,7 +1757,7 @@ returned set to TRUE.
       pos_sy_error(ec_already_initialized, source_pos, symbol_ptr);
       var_err = TRUE;
     } else if (is_vla_type(vp->type)) {
-      /* VLAs can not be initialized. */
+      /* VLAs cannot be initialized. */
       pos_sy_error(ec_cannot_initialize, source_pos, symbol_ptr);
       var_err = TRUE;
       vp_type = NULL;
