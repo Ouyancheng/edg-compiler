@@ -263,6 +263,10 @@ typedef struct an_extern_symbol_descr {
 
 typedef struct a_derivation_path *a_derivation_path_ptr;
 typedef struct a_derivation_path {
+  /* Description of one step in the derivation of a projection symbol
+     from an original class member.  A list of these gives a complete
+     reverse history of the derivation, in order from the most derived
+     class to the original class. */
   a_base_class_ptr
                 base_class;
                          /* A pointer to the base class entry representing
@@ -271,16 +275,15 @@ typedef struct a_derivation_path {
   a_derivation_path_ptr
                 next;
                          /* The next step in the derivation path.  If next
-                            is non-NULL, the base class it references should
-                            be on the base_classes list for the current
-                            base class.  The path, then, is a member of
-                            the set of possible paths defined by the
-                            originating class and its base path tree. */
+                            is NULL, this is the end of the derivation. */
 } a_derivation_path;
 
 
 typedef struct a_projection_symbol_descr *a_projection_symbol_descr_ptr;
 typedef struct a_projection_symbol_descr {
+  /* Description of the projection of a base class member symbol into
+     a derived class.  A list of these is pointed to by an sk_projection
+     symbol. */
   a_projection_symbol_descr_ptr
                 next;
                         /* Next in a linked list, each of which represents
@@ -296,10 +299,10 @@ typedef struct a_projection_symbol_descr {
                            the progenitor symbol.  If ambiguous is TRUE, this
                            symbol is one of several possible. */
   a_symbol_ptr  original_symbol;
-                        /* The primary base class member to which this
+                        /* The original base class member to which this
                            projection symbol refers.  It will be different
                            from the progenitor_symbol when the latter is a
-                           projection symbol.  Refering to the previous
+                           projection symbol.  Referring to the previous
                            example, B::i is the progenitor symbol for C::i,
                            but A::i is the original symbol.  If ambiguous
                            is TRUE, this symbol is one of several possible. */
@@ -310,9 +313,8 @@ typedef struct a_projection_symbol_descr {
                            and the member specified by original_symbol.
                            This path can be interpreted as a sequence of
                            casts, the final cast being to the class of
-                           the primary base class member that original_symbol
-                           identifies.  If ambiguous is TRUE this is one of
-                           several possible paths. */
+                           the original base class member.  If ambiguous is
+                           TRUE this is one of several possible paths. */
   unsigned int /*an_access_specifier*/
 		access:2;
 			/* Access to this symbol in the scope of the derived
@@ -321,15 +323,15 @@ typedef struct a_projection_symbol_descr {
                            class. */
   unsigned int	ambiguous:1;
 			/* TRUE if progenitor_symbol's name is ambiguous in
-                           the current scope, i.e., there's another symbol
-			   with the same name, and no reason to prefer one
-                           over the other. */
+                           the current scope, i.e., another symbol with the
+                           same name is visible, and there is no reason to
+                           prefer one over the other. */
   unsigned int  hidden:1;
                         /* TRUE if progenitor_symbol is hidden from visibility
-                           in the current scope by another object. */
+                           in the current scope by another symbol. */
   unsigned int  dominated:1;
                        /*  TRUE if progenitor_symbol is dominated by another
-                           object (see ARM 10.1.1). */
+                           projection symbol (see ARM 10.1.1). */
 } a_projection_symbol_descr;
 
 
@@ -422,7 +424,12 @@ typedef struct a_symbol {
                            inherited from its base classes.  Such symbols
                            are referred to as projection symbols, since the
                            symbol is projected from the base class into the
-                           derived class. */
+                           derived class.  All symbols identified in this
+                           list have the same name, all may be referenced
+                           (though not necessarily unambiguously) by a
+                           qualfied name, not all may be visible with
+                           an unqualified reference, and not all may be
+                           accessible. */
       a_byte_boolean
                 access_adjustment;
                         /* If TRUE an access declaration has been made for
