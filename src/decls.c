@@ -4948,7 +4948,7 @@ declaration.
           if ((SVR4_C_mode &&
                incompatible_types_are_SVR4_compatible(type_ptr,
                                                       routine_ptr->type)) ||
-              (gcc_mode && is_function_def &&
+              (gcc_mode &&
                !skip_typerefs(type_ptr)
                                     ->variant.routine.extra_info->prototyped &&
                skip_typerefs(routine_ptr->type)
