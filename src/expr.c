@@ -8544,6 +8544,7 @@ a pointer to the expression tree.
 
   db_enter(3, "scan_switch_expression");
 
+  check_assertion(expr_stack == NULL); /* Check this is a full expression. */
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*new_object_lifetime=*/TRUE);
   /* Scan the expression. */
@@ -8583,7 +8584,8 @@ Scan a "void expression," i.e., one whose value is discarded.  This is
 used for expression statements, the increment expression of a "for", etc.
 repeated_in_loop is TRUE for an expression repeated in a loop (e.g.,
 the increment of a "for").  This routine is not used for constant
-or not-evaluated expressions.
+or not-evaluated expressions.  This routine should only be used to
+scan full expressions.
 */
 {
   an_expr_node_ptr    expression;
@@ -8592,6 +8594,7 @@ or not-evaluated expressions.
 
   db_enter(3, "scan_void_expression");
 
+  check_assertion(expr_stack == NULL); /* Check this is a full expression. */
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*new_object_lifetime=*/repeated_in_loop);
   /* Scan the expression. */
@@ -8821,6 +8824,7 @@ the appropriate dynamic initialization entry and return NULL.
   db_enter(3, "scan_return_expression");
 
   *dip = NULL;
+  check_assertion(expr_stack == NULL); /* Check this is a full expression. */
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*new_object_lifetime=*/FALSE);
   return_by_cctor_case = FALSE;
@@ -8878,11 +8882,16 @@ void scan_pp_expression(a_constant *constant)
 Scan a pre-processor expression.  See sections 3.4 and 3.8.1 in the standard.
 */
 {
-  an_operand          result;
-  an_expr_stack_entry expr_stack_entry;
+  an_operand              result;
+  an_expr_stack_entry     expr_stack_entry;
+  an_expr_stack_entry_ptr saved_expr_stack;
 
   db_enter(3, "scan_pp_expression");
-
+  /* Save the current expr_stack for later restoration, and start over, because
+     this pp expression is not part of any expression we happen to be inside
+     of. */
+  saved_expr_stack = expr_stack;
+  expr_stack = NULL;
   push_expr_stack((an_expression_kind)ek_pp, &expr_stack_entry,
                   /*new_object_lifetime=*/FALSE);
   /* Scan the constant expression. */
@@ -8890,7 +8899,7 @@ Scan a pre-processor expression.  See sections 3.4 and 3.8.1 in the standard.
   do_operand_transformations(&result, TOPT_NO_OPTIONS);
   extract_constant_from_operand(&result, constant);
   pop_expr_stack();
-
+  expr_stack = saved_expr_stack;
 #if DEBUG
   if (debug_level >= 3) {
     db_constant(constant);
@@ -9140,6 +9149,7 @@ constant class members (an extension).
 
   db_enter(3, "scan_constant_initializer_expression");
 
+  check_assertion(expr_stack == NULL); /* Check this is a full expression. */
   push_expr_stack((an_expression_kind)ek_init_constant, &expr_stack_entry,
                   /*new_object_lifetime=*/FALSE);
   /* Scan the constant expression. */
@@ -9182,6 +9192,7 @@ copy constructor elision is possible; see scan_class_initializer_expression.
 
   db_enter(3, "scan_initializer_expression");
 
+  check_assertion(expr_stack == NULL); /* Check this is a full expression. */
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*new_object_lifetime=*/FALSE);
   /* Do fold constant addressing expressions to constants so that static
@@ -9241,11 +9252,15 @@ pointer to the updated expression.  If an error is detected, use
 err_pos as the error position.
 */
 {
-  an_operand          operand;
-  an_expr_stack_entry expr_stack_entry;
+  an_operand              operand;
+  an_expr_stack_entry     expr_stack_entry;
+  an_expr_stack_entry_ptr saved_expr_stack;
 
   /* Even though this is not an expression scan, make sure the expr_stack
-     has something on it. */
+     has something on it.  If there is already something on the stack,
+     save it, clear the stack, and restore it later. */
+  saved_expr_stack = expr_stack;
+  expr_stack = NULL;
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*new_object_lifetime=*/FALSE);
   /* Make an operand for the expression. */
@@ -9258,6 +9273,7 @@ err_pos as the error position.
   expr = make_node_from_operand(&operand);
   expr = add_object_lifetime_node_if_needed(expr);
   pop_expr_stack();
+  expr_stack = saved_expr_stack;
   return expr;
 }  /* prep_rvalue_arg_expr */
 
@@ -9287,6 +9303,7 @@ appropriate.
   a_boolean           okay = TRUE;
 
   db_enter(3, "scan_class_initializer_expression");
+  check_assertion(expr_stack == NULL); /* Check this is a full expression. */
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*new_object_lifetime=*/FALSE);
   /* Scan the expression. */
@@ -9313,7 +9330,8 @@ expression must be scalar, a pointer-to-member type, or must be of a
 class type that can be converted to such a type.  is_condition_expr is
 TRUE if this expression is a "condition" in the terms of the C++ standard.
 repeated_in_loop is TRUE if the expression is part of a loop and it is
-re-evaluated each time around the loop.
+re-evaluated each time around the loop.  This routine is used only for
+full expressions.
 */
 {
   an_operand          result;
@@ -9322,6 +9340,7 @@ re-evaluated each time around the loop.
 
   db_enter(3, "scan_boolean_controlling_expression");
 
+  check_assertion(expr_stack == NULL); /* Check this is a full expression. */
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*new_object_lifetime=*/is_condition_expr||repeated_in_loop);
   /* Scan the expression. */
