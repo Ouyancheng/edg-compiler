@@ -7237,12 +7237,12 @@ As an anachronism, allow an expression inside the [ ].
         }  /* if */
         if (sym != NULL && delete_routine == sym->variant.routine.ptr) {
           delete_routine = NULL;
-          /* Mark the destructor as referenced if it is virtual, because
-             the call from the runtime routine will not be virtual (nor
-             need it be, since this is an array of the class type). */
-          if (dtor_routine != NULL && dtor_routine->is_virtual) {
-            if_evaluating_mark_routine_referenced(dtor_routine);
-          }  /* if */
+        }  /* if */
+        /* Mark the destructor as referenced if it is virtual, because
+           the call from the runtime routine will not be virtual (nor
+           need it be, since this is an array of the class type). */
+        if (dtor_routine != NULL && dtor_routine->is_virtual) {
+          if_evaluating_mark_routine_referenced(dtor_routine);
         }  /* if */
       }  /* if */
     } else {

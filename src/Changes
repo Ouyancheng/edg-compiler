@@ -1,5 +1,25 @@
 Version 3.0
 
+3/2/02   Virtual destructor referenced only in array delete not generated
+
+A compiler-generated virtual destructor that is referenced only in
+an array delete was not generated, if the class has a nondefault array
+operator delete, with the consequence that there would be a link error
+for that destructor on a version configured not to instantiate extern
+inline functions.
+
+  struct A {
+    A() {}
+    virtual ~A() {}
+  };
+  struct B : public A {
+    void operator delete[](void *) {}
+  };
+  int main() {
+    B *p = 0;
+    delete[] p;
+  }
+
 3/2/02   Cast of non-class rvalue to reference to const
 
 Explicit casts of rvalues of non-class type to a reference-to-const
