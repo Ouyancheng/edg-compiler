@@ -9,7 +9,8 @@ pointer-to-member-function and reference-to-function declarations:
 
   class A;
   void (A::*pmf)() throw();     // Now accepted
-  void (&rf)() throw();         // Now accepted
+  void f() throw();
+  void (&rf)() throw() = f;     // Now accepted
 
 11/26/96 Missing diagnostic on member function with invalid default argument
 
