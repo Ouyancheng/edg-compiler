@@ -1170,7 +1170,11 @@ statement).
   if (is_routine_address_node(arg)) {
     /* We know which routine is being called. */
     routine = arg->variant.routine;
-    if (routine->is_inline) {
+    if (!routine->is_inline) {
+      /* Make sure that if the routine gets marked as inline later an
+         out-of-line copy is generated to satisfy this call. */
+      routine->need_out_of_line_copy = TRUE;
+    } else {
       if (!routine->inlinable) {
         /* The routine cannot be inlined, so leave this call alone.  An
            out-of-line copy of the routine will be required.  Note that this
