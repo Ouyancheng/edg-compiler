@@ -4949,19 +4949,33 @@ Returns NULL in case of error.
 
 #if UPC_EXTENSIONS_ALLOWED
 
-static a_upc_block_size scan_upc_block_size(a_basic_type     basic_type,
-                                            a_decl_flag_set  *output_flags,
-                                            a_boolean        *err)
+static a_upc_block_size scan_upc_block_size_if_any(
+                                         a_basic_type          basic_type,
+                                         a_decl_flag_set       *output_flags,
+                                         a_decl_pos_block_ptr  decl_pos_block,
+                                         a_boolean             *err)
 /*
 Scan and return the (constant) integer block size specified on a UPC shared
 type qualifier.  This routine also scans the enclosing brackets.  E.g.,
 	shared[100] int a[35];  // Block size 100
 If a block size was actually specified, the fact is recorded in *output_flags.
+The current token must be "shared."  decl_pos_block is updated with the
+final position of the construct (whether or not a block size was specified).
 */
 {
   /* If not otherwise specified, the block size will be 1. */
   a_upc_block_size  block_size = 1;
 
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  if (decl_pos_block != NULL) {
+    /* If no block size followed, the specifier's end is the last position
+       of the "shared" token. */
+    decl_pos_block->specifiers_range.end = end_pos_curr_token;
+  }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  /* Skip the "shared" token. */
+  check_assertion(curr_token == (a_token_kind)tok_upc_shared);
+  (void)get_token();
   if (curr_token == tok_lbracket) {
     /* A shared block specifier. */
     *output_flags |= DSO_UPC_SHARED_LAYOUT;
@@ -5019,6 +5033,11 @@ If a block size was actually specified, the fact is recorded in *output_flags.
 #endif /* if CHECKING */
       }  /* switch */
     }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    if (decl_pos_block != NULL) {
+      decl_pos_block->specifiers_range.end = end_pos_curr_token;
+    }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* Make sure we have a right bracket */
     (void)required_token(tok_rbracket, ec_exp_rbracket);
     remove_stop_token(tok_rbracket);
@@ -5038,7 +5057,7 @@ If a block size was actually specified, the fact is recorded in *output_flags.
     }  /* if */
   }  /* if */
   return block_size;
-}  /* scan_upc_block_size */
+}  /* scan_upc_block_size_if_any */
 
 #endif /* UPC_EXTENSIONS_ALLOWED */
 
@@ -5830,8 +5849,8 @@ Returns TRUE if there is an error in the specifiers.
           decl_specifiers_seen |= DS_TYPE_QUALIFIER;
         }  /* if */
         /* Go past "shared" to see if a block size is specified. */
-        (void)get_token();
-        block_size = scan_upc_block_size(basic_type, output_flags, &err);
+        block_size = scan_upc_block_size_if_any(basic_type, output_flags,
+                                                decl_pos_block, &err);
         if (multiple_shared_seen) {
           /* We've seen multiple UPC shared qualifiers.  Sometimes this
              is accepted with a warning, but if the block sizes are
