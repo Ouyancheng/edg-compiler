@@ -612,7 +612,10 @@ Return a pointer to the name for the indicated variable.
     name = name_buffer;
   } else
 #endif /* ifdef FFE */
-  if (variable->source_corresp.name_linkage ==
+  if (variable->implicit_this_param) {
+    /* "this" parameter in C++. */
+    name = "this";
+  } else if (variable->source_corresp.name_linkage ==
                                            (a_name_linkage_kind)nlk_internal &&
       strcmp(variable->source_corresp.name, "__link") != 0) {
     /* Name is at file scope, but is not external.  Add a suffix so

@@ -1475,6 +1475,7 @@ The routine must have a "this" parameter.
     new_routine_scope->variant.routine.parameters = this_param_var =
                                   make_lowered_param_variable(this_param_type);
     this_param_var->assoc_param_type = new_rtsp->param_type_list;
+    this_param_var->implicit_this_param = TRUE;
     /* Make any additional parameter types and parameter vars beyond the
        "this" parameter (this comes up, for instance, on the copy
        constructor case). */

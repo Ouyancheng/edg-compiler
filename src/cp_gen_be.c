@@ -901,7 +901,12 @@ static void gen_variable_name(a_variable_ptr var)
 Output the name of the indicated variable.
 */
 {
-  gen_name(&var->source_corresp);
+  if (var->implicit_this_param) {
+    /* "this" parameter in C++. */
+    write_tok_str("this");
+  } else {
+    gen_name(&var->source_corresp);
+  }  /* if */
 }  /* gen_variable_name */
 
 
@@ -1846,7 +1851,8 @@ is non-NULL, in which case that is the function scope.
         write_tok_str("void");
       }  /* if */
     } else {
-      /* List the parameter types (and, if this the definition, names too). */
+      /* List the parameter types (and, if this is the definition, names
+         too). */
       for (;;) {
         if (scope != NULL) {
           /* This is the definition of the function, so put out the type and
