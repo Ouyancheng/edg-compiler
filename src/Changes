@@ -1,5 +1,23 @@
 Version 3.2
 
+5/6/03   Dual lookup of conversion type names
+
+The standard requires that the type specified in a conversion operator
+must be looked up in both the context in which it is called and in the
+class of the object on which the operator is being called.  We now
+implement the required dual lookup.  In default mode, a warning is
+issued and the same type found by earlier versions is used.
+
+  struct A { };
+  struct B {
+    typedef int A;
+    operator A();
+  };
+  int main() {
+    B b;
+    int i = b.B::operator A();  // diagnostic now issued on A
+  }
+
 5/6/03   IA-64 ABI: mangled name for __alignof__
 
 The mangling code for the __alignof__ operator in the IA-64 ABI

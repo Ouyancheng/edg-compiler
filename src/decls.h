@@ -236,7 +236,8 @@ extern
 a_boolean scan_conversion_operator(
 			a_source_position		*id_pos,
                         a_boolean			is_class_member,
-                        a_parent_class_or_namespace_ptr	parent);
+                        a_parent_class_or_namespace_ptr	parent,
+			a_type_ptr			field_sel_type);
 
 extern a_type_ptr type_keyword(void);
 

@@ -1794,6 +1794,8 @@ the scope being pushed.
   ssep->tmpl_decl_state		 = NULL;
   ssep->pending_templ_arg_lists  = 0;
   ssep->next_nondependent_call   = NULL;
+  ssep->qualified_conversion_operator = FALSE;
+  ssep->conversion_parent_type   = NULL;
   ssep->fp_contract_state        = curr_fp_contract_state;
   ssep->fenv_access_state        = curr_fenv_access_state;
   ssep->cx_limited_range_state   = curr_cx_limited_range_state;

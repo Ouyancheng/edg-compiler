@@ -9131,7 +9131,8 @@ the destructor is part of a qualified name (e.g., "A::B::~B").
 
 
 static void get_opname(a_boolean                   	is_class_member,
-                       a_parent_class_or_namespace_ptr	parent)
+                       a_parent_class_or_namespace_ptr	parent,
+		       a_type_ptr			field_sel_type)
 /*
 The current token is the token "operator" at the start of an operator name,
 like "operator+".  Scan the name and build a locator for the operator name
@@ -9141,7 +9142,9 @@ being scanned.  is_class_member is TRUE if the parent points
 to a class, it is FALSE if parent points to a namespace or if there
 is no parent.  If the parent pointer is not NULL then push a class or
 namespace reactivation scope before scanning the type name in a type
-conversion operator.
+conversion operator.  If field_sel_type is not NULL, it is the type of
+the left operator of a field selection operation associated with this
+operator function reference.
 
 This routine is called only in C++ mode.
 */
@@ -9151,13 +9154,13 @@ This routine is called only in C++ mode.
   an_opname_kind    opname;
 
   start_position = pos_curr_token;
-  /* Skip past the "operator", check for an operator. */
-  token = get_token();
-  if (scan_conversion_operator(&start_position, is_class_member, parent)) {
+  if (scan_conversion_operator(&start_position, is_class_member, parent,
+                               field_sel_type)) {
     /* This is a conversion operator function -- "operator" followed by
        a type name. */
   } else {
     /* It must be an overloaded operator name (or an error). */
+    token = curr_token;
     opname = opname_kind_for_token[(int)token];
     if (opname == (an_opname_kind)onk_function_call ||
         opname == (an_opname_kind)onk_subscript) {
@@ -10776,7 +10779,8 @@ static a_symbol_ptr select_dual_lookup_symbol(
 					a_symbol_ptr	normal_sym,
 					a_symbol_ptr	class_fund_sym,
 					a_symbol_ptr	class_sym,
-					a_boolean	might_be_template)
+					a_boolean	might_be_template,
+					a_boolean	prefer_class_member)
 /*
 normal_fund_sym and class_fund_sym are the results of a normal and
 class-qualified ID lookup, respectively.  normal_sym and class_sym are
@@ -10786,7 +10790,8 @@ the name being looked up is followed by a "<".  Reconcile the two
 symbols according to the rules for the dual lookup, issue any
 diagnostics that might be needed, and return the symbol to be used.
 Set the specific symbol to the associated nonfundamental symbol.
-*/
+If prefer_class_member is TRUE, the class member is preferred over
+the normal lookup symbol.*/
 {
   a_symbol_ptr	result_sym;
   a_symbol_ptr	specific_symbol;
@@ -10877,11 +10882,11 @@ Set the specific symbol to the associated nonfundamental symbol.
          When the name is followed by a "::" (when might_be_template
          is FALSE) the normal lookup symbol is used to duplicate the behavior
          that existed before the dual lookup was implemented.  When the name
-         is followed by a "<" (might_be_template is TRUE), the class symbol
-         is preferred.  This is also done for compatibility to prevent
-         something like "p->f < 1" from breaking when a global template "f"
-         is declared. */
-      an_error_severity	severity;
+         is followed by a "<" (might_be_template is TRUE), or if
+         prefer_class_member is TRUE, the class symbol is preferred.
+         This is also done for compatibility to prevent something like
+         "p->f < 1" from breaking when a global template "f" is declared. */
+      an_error_severity	severity = strict_ansi_error_severity;
       a_symbol_ptr	sym_to_use;
       a_symbol_ptr	diag_sym_to_use;
       a_symbol_ptr	sym_to_ignore;
@@ -10894,18 +10899,17 @@ Set the specific symbol to the associated nonfundamental symbol.
       } else {
         diag_class_sym = class_fund_sym;
       }  /* if */
-      if (might_be_template) {
+      if (might_be_template || prefer_class_member) {
         sym_to_use = class_fund_sym;
         diag_sym_to_use = diag_class_sym;
         specific_symbol = class_sym;
         sym_to_ignore = normal_fund_sym;
-        severity = es_warning;
+        if (might_be_template) severity = es_warning;
       } else {
         sym_to_use = normal_fund_sym;
         diag_sym_to_use = sym_to_use;
         specific_symbol = normal_sym;
         sym_to_ignore = diag_class_sym;
-        severity = strict_ansi_error_severity;
       }  /* if */
       pos_sy2_diagnostic(severity, ec_dual_lookup_ambiguous_name,
                          &error_position, diag_sym_to_use, sym_to_ignore);
@@ -10967,7 +10971,8 @@ static a_symbol_ptr look_up_qualifier_start(
 			a_boolean			might_be_vacuous_dtor,
 			a_boolean			*is_vacuous_dtor,
 			a_boolean			might_be_template,
-			a_boolean			in_if_exists)
+			a_boolean			in_if_exists,
+			a_boolean			prefer_class_member)
 /*
 This routine does the "dual lookup" that is done in contexts such as
 the "A" in "p->A::B" and "f" in "p->f<...>...".  This involves looking
@@ -10979,7 +10984,8 @@ destructor is valid in the current context.  *is_vacuous_dtor is set to
 TRUE if a symbol that can only be a vacuous destructor is returned.
 class_type is the type of the left operand of the field selection.
 in_if_exists is TRUE when scanning the identifier of a Microsoft
-__if_exists or __if_not_exists directive.
+__if_exists or __if_not_exists directive.  If prefer_class_member is
+TRUE, the class member is preferred over the normal lookup symbol.
 */
 {
   a_symbol_ptr	normal_sym;
@@ -11017,7 +11023,7 @@ __if_exists or __if_not_exists directive.
                                        : locator_for_curr_id.specific_symbol;
     sym = select_dual_lookup_symbol(normal_fund_sym, normal_sym, 
                                     class_fund_sym, class_sym,
-                                    might_be_template);
+                                    might_be_template, prefer_class_member);
   } else {
     sym = normal_fund_sym;
   }  /* if */
@@ -11047,7 +11053,7 @@ __if_exists or __if_not_exists directive.
       class_sym = locator_for_curr_id.specific_symbol;
       sym = select_dual_lookup_symbol(normal_fund_sym, normal_sym,
                                       class_fund_sym, class_sym,
-                                      might_be_template);
+                                      might_be_template, prefer_class_member);
     } else {
       sym = normal_fund_sym;
     }  /* if */
@@ -11219,6 +11225,8 @@ selection operator, in which case it points to the type of the left operand.
   a_boolean			follows_template;
   a_boolean			qualifier_is_super = FALSE;
   a_boolean			is_super_qualified = FALSE;
+  a_boolean			is_conversion_type = FALSE;
+  a_boolean			qualified_conversion_operator = FALSE;
 #if RECORD_FORM_OF_NAME_REFERENCE
   a_name_qualifier_ptr          name_qualifier = NULL;
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
@@ -11251,6 +11259,16 @@ selection operator, in which case it points to the type of the left operand.
     if (result) goto wrapup;
     goto exit;
   }  /* if */
+  if (field_sel_type == NULL) {
+    /* If no field selection type was specified, use the conversion
+       parent type from the scope stack entry if one is present.  This is
+       set when scanning a type conversion operator. */
+    a_scope_stack_entry_ptr	ssep = &scope_stack[depth_scope_stack];
+    field_sel_type = ssep->conversion_parent_type;
+    qualified_conversion_operator = ssep->qualified_conversion_operator;
+    ssep->conversion_parent_type = NULL;
+    is_conversion_type = field_sel_type != NULL;
+  }  /* if */
   follows_template = (options & GID_FOLLOWS_TEMPLATE) != 0;
   /* Look for a leading unary "::".  Don't be fooled by "::new" and
      "::delete".  Don't treat ::* as a pointer to member declarator.
@@ -11270,7 +11288,7 @@ selection operator, in which case it points to the type of the left operand.
   }  /* if */
   if (curr_token == tok_operator) {
     get_opname(/*is_class_member=*/FALSE,
-               (a_parent_class_or_namespace*)NULL);
+               (a_parent_class_or_namespace*)NULL, field_sel_type);
   }  /* if */
   /* For the next token to be part of the qualifier it must be a class name
      followed by "::".  Templates make it more difficult to detect this
@@ -11285,7 +11303,7 @@ selection operator, in which case it points to the type of the left operand.
     next_tok = next_two_tokens_if_qualifier_delimiter(tok_colon_colon,
                                                       &next_tok_2);
     if (next_tok == tok_colon_colon || next_tok == tok_lt ||
-        follows_template) {
+        follows_template || is_conversion_type) {
       might_be_qualifier = TRUE;
     } else if (cfront_2_1_mode && next_tok == tok_period &&
                !(options & GID_IS_FIELD_SELECTION_OPERAND)) {
@@ -11402,6 +11420,9 @@ selection operator, in which case it points to the type of the left operand.
         lookup_kind = IDL_TENTATIVE_TEMPLATE_LOOKUP;
       } else if (qualifier_separator == tok_period) {
         lookup_kind = IDL_NO_OPTIONS;
+      } else if (is_conversion_type && next_tok != tok_colon_colon) {
+        /* Something like "operator B ...". */
+        lookup_kind = IDL_NO_OPTIONS;
       } else {
         lookup_kind = IDL_MUST_BE_CLASS_OR_NAMESPACE;
       }  /* if */
@@ -11426,7 +11447,8 @@ selection operator, in which case it points to the type of the left operand.
                                    might_be_vacuous_dtor, &is_vacuous_dtor,
 				   /*might_be_template=*/next_tok == tok_lt ||
                                                          follows_template,
-                                   in_if_exists);
+                                   in_if_exists,
+                                   qualified_conversion_operator);
         if (locator_for_curr_id.is_semivisible_nested_type) {
           /* The symbol in the locator is a nested class that is not visible
              according to the ARM lookup rules but is returned in support of
@@ -11492,7 +11514,11 @@ selection operator, in which case it points to the type of the left operand.
        qualified name.  We clear it now because it may be set again if a
        template reference is coalesced and we don't want to lose that value. */
     specific_sym = locator_for_curr_id.specific_symbol;
-    clear_specific_symbol(locator_for_curr_id);
+    if (!is_conversion_type || next_tok == tok_colon_colon) {
+      /* The specific symbol is needed when a special lookup was done for the
+         identifier in a conversion operator. */
+      clear_specific_symbol(locator_for_curr_id);
+    }  /* if */
     /* If the class symbol is for a class template, process the argument
        list. */
     if ((qualifier_sym != NULL &&
@@ -11667,7 +11693,7 @@ selection operator, in which case it points to the type of the left operand.
           } else {
             parent.namespace_ptr = qualifier_namespace;
           }  /* if */
-          get_opname(qualifier_is_type, &parent);
+          get_opname(qualifier_is_type, &parent, field_sel_type);
         }  /* if */
         next_tok = next_two_tokens_if_qualifier_delimiter
                                             (qualifier_separator, &next_tok_2);
@@ -12158,7 +12184,7 @@ selection operator, in which case it points to the type of the left operand.
       } else {
         parent.namespace_ptr = qualifier_namespace;
       }  /* if */
-      get_opname(qualifier_is_type, &parent);
+      get_opname(qualifier_is_type, &parent, field_sel_type);
     }  /* if */
 wrapup:
     /* The current token must now be the final identifier of the

@@ -8145,7 +8145,8 @@ where the type involves more than one token -- e.g., "unsigned int(x)".
 a_boolean scan_conversion_operator(
 			a_source_position		*id_pos,
                         a_boolean			is_class_member,
-                        a_parent_class_or_namespace_ptr	parent)
+                        a_parent_class_or_namespace_ptr	parent,
+			a_type_ptr			field_sel_type)
 /*
 The token "operator" has been seen and passed; we are now on the token
 immediately following it.  If it marks the start of a type name we have
@@ -8155,7 +8156,9 @@ If the class or namespace pointed to by parent is not NULL then push a
 class or namespace reactivation scope before scanning type name in a type
 conversion operator.  is_class_member is TRUE if the parent points
 to a class, it is FALSE if parent points to a namespace or if there
-is no parent.
+is no parent.  If field_sel_type is not NULL, it is the type of
+the left operator of a field selection operation associated with this
+operator function reference.
 */
 {
   a_storage_class         storage_class;
@@ -8178,7 +8181,8 @@ is no parent.
      is_type_start, and the class needs to be reactivated before
      is_type_start is called. */
   if (is_class_member) {
-    if (parent->class_type != NULL &&
+    if (field_sel_type == NULL &&
+        parent->class_type != NULL &&
         !is_incomplete_type(parent->class_type)) {
       a_symbol_ptr	sym;
       sym = (a_symbol_ptr)parent->class_type->source_corresp.assoc_info;
@@ -8186,7 +8190,9 @@ is no parent.
          real class type or a prototype instantiation.  In other cases,
          suppress the reactivation because incomplete and nonreal classes
          cannot be reactivated.  An error will be issued elsewhere for these
-         cases. */
+         cases.  The class is not reactivated for references that follow
+         field selections.  Instead, a dual lookup of the next identifier
+         is done. */
       if (sym != NULL && 
           (is_real_class_symbol(sym) ||
            is_prototype_instantiation_symbol(sym))) {
@@ -8199,6 +8205,16 @@ is no parent.
     push_namespace_reactivation_scope(parent->namespace_ptr);
     namespace_reactivated = TRUE;
   }  /* if */
+  /* If this is part of a field selection operation, record the type of the
+     left hand side in the scope stack entry.  This is needed to do the dual
+     lookup of conversion operator names. */
+  if (field_sel_type != NULL) {
+    a_scope_stack_entry_ptr	ssep = &scope_stack[depth_scope_stack];
+    scope_stack[depth_scope_stack].conversion_parent_type = field_sel_type;
+    ssep->qualified_conversion_operator = is_class_member && parent != NULL;
+  }  /* if */
+  /* Bypass the "operator" keyword. */
+  (void)get_token();
   if (is_type_start(/*is_expr_context=*/FALSE)) {
     /* It is the start of a type name. */
     is_conversion_operator = TRUE;
@@ -8251,6 +8267,13 @@ is no parent.
     pop_class_reactivation_scope();
   } else if (namespace_reactivated) {
     pop_namespace_reactivation_scope();
+  } else {
+    /* Reset the scope stack fields.  This will normally have been done
+       already when scanning the type above, but just in case, it is
+       reset here. */
+    a_scope_stack_entry_ptr	ssep = &scope_stack[depth_scope_stack];
+    ssep->conversion_parent_type = NULL;
+    ssep->qualified_conversion_operator = FALSE;
   }  /* if */
   db_exit();
   return is_conversion_operator;

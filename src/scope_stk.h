@@ -416,6 +416,10 @@ typedef struct a_scope_stack_entry {
 			/* Saved values of the current state of the C99
 			   STDC pragma values.  These are saved when a scope
 			   is entered and restored when the scope is left. */
+  a_bit_field	qualified_conversion_operator:1;
+			/* TRUE when conversion_parent_type is set and the
+			   conversion type was specified using the form
+			   "A::operator B". */
   bitfield_to_avoid_codecenter_warnings()
   a_scope_pointers_block_ptr
 		assoc_pointers_block;
@@ -787,6 +791,12 @@ typedef struct a_scope_stack_entry {
 			   for the current instantiation.  During a real
 			   instantiation this list is used to determine
 			   whether a given call is dependent. */
+  a_type_ptr	conversion_parent_type;
+			/* When scanning a conversion operator, this provides
+			   the left hand side of the field selection associated
+			   with the call of the conversion operator.  This is
+			   used to do the required dual-lookup of the name
+			   following the operator keyword. */
 #if IA64_ABI && NEED_NAME_MANGLING
   a_collision_table_ptr
 		local_name_collision_table;
