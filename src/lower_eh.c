@@ -585,10 +585,6 @@ file scope IL memory region), and return a pointer to it.
   an_il_to_str_output_control_block octl;
   char                              *name;
 
-  check_assertion_str(!type->source_corresp.
-                                         nested_type_mangling_has_been_done &&
-                      !type->source_corresp.name_has_been_mangled,
-                      "make_typeinfo_name: type name already mangled");
   /* Set up for use of form_type. */
   clear_il_to_str_output_control_block(&octl);
   octl.output_str = put_str_to_temp_text_buffer;
