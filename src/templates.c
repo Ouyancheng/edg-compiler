@@ -2407,7 +2407,7 @@ of a function template.
     *do_flags = 0;
   } else {
     declarator(di_flags, do_flags, *type, (a_type_ptr)NULL, locator, type,
-               decl_modifiers, &declarator_ssep, func_info);
+               (a_decl_modifier_ptr)NULL, &declarator_ssep, func_info);
     func_info->is_inline = ((*dso_flags & DSO_INLINE) != 0);
     /* Note whether this is a function type that comes from a typedef.  The
        setting is checked later if this turns out to be a function template
@@ -4136,8 +4136,8 @@ Scan the declaration of a single template nontype parameter.
   /* Scan the declarator. */
   declarator(DI_REAL_DECLARATOR_ALLOWED, &do_flags,
              *param_type_ptr, /*member_parent_type=*/(a_type_ptr)NULL,
-             param_locator, param_type_ptr, &decl_modifiers, &declarator_ssep,
-             (a_func_info_block_ptr)NULL);
+             param_locator, param_type_ptr, (a_decl_modifier_ptr)NULL,
+             &declarator_ssep, (a_func_info_block_ptr)NULL);
   /* Adjust the type if necessary (for example, "array of x"
      becomes "pointer to x"). */
   adjust_parameter_type(param_type_ptr, /*restrict_qualified=*/FALSE);

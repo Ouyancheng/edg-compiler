@@ -4846,7 +4846,7 @@ In C++ mode an error is issued if a type definition appears in a type-name
   if (is_abstract_declarator_start()) {
     declarator(DI_ABSTRACT_DECLARATOR_ALLOWED | DI_QUALIFIED_NAME_ALLOWED,
                &do_flags, *type_ptr, /*member_parent_type=*/(a_type_ptr)NULL,
-	       (a_symbol_locator *)NULL, type_ptr, &decl_modifiers,
+               (a_symbol_locator *)NULL, type_ptr, (a_decl_modifier_ptr)NULL,
                &declarator_ssep, (a_func_info_block_ptr)NULL);
   }  /* if */
   if (any_cfront_mode() &&
@@ -4941,7 +4941,7 @@ within this routine if is_parenthesized comes in FALSE.
                     DI_DIMENSION_EXPRESSION_ALLOWED,
                  &do_flags, *type_ptr,
                  /*member_parent_type=*/(a_type_ptr)NULL,
-                 (a_symbol_locator *)NULL, type_ptr, &decl_modifiers,
+                 (a_symbol_locator *)NULL, type_ptr, (a_decl_modifier_ptr)NULL,
                  &declarator_ssep, (a_func_info_block_ptr)NULL);
     }  /* if */
     (void)required_token(tok_rparen, ec_exp_rparen);
@@ -5442,7 +5442,7 @@ clause is to be attached.  catch_pos is the source position of "catch".
                        DI_ABSTRACT_DECLARATOR_ALLOWED,
                      &do_flags, type_ptr,
                      /*member_parent_type=*/(a_type_ptr)NULL, &locator,
-                     &type_ptr, &decl_modifiers, &declarator_ssep,
+                     &type_ptr, (a_decl_modifier_ptr)NULL, &declarator_ssep,
                      (a_func_info_block_ptr)NULL);
           if (do_flags & DO_REAL_DECLARATOR_SCANNED) {
             sym = enter_symbol((a_symbol_kind)sk_variable, &locator,
@@ -5812,6 +5812,9 @@ Return a pointer to the variable that is declared.
                      /*suppress_redecl_error=*/FALSE);
   /* Allocate the variable and bind the symbol to it. */
   vp = make_variable(type_ptr, storage_class, /*at_file_scope=*/FALSE);
+  update_variable_decl_modifiers(vp, decl_modifiers,
+                                 &locator.source_position,
+                                 /*is_redecl=*/FALSE);
   sym->variant.variable.ptr = vp;
   set_source_corresp(&vp->source_corresp, sym);
 #if GENERATE_SOURCE_SEQUENCE_LISTS

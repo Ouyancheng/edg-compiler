@@ -1040,7 +1040,7 @@ scope is that of a class definition.
                      &do_flags, param_type_ptr,
                      /*member_parent_type=*/(a_type_ptr)NULL,
                      &param_locator, &param_type_ptr,
-                     &decl_modifiers, &param_ssep,
+                     (a_decl_modifier_ptr)NULL, &param_ssep,
                      (a_func_info_block_ptr)NULL);
 #if RESTRICT_ALLOWED
           restrict_qualified = 
@@ -3074,7 +3074,7 @@ need not be supplied on other calls.  See r_declarator for the meaning of
 the parameters.
 */
 {
-  a_type_ptr bottom_derived_type;
+  a_type_ptr bottom_derived_type = NULL;
 
   r_declarator(input_flags, output_flags, specifiers_type,
                member_parent_type, locator, p_complete_type,
