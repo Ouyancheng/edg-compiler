@@ -10886,9 +10886,11 @@ nested classes when their definition appears outside of the class template.
         class_state.access = (an_access_specifier)as_public;
       }  /* if */
       scope_stack[decl_scope_level].current_access = class_state.access;
-      /* In C++ the name of the class is entered into the scope of the class;
-         enter an sk_type symbol. */
-      if (!C_mode()) enter_injected_class_name_symbol(tag_sym);
+      if (class_name_injection_enabled) {
+        /* In C++ the name of the class is entered into the scope of the
+           class; enter an sk_type symbol. */
+        enter_injected_class_name_symbol(tag_sym);
+      }  /* if */
       do {
         add_stop_token(tok_semicolon);
         /* Move cached #pragma declarations (if any) to the current scope
