@@ -1824,12 +1824,14 @@ common_cfront_mode_settings:
         opt_value = TRUE;
         goto enable_microsoft_mode;
       case optk_microsoft_mode:
-enable_microsoft_mode:
-        /* Enable or disable Microsoft extensions, in 32-bit mode. */
-        microsoft_mode = opt_value;
+        /* Enable or disable Microsoft extensions, in 32-bit mode.
+           Note that 16/32 bit mode is not reset when enable_microsoft_mode
+           is branched to by other options. */
 #if NEAR_AND_FAR_ALLOWED
         il_header.near_and_far_are_enabled = FALSE;
 #endif /* NEAR_AND_FAR_ALLOWED */
+enable_microsoft_mode:
+        microsoft_mode = opt_value;
         break;
 #if NEAR_AND_FAR_ALLOWED
       case optk_microsoft_16_mode:
