@@ -1400,7 +1400,8 @@ at *insert_location and *insert_location is updated.
                                   object_addr_table_node->type,
                                   object_addr_table_node);
   object_addr_node = add_cast_if_necessary(make_init_entity_node(ipdp,
-                                                    /*using_as_address=*/TRUE),
+                                                    /*using_as_address=*/TRUE,
+                                                    /*using_as_dest=*/FALSE),
                                            void_star_type());
   (void)insert_assignment_statement(subsc_node,
                                     (an_expr_operator_kind)eok_passign,
