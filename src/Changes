@@ -1,5 +1,13 @@
 Version 2.12
 
+11/16/92 Destructor always called to do deallocation
+
+Formerly, if ASSIGNMENT_TO_THIS was false, a "delete" for a class was
+done by calling the destructor and then calling the delete routine.
+Now, the destructor is always called, and it always does the deallocation,
+because that's the only way to get the right delete routine called and
+to get the size parameter right on the two-operand delete case.
+
 11/16/92 Enumerations commented out in C-generating back end output
 
 An #if 0/#endif pair is now put out around enumerations put out by
