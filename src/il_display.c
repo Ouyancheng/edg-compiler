@@ -1543,6 +1543,8 @@ Display the indicated variable.
     disp_boolean("param_used_more_than_once",
                  (a_boolean)ptr->param_used_more_than_once);
   }  /* if */
+  disp_boolean("is_partially_initialized",
+               (a_boolean)ptr->is_partially_initialized);
   disp_name("init_kind");
   switch (ptr->init_kind) {
     case initk_none:

@@ -2682,6 +2682,12 @@ typedef struct a_variable {
   unsigned int	is_this_parameter:1;
 			/* TRUE if the variable represents a "this" parameter
 			   (C++ only). */
+  unsigned int	is_partially_initialized:1;
+			/* TRUE if the variable or static data member is an
+			   array or class aggregate and has been initialized
+			   but only partially -- i.e., one or more array
+			   elements or fields remains uninitialized (or
+			   partially uninitialized). */
 #if DO_IL_LOWERING
   unsigned int  initialization_rewritten_as_assignment:1;
 			/* TRUE if IL lowering has rewritten some part of

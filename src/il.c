@@ -982,7 +982,11 @@ Dump the contents of the indicated constant, for debug purposes.
     con_type = skip_typerefs(con_type);
     /* Dump the type preceding the constant, looking like a type cast. */
     (void)fputc('(', f_debug);
-    db_type(con_type);
+    if (con_type->source_corresp.name != NULL) {
+      db_name(&con_type->source_corresp);
+    } else {
+      db_type(con_type);
+    }  /* if */
     (void)fputc(')', f_debug);
   }  /* if */
 
@@ -1421,17 +1425,19 @@ Dump the initializer of a variable for debug purposes.
 */
 {
   int  a;
+  char *partial;
 
   if (var->init_kind != (an_init_kind)initk_none) {
+    partial = var->is_partially_initialized ? " (partial)" : "";
     for (a = 0; a < level; a++) fputs(" ", f_debug);
     if (var->init_kind == (an_init_kind)initk_static) {
-      fputs("static init: ", f_debug);
+      fprintf(f_debug, "static init%s: ", partial);
       db_static_initializer(var->initializer.constant);
       (void)fputc('\n', f_debug);
     } else if (var->init_kind == (an_init_kind)initk_zero) {
-      fputs("zero init\n", f_debug);
+      fprintf(f_debug, "zero init%s\n", partial);
     } else {
-      fputs("dynamic init: ", f_debug);
+      fprintf(f_debug, "dynamic init%s: ", partial);
       db_dynamic_initializer(var->initializer.dynamic, level + 2);
     }  /* if */
   }  /* if */
@@ -4933,6 +4939,7 @@ to it.
   vp->param_used_more_than_once   = FALSE;
   vp->is_handler_param            = FALSE;
   vp->is_this_parameter           = FALSE;
+  vp->is_partially_initialized    = FALSE;
 #if DO_IL_LOWERING
   vp->initialization_rewritten_as_assignment = FALSE;
 #endif /* DO_IL_LOWERING */
