@@ -3436,6 +3436,7 @@ extern a_type_ptr underlying_function_type(a_symbol_ptr  sym);
 /* Return TRUE if a symbol represents a non-type template param. */
 #define is_nontype_template_param_symbol(sym)                           \
   ((sym)->kind == (a_symbol_kind)sk_constant &&                         \
+   (sym)->variant.constant != NULL &&					\
    (sym)->variant.constant->kind == (a_constant_repr_kind)ck_template_param)
 
 /*
