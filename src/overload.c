@@ -11199,7 +11199,7 @@ direct binding is "possible" and not whether it is "valid".
   *ref_to_const = is_const_qualified_type(base_dest_type);
   *binding_to_rvalue_allowed = *ref_to_const;
   *ref_to_const_volatile = FALSE;
-  if (!any_cfront_mode() && *ref_to_const &&
+  if (!(any_cfront_mode() || microsoft_bugs) && *ref_to_const &&
       is_volatile_qualified_type(base_dest_type)) {
     /* A reference to const volatile may not be bound to an rvalue.
        This was added after the ARM. */

@@ -1,5 +1,11 @@
 Version 3.1
 
+5/24/02  Microsoft compatibility: reference to const volatile can bind to
+         rvalue
+
+In Microsoft bugs mode, a reference to a const volatile can now bind
+to an rvalue.  The ISO standard forbids that.
+
 5/24/02  Compilation problem in IL display program with CHECKING set to FALSE
 
 The il_display.c file did not compile correctly when CHECKING is
