@@ -17,6 +17,7 @@ Throw processing for exception handling.
 #include "basics.h"
 #include "config.h"
 #include "runtime.h"
+#include "vec_newdel.h"
 
 #if EXCEPTION_HANDLING
 
@@ -580,6 +581,7 @@ requires cleanup.
     an_object_ptr	        obj_addr;
     char			*temp_addr;
     a_region_descr_flag_set     flags;
+    an_eh_array_supplement_ptr	ehasp = NULL;
 
     /* If the region number is the NULL region then there is no
        cleanup required in this function. */
@@ -587,7 +589,14 @@ requires cleanup.
     ehrdp = &ehsep->variant.function.regions[region];
     flags = ehrdp->flags;
     obj_addr_array = ehsep->variant.function.object_address_table;
-    obj_addr = *(obj_addr_array + ehrdp->handle);
+    if (flags & RDF_ARRAY) {
+      /* The object information is contained in the array supplement. */
+      ehasp = &ehsep->variant.function.array_table[ehrdp->handle];
+      obj_addr = *(obj_addr_array + ehasp->handle);
+    } else {
+      /* The object information is pointed to directly by the region entry. */
+      obj_addr = *(obj_addr_array + ehrdp->handle);
+    }  /* if */
     if (flags & RDF_INDIRECT) {
       temp_addr = (char *)*(void**)obj_addr;
 #if 0
@@ -610,13 +619,27 @@ requires cleanup.
          the object. */
       a_destructor_ptr	dtor_ptr;
       dtor_ptr = (a_destructor_ptr)ehrdp->destructor_or_delete_routine;
-      (dtor_ptr)(obj_addr, 2);
+      if (flags & RDF_ARRAY) {
+        an_element_count	elements = ehasp->array_size;
+	if (elements == 0) {
+          /* An element count of zero indicates that this is not actually
+	     an array but rather an object that needs to be deleted using
+             the two operand form of the delete operator. */
+          a_two_operand_delete_ptr	delete_ptr;
+          delete_ptr =
+                (a_two_operand_delete_ptr)ehrdp->destructor_or_delete_routine;
+          (delete_ptr)(obj_addr, ehasp->element_size);
+        } else {
+          __vec_delete(obj_addr, elements, ehasp->element_size, dtor_ptr,
+		       /*delete_flag=*/FALSE, /*unused_arg=*/0);
+        }  /* if */
+      } else {
+        /* Not an array.  Just destroy the object. */
+        (dtor_ptr)(obj_addr, 2);
+      }  /* if */
     } else {
       /* A new allocation region.  Call the delete operator to free the
          space. */
-#if 0
-      /* Handling of placement new? */
-#endif /* 0 */
       a_delete_ptr	delete_ptr;
       delete_ptr = (a_delete_ptr)ehrdp->destructor_or_delete_routine;
       (delete_ptr)(obj_addr);
