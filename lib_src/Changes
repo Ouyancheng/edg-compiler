@@ -1,4 +1,4 @@
-Version 2.07, July 2, 1992
+Version 2.08, August 25, 1992
 
 8/19/92  Eliminated use of printf
 
@@ -26,6 +26,8 @@ _vec_cctor.C	vec_cctor.c
 _vec_cdtor.C	vec_cdtor.c
 _vec_newdel.C	vec_newdel.c
 
+------------------------------------------------------------------------------
+Version 2.07, July 2, 1992
 
 6/24/92  New runtime routine _vec_cctor()
 
