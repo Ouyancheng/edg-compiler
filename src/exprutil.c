@@ -8737,9 +8737,24 @@ not an lvalue, it is left alone.
                                   (a_template_param_constant_kind)tpck_member);
           make_constant_operand(memcon, operand);
           constant_case = TRUE;
+        } else if (con->kind == (a_constant_repr_kind)ck_template_param &&
+                   con->variant.template_param.kind ==
+                             (a_template_param_constant_kind)tpck_expression) {
+          /* The constant is a template-dependent expression for the
+             address of the lvalue. */
+          node = con->variant.template_param.variant.expr;
+          node = conv_lvalue_expr_to_rvalue(node, &constant_case, &con_value);
+          if (con_value != NULL) {
+            /* The value of the expression is a constant. */
+            make_constant_operand(con_value, operand);
+          } else {
+            /* The value of the expression is not a constant. */
+            make_template_param_expr_constant_operand(node, operand);
+          }  /* if */
+          /* The subroutine handles dropping type qualifiers. */
+          qualifiers_dropped = TRUE;
         } else {
-          /* Not the address of a variable.  Check for something like
-             "abc"[2]. */
+          /* Check for something like "abc"[2]. */
           a_boolean optimized_case = FALSE;
           if (con->kind == (a_constant_repr_kind)ck_address &&
               con->variant.address.kind== (an_address_base_kind)abk_constant &&
@@ -8753,7 +8768,7 @@ not an lvalue, it is left alone.
             if (optimized_case && !strict_ansi_mode) constant_case = TRUE;
           }  /* if */
           if (!optimized_case) {
-            /* Not the address of a variable or string; add an indirection. */
+            /* Not a special optimizable case; add an indirection. */
             node = alloc_node_for_constant(&operand->variant.constant);
             node = add_indirection_to_node(node);
             qualifiers_dropped = TRUE;
