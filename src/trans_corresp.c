@@ -3920,7 +3920,12 @@ template.
     if (is_function_symbol(inst)) {
       if (inst->variant.routine.instance_ptr != NULL &&
           inst->variant.routine.instance_ptr->is_guiding_decl) {
-        add_pending_instantiation(inst);
+        if (is_primary_translation_unit &&
+            !secondary_translation_unit_seen()) {
+          mark_canonical_instantiation(tssp, inst);
+        } else {
+          add_pending_instantiation(inst);
+        }  /* if */
       }  /* if */
     }  /* if */
     goto done;
