@@ -5479,11 +5479,259 @@ the implicit parameters follow it.
   return vbase_param_var;
 }  /* implicit_virtual_base_parameter */
 
+#if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
 
+static a_variable_ptr make_construction_vtbl_temporary(void)
+/*
+Make a temporary to be used in a constructor or destructor to point to the
+array of special virtual function table pointers.  Return a pointer to
+the temporary variable.
+*/
+{
+  a_variable_ptr var;
+
+  var = make_lowered_temporary(make_pointer_type(
+                                         make_pointer_type(make_mptr_type())));
+  return var;
+}  /* make_construction_vtbl_temporary */
+
+
+static a_variable_ptr make_construction_vtbls_array(
+                                              a_construction_vtbl_ptr elements)
+/*
+Create a local static array whose initial value is an array of pointers to
+virtual function tables as described by "elements".  Return a pointer to
+the variable.
+*/
+{
+  a_variable_ptr                  var;
+  a_type_ptr                      array_type;
+  a_construction_vtbl_array_index num_elements = 0;
+  a_constant_ptr                  aggr_con;
+  a_memory_region_number          region_to_switch_back_to;
+
+  check_assertion(elements != NULL);
+  /* Because the variable is static, it and its initializer must be
+     allocated in the file scope memory region. */
+  switch_to_file_scope_region(&region_to_switch_back_to);
+  /* Allocate an aggregate constant under which the initial values will be
+     placed. */
+  aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+  /* Go through the list and generate an initializer value for each
+     element. */
+  for (; elements != NULL; elements = elements->next) {
+    a_constant     con;
+    a_constant_ptr conp;
+
+    num_elements++;
+    /* Make a constant for the address of the virtual function table. */
+    set_variable_address_constant(elements->virtual_function_table_var, &con,
+                                  /*set_address_taken_flag=*/TRUE);
+    /* Do the array --> pointer decay. */
+    implicit_cast(&con, make_pointer_type(make_mptr_type()));
+    elements->virtual_function_table_var->source_corresp.referenced = TRUE;
+    conp = alloc_unshared_constant(&con);
+    /* Add the constant to the aggregate constant's list. */
+    if (aggr_con->variant.aggregate.first_constant == NULL) {
+      aggr_con->variant.aggregate.first_constant = conp;
+    } else {
+      aggr_con->variant.aggregate.last_constant->next = conp;
+    }  /* if */
+    aggr_con->variant.aggregate.last_constant = conp;
+  }  /* for */
+  /* Create the array type. */
+  array_type = alloc_type((a_type_kind)tk_array);
+  array_type->variant.array.element_type =
+                              aggr_con->variant.aggregate.first_constant->type;
+  array_type->variant.array.variant.number_of_elements = num_elements;
+  set_type_size(array_type);
+  aggr_con->type = array_type;
+  /* Create the local static array variable. */
+  var = make_unnamed_local_static_variable(array_type,
+                                           /*in_function_scope=*/TRUE);
+  var->init_kind = (an_init_kind)initk_static;
+  var->initializer.constant = aggr_con;
+  switch_back_to_original_region(region_to_switch_back_to);
+  return var;
+}  /* make_construction_vtbls_array */
+
+
+static an_expr_node_ptr vtbl_addr_from_construction_vtbls_array(
+                        a_variable_ptr                  construction_vtbls_var,
+                        a_construction_vtbl_array_index index)
+/*
+Construct an expression for an lvalue for the "index-1"-th element of the
+indicated array of special virtual function table values.  Return a pointer
+to the expression.
+*/
+{
+  an_expr_node_ptr expr;
+
+  check_assertion(construction_vtbls_var != NULL);
+  expr = var_rvalue_expr(construction_vtbls_var);
+  /* Compensate for 0-origin of array versus 1-origin of index. */
+  index--;
+  if (index != 0) {
+    /* The entry is not at offset 0 of the array, so add the right offset. */
+    expr->next = node_for_integer_constant((long)index,
+                                           targ_size_t_int_kind);
+    expr = make_operator_node((an_expr_operator_kind)eok_padd,
+                              expr->type,
+                              expr);
+  }  /* if */
+  return expr;
+}  /* vtbl_addr_from_construction_vtbls_array */
+
+
+static void insert_default_construction_vtbls_assignment(
+                                a_construction_vtbl_ptr construction_vtbls,
+                                a_variable_ptr          construction_vtbls_var,
+                                an_insert_location      *insert_location)
+/*
+Insert an assignment statement to set the construction_vtbls temporary to
+point to the default array of virtual function table pointers to be used
+when constructing or destroying a complete object.  construction_vtbls
+points to a list describing the array contents.  *insert_location indicates
+the insert location.
+*/
+{
+  a_variable_ptr   array_var =
+                             make_construction_vtbls_array(construction_vtbls);
+  an_expr_node_ptr array_addr = array_var_lvalue_expr(array_var);
+
+  (void)insert_var_assignment_statement(construction_vtbls_var,
+                                        (an_expr_operator_kind)eok_passign,
+                                        array_addr,
+                                        insert_location);
+}  /* insert_default_construction_vtbls_assignment */
+
+
+static an_expr_node_ptr make_construction_vtbl_transfer_pointer_lvalue(
+                                                         an_expr_node_ptr expr)
+/*
+expr is an expression for the address of a class object.  Modify the expression
+so that it is an lvalue for the transfer pointer in the object, and return
+a pointer to the modified expression.  The transfer pointer is a virtual
+function table pointer or virtual base class pointer within the indicated
+object (including non-virtual base classes) which is available to be used
+to pass information to a subobject constructor or destructor for the
+subobject pointed to by expr.
+*/
+{
+  a_type_ptr class_type = f_skip_typerefs(type_pointed_to(expr->type));
+
+  if (class_type->variant.class_struct_union.any_virtual_functions) {
+    /* The class has a virtual function table pointer (possibly allocated
+       in and shared with a nonvirtual base class).  Use it as the transfer
+       pointer. */
+    expr = make_vptr_field_lvalue(expr);
+  } else {
+    a_base_class_ptr bcp;
+
+    /* Look at the base classes to find a virtual function table pointer in
+       a base class or a virtual base class pointer in class_type. */
+    for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
+      /* Consider virtual function pointers only in non-virtual base classes,
+         i.e., those allocated within class_type. */
+      if (!any_virtual_steps_in_derivation(bcp)) {
+        if (bcp->type->variant.class_struct_union.any_virtual_functions) {
+          /* This base class has a virtual function pointer.  Use that. */
+          expr = make_base_class_lvalue(expr, bcp, /*complete_object=*/FALSE);
+          expr = make_vptr_field_lvalue(expr);
+          goto have_pointer;
+        }  /* if */
+      }  /* if */
+      if (bcp->is_virtual) {
+        /* There is a virtual base class pointer to this base class.  Use
+           that. */
+        expr = make_vbptr_field_lvalue(expr, bcp);
+        goto have_pointer;
+      }  /* if */
+    }  /* for */
+#if CHECKING
+#if DEBUG
+    fprintf(f_debug, "class_type: ");
+    db_abbr_type(class_type);
+    fprintf(f_debug, "\n");
+#endif /* DEBUG */
+    unexpected_condition_str2("make_construction_vtbl_transfer_pointer_lvalue",
+                              "did not find usable pointer");
+#endif /* CHECKING */
+  }  /* if */
+have_pointer:
+  return expr;
+}  /* make_construction_vtbl_transfer_pointer_lvalue */
+
+
+static void receive_construction_vtbls_in_subobject_constructor(
+                                     a_variable_ptr     construction_vtbls_var,
+                                     a_variable_ptr     this_param_var,
+                                     an_insert_location *insert_location)
+/*
+Insert an assignment statement to set the construction_vtbls_var temporary to
+the pointer to an array of special virtual function tables passed into
+a subobject constructor or destructor via the so-called transfer pointer
+in the object.  this_param_var is the "this" parameter variable for the
+constructor or destructor.
+*/
+{
+  an_expr_node_ptr trans_ptr_node;
+
+  trans_ptr_node = var_rvalue_expr(this_param_var);
+  /* Get the address of a pointer in the object that is used to
+     do the transfer. */
+  trans_ptr_node =
+                make_construction_vtbl_transfer_pointer_lvalue(trans_ptr_node);
+  trans_ptr_node = add_indirection_to_node(trans_ptr_node);
+  trans_ptr_node = add_cast(trans_ptr_node, construction_vtbls_var->type);
+  (void)insert_var_assignment_statement(construction_vtbls_var,
+                                        (an_expr_operator_kind)eok_passign,
+                                        trans_ptr_node,
+                                        insert_location);
+}  /* receive_construction_vtbls_in_subobject_constructor */
+
+
+static void pass_construction_vtbls_to_subobject_constructor(
+                        a_variable_ptr                  construction_vtbls_var,
+                        a_construction_vtbl_array_index index,
+                        an_init_pos_descr_ptr           ipdp,
+                        an_insert_location              *insert_location)
+/*
+Insert an assignment statement to store the address of the "index-1"-th
+element of the array of special virtual functions pointed to by
+construction_vtbls_var into the so-called transfer pointer in the
+subobject described by ipdp to pass the array to a subobject constructor
+or destructor.
+*/
+{
+  an_expr_node_ptr array_addr, trans_ptr_node;
+
+  array_addr = vtbl_addr_from_construction_vtbls_array(construction_vtbls_var,
+                                                       index);
+  /* Get the address of the subobject. */
+  trans_ptr_node = make_init_entity_node(ipdp, /*using_as_address=*/FALSE,
+                                         /*using_as_dest=*/TRUE);
+  /* Get the address of a pointer in the object that is used to
+     do the transfer. */
+  trans_ptr_node =
+                make_construction_vtbl_transfer_pointer_lvalue(trans_ptr_node);
+  array_addr = add_cast(array_addr, type_pointed_to(trans_ptr_node->type));
+  (void)insert_assignment_statement(trans_ptr_node,
+                                    (an_expr_operator_kind)eok_passign,
+                                    array_addr,
+                                    insert_location);
+}  /* pass_construction_vtbls_to_subobject_constructor */
+
+#endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
+
+#if !ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
+/*ARGSUSED*/ /* <-- construction_vtbls_var is not used in that case. */
+#endif /* !ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
 static void lower_ctor_init(a_constructor_init_ptr ctor_init,
                             a_variable_ptr         this_param_var,
                             a_boolean              use_implicit_param,
                             a_type_ptr             class_type,
+                            a_variable_ptr         construction_vtbls_var,
                             an_insert_location_ptr insert_location)
 /*
 Generate code to implement the constructor_init entry pointed to by ctor_init.
@@ -5491,11 +5739,14 @@ this_param_var is the "this" parameter variable for the overall object
 being initialized, whose class is class_type.  Implicit parameters for
 virtual base classes, if any, follow the this_param_var.  If use_implicit_param
 is TRUE, the entity being initialized is a virtual base class of class_type
-and its address is available in an implicit parameter.  The statement(s)
-created are inserted at *insert_location, and *insert_location is updated.
+and its address is available in an implicit parameter.  If this
+initialization is for a base class whose constructor needs to be passed
+an array of special virtual function table addresses, generate code
+to do that; construction_vtbls_var provides the variable for the
+complete class array if necessary.  The statement(s) created are
+inserted at *insert_location, and *insert_location is updated.
 */
 {
-  a_type_ptr           base_class_type;
   a_variable_ptr       vbase_param_var;
   a_base_class_ptr     bcp;
   an_expr_node_ptr     implied_arg_node;
@@ -5508,7 +5759,8 @@ created are inserted at *insert_location, and *insert_location is updated.
   if (ctor_init->kind == (a_constructor_init_kind)cik_virtual_base_class ||
       ctor_init->kind == (a_constructor_init_kind)cik_direct_base_class) {
     /* Initializing a base class. */
-    base_class_type = ctor_init->variant.base_class->type;
+    a_base_class_ptr base_class = ctor_init->variant.base_class;
+    a_type_ptr       base_class_type = base_class->type;
     /* Develop a position description for the entity to initialize. */
     if (use_implicit_param) {
       /* The sub-entity is a virtual base class and there is a parameter
@@ -5549,6 +5801,42 @@ created are inserted at *insert_location, and *insert_location is updated.
           end_implied_arg_list = implied_arg_node;
         }  /* if */
       }  /* for */
+#if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
+      /* See if the base class constructor needs to be passed an array
+         of virtual function table pointers to use during the subobject
+         construction.  If so, pass it by setting the transfer pointer
+         to the address of the proper array. */
+      if (!base_class->is_virtual) {
+        if (base_class->base_subarray_index_in_construction_vtbl_array != 0) {
+          /* Yes, this nonvirtual base class constructor needs the
+             special information.  Pass the address of a subarray of
+             the overall class array of virtual function table
+             pointers. */
+          check_assertion(construction_vtbls_var != NULL);
+          pass_construction_vtbls_to_subobject_constructor(
+                    construction_vtbls_var,
+                    base_class->base_subarray_index_in_construction_vtbl_array,
+                    &ipd,
+                    insert_location);
+        }  /* if */
+      } else {
+        if (base_class->base_construction_vtbls != 0) {
+          /* Yes, this virtual base class constructor needs the
+             special information.  Pass the address of an array of
+             virtual function table pointers specific to this case.
+             Note that we are calling the constructor directly from
+             the constructor for a complete object. */
+          a_variable_ptr array_var =
+                            make_construction_vtbls_array(
+                                          base_class->base_construction_vtbls);
+          pass_construction_vtbls_to_subobject_constructor(
+                            array_var,
+                            (a_construction_vtbl_array_index)1,
+                            &ipd,
+                            insert_location);
+        }  /* if */
+      }  /* if */
+#endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
     }  /* if */
   } else {
     /* Initializing something other than a base class. */
@@ -5584,6 +5872,7 @@ constructor, but may instead be after an assignment to "this".
   an_expr_node_ptr       assign_node;
   a_variable_ptr         primary_vtbl_var, vtbl_var;
   a_source_position      saved_error_position, saved_code_pos;
+  a_variable_ptr         construction_vtbls_var = NULL;
 
   /* The following pseudo-code shows both the processing in this routine
      and the code added to the constructor routine.  Lines enclosed in [...]
@@ -5593,6 +5882,8 @@ constructor, but may instead be after an assignment to "this".
      [If current class has any virtual base classes:]
        If the first added parameter == NULL (indicating a complete object is
            being initialized and virtual base classes must be constructed):
+         Set the construction_vtbls temp to point to a local static array
+           containing vtbl pointer values to be used for a complete object.
          [For each virtual base class of the current class:]
            Set the parameter to the address of the virtual base class.
            [If the virtual base class pointer for the base class is allocated
@@ -5605,9 +5896,17 @@ constructor, but may instead be after an assignment to "this".
          [For each virtual base class on the ctor-initializer list:]
            Call the constructor for the base class (arguments as indicated by
                the ctor-initializer list, plus any virtual base class pointer
-               arguments, using the added parameters for those).
+               arguments, using the added parameters for those).  If the
+               constructor needs an array of construction vtbl pointers,
+               store the address of an array specific to this base class
+               in the transfer pointer in the subobject, as a way of
+               passing that information to the subobject constructor.
          [endfor]
        else (not initializing a complete object)
+         Set the construction_vtbls temp to the value in the transfer pointer
+           in the class (the caller uses that to pass in the address of
+           the array of vtbl pointers to be used during the subobject
+           construction).
          [For each virtual base class of the current class:]
            [If the virtual base class pointer for the base class is allocated
                in the current class:]
@@ -5621,7 +5920,12 @@ constructor, but may instead be after an assignment to "this".
          appear as the middle of the ctor-initializer list):]
        Call the constructor for the base class (arguments as indicated by
          the ctor-initializer list, plus any virtual base class pointer
-         arguments, using the added parameters for those).
+         arguments, using the added parameters for those).  If the
+         constructor needs an array of construction vtbl pointers, store
+         the address of the proper subarray of the array pointed to by
+         the construction_vtbls temp into the transfer pointer of the
+         subobject, as a way of passing that information to the subobject
+         constructor.
      [endfor]
      [If the current class has any virtual functions:]
        Set the virtual function table pointer in the current class.
@@ -5631,7 +5935,10 @@ constructor, but may instead be after an assignment to "this".
            from the derived class instance:]
          Set the virtual function table pointer in the base class.  Virtual
              base classes must be accessed using the virtual base class
-             pointer parameters.
+             pointer parameters.  If the construction_vtbls temp is in use,
+             copy the proper element of the array to the virtual function
+             table pointer instead of using a specific virtual function table
+             instance.
        [endif]
      [endfor]
      [For each initialized data member (entries for these are the rest
@@ -5661,6 +5968,16 @@ constructor, but may instead be after an assignment to "this".
   class_type->source_corresp.referenced = TRUE;
   ctsp = class_type->variant.class_struct_union.extra_info;
   if (class_type->variant.class_struct_union.any_virtual_base_classes) {
+#if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
+    if (ctsp->construction_vtbls != NULL) {
+      /* This class is one that has overridden virtual functions in virtual
+         base classes, and needs special versions of the virtual function
+         tables when used to construct a subobject. */
+      /* Create a temporary that will point to an array of virtual function
+         table addresses. */
+      construction_vtbls_var = make_construction_vtbl_temporary();
+    }  /* if */
+#endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
     /* Put out code that tests whether or not the virtual base classes need
        to be initialized.  This is done by testing whether or not the
        first added parameter is NULL. */
@@ -5683,6 +6000,18 @@ constructor, but may instead be after an assignment to "this".
     insert_if_statement(compare_node, /*is_initialization_guard=*/FALSE,
                         insert_location, (a_statement_ptr *)NULL,
                         &insert_location2, &else_insert_location);
+    /* Inserting under insert_location2, in the "then" part of the "if"
+       (a complete object is being initialized): */
+#if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
+    if (construction_vtbls_var != NULL) {
+      /* Set the construction_vtbls temporary to point to the default array
+         of virtual function table pointers to be used when constructing a
+         complete object. */
+      insert_default_construction_vtbls_assignment(ctsp->construction_vtbls,
+                                                   construction_vtbls_var,
+                                                   &insert_location2);
+    }  /* if */
+#endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
     /* Set the added parameters to the addresses of the virtual base
        classes. */
     for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
@@ -5730,9 +6059,22 @@ constructor, but may instead be after an assignment to "this".
             ctor_init->kind == (a_constructor_init_kind)cik_virtual_base_class;
          ctor_init = ctor_init->next) {
       lower_ctor_init(ctor_init, this_param_var, /*use_implicit_param=*/TRUE,
-                      class_type, &insert_location2);
+                      class_type, construction_vtbls_var, &insert_location2);
     }  /* for */
-    /* Inserting in the "else" of the "if": */
+    /* Inserting under else_insert_location, in the "else" of the "if"
+       (a subobject is being initialized): */
+#if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
+    if (construction_vtbls_var != NULL) {
+      /* Copy the value of the transfer pointer to the local
+         construction_vtbls temporary.  The caller constructor uses the
+         transfer pointer to pass information down to the subclass
+         constructor. */
+      receive_construction_vtbls_in_subobject_constructor(
+                                                        construction_vtbls_var,
+                                                        this_param_var,
+                                                        &else_insert_location);
+    }  /* if */
+#endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
     /* For each virtual base class of the current class, set the
        virtual base class pointer in the current class to point to the value
        of the associated virtual base class parameter, i.e., the address
@@ -5769,7 +6111,7 @@ constructor, but may instead be after an assignment to "this".
           ctor_init->kind == (a_constructor_init_kind)cik_direct_base_class;
        ctor_init = ctor_init->next) {
     lower_ctor_init(ctor_init, this_param_var, /*use_implicit_param=*/FALSE,
-                    class_type, insert_location);
+                    class_type, construction_vtbls_var, insert_location);
   }  /* for */
   /* If the current class has any virtual functions, generate code to
      set the virtual function table pointer in the current class. */
@@ -5796,9 +6138,22 @@ constructor, but may instead be after an assignment to "this".
       /* The base class's virtual function table pointer must be set to
          reflect the fact that it exists as a subobject inside the current
          class. */
-      vtbl_addr_node = make_vtbl_address_node(vtbl_var);
-      set_lowering_variable_address_taken(vtbl_var);
-      vtbl_var->source_corresp.referenced = TRUE;
+#if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
+      if (bcp->index_in_construction_vtbl_array != 0) {
+        /* The virtual function table to use is specified by an element of the
+           array of construction virtual function table pointers. */
+        vtbl_addr_node = vtbl_addr_from_construction_vtbls_array(
+                                        construction_vtbls_var,
+                                        bcp->index_in_construction_vtbl_array);
+        vtbl_addr_node = add_indirection_to_node(vtbl_addr_node);
+      } else
+#endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
+      /* Do not insert code here; this is the "else" of an "if". */
+      {
+        vtbl_addr_node = make_vtbl_address_node(vtbl_var);
+        set_lowering_variable_address_taken(vtbl_var);
+        vtbl_var->source_corresp.referenced = TRUE;
+      }  /* if */
       if (!bcp->is_virtual) {
         /* For non-virtual base classes, use the usual code.  Note that if
            the base class here is non-virtual itself but is inside a virtual
@@ -5831,7 +6186,7 @@ constructor, but may instead be after an assignment to "this".
      ctor_init list. */
   for (; ctor_init != NULL; ctor_init = ctor_init->next) {
     lower_ctor_init(ctor_init, this_param_var, /*use_implicit_param=*/FALSE,
-                    class_type, insert_location);
+                    class_type, (a_variable_ptr)NULL, insert_location);
   }  /* for */
   error_position = saved_error_position;
   code_pos_for_lowering = saved_code_pos;
@@ -6028,14 +6383,19 @@ constructor scope, and also lower the user code.
 static void lower_dtor_init(a_constructor_init_ptr ctor_init,
                             a_variable_ptr         this_param_var,
                             a_boolean              have_complete_object,
+                            a_variable_ptr         destruction_vtbls_var,
                             an_insert_location_ptr insert_location)
 /*
 Generate code to implement the constructor_init entry pointed to by ctor_init,
 one that appears on the constructor_init list for a destructor.
 this_param_var is the "this" parameter variable for the overall object
 being destroyed.  If have_complete_object is TRUE, the entity being
-destroyed is a complete object.  The statements created are inserted
-at *insert_location, and *insert_location is updated.
+destroyed is a complete object.  If this destruction is for a base
+class whose destructor needs to be passed an array of special virtual
+function table addresses, generate code to do that; destruction_vtbls_var
+provides the variable for the complete class array if necessary.
+The statements created are inserted at *insert_location, and
+*insert_location is updated.
 */
 {
   an_init_pos_descr    ipd;
@@ -6068,6 +6428,46 @@ at *insert_location, and *insert_location is updated.
     }  /* if */
 #endif /* CHECKING */
   } else {
+#if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
+    if (ctor_init->kind == (a_constructor_init_kind)cik_virtual_base_class ||
+        ctor_init->kind == (a_constructor_init_kind)cik_direct_base_class) {
+      a_base_class_ptr base_class = ctor_init->variant.base_class;
+      /* See if the base class destructor needs to be passed an array
+         of virtual function table pointers to use during the subobject
+         destruction.  If so, pass it by setting the transfer pointer
+         to the address of the proper array. */
+      if (!base_class->is_virtual) {
+        if (base_class->base_subarray_index_in_construction_vtbl_array != 0) {
+          /* Yes, this nonvirtual base class destructor needs the
+             special information.  Pass the address of a subarray of
+             the overall class array of virtual function table
+             pointers. */
+          check_assertion(destruction_vtbls_var != NULL);
+          pass_construction_vtbls_to_subobject_constructor(
+                    destruction_vtbls_var,
+                    base_class->base_subarray_index_in_construction_vtbl_array,
+                    &ipd,
+                    insert_location);
+        }  /* if */
+      } else {
+        if (base_class->base_construction_vtbls != 0) {
+          /* Yes, this virtual base class destructor needs the
+             special information.  Pass the address of an array of
+             virtual function table pointers specific to this case.
+             Note that we are calling the destructor directly from
+             the destructor for a complete object. */
+          a_variable_ptr array_var =
+                            make_construction_vtbls_array(
+                                          base_class->base_construction_vtbls);
+          pass_construction_vtbls_to_subobject_constructor(
+                            array_var,
+                            (a_construction_vtbl_array_index)1,
+                            &ipd,
+                            insert_location);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+#endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
     /* Normal case; generate the code to do the destruction. */
     lower_destructor_dynamic_init(dip, &ipd, have_complete_object,
                                   insert_location);
@@ -6203,6 +6603,7 @@ destructor scope, and also lower the user code.
   a_label_ptr            epilogue_label;
   a_source_position      saved_error_position, saved_code_pos;
   a_dynamic_init_ptr     first_epilogue_destruction = NULL;
+  a_variable_ptr         destruction_vtbls_var = NULL;
 
   /* The following pseudo-code shows both the processing in this routine
      and the code added to the destructor routine.  Lines enclosed in [...]
@@ -6212,6 +6613,20 @@ destructor scope, and also lower the user code.
      [If a delete can be folded into the destructor:]
        If this != NULL test around entire routine.
      [endif]
+     [If the current class requires a special array of virtual function table
+         addresses (which is true when the class has virtual functions
+         in virtual bases that are overridden):]
+       If the added parameter != 0 (indicating a complete object is
+           being destroyed):
+         Set the destruction_vtbls temp to point to a local static array
+           containing vtbl pointer values to be used for a complete object.
+       else
+         Set the destruction_vtbls temp to the value of the transfer
+             pointer in the class (the caller uses that to pass in the
+             address of the array of vtbl pointers to be used during the
+             subobject destruction).
+       endif
+     [endif]
      [If the current class has any virtual functions:]
        Set the virtual function table pointer in the current class.
      [endif]
@@ -6220,17 +6635,25 @@ destructor scope, and also lower the user code.
            from the derived class instance:]
          Set the virtual function table pointer in the base class.  Virtual
              base classes must be accessed through the virtual base class
-             pointer.
+             pointer.  If the destruction_vtbls temp is in use, copy the
+             proper element of the array to the virtual function table
+             pointer instead of using a specific virtual function table
+             instance.
        [endif]
      [endfor]
      ... user destructor code goes here ...
          -- returns in the user code are turned into gotos to the following
             code:
      [For each data member on the ctor-initializer list:]
-       Call the destructor.  The complete-object implicit argument is TRUE.
+       Call the destructor.  The complete-object implicit argument is 0x2.
      [endfor]
      [For each direct nonvirtual base class on the ctor-initializer list:]
-       Call the destructor.  The complete-object implicit argument is FALSE.
+       Call the destructor.  The complete-object implicit argument is 0.
+           If the destructor needs an array of destruction vtbl pointers,
+           store the address of the proper subarray of the array pointed
+           to by the destruction_vtbls temp into the transfer pointer in
+           the subobject, as a way of passing that information to the
+           subobject destructor.
      [endfor]
      [If there are any items left on the ctor-initializer list (which
          must be for virtual base classes):]
@@ -6238,6 +6661,11 @@ destructor scope, and also lower the user code.
            being destroyed and virtual base classes must be destroyed):
          [For each virtual base class on the ctor-initializer list:]
            Call the destructor.  The complete-object implicit argument is 0.
+               If the destructor needs an array of destruction vtbl
+               pointers, store the address of an array specific to this
+               base class in the transfer pointer of the subobject, as
+               a way of passing that information to the subobject
+               destructor.
          [endfor]
        endif
      [endif]
@@ -6266,6 +6694,54 @@ destructor scope, and also lower the user code.
   set_block_start_insert_location(scope->assoc_block, &insert_location);
   /* Start an object lifetime if appropriate. */
   begin_block_object_lifetime(scope->lifetime, &insert_location);
+#if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
+  if (ctsp->construction_vtbls != NULL) {
+    an_insert_location else_insert_location;
+    /* This class is one that has overridden virtual functions in virtual
+       base classes, and needs special versions of the virtual function
+       tables when used to destruct a subobject. */
+    /* Create a temporary that will point to an array of virtual function
+       table addresses. */
+    destruction_vtbls_var = make_construction_vtbl_temporary();
+    /* Put out code that tests the added parameter to determine whether
+       we are destroying a complete object. */
+    /* Note that we can do a "!= 0" test instead of a bit test because the
+       0x1 bit (for "free storage") would only be on for a whole object. */
+    /* Make an expression node pointing to the zero constant. */
+    zero_constant_node = node_for_integer_constant(0L,
+                                                   (an_integer_kind)ik_int);
+    /* Make an expression node for the parameter. */
+    complete_obj_param_node = var_rvalue_expr(complete_obj_param_var);
+    /* Make a node comparing the parameter against zero. */
+    complete_obj_param_node->next = zero_constant_node;
+    compare_node = make_operator_node((an_expr_operator_kind)eok_ine,
+                                      int_type, complete_obj_param_node);
+    /* Make an "if" statement with a block statement under it:
+         if (param != 0) {}
+                          ^--- additional statements will be inserted.
+    */
+    insert_if_statement(compare_node, /*is_initialization_guard=*/FALSE,
+                        &insert_location, (a_statement_ptr *)NULL,
+                        &insert_location2, &else_insert_location);
+    /* Inserting under insert_location2, in the "then" part of the "if"
+       (a complete object is being destroyed): */
+    /* Set the destruction_vtbls temporary to point to the default array
+       of virtual function table pointers to be used when destroying a
+       complete object. */
+    insert_default_construction_vtbls_assignment(ctsp->construction_vtbls,
+                                                 destruction_vtbls_var,
+                                                 &insert_location2);
+    /* Inserting under else_insert_location, in the "else" of the "if"
+       (a subobject is being destroyed): */
+    /* Copy the value of the transfer pointer to the local
+       destruction_vtbls temporary.  The caller destructor uses the
+       transfer pointer to pass information down to the subclass
+       destructor. */
+    receive_construction_vtbls_in_subobject_constructor(destruction_vtbls_var,
+                                                        this_param_var,
+                                                        &else_insert_location);
+  }  /* if */
+#endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
   /* If the current class has any virtual functions, generate code to
      set the virtual function table pointer in the current class. */
   primary_vtbl_var = ctsp->virtual_function_table_var;
@@ -6317,9 +6793,22 @@ destructor scope, and also lower the user code.
       /* The base class virtual function table pointer must be set
          to reflect the fact that it exists as a subobject inside the
          current class. */
-      vtbl_addr_node = make_vtbl_address_node(vtbl_var);
-      set_lowering_variable_address_taken(vtbl_var);
-      vtbl_var->source_corresp.referenced = TRUE;
+#if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
+      if (bcp->index_in_construction_vtbl_array != 0) {
+        /* The virtual function table to use is specified by an element of the
+           array of destruction virtual function table pointers. */
+        vtbl_addr_node = vtbl_addr_from_construction_vtbls_array(
+                                        destruction_vtbls_var,
+                                        bcp->index_in_construction_vtbl_array);
+        vtbl_addr_node = add_indirection_to_node(vtbl_addr_node);
+      } else
+#endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
+      /* Do not insert code here; this is the "else" of an "if". */
+      {
+        vtbl_addr_node = make_vtbl_address_node(vtbl_var);
+        set_lowering_variable_address_taken(vtbl_var);
+        vtbl_var->source_corresp.referenced = TRUE;
+      }
       /* Build a node to address the virtual table pointer in the base
          class.   The base class may be virtual or may be inside a virtual
          base class.  We cannot optimize virtual base class cases because
@@ -6378,7 +6867,7 @@ destructor scope, and also lower the user code.
                          ctor_init->kind == (a_constructor_init_kind)cik_field;
          ctor_init = ctor_init->next) {
       lower_dtor_init(ctor_init, this_param_var, /*have_complete_object=*/TRUE,
-                      &insert_location);
+                      (a_variable_ptr)NULL, &insert_location);
     }  /* for */
     /* Generate a destructor call for each non-virtual direct base class
        that appears on the ctor_init list. */
@@ -6387,6 +6876,7 @@ destructor scope, and also lower the user code.
          ctor_init = ctor_init->next) {
       lower_dtor_init(ctor_init, this_param_var,
                       /*have_complete_object=*/FALSE,
+                      destruction_vtbls_var,
                       &insert_location);
     }  /* for */
     /* If any items remain on the ctor_init list, they must be for virtual
@@ -6421,7 +6911,9 @@ destructor scope, and also lower the user code.
       /* Destroy any virtual base classes on the ctor_init list. */
       for (; ctor_init != NULL; ctor_init = ctor_init->next) {
         lower_dtor_init(ctor_init, this_param_var,
-                        /*have_complete_object=*/FALSE, &insert_location2);
+                        /*have_complete_object=*/FALSE,
+                        destruction_vtbls_var,
+                        &insert_location2);
       }  /* for */
       /* Note that the "if" created above effectively ends here. */
     }  /* if */

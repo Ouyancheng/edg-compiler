@@ -752,7 +752,8 @@ have been called on it at some previous point.
       user_type_info_type->source_corresp.name = "type_info";
       vtbl_for_type_info =
                    make_var_for_virtual_function_table(user_type_info_type,
-                                                       (a_base_class_ptr)NULL);
+                                                       (a_base_class_ptr)NULL,
+                                                       (a_type_ptr)NULL);
       user_type_info_type->source_corresp.name = saved_name;
 #if RUNTIME_USES_NAMESPACES
       user_type_info_type->source_corresp.parent.namespace_ptr = NULL;

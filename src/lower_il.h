@@ -497,6 +497,51 @@ pointer is non-NULL.
   }  /* if */                                                         \
 }  /* set_stmt_pos_to_code_pos_for_lowering */
 
+#if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
+
+/*
+Description of a virtual function table instance to be used during
+construction or destruction of a class that has overridden virtual
+functions in virtual base classes.  In such cases, a virtual function
+table instance is needed for a base class (call it A) for use while
+executing the constructor/destructor for a derived class (call it B)
+where the complete object type is actually some further-derived class
+(call it C).  We call this the virtual function table instance for
+"A in B in C".  The set of overriding functions is determined by B
+(i.e., no overriding functions in derived classes of B are considered),
+but the layout -- and therefore the delta value in the virtual function
+table entry -- is determined by C.
+
+A list of these represents an array of virtual function table instance
+addresses.
+*/
+/* a_construction_vtbl_ptr is declared in il_def.h */
+typedef struct a_construction_vtbl {
+  a_construction_vtbl_ptr
+		next;	/* Next entry on the list in array element order,
+			   or NULL for the last element. */
+  a_base_class_ptr
+		base_class;
+			/* The base class used to determine overriding, e.g.,
+			   base class A in B in the above description. */
+  a_base_class_ptr
+		ctor_base_class;
+			/* The base class describing the subobject considered
+			   to be the complete object for purposes of overriding
+			   relative to the class that really is the complete
+			   object, e.g., base class B in C in the above
+			   description.  NULL if the two are the same (in
+			   which case the virtual function table instance is
+			   a standard one where overriding and layout are
+			   determined relative to the same class). */
+  a_variable_ptr
+		virtual_function_table_var;
+			/* The variable for this instance of the virtual
+			   function table. */
+} a_construction_vtbl;
+
+#endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
+
 
 extern a_boolean il_lowering_needed(void);
 
@@ -561,6 +606,9 @@ extern an_expr_node_ptr array_var_lvalue_expr(a_variable_ptr var);
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
 
 extern an_expr_node_ptr make_node_for_il_constant(a_constant_ptr constant);
+
+extern an_expr_node_ptr make_vbptr_field_lvalue(an_expr_node_ptr node,
+                                                a_base_class_ptr bcp);
 
 extern an_expr_node_ptr make_vbptr_field_lvalue_from_var(a_variable_ptr   var,
                                                          a_base_class_ptr bcp);
@@ -693,8 +741,9 @@ extern void set_unsigned_integer_constant_with_overflow_check(
                                               an_integer_kind ikind);
 
 extern a_variable_ptr make_var_for_virtual_function_table(
-                                                   a_type_ptr       class_type,
-                                                   a_base_class_ptr bcp);
+                                         a_type_ptr       class_type,
+                                         a_base_class_ptr bcp,
+                                         a_type_ptr       complete_class_type);
 
 extern a_boolean inline_virtual_function_definitions_needed(
                                                         a_type_ptr class_type);

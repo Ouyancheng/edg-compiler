@@ -3518,6 +3518,11 @@ Display the indicated base class entry.
 #if DO_IL_LOWERING
   /* Do not print out ptr->virtual_function_table_var, which is used only
      during IL lowering. */
+#if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
+  /* Likewise for index_in_construction_vtbl_array,
+     base_subarray_index_in_construction_vtbl_array, and
+     base_construction_vtbls. */
+#endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
 #endif /* DO_IL_LOWERING */
 }  /* disp_base_class */
 
@@ -3632,6 +3637,9 @@ Display the indicated class type supplement entry.
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
   /* Likewise ptr->promoted_local_types. */
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
+#if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
+  /* Likewise construction_vtbls. */
+#endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
 #endif /* DO_IL_LOWERING */
 }  /* disp_class_type_supplement */
 

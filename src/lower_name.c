@@ -3314,14 +3314,22 @@ store_at != NULL, and (always) return the length of the name.
 }  /* mangled_vtbl_class_name */
 
 
+#if !ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
+/*ARGSUSED*/ /* <-- complete_class_type is not used in that case. */
+#endif /* !ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
 sizeof_t mangled_vtbl_name(a_type_ptr       class_type,
                            a_base_class_ptr bcp,
+                           a_type_ptr       complete_class_type,
                            char             *store_at)
 /*
 Determine the mangled form of the name of the virtual function table for
 base class bcp of class class_type.  If bcp == NULL, the virtual
-function table is for class_type itself.  Place the mangled name at
-*store_at if store_at != NULL, and (always) return the length of the name.
+function table is for class_type itself.  If complete_class_type is
+non-NULL, it is the actual complete object type (used to determine
+layout) and class_type and bcp->derived_class are the class type
+assumed during a constructor or destructor (used to determine overriding).  
+Place the mangled name at *store_at if store_at != NULL, and (always)
+return the length of the name.
 */
 {
   sizeof_t mangled_name_length, section_length;
@@ -3356,6 +3364,24 @@ function table is for class_type itself.  Place the mangled name at
   section_length = mangled_vtbl_class_name(class_type, store_at);
   mangled_name_length += section_length;
   if (store_at != NULL) store_at += section_length;
+#if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
+  if (complete_class_type != NULL && complete_class_type != class_type) {
+    /* There is a complete class type, so the name looks like
+       __vtbl__<mangled-base-class-name>__<mangled-class-name>
+                                        __<mangled-complete-class-name>
+    */
+    /* Add two underscores after the name. */
+    mangled_name_length += 2;
+    if (store_at != NULL) {
+      *store_at++ = '_';
+      *store_at++ = '_';
+    }  /* if */
+    /* Add the second derived class name. */
+    section_length = mangled_vtbl_class_name(complete_class_type, store_at);
+    mangled_name_length += section_length;
+    if (store_at != NULL) store_at += section_length;
+  }  /* if */
+#endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
   return mangled_name_length;
 #undef VTBL_STR
 }  /* mangled_vtbl_name */

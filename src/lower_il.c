@@ -1856,7 +1856,7 @@ operands, and return a pointer to it.
   return comma_node;
 }  /* make_comma_node */
 
-#if DO_FULL_PORTABLE_EH_LOWERING
+#if DO_FULL_PORTABLE_EH_LOWERING || ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
 
 an_expr_node_ptr array_var_lvalue_expr(a_variable_ptr var)
 /*
@@ -1872,7 +1872,7 @@ in that it does the cast to pointer-to-element.
   return node;
 }  /* array_var_lvalue_expr */
 
-#endif /* DO_FULL_PORTABLE_EH_LOWERING */
+#endif /* DO_FULL_PORTABLE_EH_LOWERING || ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
 
 static a_field_ptr field_at_offset(a_type_ptr    class_type,
                                    a_targ_size_t byte_offset)
@@ -1913,8 +1913,8 @@ class type.
 }  /* field_at_offset */
 
 
-static an_expr_node_ptr make_vbptr_field_lvalue(an_expr_node_ptr node,
-                                                a_base_class_ptr bcp)
+an_expr_node_ptr make_vbptr_field_lvalue(an_expr_node_ptr node,
+                                         a_base_class_ptr bcp)
 /*
 Make an lvalue for the virtual base class pointer field for the base class
 indicated by bcp of the object pointed to by node.
@@ -2050,7 +2050,7 @@ set to point to the updated expression.
   a_type_ptr class_type = f_skip_typerefs(type_pointed_to(expr->type));
 
   check_assertion_str(is_immediate_class_type(class_type),
-                      "make_vptr_field_lvalue: not class");
+                      "make_any_vptr_rvalue: not class");
   if (class_type->variant.class_struct_union.any_virtual_functions) {
     /* The class has virtual functions and therefore has a virtual function
        table pointer (possibly shared with a base class). */
@@ -2064,30 +2064,11 @@ set to point to the updated expression.
       a_type_ptr base_class = bcp->type;
       if (base_class->variant.class_struct_union.any_virtual_functions) {
         /* Cast down to the base class. */
-        a_derivation_step_ptr dsp;
-        for (dsp = cast_derivation_path_of(bcp);
-             dsp != NULL;
-             dsp = dsp->next) {
-          expr = make_operator_node((an_expr_operator_kind)eok_base_class_cast,
-                                    make_pointer_type(dsp->base_class->type),
-                                    expr);
-          expr->variant.operation.compiler_generated = TRUE;
-          if (other_expr != NULL) {
-            /* Do the same thing to *other_expr. */
-            *other_expr =
-                 make_operator_node((an_expr_operator_kind)eok_base_class_cast,
-                                    make_pointer_type(dsp->base_class->type),
-                                    *other_expr);
-            (*other_expr)->variant.operation.compiler_generated = TRUE;
-          }  /* if */
-        }  /* for */
-        /* Convert the base class casts to C form. */
-        lower_related_class_cast(expr, /*is_lvalue=*/TRUE,
-                                 /*lower_source=*/FALSE);
+        expr = make_base_class_lvalue(expr, bcp, /*complete_object=*/FALSE);
         if (other_expr != NULL) {
           /* Do the same thing to *other_expr. */
-          lower_related_class_cast(*other_expr, /*is_lvalue=*/TRUE,
-                                   /*lower_source=*/FALSE);
+          *other_expr = make_base_class_lvalue(*other_expr, bcp,
+                                               /*complete_object=*/FALSE);
         }  /* if */
         goto found_base_class;
       }  /* if */
@@ -3235,15 +3216,20 @@ constants in other scopes.
 }  /* lower_os_constant */
 
 
-a_variable_ptr make_var_for_virtual_function_table(a_type_ptr       class_type,
-                                                   a_base_class_ptr bcp)
+a_variable_ptr make_var_for_virtual_function_table(
+                                          a_type_ptr       class_type,
+                                          a_base_class_ptr bcp,
+                                          a_type_ptr       complete_class_type)
 /*
 Create the variable to contain the virtual function table for base class bcp
 when it appears in a complete object of type class_type.  If bcp is NULL,
 create the variable for the virtual function table for the class_type itself.
-The variable is an array of structs, each of which describes one virtual
-function.  At this point, the variable is created as an extern variable.
-It might be changed later to add a definition.
+If complete_class_type is non-NULL, it is the actual complete object type
+(used to determine layout) and class_type and bcp->derived_class are the
+class type assumed during a constructor or destructor (used to determine
+overriding).  The variable is an array of structs, each of which describes
+one virtual function.  At this point, the variable is created as an extern
+variable.  It might be changed later to add a definition.
 */
 {
   a_type_ptr     array_type;
@@ -3278,12 +3264,13 @@ It might be changed later to add a definition.
        __vtbl__<mangled-base-class-name>__<mangled-class-name> or
        __vtbl__<mangled-class-name>
   */
-  mangled_name_length = mangled_vtbl_name(class_type, bcp, (char *)NULL);
+  mangled_name_length = mangled_vtbl_name(class_type, bcp, complete_class_type,
+                                          (char *)NULL);
   /* Allocate space for the mangled name, including the final null. */
   alloc_length = mangled_name_length + 1;
   mangled_name = alloc_lowered_name_string(alloc_length);
   /* Build the mangled name. */
-  (void)mangled_vtbl_name(class_type, bcp, mangled_name);
+  (void)mangled_vtbl_name(class_type, bcp, complete_class_type, mangled_name);
   mangled_name[mangled_name_length] = '\0';
   /* Note that the variable is made with extern storage class; it might
      be changed to internal linkage later, but the name linkage in the
@@ -3311,12 +3298,284 @@ have_vtbl_var:;
     a_class_type_supplement_ptr ctsp =
                              class_type->variant.class_struct_union.extra_info;
     ctsp->virtual_function_table_var = vtbl_var;
+  } else if (complete_class_type != NULL &&
+             complete_class_type != bcp->derived_class) {
+    /* This is a special virtual function table that gets recorded elsewhere,
+       not in the base class entry. */
   } else {
     bcp->virtual_function_table_var = vtbl_var;
   }  /* if */
   return vtbl_var;
 }  /* make_var_for_virtual_function_table */
 
+#if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
+
+#if DEBUG
+/*
+Count of entries allocated, for debugging purposes.
+*/
+static unsigned long
+		num_construction_vtbls_allocated;
+#endif /* DEBUG */
+
+
+static a_construction_vtbl_ptr alloc_construction_vtbl(void)
+/*
+Allocate an entry of type a_construction_vtbl, clear its fields to default
+values, and return a pointer to it.
+*/
+{
+  a_construction_vtbl_ptr cvp;
+
+  cvp = (a_construction_vtbl_ptr)alloc_fe(sizeof(a_construction_vtbl));
+#if DEBUG
+  num_construction_vtbls_allocated++;
+#endif /* DEBUG */
+  cvp->next = NULL;
+  cvp->base_class = NULL;
+  cvp->ctor_base_class = NULL;
+  cvp->virtual_function_table_var = NULL;
+
+  return cvp;
+}  /* alloc_construction_vtbl */
+
+
+static a_boolean base_class_has_override_on_virtual_step(a_base_class_ptr bcp)
+/*
+Return TRUE if the indicated base class has any virtual functions that are
+overridden in such a way that there is a virtual base class step between
+the class of the overridden function and the class of the overriding
+function.
+*/
+{
+  a_boolean has_override = FALSE;
+  an_overriding_virtual_function_ptr
+            overrides = bcp->overriding_virtual_functions;
+
+  if (overrides != NULL && any_virtual_steps_in_derivation(bcp)) {
+    if (bcp->is_virtual) {
+      /* The base class of the primary function is a virtual base class,
+         so by definition there is a virtual step between that and
+         the class of any overriding function. */
+      has_override = TRUE;
+    } else {
+      for (; overrides != NULL; overrides = overrides->next) {
+        /* See if there is a virtual step between the class of the
+           overridden function and the class of the primary function.
+           Since bcp is not virtual here (that case was handled
+           above), there is a single derivation under bcp.  Walk
+           that derivation path and see if we encounter the class of
+           the overriding function.  If not, the overriding function
+           class must appear in a virtual hop and therefore there
+           is a virtual step between the overriding and overridden
+           function classes. */
+        a_base_class_ptr overriding_bcp = overrides->base_class;
+        if (overriding_bcp == NULL) {
+          /* The overriding function is in the current class, so the
+             derivation has a virtual step. */
+          has_override = TRUE;
+          break;
+        } else {
+          a_derivation_step_ptr step;
+          for (step = bcp->derivation->path;
+               step != NULL;
+               step = step->next) {
+            if (step->base_class->type == overriding_bcp->type) {
+              /* We encountered the overriding class, so there is no
+                 virtual step. */
+              goto outer_loop;
+            }  /* if */
+          }  /* for */
+          /* We didn't encounter the overriding class, so there must
+             be a virtual step. */
+          has_override = TRUE;
+          break;
+outer_loop:;
+        }  /* if */
+      }  /* for */
+    }  /* if */
+  }  /* if */
+  if (!has_override) {
+    a_base_class_ptr sharing_bcp = bcp->type->variant.class_struct_union.
+                                  extra_info->virtual_function_info_base_class;
+
+    if (sharing_bcp != NULL) {
+      /* This base class shares a virtual function table pointer with one
+         of its base classes, so look at the override list for that base
+         class to see if any of the functions there are overridden across
+         virtual steps. */
+      /* The sharing_bcp may be an indirect base class, but go down to
+         it one step at a time. */
+      sharing_bcp = sharing_bcp->derivation->path->base_class;
+      sharing_bcp = corresponding_base_class(sharing_bcp, bcp->derived_class,
+                                             bcp);
+      if (base_class_has_override_on_virtual_step(sharing_bcp)) {
+        has_override = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return has_override;
+}  /*  base_class_has_override_on_virtual_step */
+
+
+static a_construction_vtbl_array_index make_construction_vtbls(
+                       a_type_ptr                      class_type,
+                       a_base_class_ptr                bcp,
+                       a_construction_vtbl_ptr         *construction_vtbls,
+                       a_construction_vtbl_ptr         *end_construction_vtbls,
+                       a_construction_vtbl_array_index *index)
+              
+/*
+If the given class needs special versions of virtual function tables for
+use in constructors and destructors, make the variables for them now.
+Such virtual function tables are needed when virtual functions are
+overridden in virtual base classes.  The tables are to be generated for
+use when constructing/destroying a subobject described by bcp if bcp
+is non-NULL, or a complete object of type class_type if bcp is NULL.
+Add any needed vtbl entries to the list bounded by *construction_vtbls and
+*end_construction_vtbls, and increment *index accordingly.  Return the
+index number of the first entry, or 0 if no entries were created.
+*/
+{
+  a_type_ptr                      vtbl_class;
+  a_construction_vtbl_array_index first_index = 0;
+
+  if (bcp != NULL) {
+    vtbl_class = bcp->type;
+    check_assertion(class_type == bcp->derived_class);
+  } else {
+    vtbl_class = class_type;
+  }  /* if */
+  if (vtbl_class->variant.class_struct_union.any_virtual_base_classes) {
+    a_class_type_supplement_ptr     ctsp;
+    a_base_class_ptr                sub_bcp;
+
+    ctsp = vtbl_class->variant.class_struct_union.extra_info;
+    /* Look for base classes for which special virtual function tables are
+       needed because of the base class itself (an array of virtual
+       function table instances needs to be passed to a constructor or
+       destructor for the base class). */
+    for (sub_bcp = ctsp->base_classes;
+         sub_bcp != NULL;
+         sub_bcp = sub_bcp->next) {
+      a_class_type_supplement_ptr sub_ctsp =
+                          sub_bcp->type->variant.class_struct_union.extra_info;
+      /* The base class should have been prelowered already, so that
+         construction_vtbls is set already. */
+      check_assertion(sub_ctsp->type_as_subobject != NULL);
+      /* Process only direct and virtual base classes, and process virtual
+         base classes only in the outermost class (the outermost constructor
+         calls the virtual base class constructor). */
+      if ((sub_bcp->is_virtual ? bcp == NULL : sub_bcp->direct) &&
+          sub_ctsp->construction_vtbls != NULL) {
+        a_base_class_ptr eff_bcp = sub_bcp;
+        if (bcp != NULL) {
+          /* Find the base class we want to process in the complete
+             object class type. */
+          a_base_class_ptr disambiguator = find_disambiguator(bcp, sub_bcp);
+          eff_bcp = corresponding_base_class(sub_bcp, class_type,
+                                             disambiguator);
+        }  /* if */
+        /* Virtual base classes are processed only in a complete object,
+           so the information for them is put in a separate small array
+           passed by the complete-object constructor to the base class
+           constructor, and not included in the overall array for the
+           class. */
+        if (sub_bcp->is_virtual) {
+          a_construction_vtbl_array_index local_index = 0;
+          a_construction_vtbl_ptr         local_construction_vtbls = NULL;
+          a_construction_vtbl_ptr         local_end_construction_vtbls = NULL;
+
+          (void)make_construction_vtbls(class_type,
+                                        eff_bcp,
+                                        &local_construction_vtbls,
+                                        &local_end_construction_vtbls,
+                                        &local_index);
+          sub_bcp->base_construction_vtbls = local_construction_vtbls;
+        } else {
+          /* Not a virtual base class.  Add the base class subarray to the
+             overall array being constructed for the class. */
+          sub_bcp->base_subarray_index_in_construction_vtbl_array =
+                               make_construction_vtbls(class_type,
+                                                       eff_bcp,
+                                                       construction_vtbls,
+                                                       end_construction_vtbls,
+                                                       index);
+          if (first_index == 0) {
+            first_index =
+                       sub_bcp->base_subarray_index_in_construction_vtbl_array;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* for */
+    /* Look for base classes that have functions that are overridden
+       in some class such that there is a virtual step between the base
+       class and the overriding class.  Those are the cases where the
+       offset between the classes of the overriding and overridden functions
+       can change if this class is embedded in a larger object.  Note that
+       virtual base classes cannot share a virtual function table pointer
+       with a derived class, so the virtual function pointer of class_type
+       itself is not an issue.  The functions in its virtual function table
+       have to be either declared in class_type or inherited from base
+       classes with which it shares a virtual function table pointer (i.e.,
+       non-virtual base classes), and those inherited functions will not
+       require special tables. */
+    for (sub_bcp = ctsp->base_classes;
+         sub_bcp != NULL;
+         sub_bcp = sub_bcp->next) {
+      if (sub_bcp->virtual_function_table_var != NULL) {
+        if (base_class_has_override_on_virtual_step(sub_bcp)) {
+          /* Needs a special virtual function table. */
+          a_variable_ptr          vtbl_var;
+          a_construction_vtbl_ptr cvp = alloc_construction_vtbl();
+          cvp->base_class = sub_bcp;
+          cvp->ctor_base_class = bcp;
+          /* Assign the next index number to this entry. */
+          ++(*index);
+          if (bcp == NULL) {
+            sub_bcp->index_in_construction_vtbl_array = *index;
+          }  /* if */
+          if (first_index == 0) first_index = *index;
+          if (bcp == NULL) {
+            /* This is the standard virtual function table for the base
+               class, which has already been created. */
+            vtbl_var = sub_bcp->virtual_function_table_var;
+            check_assertion(vtbl_var != NULL);
+          } else {
+            /* See if there's already an entry on the list for this
+               instance, and reuse it if so. */
+            a_construction_vtbl_ptr old_cvp;
+            for (old_cvp = *construction_vtbls;
+                 old_cvp != NULL;
+                 old_cvp = old_cvp->next) {
+              if (old_cvp->base_class == cvp->base_class &&
+                  old_cvp->ctor_base_class == cvp->ctor_base_class) {
+                vtbl_var = old_cvp->virtual_function_table_var;
+                goto have_vtbl_var;
+              }  /* if */
+            }  /* if */
+            vtbl_var =
+                    make_var_for_virtual_function_table(sub_bcp->derived_class,
+                                                        sub_bcp,
+                                                        bcp->derived_class);
+have_vtbl_var:;
+          }  /* if */
+          cvp->virtual_function_table_var = vtbl_var;
+          /* Add the entry to the end of the list. */
+          if (*construction_vtbls == NULL) {
+            *construction_vtbls = cvp;
+          } else {
+            (*end_construction_vtbls)->next = cvp;
+          }  /* if */
+          *end_construction_vtbls = cvp;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return first_index;
+}  /* make_construction_vtbls */
+
+#endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
 
 #if !CFRONT_OBJECT_CODE_COMPATIBILITY || ABI_CHANGES_FOR_RTTI
 /*ARGSUSED*/  /* <-- Because class_type is not used in that case. */
@@ -3391,7 +3650,8 @@ class_type if any are needed and if they have not already been generated.
         /* Generate the virtual function table variable for the class
            itself. */
         (void)make_var_for_virtual_function_table(class_type,
-                                                  (a_base_class_ptr)NULL);
+                                                  (a_base_class_ptr)NULL,
+                                                  (a_type_ptr)NULL);
       }  /* if */
     }  /* if */
     /* Generate the virtual function table for each base class when it
@@ -3402,10 +3662,25 @@ class_type if any are needed and if they have not already been generated.
          been generated. */
       if (base_class_needs_virtual_function_table(bcp, class_type)) {
         if (bcp->virtual_function_table_var == NULL) {
-          (void)make_var_for_virtual_function_table(class_type, bcp);
+          (void)make_var_for_virtual_function_table(class_type, bcp,
+                                                    (a_type_ptr)NULL);
         }  /* if */
       }  /* if */
     }  /* for */
+#if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
+    { a_construction_vtbl_ptr         construction_vtbls = NULL;
+      a_construction_vtbl_ptr         end_construction_vtbls = NULL;
+      a_construction_vtbl_array_index index = 0;
+      /* The class may need special versions of virtual function tables
+         for use in constructor or destructors.  Make them if needed. */
+      (void)make_construction_vtbls(class_type,
+                                    (a_base_class_ptr)NULL,
+                                    &construction_vtbls,
+                                    &end_construction_vtbls,
+                                    &index);
+      ctsp->construction_vtbls = construction_vtbls;
+    }
+#endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
   }  /* if */
 }  /* make_vars_for_virtual_function_tables */
 
@@ -3921,6 +4196,7 @@ static void fill_virtual_function_table(
                                   a_constant_ptr            aggr_con,
                                   a_type_ptr                class_type,
                                   a_base_class_ptr          bcp,
+                                  a_base_class_ptr          ctor_bcp,
                                   a_virtual_function_number *next_entry_number,
                                   a_routine_ptr             first_virtual)
 /*
@@ -3928,10 +4204,15 @@ aggr_con is the aggregate constant that initializes a virtual function table.
 Add to it the constants for the entries that define the virtual function
 table for base class bcp when it is contained within a whole object of
 type class_type.  If bcp is NULL, generate the virtual function table for
-class_type itself.  On exit, return in *next_entry_number the next entry
-number after the last one filled.  If first_virtual is non-NULL, it points
-to the virtual function that was used as the basis for a decision on
-whether or not to put out the virtual function table.
+class_type itself.  If ctor_bcp is non-NULL, it is the base class for
+class_type as a subobject of some larger class type that is the actual
+complete object type (used in determining layout); class_type in that
+case is the type considered to be the complete object type for purposes
+of overriding (this is used during constructors and destructors).  On
+exit, return in *next_entry_number the next entry number after the last
+one filled.  If first_virtual is non-NULL, it points to the virtual
+function that was used as the basis for a decision on whether or not to
+put out the virtual function table.
 */
 {
   an_overriding_virtual_function_ptr override_list;
@@ -3979,8 +4260,8 @@ whether or not to put out the virtual function table.
          have was extracted from class_whose_vtbl_is_being_made. */
       imm_bcp = corresponding_base_class(imm_bcp, class_type, bcp);
     }  /* if */
-    fill_virtual_function_table(aggr_con, class_type, imm_bcp, &entry_number,
-                                first_virtual);
+    fill_virtual_function_table(aggr_con, class_type, imm_bcp, ctor_bcp,
+                                &entry_number, first_virtual);
     /* Now continue to fill the rest of the table, the unshared part, which
        contains the functions declared in class_type that do not appear
        in the base classes with which the virtual function table is
@@ -4011,15 +4292,45 @@ whether or not to put out the virtual function table.
          The delta (value to add to the "this" pointer) is
          the offset of the class containing the function to call minus
          the offset of the class whose vtbl we are building. */
-      if (override_list->base_class == NULL) {
+      a_base_class_ptr overriding_bcp = override_list->base_class;
+      a_base_class_ptr overridden_bcp = bcp;
+      if (ctor_bcp != NULL) {
+        /* The complete object type is different than the object type
+           being used to determine overloading.  This happens during
+           construction and destruction of subobjects, and is important
+           when virtual functions in virtual base classes are overridden,
+           because the offset between the class of the overridden function
+           and the class of the overriding function can be different in
+           the complete object than it is in a complete object of
+           the subobject type.  Determine the base classes for the
+           overridden and overriding classes in the complete object. */
+        a_base_class_ptr disambiguator;
+        if (overriding_bcp == NULL) {
+          overriding_bcp = ctor_bcp;
+        } else {
+          disambiguator = find_disambiguator(ctor_bcp, overriding_bcp);
+          overriding_bcp = corresponding_base_class(overriding_bcp,
+                                                    ctor_bcp->derived_class,
+                                                    disambiguator);
+        }  /* if */
+        if (overridden_bcp == NULL) {
+          overridden_bcp = ctor_bcp;
+        } else {
+          disambiguator = find_disambiguator(ctor_bcp, overridden_bcp);
+          overridden_bcp = corresponding_base_class(overridden_bcp,
+                                                    ctor_bcp->derived_class,
+                                                    disambiguator);
+        }  /* if */
+      }  /* if */
+      if (overriding_bcp == NULL) {
         /* The function is defined in the most-derived class. */
         delta = 0;
       } else {
-        delta = override_list->base_class->offset;
+        delta = overriding_bcp->offset;
       }  /* if */
-      if (bcp != NULL) {
+      if (overridden_bcp != NULL) {
         /* Subtract the offset of the class whose vtbl we are building. */
-        delta -= bcp->offset;
+        delta -= overridden_bcp->offset;
       }  /* if */
       func_to_call = override_list->overriding_function;
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
@@ -4055,31 +4366,40 @@ whether or not to put out the virtual function table.
 }  /* fill_virtual_function_table */
 
 
+#if !ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
+/*ARGSUSED*/ /* <-- complete_class_type is not used in this mode. */
+#endif /* !ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
 static void define_one_virtual_function_table(
-                                            a_type_ptr       class_type,
-                                            a_base_class_ptr bcp,
-                                            a_boolean        definition_needed,
-                                            a_boolean        force_static,
-                                            a_routine_ptr    first_virtual)
+                                          a_type_ptr       class_type,
+                                          a_base_class_ptr bcp,
+                                          a_base_class_ptr ctor_bcp,
+                                          a_variable_ptr   vtbl_var,
+                                          a_boolean        definition_needed,
+                                          a_boolean        force_static,
+                                          a_routine_ptr    first_virtual)
 /*
 Finish the job begun by make_var_for_virtual_function_table: finish making
 a virtual function table variable.  This routine handles things that could
 not be handled yet on the other call, like setting the size and storage
 class of the variable and generating the initial value for the variable
 (i.e., the virtual function table itself).  The virtual function table
-variable to be finished is the one for the base class indicated by bcp when
-it appears within a complete object of the class type class_type, or the
-one for class_type itself if bcp == NULL.  If definition_needed is FALSE,
+variable to be finished, vtbl_var, is the one for the base class
+indicated by bcp when it appears within a complete object of the class
+type class_type, or the one for class_type itself if bcp == NULL.  If
+ctor_bcp is non-NULL, it is the base class for class_type as a subobject
+of some larger class type that is the actual complete object type (used
+in determining layout); class_type in that case is the type considered
+to be the complete object type for purposes of overriding (this is used
+during constructors and destructors).  If definition_needed is FALSE,
 the virtual function table should not be defined in this compilation.
-If force_static is TRUE, the virtual function table is forced to be local
-to the current compilation even if the class is externally linked.
-If first_virtual is non-NULL, it points to the virtual function that
-was used as the basis for a decision on whether or not to put out the
+If force_static is TRUE, the virtual function table is forced to be
+local to the current compilation even if the class is externally linked.
+If first_virtual is non-NULL, it points to the virtual function that was
+used as the basis for a decision on whether or not to put out the
 virtual function table.
 */
 {
   a_class_type_supplement_ptr ctsp;
-  a_variable_ptr              vtbl_var;
   a_constant_ptr              aggr_con;
   a_virtual_function_number   next_entry_number;
   a_memory_region_number      region_to_switch_back_to;
@@ -4088,7 +4408,6 @@ virtual function table.
   if (bcp == NULL) {
     /* We're doing the virtual function table for class_type itself. */
     ctsp = class_type->variant.class_struct_union.extra_info;
-    vtbl_var = ctsp->virtual_function_table_var;
 #if ABI_CHANGES_FOR_RTTI
     /* If this is the virtual function table for type_info, which is shared
        between the actual type_info (if declared) and user_type_info_type
@@ -4104,7 +4423,6 @@ virtual function table.
   } else {
     /* We're doing the virtual function table for bcp in class_type. */
     ctsp = bcp->type->variant.class_struct_union.extra_info;
-    vtbl_var = bcp->virtual_function_table_var;
   }  /* if */
   /* Change the array size from [] to the proper size.  Note that the type
      was created for this variable and is known not to be shared. */
@@ -4159,12 +4477,16 @@ virtual function table.
   if (definition_needed) {
 #if DEBUG
     if (debug_level >= 4 || db_flag_is_set("vtbl")) {
-      fprintf(f_debug, "\nVirtual function table for ");
+      fprintf(f_debug, "\nDefining virtual function table for ");
       if (bcp == NULL) {
         db_abbreviated_type(class_type);
         fprintf(f_debug, "\n");
       } else {
         db_base_class(bcp, /*show_offset=*/FALSE);
+      }  /* if */
+      if (ctor_bcp != NULL) {
+        fprintf(f_debug, "ctor_bcp: ");
+        db_base_class(ctor_bcp, /*show_offset=*/FALSE);
       }  /* if */
     }  /* if */
 #endif /* DEBUG */
@@ -4190,8 +4512,8 @@ virtual function table.
                         (a_variable_ptr)NULL, aggr_con, first_virtual);
 #endif /* ABI_CHANGES_FOR_RTTI */
     /* Put out the body of the table. */
-    fill_virtual_function_table(aggr_con, class_type, bcp, &next_entry_number,
-                                first_virtual);
+    fill_virtual_function_table(aggr_con, class_type, bcp, ctor_bcp,
+                                &next_entry_number, first_virtual);
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
     /* Put out the initialization for an extra zeroed entry at the end, for
        cfront compatibility. */
@@ -4201,6 +4523,37 @@ virtual function table.
     switch_back_to_original_region(region_to_switch_back_to);
   }  /* if */
 }  /* define_one_virtual_function_table */
+
+#if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
+
+static void define_construction_vtbls(
+                                    a_construction_vtbl_ptr construction_vtbls,
+                                    a_boolean               definition_needed,
+                                    a_boolean               force_static,
+                                    a_routine_ptr           first_virtual)
+/*
+Generate the definitions of the virtual function tables described on
+the construction_vtbls list.  These are special versions of virtual function
+tables to be used during construction of subobjects.
+*/
+{
+  a_construction_vtbl_ptr cvp;
+ 
+  for (cvp = construction_vtbls; cvp != NULL; cvp = cvp->next) {
+    /* Do not define variables more than once. */
+    if (cvp->virtual_function_table_var->storage_class ==
+                                                  (a_storage_class)sc_extern) {
+      define_one_virtual_function_table(cvp->base_class->derived_class,
+                                        cvp->base_class,
+                                        cvp->ctor_base_class,
+                                        cvp->virtual_function_table_var,
+                                        definition_needed, force_static,
+                                        first_virtual);
+    }  /* if */
+  }  /* for */
+}  /* define_construction_vtbls */
+
+#endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
 
 
 static void define_virtual_function_tables(a_type_ptr class_type)
@@ -4232,6 +4585,8 @@ class_type if any are needed.
       need_determined = TRUE;
       /* Generate the virtual function table for the class itself. */
       define_one_virtual_function_table(class_type, (a_base_class_ptr)NULL,
+                                        (a_base_class_ptr)NULL,
+                                        ctsp->virtual_function_table_var,
                                         definition_needed, force_static,
                                         first_virtual);
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
@@ -4254,6 +4609,8 @@ class_type if any are needed.
           need_determined = TRUE;
         }  /* if */
         define_one_virtual_function_table(class_type, bcp,
+                                          (a_base_class_ptr)NULL,
+                                          bcp->virtual_function_table_var,
                                           definition_needed, force_static,
                                           first_virtual);
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
@@ -4265,6 +4622,24 @@ class_type if any are needed.
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
       }  /* if */
     }  /* for */
+#if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
+    /* Define any special virtual function tables needed during subobject
+       construction and destruction. */
+    if (ctsp->construction_vtbls != NULL) {
+      check_assertion(need_determined);
+      define_construction_vtbls(ctsp->construction_vtbls, definition_needed,
+                                force_static, first_virtual);
+    }  /* if */
+    /* Virtual base classes have their own separate tables. */
+    for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
+      if (bcp->base_construction_vtbls != NULL) {
+        check_assertion(need_determined);
+        define_construction_vtbls(bcp->base_construction_vtbls,
+                                  definition_needed,
+                                  force_static, first_virtual);
+      }  /* if */
+    }  /* for */
+#endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
     if (automatic_instantiation_mode &&
         ctsp->template_arg_list != NULL && any_vtbl_ref &&
@@ -4533,9 +4908,6 @@ routine assumes the class type is as complete as it will ever get.
          should be complete. */
       check_assertion_str(ctsp->assoc_scope == NULL || class_type->size != 0,
                         "prelower_class_type: class definition not completed");
-      /* Make the virtual function table variables if they have not been made
-         already. */
-      make_vars_for_virtual_function_tables(class_type);
       /* Make dummy fields to reserve space for the direct base classes,
          and add them to the field list. */
       for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
@@ -4573,6 +4945,9 @@ routine assumes the class type is as complete as it will ever get.
           }  /* if */
         }  /* if */
       }  /* for */
+      /* Make the virtual function table variables if they have not been made
+         already.  This must be done after prelowering of the base classes. */
+      make_vars_for_virtual_function_tables(class_type);
       if (class_type->variant.class_struct_union.any_virtual_functions &&
           ctsp->virtual_function_info_base_class == NULL) {
         /* The class has virtual functions, so it needs a virtual function
@@ -11869,6 +12244,10 @@ Display and return the amount of space used for various IL lowering tables.
   db_space_used_lost("scopeless comp stmts", avail_scopeless_compound_stmts,
                      num_scopeless_compound_stmts_allocated,
                      a_scopeless_compound_stmt);
+#if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
+  db_space_used("construction vtbls", num_construction_vtbls_allocated,
+                 a_construction_vtbl);
+#endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
 #if MINIMAL_INLINING
   if (inlining_enabled) {
     db_space_used_lost("variable remappings",
@@ -11931,6 +12310,9 @@ are handled in il_lower_init.)
       pch_saved_var_array_elem(num_destructible_entity_descrs_allocated),
       pch_saved_var_array_elem(allocated_name_string_length),
       pch_saved_var_array_elem(num_return_memos_allocated),
+#if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
+      pch_saved_var_array_elem(num_construction_vtbls_allocated),
+#endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
 #endif /* DEBUG */
       pch_saved_var_array_terminating_elem()
     };
@@ -11979,6 +12361,9 @@ of the front end.
   num_scopeless_compound_stmts_allocated = 0;
   num_init_pos_modifiers_allocated = 0;
   num_destructible_entity_descrs_allocated = 0;
+#if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
+  num_construction_vtbls_allocated = 0;
+#endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
 #endif /* DEBUG */
   return_value_pointer_variable = NULL;
   code_pos_for_lowering = null_source_position;

@@ -747,6 +747,11 @@ to it.
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
 #if DO_IL_LOWERING
   bcp->virtual_function_table_var      = NULL;
+#if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
+  bcp->index_in_construction_vtbl_array = 0;
+  bcp->base_subarray_index_in_construction_vtbl_array = 0;
+  bcp->base_construction_vtbls         = NULL;
+#endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
 #endif /* DO_IL_LOWERING */
 #if CHECKING
   bcp->avoid_codecenter_warnings       = 0;
@@ -857,6 +862,9 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
   ctsp->promoted_local_types              = NULL;
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
+#if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
+  ctsp->construction_vtbls                = NULL;
+#endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
 #endif /* DO_IL_LOWERING */
 }  /* clear_class_type_supplement */
 

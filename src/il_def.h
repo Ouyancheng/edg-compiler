@@ -2864,6 +2864,18 @@ typedef struct a_base_class_derivation {
 			   class to the class directly derived from it. */
 } a_base_class_derivation;
 
+#if DO_IL_LOWERING
+#if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
+/*
+Index into the array of virtual function table pointers used to adjust
+virtual function tables during construction and destruction in the presence
+of overridden functions in virtual base classes.
+*/
+typedef unsigned short a_construction_vtbl_array_index;
+/* a_construction_vtbl is declared in lower_il.h and is opaque here. */
+typedef struct a_construction_vtbl *a_construction_vtbl_ptr;
+#endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
+#endif /* DO_IL_LOWERING */
 
 typedef struct a_base_class {
   /* An entry describing a base class from which a class is directly or
@@ -2993,6 +3005,49 @@ typedef struct a_base_class {
 			   variable that contains the virtual function table
 			   for this base class/derived class combination.
 			   NULL until allocated and NULL if not needed. */
+#if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
+  a_construction_vtbl_array_index
+		index_in_construction_vtbl_array;
+			/* Non-zero if this base class's override list includes
+			   at least one overriding virtual function for which
+			   the derivation between the class of the overriding
+			   function and the class of the primary function
+			   (i.e., the class indicated by this base class entry)
+			   contains a virtual step.  When non-zero, special
+			   handling of virtual function tables is required
+			   during construction and destruction.  The entry
+			   at the indicated element (-1) of the construction
+			   vtbl array gives the address of the virtual
+			   function table to be used for the base class vtbl
+			   pointer during the body of the derived class
+			   constructor when constructing a complete object
+			   of the derived class type. */
+  /* When is_virtual is FALSE: */
+  a_construction_vtbl_array_index
+		base_subarray_index_in_construction_vtbl_array;
+			/* Non-zero if the constructor or destructor for
+			   the base class must be passed an array of vtbl
+			   pointers to be used during construction or
+			   destruction to deal with overridden virtual
+			   functions in virtual base classes.  Gives
+			   the number of the element (-1) of the construction
+			   vtbl array for the whole current class at which
+			   the subarray that is to be passed to the base class
+			   constructor or destructor begins. */
+  /* When is_virtual is TRUE: */
+  a_construction_vtbl_ptr
+		base_construction_vtbls;
+			/* If non-NULL, this virtual base class contains
+			   overridden virtual functions in virtual base
+			   classes and requires special versions of virtual
+			   function tables when a constructor or destructor
+			   is called for a subobject.  This points to the
+			   first on a list of entries describing (in order)
+			   the elements of an array of vtbl addresses to be
+			   passed to the base class constructor or destructor
+			   when constructing or destroying this base class
+			   in a complete object. */
+#endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
 #endif /* DO_IL_LOWERING */
 } a_base_class;
 
@@ -3245,6 +3300,19 @@ typedef struct a_class_type_supplement {
 			   moved here first to keep them grouped with the
 			   other types from this class. */
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
+#if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
+  a_construction_vtbl_ptr
+		construction_vtbls;
+			/* If non-NULL, this class contains overridden virtual 
+			   functions in virtual base classes and requires
+			   special versions of virtual function tables when
+			   a constructor or destructor is called for a
+			   subobject.  This points to the first on a list of
+			   entries describing (in order) the elements of
+			   an array of vtbl addresses to be used when
+			   constructing or destroying a complete object
+			   of this class type. */
+#endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
 #endif /* DO_IL_LOWERING */
 } a_class_type_supplement;
 
