@@ -206,6 +206,12 @@ typedef int an_identifier_options_set;
 			/* If the identifier is a qualified name the
 			   class component must refer to the prototype
 			   instantiation. */
+#define GID_IS_NEW_TYPE_NAME	      0x400
+			/* Specifies that the name being scanned is the type
+			   name in a new expression.  This causes the check
+			   for an unexpected template argument list to be
+			   suppressed because a new type name may be followed
+			   by a less than sign. */
 #define GID_ERROR_FLAGS (GID_DISALLOW_QUALIFIED_NAME |		\
 			 GID_DISALLOW_GLOBAL_QUALIFIER |	\
 			 GID_DISALLOW_OPERATOR_NAME)
@@ -1078,10 +1084,7 @@ call the routine to scan the argument list.  Otherwise just return the
 original symbol.
 */
 #define check_for_class_template(sym, options, err)			      \
-    (((sym) != NULL && 							      \
-      (sym)->kind == (a_symbol_kind)sk_class_template) ?		      \
-           coalesce_template_class_reference(sym, options,		      \
-                                             err) : sym)
+  ((sym) != NULL ? coalesce_template_class_reference(sym, options, err) : sym)
 
 
 extern a_symbol_ptr coalesce_template_class_reference

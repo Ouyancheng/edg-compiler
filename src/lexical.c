@@ -4856,6 +4856,21 @@ These look like qualified names but aren't.
 }  /* is_global_new_or_delete */
 
 
+static void flush_to_end_of_arg_list(void)
+/*
+*/
+{
+  unsigned char save_comma_stop_token_count;
+  /* Remove comma from the stop tokens set so that we can flush to the
+     end of the argument list. */
+  save_comma_stop_token_count = stop_token_array[(int)tok_comma];
+  stop_token_array[(int)tok_comma] = 0;
+  flush_tokens();
+  /* Restore comma as a stop token (if it was one). */
+  stop_token_array[(int)tok_comma] = save_comma_stop_token_count;
+}  /* flush_to_end_of_arg_list */
+
+
 a_symbol_ptr coalesce_template_class_reference
 			(a_symbol_ptr		   template_symbol,
 			 an_identifier_options_set options,
@@ -4885,15 +4900,44 @@ a routine to lookup the appropriate instance (or generate one if needed).
   a_type_ptr                      argument_type;
   a_constant_ptr                  constant;
   a_template_arg_ptr              arg_ptr;
+  a_token_kind			  next_tok;
 
   db_enter(3, "coalesce_template_class_reference");
 
   *err = FALSE;
+  next_tok = next_token();
   /* Save source position for error reporting. */
   start_position = pos_curr_token;
   /* Save the current locator. */
   locator_pos = locator_for_curr_id.source_position;
-  if (next_token() != tok_lt) {
+  if (template_symbol->kind != (a_symbol_kind)sk_class_template) {
+    /* The symbol is not a class template symbol.  If the symbol
+       is a type symbol followed by what looks like the beginning
+       of a template argument list (i.e., a "<") issue an error
+       indicating that the current symbol is not a class template.
+       If the symbol is not a type symbol simply return without
+       doing anything because the "<" may be a less than sign.  This
+       test is also suppressed when processing the type name in a new
+       expression because it may legitimately be followed by a less
+       than sign. */
+    if (is_type_symbol(template_symbol) && next_tok == tok_lt &&
+        !(options & GID_IS_NEW_TYPE_NAME)) {
+      pos_sy_error(ec_unexpected_template_arg_list, &start_position,
+                   template_symbol);
+      add_stop_token(tok_gt);
+      flush_to_end_of_arg_list();
+      remove_stop_token(tok_gt);
+      make_specific_symbol_error_locator(&locator_for_curr_id);
+      new_sym = template_symbol;
+      any_errors = TRUE;
+      goto normal_exit;
+    } else {
+      /* Just return the symbol that was passed in. */
+      new_sym = template_symbol;
+      goto skip_processing;
+    }  /* if */
+  }  /* if */
+  if (next_tok != tok_lt) {
      /* There is no template argument list.  If we are in an instantiation of
         this class template, use the symbol associated with the innermost
         instantiation of this class, otherwise just return the class
@@ -5040,18 +5084,11 @@ a routine to lookup the appropriate instance (or generate one if needed).
       any_errors = TRUE;
     }  /* if */
   } else if (curr_token == tok_comma) {
-    unsigned char save_comma_stop_token_count;
     /* All of the formal parameters have been accounted for and there are
        more actuals -- too many arguments were supplied. */
     pos_sy_error(ec_too_many_template_args, &pos_curr_token, template_symbol);
-    /* Remove comma from the stop tokens set so that we can flush to the
-       end of the argument list. */
-    save_comma_stop_token_count = stop_token_array[(int)tok_comma];
-    stop_token_array[(int)tok_comma] = 0;
-    flush_tokens();
+    flush_to_end_of_arg_list();
     any_errors = TRUE;
-    /* Restore comma as a stop token (if it was one). */
-    stop_token_array[(int)tok_comma] = save_comma_stop_token_count;
   }  /* if */
   /* We should now be at the closing angle bracket.  Note that we don't
      scan the token after the closing angle because we update the current

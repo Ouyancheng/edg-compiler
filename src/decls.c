@@ -128,7 +128,7 @@ class is the same as the name that locator_for_curr_id represents.
 }  /* is_name_of_curr_class */
 
 
-static a_symbol_ptr curr_type_symbol(void)
+static a_symbol_ptr curr_type_symbol(a_boolean is_new_type_name)
 /*
 The current token is an identifier or, in C++, the "::" at the start of a
 global qualified name.  If it is the name of a type (a typedef name or,
@@ -137,11 +137,14 @@ the symbol.  Otherwise, return NULL.  Ambiguity and access control checking
 is not done.
 */
 {
-  a_symbol_ptr assoc_symbol;
-  a_boolean    err;
+  a_symbol_ptr			assoc_symbol;
+  a_boolean   			err;
+  an_identifier_options_set	options;
 
   assoc_symbol = NULL;
-  if (is_qualified_name_start()) {
+  options = GID_DEFER_ACCESS_ERRORS;
+  if (is_new_type_name) options |= GID_IS_NEW_TYPE_NAME;
+  if (is_generalized_identifier_start(options)) {
     /* Look up the current token identifier, which may be a qualified name.
        Since curr_type_symbol is often called as part of a test of the
        presence of a type name identifier, it is inappropriate to cause a
@@ -152,7 +155,7 @@ is not done.
        because we may actually be scanning something that is not a type
        (e.g., a declarator). */
     assoc_symbol = coalesce_and_lookup_generalized_identifier
-                       (GID_DTOR_RECOGNIZED | GID_DEFER_ACCESS_ERRORS,
+                       (GID_DTOR_RECOGNIZED | options,
 		        ilm_tentative_type, &err);
     if (assoc_symbol != NULL && !is_type_symbol(assoc_symbol)) {
       /* Symbol was found, but it is not a type name symbol.  Return NULL. */
@@ -172,7 +175,8 @@ is not done.
 Macro that is TRUE if the current token (which must be an identifier or
 the "::" at the start of a qualified name) is a type name.
 */
-#define curr_id_is_type_name() (curr_type_symbol() != NULL)
+#define curr_id_is_type_name()						\
+  (curr_type_symbol(/*is_new_type_name=*/FALSE) != NULL)
 
 /*
 Macro that is TRUE if the current token is an identifier that represents
@@ -6074,9 +6078,9 @@ to indicate whether an enumeration is actually defined.
 Local macro for decl_specifiers: if curr_token_type_symbol has not
 been determined, determine it now.
 */
-#define determine_curr_token_type_symbol()                            \
+#define determine_curr_token_type_symbol(is_new_type_name)            \
 { if (!determined_curr_token_type_symbol) {                           \
-    curr_token_type_symbol = curr_type_symbol();                      \
+    curr_token_type_symbol = curr_type_symbol(is_new_type_name);      \
     determined_curr_token_type_symbol = TRUE;                         \
   }  /* if */                                                         \
 }  /* determine_curr_token_type_symbol */
@@ -6673,7 +6677,7 @@ process_class_specifier:
               *output_flags |= DSO_CONSTRUCTOR | DSO_NO_DECL_SPECIFIERS;
               /* Turn the current locator from a "specific symbol" locator
                  into a constructor locator. */
-              determine_curr_token_type_symbol();
+              determine_curr_token_type_symbol(/*is_new_type_name=*/FALSE);
               if (curr_token_type_symbol != tag_sym) {
                 if (locator_for_curr_id.specific_symbol->
                                          class_of_which_a_member == tp) {
@@ -6750,7 +6754,7 @@ process_class_specifier:
         }  /* if */
         /* Look up the identifier as a type symbol, if it has not already been
            looked up. */
-        determine_curr_token_type_symbol();
+        determine_curr_token_type_symbol(input_flags & DSI_IS_NEW_TYPE_NAME);
         if (curr_token_type_symbol != NULL) {
           if (sign != sign_none || size != size_none) {
             /* We are in pcc mode, in which adjectival modification of a
@@ -7062,7 +7066,9 @@ no_get_token:
            class B; typedef class {...} B...    <== Error detected elsewhere
            class C; typedef class C {...} C...  <== Legal
          Note that this logic works for both C++ and standard C. */
-      if (is_qualified_name_start()) determine_curr_token_type_symbol();
+      if (is_qualified_name_start()) {
+        determine_curr_token_type_symbol(/*is_new_type_name=*/FALSE);
+      }  /* if */
       if (is_type_specifier() ||
           (C_dialect == C_dialect_cplusplus &&
            *storage_class != (a_storage_class)sc_typedef &&
