@@ -1,5 +1,9 @@
 Version 2.25
 
+8/16/94  Deleting a pointer to const
+
+Deleting a pointer to const is now allowed in non-strict mode.
+
 8/16/94  const as a tie-breaker in overload resolution, a tweak
 
 The change for const as a tie-breaker in overload resolution was a little
