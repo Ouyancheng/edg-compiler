@@ -236,10 +236,10 @@ That is what the remap function does.
   /* Walk the list of entries representing macros. */
   walk_list(il_header.macros, a_macro_ptr, iek_macro);
 #endif /* RECORD_MACROS_IN_IL */
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
   walk_string_ptr(il_header.instantiation_file_list_name, iek_other_text, 0);
   walk_string_ptr(il_header.instantiation_dir_name, iek_other_text, 0);
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
   /* Restore the state of global variables. */
   restore_il_walk_state(saved_state);
   db_exit();
@@ -468,6 +468,96 @@ definition of the class is needed, and not just the declaration.
   }  /* if */
 }  /* set_class_definition_needed */
 
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+
+a_boolean instantiation_needed_flag_is_set(a_source_correspondence *scp)
+/*
+Fetch and return the value of the per-instantiation "needed" flag
+associated with source correspondence entry *scp and with the bit
+number given by global variable needed_flag_bit_number.
+*/
+{
+  a_boolean     flag_value;
+  a_per_instantiation_needed_flags_entry_ptr
+                ptr;
+  unsigned long first_bit_this_segment;
+  unsigned long byte_number;
+  unsigned int  bit_number;
+#define BITS_PER_ENTRY (BYTES_PER_INSTANTIATION_NEEDED_FLAG_ENTRY*CHAR_BIT)
+
+  /* Loop through the list of entries to find the one containing the
+     bit we want to test. */
+  for (ptr = scp->per_instantiation_needed_flags,
+         first_bit_this_segment = 1;
+       ptr != NULL &&
+         (first_bit_this_segment + BITS_PER_ENTRY) <= needed_flag_bit_number;
+       ptr = ptr->next,
+         first_bit_this_segment += BITS_PER_ENTRY) {
+  }  /* for */
+  if (ptr == NULL) {
+    /* Ran off the end of the list.  All bits out here are presumed
+       to be zero. */
+    flag_value = FALSE;
+  } else {
+    bit_number = needed_flag_bit_number - first_bit_this_segment;
+    byte_number = bit_number / CHAR_BIT;
+    bit_number  = bit_number % CHAR_BIT;
+    flag_value = (ptr->bytes[byte_number] >> bit_number) & 1;
+  }  /* if */
+  return flag_value;
+#undef BITS_PER_ENTRY
+}  /* instantiation_needed_flag_is_set */
+
+#if !STANDALONE_UTILITY_PROGRAM
+
+a_boolean set_instantiation_needed_flag(a_source_correspondence *scp)
+/*
+Set to TRUE the per-instantiation "needed" flag associated with source
+correspondence entry *scp and with the bit number given by global variable
+needed_flag_bit_number.  Return the new setting (TRUE), since that is
+convenient for the macro that uses this function.
+*/
+{
+  a_per_instantiation_needed_flags_entry_ptr
+                ptr, prev_ptr;
+  unsigned long first_bit_this_segment;
+  unsigned long byte_number;
+  unsigned int  bit_number;
+#define BITS_PER_ENTRY (BYTES_PER_INSTANTIATION_NEEDED_FLAG_ENTRY*CHAR_BIT)
+
+  /* Loop through the list of entries to find the one containing the
+     bit we want to test. */
+  for (prev_ptr = NULL,
+         ptr = scp->per_instantiation_needed_flags,
+         first_bit_this_segment = 1;
+       ;
+       prev_ptr = ptr,
+         ptr = ptr->next,
+         first_bit_this_segment += BITS_PER_ENTRY) {
+    if (ptr == NULL) {
+      /* Ran off the end of the list, so allocate another entry. */
+      ptr = alloc_per_instantiation_needed_flags_entry(in_file_scope(scp));
+      if (prev_ptr == NULL) {
+        scp->per_instantiation_needed_flags = ptr;
+      } else {
+        prev_ptr->next = ptr;
+      }  /* if */
+    }  /* if */
+    if ((first_bit_this_segment + BITS_PER_ENTRY) > needed_flag_bit_number) {
+      /* This segment contains the bit we want. */
+      break;
+    }  /* if */
+  }  /* for */
+  bit_number = needed_flag_bit_number - first_bit_this_segment;
+  byte_number = bit_number / CHAR_BIT;
+  bit_number  = bit_number % CHAR_BIT;
+  ptr->bytes[byte_number] |= ((unsigned)1 << bit_number);
+  return TRUE;
+#undef BITS_PER_ENTRY
+}  /* set_instantiation_needed_flag */
+
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
 
 /*
 Macro that returns TRUE if a class is local to a function.  This is the same
@@ -524,29 +614,36 @@ as needed.
   scp = source_corresp_for_il_entry(entry_ptr, entry_kind);
   if (scp != NULL) {
     /* The entry does have a "needed" flag. */
-    if (scp->needed) {
+    if (needed_flag_is_set(scp)) {
       /* The flag is set already, so prune the walk at this entry.  */
       prune = TRUE;
     } else {
       /* The flag is not set, so set it and keep walking. */
-      scp->needed = TRUE;
+      set_needed_flag(scp);
 #if DEBUG
       if (db_flag_is_set("needed_flags")) {
-        if (entry_kind == iek_type) {
-          fprintf(f_debug, "Setting needed on type ");
-          db_abbreviated_type((a_type_ptr)entry_ptr);
-          fprintf(f_debug, "\n");
-        } else if (entry_kind == iek_variable) {
-          fprintf(f_debug, "Setting needed on var  ");
-          db_name(&((a_variable_ptr)entry_ptr)->source_corresp);
-          fprintf(f_debug, "\n");
-        } else if (entry_kind == iek_routine) {
-          fprintf(f_debug, "Setting needed on rout ");
-          db_name(&((a_routine_ptr)entry_ptr)->source_corresp);
-          fprintf(f_debug, "\n");
-        } else if (entry_kind == iek_namespace) {
-          fprintf(f_debug, "Setting needed on namespace ");
-          db_name(&((a_routine_ptr)entry_ptr)->source_corresp);
+        if (entry_kind == iek_type ||
+            entry_kind == iek_variable ||
+            entry_kind == iek_routine ||
+            entry_kind == iek_namespace) {
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+          fprintf(f_debug, "Setting needed (%d) on ", needed_flag_bit_number);
+#else /* !MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+          fprintf(f_debug, "Setting needed on ");
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+          if (entry_kind == iek_type) {
+            fprintf(f_debug, "type ");
+            db_abbreviated_type((a_type_ptr)entry_ptr);
+          } else if (entry_kind == iek_variable) {
+            fprintf(f_debug, "var  ");
+            db_name(&((a_variable_ptr)entry_ptr)->source_corresp);
+          } else if (entry_kind == iek_routine) {
+            fprintf(f_debug, "rout ");
+            db_name(&((a_routine_ptr)entry_ptr)->source_corresp);
+          } else if (entry_kind == iek_namespace) {
+            fprintf(f_debug, "namespace ");
+            db_name(&((a_routine_ptr)entry_ptr)->source_corresp);
+          }  /* if */
           fprintf(f_debug, "\n");
         }  /* if */
       }  /* if */
@@ -597,7 +694,11 @@ references.
   walk_termination_test_func = prune_needed_flag_il_walk;
   walk_remap_func = NULL;
   /* walking_file_scope need not be set. */
-  if (entry_kind == (an_il_entry_kind)iek_routine) {
+  if (entry_kind == (an_il_entry_kind)iek_routine
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+      && needed_flag_bit_number == 0
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+                                                 ) {
     a_routine_ptr rout = (a_routine_ptr)entry_ptr;
 
     check_assertion_str(!rout->is_trivial_default_constructor,
@@ -624,6 +725,42 @@ references.
     mark_to_keep_in_il(entry_ptr, entry_kind);
   }  /* if */
 }  /* mark_as_needed */
+
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+
+void set_per_instantiation_needed_flag(char             *entry_ptr,
+                                       an_il_entry_kind entry_kind,
+                                       unsigned long    bit_number)
+/*
+Set the per-instantiation "needed" bit numbered bit_number to indicate
+everything referenced from the indicated externally-defined entity
+(a variable or routine).  If bit_number is 0, the entity is not an
+instantiation with an associated bit; use bit number 1 (used for everything
+in the compilation excluding the instantiations).  The entity is
+expected to be defined already, so that its definition can be swept.
+*/
+{
+  unsigned long save_needed_flag_bit_number = needed_flag_bit_number;
+
+  if (bit_number == 0) bit_number = 1;
+  needed_flag_bit_number = bit_number;
+  mark_as_needed(entry_ptr, entry_kind);
+  if (entry_kind == iek_routine) {
+    /* Sweep the definition of a routine. */
+    a_scope_ptr   scope;
+    a_routine_ptr rout = (a_routine_ptr)entry_ptr;
+
+    check_assertion_str(rout->defined,
+                     "set_per_instantiation_needed_flag: routine not defined");
+    check_assertion_str(mem_region_table[rout->assoc_scope] != NULL,
+                     "set_per_instantiation_needed_flag: memory region gone");
+    scope = il_header.region_scope_entry[rout->assoc_scope];
+    mark_as_needed((char *)scope, iek_scope);
+  }  /* if */
+  needed_flag_bit_number = save_needed_flag_bit_number;
+}  /* set_per_instantiation_needed_flag */
+
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
 
 
 /* "keep_in_il" flag section: */
@@ -1318,7 +1455,8 @@ running them through walk_remap_func.
      iek_src_seq_end_of_construct, since such entries will never appear on an
      orphan list.  Ditto for iek_src_seq_sublist. */
   /* Nothing needed for iek_comment, iek_scope_orphaned_list_header,
-     iek_hidden_name, iek_pragma, iek_template, and iek_macro. */
+     iek_hidden_name, iek_pragma, iek_template, iek_macro, and
+     iek_per_instantiation_needed_flags_entry. */
 #undef remap_orphan_entry_first
 }  /* remap_first_ptr_of_orphaned_file_scope_entry_array */
 
@@ -1410,7 +1548,8 @@ running them through walk_remap_func.
      iek_src_seq_end_of_construct, since such entries will never appear on an
      orphan list. */
   /* Nothing needed for iek_comment, iek_scope_orphaned_list_header,
-     iek_hidden_name, iek_pragma, iek_template, and iek_macro. */
+     iek_hidden_name, iek_pragma, iek_template, iek_macro, and
+     iek_per_instantiation_needed_flags_entry. */
 #undef remap_orphan_entry_last
 }  /* remap_last_ptr_of_orphaned_file_scope_entry_array */
 

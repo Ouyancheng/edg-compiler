@@ -3373,6 +3373,15 @@ been completed.
          phase, so we have to do it again.) */
       vp->source_corresp.needed = FALSE;
       mark_as_needed((char *)vp, (an_il_entry_kind)iek_variable);
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+      if (one_instantiation_per_object) {
+        /* Determine a separate set of "needed" flags for each instantiation,
+           so each can be put out in a separate object file. */
+        set_per_instantiation_needed_flag((char *)vp,
+                                          (an_il_entry_kind)iek_variable,
+                                          vp->instantiation_needed_bit_number);
+      }  /* if */
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
     }  /* if */
   }  /* for */
   for (rp = scope->routines; rp != NULL; rp = rp->next) {
@@ -3778,6 +3787,16 @@ End a name scope by popping an entry off the scope stack.
          cleared. */
       curr_routine->source_corresp.needed = FALSE;
       mark_as_needed((char *)curr_routine, (an_il_entry_kind)iek_routine);
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+      if (one_instantiation_per_object) {
+        /* Determine a separate set of "needed" flags for each instantiation,
+           so each can be put out in a separate object file. */
+        set_per_instantiation_needed_flag((char *)curr_routine,
+                                          (an_il_entry_kind)iek_routine,
+                                          curr_routine->
+                                              instantiation_needed_bit_number);
+      }  /* if */
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
 #if DEBUG
     } else if (debug_level >= 3) {
       fprintf(f_debug, "Not calling mark_as_needed for \"");

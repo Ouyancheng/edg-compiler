@@ -216,7 +216,7 @@ simple walk_list.
     ptr_type local_ptr = (ptr); \
     for (; local_ptr != NULL; local_ptr = local_ptr->next) { \
       if ((scope_kind) == (a_scope_kind)sck_class_struct_union || \
-          local_ptr->source_corresp.needed || \
+          needed_flag_is_set(&local_ptr->source_corresp) || \
           il_entry_prefix_of(local_ptr).keep_in_il) { \
         clear_keep_in_il_to_allow_subtree_walk((char *)local_ptr, entry_kind);\
         walk_ptr(local_ptr, ptr_type, (entry_kind)); \
