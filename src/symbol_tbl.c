@@ -5090,6 +5090,7 @@ declared).
   /* Allocate the symbol. */
   *sym = alloc_symbol((a_symbol_kind)sk_namespace, loc.symbol_header,
                       &null_source_position);
+  (*sym)->decl_scope = FILE_SCOPE_NUMBER;
   /* Create the namespace entry and bind it to the symbol. */
   nsp = alloc_namespace(/*is_alias=*/FALSE);
   set_source_corresp(&nsp->source_corresp, *sym);
