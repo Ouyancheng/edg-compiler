@@ -3131,6 +3131,7 @@ precedence confusion.
     /* A temporary initialization with the address of the temporary used as
        the node value.  Just put out the underlying value. */
     gen_temp_init(node, /*need_parens=*/TRUE);
+    processed = TRUE;
   }  /* if */
   if (!processed) {
     /* Not a special case: write "*expression". */
