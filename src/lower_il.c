@@ -10185,6 +10185,36 @@ leaving the enk_runtime_sizeof itself in the IL.
                (a_boolean)expr->variant.runtime_sizeof.is_lvalue);
   }  /* if */
 }  /* lower_runtime_sizeof */
+          
+
+static a_boolean is_optimizable_temp_init_indirection(
+                                              an_expr_node_ptr operand_node,
+                                              an_expr_node_ptr *temp_init_node)
+/*
+operand_node is the operand of an eok_indirection node.  If it is a cast
+over an enk_temp_init whose result is the address of the temporary, and
+the cast only adjusts cv-qualifiers that will be dropped by the indirection
+because the result of that is an rvalue, set *temp_init_node to point
+to the enk_temp_init node and return TRUE.  Otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  *temp_init_node = NULL;
+  if (is_operation_node(operand_node) &&
+      operand_node->variant.operation.kind == (an_expr_operator_kind)eok_cast){
+    an_expr_node_ptr cast_operand = operand_node->variant.operation.operands;
+    if (cast_operand->kind == (an_expr_node_kind)enk_temp_init &&
+        cast_operand->variant.init.result_is_addr) {
+      if (f_skip_typerefs(type_pointed_to(cast_operand->type)) ==
+          f_skip_typerefs(type_pointed_to(operand_node->type))) {
+        result = TRUE;
+        *temp_init_node = cast_operand;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_optimizable_temp_init_indirection */
 
 
 void set_lvalue_and_boolean_controlling_expr_masks(
@@ -10244,6 +10274,7 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
 {
   an_expr_operator_kind op;
   an_expr_node_ptr      operand_node, operand2, operand3, throw_operand;
+  an_expr_node_ptr      temp_init_node;
   a_variable_ptr        var, temp_var;
   unsigned int          is_lvalue_mask, is_bool_controlling_expr_mask;
 
@@ -10347,6 +10378,19 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
                                                  (an_integer_kind)ik_int);
         change_to_cast(expr, operand_node, expr->type);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      } else if (op == (an_expr_operator_kind)eok_indirect &&
+                 is_optimizable_temp_init_indirection(operand_node,
+                                                      &temp_init_node)) {
+        /* Optimize an indirection over a cast over an enk_temp_init,
+           where the cast only adjusts cv-qualifiers that will be dropped
+           anyway because the result is an rvalue. */
+        a_type_ptr type = expr->type;
+        check_assertion(temp_init_node->kind ==
+                                             (an_expr_node_kind)enk_temp_init);
+        temp_init_node->variant.init.result_is_addr = FALSE;
+        overwrite_node(expr, temp_init_node);
+        expr->type = type;
+        lower_temp_init(expr);
       } else {
         /* Determine which operands if any are lvalues, and whether or not
            the operand has boolean-controlling-expression operands. */

@@ -1,5 +1,12 @@
 Version 3.1
 
+11/26/02  Small optimization in IL lowering of temp-initialization
+
+The case of an indirection over a cast over an enk_temp_init, where
+the cast only adjusts cv-qualifiers that will be dropped anyway
+because the result is an rvalue in C, is now optimized in IL
+lowering to avoid generation of an extra copy.
+
 11/26/02  Support for instantiate-as-used template model
 
 We've added some new configuration macros that make it easier to
