@@ -247,7 +247,8 @@ Dump a static data member (a variable entry), for debug purposes.
   db_access_control(vp->source_corresp.access);
   fputs(" static data member \"", f_debug);
   db_name(&vp->source_corresp);
-  fputs("\", type = ", f_debug);
+  fprintf(f_debug, "\", sc_%s, type = ",
+                   db_storage_class_names[(int)vp->storage_class]);
   db_abbreviated_type(vp->type);
   fputc('\n', f_debug);
 }  /* db_static_data_member */
@@ -269,7 +270,9 @@ Dump a member function (a routine entry), for debug purposes.
   }  /* if */
   fputs(" member function \"", f_debug);
   db_name(&rp->source_corresp);
-  fputs("\",\n    type = ", f_debug);
+  fprintf(f_debug, "\"%s, sc_%s,\n    type = ",
+                   (rp->is_inline) ? ", inline" : "",
+                   db_storage_class_names[(int)rp->storage_class]);
   db_abbreviated_type(rp->type);
   fputc('\n', f_debug);
 }  /* db_member_function */
