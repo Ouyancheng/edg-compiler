@@ -850,16 +850,6 @@ Process the default argument expressions for the indicated class.
         is_friend = (is_function_symbol(sym) &&
                      (!sym->is_class_member ||
                       sym->parent.class_type != rfp->class_type));
-        if (curr_scope_class_type != rfp->class_type) {
-          if (curr_scope_class_type != NULL) {
-            /* Pop the reactivated class scope from the scope stack. */
-            pop_class_reactivation_scope();
-          }  /* if  */
-          /* Reactivate the class. */
-          push_class_and_template_reactivation_scope(rfp->class_type,
-                                                     is_template_based);
-          curr_scope_class_type = rfp->class_type;
-        }  /* if */
         if (is_nonreal_template_instantiation) {
           /* Prototype instantiation. */
           if (sym->kind == (a_symbol_kind)sk_member_function && !is_friend) {
@@ -912,22 +902,39 @@ Process the default argument expressions for the indicated class.
           }  /* if */
           continue;
         }  /* if */
+        if (curr_scope_class_type != rfp->class_type) {
+          if (curr_scope_class_type != NULL) {
+            /* Pop the reactivated class scope from the scope stack. */
+            pop_class_reactivation_scope();
+          }  /* if  */
+          /* Reactivate the class. */
+          push_class_and_template_reactivation_scope(rfp->class_type,
+                                                     is_template_based);
+          curr_scope_class_type = rfp->class_type;
+        }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         {
         a_boolean  do_declared_type_fixup = is_function_symbol(sym);
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
         a_boolean  ss_list_insert_point_adjusted = FALSE;
 
-        if (rfp->func_info.is_movable_member_or_friend_def) {
-          /* The source-sequence representation for the associated function
-             definition is being moved outside the class definition, and the
-             default arguments with it.  If the default argument expression
-             triggers an instantiation, it should be inserted after the
-             class definition, not before.  But save the insert point so
-             it will still be available for default arguments on member or
-             friend function declarations that aren't moved. */
-          push_ss_insert_stack(scope_stack[DEPTH_OF_FILE_SCOPE].
-                                             last_source_sequence_entry);
+        if (depth_innermost_function_scope == NO_SCOPE_DEPTH) {
+          /* Set the source-sequence insert point so that instantiations
+             triggered by scanning default argument expressions will
+             appear inside the class definition, immediately before the
+             declaration in which the default argument appears. (This is
+             a compromise -- they can't always appear before the class
+             definition, since they may be dependent on class members in one
+             way or another; yet putting them inside the class causes the
+             C++-generating back end to put out an explicit specialization
+             in a class body, which is a violation of the standard.) */
+          a_source_sequence_entry_ptr  ssep;
+          an_il_entry_kind             kind;
+
+          ssep = last_matching_source_sequence_entry(
+                                   il_entry_for_symbol(sym, &kind));
+          check_assertion(ssep != NULL);
+          push_ss_insert_stack(ssep);
           ss_list_insert_point_adjusted = TRUE;
         }  /* if */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
@@ -1205,109 +1212,84 @@ the fixups have not yet been done.
 {
   a_class_fixup_ptr  cfp;
   a_class_fixup_ptr  next_cfp;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-  a_boolean  ss_list_insert_point_adjusted = FALSE;
 
   if (def_arg_class_fixup_list != NULL ||
       inline_function_class_fixup_list != NULL) {
-    /* Member and friend functions that are marked as "movable" are functions
-       defined in-line in the class definition but represented by
-       source sequence entries that are moved to appear after the end of the
-       class body.  Moreover, in a case like this:
-         class A {
-           int friend f() { ... };
-         } a = f();
-       the definition of f must be moved to a position that precedes the
-       declaration of a even while following the declaration of A.  The
-       purpose of the following code is, if to determine whether the
-       instantiation insert point needs be adjusted for this sort of case --
-       and to do so if appropriate. */
-    a_boolean          any_real_classes = FALSE;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+    a_boolean                    ss_list_insert_point_adjusted = FALSE;
+    a_source_sequence_entry_ptr  tail;
 
-    /* First see whether there are any "real" classes involved. */
-    for (cfp = def_arg_class_fixup_list; cfp != NULL; cfp = cfp->next) {
-      if (!symbol_supplement_for_class(cfp->class_type)->is_nonreal_class) {
-        any_real_classes = TRUE;
-        break;
-      }  /* if */
-    }  /* for */
-    if (!any_real_classes) {
-      cfp = inline_function_class_fixup_list;
-      for (; cfp != NULL; cfp = cfp->next) {
-        if (!symbol_supplement_for_class(
-                   cfp->class_type)->is_nonreal_class) {
-          any_real_classes = TRUE;
-          break;
-        }  /* if */
-      }  /* for */
-    }  /* if */
-    if (any_real_classes) {
+    if (depth_innermost_function_scope == NO_SCOPE_DEPTH) {
+      /* Temporarily remove source sequence entries, if any that have been
+         entered after the end-of-construct entry for class that was just
+         defined.  Here's an example why:  Sometimes the definition of a
+         member or friend functions is represented by a source sequence
+         entry that is added after the end of the class body.  Moreover, in
+         a case like this:
+           class A {
+             int friend f() { ... };
+           } x = f();
+         the definition of f must be moved to a position that precedes the
+         declaration of x even while following the declaration of A. */
       /* Check the end of the source sequence list. */
-      a_source_sequence_entry_ptr  tail;
       tail = scope_stack[DEPTH_OF_FILE_SCOPE].last_source_sequence_entry;
-      if (tail != NULL &&
-          ss_entry_kind(tail) !=
+      if (tail == NULL ||
+          ss_entry_kind(tail) ==
                   (an_il_entry_kind)iek_src_seq_end_of_construct) {
+        /* Nothing more needs to be done. */
+      } else {
         /* The last entry on the source sequence list is not an
-           end-of-construct entry, which should correspond to the end of the
-           class.  Back up till it's found. */
+           end-of-construct entry, which should correspond to the end of
+           the class.  Back up till it's found. */
         for (tail = tail->prev; tail != NULL; tail = tail->prev) {
           if (ss_entry_kind(tail) ==
                   (an_il_entry_kind)iek_src_seq_end_of_construct) {
-            tail = tail->next;
+#if DEBUG
+            if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
+              fputs("at start of deferred class fixup:\n", f_debug);
+            }  /* if */
+#endif /* DEBUG */
+            push_ss_insert_stack(tail->next);
+            ss_list_insert_point_adjusted = TRUE;
             break;
           }  /* if */
         }  /* for */
-        if (tail == NULL) {
-          /* Must be an error. */
-        } else {
-          /* Set the instantiation insert point to just after the
-             end-of-construct entry. */
-#if DEBUG
-          if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
-            fputs("start of deferred class fixup:\n", f_debug);
-          }  /* if */
-#endif /* DEBUG */
-          push_ss_insert_stack(tail);
-          ss_list_insert_point_adjusted = TRUE;
-        }  /* if */
       }  /* if */
     }  /* if */
-  }  /* if */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  /* Clear the pointers to the start of the fixup lists so that classes
-     created by the fixup process can be fixed up by a recursive call to
-     this routine.  This could happen if a function body contains a
-     nested class, for example. */
-  cfp = def_arg_class_fixup_list;
-  def_arg_class_fixup_list = NULL;
-  def_arg_class_fixup_list_tail = NULL;
-  defer_inline_function_fixup_and_instantiations++;
-  for (; cfp != NULL; cfp = next_cfp) {
-    default_argument_fixup_for_class(cfp->class_type,
-                                     cfp->is_template_instantiation);
-    next_cfp = cfp->next;
-  }  /* for */
-  defer_inline_function_fixup_and_instantiations--;
-  if (defer_inline_function_fixup_and_instantiations == 0) {
-    cfp = inline_function_class_fixup_list;
-    inline_function_class_fixup_list = NULL;
-    inline_function_class_fixup_list_tail = NULL;
-    for (; cfp != NULL; cfp = next_cfp) {
-      inline_function_fixup_for_class(cfp->class_type,
-                                      cfp->is_template_instantiation);
-      next_cfp = cfp->next_in_inline_function_list;
-      free_class_fixup(cfp);
+    /* Clear the pointers to the start of the fixup lists so that classes
+       created by the fixup process can be fixed up by a recursive call to
+       this routine.  This could happen if a function body contains a
+       nested class, for example. */
+    cfp = def_arg_class_fixup_list;
+    def_arg_class_fixup_list = NULL;
+    def_arg_class_fixup_list_tail = NULL;
+    defer_inline_function_fixup_and_instantiations++;
+    for (; cfp != NULL; cfp = cfp->next) {
+      default_argument_fixup_for_class(cfp->class_type,
+                                       cfp->is_template_instantiation);
     }  /* for */
-  }  /* if */
+    defer_inline_function_fixup_and_instantiations--;
+    if (defer_inline_function_fixup_and_instantiations == 0) {
+      cfp = inline_function_class_fixup_list;
+      inline_function_class_fixup_list = NULL;
+      inline_function_class_fixup_list_tail = NULL;
+      for (; cfp != NULL; cfp = next_cfp) {
+        inline_function_fixup_for_class(cfp->class_type,
+                                        cfp->is_template_instantiation);
+        next_cfp = cfp->next_in_inline_function_list;
+        free_class_fixup(cfp);
+      }  /* for */
+    }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-  /* Restore the insert-point state. */
-  if (ss_list_insert_point_adjusted) pop_ss_insert_stack();
+    /* Restore the insert-point state. */
+    if (ss_list_insert_point_adjusted) pop_ss_insert_stack();
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  }  /* if */
 }  /* process_deferred_class_fixups */
 
 
