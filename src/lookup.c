@@ -475,6 +475,10 @@ as the class type, and use as a base class.
     sym->decl_scope = FILE_SCOPE_NUMBER;
     /* Create the type for the class. */
     type = alloc_type((a_type_kind)tk_class);
+    /* Set the size and alignment so that the type will be considered to
+       be complete. */
+    type->size = 1;
+    type->alignment = 1;
     set_source_corresp(&(type->source_corresp), sym);
     sym->variant.class_struct_union.type = type;
     if (templ_param_type->source_corresp.is_class_member) {
