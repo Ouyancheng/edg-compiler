@@ -768,6 +768,26 @@ If tp is a routine type, dump the function parameters, for debug purposes.
 }  /* db_function_param_list */
 
 
+void db_qualifiers(a_type_qualifier_set  qualifiers)
+/*
+Print the given qualifiers in human readable form.
+*/
+{
+  if (qualifiers & TQ_CONST) fputs("const ", f_debug);
+  if (qualifiers & TQ_VOLATILE) fputs("volatile ", f_debug);
+#if RESTRICT_ALLOWED
+  if (qualifiers & TQ_RESTRICT) fputs("restrict ", f_debug);
+#endif /* RESTRICT_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (qualifiers & TQ_UNALIGNED) fputs("unaligned ", f_debug);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if NEAR_AND_FAR_ALLOWED
+  if (qualifiers & TQ_NEAR) fputs("near ", f_debug);
+  if (qualifiers & TQ_FAR) fputs("far ", f_debug);
+#endif /* NEAR_AND_FAR_ALLOWED */
+}  /* db_qualifiers */
+
+
 void db_type(a_type *tp)
 /*
 Dump the contents of the indicated type entry, for debug purposes.
@@ -971,19 +991,19 @@ Dump the contents of the indicated type entry, for debug purposes.
         if (rtsp->assoc_routine != NULL) {
           fputs(" ", f_debug);
           db_name(&rtsp->assoc_routine->source_corresp);
+        } else if (rtsp->this_class != NULL) {
+          /* If there is no associated routine this is presumably just a type,
+             but we still want an indication of the parent type in case we are
+             dealing with a member function type. */
+          fputs(" ", f_debug);
+          db_type_name(rtsp->this_class);
+          fputs("::", f_debug);
         }  /* if */
         if (!rtsp->prototyped) {
           fputs(" unprototyped", f_debug);
         }  /* if */
         fputs("(", f_debug);
         ptp = rtsp->param_type_list;
-        if (rtsp->this_class != NULL) {
-          fputs("this: ", f_debug);
-          db_abbreviated_type(implicit_this_param_type_of(tp));
-          if (ptp != NULL || rtsp->has_ellipsis) {
-            fputs("; ", f_debug);
-          }  /* if */
-        }  /* if */
         comma_required = FALSE;
         while (ptp != NULL) {
           if (comma_required) fputs(", ", f_debug);
@@ -1040,27 +1060,14 @@ Dump the contents of the indicated type entry, for debug purposes.
           if (comma_required) fputs(", ", f_debug);
           fputs("...", f_debug);
         }  /* if */
-        fputs(") returning ", f_debug);
+        fputs(") ", f_debug);
+        db_qualifiers(rtsp->qualifiers);
+        fputs("returning ", f_debug);
         db_abbreviated_type(tp->variant.routine.return_type);
         break;
       case tk_typeref:
         if (typeref_is_qualified(tp)) {
-          if (typeref_is_const_qualified(tp)) fputs("const ", f_debug);
-          if (typeref_is_volatile_qualified(tp)) fputs("volatile ", f_debug);
-#if RESTRICT_ALLOWED
-          if (typeref_is_restrict_qualified(tp)) fputs("restrict ", f_debug);
-#endif /* RESTRICT_ALLOWED */
-#if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
-          { a_type_qualifier_set qualifiers = tp->variant.typeref.qualifiers;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-            if (qualifiers & TQ_UNALIGNED) fputs("unaligned ", f_debug);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if NEAR_AND_FAR_ALLOWED
-            if (qualifiers & TQ_NEAR) fputs("near ", f_debug);
-            if (qualifiers & TQ_FAR) fputs("far ", f_debug);
-#endif /* NEAR_AND_FAR_ALLOWED */
-          }
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
+          db_qualifiers(tp->variant.typeref.qualifiers);
         } else {
           fputs("typeref ", f_debug);
           if (has_name(tp)) { 
