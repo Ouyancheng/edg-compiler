@@ -1,5 +1,20 @@
 Version 2.22
 
+2/11/94  Name mangling change to avoid Tn with n > 9
+
+Name mangling in IL lowering has been changed so that it will never
+generate a "Tn" with n > 9.  That's to avoid ambiguous names when
+the "Tn" is followed by something that begins with a digit.  Without
+this change, for example,
+
+  struct A {};
+  void f(int, int, int, int, int, int, int, int, int, int, int, long, long, A)
+  {}
+
+would produce "T121A" as part of the mangled name, which could be
+read as "T1 21A" or "T12 1A".  This change also affects the second
+number in the "Nmn" construct.
+
 2/11/94  Pointer-to-member types preserved in result of lowered cast
 
 The code produced by IL lowering for a pointer-to-member related class

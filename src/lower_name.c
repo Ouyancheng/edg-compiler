@@ -161,9 +161,10 @@ length of the encoding.  See ARM 7.2.1c for name encoding.
     /* Output the parameter types. */
     for (; param != NULL; param = param->next) {
       /* See if the parameter type is the same as any existing parameter
-         type. */
+         type.  Only check the first 9 parameters to avoid multi-digit
+         numbers which would cause ambiguous mangling. */
       for (existing_param = rtsp->param_type_list, existing_param_num = 1;
-           existing_param != param;
+           existing_param != param && existing_param_num < 10;
            existing_param = existing_param->next, existing_param_num++) {
         if (types_are_compatible(existing_param->type, param->type)) {
           /* Found a type that is being reused.  See if there are more
