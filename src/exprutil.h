@@ -197,6 +197,42 @@ typedef struct an_arg_operand {
 } an_arg_operand;
 
 /*
+Description of a user-defined conversion, i.e., a conversion using a
+constructor or conversion function.  Can also be used (with all fields
+at default values) as a description of "no user-defined conversion";
+see is_null_user_conv_descr below.
+*/
+typedef struct a_user_conv_descr *a_user_conv_descr_ptr;
+typedef struct a_user_conv_descr {
+  a_routine_ptr	routine;
+			/* The conversion routine entry.  NULL if
+			   class_bitwise_copy is TRUE. */
+  a_byte_boolean
+		class_bitwise_copy;
+			/* If TRUE, the conversion is a bitwise copy (either
+			   a copy constructor or an assignment operator). */
+  a_byte_boolean
+		std_conversion_needed;
+			/* If TRUE, a standard conversion is required after
+			   the user-defined conversion. */
+  a_byte_boolean
+		result_is_an_lvalue;
+			/* If TRUE, the function returns a reference and the
+			   reference should be left as an lvalue rather than
+			   converted to an rvalue.  If FALSE, the result is
+			   always an lvalue (either originally or after
+			   an lvalue-->rvalue conversion). */
+} a_user_conv_descr;
+
+/*
+Macro that tests for a user conversion description that is null, i.e.,
+one that describes no conversion to be done.
+*/
+#define is_null_user_conv_descr(user_conversion)                      \
+  ((user_conversion)->routine == NULL &&                              \
+   !(user_conversion)->class_bitwise_copy)
+
+/*
 Argument match levels for overloaded function call resolution; See ARM 13.2.
 */
 typedef enum /*an_arg_match_level*/ {
@@ -250,15 +286,13 @@ typedef struct an_arg_match_summary {
 			   for conversion subsequences involving addition
 			   of type qualifiers at the end of a conversion.
 			   NULL if not applicable (e.g., for an ellipsis). */
-  a_routine_ptr	conversion_routine;
-			/* If match_level is aml_user_conversion and the
-			   conversion is done by a conversion function, this is
-			   the conversion function.  Otherwise, NULL. */
-  a_byte_boolean
-		std_conversion_after_user_conversion;
-			/* If TRUE, a standard conversion was required after
-			   the user-defined conversion identified by
-			   conversion_routine. */
+  a_user_conv_descr
+		user_conversion;
+			/* If match_level is aml_user_conversion, this
+			   describes the user-defined conversion.
+			   Note that in one case involving cfront
+			   compatibility, no conversion is indicated even
+			   through match_level is aml_user_conversion. */
   an_error_code	warning_suggested;
 			/* If not ec_no_error, the code for a warning to be
 			   issued if this match is chosen. */
@@ -485,7 +519,6 @@ extern a_symbol_ptr select_and_prepare_to_call_overloaded_function(
 extern void try_to_convert_class_operand_to_builtin_type(
                                  an_operand              *operand,
                                  a_builtin_type_kind_set builtin_types_allowed,
-                                 a_boolean               result_may_be_lvalue,
                                  an_expression_kind      expression_kind,
                                  a_boolean               *processed);
 
@@ -741,15 +774,12 @@ extern a_boolean user_defined_conversion_possible(
                                   an_operand         *source_operand,
                                   a_type_ptr         dest_type,
                                   a_boolean          is_initialization,
-                                  a_routine_ptr      *conversion_routine,
-                                  a_boolean          *class_bitwise_copy,
+                                  a_user_conv_descr  *user_conversion,
                                   a_boolean          *failed);
 
 extern void user_convert_operand(an_operand         *operand,
                                  a_type_ptr         dest_type,
-                                 a_boolean          result_may_be_lvalue,
-                                 a_routine_ptr      conversion_routine,
-                                 a_boolean          class_bitwise_copy,
+                                 a_user_conv_descr  *user_conversion,
                                  an_expression_kind expression_kind);
 
 extern void prep_elision_initializer_operand(
@@ -762,12 +792,14 @@ extern void prep_elision_initializer_operand(
 extern void prep_initializer_operand(
                                   an_operand         *source_operand,
                                   a_type_ptr         dest_type,
+                                  a_user_conv_descr  *user_conversion,
                                   a_boolean          initializing_return_value,
                                   an_expression_kind expression_kind,
                                   an_error_code      incompatible_err);
 
 extern void prep_argument_operand(an_operand         *source_operand,
                                   a_param_type_ptr   formal_param,
+                                  a_user_conv_descr  *user_conversion,
                                   an_error_code      err_code,
                                   an_expression_kind expression_kind);
 

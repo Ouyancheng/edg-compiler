@@ -1078,6 +1078,7 @@ and return a pointer to it in *arg_operand_list.
              casting it if necessary.  Also convert from lvalue to rvalue
              when appropriate. */
           prep_argument_operand(&argument_operand, curr_param_type,
+                                (a_user_conv_descr_ptr)NULL,
                                 ec_incompatible_param, expression_kind);
         }  /* if */
         /* Link the new argument into the list of arguments. */
@@ -1228,7 +1229,7 @@ error err_code.
   scan_expr(&result, PREC_LOWEST, expression_kind,
             EOPT_DISALLOW_COMMA_OPERATOR);
   /* Convert to the required type. */
-  prep_initializer_operand(&result, dest_type,
+  prep_initializer_operand(&result, dest_type, (a_user_conv_descr_ptr)NULL,
                            /*initializing_return_value=*/FALSE,
                            expression_kind, err_code);
    /* Check for the required closing parenthesis. */
@@ -4386,11 +4387,11 @@ routine is called for both C-style casts and C++ functional-notation type
 conversions.
 */
 {
-  a_type_ptr       source_type;
-  an_error_code    warning_suggested;
-  a_boolean        failed = FALSE, class_bitwise_copy;
-  a_routine_ptr    conversion_routine;
-  an_expr_node_ptr func_ptr_node, object_node;
+  a_type_ptr        source_type;
+  an_error_code     warning_suggested;
+  a_boolean         failed = FALSE;
+  a_user_conv_descr user_conversion;
+  an_expr_node_ptr  func_ptr_node, object_node;
 
   if (err) {
     /* There was a previous error (e.g., the type to cast to is invalid
@@ -4420,13 +4421,11 @@ conversions.
         !is_void_type(type_cast_to) &&
         user_defined_conversion_possible(operand, type_cast_to,
                                          /*is_initialization=*/TRUE,
-                                         &conversion_routine,
-                                         &class_bitwise_copy,
+                                         &user_conversion,
                                          &failed)) {
       /* A user-defined conversion can be done. */
-      user_convert_operand(operand, type_cast_to,
-                           /*result_may_be_lvalue=*/cast_to_reference,
-                           conversion_routine, class_bitwise_copy,
+      if (!cast_to_reference) user_conversion.result_is_an_lvalue = FALSE;
+      user_convert_operand(operand, type_cast_to, &user_conversion,
                            expression_kind);
     } else if (failed) {
       /* A user-defined conversion was our only hope, and it failed.
@@ -5743,7 +5742,6 @@ expression.
                                                             BTK_FLOATING |
                                                             BTK_POINTER |
                                                             BTK_PTR_TO_MEMBER),
-                                                /*result_may_be_lvalue=*/FALSE,
                                                  expression_kind,
                                                  &processed);
   }  /* if */
@@ -7497,7 +7495,6 @@ a pointer to the expression tree.
     try_to_convert_class_operand_to_builtin_type(&result,
                                                  (a_builtin_type_kind_set)
                                                                   BTK_INTEGRAL,
-                                                /*result_may_be_lvalue=*/FALSE,
                                                  (an_expression_kind)ek_normal,
                                                  &processed);
   }  /* if */
@@ -7585,7 +7582,8 @@ a prior error) just do the scan.
             EOPT_NO_OPTIONS | EOPT_DISALLOW_COMMA_OPERATOR);
   if (ptp != NULL) {
     /* Convert to the required type. */
-    prep_argument_operand(&result, ptp, ec_bad_default_arg_type,
+    prep_argument_operand(&result, ptp, (a_user_conv_descr_ptr)NULL,
+                          ec_bad_default_arg_type,
                           (an_expression_kind)ek_normal);
   } else {
     do_operand_transformations(&result, TOPT_NO_OPTIONS,
@@ -7887,7 +7885,7 @@ Return the constant in *constant.
   if (okay) {
     /* Convert to the required type (i.e., do any required trivial
        conversions). */
-    prep_initializer_operand(&result, param_type,
+    prep_initializer_operand(&result, param_type, (a_user_conv_descr_ptr)NULL,
                              /*initializing_return_value=*/FALSE,
                              (an_expression_kind)ek_init_constant,
                              ec_bad_nontype_template_arg);
@@ -7939,7 +7937,7 @@ constant class members (an extension).
   scan_expr(&result, PREC_LOWEST, (an_expression_kind)ek_init_constant,
             EOPT_DISALLOW_COMMA_OPERATOR);
   /* Convert to the required type. */
-  prep_initializer_operand(&result, required_type,
+  prep_initializer_operand(&result, required_type, (a_user_conv_descr_ptr)NULL,
                            /*initializing_return_value=*/FALSE,
                            (an_expression_kind)ek_init_constant,
                            ec_bad_initializer_type);
@@ -7981,7 +7979,7 @@ copy constructor elision is possible; see scan_class_initializer_expression.
   scan_expr(&result, PREC_LOWEST, (an_expression_kind)ek_normal,
             EOPT_DISALLOW_COMMA_OPERATOR);
   /* Convert to the required type. */
-  prep_initializer_operand(&result, required_type,
+  prep_initializer_operand(&result, required_type, (a_user_conv_descr_ptr)NULL,
                            /*initializing_return_value=*/FALSE,
                            (an_expression_kind)ek_normal,
                            ec_bad_initializer_type);
@@ -8040,7 +8038,8 @@ err_pos as the error position.
   make_expression_operand(expr, expr->type, &operand);
   operand.position = *err_pos;
   /* Do the conversion. */
-  prep_argument_operand(&operand, param, ec_incompatible_param,
+  prep_argument_operand(&operand, param, (a_user_conv_descr_ptr)NULL,
+                        ec_incompatible_param,
                         (an_expression_kind)ek_normal);
   /* Make an expression again. */
   expr = make_node_from_operand(&operand);
