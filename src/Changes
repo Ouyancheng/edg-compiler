@@ -1,5 +1,18 @@
 Version 2.28
 
+2/28/95  Default size of pointers to data members
+
+The default size of pointers to data members has been changed to be the
+same size as pointers, which matches cfront's choice of "int *" (but
+our implementation is an unsigned integral type).  We were surprised
+and embarrassed to discover that we had the wrong size in there; we
+thought we *were* compatible with cfront.  If you want to retain
+binary compatibility with previous releases, you can change
+TARG_SIZEOF_PTR_TO_DATA_MEMBER and TARG_ALIGNOF_PTR_TO_DATA_MEMBER
+back to the size/alignment for short.  Note that the various other
+offset fields (e.g., the delta field in pointers to member functions)
+remain as they were, i.e., short.
+
 2/27/95  Cfront mode: static member function declared with cv-qualifier
 
 Cfront allows function qualifiers on a static member function declarations
