@@ -1411,8 +1411,7 @@ necessary.
     } else {
       /* We cannot end the layout with a zero-sized empty base because
          otherwise we might end up conflicting with an adjacent object. */
-      if (class_type->variant.class_struct_union.
-                            any_virtual_functions_including_in_base_classes) {
+      if (class_type->variant.class_struct_union. any_virtual_functions) {
         /* Since this class inherits or declares virtual functions, it will
            contain a virtual function info block pointer whose offset can
            be shared by the last empty base. */
