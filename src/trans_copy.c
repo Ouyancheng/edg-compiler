@@ -2729,6 +2729,33 @@ as needed and prune the walk.
 }  /* mark_secondary_termination_test */
 
 
+static a_boolean mem_region_is_primary_func_scope(
+                                                 a_memory_region_number number)
+/*
+Return TRUE if the indicated memory region is a function scope memory
+region of the primary IL.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (mem_region_table[number] == NULL) {
+    /* This memory has already been freed. */
+  } else {
+    a_scope_ptr sp = il_header.region_scope_entry[number];
+    a_boolean   from_secondary_trans_unit =
+                       (trans_unit_for_scope[sp->number] != translation_units);
+    if (!from_secondary_trans_unit &&
+        sp->kind != (a_scope_kind)sck_file &&
+        /* Ignore functions copied from a secondary translation unit. */
+        !sp->variant.routine.ptr->source_corresp.
+                                            copied_from_secondary_trans_unit) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* mem_region_is_primary_func_scope */
+
+
 void mark_secondary_trans_unit_IL_entities_used_from_primary_as_needed(void)
 /*
 Walk through the primary translation unit IL tree, looking for pointers
@@ -2756,21 +2783,13 @@ primary IL.)
       for (n = FILE_SCOPE_REGION_NUMBER + 1;
            n <= highest_used_region_number;
            ++n) {
-        if (mem_region_table[n] == NULL) {
-          /* This memory has already been freed. */
-        } else {
-          a_scope_ptr sp = il_header.region_scope_entry[n];
-          a_boolean   from_secondary_trans_unit =
-                       (trans_unit_for_scope[sp->number] != translation_units);
-          if (!from_secondary_trans_unit &&
-              sp->kind != (a_scope_kind)sck_file) {
-            walk_routine_scope_il(n,
-                                  (an_entry_process_function_ptr)NULL,
-                                  (a_string_entry_process_function_ptr)NULL,
-                                  (a_remap_function_ptr)NULL,
-                                  mark_secondary_termination_test,
-                                  /*clear_fe_pointers=*/FALSE);
-          }  /* if */
+        if (mem_region_is_primary_func_scope(n)) {
+          walk_routine_scope_il(n,
+                                (an_entry_process_function_ptr)NULL,
+                                (a_string_entry_process_function_ptr)NULL,
+                                (a_remap_function_ptr)NULL,
+                                mark_secondary_termination_test,
+                                /*clear_fe_pointers=*/FALSE);
         }  /* if */
       }  /* for */
       if (!mark_secondary_first_pass) break;
@@ -2906,41 +2925,39 @@ before lowering and needed flag marking of the primary IL.
       for (n = FILE_SCOPE_REGION_NUMBER + 1;
            n <= highest_used_region_number;
            ++n) {
-        if (mem_region_table[n] == NULL) {
-          /* This memory has already been freed. */
-        } else {
-          a_scope_ptr sp = il_header.region_scope_entry[n];
-          a_boolean   from_secondary_trans_unit =
-                       (trans_unit_for_scope[sp->number] != translation_units);
-          if (!from_secondary_trans_unit &&
-              sp->kind != (a_scope_kind)sck_file &&
-              /* Ignore functions copied from a secondary translation unit. */
-              !sp->variant.routine.ptr->source_corresp.
-                                            copied_from_secondary_trans_unit) {
-            walk_routine_scope_il(n,
-                                  (an_entry_process_function_ptr)NULL,
-                                  (a_string_entry_process_function_ptr)NULL,
-                                  remap_func,
-                                  rewrite_secondary_termination_test,
-                                  /*clear_fe_pointers=*/FALSE);
-#if DO_IL_LOWERING
-            if (!first_pass && any_lowering_needed() &&
-                !il_entry_prefix_of(sp).il_lowering_flag) {
-              /* Do any required lowering etc.  Lowering is delayed on
-                 some instantiations in the primary translation unit when
-                 there are exported templates so that we can rewrite any
-                 references to secondary translation unit entities before
-                 the lowering is done. */
-              finish_function_body_processing(sp,
-                                              /*discard_function_body=*/FALSE);
-            }  /* if */
-#endif /* DO_IL_LOWERING */
-          }  /* if */
+        if (mem_region_is_primary_func_scope(n)) {
+          walk_routine_scope_il(n,
+                                (an_entry_process_function_ptr)NULL,
+                                (a_string_entry_process_function_ptr)NULL,
+                                remap_func,
+                                rewrite_secondary_termination_test,
+                                /*clear_fe_pointers=*/FALSE);
         }  /* if */
       }  /* for */
       if (!first_pass) break;
       first_pass = FALSE;
     }  /* for */
+#if DO_IL_LOWERING
+    if (any_lowering_needed()) {
+      /* Do any required lowering etc. that wasn't done earlier on
+         function bodies in the primary IL.  Lowering is delayed on
+         some instantiations in the primary translation unit when
+         there are exported templates so that we can rewrite any
+         references to secondary translation unit entities before
+         the lowering is done. */
+      for (n = FILE_SCOPE_REGION_NUMBER + 1;
+           n <= highest_used_region_number;
+           ++n) {
+        if (mem_region_is_primary_func_scope(n)) {
+          a_scope_ptr sp = il_header.region_scope_entry[n];
+          if (!il_entry_prefix_of(sp).il_lowering_flag) {
+            finish_function_body_processing(sp,
+                                            /*discard_function_body=*/FALSE);
+          }  /* if */
+        }  /* if */
+      }  /* for */
+    }  /* if */
+#endif /* DO_IL_LOWERING */
   }  /* if */
   db_exit();
 }  /* rewrite_secondary_trans_unit_IL_entity_pointers_used_in_primary */
