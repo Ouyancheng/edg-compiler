@@ -4294,13 +4294,12 @@ the latter will be NULL for variables.
                int f(undef) { return 0; }
           */
           a_type_ptr           other_type;
-          a_name_linkage_kind  other_linkage;
 
           other_type = sym->variant.extern_symbol_descr->type;
           other_type = skip_typerefs(other_type);
-          other_linkage =
-                other_type->variant.routine.extra_info->routine_name_linkage;
-          if (linkage != other_linkage) {
+          rout_type = skip_typerefs(rout_type);
+          if (rout_type->variant.routine.extra_info->routine_name_linkage !=
+              other_type->variant.routine.extra_info->routine_name_linkage) {
             /* The two declarations have different routine-name-linkages
                (which means potentially different calling conventions).  Not
                a match. */
