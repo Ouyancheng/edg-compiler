@@ -64,8 +64,9 @@ __declspec attribute (even after the last attribute).  For example:
 
 3/5/04   GNU mode: Attributes ignored on nondefining class declarations
 
-In GNU C and C++ modes, the front end now ignores attributes (with a warning)
-appearing between the class, struct, or union keyword and the type name.
+In GNU C and C++ modes, the front end now ignores (with a warning)
+attributes appearing between the class, struct, or union keyword and the
+type name, if the class header is not followed by a class definition.
 For example:
 
   struct __attribute__((deprecated)) S *p;  // Attribute ignored: No warning
