@@ -2416,8 +2416,6 @@ do_label:
     case stmk_decl:
       /* "Decl" pseudo-statement. */
       (void)printf("stmk_decl\n");
-      disp_ptr("last_declaration", (char *)ptr->variant.last_declaration,
-               iek_source_sequence_entry);
       break;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #endif /* ifdef CFE */

@@ -4175,6 +4175,9 @@ typedef struct a_statement {
 #ifdef FIL
     /* Likewise when kind == stmk_alt_return. */
 #endif /* ifdef FIL */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    /* Likewise when kind == stmk_decl. */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* When kind == stmk_if: */
     struct {
       a_statement_ptr
@@ -4276,14 +4279,6 @@ typedef struct a_statement {
 			/* A linked list of entries describing the handlers
 			   (or catch-clauses) defined in the try block. */
     } try_block;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-    /* When kind == stmk_decl: */
-    a_source_sequence_entry_ptr
-		last_declaration;
-			/* Pointer to the source sequence entry that is the
-			   last of the group of declarative entries associated
-			   with this pseudo-statement. */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #endif /* ifdef CIL */
 #ifdef FIL
     /* When kind == stmk_fentry: */

@@ -6396,7 +6396,7 @@ fields to default values.
       break;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     case stmk_decl:
-      sp->variant.last_declaration = NULL;
+      /* No variant fields. */
       break;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if CHECKING

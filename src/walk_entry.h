@@ -721,8 +721,7 @@ the file scope, do not process it (but record an orphan in the latter case).
             break;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
           case stmk_decl:
-            remap_ptr(ptr->variant.last_declaration,
-                      a_source_sequence_entry_ptr, iek_source_sequence_entry);
+            /* No pointers */
             break;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #endif /* ifdef CFE */
