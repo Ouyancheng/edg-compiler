@@ -1349,7 +1349,8 @@ included in the search.
   a_template_arg_ptr                tap;
 
   db_enter(3, "find_template_class");
-  check_assertion(template_sym->kind == (a_symbol_kind)sk_class_template);
+  check_assertion(class_template_sym->kind ==
+                                            (a_symbol_kind)sk_class_template);
   tssp = class_template_sym->variant.template_info;
   sym = NULL;
   prototype_sym = tssp->variant.class_template.prototype_instantiation;
