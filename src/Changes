@@ -1,5 +1,17 @@
 Version 3.4
 
+11/5/03  GNU C++ compatibility: nonstandard template constructor definition
+
+The g++ compiler accepts a constructor definition in which the template
+argument list of the constructor name is actually treated as a template
+argument list of the enclosing class.  This is now accepted in g++ mode.
+
+  template<int u1> struct A { };
+  template <> struct A<1> {
+    template<class T> A(T i, int j);
+  };
+  template <> A<1>::A<1>(int i, int j) { }
+
 11/5/03  C++-generating back end: injected template names using g++ target
 
 In the example below, the C++-generating back end emits "N::A<int>" as
