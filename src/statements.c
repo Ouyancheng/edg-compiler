@@ -2431,7 +2431,7 @@ the block statement.
     if (struct_stmt_stack[depth_stmt_stack].kind != ssk_microsoft_try ||
         struct_stmt_stack[depth_stmt_stack].
                                   in_cleanup_statement_of_microsoft_try)
-#endif MICROSOFT_EXTENSIONS_ALLOWED
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Pop the name scope. */
     pop_scope();
   }  /* if */
