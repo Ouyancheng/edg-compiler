@@ -4313,11 +4313,9 @@ translation unit) on the list of symbols headed by syms.
                copied over. */
             scp->same_name_as_external_entity_in_secondary_trans_unit = TRUE;
           }  /* if */
-        } else if (corresp_sym != NULL &&
-                   (!routine_sym->defined || corresp_sym->defined)) {
+        } else if (corresp_sym != NULL) {
           /* We've found the correspondence already; only look for conflicts.
-             If routine is defined while corresp_sym does not correspond to
-             a definition, continue to look for a definition. */
+             */
         } else {
           /* Two different declarations in the same namespace or class, and
              with the same name: they should probably match up. */
@@ -4419,14 +4417,8 @@ unit) on the list of symbols headed by syms.
           }  /* if */
         case sk_variable:
           {
-            if (var != sym->variant.variable.ptr) {
-              if (corresp_var_sym == NULL ||
-                  (sym->defined && !corresp_var_sym->defined)) {
-                /* If var is defined (in addition to being declared), prefer
-                   a definition over a declaration.  This will allow us to
-                   consistently diagnose multiple definitions. */
-                corresp_var_sym = sym;
-              }  /* if */
+            if (corresp_var_sym == NULL && var != sym->variant.variable.ptr) {
+              corresp_var_sym = sym;
             }  /* if */
           }
           break;
