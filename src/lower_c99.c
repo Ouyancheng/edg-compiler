@@ -887,6 +887,7 @@ Transform the given expression to remove certain C99-specific constructs.
     case enk_routine_address:
     case enk_variable:
     case enk_variable_address:
+    case enk_field:
       /* Nothing to be done. */
       break;
     default:
