@@ -46,6 +46,33 @@ USE_ATEXIT indicates that the atexit function should be used.
 #endif /* ifndef USE_ATEXIT */
 
 
+/*
+The EH runtime allocates a static block of memory to be used for purposes
+of tracking pending exceptions, making a copy of the thrown object, etc.
+Additional space is allocated if needed.  This parameter specifies the
+size of the initial block of memory allocated and the minimum size of
+any additional blocks that are required.
+*/
+#ifndef EH_MEMORY_ALLOCATION_INCREMENT
+#define EH_MEMORY_ALLOCATION_INCREMENT 8192
+#endif /* ifndef EH_MEMORY_ALLOCATION_INCREMENT */
+
+/*
+The strictest alignment required of any data type.
+*/
+#ifndef MOST_STRICT_ALIGNMENT
+#define MOST_STRICT_ALIGNMENT 8
+#endif /* ifndef MOST_STRICT_ALIGNMENT */
+
+/*
+A type that, when used, will be aligned with the strictest alignment
+requirements.
+*/
+#ifndef TYPE_WITH_MOST_STRICT_ALIGNMENT
+#define TYPE_WITH_MOST_STRICT_ALIGNMENT double
+#endif /* ifndef TYPE_WITH_MOST_STRICT_ALIGNMENT */
+
+
 #endif /* CONFIG_H */
 
 

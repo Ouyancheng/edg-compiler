@@ -93,6 +93,23 @@ typedef size_t a_sizeof_t;
 typedef unsigned int a_sizeof_t;
 #endif /* __cplusplus */
 
+/*
+Error routines.
+*/
+#if CHECKING
+/* Macro to test an assertion and generate an internal error if
+   the condition is not TRUE.  The macro expands to nothing when checking
+   code is not being used. */
+#include <assert.h>
+#define check_assertion(test)						\
+  assert(test)
+#define unexpected_condition()						\
+  assert(FALSE)
+#else /* !CHECKING */
+#define check_assertion(test) /* Nothing */
+#define unexpected_condition()    /* Nothing */
+#endif /* CHECKING */
+
 #endif /* BASICS_H */
 
 

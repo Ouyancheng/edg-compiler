@@ -13,13 +13,6 @@ Declarations for exception handling.
 
 */
 
-#if CHECKING
-EXTERN_C void abort(void);
-#define unexpected_condition() abort()
-#else /* CHECKING */
-#define unexpected_condition() /* nothing */
-#endif /* CHECKING */
-
 #ifndef NULL
 #define NULL (0)
 #endif /* NULL */
@@ -51,8 +44,45 @@ typedef void (*a_delete_ptr)(void*);
 			/* Type used to store a pointer to an operator delete
 			   routine. */
 
+typedef unsigned short an_object_offset;
+			/* Type used to store an offset into an object. */
 
+
+/* Definitions of the values in the flags field of the region description
+   entry. */
+typedef a_byte a_base_class_spec_flag_set;
+#define BCS_INDIRECT	0x01
+			/* The offset provides the position of a pointer
+			   to the base class.  Used for virtual base
+			   classes. */
+#define BCS_LAST	0x02
+			/* TRUE if this is the last base class specifier
+			   in the array. */
+
+/* Forward declaration of a typeinfo pointer. */
 typedef struct a_typeinfo *a_typeinfo_ptr;
+
+/* Describes the base classes of a class.  Pointed to by the typeinfo
+   of the class. */
+typedef struct a_base_class_spec *a_base_class_spec_ptr;
+typedef struct a_base_class_spec {
+  a_typeinfo_ptr
+		typeinfo;
+			/* The typeinfo for the base class. */
+  an_object_offset
+		offset;
+			/* The offset of the base class in the derived
+			   class. */
+  a_base_class_spec_flag_set
+		flags;
+			/* A collection of bits that specify how the
+			   base class specification entry is to be used.
+			   See the descriptions of the BCS flags above. */
+} a_base_class_spec;
+
+
+/* Type description information for objects that are thrown or
+   caught. */
 typedef struct a_typeinfo {
   a_unique_type_id
 		unique_id;
@@ -62,11 +92,10 @@ typedef struct a_typeinfo {
   a_function_ptr
 		destructor;
 			/* Pointer to the destructor for the object. */
-  a_typeinfo_ptr
+  a_base_class_spec
 		*base_class_entries;
 			/* Pointer to an array of typeinfo entries for
-			   direct base classes of a class.  The list
-			   is terminated by a NULL pointer. */
+			   direct base classes of a class. */
 } a_typeinfo;
 
 typedef short an_object_handle;
@@ -263,14 +292,38 @@ typedef struct an_eh_stack_entry {
 } an_eh_stack_entry;
 
 
+/* Structure used to maintain a stack of throws that are currently
+   being processed. */
+typedef struct a_throw_stack_entry *a_throw_stack_entry_ptr;
+typedef struct a_throw_stack_entry {
+  a_throw_stack_entry_ptr
+		next;
+			/* The next stack entry. */
+  a_typeinfo_ptr
+		typeinfo;
+			/* Typeinfo of the object thrown. */
+  a_boolean	is_pointer;
+			/* TRUE if the object thrown is a pointer to the
+			   indicated type. */
+  void*		object_address;
+			/* Pointer to the memory allocated to store
+			   the copy of the object. */
+} a_throw_stack_entry;
+
+
+
 EXTERN a_region_number
 		__eh_curr_region initial_value(0);
 			/* Number of the current region in topmost function
 			   entry on the EH stack. */
 
 EXTERN an_eh_stack_entry_ptr
-		__curr_eh_stack_entry initial_value(0);
+		__curr_eh_stack_entry initial_value(NULL);
 			/* The pointer to the top of the stack of EH
+			   entries. */
+EXTERN a_throw_stack_entry_ptr
+		__curr_throw_stack_entry initial_value(NULL);
+			/* The pointer to the top of the stack of throw
 			   entries. */
 
 EXTERN int	__catch_clause_number;

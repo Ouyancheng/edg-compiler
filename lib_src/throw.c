@@ -13,8 +13,313 @@ Throw processing for exception handling.
 
 */
 
+#include <malloc.h>
 #include "basics.h"
+#include "config.h"
 #include "eh.h"
+
+/* Structure used to record information about blocks of memory handled
+   by the EH memory management routines. */
+typedef struct a_mem_block_descr *a_mem_block_descr_ptr;
+typedef struct a_mem_block_descr {
+  a_mem_block_descr_ptr
+		next;
+			/* The next stack entry. */
+  void*		addr;
+			/* Address of the block of memory. */
+  a_sizeof_t	size;
+			/* Size in bytes of the block of memory. */
+  a_sizeof_t	used;
+			/* Number of bytes used in the block. */
+  a_byte_boolean
+		dynamically_allocated;
+			/* TRUE if the block of memory was dynamically
+			   allocated.  The initial memory block is
+			   statically allocated. */
+} a_mem_block_descr;
+
+
+/* Describes a single piece of memory allocated by the EH runtime. */
+typedef struct a_mem_allocation *a_mem_allocation_ptr;
+typedef struct a_mem_allocation {
+  a_mem_allocation_ptr
+		next;
+			/* The next allocation entry. */
+  a_sizeof_t	alloc_size;
+			/* Size of the piece of memory.  This is the
+			   allocated size including any space needed
+			   for alignment not just the requested size. */
+  void*		addr;
+			/* Address of the memory allocated. */
+  a_byte_boolean
+		is_mem_block_descr_allocation;
+			/* TRUE if this is a memory allocation done
+			   to keep track of a memory block description
+		           record. */
+} a_mem_allocation;
+
+
+static a_mem_block_descr_ptr
+		curr_mem_block_descr = NULL;
+			/* Pointer to the top of a stack of memory
+			   blocks managed by the EH runtime. */
+
+static a_mem_allocation_ptr
+		mem_allocation_stack = NULL;
+			/* Pointer to the top of a stack of memory
+			   allocation entries. */
+
+static a_mem_block_descr
+		initial_mem_block_descr;
+			/* Initial entry pointed to by the memory block
+			   stack. */
+
+
+static union {
+  char		memory[EH_MEMORY_ALLOCATION_INCREMENT];
+			/* The initial block of memory to be used.  This
+			   avoids the need for the EH runtime to do
+			   any dynamic memory allocation in most cases. */
+  TYPE_WITH_MOST_STRICT_ALIGNMENT
+		dummy;
+			/* Used to ensure that the memory block is
+			   guaranteed to be aligned on an appropriate
+			   boundary. */
+} initial_mem_block;
+
+/* The number of bytes needed for a memory block description and any
+   required alignment. */
+#define NEEDED_FOR_MEM_BLOCK_DESCR \
+  ((sizeof(a_mem_block_descr) < MOST_STRICT_ALIGNMENT) ?		\
+     MOST_STRICT_ALIGNMENT :						\
+     sizeof(a_mem_block_descr))
+
+
+/* The number of bytes needed for a memory allocation structure and any
+   required alignment. */
+#define NEEDED_FOR_MEM_ALLOCATION_INFO \
+  ((sizeof(a_mem_allocation) < MOST_STRICT_ALIGNMENT) ?			\
+     MOST_STRICT_ALIGNMENT :						\
+     sizeof(a_mem_allocation))
+
+/* The number of bytes needed at the end of a memory block to record the
+   information needed to allocate a new memory block. */
+#define RESERVED_FOR_END_OF_MEM_BLOCK \
+  (NEEDED_FOR_MEM_BLOCK_DESCR + NEEDED_FOR_MEM_ALLOCATION_INFO)
+
+
+/* The number of bytes that must be added to the_ptr to obtain a value
+   with suitable alignment.  the_ptr is actually an integer value that
+   represents an offset from the base of a block of memory that is known
+   to be appropriately aligned. */
+#define increment_needed_for_alignment(the_ptr)				\
+  (((the_ptr % MOST_STRICT_ALIGNMENT) == 0) ?	\
+         0 :								\
+         (MOST_STRICT_ALIGNMENT - (the_ptr % MOST_STRICT_ALIGNMENT)))
+
+
+static void* eh_get_memory(a_sizeof_t	size)
+/*
+This is a low level routine that just gets a piece of dynamically
+allocated memory from the system.   This must get the memory in
+a means that will not result in an exception being thrown.
+*/
+{
+  void*		mem_block;
+
+  mem_block = malloc(size);
+  /* If we can't get the memory we need, call the terminate routine. */
+  if (mem_block == NULL) {
+    __call_terminate();
+  }  /* if */
+  return mem_block;
+}  /* eh_get_memory */
+
+
+static void eh_free_memory(void* ptr)
+/*
+This is a low level routine that simply frees a piece of dynamically allocated
+memory to the system.  This must free the memory in a means that will not
+result in an exception being thrown.
+*/
+{
+  free(ptr);
+}  /* eh_free_memory */
+
+
+static void mem_block_descr_init(a_mem_block_descr_ptr mbdp)
+/*
+Initialize the fields of a memory block description record.
+*/
+{
+  mbdp->next = NULL;
+  mbdp->addr = NULL;
+  mbdp->size = 0;
+  mbdp->used = 0;
+  mbdp->dynamically_allocated = FALSE;
+}  /* mem_block_descr_init */
+
+
+static void init_eh_memory_management(void)
+/*
+Initialize the variables that keep track of memory used by the EH runtime.
+*/
+{
+  /* Initialize the initial memory block description record. */
+  mem_block_descr_init(&initial_mem_block_descr);
+  initial_mem_block_descr.addr = initial_mem_block.memory;
+  initial_mem_block_descr.size = EH_MEMORY_ALLOCATION_INCREMENT;
+  initial_mem_block_descr.used = 0;
+  initial_mem_block_descr.dynamically_allocated = FALSE;
+  curr_mem_block_descr = &initial_mem_block_descr;
+}  /* init_eh_memory_management */
+
+
+/*
+Return the address of the specified character position within the
+current memory block.
+*/
+#define addr_in_mem_block(pos)						\
+  (void *)((char *)curr_mem_block_descr->used)[pos]
+
+
+static void* alloc_in_mem_block(a_sizeof_t	      size,
+			        a_mem_allocation_ptr* map)
+/*
+Allocate a memory allocation record and the requested amount of space
+in the current memory block.  There must be enough space for the allocation
+to succeed and size must be a multiple of MOST_STRICT_ALIGNMENT.
+*/
+{
+  void*			ptr;
+  int			used;
+
+  /* Get space from the memory block to store a new memory block description
+     an a memory allocation record to describe it. */
+  used = curr_mem_block_descr->used;
+  *map = (a_mem_allocation_ptr)addr_in_mem_block(used);
+  used += NEEDED_FOR_MEM_ALLOCATION_INFO;
+  ptr = (void*)addr_in_mem_block(used);
+  used += size;
+  curr_mem_block_descr->used = used;
+  /* Add this memory allocation record to the top of the stack. */
+  (*map)->next = mem_allocation_stack;
+  (*map)->addr = ptr;
+  mem_allocation_stack = *map;
+  /* Initialize the other fields of the memory allocation record. */
+  (*map)->alloc_size = size;
+  (*map)->is_mem_block_descr_allocation = FALSE;
+  check_assertion(curr_mem_block_descr->used <= curr_mem_block_descr->used);
+  check_assertion(size % MOST_STRICT_ALIGNMENT == 0);
+  return ptr;
+}  /* alloc_in_mem_block */
+
+
+static void alloc_new_mem_block(a_sizeof_t	size)
+/*
+Allocate a new memory block of at least "size" bytes.  Actually,
+it must also have enough space for an additional mem_block_descr entry
+too.  We actually allocate "size + EH_MEM_ALLOCATION_INCREMENT" bytes since
+we know that "size" bytes will immediately be consumed.
+*/
+{
+  void*			mem_block;
+  a_mem_allocation_ptr	map;
+  a_mem_block_descr_ptr	mpdp;
+
+  /* Adjust the requested size.  The adjusted size is a multiple of the
+     memory allocation increment.  If (adjusted_size - size) >
+     (memory_allocation_increment * .5) then we allocate an extra
+     memory_allocation_increment bytes. */
+  size =
+      (size + EH_MEMORY_ALLOCATION_INCREMENT +
+       (EH_MEMORY_ALLOCATION_INCREMENT >> 1)) % EH_MEMORY_ALLOCATION_INCREMENT;
+  /* Get space from the memory block to store a new memory block description
+     an a memory allocation record to describe it. */
+  mpdp = (a_mem_block_descr_ptr)alloc_in_mem_block(NEEDED_FOR_MEM_BLOCK_DESCR,
+						   &map);
+  map->is_mem_block_descr_allocation = TRUE;
+  mem_block = eh_get_memory(size);
+  /* Add the new memory block description to the top of the stack. */
+  mpdp->next = curr_mem_block_descr;
+  curr_mem_block_descr = mpdp;
+  /* Initialize the fields of the memory block descriptor. */
+  mpdp->addr = mem_block;
+  mpdp->size = size;
+  mpdp->used = 0;
+  mpdp->dynamically_allocated = TRUE;
+}  /* alloc_new_mem_block */
+
+
+static void* eh_alloc_on_stack(a_sizeof_t	size)
+/*
+Allocate a block of memory on the EH memory stack.
+*/
+{
+  a_mem_allocation_ptr	map;
+  int			needed_for_alignment;
+  void*			ptr;
+  a_sizeof_t		alloc_size;
+
+  /* The memory management system is initialized the first time that
+     this routine is called. */
+  if (curr_mem_block_descr == NULL) {
+    init_eh_memory_management();
+  }  /* if */
+  /* Determine the number of bytes that must be added to size to ensure
+     that the resulting "used" value will be appropriately aligned. */
+  needed_for_alignment = increment_needed_for_alignment(size);
+  /* Make sure that the current memory block would have enough space
+     leftover to allocate the requested space, plus the space needed for
+     the memory allocation information plus a new memory block descriptor.
+     If not, start the new memory block now. */
+  alloc_size = size + needed_for_alignment;
+  if ((alloc_size + NEEDED_FOR_MEM_ALLOCATION_INFO +
+       RESERVED_FOR_END_OF_MEM_BLOCK) > curr_mem_block_descr->size) {
+    alloc_new_mem_block(size);
+  }  /* if */
+  ptr = alloc_in_mem_block(alloc_size, &map);
+  return ptr;
+}  /* eh_alloc_on_stack */
+
+
+static void free_in_mem_block(void*	ptr)
+/*
+Free a block of memory allocated in a memory block.
+*/
+{
+  a_mem_allocation_ptr	map;
+  int			used;
+
+  map = mem_allocation_stack;
+  check_assertion(map->addr == ptr);
+  used = curr_mem_block_descr->used;
+  used -= map->alloc_size;
+  used -= NEEDED_FOR_MEM_ALLOCATION_INFO;
+  curr_mem_block_descr->used = used;
+}  /* free_in_mem_block */
+
+
+static void eh_free_on_stack(void*	ptr)
+/*
+Free a piece of memory on the memory stack.  If a memory block becomes
+empty then remove it from the stack.
+*/
+{
+  /* Free the memory passed by the caller. */
+  free_in_mem_block(ptr);
+  /* Is the memory block now empty? */
+  if (curr_mem_block_descr->used == 0) {
+    a_mem_block_descr_ptr	mpdp_to_free;
+    mpdp_to_free = curr_mem_block_descr;
+    curr_mem_block_descr = mpdp_to_free->next;
+    /* Free the memory block.  This is freed to the system -- not just to
+       the memory stack like other kinds of memory. */
+    eh_free_memory(mpdp_to_free->addr);
+    /* Free the memory block description entry. */
+    free_in_mem_block(mpdp_to_free);
+  }  /* if */
+}  /* eh_free_on_stack */
 
 
 /* Determine whether two typeinfo entries refer to the same type.  They
@@ -97,7 +402,7 @@ The current region number within ehsep is designated by region.
          space. */
 #if 0
       /* Handling of placement new? */
-#endif
+#endif /* 0 */
       a_delete_ptr	delete_ptr;
       delete_ptr = (a_delete_ptr)ehrdp->destructor_or_delete_routine;
       (delete_ptr)(obj_addr);
@@ -259,6 +564,18 @@ the type being thrown.
   thrown_is_pointer = is_pointer;
   return (void *)throw_buffer;
 }  /* __throw_alloc */
+
+
+EXTERN_C void __free_thrown_object(void)
+/*
+Free the space used to make the copy of the thrown object.  Called at
+the completion of a catch clause.
+*/
+{
+#if 0
+  /* To be added when throw stacking is added. */
+#endif /* 0 */
+}  /* __free_thrown_object */
 
 /******************************************************************************
 *                                                             \  ___  /       *
