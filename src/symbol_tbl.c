@@ -312,6 +312,12 @@ and indentation is the indentation desired.
           put_string("has copy-ctor");
         }  /* if */
         if (cssp->destructor != NULL) put_string("has dtor");
+        if (cssp->construction_by_bitwise_copy_allowed) {
+          put_string("ctor bitwise copy okay");
+        }  /* if */
+        if (cssp->assignment_by_bitwise_copy_allowed) {
+          put_string("op= bitwise copy okay");
+        }  /* if */
       }
       break;
     case sk_field:
@@ -324,7 +330,7 @@ and indentation is the indentation desired.
         (void)sprintf(buffer, "offset = %d",
                       sym->variant.field.ptr->bit_offset);
         put_string(buffer);
-        type = sym->variant.field.ptr->type;
+		 type = sym->variant.field.ptr->type;
       }  /* if */
       break;
     case sk_label:
