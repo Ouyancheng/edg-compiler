@@ -7680,7 +7680,7 @@ entry is needed.)
     parent = curr_object_lifetime;
     /* Link the new entry into the object lifetime tree. */
     olp->parent_lifetime = parent;
-    if (entity_kind == (a_byte_il_entry_kind)iek_scope && entity_ptr != NULL &&
+    if (entity_kind == (an_il_entry_kind)iek_scope && entity_ptr != NULL &&
         ((a_scope_ptr)entity_ptr)->kind == (a_scope_kind)sck_function) {
       /* This is an object lifetime for a function scope; its parent pointer
          is the file scope lifetime entry, but it's an "implicit" child of the
