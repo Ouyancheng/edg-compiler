@@ -216,7 +216,7 @@ cannot be smaller than 30200 (since we don't emulate earlier GNU ABIs).
 #if TIE_DEFAULT_GNU_ABI_VERSION_TO_GNU_VERSION
 #if (MIN_GNU_VERSION) < 30200
  #error -- MIN_GNU_VERSION must be at least 30200 when \
-           TIE_DEFAULT_GNU_ABI_VERSION_TO_GNU_VERSION os TRUE
+           TIE_DEFAULT_GNU_ABI_VERSION_TO_GNU_VERSION is TRUE
 #endif /* (MIN_GNU_VERSION) < 30200 */
 #endif /* TIE_DEFAULT_GNU_ABI_VERSION_TO_GNU_VERSION */
 
