@@ -5428,16 +5428,32 @@ declaration of the function and must be completed by the point of call.
 {
   a_routine_type_supplement_ptr rtsp;
   a_type_ptr                    return_type;
+  a_boolean			set_flag = FALSE;
+#if CHECKING
+  a_boolean			test_flag = FALSE;
+#endif /* CHECKING*/
 
+  db_enter(4, "set_routine_calling_method_flag");
   routine_type = skip_typerefs(routine_type);
   rtsp = routine_type->variant.routine.extra_info;
   if (rtsp->assoc_routine != NULL) {
     /* The routine has been defined, so the flag is set correctly. */
+#if CHECKING
+    test_flag = TRUE;
+#endif /* CHECKING */
   } else if (C_dialect != C_dialect_cplusplus) {
     /* The flag cannot be set in C mode. */
   } else if (rtsp->value_returned_by_cctor) {
     /* Once the flag is set, it will never change. */
   } else {
+    set_flag = TRUE;
+  }  /* if */
+#if CHECKING
+  if (set_flag || test_flag)
+#else /* !CHECKING */
+  if (set_flag)
+#endif /* CHECKING */
+  {
     /* If the function returns a class object that has a "real" copy
        constructor, make the caller provide a temporary for the result. */
     return_type = routine_type->variant.routine.return_type;
@@ -5446,10 +5462,18 @@ declaration of the function and must be completed by the point of call.
       if (!is_incomplete_type(return_type) &&
           !symbol_supplement_for_class(return_type)->
                                         construction_by_bitwise_copy_allowed) {
+#if CHECKING
+        if (test_flag) {
+          /* The routine is already defined so the flag had better be
+             set properly. */
+          check_assertion(rtsp->value_returned_by_cctor == TRUE);
+        }  /* if */
+#endif /* CHECKING */
         rtsp->value_returned_by_cctor = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
+  db_exit();
 }  /* set_routine_calling_method_flag */
 
 
