@@ -993,8 +993,8 @@ In C99 mode, the processing is similar to that in C++.
 
   if ((!C_mode() || c99_mode) &&
       is_class_struct_union_type(context->type) &&
-      curr_token != tok_lbrace && !top_level &&
-      !designator_coming((a_boolean *)NULL)) {
+      (curr_token != tok_lbrace || context->pending_init_con != NULL) &&
+      !top_level && !designator_coming((a_boolean *)NULL)) {
     /* If this is an aggregate, whole object initialization is possible but
        not required.  Indeed, if the initializing expression can initialize
        the first initializable member of an aggregate, then that should be
@@ -1064,13 +1064,6 @@ In C99 mode, the processing is similar to that in C++.
           context->pending_init_con = *init_constant;
           context->pending_init_levels = levels_down;
           *init_constant = NULL;
-          if (curr_token != tok_comma && curr_token != tok_rbrace &&
-              curr_token != tok_semicolon) {
-            /* This initializer is not properly delimited: ignore it. */
-            pos_error(ec_exp_rbrace, &pos_curr_token);
-            context->pending_init_con = NULL;
-            context->pending_init_levels = 0;
-          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
@@ -1711,7 +1704,8 @@ this function points to a tree that includes a dynamic-init entry.
        and we fall through.  Otherwise, all the required work was done. */
   } else if (is_aggregate_or_union_type(context.type) ||
              (is_error_type(context.type) &&
-              (curr_token == tok_lbrace ||
+              ((curr_token == tok_lbrace &&
+                context.pending_init_con == NULL) ||
                (init_info->designation_state != ds_complete_designation &&
                 designator_coming((a_boolean *)NULL))))) {
     /* Initialization of an array (complete or incomplete), struct, or
@@ -1719,7 +1713,7 @@ this function points to a tree that includes a dynamic-init entry.
        array of char is initialized by a string.  The initial
        values can either appear inside a brace-enclosed list, or at
        the current level. */
-    if (curr_token == tok_lbrace) {
+    if (curr_token == tok_lbrace && context.pending_init_con == NULL) {
       /* Make sure it's truly an aggregate and not some non-aggregate class: */
       if (is_class_struct_union_type(context.type) &&
           !symbol_supplement_for_class(context.type)->is_class_aggregate) {
@@ -2090,7 +2084,8 @@ this function points to a tree that includes a dynamic-init entry.
   } else {
     /* Non-aggregate/union case -- initializer is a single (possibly
        brace-enclosed) value. */
-    if (curr_token == tok_lbrace && !top_level) {
+    if (curr_token == tok_lbrace && !top_level &&
+        context.pending_init_con == NULL) {
       diagnostic(strict_ansi_mode ? strict_ansi_error_severity : es_warning,
                  ec_nonstd_braces);
     }  /* if */
