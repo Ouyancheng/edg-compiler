@@ -114,18 +114,23 @@ pointed to by trace_corresp_ptr is modified.
 #define trace_corresp_check(ptr)                                       \
   if ((void*)(ptr) == trace_corresp_ptr) { corresp_intercept(); }
 
-void db_corresp(void *ptr)
+void* db_corresp(void *ptr)
 /*
 Report correspondence pointer for given entry.
 */
 {
-  if (in_secondary_trans_unit(ptr)) {
+  void  *result;
+
+  if (trans_unit_corresp_of(ptr) != NULL) {
+    result = canonical_il_entry_of(ptr);
     fprintf(f_debug, "Correspondence for 0x%x is 0x%x",
-            (unsigned)ptr, (unsigned)trans_unit_corresp_pointer_of(ptr));
+            (unsigned)ptr, (unsigned)result);
   } else {
+    result = NULL;
     fprintf(f_debug, "No correspondence for 0x%x (primary trans. unit)",
             (unsigned)ptr);
   }  /* if */
+  return result;
 }  /* db_corresp */
 
 #else /* !DEBUG */
@@ -300,11 +305,10 @@ static void report_corresp_error(char                   *entity1,
                                  an_error_code          distinct_src_error)
 /*
 The given IL node has a source correspondence and an associated symbol.  It
-also has a non-NULL translation unit correspondence.  If the two corresponding
+conflicts in some way with an entity declared at pos2.  If the two conflicting
 IL indentities result from the same source construct (e.g., because the same
 header file was included in two translation units), use the message associated
-with same_src_error; otherwise, use distinct_src_error.  The position of the
-corresponding entity is pos2.
+with same_src_error; otherwise, use distinct_src_error.
 */
 {
   a_symbol_ptr   sym = (a_symbol_ptr)((a_source_correspondence_ptr)entity1)
@@ -2715,12 +2719,10 @@ entities.
                     (is_type_symbol(sym) ||
                      is_template_symbol(sym) ||
                      is_namespace_symbol(sym)))) {
-          /* Not a match, but record the correspondence so that the error
-             reporting code knows which entity conflicts.  (Errors are
-             reported elsewhere for class members.) */
-          a_type_ptr  corresp_type = type_symbol_type(sym);
-          set_trans_unit_corresp(iek_type, type, corresp_type);
-          process_bad_trans_unit_corresp(iek_type, type);
+          /* Not a match.
+             (Errors are reported elsewhere for class members.) */
+          f_report_bad_trans_unit_corresp((char*)type, &sym->decl_position);
+          set_no_trans_unit_corresp(iek_type, type);
         }  /* if */
       }  /* if */
     }  /* for */
@@ -2829,8 +2831,8 @@ supplement for an instantiation that matches inst.
       }  /* if */
     }  /* if */
   }  /* for */
-  /* Restore the original correspondences. */
-  saved_corresp = trans_unit_corresp_of(class_type);
+  /* Restore the original correspondence. */
+  trans_unit_corresp_of(class_type) = saved_corresp;
   return sym_entry;
 }  /* find_class_template_instantiation */
 
@@ -3248,8 +3250,9 @@ entities.
   a_symbol_ptr  templ_sym = (a_symbol_ptr)templ->source_corresp.assoc_info;
   a_symbol_ptr  sym;
 
-  check_assertion(templ_sym != NULL && trans_unit_corresp_of(templ) == NULL);
-  if (is_template_symbol(templ_sym) && !templ_sym->is_template_param) {
+  check_assertion(templ_sym != NULL);
+  if (is_template_symbol(templ_sym) && !templ_sym->is_template_param &&
+      trans_unit_corresp_of(templ) == NULL) {
     /* Template definitions for nontemplate members of class templates should
        not get here.  Nor should template template parameters. */
     a_template_ptr  corresp_templ = NULL, candidate;
@@ -3279,11 +3282,11 @@ entities.
           }  /* if */
           if (candidate == NULL) {
             /* Continue searching for a match. */
+#if 0 /* FIXME */
           } else if (!class_template || !templ_sym->defined) {
             /* No need to find a "canonical definition". */
             corresp_templ = candidate;
             break;
-#if 0 /* FIXME */
           } else {
             a_symbol_ptr  corresp_sym =
                            (a_symbol_ptr)candidate->source_corresp.assoc_info;
@@ -3328,6 +3331,9 @@ entities.
               corresp_templ = candidate;
             }  /* if */
 #endif /* FIXME */
+          } else {
+            corresp_templ = candidate;
+            break;
           }  /* if */
         } else if (!is_class_template_symbol(templ_sym) &&
                    is_function_symbol(sym)) {
