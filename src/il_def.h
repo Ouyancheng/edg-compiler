@@ -520,7 +520,7 @@ the sublist's final source sequence entry would be sublist-parent->next.
 (The function-scope source sequence list is logically a single list but is
 actually discontinuous, with sublist branches, because entities allocated
 in the file-scope memory region cannot have pointers into a function-scope
-memory region.  Similaryly, there is no pointer back from the sublist
+memory region.  Similarly, there is no pointer back from the sublist
 header to its parent since the former is allocated in file-scope memory and
 the latter resides in function-scope memory.)  There can be any number of
 sublists in a given function's source sequence list; the headers are linked
