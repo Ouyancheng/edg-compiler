@@ -145,13 +145,13 @@ EXTERN a_boolean
 			/* TRUE if the writing of the IL file should be
 			   suppressed. */
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
-EXTERN a_boolean
-		suppress_virtual_function_table_definition /* = FALSE */;
+EXTERN enum {vfd_normal, vfd_suppress, vfd_force}
+		virtual_function_table_definition /* = vfd_normal */;
 			/* If the heuristic used to determine whether a virtual
 			   function table should be defined cannot
-			   conclusively make such a determination, TRUE
+			   conclusively make such a determination, vfd_suppress
 			   indicates that the definition should NOT be
-			   made. */
+			   made, and vfd_force indicates that it should. */
 EXTERN a_boolean
 		suppress_used_before_set_warnings /* = FALSE */;
 			/* TRUE if used-before-set warnings should not be

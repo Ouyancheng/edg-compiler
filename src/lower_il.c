@@ -2861,13 +2861,18 @@ or not to put out the definition; otherwise, it's set to NULL.
       }  /* for */
       /* There is no member function that meets the requirements, so we cannot
          decide automatically on whether or not to define the virtual function
-         table.  Define the virtual function table here unless suppressed
-         by user command line option. */
-      defined_here = !suppress_virtual_function_table_definition;
-      /* A definition put out by default when we cannot tell whether or not
-         it is needed is made static, because each compilation with this
-         same class will contain an instance of the definition. */
-      if (defined_here) *force_static = TRUE;
+         table.  See if a command-line option gives guidance. */
+      if (virtual_function_table_definition == vfd_force) {
+        defined_here = TRUE;
+      } else if (virtual_function_table_definition == vfd_suppress) {
+        defined_here = FALSE;
+      } else {
+        /* No command-line option.  Put out the virtual function table, but
+           make it static, because each compilation with this same class
+           will contain an instance of the definition. */
+        defined_here = TRUE;
+        *force_static = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
 have_defined_here:;

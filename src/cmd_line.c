@@ -66,7 +66,7 @@ typedef enum /*an_option_kind*/ {
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
   optk_implicit_template_inclusion,
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
-  optk_suppress_virtual_function_table_definition,
+  optk_virtual_function_table_definition,
   optk_allow_dollar_in_id_chars,
   optk_display_compilation_time,
   optk_display_compiler_version,
@@ -239,8 +239,11 @@ Initialize the option information table.
                          "no_implicit_include", '\0',
                          /*value=*/FALSE, /*arg_required=*/FALSE);
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
-  add_option_description(optk_suppress_virtual_function_table_definition,
+  add_option_description(optk_virtual_function_table_definition,
                          "suppress_vtbl", 'V',
+                         /*value=*/FALSE, /*arg_required=*/FALSE);
+  add_option_description(optk_virtual_function_table_definition,
+                         "force_vtbl", '\0',
                          /*value=*/TRUE, /*arg_required=*/FALSE);
   add_option_description(optk_allow_dollar_in_id_chars,
                          "dollar", '$',
@@ -816,12 +819,13 @@ Process the arguments on the command line that invoked the compiler.
         implicit_template_inclusion_mode = opt_value;
         break;
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
-      case optk_suppress_virtual_function_table_definition:
-        /* Suppress generation of a virtual function table if unable to
+      case optk_virtual_function_table_definition:
+        /* Control generation of a virtual function table if unable to
 	   determine absolute means to avoid duplicate virtual function 
-	   table entries in separate compilations. */
-        check_assertion(opt_value == TRUE);
-	suppress_virtual_function_table_definition = TRUE;
+	   table entries in separate compilations.  --force_vtbl gives
+           opt_value TRUE; __suppress_vtbl gives opt_value FALSE. */
+        virtual_function_table_definition =
+                                          opt_value ? vfd_force : vfd_suppress;
 	break;
       case optk_allow_dollar_in_id_chars:
         /* Determines whether dollar signs are accepted in identifiers. */
@@ -995,8 +999,7 @@ Process the arguments on the command line that invoked the compiler.
     if (option_kind_used[(int)optk_cplusplus_anachronisms]) {
       command_line_error(ec_cl_anachronism_option_only_in_cplusplus);
     }  /* if */
-    if (option_kind_used
-                     [(int)optk_suppress_virtual_function_table_definition]) {
+    if (option_kind_used[(int)optk_virtual_function_table_definition]) {
       command_line_error(ec_cl_vtbl_option_only_in_cplusplus);
     }  /* if */
     if (option_kind_used[(int)optk_template_instantiation_mode]) {
