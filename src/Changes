@@ -1,5 +1,22 @@
 Version 2.46
 
+3/2/01   Loop in preprocessor on #if within macro argument
+
+The preprocessor looped as a result of processing a macro invocation
+in the expression of a #if directive that appears within a macro
+argument of a surrounding macro invocation, when there is a previous
+macro argument at the top level that includes a macro invocation.
+Now fixed.
+
+  #define A(U)    ((U) + (U))
+  #define S(U, V) ((U) * (V))
+  #define T 1
+  const int X = S(A(0),
+  #if T == 1
+    T
+  #endif
+  );
+
 3/2/01   Default arguments of friends of class templates
 
 Lookups during the instantiation of default argument expressions of

@@ -1910,6 +1910,19 @@ associated global variables will also have been set).
       goto end_scan_for_macro_modifs;
     }  /* if */
   }  /* for */
+  if (in_pp_if_expression) {
+    /* When a #if preprocessing directive appears in a macro argument,
+       and there's a macro expansion in the expression of that #if, there
+       may be previous arguments that point to active text in the
+       macro buffer. */
+    for (map = macro_arg_list; map != NULL; map = map->next) {
+      for (slmp = map->modif_list; slmp != NULL; slmp = slmp->next) {
+        if (slmp->inserted_text != slmp->inserted_chars) {
+          goto end_scan_for_macro_modifs;
+        }  /* if */
+      }  /* for */
+    }  /* for */
+  }  /* if */
   /* No source line modifications from macros. */
   next_avail_in_macro_buffer = macro_buffer;
 end_scan_for_macro_modifs:;
