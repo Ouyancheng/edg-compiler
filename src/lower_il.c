@@ -4733,7 +4733,10 @@ not lowered at this time (see lower_constructor_code).
   /* Add a parameter for each virtual base class.  See the ARM, top of
      p. 296.  add_constructor_params does the similar processing for param
      variables. */
-  /* If you change this, see also unlowered_param_type_list. */
+  /* If you change this, see also unlowered_param_type_list,
+     add_constructor_params, ctor_needs_implied_arg_list,
+     make_ctor_implied_arg_list, var_for_copy_constructor_source,
+     and add_constructor_wrapper_code. */
   if (class_type->variant.class_struct_union.any_virtual_base_classes) {
     prev_param = first_param;
     for (bcp = class_type->variant.class_struct_union.extra_info->base_classes;
@@ -4777,7 +4780,9 @@ not lowered at this time (see lower_destructor_code).
   /* Add an int parameter that will indicate whether or not we have a
      complete object and whether or not the storage should be freed.
      add_destructor_params does the similar processing for param variables. */
-  /* If you change this, see also unlowered_param_type_list. */
+  /* If you change this, see also unlowered_param_type_list,
+     add_destructor_params, dtor_needs_implied_arg_list,
+     make_dtor_implied_arg_list, and lower_destructor_code. */
   added_param = alloc_param_type(integer_type((an_integer_kind)ik_int));
   /* Note that the original parameter entries have already been lowered,
      so it is not necessary to set il_lowering_flag to ensure that the
