@@ -4513,7 +4513,7 @@ type of the expression.
   an_expr_stack_entry  expr_stack_entry;
   an_operand           operand;
 
-  check_assertion(symbol_ptr->kind = (a_symbol_kind)sk_type);
+  check_assertion(symbol_ptr->kind == (a_symbol_kind)sk_type);
   /* Prepare to scan an expression. */
   push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
