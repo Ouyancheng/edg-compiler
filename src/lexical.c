@@ -6674,7 +6674,7 @@ this routine.  Its value is unchanged if no errors are detected.
         } else {
 	  /* A nontype constant without a default argument.  This also only
 	     occurs in error cases.  Use an error constant. */
-          constant = fs_constant((a_constant_repr_kind)ck_error);
+          constant = alloc_error_constant();
           arg_ptr->variant.constant = constant;
         }  /* if */
         /* Link this entry on to the argument list. */
