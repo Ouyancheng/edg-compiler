@@ -5901,7 +5901,7 @@ is set to NULL.
   unsigned long            number_in_best_match_set;
   an_arg_match_summary_ptr best_match_for_curr_arg, curr_arg;
   int                      cmp;
-  a_boolean                overall_ambiguity = FALSE, any_error_arg = FALSE;
+  a_boolean                overall_ambiguity = FALSE, any_error_match = FALSE;
   a_boolean                some_require_std_conversion;
   a_boolean                some_do_not_require_std_conversion;
   a_boolean                any_function_templates;
@@ -6053,46 +6053,50 @@ end_exact_test:;
          under each function to find the best matches. */
       for (cfp = candidates; cfp != NULL; cfp = cfp->next) {
         curr_arg = cfp->current_arg_match;
-        if (best_match_for_curr_arg == NULL) {
-          /* First argument.  It's the best so far by definition. */
-          cmp = 1;
+        /* Ignore error matches in finding the best matches (but they get
+           added to the best-match set below). */
+        if (curr_arg->match_level == aml_error) {
+          any_error_match = TRUE;
         } else {
-          /* Compare the current argument match level against the best
-             match so far. */
-          cmp = compare_arg_match_levels(curr_arg, best_match_for_curr_arg);
-        }  /* if */
-        if (cmp < 0) {
-          /* The argument match being examined is not as good as the best
-             match so far.  Ignore it. */
-          cfp->prev_func_arg_match_with_same_match_level = NULL;
-        } else {
-          /* The argument match being examined is at least as good as the
-             best match so far. */
-          if (cmp > 0) {
-            /* The argument match being examined is better than any seen
-               so far.  Remember it as the best so far. */
-            best_match_for_curr_arg = curr_arg;
+          if (best_match_for_curr_arg == NULL) {
+            /* First argument.  It's the best so far by definition. */
+            cmp = 1;
+          } else {
+            /* Compare the current argument match level against the best
+               match so far. */
+            cmp = compare_arg_match_levels(curr_arg, best_match_for_curr_arg);
           }  /* if */
-          /* Remember that this argument match is a member of a best-match
-             set, at least at the moment. */
-          cfp->prev_func_arg_match_with_same_match_level =
+          if (cmp < 0) {
+            /* The argument match being examined is not as good as the best
+               match so far.  Ignore it. */
+            cfp->prev_func_arg_match_with_same_match_level = NULL;
+          } else {
+            /* The argument match being examined is at least as good as the
+               best match so far. */
+            if (cmp > 0) {
+              /* The argument match being examined is better than any seen
+                 so far.  Remember it as the best so far. */
+              best_match_for_curr_arg = curr_arg;
+            }  /* if */
+            /* Remember that this argument match is a member of a best-match
+               set, at least at the moment. */
+            cfp->prev_func_arg_match_with_same_match_level =
                                                        best_match_for_curr_arg;
+          }  /* if */
         }  /* if */
       }  /* for */
       /* Here, the current argument matches with 
          prev_func_arg_match_with_same_match_level == best_match_for_curr_arg
          are the best-match set for the current argument. */
-      if (best_match_for_curr_arg->match_level == aml_error) {
-        /* The best match for this argument was an error match.  Remember that
-           there are some error matches. */
-        any_error_arg = TRUE;
-      }  /* if */
       /* Loop through the functions and form the intersection of the
          best-match set for this argument and the overall best-match
          set to date. */
       for (cfp = candidates; cfp != NULL; cfp = cfp->next) {
+        /* Also keep functions with error matches in the best-match set. */
+        curr_arg = cfp->current_arg_match;
         if (cfp->prev_func_arg_match_with_same_match_level ==
-                                                     best_match_for_curr_arg) {
+                                                     best_match_for_curr_arg ||
+            curr_arg->match_level == aml_error) {
           /* This function is in the best-match set for the current
              argument. */
           cfp->in_best_match_set_for_some_argument = TRUE;
@@ -6158,29 +6162,10 @@ end_exact_test:;
         overall_ambiguity = TRUE;
         goto create_final_list;
       }  /* if */
-    } else if (any_error_arg && number_in_best_match_set > 1) {
+    } else if (any_error_match && number_in_best_match_set > 1) {
       /* There are some error matches, and we have more than one "best"
-         function.  See if we can select one of those functions on the
-         basis of the better-on-at-least-one-argument test. */
-      for (cfp = candidates; cfp != NULL; cfp = cfp->next) {
-        /* Only look at functions in the best-match set. */
-        if (cfp->in_best_match_set) {
-          if (!match_is_better_on_at_least_one_arg(cfp, candidates)) {
-            /* This function couldn't have been chosen. */
-            cfp->in_best_match_set = FALSE;
-            /* If there aren't any functions left, there's no point in
-               continuing. */
-            if (--number_in_best_match_set == 0) goto create_final_list;
-          }  /* if */
-        }  /* if */
-      }  /* for */
-      /* Here, the best-match set is the functions that could have been
-         selected  if the error argument had been something else.  If there
-         is exactly one function left, use it.  Otherwise, return
-         undecidable_because_of_error TRUE. */
-      if (number_in_best_match_set > 1) {
-        *undecidable_because_of_error = TRUE;
-      }  /* if */
+         function. */
+      *undecidable_because_of_error = TRUE;
     }  /* if */
 create_final_list:
     /* Make the final list.  If overall_ambiguity is TRUE, use the
