@@ -1285,10 +1285,21 @@ specialization and an indication of that fact should be put out.
        we will use the template parameter encoding. */
     template_param =
              symbol_supplement_for_class(type)->template_param_for_proxy_class;
+    if (template_param != NULL) {
+      check_assertion(template_param->kind == (a_type_kind)tk_template_param);
+      /* For tptk_member types just put out the proxy class name. */
+      if (template_param->variant.template_param.kind ==
+                                 (a_template_param_constant_kind)tptk_member) {
+        type = template_param;
+        template_param = NULL;
+      }  /* if */
+    }  /* if */
   }  /* if */
   if (template_param != NULL) {
     /* This class is the proxy for a template parameter.  Use the encoding
        for the template parameter as the name for the class. */
+    check_assertion(template_param->variant.template_param.kind ==
+                                   (a_template_param_constant_kind)tptk_param);
     mangled_name_length = mangled_encoding_for_template_parameter(
                &template_param->variant.template_param.extra_info->coordinates,
                store_at);
