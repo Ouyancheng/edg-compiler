@@ -374,13 +374,13 @@ necessary.
 { if (clear_fe_pointers_during_walk) (ptr) = NULL; }
 #endif /* NEEDED_FLAG_WALK && ... */
 
-#if DO_IL_LOWERING
+#if !STANDALONE_UTILITY_PROGRAM && DO_IL_LOWERING
 /* We need pm_class_type_possibly_lowered. */
 #include "lower_il.h"
-#else /* !DO_IL_LOWERING */
+#else /* !(!STANDALONE_UTILITY_PROGRAM && DO_IL_LOWERING) */
 /* No lowering, so use pm_class_type for pm_class_type_possibly_lowered. */
 #define pm_class_type_possibly_lowered(x) pm_class_type(x)
-#endif /* DO_IL_LOWERING */
+#endif /* !STANDALONE_UTILITY_PROGRAM && DO_IL_LOWERING */
 
 #undef remap_source_sequence_entry
 #if GENERATE_SOURCE_SEQUENCE_LISTS && !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK
