@@ -856,13 +856,15 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
 
   if (type == NULL) {
     /* NULL type pointer. */
+#if DEBUG
     if (octl->debug_output) {
       octl->output_str("**NULL-TYPE-POINTER**");
-    } else {
-      check_assertion_str(!octl->gen_compilable_code,
-                          "form_type_first_part: NULL type");
-      octl->output_str("<something>");
+      goto end_of_routine;
     }  /* if */
+#endif /* DEBUG */
+    check_assertion_str(!octl->gen_compilable_code,
+                        "form_type_first_part: NULL type");
+    octl->output_str("<something>");
     goto end_of_routine;
   }  /* if */
 #ifdef CFE
