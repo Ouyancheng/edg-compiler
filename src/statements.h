@@ -274,6 +274,9 @@ typedef struct a_struct_stmt_stack_entry {
 			   flag will be cleared again once the required fixup
 			   has been done and the curr_block_object_lifetime
 			   pointer has been reset. */
+  a_bit_field	is_statement_expr:1;
+			/* TRUE if the statement is a GNU C statement
+			   expression, ({ ... }). */
   a_statement_ptr
 		statement;
 			/* The associated IL statement.  Indirectly,
@@ -409,7 +412,8 @@ extern void set_vla_size_statement(a_vla_dimension_ptr  vdp,
 
 extern a_statement_ptr compound_statement(a_boolean at_function_level,
                                           a_boolean explicit_return_type,
-                                          a_boolean is_catch_clause);
+                                          a_boolean is_catch_clause,
+                                          a_boolean is_statement_expr);
 
 extern void start_of_function_try_block(void);
 

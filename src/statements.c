@@ -2526,6 +2526,7 @@ current structured statement.
                               = FALSE;
   sssep->label_invalidates_curr_block_object_lifetime
                               = FALSE;
+  sssep->is_statement_expr    = FALSE;
   sssep->statement            = sp;
   sssep->curr_switch_clause   = NULL;
   sssep->discarded_case_label_constants
@@ -2970,18 +2971,27 @@ found:
 }  /* find_enclosing_struct_stmt */
 
 
-static a_statement_ptr start_block_statement(a_boolean generated_statement)
+static a_statement_ptr start_block_statement(a_boolean generated_statement,
+                                             a_boolean is_statement_expr)
 /*
 Do processing to begin a block or compound statement.  Return a pointer
 to the block statement.  generated_statement is TRUE if the block is
 generated, e.g., to surround a dependent statement in C++ or C99.
+is_statement_expr is TRUE if the statement is the top of a GNU C
+statement expression, ({ ... }).
 */
 {
   a_struct_stmt_kind      kind;
   a_statement_ptr         block_stmt;
 
-  /* Allocate a block statement and add it to the statements list. */
-  block_stmt = add_statement((a_statement_kind)stmk_block);
+  if (!is_statement_expr) {
+    /* Allocate a block statement and add it to the statements list. */
+    block_stmt = add_statement((a_statement_kind)stmk_block);
+  } else {
+    /* A GNU C statement expression.  Do not link the statement into
+       the current statement on the statement stack. */
+    block_stmt = alloc_statement((a_statement_kind)stmk_block);
+  }  /* if */
   stmt_update_source_sequence_list(block_stmt);
   if (!generated_statement) {
     /* This is a block statement introduced by a left brace (which should be
@@ -3020,6 +3030,9 @@ generated, e.g., to surround a dependent statement in C++ or C99.
   }  /* if */
   /* Push an entry on the structured statement stack. */
   push_stmt_stack(ssk_compound, block_stmt, curr_object_lifetime);
+  if (is_statement_expr) {
+    struct_stmt_stack[depth_stmt_stack].is_statement_expr = TRUE;
+  }  /* if */
   return block_stmt;
 }  /* start_block_statement */
 
@@ -3084,7 +3097,8 @@ a local scope.
   } else {
     /* Normal case (in C++ and C99): add a block and potential scope.
        In cfront mode, the block is added but not the scope. */
-    block = start_block_statement(/*generated_statement=*/TRUE);
+    block = start_block_statement(/*generated_statement=*/TRUE,
+                                  /*is_statement_expr=*/FALSE);
     block_added = TRUE;
   }  /* if */
   /* Now process the dependent statement itself. */
@@ -3207,7 +3221,8 @@ and pushes a generated block statement.
 */
 {
   if (c99_mode) {
-    (void)start_block_statement(/*generated_statement=*/TRUE);
+    (void)start_block_statement(/*generated_statement=*/TRUE,
+                                /*is_statement_expr=*/FALSE);
     /* Move any pragmas for the statement (previously selected in
        "statement") to the new level in the scope stack. */
     scope_stack[depth_scope_stack].curr_construct_pragmas =
@@ -3637,7 +3652,8 @@ declared with an explicit return type.
   sp->variant.try_block->statement =
                           compound_statement(/*at_function_level=*/FALSE,
                                              explicit_return_type,
-                                             /*is_catch_clause=*/FALSE);
+                                             /*is_catch_clause=*/FALSE,
+                                             /*is_statement_expr=*/FALSE);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   set_stmt_source_position(sp->end_position, curr_construct_end_position);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -3704,7 +3720,8 @@ statement.  Its form is
   sp->variant.microsoft_try->guarded_statement = block =
                           compound_statement(/*at_function_level=*/FALSE,
                                              /*explicit_return_type=*/FALSE,
-                                             /*is_catch_clause=*/FALSE);
+                                             /*is_catch_clause=*/FALSE,
+                                             /*is_statement_expr=*/FALSE);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   /* The current token should be "__except" or "__finally": */
   sp->variant.microsoft_try->except_or_finally_position = pos_curr_token;
@@ -3740,7 +3757,8 @@ statement.  Its form is
   sp->variant.microsoft_try->cleanup_statement =
                           compound_statement(/*at_function_level=*/FALSE,
                                              /*explicit_return_type=*/FALSE,
-                                             /*is_catch_clause=*/FALSE);
+                                             /*is_catch_clause=*/FALSE,
+                                             /*is_statement_expr=*/FALSE);
   /* Pop the structured statement stack. */
   pop_stmt_stack();
 
@@ -3929,20 +3947,30 @@ found:
 
 static void expression_statement(a_boolean  marked_as_gnu_extension)
 /*
-Scan an expression statement.
+Scan an expression statement.  If marked_as_gnu_extension is TRUE,
+the statement was preceded by the GNU C __extension__ keyword.
 */
 {
   a_statement_ptr  sp;
   an_expr_node_ptr expr;
+  a_boolean        result_used = FALSE;
+  a_token_kind     token;
 
   sp = add_statement((a_statement_kind)stmk_expr);
   stmt_update_source_sequence_list(sp);
   /* Do processing required for any pragmas that are bound to the current
      statement. */
   process_curr_construct_pragmas((a_symbol_ptr)NULL, sp);
+  if ((a_boolean)struct_stmt_stack[depth_stmt_stack].is_statement_expr &&
+      ((void)next_two_tokens(tok_semicolon, &token), token == tok_rbrace)) {
+    /* This is the last statement in a GNU C statement expression.
+       As such, it is the value of the expression. */
+    result_used = TRUE;
+  }  /* if * */
   /* Scan the expression. */
   expr = scan_void_expression(/*repeated_in_loop=*/FALSE,
-                              marked_as_gnu_extension);
+                              marked_as_gnu_extension,
+                              result_used);
   sp->expr = expr;
   /* If the expression is a throw expression or the call of a function that
      is known not to return, the code following is unreachable. */
@@ -4116,7 +4144,8 @@ either an expression statement or a declaration statement.
     suppress_used_before_set_warnings = TRUE;
     sp->variant.for_loop.extra_info->increment =
                       scan_void_expression(/*repeated_in_loop=*/TRUE,
-                                           /*marked_as_gnu_extension=*/FALSE);
+                                           /*marked_as_gnu_extension=*/FALSE,
+                                           /*result_used=*/FALSE);
     /* Restore the global variable. */
     suppress_used_before_set_warnings = saved_flag;
   }  /* if */
@@ -5685,7 +5714,8 @@ rescan_statement:
       /* Compound statement (3.6.2). */
       (void)compound_statement(/*at_function_level=*/FALSE,
                                /*explicit_return_type=*/FALSE,
-                               /*is_catch_clause=*/FALSE);
+                               /*is_catch_clause=*/FALSE,
+                               /*is_statement_expr=*/FALSE);
       break;
     case tok_if:
       /* If statement (3.6.4). */
@@ -5943,7 +5973,8 @@ expr_statement:
 
 a_statement_ptr compound_statement(a_boolean  at_function_level,
                                    a_boolean  explicit_return_type,
-                                   a_boolean  is_catch_clause)
+                                   a_boolean  is_catch_clause,
+                                   a_boolean  is_statement_expr)
 /*
 Scan a compound-statement.  The syntax is
 
@@ -5963,7 +5994,9 @@ that it gets any error messages (like those for unresolved labels) to
 come out on the closing "}".  If is_catch_clause is TRUE this is being called
 to scan the body of an exception handler.  The scope stack has already been
 pushed, but otherwise this is handled like an ordinary block (except that
-branching into it is disallowed).
+branching into it is disallowed).  If is_statement_expr is TRUE, this
+compound statement is the statement in a GNU C statement expression,
+e.g., ({ ... }).
 */
 {
   a_statement_ptr            block;
@@ -6011,7 +6044,8 @@ branching into it is disallowed).
     /* Note that there is no check for unreachable code.  It's probably too
        draconian to warn about an unreachable open brace if (say) there
        is a label right afterwards. */
-    block = start_block_statement(/*generated_statement=*/FALSE);
+    block = start_block_statement(/*generated_statement=*/FALSE,
+                                  is_statement_expr);
   }  /* if */
   /* Record in the statement stack entry whether the routine was declared
      with an explicit return type. */

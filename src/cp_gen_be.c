@@ -6343,6 +6343,14 @@ done_with_operation_after_parens:
     case enk_address_of_ellipsis:
       write_tok_str("&...");
       break;
+#if GNU_EXTENSIONS_ALLOWED
+    case enk_statement:
+      /* GNU C statement expression, ({...}). */
+      write_tok_str("(");
+      gen_statement(expr->variant.statement);
+      write_tok_str(")");
+      break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
     case enk_temp_init:
       /* Temporary creation/initialization. */
       if (expr->variant.init.result_is_addr) {

@@ -75,9 +75,9 @@ extern a_boolean is_expr_start_token(a_token_kind tok);
 
 extern an_expr_node_ptr scan_integer_expression(a_boolean is_switch_expr);
 
-extern an_expr_node_ptr scan_void_expression(
-                                           a_boolean repeated_in_loop,
-                                           a_boolean marked_as_gnu_extension);
+extern an_expr_node_ptr scan_void_expression(a_boolean repeated_in_loop,
+                                             a_boolean marked_as_gnu_extension,
+                                             a_boolean result_used);
 
 extern an_expr_node_ptr scan_typed_expression(a_type_ptr    required_type,
 					      an_error_code err_code);

@@ -8254,7 +8254,8 @@ clause is to be attached.  catch_pos is the source position of "catch".
   /* Parse the body of the handler. */
   handler->statement = compound_statement(/*at_function_level=*/FALSE,
                                           /*explicit_return_type=*/FALSE,
-                                          /*is_catch_clause=*/TRUE);
+                                          /*is_catch_clause=*/TRUE,
+                                          /*is_statement_expr=*/FALSE);
   /* pop_scope is called from compound_statement processing. */
   db_exit();
 }  /* handler_declaration */

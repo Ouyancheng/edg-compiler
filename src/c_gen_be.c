@@ -379,6 +379,11 @@ static void dump_enum_definition(a_type_ptr type,
                                  a_boolean  output_final_semi);
 static void dump_struct_union_definition(a_type_ptr type,
                                          a_boolean  output_final_semi);
+static void dump_statement_list(a_statement_ptr statement);
+static void dump_prescan_temps(a_statement_ptr statement);
+static void dump_statement(a_statement_ptr statement);
+static void dump_block(a_statement_ptr statement);
+
 
 static void dump_expr(an_expr_node_ptr expr,
                       a_boolean        need_parens);
@@ -4020,6 +4025,14 @@ done_with_operation:
     case enk_address_of_ellipsis:
       write_tok_str("&...");
       break;
+#if GNU_EXTENSIONS_ALLOWED
+    case enk_statement:
+      /* GNU C statement expression, ({...}). */
+      write_tok_str("({");
+      dump_block(expr->variant.statement);
+      write_tok_str("})");
+      break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
     case enk_temp_init:
       /* Used for C99 compound literals. */
       dump_compound_literal(expr, /*suppress_address_of=*/FALSE);
@@ -5646,12 +5659,6 @@ Dump all constants in the indicated scope.
     dump_constant_decl(constant);
   }  /* for */
 }  /* dump_scope_constants */
-
-
-/* Forward declaration. */
-static void dump_statement_list(a_statement_ptr statement);
-static void dump_prescan_temps(a_statement_ptr statement);
-static void dump_statement(a_statement_ptr statement);
 
 
 static void set_output_position_for_stmt(a_stmt_source_position *spos)

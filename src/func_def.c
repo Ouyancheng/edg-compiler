@@ -1030,7 +1030,8 @@ and for the instantiation of template functions.
          can be done to get any errors out right on the "}". */
       scope_ptr->assoc_block = compound_statement(/*at_function_level=*/TRUE,
                                                   explicit_return_type,
-                                                  /*is_catch_clause=*/FALSE);
+                                                  /*is_catch_clause=*/FALSE,
+                                                  /*is_statement_expr=*/FALSE);
     }  /* if */
   }  /* if */
 #if USER_CONTROL_OF_STRUCT_PACKING
