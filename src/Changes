@@ -1,5 +1,17 @@
 Version 3.0
 
+4/28/02  Spurious error regarding casting away const in prototype instantiation
+
+The front end gave a spurious error regarding casting away const
+on a cast involving a pointer to a template parameter type.  Now fixed.
+This error was given only in modes where prototype instantiation
+is done (e.g., strict mode).
+
+  template <class T> void f() {
+    const int *p;
+    static_cast<T *>(p);
+  }
+
 4/28/02  Minimal inlining: temporary must be used to pass local static
 
 Minimal inlining has been changed so that it always uses a temporary

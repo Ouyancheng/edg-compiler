@@ -3736,8 +3736,14 @@ underlying type of either source_type or dest_type.
     a_type_qualifier_set source_type_qualifiers;
     dest_type_qualifiers = get_type_qualifiers(dest_type);
     source_type_qualifiers = get_type_qualifiers(source_type);
-    if (any_qualifier_in_set_missing(dest_type_qualifiers,
-				     source_type_qualifiers)) {
+    if (is_template_param_type(dest_type) ||
+        is_template_param_type(source_type)) {
+      /* With template parameter types, we can't tell.  const int converted
+         to T might or might not be dropping cv-qualifiers, depending on
+         the type of T. */
+      break;
+    } else if (any_qualifier_in_set_missing(dest_type_qualifiers,
+                                            source_type_qualifiers)) {
       /* Some qualifier is missing. */
       same = FALSE;
     } else {
