@@ -14097,6 +14097,8 @@ This routine is called to initialize a sub-aggregate, so the destructor
 pointer in the dynamic initialization is not set.  The caller must set
 it to indicate destruction for a partially-constructed aggregate (on
 a thrown exception) if that is appropriate.
+
+This routine is also called in C99 mode.
 */
 {
   an_operand          result;
@@ -14124,7 +14126,8 @@ a thrown exception) if that is appropriate.
      go down to the first member of the class and try again.  Loop until the
      right level is found or until we can go no further. */
   while (is_class_struct_union_type(required_type) &&
-         symbol_supplement_for_class(required_type)->is_class_aggregate) {
+         (c99_mode ||
+          symbol_supplement_for_class(required_type)->is_class_aggregate)) {
     a_field_ptr first_field = next_initializable_field(
                                    skip_typerefs(required_type)->
                                         variant.class_struct_union.field_list);
@@ -14132,16 +14135,18 @@ a thrown exception) if that is appropriate.
     if (first_field == NULL) break;
     /* See whether the expression can be converted to the aggregate class
        type. */
-    if (conversion_to_class_possible(&result,
-                                     required_type,
-                                     /*try_bitwise_copy=*/TRUE,
-                                     /*is_copy_initialization=*/TRUE,
-                                     /*is_reference_binding=*/FALSE,
-                                     &conversion,
-                                     (a_conv_descr *)NULL,
-                                     &ambiguous,
-                                     (a_candidate_function_ptr *)NULL) ||
-        ambiguous) break;
+    if (c99_mode ?
+          types_are_compatible(result.type, required_type) :
+          (conversion_to_class_possible(&result,
+                                        required_type,
+                                        /*try_bitwise_copy=*/TRUE,
+                                        /*is_copy_initialization=*/TRUE,
+                                        /*is_reference_binding=*/FALSE,
+                                        &conversion,
+                                        (a_conv_descr *)NULL,
+                                        &ambiguous,
+                                        (a_candidate_function_ptr *)NULL) ||
+           ambiguous)) break;
     /* Go down to the first member. */
     required_type = first_field->type;
     (*levels_down)++;

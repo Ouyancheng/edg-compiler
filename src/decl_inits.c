@@ -972,6 +972,7 @@ aggregate are not considered.  For example:
 The bulk of this work is done in scan_aggregate_class_initializer_expression.
 If a value was scanned but whole object initialization did not apply, the
 resulting constant is placed on context->pending_init_con for use further on.
+In C99 mode, the processing is similar to that in C++.
 */
 {
   a_boolean                      is_whole_object_init; /* result */
@@ -982,7 +983,8 @@ resulting constant is placed on context->pending_init_con for use further on.
   a_class_symbol_supplement_ptr  cssp;
   a_dynamic_init_ptr             dip;
 
-  if (!C_mode() && is_class_struct_union_type(context->type) &&
+  if ((!C_mode() || c99_mode) &&
+      is_class_struct_union_type(context->type) &&
       curr_token != tok_lbrace && !top_level &&
       !designator_coming((a_boolean *)NULL)) {
     /* If this is an aggregate, whole object initialization is possible but
@@ -993,14 +995,12 @@ resulting constant is placed on context->pending_init_con for use further on.
 
     is_whole_object_init = TRUE;
     cssp = symbol_supplement_for_class(context->type);
-    check_assertion_str(cssp->has_copy_constructor ||
+    check_assertion_str(c99_mode ||
+                          cssp->has_copy_constructor ||
                           cssp->construction_by_bitwise_copy_allowed ||
                           skip_typerefs(context->type)->
                                   variant.class_struct_union.is_nonreal_class,
                         "process_whole_object_init: missing copy constructor");
-    /* This is an array element that can only be initialized by a
-       constructor.  Treat the expression as an argument for the constructor
-       call. */
     if (context->pending_init_con != NULL) {
       /* The initializer has already been scanned. */
       levels_down = context->pending_init_levels;
