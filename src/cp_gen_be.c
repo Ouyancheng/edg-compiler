@@ -3072,6 +3072,13 @@ this selection.
              object_expr->variant.variable->is_anonymous_parent_object) {
     /* For an anonymous union variable, do not put out the variable or "."
        at all. */
+    /* Do check for a field that ends up requiring a global qualifier.
+       Field references are put out as unqualified names, so this is not
+       checked when putting out the field. */
+    if (field_expr->variant.field->source_corresp.
+                                                 global_qualification_needed) {
+      write_tok_str("::");
+    }  /* if */
   } else {
     /* Normal "." case. */
     gen_lvalue(object_expr);
