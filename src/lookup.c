@@ -153,6 +153,8 @@ the options being used for the lookup.
     a_boolean		must_be_class_or_namespace
                              = (options & IDL_MUST_BE_CLASS_OR_NAMESPACE) != 0;
     a_boolean		must_be_tag   = (options & IDL_MUST_BE_TAG) != 0;
+    a_boolean		tentative_type_lookup
+                                  = (options & IDL_TENTATIVE_TYPE_LOOKUP) != 0;
     a_scope_number	scope_number = scope_stack[depth_scope_stack].number;
     a_boolean		instantiation_context_lookup =
                                     (options & IDL_INSTANTIATION_CONTEXT) != 0;
@@ -168,6 +170,7 @@ the options being used for the lookup.
                                                  must_be_class_or_namespace &&
           sym->instantiation_context_lookup ==
                                               instantiation_context_lookup &&
+          sym->tentative_type_lookup == tentative_type_lookup &&
           sym->must_be_tag_lookup == must_be_tag) {
         /* If this is not a qualified lookup, the decl_scope of the symbol
            must match the current scope. */
@@ -886,6 +889,15 @@ scope lookup.  options specifies the options being used for the lookup.
                Simply ignore the new one. */
           }  /* if */
         }  /* if */
+      } else if ((options & IDL_TENTATIVE_TYPE_LOOKUP) != 0 &&
+                 is_type_symbol(new_sym) && !is_type_symbol(fund_curr_sym)) {
+        /* We are doing a tentative type lookup and the new symbol is
+           a type, but the old one is not.  This is an ambiguous case,
+           but when possible, we want the symbol returned to point to
+           the type symbol.  This improves error recovery in declaration
+           contexts. */
+       set_namespace_projection_symbol(curr_sym, new_sym,
+                                       depth_scope_stack);
       }  /* if */
     } else {
       /* Both symbols are functions. */
@@ -1076,13 +1088,17 @@ of the lookup is returned to the caller.
 
   db_enter(4, "do_using_directive_lookup");
   /* Look through the inactive symbols for any symbols associated with
-     one of the marked namespaces. */
+     one of the marked namespaces.  Note that we keep looking even if
+     an ambiguity is detected.  The symbol pointed to by the ambiguous
+     synthesized projection symbol may differ depending on the
+     lookup options. */
   for (new_sym = locator->symbol_header->inactive_symbols;
        new_sym != NULL; new_sym = new_sym->next) {
     a_namespace_ptr		nsp;
     a_symbol_ptr		ns_sym;
     a_symbol_ptr		fund_sym;
     a_scope_depth		ns_depth;
+    a_boolean			any_errors = FALSE;
     /* Ignore symbols that are not namespace members. */
     if (new_sym->is_class_member) continue;
     nsp = new_sym->parent.namespace_ptr;
@@ -1098,7 +1114,6 @@ of the lookup is returned to the caller.
     ns_depth = ns_sym->variant.namespace_info.extra_info->
                                  scope_depth_at_which_using_directive_applies;
     if (&scope_stack[ns_depth] == ssep) {
-      a_boolean	any_errors = FALSE;
       if (synth_sym == NULL) {
         /* Look for a previous synthesized namespace projection symbol
            for this scope. */
@@ -1129,11 +1144,6 @@ of the lookup is returned to the caller.
       /* Set synth_sym in case it was not set earlier.  This
          suppresses subsequent attempts to look up synth_sym. */
       synth_sym = sym;
-      /* If an error occurred while trying to reconcile the two
-         symbols, don't look for any additional matches. */
-      if (any_errors) {
-        break;
-      }  /* if */
     }  /* if */
   }  /* for */
   db_exit();
@@ -1579,13 +1589,12 @@ that do normal id lookup processing.
                                  /*qualified_lookup=*/FALSE,
                                  (a_namespace_ptr)NULL, options,
                                  &any_errors);
-  if (!any_errors) {
-    /* Add the second symbol to the set. */
-    sym = add_symbol_to_lookup_set(sym, def_sym, locator,
-                                   /*qualified_lookup=*/FALSE,
-                                   (a_namespace_ptr)NULL, options,
-                                   &any_errors);
-  }  /* if */
+  /* Add the second symbol to the set.  This is done even if an error was
+     returned from the previous lookup. */
+  sym = add_symbol_to_lookup_set(sym, def_sym, locator,
+                                 /*qualified_lookup=*/FALSE,
+                                 (a_namespace_ptr)NULL, options,
+                                 &any_errors);
   return sym;
 }  /* merge_instantiation_lookup_symbols */
 
@@ -2303,6 +2312,10 @@ as follows:
      point of view it should not be visited twice, but our implementation
      will disregard symbols that are already part of the lookup set. */
   if (nssp != NULL) nssp->visited_by_qualified_lookup = TRUE;
+  /* Look through each of the using directives in this namespace.  We
+     keep going even if an ambiguity is detected because the symbol
+     returned may differ depending on the lookup options so we need
+     to check each symbol to make sure we return the appropriate one. */
   for (; udp != NULL; udp = udp->next) {
     a_namespace_symbol_supplement_ptr	next_nssp;
     next_nssp = namespace_supplement_for_namespace(udp->assoc_namespace);
@@ -2328,9 +2341,6 @@ as follows:
                                             orig_ns_ptr, options,
                                             any_errors);
     }  /* if */
-    /* any_errors will be true if the lookup is ambiguous for some reason.
-       Stop searching once an ambiguity is detected. */
-    if (*any_errors) break;
   }  /* for */
   /* Clear the flag that indicates this namespace is being processed. */
   if (nssp != NULL) nssp->visited_by_qualified_lookup = FALSE;

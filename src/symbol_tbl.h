@@ -1383,6 +1383,14 @@ typedef struct a_symbol {
 			/* TRUE if this is a class or enum type that has been
 			   used in a way that would force external linkage (if
 			   it has linkage at all). */
+  a_bit_field	ambiguous:1;
+			/* TRUE if the symbol name is ambiguous in
+			   the current scope, i.e., another symbol with the
+			   same name is visible, and there is no reason to
+			   prefer one over the other.  This is used for
+			   sk_projection, sk_namespace_projection, and
+			   sk_overloaded_function symbols that are
+			   synthesized namespace projection symbols. */
   a_bit_field	synthesized_namespace_projection:1;
 			/* TRUE for sk_namespace_projection and
 			   sk_overloaded_function symbols that were created
@@ -1401,6 +1409,10 @@ typedef struct a_symbol {
 			/* TRUE for synthesized namespace projection symbols
 			   that were generated as a result of an
 			   IDL_MUST_BE_TAG lookup. */
+  a_bit_field	tentative_type_lookup:1;
+			/* TRUE for synthesized namespace projection symbols
+			   that were generated as a result of an
+			   IDL_TENTATIVE_TYPE_LOOKUP lookup. */
   a_bit_field	do_not_reuse:1;
 			/* TRUE for synthesized namespace symbols generated
 			   as a result of a special lookup that cannot be
@@ -1409,14 +1421,6 @@ typedef struct a_symbol {
 			/* TRUE for synthesized namespace projection symbols
 			   that are generated as a result of an instantiation
 			   context lookup. */
-  a_bit_field	ambiguous:1;
-			/* TRUE if the symbol name is ambiguous in
-			   the current scope, i.e., another symbol with the
-			   same name is visible, and there is no reason to
-			   prefer one over the other.  This is used for
-			   sk_projection, sk_namespace_projection, and
-			   sk_overloaded_function symbols that are
-			   synthesized namespace projection symbols. */
   union {
     /* When kind == sk_undefined, no variant fields. */
     /* When kind == sk_keyword: */
