@@ -412,6 +412,9 @@ extern a_boolean decl_specifiers(a_decl_flag_set      input_flags,
 			   where the type associated with the routine entry is
 			   marked as prototyped but the defining declaration
 			   is old-style. */
+#define SFB_IS_INSTANTIATION 0x10
+			/* If this bit is set the definition is being generated
+			   by the compiler based on a template. */
 
 extern void scan_function_body(a_routine_ptr      rout_ptr,
                                a_func_info_block  *func_info,
