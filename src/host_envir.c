@@ -1922,7 +1922,10 @@ Set module_id to the string.
        can be used as part of the module ID. */
     for (variable = scope->variables;
          variable != NULL; variable = variable->next) {
-      if (variable->storage_class == (a_storage_class)sc_unspecified) {
+      /* Only consider varibles that are defined.  Make sure that the
+         init_kind is not none -- this eliminates tentative definitions. */
+      if (variable->storage_class == (a_storage_class)sc_unspecified &&
+          variable->init_kind != (an_init_kind)initk_none) {
         external_name = variable->source_corresp.name;
         check_assertion(external_name != NULL);
         break;
@@ -1935,7 +1938,13 @@ Set module_id to the string.
         if (routine->storage_class == (a_storage_class)sc_unspecified) {
           external_name = routine->source_corresp.name;
           check_assertion(external_name != NULL);
-          break;
+          /* If this is not a template function then stop now.  If it is
+             a template function, remember the name in case no better
+             alternative is found, but keep looking for a nontemplate.
+             This is done just in case the front end is being used in
+             a mode where template instances may be generated in more than
+             one compilation unit and then filtered out later. */
+          if (!routine->is_template_function) break;
         }  /* if */
       }  /* for */
     }  /* if */
