@@ -5360,6 +5360,9 @@ This routine may only be called in C++ mode.
   }  /* if */
   /* Assume we have found an identifier until we discover otherwise. */
   is_identifier = TRUE;
+  /* Clear the specific symbol field which may have been set by the lookups
+     performed above. */
+  locator_for_curr_id.specific_symbol = NULL;
   if (is_qualified_name) {
     /* This is a qualifier -- see if it is a pointer to member. */
     if (curr_token == tok_star) {
