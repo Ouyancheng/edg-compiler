@@ -6208,6 +6208,19 @@ ones are allocated in the scope specified by decl_scope_level.
     /* The symbols list for the anonymous union will be eliminated.  Its
        field symbols are promoted to the scope of the containing class. */
     cssp->symbols = NULL;
+    /* Clear special symbol pointers for routines that will be discarded. */
+    cssp->constructor = NULL;
+    cssp->destructor = NULL;
+    cssp->trivial_default_constructor = NULL;
+    cssp->assignment_operator = NULL;
+    /* Also reset some flags to values that make sense after the union
+       is transformed. */
+    cssp->has_nontrivial_default_constructor = FALSE;
+    cssp->has_user_declared_default_constructor = FALSE;
+    cssp->has_copy_constructor = FALSE;
+    cssp->has_copy_constructor_for_const_object = FALSE;
+    cssp->assignment_by_bitwise_copy_allowed = TRUE;
+    cssp->construction_by_bitwise_copy_allowed = TRUE;
   }  /* if */
   /* Go through each of the symbols on the list. */
   check_assertion(decl_scope_level == depth_scope_stack || C_mode());
