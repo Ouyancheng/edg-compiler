@@ -3912,21 +3912,22 @@ discarding typedefs.
   a_type_ptr  tp1 = *type1, tp2 = *type2;
 
   if (is_qualified_type(tp1) && is_qualified_type(tp2)) {
-    /* Both types are have type qualifiers.  Record exactly how they are
+    /* Both types have type qualifiers.  Record exactly how they are
        qualified. */
     type1_is_const = is_const_qualified_type(tp1);
     type1_is_volatile = is_volatile_qualified_type(tp1);
     type2_is_const = is_const_qualified_type(tp2);
     type2_is_volatile = is_volatile_qualified_type(tp2);
+    /* Strip off the qualifiers. */
+    tp1 = skip_typerefs(tp1);
+    tp2 = skip_typerefs(tp2);
     if (type1_is_const == type2_is_const &&
         type1_is_volatile == type2_is_volatile) {
       /* Either both are const, both are volatile, or both are const volatile.
          Return both types with all qualifiers stripped off. */
     } else {
-      /* They are differently qualified.  Strip off the qualifiers and then
-         add them back on as appropriate. */
-      tp1 = skip_typerefs(tp1);
-      tp2 = skip_typerefs(tp2);
+      /* They are differently qualified.  The qualifiers have been stripped
+         off; add them back on as appropriate. */
       is_const = type1_is_const && !type2_is_const;
       is_volatile = type1_is_volatile && !type2_is_volatile;
       if (is_const || is_volatile) {
