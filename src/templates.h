@@ -20,8 +20,6 @@ templates.h -- Declarations relating to templates.c (template support)
 #include "il.h"
 #include "symbol_tbl.h"
 
-extern void template_declaration(void);
-
 extern a_symbol_ptr find_template_class(a_symbol_ptr        class_template_sym,
                                         a_template_arg_ptr  *template_arg_list,
                                         a_source_position   *source_pos);
@@ -63,6 +61,8 @@ extern void define_template_static_data_member(
 extern a_boolean equiv_template_arg_lists(a_template_arg_ptr list1,
                                           a_template_arg_ptr list2,
                                           a_boolean          is_func_template);
+
+extern a_symbol_ptr template_declaration(a_boolean  *defines_something);
 
 /* If tp is a class in need of instantiation or an array whose underlying
    element type is such a class, instantiate it.  Otherwise, do nothing. */
