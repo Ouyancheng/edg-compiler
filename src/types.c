@@ -1121,11 +1121,9 @@ array_type.
     elem_type = skip_typerefs(elem_type);
     if (is_array_type(elem_type)) {
       set_type_size(elem_type);
-    } else if (is_immediate_class_type(elem_type)) {
-      if (elem_type->variant.class_struct_union.abstract) {
-        /* error_position should already be set correctly. */
-        error(ec_abstract_class_object_not_allowed);
-      }  /* if */
+    } else if (is_abstract_class_type(elem_type)) {
+      /* error_position should already be set correctly. */
+      error(ec_array_of_abstract_class);
     }  /* if */
 #if CHECKING
     if (elem_type->size == 0) {
