@@ -1503,6 +1503,9 @@ the file scope, do not process it (but record an orphan in the latter case).
             unexpected_condition_str(
                               "walk_entry_and_subtree: bad dynamic init kind");
         }  /* switch */
+#if DO_IL_LOWERING
+        /* destructible_entity_descr not processed. */
+#endif /* DO_IL_LOWERING */
       }
       break;
     case iek_local_static_variable_init:
