@@ -606,6 +606,7 @@ extern void prep_initializer_operand(an_operand         *source_operand,
 
 extern void prep_argument_operand(an_operand         *source_operand,
                                   a_param_type_ptr   formal_param,
+                                  an_error_code      err_code,
                                   an_expression_kind expression_kind);
 
 extern void prep_return_operand(an_operand         *source_operand,
