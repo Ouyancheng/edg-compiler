@@ -1,5 +1,16 @@
 Version 2.44
 
+6/23/00  Elision of explicit cast above implicit cast in IL
+
+When an explicit cast above an implicit (compiler_generated) cast is
+elided in the IL, the remaining cast is now marked as explicit.
+
+  int main () {
+    char a[5];
+    char *p = (char *)a;  // Cast now has compiler_generated FALSE
+                          // Implicit cast is array -> pointer decay
+  }
+
 6/23/00  Keeping do-nothing explicit casts in the IL
 
 In the past, casts that have no effect, for example

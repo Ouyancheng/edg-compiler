@@ -2247,7 +2247,7 @@ Test an expression node to see if it's a bit-field extraction.
                                (an_expr_operator_kind)eok_extract_bit_field))
 
 
-void cast_node(an_expr_node_ptr  *node,
+void cast_node(an_expr_node_ptr  *p_node,
                a_type_ptr        new_type,
                a_boolean         check_cast_access,
                a_boolean         is_implicit_cast,
@@ -2273,18 +2273,19 @@ inaccessible base classes.  This routine does not handle user-defined
 conversions.
 */
 {
-  a_constant local_constant;
-  a_boolean  did_not_fold;
-  a_boolean  need_cast;
+  a_constant       local_constant;
+  a_boolean        did_not_fold;
+  a_boolean        need_cast;
+  an_expr_node_ptr node = *p_node;
 
   /* Drop any qualifiers on the destination type, as appropriate. */
   new_type = rvalue_type(new_type);
   /* See whether the cast is actually needed.  Implicit casts that do
      not change the type, for example, are not needed. */
-  if (!il_identical_types((*node)->type, new_type)) {
+  if (!il_identical_types(node->type, new_type)) {
     /* A cast that changes the type is needed. */
     need_cast = TRUE;
-  } else if (is_bit_field_extract_node(*node)) {
+  } else if (is_bit_field_extract_node(node)) {
     /* Don't allow dropping a cast to the same type over a bit-field
        extraction node, because the node with the cast has different
        integral promotion behavior. */
@@ -2292,6 +2293,15 @@ conversions.
   } else if (!is_implicit_cast) {
     /* Do-nothing explicit casts are preserved in some configurations. */
     need_cast = PRESERVE_EFFECTLESS_EXPLICIT_CASTS_IN_IL;
+    if (!need_cast &&
+        is_operation_node(node) &&
+        node->variant.operation.kind == (an_expr_operator_kind)eok_cast &&
+        node->variant.operation.compiler_generated) {
+      /* An explicit cast over an equivalent implicit cast, and we wouldn't
+         otherwise keep the new cast.  Turn the old cast into an explicit
+         cast. */
+      node->variant.operation.compiler_generated = FALSE;
+    }  /* if */
   } else {
     /* Do-nothing implicit casts are not needed. */
     need_cast = FALSE;
@@ -2299,21 +2309,21 @@ conversions.
   if (!need_cast) {
     /* If the new type is identical to the old type, just put the new type
        in the node (since it may be "identical" but not exactly the same). */
-    (*node)->type = new_type;
+    node->type = new_type;
   } else if (m_is_error_type(new_type)) {
     /* Casting to an error type changes the node to an error node. */
-    *node = error_node();
+    *p_node = error_node();
   } else {
     /* Casting a node to a class type is not allowed. */
     check_assertion_str(!is_class_struct_union_type(new_type),
                         "cast_node: cast to class type");
     did_not_fold = TRUE;
-    if (is_constant_node(*node)) {
+    if (is_constant_node(node)) {
       /* Copy the constant to a local copy.  Type-change the local constant
          and copy the result to a new constant.  Since we are in a
          nonconstant context, reduce any error to a warning and leave
          the conversion to be done at runtime. */
-      copy_constant((*node)->variant.constant, &local_constant);
+      copy_constant(node->variant.constant, &local_constant);
       type_change_constant(&local_constant, new_type, is_implicit_cast,
                            /*constant_context=*/FALSE,
                            /*evaluated_context=*/TRUE,
@@ -2326,13 +2336,13 @@ conversions.
       /* Note that if the constant type-change was attempted, it was
          done on a copy of the constant.  The original constant and
          expression were not changed, and therefore can be used here. */
-      add_cast_to_node(node, new_type, check_cast_access, is_implicit_cast,
+      add_cast_to_node(p_node, new_type, check_cast_access, is_implicit_cast,
                        is_reinterpret_cast, reinterpret_semantics, err_pos);
     } else {
       /* The operation was successfully folded to a constant. */
-      (*node)->variant.constant = alloc_shareable_constant(&local_constant);
-      (*node)->variant.constant->is_reinterpret_cast = is_reinterpret_cast;
-      (*node)->type = new_type;
+      node->variant.constant = alloc_shareable_constant(&local_constant);
+      node->variant.constant->is_reinterpret_cast = is_reinterpret_cast;
+      node->type = new_type;
     }  /* if */
   }  /* if */
 }  /* cast_node */

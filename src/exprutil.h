@@ -1033,7 +1033,7 @@ extern void add_base_class_casts(a_base_class_ptr  bcp,
                                  an_expr_node_ptr  *p_node,
                                  a_source_position *err_pos);
 
-extern void cast_node(an_expr_node_ptr  *node,
+extern void cast_node(an_expr_node_ptr  *p_node,
 		      a_type_ptr        type,
                       a_boolean         check_cast_access,
 		      a_boolean         is_implicit_cast,
