@@ -8581,13 +8581,15 @@ specifier is restored.
 }  /* linkage_specification */
 
 
-void handler_declaration(a_statement_ptr     sp,
+void handler_declaration(a_statement_ptr     try_block_stmt,
                          a_source_position*  catch_pos)
 /*
 Process a handler declaration:
 
   "catch" "(" exception-declaration ")" compound-statement
 
+try_block_stmt is a pointer to the try-block statement to which the catch
+clause is to be attached.  catch_pos is the source position of "catch".
 */
 {
   a_handler_ptr      handler, prev_handler;
@@ -8682,14 +8684,25 @@ Process a handler declaration:
             }  /* if */
           }  /* if */
         }  /* if */
+        /* Create a variable for the handler parameter, even if there's no
+           explicit name. */
         handler->parameter = make_handler_parameter(type_ptr);
+        /* Update the symbol, if there is one. */
         if (sym != NULL) {
           sym->variant.variable.ptr = handler->parameter;
           set_source_corresp(&(handler->parameter->source_corresp), sym);
           mark_defined(sym, &locator.source_position);
         }  /* if */
+        /* Add the variable to the parameters list on the scope associated
+           with the block created for the catch clause. */
+        add_to_parameters_list(handler->parameter);
+        /* A handler parameter is initialized by the run-time when the
+           handler is invoked.  Create the dynamic init entry to represent
+           the initialization. */
         if (is_class_struct_union_type(type_ptr)) {
+          /* Classes may require the use of a copy constructor. */
           a_boolean  bitwise_copy;
+
           cctor = select_copy_constructor(type_ptr,
                                           /*const_object_required=*/FALSE,
                                           /*volatile_object_okay=*/FALSE,
@@ -8700,9 +8713,12 @@ Process a handler declaration:
                                    /*honor_virtual=*/FALSE,
                                    /*evaluated=*/TRUE);
         } else {
+          /* Non classes require only bitwise copying. */
           cctor = dtor = NULL;
         }  /* if */
         if (cctor != NULL) {
+          /* A copy constructor was located.  Create a dynamic-init entry
+             to point to it. */
           ptp = (skip_typerefs(cctor->type))->
                                    variant.routine.extra_info->param_type_list;
 
@@ -8714,9 +8730,11 @@ Process a handler declaration:
              arg. */
           ptp = ptp->next;
           dip->variant.constructor.args = copy_default_arg_expr_list(ptp);
+          /* Only at runtime is the source known. */
           dip->variant.constructor.
                              is_copy_constructor_with_implied_source = TRUE;
         } else {
+          /* A bitwise copy is all that is required. */
           dip = alloc_dynamic_init((a_dynamic_init_kind)dik_bitwise_copy);
         }  /* if */
         dip->variable = handler->parameter;
@@ -8724,9 +8742,10 @@ Process a handler declaration:
         handler->dynamic_init = dip;
       }  /* if */
     }  /* if */
-    prev_handler = sp->variant.try_block.handlers;
+    prev_handler = try_block_stmt->variant.try_block.handlers;
     if (prev_handler == NULL) {
-      sp->variant.try_block.handlers = handler;
+      /* This is the first handler declared for this try block. */
+      try_block_stmt->variant.try_block.handlers = handler;
     } else {
       a_boolean  masked = FALSE;
       /* Make a pass over the previously declared handlers in this try block
@@ -8764,10 +8783,11 @@ Process a handler declaration:
     }  /* if */
     (void)required_token(tok_rparen, ec_exp_rparen);
   }  /* if */
+  /* Parse the body of the handler. */
   handler->statement = compound_statement(/*at_function_level=*/FALSE,
                                           /*explicit_return_type=*/FALSE,
                                           /*is_catch_clause=*/TRUE);
-  pop_scope();
+  /* pop_scope is called from compound_statement processing. */
   db_exit();
 }  /* handler_declaration */
 
