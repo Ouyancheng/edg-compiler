@@ -3703,25 +3703,30 @@ on the basis that MSVC++ prefers copy constructors over other functions.
   a_symbol_ptr sym1 = cfp1->function_symbol;
   a_symbol_ptr sym2 = cfp2->function_symbol;
 
-  if (sym1 != NULL && sym2 != NULL) {
-    a_routine_ptr rout1 = sym1->variant.routine.ptr;
-    a_routine_ptr rout2 = sym2->variant.routine.ptr;
+  if (sym1 != NULL && sym2 != NULL &&
+      !cfp1->is_function_template && !cfp2->is_function_template) {
+    a_routine_ptr rout1, rout2;
     a_type_qualifier_set
                   qualifiers;
-    a_boolean     is_cctor1 =
-                  (rout1->special_kind ==
+    a_boolean     is_cctor1, is_cctor2;
+    check_assertion(sym1->kind == (a_symbol_kind)sk_routine ||
+                    sym1->kind == (a_symbol_kind)sk_member_function);
+    check_assertion(sym2->kind == (a_symbol_kind)sk_routine ||
+                    sym2->kind == (a_symbol_kind)sk_member_function);
+    rout1 = sym1->variant.routine.ptr;
+    rout2 = sym2->variant.routine.ptr;
+    is_cctor1 = (rout1->special_kind ==
                                     (a_special_function_kind)sfk_constructor &&
-                   is_copy_constructor(rout1,
-                                       rout1->source_corresp.parent.class_type,
-                                       &qualifiers,
-                                       /*is_declarative_context=*/FALSE));
-    a_boolean     is_cctor2 =
-                  (rout2->special_kind ==
+                 is_copy_constructor(rout1,
+                                     rout1->source_corresp.parent.class_type,
+                                     &qualifiers,
+                                     /*is_declarative_context=*/FALSE));
+    is_cctor2 = (rout2->special_kind ==
                                     (a_special_function_kind)sfk_constructor &&
-                   is_copy_constructor(rout2,
-                                       rout2->source_corresp.parent.class_type,
-                                       &qualifiers,
-                                       /*is_declarative_context=*/FALSE));
+                 is_copy_constructor(rout2,
+                                     rout2->source_corresp.parent.class_type,
+                                     &qualifiers,
+                                     /*is_declarative_context=*/FALSE));
     if (is_cctor1 && !is_cctor2) {
       cmp = 1;
     } else if (is_cctor2 && !is_cctor1) {
