@@ -1033,6 +1033,7 @@ Return TRUE if "name" is a C reserved word.
       break;
     case 'i':
       if (strcmp(name, "if") == 0 ||
+          strcmp(name, "inline") == 0 ||
           strcmp(name, "int") == 0) res = TRUE;
       break;
     case 'l':
@@ -1059,7 +1060,8 @@ Return TRUE if "name" is a C reserved word.
       break;
     case 'u':
       if (strcmp(name, "union") == 0 ||
-          strcmp(name, "unix") == 0) res = TRUE;
+          strcmp(name, "unix") == 0 ||
+          strcmp(name, "unsigned") == 0) res = TRUE;
       break;
     case 'v':
       if (strcmp(name, "void") == 0 ||

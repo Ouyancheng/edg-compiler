@@ -1,5 +1,11 @@
 Version 3.1
 
+8/5/02   C-generating back end: avoid "inline" as entity name
+
+"inline" has been added to the list of known C keywords used
+in the C-generating back end to avoid outputting an entity
+with a name that is a keyword.
+
 8/5/02   bool type and SAME_REPR_INTS_INTERCHANGEABLE_IN_IL
 
 When SAME_REPR_INTS_INTERCHANGEABLE_IN_IL is TRUE (not the default),
