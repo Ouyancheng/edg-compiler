@@ -6637,7 +6637,7 @@ a pointer over a reference type or creating an array of references.
             tap = get_template_arg_by_list_pos((a_template_param_ptr)NULL,
                                                &templ_arg_list,
                                                coordinates->position);
-            if (tap->variant.type == NULL) {
+            if (!is_type_templ_arg(tap) || tap->variant.type == NULL) {
               /* No value has been provided for this template parameter yet.
                  Don't do the substitution, but don't consider this to be
                  a copy error either. */
