@@ -4763,12 +4763,6 @@ for both C-style casts and C++ functional-notation type conversions.
       *p_type_cast_to = type_cast_to =
                       type_after_array_to_pointer_transformation(type_cast_to);
       type_warning(ec_nonstd_array_cast, type_cast_to);
-    } else if (any_cfront_mode() &&
-               check_member_function_typedef(type_cast_to, &error_position)) {
-      /* The type is a cfront-style member function typedef -- it is an error
-         to use it anywhere but in a pointer-to-member declaration.  The
-         diagnostic has already been issued. */
-      err = TRUE;
     } else {
       /* Invalid destination type for cast. */
       type_error(ec_cast_to_bad_type, type_cast_to);
