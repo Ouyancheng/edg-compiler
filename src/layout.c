@@ -1923,7 +1923,8 @@ of a base class.  Either field or base (but not both) must be NULL.
   a_base_class_ptr  bcp = base_classes_of(class_type);
   a_targ_size_t     offset;
 
-  check_assertion((field != NULL) ^ (base != NULL));
+  check_assertion((field != NULL && base == NULL) ||
+                  (field == NULL && base != NULL));
   offset = (field != NULL) ? field->offset : base->offset;
   for (; bcp != NULL; bcp = bcp->next) {
     if (bcp->direct && bcp->offset_is_set && !is_empty_class_type(bcp->type)) {
