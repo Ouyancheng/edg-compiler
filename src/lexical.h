@@ -1066,7 +1066,8 @@ extern a_symbol_ptr coalesce_template_class_reference
 extern void begin_rescan_of_pragma_tokens(struct a_pending_pragma *ppp,
 					  a_stop_token_array      stop_tokens);
 
-extern void wrapup_rescan_of_pragma_tokens(a_stop_token_array stop_tokens);
+extern void wrapup_rescan_of_pragma_tokens(a_boolean          error_in_pragma,
+                                           a_stop_token_array stop_tokens);
 
 /* Macro to check prevent calling the error checking function unless some
    error flags have been specified. */

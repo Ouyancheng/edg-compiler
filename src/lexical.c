@@ -290,6 +290,36 @@ Issue a diagnostic on unimplemented keywords.
 }  /* unimplemented_keyword_diagnostic */
 
 
+static a_pending_pragma_ptr make_copy_of_pragma_list
+					(a_pending_pragma_ptr old_list)
+/*
+Make a copy of a list of pending pragma entries and set the flag in the
+entry that indicates that this is a copy.  This routine is used when
+rescanning tokens from a reusable cache.  When a token with associated
+pragma entries is rescanned, the pragma entries must be copied because
+the original entries will remain attached to the token in the
+reusable cache and must not be affected by operations performed on the
+copies associated with the token being processed.
+*/
+{
+  a_pending_pragma_ptr	new_list = NULL;
+  a_pending_pragma_ptr	new_list_end = NULL;
+  a_pending_pragma_ptr	src_ppp;
+  a_pending_pragma_ptr	dest_ppp;
+
+  src_ppp = old_list;
+  while (src_ppp != NULL) {
+    dest_ppp = alloc_copy_of_pending_pragma(src_ppp);
+    dest_ppp->discard_cache_when_done = FALSE;
+    if (new_list == NULL) new_list = dest_ppp;
+    if (new_list_end != NULL) new_list_end->next = dest_ppp;
+    new_list_end = dest_ppp;
+    src_ppp = src_ppp->next;
+  }  /* while */
+  return new_list;
+}  /* make_copy_of_pragma_list */
+
+
 void clear_token_cache(a_token_cache *cache,
 		       a_boolean     reusable)
 /*
@@ -863,7 +893,7 @@ an equivalent change.
        with the cached token. */
     check_assertion_str(!suppress_pragma_processing,
                   "get_token_from...: pragma found in suppress_pragma mode");
-    curr_token_pragmas = ctp->variant.pragmas;
+    curr_token_pragmas = make_copy_of_pragma_list(ctp->variant.pragmas);
   }  /* for */
   /* Entry is for a token (normal case). */
   ctoken = (a_token_kind)ctp->token;
@@ -6786,7 +6816,8 @@ instantiation file suffix list.
 void begin_rescan_of_pragma_tokens(a_pending_pragma_ptr ppp,
 				   a_stop_token_array   save_stop_token_array)
 /*
-Active the token cache containing the pragma to be scanned.
+Active the token cache containing the pragma to be scanned and push a
+pragma scope to be used while scanning the pragma tokens.
 */
 {
   /* Save and clear the list of tokens that will stop flushing on error, and
@@ -6795,18 +6826,38 @@ Active the token cache containing the pragma to be scanned.
   clear_stop_tokens();
   add_stop_token(tok_newline);
   rescan_reusable_cache(&ppp->token_cache);
+  /* Push a pragma scope.  This prevents names introduced by the pragma
+     processing from polluting the current scope. */
+  (void)push_scope((a_scope_kind)sck_pragma, NO_SCOPE_NUMBER, (a_type_ptr)NULL,
+	           (a_routine_ptr)NULL, (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
+	           (a_template_arg_ptr)NULL);
 }  /* begin_rescan_of_pragma_tokens */
 
 
-void wrapup_rescan_of_pragma_tokens(a_stop_token_array save_stop_token_array)
+void wrapup_rescan_of_pragma_tokens(a_boolean	       error_in_pragma,
+				    a_stop_token_array save_stop_token_array)
 /*
 This routine is called by pragma processing routines when they have reached
 the end of the pragma directive being scanned.  This routine fetches
 the token that terminates the token cache and returns the token stream
-to its original state.  The pragma scanning routine is responsible for
-fetching all tokens up to the newline that marks the end of the pragma.
+to its original state.  If the current token is not the newline that
+terminates the pragma directive, an error is issued (unless the
+error_in_pragma flag is set indicating the pragma processing routine already
+diagnosed an error).  The pragma scope pushed when the token cache
+is actived is popped here.
 */
 {
+  if (curr_token != tok_newline) {
+    if (!error_in_pragma) {
+      pos_error(ec_extra_text_in_pp_directive, &pos_curr_token);
+    }  /* if */
+    /* Flush any tokens until a newline is found.  Also stop at end of
+       source just in case the user pragma processing routine left us in
+       an unexpected state. */
+    while (curr_token != tok_newline && curr_token != tok_end_of_source) {
+      (void)get_token();
+    }  /* while */
+  }  /* if */
   check_assertion_str(curr_token == tok_newline,
                       "wrapup_rescan_of_pragma_tokens: tok_newline expected");
   /* Bypass the newline token. */
@@ -6817,6 +6868,8 @@ fetching all tokens up to the newline that marks the end of the pragma.
   (void)get_token();
   /* Restore the stop token set as at entry. */
   copy_stop_tokens(save_stop_token_array, stop_token_array);
+  /* Pop the pragma scope. */
+  pop_scope();
 }  /* wrapup_rescan_of_pragma_tokens */
 
 
