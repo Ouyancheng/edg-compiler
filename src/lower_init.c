@@ -1826,7 +1826,8 @@ are any (genuine) constants in the aggregate, set *keep_constant to TRUE.
     }  /* if */
 #endif /* CHECKING */
     /* Class, struct, or union -- get first field (nonstatic data member). */
-    ipmp->curr_field = aggr_type->variant.class_struct_union.field_list;
+    ipmp->curr_field = next_initializable_field(
+                             aggr_type->variant.class_struct_union.field_list);
 #if CHECKING
     if (ipmp->curr_field == NULL) {
       internal_error("lower_dynamic_init_aggregate_constant: no fields");
@@ -1889,7 +1890,7 @@ are any (genuine) constants in the aggregate, set *keep_constant to TRUE.
 #endif /* CHECKING */
       /* Class, struct, or union -- go on to next field (nonstatic data
          member). */
-      ipmp->curr_field = ipmp->curr_field->next;
+      ipmp->curr_field = next_initializable_field(ipmp->curr_field->next);
 #if CHECKING
       if (ipmp->curr_field == NULL) {
         internal_error(
