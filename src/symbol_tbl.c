@@ -8964,7 +8964,7 @@ a symbol that should be ignored in favor of a template to be found later.
   if (sym->kind == (a_symbol_kind)sk_field) {
     /* The name found is a nonstatic data member -- discard it. */
     result = TRUE;
-  } else if (is_function_symbol(sym)) {
+  } else if (is_function_or_template_symbol(sym)) {
     a_boolean		mixed_static_nonstatic = FALSE;
     if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
       mixed_static_nonstatic =
