@@ -64,8 +64,8 @@ typedef struct a_symbol_locator {
   /* Data structure used to store information about an identifier token.
      Can be used to look up the identifier or enter it into the symbol
      table. */
-  /* If you change this structure, be sure to also change clear_locator,
-     which follows immediately. */
+  /* If you change this structure, be sure to also change the initialization
+     of global variable cleared_locator in sym_tbl_init. */
   a_symbol_header_ptr
 		symbol_header;
 			/* The symbol header for the list of symbols with the
@@ -96,6 +96,9 @@ typedef struct a_symbol_locator {
 			/* TRUE if specific_symbol points to a nested class
 			   that is not actually visible, except as a C++
 			   anachronism (ARM 18.3.5). */
+  unsigned int  access_control_error_reported:1;
+			/* TRUE if an accessibility error has already been
+			   issued on the associated symbol. */
   a_symbol_ptr	specific_symbol;
 			/* If is_qualified_name is TRUE, this points to the
 			   specific symbol for the qualified name.  Otherwise,
@@ -119,20 +122,20 @@ typedef struct a_symbol_locator {
   } variant;
 } a_symbol_locator;
 
+
+EXTERN a_symbol_locator
+		cleared_locator;
+			/* An empty locator used to initialize locators in
+                           macro clear_locator. */
+
 /*
 Clear a symbol locator.
 */
 #define clear_locator(locator, position)                              \
-{ (locator)->symbol_header = NULL;                                    \
-  (locator)->source_position = *position;                             \
-  (locator)->is_qualified_name = FALSE;                               \
-  (locator)->is_global_qualified_name = FALSE;                        \
-  (locator)->is_operator_name = FALSE;                                \
-  (locator)->is_conversion_name = FALSE;                              \
-  (locator)->is_semivisible_nested_class = FALSE;                     \
-  (locator)->specific_symbol = NULL;                                  \
-  (locator)->variant.conversion_result_type = NULL;                   \
+{  *(locator) = cleared_locator;                                      \
+   (locator)->source_position = *position;                            \
 }  /* clear_locator */
+
 
 /* Return TRUE if two locators indicate the same symbol. */
 /* Only used in checking whether or not a declaration in an old-style
