@@ -1,5 +1,16 @@
 Version 2.33
 
+7/23/96  Added option to eccp to convert relative -I paths to absolute paths
+
+An option has been added to the eccp script that causes it to convert
+relative include directory paths to absolute paths when building the
+command line in the .ii file.  This is sometimes necessary when using
+the --prelink_copy_if_nonlocal option.  In such cases, path names that
+are relative to the original directory need to be converted into
+absolute path names in order for the command line to be correct
+when copied to the new directory.  This option is enabled by
+setting the environment variable EDG_USE_ABSOLUTE_INCL_DIR_PATHS to 1.
+
 7/2/96   Incorrect error test in mk_errinfo
 
 mk_errinfo was incorrectly checking for an error when opening the err_data.h

@@ -120,6 +120,14 @@ cc_command="$EDG_C_TO_OBJ_COMPILER $EDG_C_TO_OBJ_DEFAULT_OPTIONS"
 #
 gen_c_in_curr_dir=${EDG_GEN_C_IN_CURR_DIR-0}
 #
+# Flag that indicates whether the path names used in -I options should be
+# converted to absolute paths.  This should be set in environments where
+# the --prelink_copy_if_nonlocal option is being used, and where the
+# command line in the .ii file should reflect the directory to which the
+# file was copied and not the original directory.
+#
+EDG_USE_ABSOLUTE_INCL_DIR_PATHS=${EDG_USE_ABSOLUTE_INCL_DIR_PATHS-0}
+#
 # Other variables used in automatic instantiation mode
 #
 if [ $automatic_instantiation -eq 1 ] ; then
@@ -658,6 +666,21 @@ do
         -t | --instantiate)
           instantiation_mode_specified=1
           ;;
+        -I | --include_directory)
+          # Convert relative -I paths to absolute ones, if necessary.
+          if [ $EDG_USE_ABSOLUTE_INCL_DIR_PATHS -eq 1 ] ; then
+            absolute_path=`expr match $1 '/.*'`
+            if [ $absolute_path -eq 0 ] ; then
+              # The directory is a relative path.  Add the current directory
+              # to convert it to an absolute path
+              curr_param=$curr_param" "`pwd`/$1
+              # used_two_params is reset because the second parameter is
+              # added to the first one here, so the second should not be
+              # added to the .ii file command line below.
+              used_two_params=0
+            fi
+          fi
+          ;;
       esac
       ;;
 ###############################################################################
@@ -671,7 +694,7 @@ do
       feoptions=$1" $2 $feoptions"
       shift
       used_two_params=1
-      ;;
+     ;;
 ###############################################################################
 # Front end options with the argument included as part of the option argument.
 # For example, -d5 or --db=5 look like a single argument to the shell.
@@ -696,6 +719,31 @@ do
       case $curr_param in
         -t* | --instantiate=*)
           instantiation_mode_specified=1
+          ;;
+        -I*)
+          # Convert relative -I paths to absolute ones, if necessary.
+          if [ $EDG_USE_ABSOLUTE_INCL_DIR_PATHS -eq 1 ] ; then
+            dir_name=`expr $1 : '-I\(.*\)'`    # Get the string after the -I
+            absolute_path=`expr match $dir_name '/.*'`
+            if [ $absolute_path -eq 0 ] ; then
+              # The directory is a relative path.  Add the current directory
+              # to convert it to an absolute path
+              curr_param=-I`pwd`/$dir_name
+            fi
+          fi
+          ;;
+        --include_directory=*)
+          # Convert relative --include_directory  paths to absolute ones,
+          # if necessary.
+          if [ $EDG_USE_ABSOLUTE_INCL_DIR_PATHS -eq 1 ] ; then
+            dir_name=`expr $1 : '.*=\(.*\)'`    # Get the string after the =
+            absolute_path=`expr match $dir_name '/.*'`
+            if [ $absolute_path -eq 0 ] ; then
+              # The directory is a relative path.  Add the current directory
+              # to convert it to an absolute path
+              curr_param=--include_directory=`pwd`/$dir_name
+            fi
+          fi
           ;;
       esac
       ;;
