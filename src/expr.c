@@ -13,28 +13,22 @@ expr.c -- Expression scanning routines.
 
 */
 
-#include "basics.h"
-#include "mem_manage.h"
-#include "error.h"
-#include "lexical.h"
-#include "il.h"
-#include "symbol_tbl.h"
-#include "symbol_ref.h"
-#include "expr.h"
-#include "exprutil.h"
-#include "overload.h"
-#include "preproc.h"
-#include "folding.h"
-#include "const_ints.h"
-#include "cmd_line.h"
-#include "types.h"
-#include "decls.h"
+/* Header files common to all files. */
+#include "fe_common.h"
+/* Header files used by files involved in expression processing. */
+#include "expr_hdrs.h"
+
+#if HDRSTOP_RECOGNIZED
+/* Mark the end of the sequence of headers subject to precompiled header
+   processing. */
+#pragma hdrstop
+#endif /* HDRSTOP_RECOGNIZED */
+
+/* Additional header files. */
 #include "decl_inits.h"
-#include "target.h"
-#include "lang_feat.h"
-#include "templates.h"
-#include "pragma.h"
 #include "disambig.h"
+#include "pragma.h"
+#include "preproc.h"
 
 
 /*

@@ -13,21 +13,17 @@ overload.c -- Expression processing overload resolution.
 
 */
 
-#include "basics.h"
-#include "host_envir.h"
-#include "overload.h"
-#include "exprutil.h"
-#include "symbol_tbl.h"
-#include "symbol_ref.h"
-#include "il.h"
-#include "mem_manage.h"
-#include "error.h"
-#include "debug.h"
-#include "templates.h"
-#include "cmd_line.h"
-#include "types.h"
-#include "folding.h"
-#include "class_decl.h"
+/* Header files common to all files. */
+#include "fe_common.h"
+/* Header files used by files involved in expression processing. */
+#include "expr_hdrs.h"
+
+#if HDRSTOP_RECOGNIZED
+/* Mark the end of the sequence of headers subject to precompiled header
+   processing. */
+#pragma hdrstop
+#endif /* HDRSTOP_RECOGNIZED */
+
 
 /* Forward declarations required because of out-of-order references. */
 static void prep_conversion_operand(an_operand        *source_operand,

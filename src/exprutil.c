@@ -13,27 +13,21 @@ exprutil.c -- Expression scanning utility routines.
 
 */
 
-#include "basics.h"
-#include "host_envir.h"
-#include "target.h"
-#include "mem_manage.h"
-#include "debug.h"
-#include "error.h"
-#include "lexical.h"
-#include "il.h"
-#include "symbol_tbl.h"
-#include "symbol_ref.h"
-#include "expr.h"
-#include "exprutil.h"
+/* Header files common to all files. */
+#include "fe_common.h"
+/* Header files used by files involved in expression processing. */
+#include "expr_hdrs.h"
+
+#if HDRSTOP_RECOGNIZED
+/* Mark the end of the sequence of headers subject to precompiled header
+   processing. */
+#pragma hdrstop
+#endif /* HDRSTOP_RECOGNIZED */
+
+/* Additional header files. */
 #include "preproc.h"
-#include "folding.h"
-#include "const_ints.h"
-#include "cmd_line.h"
-#include "types.h"
-#include "decls.h"
-#include "class_decl.h"
-#include "templates.h"
 #include "pch.h"
+
 
 /*
 Information on references to symbols, held until the kind of reference to
