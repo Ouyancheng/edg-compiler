@@ -5522,6 +5522,12 @@ Do IL lowering of the indicated type and everything under it.
       case tk_typeref:
         lower_type(type->variant.typeref.type);
         break;
+      case tk_template_param:
+        /* These shouldn't really get out of the front end, but they do
+           sometimes get onto a based types list, so turn them into something
+           mostly harmless. */
+        set_type_kind(type, (a_type_kind)tk_error);
+        break;
 #if CHECKING
       case tk_unknown:  /* Shouldn't make it out of front end. */
       default:
