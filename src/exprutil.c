@@ -6687,15 +6687,13 @@ expression case (a GNU C extension) is characterized by operand_2 being NULL.
   } else {
     if (class_rvalue_case) {
       /* When the result is a class rvalue, we will do a final copy. */
-      if (!symbol_supplement_for_class(result_type)->
+      /* See if this operation can be optimized to avoid a copy. */
+      if (optimizable_class_rvalue_question(operand_2, operand_3,
+                                            &dip_2, &dip_3)) {
+        optimizable = TRUE;
+      } else {
+        if (!symbol_supplement_for_class(result_type)->
                                         construction_by_bitwise_copy_allowed) {
-        /* See if this operation can be optimized to avoid a copy.  Note that
-           we don't attempt to optimize cases that use a bitwise copy, because
-           the unoptimized version is efficient enough. */
-        if (optimizable_class_rvalue_question(operand_2, operand_3,
-                                              &dip_2, &dip_3)) {
-          optimizable = TRUE;
-        } else {
           /* A copy constructor will be used to do the final copy, so the
              operands of the "?" are the addresses of the class objects.
              The class test here is needed for mixed throw/class cases. */
