@@ -198,6 +198,12 @@ extern a_symbol_ptr curr_tag_symbol(a_symbol_kind tag_kind);
 
 extern a_symbol_ptr curr_scope_tag_symbol(a_symbol_kind tag_kind);
 
+extern a_symbol_ptr scan_tag_name(a_symbol_kind     tag_kind,
+                                  a_symbol_locator  *locator,
+                                  a_boolean         check_for_vacuous_decl,
+                                  a_scope_depth     *effective_decl_level,
+                                  a_boolean         *tag_resolution);
+
 extern a_variable_ptr make_variable(a_type_ptr      type_ptr,
                                     a_storage_class storage_class,
                                     a_boolean       at_file_scope);

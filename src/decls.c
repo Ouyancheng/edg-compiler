@@ -4459,6 +4459,108 @@ function_lparen:
 }  /* declarator */
 
 
+a_symbol_ptr scan_tag_name(a_symbol_kind     tag_kind,
+                           a_symbol_locator  *locator,
+                           a_boolean         check_for_vacuous_decl,
+                           a_scope_depth     *effective_decl_level,
+                           a_boolean         *tag_resolution)
+/*
+Scan a tag identifier for a class, struct, union, or enum declaration.
+If a tag symbol already exists for the identifier, return a pointer to
+that symbol; otherwise return NULL.  If there is no identifier or if there
+is an error, return NULL.
+*/
+{
+  a_symbol_ptr      tag_sym;
+  a_token_kind      next_tok;
+
+  db_enter(3, "scan_tag_name");
+  *tag_resolution = FALSE;
+  /* Find a declaration of this tag in the current scope.  (We only look
+     in the current scope for now, but we may have to do a complete lookup
+     later.) */
+  if (curr_token == tok_colon_colon || next_token() == tok_colon_colon) {
+    /* This looks like a qualified name, which is not allowed here. */
+    error(ec_qualified_name_not_allowed);
+    (void)get_qualified_name(IDL_NO_OPTIONS);
+    set_to_error_locator(*locator);
+    tag_sym = NULL;
+  } else {
+    tag_sym = curr_scope_tag_symbol(tag_kind);
+    /* Save the symbol locator for this identifier before doing the
+       get_token. */
+    *locator = locator_for_curr_id;
+    next_tok = next_token();
+    if (next_tok == tok_lbrace ||
+        (next_tok == tok_colon && C_dialect == C_dialect_cplusplus &&
+         tag_kind != (a_symbol_kind)sk_enum_tag)) {
+      /* The token following the tag marks the start of a class or enum
+         definition. Determine whether it is the resolution of a previous
+         incomplete declaration. */
+      if (tag_sym != NULL) {
+        /* The tag has already appeared in the current scope. */
+        if (is_incomplete_type(type_symbol_type(tag_sym))) {
+          /* Resolution of a previous incomplete declaration. */
+          *tag_resolution = TRUE;
+        } else {
+          /* Redeclaration of a tag that has already been defined.  Set
+             tag_sym to NULL and let enter_symbol issue an error. */
+          tag_sym = NULL;
+        }  /* if */
+      }  /* if */
+    } else if (tag_sym == NULL) {
+      /* This is the first appearance of the tag in the current scope.  This
+         is not its definition, so it is either a reference or a "vacuous
+         declaration" (e.g. "struct S;" or "enum E;").  (The effect of a
+         vacuous declaration (unless we are in pcc mode) is to establish the
+         name in the current scope, even if the tag name exists in a containing
+         scope or is inherited from a base class.)  For enum declarations it
+         is an extension in strict ANSI mode. */
+      if (next_tok == tok_semicolon && check_for_vacuous_decl &&
+          C_dialect != C_dialect_pcc) {
+        /* This is indeed a vacuous declaration.  Leave tag_sym set to NULL
+           to force the creation of a new symbol in the current scope. */
+        if (tag_kind == (a_symbol_kind)sk_enum_tag && strict_ansi_mode) {
+          pos_warning(ec_nonstd_forward_def_enum, &locator->source_position);
+        }  /* if */
+      } else {
+        /* This may be a reference to an existing tag from a containing
+           scope or a base class.  This can be ascertained by doing a full
+           lookup of the tag name (before it was done just for the current
+           scope). */
+        tag_sym = curr_tag_symbol(tag_kind);
+        if (tag_sym == NULL) {
+          /* We will need to enter an incomplete tag that may be resolved
+             later.  Just leave tag_sym NULL.  In C it will be entered at
+             the scope level indicated by decl_scope_level.  In C++ we need
+             to pop out to the innermost non-class/non-prototype scope.
+             (For example, to introduce class name B in a parameter
+             declaration of a member function within the definition of class
+             A does not introduce the name of nested class A::B; rather, B
+             is entered in the same scope as A.) */
+          if (C_dialect == C_dialect_cplusplus) {
+            /* Pop out to the containing scope -- file scope, function scope,
+               or block scope.  *effective_decl_level will already have been
+               initialized to decl_scope_level. */
+            while (scope_stack[*effective_decl_level].kind ==
+                                   (a_scope_kind)sck_class_struct_union ||
+                   scope_stack[*effective_decl_level].kind ==
+                                   (a_scope_kind)sck_func_prototype) {
+              (*effective_decl_level)--;
+            }  /* while */
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  /* Now that we have completed the lookup on the tag identifier we can
+     advance past it. */
+  (void)get_token();
+  db_exit();
+  return tag_sym;
+}  /* scan_tag_name */
+
+
 static void enum_specifier(a_type_ptr *type_ptr,
                            a_boolean  *declares_something,
                            a_boolean  *defines_something)
@@ -4506,7 +4608,6 @@ to indicate whether an enumeration is actually defined.
   a_type_ptr               class_of_which_a_member;
   an_access_specifier      access;
   a_scope_depth            effective_decl_level = decl_scope_level;
-  a_token_kind             next_tok;
 
   db_enter(3, "enum_specifier");
 
@@ -4526,94 +4627,35 @@ to indicate whether an enumeration is actually defined.
 #endif /* CHECKING */
   /* If there is an identifier next, it is a tag.  It can be the declaration
      of a new tag or a reference to an existing tag. */
-  tag_id_present = (get_token() == tok_identifier);
+  (void)get_token();
+  tag_id_present = is_qualified_name_start();
   if (tag_id_present) {
-    /* Find a declaration of this tag in the current scope.  (We only look
-       in the current scope for now, but we may have to do a complete lookup
-       later.) */
-    tag_sym = curr_scope_tag_symbol((a_symbol_kind)sk_enum_tag);
-    /* Save the symbol locator for this identifier before doing the
-       get_token. */
-    locator = locator_for_curr_id;
+    a_boolean  tag_resolution;
     /* It seems that appearance of a tag name is a declaration of the
        tag, even if it just repeats a previous name.  At least, there's
        a Plum Hall test that implies that. */
     *declares_something = TRUE;
-    next_tok = next_token();
-    if (next_tok == tok_lbrace) {
-      /* The token following the tag marks the start of an enum definition.
-         Determine whether it is the resolution of a previous incomplete
-         declaration. */
-      if (tag_sym != NULL) {
-        /* The tag has already appeared in the current scope. */
-        if (is_incomplete_type(tag_sym->variant.type)) {
-          /* Resolution of a previous incomplete declaration. */
-          if (C_dialect != C_dialect_cplusplus) {
-            /* If the tag was declared in a prototype scope and is now being
-               resolved within the function, as in
-                 int f(enum f p) {enum f{a, b};  ... }
-               we must switch into the file scope for the duration of the
-               definition.  (In C++ a tag declarated in a prototype scope
-               refers to a file scope type, so this check is not relevant.) */
-            if (ssep->kind == (a_scope_kind)sck_function &&
-                in_file_scope(tag_sym->variant.type)) {
-              prototype_tag_resolution = TRUE;
-            }  /* if */
-          }  /* if */
-        } else {
-          /* Redeclaration of a tag that has already been defined.  Set
-             tag_sym to NULL and let enter_symbol issue an error. */
-          tag_sym = NULL;
+    tag_sym = scan_tag_name((a_symbol_kind)sk_enum_tag, &locator,
+                            /*check_for_vacuous_decl=*/TRUE,
+                            &effective_decl_level, &tag_resolution);
+    if (tag_resolution) {                            
+      /* Resolution of a previous incomplete declaration. */
+      if (C_dialect != C_dialect_cplusplus) {
+        /* If the tag was declared in a prototype scope and is now being
+           resolved within the function, as in
+             int f(enum f p) {enum f{a, b};  ... }
+           we must switch into the file scope for the duration of the
+           definition.  (In C++ a tag declarated in a prototype scope
+           refers to a file scope type, so this check is not relevant.) */
+        if (ssep->kind == (a_scope_kind)sck_function) {
+          prototype_tag_resolution = TRUE;
         }  /* if */
       }  /* if */
-    } else if (tag_sym == NULL) {
-      /* This is the first appearance of the tag in the current scope.  This
-         is not its definition, so it is either a reference or a "vacuous
-         declaration" (e.g. "enum S;"), an extension in strict ANSI mode whose
-         effect (by analogy with vacuous class/struct/union declarations) is
-         to establish the name in the current scope, even if the tag name
-         exists in a containing scope or is inherited from a base class. */
-      if (next_tok == tok_semicolon) {
-        /* This is indeed a vacuous declaration.  Leave tag_sym set to NULL
-           to force the creation of a new symbol in the current scope. */
-        if (strict_ansi_mode) {
-          pos_warning(ec_nonstd_forward_def_enum, &locator.source_position);
-        }  /* if */
-      } else {
-        /* This may be a reference to an existing tag from a containing
-           scope or a base class.  This can be ascertained by doing a full
-           lookup of the tag name (before it was done just for the current
-           scope). */
-        tag_sym = curr_tag_symbol((a_symbol_kind)sk_enum_tag);
-        if (tag_sym == NULL) {
-          /* We will need to enter an incomplete tag that may be resolved
-             later.  Just leave tag_sym NULL.  In C it will be entered at
-             the scope level indicated by decl_scope_level.  In C++ we need
-             to pop out to the innermost non-class/non-prototype scope.
-             (For example, to introduce enum E in a parameter declaration of
-             a member function within the definition of class A does not
-             introduce A::E; rather, E is entered in the same scope as A.) */
-          if (C_dialect == C_dialect_cplusplus) {
-            /* Pop out to the containing scope -- file scope, function
-               scope, or block scope.  effective_decl_level has
-               already been initialized to decl_scope_level. */
-            while (scope_stack[effective_decl_level].kind ==
-                                   (a_scope_kind)sck_class_struct_union ||
-                   scope_stack[effective_decl_level].kind ==
-                                   (a_scope_kind)sck_func_prototype) {
-              effective_decl_level--;
-            }  /* while */
-            if (effective_decl_level != decl_scope_level) {
-              class_of_which_a_member = NULL;
-              access = (an_access_specifier)as_public;
-            }  /* if */
-          }  /* if */
-        }  /* if */
+      if (effective_decl_level != decl_scope_level) {
+        class_of_which_a_member = NULL;
+        access = (an_access_specifier)as_public;
       }  /* if */
     }  /* if */
-    /* Now that we have completed the lookup on the tag identifier we can
-       advance past it. */
-    (void)get_token();
   } else {
     /* No tag identifier present. */
     tag_sym = NULL;
