@@ -307,9 +307,6 @@ extern void clear_dynamic_init(a_dynamic_init_ptr  dip,
 
 extern a_dynamic_init_ptr alloc_dynamic_init(a_dynamic_init_kind kind);
 
-extern a_dynamic_init_ptr alloc_dtor_dynamic_init(a_dynamic_init_kind kind,
-                                                  a_type_ptr          type);
-
 extern void add_to_dynamic_inits_list(a_dynamic_init_ptr dip);
 
 extern a_variable_ptr alloc_variable(a_storage_class  storage_class);
@@ -392,6 +389,7 @@ extern an_expr_node_ptr base_class_selection_expr(an_expr_node_ptr node,
 
 extern a_variable_ptr create_expr_temporary(a_type_ptr       temp_type,
                                             a_boolean        force_temp_init,
+                                            a_boolean        evaluated,
                                             an_expr_node_ptr *temp_init_node);
 
 extern void attach_expr_under_temp_init(an_expr_node_ptr *node,
@@ -401,6 +399,7 @@ extern an_expr_node_ptr func_call_expr(
                                 an_expr_node_ptr  function_node,
                                 a_type_ptr        function_type,
                                 a_boolean         is_virtual,
+                                a_boolean         evaluated,
                                 a_source_position *err_pos);
 
 extern void mark_routine_referenced(a_routine_ptr     routine,

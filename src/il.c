@@ -4043,13 +4043,16 @@ its kind to kind, and return a pointer to it.
 }  /* alloc_dynamic_init */
 
 
-a_dynamic_init_ptr alloc_dtor_dynamic_init(a_dynamic_init_kind kind,
-                                           a_type_ptr          type)
+static a_dynamic_init_ptr alloc_dtor_dynamic_init(
+                                                 a_dynamic_init_kind kind,
+                                                 a_type_ptr          type,
+                                                 a_boolean           evaluated)
 /*
 Allocate a dynamic initialization entry, clear it to default values, set
 its kind to kind, and return a pointer to it.  If type is a type that
 requires a destructor, put the destructor routine pointer into the dynamic
-initialization entry.
+initialization entry.  If evaluated is FALSE, the reference is within
+an unevaluated expression.
 */
 {
   a_dynamic_init_ptr            dip = alloc_dynamic_init(kind);
@@ -4065,7 +4068,9 @@ initialization entry.
         dip->destructor = cssp->destructor->variant.routine.ptr;
         reference_to_implicitly_invoked_function(cssp->destructor,
                                                  &error_position,
-						 type);
+						 type,
+                                                 /*honor_virtual=*/FALSE,
+                                                 evaluated);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -5231,13 +5236,15 @@ class need not be an immediate base class.
 
 a_variable_ptr create_expr_temporary(a_type_ptr       temp_type,
                                      a_boolean        force_temp_init,
+                                     a_boolean        evaluated,
                                      an_expr_node_ptr *temp_init_node)
 /*
 Allocate a temporary variable of type temp_type and return a pointer to it.
 If force_temp_init is TRUE or temp_type is a type that requires a destructor,
 also allocate an enk_temp_init node pointing to a dynamic init entry
 and return a pointer to the enk_temp_init node in *temp_init_node; otherwise,
-set *temp_init_node to NULL.
+set *temp_init_node to NULL.  If evaluated is FALSE, the reference is
+within an unevaluated expression.
 */
 {
   a_variable_ptr     temp_var;
@@ -5252,7 +5259,8 @@ set *temp_init_node to NULL.
        symbol_supplement_for_class(temp_type)->destructor != NULL)) {
     /* force_temp_init is TRUE, or the temp_type is a class with a
        destructor. */
-    dip = alloc_dtor_dynamic_init((a_dynamic_init_kind)dik_none, temp_type);
+    dip = alloc_dtor_dynamic_init((a_dynamic_init_kind)dik_none, temp_type,
+                                  evaluated);
     dip->variable = temp_var;
     /* Make an enk_temp_init node that points at the dynamic init
        entry. */
@@ -5316,12 +5324,14 @@ declaration of the function and must be completed by the point of call.
 an_expr_node_ptr func_call_expr(an_expr_node_ptr  function_node,
                                 a_type_ptr        function_type,
                                 a_boolean         is_virtual,
+                                a_boolean         evaluated,
                                 a_source_position *err_pos)
 /*
 Make an expression for a call of the function indicated by function_node,
 whose type is function_type, and which is virtual if is_virtual is TRUE or
 a pointer-to-member-function call if the type of function_node is
-pointer-to-member-function.  The arguments of the call are already
+pointer-to-member-function.  evaluated is FALSE if the function call
+is within an unevaluated expression.  The arguments of the call are already
 attached to function_node.  A skip_typerefs need not have been done
 on function_type.  Return a pointer to the call node.  *err_pos
 gives an error position for the case where the function return type
@@ -5360,7 +5370,7 @@ is invalid (i.e., incomplete); an error node is returned for that case.
     if (function_node->kind == (an_expr_node_kind)enk_routine_address) {
       /* We know which routine is being called.  Set its called flag. */
       a_routine_ptr routine = function_node->variant.routine;
-      routine->called = TRUE;
+      if (evaluated) routine->called = TRUE;
     }  /* if */
     rtsp = function_type->variant.routine.extra_info;
     /* If the function is one for which the caller must supply a place for
@@ -5370,7 +5380,7 @@ is invalid (i.e., incomplete); an error node is returned for that case.
     if (rtsp->caller_provides_place_to_put_return_value) {
       /* Allocate the temporary for the return value. */
       temp_var = create_expr_temporary(return_type, /*force_temp_init=*/FALSE,
-                                       &temp_init_node);
+                                       evaluated, &temp_init_node);
       /* Make an expression for the address of the temporary. */
       temp_node = var_lvalue_expr(temp_var);
       /* Put the expression into the argument list.  If there is a "this"
@@ -5528,7 +5538,8 @@ for errors (e.g., the function has an invalid return type).
   dest->next = source;
   /* Make the call node. */
   node = func_call_expr(func_addr_node, rout->type,
-                        (a_boolean)rout->is_virtual, err_pos);
+                        (a_boolean)rout->is_virtual, /*evaluated=*/TRUE,
+                        err_pos);
   /* Put the call node under the statement. */
   stmt->expr = node;
   return stmt;
