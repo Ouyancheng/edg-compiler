@@ -3264,29 +3264,26 @@ and field_expr is an enk_field node.
 }  /* gen_simple_field_selection */
 
 
-static void gen_temp_init(an_expr_node_ptr expr,
-                          a_boolean        need_parens)
+static void gen_temp_init(an_expr_node_ptr expr)
 /*
 Generate code for an enk_temp_init node, which does creation/initialization
-of a temporary in an expression.  Put parentheses around the code if
-there's some possibility of precedence confusion and need_parens is TRUE.
-The caller should check whether the result_is_addr flag is set correctly;
-this routine cannot deal with that.
+of a temporary in an expression.  The caller should check whether the
+result_is_addr flag is set correctly; this routine cannot deal with that.
 */
 {
   a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
 
   if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
-    if (need_parens) write_tok_ch('(');
     /* For a class temporary requiring a constructor, use the form
        A(arg1, arg2, ...). */
+    /* Note that parentheses are not put around this, because that would
+       make the expression look like a cast. */
     gen_type_name(dip->variant.constructor.ptr->
                                        source_corresp.class_of_which_a_member);
     gen_dynamic_init(dip,
                      (a_type_ptr)NULL, /* Not a reference, not needed. */
                      /*parenthesized_init=*/TRUE,
                      /*force_parens=*/TRUE);
-    if (need_parens) write_tok_ch(')');
   } else {
     /* Other cases -- just put out the value. */
     gen_dynamic_init(dip,
@@ -3359,7 +3356,7 @@ precedence confusion.
              node->variant.init.result_is_addr) {
     /* A temporary initialization with the address of the temporary used as
        the node value.  Just put out the underlying value. */
-    gen_temp_init(node, /*need_parens=*/TRUE);
+    gen_temp_init(node);
     processed = TRUE;
   }  /* if */
   if (!processed) {
@@ -4160,7 +4157,7 @@ done_with_operation:
          the node should be the value of the temporary. */
       check_assertion_str(!expr->variant.init.result_is_addr,
                           "gen_expr: enk_temp_init returning addr as rvalue");
-      gen_temp_init(expr, need_parens);
+      gen_temp_init(expr);
       break;
     case enk_new_delete:
       /* new or delete operation. */
