@@ -1,16 +1,16 @@
 Version 2.42
 
 3/30/99  Spurious error when type_info appears in elaborated type specifier
-         following its definition.
+         following its definition
 
 With PRAGMA_DEFINE_TYPE_INFO_IS_REQUIRED configured to TRUE, a spurious
-error might be issued on an elaborated type specifier that referred to
-class type_info even if the definition had already appeared.  Now fixed.
+error might be issued on an elaborated type specifier that refers to
+class type_info after the definition has appeared.  Now fixed.
 
   namespace std {
     #pragma define_type_info
     class type_info { };
-    class type_info *tip;
+    class type_info *tip;  // Spurious error was issued here
   }
 
 3/30/99  Microsoft compatibility: binding of reference to _GUID to name of
