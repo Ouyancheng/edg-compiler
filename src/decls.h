@@ -209,20 +209,15 @@ typedef int a_decl_flag_set;
 #define DI_ABSTRACT_DECLARATOR_ALLOWED 0x2
 			/* If this bit is set the entity may be scanned as an
 			   abstract declarator. */
-#define DI_STATIC_SPECIFIED 0x4
-			/* If this bit is set, the keyword "static" has
-			   appeared in the declaration, so that if it turns
-			   out to be a member function, it is a static member
-			   function. */
-#define DI_QUALIFIED_NAME_ALLOWED 0x8
+#define DI_QUALIFIED_NAME_ALLOWED 0x4
 			/* If this bit is set it a qualified name is not
 			   in the declarator (e.g., for a formal parameter or
 			   a typedef declaration). */
-#define DI_PARENTHESIZED_INITIALIZER_ALLOWED 0x10
+#define DI_PARENTHESIZED_INITIALIZER_ALLOWED 0x8
 			/* If this bit is set a declarator may be followed
 			   by an initializer using the "(expr-list)"
 			   notation (ARM 8.4). */
-#define DI_DESTRUCTOR_SPECIFIERS 0x20
+#define DI_DESTRUCTOR_SPECIFIERS 0x10
 			/* If this bit is set decl_specifiers has seen a "~"
 			   and determined that specifiers preceding it, if any,
 			   are consistent with a destructor declaration.  */
