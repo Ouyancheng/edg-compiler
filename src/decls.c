@@ -234,6 +234,11 @@ optimization is suppressed.
   } else if (is_type_start(expr_context)) {
     /* Is start of type. */
     is_start = TRUE;
+#if GNU_EXTENSIONS_ALLOWED
+  } else if (curr_token == tok_attribute) {
+    /* An attribute can start a declaration. */
+    is_start = TRUE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
   } else if (curr_token == tok_identifier &&
              !is_error_locator(locator_for_curr_id)) {
     /* A special check to produce better error recovery in certain cases.
