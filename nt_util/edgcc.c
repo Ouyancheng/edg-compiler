@@ -151,7 +151,10 @@ static char	*microsoft_include;
 static char	*edg_prelink;
 			/* EDG_BASE/lib/edg_prelink. */
 static char	*prelink_options = NULL;
-			/* Default prelinker options. */
+			/* Prelinker options. */
+static char	*prelink_default_options = NULL;
+			/* Prelinker options from EDG_PRELINK_DEFAULT_OPTIONS
+                           environment variable. */
 static char	*edg_libc;
 			/* $EDG_BASE/lib/LIBC_NAME. */
 static char *output_file_name = NULL;
@@ -819,6 +822,8 @@ Startup initialization.
   /* Build $EDG_BASE/lib/edg_munch. */
   sprintf(string_buffer, "%s%s%s", edg_lib, PATH_DELIMITER, EDG_MUNCH);
   edg_munch = copy_of_string(string_buffer);
+  /* Get any options that should be passed to the prelinker. */
+  prelink_default_options = getenv("EDG_PRELINK_DEFAULT_OPTIONS");
 #if __WIN32__
   /* Build $EDG_BASE/lib/munch_nm. */
   sprintf(string_buffer, "%s%s%s", edg_lib, PATH_DELIMITER, "munch_nm");
@@ -1016,6 +1021,9 @@ to handle static initialization.
   init_command_line(&cl);
   add_cl_argument(&cl, edg_prelink);
   if (prelink_options != NULL) add_cl_argument(&cl, prelink_options);
+  if (prelink_default_options != NULL) {
+    add_cl_argument(&cl, prelink_default_options);
+  }  /* if */
   append_command_line(&cl, &object_file_list);
   (void)execute_command(&cl);
   /* Add the list of object files to the link command. */

@@ -1,5 +1,10 @@
 Version 3.1
 
+6/12/02  Add EDG_PRELINK_DEFAULT_OPTIONS
+
+The environment variable EDG_PRELINK_DEFAULT_OPTIONS may now be used to
+specify options to be used when invoking the prelinker.
+
 5/23/02  Support for Microsoft C version 7
 
 edgcc has been updated to work with the version 7 tools.  The version
