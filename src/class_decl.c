@@ -9888,7 +9888,9 @@ to be returned to the caller.
     a_func_info_block                 func_info;
     a_template_symbol_supplement_ptr  tssp;
     a_source_position                 declarator_start_pos;
+#if MICROSOFT_EXTENSIONS_ALLOWED
     a_boolean                         is_nonstatic_data_member = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
     declarator_start_pos = pos_curr_token;
     add_stop_token(tok_comma);
@@ -10432,7 +10434,9 @@ to be returned to the caller.
         /* Non-static data member (= field). */
         decl_nonstatic_data_member(&locator, class_type, local_type,
                                    class_state, &decl_info);
+#if MICROSOFT_EXTENSIONS_ALLOWED
         is_nonstatic_data_member = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
       if (C_dialect == C_dialect_cplusplus) {
         /* Issue an error if there appears to be an attempt to initialize a
