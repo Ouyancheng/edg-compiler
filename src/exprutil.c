@@ -5162,6 +5162,16 @@ issue an error.
      the member was defined, not any derived class.  See ARM 5.3. */
   member_class = member_sym->parent.class_type;
   constant.type = ptr_to_member_type(member_type, member_class);
+  if (is_template_dependent_context() &&
+      is_or_contains_template_param(constant.type)) {
+    /* In a prototype instantiation, a member of the current class is
+       template-dependent.  Make a template param constant by adding a
+       do-nothing cast. */
+    a_constant constant_copy;
+    copy_constant(&constant, &constant_copy);
+    make_template_param_cast_constant(&constant_copy, &constant,
+                                      constant.type);
+  }  /* if */
   make_constant_operand(&constant, result);
   result->position = *position;
 }  /* make_ptr_to_member_constant_operand */
