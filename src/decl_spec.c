@@ -2032,6 +2032,12 @@ new expression and should therefore not be treated as a declaration.
                 set_to_named_error_locator(locator);
                 err = TRUE;
               }  /* if */
+              if (!class_type->variant.class_struct_union.is_specialized &&
+                  tag_sym != NULL) {
+                /* A specialization must first be declared in the namespace
+                   containing the template. */
+                check_specialization_scope(tag_sym, &tag_position);
+              }  /* if */
               if (class_type->variant.class_struct_union.is_nonreal_class) {
                 /* A specialization of a nonreal class.  This is usually the
                    result of a specialization in an invalid scope, in which

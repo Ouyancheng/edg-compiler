@@ -9425,9 +9425,9 @@ is the type kind associated with this declaration.
 
 
 static
-void record_specialization(a_tmpl_decl_state_ptr		decl_state,
-                           a_symbol_ptr				template_sym,
-   		           a_template_symbol_supplement_ptr	tssp)
+void record_specialization(a_symbol_ptr				template_sym,
+   		           a_template_symbol_supplement_ptr	tssp,
+			   a_source_position			*error_pos)
 /*
 Update the template specified by template_sym to indicate that it is
 now specialized.  Make sure that no instantiations have already been
@@ -9440,6 +9440,9 @@ generated.
   } else {
     /* Note that the prototype_template is not set to NULL. */
     tssp->is_specific_definition = TRUE;
+    /* A specialization must first be declared in the namespace
+       containing the template. */
+    check_specialization_scope(template_sym, error_pos);
     /* Check for any existing instantiations.  A specialization must be
        declared before it is used. */
     if (template_sym->kind == (a_symbol_kind)sk_function_template) {
@@ -9447,7 +9450,7 @@ generated.
       for (tip = tssp->variant.function.instantiations; tip != NULL;
            tip = tip->next) {
         pos_sy2_error(ec_specialization_of_referenced_template,
-                      &decl_state->start_pos, template_sym, tip->instance_sym);
+                      error_pos, template_sym, tip->instance_sym);
       }  /* for */
     } else {
      a_symbol_ptr	sym;
@@ -9464,7 +9467,7 @@ generated.
             !is_incomplete_type(type_symbol_type(sym)) &&
             !is_template_instance_specific_def_symbol(sym)) {
           pos_sy2_error(ec_specialization_of_referenced_template,
-                        &decl_state->start_pos, template_sym, sym);
+                        error_pos, template_sym, sym);
         }  /* if */
       }  /* for */
     }  /* if */
@@ -10872,7 +10875,7 @@ declaration of a partial specialization declared outside of its class.
   if (decl_state->is_specialization && !decl_state->is_template_friend) {
     /* This template is a specialization of a member template.  Update the
        template information to reflect this. */
-    record_specialization(decl_state, sym, tssp);
+    record_specialization(sym, tssp, &locator.source_position);
   }  /* if */
   if (tssp->variant.class_template.prototype_instantiation == NULL &&
       (tssp->prototype_template == NULL || is_partial_specialization ||
@@ -13440,7 +13443,7 @@ caller.
     if (decl_state->is_specialization && !decl_state->is_template_friend) {
       /* This template is a specialization of a member template.  Update the
          template information to reflect this. */
-      record_specialization(decl_state, sym, tssp);
+      record_specialization(sym, tssp, decl_pos);
     }  /* if */
     if (tssp->variant.function.decl_cache.tokens.first_token == NULL) {
       /* The decl_token_cache is always saved from the initial declaration
@@ -14506,6 +14509,28 @@ issued, and TRUE is returned.
 }  /* check_template_nesting_depth */
 
 
+void check_specialization_scope(a_symbol_ptr	     sym,
+			        a_source_position     *pos)
+/*
+This is the initial specialization declaration of "sym".  An entity must
+first be declared as a specialization in the namespace containing the
+template.  "pos" is the position to be used if an error is to be issued.
+*/
+{
+  a_namespace_ptr	sym_nsp;
+  a_namespace_ptr	curr_nsp;
+
+  if (strict_ansi_mode) {
+    sym_nsp = parent_namespace_for_symbol(sym);
+    curr_nsp = scope_stack[depth_innermost_namespace_scope].assoc_namespace;
+    if (sym_nsp != curr_nsp) {
+      pos_sy_diagnostic(strict_ansi_discretionary_severity,
+                        ec_specialization_out_of_namespace, pos, sym);
+    }  /* if */
+  }  /* if */
+}  /* check_specialization_scope */
+
+
 static void full_specialization(a_tmpl_decl_state_ptr decl_state)
 /*
 One or more empty template parameter clauses ("template <>") have been
@@ -14734,6 +14759,11 @@ that follows.
 #if GENERATE_SOURCE_SEQUENCE_LISTS || EXTRA_SOURCE_POSITIONS_IN_IL
       if (already_specialized) first_decl = FALSE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS || EXTRA_SOURCE_POSITIONS_IN_IL */
+      if (!already_specialized) {
+        /* A specialization must first be declared in the namespace
+           containing the template. */
+        check_specialization_scope(sym, &locator.source_position);
+      }  /* if */
       if (scp->referenced && !already_specialized) {
         /* The entity has already been referenced and cannot be specialized.
            This is accepted for class members in Microsoft bugs mode. */

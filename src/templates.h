@@ -429,6 +429,9 @@ extern void add_to_inline_function_list(a_routine_ptr	rout_ptr);
 extern
 a_type_ptr type_if_unknown_conversion_function_symbol(a_symbol_ptr	sym);
 
+extern void check_specialization_scope(a_symbol_ptr	     sym,
+				       a_source_position     *pos);
+
 extern void templates_one_time_init(void);
 
 extern void templates_trans_unit_init(void);

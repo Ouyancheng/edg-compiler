@@ -1,5 +1,17 @@
 Version 3.1
 
+9/27/02  Specializations first declared in an enclosing namespace
+
+The standard requires that an explicit specialization be declared in
+the namespace containing the template before it can be declared or defined
+in an enclosing namespace.  We now issue a diagnostic in strict mode if
+this rule is violated.
+
+  namespace N {
+    template <class T> void f(T);
+  }
+  template <> void N::f(int);  // error in strict mode
+
 9/27/02  Default transformation of UPC affinity expression
 
 An implicit array-to-pointer conversion now applies to UPC affinity expressions
