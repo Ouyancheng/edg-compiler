@@ -1702,7 +1702,9 @@ start_of_mangled_name:
       unsigned long block_number;
       /* The name of an entity within a function, mangled on promotion out
          of the function.  For example, "i__L1__f__Fv" for "i" from block 1
-         of function "f(void)". */
+         of function "f(void)".  Note that this is not the same mangling
+         used by cfront (in the cfront scheme, the __L1 is at the end, and
+         the number is different). */
       /* Put out the entity name (the first part of the mangled name). */
       (void)demangle_name(origname, (unsigned long)0, dctl);
       write_id_str(" in", dctl);
@@ -1910,6 +1912,9 @@ is set to the size of buffer required to do the demangling.
     end_ptr = demangle_identifier(id+7, dctl);
   } else if (start_of_id_is("__TIR__", id)) {
     write_id_str("template-instantiation-request flag for ", dctl);
+    end_ptr = demangle_identifier(id+7, dctl);
+  } else if (start_of_id_is("__LSG__", id)) {
+    write_id_str("initialization guard variable for ", dctl);
     end_ptr = demangle_identifier(id+7, dctl);
   } else if (start_of_id_is("__TID_", id)) {
     write_id_str("type identifier for ", dctl);

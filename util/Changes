@@ -1,5 +1,15 @@
 Version 2.33
 
+9/26/96  Name demangler and initialization guard variables for local statics
+
+Local static variables of extern inline functions are now promoted out
+of the functions and made external so that all copies of the function
+will use the same static variables.  The initialization guard variables
+for those local statics are also made external, and they have mangled
+names beginning with "__LSG__", followed by the mangled name for the
+promoted local variable.  The name demangler now demangles such guard
+variable names.
+
 9/26/96  Name demangler and names of types/variables promoted out of functions
 
 The name demangler can now demangle names of variables and types promoted
