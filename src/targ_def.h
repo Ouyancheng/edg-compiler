@@ -1363,6 +1363,22 @@ gcc (the GNU C compiler).
 #endif /* ifndef GCC_IS_C_GEN_BE_TARGET */
 #endif /* BACK_END_IS_C_GEN_BE */
 
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
+/*
+Switch that is TRUE if the C-generating or C++-generating back end should
+generate code for MSVC++ (the Microsoft C/C++ compiler).  This is the
+initial value of the global variable msvc_is_generated_code_target.
+*/
+
+#ifndef MSVC_IS_GENERATED_CODE_TARGET
+#if EDG_WIN32
+#define MSVC_IS_GENERATED_CODE_TARGET TRUE
+#else /* !EDG_WIN32 */
+#define MSVC_IS_GENERATED_CODE_TARGET FALSE
+#endif /* EDG_WIN32 */
+#endif /* ifndef MSVC_IS_GENERATED_CODE_TARGET */
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+
 #if BACK_END_IS_C_GEN_BE
 /*
 Switch that is TRUE if the C-generating back end should generate ANSI C
@@ -1386,22 +1402,6 @@ generating K&R C.)
 #ifndef SUPPRESS_CONST_IN_GENERATED_C
 #define SUPPRESS_CONST_IN_GENERATED_C FALSE
 #endif /* !defined(SUPPRESS_CONST_IN_GENERATED_C) */
-
-#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
-/*
-Switch that is TRUE if the C-generating or C++-generating back end should
-generate code for MSVC++ (the Microsoft C/C++ compiler).  This is the
-initial value of the global variable msvc_is_generated_code_target.
-*/
-
-#ifndef MSVC_IS_GENERATED_CODE_TARGET
-#if EDG_WIN32
-#define MSVC_IS_GENERATED_CODE_TARGET TRUE
-#else /* !EDG_WIN32 */
-#define MSVC_IS_GENERATED_CODE_TARGET FALSE
-#endif /* EDG_WIN32 */
-#endif /* ifndef MSVC_IS_GENERATED_CODE_TARGET */
-#endif /* BACK_END_IS_C_GEN_BE  || BACK_END_IS_CP_GEN_BE */
 
 /*
 Control whether "long double" is put out as "long double" or as "double"
