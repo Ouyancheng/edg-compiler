@@ -33,6 +33,10 @@ typedef struct a_routine_fixup *a_routine_fixup_ptr;
    available to symbol_tbl.h without creating recursive reference problems. */
 typedef struct a_def_arg_expr_fixup *a_def_arg_expr_fixup_ptr;
 
+/* The pointer to a_pending_pragma is declared here even though the struct
+   itself is defined in pragma.h.  This allows the pointer to be made
+   available to symbol_tbl.h without creating recursive reference problems. */
+typedef struct a_pending_pragma *a_pending_pragma_ptr;
 
 /* Some other things declared up front to avoid mutual recursion problems. */
 
@@ -271,18 +275,6 @@ Clear a symbol locator.
 #ifndef MEM_TABLES_H
 #include "mem_tables.h"
 #endif /* ifndef MEM_TABLES_H */
-#ifndef TYPES_H
-#include "types.h"
-#endif /* ifndef TYPES_H */
-#ifndef CLASS_DECL_H
-#include "class_decl.h"
-#endif /* ifndef CLASS_DECL_H */
-#ifndef DEF_ARG_H
-#include "def_arg.h"
-#endif /* ifndef DEF_ARG_H */
-#ifndef PRAGMA_H
-#include "pragma.h"
-#endif /* ifndef PRAGMA_H */
 
 /*
 Kinds of symbols in the symbol table.
