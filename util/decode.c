@@ -3985,17 +3985,36 @@ substitution, the name of the last component in the substitution is used.
           /* Rescan and output the class name (no template argument list). */
           (void)demangle_unqualified_name(prev_component_name, &dummy, dctl);
           /* Check that the second character of the constructor/destructor
-             name is a valid digit. */
-          if (ptr[1] == '1' || ptr[1] == '2' ||
-              (ptr[0] == 'C' ? ptr[1] == '3' :
-                               ptr[1] == '0')) {
-            /* Okay. */
-            ptr += 2;
-          } else {
-            /* The second character of the constructor or destructor name
-               encoding is bad. */
-            bad_mangled_name(dctl);
-          }  /* if */
+             name is a valid digit and identify the kind of constructor or
+             destructor if necessary. */
+          switch (ptr[1]) {
+            case '0':
+              write_id_str(" [deleting] ", dctl);
+              ptr += 2;
+              break;
+            case '1':
+              /* Complete constructor or destructor gets no extra label. */
+              ptr += 2;
+              break;
+            case '2':
+              write_id_str(" [subobject] ", dctl);
+              ptr += 2;
+              break;
+            case '3':
+              write_id_str(" [allocating] ", dctl);
+              ptr += 2;
+              break;
+            case '9':
+              /* The EDG front end uses '9' for the routine called by the
+                 other entry points. */
+              write_id_str(" [internal] ", dctl);
+              ptr += 2;
+              break;
+            default:
+              /* The second character of the constructor or destructor name
+                 encoding is bad. */
+              bad_mangled_name(dctl);
+          }  /* switch */
         }  /* if */
       }  /* if */
     }  /* if */
