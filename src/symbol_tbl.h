@@ -116,7 +116,7 @@ typedef struct a_symbol_locator {
      Can be used to look up the identifier or enter it into the symbol
      table. */
   /* If you change this structure, be sure to also change the initialization
-     of global variable cleared_locator in sym_tbl_init. */
+     of global variable cleared_locator in symbol_tbl_one_time_init. */
   a_symbol_header_ptr
 		symbol_header;
 			/* The symbol header for the list of symbols with the
@@ -365,9 +365,9 @@ typedef enum /*a_name_space_kind*/ {
 
 EXTERN a_name_space_kind
 		name_space_for_symbol_kind[(int)sk_last+1];
-			/* For each symbol kind, this array maps the kind
-			   to the associated name space.  See sym_tbl_init for
-			   initialization. */
+			/* For each symbol kind, this array maps the kind to
+			   the associated name space.  See
+			   symbol_tbl_one_time_init for initialization. */
 
 typedef struct a_macro_param {
   /* A parameter of a function-like preprocessor macro.  The names of
@@ -1177,6 +1177,8 @@ typedef struct a_projection_descr {
 
 typedef struct a_symbol {
   /* A symbol as used by the front end. */
+  /* If you change this structure, be sure to also change the initialization
+     of global variable cleared_symbol in symbol_tbl_one_time_init. */
   a_symbol_header_ptr
 		header;
 			/* Pointer back to the header which contains a list of
@@ -2476,7 +2478,9 @@ extern int db_scope_kind(a_scope_kind sck);
 extern void db_scope_stack(void);
 #endif /* DEBUG */
 
-extern void sym_tbl_init(void);
+extern void symbol_tbl_one_time_init(void);
+
+extern void symbol_tbl_init(void);
 
 #endif /* ifndef SYMBOL_TBL_H */
 
