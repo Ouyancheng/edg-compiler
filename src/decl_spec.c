@@ -2257,6 +2257,7 @@ the template.
                               orig_decl_level, is_local_class,
                               delayed_nested_class_def,
                               /*is_template_instantiation=*/FALSE,
+                              (a_template_ptr)NULL,
                               &local_decl_pos_block)) {
       *defines_something = TRUE;
     } else {

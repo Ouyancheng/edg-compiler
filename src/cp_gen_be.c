@@ -3518,10 +3518,7 @@ is the one associated with the definition of the class.
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
     check_assertion_str((ss_entry_kind(ssecp) == iek_type &&
                          ss_entry_ptr(ssecp, a_type_ptr) == type) ||
-                        (ss_entry_kind(ssecp) == iek_template &&
-                         is_immediate_class_type(type) &&
-                           ss_entry_ptr(ssecp, a_template_ptr) ==
-                                                      assoc_template_of(type)),
+                        ss_entry_kind(ssecp) == iek_template,
                         "gen_class_definition: bad end-of-construct");
 #else /* !PROTOTYPE_INSTANTIATIONS_IN_IL */
     check_assertion_str((ss_entry_kind(ssecp) == iek_type &&
