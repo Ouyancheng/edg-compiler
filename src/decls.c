@@ -6071,7 +6071,7 @@ current scope.
         locator = locator_for_curr_id;
         clear_specific_symbol(locator);
         /* Look for a declaration of the same name in the current scope. */
-        overload_sym = curr_scope_id_lookup(&locator, IDL_NO_OPTIONS);
+        overload_sym = curr_scope_id_lookup(&locator, IDL_PROJ_SYMBOL_ALLOWED);
         if (overload_sym != NULL &&
             !is_function_symbol(fundamental_symbol_of(overload_sym))) {
           /* There is no function symbol in the current scope with which the
@@ -6081,23 +6081,30 @@ current scope.
       }  /* if */
       /* Create the new sk_namespace_projection symbol(s). */
       for (; sym != NULL; sym = is_list ? sym->next : NULL) {
+        /* Don't try to add a symbol that is already pointed to by
+           overload_sym. */
+        if (overload_sym != NULL && already_in_lookup_set(overload_sym, sym)) {
+          continue;
+        }  /* if */
         locator = locator_for_curr_id;
         clear_specific_symbol(locator);
         if (overload_sym == NULL) {
           /* No overloading. */
-          new_sym = enter_symbol((a_symbol_kind)sk_namespace_projection,
-                                 &locator, depth_scope_stack,
-                                 /*suppress_redecl_error=*/FALSE);
+          new_sym = enter_namespace_projection_symbol
+                                         (sym, &locator, /*synthesized=*/FALSE,
+                                          depth_scope_stack,
+                                          /*suppress_error=*/FALSE);
           /* If is_list is TRUE, there will be overloading on the next
              iteration of this loop. */
           if (is_list) overload_sym = new_sym;
         } else {
           /* Add a new symbol to the overload set. */
-          new_sym = enter_overloaded_symbol(
-                                (a_symbol_kind)sk_namespace_projection,
-                                 &locator, overload_sym, &overload_sym);
+          new_sym = make_namespace_projection_symbol(sym, &locator,
+                                                     /*synthesized=*/FALSE,
+                                                     depth_scope_stack);
+          new_sym = add_symbol_to_overload_list(new_sym, overload_sym);
+          overload_sym = new_sym;
         }  /* if */
-        new_sym->variant.namespace_projection.fundamental_symbol = sym;
         set_namespace_membership(new_sym, (a_source_correspondence *)NULL,
                                  (a_namespace_ptr)NULL);
       }  /* for */
