@@ -1255,7 +1255,15 @@ Syntax:
       do_arg_dep_lookup = TRUE;
     } else if (is_undefined_symbol_operand(operand) ||
                is_indefinite_function_operand(operand)) {
-      arg_dep_lookup_suppressed = TRUE;
+      /* For the cases that are simple names, record that argument dependent
+         lookup was suppressed.  Note that non-overloaded functions 
+         come here as overloaded functions when argument-dependent lookup
+         is enabled. */
+      /* Argument-dependent lookup does not apply to member functions,
+         so don't record it as "suppressed" for them. */
+      if (!operand->variant.symbol->is_class_member) {
+        arg_dep_lookup_suppressed = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
