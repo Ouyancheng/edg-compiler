@@ -199,7 +199,7 @@ be used to output any part of the name.  Called only for C++.
        class_type = class_type->source_corresp.parent.class_type) {}
   if (class_type->source_corresp.is_class_member) {
     /* Use recursion to handle multiple levels of nesting. */
-    form_class_qualifierf(class_type->source_corresp.parent.class_type, octl);
+    form_class_qualifier(class_type->source_corresp.parent.class_type, octl);
   }  /* if */
   /* Do the last level. */
   form_unqualified_name(&class_type->source_corresp, iek_type, octl);
