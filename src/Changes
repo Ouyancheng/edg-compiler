@@ -1,5 +1,10 @@
 Version 2.11
 
+9/27/92  Two-argument delete routines
+
+The IL generated now passes the second argument (giving the size) when
+a two-argument delete routine is called.
+
 9/27/92  IL for comma expressions with lvalues as the second operand
 
 The C++ IL generated for expressions like

@@ -3699,6 +3699,9 @@ As an anachronism, allow an expression inside the [ ].
   an_expr_node_ptr   expr, init_node;
   a_symbol_locator   locator_for_delete;
   a_dynamic_init_ptr dip;
+  a_routine_type_supplement_ptr
+                     delete_routine_rtsp;
+  a_param_type_ptr   param1;
 
   db_enter(4, "scan_delete_operator");
 
@@ -3760,6 +3763,7 @@ As an anachronism, allow an expression inside the [ ].
       make_error_operand(result);
     } else {
       /* Valid type. */
+      delete_type = skip_typerefs(delete_type);
       ptr_node = make_node_from_operand(&operand);
       base_delete_type = delete_type;
       /* Get the underlying type for any array type. */
@@ -3831,6 +3835,32 @@ As an anachronism, allow an expression inside the [ ].
       function_node = function_addr_expr(delete_routine);
       /* Make a call of the delete routine with the pointer argument. */
       function_node->next = ptr_node;
+      /* If the delete routine is one with two arguments, pass the size
+         of the entity as the second argument. */
+      delete_routine_rtsp = f_skip_typerefs(delete_routine->type)->
+                                                    variant.routine.extra_info;
+      param1 = delete_routine_rtsp->param_type_list;
+#if CHECKING
+      if (param1 == NULL) {
+        internal_error("scan_delete_operator: bad delete rout 1st param");
+      }  /* if */
+#endif /* CHECKING */
+      if (param1->next != NULL) {
+        /* Two-argument form.  Add a second argument of type size_t that
+           indicates the (static) size of the object. */
+        function_node->next->next =
+              node_for_integer_constant((long)(delete_type->size),
+                                        (an_integer_kind)TARG_SIZE_T_INT_KIND);
+#if 0
+#else
+#if !ASSIGNMENT_TO_THIS_ALLOWED
+        /* The two-argument form requires that the destructor be called
+           to do the deletion, so the current implementation is incompatible
+           with !ASSIGNMENT_TO_THIS_ALLOWED. */
+??=error ASSIGNMENT_TO_THIS_ALLOWED must be TRUE
+#endif /* !ASSIGNMENT_TO_THIS_ALLOWED */
+#endif
+      }  /* if */
       make_function_call(function_node, delete_routine->type,
                          (a_boolean)delete_routine->is_virtual,
                          /*new_or_delete_call_for_array=*/array_delete,
@@ -3839,7 +3869,7 @@ As an anachronism, allow an expression inside the [ ].
       if (is_class_struct_union_type(delete_type)) {
         /* Determine and remember the default operator delete() routine for
            the class. */
-        set_class_assoc_operator_delete_routine(skip_typerefs(delete_type));
+        set_class_assoc_operator_delete_routine(delete_type);
       }  /* if */
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
     }  /* if */

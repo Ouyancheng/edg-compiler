@@ -10348,6 +10348,10 @@ destructor scope.
     an_expr_node_ptr and_node, and_compare_node, two_constant_node, if_node;
     a_constant       null_constant;
     a_statement_ptr  call_stmt;
+    a_routine_ptr    delete_routine;
+    a_routine_type_supplement_ptr
+                     delete_routine_rtsp;
+    a_param_type_ptr param1;
 
     /* Make "param & 0x1". */
     complete_obj_param_node = var_rvalue_expr(complete_obj_param_var);
@@ -10383,9 +10387,26 @@ destructor scope.
     /* Make "delete-routine((void *)this);" under the "if". */
     this_param_node = var_rvalue_expr(this_param_var);
     this_param_node = add_cast_if_necessary(this_param_node, void_star_type());
-    ctsp->assoc_operator_delete_routine->source_corresp.referenced = TRUE;
-    call_stmt = make_call_statement(ctsp->assoc_operator_delete_routine,
-                                    this_param_node);
+    /* If the delete routine takes two arguments, add a second argument
+       of type size_t that gives the size of the class. */
+    delete_routine = ctsp->assoc_operator_delete_routine;
+    delete_routine_rtsp = f_skip_typerefs(delete_routine->type)->
+                                                    variant.routine.extra_info;
+    param1 = delete_routine_rtsp->param_type_list;
+#if CHECKING
+    if (param1 == NULL) {
+      internal_error("lower_destructor_code: bad delete rout 1st param");
+    }  /* if */
+#endif /* CHECKING */
+    if (param1->next != NULL) {
+      /* Two-argument form.  Add a second argument of type size_t that
+         indicates the (static) size of the object. */
+      this_param_node->next =
+              node_for_integer_constant((long)(class_type->size),
+                                        (an_integer_kind)TARG_SIZE_T_INT_KIND);
+    }  /* if */
+    delete_routine->source_corresp.referenced = TRUE;
+    call_stmt = make_call_statement(delete_routine, this_param_node);
     insert_statement(call_stmt, &insert_location2);
   }
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
