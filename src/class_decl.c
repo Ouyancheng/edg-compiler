@@ -11476,6 +11476,8 @@ instance record associated with this instantiation.
 
 static void check_operator_new_and_delete(a_symbol_ptr  tag_sym)
 /*
+Check that the new and delete operators are declared in consistent pairs
+in the class designated by tag_sym.
 */
 {
   a_class_symbol_supplement_ptr  cssp;
@@ -12885,10 +12887,12 @@ One-time initialization for class_decl.c static variables.
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(avail_routine_fixup),
+      pch_saved_var_array_elem(avail_class_fixup),
       pch_saved_var_array_elem(avail_derivation_steps),
       pch_saved_var_array_elem(avail_override_registry_entries),
 #if DEBUG
       pch_saved_var_array_elem(num_routine_fixups_allocated),
+      pch_saved_var_array_elem(num_class_fixups_allocated),
 #endif /* if DEBUG */
       pch_saved_var_array_terminating_elem()
     };
@@ -12910,8 +12914,6 @@ translation unit.
   /* Global variables in class_decl.h. */
   pending_class_definitions = 0;
   /* Static variables in class_decl.c. */
-  avail_routine_fixup = NULL;
-  avail_class_fixup = NULL;
   curr_routine_fixup = NULL;
   avail_derivation_steps = NULL;
   def_arg_class_fixup_list = NULL;
@@ -12927,6 +12929,8 @@ Initializations for class declaration processing.
 */
 {
   /* Static variables in class_decl.c. */
+  avail_routine_fixup = NULL;
+  avail_class_fixup = NULL;
   avail_override_registry_entries = NULL;
 #if DEBUG
   num_routine_fixups_allocated = 0;
