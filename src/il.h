@@ -748,6 +748,8 @@ extern void add_scope_orphaned_il_lists(a_scope_ptr scope);
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
 
 #if MAINTAIN_NEEDED_FLAGS
+extern void eliminate_unneeded_class_definitions(a_scope_ptr scope);
+
 extern void eliminate_bodies_of_unneeded_functions(void);
 
 extern void eliminate_unneeded_il_entries(a_scope_ptr scope);

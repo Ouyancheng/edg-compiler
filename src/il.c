@@ -8475,6 +8475,120 @@ Add the IL macro entry pointed to by mp to the list for the file scope.
 #endif /* RECORD_MACROS_IN_IL */
 #if MAINTAIN_NEEDED_FLAGS
 
+static void turn_class_definition_into_declaration(a_type_ptr  class_type)
+/*
+*/
+{
+  a_class_type_supplement_ptr   ctsp;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_source_sequence_entry_ptr   ssep, next_ssep, last_ssep;
+  a_src_seq_secondary_decl_ptr  sssdp;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
+  clear_class_type_supplement(class_type->
+                               variant.class_struct_union.extra_info);
+  class_type->variant.class_struct_union.field_list = NULL;
+  class_type->variant.class_struct_union.any_const_member = FALSE;
+  class_type->variant.class_struct_union.any_virtual_base_classes = FALSE;
+  class_type->variant.class_struct_union.abstract = FALSE;
+  class_type->variant.class_struct_union.any_virtual_functions = FALSE;
+  class_type->variant.class_struct_union.any_pure_virtual_functions = FALSE;
+  class_type->variant.class_struct_union.
+             any_virtual_functions_including_in_base_classes = FALSE;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  ssep = class_type->source_corresp.source_sequence_entry;
+  if (class_type->variant.class_struct_union.
+                       nested_class_defined_outside_of_parent) {
+#if CHECKING
+    /* This won't work for local classes. */
+    check_assertion_str2(!class_type->source_corresp.is_local_to_function,
+                         "turn_class_definition_into_declaration:",
+                         "local classes not supported");
+#endif /* CHECKING */
+    drop_from_file_scope_source_sequence_list(ssep, &next_ssep);
+    /* Start at the point in the source sequence list corresponding to the
+       beginning of the class or namespace definition. */
+    ssep = class_type->source_corresp.parent.class_type->
+                                   source_corresp.source_sequence_entry;
+    /* Loop through the list till a secondary declaration pointing to
+       class_type is found. */
+    for (ssep = ssep->next; ssep != NULL; ssep = ssep->next) {
+      if (ssep->entity.kind == (an_il_entry_kind)iek_src_seq_secondary_decl) {
+        sssdp = (a_src_seq_secondary_decl_ptr)ssep->entity.ptr;
+        if (sssdp->entity.ptr == (char *)class_type) {
+          /* A match.  Reset the source sequence entry pointer in the
+             routine entry and break out of the loop. */
+          class_type->source_corresp.source_sequence_entry = ssep;
+          break;
+        }  /* if */
+      }  /* if */
+#if CHECKING
+      if (ssep->next == NULL) {
+        unexpected_condition_str2("turn_class_definition_into_declaration:",
+                                  "source sequence secondary decl not found");
+      }  /* if */
+#endif /* CHECKING */
+    }  /* for */
+  } else {
+    check_assertion(ssep->entity.ptr == (char *)class_type);
+    last_ssep = ssep->next;
+    for (;;) {
+      if (last_ssep->entity.kind ==
+                     (a_byte_il_entry_kind)iek_src_seq_end_of_construct &&
+          ((a_src_seq_end_of_construct_ptr)last_ssep->entity.ptr)->
+                                          entity.ptr == ssep->entity.ptr) {
+        break;
+      }  /* if */
+      last_ssep = last_ssep->next;
+    }  /* for */
+    ssep->next = last_ssep->next;
+    if (last_ssep->next != NULL) {
+      last_ssep->next->prev = ssep;
+    }  /* if */
+    sssdp = alloc_src_seq_secondary_decl();
+    sssdp->entity = ssep->entity;
+    ssep->entity.ptr = (char *)sssdp;
+    ssep->entity.kind = (a_byte_il_entry_kind)iek_src_seq_secondary_decl;
+    sssdp->decl_position = class_type->source_corresp.decl_position;
+    sssdp->declared_type = class_type;
+  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  class_type->variant.class_struct_union.
+                       nested_class_defined_outside_of_parent = FALSE;
+}  /* turn_class_definition_into_declaration */
+
+
+void eliminate_unneeded_class_definitions(a_scope_ptr  scope)
+/*
+*/
+{
+  a_namespace_ptr              nsp;
+  a_type_ptr                   tp;
+  a_class_type_supplement_ptr  ctsp;
+
+  for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
+    if (!nsp->is_namespace_alias) {
+      eliminate_unneeded_class_definitions(nsp->variant.assoc_scope);
+    }  /* if */
+  }  /* for */
+  for (tp = scope->types; tp != NULL; tp = tp->next) {
+    if (is_immediate_class_type(tp)) {
+      if (tp->source_corresp.needed ||
+          scope->kind == (a_scope_kind)sck_class_struct_union) {
+        ctsp = tp->variant.class_struct_union.extra_info;
+        if (ctsp->assoc_scope != NULL) {
+          if (!tp->variant.class_struct_union.definition_needed) {
+            turn_class_definition_into_declaration(tp);
+          } else {
+            eliminate_unneeded_class_definitions(ctsp->assoc_scope);
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* for */
+}  /* eliminate_unneeded_class_definitions */
+
+
 void eliminate_bodies_of_unneeded_functions(void)
 /*
 Go through all the memory regions looking for those associated with routines
