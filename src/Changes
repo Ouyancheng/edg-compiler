@@ -4,7 +4,12 @@ Version 3.5
 
 In Embedded C mode (and any other modes accepting named-register storage
 class specifiers) an error is now issued if a named-register variable is
-declared to be of a void type.
+declared to be of a void type, even if in a block-extern declaration.
+For example:
+
+  void f() {
+    register _EDG_REG_1 void x;  // Previously accepted.  Now an error.
+  }
 
 10/13/04 Microsoft compatibility: Implicit calling conventions
 
