@@ -4951,9 +4951,12 @@ it happens in prototype instantiations.
     do_generic_operand_transformations(operand_1);
     do_generic_operand_transformations(operand_2);
     do_generic_operand_transformations(operand_3);
-    check_assertion_str(is_constant_operand(operand_1) &&
-                        is_constant_operand(operand_2) &&
-                        is_constant_operand(operand_3),
+    check_assertion_str((is_constant_operand(operand_1) ||
+                         is_error_operand(operand_1)) &&
+                        (is_constant_operand(operand_2) ||
+                         is_error_operand(operand_2)) &&
+                        (is_constant_operand(operand_3) ||
+                         is_error_operand(operand_3)),
                         "template_question_operation: non-const operand");
   } else {
     /* The current expression is not a constant expression. */
