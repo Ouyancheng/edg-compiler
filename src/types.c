@@ -3256,7 +3256,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
     if (types_are_compatible_for_impl_conversion(
                                             unqual_source_type_pointed_to,
                                             unqual_dest_type_pointed_to)) {
-      if (!C_mode () && !check_as_operands_not_conversion &&
+      if (exceptions_enabled && !check_as_operands_not_conversion &&
           is_function(unqual_dest_type_pointed_to) &&
           exception_spec_is_less_restrictive(unqual_source_type_pointed_to,
                                              unqual_dest_type_pointed_to)) {
@@ -3678,7 +3678,7 @@ pointers to members).
       /* If the pointer-to-member types otherwise match, be sure, if the
          member type is a function type, that the exception specifications
          are compatible. */
-      if (okay && !check_as_operands_not_conversion &&
+      if (okay && exceptions_enabled && !check_as_operands_not_conversion &&
           is_function_type(dest_type_pointed_to) &&
           exception_spec_is_less_restrictive(
                            skip_typerefs(source_type_pointed_to),
