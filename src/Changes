@@ -1,5 +1,13 @@
 Version 3.6
 
+1/7/05   Microsoft compatibility: Concatenation of __LPREFIX(...) followed
+         by string literal
+
+In Microsoft mode, the front end now concatenates an __LPREFIX
+expansion with a following string literal.
+
+    __LPREFIX(__FUNCTION__) L":"  // Now seen as one string literal
+
 1/7/05   Microsoft compatibility: Repeated signedness specifiers
 
 The front end now accepts (with a warning) repeated "signed" or "unsigned"

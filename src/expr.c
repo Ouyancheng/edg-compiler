@@ -15038,6 +15038,7 @@ caching the tokens of a member function.
   check_assertion(curr_token == tok_string_literal);
   nextt = next_token();
   if (token_is_function_name_string_literal(nextt)
+      || nextt == tok_string_literal
 #if MICROSOFT_EXTENSIONS_ALLOWED
       || nextt == tok_microsoft_lprefix
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -15381,6 +15382,7 @@ and the other function-name tokens.
   /* Scan the operator and operand, and set the current token to
      a constant string literal for the result. */
   if (set_curr_token_to_microsoft_lprefix_operator_string()) {
+    (void)do_expression_level_string_literal_concatenation();
     make_string_constant_operand(&const_for_curr_token, result);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = curr_construct_end_position;
