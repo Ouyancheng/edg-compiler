@@ -27,9 +27,9 @@ namespace std {
     _bool before(const type_info&) const;
     const char* name() const;
   private:
-    type_info(const type_info&);
-    type_info& operator=(const type_info&);
-    void* _typeinfo;
+    type_info(const type_info&);  // Not actually defined
+    type_info& operator=(const type_info&);  // Not actually defined
+    void* _type_info;
   };
 
   class bad_cast : public exception {
