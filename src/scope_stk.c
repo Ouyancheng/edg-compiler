@@ -1513,7 +1513,7 @@ to the declaration information for the template declaration scope being pushed.
            or for the definition of a template static data member. */
         source_sequence_entries_disallowed =
      !NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS; /*lint !e506*/
-    }  /* if */
+      }  /* if */
     }  /* if */
     ssep->source_sequence_entries_disallowed =
                                      source_sequence_entries_disallowed;
