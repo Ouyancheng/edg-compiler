@@ -4973,14 +4973,32 @@ by the options.  Returns TRUE if any errors were diagnosed.
 */
 {
   a_boolean   any_errors = FALSE;
+  a_boolean   qualified_name_error;
+  a_boolean   global_qualifier_error;
   /* If no position was specified use the current error position. */
   if (pos == NULL) pos = &error_position;
-  if (locator_for_curr_id.is_qualified_name &&
-      (options & GID_DISALLOW_QUALIFIED_NAME)) {
+  qualified_name_error = (locator_for_curr_id.is_qualified_name &&
+                          (options & GID_DISALLOW_QUALIFIED_NAME));
+  global_qualifier_error = (locator_for_curr_id.is_global_qualified_name &&
+                            (options & GID_DISALLOW_GLOBAL_QUALIFIER));
+  if (qualified_name_error && global_qualifier_error) {
+    /* If both errors are being checked for, and both errors exist, only
+       issue one of the errors using the following rules:
+
+		::A		Global qualifier error
+		::A::B		Qualified name error
+    */
+    if (locator_for_curr_id.is_file_scope_qualified_name) {
+      qualified_name_error = FALSE;
+    } else {
+      global_qualifier_error = FALSE;
+    }  /* if */
+  }  /* if */
+
+  if (qualified_name_error) {
     pos_error(ec_qualified_name_not_allowed, pos);
     any_errors = TRUE;
-  } else if (locator_for_curr_id.is_global_qualified_name &&
-      (options & GID_DISALLOW_GLOBAL_QUALIFIER)) {
+  } else if (global_qualifier_error) {
     pos_error(ec_unary_colon_colon_not_allowed, pos);
     any_errors = TRUE;
   } /* if */
@@ -5384,6 +5402,8 @@ otherwise it will be set FALSE.
      that was discovered by is_generalized_identifier_start. */
   locator_for_curr_id.is_qualified_name = cqp->has_qualifier;
   locator_for_curr_id.is_global_qualified_name = cqp->has_global_qualifier;
+  locator_for_curr_id.is_file_scope_qualified_name =
+                                                 cqp->is_file_scope_qualifier;
   /* Since we're returning a pseudo-token, set pos_curr_token. */
   pos_curr_token = start_position;
 check_for_errors:
