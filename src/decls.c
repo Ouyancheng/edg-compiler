@@ -8395,10 +8395,14 @@ and for the instantiation of template functions.
           if (sym->kind == (a_symbol_kind)sk_variable) {
             /* Function parameter.  Find the corresponding param-id entry. */
             param_id = func_info->param_id_list;
-            while (param_id->symbol != sym) param_id = param_id->next;
-            /* Record a definition of the parameter. */
-            mark_defined(sym, &sym->decl_position, &param_id->decl_seq_info);
-            mark_variable_value_set(sym);
+            for (; param_id != NULL; param_id = param_id->next) {
+              if (param_id->symbol == sym) break;
+            }  /* for */
+            if (param_id != NULL) {
+              /* Record a definition of the parameter. */
+              mark_defined(sym, &sym->decl_position, &param_id->decl_seq_info);
+              mark_variable_value_set(sym);
+            }  /* if */
           } else if (is_tag_symbol(sym)) {
             /* A type declared in the function prototype scope. */
             a_source_sequence_entry_ptr  ssep;
@@ -8426,9 +8430,16 @@ and for the instantiation of template functions.
         for (param_id = func_info->param_id_list;
              param_id != NULL;
              param_id = param_id->next) {
-          check_assertion(param_id->symbol != NULL);
-          reenter_symbol(param_id->symbol, decl_scope_level,
-                         /*suppress_error=*/FALSE);
+          if (param_id->implicitly_declared) {
+            /* Symbol was not entered in the function prototype and was
+               therefore not reactivated.  Enter it now. */
+            check_assertion(param_id->symbol != NULL);
+            reenter_symbol(param_id->symbol, decl_scope_level,
+                           /*suppress_error=*/FALSE);
+            mark_defined(param_id->symbol, &param_id->symbol->decl_position,
+                         (a_decl_seq_info_ptr)NULL);
+            mark_variable_value_set(param_id->symbol);
+          }  /* if */
         }  /* for */
       }  /* if */
     }  /* if */
@@ -8590,6 +8601,11 @@ specified (rather than defaulted to "int").
         internal_error("function_definition: bad region number");
       }  /* if */
 #endif /* CHECKING */
+#if 0
+#else
+      /* Remember the scope number for later use when the body is scanned. */
+      func_info->scope_number = scope_stack[depth_scope_stack].number;
+#endif /* if 0 */
       while (curr_token == tok_identifier ||
              is_decl_start(/*expr_context=*/FALSE,
                            /*real_declarator_allowed=*/TRUE)) {
@@ -8615,6 +8631,7 @@ specified (rather than defaulted to "int").
           /* Enter any undeclared parameters with a type of int. */
           param_id->type = integer_type((an_integer_kind)ik_int);
           param_id->storage_class = (a_storage_class)sc_auto;
+          param_id->implicitly_declared = TRUE;
           copy_source_position(param_id->symbol->decl_position,
                                param_id->type_pos);
         }  /* if */
@@ -9617,6 +9634,9 @@ continue_with_declaration:
             /* Parameter has already been declared. */
             str_error(ec_id_already_declared,
                       locator.symbol_header->identifier);
+          } else {
+            reenter_symbol(param_id->symbol, decl_scope_level,
+                           /*suppress_error=*/FALSE);
           }  /* if */
           adjust_parameter_type(&local_type_ptr);
           is_function = top_declarator_type_is_function = FALSE;
