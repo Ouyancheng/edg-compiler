@@ -1464,13 +1464,6 @@ void move_cached_tokens(a_cached_token_ptr	first_token,
 			a_token_cache		*from_cache,
                         a_token_cache		*to_cache);
 
-/* Free a token from a reusable cache. */
-extern
-void free_cached_token_from_reusable_cache(
-				a_token_cache_ptr  token_cache,
-                                a_cached_token_ptr ctp,
-                                a_boolean	   keep_pragma_tokens);
-
 /*
 Data structure used in deciding where to put extra blanks to separate
 adjacent tokens in textual preprocessing output.

@@ -572,6 +572,78 @@ associated with the current token.
 }  /* add_pragma_entry_to_cache */
 
 
+/*
+Macro to free a cached token entry, i.e., to put it on the avail list to be
+reused.  If the entry points to a cached constant entry, free it, too.
+It is expected that no pragma entries will be pointed to at the time
+the cached token is freed.
+*/
+#define free_cached_token(ctp)                                          \
+{ if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_constant) { \
+    /* The entry points to a constant entry; free it. */                \
+    a_constant_ptr con = ctp->variant.constant;                         \
+    con->next = avail_cached_constants;                                 \
+    avail_cached_constants = con;                                       \
+  }  /* if */                                                           \
+  ctp->next = avail_cached_tokens;                                      \
+  avail_cached_tokens = ctp;                                            \
+}  /* free_cached_token */
+
+
+#if !DEBUG
+/*ARGSUSED*/ /* <-- because "token_cache" is only used in debug code. */
+#endif /* !DEBUG */
+static void free_cached_token_from_reusable_cache(
+				a_token_cache_ptr  token_cache,
+                                a_cached_token_ptr ctp,
+                                a_boolean	   keep_pragma_tokens)
+/*
+Free an individual token from a reusable cache.  keep_pragma_tokens is TRUE
+when the token caches associated with pragma entries should be retained.
+This is needed when freeing tokens from the original copies of member function
+bodies of class templates.
+*/
+{
+  /* Free any pragmas associated with this token.  Cached constants will
+     be freed by free_cached_token. */
+  if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_pragma) {
+    /* Free any pragma entries associated with this token. */
+    a_pending_pragma_ptr	ppp = ctp->variant.pragmas;
+    while (ppp != NULL) {
+      a_pending_pragma_ptr	next_ppp = ppp->next;
+#if DEBUG
+      num_pragmas_in_reusable_caches--;
+#endif /* DEBUG */
+      if (keep_pragma_tokens) ppp->discard_cache_when_done = FALSE;
+      free_pending_pragma(ppp);
+      ppp = next_ppp;
+    }  /* while */
+    ctp->variant.pragmas = NULL;
+  }  /* if */
+#if DEBUG
+  num_cached_tokens_in_reusable_caches--;
+  token_cache->token_count--;
+#endif /* DEBUG */
+  free_cached_token(ctp);
+}  /* free_cached_token_from_reusable_cache */
+
+
+void free_tokens_from_reusable_cache(a_cached_token_ptr	ctp,
+				     a_token_cache	*cache)
+/*
+Free a list of cached tokens from the reusable cache specified by
+cache.
+*/
+{
+  while (ctp != NULL) {
+    a_cached_token_ptr	next_ctp = ctp->next;
+    free_cached_token_from_reusable_cache(cache, ctp,
+                                         /*keep_pragma_tokens=*/TRUE);
+    ctp = next_ctp;
+  }  /* while */
+}  /* free_tokens_from_reusable_cache */
+
+
 void terminate_token_cache(a_token_cache *cache)
 /*
 Save an end-of-source token on the end of the list of tokens saved in *cache.
@@ -1400,78 +1472,6 @@ Free a token cache stack entry, i.e., put it on the avail list to be reused.
   rsep->next = avail_reusable_cache_entries;
   avail_reusable_cache_entries = rsep;
 }  /* free_reusable_cache_entry */
-
-
-/*
-Macro to free a cached token entry, i.e., to put it on the avail list to be
-reused.  If the entry points to a cached constant entry, free it, too.
-It is expected that no pragma entries will be pointed to at the time
-the cached token is freed.
-*/
-#define free_cached_token(ctp)                                          \
-{ if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_constant) { \
-    /* The entry points to a constant entry; free it. */                \
-    a_constant_ptr con = ctp->variant.constant;                         \
-    con->next = avail_cached_constants;                                 \
-    avail_cached_constants = con;                                       \
-  }  /* if */                                                           \
-  ctp->next = avail_cached_tokens;                                      \
-  avail_cached_tokens = ctp;                                            \
-}  /* free_cached_token */
-
-
-#if !DEBUG
-/*ARGSUSED*/ /* <-- because "token_cache" is only used in debug code. */
-#endif /* !DEBUG */
-void free_cached_token_from_reusable_cache(
-				a_token_cache_ptr  token_cache,
-                                a_cached_token_ptr ctp,
-                                a_boolean	   keep_pragma_tokens)
-/*
-Free an individual token from a reusable cache.  keep_pragma_tokens is TRUE
-when the token caches associated with pragma entries should be retained.
-This is needed when freeing tokens from the original copies of member function
-bodies of class templates.
-*/
-{
-  /* Free any pragmas associated with this token.  Cached constants will
-     be freed by free_cached_token. */
-  if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_pragma) {
-    /* Free any pragma entries associated with this token. */
-    a_pending_pragma_ptr	ppp = ctp->variant.pragmas;
-    while (ppp != NULL) {
-      a_pending_pragma_ptr	next_ppp = ppp->next;
-#if DEBUG
-      num_pragmas_in_reusable_caches--;
-#endif /* DEBUG */
-      if (keep_pragma_tokens) ppp->discard_cache_when_done = FALSE;
-      free_pending_pragma(ppp);
-      ppp = next_ppp;
-    }  /* while */
-    ctp->variant.pragmas = NULL;
-  }  /* if */
-#if DEBUG
-  num_cached_tokens_in_reusable_caches--;
-  token_cache->token_count--;
-#endif /* DEBUG */
-  free_cached_token(ctp);
-}  /* free_cached_token_from_reusable_cache */
-
-
-void free_tokens_from_reusable_cache(a_cached_token_ptr	ctp,
-				     a_token_cache	*cache)
-/*
-Free a list of cached tokens from the reusable cache specified by
-cache.
-*/
-{
-  while (ctp != NULL) {
-    a_cached_token_ptr	next_ctp = ctp->next;
-    free_cached_token_from_reusable_cache(cache, ctp,
-                                         /*keep_pragma_tokens=*/TRUE);
-    ctp = next_ctp;
-  }  /* while */
-}  /* free_tokens_from_reusable_cache */
 
 
 /*ARGSUSED*/ /* <-- "okay_if_not_found" is only used by checking code. */
