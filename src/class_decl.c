@@ -9914,12 +9914,18 @@ moreover, several fields of *decl_info may be updated by this routine.
     /* It might also be an anonymous-union-like construct in C or C++, namely
        an unnamed class/struct/union type, possibly represented by a typedef
        name, whose subfields are to be visible as though they were fields of
-       the current class. */
+       the current class.  For a case like
+         typedef struct { int i; int j; } A;
+         struct B {
+           A;
+         };
+       put out the declaration entry for the anonymous struct.
+    */
     if (decl_info->is_nonstd_anonymous_union) {
       a_symbol_ptr  sym;
 
       sym = (a_symbol_ptr)(member_type)->source_corresp.assoc_info;
-      if (sym != NULL) {
+      if (sym != NULL && sym->kind == (a_symbol_kind)sk_type) {
         record_symbol_declaration(SRK_DECLARATION, sym, err_pos,
                                   (a_source_sequence_entry_ptr)NULL);
       }  /* if */
