@@ -2936,7 +2936,7 @@ for the scope of the handler.
     set_var_init_pos_descr(handler->parameter, &ipd);
     lower_dynamic_init(handler->dynamic_init, &ipd,
                        (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
-                       (a_constructor_init_ptr)NULL,
+                       (a_constructor_init_ptr)NULL, /*is_full_expr=*/TRUE,
                        &insert_location, &keep_dynamic_init);
     check_assertion(keep_dynamic_init == FALSE);
     /* Mark the parameter as referenced. */
@@ -3599,7 +3599,7 @@ Lower an enk_throw expression node.
     /* Generate code to copy the thrown expression to the runtime. */
     lower_dynamic_init(dip, &ipd,
                        (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
-                       (a_constructor_init_ptr)NULL,
+                       (a_constructor_init_ptr)NULL, /*is_full_expr=*/FALSE,
                        &insert_location, &keep_dynamic_init);
     check_assertion(!keep_dynamic_init);
 #if !DO_FULL_PORTABLE_EH_LOWERING

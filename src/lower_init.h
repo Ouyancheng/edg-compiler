@@ -77,13 +77,14 @@ extern void init_conditional_flag_var(
                              a_destructible_entity_descr_ptr dedp,
                              an_insert_location              *insert_location);
 
-extern void lower_dynamic_init(a_dynamic_init_ptr       dip,
-                               an_init_pos_descr_ptr    ipdp,
-                               an_expr_node_ptr         implied_arg_list,
-                               an_expr_node_ptr         end_implied_arg_list,
-                               a_constructor_init_ptr   ctor_init,
-                               an_insert_location_ptr   insert_location,
-                               a_boolean                *keep_dynamic_init);
+extern void lower_dynamic_init(a_dynamic_init_ptr     dip,
+                               an_init_pos_descr_ptr  ipdp,
+                               an_expr_node_ptr       implied_arg_list,
+                               an_expr_node_ptr       end_implied_arg_list,
+                               a_constructor_init_ptr ctor_init,
+                               a_boolean              is_full_expr,
+                               an_insert_location_ptr insert_location,
+                               a_boolean              *keep_dynamic_init);
 
 extern void lower_new_delete(an_expr_node_ptr expr);
 

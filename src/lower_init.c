@@ -2004,7 +2004,8 @@ to the constructor-init entry.
     /* Normal initialization. */
     lower_dynamic_init(con_ptr->variant.dynamic_init, ipdp,
                        (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
-                       ctor_init, insert_location, &keep_dynamic_init);
+                       ctor_init, /*is_full_expr=*/TRUE,
+                       insert_location, &keep_dynamic_init);
 #if CHECKING
     if (keep_dynamic_init) {
       internal_error("lower_ck_dynamic_init: keep_dynamic_init unexpected");
@@ -2665,6 +2666,7 @@ void lower_dynamic_init(a_dynamic_init_ptr     dip,
                         an_expr_node_ptr       implied_arg_list,
                         an_expr_node_ptr       end_implied_arg_list,
                         a_constructor_init_ptr ctor_init,
+                        a_boolean              is_full_expr,
                         an_insert_location_ptr insert_location,
                         a_boolean              *keep_dynamic_init)
 /*
@@ -2681,6 +2683,9 @@ call (for implicit virtual base class arguments).
 
 If the dynamic initialization is part of a constructor initializer,
 ctor_init points to the constructor-init entry.
+
+If the dynamic initialization is a full expression (e.g., in an
+stmk_init), is_full_expr is TRUE.
 
 This routine is only called for non-C cases, and therefore it will always
 generate some executable code.  (Well, almost always: a dynamic initialization
@@ -2712,6 +2717,7 @@ be kept, FALSE if it should be deleted.
                      lifetime, init_expr_lifetime;
   a_context          context, static_context;
   a_context_ptr      eff_context = curr_context;
+  a_boolean          expr_is_lvalue;
 
   *keep_dynamic_init = FALSE;
   saved_code_pos = code_pos_for_lowering;
@@ -2866,7 +2872,16 @@ be kept, FALSE if it should be deleted.
       goto do_assignment;
     case dik_expression:
       /* Assign an expression to the entity to be initialized. */
-      lower_normal_expr(dip->variant.expression);
+      /* Lower the source expression. */
+      source_node = dip->variant.expression;
+      /* It's an lvalue if the thing being initialized is a reference. */
+      expr_is_lvalue = is_reference_type(type_from_init_pos_descr(ipdp));
+      if (is_full_expr && init_expr_lifetime == NULL) {
+        lower_full_expr(source_node, expr_is_lvalue, (a_statement_ptr)NULL);
+      } else {
+        /* Normal case: not a full expression. */
+        lower_expr(source_node, expr_is_lvalue);
+      }  /* if */
 do_assignment:;
 #if CHECKING
       if (ipdp->whole_array) {
@@ -3556,7 +3571,7 @@ The subtree of the node has not yet been lowered.
       /* Generate code for the initialization. */
       lower_dynamic_init(dip, &ipd,
                          (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
-                         (a_constructor_init_ptr)NULL,
+                         (a_constructor_init_ptr)NULL, /*is_full_expr=*/FALSE,
                          &insert_location, &keep_dynamic_init);
       check_assertion(!keep_dynamic_init);
 #if GENERATE_EH_TABLES
@@ -3806,7 +3821,7 @@ Do IL lowering of an enk_temp_init expression node.
   set_expr_insert_location(expr, &insert_location);
   lower_dynamic_init(dip, &ipd,
                      (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
-                     (a_constructor_init_ptr)NULL,
+                     (a_constructor_init_ptr)NULL, /*is_full_expr=*/FALSE,
                      &insert_location, &keep_dynamic_init);
   check_assertion(!keep_dynamic_init);
   /* Optimization -- if the initialization is done by a constructor,
@@ -4038,7 +4053,7 @@ Generate code for a stmk_init (dynamic initialization) statement.
     }  /* if */
     lower_dynamic_init(dip, &ipd,
                        (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
-                       (a_constructor_init_ptr)NULL,
+                       (a_constructor_init_ptr)NULL, /*is_full_expr=*/TRUE,
                        &insert_location, &keep_dynamic_init);
     if (!keep_dynamic_init) {
       /* Delete the stmk_init statement. */
@@ -4051,7 +4066,9 @@ Generate code for a stmk_init (dynamic initialization) statement.
         lower_constant(dip->variant.constant);
         break;
       case dik_expression:
-        lower_normal_expr(dip->variant.expression);
+        lower_full_expr(dip->variant.expression,
+                        /*is_lvalue=*/is_reference_type(dip->variable->type),
+                        (a_statement_ptr)NULL);
         break;
 #if CHECKING
       default:
@@ -4192,6 +4209,7 @@ created are inserted at *insert_location, and *insert_location is updated.
   /* Generate the code to do the initialization. */
   lower_dynamic_init(dip, &ipd,
                      implied_arg_list, end_implied_arg_list, ctor_init,
+                     /*is_full_expr=*/TRUE,
                      insert_location, &keep_dynamic_init);
 #if CHECKING
   if (keep_dynamic_init) {
@@ -5237,7 +5255,7 @@ Do lowering on the file-scope dynamic initializations list.
       set_var_init_pos_descr(dip->variable, &ipd);
       lower_dynamic_init(dip, &ipd,
                          (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
-                         (a_constructor_init_ptr)NULL,
+                         (a_constructor_init_ptr)NULL, /*is_full_expr=*/TRUE,
                          eff_insert_location, &keep_dynamic_init);
 #if CHECKING
       if (keep_dynamic_init) {
