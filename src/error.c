@@ -2006,6 +2006,7 @@ the output.
   }  /* if */
 }  /* write_position_and_severity */
 
+#if !STANDALONE_UTILITY_PROGRAM
 
 static void write_diag_to_raw_listing(an_error_severity          severity,
                                       char                       *file_name,
@@ -2077,6 +2078,7 @@ in lower case.
   write_message(f_raw_listing, &line_len, /*wrap=*/FALSE);
 }  /* write_diag_to_raw_listing */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 static void write_diagnostic(an_error_code              error_code,
                              a_source_position          *error_pos,
@@ -2133,6 +2135,7 @@ additional messages in a multiple message diagnostic.
       /* Put out the error message text to stderr. */
       write_message(stderr, &line_len, /*wrap=*/TRUE);
 
+#if !STANDALONE_UTILITY_PROGRAM
       /* The message is always output to stderr so that the user can see it.
          If raw-listing information has been requested, it is also output to
          the raw-listing file in coded form, for later incorporation into the
@@ -2141,6 +2144,7 @@ additional messages in a multiple message diagnostic.
         write_diag_to_raw_listing(severity, file_name, line_number,
                                   error_pos, diag_kind);
       }  /* if */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
     }  /* if */
 
     if (diag_kind == dck_standalone || diag_kind == dck_end_list) {
@@ -2190,11 +2194,12 @@ additional messages in a multiple message diagnostic.
     if (total_errors + total_catastrophes >= error_limit) {
 #if !USING_DRIVER
       fprintf(stderr, "Error limit reached.\n");
-#else /* !USING_DRIVER */
+#endif /* !USING_DRIVER */
+#if !STANDALONE_UTILITY_PROGRAM
       if (f_raw_listing != NULL) {
         fprintf(f_raw_listing, "C \"\" 0 0 error limit reached\n");
       }  /* if */
-#endif /* !USING_DRIVER */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
       term_compilation(es_catastrophe);
     }  /* if */
   }  /* if */
