@@ -1442,7 +1442,6 @@ class will be instantiated if necessary so that its base classes are known.
   return bcp;
 }  /* find_base_class_of_full */
 
-#if !STANDALONE_UTILITY_PROGRAM
 
 a_base_class_ptr find_base_class_of(a_type_ptr derived_class,
                                     a_type_ptr base_class)
@@ -1475,6 +1474,7 @@ identical to base_class_type.  Return NULL if none is found.
   return bcp;
 }  /* find_direct_base_class_of */
 
+#if !STANDALONE_UTILITY_PROGRAM
 
 a_boolean is_on_any_derivation_of(a_base_class_ptr  bcp,
                                   a_base_class_ptr  ref_bcp)
