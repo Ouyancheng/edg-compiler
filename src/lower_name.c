@@ -266,6 +266,14 @@ typedef struct a_mangling_control_block {
 			/* Used to emulate a g++ bug with regard to use
 			   of an expression instead of a constant bound
 			   for a non-dependent array bound. */
+#if CHECKING
+  a_byte_boolean
+		mangling_sizeof_expression;
+			/* TRUE while the entity being mangled is the
+			   expression under a sizeof.  Such an expression may
+			   contain operators that otherwise are not allowed
+			   to appear in template argument expressions. */
+#endif /* CHECKING */
 #else /* !IA64_ABI */
   a_boolean	suppress_partial_spec_args;
 			/* TRUE to suppress extra information on partial
@@ -314,7 +322,8 @@ static void mangled_function_name_externalized_if_necessary(
                              a_mangling_control_block *mctl);
 static void mangled_member_variable_name(a_variable_ptr           variable,
                                          a_mangling_control_block *mctl);
-static char *mangled_expr_operator_name(an_expr_operator_kind op);
+static char *mangled_expr_operator_name(an_expr_operator_kind op,
+                                        a_boolean             *bad_operator);
 static void mangled_encoding_for_expression(
                                     an_expr_node_ptr         expr,
                                     a_boolean                in_dependent_expr,
@@ -379,6 +388,9 @@ Set the fields of the indicated mangling control block to default values.
   mctl->first_substitution = NULL;
   mctl->last_substitution = NULL;
   mctl->force_dependent_array_mangling = FALSE;
+#if CHECKING
+  mctl->mangling_sizeof_expression = FALSE;
+#endif /* CHECKING */
 #else /* !IA64_ABI */
   mctl->suppress_partial_spec_args = FALSE;
 #endif /* !IA64_ABI */
@@ -1566,7 +1578,14 @@ ignored if expr != NULL.
 #else /* IA64_ABI */
     /* in_dependent_expr is TRUE because this routine is used only for
        dependent sizeofs. */
+#if CHECKING
+    a_boolean save_mangling_sizeof_expression=mctl->mangling_sizeof_expression;
+    mctl->mangling_sizeof_expression = TRUE;
+#endif /* CHECKING */
     mangled_encoding_for_expression(expr, /*in_dependent_expr=*/TRUE, mctl);
+#if CHECKING
+    mctl->mangling_sizeof_expression = save_mangling_sizeof_expression;
+#endif /* CHECKING */
 #endif /* IA64_ABI */
   } else {
     /* No expression, so put out the type. */
@@ -2427,6 +2446,39 @@ is TRUE this constant is part of a template-dependent expression.
 }  /* mangled_encoding_for_constant */
 
 
+#if IA64_ABI
+
+static char *bad_mangled_expr_operator_name(an_expr_node_ptr expr)
+/*
+expr has an expression operator that is not ordinarily valid in an IA-64
+mangled name but is allowed under a sizeof expression.  Return the
+operator name mangling.
+*/
+{
+  unsigned long    num_operands;
+  an_expr_node_ptr operand;
+  static char      buffer[50];
+
+  /* We expect these names only in nonreal class types and prototype
+     instantiations when MANGLE_ALL_NAMES and PROTOTYPE_INSTANTIATIONS_IN_IL
+     are TRUE, but depending on the resolution of core issue 339 there
+     may be some operators that might be legitimate here.  For the most
+     part, however, we just want to get out of here with a valid mangled
+     name; it doesn't matter a great deal what it is. */
+  /* Count the number of operands. */
+  for (num_operands = 0, operand = expr->variant.operation.operands;
+       operand != NULL;
+       num_operands++, operand = operand->next) {}
+  /* Limit the number of operands to a single digit.  Cases with more
+     operands will not demangle correctly. */
+  if (num_operands > 9) num_operands = 9;
+  /* Use the IA-64 ABI form for a vendor extended operator of "unknown". */
+  (void)sprintf(buffer, "v%d7unknown", num_operands);
+  return buffer;
+}  /* bad_mangled_expr_operator_name */
+
+#endif /* IA64_ABI */
+
 static void mangled_encoding_for_expression(
                                     an_expr_node_ptr         expr,
                                     a_boolean                in_dependent_expr,
@@ -2491,9 +2543,29 @@ part of a template-dependent expression.
       /* Put out the initial "O". */
       add_to_mangled_name('O', mctl);
 #endif /* !IA64_ABI */
-      /* Get the operator name and put it out. */
-      operation_name= mangled_expr_operator_name(expr->variant.operation.kind);
-      add_str_to_mangled_name(operation_name, mctl);
+      { a_boolean bad_operator;
+        /* Get the operator name and put it out. */
+        operation_name = mangled_expr_operator_name(
+                                                  expr->variant.operation.kind,
+                                                  &bad_operator);
+        if (bad_operator) {
+          /* Unexpected operator.  These are allowed in some cases for
+             expressions under sizeof in the IA-64 ABI. */
+#if CHECKING
+#if IA64_ABI
+          if (!mctl->mangling_sizeof_expression)
+#endif /* IA64_ABI */
+          /* Do not insert code here. */
+          {
+            internal_error("mangled_encoding_for_expression: bad operator");
+          }  /* if */
+#endif /* CHECKING */
+#if IA64_ABI
+          operation_name = bad_mangled_expr_operator_name(expr);
+#endif /* IA64_ABI */
+        }  /* if */
+        add_str_to_mangled_name(operation_name, mctl);
+      }  /* if */
       /* For a cast, put out the type cast to. */
       if (operation_name[0] == 'c' && 
 #if !IA64_ABI
@@ -4410,17 +4482,20 @@ binary versions of operators are mangled differently.
 }  /* mangled_operator_name */
 
 
-static char *mangled_expr_operator_name(an_expr_operator_kind op)
+static char *mangled_expr_operator_name(an_expr_operator_kind op,
+                                        a_boolean             *bad_operator)
 /*
 Return the string used to mangle the indicated expression operator.
 This routine only needs to handle the operators that can be used in
 expressions on nontype template parameters in function signatures.
+If the operator is unrecognized, return *bad_operator TRUE.
 */
 {
   char           *name = NULL;
   an_opname_kind opkind;
   unsigned int   num_operands = 2;
 
+  *bad_operator = FALSE;
   switch (op) {
     case eok_inegate:
 #if FIXED_POINT_ALLOWED
@@ -4597,9 +4672,9 @@ expressions on nontype template parameters in function signatures.
     case eok_assume:                     /* Handled higher up */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     default:
-      unexpected_condition_str("mangled_expr_operator_name: bad operator");
+      *bad_operator = TRUE;
   }  /* switch */
-  if (name == NULL) {
+  if (name == NULL && !*bad_operator) {
     /* Convert opkind to a name. */
     name = mangled_operator_name(opkind, num_operands);
   }  /* if */

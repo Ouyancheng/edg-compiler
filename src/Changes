@@ -1,5 +1,24 @@
 Version 3.6
 
+12/19/04 Abort in name mangling with IA-64 ABI and
+         PROTOTYPE_INSTANTIATIONS_IN_IL
+
+In a configuration that uses the IA-64 ABI, has PROTOTYPE_INSTANTIATIONS_IN_IL
+set to TRUE (and therefore does not use IL lowering), and has
+MANGLE_ALL_NAMES set to TRUE, the name mangling code aborted 
+while attempting to generate the names of certain nonreal classes
+that included unusual operators in expressions under sizeofs.
+Now fixed.
+
+  template <bool b1> struct A {
+    bool value;
+  };
+  template <class U> char t();
+  template <typename T>
+  struct B {
+    static const bool value = (A< sizeof(t<T>()) == 1 >::value);
+  };
+
 12/17/04 Nit in lexical.c
 
 Some code in lexical.c updated for the recent changes to improve
