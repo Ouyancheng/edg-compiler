@@ -7705,6 +7705,7 @@ continue_with_declaration:
        where the semicolon following A in the second line makes it clear that
        A was intended to be a declarator. */
     set_err_pos_to_curr_token();
+    if (!declares_something) error(ec_exp_identifier);
     error(ec_exp_semicolon);
     goto return_point;
   } else if (curr_token == tok_void && C_dialect == C_dialect_pcc && 
