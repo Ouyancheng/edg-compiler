@@ -3513,6 +3513,7 @@ void decl_var_or_routine(a_symbol_locator      *locator,
                          a_storage_class       storage_class,
                          a_type_ptr            type_ptr,
                          a_func_info_block_ptr func_info,
+                         a_boolean             is_variable_def,
                          a_symbol_ptr          *symbol_ptr,
                          an_id_linkage_kind    *linkage_ptr,
                          a_type_ptr            *old_type,
@@ -3541,7 +3542,7 @@ to NULL.
 */
 {
   a_symbol_ptr      sym = NULL;
-  a_boolean         is_function, is_variable_definition = FALSE;
+  a_boolean         is_function;
   a_boolean         at_file_scope;
   a_symbol_ptr      linked_symbol, homonym_symbol, overload_symbol = NULL;
   a_boolean         redecl_error_already_issued = FALSE;
@@ -3578,19 +3579,6 @@ to NULL.
          argument list. */
       check_operator_function_params(type_ptr, /*class_type=*/(a_type_ptr)NULL,
                                      locator);
-    }  /* if */
-  } else {
-    /* Set the is_variable_definition flag.  The rules are slightly different
-       in C and C++, since the latter does not allow tentative definitions.
-       In C++ the declaration of any variable without an "extern"
-       specification is a definition; in C a storage class of unspecified
-       means it is just a declaration (unless there's an initializer). */
-    if (storage_class != (a_storage_class)sc_extern) {
-      if (C_dialect == C_dialect_cplusplus ||
-          storage_class != (a_storage_class)sc_unspecified ||
-          decl_scope_level != DEPTH_OF_FILE_SCOPE) {
-        is_variable_definition = TRUE;
-      }  /* if */
     }  /* if */
   }  /* if */
   if (is_function && func_info->is_implicit_declaration) {
@@ -3634,7 +3622,7 @@ to NULL.
   if (redeclaration) {
     if (linked_symbol->kind == (a_symbol_kind)sk_variable && !is_function) {
       if (C_dialect == C_dialect_cplusplus && linked_symbol->defined &&
-          is_variable_definition) {
+          is_variable_def) {
         /* Variable has already been defined.  Issue an error here and
            suppress an error when the symbol is entered. */
         pos_sy_error(ec_already_defined, &locator->source_position,
@@ -4020,6 +4008,11 @@ skip_overloading:;
                         (a_symbol_ptr)source_corresp_ptr->assoc_info,
                         &locator->source_position, /*update_il_entry=*/FALSE);
   }  /* if */
+  if (is_variable_def || is_function_def) {
+    mark_defined(sym, &locator->source_position);
+  } else {
+    mark_declared(sym, &locator->source_position);
+  }  /* if */
   if (!is_function && is_volatile_qualified_type(type_ptr)) {
     /* A variable with a volatile type is considered to be used and modified
        from "elsewhere".  Note that this must be done after set_source_corresp
@@ -4380,6 +4373,7 @@ the symbol and its linkage (which is always "none").
         sym->variant.static_data_member.instance_ptr->specific_def = TRUE;
         sym->variant.static_data_member.variable->specific_def = TRUE;
       }  /* if */
+      mark_defined(sym, &locator->source_position);
     }  /* if */
   } else {
     /* Not a static data member (but a member of some sort, since it is a
@@ -4591,6 +4585,7 @@ on a prior declaration.
       sym->variant.routine.instance_ptr->instantiation_required = FALSE;
     }  /* if */
   }  /* if */
+  mark_defined(sym, &locator->source_position);
   if (func_info->is_inline) {
     if (!sym->variant.routine.ptr->is_inline &&
         sym->variant.routine.ptr->called) {
@@ -4851,7 +4846,8 @@ symbol has already been entered as an undefined symbol.
   func_info.is_implicit_declaration = TRUE;
   if (exceptions_enabled) func_info.throw_position = locator.source_position;
   decl_var_or_routine(&locator, (a_storage_class)sc_extern, rout_type,
-                      &func_info, &symbol_ptr, &linkage, &old_type, &ext_sym);
+                      &func_info, /*is_variable_def=*/FALSE, &symbol_ptr,
+                      &linkage, &old_type, &ext_sym);
   /* Set the referenced flag on the routine entry.  The implicit declaration
      is also an immediate reference. */
   symbol_ptr->variant.routine.ptr->source_corresp.referenced = TRUE;
@@ -8388,9 +8384,9 @@ explicitly specified (rather than defaulted to "int").
     }  /* if */
     /* Create the symbol entry and routine entry for the routine. */
     decl_var_or_routine(locator, storage_class, rout_type, func_info,
-                        &symbol_ptr, &linkage, &old_type, &ext_sym);
+                        /*is_variable_def=*/FALSE, &symbol_ptr, &linkage,
+                        &old_type, &ext_sym);
   }  /* if */
-  mark_defined(symbol_ptr, &locator->source_position);
   routine_ptr = symbol_ptr->variant.routine.ptr;
   check_assertion(make_unqualified_type(routine_ptr->type) ==
                                                       unqualified_rout_type);
@@ -8927,7 +8923,7 @@ of local variables (and types, etc.) of functions and in blocks.
   a_boolean         need_comma_remove_stop_token     = FALSE;
   a_boolean         need_assign_remove_stop_token    = FALSE;
   a_boolean         need_lbrace_remove_stop_token    = FALSE;
-  a_boolean         is_definition, incomplete_type_error_reported;
+  a_boolean         is_variable_def, incomplete_type_error_reported;
   a_boolean         is_tentative_definition;
   a_variable_ptr    var_ptr;
 #if ASM_FUNCTION_ALLOWED
@@ -9539,47 +9535,12 @@ continue_with_declaration:
       /* Enter the symbol with the proper type. */
       linkage = idl_none;
       var_ptr = NULL;
-      if (local_is_old_style_param_decl) {
-        symbol_ptr = param_id->symbol;
-        copy_source_position(locator.source_position,
-                             symbol_ptr->decl_position);
-        param_id->type = local_type_ptr;
-        copy_source_position(decl_start_pos, param_id->type_pos);
-        param_id->storage_class = local_storage_class;
-      } else if (local_storage_class == (a_storage_class)sc_typedef) {
-        decl_typedef(&locator, local_type_ptr, &symbol_ptr);
-      } else {
-        /* Variable or static data member. */
-        if (is_static_data_member) {
-          define_static_data_member(&locator, local_storage_class,
-                                    local_type_ptr, &symbol_ptr, &linkage);
-          var_ptr = symbol_ptr->variant.static_data_member.variable;
-        } else {
-          decl_var_or_routine(&locator, local_storage_class, local_type_ptr,
-                              is_function ? &func_info : NULL, &symbol_ptr,
-                              &linkage, &old_type, &ext_sym);
-          if (is_old_style_param_decl) {
-            /* A variable has been entered for a name that appears in an
-               old-style param declaration but for which no corresponding
-               param-id was created.  Mark the symbol referenced, to suppress
-               subsequent "declared and not referenced" warnings. */
-            symbol_ptr->referenced = TRUE;
-          }  /* if */
-          var_ptr = symbol_ptr->variant.variable.ptr;
-        }  /* if */
-        /* Fetch the type of the symbol again, since it might have been
-           changed when reconciled with the original declaration. */
-        if (var_ptr != NULL) local_type_ptr = var_ptr->type;
-      }  /* if */
       /* Look for optional initializer. */
       remove_stop_token(tok_assign);
       need_assign_remove_stop_token = FALSE;
-      has_initializer = FALSE;
-      set_err_pos_to_curr_token();
       if (has_parenthesized_initializer) {
         has_initializer = TRUE;
       } else if (curr_token == tok_assign) {
-        (void)get_token();
         has_initializer = TRUE;
 #if C_ANACHRONISMS_ALLOWED
       } else if (C_dialect == C_dialect_pcc && is_initializer_start()) {
@@ -9588,37 +9549,87 @@ continue_with_declaration:
         has_initializer = TRUE;
         warning(ec_old_fashioned_initializer);
 #endif /* C_ANACHRONISMS_ALLOWED */
+      } else {
+        has_initializer = FALSE;
       }  /* if */
-      is_definition = FALSE;
+      is_variable_def = FALSE;
       is_tentative_definition = FALSE;
-      if (symbol_ptr->kind == (a_symbol_kind)sk_variable &&
-          !is_old_style_param_decl) {
+      if (local_is_old_style_param_decl) {
+        symbol_ptr = param_id->symbol;
+        copy_source_position(locator.source_position,
+                             symbol_ptr->decl_position);
+        param_id->type = local_type_ptr;
+        copy_source_position(decl_start_pos, param_id->type_pos);
+        param_id->storage_class = local_storage_class;
+        /* Note that the creation of the parameter variable, etc., is done
+           in decl_parameter, called when the function body is scanned. */
+      } else if (local_storage_class == (a_storage_class)sc_typedef) {
+        /* A typedef declaration. */
+        decl_typedef(&locator, local_type_ptr, &symbol_ptr);
+      } else if (is_static_data_member) {
+        /* A static data member definition. */
+        define_static_data_member(&locator, local_storage_class,
+                                  local_type_ptr, &symbol_ptr, &linkage);
+        var_ptr = symbol_ptr->variant.static_data_member.variable;
+        /* Fetch the type of the symbol again, since it might have been
+           changed when reconciled with the original declaration. */
+        local_type_ptr = var_ptr->type;
+        /* All static data member declarations that that pass though this
+           code are definitions. */
+        is_variable_def = TRUE;
+      } else if (is_function) {
+        /* A function declaration with no body. */
+        decl_var_or_routine(&locator, local_storage_class, local_type_ptr,
+                            &func_info, /*is_variable_def=*/FALSE,
+                            &symbol_ptr, &linkage, &old_type, &ext_sym);
+      } else {
+        /* A variable declaration. */
         /* Set a flag marking this as a defining declaration, if that's
            appropriate. */
-        if (has_initializer) {
-          /* An declaration involving an initializer is always considered to
-             be a definition. */
-          is_definition = TRUE;
+        if (is_old_style_param_decl) {
+          /* This flag is TRUE when local_is_old_style_param_decl is FALSE
+             in the error case where a name appears in an old-style param
+             declaration but for which no corresponding param-id was created.
+               void f(i,j) int i, j, k; { }      // Error on "k"
+             Treat this as a definition. */
+          is_variable_def = TRUE;
+        } else if (has_initializer) {
+          /* A variable declaration involving an initializer is always
+             considered to be a definition. */
+          is_variable_def = TRUE;
         } else if (C_dialect == C_dialect_cplusplus) {
           /* In C++ all other variable declarations are definitions, except
              those with a storage class of extern. */
-          is_definition = (local_storage_class != (a_storage_class)sc_extern);
-        } else if (linkage == idl_none) {
-          /* In C all local variable declarations are definitions. */
-          is_definition = TRUE;
-        } else if (decl_scope_level == DEPTH_OF_FILE_SCOPE &&
-                   (local_storage_class == (a_storage_class)sc_unspecified ||
-                    local_storage_class == (a_storage_class)sc_static)) {
-          /* In C a file scope variable declaration with no storage class or
-             static storage class is called a tentative definition. */
-          is_tentative_definition = TRUE;
+          is_variable_def =
+                       (local_storage_class != (a_storage_class)sc_extern);
+        } else {
+          /* C mode. */
+          if (linkage == idl_none) {
+            /* In C all local variable declarations are definitions. */
+            is_variable_def = TRUE;
+          } else if (decl_scope_level == DEPTH_OF_FILE_SCOPE &&
+                     (local_storage_class ==
+                                         (a_storage_class)sc_unspecified ||
+                      local_storage_class == (a_storage_class)sc_static)) {
+            /* In C a file scope variable declaration with no storage class
+               or static storage class is called a tentative definition. */
+            is_tentative_definition = TRUE;
+          }  /* if */
         }  /* if */
-      } else if (symbol_ptr->kind == (a_symbol_kind)sk_static_data_member) {
-        /* All static data member declarations that that pass though this
-           code are definitions. */
-        is_definition = TRUE;
+        decl_var_or_routine(&locator, local_storage_class, local_type_ptr,
+                            (a_func_info_block *)NULL, is_variable_def,
+                            &symbol_ptr, &linkage, &old_type, &ext_sym);
+        var_ptr = symbol_ptr->variant.variable.ptr;
+        /* Fetch the type of the symbol again, since it might have been
+           changed when reconciled with the original declaration. */
+        local_type_ptr = var_ptr->type;
+        if (is_old_style_param_decl) {
+          /* Error case (described above).  Mark the symbol referenced, to
+             suppress subsequent "declared and not referenced" warnings. */
+          symbol_ptr->referenced = TRUE;
+        }  /* if */
       }  /* if */
-      if (is_definition) {
+      if (is_variable_def) {
         /* At the point at which an object of incomplete template class is
            defined, its class needs to be instantiated.  When its type is
            ref-template-class, the instantiation is also required.  Note that
@@ -9628,11 +9639,14 @@ continue_with_declaration:
         a_type_ptr  tp = local_type_ptr;
         if (is_reference_type(tp)) tp = type_pointed_to(tp);
         check_for_uninstantiated_template_class(tp);
-        mark_defined(symbol_ptr, &locator.source_position);
       }  /* if */
       incomplete_type_error_reported = FALSE;
       if (has_initializer) {
-        /* Initializer is present.  Scan it. */
+        /* Set error position to the start of the initializer (that is, to
+           the "=" if there is one), and advance past the "=". */
+        set_err_pos_to_curr_token();
+        if (curr_token == tok_assign) (void)get_token();
+        /* Now scan the initializer. */
         if (symbol_ptr->kind == (a_symbol_kind)sk_variable &&
             !is_old_style_param_decl) {
           /* Set the storage class of a file-scope initialized variable to
@@ -9657,7 +9671,7 @@ continue_with_declaration:
         /* Fetch the type of the symbol again, since it might have been
            changed if it was an incomplete array and was initialized. */
         if (var_ptr != NULL) local_type_ptr = var_ptr->type;
-      } else if (is_definition && !is_error_locator(locator) &&
+      } else if (is_variable_def && !is_error_locator(locator) &&
                  var_ptr->init_kind == (an_init_kind)initk_none) {
         /* Uninitialized variable or static data member is being defined, but
            no explicit initializer was provided.  Do default initialization
@@ -9692,7 +9706,7 @@ continue_with_declaration:
            declaration but whose type is incomplete.  Also, in C mode, issue
            an error on a variable with a tentative definition but an
            uncompletable type (a case like "void i;" at file scope). */
-        if (is_definition ||
+        if (is_variable_def ||
             (is_tentative_definition && is_void_type(local_type_ptr))) {
           if (!incomplete_type_error_reported) {
             pos_error(ec_incomplete_type_not_allowed,
