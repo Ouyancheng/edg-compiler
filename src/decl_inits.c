@@ -2995,12 +2995,14 @@ are created by a new expression (in which case sym is NULL).  In both cases
         }  /* if */
       }  /* if */
     } else {
-      /* Uninitialized const new-object.  Issue an discretionary error in
-         strict mode, otherwise a warning. (One can infer from the ARM that
-         an error is required, but it's not explicit.)  */
+      /* Uninitialized const new-object.  Issue an discretionary error.  If
+         it's an empty class, issue a discetionary error in strict mode,
+         otherwise a warning. */
       if (is_empty_class &&
-          (!strict_ansi_mode || strict_ansi_error_severity <= es_warning)) {
-        /* Just issue a warning if the class is empty. */
+          (!strict_ansi_mode ||
+           (strict_ansi_error_severity != (an_error_severity)es_error &&
+            strict_ansi_error_severity != (an_error_severity)
+                                                   es_discretionary_error))) {
         severity = es_warning;
       } else {
         severity = es_discretionary_error;

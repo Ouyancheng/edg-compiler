@@ -5880,7 +5880,6 @@ This routine is called only in C++ mode.
         /* Error case. */
         opname = (an_opname_kind)onk_none;
       }  /* if */
-#if ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE
     } else if (array_new_and_delete_enabled &&
                (opname == (an_opname_kind)onk_new ||
                 opname == (an_opname_kind)onk_delete)) {
@@ -5894,7 +5893,6 @@ This routine is called only in C++ mode.
                     (an_opname_kind)onk_array_new :
                     (an_opname_kind)onk_array_delete;
       }  /* if */
-#endif /* ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE */
     }  /* if */
     if (opname == (an_opname_kind)onk_none ||
         opname == (an_opname_kind)onk_question) {
