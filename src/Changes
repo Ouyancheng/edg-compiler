@@ -184,9 +184,9 @@ tokens.  The add_xxx_pragma_kind_description routines now take an
 additional parameter that indicates whether the pragma should be
 scanned as pp-tokens.  Such pragmas must be represented as text
 (not tokens), cannot have macros expanded, and cannot have the
-processing_C_code flag set.  The exact token spacing for pragmas scanned
-in this mode is preserved (i.e., white space is not added or removed except
-that comments are replaced with a single space).
+processing_C_code flag set.  The presence or absence of white space
+between tokens is preserved, although white space and comments are
+standardized to a single space.
 
 6/29/04  Microsoft compatibility: call of non-const function on const object
 

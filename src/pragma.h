@@ -176,8 +176,8 @@ typedef struct a_pragma_kind_description {
 			   expand_macros and processing_C_code must be
 			   FALSE.  In this mode the spacing of the
 			   pragma invocation (i.e., the presence or absence
-			   of white space) is preserved, except that comments
-			   are replaced with a space. */
+			   of white space) is preserved, but white space and
+			   comments are standardized to a single space.
   a_bit_field	ignore_in_back_end:1;
 			/* TRUE if this pragma may be ignored if it is
 			   not recognized by the back end.  This allows the
