@@ -2270,6 +2270,7 @@ confusion.  Do the output in the way described by octl.
         /* An enum constant. */
         form_name(&constant->source_corresp, iek_constant, octl);
       } else if (is_enum && il_header.source_language == sl_Cplusplus &&
+                 !octl->debug_output &&
                  is_enum_constant_equivalent(constant, &equiv_constant)) {
         /* The equivalent of an enum constant (an enum constant used in
            an initializer; it's a nonshared constant with the same value as
