@@ -49,16 +49,17 @@ attributes that can appear in a declarator in Microsoft mode.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
-Macro that is TRUE if the current token is one of the extension keywords
-that can appear in a declarator in Microsoft mode.
+Macro to test whether the current token is one of the extension keywords
+that can appear in a declarator in Microsoft mode.  Includes an "||"
+at the beginning.
 */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-#define is_microsoft_declarator_keyword()                             \
+#define or_is_microsoft_declarator_keyword() ||                       \
   (is_microsoft_calling_convention() ||                               \
    is_microsoft_memory_attribute() ||                                 \
    curr_token == tok_based)
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-#define is_microsoft_declarator_keyword() FALSE
+#define or_is_microsoft_declarator_keyword() /* Nothing */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
@@ -68,8 +69,8 @@ Macro that is TRUE if the current token is the start of a declarator
 #define is_declarator_start()                                        \
   (curr_token == tok_identifier ?                                    \
      (C_mode() || !identifier_is_template_id()) :                    \
-     (curr_token == tok_star || curr_token == tok_lparen ||          \
-      is_microsoft_declarator_keyword() ||                           \
+     (curr_token == tok_star || curr_token == tok_lparen             \
+      or_is_microsoft_declarator_keyword() ||                        \
       (C_dialect == C_dialect_cplusplus &&                           \
        (curr_token == tok_ampersand || curr_token == tok_operator))))
 
@@ -89,8 +90,7 @@ declarator (3.5.5).
 */
 #define is_abstract_declarator_start()                                \
   (curr_token == tok_star || curr_token == tok_lbracket ||            \
-   curr_token == tok_lparen ||                                        \
-   is_microsoft_declarator_keyword() ||				      \
+   curr_token == tok_lparen  or_is_microsoft_declarator_keyword() ||  \
    (C_dialect == C_dialect_cplusplus &&                               \
     (is_ptr_to_member_declarator_start() ||                           \
      curr_token == tok_ampersand)))
@@ -100,8 +100,8 @@ Macro that is TRUE if the current token is the start of either an
 abstract or real declarator.
 */
 #define is_abstract_or_real_declarator_start()                        \
-  (is_declarator_start() || curr_token == tok_lbracket ||             \
-   is_microsoft_declarator_keyword() ||				      \
+  (is_declarator_start() || curr_token == tok_lbracket                \
+   or_is_microsoft_declarator_keyword() ||			      \
    (C_dialect == C_dialect_cplusplus &&                               \
     is_ptr_to_member_declarator_start()))
 

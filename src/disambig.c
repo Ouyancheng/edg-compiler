@@ -632,19 +632,15 @@ part of a declarator is found, may_be_decl is set to FALSE.
       cache_curr_token(&state->cache);
       get_token_and_coalesce_if_identifier(flags);
       pointer_operator_seen = TRUE;
-    } else if (is_type_qualifier_token(curr_token)) {
+    } else if (is_type_qualifier_token(curr_token) ||
+               curr_token == tok_ptr_to_member
+               or_is_microsoft_declarator_keyword()) {
       /* Cache and bypass any cv-qualifiers. */
-      cache_curr_token(&state->cache);
-      get_token_and_coalesce_if_identifier(flags);
-    } else if (curr_token == tok_ptr_to_member) {
       /* Cache and bypass any pointer to member operators. */
-      cache_curr_token(&state->cache);
-      get_token_and_coalesce_if_identifier(flags);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (is_microsoft_declarator_keyword()) {
       /* Keywords allowed in declarators in Microsoft mode, e.g., __cdecl. */
       cache_curr_token(&state->cache);
       get_token_and_coalesce_if_identifier(flags);
+#if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (curr_token == tok_based) {
       /* Microsoft __based modifier. */
       prescan_based_modifier(state, flags);
