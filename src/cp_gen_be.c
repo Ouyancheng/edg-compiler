@@ -3487,12 +3487,14 @@ is the one associated with the definition of the class.
                                   ss_entry_ptr(curr_source_sequence_entry,
                                                a_src_seq_end_of_construct_ptr);
     check_assertion_str((ss_entry_kind(ssecp) == iek_type &&
-                         ss_entry_ptr(ssecp, a_type_ptr) == type) ||
-                        (ss_entry_kind(ssecp) == iek_template &&
-                         is_immediate_class_type(type) &&
-                         ss_entry_ptr(ssecp, a_template_ptr) ==
+                         ss_entry_ptr(ssecp, a_type_ptr) == type)
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+                        || (ss_entry_kind(ssecp) == iek_template &&
+                           is_immediate_class_type(type) &&
+                           ss_entry_ptr(ssecp, a_template_ptr) ==
                                                       assoc_template_of(type)),
                         "gen_class_definition: bad end-of-construct");
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
     /* Set the position for the closing "}". */
     set_output_position(&ssecp->position);
     adv_curr_source_sequence_entry();
@@ -6576,7 +6578,6 @@ is the one associated with the template.
 
   if (curr_src_seq_entry_is_secondary_decl(&sec_decl)) {
     tp = ss_entry_ptr(sec_decl, a_template_ptr);
-    gen_template_from_prototype_instantiation(tp);
   } else {
     tp = ss_entry_ptr(curr_source_sequence_entry, a_template_ptr);
   }  /* if */
