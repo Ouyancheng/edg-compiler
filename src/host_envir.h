@@ -1761,15 +1761,17 @@ typedef a_void_ptr a_stdio_arg;
 
 /*
 Determine whether the module ID routines are needed.  They are needed
-if IL lowering or name mangling are used or when the C generating back end
-is not generating ANSI C.  We only test for name mangling because name mangling
-is required when using IL lowering or the C generating back end.
+if IL lowering or name mangling are used, when the C generating back end
+is not generating ANSI C, or when the automatic template instantiation
+mechanism is enabled.  The name mangling test is sufficient to cover the
+C generating back end case because name mangling is required when using
+IL lowering or the C generating back end.
 */
-#if NEED_NAME_MANGLING
+#if NEED_NAME_MANGLING || AUTOMATIC_TEMPLATE_INSTANTIATION
 #define MODULE_ID_NEEDED TRUE
-#else /* !NEED_NAME_MANGLING */
+#else /* !(NEED_NAME_MANGLING || AUTOMATIC_TEMPLATE_INSTANTIATION) */
 #define MODULE_ID_NEEDED FALSE
-#endif /* !NEED_NAME_MANGLING */
+#endif /* NEED_NAME_MANGLING || AUTOMATIC_TEMPLATE_INSTANTIATION */
 
 #if MODULE_ID_NEEDED
 extern void change_non_id_characters(char *str);
