@@ -4553,9 +4553,13 @@ One-time initialization for il_to_str static variables.
 {
   template_param_map = NULL;
   template_param_map_max_level = 0;
+#if BACK_END_IS_C_GEN_BE
+#if LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C
 #if ISSUE_WARNING_ON_LONG_DOUBLE_AS_DOUBLE
   double_for_long_double_warning_issued = FALSE;
 #endif /* ISSUE_WARNING_ON_LONG_DOUBLE_AS_DOUBLE */
+#endif /* LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C */
+#endif /* BACK_END_IS_C_GEN_BE */
 }  /* il_to_str_one_time_init */
 
 

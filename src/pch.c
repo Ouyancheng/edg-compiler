@@ -26,7 +26,6 @@ pch.c -- Precompiled header processing.
 #include "pch.h"
 #include "decls.h"
 #include "statements.h"
-#include "symbol_ref.h"
 #include "macro.h"
 
 
