@@ -48,6 +48,9 @@ typedef an_output_name_reference_function
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
 typedef void an_output_temp_name_function(char *entry);
 typedef an_output_temp_name_function *an_output_temp_name_function_ptr;
+typedef a_boolean a_typedef_visibility_test_function(a_type_ptr type);
+typedef a_typedef_visibility_test_function
+                                       *a_typedef_visibility_test_function_ptr;
 typedef struct an_il_to_str_output_control_block
                                         *an_il_to_str_output_control_block_ptr;
 /* If you add a field here, add it also to
@@ -100,6 +103,16 @@ typedef struct an_il_to_str_output_control_block {
 			   of the name).  NULL if name reference information
 			   should be ignored. */
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
+  a_typedef_visibility_test_function_ptr
+	is_typedef_invisible;
+			/* Function that indicates whether a given typedef
+			   name should be considered visible.  If the typedef
+			   is invisible, it is skipped by the output routines
+			   and the underlying type is put out instead.
+			   Certain visibility tests (e.g., the one related to
+			   suppress_typedefs, below) are always done.  This
+			   pointer is non-NULL if additional tests are
+			   needed. */
   a_byte_boolean
 	gen_compilable_code;
 			/* TRUE if the generated string is intended to be
@@ -122,14 +135,6 @@ typedef struct an_il_to_str_output_control_block {
 			/* Suppress function-local typedefs in type output,
 			   i.e., skip over them and don't show them in the
 			   output. */
-  a_byte_boolean
-	suppress_not_yet_defined_typedefs;
-			/* Suppress typedefs that have not yet been defined,
-			   according to the typedef_definition_has_been_put_out
-			   flag.  Used by the C++-generating back end for
-			   references in template arguments of instantiations
-			   that have been promoted out of their enclosing
-			   nested context. */
   a_byte_boolean
 	render_c99_bool;
 			/* TRUE if the C99 boolean type should be rendered as

@@ -1,5 +1,13 @@
 Version 3.4
 
+12/25/03 Interface block for il_to_str routines: visibility test
+
+The interface block for the il_to_str routines has been changed
+slightly to add a pointer to a user-provided typedef visibility
+test routine.  The C++-generating back end now uses this: some
+of the visibility tests required only there are now done
+by a custom routine in cp_gen_be.c.
+
 12/21/03 C99 printf specifiers: hh, j, z, and t
 
 C99 added several length specifiers for printf/scanf specifiers:

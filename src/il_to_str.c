@@ -56,11 +56,11 @@ Clear an output control block to default values.
 #if RECORD_FORM_OF_NAME_REFERENCE
   octl->output_name_reference     = NULL;
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
+  octl->is_typedef_invisible      = NULL;
   octl->gen_compilable_code       = FALSE;
   octl->gen_pcc_code              = FALSE;
   octl->suppress_typedefs         = FALSE;
   octl->suppress_local_typedefs   = FALSE;
-  octl->suppress_not_yet_defined_typedefs = FALSE;
   octl->render_c99_bool           = FALSE;
   octl->c_generating_back_end     = FALSE;
 #if DEBUG
@@ -192,23 +192,7 @@ Output the indicated template argument in the way described by octl.
   switch (tap->kind) {
     case tak_type:
       /* Type argument. */
-      { a_type_ptr type = tap->variant.type;
-#if BACK_END_IS_CP_GEN_BE
-        if (octl->gen_compilable_code) {
-          /* Remove typedefs for non-public class members if the ultimate
-             underlying type is not a class member, because the typedefs might
-             be inaccessible. */
-          if (type->kind == (a_type_kind)tk_typeref &&
-              typeref_is_typedef(type) &&
-              type->source_corresp.is_class_member &&
-              type->source_corresp.access != (an_access_specifier)as_public) {
-            a_type_ptr utype = skip_typedefs(type);
-            if (!utype->source_corresp.is_class_member) type = utype;
-          }  /* if */
-        }  /* if */
-#endif /* BACK_END_IS_CP_GEN_BE */
-        form_type(type, octl);
-      }
+      form_type(tap->variant.type, octl);
       break;
     case tak_nontype:
       /* Nontype argument. */
@@ -1297,32 +1281,17 @@ by octl.
 Return TRUE if the indicated typedef is "invisible" now because (a) it's
 local to a function and we're suppressing local typedefs, or
 (b) suppress_const is TRUE (we're suppressing top-level "const") and the
-typedef contains a const qualifier, or (c) suppress_not_yet_defined_typedefs
-is TRUE and the typedef definition has not yet been put out in the
-C++-generating back end.
+typedef contains a const qualifier, or (c) suppress_typedefs is TRUE, or
+(d) a user visibility test routine (pointed to by the is_typedef_visible
+control field) returns TRUE.
 */
-#if BACK_END_IS_CP_GEN_BE
-
-#if GCC_BUILTIN_VARARGS
-#define and_not_gnu_builtin_va_list(type) && !(type)->is_builtin_va_list
-#else /* !GCC_BUILTIN_VARARGS */
-#define and_not_gnu_builtin_va_list(type) /* Nothing */
-#endif /* GCC_BUILTIN_VARARGS */
-
-#define or_not_yet_defined_typedef(type) ||                           \
-  ((octl)->suppress_not_yet_defined_typedefs &&                       \
-   !(type)->typedef_definition_has_been_put_out                       \
-   and_not_gnu_builtin_va_list(type))
-#else /* !BACK_END_IS_CP_GEN_BE */
-#define or_not_yet_defined_typedef(type) /* Nothing */
-#endif /* BACK_END_IS_CP_GEN_BE */
-
 #define typedef_is_invisible(type, suppress_const, octl)              \
  (((type)->source_corresp.is_local_to_function &&                     \
    (octl)->suppress_local_typedefs) ||                                \
   ((suppress_const) && is_const_qualified_type(type)) ||              \
-  (octl)->suppress_typedefs                                         \
-  or_not_yet_defined_typedef(type)) 
+  (octl)->suppress_typedefs ||                                        \
+  ((octl)->is_typedef_invisible != NULL &&                            \
+   (octl)->is_typedef_invisible(type)))
 
 
 static a_boolean can_use_qualified_array_typedef(

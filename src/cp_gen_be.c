@@ -2278,6 +2278,32 @@ Generate the name of a routine from an enk_routine_address node.
 }  /* gen_name_from_routine_address_node */
 
 
+static a_boolean is_typedef_invisible_in_cp_gen_be(a_type_ptr type)
+/*
+Called from the il_to_str routines.  Returns TRUE if the indicated typedef
+type should be considered to be invisible, i.e., the type under it should
+be put out instead of the typedef name.  Note that certain basic
+visibility tests are done in the il_to_str routines before this routine
+is called.
+*/
+{
+  a_boolean invisible = FALSE;
+
+  if (!type->typedef_definition_has_been_put_out) {
+    /* The typedef definition has not been put out yet, so the typedef
+       name cannot be referenced. */
+    invisible = TRUE;
+#if GCC_BUILTIN_VARARGS
+    /* The definition of the va_list type is never put out, but it's
+       visible even though the flag is not set (it's defined when the
+       <stdarg.h> header is included). */
+    if (type->is_builtin_va_list) invisible = FALSE;
+#endif /* GCC_BUILTIN_VARARGS */
+  }  /* if */
+  return invisible;
+}  /* is_typedef_invisible_in_cp_gen_be */
+
+
 static void gen_compound_literal(a_constant_ptr     literal_con,
                                  a_dynamic_init_ptr dip,
                                  a_type_ptr         literal_type)
@@ -10957,9 +10983,9 @@ Initialize for the C++/C-generating back end.
 #if RECORD_FORM_OF_NAME_REFERENCE
   octl.output_name_reference = gen_name_from_name_reference;
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
+  octl.is_typedef_invisible = is_typedef_invisible_in_cp_gen_be;
   octl.gen_compilable_code = TRUE;
   octl.gen_pcc_code = il_header.pcc_compatibility_mode;
-  octl.suppress_not_yet_defined_typedefs = TRUE;
   /* In C99 mode we want to see "_Bool" rather than "bool" or the type
      underlying _Bool. */
   octl.render_c99_bool = c99_mode || gcc_mode;
