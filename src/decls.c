@@ -8201,22 +8201,32 @@ NULL.
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode && !is_error_type(type_ptr)) {
+    if (decl_modifiers != NULL) {
+      if (decl_modifiers->is_deprecated) {
+        tp->source_corresp.is_deprecated = TRUE;
+      } else if (!is_redecl) {
+        /* Check if a deprecated type was involved in this declaration. */
+        warn_about_use_of_deprecated_type(type_ptr, &locator->source_position);
+      }  /* if */
 #if USER_CONTROL_OF_STRUCT_PACKING
-  if (decl_modifiers != NULL && decl_modifiers->alignment != 0) {
-    if (decl_modifiers->alignment < type_ptr->alignment) {
-      /* Microsoft compilers ignore __declspec(align(...)) constructs that
-         attempt to reduce the alignment of the underlying type. */
-      pos_warning(ec_declspec_align_reduction_ignored,
-                  &locator->source_position);
-    } else {
-      set_declspec_align(tp, decl_modifiers->alignment,
-                         &locator->source_position);
-    }  /* if */
-  }  /* if */
+      if (decl_modifiers != NULL && decl_modifiers->alignment != 0) {
+        if (decl_modifiers->alignment < type_ptr->alignment) {
+          /* Microsoft compilers ignore __declspec(align(...)) constructs that
+             attempt to reduce the alignment of the underlying type. */
+          pos_warning(ec_declspec_align_reduction_ignored,
+                      &locator->source_position);
+        } else {
+          set_declspec_align(tp, decl_modifiers->alignment,
+                             &locator->source_position);
+        }  /* if */
+      }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
-  if (p_ms_attributes != NULL && *p_ms_attributes != NULL) {
-    apply_microsoft_attributes(p_ms_attributes, (char*)tp, iek_type,
-                               MSAT_TYPEDEF);
+    }  /* if */
+    if (p_ms_attributes != NULL && *p_ms_attributes != NULL) {
+      apply_microsoft_attributes(p_ms_attributes, (char*)tp, iek_type,
+                                 MSAT_TYPEDEF);
+    }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Do processing required for any pragmas that are bound to the current
