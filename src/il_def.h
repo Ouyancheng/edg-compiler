@@ -800,6 +800,7 @@ typedef enum {
   bta_volatile,			/* Volatile-qualified version of the type. */
   bta_const_volatile,		/* Const-volatile-qualified version of the
 				   type. */
+  bta_file_scope_copy,		/* Copy of the type at the file scope. */
   bta_last
 } a_based_type_array_element_num;
 typedef a_type_ptr a_based_type_array[(int)bta_last];
