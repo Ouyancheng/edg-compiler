@@ -6253,6 +6253,7 @@ this routine to do a relatively simple copy of the all the fields.
     /* Make a copy of the class type for use as the subobject type. */
     subobject_type = alloc_type((a_type_kind)tk_struct);
     subobject_ctsp = subobject_type->variant.class_struct_union.extra_info;
+    subobject_ctsp->compiler_generated = TRUE;
     /* Give the struct a name that is a prefix followed by the original name.
        Also give it the same declaration position as the original type. */
     mangle_subobject_class_name(class_type, subobject_type);

@@ -4875,6 +4875,11 @@ Display the indicated class type supplement entry.
                                               surrounding_name_linkage_state);
   }  /* if */
 #endif /* BACK_END_IS_CP_GEN_BE */
+#if DO_IL_LOWERING
+  if (ptr->compiler_generated) {
+    disp_boolean("compiler_generated", (a_boolean)ptr->compiler_generated);
+  }  /* if */
+#endif /* DO_IL_LOWERING */
   if (ptr->anonymous_union_kind != (an_anonymous_union_kind)auk_none) {
     disp_name("anonymous_union_kind");
     switch (ptr->anonymous_union_kind) {

@@ -1194,6 +1194,9 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
 #if BACK_END_IS_CP_GEN_BE
   ctsp->surrounding_name_linkage_state    = (a_name_linkage_kind)nlk_none;
 #endif /* BACK_END_IS_CP_GEN_BE */
+#if DO_IL_LOWERING
+  ctsp->compiler_generated                = FALSE;
+#endif /* DO_IL_LOWERING */
 #if NEAR_AND_FAR_ALLOWED
   ctsp->qualifiers                        = TQ_NONE;
 #endif /* NEAR_AND_FAR_ALLOWED */

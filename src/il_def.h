@@ -4336,6 +4336,12 @@ typedef struct a_class_type_supplement {
 			   Used by the C++-generating back end to reconstruct
 			   name linkage blocks when appropriate. */
 #endif /* BACK_END_IS_CP_GEN_BE */
+#if DO_IL_LOWERING
+  a_bit_field  compiler_generated:1;
+			/* TRUE if this class is compiler-generated.
+			   Specifically, this is TRUE for the "types
+			   as subobjects" generated during IL lowering. */
+#endif /* DO_IL_LOWERING */
   an_anonymous_union_kind
 		anonymous_union_kind;
 			/* Indication of whether this class is an anonymous

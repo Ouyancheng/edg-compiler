@@ -1286,7 +1286,7 @@ source.  Fields that represent anonymous union objects are not skipped (even
 though in some sense they are "generated").
 */
 {
-  while (field != NULL && field->source_corresp.decl_position.seq == 0 &&
+  while (field != NULL && field->compiler_generated &&
          !field->is_anonymous_parent_object) {
     field = field->next;
   }  /* while */
@@ -1358,10 +1358,12 @@ always appear in the same order on the types list of a class scope.)
   a_type_ptr  result = type;
 
   while (result != NULL && (
-#if NEED_NAME_MANGLING
+#if DO_IL_LOWERING
          /* Some types are generated as part of prelowering. */
-         result->source_corresp.name_has_been_mangled ||
-#endif /* NEED_NAME_MANGLING */
+         (is_immediate_class_type(result) &&
+          result->variant.class_struct_union.extra_info != NULL &&
+          result->variant.class_struct_union.extra_info->compiler_generated) ||
+#endif /* DO_IL_LOWERING */
          is_placeholder_type(result) ||
           /* Nonprototype instantiations can differ from one translation unit
              to another.  (The check on template_arg_list ensures that we
