@@ -3319,6 +3319,48 @@ entry is pushed on the scope stack.
 }  /* template_declaration */
 
 
+#if 0
+#if INSTANTIATION_BY_IMPLICIT_INCLUSION
+static void do_implicit_include_if_needed(a_template_instance_ptr tip)
+/*
+Gets the name of the file in which the template was declared and attempts
+to include a source file (e.g., .c file) that corresponds to the header
+of the definition.  If an implicit include was already attempted then
+we return without doing anything.  If there is no corresponding source
+file we simply return.
+*/
+{
+  a_source_position	*decl_position;
+  a_line_number		line_number;
+  a_boolean		at_end_of_source;
+  unsigned long		nesting_depth;
+  a_source_file_ptr	sfp;
+  char			*full_file_name;
+  FILE			*f_source;
+
+  /* Translate the sequence number into a file name and line number. */
+  decl_position = &tip->template_sym->decl_position;
+  sfp = source_file_for_seq(decl_position->seq, &line_number,
+                            &at_end_of_source, &nesting_depth,
+                            /*physical_line=*/FALSE);
+  /* If we haven't already included the corresponding source file then
+     do so now. */
+  if (sfp != NULL && sfp->related_file_implicit_include_done) {
+    sfp->related_file_implicit_include_done = TRUE;
+    /* Call a routine to search for a file with an appropriate suffix. */
+    f_source = open_file_for_input(sfp->file_name, incl_search_path,
+				   (char *)NULL /* suffixes */,
+				   &full_file_name);
+    if (f_source != NULL) {
+      /* If such a file was found include it now. */
+      push_input_stack(f_source, sfp->file_name, full_file_name);
+    }  /* if */
+  }  /* if */
+}  /* do_implicit_include_if_needed */
+#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
+#endif /* 0 */
+
+
 void add_to_instantiations_required_list(a_template_instance_ptr  tip)
 /*
 Add a template instance entry to the end of the instantiatiations_required
@@ -3344,7 +3386,39 @@ list.
 }  /* add_to_instantiations_required_list */
 
 
-static a_boolean is_static_or_inline_function(a_template_instance_ptr tip)
+static a_boolean is_inline_template_function(a_template_instance_ptr tip)
+/*
+Determines whether a template instance pointer refers to a function that
+is inline.
+*/
+{
+  a_boolean	result = FALSE;
+  if (is_function_symbol(tip->instance_sym)) {
+    /* If the is_inline flag is set in the routine entry then the routine
+       must be inline whether or not an instantiation has been done or
+       whether a template definition has been supplied.  If the routine
+       is_inline flag is FALSE then we need to look at the is_inline flags
+       associated with the template.  For member functions the is_inline
+       flag in the template's routine entry reflects the declaration in
+       the class template, whereas the flag in the func_info block reflects
+       the function template definition, if any. */
+    a_routine_ptr	rout = tip->instance_sym->variant.routine.ptr;
+    result =  rout->is_inline;
+    if (!result) {
+      if (rout->assoc_scope == NULL) {
+        a_template_symbol_supplement_ptr	tssp;
+        tssp = template_supplement_for_symbol(tip->template_sym);
+        result = tssp->variant.function.routine->is_inline ||
+                 tssp->variant.function.func_info.is_inline;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_inline_template_function */
+
+
+static a_boolean is_static_or_inline_template_function
+					(a_template_instance_ptr tip)
 /*
 Determines whether a template instance pointer refers to a function that
 is static or inline (i.e., is not an external function).
@@ -3352,22 +3426,21 @@ is static or inline (i.e., is not an external function).
 {
   a_boolean     result = FALSE;
 
-  if (is_function_symbol(tip->instance_sym)) {
+  if (is_inline_template_function(tip)) {
+    result = TRUE;
+  } else if (tip->instance_sym->kind != (a_symbol_kind)sk_member_function) {
+    /* Only check the storage class of nonmember functions.  The linkage
+       of member functions has not been determined yet -- and member
+       functions are inline or noninline.  There is no such thing as
+       a noninline member function with static storage class.  This
+       is only important in tim_none mode.  In all other modes any
+       function with the instantiation required flag set will be
+       instantiated. */
     a_routine_ptr	rout = tip->instance_sym->variant.routine.ptr;
-    result =  rout->is_inline;
-    if (tip->instance_sym->kind != (a_symbol_kind)sk_member_function) {
-      /* Only check the storage class of nonmember functions.  The linkage
-         of member functions has not been determined yet -- and member
-         functions are inline or noninline.  There is no such thing as
-         a noninline member function with static storage class.  This
-         is only important in tim_none mode.  In all other modes any
-         function with the instantiation required flag set will be
-         instantiated. */
-      result |= (rout->storage_class == (a_storage_class)sc_static);
-    }  /* if */
+    result = (rout->storage_class == (a_storage_class)sc_static);
   }  /* if */
   return result;
-}  /* is_static_or_inline_function */
+}  /* is_static_or_inline_template_function */
 
 
 static a_boolean should_be_instantiated(a_template_instance_ptr tip)
@@ -3383,7 +3456,7 @@ such as instantiating a template for which no body was supplied.
   if (tip->explicit_instantiation ||
       (tip->instantiation_required &&
         (instantiation_mode != tim_none ||
-         is_static_or_inline_function(tip)))) {
+         is_static_or_inline_template_function(tip)))) {
     /* For error checking purposes, find out if a specific definition
        exists and whether a body exists for the template definition. */
     if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
@@ -3475,15 +3548,10 @@ updated but not removed from the list.
          the function. */
     } else if (is_function_symbol(sym) &&
                tssp->token_cache.first_token != NULL &&
-               (tssp->variant.function.routine->is_inline ||
-                tssp->variant.function.func_info.is_inline)) {
+               is_inline_template_function(tip)) {
       /* Inline (member or nonmember) functions are instantiated at the
          point of first use, in case the back end requires the function
-         body immediately to perform inlining.  Note in the above test that
-         for member functions the inline flag in the routine entry reflects
-         the declaration in the class template declaration, whereas the flag
-         in the func_info block reflects the function template definition, if
-         any. */
+         body immediately to perform inlining. */
       if (!tip->already_instantiated) {
         instantiate_template_function(tip);
       }  /* if */
@@ -3776,7 +3844,7 @@ is responsible for setting the appropriate flags.
     an_instance_lookup_entry_ptr	ilp = NULL;
 
     /* Skip non-external function. */
-    if (is_static_or_inline_function(tip)) continue;
+    if (is_static_or_inline_template_function(tip)) continue;
 #if DEBUG
     if (debug_level >= 4) {
       fprintf(f_debug, "Automatic instantiation processing for:\n");
@@ -3835,7 +3903,7 @@ is responsible for setting the appropriate flags.
     a_boolean				is_static_data_member;
 
     /* Skip non-external function. */
-    if (is_static_or_inline_function(tip)) continue;
+    if (is_static_or_inline_template_function(tip)) continue;
     /* Get a pointer to the IL entry to be processed. */
     if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
       is_static_data_member = TRUE;
