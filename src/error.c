@@ -1296,6 +1296,9 @@ error code.
     case ec_class_with_virtual_func_but_no_virtual_dtor:
       m = "class \"%s\" has virtual functions but no virtual destructor";
       break;
+    case ec_no_access_to_constructors:
+      m = "there is no access to the constructors for class \"%s\"";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
