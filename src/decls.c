@@ -10020,7 +10020,7 @@ A using-directive entry is created and activated for the current scope.
     }  /* if */
     (void)get_token();
 #if GNU_EXTENSIONS_ALLOWED
-    /* Scan any GNU attributes that may appear hear. */
+    /* Scan any GNU attributes that may appear here. */
     if (gpp_mode) {
       attributes = scan_attributes();
     }  /* if */
