@@ -3147,13 +3147,14 @@ in this routine must be FALSE in that case.
   /* Initializations of static variables (whether global or function-local)
      require some special processing. */
   static_var_init = init_pos_is_static(ipdp);
-  if (variable->init_kind == (an_init_kind)initk_function_local
+  if (variable != NULL &&
+      (variable->init_kind == (an_init_kind)initk_function_local
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
-      /* If local entities are being promoted out of functions, the variable may
-         already have been promoted out. */
-      || variable->promoted_local_static_init
+       /* If local entities are being promoted out of functions, the
+          variable may already have been promoted out. */
+       || variable->promoted_local_static_init
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
-                                             ) {
+                                              )) {
     /* The variable is a local static. */
     /* Add a first-time flag and a test. */
     add_first_time_test(insert_location, &block_stmt);
