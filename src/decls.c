@@ -7347,13 +7347,10 @@ continue_with_declaration:
         if (is_function) {
           /* A qualified name that identifies a function is allowed only when
              the function body is present. */
-          if (is_member_function_symbol(locator.specific_symbol)) {
-            pos_error(ec_member_function_redecl_outside_class,
-                      &declarator_pos);
-          } else {
-            pos_sy_error(ec_not_compatible_with_previous_decl,
-                         &declarator_pos, locator.specific_symbol);
-          }  /* if */
+          pos_sy_error(is_member_function_symbol(locator.specific_symbol) ?
+                         ec_bad_scope_for_redeclaration :
+                         ec_not_compatible_with_previous_decl,
+                       &declarator_pos, locator.specific_symbol);
           set_to_error_locator(locator);
         } else {
           /* Assume that qualified names that are not functions refer to static
