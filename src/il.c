@@ -3942,6 +3942,46 @@ Make a copy of an expression tree and return a pointer to it.
 }  /* copy_expr_tree */
 
 
+an_expr_node_ptr copy_default_arg_expr_list(a_param_type_ptr ptp)
+/*
+Make an expression list containing copies of the default argument expressions
+for the parameter indicated by ptp and all parameters following that.
+If ptp is non-NULL, it must point to a parameter with a default argument
+expression.
+*/
+{
+  an_expr_node_ptr first_node = NULL, last_node = NULL, arg_node;
+
+  if (ptp != NULL) {
+#if CHECKING
+    if (ptp->default_arg_expr == NULL) {
+      internal_error("copy_default_arg_expr_list: param has no default arg");
+    }  /* if */
+#endif /* CHECKING */
+    /* Copy the default argument expressions. */
+    do {
+      /* Watch out for cases where a default argument is followed by
+         a non-default argument.  An error will have been issued at
+         the point of declaration of the function, but the problem
+         could not be corrected there because the function type may
+         have come from a typedef (i.e., it might be shared). */
+      if (ptp->default_arg_expr == NULL) {
+        arg_node = error_node();
+      } else {
+        arg_node = copy_expr_tree(ptp->default_arg_expr);
+      }  /* if */
+      if (first_node == NULL) {
+        first_node = arg_node;
+      } else {
+        last_node->next = arg_node;
+      }  /* if */
+      last_node = arg_node;
+    } while ((ptp = ptp->next) != NULL);
+  }  /* if */
+  return first_node;
+}  /* copy_default_arg_expr_list */
+
+
 an_expr_node_ptr var_lvalue_expr(a_variable_ptr var)
 /*
 Build an expression node that represents the lvalue address of var and

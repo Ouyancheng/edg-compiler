@@ -330,6 +330,8 @@ extern an_expr_node_ptr copy_list_of_expr_trees(an_expr_node_ptr expr_list);
 
 extern an_expr_node_ptr copy_expr_tree(an_expr_node_ptr expr);
 
+extern an_expr_node_ptr copy_default_arg_expr_list(a_param_type_ptr ptp);
+
 extern an_expr_node_ptr var_lvalue_expr(a_variable_ptr var);
 
 extern an_expr_node_ptr var_rvalue_expr(a_variable_ptr var);
