@@ -818,9 +818,10 @@ typedef a_byte a_dynamic_init_kind;
 typedef struct a_dynamic_init *a_dynamic_init_ptr;
 typedef struct a_dynamic_init {
   a_dynamic_init_ptr
-		next;	/* Pointer to the next dynamic initialization in the
-			   same scope or in the list of dynamic initializations
-                           recorded for an aggregate, or NULL if none. */
+		next;	/* For file-scope dynamic initializations, pointer to
+			   the next dynamic initialization in the file scope
+			   in source order.  NULL otherwise (i.e., not used
+			   in all other cases). */
   a_variable_ptr
 		variable;
 			/* If this dynamic-init entry initializes a whole
