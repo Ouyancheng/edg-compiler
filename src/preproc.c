@@ -1545,7 +1545,7 @@ execute the preprocessor directive.
         {
           a_byte	ifg_state = get_ifg_state();
           if (ifg_state < IFG_STATE_FAIL)
-            ifg_state = IFG_STATE_FAIL;
+	    set_ifg_state(IFG_STATE_FAIL);
           }  /* if */
         break;
     }  /* switch */
