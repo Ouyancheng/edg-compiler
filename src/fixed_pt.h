@@ -114,10 +114,8 @@ void fxp_negate(a_fixed_point_value      *value,
                 a_boolean                *err);
 
 extern
-int fxp_compare(a_fixed_point_value      *value_1,
-	        a_fixed_point_type_descr *fxp_descr_1,
-                a_fixed_point_value      *value_2,
-	        a_fixed_point_type_descr *fxp_descr_2);
+int fxp_compare(a_constant	*constant_1,
+		a_constant	*constant_2);
 
 extern a_constant_hash_value fxp_hash(a_fixed_point_value *value);
 

@@ -3382,10 +3382,7 @@ relational operator "op", and return a 0 or 1 integer in "result".
   */
   check_assertion(constant_1->kind == constant_2->kind &&
                   constant_1->kind == (a_constant_repr_kind)ck_fixed_point);
-  cmp = fxp_compare(&constant_1->variant.fixed_point_value,
-                    fxp_descr_for_constant(constant_1),
-                    &constant_2->variant.fixed_point_value,
-                    fxp_descr_for_constant(constant_2));
+  cmp = fxp_compare(constant_1, constant_2);
   /* Now determine the result value for this particular operator. */
   switch (op) {
     case eok_fxeq:  result_value = (cmp == 0); break;

@@ -271,7 +271,7 @@ fxp_descr describes the format of the value being stored.
         int	source_offset;
         int	dest_offset;
         source_offset = source - (char *)(&mp->parts[0]);
-        dest_offset = i;
+        dest_offset = dest - (char*)&value[0];
         fprintf(f_debug, "fxp copy from %d to %d, value=%x\n",
                 source_offset, dest_offset, *dest);
       }  /* if */
@@ -1380,10 +1380,8 @@ If an error occurs (e.g., overflow), err is set to TRUE.
 } /* fxp_divide */
 
 
-int fxp_compare(a_fixed_point_value      *value_1,
-	        a_fixed_point_type_descr *fxp_descr_1,
-                a_fixed_point_value      *value_2,
-	        a_fixed_point_type_descr *fxp_descr_2)
+int fxp_compare(a_constant	*constant_1,
+		a_constant	*constant_2)
 /*
 Compare two fixed-point values and return
 
@@ -1391,13 +1389,21 @@ Compare two fixed-point values and return
        value_1 = value_2   0
        value_1 < value_2  -1
 
-This routine requires that a_fixed_point_value be an_integer_value.
 */
 {
-  int	result;
+  an_internal_float_value	fp_1;
+  an_internal_float_value	fp_2;
+  a_boolean			unord;
+  int				result = 0;
 
-  result = cmp_integer_values(value_1, !fxp_descr_1->is_unsigned,
-                              value_2, !fxp_descr_2->is_unsigned);
+  /* Convert the operands to long double. */
+  if (conv_constant_to_long_double(constant_1, &fp_1) &&
+      conv_constant_to_long_double(constant_2, &fp_2)) {
+    result = fp_compare((a_float_kind)fk_long_double, &fp_1, &fp_2, &unord);
+    check_assertion(!unord);
+  } else {
+    unexpected_condition();
+  }  /* if */
   return result;
 }  /* fxp_compare */
 
