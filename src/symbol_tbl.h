@@ -1127,6 +1127,11 @@ typedef struct a_scope_stack_entry {
 			   When kind == sck_class_struct_union or
 			   kind == sck_class_reactivation, this points
 			   to the class type. */
+  a_routine_ptr	assoc_routine;
+			/* When kind == sck_function or when kind == 
+			   sck_template_instantiation for a function
+			   instantiation, this points to the routine
+			   whose scope this is. */
   an_array_type_fixup_ptr
 		array_type_fixup_list;
 			/* List of array types to be fixed up at the end of

@@ -4939,6 +4939,7 @@ must be NULL in other cases.
   ssep->last_symbol              = NULL;
   ssep->il_scope                 = sp;
   ssep->assoc_type               = assoc_type;
+  ssep->assoc_routine            = assoc_routine;
   ssep->array_type_fixup_list    = NULL;
   ssep->extern_type_fixup_list   = NULL;
   ssep->shareable_constants_list = NULL;
