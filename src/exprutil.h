@@ -593,10 +593,6 @@ extern void set_operand_kind(an_operand      *operand,
 extern void error_in_operand(an_error_code error_code,
 		             an_operand    *operand);
 
-extern void sym_error_in_operand(an_error_code error_code,
-                                 an_operand    *operand,
-                                 a_symbol_ptr  sym);
-
 extern void type2_error_in_operand(an_error_code error_code,
                                    an_operand    *operand,
                                    a_type_ptr    type1,

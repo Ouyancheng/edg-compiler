@@ -59,7 +59,8 @@ static a_dynamic_init_dtor_fixup_ptr
 /*
 Counts of entries allocated, for debugging purposes.
 */
-unsigned long	num_arg_operands_allocated,
+static unsigned long
+		num_arg_operands_allocated,
 		num_ref_entries_allocated,
 		num_dynamic_init_dtor_fixups_allocated;
 #endif /* DEBUG */
@@ -847,9 +848,9 @@ error operand.
 }  /* error_in_operand */
 
 
-void sym_error_in_operand(an_error_code error_code,
-                          an_operand    *operand,
-                          a_symbol_ptr  sym)
+static void sym_error_in_operand(an_error_code error_code,
+                                 an_operand    *operand,
+                                 a_symbol_ptr  sym)
 /*
 Announce an error at the position in the operand and convert the operand to an
 error operand.  The symbol sym is cited in the error message.
