@@ -441,6 +441,10 @@ the file scope, do not process it (but record an orphan in the latter case).
        (b) sets the il_walk_flag in the entry prefix to mark the entries
        that have been seen already, stopping on encountering one already
        marked. */
+    /* This default termination test cannot be used when walking
+       secondary translation units, because the IL for those is intermixed.
+       If we were to record an orphan, we might do so in the wrong translation
+       unit. */
     an_il_entry_prefix_ptr epp = &il_entry_prefix_of(entry_ptr);
     /* If we are walking through a function scope, and the entry here is
        in the file scope, just return. */
@@ -448,12 +452,6 @@ the file scope, do not process it (but record an orphan in the latter case).
       /* Add non-string file scope IL entries referenced from a
          function scope to the orphaned IL entries lists. */
       add_orphaned_file_scope_il_entry(entry_ptr, entry_kind);
-      goto end_of_routine;
-    }  /* if */
-    /* If walking the IL for a secondary translation unit, do not go into
-       the primary IL. */
-    if (walking_secondary_trans_unit &&
-        !in_secondary_trans_unit(entry_ptr)) {
       goto end_of_routine;
     }  /* if */
     /* See if this entry has been reached already, and if so, don't process

@@ -218,6 +218,10 @@ That is what the remap function does.
   scope = il_header.primary_scope;
   flag_value_meaning_visited = !il_entry_prefix_of(scope).il_walk_flag;
   walking_secondary_trans_unit = in_secondary_trans_unit(scope);
+  /* The default termination test cannot be used when walking a
+     secondary translation unit. */
+  check_assertion(termination_test_function != NULL ||
+                  !walking_secondary_trans_unit);
   /* Walk the main body of the IL. */
   walk_entry_and_subtree((char *)scope, iek_scope);
   walk_list(il_header.primary_source_file, a_source_file_ptr, iek_source_file);
@@ -293,6 +297,10 @@ to have already been remapped.
 #ifdef FFE
   array_bound_walk_index = 0;
 #endif /* ifdef FFE */
+  /* The default termination test cannot be used when walking a
+     secondary translation unit. */
+  check_assertion(termination_test_function != NULL ||
+                  !walking_secondary_trans_unit);
 
   /* Process the scope and its subtree. */
   walk_entry_and_subtree((char *)scope, iek_scope);
