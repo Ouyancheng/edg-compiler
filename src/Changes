@@ -1,5 +1,13 @@
 Version 2.44
 
+1/24/00  Microsoft compatibility: default #import directory
+
+The default value for the #import directory (i.e., when it is not specified
+with the --import_dir option) is now set to the absolute path of the current
+working directory for which the compiler is invoked.  Previously, it was set
+to "." which was subsequently combined with every directory in the include
+search path.
+
 1/21/00  Copy constructor elision for generated bitwise copy constructor
 
 Copy constructor elision (optimizing away a copy constructor call) is
