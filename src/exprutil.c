@@ -2775,8 +2775,10 @@ void add_reference_indirection(an_operand *result)
   result->came_from_reference = TRUE;
   /* Instantiate the underlying type if it is a template class. */
   check_for_uninstantiated_template_class(result_type);
-  /* Restore the original source position, etc. */
-  restore_operand_details_incl_ref(result, &orig_result);
+  /* Restore the original source position, etc.  Note that the reference
+     entries are NOT restored, on purpose. */
+  restore_operand_details(result, &orig_result);
+  result->ref_entries_list = NULL;
 }  /* add_reference_indirection */
 
 
