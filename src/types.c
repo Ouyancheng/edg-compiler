@@ -5465,6 +5465,13 @@ its parameters?).
   a_template_arg_ptr             tap;
   a_boolean                      status;
   a_routine_type_supplement_ptr  rtsp;
+#if STANDALONE_UTILITY_PROGRAM
+  /* The global variable "nonstandard_qualified_deduction" doesn't exist
+     in standalone programs.  This should only affect calls to this routine
+     from is_or_contains_template_param, which is not used in standalone
+     utility programs. */
+  a_boolean			nonstandard_qualifier_deduction = FALSE;
+#endif /* STANDALONE_UTILITY_PROGRAM */
 
   if (type_ptr->kind == (a_type_kind)tk_typeref) {
     if (flags & TTT_SKIP_TYPEREFS) {
