@@ -1380,6 +1380,16 @@ nested class.
           }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+#if !NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+          {
+          a_boolean  saved_source_sequence_entries_disallowed =
+                                         source_sequence_entries_disallowed;
+          if (is_real_template_instantiation && is_friend) {
+            /* Suppress the source sequence representation for the body of a
+               friend definition within a class instantation. */
+            source_sequence_entries_disallowed = TRUE;
+          }  /* if */
+#endif /* !NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
           if (rfp->func_info.is_movable_member_or_friend_def &&
               !source_sequence_entries_disallowed) {
             /* Within the class definition a secondary-decl source sequence
@@ -1457,6 +1467,11 @@ nested class.
                            ss_list_instantiation_insert_point = insert_point;
             }  /* if */
           }  /* if */
+#if !NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+          source_sequence_entries_disallowed =
+                                    saved_source_sequence_entries_disallowed;
+          }
+#endif /* !NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         }  /* if */
