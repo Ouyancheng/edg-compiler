@@ -33,7 +33,11 @@ This version is for the Sun Solaris operating system.
 #define TARG_ALIGNOF_FLOAT 4
 #define TARG_SIZEOF_DOUBLE 8
 #define TARG_ALIGNOF_DOUBLE 8
+
+#ifndef TARG_SIZEOF_LONG_DOUBLE
 #define TARG_SIZEOF_LONG_DOUBLE 16
+#endif /* ifndef TARG_SIZEOF_LONG_DOUBLE */
+
 #define TARG_ALIGNOF_LONG_DOUBLE 8
 #define TARG_SIZEOF_WCHAR_T 4
 #define TARG_WCHAR_T_INT_KIND ((an_integer_kind)ik_long)
