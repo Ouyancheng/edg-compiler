@@ -13,8 +13,12 @@ C++ operator delete();
 
 */
 
-#include <stdlib.h>
 
+#include <stdlib.h>
+#include "basics.h"
+#include "config.h"
+
+#if ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE
 
 void operator delete[](void *ptr)
 /*
@@ -23,6 +27,8 @@ Default array operator delete.  Just call the normal operator delete.
 {
   operator delete(ptr);
 }  /* operator delete[] */
+
+#endif /* ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE */
 
 /******************************************************************************
 *                                                             \  ___  /       *
