@@ -2244,191 +2244,6 @@ may be many different such routines generated (all unnamed).
 }  /* file_scope_term_insert_location */
 
 
-/* Declaration needed because of mutual recursion: */
-static a_boolean examine_expr_for_unsequenced_temp_inits(
-                                           an_expr_node_ptr node,
-                                           a_boolean        *p_any_temp_inits);
-
-
-static a_boolean examine_expr_list_for_unsequenced_temp_inits(
-                                        an_expr_node_ptr node_list,
-                                        a_boolean        seq_point_after_first,
-                                        a_boolean        *p_any_temp_inits)
-/*
-Examine the list of expressions headed by node_list, and their subtrees,
-looking for unsequenced enk_temp_init initializations.  Return TRUE if
-any are found.  If seq_point_after_first is TRUE, there is a sequence
-point after the first expression on the list.  Return *p_any_temp_inits
-TRUE if there are any enk_temp_inits in the tree.
-*/
-{
-  a_boolean             any_unsequenced = FALSE, any_temp_inits;
-  a_boolean             any_prev_temp_inits = FALSE;
-  an_expr_node_ptr      node;
-
-  *p_any_temp_inits = FALSE;
-  /* Go through the expressions and see where the enk_temp_inits fall. */
-  for (node = node_list; node != NULL; node = node->next) {
-    any_unsequenced = examine_expr_for_unsequenced_temp_inits(node,
-                                                              &any_temp_inits);
-    if (any_temp_inits) {
-      /* Some enk_temp_inits in the expression.  If there have been any in
-         any previous expressions (since the sequence point, if there was
-         one), the enk_temp_inits are unsequenced. */
-      if (any_prev_temp_inits) any_unsequenced = TRUE;
-      any_prev_temp_inits = *p_any_temp_inits = TRUE;
-    }  /* if */
-    if (any_unsequenced) break;
-    /* See if there is a sequence point after the first expression. */
-    if (seq_point_after_first) {
-      any_prev_temp_inits = FALSE;
-      seq_point_after_first = FALSE;
-    }  /* if */
-  }  /* for */
-  return any_unsequenced;
-}  /* examine_expr_list_for_unsequenced_temp_inits */
-
-
-static a_boolean examine_dynamic_init_for_unsequenced_temp_inits(
-                                        a_dynamic_init_ptr dip,
-                                        a_boolean          *p_any_temp_inits)
-/*
-Examine the dynamic initialization entry pointed to by dip, and its subtree,
-looking for unsequenced enk_temp_init initializations.  Return TRUE if any
-are found.  Return *p_any_temp_inits TRUE if there are any enk_temp_inits
-in the tree.  Do nothing if dip == NULL.
-*/
-{
-  a_boolean any_unsequenced = FALSE;
-
-  *p_any_temp_inits = FALSE;
-  if (dip != NULL) {
-    switch (dip->kind) {
-      case dik_none:
-      case dik_zero:
-      case dik_constant:
-        break;
-      case dik_expression:
-      case dik_call_returning_class_via_cctor:
-        any_unsequenced = examine_expr_for_unsequenced_temp_inits(
-                                                       dip->variant.expression,
-                                                       p_any_temp_inits);
-        break;
-      case dik_constructor:
-        any_unsequenced = examine_expr_list_for_unsequenced_temp_inits(
-                                               dip->variant.constructor.args,
-                                               /*seq_point_after_first=*/FALSE,
-                                               p_any_temp_inits);
-        break;
-      case dik_nonconstant_aggregate:
-      case dik_bitwise_copy:
-        /* These are not expected under expressions. */
-      default:
-        unexpected_condition_str(
-     "examine_dynamic_init_for_unsequenced_temp_inits: bad dynamic init kind");
-    }  /* switch */
-  }  /* if */
-  return any_unsequenced;
-}  /* examine_dynamic_init_for_unsequenced_temp_inits */
-
-
-static a_boolean examine_expr_for_unsequenced_temp_inits(
-                                            an_expr_node_ptr node,
-                                            a_boolean        *p_any_temp_inits)
-/*
-Examine node and its subtree looking for unsequenced enk_temp_init
-initializations.  Return TRUE if any are found.  Return *p_any_temp_inits
-TRUE if there are any enk_temp_inits in the tree.
-*/
-{
-  a_boolean             any_unsequenced = FALSE;
-  a_boolean             any_temp_inits, seq_point_after_first;
-  an_expr_operator_kind op;
-
-  *p_any_temp_inits = FALSE;
-  switch (node->kind) {
-    case enk_error:
-    case enk_constant:
-    case enk_variable:
-    case enk_variable_address:
-    case enk_routine_address:
-    case enk_field:
-      /* No temp inits. */
-      break;
-    case enk_operation:
-      seq_point_after_first = FALSE;
-      op = node->variant.operation.kind;
-      if (op == (an_expr_operator_kind)eok_land ||
-          op == (an_expr_operator_kind)eok_lor ||
-          op == (an_expr_operator_kind)eok_comma ||
-          op == (an_expr_operator_kind)eok_question) {
-        /* Operators with a sequence point after the first operand. */
-        seq_point_after_first = TRUE;
-      }  /* if */
-      any_unsequenced = examine_expr_list_for_unsequenced_temp_inits(
-                                        node->variant.operation.operands,
-                                        seq_point_after_first,
-                                        p_any_temp_inits);
-      break;
-    case enk_temp_init:
-      any_unsequenced = examine_dynamic_init_for_unsequenced_temp_inits(
-                                        node->variant.init.dynamic_init,
-                                        p_any_temp_inits);
-      /* An enk_temp_init only counts if it includes a destruction. */
-      if (node->variant.init.dynamic_init->destructor != NULL) {
-        *p_any_temp_inits = TRUE;
-      }  /* if */
-      break;
-    case enk_new_delete:
-      any_unsequenced = examine_expr_list_for_unsequenced_temp_inits(
-                                        node->variant.new_delete->arg,
-                                        /*seq_point_after_first=*/FALSE,
-                                        &any_temp_inits);
-      *p_any_temp_inits |= any_temp_inits;
-      if (any_unsequenced) break;
-      any_unsequenced = examine_dynamic_init_for_unsequenced_temp_inits(
-                                        node->variant.new_delete->dynamic_init,
-                                        &any_temp_inits);
-      *p_any_temp_inits |= any_temp_inits;
-      break;
-    case enk_throw:
-      any_unsequenced = examine_dynamic_init_for_unsequenced_temp_inits(
-                                        node->variant.throw_info->dynamic_init,
-                                        p_any_temp_inits);
-      break;
-    default:
-      unexpected_condition_str(
-                     "examine_expr_for_unsequenced_temp_inits: bad expr kind");
-  }  /* switch */
-  return any_unsequenced;
-}  /* examine_expr_for_unsequenced_temp_inits */
-
-
-static void examine_curr_full_expression_for_unsequenced_temp_inits(void)
-/*
-Look at curr_full_expression to see if it contains any enk_temp_init
-initializations that are unsequenced relative to one another.  Set
-curr_full_expression_has_unsequenced_temp_inits accordingly.  Set
-curr_full_expression_examined_for_unsequenced_temp_inits to TRUE
-to indicate that the search has been done, and do not do the search
-again on subsequent calls.
-*/
-{
-  a_boolean any_temp_inits;
-
-  if (!curr_full_expression_examined_for_unsequenced_temp_inits) {
-    an_expr_node_ptr expr = curr_full_expression;
-    if (expr->kind == (an_expr_node_kind)enk_object_lifetime) {
-      expr = expr->variant.object_lifetime.expr;
-    }  /* if */
-    curr_full_expression_has_unsequenced_temp_inits =
-                 examine_expr_for_unsequenced_temp_inits(expr,
-                                                         &any_temp_inits);
-    curr_full_expression_examined_for_unsequenced_temp_inits = TRUE;
-  } /* if */
-}  /* examine_curr_full_expression_for_unsequenced_temp_inits */
-
-
 static void add_conditional_flag(a_cleanup_action_ptr cap,
                                  an_insert_location   *insert_location)
 /*
@@ -3172,9 +2987,8 @@ do_assignment:;
            later to initialize the temporary to zero at the beginning
            of the current scope. */
         add_conditional_flag(cap, eff_insert_location);
-      } else if (is_expr_temporary &&
-                 curr_full_expression_has_unsequenced_temp_inits) {
-        /* Also add the conditional flag when there are unsequenced
+      } else if (is_expr_temporary && dip->unordered) {
+        /* Also add the conditional flag when there are unordered
            enk_temp_init operations. */
         cap->variant.object.conditional_flag_added_for_unsequenced_case = TRUE;
         add_conditional_flag(cap, eff_insert_location);
@@ -3942,15 +3756,6 @@ Do IL lowering of an enk_temp_init expression node.
   an_insert_location insert_location;
 
   dip = expr->variant.init.dynamic_init;
-  if (exceptions_enabled && dip->destructor != NULL) {
-    /* If there are multiple enk_temp_init nodes in one expression and
-       they are unsequenced with respect to one another, we have to add
-       conditional flags on the initializations so that exception
-       cleanup can tell which ones have been done at any given point.
-       Look at the current full expression and see if there are
-       unsequenced enk_temp_inits therein. */
-    examine_curr_full_expression_for_unsequenced_temp_inits();
-  }  /* if */
   /* Determine the type of the temporary. */
   temp_type = expr->type;
   result_is_not_used = expr->result_is_not_used;

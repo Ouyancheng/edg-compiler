@@ -5825,8 +5825,6 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
   if (curr_full_expression == NULL) {
     /* There is no current full expression, so this must be it. */
     curr_full_expression = expr;
-    curr_full_expression_has_unsequenced_temp_inits = FALSE;
-    curr_full_expression_examined_for_unsequenced_temp_inits = FALSE;
     is_full_expression = TRUE;
   }  /* if */
   lower_os_type(expr->type);
@@ -6125,8 +6123,6 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
   if (is_full_expression) {
     /* Done with a top-level expression.  Clear flags. */
     curr_full_expression = NULL;
-    curr_full_expression_has_unsequenced_temp_inits = FALSE;
-    curr_full_expression_examined_for_unsequenced_temp_inits = FALSE;
   }  /* if */
 }  /* lower_expr */
 
@@ -8388,8 +8384,6 @@ of the front end.
   avail_init_pos_modifiers = NULL;
   num_conditional_exprs_inside_of = 0;
   curr_full_expression = NULL;
-  curr_full_expression_has_unsequenced_temp_inits = FALSE;
-  curr_full_expression_examined_for_unsequenced_temp_inits = FALSE;
 #if DEBUG
   num_init_pos_modifiers_allocated        = 0;
 #endif /* DEBUG */

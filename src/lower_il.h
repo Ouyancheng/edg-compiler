@@ -392,15 +392,6 @@ EXTERN unsigned long
 EXTERN an_expr_node_ptr
 		curr_full_expression;
 			/* If doing IL lowering inside an expression, this
-			   is the full expression.  NULL otherwise. */
-EXTERN a_boolean
-		curr_full_expression_has_unsequenced_temp_inits,
-		curr_full_expression_examined_for_unsequenced_temp_inits;
-			/* First is TRUE if the current expression contains
-			   more than one enk_temp_init and they are unsequenced
-			   with respect to one another.  Second indicates
-			   whether a value for the first has been
-			   determined. */
 
 EXTERN a_return_memo_ptr
 		return_memo_list;
