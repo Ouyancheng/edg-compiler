@@ -6820,6 +6820,23 @@ skip_tag_scan:
   is_class_definition = curr_token == tok_lbrace ||
                         (C_dialect == C_dialect_cplusplus &&
                          curr_token == tok_colon && !is_ref_within_new_expr);
+  if (tag_sym != NULL && C_dialect == C_dialect_cplusplus) {
+    a_class_symbol_supplement_ptr  cssp;
+
+    cssp = tag_sym->variant.class_struct_union.extra_info;
+    if (cssp->class_template != NULL) {
+      if (is_class_definition && tag_sym->defined) {
+        /* This template class has already been instantiated. */
+        pos_sy_error(ec_already_defined, &locator.source_position, tag_sym);
+        tag_sym = NULL;
+        set_to_error_locator(locator);
+        err = TRUE;
+      } else {
+        /* We have a specific declaration of a template class. */
+        cssp->is_specific_template_def = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
   if (tag_sym == NULL) {
     /* Create a new class, struct, or union type.  All such types are
        allocated in the file scope memory region, though local types will be
@@ -6875,12 +6892,6 @@ skip_tag_scan:
     } else {
       mark_referenced(tag_sym, &locator.source_position);
     }  /* if */
-  }  /* if */
-  if (C_dialect == C_dialect_cplusplus) {
-    a_class_symbol_supplement_ptr  cssp;
-
-    cssp = symbol_supplement_for_class(class_type);
-    if (cssp->class_template != NULL) cssp->is_specific_template_def = TRUE;
   }  /* if */
   if (is_class_definition) {
     if (scan_class_definition(class_type, effective_decl_level,
