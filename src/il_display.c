@@ -1059,7 +1059,7 @@ Display the indicated init kind and initializer.
 */
 {
   disp_name("init_kind");
-  switch (ptr->init_kind) {
+  switch (kind) {
     case initk_none:
       (void)printf ("initk_none\n");
       break;
@@ -1150,7 +1150,7 @@ Display the indicated variable.
   if (ptr->is_anonymous_parent_object) {
     disp_boolean("is_anonymous_parent_object", TRUE);
   }  /* if */
-  disp_initializer(ptr->init_kind, ptr->initializer);
+  disp_initializer(ptr->init_kind, &ptr->initializer);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   disp_ptr("declared_type", (char *)ptr->declared_type, iek_type);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -2702,7 +2702,7 @@ Display the indicated local_static_variable_init entry.
 {
   disp_ptr("next", (char *)ptr->next, iek_local_static_variable_init);
   disp_ptr("variable", (char *)ptr->variable, iek_variable);
-  disp_initializer(ptr->init_kind, ptr->initializer);
+  disp_initializer(ptr->init_kind, &ptr->initializer);
 }  /* disp_local_static_variable_init */
 
 
