@@ -110,11 +110,9 @@ Flags to be set when using the KAI inliner.
 #define USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING 1
 #define C99_IL_EXTENSIONS_SUPPORTED 1
 #ifndef SUNOS
-#ifndef IA64_ABI
 #ifndef INSTANTIATE_EXTERN_INLINE
 #define INSTANTIATE_EXTERN_INLINE 1
 #endif /* INSTANTIATE_EXTERN_INLINE */
-#endif /* ifndef IA64_ABI */
 #endif /* ifndef SUNOS */
 #ifdef SELFCOMP_VERSION
 /* Self-compiled version. */
