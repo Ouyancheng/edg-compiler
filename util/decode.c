@@ -4852,7 +4852,7 @@ Do not output function parameters if include_func_params is FALSE.
     /* If there's more, it's the <bare-function-type>. */
     if (*ptr != '\0' && *ptr != 'E') {
       /* O <nested-name> indicates a function that is explicitly
-         overriden.  This is an extension over the IA-64 ABI spec. */
+         overridden.  This is an extension over the IA-64 ABI spec. */
       if (*ptr == 'O') {
         a_func_block dummy_func_block;
         write_id_str(" [overriding ", dctl);
