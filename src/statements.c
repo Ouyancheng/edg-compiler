@@ -909,10 +909,18 @@ the label are promoted to the lifetime of the function scope.
       /* block_cfdp must represent the function scope.  Don't try to promote
          its lifetime. */
       keep_block_object_lifetime = TRUE;
+    } else if (block_olp->destructions != NULL) {
+      /* Don't promote the lifetime of an inner block if it has destructions
+         associated with it. */
+      keep_block_object_lifetime = TRUE;
+    } else if (block_cfdp->variant.block.is_catch_block ||
+               block_olp->entity.kind ==
+                              (a_byte_il_entry_kind)iek_try_supplement) {
+      /* The lifetime of a try block or catch clause is retained in the IL,
+         even if it has no destructions. */
+      keep_block_object_lifetime = TRUE;
     } else {
-      /* Try to promote the lifetime for an inner block only if it has
-         no destructions associated with it. */
-      keep_block_object_lifetime = !is_useless_object_lifetime(block_olp);
+      keep_block_object_lifetime = FALSE;
     }  /* if */
     /* Loop through any olk_block_after_label lifetimes that may belong to the
        block that is being terminated. */
@@ -920,7 +928,7 @@ the label are promoted to the lifetime of the function scope.
     while (promote_from != block_olp) {
       check_assertion(promote_from->kind ==
                             (an_object_lifetime_kind)olk_block_after_label);
-      if (!is_useless_object_lifetime(promote_from)) {
+      if (promote_from->destructions != NULL) {
         /* This subblock has destructions, so its lifetime will be retained
            in the IL.  This means its olk_block will be retained, too. */
         keep_block_object_lifetime = TRUE;
@@ -931,8 +939,7 @@ the label are promoted to the lifetime of the function scope.
            itself. */
         promote_to =
               innermost_block_object_lifetime(promote_from->parent_lifetime);
-        while (promote_to != block_olp &&
-               !is_useless_object_lifetime(promote_to)) {
+        while (promote_to != block_olp && promote_to->destructions == NULL) {
           promote_to =
                innermost_block_object_lifetime(promote_to->parent_lifetime);
         }  /* while */
@@ -1653,20 +1660,40 @@ function should only be called in C++ mode.
 {
   an_object_lifetime_ptr  olp;
 
-  /* The outer loop follows olp2 and its parent lifetimes. */
-  for (; olp2 != function_scope_object_lifetime;
-         olp2 = innermost_block_object_lifetime(olp2->parent_lifetime)) {
-    /* The inner loop follows olp1 and its parent lifetimes. */
-    for (olp = olp1;
-         olp != function_scope_object_lifetime;
-         olp = innermost_block_object_lifetime(olp->parent_lifetime)) {
-      if (olp == olp2) {
-        /* Found a match. */
-        goto done;
-      }  /* if */
+  db_enter(4, "common_object_lifetime");
+  if (olp1 != olp2) {
+#if DEBUG
+    if (debug_level >= 4) {
+      db_object_lifetime_stack();
+      fputs("olp1 = ", f_debug);
+      db_object_lifetime(olp1);
+      fputs("olp2 = ", f_debug);
+      db_object_lifetime(olp2);
+    }  /* if */
+#endif /* DEBUG */
+    /* The outer loop follows olp2 and its parent lifetimes. */
+    for (; olp2 != function_scope_object_lifetime;
+           olp2 = innermost_block_object_lifetime(olp2->parent_lifetime)) {
+      /* The inner loop follows olp1 and its parent lifetimes. */
+      for (olp = olp1;
+           olp != function_scope_object_lifetime;
+           olp = innermost_block_object_lifetime(olp->parent_lifetime)) {
+        if (olp == olp2) {
+          /* Found a match. */
+#if DEBUG
+          if (debug_level >= 4) {
+            fputs("common = ", f_debug);
+            db_object_lifetime(olp2);
+    }  /* if */
+#endif /* DEBUG */
+          goto done;
+        }  /* if */
+      }  /* for */
     }  /* for */
-  }  /* for */
+  }  /* if */
 done:
+
+  db_exit();
   return olp2;
 }  /* common_object_lifetime */
 
