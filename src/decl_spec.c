@@ -2110,7 +2110,6 @@ Returns TRUE if there is an error in the specifiers.
         } else if (is_inline && curr_token != tok_static) {
           error(ec_bad_storage_class_with_inline);
           err = TRUE;
-
         } else if (curr_token == tok_mutable) {
           if (!is_member_decl) {
             error(ec_mutable_not_allowed);
