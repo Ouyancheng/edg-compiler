@@ -1,5 +1,13 @@
 Version 3.3
 
+6/5/03   Expressions in g++ mode asm not lowered
+
+Expressions used as operands in GNU C++ mode asm statements
+were not subjected to IL lowering, which meant back ends might
+see unexpected IL operators in some cases.  Lowering is now
+done.  A similar though more rare problem could also occur in
+gcc mode; C lowering (see lower_c99.c) is now done in that case.
+
 6/4/03   Abort on member function used as template argument in
          template-dependent context
 

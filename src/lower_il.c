@@ -13561,6 +13561,30 @@ Do IL lowering of the indicated "for" statement and everything under it.
 }  /* lower_for_statement */
 
 
+#if !GNU_EXTENSIONS_ALLOWED
+/*ARGSUSED*/  /* <-- statement is not used in that case. */
+#endif /* !GNU_EXTENSIONS_ALLOWED */
+void lower_asm_statement(a_statement_ptr statement)
+/*
+Do IL lowering of the indicated stmk_asm statement and everything
+under it.  Used in both C++ and C mode.
+*/
+{
+#if GNU_EXTENSIONS_ALLOWED
+  /* GNU asm statements can have expressions under them. */
+  if (gnu_mode) {
+    an_asm_entry_ptr   aep = statement->variant.asm_entry;
+    an_asm_operand_ptr aop;
+    for (aop = aep->operands; aop != NULL; aop = aop->next) {
+      lower_expr(aop->expression,
+                 /*is_lvalue=*/(aop->modifiers &
+                                (an_asm_operand_modifier)aom_output) != 0);
+    }  /* for */
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+}  /* lower_asm_statement */
+
+
 void lower_statement(a_statement_ptr statement)
 /*
 Do IL lowering of the indicated statement and everything under it.
@@ -13589,11 +13613,13 @@ Do IL lowering of the indicated statement and everything under it.
 #if REPRESENT_EMPTY_STATEMENTS_IN_IL
       case stmk_empty:
 #endif /* REPRESENT_EMPTY_STATEMENTS_IN_IL */
-      case stmk_asm:
 #if ASM_FUNCTION_ALLOWED
       case stmk_asm_func_body:
 #endif /* ASM_FUNCTION_ALLOWED */
         /* No processing required. */
+        break;
+      case stmk_asm:
+        lower_asm_statement(statement);
         break;
       case stmk_expr:
         lower_full_expr(stmt_expr, /*is_lvalue=*/FALSE, statement);

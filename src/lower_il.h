@@ -1027,6 +1027,8 @@ extern void begin_block_object_lifetime(
                                        an_object_lifetime_ptr lifetime,
                                        an_insert_location_ptr insert_location);
 
+extern void lower_asm_statement(a_statement_ptr statement);
+
 extern void lower_statement_list(a_statement_ptr statement_list,
                                  a_statement_ptr *last_statement);
 

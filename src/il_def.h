@@ -2791,7 +2791,9 @@ typedef struct an_asm_operand {
                         /* Source position of this operand. */
   an_expr_node_ptr
                 expression;     
-                        /* The expression constituting the operand. */
+			/* The expression constituting the operand.  For
+			   an output operand (modifiers & aom_output is
+			   non-zero) this is an lvalue. */
 } an_asm_operand;
 
 typedef struct a_named_register_list *a_named_register_list_ptr;

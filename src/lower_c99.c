@@ -1580,7 +1580,6 @@ Do C99 lowering on the indicated statement.
       case stmk_assigned_goto:
 #endif /* GNU_EXTENSIONS_ALLOWED */
       case stmk_return:
-      case stmk_asm:
 #if ASM_FUNCTION_ALLOWED
       case stmk_asm_func_body:
 #endif /* ASM_FUNCTION_ALLOWED */
@@ -1601,6 +1600,9 @@ Do C99 lowering on the indicated statement.
 #endif /* UPC_EXTENSIONS_ALLOWED */
         /* Nothing to lower. */
         break; 
+      case stmk_asm:
+        lower_asm_statement(statement);
+        break;
       case stmk_expr:
         /* Expression statement.  Pass in the statement to allow better
            inlining. */
