@@ -3468,6 +3468,8 @@ fields, and return a pointer to it.
   hnp->elaborated_type_specifier_needed = FALSE;
   hnp->partially_hidden_by_microsoft_injected_class_name
                                         = FALSE;
+  hnp->is_class_member                  = FALSE;
+  hnp->inaccessible                     = FALSE;
 #if CENTERLINE_CHECKING
   hnp->avoid_codecenter_warnings        = 0;
 #endif /* CENTERLINE_CHECKING */
@@ -4059,6 +4061,7 @@ in il_alloc_init.)
   def_source_corresp.qualification_needed = FALSE;
   def_source_corresp.partially_hidden_by_microsoft_injected_class_name = FALSE;
   def_source_corresp.visible_as_unqualified_name = FALSE;
+  def_source_corresp.inaccessible = FALSE;
 #endif /* BACK_END_IS_CP_GEN_BE */
 #if ONE_INSTANTIATION_PER_OBJECT
   def_source_corresp.static_used_by_instantiation = FALSE;

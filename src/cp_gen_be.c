@@ -185,9 +185,9 @@ static unsigned long
 
 /*
 Entry used to record an adjustment needed at the end of a name context,
-i.e., restoring the previous values of the qualification_needed and/or
-elaborated_type_specifier_needed flags of an IL entity, which were changed
-when the entity's name was hidden at the start of the name context.
+i.e., restoring the previous values of the various flags of an IL entity
+that were changed when the entity's name was hidden at the start of the
+name context.
 */
 typedef struct a_hidden_name_fixup *a_hidden_name_fixup_ptr;
 typedef struct a_hidden_name_fixup {
@@ -198,6 +198,7 @@ typedef struct a_hidden_name_fixup {
   a_bit_field	elaborated_type_specifier_needed:1;
   a_bit_field	partially_hidden_by_microsoft_injected_class_name:1;
   a_bit_field	visible_as_unqualified_name:1;
+  a_bit_field	inaccessible:1;
 			/* Flag values to restore. */
   a_tagged_pointer
 		entity;	/* Pointer to the entity to be fixed up. */
@@ -422,6 +423,7 @@ entry are saved for restoration at the end of the current name context.
   hnfp->partially_hidden_by_microsoft_injected_class_name =
                         scp->partially_hidden_by_microsoft_injected_class_name;
   hnfp->visible_as_unqualified_name = scp->visible_as_unqualified_name;
+  hnfp->inaccessible = scp->inaccessible;
   if ((an_il_entry_kind)entity.kind == iek_type) {
     hnfp->elaborated_type_specifier_needed =
                     ((a_type_ptr)entity.ptr)->elaborated_type_specifier_needed;
@@ -489,6 +491,8 @@ hidden names in C, so there's no point in maintaining this information).
         (type != NULL &&
          hnp->elaborated_type_specifier_needed !=
          type->elaborated_type_specifier_needed) ||
+        hnp->inaccessible !=
+        scp->inaccessible ||
         injection_entry) {
       /* Create a fixup entry that will cause the flags to be reset to
          their former values at the end of the current name context. */
@@ -517,6 +521,7 @@ hidden names in C, so there's no point in maintaining this information).
         type->elaborated_type_specifier_needed =
                                          hnp->elaborated_type_specifier_needed;
       }  /* if */
+      scp->inaccessible = hnp->inaccessible;
       if (injection_entry) {
         /* This entry is for an injected name.  Mark the entity as visible
            even if its parent is not in the name context stack. */
@@ -635,6 +640,7 @@ Pop the top entry off the name context stack.
     scp->partially_hidden_by_microsoft_injected_class_name =
                       hnfp->partially_hidden_by_microsoft_injected_class_name;
     scp->visible_as_unqualified_name = hnfp->visible_as_unqualified_name;
+    scp->inaccessible = hnfp->inaccessible;
     if ((an_il_entry_kind)(hnfp->entity.kind) == iek_type) {
       ((a_type_ptr)(hnfp->entity.ptr))->elaborated_type_specifier_needed =
                                         hnfp->elaborated_type_specifier_needed;
@@ -729,7 +735,8 @@ Return TRUE if the indicated class is currently on the name context stack.
   a_name_context_ptr ncp;
 
   for (ncp = curr_name_context; ncp != NULL; ncp = ncp->next) {
-    if (ncp->class_type == class_type) {
+    if (ncp->class_type != NULL &&
+        is_same_class_or_base_class_thereof(ncp->class_type, class_type)) {
       class_in_stack = TRUE;
       break;
     }  /* if */
@@ -2026,16 +2033,97 @@ is called.
 #endif /* GCC_BUILTIN_VARARGS */
   } else if (type->source_corresp.is_class_member &&
              type->source_corresp.access != (an_access_specifier)as_public) {
-    /* The typedef is a non-public member of a class.  There might be
-       an access problem for this if we're not inside the class, so drop
-       the typedef in that case.  This comes up, from example, on template
+    /* The typedef is a non-public member of a class.  A public member can
+       always be safely used, but there might be an access problem for
+       non-public members.  This comes up, from example, on template
        arguments for non-member templates that are first established using
        a member typedef. */
     a_type_ptr parent_class = type->source_corresp.parent.class_type;
-    if (!class_is_in_name_context_stack(parent_class) &&
-        (curr_name_context == NULL ||
-         curr_name_context->class_type_for_access_not_naming != parent_class)){
-      invisible = TRUE;
+    if (class_is_in_name_context_stack(parent_class)) {
+      /* We're in the typedef's class or one derived from it, so we know
+         whether it's accessible or not.  Set the visibility accordingly. */
+      invisible = type->source_corresp.inaccessible;
+    } else if (curr_name_context == NULL ||
+               curr_name_context->class_type_for_access_not_naming == NULL ||
+               !is_same_class_or_base_class_thereof(curr_name_context->
+                                              class_type_for_access_not_naming,
+                                              parent_class)) {
+      /* We are in a context that is not related by inheritance to the class
+         of the typedef.  The typedef will still be accessible if we are in a
+         class or function that is a friend of the class of the typedef or a
+         class derived therefrom in which the typedef is accessible;
+         otherwise, the typedef is inaccessible and must be treated as
+         invisible. */
+      a_boolean                context_is_friend = FALSE;
+      a_name_context_ptr       ncp;
+
+      for (ncp = curr_name_context; ncp != NULL && !context_is_friend;
+           ncp = ncp->next) {
+        if (ncp->assoc_scope != NULL) {
+          /* If this is a class or function scope, it may have been befriended
+             by a class in which the typedef is an accessible member, so we
+             scan through the list of befriending classes looking for this
+             situation. */
+          a_class_list_entry_ptr befriending_class = NULL;
+          if (ncp->assoc_scope->kind == (a_scope_kind)sck_class_struct_union) {
+            befriending_class = ncp->assoc_scope->variant.assoc_type->
+                    variant.class_struct_union.extra_info->befriending_classes;
+          } else if (ncp->assoc_scope->kind == (a_scope_kind)sck_function) {
+            befriending_class =
+                    ncp->assoc_scope->variant.routine.ptr->befriending_classes;
+          }  /* if */
+          for (; befriending_class != NULL && !context_is_friend;
+               befriending_class = befriending_class->next) {
+            if (identical_types(befriending_class->class_type, parent_class)) {
+              /* The class of the typedef has declared this context as a
+                 friend. */
+              context_is_friend = TRUE;
+            } else if (find_base_class_of(befriending_class->class_type,
+                                          parent_class) != NULL) {
+              /* The class of the typedef is a base of the class that has
+                 declared this context as a friend.  If the typedef is
+                 accessible in the befriending class, this context also
+                 has access, so we scan the hidden names of the
+                 befriending class to see if the typedef is recorded there
+                 as inaccessible. */
+              a_scope_ptr       scope;
+              a_hidden_name_ptr hnp;
+              scope = befriending_class->class_type->
+                            variant.class_struct_union.extra_info->assoc_scope;
+              check_assertion(scope != NULL);
+              for (hnp = scope->hidden_names;
+                   hnp != NULL && hnp->entity.ptr != (char *)type;
+                   hnp = hnp->next) {}
+              if (hnp == NULL || !hnp->inaccessible) {
+                /* Either the typedef isn't in the befriending class's hidden
+                   name list, which means that it's both visible and
+                   accessible, or it's hidden but not inaccessible. */
+                context_is_friend = TRUE;
+              }  /* if */
+            }  /* if */
+          }  /* for */
+        }  /* if */
+      }  /* for */
+
+      invisible = !context_is_friend;
+    } else if (curr_name_context->class_type_for_access_not_naming !=
+               parent_class) {
+      /* The class_type_for_access_not_naming is derived from the typedef's
+         class (if it's the same class, then by definition the typedef is
+         accessible).  All inaccessible inherited members should appear in
+         the derived class's list of hidden names, so we scan to see if the
+         typedef is inaccessible. */
+      a_scope_ptr       scope;
+      a_hidden_name_ptr hnp;
+      scope = curr_name_context->class_type_for_access_not_naming->
+                            variant.class_struct_union.extra_info->assoc_scope;
+      check_assertion(scope != NULL);
+      for (hnp = scope->hidden_names; hnp != NULL; hnp = hnp->next) {
+        if (hnp->entity.ptr == (char *)type) {
+          invisible = hnp->inaccessible;
+          break;
+        }  /* if */
+      }  /* for */
     }  /* if */
   }  /* if */
   return invisible;

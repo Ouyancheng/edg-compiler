@@ -1286,6 +1286,9 @@ typedef struct a_source_correspondence {
 			   not active.  This is used for injected class names
 			   and block extern declarations.  Set/used only within
 			   the C++-generating back end. */
+  a_bit_field	inaccessible:1;
+			/* This name is inaccessible in the current scope.
+			   Set/used only within the C++-generating back end. */
 #endif /* BACK_END_IS_CP_GEN_BE */
 #if ONE_INSTANTIATION_PER_OBJECT
   a_bit_field	static_used_by_instantiation:1;
@@ -9943,6 +9946,17 @@ typedef struct a_hidden_name {
 			/* Used in Microsoft mode only, for injected class
 			   names.  They require qualification unless used
 			   to the left of "::". */
+  a_bit_field	is_class_member:1;
+			/* TRUE if entity is a member of a class.  Used when
+			   cloning inherited hidden name lists to ensure
+			   that block- or namespace-scope names are not
+			   cloned. */
+  a_bit_field	inaccessible:1;
+			/* TRUE if this entity is inaccessible within the
+			   scope to which this hidden name belongs.  Used
+			   in the C++-generating back end to help determine
+			   whether a typedef should be treated as "invisible"
+			   or not. */
   bitfield_to_avoid_codecenter_warnings()
 } a_hidden_name;
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */

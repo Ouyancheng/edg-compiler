@@ -218,6 +218,7 @@ static void record_defeatable_name_hiding_for_single_entity(
                               a_symbol_ptr  hidden_sym,
                               a_boolean     tag_hidden_by_nontag,
                               a_boolean     hidden_class_or_namespace_member,
+                              a_boolean     inaccessible,
                               a_scope_ptr   sp,
                               a_symbol_ptr  hidden_by)
 /*
@@ -226,8 +227,9 @@ declaration of the same name -- but the hiding can be "defeated" by using an
 elaborated type specifier or global qualification (preceding "::") when
 referring to the hidden name.  Create the hidden-name entity to represent
 this case and add it to the list for the current scope.  If hidden_by is
-non-NULL, it points to the symbol that does the hiding.
-(This routine is meant to be called from record_defeatable_name_hiding only.)
+non-NULL, it points to the symbol that does the hiding.  If inaccessible is
+TRUE, the hidden symbol is inaccessible in the current scope.  (This routine
+is meant to be called from record_defeatable_name_hiding only.)
 */
 {
   a_hidden_name_ptr        hnp;
@@ -280,6 +282,7 @@ non-NULL, it points to the symbol that does the hiding.
     hnp = make_new_hidden_name(sp);
     hnp->entity.ptr = entity;
     hnp->entity.kind = (a_byte_il_entry_kind)kind;
+    hnp->is_class_member = hidden_sym->is_class_member;
   }  /* if */
   /* Set the appropriate flag. */
   if (tag_hidden_by_nontag) {
@@ -306,6 +309,11 @@ non-NULL, it points to the symbol that does the hiding.
          if msvc_target_version_number is >= 1300.) */
       hnp->partially_hidden_by_microsoft_injected_class_name = TRUE;
     }  /* if */
+    if (inaccessible) {
+      /* Only add this flag, don't erase one that's already there in a
+         preexisting hidden name. */
+      hnp->inaccessible = inaccessible;
+    }
     check_assertion(in_file_scope(entity));
     if (fund_hiding_sym == NULL ||
         !(is_type_symbol(fund_hidden_sym) &&
@@ -327,13 +335,16 @@ static void record_defeatable_name_hiding(
                               a_symbol_ptr  hidden_sym,
                               a_boolean     tag_hidden_by_nontag,
                               a_boolean     hidden_class_or_namespace_member,
+                              a_boolean     inaccessible,
                               a_scope_ptr   sp,
                               a_symbol_ptr  hidden_by)
 /*
 hidden_sym is a symbol for an entity that is hidden by another declaration
 of the same name -- but the hiding can be "defeated" by using an
 elaborated type specifier or global qualification (preceding "::") when
-referring to the hidden name.  Create the hidden-name entity to represent
+referring to the hidden name.  In addition, names that are ambiguous or
+inaccessible are treated as "hidden" to force use of a qualified name when
+referring to the entity.  Create the hidden-name entity to represent
 this case and add it to the list for the current scope.  If hidden_by is
 non-NULL, it points to the symbol that does the hiding; when hidden_sym
 and hidden_by refer to the same IL entry, no hidden-name entry is produced.
@@ -361,8 +372,8 @@ and hidden_by refer to the same IL entry, no hidden-name entry is produced.
              sym != NULL;
              sym = sym->next) {
           record_defeatable_name_hiding(sym, tag_hidden_by_nontag,
-                                        hidden_class_or_namespace_member, sp,
-                                        hidden_by);
+                                        hidden_class_or_namespace_member,
+                                        inaccessible, sp, hidden_by);
         }  /* for */
         break;
       case sk_projection:
@@ -390,7 +401,7 @@ and hidden_by refer to the same IL entry, no hidden-name entry is produced.
         }  /* if */
         record_defeatable_name_hiding(sym, tag_hidden_by_nontag,
                                       hidden_class_or_namespace_member,
-                                      sp, hidden_by);
+                                      inaccessible, sp, hidden_by);
         break;
       case sk_class_template:
         /* Enter each instance of a class template. */
@@ -403,15 +414,15 @@ and hidden_by refer to the same IL entry, no hidden-name entry is produced.
           if (!is_nonreal_instance_class_symbol(sym) ||
               prototype_instantiations_in_il) {
             record_defeatable_name_hiding(sym, tag_hidden_by_nontag,
-                                          hidden_class_or_namespace_member, sp,
-                                          hidden_by);
+                                          hidden_class_or_namespace_member,
+                                          inaccessible, sp, hidden_by);
           }  /* if */
         }  /* for */
         /* Process the template itself. */
         record_defeatable_name_hiding_for_single_entity(
                                              hidden_sym, tag_hidden_by_nontag,
                                              hidden_class_or_namespace_member,
-                                             sp, hidden_by);
+                                             inaccessible, sp, hidden_by);
         break;
       case sk_function_template:
         /* Enter each instance of a function template. */
@@ -425,21 +436,21 @@ and hidden_by refer to the same IL entry, no hidden-name entry is produced.
           } else {
             record_defeatable_name_hiding(tip->instance_sym,
                                           tag_hidden_by_nontag,
-                                          hidden_class_or_namespace_member, sp,
-                                          hidden_by);
+                                          hidden_class_or_namespace_member,
+                                          inaccessible, sp, hidden_by);
           }  /* if */
         }  /* for */
         /* Process the template itself. */
         record_defeatable_name_hiding_for_single_entity(
                                              hidden_sym, tag_hidden_by_nontag,
                                              hidden_class_or_namespace_member,
-                                             sp, hidden_by);
+                                             inaccessible, sp, hidden_by);
         break;
       default:
         record_defeatable_name_hiding_for_single_entity(
                                              hidden_sym, tag_hidden_by_nontag,
                                              hidden_class_or_namespace_member,
-                                             sp, hidden_by);
+                                             inaccessible, sp, hidden_by);
         break;
     }  /* switch */
   }  /* if */
@@ -637,10 +648,75 @@ class type and should not be hidden.
                               old_sym_ptr,
                               /*tag_hidden_by_nontag=*/FALSE,
                               /*hidden_class_or_namespace_member=*/TRUE,
-                              sp, sym_ptr);
+                              /*inaccessible=*/FALSE, sp, sym_ptr);
     }  /* if */
   }  /* if */
 }  /* record_defeatable_name_hiding_if_not_same */
+
+
+static void clone_inherited_hidden_members(a_type_ptr derived_class,
+                                           a_type_ptr base_class)
+/*
+Create copies in the derived_class hidden name list of all the hidden names
+in the base class list that refer to members.  Any inherited members that
+are hidden in a base class are either hidden or ambiguous in the derived
+class, too, and thus must be flagged as requiring qualification.
+*/
+{
+  a_hidden_name_ptr base_hnp;
+  a_scope_ptr       derived_scope =
+             derived_class->variant.class_struct_union.extra_info->assoc_scope;
+  a_scope_ptr       base_scope =
+                base_class->variant.class_struct_union.extra_info->assoc_scope;
+
+  for (base_hnp = base_scope->hidden_names;
+       base_hnp != NULL;
+       base_hnp = base_hnp->next) {
+    if (base_hnp->is_class_member) {
+      /* It should be innocuous to copy non-member hidden symbols, too:
+         either the derived class is in the same scope as, or an inner scope
+         of, the scope surrounding the base class, or the base class is a
+         class or namespace member (else it could not be named).  In the
+         first case, the hidden non-member names will also be hidden (by the
+         base class members) in the derived class.  In the second case, those
+         names would have to be qualified anyway, so flagging them incorrectly
+         as hidden won't matter.
+
+         However, the hidden name list is just that -- a list -- so lookup is
+         by linear search.  It seems prudent for performance reasons to
+         reduce the size of the list.  This test for class membership will
+         still include members of the containing class for a nested base
+         class.  However, it seemed a reasonable tradeoff to avoid the
+         overhead of checking whether the hidden class member is actually a
+         member of a base class of the current class.  That check would be
+         an expense for every hidden member, while the performance hit from
+         a longer list will probably almost never matter.  If this decision
+         proves incorrect, a further test can easily be added. */
+      a_hidden_name_ptr derived_hnp;
+      for (derived_hnp = derived_scope->hidden_names;
+           (derived_hnp != NULL &&
+            derived_hnp->entity.ptr != base_hnp->entity.ptr);
+           derived_hnp = derived_hnp->next) {}
+      if (derived_hnp == NULL) {
+        /* The hidden entity is not already in the derived class list:
+           create a new entry and copy the base class values to it.  Note
+           that we must not copy the base class "inaccessible" flag -- it
+           will be set independently for the derived scope, as it might be
+           different in the derived class because of friend declarations. */
+
+        a_hidden_name_ptr new_hnp = make_new_hidden_name(derived_scope);
+
+        new_hnp->entity = base_hnp->entity;
+        new_hnp->qualification_needed = base_hnp->qualification_needed;
+        new_hnp->elaborated_type_specifier_needed =
+                                    base_hnp->elaborated_type_specifier_needed;
+        new_hnp->partially_hidden_by_microsoft_injected_class_name =
+                   base_hnp->partially_hidden_by_microsoft_injected_class_name;
+        new_hnp->is_class_member = base_hnp->is_class_member;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+}  /* clone_inherited_hidden_members */
 
 
 static void check_hiding_by_inherited_names(a_type_ptr  class_type,
@@ -673,6 +749,12 @@ hidden name checking on its own members, too.
   for (; bcp != NULL; bcp = bcp->next) {
     if (bcp->direct || (top_level && bcp->is_virtual)) {
       check_hiding_by_inherited_names(bcp->type, sp, /*top_level=*/FALSE);
+      if (top_level) {
+        /* Copy the base class's hidden member list into this class's list:
+           if a member symbol is hidden in the base class, it's hidden here,
+           too. */
+        clone_inherited_hidden_members(class_type, bcp->type);
+      }  /* if */
     }  /* if */
     if (!bcp->direct && !bcp->type->source_corresp.is_local_to_function) {
       /* The base class may be inaccessible or ambiguous by inheritance, but
@@ -703,6 +785,36 @@ hidden name checking on its own members, too.
       record_defeatable_hiding_if_not_same(sym_ptr,
                                            sp,
                                            is_injected_class_symbol(sym_ptr));
+      if (sp->kind == (a_scope_kind)sck_class_struct_union) {
+        /* Check for ambiguous and inaccessible inherited symbols. */
+        a_symbol_locator      locator;
+        a_derivation_step_ptr path = NULL;
+        an_access_specifier   access;
+        a_boolean             ambiguous;
+        a_boolean             any_using_decl;
+        a_boolean             unambiguous_injected_template;
+        a_symbol_ptr          progenitor_sym;
+
+        clear_locator(&locator, &sym_ptr->decl_position);
+        locator.symbol_header = sym_ptr->header;
+        progenitor_sym = 
+                       find_progenitor_symbol(sp->variant.assoc_type,
+                                              &locator, IDL_NO_OPTIONS,
+                                              /*look_in_dependent_bases=*/TRUE,
+                                              &path, &access, &ambiguous,
+                                              &any_using_decl,
+                                              &unambiguous_injected_template);
+        if (ambiguous || access == (an_access_specifier)as_inaccessible) {
+          /* This symbol is either ambiguous or inaccessible in the class
+             whose scope we are processing -- mark it as hidden to force
+             references to it in this context to be generated as qualified. */
+          record_defeatable_name_hiding(
+                              sym_ptr, /*tag_hidden_by_nontag=*/FALSE,
+                              /*hidden_class_or_namespace_member=*/TRUE,
+                              (access == (an_access_specifier)as_inaccessible),
+                              sp, (a_symbol_ptr)NULL);
+        }  /* if */
+      }  /* if */
     }  /* for */
     if (microsoft_bugs &&
         class_type->variant.class_struct_union.extra_info->
@@ -798,7 +910,7 @@ type specifier when put out by the C++-generating back end.
       hidden_class_or_namespace_member = FALSE;
       record_defeatable_name_hiding(old_sym_ptr, tag_hidden_by_nontag,
                                     hidden_class_or_namespace_member,
-                                    sp, sym_ptr);
+                                    /*inaccessible=*/FALSE, sp, sym_ptr);
     }  /* if */
   }  /* if */
 }  /* check_name_hiding_of_tag_by_nontag */
@@ -860,7 +972,7 @@ C++-generating back end.
       hidden_class_or_namespace_member = TRUE;
       record_defeatable_name_hiding(old_sym_ptr, tag_hidden_by_nontag,
                                     hidden_class_or_namespace_member,
-                                    sp, sym_ptr);
+                                    /*inaccessible=*/FALSE, sp, sym_ptr);
     }  /* if */
     /* Do a similar check for tag names in containing scopes. */
     if (sym_ptr->header->any_tag_decl &&
@@ -903,7 +1015,7 @@ C++-generating back end.
             record_defeatable_name_hiding(old_sym_ptr,
                                           tag_hidden_by_nontag,
                                           hidden_class_or_namespace_member,
-                                          sp, sym_ptr);
+                                          /*inaccessible=*/FALSE, sp, sym_ptr);
           }  /* if */
         }  /* if */
       }  /* if */
@@ -952,7 +1064,8 @@ resolve ambiguities caused by a using-directive.  For example:
       tag_hidden_by_nontag = FALSE;
       record_defeatable_name_hiding(sym_ptr, tag_hidden_by_nontag,
                                     hidden_class_or_namespace_member,
-                                    sp, (a_symbol_ptr)NULL);
+                                    /*inaccessible=*/FALSE, sp,
+                                    (a_symbol_ptr)NULL);
     }  /* if */
   }  /* if */
 }  /* resolve_using_directive_ambiguity */
