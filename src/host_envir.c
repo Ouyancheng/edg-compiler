@@ -2440,9 +2440,13 @@ page size.
 #endif /* USE_FIXED_ADDRESS_FOR_MMAP */
       }  /* if */
 #if DEBUG
-      if (debug_level >= 4) {
-        fprintf(f_debug, "Allocated %lu bytes of mmap memory at %p\n",
+      if (db_flag_is_set("mmap") || debug_level >= 4) {
+        fprintf(f_debug,
+                "map_file_region: allocated %lu bytes of mmap memory at %p\n",
                 (unsigned long)incremental_size, addr);
+#if USE_FIXED_ADDRESS_FOR_MMAP
+        fprintf(f_debug, "  requested address was: %p\n", map_address);
+#endif /* USE_FIXED_ADDRESS_FOR_MMAP */
       }  /* if */
 #endif /* DEBUG */
     }  /* if */
@@ -2470,11 +2474,12 @@ file to a memory region.
   result_addr = MapViewOfFileEx(f_map_object, FILE_MAP_COPY, (DWORD)0,
                                 (DWORD)offset, size, address);
 #if DEBUG
-  if (debug_level >= 4) {
-    fprintf(f_debug, "Allocated %lu bytes of mmap memory at %p\n",
+  if (db_flag_is_set("mmap") || debug_level >= 4) {
+    fprintf(f_debug,
+        "map_input_file_to_region: allocated %lu bytes of mmap memory at %p\n",
             (unsigned long)size, address);
   }  /* if */
-  if (debug_level >= 1 && result_addr == NULL) {
+  if ((db_flag_is_set("mmap") || debug_level >= 1) && result_addr == NULL) {
     fprintf(f_debug, "Map failed: address=%p, size=%lu, offset=%lu\n",
             address, (unsigned long)size, (unsigned long)offset);
   }  /* if */
@@ -2590,9 +2595,13 @@ page size.
                            mmap_file_number, (off_t)file_offset);
 #endif /* USE_FIXED_ADDRESS_FOR_MMAP */
 #if DEBUG
-      if (debug_level >= 4) {
-        fprintf(f_debug, "Allocated %lu bytes of mmap memory at %p\n",
+      if (db_flag_is_set("mmap") || debug_level >= 4) {
+        fprintf(f_debug,
+                "map_file_region: allocated %lu bytes of mmap memory at %p\n",
                 (unsigned long)incremental_size, addr);
+#if USE_FIXED_ADDRESS_FOR_MMAP
+        fprintf(f_debug, "  requested address was: %p\n", map_address);
+#endif /* USE_FIXED_ADDRESS_FOR_MMAP */
       }  /* if */
 #endif /* DEBUG */
       /* mmap returns (caddr_t)-1 if the operation fails. */
@@ -2624,11 +2633,13 @@ file to a memory region.
                             fd, (off_t)offset);
   /* mmap returns (cresult_addr_t)-1 if the operation fails. */
 #if DEBUG
-  if (debug_level >= 4) {
-    fprintf(f_debug, "Allocated %lu bytes of mmap memory at %p\n",
+  if (db_flag_is_set("mmap") || debug_level >= 4) {
+    fprintf(f_debug,
+        "map_input_file_to_region: allocated %lu bytes of mmap memory at %p\n",
             (unsigned long)size, address);
   }  /* if */
-  if (debug_level >= 1 && result_addr == (caddr_t)-1) {
+  if ((db_flag_is_set("mmap") || debug_level >= 1) &&
+      result_addr == (caddr_t)-1) {
     fprintf(f_debug, "Map failed: address=%p, size=%lu, offset=%lu\n",
             address, (unsigned long)size, (unsigned long)offset);
   }  /* if */
