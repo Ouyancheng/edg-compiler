@@ -7417,7 +7417,28 @@ object lifetime if it is an expr-temporary lifetime).
 }  /* record_end_of_lifetime_destruction */
 
 
+void move_destruction_to_curr_object_lifetime(a_dynamic_init_ptr  dip)
+/*
+Move a dynamic init entry representing a destruction (or a list thereof) to
+the destructions list associated with the current object lifetime.  This
+is routine is called to promote the destruction list from an object
+lifetime that is being discarded.
+*/
+{
+  if (dip->next_in_destruction_list != NULL) {
+    /* This dynamic init entry is part of a list.  Preserve the original
+       order by processing the next entry first. */
+    move_destruction_to_curr_object_lifetime(dip->next_in_destruction_list);
+    dip->next_in_destruction_list = NULL;
+  }  /* if */
+  /* Disassociate this destruction from the old lifetime. */
+  dip->lifetime = NULL;
+  record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
+                                     /*block_lifetime=*/FALSE);
+}  /* move_destruction_to_curr_object_lifetime */
+
 #if DEBUG
+
 void db_destruction(a_dynamic_init_ptr  dip)
 /*
 Dump debug information on a dynamic init entry insofar as it represents a
@@ -7621,7 +7642,7 @@ stack, a string supplied by the caller, and the object lifetime "name".
 
 #endif /* DEBUG */
 
-static void free_object_lifetime(an_object_lifetime_ptr  olp)
+void free_object_lifetime(an_object_lifetime_ptr  olp)
 /*
 Return an object lifetime to the appropriate available list.
 */
@@ -8192,7 +8213,7 @@ lifetime is retained in the IL tree.
     }  /* if */
     is_retained_in_il = FALSE;
     /* Return the entry to its available list. */
-    (void)free_object_lifetime(olp);
+    free_object_lifetime(olp);
   } else {
     /* Be sure an object lifetime that is being left in the IL has been
        bound to some other IL entity. */

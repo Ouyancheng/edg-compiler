@@ -494,6 +494,10 @@ extern void record_end_of_lifetime_destruction(
                                         a_boolean           static_lifetime,
                                         a_boolean           block_lifetime);
 
+extern void move_destruction_to_curr_object_lifetime(a_dynamic_init_ptr  dip);
+
+extern void free_object_lifetime(an_object_lifetime_ptr  olp);
+
 extern void bind_object_lifetime(an_object_lifetime_ptr  olp,
                                  an_il_entry_kind        entity_kind,
                                  char                    *entity_ptr);
