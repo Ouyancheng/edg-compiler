@@ -24,6 +24,10 @@ typedef void (*a_delete_ptr)(void*);
 			/* Type used to store a pointer to an operator delete
 			   routine. */
 
+typedef void (*a_two_operand_delete_ptr)(void *, a_sizeof_t);
+			/* Type used to store a pointer to a two operand
+			   operator delete routine. */
+
 #if CFRONT_COMPATIBILITY_MODE
 typedef void (*a_cfront_constructor_ptr)(void*, void* b1, void* b2, void*b3,
                                          void* b4, void* b5, void* b6,
