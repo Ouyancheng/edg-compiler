@@ -194,14 +194,20 @@ appear only within a function.  A VLA declaration using the "[*]" syntax
 prototypes but not in function definitions.
 
 IL CHANGE: New flags is_vla and has_assoc_vla_dimension have been added to
-a_type.  The type entry itself does not contain a pointer to the associated
+a_type.  The type entry itself does not contain a pointer to the associated 
 dimension expression, because entities belonging to the file-scope memory
-region cannot point to entities belonging to a function-scope memory region;
-instead, an entry of type a_vla_dimension is placed on a linked list pointed
-to by the routine's IL scope and must be looked up (see find_vla_dimension
-in il.c).  A new expression node kind has been added, enk_runtime_sizeof,
-along with three new statement kinds: stmk_set_vla_size,
-stmk_alloc_vla_variable, and stmk_vla_typedef.
+region cannot point to entities belonging to a function-scope memory
+region; instead, an entry of type a_vla_dimension is placed on a linked
+list pointed to by the routine's IL scope and must be looked up (see
+find_vla_dimension in il.c).  A new expression node kind has been added,
+enk_runtime_sizeof, along with two new statement kinds: stmk_set_vla_size
+and stmk_vla_decl.  Type entries of kind tk_typeref have a new flag: when
+has_variably_modified_type is TRUE, there is an stmk_vla_decl statement
+that refers to the type and corresponds to a typedef declaration.  Variable
+entries have two new flags: when has_variably_modified_type is TRUE, there
+is an stmk_vla_decl statement that refers to the variable and corresponds
+to a variable declaration; moreover, when is_vla is TRUE, allocation and
+deallocation of memory is required for the variable.
 
 The C-generating back end accepts IL containing VLA information and puts out
 VLA constructs, so VLA_ALLOWED should be configured to TRUE only if the
