@@ -3670,6 +3670,9 @@ TRUE if the selector is a pointer, and FALSE if it is a class.
     }  /* if */
     /* Make a node for the selector and the operand. */
     expr = make_operator_node(op, expr->type, selector_expr);
+    if (is_an_lvalue(operand)) {
+      expr->variant.operation.returns_lvalue_instead_of_usual_rvalue = TRUE;
+    } /* if */
     make_expression_operand(expr, operand->type, operand);
     operand->state = saved_operand_state;
     restore_operand_details(operand, &orig_operand);

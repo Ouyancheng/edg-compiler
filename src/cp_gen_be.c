@@ -3809,33 +3809,64 @@ precedence confusion and need_parens is TRUE.
     if (node->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
       /* An operation that returns an lvalue, e.g., an lvalue-returning
          assignment. */
-      if (op == (an_expr_operator_kind)eok_question) {
-        /* Lvalue-returning "?".  Put out the second and third operands as
-           lvalues. */
-        if (need_parens) write_tok_ch('(');
-        gen_boolean_controlling_expression(operand_1);
-        write_tok_str(" ? ");
-        gen_lvalue(operand_2);
-        write_tok_str(" : ");
-        gen_lvalue(operand_2->next);
-        if (need_parens) write_tok_ch(')');
-        processed = TRUE;
-      } else if (op == (an_expr_operator_kind)eok_comma) {
-        /* Lvalue-returning ",".  Put out the second operand as an lvalue. */
-        if (need_parens) write_tok_ch('(');
-        gen_expr_with_parens(operand_1);
-        write_tok_str(", ");
-        gen_lvalue(operand_2);
-        if (need_parens) write_tok_ch(')');
-        processed = TRUE;
-      } else {
-        /* Other case (e.g., lvalue-returning assignment).  Just put the
-           expression out. */
-        node->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
-        gen_expr(node, need_parens);
-        node->variant.operation.returns_lvalue_instead_of_usual_rvalue = TRUE;
-        processed = TRUE;
-      }  /* if */
+      switch (op) {
+        case eok_question:
+          /* Lvalue-returning "?".  Put out the second and third operands as
+             lvalues. */
+          if (need_parens) write_tok_ch('(');
+          gen_boolean_controlling_expression(operand_1);
+          write_tok_str(" ? ");
+          gen_lvalue(operand_2);
+          write_tok_str(" : ");
+          gen_lvalue(operand_2->next);
+          if (need_parens) write_tok_ch(')');
+          processed = TRUE;
+          break;
+        case eok_comma:
+          /* Lvalue-returning ",".  Put out the second operand as an lvalue. */
+          if (need_parens) write_tok_ch('(');
+          gen_expr_with_parens(operand_1);
+          write_tok_str(", ");
+          gen_lvalue(operand_2);
+          if (need_parens) write_tok_ch(')');
+          processed = TRUE;
+          break;
+        case eok_points_to_static:
+          /* Static member selection, p->m. */
+          if (need_parens) write_tok_ch('(');
+          gen_expr_with_parens(operand_1);
+          write_tok_str("->");
+          gen_lvalue(operand_2);
+          if (need_parens) write_tok_ch(')');
+          processed = TRUE;
+          break;
+        case eok_lvalue_dot_static:
+          /* Static member selection, lvalue.m. */
+          if (need_parens) write_tok_ch('(');
+          gen_lvalue(operand_1);
+          write_tok_str(".");
+          gen_lvalue(operand_2);
+          if (need_parens) write_tok_ch(')');
+          processed = TRUE;
+          break;
+        case eok_rvalue_dot_static:
+          /* Static member selection, rvalue.m. */
+          if (need_parens) write_tok_ch('(');
+          gen_expr_with_parens(operand_1);
+          write_tok_str(".");
+          gen_lvalue(operand_2);
+          if (need_parens) write_tok_ch(')');
+          processed = TRUE;
+          break;
+        default:
+          /* Other case (e.g., lvalue-returning assignment).  Just put the
+             expression out. */
+          node->variant.operation.returns_lvalue_instead_of_usual_rvalue=FALSE;
+          gen_expr(node, need_parens);
+          node->variant.operation.returns_lvalue_instead_of_usual_rvalue=TRUE;
+          processed = TRUE;
+          break;
+      }  /* switch */
     } else {
       switch (op) {
         case eok_padd_subsc:
@@ -3948,33 +3979,6 @@ precedence confusion and need_parens is TRUE.
               }  /* if */
             }  /* if */
           }  /* if */
-          break;
-        case eok_points_to_static:
-          /* Static member selection, p->m. */
-          if (need_parens) write_tok_ch('(');
-          gen_expr_with_parens(operand_1);
-          write_tok_str("->");
-          gen_lvalue(operand_2);
-          if (need_parens) write_tok_ch(')');
-          processed = TRUE;
-          break;
-        case eok_lvalue_dot_static:
-          /* Static member selection, lvalue.m. */
-          if (need_parens) write_tok_ch('(');
-          gen_lvalue(operand_1);
-          write_tok_str(".");
-          gen_lvalue(operand_2);
-          if (need_parens) write_tok_ch(')');
-          processed = TRUE;
-          break;
-        case eok_rvalue_dot_static:
-          /* Static member selection, rvalue.m. */
-          if (need_parens) write_tok_ch('(');
-          gen_expr_with_parens(operand_1);
-          write_tok_str(".");
-          gen_lvalue(operand_2);
-          if (need_parens) write_tok_ch(')');
-          processed = TRUE;
           break;
         default:
           break;

@@ -5215,8 +5215,12 @@ the expression.
           op2->next = op3;
         }  /* if */
       }  /* if */
-    } else if (op == (an_expr_operator_kind)eok_comma) {
+    } else if (op == (an_expr_operator_kind)eok_comma ||
+               op == (an_expr_operator_kind)eok_points_to_static ||
+               op == (an_expr_operator_kind)eok_lvalue_dot_static ||
+               op == (an_expr_operator_kind)eok_rvalue_dot_static) {
       /* "," operator -- try to transform the second operand to an lvalue. */
+      /* Same processing for static selection. */
       op1 = node->variant.operation.operands;
       op2 = op1->next;
       conv_class_rvalue_expr_to_object_pointer(&op2, &op2_possible,
@@ -5429,11 +5433,15 @@ non-NULL return *con_value == NULL.
                           is_false_constant(op1->variant.constant) ? op3 : op2;
             con_expr_value = result->variant.constant;
           }  /* if */
-        } else if (op == (an_expr_operator_kind)eok_comma) {
+        } else if (op == (an_expr_operator_kind)eok_comma ||
+                   op == (an_expr_operator_kind)eok_points_to_static ||
+                   op == (an_expr_operator_kind)eok_lvalue_dot_static ||
+                   op == (an_expr_operator_kind)eok_rvalue_dot_static) {
           /* Comma operator.  Apply the transformation to the second operand
              of the ",".  This is useful for a case like
                (p = f(x), *p)
           */
+          /* The same processing applies to a static selection operation. */
           op2 = op1->next;
           op1->next = conv_lvalue_expr_to_rvalue(op2, &constant_case2,
                                                  (a_constant_ptr *)NULL);
@@ -5444,16 +5452,6 @@ non-NULL return *con_value == NULL.
         }  /* if */
         optimized_case = TRUE;
         node->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
-      } else if (op == (an_expr_operator_kind)eok_points_to_static ||
-                 op == (an_expr_operator_kind)eok_lvalue_dot_static ||
-                 op == (an_expr_operator_kind)eok_rvalue_dot_static) {
-        /* Static selection operator.  Apply the transformation to the
-           second operand. */
-        op2 = op1->next;
-        op1->next = conv_lvalue_expr_to_rvalue(op2, &constant_case2,
-                                               (a_constant_ptr *)NULL);
-        *constant_case = constant_case2;
-        optimized_case = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */

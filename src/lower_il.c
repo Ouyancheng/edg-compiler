@@ -7999,6 +7999,8 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
                  operand, discard, evaluate second operand, return). */
               set_node_operator(expr, (an_expr_operator_kind)eok_comma,
                                 expr->type, operand_node);
+              expr->variant.operation.returns_lvalue_instead_of_usual_rvalue =
+                                                                         FALSE;
             }  /* if */
             break;
           case eok_question:

@@ -5409,22 +5409,24 @@ enum an_expr_operator_kind_tag {
 			   is a pointer to a class; if is evaluated and
 			   discarded.  The second operand is a reference to
 			   a static member, whose value is passed through;
-			   it is an lvalue if the result is used as an lvalue.
+			   it is an lvalue if
+			   returns_lvalue_instead_of_usual_rvalue is TRUE.
 			   C++ only, and eliminated by IL lowering. */
   eok_lvalue_dot_static,
 			/* Static member selection lval.m.  The first operand
 			   is an lvalue for a class; if is evaluated and
 			   discarded.  The second operand is a reference to
 			   a static member, whose value is passed through;
-			   it is an lvalue if the result is used as an lvalue.
+			   it is an lvalue if
+			   returns_lvalue_instead_of_usual_rvalue is TRUE.
 			   C++ only, and eliminated by IL lowering. */
   eok_rvalue_dot_static,
 			/* Static member selection rval.m.  The first operand
 			   is a class rvalue; if is evaluated and discarded.
 			   The second operand is a reference to a static
 			   member, whose value is passed through; it is an
-			   lvalue if the result is used as an lvalue.
-			   C++ only, and eliminated by IL lowering. */
+			   lvalue if returns_lvalue_instead_of_usual_rvalue is
+			   TRUE.  C++ only, and eliminated by IL lowering. */
   eok_shiftl,           /* Left shift ("<<" operator). */
   eok_shiftr,           /* Right shift (">>" operator). */
   eok_and,              /* Bitwise and ("&" operator). */
