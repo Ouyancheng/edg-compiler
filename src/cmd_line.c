@@ -2535,6 +2535,9 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
     /* Enable exceptions by default in GNU C++ mode. */
     exceptions_enabled = TRUE;
   }  /* if */
+  if (!option_kind_used[(int)optk_extern_inline]) {
+    extern_inline_allowed = TRUE;
+  }  /* if */
   /* Enable recognition of digraphs. */
   if (!(option_kind_used[(int)optk_alternative_tokens])) {
     alternative_tokens_allowed = TRUE;
