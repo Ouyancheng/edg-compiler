@@ -2606,13 +2606,17 @@ part of a template-dependent expression.
       for (operand = expr->variant.operation.operands;
            operand != NULL;
            operand = operand->next) {
+#if GNU_EXTENSIONS_ALLOWED
         if (expr->variant.operation.is_gnu_two_operand_question_mark &&
             operand == expr->variant.operation.operands->next) {
           /* Put out a dummy expression for the synthesized second operand
              of the GNU two-operand "?".  This preserves the number of
              operands the demangler expects. */
           add_mangling_for_placeholder_expression(mctl);
-        } else {
+        } else
+#endif /* GNU_EXTENSIONS_ALLOWED */
+        /* Do not insert code here. */
+        {
           mangled_encoding_for_expression(operand, in_dependent_expr, mctl);
         }  /* fi */
       }  /* for */
