@@ -5460,7 +5460,11 @@ Returns TRUE if there is an error in the specifiers.
         bt_float, bt_double, bt_typedef,
         bt_struct_union, bt_enum, bt_no_type}  basic_type = bt_none;
   enum {sign_none, sign_signed, sign_unsigned} sign       = sign_none;
-  enum {size_none, size_short, size_long}      size       = size_none;
+  enum {size_none, size_short, size_long
+#if LONG_LONG_ALLOWED
+        , size_long_long
+#endif /* LONG_LONG_ALLOWED */
+                                        }      size       = size_none;
 
   db_enter(3, "decl_specifiers");
   explicitly_signed = FALSE;
@@ -5699,6 +5703,15 @@ Returns TRUE if there is an error in the specifiers.
         if (!type_specifier_allowed) {
           error(ec_type_specifier_not_allowed);
           err = TRUE;
+#if LONG_LONG_ALLOWED
+        } else if (size == size_long && curr_token == tok_long) {
+          /* long long.  This is an extension. */
+          size = size_long_long;
+          if (strict_ansi_mode) {
+            diagnostic(strict_ansi_error_severity,
+                       ec_bad_combination_of_type_specifiers);
+          }  /* if */
+#endif /* LONG_LONG_ALLOWED */
         } else if (size != size_none) {
           /* Size has already been specified in some way. */
           bad_combination_of_type_specifiers = TRUE;
@@ -6263,6 +6276,8 @@ exit_loop:
                ik_unsigned_int       unsigned            int
                ik_long                         long      int
                ik_unsigned_long      unsigned  long      int
+               ik_long_long                    long long int
+               ik_unsigned_long_long unsigned  long long int
 
              In pcc mode, the "signed" keyword does not exist, so something
              that is signed really has unspecified sign.  Note that ik_char
@@ -6303,6 +6318,16 @@ exit_loop:
             case ik_unsigned_long:
               /* No holes to fill in. */
               break;
+#if LONG_LONG_ALLOWED
+            case ik_long_long:
+              if (size != size_none) break;
+              basic_type = bt_int;
+              size = size_long_long;
+              break;
+            case ik_unsigned_long_long:
+              /* No holes to fill in. */
+              break;
+#endif /* LONG_LONG_ALLOWED */
 #if CHECKING
             default:
               internal_error("decl_specifiers: bad typedef int kind");
@@ -6365,6 +6390,17 @@ exit_loop:
         /* unsigned long, unsigned long int. */
         ikind = (an_integer_kind)ik_unsigned_long;
       }  /* if */
+#if LONG_LONG_ALLOWED
+    } else if (basic_type == bt_int && size == size_long_long) {
+      kind = (a_type_kind)tk_integer;
+      if (sign != sign_unsigned) {
+        /* long long, signed long long, long long int, signed long long int. */
+        ikind = (an_integer_kind)ik_long_long;
+      } else {
+        /* unsigned long long, unsigned long long int. */
+        ikind = (an_integer_kind)ik_unsigned_long_long;
+      }  /* if */
+#endif /* LONG_LONG_ALLOWED */
     } else if (basic_type == bt_float && sign == sign_none &&
                size == size_none) {
       /* float. */
