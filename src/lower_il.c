@@ -1136,7 +1136,7 @@ is the file scope.  Return a pointer to it.
   }  /* while */
   temp->next = *prev_ptr_ptr;
   *prev_ptr_ptr = temp;
-  if (last_ptr_ptr != NULL && *last_ptr_ptr == NULL) *last_ptr_ptr = temp;
+  if (last_ptr_ptr != NULL && temp->next == NULL) *last_ptr_ptr = temp;
   return temp;
 }  /* make_temporary_in_scope */
 
