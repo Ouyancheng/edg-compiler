@@ -11465,16 +11465,16 @@ nested classes when their definition appears outside of the class template.
 #endif /* BACK_END_IS_CP_GEN_BE */
     if (cssp->is_prototype_instantiation ||
         (scope_stack[depth_scope_stack].in_prototype_instantiation &&
-         class_tssp != NULL &&
          class_type->source_corresp.is_local_to_function)) {
       /* This is a prototype instantiation or an instantiation of a local
-         class type (template template parameter), so the resulting class is
-         "nonreal" (i.e., based on template arguments that include the dummy
-         types and constants of template parameters rather than real types and
-         constants). Note that for nested classes the flag is set later. */
+         class type, so the resulting class is "nonreal" (i.e., based on
+         template arguments that include the dummy types and constants of
+         template parameters rather than real types and constants). Note
+         that for nested classes the flag is set later. */
       class_state.is_nonreal_instantiation = TRUE;
       class_type->variant.class_struct_union.is_nonreal_class = TRUE;
       if (tag_sym->is_class_member &&
+          class_tssp != NULL &&
           (curr_token == tok_lbrace || curr_token == tok_colon)) {
         /* This is a definition of a nested class.  See if the enclosing class
            is a prototype and/or nonreal class.  If so, copy the information
