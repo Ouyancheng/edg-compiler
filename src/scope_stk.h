@@ -687,6 +687,15 @@ pointer is NULL, return NO_SCOPE_DEPTH.
   ((ssep) == NULL ? NO_SCOPE_DEPTH : (ssep - &scope_stack[0]))
 
 
+/*
+Given a pointer to a scope stack entry, return TRUE if and only if the
+associated scope is a file or namespace scope.
+*/
+#define is_file_or_namespace_scope(ssep)                     \
+  ((ssep)->kind == (a_scope_kind)sck_file ||                \
+   (ssep)->kind == (a_scope_kind)sck_namespace ||            \
+   (ssep)->kind == (a_scope_kind)sck_namespace_extension)
+
 
 EXTERN a_scope_stack_entry_ptr
 		scope_stack /* = NULL */;

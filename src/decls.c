@@ -8525,9 +8525,7 @@ current scope.
           }  /* if */
         }  /* if */
         if (other_decl != NULL && overload_sym == NULL &&
-            (ssep->kind == (a_scope_kind)sck_file ||
-             ssep->kind == (a_scope_kind)sck_namespace ||
-             ssep->kind == (a_scope_kind)sck_namespace_extension) &&
+            is_file_or_namespace_scope(ssep) &&
             symbols_are_lookup_equivalent(fundamental_symbol_of(sym),
                                           fundamental_symbol_of(other_decl))) {
           /* This is a duplicate using declaration of something other than a
@@ -8545,7 +8543,13 @@ current scope.
             tag_sym = namespace_qualified_id_lookup(
                         &locator, nsp,
                         IDL_MUST_BE_TAG | IDL_DIRECT_NAMESPACE_MEMBERS_ONLY);
-            if (tag_sym != NULL && !is_class_template_symbol(tag_sym)) {
+            if (tag_sym != NULL && !is_class_template_symbol(tag_sym) &&
+                !(other_decl != NULL && is_file_or_namespace_scope(ssep) &&
+                  symbols_are_lookup_equivalent(
+                                        fundamental_symbol_of(tag_sym),
+                                        fundamental_symbol_of(other_decl)))) {
+              /* We found a tag that was masked by another declaration (sym),
+                 and importing it is not just a redeclaration. */
               create_nonmember_using_declaration(tag_sym, &null_sym_ptr,
                                                  other_decl, nsp, &prev_udp,
                                                  /*is_list=*/FALSE);
