@@ -185,10 +185,6 @@ extern void decl_var_or_routine(a_symbol_locator    *locator,
                                 a_storage_class     storage_class,
                                 a_type_ptr          type_ptr,
                                 a_func_info_block   *func_info,
-                                a_boolean           is_implicit_function,
-                                a_boolean           is_function_def_with_body,
-                                a_boolean           inline_specified,
-                                a_boolean           is_main_function,
                                 a_symbol_ptr        *symbol_ptr,
                                 an_id_linkage_kind  *linkage_ptr,
                                 a_type_ptr          *old_type,
@@ -198,8 +194,7 @@ extern void decl_function_template(a_symbol_locator    *locator,
                                    a_type_ptr          type_ptr,
                                    a_func_info_block   *func_info,
                                    a_symbol_ptr        *symbol_ptr,
-                                   a_storage_class     storage_class,
-                                   a_boolean           is_inline);
+                                   a_storage_class     storage_class);
 
 extern void handler_declaration(a_statement_ptr  sp);
 
