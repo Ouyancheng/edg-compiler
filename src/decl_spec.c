@@ -675,8 +675,7 @@ skip_tag_scan:
       /* Issuing the diagnostic was deferred till now. */
       pos_sy_error(ec_bad_scope_for_definition, &tag_position, tag_sym);
       err = TRUE;
-    }  /* if */
-    if (C_dialect == C_dialect_cplusplus) {
+    } else if (C_dialect == C_dialect_cplusplus) {
       /* In C classes have no linkage.  In C++ most classes have either
          internal linkage or, for classes declared at file scope and with
          other characteristics (see ARM 3.3), C++ external linkage; local
@@ -1313,7 +1312,8 @@ is a that of a constructor.
         /* The symbol one gets by looking up the class name is not the same as
            the class symbol.  This might be okay, but it has to be checked
            carefully. */
-        if (class_type ==
+        if (locator_for_curr_id.specific_symbol != NULL &&
+            class_type ==
                locator_for_curr_id.specific_symbol->class_of_which_a_member) {
           if (locator_for_curr_id.specific_symbol->kind !=
                                     (a_symbol_kind)sk_projection) {
