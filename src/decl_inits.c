@@ -509,7 +509,22 @@ ref field of a class object (or an array of same) remains uninitialized.
        array of char is initialized by a string.  The initial
        values can either appear inside a brace-enclosed list, or at
        the current level. */
-    if (curr_token == tok_string_literal && is_string_type(local_type)) {
+    a_boolean  paren_flag = FALSE;
+
+    if (is_string_type(local_type) &&
+        (curr_token == tok_string_literal ||
+         ((paren_flag = (curr_token == tok_lparen)) &&
+          (any_cfront_mode() || C_dialect == C_dialect_pcc) &&
+          next_token() == tok_string_literal))) {
+      if (paren_flag) {
+        /* This is a special case that's accepted in K&R mode and by cfront:
+             char a[] = ("hello");
+           (Note: we only recognize this sort of case when there is a single
+           set of parentheses surrounding the string -- both pcc and cfront
+           do allow multiple parens.) */
+        /* Bypass the left paren. */
+        (void)get_token();
+      }  /* if */
       /* The object being initialized has type array of char or wchar_t, and
          is being initialized with a string.  Handle this case specially. */
       check_string_constant_initializer(&const_for_curr_token, &local_type,
@@ -521,7 +536,9 @@ ref field of a class object (or an array of same) remains uninitialized.
            known if it was incomplete. */
         *type = local_type;
       }  /* if */
+      /* Bypass the string and the right paren, if appropriate. */
       (void)get_token();
+      if (paren_flag) required_token(tok_rparen, ec_exp_rparen);
     } else {
       /* Normal case, not array of char.  Could be an array, a struct,
          or a union, or an error type.  Note that local_type has already

@@ -1,5 +1,12 @@
 Version 2.31
 
+1/15/96   Nonstandard initialization of char array
+
+Initialization of a character array by a parenthesized string constant
+is now supported in K&R and cfront-compatibility modes -- e.g.,
+
+  char a[] = ("hello");          // Allowed in K&R and cfront modes
+
 1/15/96   #ifndef guards on configuration values for special characters
 
 #ifndef guards have been added to allow implementations to define certain
