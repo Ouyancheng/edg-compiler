@@ -5777,7 +5777,7 @@ the first member of the aggregate.
   if (!is_aggregate_or_union_type(type)) {
     /* Simple scalar case. */
     a_constant zero_constant;
-    make_zero_of_proper_type(type, &zero_constant);
+    make_zero_of_proper_type(rvalue_type(type), &zero_constant);
     con = alloc_unshared_constant(&zero_constant);
   } else {
     /* Aggregate type. */
@@ -5881,6 +5881,15 @@ directly.  *con_pos will be set to indicate the simple constant.
       if (first_count == 1) copy_constant(rep_con, first_repeat_con);
       simple_con = copy_unshared_constant(rep_con);
       first_repeat_con->next = simple_con;
+#if DEBUG
+      if (db_flag_is_set("designators")) {
+        (void)fprintf(f_debug, "Splitting constant, constant before = ");
+        db_constant(first_repeat_con);
+        (void)fprintf(f_debug, ", simple_con = ");
+        db_constant(simple_con);
+        (void)fprintf(f_debug, "\n");
+      }  /* if */
+#endif /* DEBUG */
     } else {
       /* The position is at the beginning of the repeat, so there is no
          repeated constant preceding the simple constant.  Overwrite the
@@ -5888,6 +5897,14 @@ directly.  *con_pos will be set to indicate the simple constant.
          constant (thus making the first repetition). */
       simple_con = con;
       copy_constant(rep_con, con);
+#if DEBUG
+      if (db_flag_is_set("designators")) {
+        (void)fprintf(f_debug,
+                      "Splitting constant, no constant before, simple_con = ");
+        db_constant(simple_con);
+        (void)fprintf(f_debug, "\n");
+      }  /* if */
+#endif /* DEBUG */
     }  /* if */
     if (second_count != 0) {
       a_constant_ptr second_repeat_con, rep_con_copy;
@@ -5905,10 +5922,24 @@ directly.  *con_pos will be set to indicate the simple constant.
       }  /* if */
       simple_con->next = second_repeat_con;
       second_repeat_con->next = next_con;
+#if DEBUG
+      if (db_flag_is_set("designators")) {
+        (void)fprintf(f_debug,
+                      "Splitting constant, constant after = ");
+        db_constant(second_repeat_con);
+        (void)fprintf(f_debug, "\n");
+      }  /* if */
+#endif /* DEBUG */
     } else {
       /* The position is at the end of the repeat, so there is no repeated
          constant following the simple constant. */
       simple_con->next = next_con;
+#if DEBUG
+      if (db_flag_is_set("designators")) {
+        (void)fprintf(f_debug,
+                      "Splitting constant, no constant after.\n");
+      }  /* if */
+#endif /* DEBUG */
     }  /* if */
     /* The new current position is on the non-repeated actual constant. */
     set_init_con_pos(simple_con, con_pos);
@@ -5953,6 +5984,11 @@ is not called for union initializations.
       } else {
         prev_con->next = zero_con;
       }  /* if */
+#if DEBUG
+      if (db_flag_is_set("designators")) {
+        (void)fprintf(f_debug, "Finding insert point: inserting at end\n");
+      }  /* if */
+#endif /* DEBUG */
       set_init_con_pos(zero_con, &con);
       if (aggr_pos.array_init) {
         /* For an array, we can add a repeat count to initialize multiple
@@ -5964,6 +6000,13 @@ is not called for union initializations.
                           alloc_constant((a_constant_repr_kind)ck_init_repeat);
           repeat_con->variant.init_repeat.count = count;
           repeat_con->variant.init_repeat.constant = zero_con;
+#if DEBUG
+          if (db_flag_is_set("designators")) {
+            (void)fprintf(f_debug, "Array repeat const = ");
+            db_constant(repeat_con);
+            (void)fprintf(f_debug, "\n");
+          }  /* if */
+#endif /* DEBUG */
           set_init_con_pos(repeat_con, &con);
           if (prev_con == NULL) {
             aggr_con->variant.aggregate.first_constant = repeat_con;
@@ -6007,6 +6050,15 @@ is not called for union initializations.
   }  /* if */
   *previous_con = prev_con;
   *earlier_con = con;
+#if DEBUG
+  if (db_flag_is_set("designators")) {
+    (void)fprintf(f_debug, "Found insert point, previous_con = ");
+    db_constant(*previous_con);
+    (void)fprintf(f_debug, ", earlier_con.ptr = ");
+    db_constant(earlier_con->ptr);
+    (void)fprintf(f_debug, "\n");
+  }  /* if */
+#endif /* DEBUG */
 }  /* find_designator_insert_point */           
   
 
@@ -6040,6 +6092,13 @@ have already had their designated initializers lowered.
           temp_con->kind == (a_constant_repr_kind)ck_designator) {
         union_designator = temp_con;
         temp_con = temp_con->next;
+#if DEBUG
+        if (db_flag_is_set("designators")) {
+          (void)fprintf(f_debug, "union_designator = ");
+          db_constant(union_designator);
+          (void)fprintf(f_debug, "\n");
+        }  /* if */
+#endif /* DEBUG */
       }  /* if */
     }  /* if */
   } else {
@@ -6069,6 +6128,13 @@ have already had their designated initializers lowered.
           split_constant_if_repeated(&con);
           /* Combine the two initializers into *actual_con. */
           combine_initializer_constants(earlier_con.ptr, con.ptr);
+#if DEBUG
+          if (db_flag_is_set("designators")) {
+            (void)fprintf(f_debug, "Combined initializer consts = ");
+            db_constant(con.ptr);
+            (void)fprintf(f_debug, "\n");
+          }  /* if */
+#endif /* DEBUG */
         }  /* if */
       }  /* if */
       advance_init_con_pos(&earlier_con);
@@ -6079,6 +6145,13 @@ have already had their designated initializers lowered.
        that ends this part of the list. */
     if (con.ptr != NULL) {
       check_assertion(con.ptr->kind == (a_constant_repr_kind)ck_designator);
+#if DEBUG
+      if (db_flag_is_set("designators")) {
+        (void)fprintf(f_debug, "Starting on designator ");
+        db_constant(con.ptr);
+        (void)fprintf(f_debug, "\n");
+      }  /* if */
+#endif /* DEBUG */
       /* Disconnect the ck_designator and the list that follows it from
          the aggregate. */
       if (prev_con == NULL) {
@@ -6086,6 +6159,13 @@ have already had their designated initializers lowered.
       } else {
         prev_con->next = NULL;
       }  /* if */
+#if DEBUG
+      if (db_flag_is_set("designators")) {
+        (void)fprintf(f_debug, "aggr_con after detaching designator = ");
+        db_constant(aggr_con);
+        (void)fprintf(f_debug, "\n");
+      }  /* if */
+#endif /* DEBUG */
     }  /* if */
     /* Keep the end of list pointer up to date. */
     aggr_con->variant.aggregate.last_constant = prev_con;
@@ -6103,6 +6183,13 @@ have already had their designated initializers lowered.
         earlier_con.ptr = earlier_con.ptr->next;
       }  /* while */
       aggr_con->variant.aggregate.last_constant = earlier_con.ptr;
+#if DEBUG
+      if (db_flag_is_set("designators")) {
+        (void)fprintf(f_debug, "aggr_con after adding to end = ");
+        db_constant(aggr_con);
+        (void)fprintf(f_debug, "\n");
+      }  /* if */
+#endif /* DEBUG */
     }  /* if */
     /* Exit the outer loop unless we've run into a ck_designator. */
     if (con.ptr == NULL) break;
@@ -6123,6 +6210,13 @@ have already had their designated initializers lowered.
         union_designator = NULL;
       } else {
         union_designator = con.ptr;
+#if DEBUG
+        if (db_flag_is_set("designators")) {
+          (void)fprintf(f_debug, "union_designator = ");
+          db_constant(union_designator);
+          (void)fprintf(f_debug, "\n");
+        }  /* if */
+#endif /* DEBUG */
       }  /* if */
       /* Overwrite the previous value if it's for the same member of the
          union, otherwise save it off to the side to be combined with
@@ -6136,6 +6230,14 @@ have already had their designated initializers lowered.
         /* Same member. */
         set_init_con_pos(aggr_con->variant.aggregate.first_constant,
                          &earlier_con);
+#if DEBUG
+        if (db_flag_is_set("designators")) {
+          (void)fprintf(f_debug,
+                      "Initializing same member of union, earlier_con.ptr = ");
+          db_constant(earlier_con.ptr);
+          (void)fprintf(f_debug, "\n");
+        }  /* if */
+#endif /* DEBUG */
       } else {
         /* saved_union_init_constant contains all the superseded
            initializations.  Add the current constant to the set. */
@@ -6144,9 +6246,24 @@ have already had their designated initializers lowered.
             combine_initializer_constants(
                                    saved_union_init_constant,
                                    aggr_con->variant.aggregate.first_constant);
+#if DEBUG
+            if (db_flag_is_set("designators")) {
+              (void)fprintf(f_debug,
+                            "After combining initializers =");
+              db_constant(aggr_con->variant.aggregate.first_constant);
+              (void)fprintf(f_debug, "\n");
+            }  /* if */
+#endif /* DEBUG */
           }  /* if */
           saved_union_init_constant =
                                     aggr_con->variant.aggregate.first_constant;
+#if DEBUG
+          if (db_flag_is_set("designators")) {
+            (void)fprintf(f_debug, "saved_union_init_constant = ");
+            db_constant(saved_union_init_constant);
+            (void)fprintf(f_debug, "\n");
+          }  /* if */
+#endif /* DEBUG */
         }  /* if */
         set_init_con_pos((a_constant_ptr)NULL, &earlier_con);
       }  /* if */
@@ -6167,6 +6284,13 @@ have already had their designated initializers lowered.
     } else {
       prev_con->next = con.ptr;
     }  /* if */
+#if DEBUG
+    if (db_flag_is_set("designators")) {
+      (void)fprintf(f_debug, "After relinking around designator = ");
+      db_constant(aggr_con);
+      (void)fprintf(f_debug, "\n");
+    }  /* if */
+#endif /* DEBUG */
   }  /* for */
   /* For a union in which more than one member was initialized, combine
      the old and new initializations to preserve any side effects of the
@@ -6176,6 +6300,13 @@ have already had their designated initializers lowered.
                     aggr_con->variant.aggregate.first_constant->next == NULL);
     combine_initializer_constants(saved_union_init_constant,
                                   aggr_con->variant.aggregate.first_constant);
+#if DEBUG
+    if (db_flag_is_set("designators")) {
+      (void)fprintf(f_debug, "After combining union initializers = ");
+      db_constant(aggr_con->variant.aggregate.first_constant);
+      (void)fprintf(f_debug, "\n");
+    }  /* if */
+#endif /* DEBUG */
   }  /* if */
   /* For a union initialization, re-insert a ck_designator if the field
      initialized is not the first field. */
@@ -6183,6 +6314,13 @@ have already had their designated initializers lowered.
     union_designator->next = aggr_con->variant.aggregate.first_constant;
     aggr_con->variant.aggregate.first_constant = union_designator;
     check_assertion(union_designator->next != NULL);
+#if DEBUG
+    if (db_flag_is_set("designators")) {
+      (void)fprintf(f_debug, "After reinsertion of union designator = ");
+      db_constant(aggr_con);
+      (void)fprintf(f_debug, "\n");
+    }  /* if */
+#endif /* DEBUG */
   }  /* if */
 #if EXPENSIVE_CHECKING
   for (temp_con = aggr_con->variant.aggregate.first_constant;

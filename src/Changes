@@ -124,6 +124,8 @@ a member already initialized, an abort could occur.  Now fixed.
     struct B b[] = { { f() , .a = 1 } };  // Formerly aborted
   }
 
+[Another similar case was fixed on 2/27/01.]
+
 2/11/01  C99 aggregate initialization: incorrect processing for
          const struct member initialized from non-const expression
 
