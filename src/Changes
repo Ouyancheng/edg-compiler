@@ -195,6 +195,11 @@ with internal linkage: these are duplicated across the object files (with
 internal linkage, which results in better linker performance).  The previous
 behavior is desired, the new configuration variable
 DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES should be set to FALSE.
+When the configuration flag is TRUE (which is the default), back ends should
+note the duplicate_static_in_instantiation_slices field in the
+a_source_correspondence structure.  It indicates that the marked entity
+should be duplicated across object files (while keeping internal linkage)
+instead of being transformed to have external linkage.
 
 8/23/00  Microsoft compatibility: "charizing" macro operator
 
