@@ -166,6 +166,11 @@ is returned, and *known is returned FALSE.
     /* If the pointer is not in a secondary translation unit, it can't be
        in a different secondary translation unit. */
     *known = TRUE;
+  } else if (kind == (an_il_entry_kind)iek_expr_node ||
+             kind == (an_il_entry_kind)iek_statement ||
+             kind == (an_il_entry_kind)iek_object_lifetime) {
+    /* Certain kinds of entries are always in the current translation unit. */
+    *known = TRUE;
   } else {
     a_source_correspondence *scp = source_corresp_for_il_entry(ptr, kind);
     if (scp != NULL) {
@@ -590,14 +595,16 @@ Remove the indicated dynamic initialization from any initialization
 and destruction lists.  Also remove any nested object lifetimes.
 */
 {
-  a_variable_ptr variable = dip->variable;
+  a_variable_ptr         variable = dip->variable;
+  an_object_lifetime_ptr lifetime;
 
   check_assertion(variable != NULL);
-  if (dip->init_expr_lifetime) {
+  lifetime = init_expr_lifetime_of(dip);
+  if (lifetime != NULL) {
     /* There is a nested object lifetime.  Eliminate it and everything in
        it. */
-    detach_from_object_lifetime_tree(dip->init_expr_lifetime);
-    dip->init_expr_lifetime = NULL;
+    detach_from_object_lifetime_tree(lifetime);
+    dip->init_expr_lifetime = NULL;  /* To be neat. */
   }  /* if */
   remove_from_destruction_list(dip);
   if (!variable->source_corresp.is_local_to_function) {

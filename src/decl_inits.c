@@ -3425,32 +3425,6 @@ of curr_object_lifetime (which is assumed to be its former parent).
 }  /* add_as_child_of_curr_object_lifetime */
 
 
-static an_object_lifetime_ptr init_expr_lifetime_of(a_dynamic_init_ptr  dip)
-/*
-Given a dynamic init entry, return a (possibly NULL) pointer to an object
-lifetime representing the full-expression lifetime that is the initialization.
-(This may be given directly by the init_expr_lifetime field or indirectly, if
-this is a dik_expression dynamic init entry.
-*/
-{
-  an_object_lifetime_ptr  olp = NULL;
-
-  if (dip != NULL) {
-    olp = dip->init_expr_lifetime;
-    if (olp == NULL) {
-      if (dip->kind == (a_dynamic_init_kind)dik_expression &&
-          dip->variant.expression->kind ==
-                             (an_expr_node_kind)enk_object_lifetime) {
-        /* An enk_object_lifetime node will always be the top-most node
-           if a lifetime was pushed for the full-expression. */
-        olp = dip->variant.expression->variant.object_lifetime.ptr;
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  return olp;
-}  /* init_expr_lifetime_of */
-
-
 static a_boolean are_disjoint_members_of_union(a_field_ptr field1,
                                                a_field_ptr field2)
 /*
