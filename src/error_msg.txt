@@ -917,6 +917,7 @@ ec_exception_specification_ignored;;"exception specification ignored"
 ec_unexpected_type_for_size_t;;"declaration of \"size_t\" does not match the expected type %t"
 ec_exp_gt_not_shift_right;;"space required between adjacent \">\" delimiters of nested template argument lists (\">>\" is the right shift operator)"
 ec_bad_multibyte_char_locale;;"could not set locale %sq to allow processing of multibyte characters"
+ec_bad_multibyte_char;;"invalid multibyte character sequence"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
