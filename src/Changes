@@ -1,5 +1,17 @@
 Version 2.14, February 12, 1993
 
+02/15/93  Using a specific definition as an incomplete type
+
+Use of a specific definition of a class template inside its definition
+in a context in which a complete type is required caused an internal
+error.  This has been corrected.
+
+template <class T> struct A {};
+
+struct A<int> {
+	A<int> i;
+};
+
 2/15/93  Error recovery on ambiguous conversions
 
 Error recovery when a function or built-in operator is selected in overload

@@ -105,10 +105,10 @@ might not be able to if the template itself has not yet been defined.
   } else if (cssp->is_nonreal_class) {
     /* Don't try to instantiate a template class without real template
        arguments. */
-#if CHECKING
   } else if (cssp->is_specific_template_def) {
-    internal_error("f_instantiate_template_class: is specific template def");
-#endif /* CHECKING */
+    /* This is an attempt to instantiate an incomplete type that is
+       a specific definition.  This can occur in error cases while scanning
+       the class definition.  Simply ignore the instantiation request. */
   } else {
     /* There is a class template from which to generate this class and it is
        a real instantiation. */
