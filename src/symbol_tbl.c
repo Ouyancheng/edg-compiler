@@ -3188,7 +3188,7 @@ but the instance needs to be called "operator int".
   /* Determine which symbol header should be used for this symbol.  This
      is usually the same symbol header as the template.  But for conversion
      operators, a new name must be generated based on the type. */
-  if (is_special_function_symbol(templ_sym, sfk_conversion)) {
+  if (is_conversion_function_symbol(templ_sym)) {
     sym_hdr = symbol_header_for_conversion_function(conv_type);
   } else {
     sym_hdr = templ_sym->header;

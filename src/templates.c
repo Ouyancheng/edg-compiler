@@ -5614,7 +5614,7 @@ when the associated function argument was omitted.
   a_type_ptr	         rout_type = skip_typerefs(type);
   a_boolean		 is_conversion_operator;
 
-  is_conversion_operator = is_special_function_symbol(sym, sfk_conversion);
+  is_conversion_operator = is_conversion_function_symbol(sym);
   for (tpp = template_param_list; tpp != NULL; tpp = tpp->next) {
     a_symbol_ptr param_sym = tpp->param_symbol;
     a_boolean	 only_in_default_args;

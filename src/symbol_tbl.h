@@ -2651,6 +2651,11 @@ extern a_boolean is_special_function_symbol(a_symbol_ptr             sym,
   is_special_function_symbol(sym,                                     \
                              (a_special_function_kind)sfk_destructor)
 
+/* Return TRUE if a symbol is a conversion operator symbol. */
+#define is_conversion_function_symbol(sym)                            \
+  is_special_function_symbol(sym,                                     \
+                             (a_special_function_kind)sfk_conversion)
+
 /* Return TRUE if a symbol is a projection symbol created for a class
    member using declaration. */
 #define is_class_member_using_decl_symbol(sym)                        \
