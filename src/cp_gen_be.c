@@ -4589,20 +4589,20 @@ with the operator indicated by opstr.
      to avoid generating something like "x.2". */
   if (!is_lvalue_2 && is_constant_node(operand_2)) {
     con = operand_2->variant.constant;
-    /* Named constants are okay. */
-    if (!has_name(con)) {
-      if (con->kind == (a_constant_repr_kind)ck_template_param) {
-        if (con->variant.template_param.kind ==
+    /* For unknown functions, we need to use the field-selection form,
+       and we need to suppress the "&" below. */
+    if (con->kind == (a_constant_repr_kind)ck_template_param) {
+      if (con->variant.template_param.kind ==
                        (a_template_param_constant_kind)tpck_unknown_function ||
-            con->variant.template_param.kind ==
+          con->variant.template_param.kind ==
                        (a_template_param_constant_kind)tpck_template_ref) {
-          unknown_function_case = TRUE;
-        }  /* if */
+        unknown_function_case = TRUE;
       }  /* if */
-      if (!unknown_function_case) {
-        opstr = ",";
-        use_comma = TRUE;
-      }  /* if */
+    }  /* if */
+    /* Named constants are okay. */
+    if (!has_name(con) && !unknown_function_case) {
+      opstr = ",";
+      use_comma = TRUE;
     }  /* if */
   }  /* if */
   if (operand_1_type != NULL && is_template_param_type(operand_1_type)) {
