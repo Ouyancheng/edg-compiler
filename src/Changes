@@ -1,5 +1,22 @@
 Version 2.13
 
+12/16/92 Instantiation must be done to determine class relationships
+
+In the following, the class S<int> need not be instantiated simply because
+there is a pointer to it.  However, in order to determine the legality
+of "q = p", and in order to determine the offset to be used in generating
+code for that statement, one must instantiate S<int> to find out that
+it has A as a base class.
+
+  class A {};
+  template <class T> class S : public A { };
+  S<int> *p;
+  A *q;
+  main () {
+    q = p;
+    return 0;
+  }
+
 12/15/92 C-generating back end processing of wide character strings
 
 The C-generating back end has been changed so that whenever the
