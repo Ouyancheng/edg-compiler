@@ -3516,34 +3516,31 @@ void decl_var_or_routine(a_symbol_locator      *locator,
                          a_storage_class       storage_class,
                          a_type_ptr            type_ptr,
                          a_func_info_block_ptr func_info,
-                         a_boolean             is_implicit_function,
-                         a_boolean             is_function_def_with_body,
-                         a_boolean             inline_specified,
-                         a_boolean             is_main_function,
                          a_symbol_ptr          *symbol_ptr,
                          an_id_linkage_kind    *linkage_ptr,
                          a_type_ptr            *old_type,
                          a_symbol_ptr          *ext_sym)
 /*
 Enter the declaration of an identifier for a variable or routine.
-*locator gives the symbol locator (and thus its name and its
-declaration position).  storage_class and type_ptr give the storage
-class and type.  If is_implicit_function is TRUE, this declaration is
-for an implicit function declaration, and *symbol_ptr already contains
-a pointer to the symbol entry, which is already in the symbol table.
-is_function_def_with_body is TRUE if the identifier being defined is
-part of a function definition (meaning there is a body in the definition).
-In that case, it is guaranteed that type_ptr points to an unshared
-type entry, and that type entry will be preserved as the routine type.
-Create and enter a symbol entry, and return a pointer to it in
-*symbol_ptr.  Also allocate any associated IL construct, and attach it
-to the symbol.  If the identifier has linkage and there is an existing
-symbol or IL entry, it will be re-used.  Return in *linkage_ptr the
-linkage of the identifier.  Return in *old_type any previously-known
-type for this identifier from a linked identifier in the same scope,
-or NULL if there was no previously-known type.  If the identifier has
-linkage, return in *ext_sym a pointer to the external symbol entry;
-otherwise, set *ext_sym to NULL.
+*locator gives the symbol locator (and thus its name and its declaration
+position).  storage_class and type_ptr give the storage class and type.
+func_info will be non-NULL if and only if this is a function declaration.
+If it is non-NULL then: if func_info->implicit_declaration is TRUE, this
+declaration is for an implicit function declaration, and *symbol_ptr
+already contains a pointer to the symbol entry, which is already in the
+symbol table; if func_info->is_definition is TRUE, the identifier being
+defined is part of a function definition (meaning there is a body in the
+definition), in which case it is guaranteed that type_ptr points to an
+unshared type entry, and that type entry will be preserved as the routine
+type.  Create and enter a symbol entry, and return a pointer to it in
+*symbol_ptr.  Also allocate any associated IL construct, and attach it to
+the symbol.  If the identifier has linkage and there is an existing symbol
+or IL entry, it will be re-used.  Return in *linkage_ptr the linkage of
+the identifier.  Return in *old_type any previously-known type for this
+identifier from a linked identifier in the same scope, or NULL if there
+was no previously-known type.  If the identifier has linkage, return in
+*ext_sym a pointer to the external symbol entry; otherwise, set *ext_sym
+to NULL.
 */
 {
   a_symbol_ptr      sym = NULL;
@@ -3563,18 +3560,23 @@ otherwise, set *ext_sym to NULL.
   a_scope_depth     effective_decl_level = decl_scope_level;
   a_boolean         template_function_specific_decl = FALSE;
   a_boolean         suppress_ext_sym_lookup = FALSE;
+  a_boolean         is_main_function = FALSE;
+  a_boolean         is_function_def = FALSE;
 
   db_enter(3, "decl_var_or_routine");
   *old_type = NULL;
   is_function = is_function_type(type_ptr);
+  check_assertion(is_function == (func_info != NULL));
   check_assertion(storage_class != (a_storage_class)sc_typedef);
-  if (inline_specified) {
-    check_assertion(storage_class == (a_storage_class)sc_unspecified ||
-                    storage_class == (a_storage_class)sc_static);
-    storage_class = (a_storage_class)sc_static;
-  }  /* if */
   if (is_function) {
+    if (func_info->is_main_function) is_main_function = TRUE;
+    if (func_info->is_definition) is_function_def = TRUE;
     if (C_dialect == C_dialect_cplusplus) {
+      if (func_info->is_inline) {
+        check_assertion(storage_class == (a_storage_class)sc_unspecified ||
+                        storage_class == (a_storage_class)sc_static);
+        storage_class = (a_storage_class)sc_static;
+      }  /* if */
       /* If this is an overloaded operator, check for errors in the
          argument list. */
       check_operator_function_params(type_ptr, /*class_type=*/(a_type_ptr)NULL,
@@ -3594,7 +3596,7 @@ otherwise, set *ext_sym to NULL.
       }  /* if */
     }  /* if */
   }  /* if */
-  if (is_implicit_function) {
+  if (is_function && func_info->is_implicit_declaration) {
     if (C_dialect != C_dialect_cplusplus) {
       /* For an implicit function, the identifier would not be in the process
          of being declared implicitly as a function if there were any visible
@@ -3679,7 +3681,7 @@ otherwise, set *ext_sym to NULL.
                      || routine_ptr->storage_class == (a_storage_class)sc_asm
 #endif /* ASM_FUNCTION_ALLOWED */
                           );
-      if (is_function_def_with_body && old_decl_has_body) {
+      if (is_function_def && old_decl_has_body) {
         /* Previous routine already has a body, and new one does (or will)
            too.  Let processing fall into call to alloc_local_symbol, which
            will give a redefinition error. */
@@ -3704,8 +3706,7 @@ otherwise, set *ext_sym to NULL.
           *old_type = routine_ptr->type;
           reconcile_routine_types(routine_ptr, type_ptr,
                                   /*preserve_rout_type=*/old_decl_has_body,
-                                  /*preserve_type_ptr=*/
-                                                   is_function_def_with_body);
+                                  /*preserve_type_ptr=*/is_function_def);
         }  /* if */
       }  /* if */
     } else {
@@ -3759,7 +3760,7 @@ otherwise, set *ext_sym to NULL.
         sym = linked_symbol;
         overload_symbol = add_symbol_to_overload_list(sym, homonym_symbol);
         sym->variant.routine.instance_ptr->specific_decl = TRUE;
-        if (is_function_def_with_body) {
+        if (is_function_def) {
           sym->variant.routine.instance_ptr->specific_def = TRUE;
           sym->variant.routine.instance_ptr->instantiation_required = FALSE;
         }  /* if */
@@ -3768,8 +3769,7 @@ otherwise, set *ext_sym to NULL.
         *old_type = routine_ptr->type;
         reconcile_routine_types(routine_ptr, type_ptr,
                                 /*preserve_rout_type=*/old_decl_has_body,
-                                /*preserve_type_ptr=*/
-                                                 is_function_def_with_body);
+                                /*preserve_type_ptr=*/is_function_def);
       } else {
         /* Overloaded function.  Create the new symbol, which will be on the
            list of functions connected to an sk_overloaded symbol. */
@@ -3794,23 +3794,23 @@ skip_overloading:;
     sym = enter_local_symbol
                   ((a_symbol_kind)(is_function ? sk_routine : sk_variable),
                    locator, effective_decl_level, redecl_error_already_issued);
-  } else if (is_implicit_function) {
+  } else if (is_function && func_info->is_implicit_declaration) {
     /* This is an implicit declaration of a function.  The symbol has
        already been entered and marked as declared. */
   } else {
-    if (C_dialect == C_dialect_cplusplus && is_function) {
+    if (C_dialect == C_dialect_cplusplus && is_function &&
+        routine_ptr != NULL) {
       /* Do compatibility checking on the throw specification and, if this
          is a definition, bind the throw specification to the routine entry.
          Note that if it is a definition the checking must be done before
          the routine's decl position is modified, to assure that the
          "original declaration line number" is displayed accurately. */
-      check_assertion(routine_ptr != NULL);
       add_throw_specification(func_info, routine_ptr);
     }  /* if */
     /* There is a linked symbol that is compatible with the new declaration.
        Record the re-declaration for cross-reference purposes. */
     mark_declared(sym, &locator->source_position,
-                  /*save_as_decl_position=*/is_function_def_with_body);
+                  /*save_as_decl_position=*/is_function_def);
   }  /* if */
   if (C_dialect == C_dialect_cplusplus) {
     if (!is_function && decl_scope_level == DEPTH_OF_FILE_SCOPE &&
@@ -3958,7 +3958,7 @@ skip_overloading:;
 #if ASM_FUNCTION_ALLOWED
       }  /* if */
 #endif /* ASM_FUNCTION_ALLOWED */
-      if (is_function_def_with_body) {
+      if (is_function_def) {
         a_boolean saved_referenced_flag;
         /* If this is a definition, unlink the routine entry and relink it
            at the end of the routines list, so that routines appear in the
@@ -3991,7 +3991,7 @@ skip_overloading:;
         }  /* if */
       }  /* if */
     }  /* if */
-    if (inline_specified) routine_ptr->is_inline = TRUE;
+    if (func_info->is_inline) routine_ptr->is_inline = TRUE;
     source_corresp_ptr = &routine_ptr->source_corresp;
     /* Link the symbol to the IL routine entry. */
     sym->variant.routine.ptr = routine_ptr;
@@ -4112,8 +4112,7 @@ void decl_function_template(a_symbol_locator    *locator,
                             a_type_ptr          type_ptr,
                             a_func_info_block   *func_info,
                             a_symbol_ptr        *symbol_ptr,
-                            a_storage_class     storage_class,
-                            a_boolean           is_inline)
+                            a_storage_class     storage_class)
 /*
 Roughly speaking, this routine does for function templates what
 decl_var_or_routine does for ordinary functions.  Lookup and reuse or else
@@ -4135,7 +4134,7 @@ class template.
   a_memory_region_number            region_to_switch_back_to;
 
   db_enter(3, "decl_function_template");
-  if (is_inline) {
+  if (func_info->is_inline) {
     storage_class = (a_storage_class)sc_static;
   } else if (storage_class == (a_storage_class)sc_unspecified) {
     /* Default. */
@@ -4254,7 +4253,7 @@ class template.
     switch_back_to_original_region(region_to_switch_back_to);
     rout_ptr->type = type_ptr;
     rout_ptr->storage_class = storage_class;
-    rout_ptr->is_inline = is_inline;
+    rout_ptr->is_inline = func_info->is_inline;
     if (locator->is_operator_name) {
       rout_ptr->special_kind = (a_special_function_kind)sfk_operator;
       rout_ptr->opname_kind = locator->variant.opname;
@@ -4417,7 +4416,6 @@ the symbol and its linkage (which is always "none").
 static void define_member_function(a_symbol_locator   *locator,
 				   a_type_ptr         type_ptr,
                                    a_func_info_block  *func_info,
-                                   a_boolean          inline_specified,
 				   a_symbol_ptr       *symbol_ptr,
                                    an_id_linkage_kind *linkage_ptr,
 				   a_type_ptr	      *old_type,
@@ -4567,7 +4565,7 @@ on a prior declaration.
       sym->variant.routine.instance_ptr->instantiation_required = FALSE;
     }  /* if */
   }  /* if */
-  if (inline_specified) {
+  if (func_info->is_inline) {
     if (!sym->variant.routine.ptr->is_inline &&
         sym->variant.routine.ptr->called) {
       /* Unless it was originally declared "inline" a member function that
@@ -4820,12 +4818,14 @@ symbol has already been entered as an undefined symbol.
   make_locator_for_symbol(symbol_ptr, &locator);
   /* Declare the function identifier. */
   clear_func_info(&func_info);
+  func_info.is_implicit_declaration = TRUE;
+  if (C_dialect == C_dialect_cplusplus) {
+    /* Although this is an error case, make the throw specification
+       consistent with what downstream processing will be expecting. */
+    set_to_throw_anything(&func_info, &pos_curr_token);
+  }  /* if */
   decl_var_or_routine(&locator, (a_storage_class)sc_extern, rout_type,
-                      &func_info, /*is_implicit_function=*/TRUE,
-                      /*is_function_def_with_body=*/FALSE,
-                      /*inline_specified=*/FALSE,
-                      /*is_main_function=*/FALSE,
-                      &symbol_ptr, &linkage, &old_type, &ext_sym);
+                      &func_info, &symbol_ptr, &linkage, &old_type, &ext_sym);
   /* Set the referenced flag on the routine entry.  The implicit declaration
      is also an immediate reference. */
   symbol_ptr->variant.routine.ptr->source_corresp.referenced = TRUE;
@@ -6494,6 +6494,8 @@ Returns TRUE if there is an error in the specifiers.
   a_boolean    is_elaborated_type_specifier = FALSE;
   a_boolean    is_friend_decl = FALSE;
   a_boolean    is_inline = FALSE;
+  an_error_severity
+               es;
 
   enum {bt_none, bt_void, bt_char, bt_int,
         bt_float, bt_double, bt_typedef,
@@ -6595,8 +6597,11 @@ Returns TRUE if there is an error in the specifiers.
         /* const type qualifier (3.5.3). */
         if (is_const_qualified) {
           /* const may not appear more than once. */
-          error(ec_dupl_type_qualifier);
-          err = TRUE;
+          es = (C_dialect == C_dialect_cplusplus) ?
+                 (strict_ansi_mode ? strict_ansi_error_severity : es_warning) :
+                 es_error;
+          diagnostic(es, ec_dupl_type_qualifier);
+          if (es == es_error) err = TRUE;
         } else {
 #if 0
 /* The ARM requires the following check, but its author has stated that that
@@ -6617,8 +6622,11 @@ Returns TRUE if there is an error in the specifiers.
         /* volatile type qualifier (3.5.3). */
         if (is_volatile_qualified) {
           /* volatile may not appear more than once. */
-          error(ec_dupl_type_qualifier);
-          err = TRUE;
+          es = (C_dialect == C_dialect_cplusplus) ?
+                 (strict_ansi_mode ? strict_ansi_error_severity : es_warning) :
+                 es_error;
+          diagnostic(es, ec_dupl_type_qualifier);
+          if (es == es_error) err = TRUE;
         } else {
 #if 0
 /* The ARM requires the following check, but its author has stated that that
@@ -7655,23 +7663,31 @@ exit_loop:
     }  /* if */
     /* Add any type qualifiers (const or volatile) to the type. */
     if (is_const_qualified || is_volatile_qualified) {
-      /* According to 3.5.3: "If the specification of an array type
-         includes any type qualifiers, the element type is so-qualified,
-         not the array type.", and this is interpreted recursively
-         for arrays of arrays.  The type qualifiers therefore apply
-         to the ultimate element type.  This can only happen with typedefs,
-         as in "typedef int A[2][3]; const A a;", which makes "a" an
-         array of array of const int. */
-      base_type = *type_ptr;
-      if (is_array_type(base_type)) {
-        base_type = underlying_array_element_type(base_type);
-      }  /* while */
-      if ((is_const_qualified && is_const_qualified_type(base_type)) ||
-          (is_volatile_qualified && is_volatile_qualified_type(base_type))) {
-        /* Duplication of type qualifier (probably because of a typedef
-           that is already qualified). */
-        error(ec_dupl_type_qualifier);
-        err = TRUE;
+      if (C_dialect == C_dialect_cplusplus &&
+          (*type_ptr)->kind == (a_type_kind)tk_typeref) {
+        /* In C++ adding a qualifier to a typedef name that is already
+           identically qualified is okay, so don't even bother checking for
+           an error.  Note that make_qualified_type will not actually add
+           superfluous qualifiers. */
+      } else {
+        /* According to 3.5.3: "If the specification of an array type
+           includes any type qualifiers, the element type is so-qualified,
+           not the array type.", and this is interpreted recursively
+           for arrays of arrays.  The type qualifiers therefore apply
+           to the ultimate element type.  This can only happen with typedefs,
+           as in "typedef int A[2][3]; const A a;", which makes "a" an
+           array of array of const int. */
+        base_type = *type_ptr;
+        if (is_array_type(base_type)) {
+          base_type = underlying_array_element_type(base_type);
+        }  /* while */
+        if ((is_const_qualified && is_const_qualified_type(base_type)) ||
+            (is_volatile_qualified && is_volatile_qualified_type(base_type))) {
+          /* Duplication of type qualifier (probably because of a typedef
+             that is already qualified). */
+          error(ec_dupl_type_qualifier);
+          err = TRUE;
+        }  /* if */
       }  /* if */
       /* Add the qualifiers if necessary.  make_qualified_type understands the
          strange array case too. */
@@ -8133,9 +8149,7 @@ static void function_definition(
                           a_boolean          top_declarator_type_is_function,
                           a_func_info_block  *func_info,
                           a_storage_class    storage_class,
-                          a_boolean          inline_specified,
-                          a_boolean          has_explicit_type_specifier,
-                          a_boolean          is_main_function)
+                          a_boolean          has_explicit_type_specifier)
 /*
 Scan a function definition.  The declarator has already been scanned; the
 old-style parameter declarations and the compound statement for the body
@@ -8199,8 +8213,8 @@ explicitly specified (rather than defaulted to "int").
     /* This is the definition of a member function. */
     check_assertion(prototyped);
     is_member_function_def = TRUE;
-    define_member_function(locator, rout_type, func_info, inline_specified,
-                           &symbol_ptr, &linkage, &old_type, &ext_sym);
+    define_member_function(locator, rout_type, func_info, &symbol_ptr,
+                           &linkage, &old_type, &ext_sym);
   } else {
     if (!prototyped) {
       /* Old-style id list.  Before calling decl_var_or_routine scan the
@@ -8271,10 +8285,7 @@ explicitly specified (rather than defaulted to "int").
     }  /* if */
     /* Create the symbol entry and routine entry for the routine. */
     decl_var_or_routine(locator, storage_class, rout_type, func_info,
-                        /*is_implicit_function=*/FALSE,
-                        /*is_function_def_with_body=*/TRUE, inline_specified,
-                        is_main_function, &symbol_ptr, &linkage,
-                        &old_type, &ext_sym);
+                        &symbol_ptr, &linkage, &old_type, &ext_sym);
   }  /* if */
   symbol_ptr->defined = TRUE;
   routine_ptr = symbol_ptr->variant.routine.ptr;
@@ -9066,7 +9077,7 @@ continue_with_declaration:
           if (locator.specific_symbol == NULL ||
               locator.specific_symbol->class_of_which_a_member == NULL) {
             /* Not a member function named "main". */
-            is_main_function = TRUE;
+            func_info.is_main_function = is_main_function = TRUE;
             /* Perform some error checking that is specific to C++. */
             if (def_external_linkage.is_explicit) {
               pos_warning(ec_linkage_specifier_not_allowed, &declarator_pos);
@@ -9086,7 +9097,7 @@ continue_with_declaration:
               storage_class == (a_storage_class)sc_extern) {
             /* Not a static function named "main".  This is not an option
                in C++ (ARM 3.4). */
-            is_main_function = TRUE;
+            func_info.is_main_function = is_main_function = TRUE;
           }  /* if */
         }  /* if */
       }  /* if */
@@ -9223,6 +9234,7 @@ continue_with_declaration:
         } else {
           /* Set the storage class to sc_static. */
           local_storage_class = (a_storage_class)sc_static;
+          func_info.is_inline = TRUE;
         }  /* if */
       }  /* if */
       /* If the thing declared is a function, and if the token following looks
@@ -9244,10 +9256,10 @@ continue_with_declaration:
           }  /* if */
         }  /* if */
         remove_all_local_stop_tokens();
+        func_info.is_definition = TRUE;
         function_definition(&locator, local_type_ptr, 
                             top_declarator_type_is_function, &func_info,
-                            local_storage_class, inline_specified,
-                            has_explicit_type_specifier, is_main_function);
+                            local_storage_class, has_explicit_type_specifier);
         goto return_point;
       }  /* if */
       /* Not a function definition, must be a declaration. */
@@ -9405,10 +9417,7 @@ continue_with_declaration:
         local_type_ptr = symbol_ptr->variant.variable.ptr->type;
       } else {
         decl_var_or_routine(&locator, local_storage_class, local_type_ptr,
-                            is_function ? &func_info : NULL,
-                            /*is_implicit_function=*/FALSE,
-                            /*is_function_def_with_body=*/FALSE,
-                            inline_specified, is_main_function, &symbol_ptr,
+                            is_function ? &func_info : NULL, &symbol_ptr,
                             &linkage, &old_type, &ext_sym);
         if (is_old_style_param_decl) {
           /* A variable has been entered for a name that appears in an
