@@ -390,7 +390,8 @@ void decl_function_template(a_symbol_locator            *locator,
                             a_template_decl_info_ptr    templ_decl_info,
                             an_attribute_ptr            attributes,
                             a_scope_depth               orig_decl_level,
-                            a_boolean                   is_specialization);
+                            a_boolean                   is_specialization,
+			    a_template_ptr		il_template_entry);
 
 extern void handler_declaration(a_statement_ptr     sp,
                                 a_source_position*  catch_pos,

@@ -8390,7 +8390,8 @@ matches, a new argument list is returned in *new_arg_list.
 void record_predeclared_template_function(
                                        a_symbol_ptr         templ_sym,
                                        a_symbol_ptr         rout_sym,
-                                       a_template_param_ptr templ_param_list)
+                                       a_template_param_ptr templ_param_list,
+				       a_template_ptr	    il_template_entry)
 /*
 rout_sym represents a routine that has already been declared, and templ_sym
 represents a function template of the same name.  It may be that rout_sym
@@ -8401,7 +8402,8 @@ If so, we want to treat the first f as an instance of the template f.  This
 means including a reference to it on the list of function instantiation
 entries bound to the template f as well as devising a template argument list
 for it.  Check for such a case, and when it occurs create and initialize
-the function instantiation entry and set all the pointers.
+the function instantiation entry and set all the pointers.  il_template_entry
+is the template entry for the template being declared.
 */
 {
   a_symbol_ptr                      sym;
@@ -8447,8 +8449,14 @@ the function instantiation entry and set all the pointers.
          point at each other. */
       tip->instance_sym = rout_sym;
       rout_sym->variant.routine.instance_ptr = tip;
-      rout_sym->variant.routine.ptr->is_template_function = TRUE;
-      rout_sym->variant.routine.ptr->template_arg_list = templ_arg_list;
+      { a_routine_ptr	rp = rout_sym->variant.routine.ptr;
+        /* We need to use the il_template_entry provided by the caller as the
+           field in the template symbol supplement will not have been set
+           yet. */
+        rp->is_template_function = TRUE;
+        rp->template_arg_list = templ_arg_list;
+        rp->assoc_template = il_template_entry;
+      }
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       tip->declared_type = form_declared_type(tp,
                                               func_info_for_template(tssp));
@@ -13736,7 +13744,8 @@ information returned from decl_specifiers and declarator.
   decl_function_template(locator, type, func_info, &sym, storage_class,
                          decl_modifiers, decl_state->decl_info, attributes,
                          decl_state->orig_decl_level,
-                         decl_state->is_specialization);
+                         decl_state->is_specialization,
+                         decl_state->il_template_entry);
   if (func_info->is_definition) {
     
 #if GENERATE_SOURCE_SEQUENCE_LISTS

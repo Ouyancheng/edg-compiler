@@ -1,5 +1,15 @@
 Version 3.2
 
+2/6/03   assoc_template not set for predeclared template instance
+
+When guiding declarations are enabled, the assoc_template field was not
+set for a function that should be considered an instance of a template
+when that instance is declared before the template is declared.  This
+has been fixed.
+
+  void f(const int&) { }
+  template <class T> void f(const T&) {}
+
 2/5/03   Microsoft compatibility: parsing errors caused by prescan
          problem with __declspec
 

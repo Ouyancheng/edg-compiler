@@ -6141,7 +6141,8 @@ void decl_function_template(a_symbol_locator            *locator,
                             a_template_decl_info_ptr    templ_decl_info,
                             an_attribute_ptr            attributes,
                             a_scope_depth               orig_decl_level,
-                            a_boolean                   is_specialization)
+                            a_boolean                   is_specialization,
+			    a_template_ptr		il_template_entry)
 /*
 Roughly speaking, this routine does for function templates what
 decl_routine does for ordinary functions.  Look up and reuse or else
@@ -6154,7 +6155,9 @@ be part of an overload set, it may have been previously declared (but not
 defined), and it may be an out-of-line definition of a member function of a
 class template.  orig_decl_level is the nearest enclosing scope that
 is not a template declaration scope.  is_specialization is TRUE if this
-is a template specialization declaration.
+is a template specialization declaration.  il_template_entry points to the
+template entry associated with this particular template declaration, which
+is not necessarily the canonical entry for the template being declared.
 */
 {
   a_symbol_ptr                      sym = NULL;
@@ -6670,7 +6673,8 @@ is a template specialization declaration.
         /* Determine whether rout_sym is a specialization of the function
            template represented by sym. */
         record_predeclared_template_function(sym, rout_sym,
-                                             idlb.templ_param_list);
+                                             idlb.templ_param_list,
+                                             il_template_entry);
       }  /* if */
     }  /* for */
   }  /* if */

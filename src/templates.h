@@ -305,9 +305,10 @@ extern int compare_function_templates(
 				a_symbol_ptr		templ_sym2);
 
 extern void record_predeclared_template_function(
-                                        a_symbol_ptr         templ_sym,
-                                        a_symbol_ptr         rout_sym,
-                                        a_template_param_ptr templ_param_list);
+                                       a_symbol_ptr         templ_sym,
+                                       a_symbol_ptr         rout_sym,
+                                       a_template_param_ptr templ_param_list,
+				       a_template_ptr	    il_template_entry);
 
 extern void find_member_function_template(
                                     a_symbol_ptr  rout_sym,
