@@ -539,6 +539,9 @@ and indentation is the indentation desired.
           if (!cssp->is_real_instantiation) {
             put_string("non-real instance");
           }  /* if */
+          if (!cssp->is_specific_template_def) {
+            put_string("specific def.");
+          }  /* if */
         }  /* if */
       }
       break;
@@ -1139,6 +1142,7 @@ state.
         cssp->has_operator_new = FALSE;
         cssp->has_operator_delete = FALSE;
         cssp->is_real_instantiation = FALSE;
+        cssp->is_specific_template_def = FALSE;
       }
       break;
     case sk_variable:

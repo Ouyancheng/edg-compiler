@@ -488,6 +488,10 @@ typedef struct a_class_symbol_supplement {
 			   FALSE in the case of the prototype instantiation
 			   and any other instantiations based on template
 			   parameters. */
+  unsigned int	is_specific_template_def:1;
+			/* TRUE if the class is a specific definition of
+			   a template class instance.  FALSE if the
+			   instance was generated from the class template. */
 } a_class_symbol_supplement;
 
 
