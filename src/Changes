@@ -1,5 +1,25 @@
 Version 2.46
 
+11/12/01 db_opt pragma
+
+A pragma has been added that can be used to specify debugging options as
+pragmas within a file being compiled.  This pragma is available only
+when the front end is compiled with DEBUG enabled.  The argument to
+the pragma is the same string that would follow the "-d" of a debug
+command-line option.
+
+A mechanism to turn off a debug flag is now provided.  If the flag name
+is preceded by a "#", a previously set debug flag is cleared.
+
+The following example illustrates how this could be used to display
+"nondep_call" information only for a certain portion of the program.
+
+  template <class T> void f() {
+  #pragma db_opt -nondep_call
+    g();
+  #pragma db_opt #nondep_call
+  }
+
 11/8/01  Incorrect error on template boolean expression when "bool" is not
          a keyword
 

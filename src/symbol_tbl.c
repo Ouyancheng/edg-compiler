@@ -2181,6 +2181,16 @@ instantiation scope.
     /* Save the updated list pointer back into the scope stack entry. */
     ssep->next_nondependent_call = list_ptr;
   }  /* if */
+#if DEBUG
+  if (db_flag_is_set("nondep_call")) {
+    fprintf(f_debug, "Searching for nondependent call at %ld\n", (long)tsn);
+    if (result != NULL) {
+      fprintf(f_debug, "  Found ");
+      db_symbol_name(result->symbol);
+      fprintf(f_debug, "\n");
+    }  /* if */
+  }  /* if */
+#endif /* DEBUG */
   return result;
 }  /* get_nondependent_call_info */
 
@@ -2215,6 +2225,13 @@ entry can be found during a real instantiation.
   ssep = &scope_stack[depth_to_use];
   tdip = ssep->template_decl_info;
   check_assertion(tdip != NULL);
+#if DEBUG
+  if (db_flag_is_set("nondep_call")) {
+    fprintf(f_debug, "Recording nondependent call at %ld to ", (long)tsn);
+    db_symbol_name(symbol);
+    fprintf(f_debug, "\n");
+  }  /* if */
+#endif /* DEBUG */
   /* Create a nondependent call entry. */
   ndcip = alloc_nondependent_call_info();
   ndcip->symbol = symbol;

@@ -2778,6 +2778,9 @@ enum a_pragma_kind_tag {
   /* Used by checking code when EXPENSIVE_CHECKING is TRUE. */
   pk_checking_pragma,
 #endif /* EXPENSIVE_CHECKING */
+#if DEBUG
+  pk_db_opt,		/* Used to specify a debugging option string. */
+#endif /* DEBUG */
 #if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
   pk_unrecognized,	/* This pragma kind is used for pragmas that are
 			   not recognized by the front end but are to be
@@ -2841,6 +2844,9 @@ EXTERN char *pragma_ids[(int)pk_last + 1]
 #if EXPENSIVE_CHECKING
 /* pk_checking_pragma */        "checking_pragma",
 #endif /* EXPENSIVE_CHECKING */
+#if DEBUG
+/* pk_db_opt */			"db_opt",
+#endif /* DEBUG */
 #if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
 /* pk_unrecognized */		"unrecognized",
 #endif /* INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL */

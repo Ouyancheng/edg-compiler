@@ -2521,6 +2521,10 @@ pointer to it.
     case pk_checking_pragma:
       break;
 #endif /* EXPENSIVE_CHECKING */
+#if DEBUG
+    case pk_db_opt:
+      break;
+#endif /* DEBUG */
 #if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
     case pk_unrecognized:
       /* No special initialization is required. */

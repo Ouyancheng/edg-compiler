@@ -123,6 +123,38 @@ Allocate and initialize a debug request record.
 }  /* alloc_debug_request */
 
 
+static void remove_debug_flag(char *function_name)
+                                           
+/*
+If the debug request list contains a da_set_flag entry for the specified name,
+remove the entry.
+*/
+{
+  a_debug_request_ptr   request_ptr;
+  a_debug_request_ptr   prev_request_ptr = NULL;
+  
+  /* Run through the list of debug requests and see if this name appears. */
+  request_ptr = debug_requests;
+  for (request_ptr = debug_requests; request_ptr != NULL;
+       prev_request_ptr = request_ptr, request_ptr = request_ptr->next) {
+    if (request_ptr->action == da_set_flag &&
+        strcmp(function_name, request_ptr->name) == 0) {
+      break;
+    }  /* if */
+  }  /* for */
+  if (request_ptr != NULL) {
+    /* An entry was found.  Remove it from the list. */
+    if (prev_request_ptr == NULL) {
+      /* It must be the first entry on the list. */
+      debug_requests = debug_requests->next;
+    } else {
+      /* It is not the first entry on the list. */
+      prev_request_ptr->next = request_ptr->next;
+    }  /* if */
+  }  /* if */
+}  /* remove_debug_flag */
+
+
 a_boolean proc_debug_option(char *debug_option)
 /*
 Parse the debug option (as received by proc_command_line) and either set
@@ -153,6 +185,9 @@ using the format
 
 	-d-flag1,-flag2
 
+Options of the form "-d#name" cause the debug flag named "name" to be removed
+from the list of flags.
+
 Returns TRUE if there was an error during parsing of the debug option.
 */
 {
@@ -166,6 +201,7 @@ Returns TRUE if there was an error during parsing of the debug option.
   a_boolean           do_not_print_message;
   a_boolean           dump_list = FALSE;
   a_boolean           done;
+  a_boolean	      remove_flag = FALSE;
 
   db_active = TRUE;
   if (isdigit((unsigned char)*debug_option)) {
@@ -187,6 +223,11 @@ Returns TRUE if there was an error during parsing of the debug option.
           /* Set the specified debug flag to TRUE. */
           action = da_set_flag;
           curr_char++;
+        } else if (*curr_char == '#') {
+          /* Clear the specified debug flag. */
+          action = da_set_flag;
+          remove_flag = TRUE;
+          curr_char++;
         } else {
           /* The first thing must be the name of the routine. */
           if (!isalpha((unsigned char)*curr_char)) {
@@ -204,14 +245,19 @@ Returns TRUE if there was an error during parsing of the debug option.
 	  dump_list = TRUE;
 	}  /* if */
 
-        /* Allocate a record to contain the request. */
-        request = alloc_debug_request();
-        request->name = alloc_general((sizeof_t)(strlen(curr_name) + 1));
-        (void)strcpy(request->name, curr_name);
-  
-        /* Add the record to the local list. */
-        request->next = head;
-        head = request;
+        if (!remove_flag) {
+          /* Allocate a record to contain the request. */
+          request = alloc_debug_request();
+          request->name = alloc_general((sizeof_t)(strlen(curr_name) + 1));
+          (void)strcpy(request->name, curr_name);
+
+          /* Add the record to the local list. */
+          request->next = head;
+          head = request;
+        } else {
+          /* Remove the named flag from the global list. */
+          remove_debug_flag(curr_name);
+        }  /* if */
 
         /* If the next character is a comma, then another name follows.  If
 	   not, then the character must be either an equals, a plus, or a

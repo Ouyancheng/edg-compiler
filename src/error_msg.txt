@@ -1191,6 +1191,7 @@ ec_subst_arg_is_not_variable;;"first substitution argument is not the first vari
 ec_fmt_arg_does_not_exist;;"format argument index is greater than number of parameters"
 ec_fmt_arg_is_not_string;;"format argument does not have string type"
 ec_template_not_in_template;;"the \"template\" keyword used for syntactic disambiguation may only be used within a template"
+ec_db_option_required_on_cmd_line;INTERNAL;"a debug option must be specified on the command-line for the db_opt pragma to be used"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

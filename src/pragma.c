@@ -346,6 +346,10 @@ possible.
     case pk_checking_pragma:
       break;
 #endif /* EXPENSIVE_CHECKING */
+#if DEBUG
+    case pk_db_opt:
+      break;
+#endif /* DEBUG */
 #if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
     case pk_unrecognized:
       /* No special initialization is required. */
@@ -1281,6 +1285,36 @@ has been reached.
   db_exit();
 }  /* process_pragmas_at_end_of_source */
 
+#if DEBUG
+
+static void db_opt_pragma(a_pending_pragma_ptr	ppp)
+/*
+The routine called when a db_opt pragma is encountered.  Process the
+pragma argument as if it were a debug option specified on the command-line.
+*/
+{
+  if (!db_active) {
+    /* In order for the db_opt pragma to be used a debug option must have
+       been specified on the command-line.  This is needed because
+       db_active cannot be set TRUE in the middle of a compilation. */
+    pos_error(ec_db_option_required_on_cmd_line, &ppp->pragma_position);
+  } else {
+    char	*debug_arg = ppp->pragma_text;
+    /* Skip past the debug pragma name. */
+    debug_arg = strchr(debug_arg, ' ');
+    if (debug_arg != NULL) {
+      char	*arg_copy;
+      /* Skip past the blank. */
+      debug_arg++;
+      /* Make a copy of the argument. */
+      arg_copy = alloc_general((sizeof_t)(strlen(debug_arg) + 1));
+      (void)strcpy(arg_copy, debug_arg);
+      proc_debug_option(arg_copy);
+    }  /* if */
+  }  /* if */
+}  /* db_opt_pragma */
+
+#endif /* DEBUG */
 
 #if INCLUDE_EDG_TEST_PRAGMAS
 static void test_immediate_pragma(a_pending_pragma_ptr ppp)
@@ -1614,6 +1648,20 @@ Initialize the pragma description table.
 		 /*il_info_is_complete=*/FALSE,
                  es_none);
 #endif /* EXPENSIVE_CHECKING */
+#if DEBUG
+  (void)add_immediate_pragma_kind_description
+		((a_pragma_kind)pk_db_opt,
+                 (an_immediate_pragma_function_ptr)db_opt_pragma,
+		 /*is_pseudo_pragma=*/FALSE,
+                 /*global=*/FALSE,
+                 /*automatically_include_in_il=*/FALSE,
+                 /*make_text_not_tokens=*/TRUE,
+                 /*expand_macros=*/TRUE,
+                 /*processing_C_code=*/FALSE,
+		 /*ignore_in_back_end=*/TRUE,
+		 /*il_info_is_complete=*/FALSE,
+                 es_error);
+#endif /* DEBUG */
 #if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
   /* When unrecognized pragmas are being included in the IL, we need a
      pragma description that can be used for the unrecognized pragmas.
