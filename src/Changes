@@ -1,5 +1,19 @@
 Version 2.39
 
+2/16/98   Access check on elided constructor in strict mode
+
+A change in the processing for copy-initialization, made in version 2.38
+(see entry for 1/5/98), accidentally dropped a required access check
+on an elided copy constructor in strict mode in some cases.  The check
+has been restored.
+
+  class T {
+    T(const T&);
+  public:
+    T(int);
+  };
+  T x = T(1);  // Should get error in strict mode: T::T(const T&) is private
+
 2/13/98   Local static character array initialized to string in extern inline
 
 The change made on 12/22/97 to fix a problem with initialization of
@@ -355,7 +369,7 @@ still ignore the directive when the class type is incomplete.
   template<class T> class A;
   extern template class A<char>;
 
-1/9/97    Internal error in hidden-name-table support
+1/9/98    Internal error in hidden-name-table support
 
 When RECORD_HIDDEN_NAMES_IN_IL is configured to TRUE (e.g., for the
 C++-generating back end), an internal error could occur when a tag name
@@ -370,7 +384,7 @@ was specified in a using-directive in a containing scope.  Now fixed.
     void A();         // No longer aborts when updating hidden-name table
   }
 
-1/8/97    Block generated for dependent statement in C++ mode
+1/8/98    Block generated for dependent statement in C++ mode
 
 In C++ mode when a dependent statement (e.g., for an if-statement) is not
 enclosed by braces, the compiler generates a block statement anyway.  With
@@ -382,7 +396,7 @@ A related bug (when GENERATE_SOURCE_SEQUENCE_LISTS was TRUE) was that no
 end-of-construct source-sequence entry was put out to terminate the
 source-sequence entries for the generated block; this has also been fixed.
 
-1/7/97    cfront 2.1 mode: in a.b, cv-qualifiers on a are ignored
+1/7/98    cfront 2.1 mode: in a.b, cv-qualifiers on a are ignored
 
 In cfront 2.1 mode, any cv-qualifiers on the left operand of a
 field selection (a.b or p->b) are now ignored, i.e., the type of
@@ -390,7 +404,7 @@ the result is just the type of the member selected.  Some code
 that did a weaker version of this on reference initialization
 in cfront 2.1 mode is now superfluous and has been removed.
 
-1/5/97    Change in copy-initialization rules to support auto_ptr
+1/5/98    Change in copy-initialization rules to support auto_ptr
 
 The definition for auto_ptr accepted for the C++ standard depends on
 a quirk of the definition of copy-initialization for classes that
@@ -402,7 +416,7 @@ default value of DEFAULT_ALLOW_NONCONST_REF_ANACHRONISM has been
 changed to FALSE.  The anachronism continues to be enabled in cfront
 and Microsoft C++ modes.
 
-1/5/97    Microsoft compatibility: improved handing of __asm blocks
+1/5/98    Microsoft compatibility: improved handing of __asm blocks
 
 In some cases the front end did not correctly handle Microsoft __asm
 blocks in which the opening brace of the __asm was not on the same line

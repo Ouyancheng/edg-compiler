@@ -7689,7 +7689,11 @@ happen only in C++ mode.
       } else {
         /* The conversion routine is a non-copy constructor, so copy
            constructor elision is being done. */
-        elision_done = TRUE;
+        /* But if the initialization is treated as direct initialization,
+           there's no elision.  This comes up in the auto_ptr trick of
+           copying an rvalue of a class type to the same type by use of
+           a helper class. */
+        elision_done = !conversion->copy_initialization_done_as_direct;
         elision_source_type = class_type;
       }  /* if */
     } else {
@@ -7725,10 +7729,9 @@ happen only in C++ mode.
       }  /* if */
     }  /* if */
   }  /* if */
-  if (elision_done && !conversion->copy_initialization_done_as_direct) {
+  if (elision_done) {
     /* Copy constructor elision is being done.  Check access to the elided
-       copy constructor.  This is not done for the copy initialization
-       cases that are treated as direct initializations. */
+       copy constructor. */
     check_access_to_elided_copy_constructor(elision_source_type,
                                             &source_operand->position);
   }  /* if */
