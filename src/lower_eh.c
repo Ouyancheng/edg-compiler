@@ -407,7 +407,9 @@ allocated in the file scope memory region.
       /* Make an address constant for a pointer to the base class typeinfo
          variable. */
       typeinfo_con = alloc_constant((a_constant_repr_kind)ck_address);
-      typeinfo_var = make_typeinfo_var(bcp->type);
+      typeinfo_var = bcp->type->typeinfo_var;
+      check_assertion_str(typeinfo_var != NULL,
+                          "make_base_class_array_var: NULL typeinfo var");
       set_variable_address_constant(typeinfo_var, typeinfo_con,
                                     /*set_address_taken_flag=*/TRUE);
       /* Make the offset constant. */
@@ -527,6 +529,10 @@ static void define_typeinfo_var(a_type_ptr type,
 Generate a definition for the typeinfo variable (used to provide runtime
 type information) associated with type "type", if definition_needed
 is TRUE.  If force_static is TRUE, change the typeinfo variable to static.
+Note that this cannot be called for class types before the final linkage
+of the class has been determined, i.e., at the end of the compilation.
+If the type is a class, prepare_for_defining_class_typeinfo_variable should
+have been called on it at some previous point.
 */
 {
   a_boolean      is_class_type = is_immediate_class_type(type);
@@ -698,22 +704,28 @@ if and only if the associated virtual function table is defined).
        type = type->next) {
     if (is_immediate_class_type(type)) {
       /* Found a class type. */
-      /* See if the class has an associated typeinfo variable. */
+      /* See if the class has an associated typeinfo variable.  If so, the
+	 decision about defining the typeinfo variable has been put off to 
+	 this point. */
       if (type->typeinfo_var != NULL) {
-        /* See if the class is polymorphic.  If so, the decision about
-           defining the typeinfo variable has been put off to this point. */
         a_variable_ptr vtbl_var = type->variant.class_struct_union.extra_info->
                                                     virtual_function_table_var;
         if (vtbl_var != NULL) {
+	  /* Polymorphic class. */
           /* The typeinfo variable is defined if and only if the virtual
              function table is defined, and it is static if and only if the
              virtual function table is static. */
           force_static =
                        (vtbl_var->storage_class == (a_storage_class)sc_static);
           definition_needed= (vtbl_var->init_kind != (an_init_kind)initk_none);
-          define_typeinfo_var(type, definition_needed, force_static);
-          num_of_pending_class_typeinfo_vars--;
+        } else {
+          /* The class has no virtual function table (i.e., it's not
+             polymorphic), so its typeinfo variable must be defined and must
+             be static. */
+          definition_needed = force_static = TRUE;
         }  /* if */
+        define_typeinfo_var(type, definition_needed, force_static);
+        num_of_pending_class_typeinfo_vars--;
       }  /* if */
       /* If the class has a definition, visit the class members. */
       class_scope = type->variant.class_struct_union.extra_info->assoc_scope;
@@ -728,6 +740,25 @@ if and only if the associated virtual function table is defined).
     define_scope_class_typeinfo_vars(block_scope);
   }  /* for */
 }  /* define_scope_class_typeinfo_vars */
+
+
+void prepare_for_defining_class_typeinfo_variable(a_type_ptr class_type)
+/*
+The indicated type (a class type) has an associated typeinfo variable that
+will be defined in the current compilation.  Do any necessary preparation
+for that definition.  In particular, this creates typeinfo variables for
+any base classes so that they will be present when the pass that defines
+typeinfo variables looks for them.
+*/
+{
+  a_base_class_ptr bcp;
+
+  for (bcp = class_type->variant.class_struct_union.extra_info->base_classes;
+       bcp != NULL;
+       bcp = bcp->next) {
+    (void)make_typeinfo_var(bcp->type);
+  }  /* for */
+}  /* prepare_for_defining_class_typeinfo_variable */
 
 
 a_variable_ptr make_typeinfo_var(a_type_ptr type)
@@ -750,31 +781,37 @@ via the typeid operator.
   if (typeinfo_var == NULL) {
     /* The variable must be created. */
     if (is_immediate_class_type(type)) {
-      /* Class type. */
+      /* Class type.  We delay the process of defining the typeinfo
+	 variable until later.  For polymorphic classes, that's because
+	 the typeinfo is defined if and only if the virtual function
+	 table is defined, and we can't know that yet.  For
+	 non-polymorphic classes, the type of definition is dependent
+	 on the linkage of the class, which is not known until the end
+	 of the compilation. */
       if (type->variant.class_struct_union.extra_info->
                                           virtual_function_table_var != NULL) {
-        /* Polymorphic class type.  The typeinfo is defined if and only if
-           the virtual function table is defined, and we can't know that yet,
-           so we start with the variable as external and fix it later. */
+        /* Polymorphic class type.  The typeinfo is static if and only if
+           the virtual function table is static, and we can't know that yet,
+           so we start with the variable as external and fix it later if
+	   necessary. */
         storage_class = (a_storage_class)sc_extern;
-        /* Keep a count of the number of class typeinfo variables so that the
-           final pass to add definitions for these can be stopped when all
-           of them have been found. */
-        num_of_pending_class_typeinfo_vars++;
-        define_now = FALSE;
       } else {
         /* Non-polymorphic class type.  Always put out the definition as
            static. */
         storage_class = (a_storage_class)sc_static;
-        define_now = TRUE;
       }  /* if */
+      /* Keep a count of the number of class typeinfo variables so that the
+         final pass to add definitions for these can be stopped when all
+         of them have been found. */
+      num_of_pending_class_typeinfo_vars++;
+      define_now = FALSE;
       /* Determine the name for the typeinfo variable.  A name is required for
          typeinfo variables that end up being externally linked.  A name is
          not required for internally linked variables, but it turns out to be
-         helpful for the C-generating back end (the C-generating back end cannot
-         handle out-of-order initialization of unnamed static variables, and
-         we cannot be sure that the typeinfo variables for base classes will
-         be put out before those for derived classes). */
+         helpful for the C-generating back end (the C-generating back end
+         cannot handle out-of-order initialization of unnamed static variables,
+         and we cannot be sure that the typeinfo variables for base classes
+         will be put out before those for derived classes). */
       /* Determine the length of the mangled name. */
       mangled_name_length = mangled_typeinfo_name(type, (char *)NULL);
       /* Allocate space for the mangled name, including the final null. */
@@ -810,8 +847,8 @@ via the typeid operator.
     /* Remember the variable in the type. */
     type->typeinfo_var = typeinfo_var;
     if (define_now) {
-      /* The typeinfo variable is supposed to be defined right now (for all
-         cases except polymorphic classes). */
+      /* The typeinfo variable is supposed to be defined right now (for
+         non-class cases). */
       define_typeinfo_var(type, /*definition_needed=*/TRUE,
                           /*force_static=*/FALSE);
     }  /* if */

@@ -41,6 +41,9 @@ extern void type_is_used_in_exception(a_type_ptr type);
 
 extern void define_scope_class_typeinfo_vars(a_scope_ptr scope);
 
+extern void prepare_for_defining_class_typeinfo_variable(
+                                                        a_type_ptr class_type);
+
 extern a_variable_ptr make_typeinfo_var(a_type_ptr type);
 
 #if DO_FULL_PORTABLE_EH_LOWERING
