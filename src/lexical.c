@@ -5228,7 +5228,8 @@ of characters (after escape processing) contained within the quotes.
 If the string is wide, *num_chars is set to the number of wide characters
 contained within the quotes.  Return *err TRUE if there was an error.
 The value of the function is ctoken usually, but tok_error if there was
-an error and fetch_pp_tokens is TRUE.  This routine is used for character
+an error and fetch_pp_tokens is TRUE.  end_of_curr_token is set to point
+to the last character of the string.  This routine is used for character
 constants and string literals, in both the "wide" and normal forms, and
 for header names in #include directives.
 */
@@ -5466,9 +5467,15 @@ Loop to pick up all the adjacent string literals.
      cached.  This routine is called from get_token at a point where
      there is, in effect, no current token, so we're just anticipating the
      action that would be done on return from get_token here.
-     const_for_curr_token is already set; start_of_curr_token is already
-     set (if it needs to be); len_of_curr_token does not need to be set. */
+     const_for_curr_token is already set; start_of_curr_token and
+     end_of_curr_token are already set; len_of_curr_token does not need
+     to be set. */
   curr_token = tok_string_literal;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  check_assertion(end_of_curr_token != NULL);
+  /* Determine the source position of the end of the string. */
+  macro_line_loc_to_source_pos(end_of_curr_token, end_pos_curr_token);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Loop as long as the next token is a string literal. */
   for (;;) {
     /* Save the current token (a string literal) by adding it to the token
@@ -5514,7 +5521,7 @@ Loop to pick up all the adjacent string literals.
     /* The constants have been concatenated into the first constant in the
        token cache (which might not be the first entry in the cache, if there
        are pragma entries first).  Discard the token cache entries for the
-       string literals tokens after that first one. */
+       string literal tokens after that first one. */
     last_token = first_string_token;
     for (ctp = first_string_token->next; ctp != NULL; ctp = ctp_next) {
       ctp_next = ctp->next;
@@ -6108,7 +6115,7 @@ id_scan:
               /* In the usual case, we rescan the expanded form of the
                  macro. */
               if (rescan) goto rescan_token;
-              /* Otherwise, expand_token has returned a token we can use
+              /* Otherwise, macro_invocation has returned a token we can use
                  immediately.  If it is an identifier, fall into the
                  remaining processing for non-macro identifiers.
                  If it is a string literal, go look for
@@ -6299,6 +6306,10 @@ end_of_token_scan_b:;
 return_from_token_scan:
   if (start_of_curr_token != NULL) {
     len_of_curr_token = end_of_curr_token - start_of_curr_token + 1;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    /* Determine the source position of the end of the token. */
+    macro_line_loc_to_source_pos(end_of_curr_token, end_pos_curr_token);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
   curr_token_is_inert_macro = is_inert_macro;
 #if DEBUG
@@ -6360,7 +6371,6 @@ concatenate_adjacent_string_literals:
   check_assertion_str(ctoken == tok_string_literal,
                       "get_token: concatenating string literal, bad token");
   concat_adjacent_string_literals();
-  start_of_curr_token = NULL;
   goto return_from_token_scan;
 }  /* get_token */
 
