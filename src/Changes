@@ -1,5 +1,17 @@
 Version 2.46
 
+1/4/01   Spurious error on compiler generated virtual destructor in an
+         unnamed namespace
+
+The front end used to issue an error when it generated a virtual destructor
+for a class in an unnamed namespace.
+
+  struct B { virtual ~B() {} };
+  namespace { struct D: B {}; }  // Used to cause error because of undefined
+                                 // <unnamed>::D::~D
+
+This is now fixed.
+
 1/4/01   C99 mode cannot be enabled when Microsoft mode is the default
 
 The front end gave an error if the --c99 option was used when Microsoft mode

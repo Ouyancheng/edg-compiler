@@ -3266,7 +3266,12 @@ NULL.
           /* Diagnose undefined and unused member functions: */
           for (; rp != NULL; rp = rp->next) {
             if (rp->source_corresp.referenced ||
-                (rp->is_virtual && !rp->pure_virtual)) {
+                (rp->is_virtual && !rp->pure_virtual &&
+                 !rp->compiler_generated)) {
+              /* Virtual functions are in some way always "referenced" by the
+                 virtual function table, but pure virtual functions and
+                 compiler generated virtual functions (destructors) do not
+                 always need to have a definition. */
               if (!routine_defined(rp)) {
                 pos_sy_error(ec_never_defined,
                              &rp->source_corresp.decl_position,
