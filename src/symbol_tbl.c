@@ -146,6 +146,11 @@ static a_type_list_entry_ptr
 			/* List of type list entries freed and available for
 			   reuse. */
 
+static a_namespace_list_entry_ptr
+		avail_namespace_list_entries;
+			/* List of namespace list entries freed and available
+			   for reuse. */
+
 static a_substituted_type_list_entry_ptr
 		avail_substituted_type_list_entries;
 			/* List of substituted type list entries freed and
@@ -1477,7 +1482,7 @@ Allocate a new type list entry and return a pointer to it.
 
 void free_list_of_type_list_entries(a_type_list_entry_ptr tlep)
 /*
-Add a list of symbol list entries to the available list.  tlep may
+Add a list of type list entries to the available list.  tlep may
 be NULL, in which case nothing is done.
 */
 {
@@ -1659,21 +1664,47 @@ global, or namespace qualifier.
 }  /* clear_qualifier_from_locator */
 
 
-static a_namespace_list_entry_ptr alloc_namespace_list_entry(void)
+a_namespace_list_entry_ptr alloc_namespace_list_entry(void)
 /*
 Allocate a namespace list entry and return a pointer to it.
 */
 {
   a_namespace_list_entry_ptr ptr;
 
-  ptr = (a_namespace_list_entry_ptr)alloc_fe(sizeof(a_namespace_list_entry));
+  if (avail_namespace_list_entries != NULL) {
+    /* Reuse an existing entry. */
+    ptr = avail_namespace_list_entries;
+    avail_namespace_list_entries = avail_namespace_list_entries->next;
+  } else {
+    /* Allocate a new entry. */
+    ptr = (a_namespace_list_entry_ptr)alloc_fe(sizeof(a_namespace_list_entry));
 #if DEBUG
-  num_namespace_list_entries_allocated++;
+   num_namespace_list_entries_allocated++;
 #endif /* DEBUG */
+  }  /* if */
   ptr->next = NULL;
   ptr->ptr = NULL;
   return ptr;
 }  /* alloc_namespace_list_entry */
+
+
+void free_list_of_namespace_list_entries(a_namespace_list_entry_ptr nlep)
+/*
+Add a list of namespace list entries to the available list.  nlep may
+be NULL, in which case nothing is done.
+*/
+{
+  a_namespace_list_entry_ptr	nlep_tail;
+  if (nlep != NULL) {
+    /* Find the last entry on the list. */
+    nlep_tail = nlep;
+    while (nlep_tail->next != NULL) nlep_tail = nlep_tail->next;
+    /* Add the current available list to the end of the list passed by the
+       caller. */
+    nlep_tail->next = avail_namespace_list_entries;
+    avail_namespace_list_entries = nlep;
+  }  /* if */
+}  /* free_list_of_namespace_list_entries */
 
 
 a_symbol_ptr corresp_prototype_for_class_symbol(a_symbol_ptr sym)
@@ -9406,6 +9437,7 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(avail_active_using_directives),
       pch_saved_var_array_elem(avail_symbol_list_entries),
       pch_saved_var_array_elem(avail_type_list_entries),
+      pch_saved_var_array_elem(avail_namespace_list_entries),
       pch_saved_var_array_elem(avail_substituted_type_list_entries),
       pch_saved_var_array_elem(avail_template_cache_segments),
       pch_saved_var_array_elem(avail_dependent_type_fixups),
@@ -9506,6 +9538,7 @@ of the front end.
   avail_active_using_directives = NULL;
   avail_symbol_list_entries = NULL;
   avail_type_list_entries = NULL;
+  avail_namespace_list_entries = NULL;
   avail_substituted_type_list_entries = NULL;
   avail_template_cache_segments = NULL;
   avail_vla_fixups = NULL;

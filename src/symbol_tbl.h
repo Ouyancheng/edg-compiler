@@ -2944,6 +2944,9 @@ extern a_symbol_list_entry_ptr alloc_symbol_list_entry(void);
 extern void free_list_of_symbol_list_entries(a_symbol_list_entry_ptr slep);
 extern a_type_list_entry_ptr alloc_type_list_entry(void);
 extern void free_list_of_type_list_entries(a_type_list_entry_ptr slep);
+extern a_namespace_list_entry_ptr alloc_namespace_list_entry(void);
+extern
+void free_list_of_namespace_list_entries(a_namespace_list_entry_ptr nlep);
 
 
 extern

@@ -3201,228 +3201,6 @@ be found.
 }  /* opname_function_symbol */
 
 
-static void add_routine_to_symbol_list(a_symbol_list_entry_ptr *list_head,
-				       a_symbol_ptr	       sym)
-/*
-This routine is used when constructing a list of nonmember operator symbols.
-list_head points to the list of symbols already found.  sym points to
-the symbol to be added to the list, which could be an overloaded function
-symbol.  The list is checked for each routine that is added so that
-no symbol is on the list twice, but the same routine could still be
-represented on the list twice because the members of overload sets are
-not checked for duplicates.
-*/
-{
-  a_symbol_ptr			rout_sym = sym;
-  a_symbol_list_entry_ptr	slep;
-
-  a_symbol_ptr	sym_to_find;
-  /* Use the fundamental symbol.  The symbol passed in could be a namespace
-     projection symbol, including a synthesized namespace projection symbol
-     created by a using-directive lookup. */
-  sym_to_find = fundamental_symbol_of(rout_sym);
-  /* Ignore sk_undefined symbols created for error recovery purposes. */
-  if (sym->kind != (a_symbol_kind)sk_undefined) {
-    check_assertion_str2(
-                   sym_to_find->kind == (a_symbol_kind)sk_routine ||
-                   sym_to_find->kind == (a_symbol_kind)sk_function_template ||
-                   sym_to_find->kind == (a_symbol_kind)sk_overloaded_function,
-                     "add_routine_to_symbol_list:", "bad symbol kind");
-    for (slep = *list_head; slep != NULL; slep = slep->next) {
-      a_symbol_ptr	list_sym = slep->symbol;
-      if (list_sym->kind == sym_to_find->kind) {
-        if (list_sym == sym_to_find) {
-          /* Identical symbols -- exit the loop. */
-        } if (list_sym->kind == (a_symbol_kind)sk_routine) {
-          if (list_sym->variant.routine.ptr ==
-                                            sym_to_find->variant.routine.ptr) {
-            /* Symbols that point to the same routine -- exit the loop. */
-            break;
-          }  /* if */
-        } else {
-          if (list_sym->variant.template_info ==
-                                          sym_to_find->variant.template_info) {
-            /* Symbols that point to the same template -- exit the loop. */
-            break;
-          }  /* if */
-        }  /* if */
-      }  /* if */
-    }  /* for */
-    /* If the routine was not found under any of the symbols on the
-       list, create a new entry for it now. */
-    if (slep == NULL) {
-      slep = alloc_symbol_list_entry();
-      slep->symbol = sym_to_find;
-      /* Add the new entry to the front of the list. */
-      slep->next = *list_head;
-      *list_head = slep;
-    }  /* if */
-  }  /* if */
-}  /* add_routine_to_symbol_list */
-
-
-a_symbol_list_entry_ptr nonmember_operator_function_lookup(
-                                 an_opname_kind kind,
-                                 a_type_ptr	type_1,
-                                 a_type_ptr     type_2)
-/*
-Look up the set of operator function symbols that will be used to produce
-a list of candidate functions for a given overloaded operator.
-This routine performs the lookup described in [over.match.oper].
-Specifically, it produces the set of nonmember candidates by doing
-a normal lookup (but excluding member functions) and combining the
-result of that lookup with a lookup in the namespaces of the classes
-or enumerations pointed to by type_1 and type_2 including the namespaces
-of their base classes.  type_1 and type_2 may point to any kind of type
-or may be NULL.  If the type pointed to by type_1 or type_2 is not a class
-or enum type, that type is ignored by this routine.
-
-The result of this lookup is a symbol list, each entry of which points
-to a routine or function template (i.e., there are no overloaded
-functions symbols or namespace projection symbols in the list).
-*/
-{
-  a_namespace_list_entry_ptr	nlep_1 = NULL;
-  a_namespace_list_entry_ptr	nlep_2 = NULL;
-  a_symbol_header_ptr		sym_hdr;
-  a_symbol_list_entry_ptr	symbol_list = NULL;
-  a_namespace_list_entry	enum_nle_1;
-  a_namespace_list_entry	enum_nle_2;
-
-  db_enter(4, "nonmember_operator_function_lookup");
-  /* Get a pointer to the namespace list associated with each class or
-     enumeration.  Enumerations don't have an associated namespace list
-     because they only have one associated namespace -- the namespace
-     in which the enumeration is defined (or in which the enclosing class
-     is defined for a member enum).  A local namespace list entry, which points
-     to the associated namespace for the enum, is created for each enum 
-     type. */
-  if (type_1 != NULL) {
-    type_1 = skip_typerefs(type_1);
-    if (is_class_struct_union_type(type_1)) {
-      nlep_1 = symbol_supplement_for_class(type_1)->operator_lookup_namespaces;
-    } else if (is_enum_type(type_1)) {
-      /* Find the parent namespace of the enum type.  Create a namespace list
-         entry that points to that namespace. */
-      a_type_ptr	tp = type_1;
-      while (tp->source_corresp.is_class_member) {
-        tp = tp->source_corresp.parent.class_type;
-      }  /* while */
-      enum_nle_1.ptr = tp->source_corresp.parent.namespace_ptr;
-      enum_nle_1.next = NULL;
-      /* Set the namespace list entry for the type to point to the
-         local entry just created. */
-      nlep_1 = &enum_nle_1;
-    }  /* if */
-  }  /* if */
-  if (type_2 != NULL) {
-    type_2 = skip_typerefs(type_2);
-    if (type_2 != type_1) {
-      /* If the two types are the same, we don't need to bother looking
-         though the same list twice. */
-      if (is_class_struct_union_type(type_2)) {
-        nlep_2 = symbol_supplement_for_class(type_2)->
-                                                   operator_lookup_namespaces;
-      } else if (is_enum_type(type_2)) {
-        /* Find the parent namespace of the enum type.  Create a namespace list
-           entry that points to that namespace. */
-        a_type_ptr	tp = type_2;
-        while (tp->source_corresp.is_class_member) {
-          tp = tp->source_corresp.parent.class_type;
-        }  /* while */
-        enum_nle_2.ptr = tp->source_corresp.parent.namespace_ptr;
-        enum_nle_2.next = NULL;
-        /* Set the namespace list entry for the type to point to the
-           local entry just created. */
-        nlep_2 = &enum_nle_2;
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  /* See if there are any functions for this operator. */
-  sym_hdr = opname_symbol_table[kind];
-  if (sym_hdr != NULL) {
-    if ((nlep_1 != NULL || nlep_2 != NULL) && namespaces_enabled) {
-      /* Only look for symbols in the namespaces associated with type_1 and
-         type_2 if they are classes (with namespace lists).  The special
-         namespace driven lookup is only done when namespaces are enabled. */
-      int pass;
-      for (pass = 0; pass < 2; pass++) {
-        /* Look at active symbols on the first pass, inactive symbols on the
-           second pass. */
-        a_symbol_ptr	sym;
-        sym = pass == 0 ? sym_hdr->symbol : sym_hdr->inactive_symbols;
-        for (; sym != NULL; sym = sym->next) {
-          a_namespace_ptr	nsp;
-          a_namespace_list_entry_ptr	nlep;
-          /* Ignore member function symbols. */
-          if (sym->is_class_member) continue;
-          /* Ignore symbols that are not functions or function templates. */
-          if (!is_function_symbol(sym) &&
-              sym->kind != (a_symbol_kind)sk_function_template) continue;
-          /* Get the namespace associated with this function. */
-          nsp = sym->parent.namespace_ptr;
-          /* See if the namespace of this function is on the namespace list of
-             either of the operands.  Note that a NULL namespace pointer
-             still needs to be searched for.  There can be a list entry that
-             points to a NULL namespace (i.e., the file scope).  Symbols
-             with a NULL namespace pointer must have their decl_scope compared
-             with the file scope's scope number to see if they are really
-             associated with the file scope. */
-          /* Look on the list associated with the first type. */
-          for (nlep = nlep_1; nlep != NULL; nlep = nlep->next) {
-            if (nlep->ptr == nsp) {
-              if (nsp != NULL) break;
-              if (sym->decl_scope == FILE_SCOPE_NUMBER) break;
-            }  /* if */
-          }  /* for */
-          if (nlep == NULL) {
-            /* The namespace was not found on the first list, look on the
-               list associated with the second type. */
-            for (nlep = nlep_2; nlep != NULL; nlep = nlep->next) {
-              if (nlep->ptr == nsp) {
-                if (nsp != NULL) break;
-                if (sym->decl_scope == FILE_SCOPE_NUMBER) break;
-              }  /* if */
-            }  /* for */
-          }  /* if */
-          if (nlep != NULL) {
-            /* The namespace was found on one of the lists.  Create a symbol
-               list entry that points to this symbol and add it so the list. */
-            add_routine_to_symbol_list(&symbol_list, sym);
-          }  /* if */
-        }  /* for */
-      }  /* for */
-    }  /* if */
-    { /* Now do a normal lookup of the operator function.  See if the
-         symbol that is looked up is on the list that has already been
-         built.  If not, add it. */
-      a_symbol_locator	locator;
-      a_symbol_ptr	sym;
-      make_opname_locator(kind, &locator, &pos_curr_token);
-      sym = normal_id_lookup(&locator, IDL_SKIP_CLASS_SCOPES);
-      if (sym != NULL) {
-        add_routine_to_symbol_list(&symbol_list, sym);
-        /* It should not be possible for the lookup to return an ambiguity.
-           Functions are always combined into overload sets by using-directive
-           lookups, and anything with an operator name must be a function. */
-        check_assertion(!locator.specific_symbol->ambiguous);
-      }  /* if */
-    }
-  }  /* if */
-#if DEBUG
-  if (debug_level >= 5 || db_flag_is_set("nonmem_operator_lookup")) {
-    a_symbol_list_entry_ptr	slep;
-    fprintf(f_debug, "Operator functions found:\n");
-    for (slep = symbol_list; slep != NULL; slep = slep->next) {
-      db_symbol(slep->symbol, "", 4);
-    }  /* for */
-  }  /* if */
-#endif /* DEBUG */
-  db_exit();
-  return symbol_list;
-}  /* nonmember_operator_function_lookup */
-
-
 void add_to_arg_dependent_lookup_list(a_type_ptr		arg_type,
 				      a_type_list_entry_ptr	*type_list)
 /*
@@ -3465,23 +3243,43 @@ list pointer in type_list.  *type_list should be NULL on the first call.
     *type_list = tlep;
     /* If the type is a pointer-to-member or function type, add the
        types of which the type is composed to the list. */
-    if (is_ptr_to_member_type(arg_type)) {
-      /* A pointer to member type; add the type of the member, and the
-         class type. */
-      add_to_arg_dependent_lookup_list(pm_member_type(arg_type), type_list);
-      add_to_arg_dependent_lookup_list(pm_class_type(arg_type), type_list);
-    } else if (is_function_type(arg_type)) {
-      /* A function type; add the types of each parameter, and the return
-         type. */
-      a_routine_type_supplement_ptr	rtsp;
-      a_param_type_ptr			ptp;
-      rtsp = arg_type->variant.routine.extra_info;
-      for (ptp = rtsp->param_type_list; ptp != NULL; ptp = ptp->next) {
-        add_to_arg_dependent_lookup_list(ptp->type, type_list);
-      }  /* for */
-      add_to_arg_dependent_lookup_list(arg_type->variant.routine.return_type,
-                                       type_list);
-    }  /* if */
+    switch (arg_type->kind) {
+      case tk_class:
+      case tk_struct:
+      case tk_union:
+        /* A class type.  Add the types of the template type arguments. */
+        if (arg_type->variant.class_struct_union.is_template_class) {
+          /* Include the types of any template type arguments. */
+          a_template_arg_ptr	tap;
+          tap = arg_type->variant.class_struct_union.extra_info->
+                                                             template_arg_list;
+          for (; tap != NULL; tap = tap->next) {
+            if (tap->is_type) {
+              add_to_arg_dependent_lookup_list(tap->variant.type, type_list);
+            } /* if */
+          }  /* for */
+        }  /* if */
+        break;
+      case tk_ptr_to_member:
+        /* A pointer to member type; add the type of the member, and the
+           class type. */
+        add_to_arg_dependent_lookup_list(pm_member_type(arg_type), type_list);
+        add_to_arg_dependent_lookup_list(pm_class_type(arg_type), type_list);
+        break;
+      case tk_routine:
+        /* A function type; add the types of each parameter, and the return
+           type. */
+        { a_routine_type_supplement_ptr	rtsp;
+          a_param_type_ptr			ptp;
+          rtsp = arg_type->variant.routine.extra_info;
+          for (ptp = rtsp->param_type_list; ptp != NULL; ptp = ptp->next) {
+           add_to_arg_dependent_lookup_list(ptp->type, type_list);
+          }  /* for */
+          add_to_arg_dependent_lookup_list(
+                             arg_type->variant.routine.return_type, type_list);
+        }
+        break;
+    }  /* switch */
   }  /* if */
 #if DEBUG
   if (db_flag_is_set("add_to_arg_dependent_lookup_list")) {
@@ -3495,7 +3293,72 @@ list pointer in type_list.  *type_list should be NULL on the first call.
 #endif /* DEBUG */
 }  /* add_to_arg_dependent_lookup_list */
 
-#if 0
+
+static void add_namespace_of_type_to_lookup_list(
+			a_type_ptr			type,
+			a_namespace_list_entry_ptr	*namespace_list)
+/*
+Add the namespace in which "type" is defined to the namespace_list.
+*/
+{
+  a_namespace_list_entry_ptr	nlep;
+  a_namespace_ptr		nsp;
+
+  if (!type->source_corresp.is_local_to_function) {
+    /* Local types have no associated namespace. */
+    /* Determine the parent namespace. */
+    while (type->source_corresp.is_class_member) {
+      type = type->source_corresp.parent.class_type;
+    }  /* while */
+    /* Note that "nsp" will be NULL for global scope types. */
+    nsp = type->source_corresp.parent.namespace_ptr;
+    /* Look for its namespace on the namespace list. */
+    for (nlep = *namespace_list; nlep != NULL; nlep = nlep->next) {
+      if (nlep->ptr == nsp) break;
+    }  /* for */
+    if (nlep == NULL) {
+      /* The namespace was not found.  Add it to the list now. */
+      nlep = alloc_namespace_list_entry();
+      nlep->ptr = nsp;
+      nlep->next = *namespace_list;
+      *namespace_list = nlep;
+    }  /* if */
+  }  /* if */
+}  /* add_namespace_of_type_to_lookup_list */
+
+
+static void add_class_to_lookup_lists(
+			a_type_ptr			class_type,
+			a_namespace_list_entry_ptr	*namespace_list,
+			a_type_list_entry_ptr		*class_list)
+/*
+Add the specified class_type to the class_list and add the namespace in
+which it is defined to the namespace_list.
+*/
+{
+  a_type_list_entry_ptr	tlep;
+
+  check_assertion(class_type->kind == (a_type_kind)tk_class ||
+                  class_type->kind == (a_type_kind)tk_struct ||
+                  class_type->kind == (a_type_kind)tk_union);
+  /* Look for this type on the class list. */
+  for (tlep = *class_list; tlep != NULL; tlep = tlep->next) {
+    if (tlep->type == class_type) break;
+  }  /* for */
+  if (tlep == NULL) {
+    /* It is not on the class list.  Add it to both lists now.  If it is on
+       the class list, its namespace will already be on the namespace list
+       too. */
+    tlep = alloc_type_list_entry();
+    tlep->type = class_type;
+    /* Add this to the front of the list. */
+    tlep->next = *class_list;
+    *class_list = tlep;
+    add_namespace_of_type_to_lookup_list(class_type, namespace_list);
+  }  /* if */
+}  /* add_class_to_lookup_lists */
+
+
 static void determine_assoc_namespaces_and_classes_for_type(
 			a_type_ptr			type,
 			a_namespace_list_entry_ptr	*namespace_list,
@@ -3527,9 +3390,6 @@ associated namespaces and classes to "namespace_list" and "class_list".
       }  /* for */
       /* The enclosing class (if any) and namespace should be included. */
       add_parent = TRUE;
-      if (type->variant.class_struct_union.is_template_class) {
-        /* Include the types of any template type arguments. */
-      }  /* if */
       break;
     case tk_integer:
       /* Enums are represted using a tk_integer. */
@@ -3551,12 +3411,77 @@ associated namespaces and classes to "namespace_list" and "class_list".
     }  /* if */
   }  /* if */
 }  /* determine_assoc_namespaces_and_classes_for_type */
-#endif
+
+
+static void find_friend_functions_for_class(
+					a_symbol_locator	*locator,
+					a_type_ptr		class_type,
+					a_symbol_list_entry_ptr	*symbol_list)
+/*
+Go through the friend functions list of class_type looking for a symbol
+that matches the name specified by "locator".  If a match is found, add
+the entry to to symbol_list.
+*/
+{
+  a_symbol_ptr			sym;
+  a_class_symbol_supplement_ptr	cssp;
+  a_symbol_list_entry_ptr	slep;
+
+  cssp = symbol_supplement_for_class(class_type);
+  for (sym = cssp->friend_functions; sym != NULL; sym = sym->next) {
+    if (sym->header == locator->symbol_header) break;
+  }  /* for */
+  if (sym != NULL) {
+    /* A match was found.  Add this entry to the symbol list.  We don't check
+       for an existing entry because it should not be possible for such an
+       entry to exist. */
+    slep = alloc_symbol_list_entry();
+    slep->symbol = sym;
+    slep->next = *symbol_list;
+    *symbol_list = slep;
+  }  /* if */
+}  /* find_friend_functions_for_class */
+
+
+static void find_functions_for_namespace(
+					a_symbol_locator	*locator,
+					a_namespace_ptr		nsp,
+					a_symbol_list_entry_ptr	*symbol_list)
+/*
+Look for a function in the namespace specified by "nsp" whose name is specified
+by "locator".  Note that "nsp" will be NULL for the global scope.
+If a match is found, add the entry to to symbol_list.
+*/
+{
+  a_symbol_ptr			sym;
+  a_symbol_list_entry_ptr	slep;
+
+  /* Clear the specific symbol so that it does not influence the lookup
+     below. */
+  clear_specific_symbol(*locator);
+  /* Look up the symbol in the specified namespace or in the global scope.
+     A linkage lookup is used to prevent other namespaces from being searched
+     if the specified namespace includes using-directives. */
+  if (nsp != NULL) {
+    sym = namespace_qualified_id_lookup(locator, nsp, IDL_LINKAGE_LOOKUP);
+  } else {
+    sym = file_scope_id_lookup(locator, IDL_LINKAGE_LOOKUP);
+  }  /* if */
+  if (sym != NULL) {
+    /* A match was found.  Add this entry to the symbol list.  We don't check
+       for an existing entry because it should not be possible for such an
+       entry to exist. */
+    slep = alloc_symbol_list_entry();
+    slep->symbol = sym;
+    slep->next = *symbol_list;
+    *symbol_list = slep;
+  }  /* if */
+}  /* find_functions_for_namespace */
 
 
 a_symbol_list_entry_ptr argument_dependent_lookup(
 					a_symbol_ptr		normal_sym,
-					a_symbol_header_ptr	sym_header,
+					a_symbol_locator	*locator,
 					a_type_list_entry_ptr	*type_list)
 /*
 Perform C++ argument-dependent lookup as specified in 3.4.2
@@ -3564,8 +3489,8 @@ Perform C++ argument-dependent lookup as specified in 3.4.2
 of a normal lookup of the function name in the context of the call and
 may be NULL.  type_list is a list of argument types to be used to
 produce a list of associated classes and namespaces from which
-candidate functions should be considered.  sym_header points to the
-symbol header associated with the name that is being looked up.
+candidate functions should be considered.  locator is the symbol
+locator associated with the name that is being looked up.
 
 This routine builds a list of symbol list entries.  Each entry points to
 a sk_routine, sk_overloaded_function, or sk_namespace_projection symbol.
@@ -3577,9 +3502,10 @@ The list pointed to by *type_list is freed by this routine, and *type_list
 is set to NULL.
 */
 {
-  a_symbol_list_entry_ptr	slep = NULL;
-#if 0
+  a_symbol_list_entry_ptr	slep;
+  a_symbol_list_entry_ptr	symbol_list = NULL;
   a_type_list_entry_ptr		tlep;
+  a_namespace_list_entry_ptr	nlep;
   a_namespace_list_entry_ptr	namespace_list;
   a_type_list_entry_ptr		class_list;
 
@@ -3588,14 +3514,38 @@ is set to NULL.
     determine_assoc_namespaces_and_classes_for_type(
                                      tlep->type, &namespace_list, &class_list);
   }  /* for */
-#endif
+  /* Go through the type list and create the symbol list entries for any
+     matching friend declarations. */
+  for (tlep = class_list; tlep != NULL; tlep = tlep->next) {
+    find_friend_functions_for_class(locator, tlep->type, &symbol_list);
+  }  /* for */
+  /* Go through the namespace list and look for matching functions in each
+     of the namespaces. */
+  for (nlep = namespace_list; nlep != NULL; nlep = nlep->next) {
+    find_functions_for_namespace(locator, nlep->ptr, &symbol_list);
+  }  /* for */
+  /* Add the specified normal symbol to the list of symbols found. */
   if (normal_sym != NULL) {
     slep = alloc_symbol_list_entry();
     slep->symbol = normal_sym;
-    free_list_of_type_list_entries(*type_list);
-    *type_list = NULL;
+    slep->next = symbol_list;
+    symbol_list = slep;
   }  /* if */
-  return slep;
+  /* Free the lists used to create the symbol list. */
+  free_list_of_type_list_entries(*type_list);
+  free_list_of_namespace_list_entries(namespace_list);
+  free_list_of_type_list_entries(class_list);
+  *type_list = NULL;
+#if DEBUG
+  if (db_flag_is_set("argument_dependent_lookup")) {
+    fprintf(f_debug, "argument_dependent_lookup:\n");
+    for (slep = symbol_list; slep != NULL; slep = slep->next) {
+      fprintf(f_debug, "  ");
+      db_symbol(slep->symbol, "", 2);
+    }  /* for */
+  }  /* if */
+#endif /* DEBUG */
+  return symbol_list;
 }  /* argument_dependent_lookup */
 
 
