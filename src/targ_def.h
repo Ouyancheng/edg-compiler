@@ -494,9 +494,15 @@ bool constant type.
 /*
 Pointer types:
 */
+#ifndef TARG_ALL_POINTERS_SAME_SIZE
 #define TARG_ALL_POINTERS_SAME_SIZE TRUE
-			/* At the moment, this cannot be set FALSE.
-			   See set_type_size in types.c. */
+#endif /* !defined(TARG_ALL_POINTERS_SAME_SIZE) */
+
+#if TARG_ALL_POINTERS_SAME_SIZE
+/*
+All pointers have the same size and alignment, so TARG_SIZEOF_POINTER and
+TARG_ALIGNOF_POINTER should be defined.
+*/
 #ifndef TARG_SIZEOF_POINTER
 #define TARG_SIZEOF_POINTER 4
 			/* Default value, used to initialize global variable
@@ -507,6 +513,21 @@ Pointer types:
 			/* Default value, used to initialize global variable
 			   targ_alignof_pointer. */
 #endif /* !defined(TARG_ALIGNOF_POINTER) */
+#else /* !TARG_ALL_POINTERS_SAME_SIZE */
+/*
+Pointers may have different sizes and alignments, so TARG_SIZEOF_POINTER and
+TARG_ALIGNOF_POINTER are meaningless.  Consequently, all other definitions
+that depend on TARG_SIZEOF_POINTER and TARG_ALIGNOF_POINTER need to be
+configured in other terms, and it also means that global variables
+targ_sizeof_pointer and targ_alignof_pointer will not be declared at all.
+*/
+#ifdef TARG_SIZEOF_POINTER
+ #error -- do not use TARG_SIZEOF_POINTER if !TARG_ALL_POINTERS_SAME_SIZE
+#endif /* defined(TARG_SIZEOF_POINTER) */
+#ifdef TARG_ALIGNOF_POINTER
+ #error -- do not use TARG_ALIGNOF_POINTER if !TARG_ALL_POINTERS_SAME_SIZE
+#endif /* defined(TARG_ALIGNOF_POINTER) */
+#endif /* TARG_ALL_POINTERS_SAME_SIZE */
 
 /* Indication of whether NULL pointer is like integer zero. */
 #ifndef TARG_NULL_IS_ALL_BITS_ZERO
@@ -537,11 +558,17 @@ typedef long a_targ_ptrdiff_t;  /* Must be host "long". */
 /* Pick a typical representation for ptrdiff_t: the smaller of int or long
    that can hold a pointer value. */
 #ifndef TARG_PTRDIFF_T_INT_KIND
+#if TARG_ALL_POINTERS_SAME_SIZE
+/* Pointers all have the same size. */
 #if TARG_SIZEOF_POINTER <= TARG_SIZEOF_INT
 #define TARG_PTRDIFF_T_INT_KIND ((an_integer_kind)ik_int)
 #else /* TARG_SIZEOF_POINTER > TARG_SIZEOF_INT */
 #define TARG_PTRDIFF_T_INT_KIND ((an_integer_kind)ik_long)
 #endif /* TARG_SIZEOF_POINTER <= TARG_SIZEOF_INT */
+#else /* !TARG_ALL_POINTERS_SAME_SIZE */
+/* Pointers have different sizes -- use of long is arbitrary. */
+#define TARG_PTRDIFF_T_INT_KIND ((an_integer_kind)ik_long)
+#endif /* TARG_ALL_POINTERS_SAME_SIZE */
 			/* Default value, used to initialize global variable
 			   targ_ptrdiff_t_int_kind. */
 #endif /* ifndef TARG_PTRDIFF_T_INT_KIND */
@@ -564,11 +591,17 @@ typedef unsigned long a_targ_size_t;  /* Must be host "unsigned long". */
 #ifndef TARG_SIZE_T_INT_KIND
 /* Pick a typical representation for size_t: the smaller of unsigned int or
    unsigned long that can hold a pointer value. */
+#if TARG_ALL_POINTERS_SAME_SIZE
+/* Pointers all have the same size. */
 #if TARG_SIZEOF_POINTER <= TARG_SIZEOF_INT
 #define TARG_SIZE_T_INT_KIND ((an_integer_kind)ik_unsigned_int)
 #else /* TARG_SIZEOF_POINTER > TARG_SIZEOF_INT */
 #define TARG_SIZE_T_INT_KIND ((an_integer_kind)ik_unsigned_long)
 #endif /* TARG_SIZEOF_POINTER <= TARG_SIZEOF_INT */
+#else /* !TARG_ALL_POINTERS_SAME_SIZE */
+/* Pointers have different sizes -- use of unsigned long is arbitrary. */
+#define TARG_SIZE_T_INT_KIND ((an_integer_kind)ik_unsigned_long)
+#endif /* TARG_ALL_POINTERS_SAME_SIZE */
 			/* Default value, used to initialize global variable
 			   targ_size_t_int_kind. */
 #endif /* ifndef TARG_SIZE_T_INT_KIND */
@@ -632,6 +665,8 @@ C++ pointer-to-member type.
 Note that cfront uses "int *" for pointers to data members; we use an
 integer the same size as a pointer.
 */
+#if TARG_ALL_POINTERS_SAME_SIZE
+/* Pointers all have the same size and alignment. */
 #ifndef TARG_SIZEOF_PTR_TO_DATA_MEMBER
 #define TARG_SIZEOF_PTR_TO_DATA_MEMBER TARG_SIZEOF_POINTER
 			/* Default value, used to initialize global variable
@@ -653,6 +688,31 @@ integer the same size as a pointer.
 			/* Default value, used to initialize global variable
 			   targ_alignof_ptr_to_member_function. */
 #endif /* !defined(TARG_ALIGNOF_PTR_TO_MEMBER_FUNCTION) */
+#else /* !TARG_ALL_POINTERS_SAME_SIZE */
+/* Pointers have different sizes -- use of long is arbitrary. */
+#ifndef TARG_SIZEOF_PTR_TO_DATA_MEMBER
+#define TARG_SIZEOF_PTR_TO_DATA_MEMBER TARG_SIZEOF_LONG
+			/* Default value, used to initialize global variable
+			   targ_sizeof_ptr_to_data_member. */
+#endif /* !defined(TARG_SIZEOF_PTR_TO_DATA_MEMBER) */
+#ifndef TARG_ALIGNOF_PTR_TO_DATA_MEMBER
+#define TARG_ALIGNOF_PTR_TO_DATA_MEMBER TARG_ALIGNOF_LONG
+			/* Default value, used to initialize global variable
+			   targ_alignof_ptr_to_data_member. */
+#endif /* !defined(TARG_ALIGNOF_PTR_TO_DATA_MEMBER) */
+#ifndef TARG_SIZEOF_PTR_TO_MEMBER_FUNCTION
+#define TARG_SIZEOF_PTR_TO_MEMBER_FUNCTION                            \
+           (2*TARG_SIZEOF_SHORT+TARG_SIZEOF_LONG)
+			/* Default value, used to initialize global variable
+			   targ_sizeof_ptr_to_member_function. */
+#endif /* !defined(TARG_SIZEOF_PTR_TO_MEMBER_FUNCTION) */
+#ifndef TARG_ALIGNOF_PTR_TO_MEMBER_FUNCTION
+#define TARG_ALIGNOF_PTR_TO_MEMBER_FUNCTION TARG_ALIGNOF_LONG
+			/* Default value, used to initialize global variable
+			   targ_alignof_ptr_to_member_function. */
+#endif /* !defined(TARG_ALIGNOF_PTR_TO_MEMBER_FUNCTION) */
+#endif /* TARG_ALL_POINTERS_SAME_SIZE */
+
 
 /* 
 In C++ classes with virtual functions provide a special mechanism for
@@ -662,6 +722,8 @@ class with virtual functions the front end allocates a field to contain
 such a pointer -- or other data as required by a given implementation.
 The size and alignment of such a field are defined by the following.
 */
+#if TARG_ALL_POINTERS_SAME_SIZE
+/* Pointers all have the same size and alignment. */
 #ifndef TARG_SIZEOF_VIRTUAL_FUNCTION_INFO
 #define TARG_SIZEOF_VIRTUAL_FUNCTION_INFO TARG_SIZEOF_POINTER
 			/* Default value, used to initialize global variable
@@ -672,6 +734,51 @@ The size and alignment of such a field are defined by the following.
 			/* Default value, used to initialize global variable
 			   targ_alignof_virtual_function_info. */
 #endif /* !defined(TARG_ALIGNOF_VIRTUAL_FUNCTION_INFO) */
+#else /* !TARG_ALL_POINTERS_SAME_SIZE */
+/* Pointers have different sizes -- use of long is arbitrary. */
+#ifndef TARG_SIZEOF_VIRTUAL_FUNCTION_INFO
+#define TARG_SIZEOF_VIRTUAL_FUNCTION_INFO TARG_SIZEOF_LONG
+			/* Default value, used to initialize global variable
+			   targ_sizeof_virtual_function_info. */
+#endif /* !defined(TARG_SIZEOF_VIRTUAL_FUNCTION_INFO) */
+#ifndef TARG_ALIGNOF_VIRTUAL_FUNCTION_INFO
+#define TARG_ALIGNOF_VIRTUAL_FUNCTION_INFO TARG_ALIGNOF_LONG
+			/* Default value, used to initialize global variable
+			   targ_alignof_virtual_function_info. */
+#endif /* !defined(TARG_ALIGNOF_VIRTUAL_FUNCTION_INFO) */
+#endif /* TARG_ALL_POINTERS_SAME_SIZE */
+
+/*
+Size and alignment of a pointer to virtual base class.  Despite the name, a
+"pointer-to-virtual-base-class" member may or may not actually be a "pointer".
+The default implementation (namely, IL lowering) does treat it as a pointer,
+but implementations are free to do otherwise.
+*/
+#if TARG_ALL_POINTERS_SAME_SIZE
+/* Pointers all have the same size and alignment. */
+#ifndef TARG_SIZEOF_PTR_TO_VIRTUAL_BASE_CLASS
+#define TARG_SIZEOF_PTR_TO_VIRTUAL_BASE_CLASS TARG_SIZEOF_POINTER
+			/* Default value, used to initialize global variable
+			   targ_sizeof_ptr_to_virtual_base_class. */
+#endif /* !defined(TARG_SIZEOF_PTR_TO_VIRTUAL_BASE_CLASS) */
+#ifndef TARG_ALIGNOF_PTR_TO_VIRTUAL_BASE_CLASS
+#define TARG_ALIGNOF_PTR_TO_VIRTUAL_BASE_CLASS TARG_ALIGNOF_POINTER
+			/* Default value, used to initialize global variable
+			   targ_alignof_ptr_to_virtual_base_class. */
+#endif /* !defined(TARG_ALIGNOF_PTR_TO_VIRTUAL_BASE_CLASS) */
+#else /* !TARG_ALL_POINTERS_SAME_SIZE */
+/* Pointers have different sizes -- use of long is arbitrary. */
+#ifndef TARG_SIZEOF_PTR_TO_VIRTUAL_BASE_CLASS
+#define TARG_SIZEOF_PTR_TO_VIRTUAL_BASE_CLASS TARG_SIZEOF_LONG
+			/* Default value, used to initialize global variable
+			   targ_sizeof_ptr_to_virtual_base_class. */
+#endif /* !defined(TARG_SIZEOF_PTR_TO_VIRTUAL_BASE_CLASS) */
+#ifndef TARG_ALIGNOF_PTR_TO_VIRTUAL_BASE_CLASS
+#define TARG_ALIGNOF_PTR_TO_VIRTUAL_BASE_CLASS TARG_ALIGNOF_LONG
+			/* Default value, used to initialize global variable
+			   targ_alignof_ptr_to_virtual_base_class. */
+#endif /* !defined(TARG_ALIGNOF_PTR_TO_VIRTUAL_BASE_CLASS) */
+#endif /* TARG_ALL_POINTERS_SAME_SIZE */
 
 /* 
 Numbering for virtual functions.  Each virtual member function in a given

@@ -659,15 +659,10 @@ type.
   if (is_integral_type(new_type)) {
     /* Pointer value being forced into an integral type.  Make sure the
        integral type is large enough to hold a pointer. */
-#if TARG_ALL_POINTERS_SAME_SIZE
-    /* All pointers are the same size. */
-    if (skip_typerefs(new_type)->size < targ_sizeof_pointer) {
+    if (skip_typerefs(new_type)->size < skip_typerefs(old_type)->size) {
       *err_code = ec_integer_truncated;
       *err_severity = es_error;
     }  /* if */
-#else /* !TARG_ALL_POINTERS_SAME_SIZE */
- #error conv_pointer_to_whatever: different-sized pointers not implemented.
-#endif /* TARG_ALL_POINTERS_SAME_SIZE */
   } else if (related_class_pointers(old_type, new_type,
                                     &baseward_cast, &bcp)) {
     /* In C++, a cast of a pointer to a class to a pointer to a base class

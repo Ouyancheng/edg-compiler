@@ -314,6 +314,7 @@ EXTERN int	targ_zero_width_bit_field_alignment
 /*
 Pointer types:
 */
+#if TARG_ALL_POINTERS_SAME_SIZE
 EXTERN a_targ_size_t
 		targ_sizeof_pointer
 #if VAR_INITIALIZERS
@@ -331,6 +332,7 @@ EXTERN a_targ_alignment
                                                            ;
 			/* Alignment of a pointer.  Initialized to the default
 			   value but reconfigurable. */
+#endif /* TARG_ALL_POINTERS_SAME_SIZE */
 
 EXTERN a_targ_ptrdiff_t
 		targ_ptrdiff_t_max
@@ -504,6 +506,29 @@ EXTERN a_targ_alignment
 			   reconfigurable. */
 
 /*
+Pointer to virtual base class.
+*/
+EXTERN a_targ_size_t
+		targ_sizeof_ptr_to_virtual_base_class
+#if VAR_INITIALIZERS
+                                    = TARG_SIZEOF_PTR_TO_VIRTUAL_BASE_CLASS
+#endif /* VAR_INITIALIZERS */
+                                                         ;
+			/* Size of a "pointer-to-virtual-base-class" member.
+			   Initialized to the default value but
+			   reconfigurable. */
+
+EXTERN a_targ_alignment
+		targ_alignof_ptr_to_virtual_base_class
+#if VAR_INITIALIZERS
+                                     = TARG_ALIGNOF_PTR_TO_VIRTUAL_BASE_CLASS
+#endif /* VAR_INITIALIZERS */
+                                                           ;
+			/* Alignment of a "pointer-to-virtual-base-class"
+			   member.  Initialized to the default value but
+			   reconfigurable. */
+
+/*
 Miscellaneous
 */
 EXTERN a_boolean
@@ -653,8 +678,10 @@ EXTERN an_integer_kind
 #undef TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED
 #undef TARG_ENUM_BIT_FIELDS_ARE_ALWAYS_UNSIGNED
 #undef TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT
+#if TARG_ALL_POINTERS_SAME_SIZE
 #undef TARG_SIZEOF_POINTER
 #undef TARG_ALIGNOF_POINTER
+#endif /* TARG_ALL_POINTERS_SAME_SIZE */
 #undef TARG_PTRDIFF_T_MAX
 #undef TARG_PTRDIFF_T_MIN
 #undef TARG_PTRDIFF_T_INT_KIND
@@ -672,6 +699,8 @@ EXTERN an_integer_kind
 #undef TARG_ALIGNOF_PTR_TO_MEMBER_FUNCTION
 #undef TARG_SIZEOF_VIRTUAL_FUNCTION_INFO
 #undef TARG_ALIGNOF_VIRTUAL_FUNCTION_INFO
+#undef TARG_SIZEOF_PTR_TO_VIRTUAL_BASE_CLASS
+#undef TARG_ALIGNOF_PTR_TO_VIRTUAL_BASE_CLASS
 #undef TARG_ENUM_TYPES_CAN_BE_SMALLER_THAN_INT
 #undef TARG_RIGHT_SHIFT_IS_ARITHMETIC
 #undef TARG_MINIMUM_STRUCT_ALIGNMENT
@@ -719,8 +748,10 @@ EXTERN an_integer_kind
                         targ_enum_bit_fields_are_always_unsigned
 #define TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT                             \
                         targ_zero_width_bit_field_alignment
+#if TARG_ALL_POINTERS_SAME_SIZE
 #define TARG_SIZEOF_POINTER targ_sizeof_pointer
 #define TARG_ALIGNOF_POINTER targ_alignof_pointer
+#endif /* TARG_ALL_POINTERS_SAME_SIZE */
 #define TARG_PTRDIFF_T_MAX targ_ptrdiff_t_max
 #define TARG_PTRDIFF_T_MIN targ_ptrdiff_t_min
 #define TARG_PTRDIFF_T_INT_KIND targ_ptrdiff_t_int_kind
@@ -742,6 +773,10 @@ EXTERN an_integer_kind
                         targ_sizeof_virtual_function_info
 #define TARG_ALIGNOF_VIRTUAL_FUNCTION_INFO                              \
                         targ_alignof_virtual_function_info
+#define TARG_SIZEOF_PTR_TO_VIRTUAL_BASE_CLASS                           \
+                        targ_sizeof_ptr_to_virtual_base_class
+#define TARG_ALIGNOF_PTR_TO_VIRTUAL_BASE_CLASS                          \
+                        targ_alignof_ptr_to_virtual_base_class
 #define TARG_ENUM_TYPES_CAN_BE_SMALLER_THAN_INT                         \
                         targ_enum_types_can_be_smaller_than_int
 #define TARG_RIGHT_SHIFT_IS_ARITHMETIC targ_right_shift_is_arithmetic
@@ -754,6 +789,9 @@ EXTERN an_integer_kind
 #define TARG_JMP_BUF_ELEMENT_FLOAT_KIND targ_jmp_buf_element_float_kind
 #define TARG_VAR_HANDLE_INT_KIND targ_var_handle_int_kind
 #endif /* MAKE_TARG_NAMES_REFER_TO_VARIABLES */
+
+a_targ_size_t get_pointer_size_and_alignment(a_type_ptr        type_pointed_to,
+                                             a_targ_alignment  *alignment);
 
 #if CHECKING
 void check_target_configuration(void);

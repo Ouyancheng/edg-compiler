@@ -1520,8 +1520,10 @@ in the way described by octl.
     }  /* if */
   }  /* if */
   if (need_ptr_cast) {
-    a_type     type_copy;
-    a_type_ptr cast_type = orig_type;
+    a_type            type_copy;
+    a_type_ptr        cast_type = orig_type;
+    a_targ_alignment  alignment;
+
     /* Start with a cast to the desired result type. */
     output_optional_open_paren(&need_parens, &need_ptr_cast_close_paren, octl);
     /* For the do_indirection case, cast to a reference type instead of the
@@ -1543,7 +1545,9 @@ in the way described by octl.
        cast to unsigned long. */
     if (is_ptr_or_ref_type(con_type) ||
         (is_integral_type(con_type) &&
-         con_type->size >= targ_sizeof_pointer)) {
+         con_type->size >=
+                get_pointer_size_and_alignment(underlying_object_type,
+                                               &alignment))) {
       /* Okay. */
     } else {
       need_second_ptr_close_paren = TRUE;

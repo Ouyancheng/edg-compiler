@@ -2656,7 +2656,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
             dump_variable_reference_node(operand_1);
           } else if (is_pointer_type(operand_1->type) &&
                      is_integral_type(expr_type) &&
-                     expr_type->size < targ_sizeof_pointer) {
+                     expr_type->size < skip_typerefs(operand_1->type)->size) {
             /* Casting from a pointer type to a smaller integral type.  Go by
                way of unsigned long to avoid errors or warnings from the
                underlying C compiler. */
@@ -3107,11 +3107,12 @@ process_assignment:
       if (pointer_comparison) {
         /* Comparisons of function pointers are not standard C, so put in casts
            to some large integral type. */
-        if (!is_function_type(type_pointed_to(operand_1->type))) {
+        a_type_ptr tp = type_pointed_to(operand_1->type);
+        if (!is_function_type(tp)) {
           pointer_comparison = FALSE;
         } else {
 #if LONG_LONG_ALLOWED
-          if (targ_sizeof_pointer > targ_sizeof_long) {
+          if ((skip_typerefs(tp))->size > targ_sizeof_long) {
             pointer_comparison_cast = "(unsigned long long)";
           } else
 #endif /* LONG_LONG_ALLOWED */
