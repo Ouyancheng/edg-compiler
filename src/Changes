@@ -1,6 +1,17 @@
 Version 2.41
 
-1/22/99   IL Lowering of pointer-to-member calls: no optimized code sequence
+1/23/99   C-generating back end, Microsoft compatibility: __asm output
+
+In Microsoft mode, the C-generating back end now puts out asm
+statements in the form
+
+  __asm { ... }
+
+Previously, it used the (incorrect) form
+
+  __asm("...");
+
+1/22/99   IL lowering of pointer-to-member calls: no optimized code sequence
 
 IL lowering of pointer-to-member calls has used a simpler code sequence
 when the class involved has no virtual functions.  The C++ standard now

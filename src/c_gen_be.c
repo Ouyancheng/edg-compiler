@@ -355,6 +355,9 @@ static void dump_expr(an_expr_node_ptr expr,
 #define dump_expr_with_parens(expr) dump_expr(expr, /*need_parens=*/TRUE)
 #define dump_expression(expr)       dump_expr(expr, /*need_parens=*/FALSE)
 static void dump_boolean_controlling_expression(an_expr_node_ptr node);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+static void dump_asm_function_body(char *p);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
 static void clear_output_file_position(an_output_file_position *ofp)
@@ -5047,9 +5050,24 @@ Generate C for an asm statement or declaration.
   /* Dump any pragmas associated with the entry. */
   dump_decl_associated_pragmas(&aep->source_corresp);
   set_output_position(&aep->source_corresp.decl_position);
-  write_tok_str(microsoft_mode ? "__asm(" : "asm(");
-  dump_constant(aep->asm_string);
-  write_tok_str(");");
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode) {
+    /* If generating code for processing by the Microsoft compiler the
+       form "__asm("...")" is not accepted.  Use "__asm { ... }" instead. */
+    /* Note that there is an "is_asm_block" flag that indicates whether
+       the source form used the braces.  However, the brace-enclosed
+       form works in all cases, so it is used even if the source
+       form did not include them. */
+    write_tok_str("__asm");
+    dump_asm_function_body(aep->asm_string->variant.string.value);
+  } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Do not insert code here; this is the "else" of an "if". */
+  {
+    write_tok_str("asm(");
+    dump_constant(aep->asm_string);
+    write_tok_str(");");
+  }  /* if */
 }  /* dump_asm_entry */
 
 
@@ -5663,19 +5681,6 @@ Generate C for a statement.
       break;
     case stmk_asm:
       /* asm statement. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      if (statement->variant.asm_entry->is_asm_block) {
-        /* In Microsoft mode an asm statement may have the form
-           "__asm { ... }", with a sequence of individual asm statements
-           between the braces.  In other words, it looks just like the body
-           of an asm function. */
-        set_output_position_for_stmt(&statement->position);
-        write_tok_str("__asm");
-        dump_asm_function_body(statement->variant.asm_entry->
-                                       asm_string->variant.string.value);
-        break;
-      }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       dump_asm_entry(statement->variant.asm_entry);
       break;
 #if ASM_FUNCTION_ALLOWED
