@@ -19,6 +19,10 @@ complete or not.
 This produced different mangled names depending on whether COMPLETE
 was defined.  Now, the same mangled name is produced in both cases.
 
+Note that this is an ABI CHANGE.  It has been rolled into 2.41,
+because a patch will be sent to all customers, rather than being
+considered part of 2.42.
+
 3/17/99  name field in typeinfo now const
 
 The "name" field in the typeinfo structure now has "const char *" type.
