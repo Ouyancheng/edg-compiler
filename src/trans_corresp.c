@@ -306,15 +306,24 @@ given symbols are identical.
     check_assertion(parent1 != NULL && parent2 != NULL);
     result = same_type_entities(parent1, parent2);
   } else {
-    a_namespace_ptr  parent1 = sym1->parent.namespace_ptr;
-    a_namespace_ptr  parent2 = sym2->parent.namespace_ptr;
-    if (parent1 != NULL || parent2 != NULL) {
-      an_il_entry_kind             kind;
-      a_source_correspondence_ptr  scp1, scp2;
-      scp1 = (a_source_correspondence_ptr)il_entry_for_symbol_null_okay(
+    a_namespace_ptr              parent1 = sym1->parent.namespace_ptr;
+    a_namespace_ptr              parent2 = sym2->parent.namespace_ptr;
+    an_il_entry_kind             kind;
+    a_source_correspondence_ptr  scp1, scp2;
+    scp1 = (a_source_correspondence_ptr)il_entry_for_symbol_null_okay(
                                                                   sym1, &kind);
-      scp2 = (a_source_correspondence_ptr)il_entry_for_symbol_null_okay(
+    scp2 = (a_source_correspondence_ptr)il_entry_for_symbol_null_okay(
                                                                   sym2, &kind);
+    /* Block-extern declarations can have a NULL parent pointer in the symbol
+       entry even though they declared an entity in a namespace.  Use the IL
+       entry in those cases.  (See function add_namespace_parent_pointer.) */
+    if (parent1 == NULL && scp1 != NULL) {
+      parent1 = scp1->parent.namespace_ptr;
+    }  /* if */
+    if (parent2 == NULL && scp2 != NULL) {
+      parent2 = scp2->parent.namespace_ptr;
+    }  /* if */
+    if (parent1 != NULL || parent2 != NULL) {
       if (!microsoft_bugs && scp1 != NULL && scp2 != NULL &&
           scp1->name_linkage == (a_name_linkage_kind)nlk_external &&
           scp2->name_linkage == (a_name_linkage_kind)nlk_external) {
