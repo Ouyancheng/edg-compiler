@@ -418,9 +418,9 @@ extern void add_to_templates_list(a_template_ptr  tp);
 extern void add_to_macros_list(a_macro_ptr  mp);
 #endif /* RECORD_MACROS_IN_IL */
 
-extern void add_to_pragma_list(a_pragma_ptr   pragma,
-                               a_boolean      at_file_scope,
-                               a_type_ptr     class_type);
+extern void add_to_pragma_list(a_pragma_ptr             pragma,
+                               a_scope_depth            scope_depth,
+                               a_source_correspondence  *scp);
 
 extern a_pragma_ptr find_assoc_pragma(char          *il_entity,
                                       a_scope_ptr   curr_func_or_block_scope,
