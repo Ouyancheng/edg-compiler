@@ -829,11 +829,12 @@ by make_file_scope_type.  type_1 and type_2 are evaluated more than once.
 #if 0
 /* This needs to be changed to compare classes. */
 #endif
-#define copies_of_same_struct_union_type(type_1, type_2)              \
-  ((type_1)->variant.class.field_list != NULL &&               \
-   (type_2)->variant.class.field_list != NULL &&               \
-   (type_1)->variant.class.field_list->source_corresp.assoc_info == \
-   (type_2)->variant.class.field_list->source_corresp.assoc_info)
+#define copies_of_same_struct_union_type(type_1, type_2)                \
+  ((type_1)->variant.class_struct_union.field_list != NULL &&           \
+   (type_2)->variant.class_struct_union.field_list != NULL &&           \
+   (type_1)->variant.class_struct_union.field_list->                    \
+					source_corresp.assoc_info ==    \
+   (type_2)->variant.class_struct_union.field_list->source_corresp.assoc_info)
 
 
 a_boolean f_identical_types(a_type_ptr type_1,
@@ -1746,7 +1747,7 @@ so far, to avoid repeating work or getting into infinite loops.
       case tk_union:
         /* Copy the field list. */
         new_field_list = end_new_field_list = NULL;
-        for (old_field = old_type->variant.class.field_list;
+        for (old_field = old_type->variant.class_struct_union.field_list;
              old_field != NULL;
              old_field = old_field->next) {
           new_field = alloc_field();
@@ -1764,8 +1765,8 @@ so far, to avoid repeating work or getting into infinite loops.
           }  /* if */
           end_new_field_list = new_field;
         }  /* for */
-        new_type->variant.class.field_list = new_field_list;
-        if (old_type->variant.class.extra_info != NULL) {
+        new_type->variant.class_struct_union.field_list = new_field_list;
+        if (old_type->variant.class_struct_union.extra_info != NULL) {
           /* Copy the supplement. */
 #if 0
           internal_error(

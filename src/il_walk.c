@@ -245,7 +245,8 @@ Process the indicated type entry.
       break;
     case tk_struct:
     case tk_union:
-      walk_list(ptr->variant.class.field_list, a_field_ptr, iek_field);
+      walk_list(ptr->variant.class_struct_union.field_list, a_field_ptr,
+                iek_field);
       break;
     case tk_typeref:
       walk_ptr(ptr->variant.typeref.type, a_type_ptr, iek_type);

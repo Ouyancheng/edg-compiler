@@ -245,7 +245,7 @@ for unions and aggregates at that level).
           internal_error("get_initializer: not array, struct, or union");
         }  /* if */
 #endif /* CHECKING */
-        curr_field = local_type->variant.class.field_list;
+        curr_field = local_type->variant.class_struct_union.field_list;
         done = (curr_field == NULL);
       }  /* if */
       con_list = end_con_list = NULL;

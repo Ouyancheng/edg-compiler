@@ -286,12 +286,12 @@ Dump a base class entry, for debug purposes.
   if (bcp->virtual) fputs(" virtual");
   fprintf(f_debug, " base class %s (offset = %lu)",
 		   tp->source_corresp.name, bcp->offset);
-  bcp = tp->variant.class.extra_info->base_classes;
+  bcp = tp->variant.class_struct_union.extra_info->base_classes;
   while (bcp != NULL) {
     db_base_class(bcp);
     bcp = bcp->next;
   }  /* while */
-  fp = tp->variant.class.field_list;
+  fp = tp->variant.class_struct_union.field_list;
   while (fp != NULL) {
     db_base_class_field(fp, tp);
     fp = fp->next;
@@ -352,7 +352,7 @@ pointer_or_reference:
     case tk_class:
       fputs("class {\n", f_debug);
 class_struct_union:
-      ctsp = tp->variant.class.extra_info;
+      ctsp = tp->variant.class_struct_union.extra_info;
       if (ctsp != NULL && tp->kind != (a_type_kind)tk_union) {
         a_base_class_ptr bcp = ctsp->base_classes;
         while (bcp != NULL) {
@@ -360,7 +360,7 @@ class_struct_union:
           bcp = bcp->next;
         }  /* while */
       }  /* if */
-      fp = tp->variant.class.field_list;
+      fp = tp->variant.class_struct_union.field_list;
       while (fp != NULL) {
         db_field(fp);
         fp = fp->next;
@@ -1623,9 +1623,9 @@ to default values.
     case tk_class:
     case tk_struct:
     case tk_union:
-      pte->variant.class.field_list       = NULL;
-      pte->variant.class.extra_info       = NULL;
-      pte->variant.class.any_const_member = FALSE;
+      pte->variant.class_struct_union.field_list       = NULL;
+      pte->variant.class_struct_union.extra_info       = NULL;
+      pte->variant.class_struct_union.any_const_member = FALSE;
       break;
     case tk_routine:
       pte->variant.routine.return_type = NULL;

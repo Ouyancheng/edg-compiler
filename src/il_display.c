@@ -1103,10 +1103,10 @@ do_float_complex:
     case tk_union:
       printf("tk_union\n");
 do_struct_union:
-      disp_ptr("field_list", (char *)ptr->variant.class.field_list,
-               iek_field);
+      disp_ptr("field_list",
+               (char *)ptr->variant.class_struct_union.field_list, iek_field);
       disp_boolean("any_const_member",
-                   ptr->variant.class.any_const_member);
+                   ptr->variant.class_struct_union.any_const_member);
       break;
     case tk_typeref:
       printf("tk_typeref\n");
