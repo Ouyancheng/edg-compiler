@@ -1,5 +1,30 @@
 Version 3.5
 
+8/20/04  Spurious redeclaration error on member using-declaration or typedef
+
+The front end sometimes issued a spurious redeclaration error when an inherited
+member is first used and then referred to by a member using-declaration.  A
+similar problem existed with a typedef that introduces a synonym for a base
+class member of the same name.  For example:
+
+  struct B {
+    typedef int I;
+  };
+  struct D: B {
+    I x;
+    using B::I;  // Triggered a spurious error.  Now accepted.
+  };
+
+This is now fixed.
+
+8/20/04  Microsoft compatibility: dllimport/dllexport and threads
+
+In Microsoft modes, the front end now issues an error for thread-local
+variables declared with dllimport/dllexport (previously, such variable
+declarations were silently accepted).  For example:
+
+  __declspec(dllimport thread) int e;  // Now an error.
+
 8/19/04  GNU mode: Empty attributes
 
 In GNU C and C++ modes the front end now accepts empty GNU attributes.

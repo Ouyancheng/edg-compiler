@@ -3280,6 +3280,11 @@ diagnostics.  is_redecl is TRUE if this is a redeclaration.
   if (new_modifiers->alignment != 0) {
     variable->alignment = new_modifiers->alignment;
   }  /* if */
+  if ((variable->decl_modifiers & (DM_DLLIMPORT | DM_DLLEXPORT)) &&
+      (variable->decl_modifiers & DM_THREAD)) {
+    pos_error(ec_dll_thread_conflict, position);
+    variable->decl_modifiers &= ~DM_THREAD;
+  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (any_invalid_redecl) {
     pos_diagnostic(es_discretionary_error,
@@ -7756,7 +7761,9 @@ NULL.
           /* Something like
                typedef struct X {} X;
              which is acceptable in all scopes. */
-        } else if (class_type != NULL) {
+        } else if (class_type != NULL &&
+                   loc_sym->kind != (a_symbol_kind)sk_projection) {
+          /* A duplicate (but compatible) declaration in class scope. */
           check_assertion(ssep->kind == (a_scope_kind)sck_class_struct_union);
           if (same_entities(class_type, tp)) {
             /* sym corresponds to the injected class name for the current

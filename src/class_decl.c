@@ -10912,6 +10912,7 @@ or implicit) controlling the declaration.
 #endif /* CHECKING */
     }  /* if */
   } else {
+    /* Not "using typename ...". */
     (void)coalesce_and_lookup_generalized_identifier(
                               GID_DTOR_RECOGNIZED | GID_TEMPLATE_ARGS_OPTIONAL,
                               ilm_using_declaration, &err);
@@ -11004,13 +11005,18 @@ or implicit) controlling the declaration.
       }  /* if */
     }  /* if */
     if (!err) {
+      a_symbol_ptr  existing_sym;
       /* Look up the name in the scope of the current class. */
       clear_locator(&locator, &decl_pos);
       locator.symbol_header = locator_for_curr_id.symbol_header;
       (void)curr_scope_id_lookup(&locator, IDL_PROJ_SYMBOL_ALLOWED);
-      if (locator.specific_symbol != NULL &&
-          (locator.specific_symbol->kind != (a_symbol_kind)sk_type ||
-           !locator.specific_symbol->variant.type.is_injected_class_name)) {
+      existing_sym = locator.specific_symbol;
+      if (existing_sym != NULL) {
+        reduce_projection_symbol_to_fundamental_symbol(existing_sym);
+      }  /* if */
+      if (existing_sym != NULL && existing_sym != fund_sym &&
+          (existing_sym->kind != (a_symbol_kind)sk_type ||
+           !existing_sym->variant.type.is_injected_class_name)) {
         /* Except to introduce function names into an overload set, a
            using declaration cannot usually coexist with another declaration
            with the same name. */
@@ -11022,10 +11028,9 @@ or implicit) controlling the declaration.
           err = TRUE;
         }  /* if */
         if (!err) {
-          fund_sym = fundamental_symbol_of(locator.specific_symbol);
-          if (is_function_or_template_symbol(fund_sym)) {
+          if (is_function_or_template_symbol(existing_sym)) {
             /* Okay. */
-          } else if (is_nontype_template_param_symbol(fund_sym)) {
+          } else if (is_nontype_template_param_symbol(existing_sym)) {
             /* Might be a function symbol, so it's okay. */
           } else {
             err = TRUE;
@@ -11035,7 +11040,6 @@ or implicit) controlling the declaration.
           /* Name has already been declared. */
           pos_st_error(ec_id_already_declared, &decl_pos,
                        locator_for_curr_id.symbol_header->identifier);
-          err = TRUE;
         }  /* if */
       }  /* if */
       if (!err) {
