@@ -102,12 +102,13 @@ Do required initialization for host-dependent things.
     c = -1;
     if (c > 0) internal_error("host_init: CHAR_MIN in basics.h is set wrong");
 #endif /* CHAR_MIN == 0 */
-    /* Check that CHAR_MIN and CHAR_MAX add up to the right power of two. */
-#if CHAR_MAX-CHAR_MIN != ((1 << CHAR_BIT) - 1)
-    internal_error("host_init: CHAR_MIN or CHAR_MAX in basics.h is set wrong");
-#endif /* CHAR_MAX ... */
   }
 #endif /* CHECKING */
+
+#if CHAR_MAX-CHAR_MIN != ((1 << CHAR_BIT) - 1)
+    /* Check that CHAR_MIN and CHAR_MAX add up to the right power of two. */
+??=error -- CHAR_MIN or CHAR_MAX in basics.h is set wrong
+#endif /* CHAR_MAX ... */
 
   /* Generate the object file name from the primary source file name.
      This name is used in generating makefile dependency lines. */
@@ -497,6 +498,29 @@ static void target_init(void)
 Initialize target machine characteristics.
 */
 {
+#if CHECKING
+  { a_targ_size_t    size;
+    a_targ_alignment alignment;
+
+    /* The target size_t may be no bigger than the host long. */
+    get_integer_size_and_alignment((an_integer_kind)TARG_SIZE_T_INT_KIND,
+                                   &size, &alignment);
+    if (size > sizeof(long)) {
+      internal_error(
+                 "target_init: TARG_SIZE_T_INT_KIND in target.h is set wrong");
+    }  /* if */
+    /* The target ptrdiff_t may be no bigger than the host long. */
+    get_integer_size_and_alignment((an_integer_kind)TARG_PTRDIFF_T_INT_KIND,
+                                   &size, &alignment);
+    if (size > sizeof(long)) {
+      internal_error(
+              "target_init: TARG_PTRDIFF_T_INT_KIND in target.h is set wrong");
+    }  /* if */
+  }
+#endif /* CHECKING */
+#if TARG_CHAR_BIT != CHAR_BIT
+??=error -- the target and host characters must have the same number of bits.
+#endif /* TARG_CHAR_BIT != CHAR_BIT */
   /* The signedness of characters can be set on the command line. */
   if (targ_has_signed_chars) {
     /* Target has signed characters. */
