@@ -1212,6 +1212,7 @@ Output the indicated constant.
 {
 #if C_GEN_BE_GENERATES_ANSI_C
   if (il_header.source_language == sl_C &&
+      constant->type != NULL &&
       is_pointer_type(constant->type) &&
       type_contains_prototype_scope_type(constant->type)) {
     /* When generating ANSI C, types defined in prototype scopes are kept.
