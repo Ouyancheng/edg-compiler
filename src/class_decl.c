@@ -6474,8 +6474,7 @@ Scan the body of a class definition, including the base classes list.
                    argsused and varargs-count state in the routine type.
                    That will suppress any warnings about unused parameters
                    or variable arguments. */
-                record_lint_argsused_and_varargs_state(
-                                        rout_sym->variant.routine.ptr->type);
+                record_lint_argsused_and_varargs_state(rout_sym);
                 remove_stop_token(tok_comma);
                 /* Cache the tokens comprising the function definition
                    so that they can be rescanned once the entire class

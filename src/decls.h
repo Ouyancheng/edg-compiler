@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-1994 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -180,7 +180,7 @@ extern void decl_typedef(a_symbol_locator             *locator,
                          a_symbol_ptr                 *symbol_ptr,
                          a_source_sequence_entry_ptr  declarator_ssep);
 
-extern void record_lint_argsused_and_varargs_state(a_type_ptr  rout_type);
+extern void record_lint_argsused_and_varargs_state(a_symbol_ptr  rout_sym);
 
 extern void inline_function_definition(a_routine_ptr     routine_ptr,
                                        a_func_info_block *func_info);
@@ -458,6 +458,6 @@ extern void scan_function_body(a_routine_ptr      rout_ptr,
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-1994 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
