@@ -3393,7 +3393,7 @@ on for use in generating cross-reference output describing this declaration.
                                                 &homonym_symbol);
     /* orig_nsp is set for redeclarations of a namespace member in a
        containing scope. */
-    if (linked_symbol != NULL) {
+    if (linked_symbol != NULL && !is_friend_decl) {
       orig_nsp = linked_symbol->parent.namespace_ptr;
       /* This is a definition of a namespace member appearing in a scope
          other than that of the namespace to which it belongs, so reactivate 
