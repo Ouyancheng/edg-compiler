@@ -885,6 +885,19 @@ extern void change_primary_include_search_dir(char *dir_name);
 /* Manage include search path when source input file is pushed or popped. */
 extern void push_primary_include_search_dir(char *dir_name);
 extern void pop_primary_include_search_dir(char *dir_name);
+
+EXTERN a_boolean
+		stack_referenced_include_directories
+#if VAR_INITIALIZERS
+                                    = STACK_REFERENCED_INCLUDE_DIRECTORIES
+#endif /* VAR_INITIALIZERS */
+                                                                          ;
+			/* If TRUE a stack model is used to manage the include
+			   search list and FALSE if some other model (by
+			   default, a replace-restore model) is to be used
+			   instead.  Typically, this flag is TRUE when
+			   microsoft_mode is TRUE. */
+
 /* Extract the directory name from a file name. */
 extern char *directory_of(char *file_name);
 extern char *gs_directory_of(char *file_name);
