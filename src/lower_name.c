@@ -917,26 +917,6 @@ entity processed.
 }  /* add_substitution_if_available */
 
 
-static a_boolean add_substitution(char                     *entity,
-                                  an_il_entry_kind         kind,
-                                  a_mangling_control_block *mctl)
-/*
-If there is a substitution available for entity, add it to the mangled name
-and return TRUE.  Otherwise return FALSE, but create a new substitution entry
-for entity.  The kind indicates the kind of entity processed.
-*/
-{
-  a_boolean result;
-
-  result = add_substitution_if_available(entity, kind, mctl);
-  if (!result) {
-    alloc_substitution(entity, kind, mctl);
-  }  /* if */
-  
-  return result;
-}  /* add_substitution */
-
-
 static void add_prefix_for_local_class(a_type_ptr               type,
                                        a_mangling_control_block *mctl)
 /*
@@ -3070,7 +3050,7 @@ supplies the usual nesting_level == 1.
       a_class_type_supplement_ptr ctsp;
       tmpl = class_template_of(type);
       if (tmpl != NULL &&
-          add_substitution((char *)tmpl, iek_template, mctl)) {
+          add_substitution_if_available((char *)tmpl, iek_template, mctl)) {
         ctsp = type->variant.class_struct_union.extra_info;
         mangled_template_arguments(ctsp->template_arg_list,
                                    /*partial_spec=*/FALSE,
@@ -3083,6 +3063,7 @@ supplies the usual nesting_level == 1.
            deal with all of the parents. */
         r_mangled_parent_qualifier(parent_scp, nesting_level + 1, mctl);
       }  /* if */
+      if (tmpl != NULL) alloc_substitution((char *)tmpl, iek_template, mctl);
     }  /* if */
 #endif /* IA64_ABI */
     show_partial_spec_args = FALSE;
@@ -3242,10 +3223,11 @@ and for unnamed classes and enums.  Nested types are encoded as such.
      this entire type.  Check here to see if the type is an instantiation of a
      template for which a substitution is available. */
   /* Don't do this for typedefs passed from final_type_name_mangling. */
+  tmpl = NULL;  
   if (is_immediate_class_type(type)) {
     tmpl = class_template_of(type);
     if (tmpl != NULL && 
-        add_substitution((char *)tmpl, iek_template, mctl)) {
+        add_substitution_if_available((char *)tmpl, iek_template, mctl)) {
       ctsp = type->variant.class_struct_union.extra_info;
       mangled_template_arguments(ctsp->template_arg_list,
                                  /*partial_spec=*/FALSE,
@@ -3256,6 +3238,7 @@ and for unnamed classes and enums.  Nested types are encoded as such.
   }  /* if */
   mangled_ia64_parent_qualifier(&type->source_corresp, iek_type,
                                 &need_nested_name_close, mctl);
+  if (tmpl != NULL) alloc_substitution((char *)tmpl, iek_template, mctl);
 #else /* !IA64_ABI */
   if (type_needs_parent_qualifier(type)) {
     /* The type is a member of a class or namespace, so put out a qualifier.
@@ -4072,6 +4055,7 @@ name appears.
   a_boolean        is_template_specialization = FALSE;
 #else /* IA64_ABI */
   a_boolean        need_nested_name_close = FALSE;
+  a_template_ptr   tmpl = NULL;
 #endif /* !IA64_ABI */
   unsigned int     num_operands;
   a_param_type_ptr ptp;
@@ -4091,13 +4075,6 @@ name appears.
      processing.
   */
   routine_type = skip_typerefs(routine->type);
-#if IA64_ABI
-  if (!suppress_parent_encoding) {
-    /* Add a parent qualifier for a member if needed. */
-    mangled_ia64_parent_qualifier(&routine->source_corresp, iek_routine,
-                                  &need_nested_name_close, mctl);
-  }  /* if */
-#endif /* IA64_ABI */
   /* See if the function should be mangled as a template.  In the modern C++
      language, template functions are mangled using the template arguments
      and the prototype for the function.  This allows overloading of function
@@ -4133,8 +4110,8 @@ name appears.
       routine_type = tssp->variant.function.routine->type;
       routine_type = skip_typerefs(routine_type);
 #if IA64_ABI
-      if (add_substitution((char *)tssp->il_template_entry,
-                           iek_template, mctl)) {
+      tmpl = tssp->il_template_entry;
+      if (add_substitution_if_available((char *)tmpl, iek_template, mctl)) {
         goto mangle_template;
       }  /* if */
 #endif /* IA64_ABI */
@@ -4147,6 +4124,14 @@ name appears.
     }  /* if */
 #endif /* !IA64_ABI */
   }  /* if */
+#if IA64_ABI
+  if (!suppress_parent_encoding) {
+    /* Add a parent qualifier for a member if needed. */
+    mangled_ia64_parent_qualifier(&routine->source_corresp, iek_routine,
+                                  &need_nested_name_close, mctl);
+  }  /* if */
+  if (tmpl != NULL) alloc_substitution((char *)tmpl, iek_template, mctl);
+#endif /* IA64_ABI */
   /* Put out the base name of the function. */
   conversion_type = NULL;
   if (routine->special_kind == (a_special_function_kind)sfk_conversion) {
