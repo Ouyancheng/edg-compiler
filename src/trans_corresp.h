@@ -46,6 +46,12 @@ void f_report_bad_trans_unit_corresp(char                   *entity1,
 
 
 /*
+Routine to record builtin type correspondences.
+*/
+void record_builtin_type(a_type_ptr  type);
+
+
+/*
 The following canonical_*_entry_of routines return the canonical entry
 associated with the given entity.  If it has not yet been looked up, that
 canonical entry will be established as part of the call.

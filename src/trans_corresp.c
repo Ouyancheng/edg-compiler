@@ -31,6 +31,22 @@ trans_corresp.c -- Routines related to matching entities across
 /* Additional header files. */
 #include "trans_corresp.h"
 
+/* Pointers to canonical built-in types. */
+static a_type_ptr canonical_int_types[(int)ik_last];
+static a_type_ptr canonical_signed_int_types[(int)ik_last];
+#if MICROSOFT_EXTENSIONS_ALLOWED
+static a_type_ptr canonical_microsoft_sized_int_types[(int)ik_last];
+static a_type_ptr canonical_microsoft_sized_signed_int_types[(int)ik_last];
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+static a_type_ptr canonical_float_types[(int)fk_last];
+#if C99_IL_EXTENSIONS_SUPPORTED
+static a_type_ptr canonical_complex_types[(int)fk_last];
+static a_type_ptr canonical_imaginary_types[(int)fk_last];
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+static a_type_ptr canonical_il_void_type;
+static a_type_ptr canonical_il_wchar_t_type;
+static a_type_ptr canonical_il_bool_type;
+
 /* Forward declarations. */
 static void clear_scope_correspondence(a_scope_ptr  scope,
                                        a_boolean    visited);
@@ -486,6 +502,84 @@ need to be determined.
   }  /* switch */
   return result;
 }  /* may_have_correspondence */
+
+
+static void set_builtin_type_corresp(a_type_ptr  *record,
+                                     a_type_ptr  type)
+/*
+*record holds a record of the canonical builtin type equivalent to the given
+type.  If *record is NULL, the type is to become that canonical type.
+Otherwise, type's correspondence should be set to *record.
+*/
+{
+  if (*record == NULL) {
+    *record = type;
+    trans_unit_corresp_pointer_of(type) = (char*)type;
+  } else {
+    trans_unit_corresp_pointer_of(type) = (char*)*record;
+  }  /* if */
+}  /* set_builtin_type_corresp */
+
+
+void record_builtin_type(a_type_ptr  type)
+/*
+This routine is called whenever a basic builtin type is created.  If this is
+the first time this particular type is created, the type is recorded in an
+array so that it can be found when an equivalent type is created in a future
+translation unit.  If the type had already been created, its correspondence
+is set to point to the first created type.
+*/
+{
+  switch (type->kind) {
+    case tk_void:
+      set_builtin_type_corresp(&canonical_il_void_type, type);
+      break;
+    case tk_integer:
+      if (type->variant.integer.bool_type) {
+        set_builtin_type_corresp(&canonical_il_bool_type, type);
+      } else if (type->variant.integer.wchar_t_type) {
+        set_builtin_type_corresp(&canonical_il_wchar_t_type, type);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (type->variant.integer.microsoft_sized_int_type) {
+        if (type->variant.integer.explicitly_signed) {
+          set_builtin_type_corresp(
+               &canonical_microsoft_sized_signed_int_types[
+                                              type->variant.integer.int_kind],
+               type);
+        } else {
+          set_builtin_type_corresp(
+               &canonical_microsoft_sized_int_types[
+                                              type->variant.integer.int_kind],
+               type);
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      } else {
+        if (type->variant.integer.explicitly_signed) {
+          set_builtin_type_corresp(
+                  &canonical_signed_int_types[type->variant.integer.int_kind],
+                  type);
+        } else {
+          set_builtin_type_corresp(
+                  &canonical_int_types[type->variant.integer.int_kind], type);
+        }  /* if */
+      }  /* if */
+      break;
+    case tk_float:
+      set_builtin_type_corresp(
+                      &canonical_float_types[type->variant.float_kind], type);
+      break;
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case tk_imaginary:
+      set_builtin_type_corresp(
+                  &canonical_imaginary_types[type->variant.float_kind], type);
+      break;
+    case tk_complex:
+      set_builtin_type_corresp(
+                    &canonical_complex_types[type->variant.float_kind], type);
+      break;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+  }  /* switch */
+}  /* record_builtin_type */
 
 
 static a_field_ptr skip_generated_field(a_field_ptr  field)

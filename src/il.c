@@ -5086,6 +5086,7 @@ return a pointer to it.
        and then found again in a later phase (e.g., IL lowering). */
     add_orphaned_file_scope_il_entry((char *)pit, (an_il_entry_kind)iek_type);
 #endif /* ORPHAN_PROCESSING_NEEDED */
+    record_builtin_type(pit);
   }  /* if */
   return pit;
 }  /* integer_type */
@@ -5117,6 +5118,7 @@ as opposed to just a typedef for another integral type.)
     add_orphaned_file_scope_il_entry((char *)pit, (an_il_entry_kind)iek_type);
 #endif /* ORPHAN_PROCESSING_NEEDED */
     microsoft_sized_int_types[kind] = pit;
+    record_builtin_type(pit);
   }  /* if */
   return pit;
 }  /* microsoft_sized_integer_type */
@@ -5159,6 +5161,7 @@ ik_short, ik_int, ik_long, and ik_long_long.
        and then found again in a later phase (e.g., IL lowering). */
     add_orphaned_file_scope_il_entry((char *)pit, (an_il_entry_kind)iek_type);
 #endif /* ORPHAN_PROCESSING_NEEDED */
+    record_builtin_type(pit);
   }  /* if */
   return pit;
 }  /* signed_integer_type */
@@ -5202,6 +5205,7 @@ type.)
     add_orphaned_file_scope_il_entry((char *)pit, (an_il_entry_kind)iek_type);
 #endif /* ORPHAN_PROCESSING_NEEDED */
     microsoft_sized_signed_int_types[kind] = pit;
+    record_builtin_type(pit);
   }  /* if */
   return pit;
 }  /* microsoft_sized_signed_integer_type */
@@ -5230,6 +5234,7 @@ This is only used when wchar_t is a distinct type.
        and then found again in a later phase (e.g., IL lowering). */
     add_orphaned_file_scope_il_entry((char *)pit, (an_il_entry_kind)iek_type);
 #endif /* ORPHAN_PROCESSING_NEEDED */
+    record_builtin_type(pit);
   }  /* if */
   return pit;
 }  /* wchar_t_type */
@@ -5267,6 +5272,7 @@ Make or find a type entry for a bool type and return a pointer to it.
        and then found again in a later phase (e.g., IL lowering). */
     add_orphaned_file_scope_il_entry((char *)pit, (an_il_entry_kind)iek_type);
 #endif /* ORPHAN_PROCESSING_NEEDED */
+    record_builtin_type(pit);
   }  /* if */
   return pit;
 }  /* bool_type */
@@ -5293,6 +5299,7 @@ return a pointer to it.
        and then found again in a later phase (e.g., IL lowering). */
     add_orphaned_file_scope_il_entry((char *)pft, (an_il_entry_kind)iek_type);
 #endif /* ORPHAN_PROCESSING_NEEDED */
+    record_builtin_type(pft);
   }  /* if */
   return pft;
 }  /* float_type */
@@ -5329,6 +5336,7 @@ return a pointer to it.
        and then found again in a later phase (e.g., IL lowering). */
     add_orphaned_file_scope_il_entry((char *)pft, (an_il_entry_kind)iek_type);
 #endif /* ORPHAN_PROCESSING_NEEDED */
+    record_builtin_type(pft);
   }  /* if */
   return pft;
 }  /* complex_type */
@@ -5364,6 +5372,7 @@ return a pointer to it.
        and then found again in a later phase (e.g., IL lowering). */
     add_orphaned_file_scope_il_entry((char *)pft, (an_il_entry_kind)iek_type);
 #endif /* ORPHAN_PROCESSING_NEEDED */
+    record_builtin_type(pft);
   }  /* if */
   return pft;
 }  /* imaginary_type */
@@ -5494,6 +5503,7 @@ Make or find a type entry for a void type, and return a pointer to it.
     add_orphaned_file_scope_il_entry((char *)il_void_type,
                                      (an_il_entry_kind)iek_type);
 #endif /* ORPHAN_PROCESSING_NEEDED */
+    record_builtin_type(il_void_type);
   }  /* if */
   return il_void_type;
 }  /* void_type */
