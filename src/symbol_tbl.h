@@ -981,15 +981,26 @@ extern an_extern_type_fixup_ptr alloc_etype_fixup(void);
    (sym)->kind == (a_symbol_kind)sk_member_function ||                \
    (sym)->kind == (a_symbol_kind)sk_overloaded_function)
 
+/* Return TRUE if an sk_routine or sk_member_function symbol "sym" is marked
+   as being of special function kind "kind". */
+#define is_special_kind_function_symbol(sym, kind)                    \
+  ((sym)->variant.routine->special_kind == (a_special_function_kind)kind)
+
 /* Return TRUE if a symbol is a constructor symbol. */
 #define is_constructor_symbol(sym)                                    \
   (((sym)->kind == (a_symbol_kind)sk_member_function &&               \
-    (sym)->variant.routine->special_kind ==                           \
-                        (a_special_function_kind)sfk_constructor) ||  \
+    is_special_kind_function_symbol((sym), sfk_constructor)) ||       \
    ((sym)->kind == (a_symbol_kind)sk_overloaded_function &&           \
-    (sym)->variant.overloaded_function.symbols->                      \
-                                variant.routine->special_kind ==      \
-                        (a_special_function_kind)sfk_constructor))
+    is_special_kind_function_symbol(                                  \
+       (sym)->variant.overloaded_function.symbols, sfk_constructor)))
+
+/* Return TRUE if a symbol is a destructor symbol. */
+#define is_destructor_symbol(sym)                                     \
+  (((sym)->kind == (a_symbol_kind)sk_member_function &&               \
+    is_special_kind_function_symbol((sym), sfk_destructor)) ||        \
+   ((sym)->kind == (a_symbol_kind)sk_overloaded_function &&           \
+    is_special_kind_function_symbol(                                  \
+       (sym)->variant.overloaded_function.symbols, sfk_destructor)))
 
 /*
 Extract the type from a type symbol (one for which is_type_symbol is TRUE).
