@@ -2332,7 +2332,7 @@ Definitions of the bits comprising bit vectors of type a_type_qualifier.
 			/* This bit is set to represent const. */
 #define TQ_VOLATILE 0x2
 			/* This bit is set to represent volatile. */
-#define NUM_BITS_FOR_TYPE_QUALIFIER 2
+#define NUM_BITS_FOR_TYPE_QUALIFIER_SET 2
 
 
 typedef struct a_type {
@@ -2601,7 +2601,7 @@ typedef struct a_type {
 			   type.  NULL otherwise. */
 #endif /* DO_IL_LOWERING */
       a_type_qualifier_set
-		qualifiers:NUM_BITS_FOR_TYPE_QUALIFIER;
+		qualifiers:NUM_BITS_FOR_TYPE_QUALIFIER_SET;
 			/* Bit vector with bits set to indicate the presence
 			   of one or more type qualifiers (const, volatile,
 			   or other(s) as defined by the implementation). */
