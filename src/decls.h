@@ -178,8 +178,10 @@ extern void reconcile_routine_types(a_routine_ptr  routine_ptr,
 extern void add_throw_specification(a_func_info_block_ptr  func_info,
                                     a_routine_ptr          rp);
 
-extern void set_to_throw_anything(a_func_info_block_ptr  func_info,
-                                  a_source_position      *pos);
+
+extern void check_throw_specification(a_func_info_block_ptr  func_info,
+                                      a_routine_ptr          rp);
+
 
 extern void decl_var_or_routine(a_symbol_locator    *locator,
                                 a_storage_class     storage_class,
