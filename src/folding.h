@@ -25,6 +25,7 @@ extern void unary_operation(an_expr_operator_kind op,
                             a_type_ptr            result_type,
                             a_constant            *result,
                             a_boolean             constant_context,
+                            a_boolean             evaluated_context,
                             a_boolean             *did_not_fold,
                             a_boolean             *template_constant,
                             a_source_position     *err_pos);
@@ -35,6 +36,7 @@ extern void binary_operation(an_expr_operator_kind op,
                              a_type_ptr            result_type,
                              a_constant            *result,
                              a_boolean             constant_context,
+                             a_boolean             evaluated_context,
                              a_boolean             *did_not_fold,
                              a_boolean             *template_constant,
                              a_source_position     *err_pos);
@@ -47,6 +49,7 @@ extern void type_change_constant(a_constant        *constant,
                                  a_type_ptr        new_type,
                                  a_boolean         is_implicit_cast,
                                  a_boolean         constant_context,
+                                 a_boolean         evaluated_context,
                                  a_boolean         *did_not_fold,
                                  a_source_position *err_pos);
 

@@ -1850,7 +1850,7 @@ The result is placed in *result.
       }  /* if */
     }  /* if */
     if (did_not_fold) {
-      if (curr_expr_kind_is_const() && curr_expr_is_evaluated()) {
+      if (curr_expr_kind_is_const()) {
         /* The operation must fold to a constant in a constant expression. */
         if (field->is_bit_field) {
           /* A bit-field selection cannot be folded.  There will be a
@@ -3279,13 +3279,14 @@ arithmetic type.  The operand of "~" must have integral type.  See section
         /* Other operators (not unary "+"). */
         did_not_fold = TRUE;
         template_constant = FALSE;
-        if (curr_expr_is_evaluated() && is_constant_operand(&operand)) {
+        if (is_constant_operand(&operand)) {
           /* Fold the operation if the operand is constant.  In a nonconstant
              context, reduce any error to a warning and leave the operation
              to be done at runtime. */
           unary_operation(op, &operand.variant.constant,
                           result_type, &result_constant,
                           curr_expr_kind_is_const(),
+                          curr_expr_is_evaluated(),
                           &did_not_fold, &template_constant, &start_position);
         }  /* if */
         if (did_not_fold) {
@@ -3296,7 +3297,7 @@ arithmetic type.  The operand of "~" must have integral type.  See section
             make_template_param_expr_constant_operand(&operand,
                                                       (an_operand *)NULL, op,
                                                       result_type, result);
-          } else if (curr_expr_kind_is_const() && curr_expr_is_evaluated()) {
+          } else if (curr_expr_kind_is_const()) {
             /* A constant operation could not be folded in a constant
                expression. */
             pos_error(ec_expr_not_constant, &start_position);

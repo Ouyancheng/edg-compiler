@@ -1,5 +1,16 @@
 Version 2.23
 
+3/30/94  Constant folding done in not-evaluated expressions
+
+Constant operation folding is now done in not-evaluated expressions.
+It is necessary to detect null pointer constants like the one in the
+following:
+
+    1 ? "x" : (1-1);
+
+Any errors or warnings detected while doing the folding are not
+issued, however.
+
 3/30/94  Recognizing a label with same name as a type in C mode
 
 A bug (which appeared only in C mode) has been fixed in which a label

@@ -1384,7 +1384,8 @@ If is_implicit_cast is TRUE, this is an implicit cast rather than an explicit
 one.  Warnings about truncation etc. are issued only if is_implicit_cast
 is TRUE.  *err_pos gives the source position for errors.  The current
 expression is assumed to be a nonconstant expression; if it were a
-constant expression, we wouldn't have an expression node.
+constant expression, we wouldn't have an expression node.  It's also
+assumed to be an evaluated expression (for purposes of error diagnosis).
 The caller must have already determined that the conversion is allowed,
 except for casts to ambiguous or inaccessible base classes.
 */
@@ -1411,8 +1412,9 @@ except for casts to ambiguous or inaccessible base classes.
          the conversion to be done at runtime. */
       copy_constant((*node)->variant.constant, &local_constant);
       type_change_constant(&local_constant, new_type, is_implicit_cast,
-                           /*constant_context=*/FALSE, &did_not_fold,
-                           err_pos);
+                           /*constant_context=*/FALSE,
+                           /*evaluated_context=*/TRUE,
+                           &did_not_fold, err_pos);
     }  /* if */
     if (did_not_fold) {
       /* The operand is not constant.  Put in a cast. */
@@ -1486,21 +1488,14 @@ except for casts to ambiguous or inaccessible base classes.
              context, reduce any error to a warning and leave the
              conversion to be done at runtime. */
           did_not_fold = TRUE;
-          if (curr_expr_is_evaluated() ||
-              /* In C mode, (void *)0 is a null pointer constant and must
-                 be folded even when not evaluated so it can be recognized
-                 as a null pointer constant. */
-              (C_dialect != C_dialect_cplusplus &&
-               is_zero_constant(&operand->variant.constant) &&
-               is_pointer_type(new_type))) {
-            copy_constant(&operand->variant.constant, &local_constant);
-            type_change_constant(&local_constant, new_type, is_implicit_cast,
-                                 curr_expr_kind_is_const(),
-                                 &did_not_fold, &operand->position);
-          }  /* if */
+          copy_constant(&operand->variant.constant, &local_constant);
+          type_change_constant(&local_constant, new_type, is_implicit_cast,
+                               curr_expr_kind_is_const(),
+                               curr_expr_is_evaluated(),
+                               &did_not_fold, &operand->position);
           if (did_not_fold) {
             /* Cast of a constant did not fold. */
-            if (curr_expr_kind_is_const() && curr_expr_is_evaluated()) {
+            if (curr_expr_kind_is_const()) {
               error_in_operand(ec_expr_not_constant, operand);
             } else if (il_identical_types(operand->type, new_type)) {
               /* If the new type is identical to the old type, just put the
@@ -1656,7 +1651,7 @@ in C++ mode.
     }  /* if */
     if (did_not_fold) {
       /* The cast could not be folded to a constant. */
-      if (curr_expr_kind_is_const() && curr_expr_is_evaluated()) {
+      if (curr_expr_kind_is_const()) {
         /* The cast must fold to a constant in a constant expression. */
         error_in_operand(ec_expr_not_constant, operand);
       } else {
@@ -2979,7 +2974,7 @@ if possible.
        current expression is being evaluated. */
     did_not_fold = TRUE;
     template_constant = FALSE;
-    if (try_folding && curr_expr_is_evaluated() &&
+    if (try_folding && 
         is_constant_operand(operand_1) && is_constant_operand(operand_2)) {
       clear_operand((an_operand_kind)ok_constant, result);
       /* If the operator could not be determined (because the operand types
@@ -2997,6 +2992,7 @@ if possible.
                          &operand_2->variant.constant,
                          result_type, &result->variant.constant,
                          curr_expr_kind_is_const(),
+                         curr_expr_is_evaluated(),
                          &did_not_fold, &template_constant, operator_position);
       }  /* if */
     }  /* if */
@@ -3007,7 +3003,7 @@ if possible.
            constant for the result. */
         make_template_param_expr_constant_operand(operand_1, operand_2,
                                                   op, result_type, result);
-      } else if (curr_expr_kind_is_const() && curr_expr_is_evaluated()) {
+      } else if (curr_expr_kind_is_const()) {
         /* An operation on constants could not be folded.  For example,
            a pointer comparison between pointers that aren't in the
            same object can't be represented as a constant.  In a

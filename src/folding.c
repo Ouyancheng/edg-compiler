@@ -1022,18 +1022,25 @@ Convert an integer constant to a pointer to member.
 static void issue_folding_diagnostic(an_error_code     err_code,
                                      an_error_severity err_severity,
                                      a_boolean         constant_context,
+                                     a_boolean         evaluated_context,
                                      a_boolean         *did_not_fold,
                                      a_source_position *err_pos,
                                      a_constant        *result)
 /*
 An error or warning has been detected in a folding operation; err_code
 and err_severity indicate what it is.  If not in a constant_context, reduce
-an error to a warning and set *did_not_fold to TRUE.  Issue the diagnostic
-at source position *err_pos.  Set *result to the proper result (often, an
-error constant).  
+an error to a warning and set *did_not_fold to TRUE.  If not in an
+evaluated_context, throw away the error and set *did_not_fold to TRUE.
+(When constant_context is TRUE, evaluated_context will always be TRUE.)
+Issue the diagnostic at source position *err_pos.  Set *result to the
+proper result (often, an error constant).  
 */
 {
-  if (!constant_context && err_severity == es_error) {
+  if (!evaluated_context) {
+    /* Discard a warning or error in a not-evaluated context. */
+    err_severity = es_none;
+    *did_not_fold = TRUE;
+  } else if (!constant_context && err_severity == es_error) {
     /* Reduce an error to a warning in a nonconstant context. */
     err_severity = es_warning;
     *did_not_fold = TRUE;
@@ -1041,7 +1048,7 @@ error constant).
   if (err_severity == es_error) {
     pos_error(err_code, err_pos);
     set_error_constant(result);
-  } else {
+  } else if (err_severity == es_warning) {
     pos_warning(err_code, err_pos);
   }  /* if */
 }  /* issue_folding_diagnostic */
@@ -1051,6 +1058,7 @@ void type_change_constant(a_constant        *constant,
 			  a_type_ptr        new_type,
 			  a_boolean         is_implicit_cast,
                           a_boolean         constant_context,
+                          a_boolean         evaluated_context,
                           a_boolean         *did_not_fold,
                           a_source_position *err_pos)
 /*
@@ -1059,6 +1067,9 @@ using the position *err_pos.  If is_implicit_cast is TRUE, this is an
 implicit cast; more warnings are given.  If constant_context is FALSE, this
 operation is being evaluated as part of a nonconstant expression, so
 any error is reduced to a warning and *did_not_fold is returned TRUE.
+If evaluated_context is FALSE, this operation is being done in a
+not-evaluated context (e.g., a sizeof or a dead branch of a "?" operator),
+so any error is thrown away and *did_not_fold is returned TRUE.
 *did_not_fold is also returned TRUE in other cases where the folding
 cannot be done.
 */
@@ -1219,7 +1230,8 @@ exit:
   if (err_code != ec_no_error) {
     /* There was an error or warning. */
     issue_folding_diagnostic(err_code, err_severity, constant_context,
-                             did_not_fold, err_pos, &new_constant);
+                             evaluated_context, did_not_fold,
+                             err_pos, &new_constant);
     if (err_severity == es_error) depends_on_rounding_mode = FALSE;
   }  /* if */
   if (depends_on_rounding_mode && !constant_context) {
@@ -1469,6 +1481,7 @@ void unary_operation(an_expr_operator_kind op,
                      a_type_ptr            result_type,
 		     a_constant            *result,
                      a_boolean             constant_context,
+                     a_boolean             evaluated_context,
                      a_boolean             *did_not_fold,
                      a_boolean             *template_constant,
                      a_source_position     *err_pos)
@@ -1478,6 +1491,9 @@ constant the operand.  result_type indicates the desired result type.
 The result constant is put into result.  If constant_context is FALSE,
 this operation is being evaluated as part of a nonconstant expression,
 so any error is reduced to a warning and *did_not_fold is returned TRUE.
+If evaluated_context is FALSE, this operation is being done in a
+not-evaluated context (e.g., a sizeof or a dead branch of a "?" operator),
+so any error is thrown away and *did_not_fold is returned TRUE.
 *did_not_fold is also returned TRUE if the operation could not be
 folded for any other reason (*template_constant is returned TRUE if
 the reason is that the constant is a template parameter constant).
@@ -1533,7 +1549,8 @@ the reason is that the constant is a template parameter constant).
     if (err_code != ec_no_error) {
       /* There was an error or warning. */
       issue_folding_diagnostic(err_code, err_severity, constant_context,
-                               did_not_fold, err_pos, result);
+                               evaluated_context, did_not_fold,
+                               err_pos, result);
     }  /* if */
   }  /* if */
 
@@ -2541,6 +2558,7 @@ void binary_operation(an_expr_operator_kind op,
 		      a_type_ptr            result_type,
 		      a_constant            *result,
                       a_boolean             constant_context,
+                      a_boolean             evaluated_context,
 		      a_boolean             *did_not_fold,
                       a_boolean             *template_constant,
                       a_source_position     *err_pos)
@@ -2550,8 +2568,11 @@ and constant_1 and constant_2 are the operands.  result_type indicates
 the desired result type.  The result constant is placed in *result.
 If constant_context is FALSE, this operation is being evaluated as
 part of a nonconstant expression, so any error is reduced to a
-warning and *did_not_fold is returned TRUE.  *did_not_fold is also
-returned TRUE if the operation could not be folded for any other
+warning and *did_not_fold is returned TRUE.  If evaluated_context
+is FALSE, this operation is being done in a not-evaluated context
+(e.g., a sizeof or a dead branch of a "?" operator), so any error
+is thrown away and *did_not_fold is returned TRUE. *did_not_fold is
+also returned TRUE if the operation could not be folded for any other
 reason (*template_constant is returned TRUE if the reason is that
 the constant is a template parameter constant).  *err_pos is used
 as the position for any diagnostics issued.
@@ -2728,7 +2749,8 @@ as the position for any diagnostics issued.
     if (err_code != ec_no_error) {
       /* There was an error or warning. */
       issue_folding_diagnostic(err_code, err_severity, constant_context,
-                               did_not_fold, err_pos, result);
+                               evaluated_context, did_not_fold,
+                               err_pos, result);
       if (err_severity == es_error) depends_on_rounding_mode = FALSE;
     }  /* if */
     if (depends_on_rounding_mode && !constant_context) {
