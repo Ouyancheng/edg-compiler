@@ -835,6 +835,11 @@ Display the indicated constant entry.
   if (ptr->null_pointer_constant_ruled_out) {
     disp_boolean("null_pointer_constant_ruled_out", TRUE);
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  if (ptr->null_keyword) {
+    disp_boolean("null_keyword", TRUE);
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   disp_name("kind");
   switch (ptr->kind) {
     case ck_error:

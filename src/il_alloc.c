@@ -729,6 +729,9 @@ associated variant fields to default values.
   cp->assoc_var_assigned = FALSE;
 #endif /* DO_IL_LOWERING || BACK_END_IS_C_GEN_BE */
   cp->null_pointer_constant_ruled_out = FALSE;
+#if GNU_EXTENSIONS_ALLOWED
+  cp->null_keyword = FALSE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if CHECKING
   cp->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */
