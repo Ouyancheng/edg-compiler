@@ -402,7 +402,7 @@ indicated alignment and the pack alignment stack is temporarily suspended
     curr_max_member_alignment = alignment;
     pack_alignment_stack = NULL;
   }  /* if */
-}  /* save_pack_alignment_state */
+}  /* reset_pack_alignment_state */
 
 
 void restore_pack_alignment_state(a_pack_alignment_state_ptr  state)
