@@ -4721,6 +4721,17 @@ on for use in generating cross-reference output describing this declaration.
                            &locator->source_position);
           }  /* if */
         }  /* if */
+      } else if (!C_mode() && idlb.is_block_extern_decl &&
+                 idlb.prior_decl_in_enclosing_scope != NULL) {
+        /* Be sure to transfer the name linkage ("C"/"C++") to a block extern
+           declaration of a function if a prior declaration was visible. */
+        a_symbol_ptr  prior_decl =
+                    fundamental_symbol_of(idlb.prior_decl_in_enclosing_scope);
+        if (is_function_symbol(prior_decl) &&
+            routine_types_are_compatible(routine_symbol_type(prior_decl),
+                                         type_ptr, TCF_NO_FLAGS)) {
+          type_ptr = routine_symbol_type(prior_decl);
+        }  /* if */
       }  /* if */
     }  /* if */
     if (template_function_specific_decl && !inside_local_class &&

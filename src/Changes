@@ -1,5 +1,19 @@
 Version 2.44
 
+4/24/00  Block extern declarations of extern "C" static functions
+
+In C++ mode, the front end used to ignore previous name linkages when
+redeclaring a function with internal linkage in block scope.  In some cases,
+this resulted in unwarranted diagnostics about incompatible linkage
+specifications.
+
+  extern "C" { static void f() {} }
+  void g() {
+    extern void f(); // OK, refers to declaration above.
+  }                  // (Used to trigger an error.)
+
+This is now fixed.
+
 4/13/00  Diagnostics when redeclaring functions in Microsoft C mode
 
 In C mode, Microsoft compilers only issue a warning when redeclaring a
