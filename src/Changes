@@ -1,5 +1,26 @@
 Version 2.27
 
+10/20/94 Destruction list for global/local statics
+
+The runtime cleanup of global and local static variables (and components
+thereof) is now handled by building a list of entities that require
+destruction.  This produces the proper order of destruction (i.e.,
+the reverse of the construction order) for function-local static
+variables.  It also eliminates the need for exception-cleanup data
+structures for the file scope (since all static entities are covered
+by this new list), and the test on destruction when
+TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE is TRUE.
+A new runtime routine __record_needed_destruction is used to put
+the required destruction requests on a list.  The __std__ file-scope
+termination routine is no longer needed; the runtime just uses
+the list of constructed variables to do the destruction.
+The new order of destruction is different from the cfront order in
+some obscure cases, but the new order matches the ARM/WP and the
+cfront order does not.  We have not provided a way to retain the
+old ordering.  However, we have made the runtime continue to deal
+with __std__ routines so that new code will be compatible with
+previously-generated code and cfront-generated code.
+
 10/19/94 Bug in setting the offset of an indirect base class
 
 A bug has been fixed in setting the offset of an indirect base class that

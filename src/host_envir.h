@@ -447,19 +447,16 @@ with a C back end.
 #endif /* BACK_END_IS_C_GEN_BE && !DO_IL_LOWERING */
 
 /*
-If DO_IL_LOWERING is TRUE, this gives the routine names used for the
-C++ file-scope initialization and termination routines.  The names are
-not really significant (except as a cfront compatibility issue), but
-the C-generating back end needs to know what they are in order to
-recognize them for special handling.
+If DO_IL_LOWERING is TRUE, this gives the routine name used for the
+C++ file-scope initialization routine.  The name is not really
+significant (except as a cfront compatibility issue), but the C-generating
+back end needs to know what it is in order to recognize it for special
+handling.
 */
 #if DO_IL_LOWERING
 #ifndef IL_LOWERING_INIT_ROUTINE_PREFIX
 #define IL_LOWERING_INIT_ROUTINE_PREFIX "__sti__"
 #endif /* ifndef IL_LOWERING_INIT_ROUTINE_PREFIX */
-#ifndef IL_LOWERING_TERM_ROUTINE_PREFIX
-#define IL_LOWERING_TERM_ROUTINE_PREFIX "__std__"
-#endif /* ifndef IL_LOWERING_TERM_ROUTINE_PREFIX */
 #endif /* DO_IL_LOWERING */
 
 /*

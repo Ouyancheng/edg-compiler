@@ -206,8 +206,7 @@ typedef struct a_cleanup_action {
 		conditional_flag_var;
 			/* If non-NULL, points to a variable which will be
 			   non-zero if the cleanup should be done.  This is
-			   needed for local static variables and for
-			   temporaries initialized under conditional
+			   needed for temporaries initialized under conditional
 			   operators. */
       an_expr_node_ptr
 		full_expression;
@@ -228,13 +227,6 @@ typedef struct a_cleanup_action {
 			   entire entry, not a pointer to it, because the
 			   original entry may have been modified into an
 			   entry that is valid in C. */
-#if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
-      a_variable_ptr
-		template_static_data_member_init_guard_var;
-			/* If non-NULL, points to a variable tested in guard
-			   code around the initialization and destruction of
-			   a static data member of a template. */
-#endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
       a_byte_boolean
 		is_expr_temporary;
 			/* TRUE if the entity to be destroyed is a compiler-
@@ -373,7 +365,7 @@ typedef struct a_context {
 		any_conditional_flag_var_initializations_deferred;
 			/* TRUE if one or more initializations of
 			   flag variables for conditional destructions were
-			   deferred by add_cleanup_action_to_context_list.
+			   deferred by lower_dynamic_init.
 			   Only happens when assoc_expr is non-NULL. */
 } a_context;
 EXTERN a_context_ptr
@@ -584,6 +576,8 @@ extern a_cleanup_action_ptr alloc_cleanup_action(
                            a_boolean             applies_on_block_exit,
                            a_boolean             applies_on_exception_cleanup);
 
+extern void free_cleanup_action(a_cleanup_action_ptr cap);
+
 extern void add_cleanup_action_to_context_list(
                                         a_cleanup_action_ptr cap,
                                         a_context_ptr        context,
@@ -604,6 +598,11 @@ extern void turn_statement_into_block(a_statement_ptr statement);
 extern void turn_branch_into_block(a_statement_ptr        statement,
                                    an_insert_location_ptr insert_location,
                                    a_statement_ptr        *orig_statement);
+
+extern void gen_one_cleanup_action(a_cleanup_action_ptr   cap,
+                                   an_insert_location_ptr insert_location);
+
+extern a_boolean requires_nontrivial_cleanup(a_cleanup_action_ptr cap);
 
 extern void gen_cleanup_actions(a_context_ptr          outer_context,
                                 an_insert_location_ptr insert_location);

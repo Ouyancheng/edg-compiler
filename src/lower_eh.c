@@ -224,18 +224,6 @@ current function scope even if the current context is a block inside that.
 }  /* make_unnamed_local_array_var */
 
 
-static a_variable_ptr make_unnamed_file_scope_array_var(a_type_ptr elem_type)
-/*
-Create an unnamed file-scope variable whose type is an array of elem_type,
-and return a pointer to the variable.  The array size is begun as [0] and
-will be adjusted as elements are added.  finish_array_var must be called
-sometime later to set the size on the type.
-*/
-{
-  return make_file_scope_temporary(array_of(elem_type));
-}  /* make_unnamed_file_scope_array_var */
-
-
 static a_variable_ptr make_unnamed_local_static_array_var(
                                                   a_type_ptr elem_type,
                                                   a_boolean  in_function_scope)
@@ -252,14 +240,7 @@ put the variable in the function scope instead of the current scope
   a_type_ptr     array_type = array_of(elem_type);
 
   /* Make the variable.  It is unnamed and static. */
-  if (in_function_scope && processing_file_scope_init_routine) {
-    /* In the file-scope init routine, this variable may be shared with
-       the file-scope termination routine, so make it a file-scope variable. */
-    var = make_file_scope_temporary(array_type);
-  } else {
-    /* Normal case. */
-    var = make_unnamed_local_static_variable(array_type, in_function_scope);
-  }  /* if */
+  var = make_unnamed_local_static_variable(array_type, in_function_scope);
   return var;
 }  /* make_unnamed_local_static_array_var */
 
@@ -425,11 +406,11 @@ This is used as part of the typeinfo information.
      this routine is called. */
   /* Make an initialized static variable that is an array of base_class_spec
      structures. */
-  /* make_init_unnamed_local_static_array_var cannot be used because we
-     want the variable always to be in the file scope. */
   /* Make the array type. */
   array_type = array_of(make_base_class_spec_type());
   /* Make the variable.  It is unnamed and static and in the file scope. */
+  /* make_init_unnamed_local_static_array_var cannot be used because we
+     want the variable always to be in the file scope. */
   bc_var = make_file_scope_temporary(array_type);
   /* The initial value is an aggregate constant pointing to a list of
      aggregate constants. */
@@ -1362,9 +1343,7 @@ Lower an enk_throw expression node.
     /* Erase the destructor call if there is one.  The runtime takes care
        of the destruction. */
     dip->destructor = NULL;
-    lower_dynamic_init(dip, &ipd,
-                       /*conditional_flag_var=*/(a_variable_ptr)NULL,
-                       /*is_expr_temporary=*/FALSE,
+    lower_dynamic_init(dip, &ipd, /*is_expr_temporary=*/FALSE,
                        (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                        (a_constructor_init_ptr)NULL,
                        &insert_location, &keep_dynamic_init);
@@ -1426,15 +1405,7 @@ associated variable if necessary) and return its index number.
   if (object_addr_table_var == NULL) {
     /* The variable is an array whose elements have type "void *". */
     a_type_ptr elem_type = void_star_type();
-    if (processing_file_scope_init_routine) {
-      /* This table is for the file-scope initialization routine (and is
-         shared with the file-scope termination routine), so make it
-         static. */
-      object_addr_table_var = make_unnamed_file_scope_array_var(elem_type);
-    } else {
-      /* Normal case.  The variable is an auto array. */
-      object_addr_table_var = make_unnamed_local_array_var(elem_type);
-    }  /* if */
+    object_addr_table_var = make_unnamed_local_array_var(elem_type);
   }  /* if */
   /* Add an element to the object address table array. */
   entry_number = incr_nelems_of_array_var(object_addr_table_var);
@@ -2553,7 +2524,6 @@ for the scope of the handler.
     set_block_start_insert_location(handler->statement, &insert_location);
     set_var_init_pos_descr(handler->parameter, &ipd);
     lower_dynamic_init(handler->dynamic_init, &ipd,
-                       /*conditional_flag_var=*/(a_variable_ptr)NULL,
                        /*is_expr_temporary=*/FALSE,
                        (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                        (a_constructor_init_ptr)NULL,
@@ -2786,21 +2756,16 @@ Do IL lowering for an stmk_try_block statement.
 }  /* lower_try_block */
 
 
-void eh_function_lower_init(a_boolean file_scope_term_routine)
+void eh_function_lower_init(void)
 /*
 Initialize static variables needed on a per-function basis for
-IL lowering for exceptions.  If file_scope_term_routine is TRUE, the function
-is the file-scope termination routine, for which only partial initialization
-is done (the routine acts like the second half of the file-scope initialization
-routine).
+IL lowering for exceptions.
 */
 {
-  if (!file_scope_term_routine) {
-    object_addr_table_var = NULL;
-    array_table_var = NULL;
-    region_table_var = NULL;
-    next_region_number = 0;
-  }  /* if */
+  object_addr_table_var = NULL;
+  array_table_var = NULL;
+  region_table_var = NULL;
+  next_region_number = 0;
   any_try_blocks_in_function = FALSE;
   destructor_wrapper_region_set_fixup_needed = FALSE;
 }  /* eh_function_lower_init */

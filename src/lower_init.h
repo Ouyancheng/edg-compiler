@@ -86,7 +86,6 @@ extern void init_conditional_flag_var(a_cleanup_action_ptr cap,
 
 extern void lower_dynamic_init(a_dynamic_init_ptr       dip,
                                an_init_pos_descr_ptr    ipdp,
-                               a_variable_ptr           conditional_flag_var,
                                a_boolean                is_expr_temporary,
                                an_expr_node_ptr         implied_arg_list,
                                an_expr_node_ptr         end_implied_arg_list,
@@ -117,13 +116,6 @@ extern void add_last_time_test(a_variable_ptr         test_var,
                                an_insert_location_ptr insert_location,
                                an_insert_location_ptr insert_location2);
 
-#if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
-extern void add_static_data_member_destruction_guard_test(
-                               a_variable_ptr         test_var,
-                               an_insert_location_ptr insert_location,
-                               an_insert_location_ptr insert_location2);
-#endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
-
 extern void add_constructor_wrapper_code(a_scope_ptr        scope,
                                          an_insert_location *insert_location);
 
@@ -135,7 +127,7 @@ extern void lower_stmk_init(a_statement_ptr statement);
 
 extern void lower_file_scope_dynamic_inits(void);
 
-extern void make_code_to_invoke_file_scope_init_and_term_routines(void);
+extern void make_code_to_invoke_file_scope_init_routine(void);
 
 extern void init_lower_one_time_init(void);
 

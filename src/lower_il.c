@@ -418,9 +418,6 @@ in the cleanup entry.
     case cak_destruction:
       clear_dynamic_init(&cap->variant.object.dynamic_init,
                          (a_dynamic_init_kind)dik_none);
-#if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
-      cap->variant.object.template_static_data_member_init_guard_var = NULL;
-#endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
       cap->variant.object.is_expr_temporary = FALSE;
       cap->variant.object.conditional_flag_added_for_unsequenced_case = FALSE;
       goto common_fields;
@@ -448,8 +445,8 @@ void add_cleanup_action_to_context_list(a_cleanup_action_ptr cap,
 /*
 Add the cleanup action pointed to by cap to the cleanup list of the indicated
 context.  If any code needs to be inserted now (while adding the action to the
-list) for exception cleanup, insert it at insert_location.  insert_location
-can be NULL for cases that do not apply to exception cleanup.
+list), insert it at insert_location.  insert_location can be NULL for cases
+that do not apply to object cleanup.
 */
 {
   cap->next = context->cleanup_actions;
@@ -472,8 +469,8 @@ Allocate a cleanup action entry of the indicated kind and with the
 indicated settings for applies_on_block_exit and applies_on_exception_cleanup.
 Add it to the cleanup list for the current context and return a pointer to it.
 If any code needs to be inserted now (while adding the action to the
-list) for exception cleanup, insert it at insert_location.  insert_location
-can be NULL for cases that do not apply to exception cleanup.
+list), insert it at insert_location.  insert_location can be NULL for
+cases that do not apply to object cleanup.
 */
 {
   a_cleanup_action_ptr cap;
@@ -486,6 +483,20 @@ can be NULL for cases that do not apply to exception cleanup.
 }  /* add_cleanup_action */
 
 
+void free_cleanup_action(a_cleanup_action_ptr cap)
+/*
+Free a cleanup action entry by putting it on the available list.
+*/
+{
+  /* Free the list of init_pos_modifier entries pointed to. */
+  if (is_object_cleanup_action(cap)) {
+    free_init_pos_modifier_list(cap->variant.object.init_pos_descr.modifiers);
+  }  /* if */
+  cap->next = avail_cleanup_actions;
+  avail_cleanup_actions = cap;
+}  /* free_cleanup_action */
+
+
 static void free_cleanup_action_list(a_cleanup_action_ptr cap)
 /*
 Free a list of cleanup action entries by putting them on the available list.
@@ -494,14 +505,8 @@ Free a list of cleanup action entries by putting them on the available list.
   a_cleanup_action_ptr cap_next;
 
   for (; cap != NULL; cap = cap_next) {
-    /* Free the list of init_pos_modifier entries pointed to. */
-    if (is_object_cleanup_action(cap)) {
-      free_init_pos_modifier_list(
-                                 cap->variant.object.init_pos_descr.modifiers);
-    }  /* if */
     cap_next = cap->next;
-    cap->next = avail_cleanup_actions;
-    avail_cleanup_actions = cap;
+    free_cleanup_action(cap);
   }  /* for */
 }  /* free_cleanup_action_list */
 
@@ -6133,8 +6138,7 @@ Remove the cleanup action cap_to_remove from the current context.
     prev_cap->next = cap->next;
   }  /* if */
   /* Free the entry. */
-  cap->next = NULL;
-  free_cleanup_action_list(cap);
+  free_cleanup_action(cap);
 }  /* remove_cleanup_action */
 
 
@@ -6275,17 +6279,22 @@ to the original statement in its new location.
 }  /* turn_branch_into_block */
 
 
-static void gen_one_cleanup_action(a_cleanup_action_ptr   cap,
-                                   an_insert_location_ptr insert_location)
+static void gen_one_cleanup_action_or_test_nontrivial(
+                            a_cleanup_action_ptr   cap,
+                            an_insert_location_ptr insert_location,
+                            a_boolean              *nontrivial_cleanup)
 /*
 Generate code for the cleanup action described by cap as it applies to
 block exit.  The code is inserted at *insert_location and *insert_location
-is updated.
+is updated.  If nontrivial_cleanup is non-NULL, don't generate any code,
+but rather examine the cleanup action to see if it requires anything
+beyond a destructor call.  Set *nontrivial_cleanup accordingly.
 */
 {
   an_insert_location     insert_location2;
   an_insert_location_ptr effective_insert_loc;
 
+  if (nontrivial_cleanup != NULL) *nontrivial_cleanup = FALSE;
   if (cap->applies_on_block_exit) {
     if (cap->kind == cak_destruction) {
       /* The entry calls for destruction of an object. */
@@ -6298,37 +6307,71 @@ is updated.
          were done, there's no need to test the flag. */
       if (cap->variant.object.conditional_flag_var != NULL &&
           !cap->variant.object.conditional_flag_added_for_unsequenced_case) {
-        add_last_time_test(cap->variant.object.conditional_flag_var, 
-                           insert_location,
-                           &insert_location2);
-        effective_insert_loc = &insert_location2;
-#if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
-      } else if (cap->variant.object.
-                          template_static_data_member_init_guard_var != NULL) {
-        /* This is the destruction of a static data member in a template, and
-           there is a guard variable to make sure that the variable is
-           destroyed only once. */
-        add_static_data_member_destruction_guard_test(
-                cap->variant.object.template_static_data_member_init_guard_var,
-                insert_location,
-                &insert_location2);
-        effective_insert_loc = &insert_location2;
-#endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
+        if (nontrivial_cleanup != NULL) {
+          *nontrivial_cleanup = TRUE;
+        } else {
+          add_last_time_test(cap->variant.object.conditional_flag_var, 
+                             insert_location,
+                             &insert_location2);
+          effective_insert_loc = &insert_location2;
+        }  /* if */
       }  /* if */
-      lower_destructor_dynamic_init(&cap->variant.object.dynamic_init,
-                                    &cap->variant.object.init_pos_descr,
-                                    cap,
-                                    /*have_complete_object=*/TRUE,
-                                    effective_insert_loc);
+      if (nontrivial_cleanup != NULL) {
+        /* An array destruction requires more than a simple destructor call. */
+        if (cap->variant.object.init_pos_descr.whole_array) {
+          *nontrivial_cleanup = TRUE;
+        }  /* if */
+      } else {
+        lower_destructor_dynamic_init(&cap->variant.object.dynamic_init,
+                                      &cap->variant.object.init_pos_descr,
+                                      cap,
+                                      /*have_complete_object=*/TRUE,
+                                      effective_insert_loc);
+      }  /* if */
     } else if (cap->kind == cak_try_block) {
       /* Exiting a try block. */
-      cleanup_on_exit_from_try_block(cap, insert_location);
+      if (nontrivial_cleanup != NULL) {
+        *nontrivial_cleanup = TRUE;
+      } else {
+        cleanup_on_exit_from_try_block(cap, insert_location);
+      }  /* if */
     } else if (cap->kind == cak_catch) {
       /* Exiting a catch clause -- free the caught object. */
-      cleanup_on_exit_from_catch(insert_location);
+      if (nontrivial_cleanup != NULL) {
+        *nontrivial_cleanup = TRUE;
+      } else {
+        cleanup_on_exit_from_catch(insert_location);
+      }  /* if */
     }  /* if */
   }  /* if */
+}  /* gen_one_cleanup_action_or_test_nontrivial */
+
+
+void gen_one_cleanup_action(a_cleanup_action_ptr   cap,
+                            an_insert_location_ptr insert_location)
+/*
+Generate code for the cleanup action described by cap as it applies to
+block exit.  The code is inserted at *insert_location and *insert_location
+is updated.
+*/
+{
+  gen_one_cleanup_action_or_test_nontrivial(cap, insert_location,
+                                            (a_boolean *)NULL);
 }  /* gen_one_cleanup_action */
+
+
+a_boolean requires_nontrivial_cleanup(a_cleanup_action_ptr cap)
+/*
+Return TRUE if the indicated cleanup action requires cleanup on end of
+block that is more complicated than a simple destructor call.
+*/
+{
+  a_boolean nontrivial_cleanup;
+
+  gen_one_cleanup_action_or_test_nontrivial(cap, (an_insert_location_ptr)NULL,
+                                            &nontrivial_cleanup);
+  return nontrivial_cleanup;
+}  /* requires_nontrivial_cleanup */
 
 
 void gen_cleanup_actions(a_context_ptr          outer_context,
@@ -6762,9 +6805,7 @@ Do IL lowering of the indicated statement and everything under it.
           turn_branch_into_block(statement, &insert_location,
                                  &return_statement);
           make_block = FALSE;
-          lower_dynamic_init(dip, &ipd,
-                             /*conditional_flag_var=*/(a_variable_ptr)NULL,
-                             /*is_expr_temporary=*/FALSE,
+          lower_dynamic_init(dip, &ipd, /*is_expr_temporary=*/FALSE,
                              (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                              (a_constructor_init_ptr)NULL,
                              &insert_location, &keep_dynamic_init);
@@ -7846,7 +7887,8 @@ Do IL lowering of the indicated scope and everything under it.
        is built so that epilogue code can be added at each return. */
     return_memo_list = NULL;
     if (exceptions_enabled) {
-      eh_function_lower_init(/*file_scope_term_routine=*/FALSE);
+      /* Initialize for exception handling lowering. */
+      eh_function_lower_init();
     }  /* if */
     /* Lower the executable code. */
     if (routine->special_kind == (a_special_function_kind)sfk_constructor) {
@@ -8001,10 +8043,9 @@ C++ to C, so that a C back end can handle it without change.
     if (lowering_file_scope) {
       /* Generate code to handle file-scope dynamic initializations and
          the corresponding destructions.  This is done after scope class
-         member promotions so that the initialization/termination routines
-         are last. */
+         member promotions so that the initialization routine is last. */
       lower_file_scope_dynamic_inits();
-      make_code_to_invoke_file_scope_init_and_term_routines();
+      make_code_to_invoke_file_scope_init_routine();
     }  /* if */
     /* Add definitions for any typeinfo variables generated for classes.
        This must be done late so that all the required typeinfo variables

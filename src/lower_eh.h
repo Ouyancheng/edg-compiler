@@ -72,7 +72,7 @@ extern void cleanup_on_exit_from_catch(an_insert_location *insert_location);
 
 extern void lower_try_block(a_statement_ptr statement);
 
-extern void eh_function_lower_init(a_boolean file_scope_term_routine);
+extern void eh_function_lower_init(void);
 
 extern void eh_lower_one_time_init(void);
 
