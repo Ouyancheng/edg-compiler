@@ -4752,11 +4752,8 @@ Do IL lowering of the indicated variable and everything under it.
          one is not allowed to, so change "register" to "auto". */
       variable->storage_class = (a_storage_class)sc_auto;
     } else if (variable->storage_class == (a_storage_class)sc_unspecified &&
-               variable->init_kind == (an_init_kind)initk_none
-#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE
-               && !variable->promoted_local_static
-#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE */
-                                                  ) {
+               variable->init_kind == (an_init_kind)initk_none &&
+               !variable->promoted_local_static) {
       /* In C++, there are no tentative definitions.  Use initk_zero to
          indicate that this variable is "really" defined. */
       variable->init_kind = (an_init_kind)initk_zero;
@@ -9787,7 +9784,6 @@ with the outermost enclosing class, for later promotion out of the class
 }  /* promote_types_out_of_function */
 
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
-#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE
 
 static void promote_static_variables_out_of_function(a_scope_ptr   scope,
                                                      a_routine_ptr routine)
@@ -9986,12 +9982,20 @@ part of the lowering of the file scope memory region.
     promote_statics = TRUE;
   }  /* if */
 #endif /* LOWER_EXTERN_INLINE */
+#if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+  if (routine->covariant_return_virtual_override ||
+      routine->overriding_function_for_covariant_return_type != NULL) {
+    /* For a covariant overriding virtual function and its wrapper routines,
+       promote the local statics in case the implementation technique is
+       to replicate the body of the primary function. */
+    promote_statics = TRUE;
+  }  /* if */
+#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
   if (promote_types || promote_statics) {
     r_promote_local_entities_to_file_scope(scope, routine, promote_types);
   }  /* if */
 }  /* promote_local_entities_to_file_scope */
 
-#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE */
 
 static void do_namespace_member_promotion(a_namespace_ptr nsp)
 /*
@@ -10400,7 +10404,6 @@ Do IL lowering of the indicated scope and everything under it.
        il_header.scope_orphaned_list_headers list if either of those
        pointers is non-NULL.  The entry is created after IL lowering
        runs so that IL lowering can alter those local lists. */
-#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE
     /* If there is reason to promote the local types and static variables
        to the file scope, do that now and clear the lists.  That makes the
        promoted entities part of the file scope and no longer orphans.
@@ -10410,7 +10413,6 @@ Do IL lowering of the indicated scope and everything under it.
     if (scope_kind == (a_scope_kind)sck_function) {
       promote_local_entities_to_file_scope(scope);
     }  /* if */
-#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE */
   }  /* if */
   lower_variable_list(scope->nonstatic_variables);
   lower_local_static_variable_init_list(scope->local_static_variable_inits);
@@ -10755,9 +10757,7 @@ C++ to C, so that a C back end can handle it without change.
     curr_context = file_scope_context = NULL;
     innermost_function_scope = NULL;
     curr_object_lifetime = il_header.primary_scope->lifetime;
-#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE
     promoted_local_static_variable_inits = NULL;
-#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE */
     switch_il_region(region_number);
     /* Mark entries created during this traversal as having already been
        visited by IL lowering. */

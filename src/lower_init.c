@@ -1804,10 +1804,8 @@ typedef struct a_generated_routine_context {
 		processing_file_scope_init_routine;
   a_return_memo_ptr
 		return_memo_list;
-#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE
   a_local_static_variable_init_ptr
 		promoted_local_static_variable_inits;
-#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE */
   an_eh_lowering_context
 		ehcontext;
 } a_generated_routine_context;
@@ -1838,11 +1836,9 @@ grcontext is a local variable used to save state for later restoration.
   processing_file_scope_init_routine = FALSE;
   grcontext->return_memo_list = return_memo_list;
   /* return_memo_list is cleared by function_lower_init. */
-#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE
   grcontext->promoted_local_static_variable_inits = 
                                           promoted_local_static_variable_inits;
   promoted_local_static_variable_inits = NULL;
-#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE */
   save_eh_lowering_context(&grcontext->ehcontext);
   add_object_lifetime_to_function_scope(scope);
   push_context(&grcontext->context, scope, (an_object_lifetime_ptr)NULL);
@@ -1861,12 +1857,10 @@ Pop function corresponding to push_generated_routine_context.
 {
   a_routine_ptr rout = scope->variant.routine.ptr;
 
-#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE
   /* If there is reason to promote the local types and static variables
      to the file scope, do that now and clear the lists.  That makes the
      promoted entities part of the file scope and no longer orphans. */
   promote_local_entities_to_file_scope(scope);
-#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE */
   pop_context();
   /* Restore and pop the lifetime attached to the scope so that it can be
      deleted if it is empty. */
@@ -1890,10 +1884,8 @@ Pop function corresponding to push_generated_routine_context.
   }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS */
   restore_eh_lowering_context(&grcontext->ehcontext);
-#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE
   promoted_local_static_variable_inits =
                                grcontext->promoted_local_static_variable_inits;
-#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE */
   free_return_memo_list(return_memo_list);
   return_memo_list = grcontext->return_memo_list;
   processing_file_scope_init_routine =
@@ -3490,12 +3482,10 @@ in this routine must be FALSE in that case.
     do_simple_constant_init_opt = TRUE;
   }  /* if */
   if (variable != NULL &&
-      (variable->init_kind == (an_init_kind)initk_function_local
-#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE
+      (variable->init_kind == (an_init_kind)initk_function_local ||
        /* If local entities are being promoted out of functions, the
           variable may already have been promoted out. */
-       || variable->promoted_local_static_init
-#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE */
+       variable->promoted_local_static_init
 #if LOWER_EXTERN_INLINE
        /* See if this is a local static variable promoted out of an
           extern inline function. */
@@ -3507,7 +3497,6 @@ in this routine must be FALSE in that case.
        initialization. */
     if (variable->init_kind == (an_init_kind)initk_function_local) {
       lsvip = find_local_static_variable_init(variable, curr_context->scope);
-#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE
 #if LOWER_EXTERN_INLINE
     } else if (options & LDIO_EXTERN_INLINE_LOCAL_STATIC) {
      /* Local static variable promoted out of an extern inline function.
@@ -3528,7 +3517,6 @@ in this routine must be FALSE in that case.
       }  /* for */
       check_assertion_str(lsvip != NULL,
                           "lower_dynamic_init: local static init not found");
-#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE */
     }  /* if */
     if (!do_simple_constant_init_opt) {
       /* Add a first-time flag and a test, but not if the initialization
@@ -3896,7 +3884,6 @@ do_assignment:;
       if (static_var_init) {
         /* Initialization of a static variable to a constant.  Can be
            done as a static initialization. */
-#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE
         /* If this variable is a local static variable that was promoted
            to file scope, we have to copy the remaining constant to the file
            scope (it was formerly pointed to by a local-static-variable-init
@@ -3908,7 +3895,6 @@ do_assignment:;
           simple_constant = copy_unshared_constant(simple_constant);
           switch_back_to_original_region(region_to_switch_back_to);
         }  /* if */
-#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE */
         variable->init_kind = (an_init_kind)initk_static;
         variable->initializer.constant = simple_constant;
       } else {

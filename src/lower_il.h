@@ -426,12 +426,10 @@ variable for the current function.
   (innermost_function_scope != NULL &&                                \
    innermost_function_scope->variant.routine.return_value_variable == (var))
 
-#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE
 EXTERN a_local_static_variable_init_ptr
                 promoted_local_static_variable_inits;
 			/* List of initialization entries for local static
 			   variables promoted out of the current routine. */
-#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE */
 
 EXTERN a_source_position
 		code_pos_for_lowering;
@@ -705,9 +703,7 @@ extern void lower_statement_list(a_statement_ptr statement_list,
 
 extern void lower_statement(a_statement_ptr statement);
 
-#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE
 extern void promote_local_entities_to_file_scope(a_scope_ptr scope);
-#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE */
 
 extern void lower_il_memory_region(a_memory_region_number region_number);
 
