@@ -7070,25 +7070,6 @@ return a pointer to it.
   return *p_result;
 }  /* fixed_point_type */
 
-
-a_fixed_point_type_descr make_fixed_point_type_descr(
-                                 a_fixed_point_precision  precision,
-                                 a_boolean                is_unsigned,
-                                 a_boolean                is_fract,
-                                 a_boolean                saturating)
-/*
-Construct and return a fixed-point-type-descr with the given attributes.
-*/
-{
-  a_fixed_point_type_descr descr;
-
-  descr.precision = precision;
-  descr.is_unsigned = is_unsigned;
-  descr.is_fract_type = is_fract;
-  descr.saturating = saturating;
-  return descr;
-}  /* make_fixed_point_type_descr */
-
 #endif /* FIXED_POINT_ALLOWED */
 
 a_type_ptr float_type(a_float_kind kind)
@@ -9448,6 +9429,201 @@ processing.  If there is no next such field, return NULL.
   }  /* for */
   return field;
 }  /* next_initializable_field */
+
+
+a_boolean is_compound_assignment_operator(an_expr_operator_kind  op)
+/*
+Return TRUE if and only if the given operator is a compound assignment.
+*/
+{
+  a_boolean  result;
+
+  switch (op) {
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case eok_xadd_assign:
+    case eok_xsubtract_assign:
+    case eok_xmultiply_assign:
+    case eok_xdivide_assign:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+    case eok_iadd_assign:
+    case eok_isubtract_assign:
+    case eok_imultiply_assign:
+    case eok_idivide_assign:
+    case eok_remainder_assign:
+#if FIXED_POINT_ALLOWED
+    case eok_fxadd_assign:
+    case eok_fxsubtract_assign:
+    case eok_fxmultiply_assign:
+    case eok_fxdivide_assign:
+    case eok_fxshiftl_assign:
+    case eok_fxshiftr_assign:
+#endif /* FIXED_POINT_ALLOWED */
+    case eok_fadd_assign:
+    case eok_fsubtract_assign:
+    case eok_fmultiply_assign:
+    case eok_fdivide_assign:
+    case eok_padd_assign:
+    case eok_psubtract_assign:
+    case eok_shiftl_assign:
+    case eok_shiftr_assign:
+    case eok_and_assign:
+    case eok_or_assign:
+    case eok_xor_assign:
+    case eok_add_assign:
+    case eok_subtract_assign:
+    case eok_multiply_assign:
+    case eok_divide_assign:
+      result = TRUE;
+      break;
+    default:
+      result = FALSE;
+      break;
+  }  /* switch */
+  return result;
+}  /* is_compound_assignment_operator */
+
+#if FIXED_POINT_ALLOWED
+
+a_fixed_point_type_descr make_fixed_point_type_descr(
+                                 a_fixed_point_precision  precision,
+                                 a_boolean                is_unsigned,
+                                 a_boolean                is_fract,
+                                 a_boolean                saturating)
+/*
+Construct and return a fixed-point-type-descr with the given attributes.
+*/
+{
+  a_fixed_point_type_descr descr;
+
+  descr.precision = precision;
+  descr.is_unsigned = is_unsigned;
+  descr.is_fract_type = is_fract;
+  descr.saturating = saturating;
+  return descr;
+}  /* make_fixed_point_type_descr */
+
+
+a_type_ptr fixed_point_result_type(a_type_ptr  type_1,
+                                   a_type_ptr  type_2)
+/*
+Determine the (fixed-point) result type for a binary expression on operands
+with the two given types.  At least one of the types must be a fixed-point
+type, and the other is a fixed-point type, an integral type, or an enum
+type (i.e., a non-floating-point arithmetic type).
+*/
+{
+  a_type_ptr  result;
+  a_type_ptr  tp1 = skip_typerefs(type_1),
+              tp2 = skip_typerefs(type_2);
+
+  if (!is_fixed_point_type(tp1)) {
+    /* The result type is the fixed-point type. */
+    result = type_2;
+  } else if (!is_fixed_point_type(tp2)) {
+    /* The result type is the fixed-point type. */
+    result = type_1;
+  } else {
+    /* Both types are fixed-point types.  Determine the one with the
+       highest rank.  Also imbue any signedness and saturation on the
+       result type. */
+    a_boolean  saturating = (tp1->variant.fixed_point.saturating ||
+                             tp2->variant.fixed_point.saturating);
+    a_boolean  is_unsigned = tp1->variant.fixed_point.is_unsigned &&
+                             tp2->variant.fixed_point.is_unsigned;
+    if (tp1->variant.fixed_point.is_fract_type !=
+                                     tp2->variant.fixed_point.is_fract_type) {
+      /* _Accum types have higher rank than _Fract types. */
+      result = tp1->variant.fixed_point.is_fract_type ? tp2 : tp1;
+    } else if (tp1->variant.fixed_point.precision >
+                                         tp2->variant.fixed_point.precision) {
+      /* If the fixed-point type kinds (_Fract vs. _Accum) are equal, the
+         precisions determine the relative rank. */
+      result = tp1;
+    } else {
+      result = tp2;
+    }  /* if */
+    if (result->variant.fixed_point.saturating != saturating ||
+        (result->variant.fixed_point.is_unsigned && !is_unsigned)) {
+      a_fixed_point_type_descr descr =
+                     make_fixed_point_type_descr(
+                                result->variant.fixed_point.precision,
+                                is_unsigned,
+                                (a_boolean)result->variant.
+                                                fixed_point.is_fract_type,
+                                saturating);
+#if !STANDALONE_UTILITY_PROGRAM
+      if (in_front_end) {
+        result = fixed_point_type(descr);
+      } else
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+      /* Do not add code here. */
+      {
+        /* In a back end, we can't allocate a type, so make one in a static
+           variable. */
+        static a_type local_type;
+        result = &local_type;
+        clear_type(result, (a_type_kind)tk_fixed_point);
+        result->variant.fixed_point = descr;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* fixed_point_result_type */
+
+#endif /* FIXED_POINT_ALLOWED */
+
+a_type_ptr expression_operation_type(an_expr_node_ptr expr)
+/*
+Return the "operation type" of the given enk_operation node.  Ordinarily,
+this is simply expr->type, but there are some special cases that
+require more work: compound assignment operators and, especially,
+fixed-point operations.
+*/
+{
+  a_type_ptr            operation_type = expr->type;
+  an_expr_operator_kind op;
+
+  check_assertion(is_operation_node(expr));
+  op = expr->variant.operation.kind;
+  if (is_compound_assignment_operator(op)) {
+    /* Compound operators require special handling. */
+    an_expr_node_ptr op1 = expr->variant.operation.operands;
+    an_expr_node_ptr op2 = op1->next;
+    a_type_ptr       op1_type = rvalue_type(type_pointed_to(op1->type));
+    a_type_ptr       op2_type = op2->type;
+
+    /* Usually, the operation type is the type of the second operand,
+       because the second operand will have been cast to the operation
+       type. */
+    operation_type = op2_type;
+    if (op == (an_expr_operator_kind)eok_shiftl_assign
+        || op == (an_expr_operator_kind)eok_shiftr_assign
+#if FIXED_POINT_ALLOWED
+        || op == (an_expr_operator_kind)eok_fxshiftl_assign
+        || op == (an_expr_operator_kind)eok_fxshiftr_assign
+#endif /* FIXED_POINT_ALLOWED */
+                                                           ) {
+      /* Shifts.  The operation type is given by the first operand. */
+      operation_type = op1_type;
+    } else if (op == (an_expr_operator_kind)eok_padd_assign ||
+               op == (an_expr_operator_kind)eok_psubtract_assign) {
+      /* Pointer += and -=.  The operation type is given by the first
+         operand. */
+      operation_type = op1_type;
+#if FIXED_POINT_ALLOWED
+    } else if (op == (an_expr_operator_kind)eok_fxadd_assign ||
+               op == (an_expr_operator_kind)eok_fxsubtract_assign ||
+               op == (an_expr_operator_kind)eok_fxmultiply_assign ||
+               op == (an_expr_operator_kind)eok_fxdivide_assign) {
+      /* Fixed-point operations.  The operation type must be computed
+         from the operand types.  This is more complicated than the usual
+         case because the operands are not brought to a common type. */
+      operation_type = fixed_point_result_type(op1_type, op2_type);
+#endif /* FIXED_POINT_ALLOWED */
+    }  /* if */
+  }  /* if */
+  return operation_type;
+}  /* expression_operation_type */
 
 #if !STANDALONE_UTILITY_PROGRAM
 

@@ -9544,6 +9544,9 @@ is_lvalue is TRUE.
   a_boolean             result_is_lvalue = expr->variant.operation.
                                         returns_lvalue_instead_of_usual_rvalue;
 
+  /* Determine the operation type, which is usually the second operand
+     type. */
+  operation_type = expression_operation_type(expr);
   /* Make a copy of op1 to be used as the left operand of the underlying
      operation.  op1 itself will be used as the left operand of the
      assignment. */ 
@@ -9579,30 +9582,8 @@ is_lvalue is TRUE.
     op1 = op_node;
   }  /* if */
   op1_for_operation = add_indirection_to_node(op1_for_operation);
-  /* Determine the operation type, which is usually the second operand
-     type. */
-  operation_type = op2->type;
-  if (op == (an_expr_operator_kind)eok_shiftl_assign
-      || op == (an_expr_operator_kind)eok_shiftr_assign
-#if FIXED_POINT_ALLOWED
-      || op == (an_expr_operator_kind)eok_fxshiftl_assign
-      || op == (an_expr_operator_kind)eok_fxshiftr_assign
-#endif /* FIXED_POINT_ALLOWED */
-                                                         ) {
-    /* Shifts.  The operation type is given by the first operand. */
-    operation_type = result_type;
-#if FIXED_POINT_ALLOWED
-  } else if (op == (an_expr_operator_kind)eok_fxadd_assign ||
-             op == (an_expr_operator_kind)eok_fxsubtract_assign ||
-             op == (an_expr_operator_kind)eok_fxmultiply_assign ||
-             op == (an_expr_operator_kind)eok_fxdivide_assign) {
-    /* Fixed-point operations.  If the second operand is integral, the
-       operation type is given by the first operand. */
-    if (is_integral_or_enum_type(op2->type)) operation_type = result_type;
-#endif /* FIXED_POINT_ALLOWED */
-  } else {
-    /* Normal case.  The second operand type is the operation type,
-       and the first operand is cast to that type. */
+  if (!is_fixed_point_type(operation_type)) {
+    /* Cast the first operand (as an rvalue) to the operation type. */
     op1_for_operation = add_lowered_cast_if_necessary(op1_for_operation,
                                                       operation_type);
   }  /* if */

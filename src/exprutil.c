@@ -3381,63 +3381,6 @@ If both fkind_1 and fkind_2 are fk_last, then fk_last is returned.
 }  /* promoted_float_kind */
 
 
-#if FIXED_POINT_ALLOWED
-
-static a_type_ptr fixed_point_result_type(a_type_ptr  type_1,
-                                          a_type_ptr  type_2)
-/*
-Determine the (fixed-point) result type for a binary expression on operands
-with the two given types.  At least one of the types must be a fixed-point
-type, and the other is a fixed-point type, an integral type, or an enum
-type (i.e., a non-floating-point arithmetic type).
-*/
-{
-  a_type_ptr  result;
-  a_type_ptr  tp1 = skip_typerefs(type_1),
-              tp2 = skip_typerefs(type_2);
-
-  if (!is_fixed_point_type(tp1)) {
-    /* The result type is the fixed-point type. */
-    result = type_2;
-  } else if (!is_fixed_point_type(tp2)) {
-    /* The result type is the fixed-point type. */
-    result = type_1;
-  } else {
-    /* Both types are fixed-point types.  Determine the one with the
-       highest rank.  Also imbue any signedness and saturation on the
-       result type. */
-    a_boolean  saturating = (tp1->variant.fixed_point.saturating ||
-                             tp2->variant.fixed_point.saturating);
-    a_boolean  is_unsigned = tp1->variant.fixed_point.is_unsigned &&
-                             tp2->variant.fixed_point.is_unsigned;
-    if (tp1->variant.fixed_point.is_fract_type !=
-                                     tp2->variant.fixed_point.is_fract_type) {
-      /* _Accum types have higher rank than _Fract types. */
-      result = tp1->variant.fixed_point.is_fract_type ? tp2 : tp1;
-    } else if (tp1->variant.fixed_point.precision >
-                                         tp2->variant.fixed_point.precision) {
-      /* If the fixed-point type kinds (_Fract vs. _Accum) are equal, the
-         precisions determines the relative rank. */
-      result = tp1;
-    } else {
-      result = tp2;
-    }  /* if */
-    if (result->variant.fixed_point.saturating != saturating ||
-        (result->variant.fixed_point.is_unsigned && !is_unsigned)) {
-      result = fixed_point_type(
-                     make_fixed_point_type_descr(
-                                result->variant.fixed_point.precision,
-                                is_unsigned,
-                                (a_boolean)result->variant.
-                                                fixed_point.is_fract_type,
-                                saturating));
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* fixed_point_result_type */
-
-#endif /* FIXED_POINT_ALLOWED */
-
 static a_type_ptr determine_arithmetic_conversions_full(
                                                  an_operand *operand_1,
                                                  a_type_ptr operand_1_type,
@@ -4387,57 +4330,6 @@ for cases that are likely to overflow (e.g., _Fract + int).
     }  /* if */
   }  /* if */
 }  /* check_mixed_integer_fixed_point_arithmetic */
-
-static a_boolean is_compound_assignment_operator(an_expr_operator_kind  op)
-/*
-Return TRUE if and only if the given operator is a compound assignment.
-*/
-{
-  a_boolean  result;
-
-  switch (op) {
-#if C99_IL_EXTENSIONS_SUPPORTED
-    case eok_xadd_assign:
-    case eok_xsubtract_assign:
-    case eok_xmultiply_assign:
-    case eok_xdivide_assign:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-    case eok_iadd_assign:
-    case eok_isubtract_assign:
-    case eok_imultiply_assign:
-    case eok_idivide_assign:
-    case eok_remainder_assign:
-#if FIXED_POINT_ALLOWED
-    case eok_fxadd_assign:
-    case eok_fxsubtract_assign:
-    case eok_fxmultiply_assign:
-    case eok_fxdivide_assign:
-    case eok_fxshiftl_assign:
-    case eok_fxshiftr_assign:
-#endif /* FIXED_POINT_ALLOWED */
-    case eok_fadd_assign:
-    case eok_fsubtract_assign:
-    case eok_fmultiply_assign:
-    case eok_fdivide_assign:
-    case eok_padd_assign:
-    case eok_psubtract_assign:
-    case eok_shiftl_assign:
-    case eok_shiftr_assign:
-    case eok_and_assign:
-    case eok_or_assign:
-    case eok_xor_assign:
-    case eok_add_assign:
-    case eok_subtract_assign:
-    case eok_multiply_assign:
-    case eok_divide_assign:
-      result = TRUE;
-      break;
-    default:
-      result = FALSE;
-      break;
-  }  /* switch */
-  return result;
-}  /* is_compound_assignment_operator */
 
 
 static void adjust_fixed_point_binary_operands(

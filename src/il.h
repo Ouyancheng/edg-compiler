@@ -895,6 +895,13 @@ extern a_variable_ptr alloc_temporary_variable(a_type_ptr temp_type);
 
 extern a_field_ptr next_initializable_field(a_field_ptr field);
 
+extern a_boolean is_compound_assignment_operator(an_expr_operator_kind op);
+
+extern a_type_ptr fixed_point_result_type(a_type_ptr  type_1,
+                                          a_type_ptr  type_2);
+
+extern a_type_ptr expression_operation_type(an_expr_node_ptr expr);
+
 extern void remove_from_routines_list(a_routine_ptr rout_ptr,
                                       a_scope_depth scope_depth);
 
