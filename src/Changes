@@ -155,6 +155,21 @@ An internal error has been eliminated on expansion of a macro that expands
 to an unclosed string whose last character is a backslash.  This is possible
 if the macro definition is given by a command-line option.
 
+4/17/98   Internal error in scan_base_specifier_list
+
+A spurious assertion failure (when GENERATE_SOURCE_SEQUENCE_LISTS and
+CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS were configured to
+TRUE) has be fixed in scan_base_specifier_list.  The problem could appear
+when a base specifier reference triggered two or more template class
+instantiations, one of which had a template argument involving a class
+currently being defined.
+
+  template <class T> class X { };
+  template <class B> class Y { };
+  class A {
+    class N : public X<Y<A*> > { };    // Internal error eliminated
+  };
+
 4/16/98   Internal error on pragma in class template nested class declaration
 
 An internal error would occur if a pragma appeared in a class template
