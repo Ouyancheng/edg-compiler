@@ -1127,6 +1127,28 @@ always appear in the same order on the routines list of a class scope.)
 }  /* skip_generated_routine */
 
 
+static a_routine_list_entry_ptr skip_generated_friend_routine(
+                                                a_routine_list_entry_ptr  rle)
+/*
+Similar to skip_generated_routine except the routines are listed through
+a_routine_list_entry nodes.
+*/
+{
+  while (rle != NULL && (
+#if NEED_NAME_MANGLING
+         /* Some routines are generated as part of prelowering. */
+         rle->routine->source_corresp.name_has_been_mangled ||
+#endif /* NEED_NAME_MANGLING */
+         /* Ordinary members of template classes have a NULL template argument
+            list. */ 
+          (rle->routine->is_template_function &&
+           rle->routine->template_arg_list != NULL))) {
+    rle = rle->next;
+  }  /* while */
+  return rle;
+}  /* skip_generated_friend_routine */
+
+
 #define is_placeholder_type(type)                                       \
   ((type)->kind == (a_type_kind)tk_typeref &&                           \
     ((type)->variant.typeref.is_placeholder_for_class_instantiation ||  \
@@ -1579,11 +1601,15 @@ symbols are listed under the same header).
       }  /* if */
     } else {
       /* Normally, this happens only for certain template entries that
-         represent members of templates.  No diagnostic is issued here,
-         because one will be issued on the prototype instantiation. */
+         represent members of templates (or friends of templates).  No
+         diagnostic is issued here, because one will be issued on the
+         prototype instantiation. */
       a_symbol_ptr  sym1 = (a_symbol_ptr)scp1->assoc_info;
       check_assertion(sym1->is_class_member ||
-                      sym1->kind == (a_symbol_kind)sk_member_function);
+                      sym1->kind == (a_symbol_kind)sk_member_function ||
+                      (sym1->kind == (a_symbol_kind)sk_routine &&
+                       sym1->variant.routine.ptr
+                           ->befriending_classes != NULL));
       expect_error();
     }  /* if */
   }  /* if */
@@ -2245,10 +2271,13 @@ type is in fact valid.
       /* Traverse friend function declarations. */
       {
         /* Similar to member using declarations. */
-        a_routine_list_entry_ptr  rle = sup->friend_routines;
-        a_routine_list_entry_ptr  corresp_rle = corresp_sup->friend_routines;
+        a_routine_list_entry_ptr  rle = skip_generated_friend_routine(
+                                                         sup->friend_routines);
+        a_routine_list_entry_ptr  corresp_rle = skip_generated_friend_routine(
+                                                 corresp_sup->friend_routines);
         for (; rle != NULL && corresp_rle != NULL;
-             rle = rle->next, corresp_rle = corresp_rle->next) {
+             rle = skip_generated_friend_routine(rle->next),
+             corresp_rle = skip_generated_friend_routine(corresp_rle->next)) {
           if (canonical_il_entry_of(rle->routine) !=
                                 canonical_il_entry_of(corresp_rle->routine)) {
             match = FALSE;
@@ -2940,11 +2969,15 @@ are not checked.
            is isntantiated.  To ensure that it has its correspondence set,
            we intercept such functions here. */
         a_routine_list_entry_ptr
-           rle = type->variant.class_struct_union.extra_info->friend_routines,
-           corresp_rle = corresp_type->variant.class_struct_union.extra_info
-                                     ->friend_routines;
+           rle = skip_generated_friend_routine(
+                                 type->variant.class_struct_union.extra_info
+                                     ->friend_routines),
+           corresp_rle = skip_generated_friend_routine(
+                         corresp_type->variant.class_struct_union.extra_info
+                                     ->friend_routines);
         for (; rle != NULL && corresp_rle != NULL;
-             rle = rle->next, corresp_rle = corresp_rle->next) {
+             rle = skip_generated_friend_routine(rle->next),
+             corresp_rle = skip_generated_friend_routine(corresp_rle->next)) {
           if ((trans_unit_corresp_of(rle->routine) == NULL ||
                trans_unit_corresp_of(corresp_rle->routine) == NULL) &&
               !rle->routine->source_corresp.is_class_member &&
