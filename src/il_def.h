@@ -6190,6 +6190,12 @@ enum an_object_lifetime_kind_tag {
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte an_object_lifetime_kind;
 
+/* Return TRUE if the given object lifetime kind indicates a static
+   lifetime. */
+#define is_static_object_lifetime_kind(kind) \
+  ((kind) == (an_object_lifetime_kind)olk_global_static || \
+   (kind) == (an_object_lifetime_kind)olk_function_static)
+
 typedef struct an_object_lifetime {
   /* Represents the lifetime of an object (temporary or variable), which
      might be the same as a scope, or some subregion of a scope. */

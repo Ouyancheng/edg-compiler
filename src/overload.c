@@ -7718,8 +7718,7 @@ is static; otherwise, it is automatic.  This is needed for cases like
       if (lifetime != NULL) {
         an_object_lifetime_kind kind = lifetime->kind;
         if (static_lifetime ?
-                   (kind != (an_object_lifetime_kind)olk_global_static &&
-                    kind != (an_object_lifetime_kind)olk_function_static) :
+                   !is_static_object_lifetime_kind(kind) :
                    (kind == (an_object_lifetime_kind)olk_expr_temporary)) {
           /* The dynamic init for the temporary is attached to an
              inappropriate lifetime, so it must be removed and put into another
