@@ -4959,6 +4959,26 @@ scope, not in namespace std.
   db_exit();
 }  /* make_predeclared_size_t_symbol */
 
+
+void make_predeclared_bool_symbol(void)
+/*
+Create a symbol and type entry for bool (only in Microsoft mode); the entries
+are recorded in the file scope.
+*/
+{
+  a_symbol_locator  locator;
+  a_symbol_ptr      sym;
+
+  db_enter(5, "make_predeclared_bool_symbol");
+  check_assertion(microsoft_mode);
+  clear_locator(&locator, &null_source_position);
+  (void)find_symbol("bool", (sizeof_t)4, &locator);
+  decl_typedef(&locator, bool_type(), (a_type_ptr)NULL, &sym,
+               (a_source_sequence_entry_ptr)NULL,
+               (a_decl_pos_block_ptr)NULL);
+  db_exit();
+}  /* make_predeclared_bool_symbol */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 a_symbol_ptr find_default_constructor(a_type_ptr  class_type,

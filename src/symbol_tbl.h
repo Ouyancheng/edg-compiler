@@ -2503,6 +2503,8 @@ EXTERN a_symbol_ptr
 
 extern void make_predeclared_size_t_symbol(void);
 
+extern void make_predeclared_bool_symbol(void);
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern a_symbol_ptr find_default_constructor(a_type_ptr  class_type,

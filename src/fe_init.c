@@ -336,7 +336,13 @@ Install the keywords in the symbol table.
          will be compatible with the new language feature when it is
          implemented so a diagnostic would not, in general, be
          helpful. */
-      enter_keyword((a_token_kind)tok_bool,  "bool");
+      if (microsoft_mode) {
+        /* In Microsoft compatibility mode, "bool" is really a predeclared
+           typedef name, not a keyword.  It's entered into the symbol table
+           later. */
+      } else {
+        enter_keyword((a_token_kind)tok_bool,  "bool");
+      }  /* if */
       enter_keyword((a_token_kind)tok_false, "false");
       enter_keyword((a_token_kind)tok_true,  "true");
     }  /* if */
@@ -844,6 +850,12 @@ source file's compilation.
     }  /* if */
     /* Add a symbol for predeclared size_t. */
     make_predeclared_size_t_symbol();
+    if (bool_is_keyword) {
+      /* In Microsoft mode, "bool" is not really a keyword.  It's a typedef
+         name in the global scope.  This means it can be redeclared to
+         something else in other scopes. */
+      make_predeclared_bool_symbol();
+    }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* The primary source file pointer is updated when the file is opened. */

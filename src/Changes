@@ -1,5 +1,17 @@
 Version 2.39
 
+5/21/98   Microsoft compatibility: "bool" implemented as typedef name
+
+In Microsoft compatibility mode (but only for MSVC++ version 5.0 and
+higher), the symbol for "bool" is now predeclared as a typedef name in the
+global scope rather than treated as a keyword.  This means "bool" can be
+declared in other scopes with a different meaning.
+
+  enum Boolean { FALSE = 0, TRUE = 1 };
+  void f() {
+    Boolean bool = FALSE;          // okay in Microsoft mode
+  }
+
 5/19/98   Instances of nonreal member class templates not compared properly
 
 A template such as "X" in "T::X<int>" is considered a "nonreal" template
