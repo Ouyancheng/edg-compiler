@@ -1769,7 +1769,7 @@ error code.
       m = "\"main\" is not a valid name for a function template";
       break;
     case ec_union_nonunion_mismatch:
-      m = "invalid use of %n (union/nonunion mismatch)";
+      m = "invalid reference to %n (union/nonunion mismatch)";
       break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
