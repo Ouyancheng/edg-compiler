@@ -798,11 +798,6 @@ the type being thrown.
 #endif /* DEBUG */
 #if 0
 #else /* 0 */
-  if (thrown_typeinfo != NULL) {
-    /* Clear the base class flags from the previous throw.  This needs to
-       be changed when stacked throws are implemented. */
-    set_base_class_flags(thrown_typeinfo, /*set_flag=*/FALSE);
-  }  /* if */
 #endif /* 1 */
   thrown_typeinfo = typeinfo;
   thrown_is_pointer = is_pointer;
@@ -816,6 +811,11 @@ Free the space used to make the copy of the thrown object.  Called at
 the completion of a catch clause.
 */
 {
+  if (thrown_typeinfo != NULL) {
+    /* Clear the base class flags from the previous throw.  This needs to
+       be changed when stacked throws are implemented. */
+    set_base_class_flags(thrown_typeinfo, /*set_flag=*/FALSE);
+  }  /* if */
 #if 0
   /* To be added when throw stacking is added. */
 #else
