@@ -2182,19 +2182,21 @@ to refine the hash value developed in hash_constant.
     case tk_struct:
     case tk_class:
     case tk_union:
+      hash_value = (a_constant_hash_value)type->kind;
       ctsp = type->variant.class_struct_union.extra_info;
-      if (ctsp != NULL && ctsp->assoc_scope != NULL) {
-        /* Use the scope number as the hash value. */
-        hash_value = ctsp->assoc_scope->number;
-      } else {
-        /* No supplement (C mode) or no definition. */
-        hash_value = 217;
-        /* Work in the template arguments if there are any. */
-        for (tap = ctsp->template_arg_list; tap != NULL; tap = tap->next) {
-          if (tap->is_type) {
-            hash_value += hash_type(tap->variant.type) + 37;
-          } else {
-            hash_value += hash_constant(tap->variant.constant) + 43;
+      if (ctsp != NULL) {
+        if (ctsp->assoc_scope != NULL) {
+          /* Use the scope number as the hash value. */
+          hash_value = ctsp->assoc_scope->number;
+        } else {
+          /* No definition for the class. */
+          /* Work in the template arguments if there are any. */
+          for (tap = ctsp->template_arg_list; tap != NULL; tap = tap->next) {
+            if (tap->is_type) {
+              hash_value += hash_type(tap->variant.type) + 37;
+            } else {
+              hash_value += hash_constant(tap->variant.constant) + 43;
+            }  /* if */
           }  /* if */
         }  /* if */
       }  /* if */
