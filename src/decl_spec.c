@@ -19,11 +19,14 @@ decl_spec.c -- Scanning of declaration specifiers.
 #include "decl_spec.h"
 #include "declarator.h"
 #include "cmd_line.h"
+#include "const_ints.h"
 #include "decls.h"
 #include "error.h"
+#include "folding.h"
 #include "il.h"
 #include "symbol_tbl.h"
 #include "symbol_ref.h"
+#include "templates.h"
 
 
 static a_boolean tag_currently_being_defined(a_type_ptr tag_type)

@@ -20,6 +20,7 @@ func_def.c -- Processing for function definitions (both user supplied and
 #include "decl_inits.h"
 #include "decls.h"
 #include "error.h"
+#include "exprutil.h"
 #include "il.h"
 #include "statements.h"
 #include "symbol_tbl.h"

@@ -28,8 +28,6 @@ class_decl.c -- Scanning of class declarations.
 #include "lexical.h"
 #include "lower_il.h"
 #include "error.h"
-#include "expr.h"
-#include "exprutil.h"
 #include "lang_feat.h"
 #include "cmd_line.h"
 #include "types.h"

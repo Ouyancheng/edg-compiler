@@ -20,6 +20,7 @@ symbol_tbl.c - Symbol table management routines.
 #include "mem_manage.h"
 #include "debug.h"
 #include "error.h"
+#include "func_def.h"
 #include "il.h"
 #include "types.h"
 #include "cmd_line.h"
