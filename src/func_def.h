@@ -42,6 +42,13 @@ func_def.h -- Declarations related to func_def.c (having to do with
 #define SFB_IS_INSTANTIATION (a_decl_flag_set)(0x8)
 			/* If this bit is set the definition is being generated
 			   by the compiler based on a template. */
+#define SFB_PRAGMA_PACK_IS_LOCAL (a_decl_flag_set)(0x10)
+			/* Referenced only if USER_CONTROL_OF_STRUCT_PACKING
+			   is TRUE, this bit means the function whose body is
+			   being scanned is one in which a "#pragma pack"
+			   directive has effect only within the function and
+			   does not persist once the function body has
+			   terminated. */
 
 extern void scan_function_body(a_routine_ptr      rout_ptr,
                                a_func_info_block  *func_info,
