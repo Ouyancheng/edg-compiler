@@ -1,5 +1,10 @@
 Version 2.07
 
+6/4/92  Destructor inheritance disallowed.
+
+A bug was fixed in the creation of projection symbols so that now
+destructors cannot be inherited (ARM 12.4).
+
 6/4/92  Routine referenced flag for virtual functions.
 
 The referenced flag in the routine entry for a virtual function is
