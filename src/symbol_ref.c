@@ -72,8 +72,8 @@ should only be called if cross-reference information is being generated
              sym_ptr->kind == (a_symbol_kind)sk_extern_routine) {
     /* Ignore extern variable and routine symbols.  They are really just
        shadow symbols for the real ones. */
-  } else if (is_unnamed_class_symbol(sym_ptr)) {
-    /* Ignore symbols for unnamed classes */
+  } else if (is_unnamed_tag_symbol(sym_ptr)) {
+    /* Ignore symbols for unnamed classes and enums. */
   } else if (source_position->seq == 0) {
     /* This symbol is not associated with any particular source position. */
   } else if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&

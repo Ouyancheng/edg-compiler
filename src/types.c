@@ -4592,7 +4592,7 @@ they in name mangling; it is the underlying type, not the typedef name
   a_boolean result = FALSE;
 
   if (is_class_struct_union(type_ptr)) {
-    if (is_unnamed_class_symbol(sym)) {
+    if (is_unnamed_tag_symbol(sym)) {
       is_unnamed_type = *force_end_of_traversal = result = TRUE;
     }  /* if */
   } else if (is_enum_type(type_ptr)) {

@@ -3897,13 +3897,13 @@ return a pointer to it in *symbol_ptr.
     if (!is_error_type(type_ptr) && type_ptr->source_corresp.name == NULL &&
         !is_error_locator(*locator)) {
       sym = (a_symbol_ptr)type_ptr->source_corresp.assoc_info;
-      if (sym != NULL && is_unnamed_class_symbol(sym)) {
+      if (sym != NULL && is_unnamed_tag_symbol(sym)) {
         if (any_cfront_mode()) {
           /* An unnamed tag symbol was created for the class and can be reused
              now that we have a name to assign to it.  We need to unlink it
              from the symbol table, give it the name, and relink it into the
              symbol table. */
-          relink_unnamed_class_symbol(sym, locator);
+          relink_unnamed_tag_symbol(sym, locator);
           /* Call set_source_corresp, but preserve the current IL referenced
              setting, which set_source_corresp will clear. */
           saved_referenced_flag = type_ptr->source_corresp.referenced;
@@ -5466,7 +5466,7 @@ continue_with_declaration:
          required error checking and special processing, including creation
          of a variable which will represent the anonymous union and with
          which its fields will be aliased. */
-      check_assertion(is_unnamed_class_symbol(
+      check_assertion(is_unnamed_tag_symbol(
                         (a_symbol_ptr)(type_ptr->source_corresp.assoc_info)));
       make_anonymous_union_variable(type_ptr, storage_class);
       /* The anonymous union variable is marked as referenced, as are all

@@ -2109,8 +2109,8 @@ extern void reenter_symbol(a_symbol_ptr     symbol_to_reenter,
 extern void reactivate_prototype_scope_symbols(
                                         a_symbol_ptr  prototype_scope_symbols);
 
-extern void relink_unnamed_class_symbol(a_symbol_ptr      sym,
-                                        a_symbol_locator  *locator);
+extern void relink_unnamed_tag_symbol(a_symbol_ptr      sym,
+                                      a_symbol_locator  *locator);
 
 extern a_symbol_ptr enter_undefined_member_symbol(a_symbol_locator *locator);
 
@@ -2136,10 +2136,10 @@ extern a_symbol_ptr make_template_function_symbol(a_symbol_ptr       templ_sym,
 
 extern a_symbol_ptr get_member_function_template_symbol(a_symbol_ptr rout_sym);
 
-extern a_symbol_ptr make_unnamed_class_symbol(a_symbol_kind      sym_kind,
-                                              a_source_position  *pos);
+extern a_symbol_ptr make_unnamed_tag_symbol(a_symbol_kind      sym_kind,
+                                            a_source_position  *pos);
 
-extern a_boolean is_unnamed_class_symbol(a_symbol_ptr  sym);
+extern a_boolean is_unnamed_tag_symbol(a_symbol_ptr  sym);
 
 extern a_symbol_ptr unnamed_field_symbol(void);
 

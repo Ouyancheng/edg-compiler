@@ -46,7 +46,7 @@ unnamed class symbols.
 */
 static a_symbol_header_ptr
 		error_symbol_header,
-		unnamed_class_symbol_header,
+		unnamed_tag_symbol_header,
 		anonymous_parent_object_symbol_header,
 		unnamed_field_symbol_header;
 
@@ -2275,24 +2275,24 @@ prototype scope) now that we are in the body of the function.
 }  /* reactivate_prototype_scope_symbols */
 
 
-void relink_unnamed_class_symbol(a_symbol_ptr      sym,
-                                 a_symbol_locator  *locator)
+void relink_unnamed_tag_symbol(a_symbol_ptr      sym,
+                               a_symbol_locator  *locator)
 /*
 A name is belatedly specified for a class, and so the tag symbol originally
 created for it must be modified to bear the new name.  Give the symbol
 the new name and relink it into the symbol table under the new header.
 */
 {
-  db_enter(4, "relink_unnamed_class_symbol");
+  db_enter(4, "relink_unnamed_tag_symbol");
 #if CHECKING
   /* The symbol should not have been linked onto the symbol list for its
      header. */
-  if (sym->header != unnamed_class_symbol_header) {
-    internal_error("relink_unnamed_class_symbol: unexpected symbol header");
+  if (sym->header != unnamed_tag_symbol_header) {
+    internal_error("relink_unnamed_tag_symbol: unexpected symbol header");
   }  /* if */
   /* The declaration scope should not be changed. */
   if (scope_stack[decl_scope_level].number != sym->decl_scope) {
-    internal_error("relink_unnamed_class_symbol: bad scope");
+    internal_error("relink_unnamed_tag_symbol: bad scope");
   }  /* if */
 #endif /* CHECKING */
   /* Replace the special symbol header for unnamed class symbols with the
@@ -2301,7 +2301,7 @@ the new name and relink it into the symbol table under the new header.
   /* Add the symbol to the symbol table. */
   reenter_symbol(sym, decl_scope_level, /*suppress_error=*/FALSE);
   db_exit();
-}  /* relink_unnamed_class_symbol */
+}  /* relink_unnamed_tag_symbol */
 
 
 a_symbol_ptr enter_undefined_member_symbol(a_symbol_locator *locator)
@@ -2722,8 +2722,8 @@ template with no current instantiation or definition, we return FALSE.
 }  /* current_class_symbol_if_class_template */
 
 
-a_symbol_ptr make_unnamed_class_symbol(a_symbol_kind      sym_kind,
-                                       a_source_position  *pos)
+a_symbol_ptr make_unnamed_tag_symbol(a_symbol_kind      sym_kind,
+                                     a_source_position  *pos)
 /*
 Create a symbol for a tagless class, struct, or union symbol.  Do not enter
 it into the symbol table.
@@ -2731,26 +2731,26 @@ it into the symbol table.
 {
   a_symbol_ptr  sym;
 
-  db_enter(4, "make_unnamed_class_symbol");
+  db_enter(4, "make_unnamed_tag_symbol");
   /* Use the unnamed class symbol header.  Allocate it if necessary. */
-  if (unnamed_class_symbol_header == NULL) {
-    unnamed_class_symbol_header = alloc_symbol_header();
-    unnamed_class_symbol_header->identifier = "<unnamed>";
-    unnamed_class_symbol_header->identifier_length = 9;
+  if (unnamed_tag_symbol_header == NULL) {
+    unnamed_tag_symbol_header = alloc_symbol_header();
+    unnamed_tag_symbol_header->identifier = "<unnamed>";
+    unnamed_tag_symbol_header->identifier_length = 9;
   }  /* if */
-  sym = alloc_symbol(sym_kind, unnamed_class_symbol_header, pos);
+  sym = alloc_symbol(sym_kind, unnamed_tag_symbol_header, pos);
   sym->decl_scope = scope_stack[decl_scope_level].number;
   db_exit();
   return sym;
-}  /* make_unnamed_class_symbol */
+}  /* make_unnamed_tag_symbol */
 
 
-a_boolean is_unnamed_class_symbol(a_symbol_ptr  sym)
+a_boolean is_unnamed_tag_symbol(a_symbol_ptr  sym)
 /*
 Return TRUE if sym represents an unnamed class type.
 */
 {
-  return (sym->header == unnamed_class_symbol_header);
+  return (sym->header == unnamed_tag_symbol_header);
 }  /* if */
 
 
@@ -9334,7 +9334,7 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(avail_dependent_type_fixups),
       pch_saved_var_array_elem(avail_param_ids),
       pch_saved_var_array_elem(error_symbol_header),
-      pch_saved_var_array_elem(unnamed_class_symbol_header),
+      pch_saved_var_array_elem(unnamed_tag_symbol_header),
       pch_saved_var_array_elem(unnamed_field_symbol_header),
 #if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
       pch_saved_var_array_elem(last_ctor_or_dtor_sym),
@@ -9407,7 +9407,7 @@ of the front end.
   avail_dependent_type_fixups = NULL;
   avail_access_error_descrs = NULL;
   error_symbol_header = NULL;
-  unnamed_class_symbol_header = NULL;
+  unnamed_tag_symbol_header = NULL;
   anonymous_parent_object_symbol_header = NULL;
   unnamed_field_symbol_header = NULL;
   num_classes_on_scope_stack = 0;

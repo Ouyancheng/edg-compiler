@@ -3087,7 +3087,7 @@ Also, add the instance to the definitions list for the template.
   member_type = static_data_member_sym->
                         variant.static_data_member.variable->type;
   if (member_type->kind == (a_type_kind)tk_union &&
-      is_unnamed_class_symbol(
+      is_unnamed_tag_symbol(
                   (a_symbol_ptr)member_type->source_corresp.assoc_info)) {
     /* Error case -- the static data member is an anonymous union.  Look
        through the variables list of the prototype instantiation type. */

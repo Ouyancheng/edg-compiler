@@ -744,7 +744,7 @@ skip_tag_scan:
          though not entered in the symbol table, it is needed to carry
          around some information about classes that is of interest to the
          front end only. */
-      tag_sym = make_unnamed_class_symbol(tag_kind, &pos_curr_token);
+      tag_sym = make_unnamed_tag_symbol(tag_kind, &pos_curr_token);
       /* Although the symbol header has a name of sorts, it should not appear
          in the type, so NULL it out after the call to set_source_corresp. */
       set_source_corresp(&(class_type->source_corresp), tag_sym);
@@ -789,7 +789,7 @@ skip_tag_scan:
       /* If the current declaration coexists with another declaration in the
          current scope that effectively hides it, record that information in
          the IL. */
-      if (!tag_sym->is_error && !is_unnamed_class_symbol(tag_sym)) {
+      if (!tag_sym->is_error && !is_unnamed_tag_symbol(tag_sym)) {
         if (tag_sym->header->symbol != tag_sym &&
             tag_sym->header->symbol->decl_scope == tag_sym->decl_scope) {
           record_defeatable_name_hiding(tag_sym,
