@@ -1513,6 +1513,7 @@ fi
 if [ $multi_trans_unit -ne 0 ] ; then
   allfiles=$cfiles
   cfiles=`echo $cfiles | sed -e "s/ .*//"`
+  more_than_one_c_file=0
 fi
 #
 # Run through the list of .c files and compile.
