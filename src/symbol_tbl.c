@@ -6818,6 +6818,9 @@ specific version of the template.
       sp->depth_in_scope_stack = depth_scope_stack;
       ssep->il_memory_region = curr_il_region_number;
       break;
+    case sck_template_instantiation:
+      /* Template instantiations should always take place in the file scope
+         memory region. */
     case sck_func_prototype:
       /* Use the file scope memory region for a function prototype scope,
          since param types and types declared within it are pointed to from
