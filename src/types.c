@@ -3883,6 +3883,10 @@ containing such a reference to the type.
 
 a_boolean type_contains_specific_template_param_constant(a_type_ptr     tp,
                                                          a_constant_ptr cp)
+/*
+Return TRUE if the template parameter constant pointed to by cp is involved
+in the type tree represented by tp.
+*/
 {
   a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
                                                TTT_PARAM_TYPES |
