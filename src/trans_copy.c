@@ -3283,13 +3283,13 @@ must_be_complete and insert_pointer.
     case tk_pointer:
       /* A pointer type.  Process the underlying type, which does
          not need to be complete. */
-      process_referenced_type_for_ordering(type->variant.typeref.type,
+      process_referenced_type_for_ordering(type->variant.pointer.type,
                                            /*must_be_complete=*/FALSE,
                                            insert_pointer);
       break;
     case tk_array:
       /* An array type.  Process the underlying type. */
-      process_referenced_type_for_ordering(type->variant.typeref.type,
+      process_referenced_type_for_ordering(type->variant.array.element_type,
                                            must_be_complete,
                                            insert_pointer);
       break;
