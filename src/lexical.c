@@ -1867,7 +1867,7 @@ returned.
 */
 {
   a_directory_name_entry_ptr  curr_directory_name_entry;
-  char                        *temp_file_name;
+  char                        *temp_file_name, *prev_dir_name;
   FILE                        *new_input_file;
   a_boolean                   not_found = FALSE,
                               bad_format = FALSE,
@@ -1969,8 +1969,15 @@ returned.
       str_catastrophe(ec_empty_include_search_path, file_name);
     } else {
       /* File name is relative, use search path. */
-      curr_directory_name_entry = search_path;
-      while (curr_directory_name_entry != NULL) {
+      prev_dir_name = NULL;
+      for (curr_directory_name_entry = search_path;
+           curr_directory_name_entry != NULL;
+           curr_directory_name_entry = curr_directory_name_entry->next) {
+        if (curr_directory_name_entry->dir_name == prev_dir_name) {
+          /* Two directories with the same name are adjacent in the stack.
+             No need to try to open the same file a second time. */
+          continue;
+        }  /* if */
         /* Try opening the file name with this directory name. */
         temp_file_name = combine_dir_and_file_name(
                                         curr_directory_name_entry->dir_name,
@@ -1991,7 +1998,6 @@ returned.
           }  /* if */
         }  /* if */
         /* The file could not be found.  Keep looking. */
-        curr_directory_name_entry = curr_directory_name_entry->next;
       }  /* while */
     }  /* if */
     if (new_input_file == NULL) {
@@ -2165,12 +2171,11 @@ Push the indicated file onto the input stack.
   if (list_included_files && depth_input_stack != 0) {
     fprintf(f_pp_output, "%s\n", curr_ise->file_name);
   }  /* if */
-  if (C_dialect == C_dialect_pcc) {
-    /* If in pcc mode, modify the search rules for #include directives
-       found within this source file, so that the directory containing
-       the current include file will be searched first. */
-    change_primary_include_search_dir(curr_ise->dir_name);
-  } else {
+  /* Modify the search rules for #include directives found within this source
+     file, so that the directory containing the current include file will be
+     searched first. */
+  push_primary_include_search_dir(curr_ise->dir_name);
+  if (C_dialect != C_dialect_pcc) {
     /* If not in pcc mode, keep the base of the preprocessing if stack
        up to date.  Each file's #ifs are kept separate; an #if must
        be ended in the same file in which it began. */
@@ -2279,12 +2284,11 @@ at the next level down.
     if (f_raw_listing != NULL) {
       gen_rlisting_line_info('2');
     }  /* if */
-    if (C_dialect == C_dialect_pcc) {
-      /* If in pcc mode, modify the search rules for #include directives
-         found within this source file, so that the directory containing
-         the current include file will be searched first. */
-      change_primary_include_search_dir(curr_ise->dir_name);
-    } else {
+    /* Modify the search rules for #include directives found within this
+       source file, so that the directory containing the current include
+       file will be searched first. */
+    pop_primary_include_search_dir(curr_ise->dir_name);
+    if (C_dialect != C_dialect_pcc) {
       /* If not in pcc mode, keep the base of the preprocessing if stack
          up to date.  Each file's #ifs are kept separate; an #if must
          be ended in the same file in which it began. */
