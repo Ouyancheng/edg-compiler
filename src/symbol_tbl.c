@@ -1919,10 +1919,12 @@ create one along with a routine entry to represent the function.
     set_routine_calling_method_flag(rout_type);
     /* Create a locator for the symbol that is to be created. */
     make_opname_locator(tok_new, (an_opname_kind)onk_new, &locator, pos);
-    /* Create the symbol and routine entry. */
+    /* Create the symbol and routine entry.  Note that the routine entry
+       is given a storage class of sc_extern since there is no definition
+       in the current translation unit. */
     external_linkage.kind = (a_name_linkage_kind)nlk_cplusplus_external;
     external_linkage.is_explicit = FALSE;
-    decl_var_or_routine(&locator, (a_storage_class)sc_unspecified,
+    decl_var_or_routine(&locator, (a_storage_class)sc_extern,
                         rout_type, /*is_implicit_function=*/FALSE,
                         /*if_function_def_with_body=*/FALSE,
                         /*is_inline=*/FALSE, external_linkage, &sym,
