@@ -163,8 +163,19 @@ Dump the entire scope stack (for debugging).
   }  /* for */
 }  /* db_scope_stack */
 
-
 #if EXTRA_SOURCE_POSITIONS_IN_IL
+
+static void db_source_range(a_source_range  *range)
+/*
+Dump the specified range.
+*/
+{
+  fprintf(f_debug, "%4lu/%-3lu -- %4lu/%-3lu",
+          range->start.seq, range->start.column,
+          range->end.seq, range->end.column);
+}  /* db_source_range */
+
+
 void db_decl_pos_info(a_symbol_ptr  sym)
 /*
 Dump decl-pos information for the specified symbol (for debugging).
@@ -172,6 +183,7 @@ Dump decl-pos information for the specified symbol (for debugging).
 {
   a_decl_position_supplement_ptr  dpsp;
   a_source_correspondence         *scp;
+  a_boolean                       is_enumerator;
 
   if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
     sym = sym->variant.overloaded_function.symbols;
@@ -188,42 +200,43 @@ Dump decl-pos information for the specified symbol (for debugging).
       if (dpsp == NULL) {
         fputs(", no decl-pos info\n", f_debug);
       } else {
+        is_enumerator = (sym->kind == (a_symbol_kind)sk_constant &&
+                         is_enum_constant(sym->variant.constant));
         fputc('\n', f_debug);
-        if (dpsp->specifiers_range.start.seq != 0 ||
-            dpsp->specifiers_range.end.seq != 0) {
-          fprintf(f_debug, "    specifiers range:  %4lu/%-3lu -- %4lu/%-3lu\n",
-                           dpsp->specifiers_range.start.seq,
-                           dpsp->specifiers_range.start.column,
-                           dpsp->specifiers_range.end.seq,
-                           dpsp->specifiers_range.end.column);
-        }  /* if */
-        if (dpsp->declarator_range.start.seq != 0 ||
-            dpsp->declarator_range.end.seq != 0) {
-          fprintf(f_debug, "    declarator range:  %4lu/%-3lu -- %4lu/%-3lu\n",
-                           dpsp->declarator_range.start.seq,
-                           dpsp->declarator_range.start.column,
-                           dpsp->declarator_range.end.seq,
-                           dpsp->declarator_range.end.column);
+        if (!is_enumerator) {
+          if (dpsp->specifiers_range.start.seq != 0 ||
+              dpsp->specifiers_range.end.seq != 0) {
+            fprintf(f_debug, "    specifiers range:  ");
+            db_source_range(&dpsp->specifiers_range);
+            fputc('\n', f_debug);
+          }  /* if */
+          if (dpsp->variant.declarator_range.start.seq != 0 ||
+              dpsp->variant.declarator_range.end.seq != 0) {
+            fprintf(f_debug, "    declarator range:  ");
+            db_source_range(&dpsp->variant.declarator_range);
+            fputc('\n', f_debug);
+          }  /* if */
         }  /* if */
         if (dpsp->identifier_range.start.seq != 0 ||
             dpsp->identifier_range.end.seq != 0) {
-          fprintf(f_debug, "    identifier range:  %4lu/%-3lu -- %4lu/%-3lu\n",
-                           dpsp->identifier_range.start.seq,
-                           dpsp->identifier_range.start.column,
-                           dpsp->identifier_range.end.seq,
-                           dpsp->identifier_range.end.column);
+          fprintf(f_debug, "    identifier range:  ");
+          db_source_range(&dpsp->identifier_range);
+          fputc('\n', f_debug);
         }  /* if */
-        if (sym->kind == (a_symbol_kind)sk_variable ||
-            sym->kind == (a_symbol_kind)sk_static_data_member) {
+        if (is_enumerator &&
+            (dpsp->variant.enum_value_range.start.seq != 0 ||
+             dpsp->variant.enum_value_range.end.seq != 0)) {
+          fprintf(f_debug, "    enum value range:  ");
+          db_source_range(&dpsp->variant.enum_value_range);
+          fputc('\n', f_debug);
+        } else if (sym->kind == (a_symbol_kind)sk_variable ||
+                   sym->kind == (a_symbol_kind)sk_static_data_member) {
           a_variable_ptr  vp = sym->variant.variable.ptr;
           if (vp->initializer_range.start.seq != 0 ||
               vp->initializer_range.end.seq != 0) {
-            fprintf(f_debug,
-                    "    initializer range: %4lu/%-3lu -- %4lu/%-3lu\n",
-                    vp->initializer_range.start.seq,
-                    vp->initializer_range.start.column,
-                    vp->initializer_range.end.seq,
-                    vp->initializer_range.end.column);
+            fprintf(f_debug, "    initializer range: ");
+            db_source_range(&vp->initializer_range);
+            fputc('\n', f_debug);
           }  /* if */
         } else if (is_class_struct_union_symbol(sym)) {
           a_base_class_ptr  bcp = base_classes_of(type_symbol_type(sym));
@@ -235,11 +248,8 @@ Dump decl-pos information for the specified symbol (for debugging).
               fprintf(f_debug, "\", decl_position: %lu/%lu\n",
                       bcp->decl_position.seq, bcp->decl_position.column);
               fprintf(f_debug, "      specifier range: ");
-              fprintf(f_debug, "%4lu/%-3lu -- %4lu/%-3lu\n",
-                      bcp->base_specifier_range.start.seq,
-                      bcp->base_specifier_range.start.column,
-                      bcp->base_specifier_range.end.seq,
-                      bcp->base_specifier_range.end.column);
+              db_source_range(&bcp->base_specifier_range);
+              fputc('\n', f_debug);
             }  /* if */
           }  /* if */
         }  /* if */

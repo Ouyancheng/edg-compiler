@@ -686,7 +686,7 @@ a new symbol is created and entered in the symbol table.
   if (dpsp != NULL) {
     dpsp->identifier_range = param_id->identifier_range;
     dpsp->specifiers_range = param_id->specifiers_range;
-    dpsp->declarator_range = param_id->declarator_range;
+    dpsp->variant.declarator_range = param_id->declarator_range;
   }  /* if */
   }
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -1331,20 +1331,15 @@ on a prior declaration.
     copy_source_position(locator->source_position,
                          rp->source_corresp.decl_position);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    if (decl_pos_block != NULL) {
-      a_decl_position_supplement_ptr  dpsp = rp->source_corresp.decl_pos_info;
-      if (dpsp != NULL) {
-        dpsp->identifier_range = decl_pos_block->identifier_range;
-        dpsp->specifiers_range = decl_pos_block->specifiers_range;
-        dpsp->declarator_range = decl_pos_block->declarator_range;
+    update_decl_pos_info(&rp->source_corresp, decl_pos_block);
 #if DEBUG
-        if (debug_level >= 3 || db_flag_is_set("dump_decl_pos_info")) {
-          fprintf(f_debug, "decl-pos info for member function def\n");
-          db_decl_pos_info(sym);
-        }  /* if */
-#endif /* DEBUG */
+    if (decl_pos_block != NULL) {
+      if (debug_level >= 3 || db_flag_is_set("dump_decl_pos_info")) {
+        fprintf(f_debug, "decl-pos info for member function def\n");
+        db_decl_pos_info(sym);
       }  /* if */
     }  /* if */
+#endif /* DEBUG */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
   if (!exceptions_enabled && !func_info->is_inline &&

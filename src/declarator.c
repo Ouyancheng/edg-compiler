@@ -1265,7 +1265,7 @@ issue an error if a default argument expression is encountered.
         dpsp = alloc_decl_position_supplement(in_file_scope(ptp));
         dpsp->identifier_range = local_decl_pos_block.identifier_range;
         dpsp->specifiers_range = local_decl_pos_block.specifiers_range;
-        dpsp->declarator_range = local_decl_pos_block.declarator_range;
+        dpsp->variant.declarator_range = local_decl_pos_block.declarator_range;
         ptp->decl_pos_info = dpsp;
         }
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */

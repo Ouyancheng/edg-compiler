@@ -155,6 +155,17 @@ typedef struct a_decl_pos_block {
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 } a_decl_pos_block;
 
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+
+extern a_decl_position_supplement_ptr make_decl_pos_supplement(
+                                        a_boolean             at_file_scope,
+                                        a_decl_pos_block_ptr  decl_pos_block);
+
+extern void update_decl_pos_info(a_source_correspondence  *scp,
+                                 a_decl_pos_block_ptr     decl_pos_block);
+
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+
 extern void clear_decl_pos_block(a_decl_pos_block_ptr  decl_pos_block);
 
 extern a_boolean simplify_curr_class_qualified_name(void);

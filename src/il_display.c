@@ -456,7 +456,11 @@ string.
 }  /* disp_source_range */
 
 
-static void disp_source_corresp(a_source_correspondence *scp)
+#if !EXTRA_SOURCE_POSITIONS_IN_IL
+/*ARGSUSED*/ /* "is_enumerator" is only used to display extra source info. */
+#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
+static void disp_source_corresp(a_source_correspondence *scp,
+                                a_boolean               is_enumerator)
 /*
 Display the indicated source correspondence entry.
 */
@@ -478,8 +482,13 @@ Display the indicated source correspondence entry.
                       &scp->decl_pos_info->identifier_range);
     disp_source_range("  specifiers_range",
                       &scp->decl_pos_info->specifiers_range);
-    disp_source_range("  declarator_range",
-                      &scp->decl_pos_info->declarator_range);
+    if (is_enumerator) {
+      disp_source_range("  enum_value_range",
+                        &scp->decl_pos_info->variant.enum_value_range);
+    } else {
+      disp_source_range("  declarator_range",
+                        &scp->decl_pos_info->variant.declarator_range);
+    }  /* if */
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #ifdef CFE
@@ -589,7 +598,16 @@ static void disp_constant(a_constant_ptr ptr)
 Display the indicated constant entry.
 */
 {
-  disp_source_corresp(&ptr->source_corresp);
+  a_boolean  is_enumerator = FALSE;
+
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  /* The is_enumerator flag is only referenced when extra source information
+     is included in the IL. */
+  if (ptr->source_corresp.name != NULL && is_enum_constant(ptr)) {
+    is_enumerator = TRUE;
+  }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  disp_source_corresp(&ptr->source_corresp, is_enumerator);
   disp_ptr("next", (char *)ptr->next, iek_constant);
   disp_ptr("type", (char *)ptr->type, iek_type);
   if (ptr->implicit_cast) {
@@ -763,7 +781,7 @@ Display a_param_type entry.
     disp_source_range("specifiers_range",
                       &ptr->decl_pos_info->specifiers_range);
     disp_source_range("declarator_range",
-                      &ptr->decl_pos_info->declarator_range);
+                      &ptr->decl_pos_info->variant.declarator_range);
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* disp_param_type */
@@ -917,7 +935,7 @@ static void disp_type(a_type_ptr ptr)
 Display the indicated type entry.
 */
 {
-  disp_source_corresp(&ptr->source_corresp);
+  disp_source_corresp(&ptr->source_corresp, /*is_enumerator=*/FALSE);
   disp_ptr("next", (char *)ptr->next, iek_type);
   disp_based_type_list(ptr->based_types);
   disp_unsigned_long("size", (unsigned long)ptr->size);
@@ -1301,7 +1319,7 @@ static void disp_variable(a_variable_ptr ptr)
 Display the indicated variable.
 */
 {
-  disp_source_corresp(&ptr->source_corresp);
+  disp_source_corresp(&ptr->source_corresp, /*is_enumerator=*/FALSE);
   disp_ptr("next", (char *)ptr->next, iek_variable);
   disp_ptr("type", (char *)ptr->type, iek_type);
   if (ptr->assoc_param_type != NULL) {
@@ -1426,7 +1444,7 @@ static void disp_field(a_field_ptr ptr)
 Display the indicated field.
 */
 {
-  disp_source_corresp(&ptr->source_corresp);
+  disp_source_corresp(&ptr->source_corresp, /*is_enumerator=*/FALSE);
   disp_ptr("next", (char *)ptr->next, iek_field);
   disp_ptr("type", (char *)ptr->type, iek_type);
   disp_unsigned_long("offset", (unsigned long)ptr->offset);
@@ -1673,7 +1691,7 @@ static void disp_routine(a_routine_ptr ptr)
 Display the indicated routine.
 */
 {
-  disp_source_corresp(&ptr->source_corresp);
+  disp_source_corresp(&ptr->source_corresp, /*is_enumerator=*/FALSE);
   disp_ptr("next", (char *)ptr->next, iek_routine);
   disp_ptr("type", (char *)ptr->type, iek_type);
   disp_unsigned_long("assoc_scope", (unsigned long)ptr->assoc_scope);
@@ -1808,7 +1826,7 @@ static void disp_label(a_label_ptr ptr)
 Display the indicated label.
 */
 {
-  disp_source_corresp(&ptr->source_corresp);
+  disp_source_corresp(&ptr->source_corresp, /*is_enumerator=*/FALSE);
   disp_ptr("next", (char *)ptr->next, iek_label);
   if (ptr->reachable_by_fall_through) {
     disp_boolean("reachable_by_fall_through",
@@ -2740,7 +2758,7 @@ static void disp_template(a_template_ptr  ptr)
 Display the indicated hidden-name entry.
 */
 {
-  disp_source_corresp(&ptr->source_corresp);
+  disp_source_corresp(&ptr->source_corresp, /*is_enumerator=*/FALSE);
   disp_ptr("next", (char *)ptr->next, iek_template);
   disp_name("kind");
   switch (ptr->kind) {
@@ -2776,7 +2794,7 @@ static void disp_macro(a_macro_ptr  ptr)
 Display the indicated hidden-name entry.
 */
 {
-  disp_source_corresp(&ptr->source_corresp);
+  disp_source_corresp(&ptr->source_corresp, /*is_enumerator=*/FALSE);
   disp_ptr("next", (char *)ptr->next, iek_macro);
   disp_boolean("is_undef", (a_boolean)ptr->is_undef);
   disp_string_ptr("text", ptr->text, iek_other_text, (sizeof_t)0);
@@ -3120,7 +3138,7 @@ static void disp_namelist_group(a_namelist_group_ptr ptr)
 Display the indicated NAMELIST group entry.
 */
 {
-  disp_source_corresp(&ptr->source_corresp);
+  disp_source_corresp(&ptr->source_corresp, /*is_enumerator=*/FALSE);
   disp_ptr("next", (char *)ptr->next, iek_namelist_group);
   disp_ptr("member_list", (char *)ptr->member_list, iek_namelist_group_member);
 } /* disp_namelist_group */
@@ -3229,7 +3247,7 @@ static void disp_namespace(a_namespace_ptr  ptr)
 Display the indicated namespace entry.
 */
 {
-  disp_source_corresp(&ptr->source_corresp);
+  disp_source_corresp(&ptr->source_corresp, /*is_enumerator=*/FALSE);
   disp_ptr("next", (char *)ptr->next, iek_namespace);
   if (ptr->is_namespace_alias) {
     disp_boolean("is_namespace_alias", TRUE);
@@ -3639,7 +3657,7 @@ static void disp_asm_entry(an_asm_entry_ptr ptr)
 Display the indicated asm entry.
 */
 {
-  disp_source_corresp(&ptr->source_corresp);
+  disp_source_corresp(&ptr->source_corresp, /*is_enumerator=*/FALSE);
   disp_ptr("next", (char *)ptr->next, iek_asm_entry);
   disp_ptr("asm_string", (char *)ptr->asm_string, iek_constant);
 }  /* disp_asm_entry */
@@ -3672,7 +3690,7 @@ Display the indicated source sequence secondary declaration entry.
     disp_source_range("specifiers_range",
                       &sssdp->decl_pos_info->specifiers_range);
     disp_source_range("declarator_range",
-                      &sssdp->decl_pos_info->declarator_range);
+                      &sssdp->decl_pos_info->variant.declarator_range);
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   disp_ptr("entity", (char *)sssdp->entity.ptr,

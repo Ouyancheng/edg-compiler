@@ -600,22 +600,33 @@ typedef struct a_decl_position_supplement {
 			   represent the identifier, as explicitly spelled in
 			   the source program (e.g., possibly including
 			   qualifiers and a template argument list, if they
-			   were specified explicitly).  Both positions may be
-			   null_source_position. */
+			   were specified explicitly).  May be
+			   null_source_range. */
   a_source_range
 		specifiers_range;
 			/* If the declaration of the associated IL entry
 			   involves declaration-specifiers, the source
 			   positions corresponding to the start and end of the
-			   declaration-specifiers of the declaration.  Both
-			   positions may be null_source_position. */
-  a_source_range
+			   declaration-specifiers of the declaration.  (When
+			   the associated entity is an class or enum type,
+			   this field corresponds to enum-specifier and
+			   class-specifier in the grammar.)  May be
+			   null_source_range. */
+  union {
+    a_source_range
 		declarator_range;
 			/* If the declaration of the associated IL entry
 			   involves a declarator, the source positions
 			   corresponding to the start and end of the
-			   declarator.  Both positions may be
-			   null_source_position. */
+			   declarator.  May be null_source_range. */
+    a_source_range
+		enum_value_range;
+			/* When the associated IL entry is an enumerator, the
+			   source positions corresponding to the start and
+			   end positions of the value expression.  May be
+			   null_source_range (when there is no explicitly
+			   specified value). */
+  } variant;
 } a_decl_position_supplement;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
@@ -4273,7 +4284,7 @@ typedef struct a_variable {
 			   source, the source positions corresponding to the
 			   start and end of the top-level initializer
 			   construct (i.e, including "=" or "(" and ")").
-			   Both positions may be null_source_position. */
+			   May be null_source_range. */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_type_ptr	declared_type;
@@ -5821,8 +5832,7 @@ typedef struct an_expr_node {
 			   of tokens in the source, the source positions of
 			   start and end of the expression.  Otherwise, the
 			   source positions where the expression would appear
-			   if it were explicit.  Both positions may be
-			   null_source_position. */
+			   if it were explicit.  May be null_source_range. */
   a_source_position
 		operator_position;
 			/* When kind == enk_operator, the source position
@@ -6706,8 +6716,7 @@ typedef struct a_constructor_init {
 		ctor_init_range;
 			/* When the mem-initializer is explicit in the source,
 			   the source positions corresponding to the opening
-			   "(" and the closing ")".  Both positions may be
-			   null_source_position. */
+			   "(" and closing ")".  May be null_source_range. */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 } a_constructor_init;
 

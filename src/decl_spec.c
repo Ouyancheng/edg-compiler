@@ -2222,7 +2222,12 @@ to indicate whether an enumeration is actually defined.
       /* Scan the list of enumerated constants. */
       do {
         a_source_sequence_entry_ptr  enum_con_ssep = NULL;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        a_source_range               enum_id_range, enum_value_range;
 
+        enum_id_range = null_source_range;
+        enum_value_range = null_source_range;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         add_stop_token(tok_comma);
         add_stop_token(tok_assign);
         if (curr_token != tok_identifier) {
@@ -2239,6 +2244,10 @@ to indicate whether an enumeration is actually defined.
           enum_con_ssep = add_empty_source_sequence_entry();
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
           locator = locator_for_curr_id;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+          enum_id_range.start = pos_curr_token;
+          enum_id_range.end = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
           /* Advance past the identifier. */
           (void)get_token();
           /* Set the error position to the identifier position. */
@@ -2253,8 +2262,14 @@ to indicate whether an enumeration is actually defined.
         /* See if "= constant-expression" follows. */
         if (curr_token == tok_assign) {
           (void)get_token();
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+          enum_value_range.start = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
           /* Scan the constant expression. */
           scan_integral_constant_expression(&constant);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+          enum_value_range.end = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
           if (is_error_constant(&constant)) {
             err = TRUE;
           } else if (constant.kind ==
@@ -2369,6 +2384,15 @@ to indicate whether an enumeration is actually defined.
           end_of_enum_con_list->next = enum_con;
         }  /* if */
         end_of_enum_con_list = enum_con;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        { a_decl_position_supplement_ptr  dpsp;
+          dpsp = enum_con->source_corresp.decl_pos_info;
+          if (dpsp != NULL) {
+            dpsp->identifier_range = enum_id_range;
+            dpsp->variant.enum_value_range = enum_value_range;
+          }  /* if */
+        }
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         /* Keep looping while there are more enumeration constant
            identifiers. */
         copy_source_position(pos_curr_token, pos_comma);

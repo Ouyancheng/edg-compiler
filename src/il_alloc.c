@@ -2615,7 +2615,7 @@ Clear the fields of the specified decl-position-supplement entry.
 {
   dpsp->identifier_range = null_source_range;
   dpsp->specifiers_range = null_source_range;
-  dpsp->declarator_range = null_source_range;
+  dpsp->variant.declarator_range = null_source_range;
 }  /* clear_decl_position_supplement */
 
 

@@ -237,16 +237,59 @@ Initialize the fields of the specified decl-pos block.
   decl_pos_block->decl_pos = null_source_position;
   decl_pos_block->storage_class_pos = null_source_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  decl_pos_block->identifier_range.start = null_source_position;
-  decl_pos_block->identifier_range.end = null_source_position;
-  decl_pos_block->specifiers_range.start = null_source_position;
-  decl_pos_block->specifiers_range.end = null_source_position;
-  decl_pos_block->declarator_range.start = null_source_position;
-  decl_pos_block->declarator_range.end = null_source_position;
-  decl_pos_block->var_init_range.start = null_source_position;
-  decl_pos_block->var_init_range.end = null_source_position;
+  decl_pos_block->identifier_range = null_source_range;
+  decl_pos_block->specifiers_range = null_source_range;
+  decl_pos_block->declarator_range = null_source_range;
+  decl_pos_block->var_init_range = null_source_range;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* clear_decl_pos_block */
+
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+
+a_decl_position_supplement_ptr make_decl_pos_supplement(
+                                        a_boolean             at_file_scope,
+                                        a_decl_pos_block_ptr  decl_pos_block)
+/*
+If the specified decl-pos block pointer is non-NULL, allocate a
+decl-position-supplement entry, set its values, and return it.  at_file_scope
+is TRUE when the entry should be allocated in the file scope memory region.
+*/
+{
+  a_decl_position_supplement_ptr  dpsp;
+
+  if (decl_pos_block != NULL) {
+    dpsp = alloc_decl_position_supplement(at_file_scope);
+    dpsp->identifier_range = decl_pos_block->identifier_range;
+    dpsp->specifiers_range = decl_pos_block->specifiers_range;
+    dpsp->variant.declarator_range = decl_pos_block->declarator_range;
+  } else {
+    dpsp = NULL;
+  }  /* if */
+  return dpsp;
+}  /* make_decl_position_supplement */
+
+
+void update_decl_pos_info(a_source_correspondence  *scp,
+                          a_decl_pos_block_ptr     decl_pos_block)
+/*
+If the specified decl-pos block pointer is non-NULL, set the values in
+the decl-position-supplement entry pointed to from the specified source
+correspondence entry.
+*/
+{
+  a_decl_position_supplement_ptr  dpsp;
+
+  if (decl_pos_block != NULL) {
+    dpsp = scp->decl_pos_info;
+    if (dpsp != NULL) {
+      dpsp->identifier_range = decl_pos_block->identifier_range;
+      dpsp->specifiers_range = decl_pos_block->specifiers_range;
+      dpsp->variant.declarator_range = decl_pos_block->declarator_range;
+    }  /* if */
+  }  /* if */
+}  /* update_decl_pos_info */
+
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
 a_boolean f_check_for_overload_anachronism(void)
 /*
@@ -3648,14 +3691,8 @@ cross-reference output describing this declaration.
   record_symbol_declaration(srk_flags, sym, &locator->source_position,
                             declarator_ssep);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  if (decl_pos_block != NULL && (is_variable_def || !redeclaration)) {
-    a_decl_position_supplement_ptr  dpsp;
-    dpsp = variable_ptr->source_corresp.decl_pos_info;
-    if (dpsp != NULL) {
-      dpsp->identifier_range = decl_pos_block->identifier_range;
-      dpsp->specifiers_range = decl_pos_block->specifiers_range;
-      dpsp->declarator_range = decl_pos_block->declarator_range;
-    }  /* if */
+  if (is_variable_def || !redeclaration) {
+    update_decl_pos_info(&variable_ptr->source_corresp, decl_pos_block);
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -3671,14 +3708,10 @@ cross-reference output describing this declaration.
                                             declared_type,
                                             /*is_specialization=*/FALSE);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    if (sssdp != NULL && decl_pos_block != NULL) {
+    if (sssdp != NULL) {
       /* Update source range information in the secondary-decl entry. */
-      a_decl_position_supplement_ptr  dpsp;
-      dpsp = alloc_decl_position_supplement(in_file_scope(sssdp));
-      dpsp->identifier_range = decl_pos_block->identifier_range;
-      dpsp->specifiers_range = decl_pos_block->specifiers_range;
-      dpsp->declarator_range = decl_pos_block->declarator_range;
-      sssdp->decl_pos_info = dpsp;
+      sssdp->decl_pos_info = make_decl_pos_supplement(in_file_scope(sssdp),
+                                                      decl_pos_block);
     }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   } else {
@@ -4495,14 +4528,8 @@ skip_overloading:;
   record_symbol_declaration(srk_flags, sym, &locator->source_position,
                             declarator_ssep);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  if (decl_pos_block != NULL && (is_function_def || !redeclaration)) {
-    a_decl_position_supplement_ptr  dpsp;
-    dpsp = routine_ptr->source_corresp.decl_pos_info;
-    if (dpsp != NULL) {
-      dpsp->identifier_range = decl_pos_block->identifier_range;
-      dpsp->specifiers_range = decl_pos_block->specifiers_range;
-      dpsp->declarator_range = decl_pos_block->declarator_range;
-    }  /* if */
+  if (is_function_def || !redeclaration) {
+    update_decl_pos_info(&routine_ptr->source_corresp, decl_pos_block);
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   if (is_function_def && is_friend_decl) {
@@ -4548,15 +4575,9 @@ skip_overloading:;
       if (func_info->is_implicit_declaration) sssdp->implicit_decl = TRUE;
       if (first_decl) sssdp->first_declaration = TRUE;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-      if (decl_pos_block != NULL) {
-        /* Update source range information in the secondary-decl entry. */
-        a_decl_position_supplement_ptr  dpsp;
-        dpsp = alloc_decl_position_supplement(in_file_scope(sssdp));
-        dpsp->identifier_range = decl_pos_block->identifier_range;
-        dpsp->specifiers_range = decl_pos_block->specifiers_range;
-        dpsp->declarator_range = decl_pos_block->declarator_range;
-        sssdp->decl_pos_info = dpsp;
-      }  /* if */
+      /* Update source range information in the secondary-decl entry. */
+      sssdp->decl_pos_info = make_decl_pos_supplement(in_file_scope(sssdp),
+                                                      decl_pos_block);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     }  /* if */
   }  /* if */
@@ -5167,14 +5188,7 @@ the symbol and its linkage (which is always "none").
       record_symbol_declaration(srk_flags, sym, &locator->source_position,
                                 ssep);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-      {
-      a_decl_position_supplement_ptr  dpsp = var->source_corresp.decl_pos_info;
-      if (dpsp != NULL) {
-        dpsp->identifier_range = decl_pos_block->identifier_range;
-        dpsp->specifiers_range = decl_pos_block->specifiers_range;
-        dpsp->declarator_range = decl_pos_block->declarator_range;
-      }  /* if */
-      }
+      update_decl_pos_info(&var->source_corresp, decl_pos_block);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     }  /* if */
   } else {
@@ -5423,14 +5437,7 @@ return a pointer to it in *symbol_ptr.
   record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, sym,
                             &locator->source_position, declarator_ssep);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  if (decl_pos_block != NULL) {
-    a_decl_position_supplement_ptr  dpsp = tp->source_corresp.decl_pos_info;
-    if (dpsp != NULL) {
-      dpsp->identifier_range = decl_pos_block->identifier_range;
-      dpsp->specifiers_range = decl_pos_block->specifiers_range;
-      dpsp->declarator_range = decl_pos_block->declarator_range;
-    }  /* if */
-  }  /* if */
+  update_decl_pos_info(&tp->source_corresp, decl_pos_block);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   add_to_types_list(tp, decl_scope_level);
   /* Issue a diagnostic if size_t is declared in a way inconsistent with
@@ -6592,20 +6599,17 @@ clause is to be attached.  catch_pos is the source position of "catch".
         {
         /* Record additional source-range information in the variable entry
            for the handler parameter. */
-        a_decl_position_supplement_ptr  dpsp;
-
-        if (sym == NULL) {
+        if (sym != NULL) {
+          update_decl_pos_info(&handler->parameter->source_corresp,
+                               &decl_pos_block);
+        } else {
           /* Since set_source_corresp is not called for unnamed entities,
              create the associated decl-pos supplement directly. */
-          dpsp = alloc_decl_position_supplement(/*at_file_scope=*/FALSE);
-          handler->parameter->source_corresp.decl_pos_info = dpsp;
-        } else {
-          dpsp = handler->parameter->source_corresp.decl_pos_info;
+          handler->parameter->source_corresp.decl_pos_info =
+                          make_decl_pos_supplement(/*at_file_scope=*/FALSE,
+                                                   &decl_pos_block);
+    }  /* if */
         }  /* if */
-        dpsp->identifier_range = decl_pos_block.identifier_range;
-        dpsp->specifiers_range = decl_pos_block.specifiers_range;
-        dpsp->declarator_range = decl_pos_block.declarator_range;
-        }
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         /* Set the is_local_to_function flag after returning from
            set_source_corresp. */
@@ -6961,13 +6965,8 @@ Return a pointer to the variable that is declared.
   sym->variant.variable.ptr->declared_type = type_ptr;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  {
-  a_decl_position_supplement_ptr  dpsp = sym->variant.variable.ptr->
-                                                source_corresp.decl_pos_info;
-  dpsp->identifier_range = decl_pos_block.identifier_range;
-  dpsp->specifiers_range = decl_pos_block.specifiers_range;
-  dpsp->declarator_range = decl_pos_block.declarator_range;
-  }
+  update_decl_pos_info(&sym->variant.variable.ptr->source_corresp,
+                       &decl_pos_block);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   mark_variable_value_set(sym);
   srk_flags = SRK_DECLARATION | SRK_DEFINITION;

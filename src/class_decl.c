@@ -4635,19 +4635,11 @@ of the function, and again overloading is a possibility.
             if (sssdp != NULL) {
               sssdp->friend_decl = TRUE;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-              {
               /* Update source range information in the secondary-decl
                  entry. */
-              a_decl_position_supplement_ptr  dpsp;
-              dpsp = alloc_decl_position_supplement(in_file_scope(sssdp));
-              dpsp->identifier_range =
-                                decl_info->decl_pos_block.identifier_range;
-              dpsp->specifiers_range =
-                                decl_info->decl_pos_block.specifiers_range;
-              dpsp->declarator_range =
-                                decl_info->decl_pos_block.declarator_range;
-              sssdp->decl_pos_info = dpsp;
-              }
+              sssdp->decl_pos_info =
+                       make_decl_pos_supplement(in_file_scope(sssdp),
+                                                &decl_info->decl_pos_block);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
             }  /* if */
           }  /* if */
@@ -5549,14 +5541,7 @@ declared member functions.
     record_symbol_declaration(srk_flags, sym, &locator->source_position,
                               declarator_ssep);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    {
-    a_decl_position_supplement_ptr  dpsp = rtn->source_corresp.decl_pos_info;
-    if (dpsp != NULL) {
-      dpsp->identifier_range = decl_info->decl_pos_block.identifier_range;
-      dpsp->specifiers_range = decl_info->decl_pos_block.specifiers_range;
-      dpsp->declarator_range = decl_info->decl_pos_block.declarator_range;
-    }  /* if */
-    }
+    update_decl_pos_info(&rtn->source_corresp, &decl_info->decl_pos_block);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     if (func_info->is_definition) {
@@ -5599,15 +5584,10 @@ declared member functions.
       if (sssdp != NULL) {
         sssdp->first_declaration = TRUE;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-        {
         /* Update source range information in the secondary-decl entry. */
-        a_decl_position_supplement_ptr  dpsp;
-        dpsp = alloc_decl_position_supplement(in_file_scope(sssdp));
-        dpsp->identifier_range = decl_info->decl_pos_block.identifier_range;
-        dpsp->specifiers_range = decl_info->decl_pos_block.specifiers_range;
-        dpsp->declarator_range = decl_info->decl_pos_block.declarator_range;
-        sssdp->decl_pos_info = dpsp;
-        }
+        sssdp->decl_pos_info = 
+                      make_decl_pos_supplement(in_file_scope(sssdp),
+                                               &decl_info->decl_pos_block);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       }  /* if */
     }  /* if */
@@ -6038,8 +6018,8 @@ and it is legal for virtual member functions only.
          has already been called at this point. */
       a_decl_position_supplement_ptr  dpsp = rout_sym->variant.routine.ptr->
                                                  source_corresp.decl_pos_info;
-      if (dpsp != NULL && dpsp->declarator_range.start.seq != 0) {
-        dpsp->declarator_range.end = pos_curr_token;
+      if (dpsp != NULL && dpsp->variant.declarator_range.start.seq != 0) {
+        dpsp->variant.declarator_range.end = pos_curr_token;
       }  /* if */
       }
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -6117,14 +6097,7 @@ respectively.
                             &locator->source_position,
                             decl_info->declarator_ssep);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  {
-  a_decl_position_supplement_ptr  dpsp = cp->source_corresp.decl_pos_info;
-  if (dpsp != NULL) {
-    dpsp->identifier_range = decl_info->decl_pos_block.identifier_range;
-    dpsp->specifiers_range = decl_info->decl_pos_block.specifiers_range;
-    dpsp->declarator_range = decl_info->decl_pos_block.declarator_range;
-  }  /* if */
-  }
+  update_decl_pos_info(&cp->source_corresp, &decl_info->decl_pos_block);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Do processing required for any pragmas that are bound to the current
      declaration. */
@@ -6250,19 +6223,16 @@ member declaration, respectively.
          have an initializer but it is not yet considered defined. */
       a_constant constant;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-        decl_info->decl_pos_block.var_init_range.start = pos_curr_token;
+      decl_info->decl_pos_block.var_init_range.start = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       /* Advance past the "=". */
       (void)get_token();
-#if 0
-#else /* if !0 */
-/* Temporary!  But it works sometimes. */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-      decl_info->decl_pos_block.var_init_range.end = end_pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-#endif /* if 0 */
       /* Scan the constant expression. */
       scan_member_constant_initializer_expression(member_type, &constant);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      decl_info->decl_pos_block.var_init_range.end =
+                                            curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       var->init_kind = (an_init_kind)initk_static;
       var->initializer.constant = alloc_unshared_constant(&constant);
       /* Set the flag indicating to the back end that, even though there is
@@ -6276,33 +6246,22 @@ member declaration, respectively.
   record_symbol_declaration(SRK_DECLARATION, sym, &locator->source_position,
                             decl_info->declarator_ssep);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  {
-  a_decl_position_supplement_ptr  dpsp = var->source_corresp.decl_pos_info;
-  if (dpsp != NULL) {
-    dpsp->identifier_range = decl_info->decl_pos_block.identifier_range;
-    dpsp->specifiers_range = decl_info->decl_pos_block.specifiers_range;
-    dpsp->declarator_range = decl_info->decl_pos_block.declarator_range;
-    if (var->is_member_constant) {
-      var->initializer_range = decl_info->decl_pos_block.var_init_range;
-    }  /* if */
+  update_decl_pos_info(&var->source_corresp, &decl_info->decl_pos_block);
+  if (var->is_member_constant) {
+    var->initializer_range = decl_info->decl_pos_block.var_init_range;
   }  /* if */
-  }
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  {
-  a_src_seq_secondary_decl_ptr  sssdp;
-  sssdp = set_src_seq_secondary_decl_type((char *)var, member_type,
-                                          /*is_specialization=*/FALSE);
+  { a_src_seq_secondary_decl_ptr  sssdp;
+    sssdp = set_src_seq_secondary_decl_type((char *)var, member_type,
+                                            /*is_specialization=*/FALSE);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  if (sssdp != NULL) {
-    /* Update source range information in the secondary-decl entry. */
-    a_decl_position_supplement_ptr  dpsp;
-    dpsp = alloc_decl_position_supplement(in_file_scope(sssdp));
-    dpsp->identifier_range = decl_info->decl_pos_block.identifier_range;
-    dpsp->specifiers_range = decl_info->decl_pos_block.specifiers_range;
-    dpsp->declarator_range = decl_info->decl_pos_block.declarator_range;
-    sssdp->decl_pos_info = dpsp;
-  }  /* if */
+    if (sssdp != NULL) {
+      /* Update source range information in the secondary-decl entry. */
+      sssdp->decl_pos_info =
+                   make_decl_pos_supplement(in_file_scope(sssdp),
+                                            &decl_info->decl_pos_block);
+    }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -7594,14 +7553,7 @@ specific information about the member declaration, respectively.
                               &locator->source_position,
                               decl_info->declarator_ssep);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    {
-    a_decl_position_supplement *dpsp = field->source_corresp.decl_pos_info;
-    if (dpsp != NULL) {
-      dpsp->identifier_range = decl_info->decl_pos_block.identifier_range;
-      dpsp->specifiers_range = decl_info->decl_pos_block.specifiers_range;
-      dpsp->declarator_range = decl_info->decl_pos_block.declarator_range;
-    }  /* if */
-    }
+    update_decl_pos_info(&field->source_corresp, &decl_info->decl_pos_block);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* Do processing required for any pragmas that are bound to the current
        declaration. */
