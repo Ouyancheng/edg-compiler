@@ -382,6 +382,25 @@ debug purposes.
 }  /* db_virtual_function_info */
 
 
+static void db_virtual_base_class_ptr(a_base_class *bcp,
+                                      int          depth)
+{
+  int        i;
+
+  fputs("\n  ", f_debug);
+  for (i = depth; i > 0; --i) fputs("  ", f_debug);
+  fputs("[[ virtual ", f_debug);
+  db_access_control(bcp->access);
+  fprintf(f_debug, " base class %s", bcp->type->source_corresp.name);
+  fprintf(f_debug, " (pointer offset = %lu", bcp->pointer_offset);
+  if (bcp->pointer_base_class != NULL) {
+    fprintf(f_debug, ", in %s",
+            bcp->pointer_base_class->type->source_corresp.name);
+  }  /* if */
+  fputs(") ]]", f_debug);
+}  /* db_virtual_base_class_ptr */
+
+
 static void db_virtual_base_class(a_base_class *bcp,
                                   int          depth);
 
@@ -664,8 +683,11 @@ class_struct_union:
         if (any_virtual_base_classes) {
           if (ctsp != NULL) bcp = ctsp->base_classes;
           for (; bcp != NULL; bcp = bcp->next) {
-            if (bcp->direct && bcp->is_virtual) {
-              db_direct_base_class(bcp, 0);
+            if (bcp->is_virtual) {
+#if !CFRONT_CLASS_LAYOUT_COMPATIBILITY
+              if (!bcp->direct) continue;
+#endif /* !CFRONT_CLASS_LAYOUT_COMPATIBILITY */
+              db_virtual_base_class_ptr(bcp, 0);
             }  /* if */
           } /* for */
         }  /* if */
