@@ -1651,22 +1651,45 @@ indicated type.
 }  /* lowered_assignment_operator */
 
 
-an_expr_node_ptr make_reusable_copy(an_expr_node_ptr expr)
+an_expr_node_ptr make_reusable_copy(an_expr_node_ptr expr,
+                                    a_boolean        vars_can_change)
 /*
 Return a copy of the expression tree pointed to by expr.  If the expression
-has side effects, the original expression will be changed so that its value is
-stored in a temporary, and the copy will reference the temporary.
-expr should be an rvalue (although make_lvalue_reusable_copy calls this
-routine after it has discarded the troublesome lvalue cases).
+has side effects, or if its value is affected by the values of variables
+and vars_can_change is TRUE, the original expression will be changed so
+that its value is stored in a temporary, and the copy will reference the
+temporary.  expr should be an rvalue (although make_lvalue_reusable_copy
+calls this routine after it has discarded the troublesome lvalue cases).
 */
 {
   an_expr_node_ptr expr_copy, temp_node;
   a_variable_ptr   temp;
   a_type_ptr       temp_type;
-  a_boolean        suppress_warning;
+  a_boolean        need_temp, suppress_warning;
 
-  if (!node_has_side_effects(expr, &suppress_warning)) {
-    /* Node has no side effects, so a straight copy will work. */
+  need_temp = TRUE;
+  if (vars_can_change) {
+    /* For the vars_can_change case, do a crude analysis: if the expression
+       is constant, it cannot be affected by changes in the values of
+       variables.  This could be improved, but it probably doesn't matter. */
+    if (is_constant_node(expr) || is_variable_address_node(expr) ||
+        is_routine_address_node(expr)) {
+      need_temp = FALSE;
+    } else if (is_variable_node(expr) &&
+               expr->variant.variable->source_corresp.name == NULL) {
+      /* An unnamed variable is a temporary.  Assume that such a thing is
+         not changed in the "vars_can_change" mode.  This is important,
+         because if the expression has been assigned to a temporary once,
+         we want to use that temporary directly on subsequent calls to
+         make_reusable_copy. */
+      need_temp = FALSE;
+    }  /* if */
+  } else {
+    /* Variables cannot change.  See if the expression has side effects. */
+    if (!node_has_side_effects(expr, &suppress_warning)) need_temp = FALSE;
+  }  /* if */
+  if (!need_temp) {
+    /* A straight copy will work. */
     expr_copy = copy_expr_tree(expr);
   } else {
     /* Change the original expression to assign the value to a temporary. */
@@ -1699,12 +1722,15 @@ routine after it has discarded the troublesome lvalue cases).
 }  /* make_reusable_copy */
 
 
-static an_expr_node_ptr make_lvalue_reusable_copy(an_expr_node_ptr expr)
+static an_expr_node_ptr make_lvalue_reusable_copy(
+                                              an_expr_node_ptr expr,
+                                              a_boolean        vars_can_change)
 /*
 Return a copy of the expression tree pointed to by expr.  If the expression
-has side effects, the original expression will be changed so that its value is
-stored in a temporary, and the copy will reference the temporary.
-expr should be an lvalue.
+has side effects, or if its value is affected by the values of variables
+and vars_can_change is TRUE, the original expression will be changed so
+that its value is stored in a temporary, and the copy will reference the
+temporary.  expr should be an lvalue.
 */
 {
   a_boolean             special_case = FALSE;
@@ -1723,7 +1749,7 @@ expr should be an lvalue.
          address, then add the bit field selection to that. */
       special_case = TRUE;
       operand2 = operand1->next;
-      operand1_copy = make_lvalue_reusable_copy(operand1);
+      operand1_copy = make_lvalue_reusable_copy(operand1, vars_can_change);
       expr_copy = field_lvalue_selection_expr(operand1_copy,
                                               operand2->variant.field);
     } else if (op == (an_expr_operator_kind)eok_question) {
@@ -1732,10 +1758,10 @@ expr should be an lvalue.
       special_case = TRUE;
       operand2 = operand1->next;
       operand3 = operand2->next;
-      operand3_copy = make_lvalue_reusable_copy(operand3);
-      operand2_copy = make_lvalue_reusable_copy(operand2);
+      operand3_copy = make_lvalue_reusable_copy(operand3, vars_can_change);
+      operand2_copy = make_lvalue_reusable_copy(operand2, vars_can_change);
       operand2_copy->next = operand3_copy;
-      operand1_copy = make_reusable_copy(operand1);
+      operand1_copy = make_reusable_copy(operand1, vars_can_change);
       operand1_copy->next = operand2_copy;
       expr_copy = make_operator_node((an_expr_operator_kind)eok_question,
                                      expr->type, operand1_copy);
@@ -1743,12 +1769,12 @@ expr should be an lvalue.
       /* For a "," operator, make a reusable copy of the second operand. */
       special_case = TRUE;
       operand2 = operand1->next;
-      expr_copy = make_lvalue_reusable_copy(operand2);
+      expr_copy = make_lvalue_reusable_copy(operand2, vars_can_change);
     }  /* if */
   }  /* if */
   if (!special_case) {
     /* For other cases, use the rvalue copy. */
-    expr_copy = make_reusable_copy(expr);
+    expr_copy = make_reusable_copy(expr, vars_can_change);
   }  /* if */
   return expr_copy;
 }  /* make_lvalue_reusable_copy */
@@ -4245,7 +4271,7 @@ more than once.
          and passing it up to lower_related_class_cast which will
          call add_null_preservation_code. */
       *null_preservation_source_node = source_node;
-      source_node = make_reusable_copy(source_node);
+      source_node = make_reusable_copy(source_node, /*vars_can_change=*/FALSE);
     }  /* if */
   }  /* if */
   /* Here, source_node points to the processed version of the operand
@@ -4504,7 +4530,7 @@ used as an lvalue if is_lvalue is TRUE.
                                         integer_type((an_integer_kind)ik_int),
                                         source_node);
       /* Make "pdm + offset". */
-      source_node = make_reusable_copy(source_node);
+      source_node = make_reusable_copy(source_node, /*vars_can_change=*/FALSE);
       source_node->next = offset_node;
       plus_node = make_operator_node((an_expr_operator_kind)eok_iadd,
                                      source_node->type, source_node);
@@ -4653,7 +4679,7 @@ have already been lowered.
   vtbl_temp_node = var_rvalue_expr(vtbl_temp_var);
   d_value_node = field_rvalue_selection_expr(vtbl_temp_node, mptr_d_field);
   /* Make a reusable copy of the object address. */
-  object_node = make_reusable_copy(object_node);
+  object_node = make_reusable_copy(object_node, /*vars_can_change=*/FALSE);
   /* Cast the node to "char *" to suppress scaling on the pointer addition. */
   cast_node = add_cast_to_char_star(object_node);
   /* Add the object pointer and the delta value. */
@@ -4816,14 +4842,14 @@ the expression have already been lowered.
                              any_virtual_functions_including_in_base_classes) {
     /* No virtual functions, so use the simpler form. */
     /* Make "pmf.f". */
-    pmf_node = make_reusable_copy(pmf_node);
+    pmf_node = make_reusable_copy(pmf_node, /*vars_can_change=*/FALSE);
     select_f_node = node_to_select_field_from_rvalue(pmf_node, mptr_f_field);
     /* Add the cast to the right pointer to routine type. */
     func_addr_node = add_cast_if_necessary(select_f_node, ptr_routine_type);
   } else {
     /* Virtual functions, so use the more general form. */
     /* Make "pmf.i < 0". */
-    pmf_node = make_reusable_copy(pmf_node);
+    pmf_node = make_reusable_copy(pmf_node, /*vars_can_change=*/FALSE);
     select_i_node = node_to_select_field_from_rvalue(pmf_node, mptr_i_field);
     select_i_node->next = node_for_integer_constant(0L,
                                          TARG_VIRTUAL_FUNCTION_INDEX_INT_KIND);
@@ -4831,11 +4857,11 @@ the expression have already been lowered.
                                       integer_type((an_integer_kind)ik_int),
                                       select_i_node);
     /* Make "pmf.f". */
-    pmf_node = make_reusable_copy(pmf_node);
+    pmf_node = make_reusable_copy(pmf_node, /*vars_can_change=*/FALSE);
     select_f_node = node_to_select_field_from_rvalue(pmf_node, mptr_f_field);
     /* Make "*(__vtbl_entry **)((char *)this_temp + (short)(pmf.f))", which
        is the address of the virtual function table. */
-    pmf_node = make_reusable_copy(pmf_node);
+    pmf_node = make_reusable_copy(pmf_node, /*vars_can_change=*/FALSE);
     select_f_for_cast_node = node_to_select_field_from_rvalue(pmf_node,
                                                               mptr_f_field);
     /* We're using the "f" field of __mptr as an offset to the virtual table
@@ -4855,7 +4881,7 @@ the expression have already been lowered.
     cast_node = add_cast(padd_node, make_pointer_type(ptr_to_vtbl_entry_type));
     vtbl_addr_node = add_indirection_to_node(cast_node);
     /* Make "pmf.i", the offset into the virtual function table. */
-    pmf_node = make_reusable_copy(pmf_node);
+    pmf_node = make_reusable_copy(pmf_node, /*vars_can_change=*/FALSE);
     offset_node = node_to_select_field_from_rvalue(pmf_node, mptr_i_field);
     /* Add the virtual function table address and the offset, giving the
        address of the virtual function table entry, and store that in
@@ -5013,6 +5039,7 @@ Lower comparison of two pointers to members.
   a_type_ptr       int_type;
   a_boolean        ne_case = (expr->variant.operation.kind ==
                                               (an_expr_operator_kind)eok_pmne);
+  a_boolean        vars_can_change, suppress_warning;
 
   op1_node = expr->variant.operation.operands;
   if (is_or_was_ptr_to_member_function_type(op1_node->type)) {
@@ -5032,26 +5059,28 @@ Lower comparison of two pointers to members.
     select1_node->next = select2_node;
     compare_i_node = make_operator_node((an_expr_operator_kind)eok_ieq,
                                         int_type, select1_node);
+    vars_can_change = node_has_side_effects(op1_node, &suppress_warning) ||
+                      node_has_side_effects(op2_node, &suppress_warning);
     /* Make "op1.i == 0" (or "!= 0" for the ne_case). */
-    op1_node = make_reusable_copy(op1_node);
+    op1_node = make_reusable_copy(op1_node, vars_can_change);
     select1_node = node_to_select_field_from_rvalue(op1_node, mptr_i_field);
     select1_node->next = node_for_integer_constant(0L, TARG_DELTA_INT_KIND);
     compare_i0_node = make_operator_node
                         ((an_expr_operator_kind) (ne_case ? eok_ine : eok_ieq),
                          int_type, select1_node);
     /* Make "op1.d == op2.d" (or "!=" for the ne_case). */
-    op1_node = make_reusable_copy(op1_node);
+    op1_node = make_reusable_copy(op1_node, vars_can_change);
     select1_node = node_to_select_field_from_rvalue(op1_node, mptr_d_field);
-    op2_node = make_reusable_copy(op2_node);
+    op2_node = make_reusable_copy(op2_node, vars_can_change);
     select2_node = node_to_select_field_from_rvalue(op2_node, mptr_d_field);
     select1_node->next = select2_node;
     compare_d_node = make_operator_node
                        ((an_expr_operator_kind) (ne_case ? eok_ine : eok_ieq),
                         int_type, select1_node);
     /* Make "op1.f == op2.f" (or "!=" for the ne_case). */
-    op1_node = make_reusable_copy(op1_node);
+    op1_node = make_reusable_copy(op1_node, vars_can_change);
     select1_node = node_to_select_field_from_rvalue(op1_node, mptr_f_field);
-    op2_node = make_reusable_copy(op2_node);
+    op2_node = make_reusable_copy(op2_node, vars_can_change);
     select2_node = node_to_select_field_from_rvalue(op2_node, mptr_f_field);
     select1_node->next = select2_node;
     compare_f_node = make_operator_node
@@ -5218,6 +5247,7 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
              If necessary, make a reusable copy of x.  The same kind of
              rewrite is done for the prefix ++/-- case. */
           an_expr_node_ptr new_assign_node;
+          a_boolean        suppress_warning;
           expr->variant.operation.returns_lvalue_instead_of_usual_rvalue=FALSE;
           /* Make a copy of the assignment node that is an rvalue
              assignment.  The same process works for the prefix ++/-- case
@@ -5226,7 +5256,11 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
           new_assign_node->type = type_pointed_to(expr->type);
           /* Attach a copy of the lvalue address to it, for the second
              operand of the comma operator. */
-          new_assign_node->next = make_lvalue_reusable_copy(operand_node);
+          new_assign_node->next = 
+                    make_lvalue_reusable_copy(operand_node,
+                                              node_has_side_effects(
+                                                           operand_node->next,
+                                                           &suppress_warning));
           /* Change the original node to a comma node. */
           set_node_operator(expr, (an_expr_operator_kind)eok_comma,
                             expr->type, new_assign_node);

@@ -336,7 +336,8 @@ extern an_expr_node_ptr make_vbase_class_lvalue_from_var(
 extern an_expr_node_ptr add_cast_if_necessary(an_expr_node_ptr node,
                                               a_type_ptr       new_type);
 
-extern an_expr_node_ptr make_reusable_copy(an_expr_node_ptr expr);
+extern an_expr_node_ptr make_reusable_copy(an_expr_node_ptr expr,
+                                           a_boolean        vars_can_change);
 
 extern void insert_expr(an_expr_node_ptr       inserted_expr,
                         an_insert_location_ptr insert_location);

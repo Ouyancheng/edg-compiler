@@ -2544,7 +2544,8 @@ arrays with class elements.
          total size. */
       if (preserve_size_node) {
         /* size_node must be preserved, so make a copy of it. */
-        num_elem_node = make_reusable_copy(size_node);
+        num_elem_node = make_reusable_copy(size_node,
+                                           /*vars_can_change=*/TRUE);
       } else {
         num_elem_node = size_node;
       }  /* if */
@@ -2574,7 +2575,8 @@ arrays with class elements.
       if (preserve_size_node) {
         /* We need to preserve size_node, and therefore we need a copy of the
            nonconstant node. */
-        nonconstant_node = make_reusable_copy(nonconstant_node);
+        nonconstant_node = make_reusable_copy(nonconstant_node,
+                                              /*vars_can_change=*/TRUE);
       } else {
         /* We can use the expression directly.  Break the connection
            between the first operand and second operand of the "*"
@@ -2861,7 +2863,7 @@ it is called as a virtual function, which involves some special tricks.
   if (dtor_routine->is_virtual) {
     /* The destructor is virtual, so rewrite the call. */
     /* Make a copy of the "this" argument so it can be used twice. */
-    ptr_node_copy = make_reusable_copy(ptr_node);
+    ptr_node_copy = make_reusable_copy(ptr_node, /*vars_can_change=*/FALSE);
     /* Put the copy under the original destructor call; the original gets
        tested for NULL. */
     operand_node = call_node->variant.operation.operands;
@@ -2947,7 +2949,7 @@ The subtree of the node has not yet been lowered.
       an_expr_node_ptr orig_ptr_node = ptr_node;
       /* Make a reusable copy of the pointer node for use in the
          delete call. */
-      ptr_node = make_reusable_copy(orig_ptr_node);
+      ptr_node = make_reusable_copy(orig_ptr_node, /*vars_can_change=*/FALSE);
       dtor_call_node = make_dtor_call_for_delete(dip, orig_ptr_node,
                                                  /*deallocate=*/FALSE);
       /* The comma node is built later in this routine. */
