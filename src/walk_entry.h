@@ -797,6 +797,19 @@ the file scope, do not process it (but record an orphan in the latter case).
         remap_next_ptr(ptr->next, an_exception_specification_type_ptr,
                        iek_exception_specification_type);
         walk_ptr(ptr->type, a_type_ptr, iek_type);
+#if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
+        /* If the exception specification is a class or a pointer to class,
+           the class must be complete. */
+        { a_type_ptr temp_type = ptr->type;
+          if (temp_type != NULL) {
+            temp_type = skip_typerefs(temp_type);
+            if (temp_type->kind == (a_type_kind)tk_pointer) {
+              temp_type = temp_type->variant.pointer.type;
+            }  /* if */
+            definition_needed_if_class(temp_type);
+          }  /* if */
+        }
+#endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
       }
       break;
 #endif /* ifdef CFE */
