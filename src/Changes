@@ -33,6 +33,27 @@ correctly, and a spurious error was issued.
     f(b.i);  // Got spurious error
   }
 
+4/3/98     Default arguments in the source-sequence representation of
+           functions defined within class definitions
+
+When NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is configured
+to TRUE and a member or friend function is defined within a non-local class
+(see Changes entry of 9/23/97), default arguments are now associated with
+the in-class declaration (the type recorded in the secondary-decl source
+sequence entry) instead of the definition (the type recorded as the
+declared_type of the routine itself).  For example, for the following input:
+
+  class A {
+    void f(int = 0) { }
+  };
+
+the C++-generating back end now puts out:
+
+  class A {
+    void f(int = 0);
+  };
+  void A::f(int) { }
+
 3/31/98    Spurious error in declaring pointer to member function type
 
 An error is no longer issued when a pointer to member function type is
