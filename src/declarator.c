@@ -349,9 +349,9 @@ array-to-pointer decay).
 
 static a_boolean is_partial_type(a_type_ptr  type)
 /*
-Return TRUE if and only the given type is not (yet) fully assembled because
-the it only incorporates some components of the declarator and not those of
-the decl-specifier (e.g., "array [1] of NULL").
+Return TRUE if and only if the given type is not (yet) fully assembled because
+it only incorporates some components of the declarator and not those of the
+decl-specifier (e.g., "array [1] of NULL").
 */
 {
   a_boolean  result = FALSE;
