@@ -2995,11 +2995,13 @@ K&R/pcc mode) determined by fkind.
       suffix = "F";
     } else if (fkind == (a_float_kind)fk_long_double) {
       suffix = "L";
+#if BACK_END_IS_C_GEN_BE
 #if LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C
       /* No suffix when generating long double as double in the
          C-generating back end. */
       if (octl->c_generating_back_end) suffix = "";
 #endif /* LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C */
+#endif /* BACK_END_IS_C_GEN_BE */
     }  /* if */
   } else {
     /* Generating K&R C.  Suffixes are not allowed. */
