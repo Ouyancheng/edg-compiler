@@ -7970,7 +7970,8 @@ size can be known.  Remove any such instantiations from the IL.
     instance_sym = mip->instance->instance_sym;
     /* Only consider static data members. */
     if (instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
-      if (mip->already_instantiated && mip->instance_required_count == 0) {
+      if (mip->already_instantiated && mip->instance_required_count == 0 &&
+          !mip->automatically_instantiated) {
         /* The static data member has been instantiated but no instantiation
            is needed. */
         a_variable_ptr	vp = instance_sym->variant.static_data_member.variable;
