@@ -360,34 +360,6 @@ called; may be NULL.
 }  /* check_function_return_type */
 
 
-static void fixup_parameters(a_variable_ptr    param_list,
-                             a_param_type_ptr  param_type_list)
-/*
-Set each variable in a linked list of parameters to point to the corresponding
-param type entry.
-*/
-{
-  a_variable_ptr    vp = param_list;
-  a_param_type_ptr  ptp = param_type_list;
-
-  if (param_list != NULL) {
-    for (; vp != NULL; vp = vp->next, ptp = ptp->next) {
-      /* Be sure there are not too few param type entries. */
-      check_assertion(ptp != NULL);
-      vp->assoc_param_type = ptp;
-#if RECORD_NAME_IN_PARAM_TYPE_ENTRY
-      ptp->name = vp->source_corresp.name;
-#endif /* RECORD_NAME_IN_PARAM_TYPE_ENTRY */
-#if GNU_EXTENSIONS_ALLOWED
-      ptp->is_transparent = vp->is_transparent;
-#endif /* GNU_EXTENSIONS_ALLOWED */
-    }  /* for */
-    /* Be sure there are not too many param type entries. */
-    check_assertion(ptp == NULL);
-  }  /* if */
-}  /* fixup_parameters */
-
-
 static a_variable_ptr make_param_variable(a_type_ptr       type_ptr,
                                           a_storage_class  storage_class)
 /*
@@ -572,7 +544,12 @@ pointer decay).
     }  /* if */
 #endif /* DEBUG */
   }  /* if */
+  vp->assoc_param_type = ptp;
+#if RECORD_NAME_IN_PARAM_TYPE_ENTRY
+  ptp->name = vp->source_corresp.name;
+#endif /* RECORD_NAME_IN_PARAM_TYPE_ENTRY */
 #if GNU_EXTENSIONS_ALLOWED
+  ptp->is_transparent = vp->is_transparent;
   apply_attributes_to_variable(param_id->attributes, vp);
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -959,9 +936,6 @@ and for the instantiation of template functions.
         reactivate_prototype_scope_symbols(func_info->prototype_scope_symbols);
       }  /* if */
     }  /* if */
-    /* Set the assoc_param_type field in each of the parameter variables. */
-    fixup_parameters(scope_ptr->variant.routine.parameters,
-                     rtsp->param_type_list);
   }  /* if */
 #if USER_CONTROL_OF_STRUCT_PACKING
   /* Change the defaults for packing class members in a struct definition.
