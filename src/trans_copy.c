@@ -400,9 +400,15 @@ copy address pointer to point to the copy.
   /* Ignore strings that are already in the primary file IL (such as
      name strings from the symbol header). */
   if (in_secondary_trans_unit(ptr)) {
-    char *copy = alloc_primary_file_scope_il(length);
-    checked_trans_unit_copy_address_of(ptr) = copy;
-    (void)memcpy(copy, ptr, size_t_arg(length));
+    if (!in_file_scope(ptr)) {
+      /* A string in a function scope memory region just gets reassigned
+         to the primary IL. */
+      il_entry_prefix_of(ptr).secondary_trans_unit = FALSE;
+    } else {
+      char *copy = alloc_primary_file_scope_il(length);
+      checked_trans_unit_copy_address_of(ptr) = copy;
+      (void)memcpy(copy, ptr, size_t_arg(length));
+    }  /* if */
   }  /* if */
 }  /* copy_string_entry */
 
@@ -601,7 +607,7 @@ it and remapping pointers.
   scope = il_header.region_scope_entry[routine->assoc_scope];
   check_assertion(scope != NULL);
   /* Note that the "copy" routines called here simply remap pointers
-     when given an entry in a file scope memory region. */
+     when given an entry in a function scope memory region. */
   walk_routine_scope_il(routine->assoc_scope,
                         copy_entry,
                         copy_string_entry,

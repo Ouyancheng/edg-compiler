@@ -1,5 +1,11 @@
 Version 3.3
 
+7/29/03  Abort in trans_copy.c on Microsoft asm in secondary translation unit
+
+The front end aborted in copy_string_entry in trans_copy.c on
+attempting to copy a Microsoft asm that appeared in a secondary
+translation unit (e.g., with exported templates).  Now fixed.
+
 7/29/03  GNU mode: Typedef redeclarations and the mode attribute
 
 In GNU modes the front end used to apply all attributes on a typedef after
