@@ -1669,10 +1669,10 @@ if not, return *err_code set to the proper error code.
 #endif /* CHECKING */
   size = operand_type->size * TARG_CHAR_BIT;
 
-  if (cmplit_integer_constant(shift_count_constant, 0) < 0) {
+  if (cmplit_integer_constant(shift_count_constant, 0L) < 0) {
     /* Negative shift count. */
     *err_code = ec_negative_shift_count;
-  } else if (cmplit_integer_constant(shift_count_constant, size) >= 0) {
+  } else if (cmplit_integer_constant(shift_count_constant, (long)size) >= 0) {
     /* Shift count is too large. */
     *err_code = ec_shift_count_too_large;
   }  /* if */
