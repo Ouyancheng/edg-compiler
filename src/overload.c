@@ -4517,10 +4517,14 @@ member name reference.
   }  /* if */
   /* Drop any typedefs on the class type. */
   class_struct_union_type = skip_typerefs(class_struct_union_type);
-  check_assertion(is_immediate_class_type(class_struct_union_type));
-  /* Don't do any checking on nonreal classes in prototype instantiations. */
-  if (!class_struct_union_type->variant.class_struct_union.is_nonreal_class &&
-      !desired_class->variant.class_struct_union.is_nonreal_class) {
+  check_assertion(is_immediate_class_type(class_struct_union_type) ||
+                  class_struct_union_type->kind ==
+                                               (a_type_kind)tk_template_param);
+  if (is_template_param_type(class_struct_union_type) ||
+      class_struct_union_type->variant.class_struct_union.is_nonreal_class ||
+      desired_class->variant.class_struct_union.is_nonreal_class) {
+    /* Don't do any checking on nonreal classes in prototype instantiations. */
+  } else {
     /* If the member is protected, it can only be accessed through an object
        or pointer of a type to which we have member access (ARM 11.5). */
     if (!access_control_error_reported) {
