@@ -1545,10 +1545,11 @@ is the pointer-to-member type we want to end up with.
 
 
 static void gen_pm_constant(a_constant_ptr constant,
-                            a_boolean      suppress_cast)
+                            a_boolean      minimal_casts)
 /*
-Generate a pointer-to-member constant.  If suppress_cast is TRUE, suppress
-any implicit cast(s) of the constant.
+Generate a pointer-to-member constant.  If minimal_casts is TRUE, suppress
+any unnecessary casts in the generated form of the constant (casts that
+serve just to disambiguate).
 */
 {
   a_type_ptr              orig_type = constant->type;
@@ -1556,14 +1557,9 @@ any implicit cast(s) of the constant.
   a_source_correspondence *scp = NULL;
   a_boolean               need_cast_close_paren = FALSE;
   an_il_entry_kind        entry_kind;
+  a_base_class_ptr        bcp =
+                            constant->variant.ptr_to_member.casting_base_class;
 
-  /* If the constant is implicitly cast to another type, ... */
-  if (!suppress_cast && constant->implicit_cast) {
-    /* ... then prefix the constant with an explicit cast. */
-    write_tok_ch('(');
-    gen_cast(orig_type);
-    need_cast_close_paren = TRUE;
-  }  /* if */
   /* See if this is a pointer to data member or pointer to member function. */
   if (constant->variant.ptr_to_member.is_function_ptr) {
     a_routine_ptr rout = constant->variant.ptr_to_member.variant.routine;
@@ -1574,15 +1570,26 @@ any implicit cast(s) of the constant.
     if (field != NULL) scp = &field->source_corresp;
     entry_kind = iek_field;
   }  /* if */
+  /* If the constant is implicitly cast to another type, ... */
+  if (constant->implicit_cast) {
+    /* ... then prefix the constant with an explicit cast. */
+    /* Do not put out the cast if it's not needed and minimal_casts is
+       TRUE. */
+    if (!minimal_casts || constant->variant.ptr_to_member.cast_to_base ||
+        scp == NULL) {
+      write_tok_ch('(');
+      gen_cast(orig_type);
+      need_cast_close_paren = TRUE;
+    }  /* if */
+  }  /* if */
   if (scp == NULL) {
     /* A null pointer-to-member.  implicit_cast will be TRUE, so a cast
        to the right type has been put out above. */
     write_tok_ch('0');
   } else {
     /* A non-null pointer-to-member. */
-    a_base_class_ptr bcp = constant->variant.ptr_to_member.casting_base_class;
     write_tok_ch('(');
-    if (!suppress_cast && bcp != NULL) {
+    if (!minimal_casts && bcp != NULL) {
       /* The pointer-to-member has been cast to another class.  Put in
          proper casts.  Note that implicit_cast will be set and therefore
          the final cast has already been issued above. */
@@ -1891,7 +1898,7 @@ Output the indicated constant.
       break;
     case ck_ptr_to_member:
       /* Pointer-to-member constant. */
-      gen_pm_constant(constant, /*suppress_cast=*/FALSE);
+      gen_pm_constant(constant, /*minimal_casts=*/FALSE);
       break;
     case ck_aggregate:     /* Should only appear in initializer constants. */
     case ck_dynamic_init:  /* Should only appear in initializer constants. */
@@ -1952,14 +1959,13 @@ conversions on nonconstants are handled in eok_cast processing.
 static a_boolean pm_cast_is_unambiguous(a_constant_ptr constant)
 /*
 constant points at a ck_ptr_to_member constant.  If the constant requires
-a cast to a derived class, and the cast is unambiguous when done in
+a cast to a base or derived class, and the cast is unambiguous when done in
 one step instead of class-by-class, return TRUE.
 */
 {
   a_boolean unambiguous_cast = FALSE;
 
-  if (constant->variant.ptr_to_member.casting_base_class != NULL &&
-      !constant->variant.ptr_to_member.cast_to_base) {
+  if (constant->variant.ptr_to_member.casting_base_class != NULL) {
     /* See if there is another base class with the same name as the one
        we're starting from.  If not, the cast is unambiguous. */
     if (!constant->variant.ptr_to_member.casting_base_class->ambiguous) {
@@ -2032,7 +2038,7 @@ initialized is not a reference.
        the class-by-class casts to the derived type.  This is actually
        necessary to get around a cfront bug -- cfront generates bad C code for
        casts like that in initializer constants. */
-    gen_pm_constant(constant, /*suppress_cast=*/TRUE);
+    gen_pm_constant(constant, /*minimal_casts=*/TRUE);
   } else if (type != NULL && is_reference_type(type)) {
     /* Initializing a reference. */
     if (constant->kind == (a_constant_repr_kind)ck_address) {
