@@ -1369,8 +1369,6 @@ will be involved in overloading.
               a_template_symbol_supplement_ptr  tssp;
               tssp = other_decl->variant.template_info;
               if (is_function_template_decl) {
-                /* Use special way of calling types_are_compatible to allow
-                   certain qualifier differences on the top-level types. */
                 tp = tssp->variant.function.routine->type;
                 if (routine_types_are_compatible(tp, type)) {
                   /* The other_decl template function matches the current
@@ -1380,7 +1378,7 @@ will be involved in overloading.
                   goto determine_linkage;
                 }
               } else {
-                /* There may a match involving an instance of this function
+                /* There may be a match involving an instance of this function
                    template, but we delay searching its list of instantiations
                    until all normally declared functions have been seen. */
                 function_template_seen = TRUE;
@@ -1389,8 +1387,6 @@ will be involved in overloading.
               if (is_function_template_decl) {
                 /* No match. */
               } else {
-                /* Use special way of calling types_are_compatible to allow
-                   certain qualifier differences on the top-level types. */
                 tp = other_decl->variant.routine.ptr->type;
                 if (routine_types_are_compatible(tp, type)) {
                   /* Other_decl matches the current declaration.  Null out
@@ -1572,7 +1568,7 @@ issued a similar error).  Return FALSE if there is some error.
 */
 {
   an_extern_symbol_descr_ptr esdp;
-  a_type_ptr                 old_type, comp_type;
+  a_type_ptr                 old_type;
   a_boolean                  okay = TRUE;
   a_boolean                  is_routine =
                            (ext_sym->kind == (a_symbol_kind)sk_extern_routine);
@@ -1596,21 +1592,7 @@ issued a similar error).  Return FALSE if there is some error.
     } else {
       /* The old and new types are compatible.  Form the composite of
          those types, and save that as the type of the external symbol. */
-      a_type_qualifier_set qualifiers_old_type, qualifiers_type_ptr;
-      if (!is_routine ||
-          ((qualifiers_old_type = get_type_qualifiers(old_type)) ==
-           (qualifiers_type_ptr = get_type_qualifiers(type_ptr)))) {
-        /* Normal case -- the qualifiers match. */
-        comp_type = composite_type(old_type, type_ptr);
-      } else {
-        /* The qualifiers do not match, e.g., for calling convention qualifiers
-           above a function type. */
-        comp_type = composite_type(skip_typerefs(old_type),
-                                   skip_typerefs(type_ptr));
-        comp_type = make_qualified_type(comp_type,
-                                    qualifiers_old_type | qualifiers_type_ptr);
-      }  /* if */
-      esdp->type = comp_type;
+      esdp->type = composite_type(old_type, type_ptr);
     }  /* if */
   }  /* if */
   return okay;
@@ -1937,24 +1919,20 @@ assoc_routine which should not be overridden.  Obviously, both flags may
 not be TRUE.
 */
 {
-  a_type_ptr        rout_type = routine_ptr->type, qual_rout_type;
-  a_type_ptr        qual_type_ptr;
+  a_type_ptr        rout_type = routine_ptr->type;
   a_type_ptr        comp_type;
   a_param_type_ptr  rout_type_ptp, comp_type_ptp, next_rout_type_ptp;
-  a_type_qualifier_set
-                    qualifiers = TQ_NONE;
+#if MICROSOFT_KEYWORDS_ALLOWED
+  a_calling_convention
+                    orig_calling_convention =
+                         skip_typerefs(rout_type)->variant.routine.extra_info->
+                                                            calling_convention;
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
 
   db_enter(4, "reconcile_routine_types");
   if (rout_type != type_ptr) {
     /* We only try to reconcile routine types that have already been
        determined to be compatible. */
-    /* There might be type qualifiers over the function types. */
-    qual_rout_type = rout_type;
-    rout_type = skip_typerefs(rout_type);
-    qualifiers |= get_type_qualifiers(qual_rout_type);
-    qual_type_ptr = type_ptr;
-    type_ptr = skip_typerefs(type_ptr);
-    qualifiers |= get_type_qualifiers(qual_type_ptr);
     check_assertion(types_are_compatible(type_ptr, rout_type));
     /* We cannot be required to preserve the types from both sources. */
     check_assertion(!preserve_rout_type || !preserve_type_ptr);
@@ -1986,8 +1964,8 @@ not be TRUE.
           routine_ptr->declared_type = type_ptr;
         } else {
            /* type_ptr will be modified, so copy it first. */
-          routine_ptr->declared_type = 
-                                 copy_routine_type_with_param_types(type_ptr);
+          routine_ptr->declared_type =
+                                  copy_routine_type_with_param_types(type_ptr);
         }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         routine_ptr->type = rout_type = type_ptr;
@@ -1997,6 +1975,7 @@ not be TRUE.
          unshared). */
       if (comp_type != rout_type) {
         comp_type = skip_typerefs(comp_type);
+        rout_type = skip_typerefs(rout_type);
         /* Transfer the composite type to rout_type, which is unshared.
            We want to preserve fields like assoc_routine and arg_pragma in
            rout_type, so we can't just do a copy_type. */
@@ -2038,10 +2017,15 @@ not be TRUE.
            -- this will have been verified in types_are_compatible. */
       }  /* if */
     }  /* if */
-    if (qualifiers != TQ_NONE) {
-      /* Add back any qualifiers from over the function types. */
-      routine_ptr->type = make_qualified_type(routine_ptr->type, qualifiers);
+#if MICROSOFT_KEYWORDS_ALLOWED
+    /* The Microsoft Visual C++ compiler always uses the calling convention
+       from the declaration of a member function, even if the calling
+       convention on the definition is different. */
+    if (routine_ptr->source_corresp.class_of_which_a_member != NULL) {
+      skip_typerefs(routine_ptr->type)->variant.routine.extra_info->
+                                  calling_convention = orig_calling_convention;
     }  /* if */
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
   }  /* if */
   db_exit();
 }  /* reconcile_routine_types */
@@ -2295,14 +2279,29 @@ generating cross-reference output describing this declaration.
         suppress_ext_sym_lookup = TRUE;
         mark_symbol_to_suppress_warnings(linked_symbol);
       } else {
-        /* If this is not C++ mode (for which this check has already been
-           done in id_linkage), be sure that the old and new types are
-           compatible.  Then form the composite type.  Note that there is a
-           second test for compatibility after old-style parameter
-           declarations are scanned, if this declaration has a body (see
-           function_definition). */
-        if ((C_dialect != C_dialect_cplusplus || is_main_function) &&
-            !types_are_compatible(routine_ptr->type, type_ptr)) {
+        /* Check that the routine types are compatible. */
+        a_boolean routines_compat = FALSE;
+        if (!C_mode() && !is_main_function) {
+          /* For routines that can be overloaded, id_linkage has already
+             checked that the routine types are the same.  "main" cannot
+             be overloaded, so it was not checked. */
+          routines_compat = TRUE;
+#if MICROSOFT_KEYWORDS_ALLOWED
+          /* Check that the calling conventions are compatible. */
+          if (!calling_conventions_are_compatible(routine_ptr->type,
+                                                  type_ptr)) {
+            routines_compat = FALSE;
+          }  /* if */
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+        } else {
+          /* When overloading is not allowed (e.g., in C mode), check that
+             the types are compatible. */
+          if (types_are_compatible(routine_ptr->type, type_ptr)) {
+            routines_compat = TRUE;
+          }  /* if */
+        }  /* if */
+        if (!routines_compat) {
+          /* The old and new declarations are incompatible. */
           pos_sy_error(ec_not_compatible_with_previous_decl,
                        &locator->source_position, linked_symbol);
           redecl_error_already_issued = TRUE;
@@ -2313,6 +2312,7 @@ generating cross-reference output describing this declaration.
           }  /* if */
           linked_redecl_error = TRUE;
         } else {
+          /* The declarations are compatible.  Form the composite type. */
           *old_type = routine_ptr->type;
           reconcile_routine_types(routine_ptr, type_ptr,
                                   /*preserve_rout_type=*/old_decl_has_body,
@@ -3618,8 +3618,8 @@ Scan a type-name (see 3.5.5) and return a pointer to the type.  The syntax is:
     declarator(DI_ABSTRACT_DECLARATOR_ALLOWED | DI_QUALIFIED_NAME_ALLOWED,
                &do_flags, *type_ptr, /*member_parent_type=*/(a_type_ptr)NULL,
 	       (a_symbol_locator *)NULL,
-               type_ptr, &bottom_derived_type, &declarator_ssep,
-               (a_func_info_block_ptr)NULL);
+               type_ptr, &bottom_derived_type, (a_calling_convention_ptr)NULL,
+               &declarator_ssep, (a_func_info_block_ptr)NULL);
   }  /* if */
   copy_source_position(start_pos, error_position);
   db_exit();
@@ -3697,16 +3697,17 @@ syntax is:
                  &do_flags, *type_ptr,
                  /*member_parent_type=*/(a_type_ptr)NULL,
                  (a_symbol_locator *)NULL, type_ptr,
-                 &bottom_derived_type, &declarator_ssep,
-                 (a_func_info_block_ptr)NULL);
+                 &bottom_derived_type, (a_calling_convention_ptr)NULL,
+                 &declarator_ssep, (a_func_info_block_ptr)NULL);
     }  /* if */
     (void)required_token(tok_rparen, ec_exp_rparen);
     remove_stop_token(tok_rparen);
   } else {
     complete_type = pointer_declarator(*type_ptr,
                                        /*reference_allowed=*/FALSE,
-                                       /*unbound_qualifiers_allowed=*/FALSE,
-				       (a_type_qualifier_set*)NULL);
+                                       /*calling_convention_allowed=*/FALSE,
+				       (a_calling_convention_ptr)NULL,
+                                       (a_boolean*)NULL);
     derived_type = NULL;
     bottom_derived_type = NULL;
     add_stop_token(tok_lbracket);
@@ -3801,8 +3802,9 @@ scanning type name in a type conversion operator.
     }  /* if */
     complete_type = pointer_declarator(specifiers_type,
                                        /*reference_allowed=*/TRUE,
-                                       /*unbound_qualifiers_allowed=*/FALSE,
-                                       (a_type_qualifier_set*)NULL);
+                                       /*calling_convention_allowed=*/FALSE,
+				       (a_calling_convention_ptr)NULL,
+                                       (a_boolean*)NULL);
     unget_token();
     curr_token = tok_identifier;
     pos_curr_token = error_position = *id_pos;
@@ -4149,7 +4151,8 @@ clause is to be attached.  catch_pos is the source position of "catch".
                        DI_ABSTRACT_DECLARATOR_ALLOWED,
                      &do_flags, type_ptr,
                      /*member_parent_type=*/(a_type_ptr)NULL, &locator,
-                     &type_ptr, &bottom_derived_type, &declarator_ssep,
+                     &type_ptr, &bottom_derived_type,
+                     (a_calling_convention_ptr)NULL, &declarator_ssep,
                      (a_func_info_block_ptr)NULL);
           if (do_flags & DO_REAL_DECLARATOR_SCANNED) {
             sym = enter_symbol((a_symbol_kind)sk_variable, &locator,
@@ -4859,7 +4862,8 @@ continue_with_declaration:
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       declarator(di_flags, &do_flags, type_ptr, 
                  /*member_parent_type=*/(a_type_ptr)NULL, &locator,
-                 &local_type_ptr, &bottom_derived_type, &declarator_ssep,
+                 &local_type_ptr, &bottom_derived_type,
+                 (a_calling_convention_ptr)NULL, &declarator_ssep,
                  &func_info);
       is_function = (storage_class != (a_storage_class)sc_typedef &&
                      is_function_type(local_type_ptr));
