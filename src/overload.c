@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1996 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2000 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -8051,6 +8051,11 @@ select_best_function:
           make_generic_operation_operand(kind, unary_operator,
                                          operand_1, operand_2,
                                          result, operator_position);
+          check_assertion(!dependent_call);
+          /* Make sure this call is treated as a nondependent call in
+             a real instantiation. */
+          record_nondependent_call((a_symbol_ptr)NULL,
+                                   operator_tok_seq_number);
           *processed = TRUE;
         } else if (undecidable_because_of_error) {
           /* There was a previous error. */
@@ -11351,6 +11356,6 @@ Initialize things related to overload resolution in expression scanning.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1996 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2000 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
