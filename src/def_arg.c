@@ -37,6 +37,10 @@ static unsigned long
 		num_def_arg_expr_fixups_allocated;
 
 unsigned long db_show_def_arg_expr_fixups_used(unsigned long grand_total)
+/*
+Display the amount of space used for allocation of default argument fixup
+entries, for debugging purposes.  Also return the total amount.
+*/
 {
   unsigned long  num, size, total;
 
@@ -44,8 +48,8 @@ unsigned long db_show_def_arg_expr_fixups_used(unsigned long grand_total)
                      num_def_arg_expr_fixups_allocated, a_def_arg_expr_fixup);
   return grand_total;
 }  /* db_show_routine_fixups_used */
-#endif /* DEBUG */
 
+#endif /* DEBUG */
 
 static a_def_arg_expr_fixup_ptr alloc_def_arg_expr_fixup(void)
 /*
