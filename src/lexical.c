@@ -7866,13 +7866,10 @@ in a declarator of a template declaration.
     /* The remaining valid cases are members of class templates or classes
        nested within class templates. */
     if (!sym->is_class_member) {
-      /* The locator is for a namespace member.  This is an error. */
-      a_namespace_ptr	nsp;
-      a_symbol_ptr	ns_sym;
-      nsp = sym->parent.namespace_ptr;
-      ns_sym = (a_symbol_ptr)nsp->source_corresp.assoc_info;
-      pos_sy_error(ec_sym_not_a_class_template, error_pos, ns_sym);
-      any_errors = TRUE;
+      /* The named entity is not a template and is not a class member.
+         No diagnostic is issued here.  That will be left to the caller.
+         Special treatment is given to class members to better diagnose
+         invalid declarations of members of class templates. */
     } else {
       /* The qualifier class type must point to a prototype instantiation. */
       a_type_ptr	tp;

@@ -1,5 +1,16 @@
 Version 2.35
 
+2/24/97  Abort on invalid template friend declaration with global qualifier
+
+An abort would occur on a template friend declaration that refers to a
+member of the global scope that is not a template, and that includes a
+global scope qualifier.  This has been fixed.
+
+  void f(int);
+  struct A {
+    template <class T> friend ::f(T); 
+  };
+
 2/24/97  Abort on use of template template parameter
 
 The front end does not yet support template template parameters, but
