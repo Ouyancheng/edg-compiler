@@ -4671,7 +4671,7 @@ thrown away by the caller.
        for block scopes is done at the end of the function scope to give
        IL lowering a chance to add variables and types in block scopes.
        Also note that for functions in secondary translation units
-       the list are generated anew after the function body is (lowered
+       the lists are generated anew after the function body is (lowered
        and) moved over, rather than copying the lists. */
     add_scope_orphaned_il_lists(scope);
   } else {
