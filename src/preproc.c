@@ -724,7 +724,7 @@ FALSE.
   a_source_position saved_end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
-  (void)skip_white_space();
+  skip_white_space();
   if (*curr_char_loc == '<') {
     /* The next token appears to be a system header name.  Scan it as a
        single header name token.  Note that this is done only when the
