@@ -302,6 +302,8 @@ corresponding encoded entry number, and return that number cast to "char *".
   } else {
     /* Find the entry prefix preceding the entry. */
     epp = &il_entry_prefix_of(entry_ptr);
+    check_assertion_str(!epp->secondary_trans_unit,
+                 "remap_ptr_to_entry_number: pointer in secondary trans unit");
     /* Test for entry number already assigned.  This test is mostly for
        speed, since most entries will have numbers assigned by the
        time we get here. */
