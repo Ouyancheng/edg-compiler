@@ -234,10 +234,14 @@ Flags to be set when using the KAI inliner.
 
 #include "defines_linux.h"
 
-#define INCLUDE_EDG_TEST_PRAGMAS 1
+#ifndef LINUX_TEST_VERSION
+#define LINUX_TEST_VERSION 1
+#endif /* ifndef LINUX_TEST_VERSION */
+
+#if LINUX_TEST_VERSION
 
 /* Linux test version definitions. */
-
+#define INCLUDE_EDG_TEST_PRAGMAS 1
 #define FFE 1
 #ifndef CHECKING
 #define CHECKING 1
@@ -271,6 +275,8 @@ Flags to be set when using the KAI inliner.
 #ifndef OPTIMIZED_VERSION
 #define EXPENSIVE_CHECKING 1
 #endif /* ifndef OPTIMIZED_VERSION */
+
+#endif /* LINUX_TEST_VERSION */
 
 #else /* ifndef __linux__ */
 
