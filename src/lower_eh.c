@@ -3404,7 +3404,7 @@ The region table variable is created if necessary.
     a_variable_ptr   temp_var;
     /* Make an expression that computes the address of the VTT to use. */
 #if IA64_ABI
-    build_construction_vtbls_pointer(dip,
+    build_construction_vtbls_pointer(dedp,
                                      (an_init_pos_descr *)NULL,
                                      (an_insert_location_ptr)NULL,
                                      &vtt_addr_node);

@@ -853,6 +853,32 @@ variable (or a part of one).
 }  /* init_pos_is_static */
 
 
+static void clear_destructible_entity_descr(
+                                          a_destructible_entity_descr_ptr dedp)
+/*
+Clear the fields of a destructible entity description to default values.
+*/
+{
+  dedp->next = NULL;
+  clear_init_pos_descr(&dedp->init_pos_descr);
+  dedp->conditional_flag_var = NULL;
+#if DO_FULL_PORTABLE_EH_LOWERING
+  dedp->conditional_flag_handle = 0;
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
+#if GENERATE_EH_TABLES
+  dedp->region_number = null_eh_region_number;
+  dedp->cleanup_state_to_set_when_starting_destruction = NULL;
+  dedp->region_table_entry = NULL;
+  dedp->next_in_region_table = NULL;
+#endif /* GENERATE_EH_TABLES */
+  dedp->initialization_done = FALSE;
+  dedp->needs_subobject_construction_vtbl = FALSE;
+  dedp->construction_vtbls_var_is_array = FALSE;
+  dedp->construction_vtbls_var = NULL;
+  dedp->subobject_construction_base_class = NULL;
+}  /* clear_destructible_entity_descr */
+
+
 a_destructible_entity_descr_ptr alloc_destructible_entity_descr(void)
 /*
 Allocate a destructible entity description, set its fields to default values,
@@ -873,23 +899,7 @@ and return a pointer to it.
     num_destructible_entity_descrs_allocated++;
 #endif /* DEBUG */
   }  /* if */
-  dedp->next = NULL;
-  clear_init_pos_descr(&dedp->init_pos_descr);
-  dedp->conditional_flag_var = NULL;
-#if DO_FULL_PORTABLE_EH_LOWERING
-  dedp->conditional_flag_handle = 0;
-#endif /* DO_FULL_PORTABLE_EH_LOWERING */
-#if GENERATE_EH_TABLES
-  dedp->region_number = null_eh_region_number;
-  dedp->cleanup_state_to_set_when_starting_destruction = NULL;
-  dedp->region_table_entry = NULL;
-  dedp->next_in_region_table = NULL;
-#endif /* GENERATE_EH_TABLES */
-  dedp->initialization_done = FALSE;
-  dedp->needs_subobject_construction_vtbl = FALSE;
-  dedp->construction_vtbls_var_is_array = FALSE;
-  dedp->construction_vtbls_var = NULL;
-  dedp->subobject_construction_base_class = NULL;
+  clear_destructible_entity_descr(dedp);
   return dedp;
 }  /* alloc_destructible_entity_descr */
 
@@ -8374,12 +8384,13 @@ ABI.
 #else /* !IA64_ABI */
 /*ARGSUSED*/  /* <-- implied_arg_node is not used in that case. */
 #endif /* IA64_ABI */
-void build_construction_vtbls_pointer(a_dynamic_init_ptr     dip,
-                                      an_init_pos_descr      *ipdp,
-                                      an_insert_location_ptr insert_location,
-                                      an_expr_node_ptr       *implied_arg_node)
+void build_construction_vtbls_pointer(
+                             a_destructible_entity_descr_ptr dedp,
+                             an_init_pos_descr               *ipdp,
+                             an_insert_location_ptr          insert_location,
+                             an_expr_node_ptr                *implied_arg_node)
 /*
-If the destructible entity description under dip says so (as determined
+If the destructible entity description dedp says so (as determined
 by build_construction_vtbls_pointer_for_subobject_construction),
 generate code to pass a pointer to an array of construction virtual
 function tables to a subobject constructor or destructor.  ipdp tells
@@ -8389,9 +8400,7 @@ returned in *implied_arg_node (IA-64 ABI; that's set to NULL if no
 code is needed).
 */
 {
-  a_destructible_entity_descr_ptr dedp = dip->destructible_entity_descr;
-  a_base_class_ptr                base_class =
-                                       dedp->subobject_construction_base_class;
+  a_base_class_ptr base_class = dedp->subobject_construction_base_class;
 
 #if !IA64_ABI
   if (dedp->needs_subobject_construction_vtbl) {
@@ -8458,8 +8467,18 @@ under dip or generate code.
 */
 {
   a_destructible_entity_descr_ptr dedp = dip->destructible_entity_descr;
+  a_destructible_entity_descr     ded;
 
   if (just_test != NULL) *just_test = FALSE;
+  /* The destructible entity description is not allocated if not
+     needed, e.g., for a constructor-init in a destructor when
+     exceptions are disabled. for that case, use a dummy one
+     just long enough to pass information between the two parts
+     of this routine. */
+  if (dedp == NULL) {
+    dedp = &ded;
+    clear_destructible_entity_descr(&ded);
+  }  /* if */
 #if !IA64_ABI
   /* See if the base class constructor needs to be passed an array
      of virtual function table pointers to use during the subobject
@@ -8528,7 +8547,7 @@ under dip or generate code.
 #endif /* !IA64_ABI */
   if (just_test == NULL) {
     /* Generate the code if required. */
-    build_construction_vtbls_pointer(dip, ipdp, insert_location,
+    build_construction_vtbls_pointer(dedp, ipdp, insert_location,
                                      implied_arg_node);
   }  /* if */
 }  /* build_construction_vtbls_pointer_for_subobject_construction */

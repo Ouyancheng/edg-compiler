@@ -103,10 +103,10 @@ extern void lower_constant_init_of_static_in_extern_inline(
 
 #if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
 extern void build_construction_vtbls_pointer(
-                                     a_dynamic_init_ptr     dip,
-                                     an_init_pos_descr      *ipdp,
-                                     an_insert_location_ptr insert_location,
-                                     an_expr_node_ptr       *implied_arg_node);
+                            a_destructible_entity_descr_ptr dedp,
+                            an_init_pos_descr               *ipdp,
+                            an_insert_location_ptr          insert_location,
+                            an_expr_node_ptr                *implied_arg_node);
 
 extern an_expr_node_ptr vtbl_addr_from_construction_vtbls_array(
                         a_variable_ptr                  construction_vtbls_var,
