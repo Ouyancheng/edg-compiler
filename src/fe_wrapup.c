@@ -424,6 +424,9 @@ and before the back end (if any) is executed.
   }  /* if */
 #endif /* DEBUG */
 
+  /* Don't keep checking the stop token stack in db_enter/db_exit because
+     the storage goes away when the front end memory region is freed. */
+  curr_stop_token_stack_entry = NULL;
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
   /* Free all memory regions.  Anything left in any of the IL memory
      regions should be discarded as it will be reread by the back end. */
