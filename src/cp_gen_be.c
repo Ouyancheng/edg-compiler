@@ -3215,7 +3215,7 @@ declaration following this one is such a continuation.
            typedef int A::f(int);
          Put out with a qualified name. */
       a_type_ptr class_type= f_skip_typerefs(type_pointed_to(this_param_type));
-       form_type_first_part(under_type, /*under_lhs_declarator=*/FALSE,
+      form_type_first_part(under_type, /*under_lhs_declarator=*/FALSE,
                            /*need_trailing_space=*/TRUE,
                            TQ_NONE, 
                            suppress_specifiers ? FTO_SUPPRESS_SPECIFIERS :
