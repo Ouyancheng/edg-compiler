@@ -3997,6 +3997,13 @@ End a name scope by popping an entry off the scope stack.
     }  /* if */
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 #endif /* DO_IL_LOWERING */
+    /* Clear out the shareable constants table for the file scope or a
+       function scope. */
+    if (old_memory_region_number == FILE_SCOPE_REGION_NUMBER) {
+      empty_shareable_constants_table();
+    } else {
+      empty_func_shareable_constants_table();
+    }  /* if */
     done_with_memory_region(old_memory_region_number);
   }  /* if */
   /* Keep track of the number of current classes and class reactivations.
