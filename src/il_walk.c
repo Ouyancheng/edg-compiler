@@ -166,6 +166,7 @@ of each kind.
   walk_orphan_entry_list_for_entry_kind(a_label_ptr, iek_label);
   walk_orphan_entry_list_for_entry_kind(an_expr_node_ptr, iek_expr_node);
 #ifdef CFE
+  walk_orphan_entry_list_for_entry_kind(a_for_loop_ptr, iek_for_loop);
   walk_orphan_entry_list_for_entry_kind(a_switch_clause_ptr,
                                         iek_switch_clause);
   walk_orphan_entry_list_for_entry_kind(a_handler_ptr, iek_handler);
@@ -373,6 +374,7 @@ running them through walk_remap_func.
   remap_orphan_entry_first(iek_label);
   remap_orphan_entry_first(iek_expr_node);
 #ifdef CFE
+  remap_orphan_entry_first(iek_for_loop);
   remap_orphan_entry_first(iek_switch_clause);
   remap_orphan_entry_first(iek_handler);
 #endif /* ifdef CFE */
@@ -440,6 +442,7 @@ running them through walk_remap_func.
   remap_orphan_entry_last(iek_label);
   remap_orphan_entry_last(iek_expr_node);
 #ifdef CFE
+  remap_orphan_entry_last(iek_for_loop);
   remap_orphan_entry_last(iek_switch_clause);
   remap_orphan_entry_last(iek_handler);
 #endif /* ifdef CFE */

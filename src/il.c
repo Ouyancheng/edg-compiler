@@ -86,6 +86,7 @@ static unsigned long
 		num_switch_clauses_allocated,
                 num_handlers_allocated,
 		num_blocks_allocated,
+                num_for_loops_allocated,
 		num_statements_allocated,
                 num_constructor_inits_allocated,
 		num_scopes_allocated,
@@ -5839,7 +5840,8 @@ Set the kind of the statement sp to stmt_kind, and set the associated variant
 fields to default values.
 */
 {
-  a_block_ptr bp;
+  a_block_ptr     bp;
+  a_for_loop_ptr  flip;
 
   sp->kind = stmt_kind;
   sp->expr = NULL;
@@ -5854,6 +5856,16 @@ fields to default values.
     case stmk_while:
     case stmk_end_test_while:
       sp->variant.loop_statement = NULL;
+      break;
+    case stmk_for:
+      sp->variant.for_loop.statement = NULL;
+      sp->variant.for_loop.extra_info = flip =
+                      (a_for_loop_ptr)alloc_cil(sizeof(a_for_loop));
+#if DEBUG
+      num_for_loops_allocated++;
+#endif /* DEBUG */
+      flip->for_init = NULL;
+      flip->increment = NULL;
       break;
     case stmk_switch:
       sp->variant.switch_stmt.clause_list    = NULL;
@@ -6087,6 +6099,7 @@ Display and return the amount of space used for various IL tables.
                 num_switch_clauses_allocated, a_switch_clause);
   db_space_used("handler", num_handlers_allocated, a_handler);
   db_space_used("block", num_blocks_allocated, a_block);
+  db_space_used("for_loop", num_for_loops_allocated, a_for_loop);
   db_space_used("statement", num_statements_allocated, a_statement);
   db_space_used("constructor init", num_constructor_inits_allocated,
                 a_constructor_init);
@@ -6246,6 +6259,7 @@ of the front end.
   num_new_delete_supplements_allocated   = 0;
   num_switch_clauses_allocated           = 0;
   num_blocks_allocated                   = 0;
+  num_for_loops_allocated                = 0;
   num_statements_allocated               = 0;
   num_constructor_inits_allocated        = 0;
   num_scopes_allocated                   = 0;

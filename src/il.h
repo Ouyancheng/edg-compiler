@@ -67,6 +67,7 @@ typedef enum /*an_il_entry_kind*/ {
   iek_label,		/* a_label */
   iek_expr_node,	/* an_expr_node */
 #ifdef CIL
+  iek_for_loop,          /* a_for_loop */
   iek_switch_clause,	/* a_switch_clause */
   iek_handler,          /* a_handler */
 #endif /* ifdef CIL */
@@ -139,6 +140,7 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 /* iek_label */				"label",
 /* iek_expr_node */			"expr-node",
 #ifdef CIL
+/* iek_for_loop */			"for-loop",
 /* iek_switch_clause */			"switch-clause",
 /* iek_handler */			"handler",
 #endif /* ifdef CIL */

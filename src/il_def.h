@@ -2992,6 +2992,7 @@ enum a_statement_kind_tag {
                            own declarations and scope. */
 #ifdef CIL
   stmk_end_test_while,  /* Loop, test at bottom. */
+  stmk_for,             /* For loop. */
   stmk_switch,          /* Switch. */
   stmk_init,            /* Do a dynamic initialization. */
   stmk_asm,             /* "asm" statement (or declaration). */
@@ -3080,6 +3081,24 @@ typedef struct a_block {
 } a_block;
 
 #ifdef CIL
+/* 
+Information about a for loop, pointed to from an stmk_for_loop statement.
+Note that the test expression is not mentioned in this construct.  It is
+pointed to by the "expr" field of the statement entry.
+*/
+typedef struct a_for_loop *a_for_loop_ptr;
+typedef struct a_for_loop {
+  a_statement_ptr
+		for_init;
+			/* Pointer to a statement that represents the
+			   the loop initialization; NULL if there is none. */
+  an_expr_node_ptr
+		increment;
+			/* Pointer to an expression to be executed at the end
+			   of each iteration of the loop; NULL if there is
+			   none. */
+} a_for_loop;
+
 /* Information about a handler (or catch-clause) defined within a try block. */
 typedef struct a_handler *a_handler_ptr;
 typedef struct a_handler {
@@ -3398,8 +3417,9 @@ typedef struct a_statement {
 #ifdef CIL
                         /* Also:
                              The expression to test for stmk_end_test_while.
+                             The expression to test for stmk_for.
                            Note that the "expression to test" in each of the
-                           three cases is always standardized to an integer/
+                           four cases is always standardized to an integer/
                            logical expression.
                              The switch expression for stmk_switch. */
 #endif /* ifdef CIL */
@@ -3440,6 +3460,21 @@ typedef struct a_statement {
                            statement if there are several dependent
                            statements. */
 #ifdef CIL
+    /* When kind == stmk_for: */
+    struct {
+	a_statement_ptr
+		statement;
+			/* Pointer to the statement that is the body of the
+			   loop (commonly but not necessarily an stmk_block)
+			   that is to be executed on each iteration of the
+			   loop; NULL if there is none. */
+        a_for_loop_ptr
+		extra_info;
+			/* Information about the loop control constructs
+			   (excluding the test expression, which is pointed
+			   to from the expr field).  A separate entry is used
+			   to keep the size of a_statement down. */
+    } for_loop;
     /* When kind == stmk_switch: */
     struct {
       a_switch_clause_ptr

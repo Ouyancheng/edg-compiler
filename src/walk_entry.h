@@ -567,6 +567,13 @@ the file scope, do not process it (but record an orphan in the latter case).
       }
       break;
 #ifdef CFE
+    case iek_for_loop:
+      {
+        a_for_loop_ptr ptr = (a_for_loop_ptr)entry_ptr;
+        walk_ptr(ptr->for_init, a_statement_ptr, iek_statement);
+        walk_ptr(ptr->increment, an_expr_node_ptr, iek_expr_node);
+      }
+      break;
     case iek_switch_clause:
       {
         a_switch_clause_ptr ptr = (a_switch_clause_ptr)entry_ptr;
@@ -643,6 +650,12 @@ the file scope, do not process it (but record an orphan in the latter case).
                       iek_statement);
             break;
 #ifdef CFE
+          case stmk_for:
+            walk_ptr(ptr->variant.for_loop.extra_info, a_for_loop_ptr,
+                     iek_for_loop);
+            walk_ptr(ptr->variant.for_loop.statement, a_statement_ptr,
+                     iek_statement);
+            break;
           case stmk_switch:
             walk_list(ptr->variant.switch_stmt.clause_list,
                       a_switch_clause_ptr, iek_switch_clause);

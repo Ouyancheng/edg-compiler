@@ -2186,6 +2186,17 @@ do_label:
       disp_block(ptr->variant.block.extra_info);
       break;
 #ifdef CFE
+    case stmk_for:
+      (void)printf("stmk_for\n");
+      disp_ptr("for_init", (char *)ptr->variant.for_loop.extra_info->for_init,
+               iek_statement);
+      disp_ptr("expr", (char *)ptr->expr, iek_expr_node);
+      disp_ptr("statement", (char *)ptr->variant.for_loop.statement,
+               iek_statement);
+      disp_ptr("increment",
+               ((char *)ptr->variant.for_loop.extra_info->increment,
+               iek_expr_node);
+      break;
     case stmk_switch:
       (void)printf("stmk_switch\n");
       disp_ptr("expr", (char *)ptr->expr, iek_expr_node);
@@ -2914,6 +2925,7 @@ This routine is called during IL walking.
     case iek_do_loop:
 #endif /* ifdef FFE */
 #ifdef CFE
+    case iek_for_loop:
     case iek_derivation_step:
     case iek_class_list_entry:
     case iek_routine_list_entry:
