@@ -4282,13 +4282,10 @@ and record it in the class's assoc_operator_new_routine field.
     }  /* if */
     if (new_function_symbol == NULL) {
       /* Look for a global operator new(). */
-      new_function_symbol = global_operator_new_or_delete_symbol(
-                                                    (an_opname_kind)onk_new,
-                                                    &error_position,
-                                                    /*make_default_new=*/TRUE);
+      new_function_symbol = opname_function_symbol((an_opname_kind)onk_new);
       /* "new" can be overloaded; find the default (one-argument) version
-         of the routine if so.  Since we requested creation of the default
-         version if it didn't exist, we must find something here. */
+         of the routine if so.  Since the default version always exists,
+         we must find something here. */
       new_function_symbol =
                          extract_default_operator_new_sym(new_function_symbol);
 #if CHECKING
@@ -4600,6 +4597,7 @@ operator routine or do bitwise assignment.
   a_symbol_ptr                   sym;
   a_boolean                      pass_by_value, const_source_var;
   a_param_type_ptr               ptp;
+  a_boolean                      bitwise_assign;
 
   db_enter(4, "make_default_assignment_body");
   /* The source variable of the copy is the first parameter on the parameters
@@ -4729,18 +4727,71 @@ operator routine or do bitwise assignment.
                it must be accessible. */
             check_access_on_assignment_operator(bcp->type, const_source_var);
 #endif /* if 0 */
-            /* Source is an rvalue field reference. */
-            source_expr = field_rvalue_selection_expr(source_expr, fp);
-            /* Create the assignment. */
-            sp = sp->next = make_assignment_statement(dest_expr, source_expr);
-          } else if (array_type == NULL) {
+            bitwise_assign = TRUE;
+          } else {
+            a_statement_ptr call_stmt;
             /* A bitwise copy may not be done.  Find the default assignment
                operator and put out a call to it. */
+            bitwise_assign = FALSE;
             rp = select_assignment_operator(tp, const_source_var,
                                             /*volatile_object_required=*/FALSE,
                                             &error_position, &pass_by_value);
             source_expr = field_lvalue_selection_expr(source_expr, fp);
+            if (array_type != NULL) {
+              /* Copying an array of classes.  Generate a loop around the
+                 call of the assignment routine, like
+                   tmp = 0;
+                   do {
+                     assignfunc(&dest[tmp], &src[tmp]);
+                   } while (++tmp < num_elements);
+              */
+              a_variable_ptr   temp_var;
+              an_expr_node_ptr temp_node, temp_incr_node, compare_node;
+              a_type_ptr       size_t_type =
+                           integer_type((an_integer_kind)TARG_SIZE_T_INT_KIND);
+              a_targ_size_t    num_elems;
+              temp_var = alloc_temporary_variable(size_t_type);
+              /* Make "tmp = 0;" */
+              temp_node = var_lvalue_expr(temp_var);
+              sp = sp->next = make_assignment_statement(temp_node,
+                                node_for_integer_constant(0L,
+                                       (an_integer_kind)TARG_SIZE_T_INT_KIND));
+              /* Make "++tmp < num_elements". */
+              temp_node = var_lvalue_expr(temp_var);
+              temp_incr_node = make_operator_node(
+                                          (an_expr_operator_kind)eok_ipre_incr,
+                                          size_t_type, temp_node);
+              num_elems = skip_typerefs(array_type)->size / tp->size;
+              temp_incr_node->next = 
+                                node_for_integer_constant((long)num_elems,
+                                        (an_integer_kind)TARG_SIZE_T_INT_KIND);
+              compare_node =
+                      make_operator_node((an_expr_operator_kind)eok_ilt,
+                                         integer_type((an_integer_kind)ik_int),
+                                         temp_incr_node);
+              /* Make the do-while statement. */
+              sp = sp->next = alloc_statement(
+                                        (a_statement_kind)stmk_end_test_while);
+              sp->expr = compare_node;
+              /* Convert the source and destination expressions from
+                 pointer-to-array to pointer-to-array-element. */
+              cast_node(&source_expr, make_pointer_type(tp),
+                        /*is_implicit_cast=*/TRUE, &error_position);
+              cast_node(&dest_expr, make_pointer_type(tp),
+                        /*is_implicit_cast=*/TRUE, &error_position);
+              /* Add the subscript to the source_expr. */
+              source_expr->next = var_rvalue_expr(temp_var);
+              source_expr =
+                      make_operator_node((an_expr_operator_kind)eok_padd_subsc,
+                                         source_expr->type, source_expr);
+              /* Add the subscript to the dest_expr. */
+              dest_expr->next = var_rvalue_expr(temp_var);
+              dest_expr =
+                      make_operator_node((an_expr_operator_kind)eok_padd_subsc,
+                                         dest_expr->type, dest_expr);
+            }  /* if */
             if (pass_by_value) {
+              /* The assignment operator function takes its source by value. */
               source_expr = add_indirection_to_node(source_expr);
               /* Make sure a copy constructor call is added if one is
                  needed. */
@@ -4750,23 +4801,37 @@ operator routine or do bitwise assignment.
                                                  ptp,
                                                  &error_position);
             }  /* if */
-            sp = sp->next = make_call_assignment_statement(rp, dest_expr,
-                                                           source_expr);
-          } else {
-#if 0
-            add_statement(for, ...call...);
-#else
-#if CHECKING
-            internal_error(
-   "make_default_assignment_body: operator=() calls on array not implemented");
-#endif /* CHECKING */
-#endif /* if 0 */
+            /* Make the call of the assignment operator function. */
+            call_stmt = make_call_assignment_statement(rp, dest_expr,
+                                                       source_expr);
+            if (array_type != NULL) {
+              /* Array case; the call goes under the do-while. */
+              sp->variant.loop_statement = call_stmt;
+            } else {
+              /* Non-array case; the call goes at the end of the statement
+                 sequence. */
+              sp = sp->next = call_stmt;
+            }  /* if */
           }  /* if */
         } else {
-          /* Not a class type.  Just do a bitwise copy.  The appropriate IL
-             operator will be selected by make_assignment_statement. */
-          source_expr = field_rvalue_selection_expr(source_expr, fp);
-          sp = sp->next = make_assignment_statement(dest_expr, source_expr);
+          /* Not a class type.  Just do a bitwise copy. */
+          bitwise_assign = TRUE;
+        }  /* if */
+        if (bitwise_assign) {
+          /* Do a bitwise assignment. */
+          if (array_type != NULL) {
+            /* Array type.  Do a special assignment (source operand is an
+               address). */
+            source_expr = field_lvalue_selection_expr(source_expr, fp);
+            sp = sp->next =
+                       make_array_assignment_statement(dest_expr, source_expr);
+        
+          } else {
+            /* Not an array.  The appropriate IL operator will be selected
+               by make_assignment_statement. */
+            source_expr = field_rvalue_selection_expr(source_expr, fp);
+            sp = sp->next = make_assignment_statement(dest_expr, source_expr);
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* for */
