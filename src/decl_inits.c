@@ -3521,6 +3521,7 @@ initialized.  These are addressed in the course of the processing.
     /* Loop through the comma-separated list of initializers. */
     do {
       a_boolean          template_param_init = FALSE;
+      a_boolean          dependent_base_init = FALSE;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       a_source_position  init_start_pos;
 
@@ -3576,12 +3577,14 @@ initialized.  These are addressed in the course of the processing.
                                       ? ilm_qualified_ctor_initializer_name
                                       : ilm_ctor_initializer_name,
                                     &gid_err);
-          if (member_or_base_sym != NULL &&
-              is_type_template_param_symbol(member_or_base_sym) &&
-              type_symbol_type(member_or_base_sym)->kind ==
-                                             (a_type_kind)tk_template_param) {
-            /* This is presumably a mem-initializer for a dependent base. */
-            template_param_init = TRUE;
+          if (member_or_base_sym != NULL) {
+            if (is_type_template_param_symbol(member_or_base_sym)) {
+              /* This is presumably a mem-initializer for a dependent base. */
+              template_param_init = TRUE;
+              dependent_base_init = TRUE;
+            } else if (is_nonreal_instance_class_symbol(member_or_base_sym)) {
+              dependent_base_init = TRUE;
+            }  /* if */
           }  /* if */
           if ((!class_name_injection_enabled || microsoft_mode) &&
               !is_error_locator(locator_for_curr_id) &&
@@ -3904,12 +3907,12 @@ scan_paren:
             cssp = NULL;
           }  /* if */
           if ((cssp != NULL && cssp->constructor != NULL) ||
-              (template_param_init && !m_is_error_type(init_type))) {
+              (dependent_base_init && !m_is_error_type(init_type))) {
             /* This is either a base class or a field of class type.  In
                either case, it will be initialized by a constructor call if
                a constructor exists.  Otherwise, it will be initialized
                like any scalar. */
-            if (template_param_init) {
+            if (dependent_base_init) {
               check_assertion(cssp != NULL);
               scan_dependent_type_parenthesized_initializer(
                                         /*force_object_lifetime=*/TRUE, &dip);
