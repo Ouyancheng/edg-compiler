@@ -1,5 +1,11 @@
 Version 3.4
 
+12/15/03 Build problem on Solaris when not using GNU extensions
+
+When building the front end on Solaris without enabling GNU extensions, the
+attribute_init routine is called without being declared.  This could cause
+a build failure depending on how the front end is being built.  Now fixed.
+
 12/12/03 GNU IA-64 ABI: Virtual empty base allocated at bit-field offset
 
 GNU C++ 3.3.x has a bug that causes it to sometimes place a virtual empty
