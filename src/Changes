@@ -1,5 +1,9 @@
 Version 2.22
 
+2/21/94  throw of expression with void type is an error
+
+A throw of an expression with void type is now diagnosed as an error.
+
 2/21/94  __INTADDR__ in not-evaluated expression
 
 Using __INTADDR__(expr) in a not-evaluated context (e.g., sizeof)

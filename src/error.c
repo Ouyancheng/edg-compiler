@@ -2171,7 +2171,7 @@ error code.
       m = "IL display requires name of IL file";
       break;
     case ec_void_template_parameter:
-      m = "a template parameter may not have a type of void";
+      m = "a template parameter may not have void type";
       break;
     case ec_too_many_unused_instantiations:
       m =
@@ -2179,6 +2179,9 @@ error code.
       break;
     case ec_cl_strict_ansi_incompatible_with_anachronisms:
       m = "strict ANSI mode is incompatible with allowing anachronisms";
+      break;
+    case ec_void_throw:
+      m = "a throw expression may not have void type";
       break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:

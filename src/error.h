@@ -645,7 +645,8 @@ typedef enum /*an_error_code*/ {
   ec_cl_il_display_requires_il_file_name,
   ec_void_template_parameter,
   ec_too_many_unused_instantiations,
-  ec_cl_strict_ansi_incompatible_with_anachronisms
+  ec_cl_strict_ansi_incompatible_with_anachronisms,
+  ec_void_throw
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 

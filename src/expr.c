@@ -7009,6 +7009,10 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
     /* Scan the expression. */
     expr_present = TRUE;
     scan_expr(&operand, PREC_ASSIGNMENT, EOPT_NO_OPTIONS);
+    if (is_void_type(operand.type)) {
+      /* Cannot throw a void expression. */
+      error_in_operand(ec_void_throw, &operand);
+    }  /* if */
   }  /* if */
 
   if (err) {
