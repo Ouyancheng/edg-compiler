@@ -6081,7 +6081,7 @@ destructor scope, and also lower the user code.
   a_return_memo_ptr      rmp, rmp_next;
   a_label_ptr            epilogue_label;
   a_source_position      saved_error_position, saved_code_pos;
-  a_dynamic_init_ptr     first_prologue_destruction;
+  a_dynamic_init_ptr     first_epilogue_destruction = NULL;
 
   /* The following pseudo-code shows both the processing in this routine
      and the code added to the destructor routine.  Lines enclosed in [...]
@@ -6239,17 +6239,17 @@ destructor scope, and also lower the user code.
       /* Assign cleanup region numbers to the destructions.  This is done
          early so that we will know the right value to set __eh_curr_region
          to when beginning each destruction. */
-      /* Find the first destruction in the prologue. */
-      first_prologue_destruction = ctor_init->initializer;
+      /* Find the first destruction in the epilogue. */
+      first_epilogue_destruction = ctor_init->initializer;
       /* Watch out for the case of an array initialization; the top-level
          dynamic initialization is not on the destructions list. */
-      if (first_prologue_destruction->lifetime == NULL) {
-        for (first_prologue_destruction = scope->lifetime->destructions;
-             !first_prologue_destruction->is_constructor_init;
-             first_prologue_destruction =
-                       first_prologue_destruction->next_in_destruction_list) {}
+      if (first_epilogue_destruction->lifetime == NULL) {
+        for (first_epilogue_destruction = scope->lifetime->destructions;
+             !first_epilogue_destruction->is_constructor_init;
+             first_epilogue_destruction =
+                       first_epilogue_destruction->next_in_destruction_list) {}
       }  /* if */
-      initialize_dtor_init_for_cleanup(first_prologue_destruction);
+      initialize_dtor_init_for_cleanup(first_epilogue_destruction);
     }  /* if */
     /* Generate a destructor call for each data member that appears on the
        ctor_init list. */
@@ -6306,11 +6306,11 @@ destructor scope, and also lower the user code.
     }  /* if */
     if (exceptions_enabled) {
 #if GENERATE_EH_TABLES
-      /* Make the region table entries for the prologue destructions.
+      /* Make the region table entries for the epilogue destructions.
          This is done late because we want to put out the entries in
          reversed order, and we need to wait until they all have position
          information recorded. */
-      make_dtor_init_region_table_entries(first_prologue_destruction,
+      make_dtor_init_region_table_entries(first_epilogue_destruction,
                                           &prologue_insert_location);
 #endif /* GENERATE_EH_TABLES */
       /* Set the cleanup state at the end of the prologue (i.e., just before
@@ -6318,7 +6318,7 @@ destructor scope, and also lower the user code.
          Note that this is not set when exceptions are not enabled. */
       curr_context->curr_cleanup_state =
           curr_context->latest_initialization =
-              first_prologue_destruction;
+              first_epilogue_destruction;
       insert_code_to_indicate_cleanup_state(curr_context->curr_cleanup_state,
                                             &prologue_insert_location,
                                             /*unreachable=*/FALSE);
@@ -6373,6 +6373,16 @@ destructor scope, and also lower the user code.
     /* There are other returns.  Add an epilogue label and change the other
        returns to gotos to that label. */
     epilogue_label = insert_temp_label(&insert_location);
+    if (exceptions_enabled &&
+        innermost_function_scope->lifetime != NULL) {
+      /* Set the cleanup state to the first destruction in the epilogue, if
+         there is one. */
+      curr_context->curr_cleanup_state =
+          curr_context->latest_initialization = first_epilogue_destruction;
+      insert_code_to_indicate_cleanup_state(curr_context->curr_cleanup_state,
+                                            &insert_location,
+                                            /*unreachable=*/FALSE);
+    }  /* if */
     /* Change the other returns to gotos. */
     for (; rmp != NULL; rmp = rmp_next) {
       a_statement_ptr stmt = rmp->stmt;

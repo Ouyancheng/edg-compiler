@@ -8808,10 +8808,12 @@ handled).
     a_scope_ptr        scope;
     an_expr_node_ptr   value_expr;
     an_insert_location insert_location;
+    an_insert_location break_label_insert_location;
     a_statement_ptr    block_stmt, dep_statement;
     a_context          context;
     an_init_pos_descr  ipd;
     a_label_ptr        break_label;
+    a_boolean          created_break_label = FALSE;
     a_boolean          is_loop_stmt = 
                              (statement_kind == (a_statement_kind)stmk_while ||
                               statement_kind == (a_statement_kind)stmk_for);
@@ -8851,11 +8853,14 @@ handled).
              following the loop.  Note that this must be done before the
              context for the condition is pushed, since the surrounding
              object lifetime must be recorded in the label. */
-          an_insert_location insert_location2;
-          turn_statement_into_block(statement, &insert_location2,
+          /* Note also that if exceptions are enabled, code to set the
+             cleanup state will be inserted following the label.  That's
+             done later in this routine. */
+          created_break_label = TRUE;
+          turn_statement_into_block(statement, &break_label_insert_location,
                                     &statement);
-          set_insert_location(statement, &insert_location2);
-          break_label = insert_temp_label(&insert_location2);
+          set_insert_location(statement, &break_label_insert_location);
+          break_label = insert_temp_label(&break_label_insert_location);
           break_label->break_label = TRUE;
         }  /* if */
       }
@@ -8970,6 +8975,14 @@ handled).
        condition variable if necessary. */
     if (scope->lifetime != NULL) {
       gen_cleanup_actions(scope->lifetime, &insert_location);
+    }  /* if */
+    if (created_break_label && exceptions_enabled &&
+        innermost_function_scope->lifetime != NULL) {
+      /* If a break label was inserted, insert code to set the cleanup state
+         after it. */
+      insert_code_to_indicate_cleanup_state(curr_context->curr_cleanup_state,
+                                            &break_label_insert_location,
+                                            /*unreachable=*/FALSE);
     }  /* if */
     pop_context();
   }  /* if */
