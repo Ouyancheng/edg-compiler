@@ -54,10 +54,11 @@ alignment.
 /*
 Size of allocation blocks (space is requested from malloc in blocks of
 this size, and is then parceled out as needed).  Should be fairly large
-to reduce the work in in_file_scope.  Unused pieces at the ends of
-regions are freed when the regions are completed, so there's no waste.
-Larger blocks will be allocated if needed (say, for incredibly large
-string literals formed by token concatenation).
+to reduce the work in remapping pointers in the non-alternate file
+format.  Unused pieces at the ends of regions are freed when the regions
+are completed, so there's no waste.  Larger blocks will be allocated if
+needed (say, for incredibly large string literals formed by token
+concatenation).
 */
 #ifndef HOST_ALLOCATION_INCREMENT
 #define HOST_ALLOCATION_INCREMENT 65536
