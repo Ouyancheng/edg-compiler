@@ -128,6 +128,9 @@ typedef enum /*an_option_kind*/ {
   optk_array_new_and_delete,
   optk_namespaces,
   optk_implicit_using_std,
+#if MAINTAIN_NEEDED_FLAGS
+  optk_remove_unneeded_entities,
+#endif /* MAINTAIN_NEEDED_FLAGS */
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -655,6 +658,21 @@ EXTERN a_boolean
 			   Causes additional predefined macros to be
 			   defined. */
 
+EXTERN a_boolean
+		suppress_elimination_of_unneeded_il_entries
+#if VAR_INITIALIZERS
+                                   = !MAINTAIN_NEEDED_FLAGS
+#endif /* VAR_INITIALIZERS */
+                                                           ;
+			/* When TRUE no entities are pruned from the IL tree
+			   even if they are determined to be unneeded.
+			   Always TRUE when MAINTAIN_NEEDED_FLAGS is FALSE.
+			   Otherwise, will be set to TRUE when command line
+			   specifies --no_remove_unneeded_entities; also set
+			   if templates appear in the source program and
+			   template instantiation is not under the control
+			   of the front end (e.g., when the C++-generating
+			   back end is used).  */
 
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);

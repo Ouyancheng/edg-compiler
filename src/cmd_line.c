@@ -513,6 +513,16 @@ Initialize the option information table.
                          "no_using_std", '\0',
                          /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+#if MAINTAIN_NEEDED_FLAGS
+  add_option_description(optk_remove_unneeded_entities,
+                         "remove_unneeded_entities", '\0',
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+#endif /* MAINTAIN_NEEDED_FLAGS */
+  add_option_description(optk_remove_unneeded_entities,
+                         "no_remove_unneeded_entities", '\0',
+                         /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -1427,6 +1437,10 @@ common_cfront_mode_settings:
       case optk_implicit_using_std:
         /* Enable/disable implicit use of the std namespace by the runtime. */
         implicit_using_std = opt_value;
+        break;
+      case optk_remove_unneeded_entities:
+        /* If FALSE, suppress elimination of unneeded IL entries. */
+        suppress_elimination_of_unneeded_il_entries = !opt_value;
         break;
       default:
         /* It should not be possible to get here. */
