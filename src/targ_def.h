@@ -562,13 +562,22 @@ match the target machine behavior on integer operations in C.
    of the next field, thereby also affects how the alignment of the struct
    as a whole is determined. */
 #ifndef TARG_UNNAMED_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT
+#if TARG_MICROSOFT_BIT_FIELD_ALLOCATION
+#define TARG_UNNAMED_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT TRUE
+#else /* !TARG_MICROSOFT_BIT_FIELD_ALLOCATION */
+#if ABI_COMPATIBILITY_VERSION <= 231
+/* Setting it to FALSE corresponds to hard-coded behavior prior to 2.32. */
+#define TARG_UNNAMED_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT TRUE
+#else /* !(ABI_COMPATIBILITY_VERSION <= 231) */
 #if ABI_COMPATIBILITY_VERSION >= 235
 /* This can be changed. */
 #define TARG_UNNAMED_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT TRUE
 #else /* !(ABI_COMPATIBILITY_VERSION >= 235) */
 /* Setting this to FALSE will produce an ABI incompatibility with versions
-   older than 2.35. */
+   2.32 through 2.34. */
 #define TARG_UNNAMED_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT TRUE
+#endif /* ABI_COMPATIBILITY_VERSION >= 235 */
+#endif /* ABI_COMPATIBILITY_VERSION <= 231 */
 #endif /* TARG_MICROSOFT_BIT_FIELD_ALLOCATION */
 			/* Default value, used to initialize global variable
 			   targ_unnamed_bit_field_affects_struct_alignment. */
