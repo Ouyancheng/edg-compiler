@@ -88,8 +88,10 @@ from class templates with dependent base classes.  For example:
   template<class T> struct B: virtual A {
     void f() {}
   };
-  template<class T> struct C: B<T>, virtual A {};
-  C<void> x; // Used to claim C<void> is abstract.
+  template<class T> struct C: B<T>, virtual A {
+    C<T> g(); // Used to claim return type is abstract
+  };
+  template struct C<void>;
 
 This is now fixed.
 
