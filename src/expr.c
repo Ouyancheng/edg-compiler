@@ -1723,9 +1723,11 @@ Syntax:
                                      routine,
                                      routine_type, &this_match_summary);
       if (this_match_summary.match_level != aml_none) {
-        /* The types are compatible.  No cast is required; if there's a
-           difference between the types, it's just a const/non-const
+        /* The types are compatible.  Cast in case there's a const/nonconst
            difference. */
+        a_type_ptr this_param_type = implicit_this_param_type_of(routine_type);
+        cast_operand(this_param_type, bound_function_selector,
+                     /*is_implicit_cast=*/TRUE);
         /* Issue any needed warning (e.g., cfront anachronism of calling
            a non-const function with a const selector). */
         issue_warning_from_arg_match_summary(&this_match_summary,
