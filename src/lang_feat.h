@@ -919,8 +919,6 @@ that were either explicitly specified or deduced elsewhere.
 #define DEFAULT_NONSTANDARD_QUALIFIER_DEDUCTION FALSE
 #endif /* ifndef DEFAULT_NONSTANDARD_QUALIFIER_DEDUCTION */
 
-#endif /* ifndef LANG_FEAT_H */
-
 /*
 Flag that is TRUE if the tiebreaker processing in overload resolution
 (e.g., to decide between "void f(int &)" and "void f(const int &)")
@@ -943,6 +941,7 @@ FALSE is the setting required for standard conformance.
 #define DEFAULT_SINGLE_REF_QUAL_OVL_RES_TIEBREAKER FALSE
 #endif /* ifndef DEFAULT_SINGLE_REF_QUAL_OVL_RES_TIEBREAKER */
 
+#endif /* ifndef LANG_FEAT_H */
 
 /******************************************************************************
 *                                                             \  ___  /       *
