@@ -3157,6 +3157,14 @@ enable_microsoft_mode:
        must be allowed also. */
     variadic_macros_allowed = TRUE;
   }  /* if */
+  if (!do_dependent_name_processing && export_template_allowed) {
+    /* We're not doing dependent name processing, but export template
+       is specified.  If export template processing was not explicitly
+       requested, turn it off. */
+    if (!option_kind_used[(int)optk_export_template]) {
+      export_template_allowed = FALSE;
+    }  /* if */
+  }  /* if */
   if (export_template_allowed) {
     /* Export template processing requires dependent name processing. */
     if (option_kind_used[(int)optk_dependent_name_processing] &&
@@ -3173,6 +3181,14 @@ enable_microsoft_mode:
     }  /* if */
     do_dependent_name_processing = TRUE;
     implicit_template_inclusion_mode = FALSE;
+  }  /* if */
+  if (!nonclass_prototype_instantiations && do_dependent_name_processing) {
+    /* We're not doing nonclass prototype instantiations, but dependent
+       name processing is specified.  If dependent name processing was not
+       explicitly requested, turn it off. */
+    if (!option_kind_used[(int)optk_dependent_name_processing]) {
+      do_dependent_name_processing = FALSE;
+    }  /* if */
   }  /* if */
   if (do_dependent_name_processing) {
     /* Do nonclass prototype instantiations when dependent name processing
