@@ -368,6 +368,10 @@ typedef struct a_symbol_header {
 			/* This is the pointer to a symbol table entry.  This
 			   is actually a list of all symbols with the same
 			   identifier. */
+  a_symbol_ptr	inactive_symbols;
+			/* A list of symbols that are currently inactive
+			   but can be reached with some sort of qualification,
+			   i.e., members of structs/unions/classes. */
 } a_symbol_header;
 
 typedef struct a_symbol_locator {
