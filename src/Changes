@@ -2,8 +2,8 @@ Version 2.42
 
 4/16/99  Source sequence lists: internal error in default argument fixup
 
-When CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS was TRUE,
-an internal could appear during default argument processing of member
+When CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS was TRUE, an
+internal error could appear during default argument processing of member
 functions of a compiler-generated class template specialization; now
 fixed.  A complex set of conditions was required to expose the bug, e.g.:
 
