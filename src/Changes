@@ -1,5 +1,11 @@
 Version 2.44
 
+1/20/00  Templates in unnamed namespace fail in one instantiation
+         per object mode
+
+Templates in unnamed namespaces did not work properly when using
+one instantiation per object mode.  This has been fixed.
+
 1/20/00  Microsoft compatibility: predefined macros defined in C mode
 
 Formerly, the Microsoft predefined macros (_MSC_VER, etc.) were only

@@ -2760,7 +2760,9 @@ Instantiate the body of the template function associated with tip.
     rout_ptr->source_corresp.name_linkage =
                                 (a_name_linkage_kind)nlk_cplusplus_external;
 #if ONE_INSTANTIATION_PER_OBJECT
-    if (!rout_ptr->is_inline && one_instantiation_per_object) {
+    if (one_instantiation_per_object &&
+        !rout_ptr->is_inline &&
+        !is_member_of_unnamed_namespace(&rout_ptr->source_corresp)) {
       /* Get a "needed bit number" for the routine. */
       rout_ptr->instantiation_needed_bit_number =
                                       assign_instantiation_needed_bit_number();
@@ -2925,7 +2927,8 @@ and the class instantiation will detect the runaway case.
   if (var_ptr->storage_class == (a_storage_class)sc_extern) {
     var_ptr->storage_class = (a_storage_class)sc_unspecified;
 #if ONE_INSTANTIATION_PER_OBJECT
-    if (one_instantiation_per_object) {
+    if (one_instantiation_per_object &&
+        !is_member_of_unnamed_namespace(&var_ptr->source_corresp)) {
       /* Get a "needed bit number" for the routine. */
       var_ptr->instantiation_needed_bit_number =
                                       assign_instantiation_needed_bit_number();
@@ -12678,27 +12681,29 @@ template or a member function of a template class.
 }  /* rout_is_inline_template_function */
 
 
-static a_boolean is_static_or_inline_template_function
+static a_boolean is_static_or_inline_template_entity
 					(a_template_instance_ptr tip)
 /*
 Determines whether a template instance pointer refers to a function that
 is static or inline (i.e., is not an external function).  Functions
 within unnamed namespaces are treated as having internal linkage for
-purposes of this test.
+purposes of this test.  Also determines whether a template static
+data member a member of an unnamed namespace.
 */
 {
   a_boolean     result = FALSE;
   a_symbol_ptr	sym = tip->instance_sym;
 
-  if (!is_function_symbol(sym)) {
-    /* Must be a static data member. */
-  } else if (is_inline_template_function(tip)) {
+  if (is_inline_template_function(tip)) {
     result = TRUE;
-  } else if (sym->variant.routine.ptr->storage_class ==
+  } else if (sym->kind != (a_symbol_kind)sk_static_data_member &&
+             sym->variant.routine.ptr->storage_class ==
                                                  (a_storage_class)sc_static) {
     /* Return TRUE if the function is marked as static. */
     result = TRUE;
   } else {
+    /* A function or static data member -- check if it is a member of an
+       unnamed namespace. */
     a_namespace_ptr			parent_nsp;
     a_namespace_symbol_supplement_ptr	parent_nssp;
     parent_nsp = parent_namespace_for_symbol(sym);
@@ -12712,7 +12717,7 @@ purposes of this test.
     }  /* if */
   }  /* if */
   return result;
-}  /* is_static_or_inline_template_function */
+}  /* is_static_or_inline_template_entity */
 
 #if !INSTANTIATION_BY_IMPLICIT_INCLUSION
 /*ARGSUSED*/ /* <-- implicit_inclusion_okay is not used if no implicit
@@ -12739,7 +12744,7 @@ template entities.
       (tip->explicit_instantiation ||
        ((tip->instantiation_required || instantiation_mode == tim_all) &&
         (instantiation_mode != tim_none ||
-         is_static_or_inline_template_function(tip))))) {
+         is_static_or_inline_template_entity(tip))))) {
     /* For error checking purposes, find out if a specific definition
        exists and whether a body exists for the template definition. */
     if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
@@ -13330,7 +13335,7 @@ instantiation request file.
          instantiation should be performed here.  Only external entities
          can be added to a request file. */
       if (tip->instantiation_required && !tip->already_instantiated &&
-          !is_static_or_inline_template_function(tip)) {
+          !is_static_or_inline_template_entity(tip)) {
         add_to_request_file = TRUE;
       }  /* if */
     }  /* if */
@@ -13801,7 +13806,7 @@ and "do not instantiate" flags are set here.
     a_boolean				is_static_data_member;
 
     /* Skip non-external function. */
-    if (is_static_or_inline_template_function(tip)) continue;
+    if (is_static_or_inline_template_entity(tip)) continue;
     /* Get a pointer to the IL entry to be processed. */
     if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
       is_static_data_member = TRUE;
