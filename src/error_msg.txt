@@ -478,7 +478,7 @@ ec_qualifier_in_member_declaration;;"qualified name is not allowed in member dec
 ec_mixed_enum_type_anachronism;;"enumerated type mixed with another type (anachronism)"
 ec_new_array_size_must_be_nonnegative;;"the size of an array in \"new\" must be non-negative"
 ec_return_ref_init_requires_temp;;"returning reference to local temporary"
-ec_cfront_nonconst_ref_init;;"const qualifier dropped in initializing reference to non-const"
+REMOVED;ec_cfront_nonconst_ref_init;;"const qualifier dropped in initializing reference to non-const"
 ec_enum_not_allowed;;"\"enum\" declaration is not allowed"
 ec_qualifier_dropped_in_ref_init;;"qualifiers dropped in binding reference of type %t1 to initializer of type %t2"
 ec_bad_nonconst_ref_init;;"a reference of type %t1 (not const-qualified) cannot be initialized with a value of type %t2"

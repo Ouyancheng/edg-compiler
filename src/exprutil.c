@@ -5113,6 +5113,7 @@ the expression.
          the struct rvalue, and if one can be found rewrite the operation
          as a normal field selection. */
       op1 = node->variant.operation.operands;
+      op2 = op1->next;
       /* See if the operand can be rewritten. */
       conv_class_rvalue_expr_to_object_pointer(&op1, &op1_possible,
                                                /*see_if_possible=*/TRUE);
@@ -5121,6 +5122,8 @@ the expression.
         if (!see_if_possible) {
           conv_class_rvalue_expr_to_object_pointer(&op1, &op1_possible,
                                                    /*see_if_possible=*/FALSE);
+          node->variant.operation.operands = op1;
+          op1->next = op2;
           node->variant.operation.kind = (an_expr_operator_kind)eok_field;
         }  /* if */
       }  /* if */

@@ -7975,26 +7975,6 @@ copy-initialization.
 }  /* convert_operand_into_temp */
 
 
-static a_boolean is_field_selection_lvalue_operand(an_operand *operand)
-/*
-Return TRUE if the operand is a field selection lvalue.  This is used for a
-limited loophole allowed in cfront compatibility mode.
-*/
-{
-  a_boolean is_field_selection = FALSE;
-
-  if (is_expression_operand(operand) && is_an_lvalue(operand)) {
-    an_expr_node_ptr node = operand->variant.expression;
-    if (is_operation_node(node)) {
-      if (node->variant.operation.kind == (an_expr_operator_kind)eok_field) {
-        is_field_selection = TRUE;
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  return is_field_selection;
-}  /* is_field_selection_lvalue_operand */
-
-
 static void adjust_top_temporary_for_binding_to_reference(
                                                     an_operand *operand,
                                                     a_boolean  static_lifetime)
@@ -8192,28 +8172,7 @@ direct binding is "possible" and not whether it is "valid".
   if (*dropping_qualifiers) {
     /* There are fewer qualifiers on the destination than on the source,
        so the initialization would involve dropping qualifiers. */
-    if (cfront_2_1_mode &&
-        !*ref_to_const && is_const_qualified_type(source_type) &&
-        source_operand != NULL &&
-        is_field_selection_lvalue_operand(source_operand)) {
-      /* cfront 2.1 makes a field selected from a const structure compatible
-         with a non-const reference to the underlying type:
-           struct A {};
-           struct B {
-             A a;
-             B() {}
-           };
-           const B bb;
-           A &r = bb.a;  // okay according to cfront, no warning
-           const B *pb;
-           A &rr = pb->a;  // okay according to cfront, warning
-         Note that a temporary will not be used in these cases. */
-      pos_warning(ec_cfront_nonconst_ref_init, &source_operand->position);
-      *dropping_qualifiers = FALSE;
-    } else {
-      /* Qualifiers are being dropped, so disallow a direct binding. */
-      direct_binding_possible = FALSE;
-    }  /* if */
+    direct_binding_possible = FALSE;
   }  /* if */
   if (type_is_correct_or_derived && *binding_to_rvalue_allowed &&
       source_operand != NULL && is_bit_field_operand(source_operand)) {

@@ -2030,15 +2030,38 @@ The result is placed in *result.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     /* Determine the result type. */
-    if (cfront_2_1_mode && is_array_type(field->type)) {
-      /* cfront 2.1 fouls up the qualifiers on arrays.  Duplicate the
-         behavior.  (This comes up in the NIH libraries.) */
+    operand_1_is_pointer = (is_arrow_operator || !is_an_rvalue(operand_1));
+    qualifiers = get_type_qualifiers(class_struct_union_type);
+    if (cfront_2_1_mode) {
+      /* cfront 2.1 ignores the cv-qualifiers on the left operand. */
       result_type = field->type;
+      if (qualifiers != TQ_NONE) {
+        a_type_ptr unqual_class_type;
+        /* Drop the type qualifiers on the left operand to generate correct
+           IL. */
+        /* Adjust the type by turning the operand into a pointer (if
+           necessary) and casting. */
+        conv_selector_to_object_pointer(operand_1, &is_arrow_operator);
+        /* Note that we cannot simply use the unqualified version of
+           class_struct_union_type here because it might be a derived class. */
+        unqual_class_type = type_pointed_to(operand_1->type);
+        unqual_class_type = make_unqualified_type(unqual_class_type);
+        cast_operand(make_pointer_type(unqual_class_type),
+                     operand_1,
+                     /*check_cast_access=*/FALSE,
+                     /*is_implicit_cast=*/TRUE,
+                     /*is_reinterpret_cast=*/FALSE);
+        if (!operand_1_is_pointer) {
+          /* For the class rvalue case, produce an rvalue again. */
+          conv_object_pointer_to_lvalue(operand_1);
+          conv_lvalue_to_rvalue(operand_1);
+        }  /* if */
+        qualifiers = TQ_NONE;
+      }  /* if */
     } else {
       /* The result type is set to the type of the field with the union of the
          qualifiers of the field and the qualifiers of the class, struct,
-         or union. const is ignored if the field was declared mutable. */
-      qualifiers = get_type_qualifiers(class_struct_union_type);
+         or union.  const is ignored if the field was declared mutable. */
       result_type = make_field_selection_type(field, qualifiers);
     }  /* if */
     /* Determine the IL operator to use.  If the first operand is a pointer
@@ -2053,7 +2076,6 @@ The result is placed in *result.
          eok_value_field -> eok_value_bit_field
          eok_field       -> eok_bit_field
     */
-    operand_1_is_pointer = (is_arrow_operator || !is_an_rvalue(operand_1));
     if (!operand_1_is_pointer) {
       /* For "rvalue . field", the type of the selection is the same
          as the result type. */

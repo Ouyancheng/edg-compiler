@@ -1,5 +1,13 @@
 Version 2.38
 
+1/7/97    cfront 2.1 mode: in a.b, cv-qualifiers on a are ignored
+
+In cfront 2.1 mode, any cv-qualifiers on the left operand of a
+field selection (a.b or p->b) are now ignored, i.e., the type of
+the result is just the type of the member selected.  Some code
+that did a weaker version of this on reference initialization
+in cfront 2.1 mode is now superfluous and has been removed.
+
 1/5/97    Change in copy-initialization rules to support auto_ptr
 
 The definition for auto_ptr accepted for the C++ standard depends on
