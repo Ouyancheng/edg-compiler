@@ -5994,7 +5994,8 @@ address of the temporary is returned.  This routine is only used in C++ mode.
   if (is_error_operand(operand)) {
     /* Error operand -- leave alone. */
 #if CHECKING
-  } else if (!is_class_struct_union_type(operand->type)) {
+  } else if (!is_class_struct_union_type(operand->type) &&
+             !is_template_param_type(operand->type)) {
     internal_error("conv_class_operand_to_object_pointer: not a class");
 #endif /* CHECKING */
   } else if (is_an_lvalue(operand)) {
