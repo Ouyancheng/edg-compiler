@@ -227,35 +227,6 @@ starts with a type-specifier (including a typedef name) or a type-qualifier.
 }  /* is_type_start */
 
 
-a_boolean is_overload_specifier(void)
-/*
-Return TRUE if the current token is an overload specifier (C++ anachronism).
-Note that "overload" is not a keyword and will not be recognized as a
-specifier if the name has been declared.  Called only in C++.
-*/
-{
-  char         *id_name;
-  a_boolean    is_overload = FALSE;
-
-  if (allow_anachronisms && curr_token == tok_identifier &&
-      !is_error_locator(locator_for_curr_id)) {
-    id_name = locator_for_curr_id.symbol_header->identifier;
-    if (*id_name == 'o' && strcmp(id_name, "overload") == 0) {
-      /* Identifier is "overload" -- check for definition. */
-      if (normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS) == NULL) {
-        /* The name is not in the symbol table.  Treat is as a keyword. */
-        is_overload = TRUE;
-      } else if (locator_for_curr_id.is_semivisible_nested_type) {
-        /* There is a nested class named "overload" that is visible by
-           the nested class anachronism (ARM 18.3.5).  Ignore it. */
-        is_overload = TRUE;
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  return (is_overload);
-}  /* is_overload_specifier */
-
-
 a_boolean is_decl_start(a_boolean  expr_context,
                         a_boolean  real_declarator_allowed)
 /*
@@ -796,9 +767,9 @@ either.
 }  /* f_is_decl_not_expr */
 
 
-a_boolean check_for_overload_anachronism(void)
+a_boolean f_check_for_overload_anachronism(void)
 /*
-Check for the presence of the pseudo-keyword "overload" at the start of
+Check for the presence of the anachronistic keyword "overload" at the start of
 a declaration.  If it is found, pass over it and examine the tokens following.
 If a declaration is of the format "overload f;" (or "overload f, g, h;")
 just check for syntax errors and discard the entire declaration; in such
@@ -809,43 +780,44 @@ continue as though "overload" had not been seen.
   a_boolean     discard_declaration = FALSE;
   a_token_kind  next_tok;
 
-  if (is_overload_specifier()) {
-    /* Issue an anachronism diagnostic indicating that "overload" is
-       no longer allowed.  This can be either an error or a warning. */
-    diagnostic(anachronism_error_severity, ec_overload_anachronism);
-    /* Bypass "overload" */
-    (void)get_token();
-    if (curr_token == tok_identifier) {
-      next_tok = next_token();
-      if (next_tok == tok_semicolon || next_tok == tok_comma) {
-        /* We have a single function name or a comma separated list of
-           function names.  (We do not support a mixed list of function
-           names and function declarations.) Throw away the identifier
-           and advance to the ";" or ",". */
+  db_enter(3, "f_check_for_overload_anachronism");
+  check_assertion(curr_token == tok_overload);
+  /* Issue an anachronism diagnostic indicating that "overload" is
+     no longer allowed.  This can be either an error or a warning. */
+  diagnostic(anachronism_error_severity, ec_overload_anachronism);
+  /* Bypass "overload" */
+  (void)get_token();
+  if (curr_token == tok_identifier) {
+    next_tok = next_token();
+    if (next_tok == tok_semicolon || next_tok == tok_comma) {
+      /* We have a single function name or a comma separated list of
+         function names.  (We do not support a mixed list of function
+         names and function declarations.) Throw away the identifier
+         and advance to the ";" or ",". */
+      (void)get_token();
+      if (curr_token == tok_comma) {
+        /* It is a list of names.  Loop through them just to flag syntax
+           errors. */
+        add_stop_token(tok_semicolon);
+        /* Advance past the comma */
         (void)get_token();
-        if (curr_token == tok_comma) {
-          /* It is a list of names.  Loop through them just to flag syntax
-             errors. */
-          add_stop_token(tok_semicolon);
-          /* Advance past the comma */
-          (void)get_token();
-          do {
-            (void)required_token(tok_identifier, ec_exp_identifier);
-          } while (loop_token(tok_comma));
-          remove_stop_token(tok_semicolon);
-        }  /* if */
-        /* Check for final semicolon. */
-        (void)required_token(tok_semicolon, ec_exp_semicolon);
-        /* Tell the caller to do no more processing. */
-        discard_declaration = TRUE;
-      } else {
-        /* Treat this as a function declaration.  Having bypassed the overload
-           "keyword" we return to the caller. */
+        do {
+          (void)required_token(tok_identifier, ec_exp_identifier);
+        } while (loop_token(tok_comma));
+        remove_stop_token(tok_semicolon);
       }  /* if */
+      /* Check for final semicolon. */
+      (void)required_token(tok_semicolon, ec_exp_semicolon);
+      /* Tell the caller to do no more processing. */
+      discard_declaration = TRUE;
+    } else {
+      /* Treat this as a function declaration.  Having bypassed the overload
+         keyword we return to the caller. */
     }  /* if */
   }  /* if */
+  db_exit();
   return discard_declaration;
-}  /* check_for_overload_anachronism */
+}  /* f_check_for_overload_anachronism */
 
 
 /*
@@ -7144,15 +7116,15 @@ process_class_specifier:
           goto no_get_token;
         }  /* if */
         break;
+      case tok_overload:
+        /* Special case -- the "overload" keyword (which shows up in
+           cfront compatibility mode only).  Ignore it and advance to the
+           next token. */
+        diagnostic(anachronism_error_severity, ec_overload_anachronism);
+        break;
       case QUALIFIED_NAME_START_CASE:  /* Identifier or "::". */
         /* Identifier. */
         if (C_dialect == C_dialect_cplusplus) {
-          if (is_overload_specifier()) {
-            /* Special case -- the "overload" pseudo keyword.  We ignore it and
-               advance to the next token. */
-            diagnostic(anachronism_error_severity, ec_overload_anachronism);
-            break;
-          }  /* if */
           /* Check for a constructor declaration.  The following conditions
              must be satisfied:  (1) we are inside a class definition;
              (2) the current token is the name of the class being defined

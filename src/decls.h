@@ -69,9 +69,10 @@ extern a_boolean is_type_start(void);
 extern a_boolean is_decl_start(a_boolean  expr_context,
                                a_boolean  real_declarator_allowed);
 
-extern a_boolean is_overload_specifier(void);
+extern a_boolean f_check_for_overload_anachronism(void);
 
-extern a_boolean check_for_overload_anachronism(void);
+#define check_for_overload_anachronism()                               \
+  (curr_token == tok_overload && f_check_for_overload_anachronism())
 
 extern a_boolean f_is_decl_not_expr(a_boolean  abstract_declarator_allowed,
                                     a_boolean  real_declarator_allowed);
@@ -86,7 +87,7 @@ routine to do lookahead, etc.
   ((C_dialect == C_dialect_cplusplus) ?                               \
     (is_decl_start(/*expr_context=*/TRUE, real_decl_allowed) ?        \
       f_is_decl_not_expr(abstract_decl_allowed, real_decl_allowed) :  \
-      is_overload_specifier()) :                                      \
+      curr_token == tok_overload) :                                   \
     is_decl_start(/*expr_context=*/TRUE, real_decl_allowed))
 
 /*
