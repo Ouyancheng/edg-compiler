@@ -768,7 +768,7 @@ malloc_with_check.
   if (old_ptr == NULL) {
     ptr = pl_malloc_with_check(new_size);
   } else {
-    ptr = (a_void_ptr)realloc(old_ptr, new_size);
+    ptr = (a_void_ptr)realloc((a_realloc_arg)old_ptr, new_size);
     if (ptr == NULL) {
       pl_error(pl_ec_out_of_memory, (char *)NULL);
     } /* if */

@@ -1569,14 +1569,16 @@ extern void open_mapped_il_temp_file(void);
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
 
 /*
-The type of the buffer argument in fread/fwrite calls.  This is usually
-void* on ANSI compilers and char* on pcc compilers.  Sun C++ uses
-char* for some reason though.
+The type of the buffer argument in fread/fwrite calls, and the type
+of the pointer passed to realloc.  This is usually void* on ANSI compilers
+and char* on pcc compilers.  Sun C++ uses char* for some reason though.
 */
 #if defined(__cplusplus) && defined(__SUNPRO_CC)
 typedef char *a_stdio_arg;
+typedef char *a_realloc_arg;
 #else /* !(defined(__cplusplus) && __defined(__SUNPRO_CC)) */
 typedef a_void_ptr a_stdio_arg;
+typedef a_void_ptr a_realloc_arg;
 #endif /* defined(__cplusplus) && __defined(__SUNPRO_CC) */
 
 /*
