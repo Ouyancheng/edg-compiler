@@ -8356,7 +8356,7 @@ Add the IL macro entry pointed to by mp to the list for the file scope.
   last_macro = mp;
 }  /* add_to_macros_list */
 
-#endif /* RECORD_TEMPLATES_IN_IL */
+#endif /* RECORD_MACROS_IN_IL */
 
 #if DEBUG
 unsigned long show_il_space_used(void)
