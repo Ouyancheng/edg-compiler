@@ -581,6 +581,43 @@ Return TRUE if the current innermost nonclass name context is the file scope.
 }  /* innermost_nonclass_name_context_is_file_scope */
 
 
+/*
+Data structure used to save the current source sequence position for
+later restoration.  See save_source_sequence_scan_state.
+*/
+typedef struct a_source_sequence_scan_state {
+  a_source_sequence_entry_ptr
+		curr_source_sequence_entry;
+  a_source_sequence_entry_ptr
+		sublist_parent_source_sequence_entry;
+} a_source_sequence_scan_state;
+
+
+static void save_source_sequence_scan_state(
+                                           a_source_sequence_scan_state *state)
+/*
+Save the current source sequence list scan state in *state for later
+restoration.
+*/
+{
+  state->curr_source_sequence_entry = curr_source_sequence_entry;
+  state->sublist_parent_source_sequence_entry =
+                                      sublist_parent_source_sequence_entry;
+}  /* save_source_sequence_scan_state */
+
+
+static void restore_source_sequence_scan_state(
+                                           a_source_sequence_scan_state *state)
+/*
+Restore the current source sequence list scan state from *state.
+*/
+{
+  curr_source_sequence_entry = state->curr_source_sequence_entry;
+  sublist_parent_source_sequence_entry =
+                               state->sublist_parent_source_sequence_entry;
+}  /* restore_source_sequence_scan_state */
+
+
 static void adv_to_signif_source_sequence_entry(void)
 /*
 If the current entry on the source sequence list is not "significant",
@@ -928,8 +965,8 @@ declarations.
 
   if (il_header.source_language == sl_C) {
     for (; curr_source_sequence_entry != NULL;) {
-      a_source_sequence_entry_ptr saved_curr_source_sequence_entry =
-                                                    curr_source_sequence_entry;
+      a_source_sequence_scan_state saved_state;
+      save_source_sequence_scan_state(&saved_state);
       /* Skip past macros, etc.  We come back and process these entries if
          there's actually a declaration following them. */
       advance_past_preprocessing_directives();
@@ -945,7 +982,7 @@ declarations.
         found_decl = is_routine = TRUE;
       }  /* if */
       /* Go back to before any preprocessing entries skipped. */
-      curr_source_sequence_entry = saved_curr_source_sequence_entry;
+      restore_source_sequence_scan_state(&saved_state);
       /* Stop looping if an embedded declaration was not found. */
       if (!found_decl) break;
       (void)process_preprocessing_directives();
@@ -1726,8 +1763,7 @@ Generate a reference to the indicated type, which is a class, struct, union,
 or enum.
 */
 {
-  a_source_sequence_entry_ptr saved_curr_source_sequence_entry;
-  a_source_sequence_entry_ptr saved_sublist_parent_source_sequence_entry;
+  a_source_sequence_scan_state saved_state;
 
   if (type->definition_delayed) {
     /* Put out the definition if it is needed and was delayed because a
@@ -1735,9 +1771,7 @@ or enum.
     type->definition_delayed = FALSE;
     /* Save the current position in the source sequence stream and change it
        to the source sequence entry for the type. */
-    saved_curr_source_sequence_entry = curr_source_sequence_entry;
-    saved_sublist_parent_source_sequence_entry =
-                                          sublist_parent_source_sequence_entry;
+    save_source_sequence_scan_state(&saved_state);
     curr_source_sequence_entry = type->source_corresp.source_sequence_entry;
     sublist_parent_source_sequence_entry = NULL;  /* Arbitrary. */
     /* Put out the definition. */
@@ -1747,9 +1781,7 @@ or enum.
       gen_class_definition(type);
     }  /* if */
     /* Restore the source sequence list position. */
-    curr_source_sequence_entry = saved_curr_source_sequence_entry;
-    sublist_parent_source_sequence_entry =
-                                    saved_sublist_parent_source_sequence_entry;
+    restore_source_sequence_scan_state(&saved_state);
   } else {
     /* Put out a reference to the tag by name.  Note that unnamed tags will
        have been given compiler-generated names so they can be referred to. */
@@ -6036,8 +6068,7 @@ TRUE if the declaration following this one is such a continuation.
   a_storage_class               storage_class;
   a_scope_ptr                   scope = NULL;
   a_memory_region_number        scope_region_number;
-  a_source_sequence_entry_ptr   saved_curr_source_sequence_entry;
-  a_source_sequence_entry_ptr   saved_sublist_parent_source_sequence_entry;
+  a_source_sequence_scan_state  saved_state;
   a_routine_type_supplement_ptr rtsp;
   a_boolean                     is_specialization;
 
@@ -6287,9 +6318,7 @@ TRUE if the declaration following this one is such a continuation.
     context_pop_needed = TRUE;
     if (is_definition) {
       /* Follow the source sequence list for the function. */
-      saved_curr_source_sequence_entry = curr_source_sequence_entry;
-      saved_sublist_parent_source_sequence_entry =
-                                          sublist_parent_source_sequence_entry;
+      save_source_sequence_scan_state(&saved_state);
       curr_source_sequence_entry = scope->source_sequence_list;
       adv_to_signif_source_sequence_entry();
     }  /* if */
@@ -6338,9 +6367,7 @@ TRUE if the declaration following this one is such a continuation.
     /* Now that we're done with the function, free its IL information. */
     free_memory_region(scope_region_number);
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
-    curr_source_sequence_entry = saved_curr_source_sequence_entry;
-    sublist_parent_source_sequence_entry =
-                                    saved_sublist_parent_source_sequence_entry;
+    restore_source_sequence_scan_state(&saved_state);
   }  /* if */
   /* Pop the name context for a class/namespace member. */
   if (context_pop_needed) {
