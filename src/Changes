@@ -1,5 +1,18 @@
 Version 3.4
 
+2/18/04  Uninitialized memory access for dependent enumerator constants
+
+In some situations involving enumerator constants with a template-dependent
+value, the front end accessed uninitialized memory.  For example:
+
+  template<int I> struct S {
+    enum X { x1 = I, x2 };  // The processing of the constant associated
+  };                        // with x2 caused an invalid memory access.
+
+The invalid access could cause aborts in configurations with
+PROTOTYPE_INSTANTIATIONS_IN_IL set to TRUE.  In other configurations
+the problem was generally not noticeable.  This is now fixed.
+
 2/13/04  Microsoft compatibility:  Explicit instantiation and dllimport
 
 In Microsoft mode, explicit instantiation directives containing a
