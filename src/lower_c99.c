@@ -2257,9 +2257,7 @@ _Bool type, and VLA types.
       if (is_bool_type(expr->type)) {
         rewrite_compound_assignment(expr, /*is_lvalue=*/FALSE);
 #if FIXED_POINT_ALLOWED
-      } else if (fixed_point_enabled &&
-                 is_fixed_point_type(type_pointed_to(
-                                    expr->variant.operation.operands->type))) {
+      } else if (is_fixed_point_type(expr->type)) {
         /* Also rewrite operations that involve a fixed-point operand but
            aren't a fixed-point operation (e.g., fixed_point += double). */
         rewrite_compound_assignment(expr, /*is_lvalue=*/FALSE);
