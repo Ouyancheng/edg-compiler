@@ -2811,6 +2811,7 @@ specified by depth.
   a_scope_ptr                 sp;
   a_scope_pointers_block_ptr  pointers_block;
 
+  assert_is_valid_scope_depth(depth);
   ssep = &scope_stack[depth];
   sp = ensure_il_scope_exists(ssep);
   pointers_block = assoc_pointers_block_of(ssep);
@@ -7132,6 +7133,7 @@ scope depth.
   a_scope_pointers_block_ptr  pointers_block;
   a_boolean                   at_file_or_namespace_scope;
 
+  assert_is_valid_scope_depth(scope_depth);
   ssep = &scope_stack[scope_depth];
   at_file_or_namespace_scope = (scope_depth == DEPTH_OF_FILE_SCOPE ||
                                scope_depth == depth_innermost_namespace_scope);
@@ -11005,6 +11007,7 @@ Add the IL template entry pointed to by tp to the indicated scope.
   a_scope_ptr              sp;
   a_scope_pointers_block_ptr  pointers_block;
 
+  assert_is_valid_scope_depth(scope_depth);
   ssep = &scope_stack[scope_depth];
   if (ssep->in_prototype_instantiation && !prototype_instantiations_in_il) {
     /* We are not going to record the indicated scope (because it belongs to

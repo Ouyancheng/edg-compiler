@@ -758,6 +758,12 @@ pointer is NULL, return NO_SCOPE_DEPTH.
 #define scope_depth_of(ssep)						\
   ((ssep) == NULL ? NO_SCOPE_DEPTH : (ssep - &scope_stack[0]))
 
+/*
+Make sure the specified scope depth is a valid depth on the scope stack.
+*/
+#define assert_is_valid_scope_depth(depth)				\
+  { check_assertion(depth == NO_SCOPE_DEPTH || depth >= depth_scope_stack); }
+
 
 /*
 Given a pointer to a scope stack entry, return TRUE if and only if the
