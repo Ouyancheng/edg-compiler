@@ -6527,7 +6527,8 @@ static a_symbol_ptr function_template_specialization(
 				a_symbol_locator	*locator,
 				a_type_ptr		type,
 				a_decl_flag_set		dso_flags,
-				a_source_position	*start_pos)
+				a_source_position	*start_pos,
+                               a_func_info_block        *func_info)
 /*
 Given a declaration of a specialization of a function template, find the
 template that is being specialized.  Note that only member templates
@@ -6594,6 +6595,31 @@ declaration (following any template clauses).
       }  /* if */
       sym = NULL;
     }  /* if */
+    if (sym != NULL) {
+      if (curr_token == tok_lbrace ||
+          (curr_token == tok_colon && sym != NULL &&
+           is_constructor_symbol(sym))) {
+        /* This is a defining declaration of the function template. */
+        func_info->is_definition = TRUE;
+        if (func_info->function_type_from_typedef) {
+          /* Just as it is an error when a normal function is defined for the
+             function type to come from a typedef, so too is that an error when
+             a function template is being defined. */
+          error(ec_function_type_must_come_from_declarator);
+          /* Copy the type entry, since the typedef type may not be shared. */
+          type = copy_routine_type_with_param_types(skip_typerefs(type));
+        }  /* if */
+      }  /* if */
+      /* Check for a previous definition of this template. */
+      if (func_info->is_definition) {
+        if (sym->defined) {
+          pos_sy_error(ec_already_defined, &locator->source_position, sym);
+        } /* if */
+        mark_defined(sym, &locator->source_position);
+      } else {
+        mark_declared(sym, &locator->source_position);
+      } /* if */
+    } /* if */
   }  /* if */
   return sym;
 }  /* function_template_specialization */
@@ -6632,7 +6658,7 @@ information returned from decl_specifiers and declarator.
   /* Process a function template declaration. */
   if (decl_state->is_specialization) {
     function_template_specialization(decl_state, locator, type, dso_flags,
-                                     start_pos);
+                                     start_pos, func_info);
   } else {
     decl_function_template(locator, type, func_info, &sym, storage_class,
                            decl_modifiers, decl_state->decl_info->parameters,
