@@ -600,14 +600,16 @@ flag should be set to FALSE.
 The flag IL_WALK_NEEDED controls the compilation of the routines required
 to walk the IL.  These routines are needed if NEED_IL_DISPLAY is TRUE or
 IL_SHOULD_BE_WRITTEN_TO_FILE is TRUE.
+
+The trans_copy.c routines need the IL walk support also, and they are
+always included, so IL_WALK_NEEDED is now set to TRUE always.
 */
-#if IL_SHOULD_BE_WRITTEN_TO_FILE || NEED_IL_DISPLAY
-#define IL_WALK_NEEDED TRUE /* Do not change this. */
-#else /* !(IL_SHOULD_BE_WRITTEN_TO_FILE || ...) */
 #ifndef IL_WALK_NEEDED
-#define IL_WALK_NEEDED FALSE
+#define IL_WALK_NEEDED TRUE /* Do not change this. */
 #endif /* ifndef IL_WALK_NEEDED */
-#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE || ... */
+#if !IL_WALK_NEEDED
+ #error -- IL_WALK_NEEDED must be TRUE
+#endif /* !IL_WALK_NEEDED */
 
 /*
 The flag NEED_DECLARATIVE_WALK controls the compilation of some routines
