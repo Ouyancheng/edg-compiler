@@ -2476,6 +2476,9 @@ state.
     case sk_enum_tag:
       sym_ptr->variant.enumeration.type = NULL;
       sym_ptr->variant.enumeration.dependent_type_fixup_list = NULL;
+#if IA64_ABI && NEED_NAME_MANGLING
+      sym_ptr->variant.enumeration.discriminator = NULL;
+#endif /* IA64_ABI && NEED_NAME_MANGLING */
       break;
     case sk_class_or_struct_tag:
     case sk_union_tag:
@@ -2514,6 +2517,9 @@ state.
 #if RECORD_FORM_OF_NAME_REFERENCE
         cssp->name_qualifiers = NULL;
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
+#if IA64_ABI && NEED_NAME_MANGLING
+        cssp->discriminator = NULL;
+#endif /* IA64_ABI && NEED_NAME_MANGLING */
         cssp->has_nontrivial_default_constructor = FALSE;
         cssp->has_user_declared_default_constructor = FALSE;
         cssp->has_copy_constructor = FALSE;
@@ -2550,6 +2556,9 @@ state.
 #if MICROSOFT_EXTENSIONS_ALLOWED
       sym_ptr->variant.variable.declared_in_for_init = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if IA64_ABI && NEED_NAME_MANGLING
+      sym_ptr->variant.variable.discriminator = NULL;
+#endif /* IA64_ABI && NEED_NAME_MANGLING */
       break;
     case sk_static_data_member:
       sym_ptr->variant.static_data_member.variable = NULL;

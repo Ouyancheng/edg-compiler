@@ -2382,6 +2382,14 @@ typedef struct a_symbol {
 			   dependent on it and require fixup when it is
 			   completed.  Once the enum is defined, the pointer
 			   is cleared. */
+#if IA64_ABI && NEED_NAME_MANGLING
+      a_discriminator
+		discriminator;
+			/* An identifying number used to distinguish multiple
+			   entities with the same name in the same function
+			   in the name mangling for the IA-64 ABI.  Zero if
+			   not needed. */
+#endif /* IA64_ABI && NEED_NAME_MANGLING */
     } enumeration;
     /* When kind == sk_class_or_struct_tag or sk_union_tag: */
     struct {

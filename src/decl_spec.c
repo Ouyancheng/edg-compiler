@@ -2873,6 +2873,15 @@ to indicate whether an enumeration is actually defined.
       *declares_something = TRUE;
       set_source_corresp(&(enum_type->source_corresp), tag_sym);
       tag_sym->variant.enumeration.type = enum_type;
+#if IA64_ABI && NEED_NAME_MANGLING
+      if (depth_innermost_function_scope != NO_SCOPE_NUMBER) {
+        /* This is a nonnested local enum.  The IA-64 ABI sometimes requires
+           that a discriminator be appended to its mangled name if two or more
+           such classes share the same name within the same function.  It is
+           convenient to compute this discriminator at this time. */
+        compute_name_collision_discriminator(tag_sym);
+      }  /* if */
+#endif /* IA64_ABI && NEED_NAME_MANGLING */
     } else {
       /* Unnamed enum.  Create a symbol to represent it. */
       tag_sym = make_unnamed_tag_symbol((a_symbol_kind)sk_enum_tag,

@@ -395,7 +395,7 @@ entry.
 }  /* initialize_local_name_collision_table */
 
 
-static void release_local_name_collision_table(a_scope_stack_entry_ptr ssep)
+static void free_local_name_collision_table(a_scope_stack_entry_ptr ssep)
 /*
 Release the storage allocated for the name collision table associated with
 the given scope stack entry.
@@ -414,7 +414,7 @@ the given scope stack entry.
   ssep->local_name_collision_table->next_avail = avail_collision_tables;
   avail_collision_tables = ssep->local_name_collision_table;
   ssep->local_name_collision_table = NULL;
-}  /* release_local_name_collision_table */
+}  /* free_local_name_collision_table */
 
 
 void compute_name_collision_discriminator(a_symbol_ptr  sym)
@@ -424,7 +424,8 @@ symbol that has the same name (i.e., header) as the given symbol sym.  If
 there is one, the current symbol is assigned a discriminator value one higher
 than that of the symbol found, and it replaces that symbol in the table.
 Otherwise the discriminator value of sym remain zero, and the symbol is added
-to the table.
+to the table.  This information is used to generate distinct mangled names of
+function-local entities in the IA-64 ABI.
 */
 {
   int                      hash_index;
@@ -445,24 +446,26 @@ to the table.
   sep = ssep->local_name_collision_table->buckets[hash_index];
   for (; sep != NULL; sep = sep->next) {
     if (sep->symbol->header == header && sep->symbol->kind == sym->kind) {
+      /* A previous declaration does collide with the new one. */
       a_discriminator  discriminator;
-      if (sep->symbol->kind == (a_symbol_kind)sk_variable) {
-        discriminator = sep->symbol->variant.variable.discriminator;
-      } else if (is_class_struct_union_symbol(sep->symbol)) {
-        discriminator = sep->symbol->variant.class_struct_union.extra_info
-                                   ->discriminator;
-      }  /* if */ 
       if (sym->kind == (a_symbol_kind)sk_variable) {
-        sym->variant.variable.discriminator = discriminator+1;
-      } else if (is_class_struct_union_symbol(sep->symbol)) {
+        sym->variant.variable.discriminator =
+           sep->symbol->variant.variable.discriminator+1;
+      } else if (is_class_struct_union_symbol(sym)) {
         sym->variant.class_struct_union.extra_info->discriminator =
-                                                              discriminator+1;
+           sep->symbol->variant.class_struct_union.extra_info->discriminator+1;
+      } else if (sym->kind == (a_symbol_kind)sk_enum_tag) {
+        sym->variant.enumeration.discriminator =
+           sep->symbol->variant.enumeration.discriminator+1;
+      } else {
+        unexpected_condition();
       }  /* if */ 
       sep->symbol = sym;
       break;
     }  /* if */
   }  /* for */
   if (sep == NULL) {
+    /* There were no collisions.  Record this symbol in the collision table. */
     a_symbol_list_entry_ptr  new_entry = alloc_symbol_list_entry();
     new_entry->next = ssep->local_name_collision_table->buckets[hash_index];
     ssep->local_name_collision_table->buckets[hash_index] = new_entry;
@@ -5335,7 +5338,7 @@ End a name scope by popping an entry off the scope stack.
   new_memory_region_number = ssep->prev_il_memory_region;
 #if IA64_ABI && NEED_NAME_MANGLING
   if (ssep->local_name_collision_table != NULL) {
-    release_local_name_collision_table(ssep);
+    free_local_name_collision_table(ssep);
   }  /* if */
 #endif /* IA64_ABI && NEED_NAME_MANGLING */
   /* Pop the stack. */
