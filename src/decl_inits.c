@@ -2241,10 +2241,11 @@ scan_arg_for_scan_initialization:
   if (uninit_list != NULL) {
     /* Issue an error for uninitialized const and ref members. */
     if (ctor_rout->compiler_generated) {
-      pos_ty_start_error(ec_cannot_initialize_fields, &ctor_init_pos,
+      pos_ty_start_error(ec_cannot_initialize_fields, &pos_curr_token,
                          class_type);
     } else {
-      pos_start_error(ec_missing_initializer_on_fields, &ctor_init_pos);
+      pos_sy_start_error(ec_missing_initializer_on_fields, &pos_curr_token,
+                         (a_symbol_ptr)ctor_rout->source_corresp.assoc_info);
     }  /* if */
     for (cip = uninit_list; cip != NULL; cip = cip->next) {
       a_symbol_ptr field_sym = (a_symbol_ptr)cip->variant.field->
