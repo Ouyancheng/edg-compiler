@@ -3881,8 +3881,7 @@ lower initialization for nonconstant aggregates.
           a_targ_size_t    entity_size;
           entity_node = make_init_entity_node(ipdp, /*using_as_address=*/TRUE,
                                               /*using_as_dest=*/TRUE);
-          entity_size =
-                     f_skip_typerefs(type_pointed_to(entity_node->type))->size;
+          entity_size = f_skip_typerefs(entity_type)->size;
           if (ipdp->array_element_sequence) {
             /* For a sequence of array elements, multiply by the number of
                elements. */
