@@ -5359,7 +5359,6 @@ linked list for the specified scope and points to the specified variable.
 
   check_assertion(scope->kind == (a_scope_kind)sck_function ||
                   scope->kind == (a_scope_kind)sck_block);
-  check_assertion(var->init_kind == (an_init_kind)initk_function_local);
   for (lsvip = scope->local_static_variable_inits;
        lsvip != NULL;
        lsvip = lsvip->next) {
@@ -7281,6 +7280,10 @@ determine which address to return.
     case iek_dynamic_init:
       lifetime_addr = &((a_dynamic_init_ptr)entity_ptr)->init_expr_lifetime;
       break;
+    case iek_local_static_variable_init:
+      lifetime_addr =
+                     &((a_local_static_variable_init_ptr)entity_ptr)->lifetime;
+      break;
 #if CHECKING
     default:
       internal_error("addr_of_lifetime_ptr: bad il entry kind");
@@ -7334,6 +7337,7 @@ lifetimes, since those are never bound.
                                (((a_scope_ptr)entity_ptr)->kind ==
                                          (a_scope_kind)sck_condition),
                                str, "bad scope kind for olk_block");
+        case iek_local_static_variable_init:
         case iek_block:
           /* Okay. */
           break;
@@ -7596,6 +7600,15 @@ with it.  Entries associated with scopes must also have no child entries.
                if it has no destructions. */
             do_child_check = FALSE;
           }  /* if */
+        } else if (exceptions_enabled &&
+                   olp->entity.kind ==
+                        (a_byte_il_entry_kind)iek_local_static_variable_init) {
+          /* A lifetime that surrounds the initialization of a local static
+             variable is kept when exceptions are enabled, because it
+             delimits the region within which the initialization must be
+             undone and set up to restart if an exception is thrown during
+             the initialization. */
+          do_child_check = FALSE;
         }  /* if */
         if (do_child_check) {
           /* A block lifetime bound to a scope but not covered by the

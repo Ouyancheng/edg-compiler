@@ -3504,6 +3504,14 @@ typedef struct a_local_static_variable_init {
 			/* Union discriminated by init_kind and indicating the
 			   initializer.  When init_kind == initk_static, the
 			   constant's kind will be ck_aggregate. */
+  an_object_lifetime_ptr
+		lifetime;
+			/* An object lifetime that surrounds the initialization
+			   of the variable.  Useful because it defines the
+			   range within which the initialization of the
+			   variable has to be undone and set up to be done
+			   again if an exception is thrown.  NULL if not
+			   needed (e.g., when exceptions are not enabled). */
 } a_local_static_variable_init;
 
 #endif /* ifdef CIL */
@@ -6097,6 +6105,8 @@ typedef struct an_object_lifetime {
 		<==> iek_scope (sck_function, sck_block, or sck_condition)
 		<==> iek_block (used for cfront-mode dependent statements,
 		     which have no scope entry)
+		<==> iek_local_static_variable_init (used to wrap the
+		     initialization of a local static variable)
 	olk_block_after_label (one-way bindings -- the IL entities have no
 			       pointers back to the lifetime.)
 		 ==> iek_statement (stmk_label or a structured statement)

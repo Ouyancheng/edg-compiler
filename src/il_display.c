@@ -3096,6 +3096,7 @@ Display the indicated local_static_variable_init entry.
   disp_ptr("next", (char *)ptr->next, iek_local_static_variable_init);
   disp_ptr("variable", (char *)ptr->variable, iek_variable);
   disp_initializer(ptr->init_kind, &ptr->initializer);
+  disp_ptr("lifetime", (char *)ptr->lifetime, iek_object_lifetime);
 }  /* disp_local_static_variable_init */
 
 

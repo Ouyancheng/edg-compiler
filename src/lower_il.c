@@ -9438,9 +9438,20 @@ scope) along with the class members.
     }  /* for */
     /* Clear the variables list now that all variables have been promoted. */
     scope->variables = NULL;
-    scope->local_static_variable_inits = NULL;
     if (depth != NO_SCOPE_DEPTH) {
       assoc_pointers_block_of(&scope_stack[depth])->last_variable = NULL;
+    }  /* if */
+    /* Clear the list of local static initializations, but keep the entries
+       around (on the promoted_local_static_variable_inits list) so they
+       can be found (see lower_dynamic_init for one use). */
+    if (scope->local_static_variable_inits != NULL) {
+      a_local_static_variable_init_ptr last_entry;
+      for (last_entry = scope->local_static_variable_inits;
+           last_entry->next != NULL;
+           last_entry = last_entry->next) {}
+      last_entry->next = promoted_local_static_variable_inits;
+      promoted_local_static_variable_inits = last_entry;
+      scope->local_static_variable_inits = NULL;
     }  /* if */
   }  /* if */
 #if CHECKING
@@ -10176,6 +10187,9 @@ C++ to C, so that a C back end can handle it without change.
     curr_context = file_scope_context = NULL;
     innermost_function_scope = NULL;
     curr_object_lifetime = il_header.primary_scope->lifetime;
+#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
+    promoted_local_static_variable_inits = NULL;
+#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
     switch_il_region(region_number);
     /* Mark entries created during this traversal as having already been
        visited by IL lowering. */

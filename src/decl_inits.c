@@ -1270,18 +1270,24 @@ should be suppressed.
 }  /* dynamic_init_has_side_effects */
 
 
-static void gen_dynamic_initialization(a_variable_ptr      vp,
-                                       a_dynamic_init_ptr  dip,
-                                       a_source_position   *source_pos,
-                                       a_statement_ptr     *p_init_stmt)
+static void gen_dynamic_initialization(
+                                     a_variable_ptr     vp,
+                                     a_dynamic_init_ptr dip,
+                                     a_local_static_variable_init_ptr
+                                                        *local_static_var_init,
+                                     a_source_position  *source_pos,
+                                     a_statement_ptr    *p_init_stmt)
 /*
 Generate a dynamic initialization of the variable vp based on the
 dynamic init entry pointed to by dip.  Except for a dynamic
 initialization at file scope (possible only in C++), also create an
-stmk_init statement at the current point in the code.  *source_pos is
-the source position for an error (dynamic initialization is in
-unreachable code).  If p_init_stmt is non-NULL, *p_init_stmt is set
-to point to the stmk_init statement created, or NULL it there is none.
+stmk_init statement at the current point in the code.  If the
+variable is a local static variable, a_local_variable_init entry
+will be used to initialize it, and a pointer to the entry is returned
+in *local_static_var_init.  *source_pos is the source position for an
+error (dynamic initialization is in unreachable code).  If p_init_stmt
+is non-NULL, *p_init_stmt is set to point to the stmk_init statement
+created, or NULL it there is none.
 */
 {
   a_statement_ptr          init_stmt;
@@ -1290,6 +1296,7 @@ to point to the stmk_init statement created, or NULL it there is none.
   a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
 
   db_enter(4, "gen_dynamic_initialization");
+  *local_static_var_init = NULL;
   if (p_init_stmt != NULL) *p_init_stmt = NULL;
   at_file_scope = (depth_innermost_function_scope == NO_SCOPE_DEPTH);
   if (!at_file_scope) {
@@ -1325,9 +1332,10 @@ to point to the stmk_init statement created, or NULL it there is none.
          have a pointer to it.  Instead, create a local-static-variable-init
          entry to point to the initializer -- it is added to a list associated
          with the current function or block scope. */
-      (void)make_local_static_variable_init(vp, (a_scope_ptr)NULL,
-                                            (an_init_kind)initk_dynamic,
-                                            (a_constant_ptr)NULL, dip);
+      *local_static_var_init =
+                   make_local_static_variable_init(vp, (a_scope_ptr)NULL,
+                                                   (an_init_kind)initk_dynamic,
+                                                   (a_constant_ptr)NULL, dip);
     } else {
       /* Make the variable point at the dynamic initialization. */
       vp->init_kind = (an_init_kind)initk_dynamic;
@@ -1414,6 +1422,32 @@ vp had an incomplete array type that has been completed by an initializer.
 }  /* put_type_back_into_variable */
 
 
+static void pop_object_lifetime_for_local_static_init(
+                        an_object_lifetime_ptr           local_static_lifetime,
+                        a_local_static_variable_init_ptr local_static_var_init,
+                        a_boolean                        err)
+/*
+An object lifetime was previously pushed to surround the initialization of
+a local static variable; local_static_lifetime identifies it.  Bind it
+to the local static variable initializer entry at local_static_var_init,
+and pop it off the object lifetime stack.  err is TRUE if some error has been
+detected in the initialization.
+*/
+{
+  check_assertion(local_static_lifetime == curr_object_lifetime);
+  if (err) {
+    mark_object_lifetime_as_useless(local_static_lifetime);
+  } else {
+    check_assertion(local_static_var_init != NULL);
+    bind_object_lifetime(local_static_lifetime,
+                         (an_il_entry_kind)
+                             iek_local_static_variable_init,
+                         (char *)local_static_var_init);
+  }  /* if */
+  (void)pop_object_lifetime();
+}  /* pop_object_lifetime_for_local_static_init */
+
+
 void initializer(a_symbol_ptr       symbol_ptr,
                  a_source_position  *source_pos,
                  an_id_linkage_kind linkage,
@@ -1460,7 +1494,8 @@ returned set to TRUE.
   a_class_symbol_supplement_ptr     cssp = NULL;
   a_boolean                         nonconstant_allowed;
   a_memory_region_number            region_to_switch_back_to;
-  an_object_lifetime_ptr            expr_temp_lifetime = NULL;
+  an_object_lifetime_ptr            local_static_lifetime = NULL;
+  a_local_static_variable_init_ptr  local_static_var_init = NULL;
 
   db_enter(3, "initializer");
   /* There are a number of tests to determine whether the variable can take
@@ -1544,14 +1579,13 @@ returned set to TRUE.
     if (symbol_ptr->parent.namespace_ptr != NULL) {
       push_namespace_reactivation_scope(symbol_ptr->parent.namespace_ptr);
     }  /* if */
-    if (static_lifetime && long_lifetime_temps &&
+    if (!C_mode() && static_lifetime &&
         depth_innermost_function_scope != NO_SCOPE_DEPTH) {
-      /* This is the initialization of a local static variable, and the user
-         has opted for long-lifetime temporaries.  Push an expr-temporary
-         lifetime to help handle the case. */
+      /* This is the initialization of a local static variable.  Push
+         a block lifetime around the entire initialization. */
       push_object_lifetime((an_il_entry_kind)iek_none, (char *)NULL,
-                           (an_object_lifetime_kind)olk_expr_temporary);
-      expr_temp_lifetime = curr_object_lifetime;
+                           (an_object_lifetime_kind)olk_block);
+      local_static_lifetime = curr_object_lifetime;
     }  /* if */
   }  /* if */
   /* If the initialization is invalid in some way, init_err will be set to
@@ -1727,7 +1761,8 @@ returned set to TRUE.
       /* Generate a dynamic initialization entry, attach it to the variable,
          and generate an stmk_init statement. */
       a_statement_ptr init_stmt;
-      gen_dynamic_initialization(vp, init_dip, source_pos, &init_stmt);
+      gen_dynamic_initialization(vp, init_dip, &local_static_var_init,
+                                 source_pos, &init_stmt);
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #if LOWER_MICROSOFT_NONCONSTANT_AGGREGATE
       /* Note that if microsoft_mode and C_mode() are TRUE, *vp may be an
@@ -1757,7 +1792,8 @@ returned set to TRUE.
            to it.  Instead, create a local-static-variable-init entry to point
            to the initializer -- it is added to a list associated with the
            current function or block scope. */
-        (void)make_local_static_variable_init(vp, (a_scope_ptr)NULL,
+        local_static_var_init =
+              make_local_static_variable_init(vp, (a_scope_ptr)NULL,
                                               (an_init_kind)initk_static,
                                               init_con,
                                               (a_dynamic_init_ptr)NULL);
@@ -1787,19 +1823,10 @@ returned set to TRUE.
   } else {
     /* If an object lifetime was pushed to surround the initialization of
        a local static variable, pop it now. */
-    if (expr_temp_lifetime != NULL) {
-      check_assertion(expr_temp_lifetime == curr_object_lifetime);
-      if (!is_useless_object_lifetime(expr_temp_lifetime)) {
-        if (init_err) {
-          mark_object_lifetime_as_useless(expr_temp_lifetime);
-        } else {
-          check_assertion(init_dip != NULL);
-          bind_object_lifetime(expr_temp_lifetime,
-                               (an_il_entry_kind)iek_dynamic_init,
-                               (char *)init_dip);
-        }  /* if */
-      }  /* if */
-      (void)pop_object_lifetime();
+    if (local_static_lifetime != NULL) {
+        pop_object_lifetime_for_local_static_init(local_static_lifetime,
+                                                  local_static_var_init,
+                                                  init_err);
     }  /* if */
     if (symbol_ptr->parent.namespace_ptr != NULL) {
       pop_namespace_reactivation_scope();
@@ -1876,7 +1903,10 @@ the default constructor (if one exists) is called.
   a_class_symbol_supplement_ptr  cssp;
   a_dynamic_init_ptr             init_dip, orig_init_dip;
   a_routine_ptr                  ctor = NULL, dtor = NULL;
-  an_object_lifetime_ptr         expr_temp_lifetime = NULL;
+  a_boolean                      static_lifetime;
+  an_object_lifetime_ptr         local_static_lifetime = NULL;
+  a_local_static_variable_init_ptr
+                                 local_static_var_init = NULL;
 
   db_enter(3, "def_initializer");
   /* Default initialization is done only in C++ and only for variables and
@@ -1889,6 +1919,7 @@ the default constructor (if one exists) is called.
     }  /* if */
   }  /* if */
   if (var != NULL) {
+    static_lifetime = has_static_storage_duration(var->storage_class),
     tp = var_type = skip_typerefs(var->type);
     if (is_array_type(tp)) {
       tp = skip_typerefs(underlying_array_element_type(tp));
@@ -1903,8 +1934,18 @@ the default constructor (if one exists) is called.
         /* Perform the default initialization of a static data member with
            its parent class reactivated. */
         push_class_reactivation_scope(sym->parent.class_type);
-      } else if (sym->parent.namespace_ptr != NULL) {
-        push_namespace_reactivation_scope(sym->parent.namespace_ptr);
+      } else {
+        if (!C_mode() && static_lifetime &&
+            depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+          /* This is the initialization of a local static variable.  Push
+             a block lifetime around the entire initialization. */
+          push_object_lifetime((an_il_entry_kind)iek_none, (char *)NULL,
+                               (an_object_lifetime_kind)olk_block);
+          local_static_lifetime = curr_object_lifetime;
+        }  /* if */
+        if (sym->parent.namespace_ptr != NULL) {
+          push_namespace_reactivation_scope(sym->parent.namespace_ptr);
+        }  /* if */
       }  /* if */
       cssp = symbol_supplement_for_class(tp);
       if (cssp->constructor != NULL) {
@@ -1933,12 +1974,19 @@ the default constructor (if one exists) is called.
           if (ptp != NULL) {
             /* Push an object lifetime, in case the expression requires
                generating a temporary. */
+            an_object_lifetime_ptr expr_temp_lifetime;
             push_object_lifetime((an_il_entry_kind)iek_none, (char *)NULL,
                                  (an_object_lifetime_kind)olk_expr_temporary);
             expr_temp_lifetime = curr_object_lifetime;
             /* Copy the default-arg list. */
             init_dip->variant.constructor.args =
                                           copy_default_arg_expr_list(ptp);
+            if (!is_useless_object_lifetime(expr_temp_lifetime)) {
+              bind_object_lifetime(expr_temp_lifetime,
+                                   (an_il_entry_kind)iek_dynamic_init,
+                                   (char *)init_dip);
+            }  /* if */
+            (void)pop_object_lifetime();
           }  /* if */
         } else {
           /* Default initialization of an object that has a destructor.  We
@@ -1961,8 +2009,7 @@ the default constructor (if one exists) is called.
              called, record the destruction, if needed, with the appropriate
              object-lifetime entry. */
           record_end_of_lifetime_destruction(orig_init_dip,
-                                             has_static_storage_duration(
-                                                          var->storage_class),
+                                             static_lifetime,
                                              /*block_lifetime=*/TRUE);
           /* Create a new one to represent a nonconstant aggregate
              initialization. */
@@ -1974,17 +2021,8 @@ the default constructor (if one exists) is called.
         }  /* if */
         /* Allocate a dynamic init entry (a copy of local_di) and attach it
            to the variable. */
-        gen_dynamic_initialization(var, init_dip, err_pos,
-                                   (a_statement_ptr *)NULL);
-        if (expr_temp_lifetime != NULL) {
-          check_assertion(expr_temp_lifetime == curr_object_lifetime);
-          if (!is_useless_object_lifetime(expr_temp_lifetime)) {
-            bind_object_lifetime(expr_temp_lifetime,
-                                 (an_il_entry_kind)iek_dynamic_init,
-                                 (char *)orig_init_dip);
-          }  /* if */
-          (void)pop_object_lifetime();
-        }  /* if */
+        gen_dynamic_initialization(var, init_dip, &local_static_var_init,
+                                   err_pos, (a_statement_ptr *)NULL);
 #if DEBUG
         if (debug_level >= 3 || db_flag_is_set("dump_init")) {
           db_variable(var);
@@ -1995,8 +2033,17 @@ the default constructor (if one exists) is called.
       }  /* if */
       if (sym->kind == (a_symbol_kind)sk_static_data_member) {
         pop_class_reactivation_scope();
-      } else if (sym->parent.namespace_ptr != NULL) {
-        pop_namespace_reactivation_scope();
+      } else {
+        /* If an object lifetime was pushed to surround the initialization of
+           a local static variable, pop it now. */
+        if (local_static_lifetime != NULL) {
+          pop_object_lifetime_for_local_static_init(local_static_lifetime,
+                                                    local_static_var_init,
+                                                    /*err=*/FALSE);
+        }  /* if */
+        if (sym->parent.namespace_ptr != NULL) {
+          pop_namespace_reactivation_scope();
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */

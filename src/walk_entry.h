@@ -1733,6 +1733,8 @@ do_set_proper_definition_needed_flag:
                        iek_local_static_variable_init);
         remap_ptr(ptr->variable, a_variable_ptr, iek_variable);
         walk_initializer(ptr->init_kind, ptr->initializer);
+        remap_ptr_not_needed(ptr->lifetime, an_object_lifetime_ptr,
+                             iek_object_lifetime);
       }
       break;
 #if !NEEDED_FLAG_WALK

@@ -394,19 +394,21 @@ Convert the indicated statement into a no-op.
 static void insert_if_statement(an_expr_node_ptr       test_expr,
                                 a_boolean              is_initialization_guard,
                                 an_insert_location_ptr insert_location,
+                                a_statement_ptr        *p_block_stmt,
                                 an_insert_location_ptr insert_location2)
 /*
 Create an "if" statement that tests test_expr, and insert it at
 insert_location.  Set insert_location2 to allow insertion of the
-dependent statements of the "if".  This routine also handles the
-case of inserting an if-equivalent into the middle of an expression.
-If this test is the guard code around an initialization,
+dependent statements of the "if".  Set *p_block_stmt to point to the
+block statement added, unless p_block_stmt is NULL.  This routine also
+handles the case of inserting an if-equivalent into the middle of an
+expression.  If this test is the guard code around an initialization,
 is_initialization_guard is TRUE; that's used to indicate to a back
 end that the test-and-set of the guard flag should be done as an
 atomic operation.
 */
 {
-  a_statement_ptr  if_stmt, block_stmt;
+  a_statement_ptr  if_stmt, block_stmt = NULL;
   an_expr_node_ptr question_node, op2_node, op3_node, zero_node;
   a_type_ptr       void_type_ptr;
 
@@ -440,6 +442,7 @@ atomic operation.
     insert_statement(if_stmt, insert_location);
     set_block_start_insert_location(block_stmt, insert_location2);
   }  /* if */
+  if (p_block_stmt != NULL) *p_block_stmt = block_stmt;
 }  /* insert_if_statement */
 
 
@@ -1710,6 +1713,8 @@ typedef struct a_generated_routine_context {
 		processing_file_scope_init_routine;
   a_return_memo_ptr
 		return_memo_list;
+  a_local_static_variable_init_ptr
+                promoted_local_static_variable_inits;
   an_eh_lowering_context
 		ehcontext;
 } a_generated_routine_context;
@@ -1740,6 +1745,9 @@ grcontext is a local variable used to save state for later restoration.
   processing_file_scope_init_routine = FALSE;
   grcontext->return_memo_list = return_memo_list;
   return_memo_list = NULL;
+  grcontext->promoted_local_static_variable_inits = 
+                                          promoted_local_static_variable_inits;
+  promoted_local_static_variable_inits = NULL;
   save_eh_lowering_context(&grcontext->ehcontext);
   add_object_lifetime_to_function_scope(scope);
   push_context(&grcontext->context, scope, (an_object_lifetime_ptr)NULL);
@@ -1789,6 +1797,8 @@ Pop function corresponding to push_generated_routine_context.
   }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS */
   restore_eh_lowering_context(&grcontext->ehcontext);
+  promoted_local_static_variable_inits =
+                               grcontext->promoted_local_static_variable_inits;
   free_return_memo_list(return_memo_list);
   return_memo_list = grcontext->return_memo_list;
   processing_file_scope_init_routine =
@@ -2177,7 +2187,8 @@ insertion within the "if".
                                     test_var_node);
   /* Make an "if" statement and insert it into the program. */
   insert_if_statement(compare_node, /*is_initialization_guard=*/FALSE,
-                      insert_location, insert_location2);
+                      insert_location, (a_statement_ptr *)NULL,
+                      insert_location2);
 }  /* add_conditional_flag_test */
 
 
@@ -2998,6 +3009,53 @@ code for the dynamic initialization.
 }  /* push_init_expr_lifetime */
 
 
+static void add_first_time_test(an_insert_location_ptr insert_location,
+                                a_statement_ptr        *block_stmt)
+/*
+Add a first-time test sequence that will surround the initialization of a
+local static variable.  In effect:
+
+  static int test_var;  // Global test var, implicitly init to 0
+  {
+    if (test_var == 0) {
+      test_var = 1;
+      ... real initialization of variable being initialized
+    }
+  }
+
+The sequence is inserted at *insert_location.  *insert_location is updated
+for further insertion after the assignment statement.  *block_stmt is
+set to point at the block statement inserted, in the statement insert case.
+*/
+{
+  a_variable_ptr     test_var;
+  an_expr_node_ptr   test_var_node, compare_node;
+  an_insert_location insert_location2;
+  a_type_ptr         int_type;
+
+  /* Make the static first-time-test variable in the current scope. */
+  int_type = integer_type((an_integer_kind)ik_int);
+  test_var = make_unnamed_local_static_variable(int_type,
+                                                /*in_function_scope=*/FALSE);
+  /* Make "test_var == 0". */
+  test_var_node = var_rvalue_expr(test_var);
+  test_var_node->next = node_for_integer_constant(0L, (an_integer_kind)ik_int);
+  compare_node = make_operator_node((an_expr_operator_kind)eok_ieq,
+                                    int_type, test_var_node);
+  /* Make an "if" statement and insert it into the program. */
+  insert_if_statement(compare_node, /*is_initialization_guard=*/TRUE,
+                      insert_location, block_stmt, &insert_location2);
+  /* Further inserts are done at the start of the block. */
+  *insert_location = insert_location2;
+  /* Make "test_var = 1" and insert it inside the "if" statement. */
+  (void)insert_var_assignment_statement(test_var,
+                                        (an_expr_operator_kind)eok_iassign,
+                                        node_for_integer_constant(1L,
+                                                      (an_integer_kind)ik_int),
+                                        insert_location);
+}  /* add_first_time_test */
+
+
 /*
 Pointer to the routine entry for the runtime routine __memzero.  NULL until
 created.
@@ -3051,7 +3109,7 @@ in this routine must be FALSE in that case.
   a_boolean          simple_constant_init = FALSE, keep_constant;
   a_constant_ptr     simple_constant;
   a_source_position  saved_error_position, saved_code_pos;
-  a_statement_ptr    expr_stmt;
+  a_statement_ptr    expr_stmt, block_stmt = NULL;
   a_type_ptr         ctor_routine_type;
   a_type_ptr         this_param_type;
   a_param_type_ptr   param;
@@ -3061,8 +3119,8 @@ in this routine must be FALSE in that case.
   an_insert_location insert_location2;
   an_insert_location *eff_insert_location = insert_location;
   an_object_lifetime_ptr
-                     lifetime, init_expr_lifetime;
-  a_context          context, static_context;
+                     lifetime, init_expr_lifetime, local_static_lifetime;
+  a_context          context, static_context, static_context2;
   a_context_ptr      eff_context = curr_context;
   a_boolean          expr_is_lvalue, local_keep_dynamic_init = FALSE;
   a_boolean          constructor_array_init = FALSE;
@@ -3085,15 +3143,33 @@ in this routine must be FALSE in that case.
     /* Let the back end know that some initialization code was
        rewritten as executable code. */
     variable->initialization_rewritten_as_assignment = TRUE;
-    /* If the variable is a function-local static variable, find the
-       local-static-variable-init entry that describes the initialization. */
-    if (variable->init_kind == (an_init_kind)initk_function_local) {
-      lsvip = find_local_static_variable_init(variable, curr_context->scope);
-    }  /* if */
   }  /* if */
   /* Initializations of static variables (whether global or function-local)
      require some special processing. */
   static_var_init = init_pos_is_static(ipdp);
+  if (static_var_init && variable != NULL && !in_file_scope(dip)) {
+    /* The variable is a local static. */
+    /* Add a first-time flag and a test. */
+    add_first_time_test(insert_location, &block_stmt);
+    /* Find the local-static-variable-init entry that describes the
+       initialization. */
+    if (variable->init_kind == (an_init_kind)initk_function_local) {
+      lsvip = find_local_static_variable_init(variable, curr_context->scope);
+#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
+    } else {
+      /* If local entities are being promoted out of functions the variable may
+         already have been promoted out.  Find its initializer entry on the
+         list of promoted entries. */
+      for (lsvip = promoted_local_static_variable_inits;
+           lsvip != NULL;
+           lsvip = lsvip->next) {
+        if (lsvip->variable == variable) break;
+      }  /* for */
+      check_assertion_str(lsvip != NULL,
+                          "lower_dynamic_init: local static init not found");
+#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
+    }  /* if */
+  }  /* if */
   lifetime = dip->lifetime;
   if (lifetime != NULL) {
     /* This dynamic initialization is on the destructions list of an
@@ -3119,6 +3195,20 @@ in this routine must be FALSE in that case.
                            lifetime->kind ==
                                    (an_object_lifetime_kind)olk_global_static),
      "lower_dynamic_init: dynamic init has lifetime other than curr lifetime");
+    }  /* if */
+  }  /* if */
+  local_static_lifetime = NULL;
+  if (lsvip != NULL) {
+    /* Local static variable.  If it has an associated lifetime, push that. */
+    local_static_lifetime = lsvip->lifetime;
+    if (local_static_lifetime != NULL) {
+      push_context(&static_context2, (a_scope_ptr)NULL, local_static_lifetime);
+      begin_object_lifetime(local_static_lifetime, insert_location);
+      unbind_object_lifetime(local_static_lifetime);
+      if (keep_object_lifetime_info_in_lowered_il) {
+        bind_object_lifetime(local_static_lifetime, iek_block,
+                             (char *)block_stmt->variant.block.extra_info);
+      }  /* if */
     }  /* if */
   }  /* if */
   init_expr_lifetime = dip->init_expr_lifetime;
@@ -3343,6 +3433,12 @@ do_assignment:;
     gen_cleanup_actions(init_expr_lifetime, eff_insert_location);
     pop_context();
   }  /* if */
+  /* If this is the initialization of a local static variable and a lifetime
+     surrounds that, pop the lifetime. */
+  if (local_static_lifetime != NULL) {
+    gen_cleanup_actions(local_static_lifetime, eff_insert_location);
+    pop_context();
+  }  /* if */
   /* If the dynamic init entry indicates a destructor call, it requires
      processing to get the destruction done at the right time. */
   if (dip->destructor != NULL) {
@@ -3393,29 +3489,21 @@ do_assignment:;
       if (static_var_init) {
         /* Initialization of a static variable to a constant.  Can be
            done as a static initialization. */
-        if (lsvip == NULL) {
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
-          /* If this variable is a local static variable that was promoted
-             to file scope, we have to copy the remaining constant to the file
-             scope (it was formerly pointed to by a local-static-variable-init
-             entry in the function scope, and then the variable was promoted
-             by promote_local_entities_to_file_scope). */
-          if (!in_file_scope((char *)simple_constant)) {
-            a_memory_region_number region_to_switch_back_to =
-                                                            NULL_region_number;
-            switch_to_file_scope_region(&region_to_switch_back_to);
-            simple_constant = copy_unshared_constant(simple_constant);
-            switch_back_to_original_region(region_to_switch_back_to);
-          }  /* if */
-#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
-          variable->init_kind = (an_init_kind)initk_static;
-          variable->initializer.constant = simple_constant;
-        } else {
-          /* The variable is a function-local static variable and uses
-             a local-static-variable-init entry. */
-          lsvip->init_kind = (an_init_kind)initk_static;
-          lsvip->initializer.constant = simple_constant;
+        /* If this variable is a local static variable that was promoted
+           to file scope, we have to copy the remaining constant to the file
+           scope (it was formerly pointed to by a local-static-variable-init
+           entry in the function scope, and then the variable was promoted
+           by promote_local_entities_to_file_scope). */
+        if (!in_file_scope((char *)simple_constant)) {
+          a_memory_region_number region_to_switch_back_to = NULL_region_number;
+          switch_to_file_scope_region(&region_to_switch_back_to);
+          simple_constant = copy_unshared_constant(simple_constant);
+          switch_back_to_original_region(region_to_switch_back_to);
         }  /* if */
+#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
+        variable->init_kind = (an_init_kind)initk_static;
+        variable->initializer.constant = simple_constant;
       } else {
         /* Initialization of an automatic variable to a constant.  Can be done
            by keeping the dynamic init entry. */
@@ -4273,51 +4361,6 @@ Do IL lowering of an enk_temp_init expression node.
   }  /* if */
 }  /* lower_temp_init */
 
-
-static void add_first_time_test(an_insert_location_ptr insert_location)
-/*
-Add a first-time test sequence that will surround the initialization of a
-local static variable.  In effect:
-
-  static int test_var;  // Global test var, implicitly init to 0
-  {
-    if (test_var == 0) {
-      test_var = 1;
-      ... real initialization of variable being initialized
-    }
-  }
-
-The sequence is inserted at *insert_location.  *insert_location is updated
-for further insertion after the assignment statement.
-*/
-{
-  a_variable_ptr     test_var;
-  an_expr_node_ptr   test_var_node, compare_node;
-  an_insert_location insert_location2;
-  a_type_ptr         int_type;
-
-  /* Make the static first-time-test variable in the current scope. */
-  int_type = integer_type((an_integer_kind)ik_int);
-  test_var = make_unnamed_local_static_variable(int_type,
-                                                /*in_function_scope=*/FALSE);
-  /* Make "test_var == 0". */
-  test_var_node = var_rvalue_expr(test_var);
-  test_var_node->next = node_for_integer_constant(0L, (an_integer_kind)ik_int);
-  compare_node = make_operator_node((an_expr_operator_kind)eok_ieq,
-                                    int_type, test_var_node);
-  /* Make an "if" statement and insert it into the program. */
-  insert_if_statement(compare_node, /*is_initialization_guard=*/TRUE,
-                      insert_location, &insert_location2);
-  /* Further inserts are done at the start of the block. */
-  *insert_location = insert_location2;
-  /* Make "test_var = 1" and insert it inside the "if" statement. */
-  (void)insert_var_assignment_statement(test_var,
-                                        (an_expr_operator_kind)eok_iassign,
-                                        node_for_integer_constant(1L,
-                                                      (an_integer_kind)ik_int),
-                                        insert_location);
-}  /* add_first_time_test */
-
 #if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
 
 static a_boolean add_static_data_member_init_guard_test(
@@ -4385,7 +4428,8 @@ This routine returns TRUE if guard code was emitted.
                                       test_var_node);
     /* Make an "if" statement and insert it into the program. */
     insert_if_statement(compare_node, /*is_initialization_guard=*/TRUE,
-                        insert_location, insert_location2);
+                        insert_location, (a_statement_ptr *)NULL,
+                        insert_location2);
     /* Make "test_var = 1" and insert it inside the "if" statement. */
     (void)insert_var_assignment_statement(test_var,
                                           (an_expr_operator_kind)eok_iassign,
@@ -4468,11 +4512,6 @@ Generate code for a stmk_init (dynamic initialization) statement.
     } else {
       /* Normal case (not the return value optimization variable). */
       set_var_init_pos_descr(var, &ipd);
-      /* If the variable is a local static, add a first-time flag and a
-         test. */
-      if (var->storage_class == (a_storage_class)sc_static) {
-        add_first_time_test(&insert_location);
-      }  /* if */
     }  /* if */
     lower_dynamic_init(dip, &ipd,
                        (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
@@ -4781,7 +4820,8 @@ constructor, but may instead be after an assignment to "this".
                              ^--- additional statements will be inserted.
     */
     insert_if_statement(compare_node, /*is_initialization_guard=*/FALSE,
-                        insert_location, &insert_location2);
+                        insert_location, (a_statement_ptr *)NULL,
+                        &insert_location2);
     /* Set the added parameters to the addresses of the virtual base
        classes. */
     for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
@@ -5509,7 +5549,8 @@ destructor scope, and also lower the user code.
                             ^--- additional statements will be inserted.
       */
       insert_if_statement(compare_node, /*is_initialization_guard=*/FALSE,
-                          &insert_location, &insert_location2);
+                          &insert_location, (a_statement_ptr *)NULL,
+                          &insert_location2);
       /* Destroy any virtual base classes on the ctor_init list. */
       for (; ctor_init != NULL; ctor_init = ctor_init->next) {
         lower_dtor_init(ctor_init, this_param_var,
@@ -5642,7 +5683,8 @@ destructor scope, and also lower the user code.
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
     /* Make "if ((param & 0x1) != 0)". */
     insert_if_statement(if_node, /*is_initialization_guard=*/FALSE,
-                        &insert_location, &insert_location2);
+                        &insert_location, (a_statement_ptr *)NULL,
+                        &insert_location2);
     /* Make "delete-routine((void *)this);" under the "if". */
     this_param_node = var_rvalue_expr(this_param_var);
     this_param_node = add_cast_if_necessary(this_param_node, void_star_type());
