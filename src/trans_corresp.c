@@ -494,12 +494,14 @@ exact criteria).
       switch (kind) {
         case iek_routine:
           {
-            a_routine_ptr  routine = (a_routine_ptr)entity;
+            a_routine_ptr  routine = (a_routine_ptr)entity,
+                           corresp_routine = (a_routine_ptr)tcp->canonical;
             if (routine->is_template_function &&
+                corresp_routine->is_template_function &&
                 !routine->is_prototype_instantiation &&
                 !routine->is_specialized) {
               set_master_instance_for_new_canonical_routine(
-                                      routine, (a_routine_ptr)tcp->canonical);
+                                                     routine, corresp_routine);
             }  /* if */
           }
           break;
