@@ -10686,7 +10686,7 @@ The overriding function must have a definition in the current compilation.
 #if IA64_ABI
   if (is_ptr_or_ref_type(overriding_return_type) && 
       is_class_struct_union_type(type_pointed_to(overriding_return_type)) &&
-      !same_entities(overriding_return_type, overridden_return_type)) {
+      !identical_types(overriding_return_type, overridden_return_type)) {
 #endif /* IA64_ABI */
     bcp = find_base_class_of_full(type_pointed_to(overriding_return_type),
                                   type_pointed_to(overridden_return_type),
