@@ -1,5 +1,31 @@
 Version 3.6
 
+3/30/05  Calling the front end from other programs / reinitializing the
+         front end
+
+Formerly, it was difficult to use the front end as part of another program,
+or in environments where the front end could be restarted in such a way that
+static initializations were not redone.  The initialization and memory
+management routines of the front end have been modified to support such
+usage.  The following changes have been made:
+- The MAKE_FRONT_END_CALLABLE configuration macro has been added.  When this
+  macro is TRUE, the front end does not provide a main routine.  The name of
+  the main entry point to the front end is specified by the EDG_MAIN macro,
+  which defaults to edg_main.
+- The initialization of all global/static variables (except for arrays that
+  are not modified) is now done dynamically.
+- A record is kept of all memory allocations so that the memory can be freed.
+When MAKE_FRONT_END_CALLABLE is TRUE:
+- All memory is freed when the front end completes.
+- All open files are closed, even if the front end terminates abnormally.
+- The front end does not exit, but instead always returns to the caller.
+  This is done even in the event of a catastrophic error on internal error.
+
+These changes involve some new coding conventions in the front end.  See
+the "Initialization and Wrapup", "Memory Management" and "File Variables"
+sections of the Administrative Functions chapter of the internal documentation
+for more information.
+
 3/29/05  Configuration macro to tie GNU version to GNU ABI version
 
 In GNU modes,setting the new macro TIE_DEFAULT_GNU_ABI_VERSION_TO_GNU_VERSION
