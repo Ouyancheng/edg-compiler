@@ -392,6 +392,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_type_with_named_address_space_not_allowed)*/
 /*lint -esym(769,ec_named_address_space_on_function_type)*/
 /*lint -esym(769,ec_field_type_cannot_be_qualified_with_named_address_space)*/
+/*lint -esym(769,ec_named_address_space_not_allowed)*/
 #endif /* !NAMED_ADDRESS_SPACES_ALLOWED */
 #if !NAMED_REGISTERS_ALLOWED
 /*lint -esym(769,ec_cl_named_registers_option_only_in_C)*/

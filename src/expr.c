@@ -13813,6 +13813,17 @@ overloaded_function:
              operand is returned. */
           make_error_operand(result);
           break;
+#if NAMED_ADDRESS_SPACES_ALLOWED
+        case sk_named_address_space:
+          error_and_make_error_operand(ec_named_address_space_not_allowed,
+                                       result);
+          break;
+#endif /* NAMED_ADDRESS_SPACES_ALLOWED */
+#if NAMED_REGISTERS_ALLOWED
+        case sk_named_register:
+          error_and_make_error_operand(ec_named_register_not_allowed, result);
+          break;
+#endif /* NAMED_REGISTERS_ALLOWED */
         case sk_type:
         case sk_class_or_struct_tag:
         case sk_union_tag:
