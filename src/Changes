@@ -1,5 +1,18 @@
 Version 2.33
 
+8/1/96  Handling of #pragma directives when creating preprocessed output
+
+Two problems have been corrected in the handling of #pragma directives
+when generating preprocessed output:
+
+1. The "expand_macros" and "processing_C_code" flags from the pragma
+   description are now respected even when only generating preprocessed
+   output.
+
+2. When creating preprocessed output and using the --no_preproc_only
+   option pragmas are now included in the preprocessed output.  Formerly,
+   they were incorrectly omitted from the output.
+
 8/1/96  Cfront mode disambiguation problem with parameter whose type is
         a function type
 

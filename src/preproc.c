@@ -1194,76 +1194,119 @@ real compilation, they should just be ignored.
 }  /* hdrstop_or_no_pch_pragma */
 
 
+static void pass_pragma_to_output(a_pragma_kind_description_ptr pkdp)
+/*
+Output a pragma directive to the preprocessed output file.  Turn on
+expansion of macros if necessary for this kind of pragma.
+*/
+{
+  a_boolean	save_expand_macros;
+  a_boolean	save_do_string_literal_concatenation;
+  a_boolean	save_fetch_pp_tokens;
+  a_boolean     save_recognize_keywords_in_pragma;
+
+  if (pkdp != NULL) {
+    /* Save the current value of the lexical scanning mode flags. */
+    save_expand_macros = expand_macros;
+    save_do_string_literal_concatenation = do_string_literal_concatenation;
+    save_fetch_pp_tokens = fetch_pp_tokens;
+    save_recognize_keywords_in_pragma = recognize_keywords_in_pragma;
+    /* Set the new values. */
+    expand_macros = pkdp->expand_macros;
+    recognize_keywords_in_pragma = pkdp->processing_C_code;
+    do_string_literal_concatenation = pkdp->processing_C_code;
+    fetch_pp_tokens = FALSE;
+  }  /* if */
+  /* Fetch the remaining tokens of this directive and output it to the
+     preprocessed output file. */
+  pass_directive_to_output();
+  if (pkdp != NULL) {
+    /* Restore the previous values. */
+    expand_macros = save_expand_macros;
+    do_string_literal_concatenation = save_do_string_literal_concatenation;
+    fetch_pp_tokens = save_fetch_pp_tokens;
+    recognize_keywords_in_pragma = save_recognize_keywords_in_pragma;
+  }  /* if */
+}  /* pass_pragma_to_output */
+
+
 static void proc_pragma(a_source_position *start_of_dir_position)
 /*
 Scan and process a #pragma directive.
 */
 {
-  if (generate_pp_output) {
+  a_pragma_kind_description_ptr	pkdp = NULL;
+  a_source_position		id_position;
+
+  /* Identify the pragma that is being processed. */
+  if (get_token() == tok_identifier) {
+    /* Save the position of the start of the token(s) that identify
+       the kind of pragma being processed. */
+    id_position = pos_curr_token;
+    /* Look for a matching pragma identifier in the pragma descriptions
+       list.  If any pragma need to be added in where the pragma is
+       not specified by an identifier following the #pragma keyword,
+       this code will need to be modified. */
+    pkdp = pragma_kind_descriptions;
+    while (pkdp != NULL) {
+      if (curr_id_matches_pragma_id(pkdp->kind)) break;
+      pkdp = pkdp->next;
+    }  /* while */
+#if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
+    /* If no matching pragma name was found, set the pragma kind to
+       pk_unrecognized and scan the pragma according to the associated
+       description. */
+    if (pkdp == NULL) {
+      pkdp = pragma_description_for_pragma_kind[(int)pk_unrecognized];
+    }  /* if */
+#endif /* INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL */
+  }  /* if */
+  if (generate_pp_output && do_preprocessing_only) {
     /* Generating preprocessing output for some other compiler.  Pass the
-       #pragma unchanged to output. */
+       #pragma to the output.  The information in the pragma description is
+       used to determine how the tokens of the pragma should be processed
+       (e.g., should macros be expanded). */
     /* Look for the special case of "#pragma once".  This is different
        from other pragmas in that it must be handled in preprocessing
        even when only generated a preprocessed output file. */
-    if (get_token() == tok_identifier) {
-      if (curr_id_is("once")) {
-        /* This file should be included only once, and if it is #included
-           again in the same compilation unit, the include should be skipped.
-           Record this information in the input stack entry. */
-        set_ifg_state(IFG_STATE_ONCE);
-        curr_ise->include_history->pragma_once = TRUE;
-        /* Bypass the "once" token. */
-        (void)get_token();
-      }  /* if */
+    if (pkdp != NULL && pkdp->kind == pk_once) {
+      /* This file should be included only once, and if it is #included
+         again in the same compilation unit, the include should be skipped.
+         Record this information in the input stack entry. */
+      once_pragma(pk_once);
     }  /* if */
-    pass_directive_to_output();
+    pass_pragma_to_output(pkdp);
   } else {
-    /* Compiling.  Identify the pragma. */
+    /* Compiling.  Record the pragma for later processing, or for
+       processing now in the case of immediate pragmas. */
     a_boolean processed = FALSE;
-    if (get_token() == tok_identifier) {
-      a_pragma_kind_description_ptr	pkdp;
-      a_source_position			id_position;
-      /* Save the position of the start of the token(s) that identify
-         the kind of pragma being processed. */
-      id_position = pos_curr_token;
-      /* Look for a matching pragma identifier in the pragma descriptions
-	 list.  If any pragma need to be added in where the pragma is
-	 not specified by an identifier following the #pragma keyword,
-	 this code will need to be modified. */
-      pkdp = pragma_kind_descriptions;
-      while (pkdp != NULL) {
-	if (curr_id_matches_pragma_id(pkdp->kind)) break;
-	pkdp = pkdp->next;
-      }  /* while */
-#if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
-      /* If no matching pragma name was found, set the pragma kind to
-	 pk_unrecognized and scan the pragma according to the associated
-	 description. */
-      if (pkdp == NULL) {
-	pkdp = pragma_description_for_pragma_kind[(int)pk_unrecognized];
+    if (pkdp != NULL) {
+      if (pkdp->binding_kind == pbk_preproc_immediate) {
+        /* Preprocessing immediate pragmas are processed when
+           encountered.  Call the processing routine associated with
+           this pragma. */
+        a_preproc_immediate_pragma_function_ptr pipfp;
+	pipfp = pkdp->variant.preproc_immediate_processing_function;
+	if (pipfp != NULL) (*pipfp)(pkdp->kind);
+      } else {
+	/* Scan the pragma directive, recording it as either a token cache
+	   or as a character string. */
+	enter_pending_pragma(pkdp, start_of_dir_position, &id_position);
       }  /* if */
-#endif /* INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL */
-      if (pkdp != NULL) {
-	if (pkdp->binding_kind == pbk_preproc_immediate) {
-	  /* Preprocessing immediate pragmas are processed when
-	     encountered.  Call the processing routine associated with
-	     this pragma. */
-	  a_preproc_immediate_pragma_function_ptr pipfp;
-	  pipfp = pkdp->variant.preproc_immediate_processing_function;
-	  if (pipfp != NULL) (*pipfp)(pkdp->kind);
-	} else {
-	  /* Scan the pragma directive, recording it as either a token cache
-	     or as a character string. */
-	  enter_pending_pragma(pkdp, start_of_dir_position, &id_position);
-	}  /* if */
-	processed = TRUE;
-      }  /* if */
+      processed = TRUE;
     }  /* if */
     if (!processed) {
       /* Unrecognized pragma, just ignore (this is required by the
 	 standard). */
       warning(ec_unrecognized_pragma);
       flush_to_newline();
+    }  /* if */
+    if (generate_pp_output) {
+      /* If we are generating preprocessed output, but we are also
+         doing real compilation (i.e., do_preprocessing_only is FALSE),
+         then we need to output the directive as well as actually evaluating
+         the pragma. */
+      pass_directive_to_output();
     }  /* if */
   }  /* if */
 }  /* proc_pragma */
