@@ -194,6 +194,13 @@ Runtime support for dynamic_cast operations.  This routine handles
 
   - polymorphic cross casts
 
+class_ptr is the source operand of the cast.  If the source is
+an object (and not a pointer) then a pointer to the source operand
+is used.  vtbl_ptr is a pointer to the virtual function table from
+the source operand.  tiip is a pointer to the the type_info_impl
+structure associated with the destination type.  If the source
+operand is being cast to void*, tiip will be NULL.
+
 The information about the dynamic type of the source object is obtained
 from entry zero of the virtual function table.
 
