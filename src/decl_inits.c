@@ -1820,8 +1820,10 @@ this function points to a tree that includes a dynamic-init entry.
             if (!is_incomplete_array) {
               /* Note that we may get here with any_more_members == FALSE and
                  a designator can turn it into TRUE again. */
-              any_more_members = (skip_typerefs(context.type)->
-                                    variant.array.variant.number_of_elements
+              a_type_ptr array_type = skip_typerefs(context.type);
+              any_more_members =
+                    (array_type->variant.array.is_variable_size_array ||
+                     array_type->variant.array.variant.number_of_elements
                                                         > curr_array_element);
             } else {
               /* Keep track of the maximum subscript seen: */
