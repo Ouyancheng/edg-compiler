@@ -5947,6 +5947,8 @@ Allocate a handler, clear it to default values, and return a pointer to it.
   hp->parameter    = NULL;
   hp->statement    = NULL;
   hp->dynamic_init = NULL;
+  clear_stmt_source_position(hp->catch_position);
+
   return hp;
 }  /* alloc_handler */
 

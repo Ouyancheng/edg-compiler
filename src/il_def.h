@@ -3544,6 +3544,10 @@ typedef struct a_handler {
 			/* Pointer to the next in the linked list of handlers
 			   defined for a given try block; NULL for the last
 			   in the list. */
+  a_stmt_source_position
+		catch_position;
+                        /* Source position of the catch clause, for symbolic
+			   debug purposes. */
   a_variable_ptr
 		parameter;
 			/* Pointer to a variable entry representing the object

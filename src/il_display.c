@@ -2178,6 +2178,10 @@ Display the indicated handler.
 */
 {
   disp_ptr("next", (char *)ptr->next, iek_handler);
+  disp_stmt_source_position("catch_position",
+                            "catch_position.seq",
+                            "catch_position.column",
+                            ptr->catch_position);
   disp_ptr("parameter", (char *)ptr->parameter, iek_variable);
   disp_ptr("statement", (char *)ptr->statement, iek_statement);
   disp_ptr("dynamic_init", (char *)ptr->dynamic_init, iek_dynamic_init);
