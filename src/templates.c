@@ -95,15 +95,15 @@ able to if the template itself has not yet been defined.
           db_symbol(template_sym, "\nbased on: ", 2);
         }  /* if */
 #endif /* DEBUG */
+        (void)push_scope((a_scope_kind)sck_template_instantiation,
+                         tssp->declaration_scope, tp, (a_routine_ptr)NULL,
+                         (a_function_instantiation_entry_ptr)NULL);
         rescan_reusable_cache(p_token_cache);
 #if CHECKING
         if (curr_token != tok_lbrace && curr_token != tok_colon) {
           internal_error("instantiate_template_class: bad 1st token in cache");
         }  /* if */
 #endif /* CHECKING */
-        (void)push_scope((a_scope_kind)sck_template_instantiation,
-                         tssp->declaration_scope, tp, (a_routine_ptr)NULL,
-                         (a_function_instantiation_entry_ptr)NULL);
         /* Scan the base specifiers list, if any, and the body of the class. */
         (void)scan_class_definition(tp, DEPTH_OF_FILE_SCOPE,
                                     /*is_local_class=*/FALSE,
@@ -147,16 +147,16 @@ void instantiate_class_template(a_symbol_ptr  template_sym,
     db_symbol(template_sym, "prototype instantiation of: ", 2);
   }  /* if */
 #endif /* DEBUG */
+  (void)push_scope((a_scope_kind)sck_template_instantiation,
+                   tssp->declaration_scope, prototype_type,
+                   (a_routine_ptr)NULL,
+                   (a_function_instantiation_entry_ptr)NULL);
   rescan_reusable_cache(p_token_cache);
 #if CHECKING
   if (curr_token != tok_lbrace && curr_token != tok_colon) {
     internal_error("instantiate_class_template: bad 1st token in cache");
   }  /* if */
 #endif /* CHECKING */
-  (void)push_scope((a_scope_kind)sck_template_instantiation,
-                   tssp->declaration_scope, prototype_type,
-                   (a_routine_ptr)NULL,
-                   (a_function_instantiation_entry_ptr)NULL);
   /* Scan the base specifiers list, if any, and the body of the class. */
   (void)scan_class_definition(prototype_type, DEPTH_OF_FILE_SCOPE,
                               /*is_local_class=*/FALSE,
@@ -208,9 +208,9 @@ void instantiate_template_function(a_function_instantiation_entry_ptr  fiep)
   rtsp = rout_type->variant.routine.extra_info;
   tssp = fiep->template_sym->variant.template.extra_info;
   rout_ptr->is_inline = tssp->variant.function.routine->is_inline;
-  rescan_reusable_cache(&tssp->body_token_cache);
   (void)push_scope((a_scope_kind)sck_template_instantiation,
                   tssp->declaration_scope, (a_type_ptr)NULL, rout_ptr, fiep);
+  rescan_reusable_cache(&tssp->body_token_cache);
 
 #if 0
 
