@@ -1835,13 +1835,11 @@ special processing for nested class names.
 }  /* do_class_name_mangling */
 
 
-void mangle_member_constant_name(a_constant_ptr con)
+static void mangle_member_constant_name(a_constant_ptr con)
 /*
 Mangle the name of the indicated member constant, if necessary.  con
 is either an enumerator constant, a namespace member constant, or (as an
-extension) a declared class member constant.  As a side effect (if the
-name requires mangling), clear the class/namespace membership information
-in the constant.
+extension) a declared class member constant.
 */
 {
   sizeof_t mangled_name_length, alloc_length;
@@ -1861,9 +1859,6 @@ in the constant.
     mangled_name[mangled_name_length] = '\0';
     con->source_corresp.name = mangled_name;
     con->source_corresp.name_has_been_mangled = TRUE;
-    /* Clear the class/namespace membership information now that the
-       name is mangled. */
-    clear_parent(con);
   }  /* if */
 }  /* mangle_member_constant_name */
 
@@ -1911,7 +1906,7 @@ thereunder.
 }  /* do_type_list_other_name_mangling */
 
 
-void mangle_function_name(a_routine_ptr routine)
+static void mangle_function_name(a_routine_ptr routine)
 /*
 Mangle the name of the indicated function, if necessary.
 */
@@ -1940,20 +1935,15 @@ Mangle the name of the indicated function, if necessary.
       mangled_name[mangled_name_length] = '\0';
       routine->source_corresp.name = mangled_name;
       routine->source_corresp.name_has_been_mangled = TRUE;
-      /* The parent information would normally be cleared here, but IL lowering
-         uses it on constructors and destructors to determine the associated
-         class.  It's cleared later in
-         clear_parent_info_on_file_scope_routines. */
     }  /* if */
   }  /* if */
 }  /* mangle_function_name */
 
 
-void mangle_member_variable_name(a_variable_ptr variable)
+static void mangle_member_variable_name(a_variable_ptr variable)
 /*
 Mangle the name of the indicated static data member or namespace member
-variable.  As a side effect, clear the class/namespace membership
-information in the variable.
+variable.
 */
 {
   sizeof_t mangled_name_length, alloc_length;
@@ -1972,9 +1962,6 @@ information in the variable.
     mangled_name[mangled_name_length] = '\0';
     variable->source_corresp.name = mangled_name;
     variable->source_corresp.name_has_been_mangled = TRUE;
-    /* Clear the class/namespace membership information now that the
-       name is mangled. */
-    clear_parent(variable);
   }  /* if */
 }  /* mangle_member_variable_name */
 
@@ -2072,10 +2059,6 @@ other name mangling that might use the name is done.
     type->source_corresp.name = mangled_name;
     type->source_corresp.name_has_been_mangled = TRUE;
     type->source_corresp.nested_type_mangling_has_been_done = TRUE;
-    /* Note that the class/namespace membership information and
-       is_local_to_function cannot be cleared now.  They have to stay around
-       until the end of the file scope lowering (e.g., for namespace type
-       promotion). */
   }  /* if */
 }  /* mangle_nested_type_name */
 
@@ -2108,8 +2091,7 @@ and subscopes thereunder.
     /* Do name mangling on the type. */
     /* Note that the call here must be done after all subscopes have been
        visited; we don't want to change the name of a class until the
-       classes nested within it have been processed.  See
-       clear_parent_info_on_types. */
+       classes nested within it have been processed. */
     mangle_nested_type_name(type);
   }  /* for */
 }  /* do_type_list_nested_type_name_mangling */
@@ -2145,7 +2127,6 @@ virtual function table variable names).
 {
   a_scope_orphaned_list_header_ptr solhp;
 
-  db_enter(3, "do_nested_type_name_mangling");
   /* Process the file scope and all subscopes in the file-scope memory
      region. */
   do_scope_nested_type_name_mangling(il_header.primary_scope);
@@ -2155,7 +2136,6 @@ virtual function table variable names).
        solhp = solhp->next) {
     do_type_list_nested_type_name_mangling(solhp->orphaned_types);
   }  /* for */
-  db_exit();
 }  /* do_nested_type_name_mangling */
 
 
@@ -2167,7 +2147,6 @@ function-local entities that require mangling (they are accessed through the
 orphan lists).
 */
 {
-  db_enter(3, "do_all_name_mangling");
   /* Mangle class names, not including special processing for nested
      class names. */
   do_class_name_mangling();
@@ -2175,7 +2154,6 @@ orphan lists).
   do_scope_other_name_mangling(il_header.primary_scope);
   /* Mangle nested type names. */
   do_nested_type_name_mangling();
-  db_exit();
 }  /* do_all_name_mangling */
 
 #endif /* DO_IL_LOWERING */
