@@ -3770,8 +3770,7 @@ If it requires a later destruction, put it into the current object lifetime.
   if (curr_expr_is_potentially_evaluated()) {
     /* Put the destruction (if any) on the list for the current object
        lifetime. */
-    record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
-                                       /*scope_lifetime=*/FALSE);
+    record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE);
   }  /* if */
 }  /* set_temp_init_dynamic_init_lifetime */
 
