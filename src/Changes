@@ -220,7 +220,7 @@ is merged into existing qualifiers). [10/3/01] Locally declared labels.
 an lvalue if its second and third operand are lvalues, the comma operator
 produces an lvalue if its second operand is an lvalue, and certain casts
 also preserve the lvalueness of their operands.  [10/12/01] Case ranges.
-[10/15/01] Assembler names of variables and routines.
+[10/15/01] Assembler names of variables and routines. [10/17/01] Union casts.
 
 8/28/01  C++-generating back end: unnamed classes/structs not given names
 

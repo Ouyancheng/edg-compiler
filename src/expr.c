@@ -7150,10 +7150,19 @@ be set to the source position of the type.
         err = TRUE;
       }  /* if */
     } else {
-      /* In C, a cast to a class type is not allowed.  Note that compound
-         literal cases do not get here. */
-      type_error(ec_cast_to_bad_type, type_cast_to);
-      err = TRUE;
+#if GNU_EXTENSIONS_ALLOWED
+      /* GNU C permits casting from a scalar to a union if the scalar's type
+         is the type of a member of the union.  The detailed check happens
+         in conversion_possible.  We just let to-union casts go through.  */
+      if (!gcc_mode || !is_union_type(type_cast_to))
+#endif /* GNU_EXTENSIONS_ALLOWED */
+      /* Do not insert code here. */
+      {
+        /* In C, a cast to a class type is not allowed.  Note that compound
+           literal cases do not get here. */
+        type_error(ec_cast_to_bad_type, type_cast_to);
+        err = TRUE;
+      }  /* if */
     }  /* if */
   } else if (is_array_type(type_cast_to)) {
     /* Casting to an array type is not allowed. */
@@ -8041,6 +8050,27 @@ C-style casts and C++ functional-notation type conversions.
               conv_object_pointer_to_lvalue(operand);
             }  /* if */
           }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+        } else if (gcc_mode && is_union_type(type_cast_to)) {
+          /* It may be possible to convert *operand to the type of one of
+             the members of the union.  If so, the conversion is allowed.  */
+          a_std_conv_descr  dummy;
+          a_type_ptr        union_type = skip_typerefs(type_cast_to);
+          a_field_ptr       field;
+
+          field = transparent_union_conversion_possible(operand, union_type,
+                                                        ec_bad_cast, &dummy);
+          if (field != NULL) {
+            /* Convert from the type of the field to the type of the
+               union, using a dynamic initializer generated on the fly. */
+            prep_transparent_union_conversion_operand(type_cast_to, field,
+                                                      operand);
+          } else {
+            err = TRUE;
+            pos_ty_error(ec_cast_to_bad_type, type_position,
+                         orig_type_cast_to);
+          }
+#endif /* GNU_EXTENSIONS_ALLOWED */
         } else {
           /* Not a valid cast. */
           err = TRUE;

@@ -9745,30 +9745,9 @@ is NULL, the operand is not a parameter.
          converted to the type of any member of the union. */
       a_type_ptr         union_type = skip_typerefs(dest_type);
       a_field_ptr        f;
-      a_constant_ptr     aggr_con;
-      a_constant_ptr     designator_con;
-      a_constant_ptr     member_con;
-      a_dynamic_init_ptr field_init;
-      a_dynamic_init_ptr aggr_init;
-      an_expr_node_ptr   init_expr;
-      check_assertion(union_type->kind == (a_type_kind)tk_union);
-      for (f = union_type->variant.class_struct_union.field_list;
-           f != NULL; f = f->next) {
-        if (impl_conversion_possible(source_type,
-                                     source_is_constant,
-                                     (a_boolean)source_operand->
-                                                     is_simple_string_literal,
-                                     source_constant,
-                                     f->type,
-                                     /*allow_qualifier_or_eh_mismatch=*/FALSE,
-                                     /*suppress_extensions=*/FALSE,
-                                     incompatible_err,
-                                     &std_conv)) {
-          /* The argument can be converted to the type of this
-             member. */
-          break;
-        } /* if */
-      }  /* for */
+
+      f = transparent_union_conversion_possible(source_operand, union_type,
+                                                incompatible_err, &std_conv);
       /* If none of the fields was satisfactory, issue an error. */
       if (f == NULL) {
         goto error;
@@ -9778,47 +9757,9 @@ is NULL, the operand is not a parameter.
       conversion->std = std_conv;
       issue_any_conversion_diagnostics(&std_conv, conversion, err_pos,
                                        source_type, f->type);
-      /* Now, we need to convert from the type of the field to the
-         type of the union.  Build a designator indicating which field
-         should be initialized. */
-      designator_con = alloc_constant((a_constant_repr_kind)ck_designator);
-      designator_con->variant.designator.field = f;
-      /* Build a dynamic initializer indicating how the field should
-         be initialized. */
-      if (is_expression_operand(source_operand)) {
-        field_init = alloc_dynamic_init((a_dynamic_init_kind)dik_expression);
-        field_init->variant.expression = source_operand->variant.expression;
-      } else if (is_constant_operand(source_operand)) {
-        field_init = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
-        field_init->variant.constant 
-          = alloc_constant(source_operand->variant.constant.kind);
-        extract_constant_from_operand(source_operand, 
-                                      field_init->variant.constant);
-      } else {
-        /* There should not be any other operand kinds in C, and GCC
-           extensions are only available in C mode.  Note that we do
-           not enter this code at all if the source_operand is 
-           already erroneous. */
-        unexpected_condition();
-      } /* if */
-      member_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
-      member_con->type = f->type;
-      member_con->variant.dynamic_init = field_init;
-      /* Build the entire aggregate initializer. */
-      designator_con->next = member_con;
-      aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
-      aggr_con->type = dest_type;
-      aggr_con->variant.aggregate.first_constant = designator_con;
-      aggr_con->variant.aggregate.last_constant = member_con;
-      /* Build a dynamic initializer for the aggregate. */
-      aggr_init = 
-         alloc_dynamic_init((a_dynamic_init_kind)dik_nonconstant_aggregate);
-      aggr_init->variant.constant = aggr_con;
-      /* Build an expression for the initializer. */
-      init_expr = alloc_temp_init_node(dest_type, aggr_init, 
-                                       /*result_is_addr=*/FALSE,
-                                       /*is_explicit_cast=*/FALSE);
-      make_expression_operand(init_expr, dest_type, source_operand);
+      /* Convert from the type of the field to the type of the
+         union, using a dynamic initializer generated on the fly. */
+      prep_transparent_union_conversion_operand(dest_type, f, source_operand);
 #endif /* GNU_EXTENSIONS_ALLOWED */
     } else {
 #if GNU_EXTENSIONS_ALLOWED
@@ -11876,6 +11817,121 @@ cases where bitwise copying applies.
   }  /* if */
 }  /* prep_assignment_operand */
 
+#if GNU_EXTENSIONS_ALLOWED
+
+a_field_ptr transparent_union_conversion_possible(
+                                            an_operand       *source_operand,
+                                            a_type_ptr       union_type,
+                                            an_error_code    incompatible_err,
+                                            a_std_conv_descr *std_conv)
+/*
+Return TRUE if it is okay to implicitly convert source_operand to any
+of the fields of union_type (which must be a union).  This is the
+condition GCC uses for casting to a union and for passing a transparent
+union parameter.  If it is okay, *std_conv is set to describe the
+conversion, and the first field that satisfies the requirement is
+returned.  Otherwise, NULL is returned, and incompatible_err may be
+issued.
+*/
+{
+  a_type_ptr     source_type;
+  a_boolean      source_is_constant;
+  a_boolean      source_is_string;
+  a_constant_ptr source_constant;
+  a_field_ptr    f;
+
+  db_enter(3, "transparent_union_conversion_possible");
+  check_assertion(union_type->kind == (a_type_kind)tk_union);
+  source_type = source_operand->type;
+  source_is_constant = is_constant_operand(source_operand);
+  source_is_string = (a_boolean)source_operand->is_simple_string_literal;
+  source_constant = source_is_constant ? &source_operand->variant.constant
+                                       : (a_constant_ptr)NULL;
+  for (f = union_type->variant.class_struct_union.field_list;
+       f != NULL; f = f->next) {
+    /* Try every field type in turn. */
+    if (impl_conversion_possible(source_type,
+                                 source_is_constant,
+                                 source_is_string,
+                                 source_constant,
+                                 f->type,
+                                 /*allow_qualifier_or_eh_mismatch=*/FALSE,
+                                 /*suppress_extensions=*/FALSE,
+                                 incompatible_err,
+                                 std_conv)) {
+      /* source_operand can be converted to the type of this member. */
+      break;
+    } /* if */
+  }  /* for */
+  db_exit();
+  return f;
+}  /* transparent_union_conversion_possible */
+
+
+void prep_transparent_union_conversion_operand(a_type_ptr  dest_type,
+                                               a_field_ptr field,
+                                               an_operand  *source_operand)
+/*
+Generate a dynamic initializer node which initializes given field of a
+union of type dest_type.  The initializer is given by source_operand and
+the resulting initializer node is returned through source_operand.
+(This is used to implement transparent unions and union casts: both are
+GNU C extensions.)
+*/
+{
+  a_constant_ptr      aggr_con;
+  a_constant_ptr      designator_con;
+  a_constant_ptr      member_con;
+  a_dynamic_init_ptr  field_init;
+  a_dynamic_init_ptr  aggr_init;
+  an_expr_node_ptr    init_expr;
+
+  db_enter(3, "prep_transparent_union_conversion_operand");
+  /* Make sure we have an rvalue. */
+  conv_lvalue_to_rvalue(source_operand);
+  /* Build a designator indicating which field should be initialized. */
+  designator_con = alloc_constant((a_constant_repr_kind)ck_designator);
+  designator_con->variant.designator.field = field;
+  /* Build a dynamic initializer indicating how the field should
+     be initialized. */
+  if (is_expression_operand(source_operand)) {
+    field_init = alloc_dynamic_init((a_dynamic_init_kind)dik_expression);
+    field_init->variant.expression = source_operand->variant.expression;
+  } else if (is_constant_operand(source_operand)) {
+    field_init = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
+    field_init->variant.constant =
+                        alloc_constant(source_operand->variant.constant.kind);
+    extract_constant_from_operand(source_operand, 
+                                  field_init->variant.constant);
+  } else {
+    /* There should not be any other operand kinds in C, and GCC
+       extensions are only available in C mode.  Note that we do
+       not enter this code at all if the source_operand is 
+       already erroneous. */
+    unexpected_condition();
+  } /* if */
+  member_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
+  member_con->type = field->type;
+  member_con->variant.dynamic_init = field_init;
+  /* Build the entire aggregate initializer. */
+  designator_con->next = member_con;
+  aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+  aggr_con->type = dest_type;
+  aggr_con->variant.aggregate.first_constant = designator_con;
+  aggr_con->variant.aggregate.last_constant = member_con;
+  /* Build a dynamic initializer for the aggregate. */
+  aggr_init = 
+    alloc_dynamic_init((a_dynamic_init_kind)dik_nonconstant_aggregate);
+  aggr_init->variant.constant = aggr_con;
+  /* Build an expression for the initializer. */
+  init_expr = alloc_temp_init_node(dest_type, aggr_init, 
+                                   /*result_is_addr=*/FALSE,
+                                   /*is_explicit_cast=*/FALSE);
+  make_expression_operand(init_expr, dest_type, source_operand);
+  db_exit();
+}  /* prep_transparent_union_conversion_operand */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 a_boolean nontype_template_arg_conversion_possible(an_operand *operand,
                                                    a_type_ptr param_type)

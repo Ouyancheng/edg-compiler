@@ -688,6 +688,22 @@ extern void prep_assignment_operand(an_operand        *source_operand,
                                     an_error_code     incompatible_err,
                                     a_source_position *err_pos);
 
+#if GNU_EXTENSIONS_ALLOWED
+
+extern a_field_ptr transparent_union_conversion_possible(
+                                    an_operand       *source_operand,
+                                    a_type_ptr       union_type,
+                                    an_error_code    incompatible_err,
+                                    a_std_conv_descr *std_conv);
+
+extern void prep_transparent_union_conversion_operand(
+                                                 a_type_ptr  dest_type,
+                                                 a_field_ptr field,
+                                                 an_operand  *source_operand);
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
+
 extern a_boolean nontype_template_arg_conversion_possible(
                                                         an_operand *operand,
                                                         a_type_ptr param_type);
