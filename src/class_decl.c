@@ -6043,11 +6043,12 @@ static a_decl_modifier merge_decl_modifiers(a_type_ptr         class_type,
                                             a_boolean          is_definition,
                                             a_source_position  *pos)
 /*
-class_type is the type of the current class, for which decl_modifiers may
-have been declared, and decl_modifiers represents the modifiers declared for
-the current member.  Check for compatibility and return a set of
-decl-modifier flags based on the two.  is_definition is TRUE when this is
-called for a member function definition.  pos is the error position.
+class_type is the type of the current class, in which the decl_modifiers
+field may have been set to indicate modifiers for the class a whole, and
+decl_modifiers represents the modifiers declared for the current member.
+Check for compatibility and return a set of decl-modifier flags based on
+the two.  is_definition is TRUE when this is called for a member function
+definition.  pos is the error position.
 */
 {
   a_decl_modifier  class_decl_modifiers;
