@@ -4036,7 +4036,8 @@ and return NULL.  This routine is called only in C++ mode.
                                       /*ctor_conversion_case=*/FALSE,
                                       /*effects_copy_initialization=*/FALSE,
                                       /*from_arg_dep_lookup=*/
-                                               (function_symbol !=
+                                               (slep != symbol_list ||
+                                                function_symbol !=
                                                 normal_lookup_function_symbol),
                                       dependent_call,
                                       &candidate_functions,
