@@ -6167,7 +6167,7 @@ Scan the body of a class definition, including the base classes list.
              diagnostic when there are no fields in the struct -- i.e.,
              "struct S { ; };" is treated just like "struct S { };". */
           pos_diagnostic(strict_ansi_mode ?
-                           strict_ansi_error_severity : es_warning,
+                           strict_ansi_discretionary_severity : es_warning,
                          ec_extra_semicolon, &pos_curr_token);
           discard_curr_construct_pragmas();
           /* Bypass the superfluous semicolon and continue looping. */

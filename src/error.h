@@ -106,6 +106,17 @@ EXTERN an_error_severity
                            error severity.  This must either be es_error
                            or es_warning. */
 
+EXTERN an_error_severity
+                strict_ansi_discretionary_severity
+#if VAR_INITIALIZERS
+			                   = es_warning
+#endif /* VAR_INITIALIZERS */
+                                                     ;
+                        /* Strict ANSI mode violations that may be
+                           discretionary errors are reported at this
+                           error severity.  This must either be
+                           es_discretionary_error or es_warning. */
+
 
 EXTERN an_error_severity
                 anachronism_error_severity

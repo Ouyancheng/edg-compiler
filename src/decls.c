@@ -10304,7 +10304,7 @@ of local variables (and types, etc.) of functions and in blocks.
       if (curr_token == tok_semicolon) {
         /* An empty declaration is ignored (as an extension in ANSI mode). */
         if (strict_ansi_mode) {
-          diagnostic(strict_ansi_error_severity, ec_extra_semicolon);
+          diagnostic(strict_ansi_discretionary_severity, ec_extra_semicolon);
         } else {
           remark(ec_extra_semicolon);
         }  /* if */

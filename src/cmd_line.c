@@ -675,8 +675,13 @@ Process the arguments on the command line that invoked the compiler.
            on the C_dialect setting. */
         check_assertion(opt_value == TRUE);
         strict_ansi_mode = TRUE;
-        strict_ansi_error_severity =
-                      (kind == optk_strict_ansi_error) ? es_error : es_warning;
+        if (kind == optk_strict_ansi_error) {
+          strict_ansi_error_severity = es_error;
+          strict_ansi_discretionary_severity = es_discretionary_error;
+        } else {
+          strict_ansi_error_severity = es_warning;
+          strict_ansi_discretionary_severity = es_warning;
+        }  /* if */
         break;
       case optk_preprocess_only_emit_line_dirs:
         /* Do preprocessing only, output to stdout, with #line information. */

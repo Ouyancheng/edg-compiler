@@ -1,5 +1,10 @@
 Version 2.25
 
+7/27/94  Extra semicolon diagnostic now a discretionary error
+
+In strict ANSI (-A) mode, an extra semicolon is now a discretionary
+error, meaning that it may be overridden using a command line option.
+
 7/26/94  Pragmas in classes in C++-generating back end
 
 The C++-generating back end now correctly handles pragmas inside class
