@@ -294,6 +294,10 @@ extern
 a_pending_pragma_ptr add_curr_token_pseudo_pragma(a_pragma_kind      kind,
 						  a_source_position *pos);
 
+extern void create_il_entry_for_pragma(a_pending_pragma_ptr ppp,
+                                       a_symbol_ptr         sym,
+                                       a_statement_ptr      sp);
+
 extern void process_curr_token_pragmas(void);
 
 extern void end_of_scope_pragma_processing(a_pending_pragma_ptr ppp);
