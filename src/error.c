@@ -1639,7 +1639,7 @@ error code.
       m = "\"enum\" declaration not allowed";
       break;
     case ec_qualifier_dropped_in_ref_init:
-      m = "reference has fewer const/volatile qualifiers than initial value";
+      m = "initial value of reference has excess const/volatile qualifiers";
       break;
     case ec_bad_nonconst_ref_init:
       m = "initial value of reference to non-const has incorrect type";
