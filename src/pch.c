@@ -282,7 +282,6 @@ If not, expand pch_buffer by reallocating it.
 }  /* ensure_pch_buffer_space */
 
 
-#define FILE_NAME_BUFFER_INITIAL_ALLOCATION 1024
 #define FILE_NAME_BUFFER_INCREMENTAL_ALLOCATION 1024
 			/* Initial and incremental allocation sizes for
 			   file_name_buffer.  The initial allocation
