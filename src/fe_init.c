@@ -1122,7 +1122,10 @@ when it is a secondary file.
   il_header.macros = NULL;
 #endif /* RECORD_MACROS_IN_IL */
   /* Suppress PCH processing on secondary translation units. */
-  if (!is_primary_translation_unit) abandon_pch_processing();
+  if (!is_primary_translation_unit) {
+    abandon_pch_processing();
+    using_a_pch_file = FALSE;
+  }  /* if */
   /* Initialize the symbol table (keywords and predefined macros).  Note that
      keyword_init is called first, so that predefined macros will have
      priority over keywords.  Also, macro_init must have been called, so

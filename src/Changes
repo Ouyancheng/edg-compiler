@@ -1,5 +1,11 @@
 Version 3.2
 
+2/19/03  Internal error when using precompiled headers with export
+
+An internal error (in init_date_and_time_macros) could occur when using
+precompiled header files in conjunction with exported templates.  this
+has been fixed.
+
 2/13/03  Spurious correspondence error
 
 A spurious correspondence error was issued if a class like the one below
