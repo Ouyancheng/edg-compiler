@@ -12532,7 +12532,9 @@ bits of information that were acquired while parsing.
     /* Report errors in virtual function declarations that result from
        the failure to redeclare a virtual function originally declared in
        a virtual base class. */
-    report_virtual_function_ambiguities(class_type);
+    if (class_type->variant.class_struct_union.any_virtual_base_classes) {
+      report_virtual_function_ambiguities(class_type);
+    }  /* if */
     /* If the current class is not already marked as "abstract", run
        through its base classes to determine whether it is abstract by
        inheritance and set the flag accordingly. */
