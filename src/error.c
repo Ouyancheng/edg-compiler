@@ -996,6 +996,12 @@ error code.
     case ec_default_arg_already_defined:
       m = "redefinition of default argument";
       break;
+    case ec_ambiguous_overloaded_function:
+      m = "ambiguous overloaded function call";
+      break;
+    case ec_ambiguous_constructor:
+      m = "more than one constructor matches this argument list";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
