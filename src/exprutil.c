@@ -751,14 +751,16 @@ major expression.
 
 /* Declaration needed because of mutual recursion: */
 static a_boolean examine_expr_for_unordered_temp_inits(
-                                          an_expr_node_ptr expr,
-                                          a_boolean        mark_all_unordered);
+                                        an_expr_node_ptr   expr,
+                                        a_boolean          mark_all_unordered,
+                                        a_dynamic_init_ptr *last_processed);
 
 
 static a_boolean examine_expr_list_for_unordered_temp_inits(
-                                        an_expr_node_ptr expr_list,
-                                        a_boolean        seq_point_after_first,
-                                        a_boolean        mark_all_unordered)
+                                      an_expr_node_ptr   expr_list,
+                                      a_boolean          seq_point_after_first,
+                                      a_boolean          mark_all_unordered,
+                                      a_dynamic_init_ptr *last_processed)
 /*
 Examine the list of expressions headed by expr_list, and their subtrees,
 looking for unordered enk_temp_init initializations.  If any are found,
@@ -767,11 +769,14 @@ is TRUE, mark all enk_temp_init dynamic initializations as unordered
 (because of something detected higher up in the expression tree).
 If seq_point_after_first is TRUE, there is a sequence point after the
 first expression on the list.  Return TRUE if there are any temp inits
-(unordered or not) in the expression list.
+(unordered or not) in the expression list.  *last_processed points to
+the latest dynamic initialization with destruction processed, and is
+updated on output.
 */
 {
-  a_boolean        any_temp_inits = FALSE;
-  an_expr_node_ptr expr;
+  a_boolean          any_temp_inits = FALSE;
+  an_expr_node_ptr   expr;
+  a_dynamic_init_ptr orig_last_processed = *last_processed;
 
   /* In the first pass, see if there are temp inits in more than one operand.
      If there are, those temp inits are unordered with respect to one
@@ -780,7 +785,8 @@ first expression on the list.  Return TRUE if there are any temp inits
   if (!mark_all_unordered) {
     for (expr = expr_list; expr != NULL; expr = expr->next) {
       if (examine_expr_for_unordered_temp_inits(expr,
-                                               /*mark_all_unordered=*/FALSE)) {
+                                                /*mark_all_unordered=*/FALSE,
+                                                last_processed)) {
         /* There is at least one temp init in this expression. */
         /* If there was a previous operand with a temp init, there's an
            ordering problem, except with operators with a sequence point after
@@ -802,9 +808,12 @@ first expression on the list.  Return TRUE if there are any temp inits
   /* Mark all temp inits as unordered if appropriate. */
   /* This also sets or finishes setting any_temp_inits. */
   if (mark_all_unordered) {
+    /* Restore *last_processed if we changed it in the loop above. */
+    *last_processed = orig_last_processed;
     for (expr = expr_list; expr != NULL; expr = expr->next) {
       if (examine_expr_for_unordered_temp_inits(expr,
-                                                /*mark_all_unordered=*/TRUE)) {
+                                                /*mark_all_unordered=*/TRUE,
+                                                last_processed)) {
         any_temp_inits = TRUE;
       }  /* if */
     }  /* for */
@@ -813,9 +822,88 @@ first expression on the list.  Return TRUE if there are any temp inits
 }  /* examine_expr_list_for_unordered_temp_inits */
 
 
+static void update_last_processed_dynamic_init(
+                                            a_dynamic_init_ptr dip,
+                                            a_dynamic_init_ptr *last_processed)
+/*
+The dynamic initialization entry pointed to by dip has been encountered
+while traversing an expression tree looking for unordered enk_temp_inits.
+Record it in *last_processed as the latest entry encountered.
+If dip is not the expected next entry, rearrange the destructions list.
+This comes up when user-defined conversions are added to arguments of
+an overloaded function call.  When *last_processed is NULL, assume the
+entry is in the right place; other entries from the expression will be
+moved following it as necessary when they come up (this is necessary
+in long lifetime temporaries mode, where there might be unrelated
+destructions preceding the first destruction from the expression).
+*/
+{
+  /* Process only entries on a lifetime list, and only those on the
+     current lifetime list */
+  if (dip->lifetime != NULL && dip->lifetime == curr_object_lifetime) {
+    if (*last_processed != NULL &&
+        dip->next_in_destruction_list != *last_processed) {
+      /* The destruction is not at the right place on the list.  Move it. */
+      a_dynamic_init_ptr tdip = curr_object_lifetime->destructions;
+      /* Remove dip from the destructions list. */
+      if (tdip == dip) {
+        /* It's the first entry on the list. */
+        curr_object_lifetime->destructions = dip->next_in_destruction_list;
+      } else {
+        /* It's not the first entry on the list.  Find the entry preceding
+           it. */
+        for (;; tdip = tdip->next_in_destruction_list) {
+#if CHECKING
+          if (tdip == NULL) {
+#if DEBUG 
+            fprintf(f_debug, "Dynamic init not found:\n");
+            db_dynamic_initializer(dip, 2);
+            db_object_lifetime(curr_object_lifetime);
+#endif /* DEBUG */
+            unexpected_condition_str2("update_last_processed_dynamic_init:",
+                                      "dip not found");
+          }  /* if */
+#endif /* CHECKING */
+          if (tdip->next_in_destruction_list == dip) break;
+        }  /* for */
+        tdip->next_in_destruction_list = dip->next_in_destruction_list;
+      }  /* if */
+      /* Insert dip in the list, preceding *last_processed. */
+      tdip = curr_object_lifetime->destructions;
+      if (tdip == *last_processed) {
+        /* Insert at the beginning of the list. */
+        curr_object_lifetime->destructions = dip;
+      } else {
+        /* Find the point at which the insert is to be done. */
+        for (;; tdip = tdip->next_in_destruction_list) {
+#if CHECKING
+          if (tdip == NULL) {
+#if DEBUG 
+            fprintf(f_debug, "Dynamic init to insert:\n");
+            db_dynamic_initializer(dip, 2);
+            fprintf(f_debug, "Dynamic init not found:\n");
+            db_dynamic_initializer(*last_processed, 2);
+            db_object_lifetime(curr_object_lifetime);
+#endif /* DEBUG */
+            unexpected_condition_str2("update_last_processed_dynamic_init:",
+                                      "insert point not found");
+          }  /* if */
+#endif /* CHECKING */
+          if (tdip->next_in_destruction_list == *last_processed) break;
+        }  /* for */
+        tdip->next_in_destruction_list = dip;
+      }  /* if */
+      dip->next_in_destruction_list = *last_processed;
+    }  /* if */
+    *last_processed = dip;
+  }  /* if */
+}  /* update_last_processed_dynamic_init */
+
+
 static a_boolean examine_dynamic_init_for_unordered_temp_inits(
                                          a_dynamic_init_ptr dip,
-                                         a_boolean          mark_all_unordered)
+                                         a_boolean          mark_all_unordered,
+                                         a_dynamic_init_ptr *last_processed)
 /*
 Examine the dynamic initialization entry pointed to by dip, and its subtree,
 looking for unordered enk_temp_init initializations.  Do nothing if
@@ -824,7 +912,8 @@ initialization entries as unordered.  If mark_all_unordered
 is TRUE, mark all enk_temp_init dynamic initializations as unordered
 (because of something detected higher up in the expression tree).
 Return TRUE if there are any temp inits (unordered or not) in the dynamic
-initialization.
+initialization.  *last_processed points to the latest dynamic initialization
+with destruction processed, and is updated on output.
 */
 {
   a_boolean any_temp_inits = FALSE;
@@ -839,13 +928,15 @@ initialization.
       case dik_call_returning_class_via_cctor:
         any_temp_inits = examine_expr_for_unordered_temp_inits(
                                                dip->variant.expression,
-                                               mark_all_unordered);
+                                               mark_all_unordered,
+                                               last_processed);
         break;
       case dik_constructor:
         any_temp_inits = examine_expr_list_for_unordered_temp_inits(
                                                dip->variant.constructor.args,
                                                /*seq_point_after_first=*/FALSE,
-                                               mark_all_unordered);
+                                               mark_all_unordered,
+                                               last_processed);
         break;
       case dik_nonconstant_aggregate:
         /* These can come up for an array new. */
@@ -858,7 +949,8 @@ initialization.
           check_assertion(di_con->kind==(a_constant_repr_kind)ck_dynamic_init);
           any_temp_inits = examine_dynamic_init_for_unordered_temp_inits(
                                                   di_con->variant.dynamic_init,
-                                                  mark_all_unordered);
+                                                  mark_all_unordered,
+                                                  last_processed);
         }
         break;
       case dik_bitwise_copy:
@@ -867,15 +959,17 @@ initialization.
         unexpected_condition_str(
        "examine_dynamic_init_for_unordered_temp_inits: bad dynamic init kind");
     }  /* switch */
+    /* Remember the last dynamic initialization processed. */
+    update_last_processed_dynamic_init(dip, last_processed);
   }  /* if */
   return any_temp_inits;
 }  /* examine_dynamic_init_for_unordered_temp_inits */
 
 
 static a_boolean examine_expr_for_unordered_temp_inits(
-                                           an_expr_node_ptr expr,
-                                           a_boolean        mark_all_unordered)
-
+                                         an_expr_node_ptr   expr,
+                                         a_boolean          mark_all_unordered,
+                                         a_dynamic_init_ptr *last_processed)
 /*
 Examine expr and its subtree looking for unordered enk_temp_init
 initializations.  If any are found, mark their dynamic initialization
@@ -883,12 +977,15 @@ entries as unordered.  If mark_all_unordered is TRUE, mark all
 enk_temp_init dynamic initializations as unordered (because of
 something detected higher up in the expression tree).  Return TRUE
 if there are any temp inits (unordered or not) in the expression.
+*last_processed points to the latest dynamic initialization with
+destruction processed, and is updated on output.
 */
 {
   a_boolean             any_temp_inits = FALSE, any_temp_inits_part_2;
   a_boolean             seq_point_after_first;
   an_expr_operator_kind op;
   a_dynamic_init_ptr    dip, dyn_init_to_free_storage;
+  a_dynamic_init_ptr    orig_last_processed = *last_processed;
 
   switch (expr->kind) {
     case enk_error:
@@ -913,12 +1010,14 @@ if there are any temp inits (unordered or not) in the expression.
       any_temp_inits = examine_expr_list_for_unordered_temp_inits(
                                         expr->variant.operation.operands,
                                         seq_point_after_first,
-                                        mark_all_unordered);
+                                        mark_all_unordered,
+                                        last_processed);
       break;
     case enk_temp_init:
       any_temp_inits = examine_dynamic_init_for_unordered_temp_inits(
                                         expr->variant.init.dynamic_init,
-                                        mark_all_unordered);
+                                        mark_all_unordered,
+                                        last_processed);
       /* An enk_temp_init only counts if it is on a lifetime list (which
          implies it has an associated destruction). */
       dip = expr->variant.init.dynamic_init;
@@ -931,7 +1030,8 @@ if there are any temp inits (unordered or not) in the expression.
       any_temp_inits = examine_expr_list_for_unordered_temp_inits(
                                         expr->variant.new_delete->arg,
                                         /*seq_point_after_first=*/FALSE,
-                                        mark_all_unordered);
+                                        mark_all_unordered,
+                                        last_processed);
       /* The strange dynamic initialization entry that describes the freeing
          of uninitialized storage on an exception is guaranteed to happen
          after the "new" arguments are evaluated (you can't free storage
@@ -942,6 +1042,9 @@ if there are any temp inits (unordered or not) in the expression.
       if (dyn_init_to_free_storage != NULL) {
         any_temp_inits = TRUE;
         if (mark_all_unordered) dyn_init_to_free_storage->unordered = TRUE;
+        /* Remember the last dynamic initialization processed. */
+        update_last_processed_dynamic_init(dyn_init_to_free_storage,
+                                           last_processed);
       }  /* if */
       /* The "new" arguments and the initialization are unordered with
          respect to one another.  If there were temp inits in the
@@ -949,16 +1052,21 @@ if there are any temp inits (unordered or not) in the expression.
          check them here. */
       any_temp_inits_part_2 = examine_dynamic_init_for_unordered_temp_inits(
                                         expr->variant.new_delete->dynamic_init,
-                                        mark_all_unordered || any_temp_inits);
+                                        mark_all_unordered || any_temp_inits,
+                                        last_processed);
+      /* The unordered flag in the dynamic init never has to be set because it
+         doesn't do destruction and therefore is never on a lifetime list. */
       if (any_temp_inits && any_temp_inits_part_2 && !mark_all_unordered) {
         /* The "new" arguments and the initialization each contain at
            least one temp init, so those are unordered with respect to
            one another.  Go back and mark the temp inits in the
            "new" arguments. */
+        *last_processed = orig_last_processed;
         (void)examine_expr_list_for_unordered_temp_inits(
                                         expr->variant.new_delete->arg,
                                         /*seq_point_after_first=*/FALSE,
-                                        /*mark_all_unordered=*/TRUE);
+                                        /*mark_all_unordered=*/TRUE,
+                                        last_processed);
         /* Also mark the dynamic initialization entry that frees storage as
            unordered. */
         if (dyn_init_to_free_storage != NULL) {
@@ -970,20 +1078,23 @@ if there are any temp inits (unordered or not) in the expression.
     case enk_throw:
       any_temp_inits = examine_dynamic_init_for_unordered_temp_inits(
                                         expr->variant.throw_info->dynamic_init,
-                                        mark_all_unordered);
+                                        mark_all_unordered,
+                                        last_processed);
       break;
     case enk_typeid:
       if (expr->variant.typeid_info.expr != NULL) {
         any_temp_inits = examine_expr_for_unordered_temp_inits(
                                                expr->variant.typeid_info.expr,
-                                               mark_all_unordered);
+                                               mark_all_unordered,
+                                               last_processed);
       }  /* if */
       break;
     case enk_runtime_sizeof:
       if (expr->variant.runtime_sizeof.expr != NULL) {
         any_temp_inits = examine_expr_for_unordered_temp_inits(
                                              expr->variant.runtime_sizeof.expr,
-                                             mark_all_unordered);
+                                             mark_all_unordered,
+                                             last_processed);
       }  /* if */
       break;
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
@@ -1041,6 +1152,7 @@ the expr_stack).  Also do nothing in C mode.
 */
 {
   an_object_lifetime_ptr lifetime = expr_stack->lifetime;
+  a_dynamic_init_ptr     last_processed = NULL;
 
   if (!C_mode() && expr_stack->prev == NULL) {
     /* Full expression in C++ mode. */
@@ -1049,7 +1161,8 @@ the expr_stack).  Also do nothing in C mode.
        end because of temp inits that get optimized out. */
     if (curr_expr_may_contain_unordered_temp_inits()) {
       (void)examine_expr_for_unordered_temp_inits(expr,
-                                                 /*mark_all_unordered=*/FALSE);
+                                                 /*mark_all_unordered=*/FALSE,
+                                                 &last_processed);
     }  /* if */
     /* If the current expression has an associated object lifetime with
        something in it, add an enk_object_lifetime node on the top of the
@@ -1079,14 +1192,17 @@ points to the dynamic initialization.
 */
 {
   an_object_lifetime_ptr lifetime = expr_stack->lifetime;
+  a_dynamic_init_ptr     last_processed = NULL;
 
   if (!C_mode()) {
     /* If the initialization contains more than one enk_temp_init, see if they
        are unordered with respect to one another.  This must be done at the
        end because of temp inits that get optimized out. */
     if (curr_expr_may_contain_unordered_temp_inits()) {
-      (void)examine_dynamic_init_for_unordered_temp_inits(dip,
-                                                 /*mark_all_unordered=*/FALSE);
+      (void)examine_dynamic_init_for_unordered_temp_inits(
+                                                  dip,
+                                                  /*mark_all_unordered=*/FALSE,
+                                                  &last_processed);
     }  /* if */
     if (lifetime != NULL) {
       if (dip != NULL) {
