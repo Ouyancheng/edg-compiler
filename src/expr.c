@@ -3922,6 +3922,15 @@ specification allow a variable-sized array as the top type.
              initialization. */
           dip = add_array_nonconstant_aggregate_init(dip, base_new_type,
                                                     effective_num_of_elements);
+          /* If exceptions are enabled, put in a destructor.  It's needed
+             to destroy elements if a throw is done part-way through the
+             initialization of the array. */
+          if (exceptions_enabled) {
+            dip->destructor = select_destructor(base_new_type, base_new_type,
+                                                &type_position,
+                                                /*honor_virtual=*/TRUE,
+                                         curr_expr_is_potentially_evaluated());
+          }  /* if */
         }  /* if */
       } else {
         /* Expression as initial value. */
