@@ -781,7 +781,7 @@ symbol_name:
              conversion functions. */
           return_type_needed = FALSE;
         }  /* if */
-        is_overloaded = is_overloaded_function(fund_sym);
+        is_overloaded = !C_mode() && is_overloaded_function(fund_sym);
       }  /* if */
       /* Put out the first part of the type if needed, but not for
          constructors, destructors, and conversion functions (the return type
