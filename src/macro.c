@@ -1743,7 +1743,7 @@ end_scan_for_macro_modifs:;
 do_argument_again:
           if (pp == NULL) {
             /* Too many arguments. */
-            if (microsoft_mode &&
+            if (microsoft_bugs &&
                 (curr_token == tok_comma || curr_token == tok_rparen)) {
               /* In Microsoft mode, it's not an extra argument if it's
                  empty (see test for empty argument below). */
@@ -1832,7 +1832,7 @@ do_argument_again:
             if (strict_ansi_mode) warning(ec_empty_macro_argument);
             /* Strangely, the Microsoft compiler ignores empty macro arguments.
                This has been verified with MSVC++ 4.2 and 5.0. */
-            if (microsoft_mode && curr_token == tok_comma) {
+            if (microsoft_bugs && curr_token == tok_comma) {
               (void)arg_get_token(&any_white_space_skipped);
               goto do_argument_again;
             }  /* if */
