@@ -419,7 +419,14 @@ this function is called; it is set to TRUE If the base class is found.
                                       (abi::__si_class_type_info *)obj_info;
     if (ptr == base_ptr && 
         matching_type_info(si_obj_info->__base_type, base_info)) {
+      /* The current class is the one we are looking for. */
       *found = TRUE;
+    } else {
+      /* The current class is not the one we are looking for.  Check its
+         base class. */
+      result = find_base_class_at_addr(ptr, base_ptr,
+                                       si_obj_info->__base_type,
+                                       base_info, found);
     }  /* if */
   } else if (typeid(*obj_info) == typeid(abi::__vmi_class_type_info)) {
     abi::__vmi_class_type_info *vmi_obj_info = 
