@@ -57,6 +57,11 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(714,db_sym)*/
 /*lint -esym(759,int_kind_name_full)*/
 /*lint -esym(765,int_kind_name_full)*/
+/*lint -esym(755,expect_error_str)*/
+/*lint -esym(755,expect_error_str2)*/
+/*lint -esym(755,check_assertion_or_expect_error)*/
+/*lint -esym(755,check_assertion_or_expect_error_str)*/
+/*lint -esym(755,check_assertion_or_expect_error_str2)*/
 
 /* Used in the main programs for the standalone c_gen_be, cp_gen_be, and
    il_display: */
