@@ -380,7 +380,7 @@ a_boolean conversion_from_class_possible(
                             a_type_ptr               dest_type,
                             a_builtin_type_kind_set  builtin_types_allowed,
                             a_boolean                need_lvalue_result,
-                            a_boolean                consider_convs_to_derived,
+                            a_boolean                is_reference_binding,
                             a_conv_descr             *conversion,
                             a_boolean                *ambiguous,
                             a_candidate_function_ptr *ambiguity_list);
@@ -412,7 +412,7 @@ extern a_boolean user_defined_conversion_possible(
                                         a_boolean    is_initialization,
                                         a_boolean    is_copy_initialization,
                                         a_boolean    need_lvalue_result,
-                                        a_boolean    consider_convs_to_derived,
+                                        a_boolean    is_reference_binding,
                                         a_conv_descr *conversion,
                                         a_conv_descr *ctor_arg_conversion,
                                         a_boolean    *failed);

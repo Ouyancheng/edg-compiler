@@ -5330,7 +5330,7 @@ error with that, set *err TRUE as well.
         if (conversion_from_class_possible(operand, eff_type_cast_to,
                                            (a_builtin_type_kind_set)BTK_NONE,
                                            /*need_lvalue_result=*/TRUE,
-                                           /*consider_convs_to_derived=*/TRUE,
+                                           /*is_reference_binding=*/TRUE,
                                            &conversion, &ambiguous,
                                            (a_candidate_function_ptr *)NULL)) {
           /* A user-defined conversion can be done. */
@@ -5347,7 +5347,7 @@ error with that, set *err TRUE as well.
                                             /*is_initialization=*/TRUE,
                                             /*is_copy_initialization=*/FALSE,
                                             /*need_lvalue_result=*/TRUE,
-                                            /*consider_convs_to_derived=*/TRUE,
+                                            /*is_reference_binding=*/TRUE,
                                             &conversion,
                                             (a_conv_descr *)NULL,
                                             &failed);
@@ -5364,7 +5364,7 @@ error with that, set *err TRUE as well.
                                              /*is_initialization=*/TRUE,
                                              /*is_copy_initialization=*/FALSE,
                                              /*need_lvalue_result=*/FALSE,
-                                           /*consider_convs_to_derived=*/FALSE,
+                                             /*is_reference_binding=*/FALSE,
                                              &conversion,
                                              &ctor_arg_conversion,
                                              &failed)) {

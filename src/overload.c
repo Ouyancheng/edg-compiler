@@ -39,7 +39,7 @@ static a_boolean conversion_to_class_possible(
                             a_boolean                is_initialization,
                             a_boolean                is_copy_initialization,
                             a_boolean                try_bitwise_copy,
-                            a_boolean                consider_convs_to_derived,
+                            a_boolean                is_reference_binding,
                             a_conv_descr             *conversion,
                             a_conv_descr             *ctor_arg_conversion,
                             a_boolean                *ambiguous,
@@ -992,7 +992,7 @@ arg_match->match_level to aml_none.
                                      /*is_initialization=*/TRUE,
                                      /*is_copy_initialization=*/TRUE,
                                      /*try_bitwise_copy=*/TRUE,
-                                     /*consider_convs_to_derived=*/FALSE,
+                                     /*is_reference_binding=*/FALSE,
                                      &arg_match->conversion,
                                      (a_conv_descr *)NULL,
                                      &ambiguous,
@@ -4069,7 +4069,7 @@ static void try_conversion_function_match(
                             a_type_ptr               dest_type,
                             a_builtin_type_kind_set  builtin_types_allowed,
                             a_boolean                need_lvalue_result,
-                            a_boolean                consider_convs_to_derived,
+                            a_boolean                is_reference_binding,
                             a_candidate_function_ptr *candidate_functions)
 /*
 See if a class operand source_operand can be converted by a conversion function
@@ -4077,9 +4077,9 @@ to either
 
 (a) dest_type, if dest_type is non-NULL (a standard conversion can be
     done after the conversion function, if necessary; if
-    consider_convs_to_derived is TRUE, also consider conversions to
-    a derived class of dest_type), and an lvalue of that type if
-    need_lvalue_result is TRUE, or
+    is_reference_binding is TRUE, the result will be bound to a
+    reference, so also consider conversions to a derived class of
+    dest_type), and an lvalue of that type if need_lvalue_result is TRUE, or
 (b) a built-in type in the set given by builtin_types_allowed, if
     dest_type is NULL.
 
@@ -4158,13 +4158,13 @@ is only used in C++ mode.
            via a standard conversion to the type we want. */
         compatible = TRUE;
         result_is_an_lvalue = FALSE;
-      } else if (consider_convs_to_derived &&
+      } else if (is_reference_binding &&
                  is_class_struct_union_type(dest_type) &&
                  is_class_struct_union_type(return_type) &&
                  (bcp = find_base_class_of(return_type, dest_type)) != NULL &&
                  !any_qualifier_missing(dest_type, return_type)) {
         /* The result of the conversion function can be a derived class
-           of dest_type (presumably, the returned value will be bound to a
+           of dest_type (because the returned value will be bound to a
            reference, so a derived --> base conversion can be done within the
            reference binding). */
         compatible = TRUE;
@@ -4766,7 +4766,7 @@ the target type to be used).
                                            (a_type_ptr)NULL,
                                      builtin_type_set_for_type_code(type_code),
                                            need_lvalue_result,
-                                           /*consider_convs_to_derived=*/FALSE,
+                                           /*is_reference_binding=*/FALSE,
                                            &conversion,
                                            &ambiguous,
                                            (a_candidate_function_ptr *)NULL) ||
@@ -4807,7 +4807,7 @@ the target type to be used).
                                            specific_type,
                                            (a_builtin_type_kind_set)BTK_NONE,
                                            need_lvalue_result,
-                                           /*consider_convs_to_derived=*/FALSE,
+                                           /*is_reference_binding=*/FALSE,
                                            &conversion,
                                            &ambiguous,
                                            (a_candidate_function_ptr *)NULL) ||
@@ -5689,7 +5689,7 @@ static a_boolean conversion_to_class_possible(
                             a_boolean                is_initialization,
                             a_boolean                is_copy_initialization,
                             a_boolean                try_bitwise_copy,
-                            a_boolean                consider_convs_to_derived,
+                            a_boolean                is_reference_binding,
                             a_conv_descr             *conversion,
                             a_conv_descr             *ctor_arg_conversion,
                             a_boolean                *ambiguous,
@@ -5705,15 +5705,16 @@ if FALSE, it's direct-initialization ("()"-form initialization).
 User-defined conversions on constructor arguments are considered only
 for direct-initialization.  The result is always an rvalue.  Bitwise
 copies are considered if try_bitwise_copy is TRUE.  If
-consider_convs_to_derived is TRUE, also consider conversions to
-derived classes of dest_type.  If ctor_arg_conversion is non-NULL,
-return a description of the conversion to be done on the constructor
-argument in *ctor_arg_conversion.  If more than one function matches,
-set *ambiguous to TRUE and return FALSE.  If ambiguity_list is
-non-NULL in that case, it is set to point to a list describing the
-set of ambiguous functions; the caller must free that list.
-*ambiguity_list is set to NULL to indicate a case that is undecidable
-because of an error.  This routine is only used in C++ mode.
+is_reference_binding is TRUE, the result will be bound to a reference,
+so also consider conversions to derived classes of dest_type.  If
+ctor_arg_conversion is non-NULL, return a description of the
+conversion to be done on the constructor argument in
+*ctor_arg_conversion.  If more than one function matches, set
+*ambiguous to TRUE and return FALSE.  If ambiguity_list is non-NULL in
+that case, it is set to point to a list describing the set of
+ambiguous functions; the caller must free that list.  *ambiguity_list
+is set to NULL to indicate a case that is undecidable because of an
+error.  This routine is only used in C++ mode.
 */
 {
   a_boolean                     okay, bitwise_copy_okay;
@@ -5802,7 +5803,7 @@ because of an error.  This routine is only used in C++ mode.
         try_conversion_function_match(source_operand, dest_type,
                                       (a_builtin_type_kind_set)BTK_NONE,
                                       /*need_lvalue_result=*/FALSE,
-                                      consider_convs_to_derived,
+                                      is_reference_binding,
                                       &candidate_functions);
       }  /* if */
     }  /* if */
@@ -5902,7 +5903,7 @@ a_boolean conversion_from_class_possible(
                             a_type_ptr               dest_type,
                             a_builtin_type_kind_set  builtin_types_allowed,
                             a_boolean                need_lvalue_result,
-                            a_boolean                consider_convs_to_derived,
+                            a_boolean                is_reference_binding,
                             a_conv_descr             *conversion,
                             a_boolean                *ambiguous,
                             a_candidate_function_ptr *ambiguity_list)
@@ -5912,9 +5913,9 @@ to either
 
 (a) dest_type, if dest_type is non-NULL (a standard conversion can be
     done after the conversion function, if necessary; if
-    consider_convs_to_derived is TRUE, also consider conversions to
-    a derived class of dest_type), and an lvalue of that type if
-    need_lvalue_result is TRUE, or
+    is_reference_binding is TRUE, the result will be bound to a
+    reference, so also consider conversions to a derived class of
+    dest_type), and an lvalue of that type if need_lvalue_result is TRUE, or
 (b) a built-in type in the set given by builtin_types_allowed, if
     dest_type is NULL,
 
@@ -5941,7 +5942,7 @@ conversion_to_class_possible).  This routine is only used in C++ mode.
   /* Find any viable conversion functions. */
   try_conversion_function_match(source_operand, dest_type,
                                 builtin_types_allowed, need_lvalue_result,
-                                consider_convs_to_derived,
+                                is_reference_binding,
                                 &candidate_functions);
   /* Of the viable functions, select the best. */
   select_best_candidate_functions(&candidate_functions,
@@ -6020,7 +6021,7 @@ set *processed to TRUE if the conversion is ambiguous.
     if (conversion_from_class_possible(operand, (a_type_ptr)NULL,
                                        builtin_types_allowed,
                                        /*need_lvalue_result=*/FALSE,
-                                       /*consider_convs_to_derived=*/FALSE,
+                                       /*is_reference_binding=*/FALSE,
                                        &conversion,
                                        &ambiguous, &ambiguity_list)) {
       /* The conversion is possible -- do it. */
@@ -6053,7 +6054,7 @@ a_boolean user_defined_conversion_possible(
                                         a_boolean    is_initialization,
                                         a_boolean    is_copy_initialization,
                                         a_boolean    need_lvalue_result,
-                                        a_boolean    consider_convs_to_derived,
+                                        a_boolean    is_reference_binding,
                                         a_conv_descr *conversion,
                                         a_conv_descr *ctor_arg_conversion,
                                         a_boolean    *failed)
@@ -6073,15 +6074,15 @@ FALSE.  If is_copy_initialization is TRUE, this is copy-initialization
 arguments are considered only for direct-initialization.
 need_lvalue_result is TRUE if the result is required to be an lvalue;
 otherwise, the result can be an lvalue or an rvalue.  If
-consider_convs_to_derived is TRUE, also consider conversions to
-derived classes of dest_type.  If ctor_arg_conversion is non-NULL,
-return a description of the conversion to be done on the constructor
-argument in *ctor_arg_conversion.  Note that this routine should only
-be called when the conversion must be done, not when we're just
-wondering if it can be done, because it issues errors.  See 12.3 in
-the ARM.  This routine is only called in C++ mode.  The destination
-type must not be a reference type (the caller should have rewritten
-that case).
+is_reference_binding is TRUE, the result will be bound to a reference,
+so also consider conversions to derived classes of dest_type.  If
+ctor_arg_conversion is non-NULL, return a description of the
+conversion to be done on the constructor argument in
+*ctor_arg_conversion.  Note that this routine should only be called
+when the conversion must be done, not when we're just wondering if it
+can be done, because it issues errors.  See 12.3 in the ARM.  This
+routine is only called in C++ mode.  The destination type must not be
+a reference type (the caller should have rewritten that case).
 */
 {
   a_boolean                okay = FALSE, ambiguous;
@@ -6107,7 +6108,7 @@ that case).
                                      is_initialization,
                                      is_copy_initialization,
                                      /*try_bitwise_copy=*/TRUE,
-                                     consider_convs_to_derived,
+                                     is_reference_binding,
                                      conversion, ctor_arg_conversion,
                                      &ambiguous, &ambiguity_list)) {
       /* A user-defined conversion (constructor or conversion function) or
@@ -6154,7 +6155,7 @@ that case).
     if (conversion_from_class_possible(source_operand, dest_type,
                                        (a_builtin_type_kind_set)BTK_NONE,
                                        need_lvalue_result,
-                                       consider_convs_to_derived,
+                                       is_reference_binding,
                                        conversion,
                                        &ambiguous, &ambiguity_list)) {
       /* There is a conversion function that converts from the source class
@@ -6220,7 +6221,7 @@ static a_boolean conversion_possible(
                                    a_boolean         is_initialization,
                                    a_boolean         try_user_conversions,
                                    a_boolean         need_lvalue_result,
-                                   a_boolean         consider_convs_to_derived,
+                                   a_boolean         is_reference_binding,
                                    an_error_code     incompatible_err,
                                    a_source_position *err_pos,
                                    a_conv_descr      *conversion)
@@ -6233,12 +6234,12 @@ the error incompatible_err at the position err_pos, change the operand
 to an error operand, and return FALSE.  This is copy-initialization
 ("="-form initialization).  Try user-defined conversions only if
 try_user_conversions is TRUE.  The result of the conversion must be
-an lvalue if need_lvalue_result is TRUE.  If
-consider_convs_to_derived is TRUE, also consider conversions to
-derived classes of dest_type.  See 3.3.16.1 in the ANSI C standard
-and 12.3 in the ARM.  Note that this routine should only be called
-when the conversion must be done, not when we're just wondering if it
-can be done, because it does operand transformations on
+an lvalue if need_lvalue_result is TRUE.  If is_reference_binding is
+TRUE, the result will be bound to a reference, so also consider
+conversions to derived classes of dest_type.  See 3.3.16.1 in the ANSI
+C standard and 12.3 in the ARM.  Note that this routine should only be
+called when the conversion must be done, not when we're just wondering
+if it can be done, because it does operand transformations on
 source_operand and issues errors.  The destination type must not be a
 reference type (the caller should have rewritten that case).
 orig_dest_type is the original destination type (not rewritten) for
@@ -6262,7 +6263,7 @@ use in error messages.
                                        is_initialization,
                                        /*is_copy_initialization=*/TRUE,
                                        need_lvalue_result,
-                                       consider_convs_to_derived,
+                                       is_reference_binding,
                                        conversion, (a_conv_descr *)NULL,
                                        &failed)) {
     /* A user-defined conversion can be done. */
@@ -6666,7 +6667,7 @@ static a_boolean conversion_usable_or_possible(
                                    a_boolean         is_initialization,
                                    a_boolean         try_user_conversions,
                                    a_boolean         need_lvalue_result,
-                                   a_boolean         consider_convs_to_derived,
+                                   a_boolean         is_reference_binding,
                                    an_error_code     incompatible_err,
                                    a_source_position *err_pos,
                                    a_conv_descr      **p_conversion,
@@ -6679,10 +6680,11 @@ Otherwise, set *p_conversion to point to *local_conversion (probably a
 local variable in the caller), and call conversion_possible to fill in
 the conversion information.  Try user-defined conversions only if
 try_user_conversions is TRUE.  The result of the conversion must be
-an lvalue if need_lvalue_result is TRUE.  If consider_convs_to_derived
-is TRUE, also consider conversions to derived classes of dest_type.  
-orig_dest_type is the destination type before any rewriting, for use
-in error messages.  The conversion is considered to be copy-initialization.
+an lvalue if need_lvalue_result is TRUE.  If is_reference_binding
+is TRUE, the result will be bound to a reference, so also consider
+conversions to derived classes of dest_type.  orig_dest_type is the
+destination type before any rewriting, for use in error messages.  The
+conversion is considered to be copy-initialization.
 */
 {
   a_boolean possible;
@@ -6697,7 +6699,7 @@ in error messages.  The conversion is considered to be copy-initialization.
     possible = conversion_possible(source_operand, dest_type, orig_dest_type,
                                    is_initialization, try_user_conversions,
                                    need_lvalue_result,
-                                   consider_convs_to_derived,
+                                   is_reference_binding,
                                    incompatible_err, err_pos,
                                    *p_conversion);
   }  /* if */
@@ -6735,7 +6737,7 @@ Try user-defined conversions only if try_user_conversions is TRUE.
   if (conversion_usable_or_possible(source_operand, dest_type, dest_type,
                                     is_initialization, try_user_conversions,
                                     /*need_lvalue_result=*/FALSE,
-                                    /*consider_convs_to_derived=*/FALSE,
+                                    /*is_reference_binding=*/FALSE,
                                     incompatible_err, err_pos,
                                     &conversion,
                                     &local_conversion)) {
@@ -7102,7 +7104,7 @@ the "=" semantics (copy-initialization).
                           /*is_initialization=*/TRUE,
                           /*try_user_conversions=*/TRUE,
                           /*need_lvalue_result=*/FALSE,
-                          /*consider_convs_to_derived=*/FALSE,
+                          /*is_reference_binding=*/FALSE,
                           err_code,
                           &source_operand->position,
                           &conversion)) {
@@ -7199,7 +7201,7 @@ static void convert_operand_into_temp(an_operand    *source_operand,
                                       a_type_ptr    orig_dest_type,
                                       a_boolean     try_user_conversions,
                                       a_boolean     need_lvalue_result,
-                                      a_boolean     consider_convs_to_derived,
+                                      a_boolean     is_reference_binding,
                                       a_conv_descr  *conversion,
                                       an_error_code incompatible_err,
                                       a_boolean     *err,
@@ -7217,12 +7219,13 @@ is TRUE if we really want to find a conversion function that will
 produce an lvalue result of the right kind (if that's not possible,
 a temporary is generated in the usual way, but the caller will
 probably issue an error unless anachronisms are allowed).
-If consider_convs_to_derived is TRUE, also consider conversions to
-derived classes of dest_type.  If conversion is non-NULL, the conversion
-is already known to be possible, and *conversion describes it.  This
-routine is used to convert the initial value in a reference initialization
-to a temporary that the reference will point to.  dest_type must not be a
-reference type.  Only used in C++.  This is copy-initialization.
+If is_reference_binding is TRUE, the temporary will be bound
+to a reference, so also consider conversions to derived classes of
+dest_type.  If conversion is non-NULL, the conversion is already known
+to be possible, and *conversion describes it.  This routine is used to
+convert the initial value in a reference initialization to a temporary
+that the reference will point to.  dest_type must not be a reference
+type.  Only used in C++.  This is copy-initialization.
 */
 {
   a_conv_descr  local_conversion;
@@ -7243,7 +7246,7 @@ reference type.  Only used in C++.  This is copy-initialization.
                                     /*is_initialization=*/TRUE,
                                     try_user_conversions,
                                     need_lvalue_result,
-                                    consider_convs_to_derived,
+                                    is_reference_binding,
                                     incompatible_err,
                                     &source_operand->position,
                                     &conversion,
@@ -7691,7 +7694,7 @@ initializer has previously been found to be acceptable, and
                                   /*need_lvalue_result=*/
                                      !binding_to_rvalue_allowed &&
                                      !any_cfront_mode() && !allow_anachronisms,
-                                  /*consider_convs_to_derived=*/TRUE,
+                                  /*is_reference_binding=*/TRUE,
                                   conversion, incompatible_err, &err,
                                   &temporary_used);
         if (err) {
@@ -7803,7 +7806,7 @@ found to be acceptable, and *conversion describes it.
                                     /*is_initialization=*/TRUE,
                                     /*try_user_conversions=*/TRUE,
                                     /*need_lvalue_result=*/FALSE,
-                                    /*consider_convs_to_derived=*/FALSE,
+                                    /*is_reference_binding=*/FALSE,
                                     err_code, &source_operand->position,
                                     &conversion,
                                     &local_conversion)) {
