@@ -4325,11 +4325,11 @@ special function kind (e.g., constructor, destructor), if any.
 
       /* Check the target type of the conversion -- which is the return type
          of rout_type. */
-      tp = return_type_of(rtn->type);
-      if (skip_typerefs(tp) == class_type) {
+      tp = skip_typerefs(return_type_of(rtn->type));
+      if (tp == class_type) {
         /* Converting to same type (possibly qualified) is not done. */
         is_usable = FALSE;
-      } else if (is_class_struct_union_type(tp)) {
+      } else if (is_immediate_class_type(tp)) {
         if (!cfront_2_1_mode && find_base_class_of(class_type, tp) != NULL) {
           /* An operator that converts from a derived class to a base class
              is allowed by cfront 2.1, but not by cfront 3.0. */
