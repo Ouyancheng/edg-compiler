@@ -1,5 +1,17 @@
 Version 2.35
 
+2/17/97  Conversion of float to integer when using simulated host integers
+
+When converting from a floating point value to an integer when
+AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG is TRUE, the flag that
+indicated whether an error occurred in the conversion was not
+being set properly.  This resulted in the failure to issue a
+diagnostic on cases such as the following, and could also result
+in spurious errors for valid conversions.  This has been fixed.
+
+  unsigned long x = -3.0;
+  char n[(unsigned long)-3.0];
+
 2/14/97  Setting of result_is_not_used flag with inlining
 
 In some cases when IL lowering was done (and particularly inlining), some

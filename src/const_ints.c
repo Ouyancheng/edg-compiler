@@ -1678,7 +1678,7 @@ so no checking is done.
       if (overflow) break;
     }  /* for */
   }  /* if */
-  *err = overflow || (is_signed && is_negative);
+  *err = overflow || (!is_signed && is_negative);
 }  /* conv_float_string_to_integer_value */
 #endif /* AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG */
 
