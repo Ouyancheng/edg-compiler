@@ -986,9 +986,12 @@ by octl.
     case tk_template_param:
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
       {
-        a_source_correspondence_ptr scp =
-           source_corresp_for_template_param(
+        a_source_correspondence_ptr scp = NULL;
+        if (type->variant.template_param.kind ==
+                                     (a_template_param_type_kind)tptk_param) {
+           scp = source_corresp_for_template_param(
                        &type->variant.template_param.extra_info->coordinates);
+        }  /* if */
         if (scp != NULL) {
           /* scp is preferred over the source correspondence stored in the
              type (presumably because the template parameter name is different
