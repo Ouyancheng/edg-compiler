@@ -8642,10 +8642,17 @@ void eliminate_unneeded_il_entries(a_scope_ptr scope)
     a_source_sequence_entry_ptr   ssep, next_ssep;
 
     for (ssep = scope->source_sequence_list; ssep != NULL; ssep = next_ssep) {
-      if (il_entry_prefix_of(ssep).keep_in_il) {
-        next_ssep = ssep->next;
-      } else {
-        drop_from_file_scope_source_sequence_list(ssep, &next_ssep);
+      next_ssep = ssep->next;
+      if (!il_entry_prefix_of(ssep).keep_in_il) {
+        a_byte_il_entry_kind  kind = ssep->entity.kind;
+        if (kind == (a_byte_il_entry_kind)iek_src_seq_secondary_decl) {
+          kind = ((a_src_seq_secondary_decl_ptr)ssep->entity.ptr)->entity.kind;
+        }  /* if */
+        if (kind == (a_byte_il_entry_kind)iek_variable ||
+            kind == (a_byte_il_entry_kind)iek_routine ||
+            kind == (a_byte_il_entry_kind)iek_type) {
+          drop_from_file_scope_source_sequence_list(ssep, &next_ssep);
+        }  /* if */
       }  /* if */
     }  /* if */
 #if DEBUG
