@@ -44,16 +44,12 @@ argument lists.
 #if CHECKING
     /* There is no way to produce a NULL template argument list, so the real
        code doesn't need to check for that.  Moreover, for a given class,
-       argument lists should always be exactly the same length. */
-    if (arg1 == NULL || arg2 == NULL) {
-      internal_error("equiv_template_arg_lists: NULL list");
+       argument lists should always be exactly the same length and have
+       the same sequence of type and constant arguments. */
+    if (arg1 == NULL || arg2 == NULL || arg1->is_type != arg2->is_type) {
+      internal_error("equiv_template_arg_lists: arg inconsistency");
     }  /* if */
 #endif /* CHECKING */
-    if (arg1->is_type != arg2->is_type) {
-      /* A type argument does not match a constant argument. */
-      equiv = FALSE;
-      break;
-    }  /* if */
     if (arg1->is_type) {
       /* Both are type arguments.  If they are not identical, this is a
          mismatch. */
