@@ -163,6 +163,15 @@ A warning is issued.
 #define ADDR_OF_BIT_FIELD_ALLOWED FALSE
 #endif /* ifndef ADDR_OF_BIT_FIELD_ALLOWED */
 
+/*
+Flag that is TRUE if, in C++ mode, support for exception handling is disabled
+by default.  (However it is set, exception handling is disabled in cfront
+compatibility mode).  This is the default value for the global flag
+exceptions_disabled, which can be modified by the "-x" command line option.
+*/
+#ifndef DEFAULT_EXCEPTIONS_DISABLED
+#define DEFAULT_EXCEPTIONS_DISABLED FALSE
+#endif /* ifndef DEFAULT_EXCEPTIONS_DISABLED */
 
 /******************************************************************************
 *                                                             \  ___  /       *

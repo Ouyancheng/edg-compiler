@@ -329,6 +329,8 @@ Process the arguments on the command line that invoked the compiler.
         cfront_compatibility_mode = TRUE;
         /* This option implies C++ dialect. */
         C_dialect = C_dialect_cplusplus;
+        /* It also implies that exception support is disabled. */
+        exceptions_disabled = TRUE;
         break;
       case 'n':
         /* Run just the front end to do syntax checking; do not run the back
@@ -406,8 +408,9 @@ Process the arguments on the command line that invoked the compiler.
         C_dialect = C_dialect_cplusplus;
         break;
       case 'x':
-        /* Disable support for exceptions. */
-        exceptions_disabled = TRUE;
+        /* Toggle the value (use the non-default value) of the flag that
+           determines whether support for exceptions is disabled. */
+        exceptions_disabled = !DEFAULT_EXCEPTIONS_DISABLED;
         break;
       case 'I':
         /* Include file directory, add to list. */
@@ -536,9 +539,14 @@ unknown_option:
       command_line_error(
       "instantiation mode (-t) can only be used when compiling C++");
     }  /* if */
-    if (exceptions_disabled) {
-      command_line_error(
+    if (exceptions_disabled != DEFAULT_EXCEPTIONS_DISABLED) {
+      if (exceptions_disabled) {
+        command_line_error(
         "support for exceptions can be disabled (-x) only when compiling C++");
+      } else {
+        command_line_error(
+         "support for exceptions can be enabled (-x) only when compiling C++");
+      }  /* if */
     }  /* if */
   }  /* if */
   if (strict_ansi_mode) {
@@ -572,11 +580,22 @@ unknown_option:
   anachronism_error_severity = allow_anachronisms ? es_warning : es_error;
   /* Choose the style of preprocessing. */
   pcc_preprocessing_mode = (C_dialect == C_dialect_pcc);
+  if (cfront_compatibility_mode) {
+    /* In cfront compatibility mode support for exceptions should be
+       disabled. */
+    if (DEFAULT_EXCEPTIONS_DISABLED && !exceptions_disabled) {
+      /* Exception support must have been enabled by a command line option. */
+      command_line_error(
+               "support for exceptions cannot be enabled (-x) in cfront mode");
+    }  /* if */
+    exceptions_disabled = TRUE;
 #if OLD_STYLE_PREPROCESSING_IN_CFRONT_MODE
-  /* When configured that way, use old-style preprocessing for cfront
-     compatibility mode. */
-  if (cfront_compatibility_mode) pcc_preprocessing_mode = TRUE;
+    /* When configured that way, use old-style preprocessing for cfront
+       compatibility mode. */
+    pcc_preprocessing_mode = TRUE;
 #endif /* OLD_STYLE_PREPROCESSING_IN_CFRONT_MODE */
+  }  /* if */
+
   /* Add the default directories to the end of the include search path.
      The list is then any -I directories, in the order they were specified,
      and the default directories at the end. */

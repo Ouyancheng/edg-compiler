@@ -137,14 +137,20 @@ EXTERN a_boolean
 			   indicates that the definition should NOT be
 			   made. */
 EXTERN a_boolean
-		exceptions_disabled /* = FALSE */;
+		exceptions_disabled
+#if VAR_INITIALIZERS
+                                    = DEFAULT_EXCEPTIONS_DISABLED
+#endif /* VAR_INITIALIZERS */
+                                                                 ;
 			/* TRUE if a C++ source program should be compiled
-			   without any support for exception handling.  If an
-			   exception construct is encountered (a try block, a
-			   throw expression, or a throw specification on a
-			   function declaration) an error will be issued.  In
-			   C++ mode it is FALSE by default but is set to TRUE
-			   by the -x option; it has no meaning in C mode. */
+			   without any support for exception handling (in
+			   which case, an error will be issued whenever an
+			   exception construct -- a try block, a throw
+			   expression, or a throw specification on a function
+			   declaration -- is encountered.  The default is
+			   configurable, and the -x option toggles the
+			   default value.  In cfront mode it is always FALSE.
+			   It has no meaning in C mode. */
 EXTERN a_boolean
 		targ_has_signed_chars
 #if VAR_INITIALIZERS
