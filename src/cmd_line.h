@@ -219,6 +219,9 @@ typedef enum /*an_option_kind*/ {
   optk_upc_strict_access,
   optk_upc_threads,
 #endif /* UPC_EXTENSIONS_ALLOWED */
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+  optk_fixed_point,
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -681,6 +684,20 @@ EXTERN a_boolean
 			/* TRUE if C99 compound literals, which look like a
 			   cast including a brace-enclosed initializer, e.g.,
 			   (int []){1, 2, 3}, should be accepted. */
+
+EXTERN a_boolean
+		fixed_point_allowed
+#if VAR_INITIALIZERS
+		                    =
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+		                      DEFAULT_FIXED_POINT_ALLOWED
+#else /* !FIXED_POINT_EXTENSIONS_ALLOWED */
+		                      FALSE
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* VAR_INITIALIZERS */
+                                                                 ;
+			/* TRUE if the fixed-point extensions of ISO TR 18037
+			   (aka. "Embedded C") should be accepted. */
 
 EXTERN a_boolean
 		pointer_to_member_call_optimization_allowed

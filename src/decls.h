@@ -106,6 +106,17 @@ extensions.
   || ((tok) == tok_c99_bool)
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
+/*
+Macro to be used in conjunction with is_type_keyword to check for fixed-point
+extensions.
+*/
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+#define or_is_fixed_point_type_keyword(tok)                               \
+  || ((tok) == tok_accum || (tok) == tok_fract || (tok) == tok_saturating)
+#else /* !FIXED_POINT_EXTENSIONS_ALLOWED */
+#define or_is_fixed_point_type_keyword(tok)  /* Nothing */
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+
 
 /*
 Macro that is TRUE if the indicated token is a type keyword, e.g., int.
@@ -119,7 +130,8 @@ If you change this, see also type_keyword.
    (tok) == tok_unsigned || (tok) == tok_wchar_t  ||                  \
    (tok) == tok_bool                                                  \
    or_is_c99_type_keyword(tok)                                        \
-   or_is_microsoft_type_keyword(tok))
+   or_is_microsoft_type_keyword(tok)                                  \
+   or_is_fixed_point_type_keyword(tok)) 
 
 /*
 Macro to be used in conjunction with is_class_type_keyword to check for

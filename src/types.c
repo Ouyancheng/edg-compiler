@@ -77,6 +77,10 @@ predicates.
    !(tp)->variant.integer.wchar_t_type && \
    !(tp)->variant.integer.bool_type)
 
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+#define is_fixed_point(tp) ((tp)->kind == (a_type_kind)tk_fixed_point)
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+
 /* The floating types comprise all sizes of float. */
 #define is_real_floating(tp) ((tp)->kind == (a_type_kind)tk_float)
 
@@ -88,9 +92,19 @@ predicates.
 #else /* !C99_IL_EXTENSIONS_SUPPORTED */
 #define is_floating(tp) (is_real_floating(tp))
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+#define or_is_fixed_point_type(tp)                                    \
+  || (is_fixed_point(tp))
+#else /* !FIXED_POINT_EXTENSIONS_ALLOWED */
+#define or_is_fixed_point_type(tp)  /* Nothing */
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+
 /* Arithmetic types are the integral types plus the floating types; in C++
-   mode enum types are not integral. */
-#define is_arithmetic_or_enum(tp) (is_integral_or_enum(tp) || is_floating(tp))
+   mode enum types are not integral.  Fixed-point types (an extension
+   available in some configurations) are also arithmetic types. */
+#define is_arithmetic_or_enum(tp)                                     \
+  (is_integral_or_enum(tp) || is_floating(tp) or_is_fixed_point_type(tp))
 
 /* The pointer type is simply the pointer type. */
 #define is_pointer(tp) ((tp)->kind == (a_type_kind)tk_pointer &&      \
@@ -407,6 +421,18 @@ Return TRUE if the type is a character type (signed, unsigned, or "plain").
   return (is_character(tp));
 }  /* is_character_type */
 
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+
+a_boolean is_fixed_point_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is a fixed-point type.
+*/
+{
+  tp = skip_typerefs(tp);
+  return(is_fixed_point(tp));
+}  /* is_fixed_point_type */
+
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
 
 a_boolean is_floating_type(a_type_ptr tp)
 /*
@@ -2045,6 +2071,18 @@ set, leave it alone.  Also compute and set the alignment requirement.
         get_integer_size_and_alignment(type_ptr->variant.integer.int_kind,
                                        &size, &alignment);
         break;
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+      case tk_fixed_point:
+        size =
+          targ_sizeof_fixed_point[type_ptr->variant.fixed_point.is_unsigned]
+                                 [(int)type_ptr->variant.fixed_point.precision]
+                                 [type_ptr->variant.fixed_point.is_fract_type];
+        alignment =
+         targ_alignof_fixed_point[type_ptr->variant.fixed_point.is_unsigned]
+                                 [(int)type_ptr->variant.fixed_point.precision]
+                                 [type_ptr->variant.fixed_point.is_fract_type];
+        break;
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
       case tk_float:
 #if C99_IL_EXTENSIONS_SUPPORTED
       case tk_complex:
@@ -2901,6 +2939,20 @@ for more information.
             identical = seek_type_corresp(type_1, type_2);
           }  /* if */
           break;
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+        case tk_fixed_point:
+          if (type_1->variant.fixed_point.precision ==
+                                       type_2->variant.fixed_point.precision &&
+              type_1->variant.fixed_point.is_unsigned ==
+                                     type_2->variant.fixed_point.is_unsigned &&
+              type_1->variant.fixed_point.is_fract_type ==
+                                   type_2->variant.fixed_point.is_fract_type &&
+              type_1->variant.fixed_point.saturating ==
+                                      type_2->variant.fixed_point.saturating) {
+            identical = TRUE;
+          }  /* if */
+          break;
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
         case tk_float:
 #if C99_IL_EXTENSIONS_SUPPORTED
         case tk_complex:
@@ -3387,6 +3439,21 @@ for exact pointer equality.
             }  /* if */
           }  /* if */
           break;
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+        case tk_fixed_point:
+          if (type_1->variant.fixed_point.precision ==
+                                       type_2->variant.fixed_point.precision &&
+              type_1->variant.fixed_point.is_unsigned ==
+                                     type_2->variant.fixed_point.is_unsigned &&
+              type_1->variant.fixed_point.is_fract_type ==
+                                   type_2->variant.fixed_point.is_fract_type &&
+              type_1->variant.fixed_point.saturating ==
+                                      type_2->variant.fixed_point.saturating) {
+            /* FIXME: Check if there is more to it. */
+            compat = TRUE;
+          }  /* if */
+          break;
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
         case tk_float:
 #if C99_IL_EXTENSIONS_SUPPORTED
         case tk_complex:
@@ -6135,6 +6202,9 @@ is allocated, it is allocated in the file scope.
         case tk_unknown:
         case tk_void:
         case tk_integer:
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+        case tk_fixed_point:
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
 #if C99_IL_EXTENSIONS_SUPPORTED
         case tk_complex:
         case tk_imaginary:
@@ -7099,6 +7169,9 @@ its parameters?).
     switch (type_ptr->kind) {
       case tk_error:
       case tk_void:
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+      case tk_fixed_point:
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
       case tk_float:
 #if C99_IL_EXTENSIONS_SUPPORTED
       case tk_complex:
@@ -7916,6 +7989,9 @@ a new tree is built.
     case tk_void:
     case tk_float:
     case tk_integer:
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+    case tk_fixed_point:
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
 #if C99_IL_EXTENSIONS_SUPPORTED
     case tk_complex:
     case tk_imaginary:

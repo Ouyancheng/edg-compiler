@@ -5699,12 +5699,12 @@ end_skip:
 
 static a_token_kind scan_number(void)
 /*
-Scan a numeric token (integer or floating constant).  Return the kind of
-token.
+Scan a numeric token (integer, fixed-point, or floating constant).  Return
+the kind of token.
 */
 {
   register char	ch;
-  register enum {k_decimal, k_octal, k_hex, k_float} kind;
+  register enum {k_decimal, k_octal, k_hex, k_fixed_point, k_float} kind;
   register a_token_kind 
 		ctoken;
   a_boolean     err = FALSE;
@@ -5712,6 +5712,12 @@ token.
   an_error_code	err_code;
   a_boolean	is_hex_fp_value = FALSE;
   a_boolean	any_hex_digits = FALSE;
+  a_boolean     u_suffix_seen = FALSE;
+  int           l_suffix_seen = 0;
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+  a_boolean     l_before_u_suffix = FALSE;
+  a_boolean     fixed_point_ruled_out = FALSE;
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
 
   /* Collect the characters of the constant, and figure out where it
      ends.  In the process, figure out what kind of token it is.
@@ -5786,44 +5792,47 @@ token.
 #if LONG_LONG_ALLOWED
   /* Or "ll" for long long. */
 #endif /* LONG_LONG_ALLOWED */
-  { a_boolean u_seen = FALSE;
-    int       l_seen = 0;
-    for (;; curr_char_loc++) {
-      ch = *curr_char_loc;
-      if ((ch == 'u' || ch == 'U') && !u_seen) {
-        u_seen = TRUE;
-      } else if ((ch == 'l' || ch == 'L') &&
+  for (;; curr_char_loc++) {
+    ch = *curr_char_loc;
+    if ((ch == 'u' || ch == 'U') && !u_suffix_seen) {
+      u_suffix_seen = TRUE;
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+      l_before_u_suffix = (l_suffix_seen > 0);
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+    } else if ((ch == 'l' || ch == 'L') &&
 #if LONG_LONG_ALLOWED
-                 l_seen < 2
+               l_suffix_seen < 2
 #else /* !LONG_LONG_ALLOWED */
-                 l_seen < 1
+               l_suffix_seen < 1
 #endif /* LONG_LONG_ALLOWED */
-                           ) {
-        l_seen++;
-      } else {
-        break;
-      }  /* if */
-    }  /* for */
+                                ) {
+      l_suffix_seen++;
+    } else {
+      break;
+    }  /* if */
+  }  /* for */
 #if LONG_LONG_ALLOWED
-    if (strict_ansi_mode && !long_long_is_standard &&
-        !fetch_pp_tokens && l_seen == 2) {
-      /* "long long" type is nonstandard. */
-      diagnostic_at_line_pos(strict_ansi_discretionary_severity,
-                             ec_nonstd_long_long, start_of_curr_token);
-    }  /* if */
+  if (strict_ansi_mode && !long_long_is_standard &&
+      !fetch_pp_tokens && l_suffix_seen == 2) {
+    /* "long long" type is nonstandard. */
+    diagnostic_at_line_pos(strict_ansi_discretionary_severity,
+                           ec_nonstd_long_long, start_of_curr_token);
+  }  /* if */
 #endif /* LONG_LONG_ALLOWED */
-    if (microsoft_mode && l_seen == 0 &&
-        (*curr_char_loc == 'i' || *curr_char_loc == 'I') &&
-        isdigit((unsigned char)curr_char_loc[1])) {
-      /* The Microsoft compiler allows a suffix like "i32" indicating a
-         32-bit integer.  "ui32" indicates an unsigned 32-bit integer (for
-         that case, the "u" was scanned above). */
-      do {
-        curr_char_loc++;
-      } while (isdigit((unsigned char)(*curr_char_loc)));
-    }  /* if */
-  }
-  goto constant_accumulated;
+  if (microsoft_mode && l_suffix_seen == 0 &&
+      (*curr_char_loc == 'i' || *curr_char_loc == 'I') &&
+      isdigit((unsigned char)curr_char_loc[1])) {
+    /* The Microsoft compiler allows a suffix like "i32" indicating a
+       32-bit integer.  "ui32" indicates an unsigned 32-bit integer (for
+       that case, the "u" was scanned above). */
+    do {
+      curr_char_loc++;
+    } while (isdigit((unsigned char)(*curr_char_loc)));
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+    fixed_point_ruled_out = TRUE;
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+  }  /* if */
+  goto fixed_point_suffix;
 
 float_accum_1:
   /* At the decimal point in a floating constant.  Take whatever digits
@@ -5885,11 +5894,64 @@ end_float_accum:
   is_hex_fp_value = kind == k_hex;
   kind = k_float;
   /* Check for a final suffix of "f" or "l", in upper or lower case. */
-  if ((ch = *curr_char_loc) == 'f' || ch == 'F' || ch == 'l' || ch == 'L' ) {
-     curr_char_loc++;
+  if ((ch = *curr_char_loc) == 'f' || ch == 'F' || ch == 'l' || ch == 'L') {
+    curr_char_loc++;
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+    if (ch == 'l' || ch == 'L') {
+      ++l_suffix_seen;
+    } else {
+      fixed_point_ruled_out = TRUE;
+    }  /* if */
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
   }  /* if */
 
-constant_accumulated:
+fixed_point_suffix:
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+  if (fixed_point_allowed && !fixed_point_ruled_out) {
+    /* Check for a fixed-point constant suffix, which must be of the following
+       general form ([] = optional, {} = required):
+           [ u | U ]  [ h | H | l | L ]  { k | K | r | R }
+       - 'u' or 'U' indicates an unsigned type.
+       - 'h' or 'H' indicates "short" precision.
+       - 'l' or 'L' indicates "long" precision.
+       - 'k' or 'K' indicates an _Accum type.
+       - 'r' or 'R' indicates a _Fract type.
+    */
+    ch = *curr_char_loc;
+    if (!u_suffix_seen && (ch == 'u' || ch == 'U')) {
+      /* The 'u' or 'U' might have appeared while scanning what at first
+         seemed like an integer literal.  Don't allow a second one. */
+      curr_char_loc++;
+      ch = *curr_char_loc;
+      u_suffix_seen = TRUE;
+      l_before_u_suffix = (l_suffix_seen > 0);
+    }  /* if */
+    if (l_suffix_seen == 0 && (ch == 'l' || ch == 'L')) {
+      /* The 'l' or 'L' might have appeared while scanning what at first
+         seemed like an integer or floating-point literal.  Don't allow an
+         additional one. */
+      curr_char_loc++;
+      ch = *curr_char_loc;
+      ++l_suffix_seen;
+    }  /* if */
+    if (l_suffix_seen == 0 && (ch == 'h' || ch == 'H')) {
+      curr_char_loc++;
+      ch = *curr_char_loc;
+    }  /* if */
+    if (ch == 'k' || ch == 'K' || ch == 'r' || ch == 'R') {
+      curr_char_loc++;
+      kind = k_fixed_point;
+    }  /* if */
+    if (kind == k_fixed_point && l_before_u_suffix) {
+      /* Unlike with integer literals, any 'u'/'U' suffix must precede any
+         'l'/'L' suffix in fixed-point literals. */
+      diagnostic_at_line_pos(es_discretionary_error,
+                             ec_nonstd_fixed_point_suffix,
+                             start_of_curr_token);
+    }  /* if */
+  }  /* if */
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+
   /* Here, start_of_curr_token marks the beginning, and curr_char_loc one
      past the end of the constant.  kind and ctoken are set correctly.
      The suffix (if any) has been accumulated. */
@@ -5899,10 +5961,13 @@ constant_accumulated:
   if (debug_level >= 4) {
     char *ks;
     switch (kind) {
-      case k_decimal:   ks = "decimal"; break;
-      case k_octal:     ks = "octal";   break;
-      case k_hex:       ks = "hex";     break;
-      case k_float:     ks = "float";   break;
+      case k_decimal:     ks = "decimal";     break;
+      case k_octal:       ks = "octal";       break;
+      case k_hex:         ks = "hex";         break;
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+      case k_fixed_point: ks = "fixed-point"; break;
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+      case k_float:       ks = "float";       break;
 #if CHECKING
       default:          ks = "<bad kind>";
 #endif /* CHECKING */
@@ -5989,6 +6054,12 @@ constant_accumulated:
         conv_integer_literal(16, &err_code, &err_pos);
         ctoken = tok_int_constant;
         break;
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+      case k_fixed_point:
+        conv_fixed_point_literal(is_hex_fp_value, &err_code, &err_pos);
+        ctoken = tok_fixed_point_constant;
+        break;
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
       case k_float:
         conv_float_literal(is_hex_fp_value, &err_code, &err_pos);
         ctoken = tok_float_constant;

@@ -3066,24 +3066,22 @@ operand, to be transformed into a call of the appropriate "put"
 function.  The result is placed in *result.
 */
 {
-  an_operand one_operand;
-  a_constant one_constant;
-  a_type_ptr result_type;
-
+  an_operand             one_operand;
+  a_constant             one_constant;
+  a_type_ptr             result_type;
+  an_expr_operator_kind  op;
   /* Make a constant "1" of the right type. */
   set_integer_constant(&one_constant, (a_host_large_integer)1L,
                        (an_integer_kind)ik_int);
   make_constant_operand(&one_constant, &one_operand);
-  /* Determine the operation type. */
+  /* Determine the result type. */
   result_type = determine_arithmetic_conversions(operand, &one_operand);
-  /* Change the operands to the operation type. */
-  change_binary_operand_types(result_type, operand, &one_operand);
+  /* Change the type of the operands as needed (usually to the result type). */
+  op = which_binary_operator(is_increment ? tok_plus : tok_minus, result_type);
+  change_binary_operand_types(result_type, operand, &one_operand, op);
   /* Generate the IL for the operation. */
-  do_binary_operation(which_binary_operator(is_increment ? tok_plus :
-                                                           tok_minus,
-                                            operand->type),
-                      operand, &one_operand,
-                      result_type, result, operator_position);
+  do_binary_operation(op, operand, &one_operand, result_type, result,
+                      operator_position);
   /* Add a call of the appropriate "put" routine. */
   rewrite_property_field_reference(operand_clone, result);
   copy_operand(operand_clone, result);
@@ -10100,8 +10098,8 @@ be of integral type.  See section 3.3.5 of the standard.
     {
       adjust_operands_for_microsoft_int_long_bug(operand_1, &operand_2);
       result_type = determine_arithmetic_conversions(operand_1, &operand_2);
-      change_binary_operand_types(result_type, operand_1, &operand_2);
       op = which_binary_operator(save_token, result_type);
+      change_binary_operand_types(result_type, operand_1, &operand_2, op);
     }  /* if */
     if ((save_token == tok_divide || save_token == tok_remainder) &&
         curr_expr_is_evaluated() &&
@@ -10143,7 +10141,6 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
   a_boolean             err = FALSE, processed = FALSE;
   a_type_ptr            result_type;
   a_type_ptr            operation_type;
-  a_boolean             imaginary_arithmetic = FALSE;
 
   db_enter(4, "scan_add_operator");
 
@@ -10335,8 +10332,7 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
             determine_imaginary_operation_type(save_token,
                                                operand_1, &operand_2,
                                                &result_type, &op)) {
-          imaginary_arithmetic = TRUE;
-          operation_type = NULL;  /* Not used. */
+          operation_type = NULL;
         } else
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
         /* Do not insert code here. */
@@ -10360,23 +10356,24 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
     if (err) {
       make_error_operand(result);
     } else {
+      /* Determine the expression operator for this case. */
+      if (pointer_difference) {
+        /* Pointer - pointer is a special case, with its own operator. */
+        op = (an_expr_operator_kind)eok_pdiff;
+      } else if (operation_type == NULL) {
+        /* op is already set. */
+      } else {
+        op = which_binary_operator(save_token, operation_type);
+      }  /* if */
       /* Promote the operands if necessary. */
       /* Note that integral promotions are NOT done on the integer in
          "pointer + integer" and "pointer - integer".  This is as
          the standard wants it. */
       if (both_operands_are_arithmetic || pointer_difference) {
-        if (!imaginary_arithmetic) {  /*lint !e774*/
-          change_binary_operand_types(operation_type, operand_1, &operand_2);
+        if (operation_type != NULL) {
+          change_binary_operand_types(operation_type, operand_1, &operand_2,
+                                      op);
         }  /* if */
-      }  /* if */
-      /* Determine the expression operator for this case. */
-      if (pointer_difference) {
-        /* Pointer - pointer is a special case, with its own operator. */
-        op = (an_expr_operator_kind)eok_pdiff;
-      } else if (imaginary_arithmetic) {  /*lint !e774*/
-        /* op is already set. */
-      } else {
-        op = which_binary_operator(save_token, operation_type);
       }  /* if */
       do_binary_operation(op, operand_1, &operand_2,
                           result_type, result, &operator_position);
@@ -10462,7 +10459,8 @@ Scan the "<<" and ">>" operators.  See section 3.3.7 of the standard.
          the result is that of the left operand."  This has the effect
          that a "long" shift count will force the shift to be done as long. */
       result_type = determine_arithmetic_conversions(operand_1, &operand_2);
-      change_binary_operand_types(result_type, operand_1, &operand_2);
+      op = which_binary_operator(save_token, result_type);
+      change_binary_operand_types(result_type, operand_1, &operand_2, op);
       cast_operand(integer_type((an_integer_kind)ik_int), &operand_2,
                    /*check_cast_access=*/TRUE, /*is_implicit_cast=*/TRUE,
                    /*is_reinterpret_cast=*/FALSE,
@@ -10472,6 +10470,8 @@ Scan the "<<" and ">>" operators.  See section 3.3.7 of the standard.
          the result is the type of the left operand. */
       promote_operand(operand_1);
       promote_operand(&operand_2);
+      result_type = operand_1->type;
+      op = which_binary_operator(save_token, result_type);
     }  /* if */
     if (curr_expr_is_evaluated() && is_constant_operand(&operand_2) &&
         !is_constant_operand(operand_1) && !is_error_operand(operand_1) &&
@@ -10483,8 +10483,6 @@ Scan the "<<" and ">>" operators.  See section 3.3.7 of the standard.
                         &err_code);
       if (err_code != ec_no_error) pos_warning(err_code, &operand_2.position);
     }  /* if */
-    result_type = operand_1->type;
-    op = which_binary_operator(save_token, result_type);
     do_binary_operation(op, operand_1, &operand_2, result_type, result,
                         &error_position);
   }  /* if */
@@ -10695,8 +10693,9 @@ standard.
     }  /* if */
     /* Determine the result type. */
     result_type = boolean_result_type();
+    op = which_binary_operator(save_token, operation_type);
     /* Convert the operands to a common type. */
-    change_binary_operand_types(operation_type, operand_1, &operand_2);
+    change_binary_operand_types(operation_type, operand_1, &operand_2, op);
     if (funny_unsigned_comparison) {
       /* Check for pointless comparisons of unsigned integers against 0,
          and give a warning.  The pointless cases are
@@ -10727,7 +10726,6 @@ standard.
         }  /* if */
       }  /* if */
     }  /* if */
-    op = which_binary_operator(save_token, operation_type);
     do_binary_operation(op, operand_1, &operand_2, result_type, result,
                         &operator_position);
   }  /* if */
@@ -10848,7 +10846,8 @@ Scan the "==" and "!=" operators.  See section 3.3.9 in the standard.
     }  /* if */
 
     result_type = boolean_result_type();
-    change_binary_operand_types(operation_type, operand_1, &operand_2);
+    op = which_binary_operator(save_token, operation_type);
+    change_binary_operand_types(operation_type, operand_1, &operand_2, op);
     if (funny_unsigned_comparison) {
       /* Check for pointless comparisons of unsigned integers against
          negative constants:
@@ -10866,7 +10865,6 @@ Scan the "==" and "!=" operators.  See section 3.3.9 in the standard.
         pos_warning(ec_unsigned_compare_with_negative, &operator_position);
       }  /* if */
     }  /* if */
-    op = which_binary_operator(save_token, operation_type);
     do_binary_operation(op, operand_1, &operand_2, result_type, result,
                         &operator_position);
   }  /* if */
@@ -10996,9 +10994,10 @@ Scan the GNU C++ minimum and maximum operators ("<?" and ">?").
         result_type = determine_arithmetic_conversions(operand_1, &operand_2);
       }  /* if */
     }  /* if */
+    op = which_binary_operator(save_token, result_type);
     if (!result_is_lvalue) {
       /* Convert the operands to a common type. */
-      change_binary_operand_types(result_type, operand_1, &operand_2);
+      change_binary_operand_types(result_type, operand_1, &operand_2, op);
     }  /* if */
     if (funny_unsigned_comparison) {
       /* Check for pointless comparisons of unsigned integers against 0,
@@ -11023,7 +11022,6 @@ Scan the GNU C++ minimum and maximum operators ("<?" and ">?").
         }  /* if */
       }  /* if */
     }  /* if */
-    op = which_binary_operator(save_token, result_type);
     if (!result_is_lvalue) {
       do_binary_operation(op, operand_1, &operand_2,
                           result_type, result, &operator_position);
@@ -11109,8 +11107,8 @@ Scan the "&", "^", and "|" operators.  See sections 3.3.10, 3.3.11, and
     (void)check_integral_or_enum_operand(&operand_2);
     adjust_operands_for_microsoft_int_long_bug(operand_1, &operand_2);
     result_type = determine_arithmetic_conversions(operand_1, &operand_2);
-    change_binary_operand_types(result_type, operand_1, &operand_2);
     op = which_binary_operator(save_token, result_type);
+    change_binary_operand_types(result_type, operand_1, &operand_2, op);
     do_binary_operation(op, operand_1, &operand_2, result_type, result,
                         &operator_position);
   }  /* if */
@@ -12062,7 +12060,13 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
         /* The GNU C binary conditional case (without a "middle operand")
            may also arrive here.  In that case, p_operand_2 is NULL, while
            operand_2 is a copy of the controlling operand. */
-        change_binary_operand_types(result_type, p_operand_2, &operand_3);
+        an_expr_operator_kind  op = (an_expr_operator_kind)eok_question;
+#if GNU_EXTENSIONS_ALLOWED
+        if (binary_conditional) {
+          op = (an_expr_operator_kind)eok_binary_question;
+        }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+        change_binary_operand_types(result_type, p_operand_2, &operand_3, op);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -12659,6 +12663,7 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_operator:
     case tok_this:
     case tok_float_constant:
+    case tok_fixed_point_constant:
     case tok_string_literal:
     case tok_int_constant:
     case tok_char_constant:
@@ -14482,6 +14487,8 @@ see expr.h).
       /* The EDG-specific token "__I__" representing an imaginary value such
          that __I__*__I__ == -1. */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+    case tok_fixed_point_constant:
+      /* FIXME */
     case tok_float_constant:
       { a_boolean float_con_allowed = TRUE;
         if (curr_expr_kind_is(ek_pp)) {

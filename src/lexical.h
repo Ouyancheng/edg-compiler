@@ -40,6 +40,7 @@ typedef enum /*a_token_kind*/ {
   /* Complex tokens: */
   tok_identifier,
   tok_float_constant,
+  tok_fixed_point_constant,
   tok_int_constant,
   tok_char_constant,
   tok_string_literal,
@@ -158,6 +159,10 @@ typedef enum /*a_token_kind*/ {
   tok_nan,
   /* Token for __INFINITY__, for an Infinity constant (C99 and other modes). */
   tok_infinity,
+  /* Tokens for fixed-point type support ("_Fract", "_Accum", and "_Sat"). */
+  tok_fract,
+  tok_accum,
+  tok_saturating,
 #if MICROSOFT_EXTENSIONS_ALLOWED
   tok_cdecl,
   tok_declspec,
@@ -274,9 +279,9 @@ Table of names corresponding to token kinds.
 */
 EXTERN char	*token_names[(int)tok_last+1]
 #if VAR_INITIALIZERS
-= {"identifier", "float constant", "int constant", "char constant",
-   "string literal", "end of source", "newline", "header name",
-   "pp number", "digit sequence", "cpp quote", "ptr to member", 
+= {"identifier", "float constant", "fixed-point constant", "int constant",
+   "char constant", "string literal", "end of source", "newline",
+   "header name", "pp number", "digit sequence", "cpp quote", "ptr to member", 
    "[", "]", "(", ")", ".", "->", "++", "--", "&", "*", "+", "-",
    "~", "!", "/", "%", "<<", ">>", "<", ">", "<=", ">=", "==",
    "!=", "^", "|", "&&", "||", "?", ":", "=", "*=", "/=", "%=",
@@ -293,6 +298,7 @@ EXTERN char	*token_names[(int)tok_last+1]
 #endif /* GNU_EXTENSIONS_ALLOWED */
    "restrict",
    "_Bool", "_Complex", "_Imaginary", "__I__", "__NAN__", "__INFINITY__",
+   "_Fract", "_Accum", "_Sat",
 #if MICROSOFT_EXTENSIONS_ALLOWED
    "__cdecl", "__declspec", "__fastcall", "__inline", "__forceinline",
    "__stdcall", "__unaligned", "__try", "__finally", "__leave", "__except",
@@ -533,6 +539,7 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
 #if VAR_INITIALIZERS
 = {(an_opname_kind)onk_none,          /* tok_identifier */
    (an_opname_kind)onk_none,          /* tok_float_constant */
+   (an_opname_kind)onk_none,          /* tok_fixed_point_constant */
    (an_opname_kind)onk_none,          /* tok_int_constant */
    (an_opname_kind)onk_none,          /* tok_char_constant */
    (an_opname_kind)onk_none,          /* tok_string_literal */
@@ -642,6 +649,9 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_imaginary_unit */
    (an_opname_kind)onk_none,          /* tok_nan */
    (an_opname_kind)onk_none,          /* tok_infinity */
+   (an_opname_kind)onk_none,          /* tok_fract */
+   (an_opname_kind)onk_none,          /* tok_accum */
+   (an_opname_kind)onk_none,          /* tok_saturating */
 #if MICROSOFT_EXTENSIONS_ALLOWED
    (an_opname_kind)onk_none,          /* tok_cdecl */
    (an_opname_kind)onk_none,          /* tok_declspec */
@@ -1895,8 +1905,8 @@ Unified Parallel C adds several new type qualifiers.
 
 #define is_type_qualifier_token(tok)                                          \
   ((tok) == tok_const || (tok) == tok_volatile || (tok) == tok_restrict       \
-  or_is_unaligned_token(tok))                                                 \
-  or_is_upc_qual_token((tok))
+   or_is_unaligned_token(tok)                                                 \
+   or_is_upc_qual_token(tok))
 
 
 extern void push_next_preinclude_file(void);

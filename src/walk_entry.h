@@ -569,6 +569,9 @@ the file scope, do not process it (but record an orphan in the latter case).
         switch (ptr->kind) {
           case ck_error:
           case ck_integer:
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+          case ck_fixed_point:
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
           case ck_upc_threads:
           case ck_upc_mythread:
@@ -814,6 +817,9 @@ the file scope, do not process it (but record an orphan in the latter case).
           case tk_error:
           case tk_unknown:
           case tk_void:
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+          case tk_fixed_point:
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
           case tk_float:
 #if defined(FFE) || C99_IL_EXTENSIONS_SUPPORTED
           case tk_complex:

@@ -4202,6 +4202,10 @@ typedef enum {
   bt_wchar_t,
   bt_bool,
   bt_int,
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+  bt_fract,
+  bt_accum,
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
   bt_float,
   bt_double,
   bt_typedef,
@@ -4243,6 +4247,117 @@ typedef enum {
 /*lint -esym(749,cxa_imaginary)*/
 #endif /* !C99_IL_EXTENSIONS_SUPPORTED */
 
+static a_basic_type basic_type_from_typedef(a_type_ptr   *type_ptr,
+                                            a_type_sign  *sign,
+                                            a_type_size  *size)
+/*
+*type_ptr represents a typedef.  Some modes allow certain typedef types to be
+modified by sign and size specifiers (short, unsigned, etc.).  If *type_ptr is
+such a typedef, return the associated basic type specifier and set *sign and
+*size to the sign and size of the type underlying that typedef.  Also set
+*type_ptr to NULL in that case.  Otherwise, return bt_typedef and leave
+*type_ptr, *sign, and *size unchanged.
+*/
+{
+  a_basic_type     basic_type = bt_typedef;
+  a_type_ptr       temp_type = skip_typerefs(*type_ptr);
+  an_integer_kind  ikind;
+  a_float_kind     fkind;
+
+  if (temp_type->kind == (a_type_kind)tk_integer) {
+    if (temp_type->variant.integer.enum_type) {
+      /* Don't allow adjectives on enum integers. */
+    } else {
+      /* Adjectives (size and sign) are only allowed where they
+         fill in empty holes -- unspecified attributes -- in the
+         following table:
+
+                                    sign      size      base type
+           ik_signed_char                    -fixed-     char
+           ik_unsigned_char       see note   -fixed-     char
+           ik_short                          short       int
+           ik_unsigned_short      unsigned   short       int
+           ik_int                                        int
+           ik_unsigned_int        unsigned               int
+           ik_long                           long        int
+           ik_unsigned_long       unsigned   long        int
+           ik_long_long                      long long   int
+           ik_unsigned_long_long  unsigned   long long   int
+
+         In pcc mode, the "signed" keyword does not exist, so something
+         that is signed really has unspecified sign.  Note that ik_char
+         is not used in pcc mode, so ik_unsigned_char has to be viewed
+         as not specifying a sign if it is plain_char_int_kind.
+         ik_signed_char always implies an unspecified sign.  A size may
+         not be specified for those ("short char" and "long char" don't
+         make sense). */
+      ikind = temp_type->variant.integer.int_kind;
+      switch (ikind) {
+        case ik_char:
+          basic_type = bt_char;
+          break;
+        case ik_unsigned_char:
+          if (plain_char_int_kind != ikind && *sign != sign_none) break;
+          /* Fall into signed char case. */
+        case ik_signed_char:
+          if (*size != size_none
+#if MICROSOFT_EXTENSIONS_ALLOWED
+              && *size != size_int8
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                  ) break;
+          basic_type = bt_char;
+          break;
+        case ik_short:
+          if (*size != size_none) break;
+          basic_type = bt_int;
+          *size = size_short;
+          break;
+        case ik_unsigned_short:
+          /* No holes to fill in. */
+          break;
+        case ik_unsigned_int:
+          if (*sign != sign_none) break;
+          *sign = sign_unsigned;
+          /* Fall into signed int case. */
+        case ik_int:
+          basic_type = bt_int;
+          break;
+        case ik_long:
+          if (*size != size_none) break;
+          basic_type = bt_int;
+          *size = size_long;
+          break;
+        case ik_unsigned_long:
+          /* No holes to fill in. */
+          break;
+#if LONG_LONG_ALLOWED
+        case ik_long_long:
+          if (*size == size_none) {
+            basic_type = bt_int;
+            *size = size_long_long;
+          }  /* if */
+          break;
+        case ik_unsigned_long_long:
+          /* No holes to fill in. */
+          break;
+#endif /* LONG_LONG_ALLOWED */
+#if CHECKING
+        default:
+          internal_error("basic_type_from_typedef: bad typedef int kind");
+#endif /* CHECKING */
+      }  /* switch */
+    }  /* if */
+  } else if (temp_type->kind == (a_type_kind)tk_float) {
+    fkind = temp_type->variant.float_kind;
+    if (fkind == (a_float_kind)fk_float) {
+      basic_type = bt_float;
+    } else if (fkind == (a_float_kind)fk_double) {
+      basic_type = bt_double;
+    }  /* if */
+  }  /* if */
+  if (basic_type != bt_typedef) *type_ptr = NULL;
+  return basic_type;
+}  /* basic_type_from_typedef */
 
 #if !C99_IL_EXTENSIONS_SUPPORTED
 /*ARGSUSED*/  /* <-- complex_attr not used in that case. */
@@ -4251,11 +4366,14 @@ static a_boolean combine_type_specifiers(a_type_ptr           *type_ptr,
                                          a_basic_type         basic_type,
                                          a_type_sign          sign,
                                          a_type_size          size,
-                                         a_complex_attribute  complex_attr)
+                                         a_complex_attribute  complex_attr,
+                                         a_boolean            saturating_fp)
 /*
 Given a basic type, a sign specifier, and a size specifier, return a
 pointer to a type entry in *type_ptr.  This routine is only called from
-decl_specifiers.
+decl_specifiers.  complex_attr indicates the kind of complex type involved
+(_Complex or _Imaginary).  saturating_fp is TRUE if the fixed-point
+modifier _Sat was specified.
 */
 {
   an_integer_kind  ikind;
@@ -4268,99 +4386,7 @@ decl_specifiers.
        modifying a typedef type.  Turn the typedef into a matching basic type,
        for the cases for which it makes sense.  For the others, an error
        will be detected below. */
-    a_type_ptr  temp_type = skip_typerefs(*type_ptr);
-    if (temp_type->kind == (a_type_kind)tk_integer) {
-      if (temp_type->variant.integer.enum_type) {
-        /* Don't allow adjectives on enum integers. */
-      } else {
-        /* Adjectives (size and sign) are only allowed where they
-           fill in empty holes -- unspecified attributes -- in the
-           following table:
-
-                                      sign      size      base type
-             ik_signed_char                    -fixed-     char
-             ik_unsigned_char       see note   -fixed-     char
-             ik_short                          short       int
-             ik_unsigned_short      unsigned   short       int
-             ik_int                                        int
-             ik_unsigned_int        unsigned               int
-             ik_long                           long        int
-             ik_unsigned_long       unsigned   long        int
-             ik_long_long                      long long   int
-             ik_unsigned_long_long  unsigned   long long   int
-
-           In pcc mode, the "signed" keyword does not exist, so something
-           that is signed really has unspecified sign.  Note that ik_char
-           is not used in pcc mode, so ik_unsigned_char has to be viewed
-           as not specifying a sign if it is plain_char_int_kind.
-           ik_signed_char always implies an unspecified sign.  A size may
-           not be specified for those ("short char" and "long char" don't
-           make sense). */
-        ikind = temp_type->variant.integer.int_kind;
-        switch (ikind) {
-          case ik_char:
-            basic_type = bt_char;
-            break;
-          case ik_unsigned_char:
-            if (plain_char_int_kind != ikind && sign != sign_none) break;
-            /* Fall into signed char case. */
-          case ik_signed_char:
-            if (size != size_none
-#if MICROSOFT_EXTENSIONS_ALLOWED
-                && size != size_int8
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                    ) break;
-            basic_type = bt_char;
-            break;
-          case ik_short:
-            if (size != size_none) break;
-            basic_type = bt_int;
-            size = size_short;
-            break;
-          case ik_unsigned_short:
-            /* No holes to fill in. */
-            break;
-          case ik_unsigned_int:
-            if (sign != sign_none) break;
-            sign = sign_unsigned;
-            /* Fall into signed int case. */
-          case ik_int:
-            basic_type = bt_int;
-            break;
-          case ik_long:
-            if (size != size_none) break;
-            basic_type = bt_int;
-            size = size_long;
-            break;
-          case ik_unsigned_long:
-            /* No holes to fill in. */
-            break;
-#if LONG_LONG_ALLOWED
-          case ik_long_long:
-            if (size == size_none) {
-              basic_type = bt_int;
-              size = size_long_long;
-            }  /* if */
-            break;
-          case ik_unsigned_long_long:
-            /* No holes to fill in. */
-            break;
-#endif /* LONG_LONG_ALLOWED */
-#if CHECKING
-          default:
-            internal_error("combine_type_specifiers: bad typedef int kind");
-#endif /* CHECKING */
-        }  /* switch */
-      }  /* if */
-    } else if (temp_type->kind == (a_type_kind)tk_float) {
-      fkind = temp_type->variant.float_kind;
-      if (fkind == (a_float_kind)fk_float) {
-        basic_type = bt_float;
-      } else if (fkind == (a_float_kind)fk_double) {
-        basic_type = bt_double;
-      }  /* if */
-    }  /* if */
-    if (basic_type != bt_typedef) *type_ptr = NULL;
+    basic_type = basic_type_from_typedef(type_ptr, &sign, &size);
   }  /* if */
   /* Now check for the various legal combinations of specifiers.  See 3.5.2
      for list. */
@@ -4544,6 +4570,34 @@ decl_specifiers.
         }  /* if */
       }  /* if */
       break;
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+    case bt_fract:
+    case bt_accum:
+      {
+        a_fixed_point_precision  precision;
+        switch (size) {
+          case size_none:
+            /* Default precision. */
+            precision = (a_fixed_point_precision)fpp_default;
+            break;
+          case size_short:
+            precision = (a_fixed_point_precision)fpp_short;
+            break;
+          case size_long:
+            precision = (a_fixed_point_precision)fpp_long;
+            break;
+          default:
+            bad_combination = TRUE;
+        }  /* switch */
+        if (!bad_combination) {
+          /* FIXME: update saturating_fp for current default overflow mode. */
+          *type_ptr = fixed_point_type(precision, (sign == sign_unsigned),
+                                       (basic_type == bt_fract),
+                                       saturating_fp);
+        }  /* if */
+      }  /* if */
+      break;
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
     case bt_float:
     case bt_double:
       if (sign != sign_none || (size != size_none && size != size_long)) {
@@ -5320,6 +5374,7 @@ Returns TRUE if there is an error in the specifiers.
   a_type_sign                sign = sign_none;
   a_type_size                size = size_none;
   a_complex_attribute        complex_attr = cxa_none;
+  a_boolean                  saturating_fixed_point = FALSE;
   a_source_position          restrict_pos;
   a_source_position          storage_class_pos;
   a_boolean                  bad_type_name_error;
@@ -6002,6 +6057,10 @@ Returns TRUE if there is an error in the specifiers.
       case tok_int:
       case tok_float:
       case tok_double:
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+      case tok_fract:
+      case tok_accum:
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
         /* A type specifier (3.5.2) that indicates a basic type. */
 #if GNU_EXTENSIONS_ALLOWED
         prev_basic_type = basic_type;
@@ -6023,6 +6082,10 @@ Returns TRUE if there is an error in the specifiers.
             case tok_int:      basic_type = bt_int;     break;
             case tok_float:    basic_type = bt_float;   break;
             case tok_double:   basic_type = bt_double;  break;
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+            case tok_fract:    basic_type = bt_fract;   break;
+            case tok_accum:    basic_type = bt_accum;   break;
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
 #if CHECKING
             default:
               internal_error("decl_specifiers: bad type specifier");
@@ -6170,6 +6233,16 @@ Returns TRUE if there is an error in the specifiers.
         }  /* if */
         break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+      case tok_saturating:
+        /* The _Sat specifier for fixed-point types. */
+        if (saturating_fixed_point) {
+          error(ec_dupl_decl_specifier);
+        } else {
+          saturating_fixed_point = TRUE;
+        }  /* if */
+        break;
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
       case tok_signed:
       case tok_unsigned:
         /* A type specifier (3.5.2) that modifies the signedness of a
@@ -6898,7 +6971,7 @@ exit_loop:
          type.  *type_ptr is updated, based on the basic type, sign, and size
          specified. */
       if (!combine_type_specifiers(type_ptr, basic_type, sign, size,
-                                   complex_attr)) {
+                                   complex_attr, saturating_fixed_point)) {
         err = TRUE;
       } else {
         /* Add any type qualifiers (const or volatile) to the type. */

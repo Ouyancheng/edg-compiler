@@ -1124,6 +1124,31 @@ by octl.
         form_int_type_name(type, octl);
       }  /* if */
       break;
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+    case tk_fixed_point:
+      {
+        a_fixed_point_precision  prec = type->variant.fixed_point.precision;
+        if (type->variant.fixed_point.saturating) {
+          octl->output_str("_Sat ");
+        }  /* if */
+        if (type->variant.fixed_point.is_unsigned) {
+          octl->output_str("unsigned ");
+        }  /* if */
+        if (prec == (a_fixed_point_precision)fpp_short) {
+          octl->output_str("short ");
+        } else if (prec == (a_fixed_point_precision)fpp_long) {
+          octl->output_str("long ");
+        } else {
+          check_assertion(prec == (a_fixed_point_precision)fpp_default);
+        }  /* if */
+        if (type->variant.fixed_point.is_fract_type) {
+          octl->output_str("_Fract");
+        } else {
+          octl->output_str("_Accum");
+        }  /* if */
+      }
+      break;
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
 #if C99_IL_EXTENSIONS_SUPPORTED
     case tk_complex:
     case tk_imaginary:
@@ -3122,6 +3147,22 @@ without a leading "&".  Do the output in the way described by octl.
   }  /* if */
 }  /* form_unknown_function_constant */
 
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+
+static void form_fixed_point_constant(
+                            a_fixed_point_value                    *value,
+                            a_fixed_point_type_descr               *fxp_descr,
+                            an_il_to_str_output_control_block_ptr  octl)
+/*
+Output the given fixed-point value with the proper suffix.
+*/
+{
+  char  *str = fxp_to_string(fxp_descr, value);
+
+  octl->output_str(str);
+}  /* form_fixed_point_constant */
+
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
 
 static void form_float_constant(
                            an_internal_float_value               *float_value,
@@ -3659,6 +3700,17 @@ precedence confusion.  Do the output in the way described by octl.
         }  /* if */
       }
       break;
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+    case ck_fixed_point:
+      /* Fixed-point constant. */
+      /* Put parentheses around the constant in case it's negative. */
+      octl->output_str("(");
+      form_fixed_point_constant(&constant->variant.fixed_point_value,
+                                &con_type->variant.fixed_point,
+                                octl);
+      octl->output_str(")");
+      break;
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
     case ck_float:
 #if C99_IL_EXTENSIONS_SUPPORTED
     case ck_imaginary:

@@ -1400,7 +1400,7 @@ enum a_constant_repr_kind_tag {
   /* In a constant entry, there are several possible representations
      for a constant: */
   ck_error,             /* Error. */
-  ck_integer,           /* Integers */
+  ck_integer,           /* Integers. */
 #ifdef CIL
                         /* char and enum types are handled as integers: see
                            the integer variant of a_type. */
@@ -1409,6 +1409,9 @@ enum a_constant_repr_kind_tag {
                         /* LOGICALs are handled as integers: see the integer
                            variant of a_type. */
 #endif /* ifdef FIL */
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+  ck_fixed_point,       /* Fixed-point types. */
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
   ck_string,            /* Character strings. */
 #ifdef FIL
                         /* Used for Fortran hollerith constants and FORMAT
@@ -2082,6 +2085,12 @@ typedef struct a_constant {
 #ifdef FIL
                         /* Used for all INTEGER and LOGICAL constants. */
 #endif /* ifdef FIL */
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+    /* When kind == ck_fixed_point. */
+    a_fixed_point_value
+		fixed_point_value;
+			/* A fixed-point value in internal form. */
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
     /* When kind == ck_string: */
     struct {
       a_targ_size_t
@@ -2384,6 +2393,9 @@ enum a_type_kind_tag {
   tk_void,              /* Void -- has no type. */
   tk_integer,           /* All integral types, including enum. */
   tk_enum = tk_integer, /* Synonym for tk_integer. */
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+  tk_fixed_point,       /* All fixed-point types. */
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
   tk_float,             /* All float types. */
 #if C99_IL_EXTENSIONS_SUPPORTED
   tk_imaginary,         /* C99 imaginary types. */
@@ -2531,6 +2543,40 @@ EXTERN an_integer_kind
 }
 #endif /* VAR_INITIALIZERS*/
 ;
+
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+
+enum a_fixed_point_precision_tag {
+  /* Enumeration of the fixed-point precisions (listed according to
+     increasing size). */
+  fpp_short,
+  fpp_default,
+  fpp_long,
+  fpp_last
+};
+
+typedef a_byte a_fixed_point_precision;
+
+typedef struct a_fixed_point_type_descr {
+  /* Description of the characteristics of a fixed-point type. */
+  a_fixed_point_precision
+		precision;
+			/* The precision (short, default, or long) of this
+			   fixed-point type. */
+  a_bit_field
+		is_unsigned:1;
+			/* TRUE if this is an unsigned fixed-point type. */
+  a_bit_field
+		is_fract_type:1;
+			/* TRUE if this is a fixed-point type with no integral
+			   part (i.e., declared with _Fract). */
+  a_bit_field
+		saturating:1;
+			/* TRUE if this type saturates on overflow.
+			   (E.g., a type declaration with _Sat.) */
+} a_fixed_point_type_descr;
+
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
 
 enum a_float_kind_tag {
   /* Enumeration of the possible float kinds.  Some of these may be the
@@ -5070,6 +5116,13 @@ typedef struct a_type {
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* ifdef CIL */
     } integer;
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+    /* When kind == tk_fixed_point: */
+    a_fixed_point_type_descr
+		fixed_point;
+			/* The characteristics (precision, overflow
+			   behavior, ...) of this fixed-point type. */
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
     /* When kind == tk_float: */
 #if C99_IL_EXTENSIONS_SUPPORTED
     /* Also, when kind == tk_imaginary: */
@@ -7549,6 +7602,12 @@ enum an_expr_operator_kind_tag {
   eok_ipost_decr,       /* Integer post decrement. */
   eok_ipre_incr,        /* Integer pre increment. */
   eok_ipre_decr,        /* Integer pre decrement. */
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+  eok_fxpost_incr,      /* Fixed-point post increment. */
+  eok_fxpost_decr,      /* Fixed-point post decrement. */
+  eok_fxpre_incr,       /* Fixed-point pre increment. */
+  eok_fxpre_decr,       /* Fixed-point pre decrement. */
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
   eok_fpost_incr,       /* Floating post increment. */
   eok_fpost_decr,       /* Floating post decrement. */
   eok_fpre_incr,        /* Floating pre increment. */
@@ -7605,6 +7664,19 @@ enum an_expr_operator_kind_tag {
   eok_ignu_min,         /* Integer minimum operator (a GNU C++ extension). */
   eok_ignu_max,         /* Integer maximum operator (a GNU C++ extension). */
   eok_iassign,          /* Integer assignment. */
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+  eok_fxadd,             /* Fixed-point addition. */
+  eok_fxsubtract,        /* Fixed-point subtraction. */
+  eok_fxmultiply,        /* Fixed-point multiplication. */
+  eok_fxdivide,          /* Fixed-point division. */
+  eok_fxeq,              /* Fixed-point equality. */
+  eok_fxne,              /* Fixed-point inequality. */
+  eok_fxgt,              /* Fixed-point greater than. */
+  eok_fxlt,              /* Fixed-point less than. */
+  eok_fxge,              /* Fixed-point greater than or equal. */
+  eok_fxle,              /* Fixed-point less than or equal. */
+  eok_fxassign,          /* Fixed-point assignment. */
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
   eok_fadd,             /* Floating addition. */
   eok_fsubtract,        /* Floating subtraction. */
   eok_fmultiply,        /* Floating multiplication. */
@@ -7706,6 +7778,12 @@ enum an_expr_operator_kind_tag {
   eok_imultiply_assign, /* Integer multiply assign operator. */
   eok_idivide_assign,   /* Integer divide assign operator. */
   eok_remainder_assign, /* Remainder assign operator. */
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+  eok_fxadd_assign,     /* Fixed-point add assign operator. */
+  eok_fxsubtract_assign,/* Fixed-point subtract assign operator. */
+  eok_fxmultiply_assign,/* Fixed-point multiply assign operator. */
+  eok_fxdivide_assign,  /* Fixed-point divide assign operator. */
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
   eok_fadd_assign,      /* Floating add assign operator. */
   eok_fsubtract_assign, /* Floating subtract assign operator. */
   eok_fmultiply_assign, /* Floating multiply assign operator. */
@@ -10642,6 +10720,9 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
    "pm base class cast", "pm derived class cast",
    "lvalue cast", "dynamic cast", "bool cast", "~",
    "i++", "i--", "++i", "--i",
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+   "fx++", "fx--", "++fx", "--fx",
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
    "f++", "f--", "++f", "--f",
    "p++", "p--", "++p", "--p",
    "lvalue<==",
@@ -10657,6 +10738,10 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
 #endif /* ifdef FIL */
    "i+", "i-", "i*", "i/", "i==", "i!=", "i>", "i<", "i>=", "i<=",
    "i<?", "i>?", "i=",
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+   "fx+", "fx-", "fx*", "fx/", "fx==", "fx!=", "fx>", "fx<", "fx>=", "fx<=",
+   "fx=",
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
    "f+", "f-", "f*", "f/", "f==", "f!=", "f>", "f<", "f>=", "f<=",
    "f<?", "f>?", "f=",
    "p+", "p-", "p=",
@@ -10678,6 +10763,9 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
    "pm==", "pm!=",
    "s=", "b=", "pm=",
    "i+=", "i-=", "i*=", "i/=", "%=",
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+   "fx+=", "fx-=", "fx*=", "fx/=",
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
    "f+=", "f-=", "f*=", "f/=",
    "p+=", "p-=",
    "<<=", ">>=", "&=", "|=", "^=",

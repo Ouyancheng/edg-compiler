@@ -3290,6 +3290,59 @@ If both fkind_1 and fkind_2 are fk_last, then fk_last is returned.
 }  /* promoted_float_kind */
 
 
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+
+static a_type_ptr fixed_point_result_type(a_type_ptr  type_1,
+                                          a_type_ptr  type_2)
+/*
+Determine the (fixed-point) result type for a binary expression on operands
+with the two given types.  At least one of the types must be a fixed-point
+type, and the other is a fixed-point type, an integral type, or an enum
+type (i.e., a non-floating-point arithmetic type).
+*/
+{
+  a_type_ptr  result;
+  a_type_ptr  tp1 = skip_typerefs(type_1),
+              tp2 = skip_typerefs(type_2);
+
+  if (!is_fixed_point_type(tp1)) {
+    /* The result type is the fixed-point type. */
+    result = type_2;
+  } else if (!is_fixed_point_type(tp2)) {
+    /* The result type is the fixed-point type. */
+    result = type_1;
+  } else {
+    /* Both types are fixed-point types.  Determine the one with the
+       highest rank.  Also imbue any signedness and saturation on the
+       result type. */
+    a_boolean  saturating = (tp1->variant.fixed_point.saturating ||
+                             tp2->variant.fixed_point.saturating);
+    a_boolean  is_unsigned = tp1->variant.fixed_point.is_unsigned &&
+                             tp2->variant.fixed_point.is_unsigned;
+    if (tp1->variant.fixed_point.is_fract_type !=
+                                     tp2->variant.fixed_point.is_fract_type) {
+      /* _Accum types have higher rank than _Fract types. */
+      result = tp1->variant.fixed_point.is_fract_type ? tp2 : tp1;
+    } else if (tp1->variant.fixed_point.precision >
+                                         tp2->variant.fixed_point.precision) {
+      result = tp1;
+    } else {
+      result = tp2;
+    }  /* if */
+    if (result->variant.fixed_point.saturating != saturating ||
+        (result->variant.fixed_point.is_unsigned && !is_unsigned)) {
+      result = fixed_point_type(result->variant.fixed_point.precision,
+                                is_unsigned,
+                                result->variant.fixed_point.is_fract_type,
+                                saturating);
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* fixed_point_result_type */
+
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+
+
 static a_type_ptr determine_arithmetic_conversions_full(
                                                  an_operand *operand_1,
                                                  a_type_ptr operand_1_type,
@@ -3354,9 +3407,19 @@ routine is called and returns TRUE, this routine should not be called.
       {
         result_type = float_type(result_fkind);
       }  /* if */
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+    } else if (fixed_point_allowed && (is_fixed_point_type(type_1) ||
+                                       is_fixed_point_type(type_2))) {
+      /* At least one of the operands has a fixed-point type, and the other
+         does not have a floating-point type.  The result will have a fixed-
+         point type, but no conversion is to be applied to the operands,
+         except perhaps to turn an unsigned operand into a signed operand. */
+      result_type = fixed_point_result_type(type_1, type_2);
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
     } else {
-      /* Neither operand had type float; do the integral promotions on both
-	 operands and try to get the result type from that. */
+      /* Neither operand had a floating-point or fixed-point type; do the
+         integral promotions on both operands and try to get the result
+         type from that. */
       if (operand_1 != NULL) {
         type_1 = operand_type_after_integral_promotion(operand_1);
       } else {
@@ -4175,29 +4238,107 @@ operator position (for errors).  Return FALSE if there is an error.
   return okay;
 }  /* check_ptr_to_member_operands_for_compatibility */
 
+#if FIXED_POINT_EXTENSIONS_ALLOWED
 
-void change_binary_operand_types(a_type_ptr type,
-				 an_operand *operand_1,
-				 an_operand *operand_2)
+static void adjust_fixed_point_binary_operands(
+                                            an_operand             *operand_1,
+                                            an_operand             *operand_2,
+                                            an_expr_operator_kind  op)
 /*
-If the current types of the operands do not match the new type, cast the
-operands to the new type.  This is used for the operands of an operation,
-with the type probably determined by determine_arithmetic_conversions.
-Either operand pointer may be NULL.
+A binary operation is to be applied to the two given operands, at least one
+of which has a fixed-point type.  Apply any required conversions to the
+operands.  The only conversion this can be is from an unsigned fixed-point
+type to the corresponding signed fixed-point type (when operating on two
+fixed-point operands of differing signedness).  Issue a warning if the
+operand types are unlikely to be intended for the given operation (e.g.,
+adding an integer to fixed-point type.)
 */
 {
-  if (!is_error_type(type)) {
-    if (operand_1 != NULL && !same_entities(operand_1->type, type)) {
-      /* Cast operand 1 to match the desired type. */
-      cast_operand(type, operand_1, /*check_cast_access=*/TRUE,
+  a_type_ptr  tp1 = skip_typerefs(operand_1->type),
+              tp2 = skip_typerefs(operand_2->type);
+
+  if (tp1->kind == (a_type_kind)tk_fixed_point &&
+      tp2->kind == (a_type_kind)tk_fixed_point) {
+    if (tp1->variant.fixed_point.is_unsigned !=
+                                       tp2->variant.fixed_point.is_unsigned) {
+      /* One of the two operands needs to be converted to a signed type. */
+      an_operand  *operand_to_adjust;
+      a_type_ptr  type;
+      if (tp1->variant.fixed_point.is_unsigned) {
+        operand_to_adjust = operand_1;
+        type = tp1;
+      } else {
+        operand_to_adjust = operand_2;
+        type = tp2;
+      }  /* if */
+      type = fixed_point_type(type->variant.fixed_point.precision,
+                              /*is_unsigned= */FALSE,
+                              type->variant.fixed_point.is_fract_type,
+                              type->variant.fixed_point.saturating);
+      cast_operand(type, operand_to_adjust, /*check_cast_access=*/TRUE,
                    /*is_implicit_cast=*/TRUE, /*is_reinterpret_cast=*/FALSE,
                    /*reinterpret_semantics=*/FALSE);
     }  /* if */
-    if (operand_2 != NULL && !same_entities(operand_2->type, type)) {
-      /* Cast operand 2 to match the desired type. */
-      cast_operand(type, operand_2, /*check_cast_access=*/TRUE,
-                   /*is_implicit_cast=*/TRUE, /*is_reinterpret_cast=*/FALSE,
-                   /*reinterpret_semantics=*/FALSE);
+  } else {
+    check_assertion(tp1->kind == (a_type_kind)tk_fixed_point ||
+                    tp2->kind == (a_type_kind)tk_fixed_point);
+    if (op == (an_expr_operator_kind)eok_fxadd ||
+        op == (an_expr_operator_kind)eok_fxsubtract) {
+      an_operand  *integral_operand;
+      if (tp1->kind != (a_type_kind)tk_fixed_point) {
+        integral_operand = operand_1;
+      } else {
+        integral_operand = operand_2;
+      }  /* if */
+      /* FIXME: Should exclude "zero" and in some case other small integers
+         (depending of range of _Accum). */
+      pos_warning(ec_integer_may_not_fit_in_fixed_point_result,
+                  &integral_operand->position);
+    }  /* if */
+  }  /* if */
+}  /* adjust_fixed_point_binary_operands */
+
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+
+void change_binary_operand_types(a_type_ptr             type,
+				 an_operand             *operand_1,
+				 an_operand             *operand_2,
+                                 an_expr_operator_kind  op)
+/*
+The given operation will be applied to the given operands.  If type is not a
+fixed-point type, cast the two operands to the new type if necessary.
+Otherwise (if type is a fixed-point type), ensure the operand types have the
+appropriate signedness (according to the rules prescribed by ISO TR 18037
+for fixed-point arithmetic).  This is used for the operands of an operation,
+with the type probably determined by determine_arithmetic_conversions.
+Either operand pointer may be NULL.  Warnings may be issued if fixed-point
+operands are unlikely to have a useful effect (e.g., when adding an integer
+to a fixed-point operand).
+*/
+{
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+  if (fixed_point_allowed && is_fixed_point_type(type)) {
+    /* Fixed-point arithmetic does not promote the operands to a
+       common type if the result has fixed-point type (as opposed
+       to floating-point type). */
+    adjust_fixed_point_binary_operands(operand_1, operand_2, op);
+  } else
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
+  {
+    if (!is_error_type(type)) {
+      if (operand_1 != NULL && !same_entities(operand_1->type, type)) {
+        /* Cast operand 1 to match the desired type. */
+        cast_operand(type, operand_1, /*check_cast_access=*/TRUE,
+                     /*is_implicit_cast=*/TRUE, /*is_reinterpret_cast=*/FALSE,
+                     /*reinterpret_semantics=*/FALSE);
+      }  /* if */
+      if (operand_2 != NULL && !same_entities(operand_2->type, type)) {
+        /* Cast operand 2 to match the desired type. */
+        cast_operand(type, operand_2, /*check_cast_access=*/TRUE,
+                     /*is_implicit_cast=*/TRUE, /*is_reinterpret_cast=*/FALSE,
+                     /*reinterpret_semantics=*/FALSE);
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* change_binary_operand_types */
@@ -4918,6 +5059,73 @@ type is an error type, return eok_error.
 #endif /* CHECKING */
       }  /* switch */
       break;
+
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+    case tk_fixed_point:
+      switch (token) {
+	case tok_plus:
+	  op = (an_expr_operator_kind)eok_fxadd;
+	  break;
+	case tok_minus:
+	  op = (an_expr_operator_kind)eok_fxsubtract;
+	  break;
+	case tok_star:
+	  op = (an_expr_operator_kind)eok_fxmultiply;
+	  break;
+	case tok_divide:
+	  op = (an_expr_operator_kind)eok_fxdivide;
+	  break;
+	case tok_shift_right:
+	  op = (an_expr_operator_kind)eok_shiftr;
+	  break;
+	case tok_shift_left:
+	  op = (an_expr_operator_kind)eok_shiftl;
+	  break;
+	case tok_lt:
+	  op = (an_expr_operator_kind)eok_fxlt;
+	  break;
+	case tok_gt:
+	  op = (an_expr_operator_kind)eok_fxgt;
+	  break;
+	case tok_le:
+	  op = (an_expr_operator_kind)eok_fxle;
+	  break;
+	case tok_ge:
+	  op = (an_expr_operator_kind)eok_fxge;
+	  break;
+	case tok_eq:
+	  op = (an_expr_operator_kind)eok_fxeq;
+	  break;
+	case tok_ne:
+	  op = (an_expr_operator_kind)eok_fxne;
+	  break;
+	case tok_assign:
+	  op = (an_expr_operator_kind)eok_fxassign;
+	  break;
+	case tok_times_assign:
+	  op = (an_expr_operator_kind)eok_fxmultiply_assign;
+	  break;
+	case tok_divide_assign:
+	  op = (an_expr_operator_kind)eok_fxdivide_assign;
+	  break;
+	case tok_plus_assign:
+	  op = (an_expr_operator_kind)eok_fxadd_assign;
+	  break;
+	case tok_minus_assign:
+	  op = (an_expr_operator_kind)eok_fxsubtract_assign;
+	  break;
+	case tok_shift_left_assign:
+	  op = (an_expr_operator_kind)eok_shiftl_assign;
+	  break;
+	case tok_shift_right_assign:
+	  op = (an_expr_operator_kind)eok_shiftr_assign;
+	  break;
+	default:
+	  unexpected_condition_str(
+	                   "which_binary_operator: bad fixed-point operator");
+      }  /* switch */
+      break;
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
 
     case tk_float:
       switch (token) {

@@ -1432,6 +1432,29 @@ Display the indicated type entry.
       }  /* if */
 #endif /* ifdef CFE */
       break;
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+    case tk_fixed_point:
+      {
+        a_fixed_point_precision  prec = ptr->variant.fixed_point.precision;
+        (void)printf("tk_fixed_point\n");
+        disp_name("precision");
+        printf("%s\n",
+               (prec == (a_fixed_point_precision)fpp_short)   ? "short" :
+               (prec == (a_fixed_point_precision)fpp_default) ? "default" :
+               (prec == (a_fixed_point_precision)fpp_long)    ? "long" :
+                                                                "*ERROR*");
+        if (ptr->variant.fixed_point.is_unsigned) {
+          disp_boolean("is_unsigned", TRUE);
+        }  /* if */
+        if (ptr->variant.fixed_point.is_fract_type) {
+          disp_boolean("is_fract_type", TRUE);
+        }  /* if */
+        if (ptr->variant.fixed_point.saturating) {
+          disp_boolean("saturating", TRUE);
+        }  /* if */
+      }
+      break;
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
     case tk_float:
       (void)printf("tk_float\n");
 #ifdef FFE
@@ -2951,6 +2974,12 @@ Display the name of an expression operator.
     case eok_ipost_decr:        s = "eok_ipost_decr";             break;
     case eok_ipre_incr:         s = "eok_ipre_incr";              break;
     case eok_ipre_decr:         s = "eok_ipre_decr";              break;
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+    case eok_fxpost_incr:       s = "eok_fxpost_incr";            break;
+    case eok_fxpost_decr:       s = "eok_fxpost_decr";            break;
+    case eok_fxpre_incr:        s = "eok_fxpre_incr";             break;
+    case eok_fxpre_decr:        s = "eok_fxpre_decr";             break;
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
     case eok_fpost_incr:        s = "eok_fpost_incr";             break;
     case eok_fpost_decr:        s = "eok_fpost_decr";             break;
     case eok_fpre_incr:         s = "eok_fpre_incr";              break;
@@ -2987,6 +3016,19 @@ Display the name of an expression operator.
     case eok_ignu_min:          s = "eok_ignu_min";               break;
     case eok_ignu_max:          s = "eok_ignu_max";               break;
     case eok_iassign:           s = "eok_iassign";                break;
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+    case eok_fxadd:             s = "eok_fxadd";                  break;
+    case eok_fxsubtract:        s = "eok_fxsubtract";             break;
+    case eok_fxmultiply:        s = "eok_fxmultiply";             break;
+    case eok_fxdivide:          s = "eok_fxdivide";               break;
+    case eok_fxeq:              s = "eok_fxeq";                   break;
+    case eok_fxne:              s = "eok_fxne";                   break;
+    case eok_fxgt:              s = "eok_fxgt";                   break;
+    case eok_fxlt:              s = "eok_fxlt";                   break;
+    case eok_fxge:              s = "eok_fxge";                   break;
+    case eok_fxle:              s = "eok_fxle";                   break;
+    case eok_fxassign:          s = "eok_fxassign";               break;
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
     case eok_fadd:              s = "eok_fadd";                   break;
     case eok_fsubtract:         s = "eok_fsubtract";              break;
     case eok_fmultiply:         s = "eok_fmultiply";              break;
@@ -3062,6 +3104,12 @@ Display the name of an expression operator.
     case eok_imultiply_assign:  s = "eok_imultiply_assign";       break;
     case eok_idivide_assign:    s = "eok_idivide_assign";         break;
     case eok_remainder_assign:  s = "eok_remainder_assign";       break;
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+    case eok_fxadd_assign:      s = "eok_fxadd_assign";           break;
+    case eok_fxsubtract_assign: s = "eok_fxsubtract_assign";      break;
+    case eok_fxmultiply_assign: s = "eok_fxmultiply_assign";      break;
+    case eok_fxdivide_assign:   s = "eok_fxdivide_assign";        break;
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
     case eok_fadd_assign:       s = "eok_fadd_assign";            break;
     case eok_fsubtract_assign:  s = "eok_fsubtract_assign";       break;
     case eok_fmultiply_assign:  s = "eok_fmultiply_assign";       break;

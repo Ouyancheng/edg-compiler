@@ -6839,6 +6839,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         case eok_add:
         case eok_iadd:
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+        case eok_fxadd:
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
         case eok_fadd:
 #if C99_IL_EXTENSIONS_SUPPORTED
         case eok_xadd:
@@ -6851,6 +6854,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           break;
         case eok_subtract:
         case eok_isubtract:
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+        case eok_fxsubtract:
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
         case eok_fsubtract:
 #if C99_IL_EXTENSIONS_SUPPORTED
         case eok_xsubtract:
@@ -6863,6 +6869,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           break;
         case eok_multiply:
         case eok_imultiply:
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+        case eok_fxmultiply:
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
         case eok_fmultiply:
 #if C99_IL_EXTENSIONS_SUPPORTED
         case eok_xmultiply:
@@ -6872,6 +6881,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           break;
         case eok_divide:
         case eok_idivide:
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+        case eok_fxdivide:
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
         case eok_fdivide:
 #if C99_IL_EXTENSIONS_SUPPORTED
         case eok_xdivide:
@@ -6880,6 +6892,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           break;
         case eok_eq:
         case eok_ieq:
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+        case eok_fxeq:
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
         case eok_feq:
 #if C99_IL_EXTENSIONS_SUPPORTED
         case eok_xeq:
@@ -6890,6 +6905,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           break;
         case eok_ne:
         case eok_ine:
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+        case eok_fxne:
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
         case eok_fne:
 #if C99_IL_EXTENSIONS_SUPPORTED
         case eok_xne:
@@ -6900,24 +6918,36 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           break;
         case eok_gt:
         case eok_igt:
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+        case eok_fxgt:
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
         case eok_fgt:
         case eok_pgt:
           opstr = ">";
           break;
         case eok_lt:
         case eok_ilt:
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+        case eok_fxlt:
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
         case eok_flt:
         case eok_plt:
           opstr = "<";
           break;
         case eok_ge:
         case eok_ige:
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+        case eok_fxge:
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
         case eok_fge:
         case eok_pge:
           opstr = ">=";
           break;
         case eok_le:
         case eok_ile:
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+        case eok_fxle:
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
         case eok_fle:
         case eok_ple:
           opstr = "<=";
@@ -6941,6 +6971,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           break;
         case eok_assign:
         case eok_iassign:
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+        case eok_fxassign:
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
         case eok_fassign:
 #if C99_IL_EXTENSIONS_SUPPORTED
         case eok_xassign:
@@ -6953,6 +6986,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           break;
         case eok_multiply_assign:
         case eok_imultiply_assign:
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+        case eok_fxmultiply_assign:
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
         case eok_fmultiply_assign:
 #if C99_IL_EXTENSIONS_SUPPORTED
         case eok_xmultiply_assign:
@@ -6962,6 +6998,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           break;
         case eok_divide_assign:
         case eok_idivide_assign:
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+        case eok_fxdivide_assign:
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
         case eok_fdivide_assign:
 #if C99_IL_EXTENSIONS_SUPPORTED
         case eok_xdivide_assign:
@@ -6975,6 +7014,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           break;
         case eok_add_assign:
         case eok_iadd_assign:
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+        case eok_fxadd_assign:
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
         case eok_fadd_assign:
 #if C99_IL_EXTENSIONS_SUPPORTED
         case eok_xadd_assign:
@@ -6985,6 +7027,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           break;
         case eok_subtract_assign:
         case eok_isubtract_assign:
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+        case eok_fxsubtract_assign:
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
         case eok_fsubtract_assign:
 #if C99_IL_EXTENSIONS_SUPPORTED
         case eok_xsubtract_assign:

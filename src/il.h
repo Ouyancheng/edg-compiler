@@ -476,6 +476,13 @@ extern a_boolean bool_type_used_in_primary_IL(void);
 
 extern a_type_ptr bool_type(void);
 
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+extern a_type_ptr fixed_point_type(a_fixed_point_precision  precision,
+                                   a_boolean                is_unsigned,
+                                   a_boolean                is_fract,
+                                   a_boolean                saturating);
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+
 extern a_type_ptr float_type(a_float_kind kind);
 
 #if C99_IL_EXTENSIONS_SUPPORTED

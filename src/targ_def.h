@@ -490,6 +490,186 @@ Integer types:
 #endif /* LONG_LONG_ALLOWED */
 
 /*
+Fixed-point type configuration.
+
+Any configuration that sets FIXED_POINT_EXTENSIONS_ALLOWED to TRUE must also
+define all the quantities defining the size, alignment, etc. of these types.
+Six _Fract types can be configured independently: signed short _Fract,
+unsigned short _Fract, signed _Fract, unsigned _Fract, long signed _Fract, and
+long unsigned _Fract.  Similarly, there are six _Accum types that can also be
+configured independently.
+These configuration macros are used to initialize the targ_sizeof_fixed_point,
+targ_alignof_fixed_point, and targ_fractional_bits_for_fixed_point arrays.
+*/
+#ifndef FIXED_POINT_EXTENSIONS_ALLOWED
+#define FIXED_POINT_EXTENSIONS_ALLOWED FALSE
+#endif /* ifndef FIXED_POINT_EXTENSIONS_ALLOWED */
+
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+
+#ifndef TARG_SIZEOF_SIGNED_SHORT_ACCUM
+ #error TARG_SIZEOF_SIGNED_SHORT_ACCUM must be set
+#endif /* ifndef TARG_SIZEOF_SIGNED_SHORT_ACCUM */
+
+#ifndef TARG_ALIGNOF_SIGNED_SHORT_ACCUM
+ #error TARG_ALIGNOF_SIGNED_SHORT_ACCUM must be set
+#endif /* ifndef TARG_ALIGNOF_SIGNED_SHORT_ACCUM */
+
+#ifndef TARG_FRACTIONAL_BITS_FOR_SIGNED_SHORT_ACCUM
+ #error TARG_FRACTIONAL_BITS_FOR_SIGNED_SHORT_ACCUM must be set
+#endif /* ifndef TARG_FRACTIONAL_BITS_FOR_SIGNED_SHORT_ACCUM */
+
+#ifndef TARG_SIZEOF_UNSIGNED_SHORT_ACCUM
+ #error TARG_SIZEOF_UNSIGNED_SHORT_ACCUM must be set
+#endif /* ifndef TARG_SIZEOF_UNSIGNED_SHORT_ACCUM */
+
+#ifndef TARG_ALIGNOF_UNSIGNED_SHORT_ACCUM
+ #error TARG_ALIGNOF_UNSIGNED_SHORT_ACCUM must be set
+#endif /* ifndef TARG_ALIGNOF_UNSIGNED_SHORT_ACCUM */
+
+#ifndef TARG_FRACTIONAL_BITS_FOR_UNSIGNED_SHORT_ACCUM
+ #error TARG_FRACTIONAL_BITS_FOR_UNSIGNED_SHORT_ACCUM must be set
+#endif /* ifndef TARG_FRACTIONAL_BITS_FOR_UNSIGNED_SHORT_ACCUM */
+
+#ifndef TARG_SIZEOF_SIGNED_ACCUM
+ #error TARG_SIZEOF_SIGNED_ACCUM must be set
+#endif /* ifndef TARG_SIZEOF_SIGNED_ACCUM */
+
+#ifndef TARG_ALIGNOF_SIGNED_ACCUM
+ #error TARG_ALIGNOF_SIGNED_ACCUM must be set
+#endif /* ifndef TARG_ALIGNOF_SHORT_ACCUM */
+
+#ifndef TARG_FRACTIONAL_BITS_FOR_SIGNED_ACCUM
+ #error TARG_FRACTIONAL_BITS_FOR_SIGNED_ACCUM must be set
+#endif /* ifndef TARG_FRACTIONAL_BITS_FOR_SIGNED_ACCUM */
+
+#ifndef TARG_SIZEOF_UNSIGNED_ACCUM
+ #error TARG_SIZEOF_UNSIGNED_ACCUM must be set
+#endif /* ifndef TARG_SIZEOF_UNSIGNED_ACCUM */
+
+#ifndef TARG_ALIGNOF_UNSIGNED_ACCUM
+ #error TARG_ALIGNOF_UNSIGNED_ACCUM must be set
+#endif /* ifndef TARG_ALIGNOF_UNSIGNED_ACCUM */
+
+#ifndef TARG_FRACTIONAL_BITS_FOR_UNSIGNED_ACCUM
+ #error TARG_FRACTIONAL_BITS_FOR_UNSIGNED_ACCUM must be set
+#endif /* ifndef TARG_FRACTIONAL_BITS_FOR_UNSIGNED_ACCUM */
+
+#ifndef TARG_SIZEOF_SIGNED_LONG_ACCUM
+ #error TARG_SIZEOF_SIGNED_LONG_ACCUM must be set
+#endif /* ifndef TARG_SIZEOF_SIGNED_LONG_ACCUM */
+
+#ifndef TARG_ALIGNOF_SIGNED_LONG_ACCUM
+ #error TARG_ALIGNOF_SIGNED_LONG_ACCUM must be set
+#endif /* ifndef TARG_ALIGNOF_SIGNED_LONG_ACCUM */
+
+#ifndef TARG_FRACTIONAL_BITS_FOR_SIGNED_LONG_ACCUM
+ #error TARG_FRACTIONAL_BITS_FOR_SIGNED_LONG_ACCUM must be set
+#endif /* ifndef TARG_FRACTIONAL_BITS_FOR_SIGNED_LONG_ACCUM */
+
+#ifndef TARG_SIZEOF_UNSIGNED_LONG_ACCUM
+ #error TARG_SIZEOF_UNSIGNED_LONG_ACCUM must be set
+#endif /* ifndef TARG_SIZEOF_UNSIGNED_LONG_ACCUM */
+
+#ifndef TARG_ALIGNOF_UNSIGNED_LONG_ACCUM
+ #error TARG_ALIGNOF_UNSIGNED_LONG_ACCUM must be set
+#endif /* ifndef TARG_ALIGNOF_UNSIGNED_LONG_ACCUM */
+
+#ifndef TARG_FRACTIONAL_BITS_FOR_UNSIGNED_LONG_ACCUM
+ #error TARG_FRACTIONAL_BITS_FOR_UNSIGNED_LONG_ACCUM must be set
+#endif /* ifndef TARG_FRACTIONAL_BITS_FOR_UNSIGNED_LONG_ACCUM */
+
+#ifndef TARG_SIZEOF_SIGNED_SHORT_FRACT
+ #error TARG_SIZEOF_SIGNED_SHORT_FRACT must be set
+#endif /* ifndef TARG_SIZEOF_SIGNED_SHORT_FRACT */
+
+#ifndef TARG_ALIGNOF_SIGNED_SHORT_FRACT
+ #error TARG_ALIGNOF_SIGNED_SHORT_FRACT must be set
+#endif /* ifndef TARG_ALIGNOF_SIGNED_SHORT_FRACT */
+
+#ifndef TARG_FRACTIONAL_BITS_FOR_SIGNED_SHORT_FRACT
+ #error TARG_FRACTIONAL_BITS_FOR_SIGNED_SHORT_FRACT must be set
+#endif /* ifndef TARG_FRACTIONAL_BITS_FOR_SIGNED_SHORT_FRACT */
+
+#ifndef TARG_SIZEOF_UNSIGNED_SHORT_FRACT
+ #error TARG_SIZEOF_UNSIGNED_SHORT_FRACT must be set
+#endif /* ifndef TARG_SIZEOF_UNSIGNED_SHORT_FRACT */
+
+#ifndef TARG_ALIGNOF_UNSIGNED_SHORT_FRACT
+ #error TARG_ALIGNOF_UNSIGNED_SHORT_FRACT must be set
+#endif /* ifndef TARG_ALIGNOF_UNSIGNED_SHORT_FRACT */
+
+#ifndef TARG_FRACTIONAL_BITS_FOR_UNSIGNED_SHORT_FRACT
+ #error TARG_FRACTIONAL_BITS_FOR_UNSIGNED_SHORT_FRACT must be set
+#endif /* ifndef TARG_FRACTIONAL_BITS_FOR_UNSIGNED_SHORT_FRACT */
+
+#ifndef TARG_SIZEOF_SIGNED_FRACT
+ #error TARG_SIZEOF_SIGNED_FRACT must be set
+#endif /* ifndef TARG_SIZEOF_SIGNED_FRACT */
+
+#ifndef TARG_ALIGNOF_SIGNED_FRACT
+ #error TARG_ALIGNOF_SIGNED_FRACT must be set
+#endif /* ifndef TARG_ALIGNOF_SHORT_FRACT */
+
+#ifndef TARG_FRACTIONAL_BITS_FOR_SIGNED_FRACT
+ #error TARG_FRACTIONAL_BITS_FOR_SIGNED_FRACT must be set
+#endif /* ifndef TARG_FRACTIONAL_BITS_FOR_SIGNED_FRACT */
+
+#ifndef TARG_SIZEOF_UNSIGNED_FRACT
+ #error TARG_SIZEOF_UNSIGNED_FRACT must be set
+#endif /* ifndef TARG_SIZEOF_UNSIGNED_FRACT */
+
+#ifndef TARG_ALIGNOF_UNSIGNED_FRACT
+ #error TARG_ALIGNOF_UNSIGNED_FRACT must be set
+#endif /* ifndef TARG_ALIGNOF_UNSIGNED_FRACT */
+
+#ifndef TARG_FRACTIONAL_BITS_FOR_UNSIGNED_FRACT
+ #error TARG_FRACTIONAL_BITS_FOR_UNSIGNED_FRACT must be set
+#endif /* ifndef TARG_FRACTIONAL_BITS_FOR_UNSIGNED_FRACT */
+
+#ifndef TARG_SIZEOF_SIGNED_LONG_FRACT
+ #error TARG_SIZEOF_SIGNED_LONG_FRACT must be set
+#endif /* ifndef TARG_SIZEOF_SIGNED_LONG_FRACT */
+
+#ifndef TARG_ALIGNOF_SIGNED_LONG_FRACT
+ #error TARG_ALIGNOF_SIGNED_LONG_FRACT must be set
+#endif /* ifndef TARG_ALIGNOF_SIGNED_LONG_FRACT */
+
+#ifndef TARG_FRACTIONAL_BITS_FOR_SIGNED_LONG_FRACT
+ #error TARG_FRACTIONAL_BITS_FOR_SIGNED_LONG_FRACT must be set
+#endif /* ifndef TARG_FRACTIONAL_BITS_FOR_SIGNED_LONG_FRACT */
+
+#ifndef TARG_SIZEOF_UNSIGNED_LONG_FRACT
+ #error TARG_SIZEOF_UNSIGNED_LONG_FRACT must be set
+#endif /* ifndef TARG_SIZEOF_UNSIGNED_LONG_FRACT */
+
+#ifndef TARG_ALIGNOF_UNSIGNED_LONG_FRACT
+ #error TARG_ALIGNOF_UNSIGNED_LONG_FRACT must be set
+#endif /* ifndef TARG_ALIGNOF_UNSIGNED_LONG_FRACT */
+
+/*
+Determine the largest fixed-point size (if not already provided).
+We assume it is one of the "long" precision variants.
+*/
+#ifndef TARG_SIZEOF_LARGEST_FIXED_POINT
+#define TARG_SIZEOF_LARGEST_FIXED_POINT TARG_SIZEOF_UNSIGNED_LONG_ACCUM
+#if TARG_SIZEOF_LARGEST_FIXED_POINT < TARG_SIZEOF_SIGNED_LONG_ACCUM
+#undef TARG_SIZEOF_LARGEST_FIXED_POINT
+#define TARG_SIZEOF_LARGEST_FIXED_POINT TARG_SIZEOF_SIGNED_LONG_ACCUM
+#endif /* TARG_SIZEOF_LARGEST_FIXED_POINT < TARG_SIZEOF_SIGNED_LONG_ACCUM */
+#if TARG_SIZEOF_LARGEST_FIXED_POINT < TARG_SIZEOF_UNSIGNED_LONG_FRACT
+#undef TARG_SIZEOF_LARGEST_FIXED_POINT
+#define TARG_SIZEOF_LARGEST_FIXED_POINT TARG_SIZEOF_UNSIGNED_LONG_FRACT
+#endif /* TARG_SIZEOF_LARGEST_FIXED_POINT < TARG_SIZEOF_UNSIGNED_LONG_FRACT */
+#if TARG_SIZEOF_LARGEST_FIXED_POINT < TARG_SIZEOF_SIGNED_LONG_FRACT
+#undef TARG_SIZEOF_LARGEST_FIXED_POINT
+#define TARG_SIZEOF_LARGEST_FIXED_POINT TARG_SIZEOF_SIGNED_LONG_FRACT
+#endif /* TARG_SIZEOF_LARGEST_FIXED_POINT < TARG_SIZEOF_SIGNED_LONG_FRACT */
+#endif /* ifndef TARG_SIZEOF_LARGEST_FIXED_POINT */
+
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+
+/*
 Type used as the representation of an integer value.  More precisely,
 this is the form used on the host to represent a target integer.
 */
@@ -680,9 +860,17 @@ typedef unsigned long a_host_large_unsigned;
 
 #define BITS_IN_HOST_LARGE_INTEGER (sizeof(a_host_large_integer)*CHAR_BIT)
 /* The array is made up of elements of type an_int_value_part.
-   Figure out how many. */
+   Figure out how many.  Note that this representation may also be
+   used for fixed-point values. */
+#define INTEGER_VALUE_REPRESENTATION_SIZE TARG_SIZEOF_LARGEST_INTEGER
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+#if TARG_SIZEOF_LARGEST_FIXED_POINT > INTEGER_VALUE_REPRESENTATION_SIZE
+#undef INTEGER_VALUE_REPRESENTATION_SIZE
+#define INTEGER_VALUE_REPRESENTATION_SIZE TARG_SIZEOF_LARGEST_FIXED_POINT
+#endif /* TARG_SIZEOF_LARGEST_FIXED_POINT > INTEGER_VALUE_REPR... */
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
 #define INT_VALUE_PARTS_PER_INTEGER_VALUE                             \
-  ((TARG_SIZEOF_LARGEST_INTEGER*INTERNAL_TARG_CHAR_BIT)/	      \
+  ((INTEGER_VALUE_REPRESENTATION_SIZE*INTERNAL_TARG_CHAR_BIT)/	      \
    (SIZEOF_INT_VALUE_PART*CHAR_BIT))
 /* This is an array inside a struct instead of just an array so that
    its address behaves in a predictable way. */
@@ -703,6 +891,22 @@ The printf formatting specifier to be used to print a host large integer.
 #endif /* ifndef PRINTF_FORMAT_FOR_HOST_LARGE_UNSIGNED */
 
 #endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+/*
+By default the front end represents fixed-point values as implicitly scaled
+integer values.
+*/
+#ifndef TYPE_FOR_A_FIXED_POINT_VALUE
+#ifdef TYPE_FOR_AN_INTEGER_VALUE
+#define TYPE_FOR_A_FIXED_POINT_VALUE TYPE_FOR_AN_INTEGER_VALUE
+#else /* ifndef TYPE_FOR_A_FIXED_POINT_VALUE */
+#define TYPE_FOR_A_FIXED_POINT_VALUE an_integer_value
+#endif /* ifdef TYPE_FOR_A_FIXED_POINT_VALUE */
+#endif /* ifndef TYPE_FOR_AN_INTEGER_VALUE */
+typedef TYPE_FOR_A_FIXED_POINT_VALUE a_fixed_point_value;
+
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
 
 /*
 If this flag is TRUE, overflows on signed integer operations do
@@ -2876,6 +3080,31 @@ The C-generating and C++-generating back ends can handle compound literals
 #if !COMPOUND_LITERAL_ENABLING_POSSIBLE && DEFAULT_COMPOUND_LITERALS_ALLOWED
  #error -- compound literal enabling not allowed
 #endif /* !COMPOUND_LITERAL_ENABLING_POSSIBLE && ... */
+
+/*
+Flag that is TRUE if fixed-point extensions (e.g., support for _Fract and
+_Accum types) should be enabled by default.  It is the initial value of the
+global variable fixed_point_allowed.
+*/
+#ifndef DEFAULT_FIXED_POINT_ALLOWED
+#define DEFAULT_FIXED_POINT_ALLOWED FALSE
+#endif /* DEFAULT_FIXED_POINT_ALLOWED */
+
+/*
+This switch controls whether support for fixed-point extensions can be
+enabled.  Having this TRUE means the back end is prepared to accept
+fixed-point IL entities.  The C-generating and C++-generating back ends
+can handle fixed-point extensions (but that's useful only if the downstream
+compiler also handles them).  The fixed-point extensions are a set of
+facilities defined by the C standardization committee's ISO/IEC TR 18037
+(e.g., support for _Fract and _Accum types).
+*/
+#ifndef FIXED_POINT_EXTENSIONS_ALLOWED
+#define FIXED_POINT_EXTENSIONS_ALLOWED FALSE
+#endif /* ifndef FIXED_POINT_EXTENSIONS_ALLOWED */
+#if !FIXED_POINT_EXTENSIONS_ALLOWED && DEFAULT_FIXED_POINT_ALLOWED
+ #error -- fixed-point enabling not allowed
+#endif /* !FIXED_POINT_EXTENSIONS_ALLOWED && ... */
 
 /*
 This switch controls whether a post-pass is done after IL lowering

@@ -31,6 +31,11 @@ literals.h -- Declarations relating to lexicals.c (having to do with
 extern void conv_integer_literal(int           radix,
                                  an_error_code *err_code,
                                  char          **err_pos);
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+extern void conv_fixed_point_literal(a_boolean      is_hexadecimal,
+                                     an_error_code  *err_code,
+                                     char           **err_pos);
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
 extern void conv_float_literal(a_boolean	is_hexadecimal,
 			       an_error_code	*err_code,
 	                       char		**err_pos);

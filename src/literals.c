@@ -423,6 +423,123 @@ wrapup:
   }  /* if */
 }  /* conv_integer_literal */
 
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+
+void conv_fixed_point_literal(a_boolean      is_hexadecimal,
+                              an_error_code  *err_code,
+                              char           **err_pos)
+/*
+Convert a fixed-point constant from external form to internal form.
+start_of_curr_token and end_of_curr_token point to the two ends of the
+external form.  is_hexadecimal is TRUE if the external form is specified
+as a hexadecimal value.
+
+The internal form is placed in const_for_curr_token.  If there is no
+error, *err_code is set to ec_no_error (which is 0); otherwise,
+*err_code is set to an appropriate error code and *err_pos is set to
+the character position of the error.
+
+This function is modeled after conv_float_literal (see below).
+*/
+{
+  a_fixed_point_type_descr
+             fxp_descr;
+  a_fixed_point_value
+             value;
+  char       *actual_end = end_of_curr_token;
+  char       old_next_char, old_next2_char;
+  a_boolean  err;
+  a_boolean  inexact = FALSE;
+
+  *err_code = ec_no_error;
+  /* Check the suffixes. */
+  check_assertion(*actual_end == 'r' || *actual_end == 'R' ||
+                  *actual_end == 'k' || *actual_end == 'K');
+  if (*actual_end == 'r' || *actual_end == 'R') {
+    /* "R" suffix, indicates fixed-point type. */
+    fxp_descr.is_fract_type = TRUE;
+  } else {
+    fxp_descr.is_fract_type = FALSE;
+  }  /* if */
+  --actual_end;
+  fxp_descr.precision = (a_fixed_point_precision)fpp_default;
+  fxp_descr.is_unsigned = FALSE;
+  /* FIXME: Affected by pragma state? */
+  fxp_descr.saturating = FALSE;
+  for (;;) {
+    if (*actual_end == 'u' || *actual_end == 'U') {
+      fxp_descr.is_unsigned = TRUE;
+    } else if (*actual_end == 'h' || *actual_end == 'H') {
+      fxp_descr.precision = (a_fixed_point_precision)fpp_short;
+    } else if (*actual_end == 'l' || *actual_end == 'L') {
+      fxp_descr.precision = (a_fixed_point_precision)fpp_long;
+    } else {
+      /* Not a suffix: This should be the actual end of the number. */
+      break;
+    }  /* if */
+    --actual_end;
+  }  /* for */
+  if (microsoft_bugs &&
+      start_of_curr_token[0] == '.' &&
+      isdigit((unsigned char)start_of_curr_token[1]) &&
+      start_of_curr_token[2] == '.') {
+    /* Microsoft accepts constants like .1.234, and ignores the second
+       decimal point and everything after it. */
+    actual_end = start_of_curr_token+1;
+  }  /* if */
+  /* Place a null after the number to guarantee stopping at the right
+     point.  If the number has a missing exponent, place a zero exponent
+     at the end (this is for the pcc case).  There's always room for at
+     least two characters after the floating number, because the number 
+     is always followed by at least a newline and null. */
+  old_next_char = *(actual_end+1);
+  old_next2_char = *(actual_end+2);
+  if (*actual_end == 'E' || *actual_end == 'e' ||
+      ((*actual_end == '+' || *actual_end == '-') &&
+       actual_end != start_of_curr_token &&
+       (*(actual_end-1) == 'E' || *(actual_end-1) == 'e'))) {
+    /* Missing exponent digits (pcc case); add 0 exponent. */
+    *(actual_end+1) = '0';
+    *(actual_end+2) = '\0';
+  } else {
+    *(actual_end+1) = '\0';
+  }  /* if */
+  /* Do the conversion. */
+  if (is_hexadecimal) {
+    fxp_hex_string_to_fixed_point(&fxp_descr, start_of_curr_token, &value,
+                                  &err, &inexact);
+  } else {
+    fxp_string_to_fixed_point(&fxp_descr, start_of_curr_token, &value, &err);
+  }  /* if */
+  *(actual_end+1) = old_next_char;
+  *(actual_end+2) = old_next2_char;
+  if (err) {
+    *err_code = ec_bad_fixed_point_value;
+    *err_pos = start_of_curr_token;
+  } else {
+    /* Build a constant with the right type and value. */
+    clear_constant(&const_for_curr_token,
+                   (a_constant_repr_kind)ck_fixed_point);
+    const_for_curr_token.type = fixed_point_type(fxp_descr.precision,
+                                                 fxp_descr.is_unsigned,
+                                                 fxp_descr.is_fract_type,
+                                                 fxp_descr.saturating);
+    const_for_curr_token.variant.fixed_point_value = value;
+    if (inexact) {
+      /* The hex value could not be exactly represented in the specified
+         fixed-point format. */
+      a_source_position	pos;
+      conv_line_loc_to_source_pos(start_of_curr_token, &pos);
+      pos_warning(ec_inexact_fxp_conversion, &pos);
+    }  /* if */
+  }  /* if */
+  if (*err_code != ec_no_error) {
+    /* Return an error constant. */
+    set_error_constant(&const_for_curr_token);
+  }  /* if */
+}  /* conv_fixed_point_literal */
+
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
 
 void conv_float_literal(a_boolean	is_hexadecimal,
 			an_error_code	*err_code,

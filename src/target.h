@@ -539,6 +539,72 @@ EXTERN an_integer_kind
 			   large enough to hold a pointer value.  Initialized
 			   to the default value but reconfigurable. */
 
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+/*
+Fixed-point types:
+*/
+EXTERN a_targ_size_t
+	targ_sizeof_fixed_point[/*is_unsigned*/2]
+	                       [(int)fpp_last]
+	                       [/*is_fract*/2]
+#if VAR_INITIALIZERS
+		= { { { TARG_SIZEOF_SIGNED_SHORT_ACCUM,
+		        TARG_SIZEOF_UNSIGNED_SHORT_ACCUM },
+		      { TARG_SIZEOF_SIGNED_ACCUM,
+		        TARG_SIZEOF_UNSIGNED_ACCUM },
+		      { TARG_SIZEOF_SIGNED_LONG_ACCUM,
+		        TARG_SIZEOF_UNSIGNED_LONG_ACCUM } },
+		    { { TARG_SIZEOF_SIGNED_SHORT_FRACT,
+		        TARG_SIZEOF_UNSIGNED_SHORT_FRACT },
+		      { TARG_SIZEOF_SIGNED_FRACT,
+		        TARG_SIZEOF_UNSIGNED_FRACT },
+		      { TARG_SIZEOF_SIGNED_LONG_FRACT,
+		        TARG_SIZEOF_UNSIGNED_LONG_FRACT } } }
+#endif /* VAR_INITIALIZERS */
+		                                             ;
+
+EXTERN a_targ_alignment
+	targ_alignof_fixed_point[/*is_unsigned*/2]
+	                        [(int)fpp_last]
+	                        [/*is_fract*/2]
+#if VAR_INITIALIZERS
+		= { { { TARG_ALIGNOF_SIGNED_SHORT_ACCUM,
+		        TARG_ALIGNOF_UNSIGNED_SHORT_ACCUM },
+		      { TARG_ALIGNOF_SIGNED_ACCUM,
+		        TARG_ALIGNOF_UNSIGNED_ACCUM },
+		      { TARG_ALIGNOF_SIGNED_LONG_ACCUM,
+		        TARG_ALIGNOF_UNSIGNED_LONG_ACCUM } },
+		    { { TARG_ALIGNOF_SIGNED_SHORT_FRACT,
+		        TARG_ALIGNOF_UNSIGNED_SHORT_FRACT },
+		      { TARG_ALIGNOF_SIGNED_FRACT,
+		        TARG_ALIGNOF_UNSIGNED_FRACT },
+		      { TARG_ALIGNOF_SIGNED_LONG_FRACT,
+		        TARG_ALIGNOF_UNSIGNED_LONG_FRACT } } }
+#endif /* VAR_INITIALIZERS */
+		                                              ;
+
+EXTERN a_targ_alignment
+	targ_fractional_bits_for_fixed_point[/*is_unsigned*/2]
+	                                    [(int)fpp_last]
+	                                    [/*is_fract*/2]
+#if VAR_INITIALIZERS
+		= { { { TARG_FRACTIONAL_BITS_FOR_SIGNED_SHORT_ACCUM,
+		        TARG_FRACTIONAL_BITS_FOR_UNSIGNED_SHORT_ACCUM },
+		      { TARG_FRACTIONAL_BITS_FOR_SIGNED_ACCUM,
+		        TARG_FRACTIONAL_BITS_FOR_UNSIGNED_ACCUM },
+		      { TARG_FRACTIONAL_BITS_FOR_SIGNED_LONG_ACCUM,
+		        TARG_FRACTIONAL_BITS_FOR_UNSIGNED_LONG_ACCUM } },
+		    { { TARG_FRACTIONAL_BITS_FOR_SIGNED_SHORT_FRACT,
+		        TARG_FRACTIONAL_BITS_FOR_UNSIGNED_SHORT_FRACT },
+		      { TARG_FRACTIONAL_BITS_FOR_SIGNED_FRACT,
+		        TARG_FRACTIONAL_BITS_FOR_UNSIGNED_FRACT },
+		      { TARG_FRACTIONAL_BITS_FOR_SIGNED_LONG_FRACT,
+		        TARG_FRACTIONAL_BITS_FOR_UNSIGNED_LONG_FRACT } } }
+#endif /* VAR_INITIALIZERS */
+		                                                          ;
+
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+
 /*
 Float types:
 */

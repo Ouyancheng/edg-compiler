@@ -55,6 +55,10 @@ static a_type_ptr signed_int_types[(int)ik_last];
 static a_type_ptr microsoft_sized_int_types[(int)ik_last];
 static a_type_ptr microsoft_sized_signed_int_types[(int)ik_last];
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+static a_type_ptr fixed_point_types[(int)fpp_last][/*is_unsigned*/2]
+                                   [/*is_fract*/2][/*saturating*/2];
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
 static a_type_ptr float_types[(int)fk_last];
 #if C99_IL_EXTENSIONS_SUPPORTED
 static a_type_ptr complex_types[(int)fk_last];
@@ -1003,6 +1007,22 @@ Dump the contents of the indicated type entry, for debug purposes.
           if (tp->variant.integer.enum_type) fputs(" enum", f_debug);
         }  /* if */
         break;
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+      case tk_fixed_point:
+        {
+          a_fixed_point_precision  prec = tp->variant.fixed_point.precision;
+          fprintf(f_debug, "fixed-point%s%s%s%s",
+                  tp->variant.fixed_point.saturating ? " _Sat" : "",
+                  tp->variant.fixed_point.is_unsigned ? " unsigned" : "",
+                  (prec == (a_fixed_point_precision)fpp_short)   ? " short" :
+                  (prec == (a_fixed_point_precision)fpp_default) ? "" :
+                  (prec == (a_fixed_point_precision)fpp_long)    ? " long" :
+                                                                   " *ERROR*",
+                  tp->variant.fixed_point.is_fract_type ?
+                                                       " _Fract" : " _Accum");
+        }
+        break;
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
 #if C99_IL_EXTENSIONS_SUPPORTED
       case tk_complex:
       case tk_imaginary:
@@ -1738,6 +1758,9 @@ Dump a string identifying a constant-representation kind, for debug purposes.
   switch (kind) {
     case ck_error:          s = "ck_error";		break;
     case ck_integer:        s = "ck_integer";		break;
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+    case ck_fixed_point:    s = "ck_fixed_point";	break;
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
     case ck_string:         s = "ck_string";		break;
     case ck_float:          s = "ck_float";		break;
     case ck_address:        s = "ck_address";		break;
@@ -4322,6 +4345,7 @@ to refine the hash value developed in hash_constant.
       hash_value = hash_type(type->variant.typeref.type) + 17;
       break;
     default:
+      /* FIXME: Special treatment needed for fixed-point? */
       hash_value = (a_constant_hash_value)type->kind;
   }  /* switch */
   return hash_value;
@@ -4360,6 +4384,12 @@ Return the hash value for the indicated constant.
       /* Integer.  Use the constant itself as the hash value. */
       hash_value = (a_constant_hash_value)value_of_integer_constant(cp,&ovflo);
       break;
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+    case ck_fixed_point:
+      /* Fixed-point constant: Use a host-dependent hash-function. */
+      hash_value = fxp_hash(&cp->variant.fixed_point_value);
+      break;
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
     case ck_string:
       /* String.  Hash all the characters. */
       hash_value = 100;
@@ -4753,6 +4783,11 @@ nonidentical.
             cp1->null_keyword != cp2->null_keyword) eq = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
         break;
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+      case ck_fixed_point:
+        eq = (cmp_fixed_point_constants(cp1, cp2) == 0);
+        break;
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
       case ck_string:
         if (cp1->variant.string.length == cp2->variant.string.length) {
           eq = 
@@ -5106,6 +5141,9 @@ region).
   switch (cp->kind) {
     case ck_error:
     case ck_integer:
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+    case ck_fixed_point:
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
     case ck_float:
 #if C99_IL_EXTENSIONS_SUPPORTED
     case ck_imaginary:
@@ -6598,6 +6636,44 @@ Make or find a type entry for a bool type and return a pointer to it.
   return pit;
 }  /* bool_type */
 
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+
+a_type_ptr fixed_point_type(a_fixed_point_precision  precision,
+                            a_boolean                is_unsigned,
+                            a_boolean                is_fract,
+                            a_boolean                saturating)
+/*
+Make or find a fixed-point type entry with the given precision (short,
+default, or long), signedness (indicated by is_unsigned), and overflow
+behavior (indicated by saturating).  If is_fract is TRUE, return the
+_Fract fixed-point type variant; otherwise, return an _Accum type.
+*/
+{
+  a_type_ptr  *p_result = &fixed_point_types[precision]
+                                            [is_unsigned]
+                                            [is_fract]
+                                            [saturating];
+
+  if (*p_result == NULL) {
+    /* The type hasn't been created yet: Do so now. */
+    *p_result = alloc_type((a_type_kind)tk_fixed_point);
+    (*p_result)->variant.fixed_point.precision = precision;
+    (*p_result)->variant.fixed_point.is_unsigned = is_unsigned;
+    (*p_result)->variant.fixed_point.is_fract_type = is_fract;
+    (*p_result)->variant.fixed_point.saturating = saturating;
+    set_type_size(*p_result);
+#if ORPHAN_PROCESSING_NEEDED
+    /* Record the type entry as an orphan in case it is discarded now
+       and then found again in a later phase (e.g., IL lowering). */
+    add_orphaned_file_scope_il_entry((char *)(*p_result),
+                                     (an_il_entry_kind)iek_type);
+#endif /* ORPHAN_PROCESSING_NEEDED */
+    record_builtin_type(*p_result);
+  }  /* if */
+  return *p_result;
+}  /* fixed_point_type */
+
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
 
 a_type_ptr float_type(a_float_kind kind)
 /*
@@ -15680,6 +15756,9 @@ in il_init.)
       pch_array_saved_var_array_elem(microsoft_sized_int_types),
       pch_array_saved_var_array_elem(microsoft_sized_signed_int_types),
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+      pch_array_saved_var_array_elem(fixed_point_types),
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
 #if C99_IL_EXTENSIONS_SUPPORTED
       pch_array_saved_var_array_elem(complex_types),
       pch_array_saved_var_array_elem(imaginary_types),
@@ -15723,6 +15802,9 @@ in il_init.)
   register_trans_unit_array(microsoft_sized_int_types);
   register_trans_unit_array(microsoft_sized_signed_int_types);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+  register_trans_unit_array(fixed_point_types);
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
   register_trans_unit_array(float_types);
 #if C99_IL_EXTENSIONS_SUPPORTED
   register_trans_unit_array(complex_types);
@@ -15804,6 +15886,9 @@ need initialization for every (primary and secondary) translation unit.
   memzero((char *)microsoft_sized_signed_int_types,
           sizeof(microsoft_sized_signed_int_types));
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+  memzero((char *)fixed_point_types, sizeof(fixed_point_types));
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
   memzero((char *)float_types, sizeof(float_types));
 #if C99_IL_EXTENSIONS_SUPPORTED
   memzero((char *)complex_types, sizeof(complex_types));

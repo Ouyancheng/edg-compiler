@@ -7323,6 +7323,10 @@ Do IL lowering of the indicated type and everything under it.
     switch (type->kind) {
       case tk_void:
       case tk_float:
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+      case tk_fixed_point:
+        /* FIXME: May need some work. */
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
         /* No processing required. */
         break;
       case tk_integer:

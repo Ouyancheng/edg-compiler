@@ -666,6 +666,11 @@ fields to default values.
       set_integer_value(&cp->variant.integer_value,
                         (a_host_large_integer)0);
       break;
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+    case ck_fixed_point:
+      fxp_init_value(&cp->variant.fixed_point_value);
+      break;
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
     case ck_string:
       cp->variant.string.length = 0;
       cp->variant.string.value = NULL;
@@ -1313,6 +1318,14 @@ to default values.
 #endif /* CHECKING */
       pte->variant.integer.enum_info.affiliated_type = NULL;
       break;
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+    case tk_fixed_point:
+      pte->variant.fixed_point.precision = (a_fixed_point_precision)fpp_short;
+      pte->variant.fixed_point.is_unsigned = FALSE;
+      pte->variant.fixed_point.is_fract_type = FALSE;
+      pte->variant.fixed_point.saturating = FALSE;
+      break;
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
     case tk_float:
 #if C99_IL_EXTENSIONS_SUPPORTED
     case tk_complex:

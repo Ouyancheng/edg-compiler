@@ -992,6 +992,16 @@ Initialize the option information table.
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);
 #endif /* UPC_EXTENSIONS_ALLOWED */
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+  add_option_description(optk_fixed_point,
+                         "fixed_point",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_fixed_point,
+                         "no_fixed_point",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
 }  /* initialize_option_descriptions */
 
 
@@ -1967,6 +1977,13 @@ setting is used, and to set various unmentioned settings as needed.
     command_line_error(ec_cl_compound_literals_option_only_in_C);
   }  /* if */
   compound_literals_allowed = FALSE;
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+  /* Fixed-point types are not currently supported in C++ modes. */
+  if (option_kind_used[(int)optk_fixed_point]) {
+    command_line_error(ec_cl_fixed_point_option_only_in_C);
+  }  /* if */
+  fixed_point_allowed = FALSE;
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
   /* "//" is allowed as a comment delimiter. */
   end_of_line_comments_allowed = TRUE;
   /* Universal character names are allowed. */
@@ -3691,6 +3708,12 @@ enable_microsoft_mode:
         upc_num_threads = scan_opt_arg_number(opt_arg);
         break;
 #endif /* UPC_EXTENSIONS_ALLOWED */
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+      case optk_fixed_point:
+        /* Enable (or disable) support for fixed-point extensions. */
+        fixed_point_allowed = opt_value;
+        break;
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
