@@ -248,10 +248,13 @@ possible.
   ppp->next = NULL;
   /* Initialize the token cache as a reusable token cache. */
   clear_token_cache(&ppp->token_cache, /*reusable=*/TRUE);
-  ppp->id_position = *pos;
+  if (pos != NULL) {
+    ppp->id_position = *pos;
+  } else {
+    ppp->id_position = null_source_position;
+  }  /* if */
   ppp->descr_ptr = pkdp;
   ppp->discard_cache_when_done = TRUE;
-  ppp->has_been_scanned = FALSE;
   ppp->pragma_text = NULL;
   ppp->il_pragma_entry = NULL;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -262,11 +265,61 @@ possible.
     case pk_lint_varargs_count:
       ppp->variant.lint_varargs_count = 0;
       break;
+#if 0
+#else
+    case pk_test_next_statement:
+    case pk_test_next_decl:
+    case pk_test_immediate:
+    case pk_test_other:
+      break;
+#endif /* if 0 */
+#if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
+    case pk_unrecognized:
+      /* No special initialization is required. */
+      break;
+#endif /* INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL */
+    /* Pragma kinds that have no information in the variant section. */
+    case pk_printf_args:
+    case pk_scanf_args:
+    case pk_lint_argsused:
+    case pk_lint_notreached:
+    case pk_instantiate:
+    case pk_do_not_instantiate:
+    case pk_can_instantiate:
+      break;
     default:
+      unexpected_condition_str2("alloc_pending_pragma:", "bad pragma kind");
       break;
   }  /* switch */
   return ppp;
 }  /* alloc_pending_pragma */
+
+
+
+a_pending_pragma_ptr alloc_copy_of_pending_pragma
+                                            (a_pending_pragma_ptr orig_ppp)
+/*
+Allocate a pending pragma entry and copy an existing pragma entry into
+it.  Reuse a freed entry if possible.
+*/
+{
+  a_pending_pragma_ptr	ppp;
+
+  if (avail_pending_pragmas != NULL) {
+    /* Reuse a freed entry. */
+    ppp = avail_pending_pragmas;
+    avail_pending_pragmas = avail_pending_pragmas->next;
+  } else {
+    /* Allocate a new entry. */
+    ppp = (a_pending_pragma_ptr)alloc_fe(sizeof(a_pending_pragma));
+#if DEBUG
+    num_pending_pragmas_allocated++;
+#endif /* DEBUG */
+  }  /* if */
+  *ppp = *orig_ppp;
+  ppp->next = NULL;
+  return ppp;
+}  /* alloc_pending_pragma_copy */
 
 
 void free_pending_pragma(a_pending_pragma_ptr ppp)
@@ -285,11 +338,13 @@ Return a pending pragma entry to the available list.
     ppp->source_sequence_entry = NULL;
   }  /* if */
 #endif /* if GENERATE_SOURCE_SEQUENCE_LISTS */
+  if (ppp->discard_cache_when_done) {
+    /* This pending pragma entry is the primary entry that refers to this
+       token cache and so the token cache should be discarded. */
+    discard_token_cache(&ppp->token_cache);
+  }  /* if */
   ppp->next = avail_pending_pragmas;
   avail_pending_pragmas = ppp;
-#if 0
-  /* Add code to discard token caches when appropriate. */
-#endif
 }  /* free_pending_pragma */
 
 

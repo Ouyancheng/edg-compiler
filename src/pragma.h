@@ -214,11 +214,6 @@ typedef struct a_pending_pragma {
 			   pragma entry is discarded.  This will be FALSE when
 			   a pragma entry was created by making a copy of
 			   an entry retrieved from a reusable token cache. */
-  unsigned int
-		has_been_scanned:1;
-			/* TRUE if the pragma tokens have been scanned
-			   at least once.  Used to diagnose unprocessed
-			   pbk_other pragmas. */
   char		*pragma_text;
 			/* For pragmas that are passed through to the
 			   back end as an uninterpretted character string,
@@ -288,6 +283,9 @@ EXTERN unsigned long
 extern a_pending_pragma_ptr alloc_pending_pragma
 					(a_pragma_kind_description_ptr pkdp,
                                          a_source_position             *pos);
+
+extern a_pending_pragma_ptr alloc_copy_of_pending_pragma
+					(a_pending_pragma_ptr src_ppp);
 
 extern void free_pending_pragma(a_pending_pragma_ptr ppp);
 
