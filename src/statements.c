@@ -3083,6 +3083,7 @@ statement expression, ({ ... }).
     /* A GNU C statement expression.  Do not link the statement into
        the current statement on the statement stack. */
     block_stmt = alloc_statement((a_statement_kind)stmk_block);
+    set_stmt_source_position(block_stmt->position, pos_curr_token);
   }  /* if */
   stmt_update_source_sequence_list(block_stmt);
   if (!generated_statement) {

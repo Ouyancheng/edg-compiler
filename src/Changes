@@ -1,5 +1,11 @@
 Version 3.1
 
+8/7/02   Start position on IL block statement for GNU C statement expression
+
+The start position was not set in the stmk_block statement attached
+to an enk_statement expression node for a GNU C ({...}) statement
+expression.  Now, it is.
+
 8/6/02   GNU C++ compatibility option
 
 The front end now supports command-line switches --g++ and --no_g++ that
