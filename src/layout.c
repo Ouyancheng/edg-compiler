@@ -1554,6 +1554,24 @@ setting the offset field in the latter.
           db_base_class(bcp, /*show_offset=*/TRUE);
         }  /* if */
 #endif /* DEBUG */
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
+      } else {
+        /* Virtual base class. */
+        if (bcp->data_section_base_class == proximate_derivation) {
+          /* bcp is a virtual base class whose data section is embedded in
+             the data section of another base class data section.  Update
+             the offset. */
+          bcp->offset = proximate_derivation->offset + ref_bcp->offset;
+#if DEBUG
+          if (debug_level >= 4) {
+            fputs("new offset for ", f_debug);
+            db_base_class(bcp, /*show_offset=*/TRUE);
+          }  /* if */
+#endif /* DEBUG */
+        } else {
+          continue;
+        }  /* if */
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
       }  /* if */
       /* Make a recursive call to apply this processing to the next level of
          base classes. */
@@ -1609,13 +1627,13 @@ classes.
   a_base_class_ptr  data_section_bcp, bcp, curr_class_bcp;
 
   db_enter(4, "set_embedded_virtual_base_class_offset");
-#if DEBUG
-  if (debug_level >= 4) {
-    db_base_class(base_class, /*show_offset=*/TRUE);
-  }  /* if */
-#endif /* DEBUG */
   if (base_class->offset == 0) {
     /* Offset has not yet been set. */
+#if DEBUG
+    if (debug_level >= 4) {
+      db_base_class(base_class, /*show_offset=*/TRUE);
+    }  /* if */
+#endif /* DEBUG */
     data_section_bcp = base_class->data_section_base_class;
     if (data_section_bcp != NULL) {
       if (data_section_bcp->is_virtual &&
@@ -1630,28 +1648,28 @@ classes.
          is the offset of the pointer base class plus the offset of the
          virtual base class pointer within the latter. */
       base_class->offset = bcp->offset + data_section_bcp->offset;
+      /* Update the offsets of nonvirtual base classes from which base_class is
+         derived. */
+      set_base_class_offsets(base_class);
+      /* Apply the check recursively to see if there are any indirect virtual
+         base classes of class_type that have not been properly assigned an
+         offset yet. */
+      bcp = base_classes_of(base_class->type);
+      for (; bcp != NULL; bcp = bcp->next) {
+        if (bcp->is_virtual && bcp->direct) {
+          curr_class_bcp = corresponding_base_class(bcp,
+                                                    base_class->derived_class,
+                                                    (a_base_class_ptr)NULL);
+          if (curr_class_bcp->data_section_base_class == NULL) {
+            /* curr_class_bcp is an indirect virtual base class of class type
+               that is not yet marked as embedded. */
+            curr_class_bcp->data_section_base_class = base_class;
+          }  /* if */
+          set_embedded_virtual_base_class_offset(curr_class_bcp);
+        }  /* if */
+      }  /* for */
     }  /* if */
   }  /* if */
-  /* Update the offsets of nonvirtual base classes from which base_class is
-     derived. */
-  set_base_class_offsets(base_class);
-  /* Apply the check recursively to see if there are any indirect virtual
-     base classes of class_type that have not been properly assigned an
-     offset yet. */
-  bcp = base_classes_of(base_class->type);
-  for (; bcp != NULL; bcp = bcp->next) {
-    if (bcp->is_virtual && bcp->direct) {
-      curr_class_bcp = corresponding_base_class(bcp,
-                                                base_class->derived_class,
-                                                (a_base_class_ptr)NULL);
-      if (curr_class_bcp->data_section_base_class == NULL) {
-        /* curr_class_bcp is an indirect virtual base class of class type
-           that is not yet marked as embedded. */
-        curr_class_bcp->data_section_base_class = base_class;
-      }  /* if */
-      set_embedded_virtual_base_class_offset(curr_class_bcp);
-    }  /* if */
-  }  /* for */
   db_exit();
 }  /* set_embedded_virtual_base_class_offset */
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
