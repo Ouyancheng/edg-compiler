@@ -1,5 +1,20 @@
 Version 3.4
 
+12/2/03  Microsoft mode: Spurious correspondence error with dllimport/dllexport
+
+When compiling multiple translation units in Microsoft mode, the front end
+incorrectly treated as incompatible routine declarations that only differ
+in their dllimport/dllexport specifiers.  For example:
+
+  // File 1:
+  __declspec(dllimport) void f();
+
+  // File 2:
+  __declspec(dllexport) void f() {}  // Compatible with declaration in File 1,
+                                     // but previously a correspondence error
+                                     // was issued.
+This is now fixed.
+
 12/1/03  C/C++-generating back ends and Microsoft __declspec(noreturn)
 
 The C- and C++-generating back ends were not reproducing the Microsoft

@@ -2126,6 +2126,28 @@ array variants) and marked as compiler-generated.
   return result;
 }  /* is_generated_new_or_delete_operator */
 
+#if DECL_MODIFIERS_IN_USE
+
+static a_boolean incompatible_routine_decl_modifiers(a_routine_ptr  rp1,
+                                                     a_routine_ptr  rp2)
+/*
+Return TRUE if and only if the two corresponding routines have incompatible
+declaration modifiers.
+*/
+{
+  a_boolean  result = FALSE;
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  /* dllimport and dllexport need not match up.  The only constraint is that
+     there should not be two dllexport definitions, but that is covered by
+     the more general check for multiple definitions. */
+  result = ((rp1->decl_modifiers & ~(DM_DLLIMPORT | DM_DLLEXPORT)) !=
+            (rp2->decl_modifiers & ~(DM_DLLIMPORT | DM_DLLEXPORT)));
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  return result;
+}  /* incompatible_routine_decl_modifiers */
+
+#endif /* DECL_MODIFIERS_IN_USE */
 
 static a_boolean verify_routine_correspondence(a_routine_ptr  routine)
 /*
@@ -2193,7 +2215,7 @@ is in fact valid.
          routine->is_explicit_constructor !=
                                     corresp_routine->is_explicit_constructor ||
 #if DECL_MODIFIERS_IN_USE
-         routine->decl_modifiers != corresp_routine->decl_modifiers ||
+         incompatible_routine_decl_modifiers(routine, corresp_routine) ||
 #endif /* DECL_MODIFIERS_IN_USE */
          (routine->defined && corresp_routine->defined &&
           (routine->fp_contract != corresp_routine->fp_contract ||
