@@ -226,6 +226,8 @@ static a_boolean		suppress_compilation = FALSE;
    the assumption that we've run into an instantiation loop. */
 static a_boolean		limit_recursion = TRUE;
 
+/* String that is used as the prefix of all diagnostic messages generated
+   by the prelinker. */
 static char message_prefix[] = "C++ prelinker";
 
 
@@ -472,8 +474,11 @@ to the copy.
 
 static void pl_read_nm_output(void)
 /*
-Read the output of the nm command.  The output for an object (.o) file
-is expected to look like:
+Read the output of the nm command.  This routine is written to accept
+the output of the nm command on SunOS and may have to be modified
+for other systems.
+
+The output for an object (.o) file is expected to look like:
 
 xxx.o:01230123 T _name1
 xxx.o:01230124 T _name2
@@ -485,6 +490,20 @@ xxx.a:x1.o:01230123 T _name1
 xxx.a:x1.o:01230124 T _name2
 xxx.a:x2.o:01230123 T _name3
 xxx.a:x2.o:01230124 T _name4
+
+Note that the first line of output for an archive file is missing if
+there is only one file passed to the nm command.  Since it doesn't
+make sense to link one file this format is not accepted.  The command
+line processing code will reject invocations with only a single filename.
+
+This routine reads the output of the nm command and builds a data
+structure containing the information.  The base of the structure
+is a linked list of input files that can be object files or archive files.
+Each input file points to one or more object files.  An input file
+that is an object file points to a single object file structure
+while an archive points to a linked list of object files.
+Each object file points to a linked list of symbols that are referenced
+or defined in that object file.
 */
 {
   char			*input_filename = NULL;
@@ -608,7 +627,8 @@ xxx.a:x2.o:01230124 T _name4
         type != 'T' &&
         type != 'U' &&
         type != 'C') {
-       /* Not a type of symbol that we need to process. */
+       /* Not a type of symbol that we need to process.  Only global
+          symbols are processed. */
      } else {
       /* Save the position of the start of the name. */
       name = pos;
@@ -779,7 +799,12 @@ static void pl_add_symbols_from_object(a_pl_object_file_ptr pofp,
 				       a_pl_input_file_ptr  input_file)
 /*
 Add all of the symbols from a given object file to the global symbol
-table.
+table.  This handles regular symbols and also processes symbols that
+have special meaning for the prelinker.  The special symbols begin
+with the prefixes __TIR__, __CBI__, and __DNI__.  When a special symbol
+is processed the related symbol (the symbol name with the prefix
+removed) is updated to reflect the information provided by the special
+symbol.
 */
 {
   a_pl_symbol_ptr	psp;
@@ -791,6 +816,14 @@ table.
     if (psp->name[0] == '_' && psp->name[1] == '_') {
       if (strncmp(psp->name, PL_INSTANCE_REQUIRED_PREFIX,
                   PL_INSTANCE_REQUIRED_PREFIX_LEN) == 0) {
+        /* The template instance required (TIR) symbol indicates that
+           this symbol is required when linking this program. This symbol
+           is needed because it is not possible to determine whether
+	   a symbol defined in a given file is also referenced in that file.
+           The TIR information is needed to detect situations where an
+           instantiation is no longer required.  The TIR flag tells
+           the prelinker that the symbol is referenced and that the
+           symbol is one that can be defined by a generated instantiation. */
         is_special_symbol = TRUE;
         sym = pl_find_symbol(&psp->name[PL_INSTANCE_REQUIRED_PREFIX_LEN],
                              psp, /*add=*/TRUE);
@@ -805,6 +838,13 @@ table.
         }  /* if */
       } else if (strncmp(psp->name, PL_DO_NOT_INSTANTIATE_PREFIX,
                   PL_DO_NOT_INSTANTIATE_PREFIX_LEN) == 0) {
+        /* The "do not instantiate" (DNI) symbol is generated as a result
+           of a "do_not_instantiate" pragma in a source program.  The
+           DNI symbol tells the prelinker that it may not assign the
+           symbol to be instantiated by any file.  In other words,
+           the user either provide a specific definition of the symbol
+           of must see that it is instantiated using an instantiate
+           pragma or an instantiation mode such as -tused. */
         is_special_symbol = TRUE;
         sym = pl_find_symbol(&psp->name[PL_DO_NOT_INSTANTIATE_PREFIX_LEN],
                              psp, /*add=*/TRUE);
@@ -829,6 +869,8 @@ table.
       }  /* if */
     }  /* if */
     if (!is_special_symbol) {
+      /* The symbol is not a special symbol.  Update the global symbol
+         table to reflect the kind of reference or definition. */
       sym = pl_find_symbol(psp->name, psp, /*add=*/TRUE);
       if (psp->referenced) {
         sym->referenced = TRUE;
@@ -1014,6 +1056,14 @@ Check for the existence of a .ii file.
 
 static a_boolean pl_determine_actions(void)
 /*
+Once the link has been performed go through each of the input object
+files and determine whether any instantiations need to be added to
+or removed from the file.  We first go through the existing instantiations
+and find any that need to be removed.  We then go through the symbols
+referenced in the file and see if any of them need to be instantiated.
+If so, they are assigned to the first file found that is capable of
+generating an instantiation.  If the instantiation list if modified
+the file is flagged as requiring recompilation.
 */
 {
   a_pl_input_file_ptr	pifp;
@@ -1328,6 +1378,7 @@ Free all dynamically allocated data.
     last_pifp = pifp;
     pifp = pifp->next;
     free(last_pifp->filename);
+    if (last_pifp->info_filename != NULL) free(last_pifp->info_filename);
     free_pl_input_file(last_pifp);
   }  /* while */
 }  /* pl_free_all */
