@@ -2049,10 +2049,11 @@ static void pl_change_directory(char *new_dir)
 
 
 static char *build_command_line(char *part1,
-                                char *part2)
+                                char *part2,
+                                char *part3)
 /*
-Construct the command line by concatenating the strings in part1 and part2.
-If either string contains any quotes, insert an escape (\) before the
+Construct the command line by concatenating the strings in part1, part2,
+and part3.  If any string contains any quotes, insert an escape (\) before the
 quote.  Return a pointer to the dynamically allocated string created to
 hold the command.
 */
@@ -2067,26 +2068,34 @@ hold the command.
   length = (strlen(part1) + strlen(part2)) * 2;
   command = (char *)pl_malloc_with_check(length);
   to = command;
-  for (pass = 0; pass < 2; pass++) {
+  for (pass = 1; pass <= 3; pass++) {
     /* The first time through the loop copy from part1, the second time,
        from part2. */
-    char	*from = pass == 0 ? part1 : part2;
+    char	*from;
+    switch (pass) {
+      case 1: from = part1; break;
+      case 2: from = part2; break;
+      case 3: from = part3; break;
+    }  /* switch */
     /* Copy each string putting an escape character (\) before each
        quote. */
     while (*from != '\0') {
       if (*from == '\'' || *from == '"') *to++ = '\\';
       *to++ = *from++;
     }  /* while */
-    /* Append a black on the first pass, a null character on the second. */
-    *to++ = pass == 0 ? ' ' : '\0';
+    /* Append a blank. */
+    *to++ = ' ';
   }  /* for */
+  /* Replace the last blank with a null. */
+  *to = '\0';
   return command;
 }  /* build_command_line */
 
 
 static int pl_recompile_file(char	*command_line,
 			     char	*dir_name,
-                             char	*file_name)
+                             char	*file_name,
+                             char	*extra_command_args)
 /*
 Execute the command to recompile a file.
 */
@@ -2108,7 +2117,7 @@ Execute the command to recompile a file.
     /* Go to the appropriate directory before doing the compilation. */
     pl_change_directory(dir_name);
   }  /* if */
-  command = build_command_line(command_line, file_name);
+  command = build_command_line(command_line, extra_command_args, file_name);
   fprintf(stdout, pl_error_text(pl_ec_executing), message_prefix, command);
   fflush(stdout);
   result = system(command);
@@ -2307,7 +2316,7 @@ has changed then write the updated list of instantiations to the file.
 	/*SUPPRESS 622*/
         return_status = pl_recompile_file(get_reserved_line(0),/*SUPPRESS 622*/
                                           get_reserved_line(1),/*SUPPRESS 622*/
-                                          get_reserved_line(2));
+                                          get_reserved_line(2), "");
         /* Stop if an error occurs. */
         if (return_status != 0) break;
       }  /* if */
@@ -2321,6 +2330,80 @@ has changed then write the updated list of instantiations to the file.
   return return_status;
 #undef get_reserved_lines
 }  /* pl_update_info_files */
+
+
+static int pl_remove_instantiation_flags(void)
+/*
+Recompile all of the object files in such a way that the instantiation
+flags will be removed.
+*/
+{
+
+  a_pl_input_file_ptr		pifp;
+  int				return_status = 0;
+  int				max_return_status = 0;
+  int				i;
+
+/* Macro that returns a line from the reserved lines array, if the line
+   number is valid, and returns a NULL string otherwise. */
+#define get_reserved_line(number) 					\
+  (((number) > (INSTANTIATION_INFO_LINES_RESERVED - 1))			\
+                                                ? ""			\
+                                                : reserved_lines[(number)])
+  /* We allocate one additional array element because it is possible
+     for there to be zero reserved lines. */
+  char *reserved_lines[INSTANTIATION_INFO_LINES_RESERVED + 1];
+
+  pifp = pl_input_files;
+  while (pifp != NULL) {
+    /* Only process object files (not archives) that have associated
+       instantiation information files and that are also local. */
+    if (!pifp->is_archive && pifp->info_file_name != NULL &&
+         pifp->is_local_file) {
+      a_pl_symbol_ptr	psp;
+      FILE		*f_info;
+      /* Open the input file in read mode to read the header information. */
+      f_info = fopen(pifp->info_file_name, "r");
+      if (f_info == NULL) {
+        fprintf(stderr, "File %s is missing\n", pifp->info_file_name);
+        pl_internal_error("Instantiation information file is missing");
+      }  /* if */
+      /* Read the reserved lines. */
+      for (i = 0; i < reserved_info_file_lines; ++i) {
+        pl_read_input_line(f_info);
+        reserved_lines[i] = pl_copy_string(pl_input_line);
+      }  /* for */
+      /* If the number of effective reserved lines is less than the
+         number in the configuration file, set the remaining lines
+         to null strings. */
+      for (; i < INSTANTIATION_INFO_LINES_RESERVED; ++i) {
+        reserved_lines[i] = "";
+      }  /* for */
+      fclose(f_info);
+      /* This depends on the command line being in the first reserved
+         line. */
+#if PL_REMOVE_OBJECT_FILE_BEFORE_RECOMPILATION
+      (void)unlink(pifp->file_name);
+#endif /* PL_REMOVE_OBJECT_FILE_BEFORE_RECOMPILATION */
+      /* Suppress CodeCenter warnings because get_reserved_line contains
+	 a test that evaluates to a constant when its argument is a
+	 constant. */
+      /*SUPPRESS 622*/
+      return_status = pl_recompile_file(get_reserved_line(0),/*SUPPRESS 622*/
+                                        get_reserved_line(1),/*SUPPRESS 622*/
+                                        get_reserved_line(2),
+                                        "--suppress_instantiation_flags");
+      if (return_status > max_return_status) max_return_status = return_status;
+      /* Free the space occupied by the reserved lines. */
+      for (i = 0; i < reserved_info_file_lines; ++i) {
+        free(reserved_lines[i]);
+      }  /* for */
+    }  /* if */
+    pifp = pifp->next;
+  }  /* while */
+  return max_return_status;
+#undef get_reserved_lines
+}  /* pl_remove_instantiation_flags */
 
 
 #if DEBUG
@@ -2553,6 +2636,7 @@ int main(int argc, char *argv[])
   long		         number_of_iterations = 0;
   char		         *nm_command = NULL;
   a_pl_cmd_line_arg_ptr  last_arg_to_reemit = 0;
+  a_boolean		 suppress_instantiation_flags = FALSE;
 
   /* This must be done before any messages are issued. */
   message_prefix = pl_error_text(pl_ec_message_prefix);
@@ -2577,7 +2661,7 @@ int main(int argc, char *argv[])
   /* Process command-line options. */
   /* Suppress getopt's error on non-recognized option. */
   opterr = 0;
-#define OPTION_LIST "imnqrvuB:c:d:Df:l:L:N:R:W:"
+#define OPTION_LIST "imnqrvuB:c:d:Df:l:L:N:R:SW:"
   while ((optchar = getopt(argc, argv, OPTION_LIST)) != EOF) {
     switch (optchar) {
       case 'c':
@@ -2675,6 +2759,12 @@ int main(int argc, char *argv[])
             reserved_info_file_lines > INSTANTIATION_INFO_LINES_RESERVED) {
           pl_error(pl_ec_invalid_reserved_info_lines_option, optarg);
         }  /* if */
+        break;
+      case 'S':
+        /* "Suppress" the instantiation flags in the object files.
+           This causes the prelinker to recompile all of the local
+           object files with the --suppress_instantiation_flags option. */
+        suppress_instantiation_flags = TRUE;
         break;
       case 'u':
         /* Specify whether names have an extra underscore that should
@@ -2847,6 +2937,11 @@ end_of_options:
       if (return_status != 0 || suppress_compilation) done = TRUE;
       if (!done) pl_free_all();
     } while (!done);
+  }  /* if */
+  if (suppress_instantiation_flags) {
+    /* Recompile all of the local object files to remove the instantiation
+       flags. */
+    pl_remove_instantiation_flags();
   }  /* if */
   if (move_nonlocal_objects_to_curr_dir) {
     /* Generate a list of file names and associated command line options.

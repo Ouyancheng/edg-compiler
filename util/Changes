@@ -1,5 +1,21 @@
 Version 2.31
 
+1/17/96  eccp option to prelink object files to be put in a library
+
+The --prelink_objects option has been added to eccp.  This option
+causes object files to be processed by the prelinker, but suppresses
+the actual link step.  This can be used to prelink a set of object
+files that are to be put into a library.
+
+1/17/96  eccp and prelinker option to remove instantiation flags
+
+The --remove_instantiation_flags option has been added to eccp.  This
+option causes the prelinker to recompile all of the source files
+associated with the object files being linked using the
+--suppress_instantiation_flags option, which suppresses
+the generation of the __TIR__, __CBI__, and __DNI__ flags in
+the generated object files.
+
 1/10/96  edg_prelink inserts escapes before quotes in command line
 
 The prelinker now inserts an escape before quotes found in the

@@ -262,6 +262,14 @@ prelink_options=
 prelink_local_only=0
 prelink_copy_if_nonlocal=0
 #
+# Run the prelinker (but not the linker) on the object files.
+#
+prelink_objects=0
+#
+# Run the prelinker to cause instantiation flags to be removed
+#
+remove_instantiation_flags=0
+#
 # Show commands as they are executed
 #
 driver_debug=0
@@ -447,6 +455,15 @@ do
 #     copy.
       prelink_copy_if_nonlocal=1
       ;;
+    --prelink_objects)
+#     Run the prelinker (but not the linker) on the object files.
+      prelink_objects=1
+      ;;
+    --remove_instantiation_flags)
+#     Run the prelinker and request that it recompiles all of the objects
+#     in such a way that the instantiation flags will be removed
+      remove_instantiation_flags=1
+      ;;
     -sun*)
 #     SunOS 4.n option, as in "-sun4" -- ignored.
       ;;
@@ -553,6 +570,7 @@ do
          --no_typename | \
          --implicit_typename | \
          --no_implicit_typename | \
+         --suppress_instantiation_flags | \
          --force_vtbl)
       feoptions=$feoptions" $1"
 #     Options that require additional processing
@@ -565,6 +583,10 @@ do
           ;;
 	--no_preproc_only)
 	  suppress_preproc_only=1
+          ;;
+        --suppress_instantiation_flags)
+#         This should not be included in the command line in the .ii file.
+          add_to_instantiation_command=0
           ;;
       esac
       ;;
@@ -805,6 +827,12 @@ if [ $prelink_copy_if_nonlocal -ne 0 ] ; then
   prelink_options=$prelink_options" -N $new_obj_list_file"
 fi
 #
+# Convert --remove_instantiation_flags to the appropriate prelinker option.
+#
+if [ $remove_instantiation_flags -ne 0 ] ; then
+  prelink_options=$prelink_options" -S"
+fi
+#
 # If we should use the old .ii file format, update the prelinker default
 # options.
 #
@@ -1038,6 +1066,12 @@ then
         fi
         object_files="$new_list"
       fi
+    fi
+#
+#   Link the objects.  This is suppressed if we are just compiling, or
+#   just prelinking the objects.
+#
+    if [ $cc_only -ne 1 -a $prelink_objects -ne 1 ] ; then
 #     Save the link command in a variable so it can be done again in the
 #     "munch" step below.
 #     Note:  -lC is missing from this command and is supplied later using
