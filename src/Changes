@@ -1,5 +1,20 @@
 Version 2.39
 
+6/10/98   Integral promotions on bit fields in left operand of compound
+          assignment
+
+The integral promotion rules for bit fields were not implemented correctly
+for the left operand of compound assignment operators.  This was
+visible in operators that do the usual arithmetic conversions on
+their operands (e.g., %=): an unsigned int bit field of size less than
+int was promoted to unsigned int instead of the correct int, which
+could mean that the right-side operand was also converted to unsigned
+int when it should have remained int.
+
+  struct s { unsigned int b:7; } x;
+  signed char c;
+  x.b %= c;  // Right operand was incorrectly converted to unsigned int
+
 6/9/98    Conversion of numbers near FLT_MAX
 
 Floating-point constants with an "f" suffix whose values as written are

@@ -2592,107 +2592,98 @@ the offsetof macro).  This routine is only used in C++ mode.
 }  /* base_class_cast_operand */
 
 
-static a_type_ptr node_type_after_integral_promotion(an_expr_node_ptr node)
+static a_type_ptr type_after_bit_field_integral_promotion(
+                                                         an_expr_node_ptr node,
+                                                         a_type_ptr       type)
 /*
-Determine the type that would result from applying the integral promotions
-(3.2.1.1) to the type of node.  Return the promoted type, which may be
-the same as the original type.  The node is assumed to be an rvalue.
-The node is not actually promoted; it is up to the caller to do the cast
-if desired.  This routine handles a special case involving integral promotions
-of bit-fields, where the size in bits is needed in addition to the base type.
+node is a bit-field selection operation (lvalue or rvalue).  type is the
+rvalue type of the field selection (it differs from node->type in the lvalue
+case).  Determine the type that would result from applying the integral
+promotions to the selection type.  Return the promoted type, which may be
+the same as the original type.  The node is not actually promoted; it is
+up to the caller to do the cast if desired.
 */
 {
   a_type_ptr      promoted_type;
   a_field_ptr     field;
   an_integer_kind ikind, orig_ikind;
 
-  db_enter(4, "node_type_after_integral_promotion");
-
-  /* Bit fields get special processing, but not in pcc mode. */
-  if (C_dialect != C_dialect_pcc && is_bit_field_extract_node(node)) {
-    /* This is a bit-field reference. */
-    field = node->variant.operation.operands->next->variant.field;
-    promoted_type = skip_typerefs(node->type);
+  db_enter(4, "type_after_bit_field_integral_promotion");
+  field = node->variant.operation.operands->next->variant.field;
+  promoted_type = skip_typerefs(type);
 #if CHECKING
-    /* The type of a bit-field should be integral. */
-    if (promoted_type->kind != (a_type_kind)tk_integer) {
-      internal_error(
-                 "node_type_after_integral_promotion: bit-field not integral");
-    }  /* if */
-    if (field->bit_size > (unsigned int)(
-#if LONG_LONG_ALLOWED
-                                         targ_sizeof_long_long
-#else /* !LONG_LONG_ALLOWED */
-                                         targ_sizeof_long
-#endif /* LONG_LONG_ALLOWED */
-                                                         *targ_char_bit)) {
-      /* This is supposedly prevented by the definition of
-         targ_max_bit_field_size. */
-      internal_error("node_type_after_integral_promotion: bit-field too big");
-    }  /* if */
-#endif /* CHECKING */
-    orig_ikind = ikind = promoted_type->variant.integer.int_kind;
-    if (field->bit_field_is_signed) {
-      /* Bit-field is signed, so it is promoted to the first of int or
-         long into which all its values will fit. */
-#if LONG_LONG_ALLOWED
-      /* ... or long long. */
-#endif /* LONG_LONG_ALLOWED */
-      if (field->bit_size <= (unsigned int)(targ_sizeof_int*targ_char_bit)) {
-        ikind = (an_integer_kind)ik_int;
-      } else {
-#if LONG_LONG_ALLOWED
-        if (field->bit_size <=
-                             (unsigned int)(targ_sizeof_long*targ_char_bit)) {
-#endif /* LONG_LONG_ALLOWED */
-          ikind = (an_integer_kind)ik_long;
-#if LONG_LONG_ALLOWED
-        } else {
-          ikind = (an_integer_kind)ik_long_long;
-        }  /* if */
-#endif /* LONG_LONG_ALLOWED */
-      }  /* if */
-    } else {
-      /* Bit-field is unsigned, so it is promoted to the first of int,
-         unsigned int, long, and unsigned long into which all its values
-         will fit. */
-#if LONG_LONG_ALLOWED
-      /* ... or long long or unsigned long long. */
-#endif /* LONG_LONG_ALLOWED */
-      if (field->bit_size < (unsigned int)(targ_sizeof_int*targ_char_bit)) {
-        ikind = (an_integer_kind)ik_int;
-      } else if (field->bit_size ==
-                              (unsigned int)(targ_sizeof_int*targ_char_bit)) {
-        ikind = (an_integer_kind)ik_unsigned_int;
-      } else if (field->bit_size <
-                             (unsigned int)(targ_sizeof_long*targ_char_bit)) {
-        ikind = (an_integer_kind)ik_long;
-      } else {
-#if LONG_LONG_ALLOWED
-        if (field->bit_size ==
-                            (unsigned int)(targ_sizeof_long*targ_char_bit)) {
-#endif /* LONG_LONG_ALLOWED */
-          ikind = (an_integer_kind)ik_unsigned_long;
-#if LONG_LONG_ALLOWED
-        } else if (field->bit_size <
-                         (unsigned int)(targ_sizeof_long_long*targ_char_bit)) {
-          ikind = (an_integer_kind)ik_long_long;
-        } else {
-          ikind = (an_integer_kind)ik_unsigned_long_long;
-        }  /* if */
-#endif /* LONG_LONG_ALLOWED */
-      }  /* if */
-    }  /* if */
-    if (ikind != orig_ikind) promoted_type = integer_type(ikind);
-  } else {
-    /* Not the bit-field case, so determine the promoted type from the
-       node type. */
-    promoted_type = type_after_integral_promotion(node->type);
+  /* The type of a bit-field should be integral. */
+  if (promoted_type->kind != (a_type_kind)tk_integer) {
+    internal_error(
+            "type_after_bit_field_integral_promotion: bit-field not integral");
   }  /* if */
-
+  if (field->bit_size > (unsigned int)(
+#if LONG_LONG_ALLOWED
+                                       targ_sizeof_long_long
+#else /* !LONG_LONG_ALLOWED */
+                                       targ_sizeof_long
+#endif /* LONG_LONG_ALLOWED */
+                                                       *targ_char_bit)) {
+    /* This is supposedly prevented by the definition of
+       targ_max_bit_field_size. */
+    internal_error(
+                 "type_after_bit_field_integral_promotion: bit-field too big");
+  }  /* if */
+#endif /* CHECKING */
+  orig_ikind = ikind = promoted_type->variant.integer.int_kind;
+  if (field->bit_field_is_signed) {
+    /* Bit-field is signed, so it is promoted to the first of int or
+       long into which all its values will fit. */
+#if LONG_LONG_ALLOWED
+    /* ... or long long. */
+#endif /* LONG_LONG_ALLOWED */
+    if (field->bit_size <= (unsigned int)(targ_sizeof_int*targ_char_bit)) {
+      ikind = (an_integer_kind)ik_int;
+    } else {
+#if LONG_LONG_ALLOWED
+      if (field->bit_size <= (unsigned int)(targ_sizeof_long*targ_char_bit)) {
+#endif /* LONG_LONG_ALLOWED */
+        ikind = (an_integer_kind)ik_long;
+#if LONG_LONG_ALLOWED
+      } else {
+        ikind = (an_integer_kind)ik_long_long;
+      }  /* if */
+#endif /* LONG_LONG_ALLOWED */
+    }  /* if */
+  } else {
+    /* Bit-field is unsigned, so it is promoted to the first of int,
+       unsigned int, long, and unsigned long into which all its values
+       will fit. */
+#if LONG_LONG_ALLOWED
+    /* ... or long long or unsigned long long. */
+#endif /* LONG_LONG_ALLOWED */
+    if (field->bit_size < (unsigned int)(targ_sizeof_int*targ_char_bit)) {
+      ikind = (an_integer_kind)ik_int;
+    } else if (field->bit_size ==
+                               (unsigned int)(targ_sizeof_int*targ_char_bit)) {
+      ikind = (an_integer_kind)ik_unsigned_int;
+    } else if (field->bit_size <
+                              (unsigned int)(targ_sizeof_long*targ_char_bit)) {
+      ikind = (an_integer_kind)ik_long;
+    } else {
+#if LONG_LONG_ALLOWED
+      if (field->bit_size == (unsigned int)(targ_sizeof_long*targ_char_bit)) {
+#endif /* LONG_LONG_ALLOWED */
+        ikind = (an_integer_kind)ik_unsigned_long;
+#if LONG_LONG_ALLOWED
+      } else if (field->bit_size <
+                         (unsigned int)(targ_sizeof_long_long*targ_char_bit)) {
+        ikind = (an_integer_kind)ik_long_long;
+      } else {
+        ikind = (an_integer_kind)ik_unsigned_long_long;
+      }  /* if */
+#endif /* LONG_LONG_ALLOWED */
+    }  /* if */
+  }  /* if */
+  if (ikind != orig_ikind) promoted_type = integer_type(ikind);
   db_exit();
   return promoted_type;
-}  /* node_type_after_integral_promotion */
+}  /* type_after_bit_field_integral_promotion */
 
 
 a_type_ptr operand_type_after_integral_promotion(an_operand *operand)
@@ -2705,21 +2696,37 @@ rvalue type for that lvalue (i.e., some cv-qualifiers are dropped even
 if the type is not integral).
 */
 {
-  a_type_ptr promoted_type;
+  a_type_ptr promoted_type = NULL;
 
-  /* If the operand is an expression node, use a special routine to
-     catch the special bit-field case. */
-  if (is_expression_operand(operand) && is_an_rvalue(operand)) {
-    promoted_type =
-               node_type_after_integral_promotion(operand->variant.expression);
-  } else {
+  /* Check for bit-field accesses, which require special handling.
+     The special processing is not done in pcc mode. */
+  if (C_dialect != C_dialect_pcc && is_expression_operand(operand)) {
+    an_expr_node_ptr node = operand->variant.expression;
+    if (is_an_rvalue(operand)) {
+      if (is_bit_field_extract_node(node)) {
+        promoted_type = type_after_bit_field_integral_promotion(node,
+                                                                node->type);
+      }  /* if */
+    } else if (is_an_lvalue(operand)) {
+      /* An lvalue. */
+      if (node->variant.operation.kind ==
+                                        (an_expr_operator_kind)eok_bit_field) {
+        a_type_ptr sel_type = rvalue_type(operand->type);
+        promoted_type = type_after_bit_field_integral_promotion(node,
+                                                                sel_type);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (promoted_type == NULL) {
+    /* Non-bit-field cases.  Determine the promoted type on the basis of
+       the operand type. */
     promoted_type = operand->type;
-    /* If the operand is an lvalue, use the type it would have if it were
-       an rvalue. */
-    if (is_an_lvalue(operand)) promoted_type = rvalue_type(promoted_type);
+    if (is_an_lvalue(operand)) {
+      /* For an lvalue, use the type it would have if it were an rvalue. */
+      promoted_type = rvalue_type(promoted_type);
+    }  /* if */
     promoted_type = type_after_integral_promotion(promoted_type);
   }  /* if */
-
   return promoted_type;
 }  /* operand_type_after_integral_promotion */
 
