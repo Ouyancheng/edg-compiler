@@ -1,5 +1,14 @@
 Version 2.45
 
+9/6/00   Microsoft compatibility: "extern" and "static" ignored on parameter
+         declarations
+
+In Microsoft mode, the storage class specifiers "extern" and "static" are
+ignored (with a warning) on parameter declarations.  In other modes, they
+result in an error.
+
+  void f(static int x); // Warning in Microsoft mode; error otherwise
+
 9/6/00   Microsoft compatibility: qualifiers ignored when comparing deduced
          types
 

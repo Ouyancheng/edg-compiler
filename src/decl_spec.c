@@ -4336,8 +4336,11 @@ Returns TRUE if there is an error in the specifiers.
               err = TRUE;
             }  /* if */
           } else {
-            error(ec_bad_param_storage_class);
-            err = TRUE;
+            /* "static" and "extern" aren't allowed on parameter declarations,
+               but Microsoft compilers ignore them with a warning. */
+            diagnostic(microsoft_mode ? es_warning : es_error,
+                       ec_bad_param_storage_class);
+            err = !microsoft_mode;
           }  /* if */
         } else if (!C_mode() && (decl_specifiers_seen & DS_INLINE) &&
                    curr_token != tok_static &&
