@@ -308,6 +308,7 @@ extern a_type_ptr form_declared_type(a_type_ptr             type_ptr,
 extern void add_to_derived_type_list(a_type_ptr new_type_ptr,
                                      a_type_ptr *derived_type,
                                      a_type_ptr *bottom_derived_type,
+                                     a_boolean  parameter_type,
                                      a_boolean  microsoft_property);
 
 #endif /* DECLARATOR_H */

@@ -8708,6 +8708,7 @@ within this routine if is_parenthesized comes in FALSE.
                        &decl_pos_block);
       add_to_derived_type_list(new_type_ptr,
                                &derived_type, &bottom_derived_type,
+                               /*parameter_type=*/FALSE,
                                /*microsoft_property=*/FALSE);
       while (curr_token == tok_lbracket) {
         array_declarator(&new_type_ptr, /*nonconstant_allowed=*/FALSE,
@@ -8721,6 +8722,7 @@ within this routine if is_parenthesized comes in FALSE.
            Note that this involves error checking. */
         add_to_derived_type_list(new_type_ptr,
                                  &derived_type, &bottom_derived_type,
+                                 /*parameter_type=*/FALSE,
                                  /*microsoft_property=*/FALSE);
       }  /* while */
       if (derived_type != NULL) {
@@ -8729,6 +8731,7 @@ within this routine if is_parenthesized comes in FALSE.
             /* Combine derived_type and complete_type. */
             add_to_derived_type_list(complete_type,
                                      &derived_type, &bottom_derived_type,
+                                     /*parameter_type=*/FALSE,
                                      /*microsoft_property=*/FALSE);
           }  /* if */
         }  /* if */

@@ -373,15 +373,17 @@ decl-specifier (e.g., "array [1] of NULL").
 void add_to_derived_type_list(a_type_ptr new_type_ptr,
                               a_type_ptr *derived_type,
                               a_type_ptr *bottom_derived_type,
+                              a_boolean  parameter_type,
                               a_boolean  microsoft_property)
 /*
 Add the type entry pointed to by new_type_ptr to the list of derived-type
 entries pointed to by *derived_type (and whose end is pointed to by
 *bottom_derived_type).  Aside from the purely mechanical issues of
 linking the entries, this routine also checks to see if the resulting
-type is legal.  When microsoft_property is TRUE, some of these checks are
-omitted (because Microsoft compilers do little checking on the types of
-property fields).
+type is legal.  If the type is for a parameter declaration, parameter_type
+is TRUE (in GNU C++ mode this relaxes the array of abstract class check).
+When microsoft_property is TRUE, some of these checks are omitted (because
+Microsoft compilers do little checking on the types of property fields).
 */
 {
   a_type_ptr              temp_type, prev_temp_type, tp;
@@ -456,6 +458,14 @@ property fields).
               error(ec_flexible_array_member_not_allowed);
               err = TRUE;
             }  /* if */
+          }  /* if */
+          if (!(gpp_mode && parameter_type) &&
+              is_abstract_class_type(temp_type)) {
+            /* An array type cannot have its element type be an abstract class
+               type.  An exception in some modes are parameter type (since they
+               are always transformed into pointer types). */
+            report_abstract_class_error(ec_array_of_abstract_class,
+                                        temp_type, &error_position);
           }  /* if */
         } else if (is_pointer_type(temp_type)) {
           /* Partial pointer type: Okay. */
@@ -4423,6 +4433,7 @@ function_lparen:
     /* Add the new type to the bottom of the existing derived type list.
        Note that this involves error checking. */
     add_to_derived_type_list(new_type_ptr, &derived_type, &bottom_derived_type,
+                             (input_flags & DI_IS_PARAMETER_DECL) != 0,
                              (input_flags & DI_IS_MICROSOFT_PROPERTY) != 0);
   }  /* while */
   /* Set the referenced flag on the specifiers type if this is the top-level
@@ -4567,16 +4578,8 @@ function_lparen:
   if (derived_type != NULL && complete_type != NULL) {
     add_to_derived_type_list(complete_type,
                              &derived_type, &bottom_derived_type,
+                             (input_flags & DI_IS_PARAMETER_DECL) != 0,
                              (input_flags & DI_IS_MICROSOFT_PROPERTY) != 0);
-    if (is_array_type(derived_type) && is_abstract_class_type(complete_type)) {
-      /* An array type cannot have its element type be an abstract class type.
-         An exception in some modes are parameter type (since they are always
-         transformed into pointer types). */
-      if (!((input_flags & DI_IS_PARAMETER_DECL) && gpp_mode)) {
-        report_abstract_class_error(ec_array_of_abstract_class, complete_type,
-                                    &declarator_pos);
-      }  /* if */
-    }  /* if */
     complete_type = derived_type;
   } else {
     if (derived_type != NULL) complete_type = derived_type;
