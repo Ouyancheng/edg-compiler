@@ -3269,12 +3269,8 @@ Start a new scope for a for-init declaration (C++ only).
 
   db_enter(3, "start_for_init_block");
   /* Push a block scope to represent the name scope in which a for-init
-     declaration appears, be sure an IL scope is created for it, and record
-     the IL scope in the for-loop supplement. */
-  (void)push_scope((a_scope_kind)sck_block, NO_SCOPE_NUMBER,
-                   (a_type_ptr)NULL, (a_routine_ptr)NULL);
-  sp->variant.for_loop.extra_info->for_init_scope =
-                   ensure_il_scope_exists(&scope_stack[depth_scope_stack]);
+     declaration appears and record the IL scope in the for-loop supplement. */
+  sp->variant.for_loop.extra_info->for_init_scope = push_for_init_scope();
   /* Add a control flow entry to represent the for-init block. */
   cfdp = alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_block);
   cfdp->source_pos = pos_curr_token;
