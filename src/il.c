@@ -2285,6 +2285,25 @@ the dump (this one counts as the first).
 #endif /* DEBUG */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
+void set_inline_flag(a_routine_ptr  rp,
+                     a_boolean      flag)
+/*
+Set the is_inline flag for the given routine to the given boolean value.
+Update the dependent flag suppress_inline_body if needed: The latter flag
+should be FALSE if is_inline is FALSE.  Also, in Microsoft mode, the
+combination of dllimport and inline indicates that the definition should
+only be used for inlining (i.e., the suppress_inline_body flag should be set).
+*/
+{
+  rp->is_inline = flag;
+  if (!flag) {
+    rp->suppress_inline_body = FALSE;
+  } else if (microsoft_mode && (rp->decl_modifiers & DM_DLLIMPORT)) {
+    rp->suppress_inline_body = TRUE;
+  }  /* if */
+}  /* set_inline_flag */
+
+
 int compare_source_positions(a_source_position	*pos1,
 			     a_source_position  *pos2)
 /*

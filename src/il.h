@@ -336,29 +336,6 @@ Return TRUE if the routine should be treated as an extern inline function.
    (rout)->storage_class == (a_storage_class)sc_unspecified)
 #endif /* LOWER_EXTERN_INLINE && !IA64_ABI */
 
-/*
-Macro to set or clear (depending on the value of the "flag" argument) the
-is_inline flag in a routine entry (indicated by "rp").  In Microsoft mode,
-the combination of dllimport and inline indicates that the definition should
-only be used for inlining (i.e., the suppress_inline_body flag should be set).
-*/
-#if MICROSOFT_EXTENSIONS_ALLOWED
-#define set_inline_flag(rp, flag)                                      \
-  rp->is_inline = (flag);                                              \
-  if (/*lint --e(506)*/!(flag)) {                                      \
-    rp->suppress_inline_body = FALSE;                                  \
-  } else if (microsoft_mode &&                                         \
-             (rp->decl_modifiers & DM_DLLIMPORT)) {                    \
-    rp->suppress_inline_body = TRUE;                                   \
-  }  /* if */
-#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-#define set_inline_flag(rp, flag)                                      \
-  rp->is_inline = (flag);                                              \
-  if (/*lint --e(506)*/!(flag)) {                                      \
-    rp->suppress_inline_body = FALSE;                                  \
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-
 #if !STANDALONE_UTILITY_PROGRAM
 
 /* Macro to set the needed flag. */
@@ -433,6 +410,9 @@ a function can be substituted that does something else.
 */
 #define unique_id_for_il_pointer(ptr) ((unsigned long)(ptr))
 
+
+extern void set_inline_flag(a_routine_ptr  rp,
+                            a_boolean      flag);
 
 extern int compare_source_positions(a_source_position  *pos1,
 				    a_source_position  *pos2);
