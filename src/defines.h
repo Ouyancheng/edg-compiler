@@ -151,6 +151,10 @@ Flags to be set when using the KAI inliner.
 #define TARG_WCHAR_T_INT_KIND ((an_integer_kind)ik_long)
 #define TARG_SIZEOF_WCHAR_T TARG_SIZEOF_LONG
 
+#ifndef RUNTIME_USES_NAMESPACES
+#define RUNTIME_USES_NAMESPACES 0
+#endif /* ifndef RUNTIME_USES_NAMESPACES */
+
 
 #else /* ifndef __LINUX__ */
 
