@@ -6794,11 +6794,12 @@ Returns TRUE if there is an error in the specifiers.
           /* Sign has already been specified in some way. */
           if ((sign == sign_signed) == (curr_token == tok_signed)) {
             /* Either "signed signed" or "unsigned unsigned".  Issue an error,
-               except in cfront and early GNU C modes (GNU C++ issues an
-               error). */
+               except in Microsoft, cfront, and early GNU C modes (GNU C++
+               issues an error). */
             diagnostic((any_cfront_mode() ||
-                       (gcc_mode && gnu_version < 30300)) ? es_warning
-                                                          : es_error,
+                        microsoft_mode ||
+                        (gcc_mode && gnu_version < 30300)) ? es_warning
+                                                           : es_error,
                        ec_dupl_decl_specifier);
           } else {
             /* Mixing signs. */

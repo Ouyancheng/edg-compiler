@@ -1,6 +1,14 @@
 Version 3.6
 
-1/7/05  Microsoft compatibility: Access specifiers in typedefs
+1/7/05   Microsoft compatibility: Repeated signedness specifiers
+
+The front end now accepts (with a warning) repeated "signed" or "unsigned"
+specifiers in Microsoft modes (this was already accepted in Cfront mode and
+in some GNU C modes).  For example:
+
+  unsigned long unsigned int ul;  // Same as "unsigned long int ul;".
+
+1/7/05   Microsoft compatibility: Access specifiers in typedefs
 
 In Microsoft bugs mode with microsoft_version >= 1300 the front end now ignores
 (with a warning) any access specifiers appearing among the specifiers following
@@ -9,7 +17,7 @@ a typedef keyword.  For example:
   typedef char protected C;  // Now treated as "typedef char C;" in Microsoft
                              // bugs mode.  A warning is issued.
 
-1/7/05  Undefined virtual inline function causes wrong choice of key function 
+1/7/05   Undefined virtual inline function causes wrong choice of key function 
 
 In strict ANSI C++ mode, an undefined virtual inline function always triggers
 a compilation error.  In other modes, however, such a member function was
@@ -26,7 +34,7 @@ This has now been fixed by leaving such functions marked as "inline."  Note
 that linker errors will still occur if no out-of-line code is generated for
 the definition of the inline member.
 
-1/6/05  GNU C/C++ compatibility: __alignof__ and field access
+1/6/05   GNU C/C++ compatibility: __alignof__ and field access
 
 When TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES is set to TRUE, a built-in type may
 have one "normal" or "intrinsic" alignment used when laying out complete object
