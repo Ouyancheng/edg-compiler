@@ -2355,40 +2355,6 @@ param type entry.
 }  /* fixup_parameters */
 
 
-void make_return_value_pointer_variable(a_type_ptr  rout_type,
-                                        a_scope_ptr scope_ptr)
-/*
-If required, allocate a variable with type pointer-to-function-return-type
-that will point to the storage provided by the caller for returning a
-class object by value, and store the variable in the function's scope
-entry.  The variable is created only when a flag in the routine type
-supplement indicates that it is required.  The variable is flagged as a
-parameter, but it is added to no list.
-*/
-{
-  a_type_ptr      return_type;
-
-  if (rout_type->variant.routine.extra_info->
-                             caller_provides_place_to_put_return_value) {
-    /* The implicit parameter for returning a class object by value is
-       required.  Get the return type, stripped of any qualifiers. */
-    return_type = rout_type->variant.routine.return_type;
-    return_type = skip_typerefs(return_type);
-#if CHECKING
-    /* A class type is expected. */
-    if (!is_class_struct_union_type(return_type)) {
-      internal_error("make_return_value_pointer_variable: not a class type");
-    }  /* if */
-#endif /* CHECKING */
-    /* Create the variable (its type is pointer to the class type) and
-       record it in the routine's IL scope. */
-    scope_ptr->variant.routine.return_value_pointer_variable =
-                          make_param_variable(make_pointer_type(return_type),
-                                              (a_storage_class)sc_auto);
-  }  /* if */
-}  /* make_return_value_pointer_variable */
-
-
 a_symbol_ptr enter_local_symbol(a_symbol_kind    kind,
                                 a_symbol_locator *locator,
                                 a_scope_depth    scope_level,
@@ -7813,11 +7779,6 @@ explicitly specified (rather than defaulted to "int").
     /* This is "main", so remember the location of its routine entry. */
     il_header.main_routine = routine_ptr;
   }  /* if */
-  /* If appropriate, set the return value pointer variable in the scope
-     entry.  This is a pointer to an implicit parameter specifying the
-     storage provided by the caller into which to copy a class object that
-     is returned by value. */
-  make_return_value_pointer_variable(rout_type, scope_ptr);
   if (top_declarator_type_is_function) {
     /* Parameter symbols that were created in the prototype scope (and then
        removed in pop_scope) have to be reentered in the function scope; they
@@ -8028,11 +7989,6 @@ processing of function definition.
                 make_param_variable(extra_info->implicit_this_param_type,
                                     (a_storage_class)sc_auto);
   }  /* if */
-  /* If appropriate, set the return value pointer variable in the scope
-     entry.  This is a pointer to an implicit parameter specifying the
-     storage provided by the caller into which to copy a class object that
-     is returned by value. */
-  make_return_value_pointer_variable(rout_type, scope);
   /* If a lint-style "argsused" or "varargs" comment appeared, remember that in
      the function type.  That will suppress any warnings about unused
      parameters or variable arguments. */

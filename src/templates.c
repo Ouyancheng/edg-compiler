@@ -455,12 +455,6 @@ Instantiate the body of the template function associated with tip.
                 make_param_variable(rtsp->implicit_this_param_type,
                                     (a_storage_class)sc_auto);
   }  /* if */
-  /* If appropriate, set the return value pointer variable in the scope
-     entry.  This is a pointer to an implicit parameter specifying the
-     storage provided by the caller into which to copy a class object that
-     is returned by value. */
-  make_return_value_pointer_variable(rout_type, scope);
-
   pip = tssp->variant.function.func_info.param_id_list;
   ptp = rtsp->param_type_list;
 #if CHECKING

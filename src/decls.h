@@ -157,9 +157,6 @@ extern a_routine_ptr make_routine(a_type_ptr      type_ptr,
 extern void fixup_parameters(a_variable_ptr    param_list,
                              a_param_type_ptr  param_type_list);
 
-extern void make_return_value_pointer_variable(a_type_ptr  rout_type,
-                                               a_scope_ptr scope_ptr);
-
 extern a_symbol_ptr enter_local_symbol(a_symbol_kind    kind,
                                        a_symbol_locator *locator,
                                        a_boolean        at_file_scope,
