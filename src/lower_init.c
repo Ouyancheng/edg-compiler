@@ -1943,24 +1943,10 @@ and not for constructor_init entries in destructors.
   a_destructible_entity_descr_ptr dedp = dip->destructible_entity_descr;
   an_insert_location              insert_location2;
   an_insert_location_ptr          effective_insert_loc;
+  a_dynamic_init_ptr              next_dip = dedp->next_in_region_table;
 
   check_assertion(dedp != NULL);
   if (exceptions_enabled) {
-    a_dynamic_init_ptr next_dip = dedp->next_in_region_table;
-    if (dip->unordered) {
-      /* For unordered destructions, clear the associated conditional flag
-         to indicate that the destruction has been done.  That's necessary
-         because all of the members of the unordered set stay in the
-         active cleanup list in the region table until all of them have been
-         destroyed, and the conditional flags tell us which ones still
-         require destruction.  We don't need to do this on the last
-         destruction in an unordered set because the whole set comes out
-         of the region table at that point. */
-      if (next_dip != NULL && next_dip->unordered) {
-        reset_conditional_flag_var(dedp-> conditional_flag_var,
-                                   insert_location);
-      }  /* if */
-    }  /* if */
     /* Set the region number to what it should be after the destruction,
        because as soon as we start the destruction it's the destructor's
        job to deal with partial destruction. */
@@ -1976,6 +1962,22 @@ and not for constructor_init entries in destructors.
     add_conditional_flag_test(dedp->conditional_flag_var, 
                               insert_location, &insert_location2);
     effective_insert_loc = &insert_location2;
+  }  /* if */
+  if (exceptions_enabled) {
+    if (dip->unordered) {
+      /* For unordered destructions, clear the associated conditional flag
+         to indicate that the destruction has been done.  That's necessary
+         because all of the members of the unordered set stay in the
+         active cleanup list in the region table until all of them have been
+         destroyed, and the conditional flags tell us which ones still
+         require destruction.  We don't need to do this on the last
+         destruction in an unordered set because the whole set comes out
+         of the region table at that point. */
+      if (next_dip != NULL && next_dip->unordered) {
+        reset_conditional_flag_var(dedp-> conditional_flag_var,
+                                   effective_insert_loc);
+      }  /* if */
+    }  /* if */
   }  /* if */
   add_destructor_call(dip->destructor,
                       &dedp->init_pos_descr,
