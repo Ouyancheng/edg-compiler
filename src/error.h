@@ -298,7 +298,7 @@ typedef enum /*an_error_code*/ {
   ec_reference_to_reference,
   ec_reference_to_void,
   ec_array_of_reference,
-  ec_missing_initializer,
+  ec_missing_initializer_on_reference,
   ec_exp_comma,
   ec_type_identifier_not_allowed,
   ec_type_definition_not_allowed,

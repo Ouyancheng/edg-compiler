@@ -821,7 +821,7 @@ error code.
     case ec_array_of_reference:
       m = "array of reference is not allowed";
       break;
-    case ec_missing_initializer:
+    case ec_missing_initializer_on_reference:
       m = "reference-type object requires an initializer";
       break;
     case ec_exp_comma:
