@@ -1358,8 +1358,8 @@ process.
 
 static void check_and_set_c_mode_options()
 /*
-If we're in C mode, check that no C++-only command-line setting is used, and
-set various unmentioned settings as needed.
+This routine is called in C mode to check that no C++-only command-line
+setting is used, and to set various unmentioned settings as needed.
 */
 {
   check_assertion(C_mode());
@@ -1473,8 +1473,8 @@ set various unmentioned settings as needed.
 
 static void check_and_set_cplusplus_mode_options()
 /*
-If we're in C++ mode, check that no non-C++ command-line setting is used, and
-set various unmentioned settings as needed.
+This routine is called in C++ mode to check that no non-C++ command-line
+setting is used, and to set various unmentioned settings as needed.
 */
 {
   check_assertion(!C_mode());
@@ -1530,6 +1530,9 @@ otherwise implicitly enabled cfront mode.
 }  /* exclude_cfront_mode */
 
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static void exclude_microsoft_mode(an_error_code  error_code)
 /*
 Microsoft mode is incompatible with other settings.  Either issue the given
@@ -1826,11 +1829,11 @@ checked again here.)
   if (!(option_kind_used[(int)optk_nonstandard_using_decl])) {
     /* If nonstandard using-decl was not explicitly set by a command line
        option, set it now. */
-    nonstandard_using_decl_allowed = FALSE;
+    nonstandard_using_decl_allowed = TRUE;
   }  /* if */
   if (!(option_kind_used[(int)optk_extern_inline])) {
     /* If extern_inline_allowed was not explicitly set by a command line
-       option, set it now. */
+       option, turn it off now. */
     extern_inline_allowed = FALSE;
   }  /* if */
 }  /* check_and_set_sun_mode_options */
