@@ -1290,10 +1290,11 @@ handle_non_autonomous_tag:
         walk_list(ptr->variables, a_variable_ptr, iek_variable);
 #endif /* ifdef CFE */
         walk_list_not_needed(ptr->labels, a_label_ptr, iek_label);
-#if NEEDED_FLAG_WALK
-        /* On the "needed" flag walk for a class, mark all the virtual
-           functions as needed.  Note that if IL lowering is done, there will
-           be no functions attached to the class anymore. */
+#if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
+        /* On the "needed" or "keep_in_il" flag walk for a class, mark
+           all the virtual functions as needed or keep_in_il.  Note that
+           if IL lowering is done, there will be no functions attached
+           to the class anymore. */
         if (kind == (a_scope_kind)sck_class_struct_union) {
           a_routine_ptr rout_ptr = ptr->routines;
           for (; rout_ptr != NULL; rout_ptr = rout_ptr->next) {
@@ -1302,9 +1303,8 @@ handle_non_autonomous_tag:
             }  /* if */
           }  /* for */
         }  /* if */
-#else /* !NEEDED_FLAG_WALK */
+#endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
         walk_needed_on_list(ptr->routines, a_routine_ptr, iek_routine, kind);
-#endif /* NEEDED_FLAG_WALK */
 #ifdef CFE
         walk_list(ptr->scopes, a_scope_ptr, iek_scope);
         walk_needed_on_list(ptr->namespaces, a_namespace_ptr, iek_namespace,
