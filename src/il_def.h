@@ -1960,6 +1960,13 @@ typedef struct a_constant {
 			   or other operations that rule it out as a null
 			   pointer constant.  This is unrelated to whether
 			   the constant actually has the value zero. */
+#if GNU_EXTENSIONS_ALLOWED
+  a_bit_field	null_keyword:1;
+			/* If TRUE, this constant was expressed with a
+			   special GNU keyword ("__null") in the source.
+			   Although it is semantically equivalent to a plain
+			   "0", it is meant to be a null pointer constant. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   bitfield_to_avoid_codecenter_warnings()
   a_constant_repr_kind
                 kind;

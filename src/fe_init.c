@@ -34,7 +34,7 @@ in .h files.
 #include "fe_common.h"
 #if __BSD__
 #include <sys/time.h>
-#else  /* __BSD__ */
+#else  /* !__BSD__ */
 #include <time.h>
 #endif  /* __BSD__ */
 #if __SYSV__ || __BSD__
@@ -323,7 +323,7 @@ Install the keywords in the symbol table.
   enter_keyword((a_token_kind)tok_alignof, "__alignof__");
   enter_keyword((a_token_kind)tok_intaddr, "__INTADDR__");
   if (restrict_enabled) {
-    enter_keyword((a_token_kind)tok_restrict, gnu_mode ? "__restrict__"
+    enter_keyword((a_token_kind)tok_restrict, gnu_mode ? "__restrict"
                                                        : "restrict");
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -374,7 +374,8 @@ Install the keywords in the symbol table.
     enter_keyword((a_token_kind)tok_inline, "inline");
     enter_keyword((a_token_kind)tok_decorated_function_name,
                   "__PRETTY_FUNCTION__");
-    enter_gnu_keyword((a_token_kind)tok_restrict, "__restrict");
+  } else if (gpp_mode) {
+    enter_keyword((a_token_kind)tok_null, "__null");
   }  /* if */
   if (gnu_mode) {
     enter_keyword((a_token_kind)tok_function_name, "__FUNCTION__");

@@ -230,6 +230,7 @@ typedef enum /*a_token_kind*/ {
   /* Recognized in GNU C and C++ modes only. */
   tok_typeof,
   tok_extension,
+  tok_null,
   /* Recognized in cfront compatibility mode only. */
   tok_overload,
 #if UPC_EXTENSIONS_ALLOWED
@@ -305,7 +306,7 @@ EXTERN char	*token_names[(int)tok_last+1]
    "const_cast", "dynamic_cast", "explicit", "export", "mutable", "namespace",
    "reinterpret_cast", "static_cast", "typeid", "using",
    "bool", "false", "true", "typename",
-   "__typeof__", "__extension__",
+   "__typeof__", "__extension__", "__null",
    "overload",
 #if UPC_EXTENSIONS_ALLOWED
    "strict", "relaxed", "shared", "upc_forall", "upc_barrier", "upc_notify",
@@ -698,6 +699,7 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_typename */
    (an_opname_kind)onk_none,          /* tok_typeof */
    (an_opname_kind)onk_none,          /* tok_extension */
+   (an_opname_kind)onk_none,          /* tok_null */
    (an_opname_kind)onk_none,          /* tok_overload */
 #if UPC_EXTENSIONS_ALLOWED
    (an_opname_kind)onk_none,          /* tok_upc_strict */

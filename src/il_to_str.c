@@ -3463,6 +3463,11 @@ precedence confusion.  Do the output in the way described by octl.
            an initializer; it's a nonshared constant with the same value as
            the named enumeration constant). */
         form_name(&equiv_constant->source_corresp, iek_constant, octl);
+#if GNU_EXTENSIONS_ALLOWED
+      } else if (!octl->c_generating_back_end && constant->null_keyword) {
+        /* The GNU C++ __null keyword. */
+        octl->output_str("__null");
+#endif /* GNU_EXTENSIONS_ALLOWED */
       } else if (!octl->c_generating_back_end &&
                  il_header.source_language == sl_Cplusplus &&
                  is_bool_type(con_type)) {
