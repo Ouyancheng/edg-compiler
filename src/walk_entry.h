@@ -242,7 +242,7 @@ Process the source correspondence field pointed to by ptr.
 #endif /* ifdef CFE */
 
 #undef remap_source_sequence_entry
-#if GENERATE_SOURCE_SEQUENCE_LISTS && !NEEDED_FLAG_WALK
+#if GENERATE_SOURCE_SEQUENCE_LISTS && !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK
 #define remap_source_sequence_entry(ptr) \
   remap_ptr((ptr).source_sequence_entry, a_source_sequence_entry_ptr, \
             iek_source_sequence_entry)
@@ -926,11 +926,11 @@ the file scope, do not process it (but record an orphan in the latter case).
       {
         a_statement_ptr ptr = (a_statement_ptr)entry_ptr;
         remap_next_ptr(ptr->next, a_statement_ptr, iek_statement);
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-        remap_ptr_not_needed(ptr->source_sequence_entry,
-                             a_source_sequence_entry_ptr,
-                             iek_source_sequence_entry);
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if GENERATE_SOURCE_SEQUENCE_LISTS && !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK
+        remap_ptr(ptr->source_sequence_entry,
+                  a_source_sequence_entry_ptr,
+                  iek_source_sequence_entry);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && ... */
         walk_ptr(ptr->expr, an_expr_node_ptr, iek_expr_node);
         switch (ptr->kind) {
           case stmk_expr:
@@ -1065,11 +1065,11 @@ the file scope, do not process it (but record an orphan in the latter case).
         remap_next_ptr(ptr->next, a_pragma_ptr, iek_pragma);
         remap_ptr(ptr->entity.ptr, a_char_ptr,
                   (an_il_entry_kind)ptr->entity.kind);
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-        remap_ptr_not_needed(ptr->source_sequence_entry,
-                             a_source_sequence_entry_ptr,
-                             iek_source_sequence_entry);
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if GENERATE_SOURCE_SEQUENCE_LISTS && !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK
+        remap_ptr(ptr->source_sequence_entry,
+                  a_source_sequence_entry_ptr,
+                  iek_source_sequence_entry);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && ... */
         walk_string_ptr(ptr->pragma_text, iek_other_text, 0);
 #if IDENT_DIRECTIVE_AND_PRAGMA
         if (ptr->kind == (a_pragma_kind)pk_ident) {
@@ -1485,10 +1485,10 @@ the file scope, do not process it (but record an orphan in the latter case).
         a_using_directive_ptr ptr = (a_using_directive_ptr)entry_ptr;
         remap_next_ptr(ptr->next, a_using_directive_ptr, iek_using_directive);
         remap_ptr(ptr->assoc_namespace, a_namespace_ptr, iek_namespace);
-#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if GENERATE_SOURCE_SEQUENCE_LISTS && !KEEP_IN_IL_WALK
         remap_ptr(ptr->source_sequence_entry, a_source_sequence_entry_ptr,
                   iek_source_sequence_entry);
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && ... */
       }
       break;
 #endif /* !NEEDED_FLAG_WALK */
@@ -1776,7 +1776,7 @@ the file scope, do not process it (but record an orphan in the latter case).
       break;
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
 #endif /* ifdef CFE */
-#if GENERATE_SOURCE_SEQUENCE_LISTS && !NEEDED_FLAG_WALK
+#if GENERATE_SOURCE_SEQUENCE_LISTS && !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK
     case iek_source_sequence_entry:
       {
         a_source_sequence_entry_ptr ptr =
@@ -1862,10 +1862,10 @@ the file scope, do not process it (but record an orphan in the latter case).
         remap_ptr(ptr->assoc_routine, a_routine_ptr, iek_routine);
         walk_list(ptr->orphaned_types, a_type_ptr, iek_type);
         walk_list(ptr->orphaned_variables, a_variable_ptr, iek_variable);
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-        walk_list_not_needed(ptr->orphaned_src_seq_sublists,
-                             a_src_seq_sublist_ptr, iek_src_seq_sublist);
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if GENERATE_SOURCE_SEQUENCE_LISTS && !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK
+        walk_list(ptr->orphaned_src_seq_sublists,
+                  a_src_seq_sublist_ptr, iek_src_seq_sublist);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && */
       }
       break;
     case iek_id_name:
