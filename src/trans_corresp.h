@@ -82,42 +82,42 @@ extern a_namespace_ptr canonical_namespace_entry_of(a_namespace_ptr  nsp);
 
 #define corresponding_namespaces(ptr1, ptr2)                               \
   ((ptr1) == (ptr2) ||                                                     \
-   (canonical_test_needed(ptr1, ptr2) &&				                        \
+   (canonical_test_needed(ptr1, ptr2) &&                                   \
     canonical_namespace_entry_of(ptr1) == canonical_namespace_entry_of(ptr2)))
 
 extern a_field_ptr canonical_field_entry_of(a_field_ptr  field);
 
 #define corresponding_fields(ptr1, ptr2)                                   \
   ((ptr1) == (ptr2) ||                                                     \
-   (canonical_test_needed(ptr1, ptr2) &&				                        \
+   (canonical_test_needed(ptr1, ptr2) &&                                   \
     canonical_field_entry_of(ptr1) == canonical_field_entry_of(ptr2)))
 
 extern a_routine_ptr canonical_routine_entry_of(a_routine_ptr  routine);
 
 #define corresponding_routines(ptr1, ptr2)                                 \
   ((ptr1) == (ptr2) ||                                                     \
-   (canonical_test_needed(ptr1, ptr2) &&				                        \
+   (canonical_test_needed(ptr1, ptr2) &&                                   \
     canonical_routine_entry_of(ptr1) == canonical_routine_entry_of(ptr2)))
 
 extern a_variable_ptr canonical_variable_entry_of(a_variable_ptr  var);
 
 #define corresponding_variables(ptr1, ptr2)                                \
   ((ptr1) == (ptr2) ||                                                     \
-   (canonical_test_needed(ptr1, ptr2) &&				                        \
+   (canonical_test_needed(ptr1, ptr2) &&                                   \
     canonical_variable_entry_of(ptr1) == canonical_variable_entry_of(ptr2)))
 
 extern a_type_ptr canonical_type_entry_of(a_type_ptr type);
 
 #define corresponding_types(ptr1, ptr2)                                    \
   ((ptr1) == (ptr2) ||                                                     \
-   (canonical_test_needed(ptr1, ptr2) &&				                        \
+   (canonical_test_needed(ptr1, ptr2) &&                                   \
     canonical_type_entry_of(ptr1) == canonical_type_entry_of(ptr2)))
 
 extern a_template_ptr canonical_template_entry_of(a_template_ptr templ);
 
 #define corresponding_templates(ptr1, ptr2)                                \
   ((ptr1) == (ptr2) ||                                                     \
-   (canonical_test_needed(ptr1, ptr2) &&				                        \
+   (canonical_test_needed(ptr1, ptr2) &&                                   \
     canonical_template_entry_of(ptr1) == canonical_template_entry_of(ptr2)))
 
 
