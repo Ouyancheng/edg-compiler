@@ -1,5 +1,11 @@
 Version 2.09
 
+9/9/92  __ALIGNOF__ enhanced
+
+__ALIGNOF__ can now take an argument that is an expression; the
+expression is unevaluated, and the value of __ALIGNOF__(expression)
+is the alignment value for the expression's type.
+
 9/8/92  Error on dropping type qualifiers in initialization of reference
 
 The incompatibility error for dropping type qualifiers on a reference

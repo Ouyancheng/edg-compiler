@@ -3097,7 +3097,8 @@ Syntax:
     scan_expr(&operand, PREC_PREFIX, (an_expression_kind)ek_not_evaluated,
               local_options);
     /* Do not convert a type of "routine returning type" to "pointer to
-       routine returning type".  See section 3.2.2.1 in the C standard. */
+       routine returning type".  See section 3.2.2.1 in the C standard.
+       Likewise do not convert arrays to pointers, or lvalues to rvalues. */
     do_operand_transformations(&operand,
                                TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
                                TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
@@ -3157,7 +3158,8 @@ Scan the __ALIGNOF__ operator.  This is an extension that is similar
 to sizeof, but returns the alignment requirement rather than the size.
 
 Syntax:
-	__ALIGNOF__ ( type-name )
+        __ALIGNOF__ ( type-name )
+        __ALIGNOF__ ( expression )
 
 The parentheses are required, unlike for sizeof.  Fewer error checks
 are done.  A warning about the use of this nonstandard feature would
@@ -3166,6 +3168,7 @@ be inappropriate, because the feature is probably used to implement
 */
 {
   a_source_position start_position;
+  an_operand        operand;
   a_constant        constant;
   a_type_ptr        alignof_type;
 
@@ -3173,12 +3176,27 @@ be inappropriate, because the feature is probably used to implement
 
   /* Save the position of the __ALIGNOF__ keyword. */
   copy_source_position(pos_curr_token, start_position);
-  /* Check for and pass over the left parenthesis. */
   (void)get_token();
+  /* Check for and pass over the left parenthesis. */
   (void)required_token(tok_lparen, ec_exp_lparen);
   add_stop_token(tok_rparen);
-  /* Scan the type name. */
-  type_name(&alignof_type);
+  if (is_decl_not_expr(/*abstract_declarator_allowed=*/TRUE,
+                       /*real_declarator_allowed=*/FALSE)) {
+    /* Scan a type name. */
+    type_name(&alignof_type);
+  } else {
+    /* Scan an expression. */
+    scan_expr(&operand, PREC_LOWEST, (an_expression_kind)ek_not_evaluated,
+              EOPT_NO_OPTIONS);
+    /* Do not convert lvalues to rvalues, arrays to pointers, or
+       or functions to pointers. */
+    do_operand_transformations(&operand,
+                               TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
+                               TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
+                               TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION,
+                               (an_expression_kind)ek_not_evaluated);
+    alignof_type = operand.type;
+  }  /* if */
   alignof_type = skip_typerefs(alignof_type);
   /* The result of __ALIGNOF__ is an integer indicating the alignment of
      the operand, of type size_t. */
