@@ -2033,7 +2033,11 @@ processing the normal end of a block.
 */
 {
   check_assertion(end_of_control_flow_descr_list == cfdp);
-  add_vla_dealloc_stmts(cfdp, cfdp->parent, /*is_goto=*/FALSE);
+  if (cfdp->kind == (a_control_flow_descr_kind)cfdk_block) {
+    /* Empty block: no need to look for VLA object initializations. */
+  } else {
+    add_vla_dealloc_stmts(cfdp, cfdp->parent, /*is_goto=*/FALSE);
+  }  /* if */
 }  /* add_vla_dealloc_stmts_for_block */
 
 
