@@ -3294,7 +3294,7 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
     must_be_class ||						      \
     must_be_tag ||						      \
     !same_entities(class_type, (fund_sym)->variant.type.ptr)) &&      \
-   same_entities((sym)->parent.class_type, class_type) &&             \
+   (sym)->parent.class_type == class_type &&                          \
    (!must_be_class_or_namespace ||				      \
     symbol_may_precede_qualifier(fund_sym)) &&	     		      \
    (!must_be_class ||						      \
