@@ -1439,13 +1439,24 @@ scope is that of a class definition.
            locator->variant.opname == (an_opname_kind)onk_delete)) {
         /* Operator new and delete can never be qualified. */
         qualifier_err = TRUE;
-      } else if (member_function_parent_type == NULL ||
-                 (!is_nonstatic_member_function &&
-                  scope_stack[decl_scope_level].kind ==
-                                 (a_scope_kind)sck_class_struct_union)) {
-        /* It is illegal to specify "const" or "volatile" on any function
-           other than a nonstatic member function (ARM 8.2.5). */
+      } else if (member_function_parent_type == NULL) {
+        /* Cv-qualifier is allowed on a member function only. */
         qualifier_err = TRUE;
+      } else if (!is_nonstatic_member_function &&
+                 scope_stack[decl_scope_level].kind ==
+                                 (a_scope_kind)sck_class_struct_union &&
+                 scope_stack[decl_scope_level].assoc_type ==
+                                 member_function_parent_type) {
+        /* This must be the declaration of a static member function inside
+           its class definition.  "const" and "volatile" are not allowed,
+           but with Cfront it's sometimes okay (depending on the return type!)
+           so just put out a warning in cfront mode. */
+        if (any_cfront_mode() && member_function_parent_type != NULL &&
+            !is_nonstatic_member_function) {
+          pos_warning(ec_function_qualifier_not_allowed, &qualifier_pos);
+        } else {
+          qualifier_err = TRUE;
+        }  /* if */
       } else if (is_constructor || is_destructor) {
         /* A qualifier appearing on a constructor or destructor is not
            allowed (ARM 9.3.1). */

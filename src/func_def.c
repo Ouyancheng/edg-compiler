@@ -721,10 +721,10 @@ it calls reconcile_routine_types to merge the current type with the type
 on a prior declaration.
 */
 {
-  a_symbol_ptr	 sym;
+  a_symbol_ptr   sym;
   a_type_ptr     class_type;
   a_routine_ptr  rp;
-  a_type_ptr	 rout_type;
+  a_type_ptr     rout_type;
 
   db_enter(3, "define_member_function");
   class_type = locator->specific_symbol->class_of_which_a_member;
@@ -745,6 +745,21 @@ on a prior declaration.
     /* Look for a member function symbol of this type in the symbol table.
        It is an error if it is  not already there. */
     sym = member_function_redecl_sym(sym, type_ptr);
+    if (sym == NULL && any_cfront_mode()) {
+      /* In cfront it's okay to put a function qualifier on a member function
+         definition.  If it's inappropriate, it's just ignored.  Do the same
+         in cfront mode -- but issue a diagnostic. */
+      a_routine_type_supplement_ptr  rtsp =
+                                       type_ptr->variant.routine.extra_info;
+      if (rtsp->implicit_this_param_type != NULL) {
+        rtsp->implicit_this_param_type = NULL;
+        sym = member_function_redecl_sym(locator->specific_symbol, type_ptr);
+        if (sym != NULL) {
+          pos_sy_warning(ec_not_compatible_with_previous_decl,
+                         &locator->source_position, locator->specific_symbol);
+        }  /* if */
+      }  /* if */
+    }  /* if */
     if (sym == NULL) {
       /* No member function with a matching type was found.  Issue an error. */
       pos_sy_error(locator->specific_symbol->kind ==
