@@ -1,6 +1,13 @@
 Version 2.22
 
-1/31/94  IL change:  field entries for unnamed fields.
+1/31/94  Source sequence entries for return statements
+
+In return statements that have an associated expression, the source sequence
+entry for the return statement is now generated before any source sequence
+entries for the expression.  (Source sequence entries are configured out
+by default.)
+
+1/31/94  IL change: field entries for unnamed fields.
 
 An unnamed bit field is now represented in the IL by an actual field entry
 rather than by a gap in the offsets of the surrounding fields.  The same
