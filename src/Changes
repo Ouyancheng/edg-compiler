@@ -8,6 +8,13 @@ but __DATE__ requires a space in that position.  If ctime returns
 a leading zero, it is now converted to a space in __DATE__.  (Windows
 NT has this idiosyncrasy.)
 
+3/15/95  Routine name linkage of compiler-generated functions
+
+All routine types in C++ now start off with a routine_name_linkage of
+nlk_cplusplus_external, thereby fixing a bug in how the field was set for
+compiler-generated functions.  The default for C routines continues to be
+nlk_none.
+
 3/15/95  Internal error due to nonconst copy constructor
 
 As of version 2.28, a copy constructor with a reference to nonconst
