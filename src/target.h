@@ -357,12 +357,13 @@ EXTERN a_boolean
                                     = TARG_ENUM_BIT_FIELDS_ARE_ALWAYS_UNSIGNED
 #endif /* VAR_INITIALIZERS */
                                                                               ;
-			/* Signedness for enum bit fields (an extension): if
-			   TRUE, enum bit fields are always unsigned.  If
+			/* Signedness for enum bit fields (an extension in C):
+			   if TRUE, enum bit fields are always unsigned.  If
 			   FALSE, the rules are as described in target.h: it
 			   depends on the signedness and size of the values of
 			   the enum and defaults to the signedness indicated
-			   by targ_plain_int_bit_field_is_unsigned. */
+			   by targ_plain_int_bit_field_is_unsigned.  This
+			   needs to be FALSE to allow fully-standard C++. */
 
 EXTERN int	targ_zero_width_bit_field_alignment
 #if VAR_INITIALIZERS
