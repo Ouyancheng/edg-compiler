@@ -14,6 +14,7 @@ Declarations for exception handling.
 */
 
 #ifndef _EH_H
+#define _EH_H 1
 
 #include <stdlib.h>
 #include "config.h"

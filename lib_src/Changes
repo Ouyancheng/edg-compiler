@@ -1,5 +1,9 @@
 Version 2.32
 
+5/15/96  Added missing #define to guard code in eh.h
+
+The eh.h was missing a #define of _EH_H.  This has been fixed.
+
 5/6/96   Revised nothrow new implementation
 
 The nothrow versions of the operator new routines have been revised to
