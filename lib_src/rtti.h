@@ -107,9 +107,13 @@ typedef struct a_type_info_impl {
 			/* When this field is non-NULL two type_info
 			   structures describe the same type if their
 			   unique IDs are the same. */
-  a_function_ptr
+#if ABI_COMPATIBILITY_VERSION <= 237
+  a_destructor_ptr
 		destructor;
-			/* Pointer to the destructor for the object. */
+			/* Pointer to the destructor for the object.  This is
+			   only present in ABI versions up to and including
+			   2.37. */
+#endif /* ABI_COMPATIBILITY_VERSION <= 237 */
   a_base_class_spec
 		*base_class_entries;
 			/* Pointer to an array of type_info entries for

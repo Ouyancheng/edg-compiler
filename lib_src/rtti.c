@@ -344,8 +344,10 @@ Display debugging information about type information.
           tiip->name == NULL ? "<NULL>" : tiip->name);
   do_indent();
   fprintf(stderr, "  unique_id: %p\n", (void*)tiip->unique_id);
+#if ABI_COMPATIBILITY_VERSION <= 237
   do_indent();
   fprintf(stderr, "  dtor addr: %p\n", (void*)tiip->destructor);
+#endif /* ABI_COMPATIBILITY_VERSION <= 237 */
   if (tiip->base_class_entries != NULL) {
     a_base_class_spec_ptr	bcsp;
     do_indent();
