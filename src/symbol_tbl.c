@@ -7921,12 +7921,20 @@ entry already created for this entity; otherwise, it is NULL.
                        sym_ptr, source_position);
     }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-    /* A definition is ordinarily the primary declaration, but if it was
-       previously defined and this is just a redefinition, this should be
-       recorded as a secondary declaration. */
-    sym_update_source_sequence_list(sym_ptr, source_position,
-                                    /*is_primary_decl=*/!sym_ptr->defined,
-                                    ssep);
+    if (sym_ptr->kind == (a_symbol_kind)sk_label) {
+      /* Don't issue a source sequence entry for a label definition --
+         a label is always defined by an stmk_label statement, for which
+         a source sequence entry will be put out.  Putting out both would be
+         redundant. */
+    } else {
+      /* Issue a source sequence entry. */
+      /* A definition is ordinarily the primary declaration, but if it was
+         previously defined and this is just a redefinition, this should be
+         recorded as a secondary declaration. */
+      sym_update_source_sequence_list(sym_ptr, source_position,
+                                      /*is_primary_decl=*/!sym_ptr->defined,
+                                      ssep);
+    }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
   if (!sym_ptr->defined) {
