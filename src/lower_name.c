@@ -771,7 +771,8 @@ sizeof_t mangled_basic_class_name(a_type_ptr type,
 Determine the mangled form of the basic name of the class "type".  This is
 not the version that contains a leading count of the number of characters
 in the name; here, the name is usually just the original name, but is
-different if the class is a template class or is unnamed.  Place the mangled
+different if the class is a template class or is unnamed.  Also, this
+routine does not do anything special with nested types.  Place the mangled
 name at *store_at if store_at != NULL, and (always) return the length of
 the name.
 */
@@ -784,8 +785,11 @@ the name.
 
   /* Always start with the name of the class, which applies even in the
      template class case. */
-  give_unnamed_class_a_name(type);
   name = type->source_corresp.name;
+  if (name == NULL) {
+    give_unnamed_class_a_name(type);
+    name = type->source_corresp.name;
+  }  /* if */
   mangled_name_length = strlen(name);
   if (store_at != NULL) {
     (void)memcpy(store_at, name, size_t_arg(mangled_name_length));
@@ -944,13 +948,14 @@ Interface to r_mangled_parent_qualifier, to provide nesting_level == 1.
   r_mangled_parent_qualifier((parent), (unsigned long)1, (store_at))
 
 
-static sizeof_t mangled_type_name(a_type_ptr type,
-                                  char       *store_at)
+sizeof_t mangled_type_name(a_type_ptr type,
+                           char       *store_at)
 /*
 Determine the mangled form of the name of the type "type".  Place the
 mangled name at *store_at if store_at != NULL, and (always) return the
 length of the name.  See ARM 7.2.1c for name encoding.  This routine is
-used for named types (classes, enums, and typedefs) and for unnamed classes.
+used for named types (classes, enums, and typedefs) and for unnamed
+classes and enums.  Nested types are encoded as such.
 */
 {
   sizeof_t   mangled_name_length = 0, name_length;
@@ -960,6 +965,11 @@ used for named types (classes, enums, and typedefs) and for unnamed classes.
   if (!type->source_corresp.is_class_member &&
       type->source_corresp.parent.namespace_ptr == NULL) {
     /* This entity is not a member of a class or a namespace. */
+#if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
+  } else if (type->use_cfront_transitional_nested_type_name_mangling) {
+    /* This a nested type name promoted into the file scope in
+       cfront 2.1 mode, so do not use the nested form. */
+#endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
   } else {
     /* The type is a member of a class or namespace, so put out a qualifier.
        Note that the count starts at 2 because the type name itself is level
@@ -1014,29 +1024,16 @@ sizeof_t mangled_class_name(a_type_ptr type,
                             char       *store_at)
 /*
 Determine the mangled form of the name of the class "type".  This is
-the same as the basic class name if the class is not nested, and a
-nested name encoding if the class is nested.  This is used for things
-like the names of base class pointers.  Place the mangled name at
-*store_at if store_at != NULL, and (always) return the length of the name.
+the encoding used for the name of the class as opposed to the encoding
+for the class as a type (if there is a difference).  Place the mangled
+name at *store_at if store_at != NULL, and (always) return the length
+of the name.
 */
 {
   sizeof_t mangled_name_length;
 
-  if ((type->source_corresp.is_class_member ||
-       type->source_corresp.parent.namespace_ptr != NULL) &&
-      type->source_corresp.name != NULL &&
-      !type->source_corresp.name_has_been_mangled
-#if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
-      /* If this a cfront 2.1 nested type, leave it in the unnested form. */
-      && !type->use_cfront_transitional_nested_type_name_mangling
-#endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
-                                       ) {
-    /* Use a nested type name. */
-    mangled_name_length = mangled_type_name(type, store_at);
-  } else {
-    /* Use the basic class name. */
-    mangled_name_length = mangled_basic_class_name(type, store_at);
-  }  /* if */
+  check_assertion(!type->source_corresp.name_has_been_mangled);
+  mangled_name_length = mangled_type_name(type, store_at);
   return mangled_name_length;
 }  /* mangled_class_name */
 
@@ -1651,7 +1648,7 @@ See ARM 7.2.1c for name encoding.
          }
     */
     check_assertion_str(!variable->source_corresp.is_class_member,
-                        "mangled_member_variable_name: unnamed member");
+                        "mangled_member_variable_name: unnamed class member");
     give_unnamed_member_variable_a_name(variable);
   }  /* if */
   return mangled_member_name(&variable->source_corresp, store_at);
@@ -2017,7 +2014,7 @@ other name mangling that might use the name is done.
        from all user identifiers).  Similar mangling is used for members
        of namespaces (a different kind of "nested" type). */
     /* Determine how long the mangled name is. */
-    mangled_name_length = mangled_type_name(type, (char *)NULL) +
+    mangled_name_length = mangled_class_name(type, (char *)NULL) +
                           2;  /* "__" */
     /* Allocate space for the mangled name and build it.  The old name is
        just thrown away. */
@@ -2025,7 +2022,7 @@ other name mangling that might use the name is done.
     mangled_name = alloc_lowered_name_string(alloc_length);
     mangled_name[0] = '_';
     mangled_name[1] = '_';
-    (void)mangled_type_name(type, mangled_name + 2);
+    (void)mangled_class_name(type, mangled_name + 2);
     mangled_name[mangled_name_length] = '\0';
     /* Note that the mangled name is not put into the type until after it has
        been completely built, because the old name is used in building the
@@ -2279,7 +2276,7 @@ function table is for class_type itself.  Place the mangled name at
     }  /* if */
   }  /* if */
   /* Add the derived class name. */
-  section_length = mangled_type_name(class_type, store_at);
+  section_length = mangled_class_name(class_type, store_at);
   mangled_name_length += section_length;
   if (store_at != NULL) store_at += section_length;
   return mangled_name_length;
