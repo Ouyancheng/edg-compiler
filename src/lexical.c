@@ -836,7 +836,7 @@ be copies to the new cache.
         last_tsn_in_cache = ctp->token_sequence_number;
       }  /* if */
     }  /* for */
-    if (first_tsn >= last_tsn_in_cache) {
+    if (first_tsn > last_tsn_in_cache) {
       /* We are already at the end, or past the end of the source cache.
          Don't attempt to get any more tokens.  Unget the current token so
          that it will be made the current token by the get_token done at
