@@ -4692,7 +4692,10 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           gen_expr_with_parens(operand_1);
           goto done_with_operation;
         case eok_lvalue_cast:
-          unexpected_condition_str("gen_expr: eok_lvalue_cast as rvalue");
+          check_assertion(C_mode());
+          write_tok_ch('&');
+          gen_lvalue(expr);
+          goto done_with_operation;
         case eok_dynamic_cast:
           write_tok_str("dynamic_cast<");
           gen_type(expr->type);
