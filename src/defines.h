@@ -119,7 +119,6 @@ Flags to be set when using the KAI inliner.
 #define DEFAULT_REMOVE_UNNEEDED_ENTITIES 1
 #endif /* MAINTAIN_NEEDED_FLAGS */
 #endif /* ifndef DEFAULT_REMOVE_UNNEEDED_ENTITIES */
-#define ASM_FUNCTION_ALLOWED 1
 
 #endif /* !defined(OPTIMIZED_VERSION) */
 
