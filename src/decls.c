@@ -5847,14 +5847,19 @@ recorded in the IL, the template header is passed via template_decl.
     if (sym->kind == (a_symbol_kind)sk_function_template) {
       /* We have already recorded (mark_defined/mark_declared) the template in
          the code above, but not the prototype instantiation. */
-      a_symbol_reference_kind  srk_flags = SRK_DECLARATION;
-      if (func_info->is_definition) srk_flags |= SRK_DEFINITION;
-      if (idlb.is_friend_decl) srk_flags |= SRK_FRIEND;
       ssep = func_info->declarator_ssep;
-      record_symbol_declaration(srk_flags,
-                              (a_symbol_ptr)rout_ptr->
+      if (ssep == NULL) {
+        /* This could happen if we're processing a prototype friend template
+           instantiation as part of a real class instantiation. */
+      } else {
+        a_symbol_reference_kind  srk_flags = SRK_DECLARATION;
+        if (func_info->is_definition) srk_flags |= SRK_DEFINITION;
+        if (idlb.is_friend_decl) srk_flags |= SRK_FRIEND;
+        record_symbol_declaration(srk_flags,
+                                  (a_symbol_ptr)rout_ptr->
                                                     source_corresp.assoc_info,
-                              &locator->source_position, ssep);
+                                  &locator->source_position, ssep);
+      }  /* if */
     } else {
       ssep = rout_ptr->source_corresp.source_sequence_entry;
       if (func_info->declarator_ssep != NULL) {
@@ -5862,9 +5867,10 @@ recorded in the IL, the template header is passed via template_decl.
         func_info->declarator_ssep = NULL;
       }  /* if */
     }  /* if */
-    if (ss_entry_kind(ssep) == iek_src_seq_secondary_decl) {
+    if (ssep == NULL) {
+    } else if (ss_entry_kind(ssep) == iek_src_seq_secondary_decl) {
       a_src_seq_secondary_decl_ptr sssdp =
-       ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
+                             ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
       sssdp->declared_type = func_info->declared_type;
       sssdp->template_decl = template_decl;
     } else {

@@ -9417,7 +9417,8 @@ instantiation.
                           is_partial_specialization);
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
-  if (prototype_instantiations_in_il) {
+  if (prototype_instantiations_in_il &&
+      tssp->variant.class_template.prototype_instantiation != NULL) {
     /* Record the prototype instantiation in the IL. */
     a_symbol_ptr  proto_sym = tssp->variant.class_template.
                                                       prototype_instantiation;
@@ -10983,7 +10984,8 @@ set, and its source sequence entry, if any, has been put out.)
           default:;
         }  /* switch */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-        if (!decl_state->in_prototype_instantiation) {
+        if (!decl_state->in_prototype_instantiation
+            || prototype_instantiations_in_il) {
           /* Add the IL template entry to the templates list of the
              appropriate scope. */
           add_to_templates_list(il_template_entry,
