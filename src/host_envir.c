@@ -2835,7 +2835,7 @@ is TRUE if the file names are from #include directives and still have
 the '"' or '<' delimiters.  is_partial_file_name is TRUE if the
 file names are not known to be relative to the current directory.
 This suppresses the use of the "stat" function to do a file equality
-comparision.
+comparison.
 */
 {
   char		*start1 = file1;
