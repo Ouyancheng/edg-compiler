@@ -232,8 +232,8 @@ FALSE means the IL is passed in memory to the back end.
 #define IL_SHOULD_BE_WRITTEN_TO_FILE TRUE /* Do not change this. */
 #else /* defined(IL_SHOULD_BE_WRITTEN_TO_FILE) */
 #if !IL_SHOULD_BE_WRITTEN_TO_FILE
-!!!! IL_SHOULD_BE_WRITTEN_TO_FILE must be TRUE when STANDALONE_UTILITY_PROGRAM
-     is set.
+ #error -- IL_SHOULD_BE_WRITTEN_TO_FILE must be TRUE when
+           STANDALONE_UTILITY_PROGRAM is set.
 #endif /* !IL_SHOULD_BE_WRITTEN_TO_FILE */
 #endif /* !defined(IL_SHOULD_BE_WRITTEN_TO_FILE) */
 #else /* !STANDALONE_UTILITY_PROGRAM */
