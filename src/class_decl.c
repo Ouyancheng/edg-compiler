@@ -3334,12 +3334,12 @@ of assoc_field_object and assoc_var_object is defined.
         aup->variant.variable = assoc_var_object;
       } else {
         /* Associated object is a field of a class. */
-        sym->class_of_which_a_member = class_type;
         aup = alloc_anonymous_union(/*is_var=*/FALSE);
         aup->variant.field = assoc_field_object;
       }  /* if */
       aup->next = sym->variant.field.anonymous_union;
       sym->variant.field.anonymous_union = aup;
+      sym->class_of_which_a_member = class_type;
       /* Link it back into the symbol table. */
       reenter_symbol(sym, decl_scope_level, /*suppress_error=*/FALSE);
     } else if (is_member_function_symbol(sym)) {
