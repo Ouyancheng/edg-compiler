@@ -4017,6 +4017,9 @@ expressions on nontype template parameters in function signatures.
 }  /* mangled_expr_operator_name */
 
 
+#if !IA64_ABI
+/*ARGSUSED*/  /* <-- dtor_dtor_kind is not used in that case. */
+#endif /* !IA64_ABI */
 static void mangled_function_base_name(
                                       a_source_correspondence  *scp,
                                       a_special_function_kind  special_kind,
