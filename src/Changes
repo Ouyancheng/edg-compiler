@@ -1,5 +1,23 @@
 Version 2.22
 
+1/27/94  address_taken flag on parameters and register variables
+
+One side effect of the changes for the address_taken flag in version 2.21
+is that if the address of a parameter or register variable is taken and
+then used in such a way that the address does not escape and get stored
+in a pointer, the address_taken flag in the variable does not get set.
+That's okay if one believes that the address_taken flag means "might be
+aliased."  Another use of that flag, however, is deciding whether things
+that naturally live in registers (e.g., parameters) need to be stored
+in memory, and for that use the new code does not work well.  For example:
+
+  float foo(int k)
+  {
+    return *(float *) (&k);
+  }
+
+The address_taken flag was not set for this case.  It is now.
+
 1/25/94  Abort when using preprocessed source and implicit inclusion
 
 An abort has been fixed that occurred when compiling a previously
