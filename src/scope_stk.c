@@ -511,13 +511,20 @@ template with no current instantiation or definition, we return FALSE.
                  is not a nested instantiation. */
             if (!ssep->nested_instantiation) break;
           } else {
+            a_symbol_ptr	template_sym;
             check_assertion_str(ssep->assoc_type != NULL,
 				"ccsict: assoc_type is NULL");
             instance_sym = (a_symbol_ptr)(ssep->assoc_type->
                                                     source_corresp.assoc_info);
-            /* A class/struct/union scope or reactivation scope. */
-            if (instance_sym->variant.class_struct_union.
-                            extra_info->class_template == *sym) {
+            /* A class/struct/union scope or reactivation scope.  Get the
+               template from which this instantiation was generated.  If it
+               is a partial specialization, get the primary template. */
+            template_sym = instance_sym->variant.class_struct_union.
+                                                    extra_info->class_template;
+            if (template_sym != NULL) {
+              template_sym = primary_template_of(template_sym);
+            }  /* if */
+            if (template_sym == *sym) {
               found = TRUE;
               break;
             }  /* if */
