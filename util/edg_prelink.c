@@ -866,7 +866,7 @@ Return TRUE if name represents an explicit specialization of a template.
 }  /* pl_is_explicit_specialization */
 
 
-/* The maximum size of an name that cane be processed. */
+/* The maximum size of an name that can be processed. */
 #define NAME_DECODE_BUFFER_SIZE 32767
 
 static char *get_nonspecialized_name(char *name)
