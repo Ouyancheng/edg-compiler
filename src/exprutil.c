@@ -6959,6 +6959,14 @@ is an lvalue if is_lvalue is TRUE.
       if (is_bit_field_expr(expr2, is_lvalue)) {
         is_bit_field = TRUE;
       }  /* if */
+    } else if (is_lvalue &&
+               node->variant.operation.returns_lvalue_instead_of_usual_rvalue&&
+               operator_takes_lvalue_operand(op)) {
+      /* An lvalue-returning operation like an assignment. */
+      expr1 = node->variant.operation.operands;
+      if (is_bit_field_expr(expr1, is_lvalue)) {
+        is_bit_field = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   return is_bit_field;

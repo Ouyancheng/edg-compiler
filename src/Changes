@@ -1,5 +1,18 @@
 Version 2.46
 
+2/5/02   Error on taking the address of an assignment to a bit field
+
+An error is now issued in C++ on attempting to take the address of
+an assignment to a bit field.  Since the result of the assignment is
+an lvalue for the bit field, allowing taking its address allows taking
+the address of a bit field.
+
+  struct S { int a:3; int b:3; int c:3; };
+  void f() {
+    struct S s;
+    const int *p = &(s.b = 0);
+  }
+
 2/3/02   No breaking of long strings in #pragmas
 
 Long strings that appear in #pragmas (e.g., #pragma ident) are no
