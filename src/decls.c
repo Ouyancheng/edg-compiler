@@ -4141,8 +4141,7 @@ clause is to be attached.  catch_pos is the source position of "catch".
             pos = pos_curr_token;
           }  /* if */
           cctor = select_copy_constructor(type_ptr,
-                                          /*const_object_required=*/FALSE,
-                                          /*volatile_object_okay=*/FALSE,
+                                          (a_type_qualifier_set)TQ_NONE,
                                           &pos, type_ptr, &bitwise_copy,
                                           /*evaluated=*/TRUE,
                                           /*suppress_access_check=*/TRUE);

@@ -1635,7 +1635,7 @@ initialized.  These are addressed in the course of the processing.
 */
 {
   a_boolean                     err, is_generated_cctor;
-  a_boolean                     const_object_okay, volatile_object_okay;
+  a_type_qualifier_set          required_qualifiers;
   a_type_ptr                    class_type, init_type, tp, array_type;
   a_symbol_ptr                  sym, class_sym, member_or_base_sym;
   a_constructor_init_ptr        cip, new_cip, prev_cip, next_cip;
@@ -1658,8 +1658,7 @@ initialized.  These are addressed in the course of the processing.
   ctsp = class_type->variant.class_struct_union.extra_info;
   is_generated_cctor = !user_defined &&
                        is_copy_constructor(ctor_rout, class_type,
-                                           &const_object_okay,
-                                           &volatile_object_okay);
+                                           &required_qualifiers);
   /* The first step is to construct three lists of constructor initializer
      entries, one for virtual base classes that have constructors, one for
      nonvirtual direct base classes that have constructors, and one for
@@ -2200,17 +2199,15 @@ scan_paren:
         if (cssp == NULL) {
           bitwise_copy = TRUE;
         } else {
-          /* The flag const_object_okay describes whether the top-level
-             constructor can accept a const object for copying; if it can,
-             then all constructors called to copy subobjects *must* accept a
-             const object for copying (a conclusion based in part on ARM 12.8).
-             By extension, the same applies to the volatile qualifier.  Thus
-             the parameter name on the other end of this call stipulates a
-             requirement on the search for a copy constructor.  If construction
-             by bitwise copy is allowed for this class, class_bitwise_copy will
-             be returned TRUE. */
-          rp = select_copy_constructor(tp,
-                                       const_object_okay, volatile_object_okay,
+          /* "required_qualifiers" describes the qualifiers on an object that
+             the top-level constructor can accept for copying; if it is
+             non-zero, then all constructors called to copy subobjects must
+             also accept such objects for copying (a conclusion based in part
+             on ARM 12.8 -- this is clear for const and is applied by analogy
+             to volatile and to other qualifiers, if any).  If construction
+             by bitwise copy is allowed for this class, bitwise_copy will be
+             returned TRUE. */
+          rp = select_copy_constructor(tp, required_qualifiers,
                                        &err_pos, object_class_type,
                                        &bitwise_copy, /*evaluated=*/TRUE,
                                        /*suppress_access_check=*/FALSE);

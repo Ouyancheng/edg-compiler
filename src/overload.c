@@ -5621,8 +5621,7 @@ at *err_pos if not.
   a_boolean    class_bitwise_copy;
 
   cctor_sym = find_copy_constructor(class_type,
-                                    is_const_qualified_type(source_type),
-                                    is_volatile_qualified_type(source_type),
+                                    get_type_qualifiers(source_type),
                                     &ambiguous, &class_bitwise_copy);
   if (class_bitwise_copy) {
     /* A bitwise copy is allowed, so the "copy constructor" is accessible. */
@@ -5843,8 +5842,7 @@ happen only in C++ mode.
         /* See if an appropriate copy constructor exists. */
         conversion_routine = select_copy_constructor(
                               class_type,
-                              is_const_qualified_type(source_operand->type),
-                              is_volatile_qualified_type(source_operand->type),
+                              get_type_qualifiers(source_operand->type),
                               &source_operand->position, class_type,
                               &class_bitwise_copy, curr_expr_is_evaluated(),
                               /*suppress_access_check=*/FALSE);
@@ -5972,9 +5970,7 @@ of the temporary.  Only used in C++ mode.
       /* A copy constructor must be used.  An error is issued if an appropriate
          one does not exist or is inaccessible. */
       cctor_routine = select_copy_constructor(
-                                temp_type,
-                                is_const_qualified_type(operand->type),
-                                is_volatile_qualified_type(operand->type),
+                                temp_type, get_type_qualifiers(temp_type),
                                 &operand->position, temp_type,
                                 &class_bitwise_copy, curr_expr_is_evaluated(),
                                 /*suppress_access_check=*/FALSE);
