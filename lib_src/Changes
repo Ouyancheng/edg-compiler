@@ -1,3 +1,11 @@
+Version 2.21
+
+11/17/93  Changed __head to eliminate multiple definitions
+
+The compiler now puts out global declarations of the form "int i" as
+definitions instead of tenatative definitions.  This caused a multiple
+definition error in the library.  This has been fixed.
+-------------------------------------------------------------------------------
 Version 2.20, November 4, 1993
 
 11/04/93  Exception Handling support
