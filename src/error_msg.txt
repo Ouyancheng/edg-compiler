@@ -1210,6 +1210,7 @@ ec_auto_ignored;;"the auto specifier is ignored here (invalid in standard C/C++)
 ec_alignment_reduction_ignored;;"a reduction in alignment without the \"packed\" attribute is ignored"
 ec_corresp_member_template_is_different_kind;;"a member template corresponding to %no is declared as a template of a different kind in another translation unit"
 ec_excess_initializers_ignored;;"excess initializers are ignored"
+ec_va_start_requires_ellipsis_function;;"va_start can only appear in a function with a ellipsis parameter"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
