@@ -409,6 +409,9 @@ to an array of abstract class objects.
         break;
       case tk_reference:
         tp = type_referenced(tp);
+        /* Check for NULL pointer in situation where type is being constructed
+           but is not yet complete. */
+        if (tp == NULL) goto done;
         array_type_required = TRUE;
         break;
       case tk_array:
