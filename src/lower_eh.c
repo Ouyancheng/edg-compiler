@@ -2835,13 +2835,20 @@ statement if necessary.
     /* The function contains destructible objects, or it contains try
        blocks, so it needs a prologue and epilogue. */
     need_function_epilogue = TRUE;
+#if GENERATE_EH_TABLES
+    /* Finish off the various arrays. */
+    if (region_table_var != NULL) {
+      finish_array_var(region_table_var, region_table_aggr_con);
+    }  /* if */
+    if (array_table_var != NULL) {
+      finish_array_var(array_table_var, array_table_aggr_con);
+    }  /* if */
+#endif /* GENERATE_EH_TABLES */
 #if DO_FULL_PORTABLE_EH_LOWERING
     /* Generate code to push an entry on the EH stack. */
     push_eh_stack_frame(ehsek_function, &func_frame, &insert_location);
-    /* Finish off the various arrays and put pointers to them into the
-       stack. */
+    /* Put pointers to the various arrays into the stack. */
     if (region_table_var != NULL) {
-      finish_array_var(region_table_var, region_table_aggr_con);
       /* Make an expression for throw_frame.variant.function.regions */
       func_frame_function_regions = 
                   field_lvalue_selection_expr(
@@ -2876,7 +2883,6 @@ statement if necessary.
                                         &insert_location);
     }  /* if */
     if (array_table_var != NULL) {
-      finish_array_var(array_table_var, array_table_aggr_con);
       /* Make an expression for throw_frame.variant.function.array_table */
       func_frame_function_array_table = 
                   field_lvalue_selection_expr(
