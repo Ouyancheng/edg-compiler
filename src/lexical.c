@@ -2690,10 +2690,12 @@ white_space_loop:
         curr_char_loc++;
         /* Advance to the end of line. */
         do {} while (*(++curr_char_loc) != '\n');
-        /* Delete the comment entirely. */
-        add_deletion_source_line_modif(comment_start_loc,
+        if (NEED_TO_DELETE_COMMENT) {
+          /* Delete the comment entirely. */
+          add_deletion_source_line_modif(comment_start_loc,
                                    (sizeof_t)(curr_char_loc-comment_start_loc),
-                                       /*for_comment=*/TRUE);
+                                         /*for_comment=*/TRUE);
+        }  /* if */
       } else {
 normal_comment:
         /* C-style comment. */
