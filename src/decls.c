@@ -10791,6 +10791,7 @@ continue_with_declaration:
         attributes = scan_attributes();
         /* Combine the prefix and postfix attributes. */
         *last_prefix_attribute = attributes;
+        attributes = prefix_attributes;
       }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
       /* If a parenthesized constructor declarator is scanned, di_flags would
