@@ -7758,6 +7758,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
   a_memory_region_number          region_to_switch_back_to;
   a_token_kind			  next_tok;
   a_boolean			  class_is_being_instantiated = FALSE;
+  a_boolean			  primary_template_being_instantiated = FALSE;
   a_boolean			  arg_list_coalesced = FALSE;
   a_boolean			  arg_list_processed = FALSE;
   a_symbol_locator		  orig_locator;
@@ -7866,6 +7867,20 @@ a routine to lookup the appropriate instance (or generate one if needed).
   if (template_sym != NULL) {
     class_is_being_instantiated =
             current_class_symbol_if_class_template(&current_instantiation_sym);
+    if (class_is_being_instantiated &&
+        is_class_struct_union_symbol(current_instantiation_sym)) {
+      /* If the class is being instantiated, determine whether the
+         instantiation is of the primary template or of a partial
+         specialization.  If it is a partial specialization, a reference
+         like A<T> always refers to a nonreal instance, never a prototype
+         instantiation. */
+      a_symbol_ptr	instance_templ_sym;
+      instance_templ_sym = current_instantiation_sym->
+                         variant.class_struct_union.extra_info->class_template;
+      if (instance_templ_sym == template_sym) {
+        primary_template_being_instantiated = TRUE;
+      }  /* if */
+    }  /* if */
   }  /* if */
   if (next_tok != tok_lt) {
     if (options & GID_CLASS_TEMPLATE_REQUIRED) {
@@ -8008,7 +8023,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
         }  /* if */
       }  /* while */
     }
-    prototype_allowed = class_is_being_instantiated ||
+    prototype_allowed = primary_template_being_instantiated ||
                         ((options & GID_USE_PROTOTYPE_NOT_NONREAL) != 0) ||
                         is_templ_member_class_sym;
     new_sym = find_template_class(template_sym, &arg_list, prototype_allowed);
