@@ -566,9 +566,13 @@ extern a_src_seq_secondary_decl_ptr alloc_src_seq_secondary_decl(void);
 extern a_comment_ptr alloc_comment(void);
 #endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
 
-extern void update_source_sequence_list(char               *entity_ptr,
-                                        an_il_entry_kind   kind,
-                                        a_source_position  *pos);
+extern void update_source_sequence_list(char                 *entity_ptr,
+                                        an_il_entry_kind     kind,
+                                        a_source_position    *pos,
+                                        struct a_decl_seq_info *decl_seq_info);
+
+extern a_source_sequence_entry_ptr add_incomplete_source_sequence_entry(
+                                                     an_il_entry_kind  kind);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 #if ORPHAN_PROCESSING_NEEDED
