@@ -1,5 +1,43 @@
 Version 2.38
 
+11/24/97  C++-generating back end: putting out qualified names
+
+Previously, the C++-generating back end almost always put out references
+to class and namespace members with qualified names.  Now it puts out
+qualified names only when they are required to defeat name hiding.  (This
+has entailed substantial changes to how the hidden-name table is built as
+well as changes in cp_gen_be.c itself.)  For example:
+
+  class A {
+    class N {
+      int f();
+      static int x;
+    };
+  };
+  int A::N::f() { return ++x; }
+
+Before, the reference to "x" was put out as "A::N::x" in the generated
+C++, which resulted in a access error.  Now it is put out simply as "x".
+
+11/24/97  C++-generating back end: qualified names for extern "C" entities
+
+The C++-generating back end now puts out qualifiers on references to
+extern "C" entities when they are needed.  For example:
+
+  namespace A {
+    int f();
+  }
+  namespace B {
+    extern "C" int f();
+  }
+  using namespace A;
+  int g() {
+    return B::f();
+  }
+
+Before, the call in g was put out simply as "f()" in the generated C++,
+which meant the wrong function was called.  Now it is put out as "B::f()".
+
 11/24/97  C++-generating back end: internal error when unneeded entities
           are eliminated
 
