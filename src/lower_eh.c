@@ -5040,9 +5040,12 @@ be passed down.
 #endif /* FORCE_STORES_OF_VARS_MODIFIED_IN_TRY_BLOCKS */
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
   /* Generate code to pop the "try" frame off the stack after the rewritten
-     "if" statement. */
-  set_insert_location(orig_stmt, &insert_location);
-  cleanup_on_exit_from_try_block(&try_context, tsp, &insert_location);
+     "if" statement.  This isn't needed for constructor function try blocks,
+      because the end is not reachable. */
+  if (!is_function_try_block || dtor_info != NULL) {
+    set_insert_location(orig_stmt, &insert_location);
+    cleanup_on_exit_from_try_block(&try_context, tsp, &insert_location);
+  }  /* if */
   /* Pop the context pushed around the try block. */
   pop_context();
 }  /* lower_try_block */
