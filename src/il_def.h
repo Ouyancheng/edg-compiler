@@ -720,14 +720,20 @@ typedef struct a_dynamic_init {
 			   NULL if there are no arguments other than the
 			   implicit one(s). */
       a_byte_boolean
-		is_copy_constructor_for_subobject;
-			/* The constructor is a copy constructor called to
-			   initialize a subobject as part of a copy constructor
-			   operation for the object of which the subobject is
-			   a part.  A subobject is either a base class (virtual
-			   or nonvirtual) or a field (array or scalar).  The
-			   args pointer is NULL in such cases; the address of
-			   the subobject to be copied must be computed. */
+		is_copy_constructor_with_implied_source;
+			/* The constructor is a copy constructor in which the
+			   source object to be copied is implied (i.e., its
+			   address is computed based on the context).  This
+			   flag is set, for example, in initializing a
+			   subobject (a base class or field) of an object that
+			   is being initialized by a copy constructor; the
+			   subobject to be copied is determined based on the
+			   object being copied (i.e., the address of the source
+			   subobject is computed based on the address of the
+			   source object).  This flag is also set for
+			   class objects copied from a throw expression to the
+			   handler parameter, where the address of the
+			   source object is known only at runtime. */
     } constructor;
   } variant;
 } a_dynamic_init;

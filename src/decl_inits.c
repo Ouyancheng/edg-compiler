@@ -2147,7 +2147,8 @@ scan_paren:
              arg. */
           ptp = ptp->next;
           dip->variant.constructor.args = copy_default_arg_expr_list(ptp);
-          dip->variant.constructor.is_copy_constructor_for_subobject = TRUE;
+          dip->variant.constructor.
+                            is_copy_constructor_with_implied_source = TRUE;
         }  /* if */
       } else {
         /* No copy constructor is required.  If any constructor exists, the

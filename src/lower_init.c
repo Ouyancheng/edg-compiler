@@ -2262,7 +2262,7 @@ do_assignment:;
       /* Make a node for the entity to be initialized. */
       entity_node = make_init_entity_node(ipdp);
       source_node = NULL;
-      if (dip->variant.constructor.is_copy_constructor_for_subobject) {
+      if (dip->variant.constructor.is_copy_constructor_with_implied_source) {
         an_init_pos_descr    cctor_source_ipd;
         an_init_pos_modifier cctor_source_ipm;
         /* The constructor being called is a copy constructor.  The argument

@@ -4372,7 +4372,7 @@ the associated variant fields to default values.
     case dik_constructor:
       dip->variant.constructor.ptr = NULL;
       dip->variant.constructor.args = NULL;
-      dip->variant.constructor.is_copy_constructor_for_subobject = FALSE;
+      dip->variant.constructor.is_copy_constructor_with_implied_source = FALSE;
       break;
 #if CHECKING
     default:

@@ -2755,8 +2755,9 @@ Display the indicated dynamic_init structure.
                iek_routine);
       disp_ptr("args", (char *)ptr->variant.constructor.args,
                iek_expr_node);
-      disp_boolean("is_copy_constructor_for_subobject",
-        (a_boolean)ptr->variant.constructor.is_copy_constructor_for_subobject);
+      disp_boolean("is_copy_constructor_with_implied_source",
+                   (a_boolean)ptr->variant.constructor.
+                                    is_copy_constructor_with_implied_source);
       break;
     case dik_nonconstant_aggregate:
       (void)printf("dik_nonconstant_aggregate\n");
