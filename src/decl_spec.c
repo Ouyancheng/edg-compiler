@@ -13,20 +13,16 @@ decl_spec.c -- Scanning of declaration specifiers.
 
 */
 
-#include "basics.h"
-#include "lang_feat.h"
-#include "target.h"
-#include "decl_spec.h"
-#include "declarator.h"
-#include "cmd_line.h"
-#include "const_ints.h"
-#include "decls.h"
-#include "error.h"
+/* Header files common to all files. */
+#include "fe_common.h"
+/* Header files used by files involved in declaration processing. */
+#include "decl_hdrs.h"
+
+/* Insert a marker in case headers are saved and restored. */
+#pragma hdrstop
+
+/* Additional header files. */
 #include "folding.h"
-#include "il.h"
-#include "symbol_tbl.h"
-#include "symbol_ref.h"
-#include "templates.h"
 
 
 static a_boolean tag_currently_being_defined(a_type_ptr tag_type)

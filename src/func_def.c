@@ -14,21 +14,18 @@ func_def.c -- Processing for function definitions (both user supplied and
 
 */
 
-#include "basics.h"
-#include "func_def.h"
-#include "cmd_line.h"
-#include "decl_inits.h"
-#include "decls.h"
-#include "error.h"
+/* Header files common to all files. */
+#include "fe_common.h"
+/* Header files used by files involved in declaration processing. */
+#include "decl_hdrs.h"
+
+/* Insert a marker in case headers are saved and restored. */
+#pragma hdrstop
+
+/* Additional header files. */
 #include "exprutil.h"
-#include "il.h"
 #include "lower_il.h"
 #include "statements.h"
-#include "symbol_tbl.h"
-#include "symbol_ref.h"
-#include "target.h"
-#include "templates.h"
-#include "types.h"
 
 
 a_boolean check_function_return_type(a_type_ptr         rout_type,

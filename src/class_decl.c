@@ -13,34 +13,17 @@ class_decl.c -- Scanning of class declarations.
 
 */
 
-#include "basics.h"
-#include "class_decl.h"
-#include "debug.h"
-#include "def_arg.h"
-#include "decls.h"
-#include "decl_spec.h"
-#include "declarator.h"
-#include "func_def.h"
-#include "il.h"
-#include "layout.h"
-#include "symbol_tbl.h"
-#include "symbol_ref.h"
-#include "lexical.h"
-#include "error.h"
-#include "lang_feat.h"
-#include "cmd_line.h"
-#include "types.h"
-#include "mem_tables.h"
-#include "mem_manage.h"
+/* Header files common to all files. */
+#include "fe_common.h"
+/* Header files used by files involved in declaration processing. */
+#include "decl_hdrs.h"
+
+/* Insert a marker in case headers are saved and restored. */
+#pragma hdrstop
+
+/* Additional header files. */
 #include "expr.h"
-#include "target.h"
-#include "templates.h"
-#include "preproc.h"
-#include "const_ints.h"
-#include "pch.h"
-#if ASM_FUNCTION_ALLOWED
-#include "asm_func.h"
-#endif /* ASM_FUNCTION_ALLOWED */
+#include "layout.h"
 
 
 /*

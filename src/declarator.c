@@ -13,17 +13,16 @@ declarator.c -- Scanning of declarators.
 
 */
 
-#include "basics.h"
-#include "declarator.h"
-#include "cmd_line.h"
-#include "const_ints.h"
-#include "decls.h"
-#include "decl_spec.h"
+/* Header files common to all files. */
+#include "fe_common.h"
+/* Header files used by files involved in declaration processing. */
+#include "decl_hdrs.h"
+
+/* Insert a marker in case headers are saved and restored. */
+#pragma hdrstop
+
+/* Additional header files. */
 #include "disambig.h"
-#include "error.h"
-#include "il.h"
-#include "templates.h"
-#include "types.h"
 
 
 static a_boolean check_pm_member_type(a_type_ptr  member_type)

@@ -13,33 +13,18 @@ decls.c -- Scanning of declarations.
 
 */
 
-#include "basics.h"
-#include "target.h"
-#include "decls.h"
-#include "decl_spec.h"
-#include "declarator.h"
-#include "def_arg.h"
-#include "class_decl.h"
-#include "cmd_line.h"
-#include "decl_inits.h"
-#include "error.h"
-#include "func_def.h"
-#include "il.h"
+/* Header files common to all files. */
+#include "fe_common.h"
+/* Header files used by files involved in declaration processing. */
+#include "decl_hdrs.h"
+
+/* Insert a marker in case headers are saved and restored. */
+#pragma hdrstop
+
+/* Additional header files. */
 #include "lexical.h"
-#include "types.h"
-#include "lang_feat.h"
-#include "mem_tables.h"
-#include "mem_manage.h"
-#include "pch.h"
-#include "pragma.h"
-#include "preproc.h"
 #include "statements.h"
-#include "symbol_tbl.h"
-#include "symbol_ref.h"
-#include "templates.h"
-#if ASM_FUNCTION_ALLOWED
-#include "asm_func.h"
-#endif /* ASM_FUNCTION_ALLOWED */
+
 
 /*
 Macro that is TRUE if the current token is the start of a storage class

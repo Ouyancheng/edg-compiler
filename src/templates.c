@@ -13,25 +13,19 @@ templates.c -- Support for C++ templates.
 
 */
 
-#include "basics.h"
-#include "templates.h"
-#include "cmd_line.h"
-#include "decl_inits.h"
-#include "decls.h"
-#include "decl_spec.h"
-#include "declarator.h"
-#include "error.h"
-#include "func_def.h"
-#include "il.h"
-#include "il_to_str.h"
+/* Header files common to all files. */
+#include "fe_common.h"
+/* Header files used by files involved in declaration processing. */
+#include "decl_hdrs.h"
+
+/* Insert a marker in case headers are saved and restored. */
+#pragma hdrstop
+
+/* Additional header files. */
 #include "lexical.h"
 #include "lower_name.h"
-#include "mem_manage.h"
-#include "pch.h"
 #include "statements.h"
-#include "symbol_tbl.h"
-#include "symbol_ref.h"
-#include "types.h"
+
 
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
 typedef struct an_instance_lookup_entry *an_instance_lookup_entry_ptr;
