@@ -1,5 +1,14 @@
 Version 2.36
 
+4/25/97   Expansion of __FILE__ as header name
+
+When the macro __FILE__ is expanded in a context that requires a header
+name, backslashes are no longer doubled.  This avoids problems on systems
+that use "\" as part of file names, when an #include like the following
+appears:
+
+  #include __FILE__
+
 4/25/97   Spurious error on instantiation in template declaration
 
 When the instantiation of a class is caused by a reference in a template

@@ -1654,7 +1654,7 @@ end_scan_for_macro_modifs:;
            two characters because it must be escaped in the string. */
         repl_text_len = 0;
         for (temp_ptr = file_name; *temp_ptr != '\0'; temp_ptr++) {
-          if (*temp_ptr == '\\') repl_text_len++;
+          if (!exp_header_name && *temp_ptr == '\\') repl_text_len++;
           repl_text_len++;
         }  /* for */
         /* Allocate space for the filename string. */
@@ -1664,7 +1664,7 @@ end_scan_for_macro_modifs:;
         text_loc = repl_text;
         *text_loc++ = '"';  /* Opening quote. */
         for (temp_ptr = file_name; *temp_ptr != '\0'; temp_ptr++) {
-          if (*temp_ptr == '\\') *text_loc++ = '\\';
+          if (!exp_header_name && *temp_ptr == '\\') *text_loc++ = '\\';
           *text_loc++ = *temp_ptr;
         }  /* for */
         *text_loc++ = '"';  /* Closing quote. */
