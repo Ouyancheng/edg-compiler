@@ -3995,19 +3995,25 @@ rather than determined directly.
     }  /* if */
     type_ptr->next = NULL;
     if (pointers_block != NULL) pointers_block->last_type = type_ptr;
-    if (is_immediate_class_type(type_ptr) &&
-        is_template_class_type(type_ptr)) {
-      /* A class instantiation; if it appears inside a class definition,
-         a placeholder typeref must often be added to the types list for the
-         class. */
-      add_placeholder_for_class_instantiation(type_ptr);
-    }  /* if */
-    if (sp->kind == (a_scope_kind)sck_namespace) {
-      /* We are adding a type to the types list of a namespace scope.  Add
-         a placeholder type to the types list of the filescope -- it's used
-         by IL lowering to get the order right when it promotes namespace
-         types to the file scope. */
-      add_placeholder_for_namespace_type(type_ptr);
+    if (!C_mode() && !il_lowering_underway) {
+      if (is_immediate_class_type(type_ptr)) {
+        a_class_symbol_supplement_ptr cssp =
+                                        symbol_supplement_for_class(type_ptr);
+        if (cssp->is_instance && !cssp->is_nonreal_class) {
+          /* A class template instantiation (or a nontemplate class nested
+             in a template class); if it appears inside a class definition,
+             a placeholder typeref must often be added to the types list for
+             the class. */
+          add_placeholder_for_class_instantiation(type_ptr);
+        }  /* if */
+      }  /* if */
+      if (sp->kind == (a_scope_kind)sck_namespace) {
+        /* We are adding a type to the types list of a namespace scope.  Add
+           a placeholder type to the types list of the filescope -- it's used
+           by IL lowering to get the order right when it promotes namespace
+           types to the file scope. */
+        add_placeholder_for_namespace_type(type_ptr);
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* add_to_types_list */
@@ -4095,42 +4101,49 @@ determined directly.
       pointers_block->last_type = type_ptr;
       type_ptr->next = NULL;
     }  /* if */
-    if (is_immediate_class_type(type_ptr) &&
-        is_template_class_type(type_ptr)) {
-      /* A class instantiation; if it appears inside a class definition,
-         a placeholder typeref must often be added to the types list for the
-         class; if one had already been entered, it may have to be removed. */
-      add_placeholder_for_class_instantiation(type_ptr);
-    }  /* if */
-    if (sp->kind == (a_scope_kind)sck_namespace) {
-      /* Move the associated placeholder typedef (there ought to be one) to
-         the end of the file-scope types list. */
-      a_scope_stack_entry_ptr     ssep = &scope_stack[DEPTH_OF_FILE_SCOPE];
-
-      pointers_block = assoc_pointers_block_of(ssep);
-      tp = pointers_block->last_type;
-      if (is_assoc_namespace_type_placeholder(tp, type_ptr)) {
-        /* The placeholder entry is already the last entry. */
-      } else {
-        /* Scan the list until a match is found. */
-        prev_tp = NULL;
-        for (tp = ssep->il_scope->types;; tp = tp->next) {
-          check_assertion(tp != NULL);
-          if (is_assoc_namespace_type_placeholder(tp, type_ptr)) {
-            break;
-          }  /* if */
-          prev_tp = tp;
-        }  /* for */
-        /* Link around the entry that was found. */
-        if (prev_tp == NULL) {
-          ssep->il_scope->types = tp->next;
-        } else {
-          prev_tp->next = tp->next;
+    if (!C_mode() && !il_lowering_underway) {
+      if (is_immediate_class_type(type_ptr)) {
+        a_class_symbol_supplement_ptr cssp =
+                                        symbol_supplement_for_class(type_ptr);
+        if (cssp->is_instance && !cssp->is_nonreal_class) {
+          /* A class template instantiation (or a nontemplate class nested
+             in a template class); if it appears inside a class definition,
+             a placeholder typeref must often be added to the types list for
+             the class; if one had already been entered, it may have to be
+             removed. */
+          add_placeholder_for_class_instantiation(type_ptr);
         }  /* if */
-        /* Reenter it onto the end of the list. */
-        pointers_block->last_type->next = tp;
-        pointers_block->last_type = tp;
-        tp->next = NULL;
+      }  /* if */
+      if (sp->kind == (a_scope_kind)sck_namespace) {
+        /* Move the associated placeholder typedef (there ought to be one) to
+           the end of the file-scope types list. */
+        a_scope_stack_entry_ptr     ssep = &scope_stack[DEPTH_OF_FILE_SCOPE];
+
+        pointers_block = assoc_pointers_block_of(ssep);
+        tp = pointers_block->last_type;
+        if (is_assoc_namespace_type_placeholder(tp, type_ptr)) {
+          /* The placeholder entry is already the last entry. */
+        } else {
+          /* Scan the list until a match is found. */
+          prev_tp = NULL;
+          for (tp = ssep->il_scope->types;; tp = tp->next) {
+            check_assertion(tp != NULL);
+            if (is_assoc_namespace_type_placeholder(tp, type_ptr)) {
+              break;
+            }  /* if */
+            prev_tp = tp;
+          }  /* for */
+          /* Link around the entry that was found. */
+          if (prev_tp == NULL) {
+            ssep->il_scope->types = tp->next;
+          } else {
+            prev_tp->next = tp->next;
+          }  /* if */
+          /* Reenter it onto the end of the list. */
+          pointers_block->last_type->next = tp;
+          pointers_block->last_type = tp;
+          tp->next = NULL;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
