@@ -2603,10 +2603,14 @@ that make up the declaration and do a prototype instantiation.
          error down the line. */
       sym = coalesce_and_lookup_generalized_identifier
                                (GID_TEMPLATE_ARGS_OPTIONAL, ilm_normal, &err);
-      /* Cache the identifier and advance past it so we can discriminate
-         between a class template and a function template. */
-      cache_curr_token(&local_token_cache);
       locator = locator_for_curr_id;
+      /* Cache the identifier and advance past it so we can discriminate
+         between a class template and a function template.  Clear the
+         specific symbol of the locator so that the symbol found by this
+         lookup will not be used when processing this is a declaration of
+         something other than a class. */
+      clear_specific_symbol(locator_for_curr_id);
+      cache_curr_token(&local_token_cache);
       (void)get_token();
       if (is_declarator_start()) {
         /* Since the current token appears to be the start of a declarator

@@ -168,6 +168,15 @@ typedef struct a_symbol_locator {
 			/* TRUE if an error has been diagnosed on the use
 			   of the associated identifier and no symbol should
 			   be entered into the symbol table. */
+  unsigned int	do_not_clear_specific_symbol:1;
+			/* TRUE if the specific symbol field of the locator
+		           should not be cleared when clear_specific_symbol
+                           is called.  This is set when clearing the specific
+			   symbol field would result in the loss of information
+			   that cannot be recovered by repeating the lookup
+			   process.  This is TRUE for template references
+			   that have been coalesced and for specific symbol
+			   error locators. */
   a_symbol_ptr	specific_symbol;
 			/* If is_qualified_name is TRUE, this points to the
 			   specific symbol for the qualified name.  Otherwise,
@@ -236,6 +245,11 @@ Clear a symbol locator.
 /* Retrieve a pointer to the inactive symbol list from a locator. */
 #define inactive_symbol_list_from_locator(loc)                        \
   ((loc).symbol_header->inactive_symbols)
+
+/* Clear the specific symbol field of the locator unless instructed not
+   to by the do_not_clear_specific_symbol field of the locator. */
+#define clear_specific_symbol(loc)					\
+{  if (!((loc).do_not_clear_specific_symbol)) (loc).specific_symbol = NULL;}
 
 
 #ifndef LEXICAL_H

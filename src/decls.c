@@ -416,11 +416,8 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
         if (sym != NULL && !is_template_class_symbol(sym)) {
           /* Clear the locator field so that the lookup done by
              curr_id_is_type_name will not be used when the statement
-             is actually parsed later.  The symbol pointer is not cleared
-             if it points to a template class, because the symbol pointer
-             represents information from the template argument list that
-             is no longer available because it has been coalesced. */
-          locator_for_curr_id.specific_symbol = NULL;
+             is actually parsed later. */
+          clear_specific_symbol(locator_for_curr_id);
         }  /* if */
         break;
       /* Type specifier - other simple type name tokens. */
@@ -3543,7 +3540,7 @@ created; the caller must set it.
        symbol is compatible. */
     ext_sym = NULL;
     ext_locator = *locator;
-    ext_locator.specific_symbol = NULL;
+    clear_specific_symbol(ext_locator);
   } else {
     /* Look up the external name of the identifier (i.e., the name after
        any truncation, etc.). */
@@ -6487,7 +6484,7 @@ caution when modifying this routine.
         tag_sym = templ_sym;
       } else {
         /* Don't prejudice subsequent lookups. */
-        locator_for_curr_id.specific_symbol = NULL;
+        clear_specific_symbol(locator_for_curr_id);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -6579,7 +6576,7 @@ caution when modifying this routine.
           }  /* if */
           /* Reset the specific_symbol pointer to avoid prejudicing any
              subsequent lookup. */
-          locator->specific_symbol = NULL;
+          clear_specific_symbol(*locator);
         }  /* if */
       }  /* if */
       /* Check for a "vacuous declaration" (e.g. "struct S;" or "enum E;").

@@ -5262,7 +5262,7 @@ destination type is not yet on the current class's conversion list.
           /* Create the projection symbol and record it in the new conversion
              list entry. */
           make_locator_for_symbol(bcclep->symbol, &loc);
-          loc.specific_symbol = NULL;
+          clear_specific_symbol(loc);
           (void)find_projected_symbol(class_type, &loc, /*must_be_tag=*/FALSE,
                                       /*must_be_type_name=*/FALSE,
                                       /*add_to_active_list=*/TRUE,

@@ -5330,6 +5330,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
   a_template_arg_ptr              arg_ptr;
   a_token_kind			  next_tok;
   a_boolean			  class_is_being_instantiated;
+  a_boolean			  arg_list_coalesced = FALSE;
 
   db_enter(3, "coalesce_template_class_reference");
 
@@ -5553,6 +5554,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
                         depth_innermost_instantiation_scope == NO_SCOPE_DEPTH;
     new_sym = find_template_class(template_sym, &arg_list, &start_position,
                                   prototype_allowed);
+    arg_list_coalesced = TRUE;
   } else {
     /* Free any allocated template arguments. */
     if (arg_list != NULL) free_template_arg_list(arg_list);
@@ -5573,8 +5575,15 @@ normal_exit:
      and restore the source position of the beginning of the template
      class reference.  The symbol header is updated to point to the
      symbol associated with the class template name.  The header will
-     have been modified by scanning the argument list. */
+     have been modified by scanning the argument list.  If a template
+     argument list has been coalesced, set the do_not_clear_speecific
+     symbol field of the locator.  This is needed to ensure because the
+     argument list information is now represented by the fact that the
+     specific symbol points to a particular template class instance, and
+     this information cannot be recreated once the template reference has
+     been coalesced. */
   locator_for_curr_id.specific_symbol = new_sym;
+  locator_for_curr_id.do_not_clear_specific_symbol = arg_list_coalesced;
   locator_for_curr_id.symbol_header = new_sym->header;
   locator_for_curr_id.source_position = locator_pos;
   /* Set source position for error reporting. */
@@ -6123,7 +6132,7 @@ This routine may only be called in C++ mode.
        performed above.  It must be cleared in case this isn't actually a
        qualified name.  We clear it now because it may be set again if a
        template reference is coalesced and we don't want to lose that value. */
-    locator_for_curr_id.specific_symbol = NULL;
+    clear_specific_symbol(locator_for_curr_id);
     /* If the class symbol is for a class template, process the argument
        list. */
     if (class_symbol != NULL &&
@@ -6418,7 +6427,7 @@ This routine may only be called in C++ mode.
 	  type_sym = normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
         }  /* if */
         /* Clear the specific symbol found by these lookups. */
-	locator_for_curr_id.specific_symbol = NULL;
+        clear_specific_symbol(locator_for_curr_id);
         if (type_sym != NULL && is_type_symbol(type_sym)) {
 	  /* If the symbol found is a type, get the type pointed to. */
 	  dtor_type = type_symbol_type(type_sym);

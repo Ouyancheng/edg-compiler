@@ -1330,6 +1330,7 @@ specific symbol which is an error symbol.
   clear_locator(locator, &error_position);
   locator->symbol_header = hdr_ptr;
   locator->is_error = TRUE;
+  locator->do_not_clear_specific_symbol = TRUE;
   locator->specific_symbol = enter_symbol((a_symbol_kind)sk_undefined,
                                           locator,
                                           DEPTH_OF_FILE_SCOPE,
@@ -5259,13 +5260,13 @@ must a tag.  Projection symbols are not considered in the lookup.
   }  /* if */
 #endif /* CHECKING */
   sym = locator->specific_symbol;
-  if (sym != NULL) {
-    check_assertion(is_acceptable_symbol(sym));
-    /* The locator is for a specific symbol, so return the symbol for it. */
-  } else if (is_error_locator(*locator)) {
+  if (is_error_locator(*locator)) {
     /* The locator is an error locator, so return NULL (i.e., no symbol
        found). */
     sym = NULL;
+  } else if (sym != NULL) {
+    check_assertion(is_acceptable_symbol(sym));
+    /* The locator is for a specific symbol, so return the symbol for it. */
   } else {
     /* Look for a symbol in the current scope for which the kind matches that
        of the scope level specified by the caller. */
@@ -8754,6 +8755,8 @@ to avoid an 8-character external name clash with symbol_table.)
   cleared_locator.access_control_error_reported   = FALSE;
   cleared_locator.is_vacuous_destructor_reference = FALSE;
   cleared_locator.is_nonclass_destructor          = FALSE;
+  cleared_locator.is_error                        = FALSE;
+  cleared_locator.do_not_clear_specific_symbol    = FALSE;
   cleared_locator.specific_symbol                 = NULL;
   cleared_locator.variant.conversion_result_type  = NULL;
 
