@@ -1357,6 +1357,31 @@ done:
 
 #if IA64_ABI
 
+static a_boolean has_dimension_of_length_one(a_type_ptr  type)
+/*
+Return TRUE if and only if the given array type has a dimension of length one
+(e.g., "int [3][1][7]").
+*/
+{
+  a_boolean   result = FALSE;
+  a_type_ptr  element_type = skip_typerefs(type);
+
+  check_assertion(is_array_type(element_type));
+  do {
+    if (has_unknown_specified_bound(element_type) ||
+        is_incomplete_type(element_type)) {
+      break;
+    } else if (element_type->variant.array.variant.number_of_elements == 1) {
+      result = TRUE;
+      break;
+    } else {
+      element_type = skip_typerefs(element_type->variant.array.element_type);
+    }  /* if */
+  } while (is_array_type(element_type));
+  return result;
+}  /* has_dimension_of_length_one */
+
+
 static a_boolean subobject_conflict(a_type_ptr    class_type,
                                     a_type_ptr    subobject_type,
                                     a_targ_size_t offset,
@@ -1379,20 +1404,11 @@ subobject_type are considered in addition to direct bases.
   a_boolean                   array_subobject = is_array_type(subobject_type);
 
   /* If the subobject is an array, get the (ultimate) element type. */
-  if (array_subobject && emulate_gnu_abi_bugs) {
+  if (array_subobject && emulate_gnu_abi_bugs &&
+      has_dimension_of_length_one(subobject_type)) {
     /* Early GNU implementations of the IA-64 class layout algorithm ignore
        conflicts with array subobjects that have a dimension equal to 1. */
-    a_type_ptr  element_type = skip_typerefs(subobject_type);
-    do {
-      if (has_unknown_specified_bound(element_type) ||
-          is_incomplete_type(element_type)) {
-        break;
-      } else if (element_type->variant.array.variant.number_of_elements == 1) {
-        goto done;
-      } else {
-        element_type = skip_typerefs(element_type->variant.array.element_type);
-      }  /* if */
-    } while (is_array_type(element_type));
+    goto done;
   } /* if */
   if (array_subobject &&
       !(has_unknown_specified_bound(subobject_type) ||
@@ -1446,6 +1462,12 @@ subobject_type are considered in addition to direct bases.
           if (is_array_type(field->type)) {
             /* Watch out for prototype instantiations. */
             if (!has_unknown_specified_bound(field->type)) {
+              if (emulate_gnu_abi_bugs &&
+                  has_dimension_of_length_one(field->type)) {
+                /* Early GNU compilers do not consider conflicts with arrays
+                   of length one. */
+                continue;
+              }  /* if */
               num_field_array_elts = num_array_elements(field->type);
             }  /* if */
             field_type = underlying_array_element_type(field->type);
