@@ -537,13 +537,13 @@ definition of the routine is needed, and not just the declaration.
     if (db_trace("needed_flags", rout, iek_routine)) {
 #if ONE_INSTANTIATION_PER_OBJECT
       if (needed_flag_bit_number != 0) {
-        fprintf(f_debug, "Setting definition_needed (%lu) on rout  ",
+        fprintf(f_debug, "Setting definition_needed (%lu) on rout ",
                          needed_flag_bit_number);
       } else
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
       /* Do not insert code here. */
       {
-        fprintf(f_debug, "Setting definition_needed on rout  ");
+        fprintf(f_debug, "Setting definition_needed on rout ");
       }  /* if */
       db_name_full(&rout->source_corresp, iek_routine);
       fprintf(f_debug, "\n");
