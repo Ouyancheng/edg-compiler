@@ -5647,6 +5647,7 @@ done:
 
 a_boolean class_specifier(a_boolean  vacuous_decl_allowed,
                           a_boolean  is_friend_decl,
+                          a_boolean  is_ref_within_new_expr,
                           a_type_ptr *type_ptr,
                           a_boolean  *declares_something,
 			  a_boolean  *defines_something)
@@ -5747,6 +5748,7 @@ to indicate whether the class/struct/union is actually defined.
   an_expr_node_ptr        dim_expr_ptr;
   a_boolean               class_aggregate_ruled_out = FALSE;
   a_boolean               any_friend_decls = FALSE;
+  a_boolean               is_class_definition;
 
   db_enter(3, "class_specifier");
   *declares_something = FALSE;
@@ -5797,13 +5799,19 @@ to indicate whether the class/struct/union is actually defined.
     }  /* if */
 #endif /* CHECKING */
     tag_sym = scan_tag_name(tag_kind, &locator, vacuous_decl_allowed,
-                            &effective_decl_level, &tag_resolution);
+                            is_ref_within_new_expr, &effective_decl_level,
+                            &tag_resolution);
   } else {
     /* No tag identifier present. */
     tag_sym = NULL;
     set_to_error_locator(locator);
-    if (curr_token == tok_lbrace ||
-        (C_dialect == C_dialect_cplusplus && curr_token == tok_colon)) {
+    if (is_ref_within_new_expr) {
+      /* We are within a new expression and no class name is given following
+         the keyword -- e.g., "class A *pa = new class;" -- report the missing
+         identifier as a syntax error. */
+      syntax_error(ec_exp_identifier);
+    } else if (curr_token == tok_lbrace ||
+               (C_dialect == C_dialect_cplusplus && curr_token == tok_colon)) {
       /* This is a tagless class definition. */
     } else {
       /* Neither the tag id nor the {...} is present.  This is an error. */
@@ -5815,6 +5823,16 @@ to indicate whether the class/struct/union is actually defined.
       remove_stop_token(tok_lbrace);
     }  /* if */
   }  /* if */
+  /* If the next token is a "{" or, in C++, a ":" (introducing a list of
+     base classes) we should expect to scan a class definition.  The exception
+     to this is when an elaborated class name (e.g., "struct S" instead of
+     simply "S") appears within the context of a new expression.  The
+     issue is the colon: since a colon could be part of the expression
+     context (e.g., "struct S *ps = flag ? new struct S : 0;") it should
+     not be interpreted as introducing a base classes list. */
+  is_class_definition = curr_token == tok_lbrace ||
+                        (C_dialect == C_dialect_cplusplus &&
+                         curr_token == tok_colon && !is_ref_within_new_expr);
   if (tag_sym == NULL) {
     /* Create a new class, struct, or union type.  All such types are
        allocated in the file scope memory region, though local types will be
@@ -5860,8 +5878,7 @@ to indicate whether the class/struct/union is actually defined.
     /* Using an existing type.  Fetch the type pointer from it. */
     class_type = tag_sym->variant.class_struct_union.type;
     /* Record cross-reference information. */
-    if (curr_token == tok_lbrace ||
-        (C_dialect == C_dialect_cplusplus && curr_token == tok_colon)) {
+    if (is_class_definition) {
       mark_declared(tag_sym, &locator.source_position,
                     /*save_as_decl_position=*/TRUE);
       /* Allow for alternating between class and struct, but stay with the
@@ -5873,8 +5890,7 @@ to indicate whether the class/struct/union is actually defined.
     }  /* if */
   }  /* if */
   cssp = tag_sym->variant.class_struct_union.extra_info;
-  if (curr_token == tok_lbrace ||
-      C_dialect == C_dialect_cplusplus && curr_token == tok_colon) {
+  if (is_class_definition) {
     /* A copy constructor need not be generated if construction by bitwise
        copy is equivalent.  When a class is being defined, set the flag to
        to TRUE initially, and change it if a base class or member is
@@ -5885,7 +5901,7 @@ to indicate whether the class/struct/union is actually defined.
        for which bitwise copy is not allowed. */
     cssp->assignment_by_bitwise_copy_allowed = TRUE;
   }  /* if */
-  if (C_dialect == C_dialect_cplusplus && curr_token == tok_colon) {
+  if (is_class_definition && curr_token == tok_colon) {
     /* Scan the list of base specifiers. */
     add_stop_token(tok_lbrace);
     scan_base_specifier_list(class_type);

@@ -4614,6 +4614,7 @@ function_lparen:
 a_symbol_ptr scan_tag_name(a_symbol_kind     tag_kind,
                            a_symbol_locator  *locator,
                            a_boolean         check_for_vacuous_decl,
+                           a_boolean         is_ref_within_new_expr,
                            a_scope_depth     *effective_decl_level,
                            a_boolean         *tag_resolution)
 /*
@@ -4645,10 +4646,13 @@ is an error, return NULL.
     next_tok = next_token();
     if (next_tok == tok_lbrace ||
         (next_tok == tok_colon && C_dialect == C_dialect_cplusplus &&
-         tag_kind != (a_symbol_kind)sk_enum_tag)) {
+         tag_kind != (a_symbol_kind)sk_enum_tag && !is_ref_within_new_expr)) {
       /* The token following the tag marks the start of a class or enum
          definition. Determine whether it is the resolution of a previous
          incomplete declaration. */
+      /* Note that we had to check the is_ref_within_new_expr flag because
+         a colon has a different meaning in an expression context than
+         in a declaration context (namely, it may belong to a ?: operator). */
       if (tag_sym != NULL) {
         /* The tag has already appeared in the current scope. */
         if (is_incomplete_type(type_symbol_type(tag_sym))) {
@@ -4789,8 +4793,9 @@ to indicate whether an enumeration is actually defined.
        a Plum Hall test that implies that. */
     *declares_something = TRUE;
     tag_sym = scan_tag_name((a_symbol_kind)sk_enum_tag, &locator,
-                            vacuous_decl_allowed, &effective_decl_level,
-                            &tag_resolution);
+                            vacuous_decl_allowed,
+                            /*is_ref_within_new_expr=*/FALSE,
+                            &effective_decl_level, &tag_resolution);
     if (tag_resolution) {                            
       /* Resolution of a previous incomplete declaration. */
       if (C_dialect != C_dialect_cplusplus) {
@@ -5467,6 +5472,7 @@ process_class_specifier:
           if (basic_type == bt_none) {
             if (num_specifiers > 0) vacuous_decl_allowed = FALSE;
             if (!class_specifier(vacuous_decl_allowed, is_friend_decl,
+                                 (input_flags & DSI_IS_NEW_TYPE_NAME) != 0,
                                  type_ptr, &declares_something,
                                  &defines_something)) {
               err = TRUE;
@@ -5481,8 +5487,9 @@ process_class_specifier:
             error(ec_bad_combination_of_type_specifiers);
             /* Scan the specifier anyway, but throw it away. */
             (void)class_specifier(/*vacuous_decl_allowed=*/FALSE,
-                                  /*is_friend_decl=*/FALSE, &dummy_type,
-                                  &dummy_flag, &dummy_flag);
+                                  /*is_friend_decl=*/FALSE,
+                                  (input_flags & DSI_IS_NEW_TYPE_NAME) != 0,
+                                  &dummy_type, &dummy_flag, &dummy_flag);
           }  /* if */
           goto no_get_token;
         }  /* if */
