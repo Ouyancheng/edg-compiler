@@ -838,10 +838,21 @@ so a hanging delete is in effect).
 		  slmp,
                   slmp2;
   unsigned long   sequence_id;
+  a_boolean       saved_do_not_advance_past_end_of_file;
 
   old_seq_number = curr_seq_number;
   orig_loc = start_of_curr_token;
+  /* Don't go into another file looking for a "(". */
+  if (curr_ise != NULL) {
+    saved_do_not_advance_past_end_of_file =
+                                     curr_ise->do_not_advance_past_end_of_file;
+    curr_ise->do_not_advance_past_end_of_file = TRUE;
+  }  /* if */
   skip_white_space();
+  if (curr_ise != NULL) {
+    curr_ise->do_not_advance_past_end_of_file =
+                                         saved_do_not_advance_past_end_of_file;
+  }  /* if */
   if (*curr_char_loc == '(') {
     /* Left parenthesis found. */
     *paren_found = TRUE;
@@ -868,7 +879,8 @@ so a hanging delete is in effect).
     *paren_found = FALSE;
     delete_source_from_loc = NULL;
     len_of_curr_token = locator_for_curr_id.symbol_header->identifier_length;
-    if (curr_seq_number == old_seq_number) {
+    if (curr_seq_number == old_seq_number &&
+        !at_end_of_source_file) {
       /* We are still on the same line, so re-insertion is not necessary.
          However, if in getting from the end of the identifier to the
          current position we entered or left a source modification, some

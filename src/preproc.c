@@ -1212,7 +1212,7 @@ may have extra operand at end).
   if (generate_pp_output) {
     /* Generate the line-identifying directive if necessary for preprocessing
        output.  Force out because cpp always puts one out. */
-    gen_pp_line_info(' ', 1);
+    gen_pp_line_info(' ', /*next_line=*/TRUE);
   }  /* if */
   /* If raw listing information is being generated (for input to a program
      that will generate an interspersed listing), generate line information
@@ -2305,10 +2305,15 @@ been pushed onto the input stack.  Read to the end of each file.
     generate_pp_output = FALSE;
     for (pfp = macro_preinclude_file_list; pfp != NULL; pfp = pfp->next) {
       /* Flush the tokens from this preinclude.  Any macros will be evaluated
-         during this process. */
+         during this process.  Stop at the end of the file.  Note that the
+         push_input_stack for a macro preinclude file sets
+         do_not_advance_past_end_of_file in the input stack entry, which
+         prevents running off the end of the file. */
       for (;;) {
         if (get_token() == tok_end_of_source) break;
       }  /* for */
+      /* Pop the current file, and push another preinclude if there
+         is another one. */
       pop_input_stack();
     }  /* for */
     generate_pp_output = save_generate_pp_output;

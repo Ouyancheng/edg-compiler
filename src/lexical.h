@@ -909,11 +909,9 @@ typedef struct an_input_stack_entry {
 			   variable any_tokens_fetched_from_curr_input_file. */
   a_bit_field	is_preinclude:1;
 			/* TRUE if this is a preincluded file. */
-  a_bit_field	preinclude_macros_only:1;
-			/* TRUE if this is a preincluded file that was
-			   included by the preinclude_macros option, and
-			   from which only macro definitions should be
-			   considered. */
+  a_bit_field	do_not_advance_past_end_of_file:1;
+			/* TRUE if when we reach the end of this file we
+			   should stay there and not advance beyond it. */
   bitfield_to_avoid_codecenter_warnings()
   a_byte        ifg_state;
 			/* Include file guard state information used to
@@ -1005,6 +1003,17 @@ EXTERN a_seq_number
 			   indicates a sequence number one past the highest
 			   sequence number actually read, as an indication
 			   of a sort of end-of-file line. */
+EXTERN a_boolean
+		at_end_of_source_file;
+			/* If TRUE, there is no current logical source line;
+			   the last attempt to read one ran into an end of
+			   file instead.  This may, however, be only the end
+			   of an include file, and not of the entire source
+			   sequence (see pop_input_stack).  The current
+			   position is at the end of the current input file,
+			   but still within it -- the stack has not yet been
+			   popped.  curr_source_line still contains the line
+			   most recently read. */
 
 EXTERN a_seq_number
 		seq_number_last_read;
@@ -1918,7 +1927,7 @@ extern void push_input_stack(
 			a_boolean                   is_include_file,
 			a_boolean                   is_system_include,
                         a_boolean                   is_preinclude,
-			a_boolean		    preinclude_macros_only,
+			a_boolean		    preinclude_macros,
                         a_boolean                   is_implicit_include,
                         a_directory_name_entry_ptr  dir_entry,
 			an_include_file_history_ptr ifhp);

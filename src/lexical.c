@@ -405,17 +405,6 @@ static a_boolean
 Variables related to the current source line (see lexical.h):
 */
 static a_boolean
-		at_end_of_source_file;
-			/* If TRUE, there is no current logical source line;
-			   the last attempt to read one ran into an end of
-			   file instead.  This may, however, be only the end
-			   of an include file, and not of the entire source
-			   sequence (see pop_input_stack).  The current
-			   position is at the end of the current input file,
-			   but still within it -- the stack has not yet been
-			   popped.  curr_source_line still contains the line
-			   most recently read. */
-static a_boolean
 		after_end_of_all_source;
 			/* If TRUE, there is no current logical source line;
 			   all source has been read, all files popped off the
@@ -3700,7 +3689,7 @@ void push_input_stack(
 		a_boolean			is_include_file,
 		a_boolean		 	is_system_include,
                 a_boolean                       is_preinclude,
-		a_boolean			preinclude_macros_only,
+		a_boolean			preinclude_macros,
                 a_boolean			is_implicit_include,
                 a_directory_name_entry_ptr      dir_entry,
 		an_include_file_history_ptr	ifhp)
@@ -3793,7 +3782,7 @@ used to find this file.
   curr_ise->saved_any_tokens_fetched =
 				      any_tokens_fetched_from_curr_input_file;
   curr_ise->is_preinclude = is_preinclude;
-  curr_ise->preinclude_macros_only = preinclude_macros_only;
+  curr_ise->do_not_advance_past_end_of_file = preinclude_macros;
   any_tokens_fetched_from_curr_input_file = FALSE;
 #if CHECKING
   curr_ise->avoid_codecenter_warnings = 0;
@@ -3822,7 +3811,7 @@ used to find this file.
                               full_file_name, name_as_written,
                               &(curr_ise->assoc_il_file), is_include_file,
                               is_system_include, is_preinclude,
-                              preinclude_macros_only,
+                              preinclude_macros,
 			      (dir_entry != NULL &&
                                                dir_entry->system_include_dir));
   /* The two il file pointers start out the same.  They will be made to
@@ -3966,6 +3955,7 @@ at the next level down.
   /* Close the current input file. */
   (void)fclose(curr_input_stream);
   eof_read_on_curr_input_stream = FALSE;
+  at_end_of_source_file = FALSE;
   /* If preprocessing output is being generated, force out the previous
      source line before the input stack information is changed. */
   if (generate_pp_output) {
@@ -3986,10 +3976,6 @@ at the next level down.
   if (depth_input_stack == 0 || C_dialect != C_dialect_pcc) {
     verify_that_all_pp_ifs_were_closed();
   }  /* if */
-  /* Clear the at_end_of_source_file flag at the end of a file included
-     for the purpose of defining macros.  We will continue reading the
-     primary source file. */
-  if (curr_ise->preinclude_macros_only) at_end_of_source_file = FALSE;
   if (curr_ise->is_preinclude && no_more_preinclude_files()) {
     /* See if the end of the preinclude marks the end of the text that is
        part of the precompiled header being generated. */
@@ -4477,7 +4463,8 @@ curr_source_line, and curr_char_loc is pointed at the line-end escape.
 
 2)  If do_pop_on_end_of_file is FALSE, then the current line and the
 current position within it are left unchanged, and at_end_of_source_file is
-set to TRUE.
+set to TRUE.  This is also done if do_not_advance_past_end_of_file is
+TRUE in the current input stack entry.
 
 The return value from this function is at_end_of_source_file ||
 after_end_of_all_source -- i.e., TRUE if no current source line was read.
@@ -4539,7 +4526,7 @@ for the GNU C multiline string extension.
        has started. */
     eof_read_on_curr_input_stream = TRUE;
     at_end_of_source_file = TRUE;
-    if (!do_pop_on_end_of_file || curr_ise->preinclude_macros_only) {
+    if (!do_pop_on_end_of_file || curr_ise->do_not_advance_past_end_of_file) {
       /* We're asked not to do the pop, so just return things as they
          are (at_end_of_source_file is TRUE). */
       goto simple_return;
@@ -4547,7 +4534,6 @@ for the GNU C multiline string extension.
     /* We are supposed to pop the input stack and attempt again to
        read the next line. */
     pop_input_stack();
-    at_end_of_source_file = FALSE;
     if (depth_input_stack < 0) {
       /* We have popped out of the primary source file; this is the real
          end of file. */
@@ -13910,10 +13896,10 @@ done to determine whether a precompiled header may be used.
   sequence_id_for_source_line_modifs = 0;
   delete_source_from_loc = NULL;
   curr_token_pragmas = NULL;
+  at_end_of_source_file = FALSE;
   /* Static variables in lexical.c: */
   curr_input_stream = NULL;
   eof_read_on_curr_input_stream = FALSE;
-  at_end_of_source_file = FALSE;
   after_end_of_all_source = FALSE;
   init_do_not_put_curr_line_in_pp_output = TRUE;
   curr_raw_listing_line_code = '\0';
