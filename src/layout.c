@@ -2202,7 +2202,7 @@ base class of class_type, and allocate space for the latter.
        is a base class of two virtual base classes, one of which is already
        embedded and the other of which is not (because it is a direct base
        class, say), should the former have precedence?  For example:
-               V1        V1, V3, and V3 are virtual base classes,
+               V1        V1, V2, and V3 are virtual base classes,
               /  \       V2 is embedded in Y (a complete subobject), and
              V2   V3     V3, being a direct base class, is not embedded.
               |   /      Should V1 be embedded in V2 or V3?  The current
