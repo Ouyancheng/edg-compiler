@@ -575,6 +575,8 @@ hiding.
        are the ones that have been turned into variables. */
   } else if (is_unnamed_tag_symbol(sym_ptr)) {
     /* No name hiding for unnamed entities. */
+  } else if (sym_ptr->is_invisible) {
+    /* Ignore invisible names. */
   } else if ((depth_template_declaration_scope != NO_SCOPE_DEPTH ||
               ssep->in_prototype_instantiation) &&
              sym_ptr->kind == (a_symbol_kind)sk_class_template) {
