@@ -4429,7 +4429,7 @@ of f_C_output in *prev_f_C_output and the previous value of indent in
   *prev_f_C_output = f_C_output;
   *prev_indent = indent;
   if (output_initializer_code_directly) {
-    /* Initializer code code can go directly to f_C_output.  This happens,
+    /* Initializer code can go directly to f_C_output.  This happens,
        for example, in stmk_init statements -- they're processed in the
        executable code section. */
   } else {
@@ -6579,35 +6579,46 @@ handled in declaration processing in dump_variable.
   a_variable_ptr   variable = dip->variable;
   FILE             *save_f_C_output;
   int              save_indent;
+  a_boolean        gen_assignments = TRUE;
 
   /* Direct the assignment output to the proper file. */
   set_init_file(variable, &save_f_C_output, &save_indent);
-  startline(variable->source_corresp.decl_position.seq);
-  switch (dip->kind) {
-    case dik_constant:
-      /* Initialization to a constant.  Output
-           variable = constant;
-      */
-      dump_var_name(variable);
-      fprintf(f_C_output, " = ");
-      dump_constant_value(dip->variant.constant);
-      fprintf(f_C_output, ";");
-      break;
-    case dik_expression:
-      /* Initialization to an expression.  Output
-           variable = expression;
-      */
-      dump_var_name(variable);
-      fprintf(f_C_output, " = ");
-      dump_expression(dip->variant.expression, /*need_parens=*/TRUE);
-      fprintf(f_C_output, ";");
-      break;
+  if (dip->kind == (a_dynamic_init_kind)dik_constant &&
+      dip->variant.constant->kind == (a_constant_repr_kind)ck_aggregate) {
+    /* Aggregate initialization.  Only comes up in C++, for aggregate
+       initializations to constants done in the middle of blocks. */
+    dump_initializer_part(variable, variable->type, dip->variant.constant,
+                          &gen_assignments,
+                          /*separate_chars=*/FALSE,
+                          (an_init_pos_descr_ptr)NULL);
+  } else {
+    startline(variable->source_corresp.decl_position.seq);
+    switch (dip->kind) {
+      case dik_constant:
+        /* Initialization to a simple constant.  Output
+             variable = constant;
+        */
+        dump_var_name(variable);
+        fprintf(f_C_output, " = ");
+        dump_constant_value(dip->variant.constant);
+        fprintf(f_C_output, ";");
+        break;
+      case dik_expression:
+        /* Initialization to an expression.  Output
+             variable = expression;
+        */
+        dump_var_name(variable);
+        fprintf(f_C_output, " = ");
+        dump_expression(dip->variant.expression, /*need_parens=*/TRUE);
+        fprintf(f_C_output, ";");
+        break;
 #if CHECKING
-    default:
-      internal_error("dump_dynamic_init: bad kind");
+      default:
+        internal_error("dump_dynamic_init: bad kind");
 #endif /* CHECKING */
-  }  /* switch */
-  if (variable != NULL) unset_init_file(save_f_C_output, save_indent);
+    }  /* switch */
+  }  /* if */
+  unset_init_file(save_f_C_output, save_indent);
 }  /* dump_dynamic_init */
 
 #endif /* ifdef CFE */
