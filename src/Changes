@@ -1,5 +1,21 @@
 Version 2.31
 
+11/27/95  Type of pointer to member in initialization from overloaded
+          member function
+
+When a member function is chosen from among several in forming a
+pointer to member, if the pointer to member is to a derived class of
+the class of the function, the necessary cast to derived was not
+done on the constant.  Now fixed.
+
+  struct B {
+    int foo() ;
+    int foo(int);
+  };
+  struct D : public B {};
+  int (D::*df)() = &B::foo;   // Constant had type int (B::*)() instead
+                              // of correct int (D::*)().
+
 11/27/95  Exception handling: RDF_BASE_CLASS_SUBOBJECT flag in region table
 
 The region table entry used for the fully-lowered and partially-lowered
