@@ -3525,7 +3525,7 @@ position and symbol fill-in.
 {
   init_error_params();
   error_msg_syms[1] = symbol;
-  diag_message(error_code, error_pos, es_discretionary_error, dck_primary);
+  diag_message(error_code, error_pos, es_error, dck_primary);
 }  /* pos_sy_start_error */
 
 
