@@ -1,5 +1,20 @@
 Version 2.38
 
+1/12/98   Composite routine type formation when one or both types are
+          unprototyped definitions
+
+In C mode a bug in forming composite routine types has been fixed.  It
+turned up in two cases in which at least one of the routine types was
+unprototyped:
+
+  int f(int);
+  typedef int INT;
+  INT f(p) unsigned short p; { return p; }     /* Spurious error */
+
+  void f1(i,j) int i, j; {}
+  void f2(i) int i; {}
+  void g(int i) { i ? f1 : f2; }               /* Internal error */
+
 1/12/98   Internal error on pragma in template declaration
 
 An internal error could occur if a pragma appeared between the template
