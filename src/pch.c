@@ -2259,6 +2259,9 @@ Initialize variables used by the precompiled header routines.
        source file.  This can't be done with standard input, so we have
        to suppress PCH processing. */
     abandon_pch_processing();
+  } else if (preinclude_file_name != NULL) {
+    /* We can't do PCH processing when using preincluded files. */
+    abandon_pch_processing();
   }  /* if */
 
   db_exit();

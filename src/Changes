@@ -1,5 +1,10 @@
 Version 3.0
 
+4/10/02  Internal error when using preinclude and precompiled headers
+
+An internal error would occur when using a preinclude file and
+precompiled headers.  This has been fixed.
+
 4/10/02  Internal error on using-declaration with --ignore_std
 
 An internal error would occur on using-declaration that refers to a
