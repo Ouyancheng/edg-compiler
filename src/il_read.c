@@ -192,7 +192,7 @@ entry_number.
        the area for each entry kind.  Also the pointer for this entry
        must be incremented over the orphan pointer. */
     if (is_in_file_scope && !is_string_entry_kind(entry_kind)) {
-      ptr += entry_number * sizeof(char * );
+      ptr += entry_number * SPACE_FOR_FS_ORPHAN_POINTER;
     }  /* if */
 #endif /* ORPHAN_PROCESSING_NEEDED */
   }  /* if */
@@ -373,7 +373,7 @@ necessary to make it directly accessible in memory.
     /* Allow orphan IL entry list pointer on all but string IL entries. */
     if (reading_file_scope_il &&
         !is_string_entry_kind((an_il_entry_kind)byte_entry_kind)) {
-      size_of_entry += sizeof(char *);
+      size_of_entry += SPACE_FOR_FS_ORPHAN_POINTER;
     }  /* if */
 #endif /* ORPHAN_PROCESSING_NEEDED */
     entry_array_base_array_ptr[byte_entry_kind] =
@@ -496,11 +496,14 @@ necessary to make it directly accessible in memory.
       /* If reading the file scope, read in the orphaned IL entry pointer
          into the area immediately preceding the entry. */
       if (reading_file_scope_il) {
-        an_il_entry_number    orphan_number;
-        fread_with_check((char *)&orphan_number, sizeof(char *));
+        char               *orphan_ptr;
+        an_il_entry_number orphan_number;
+        fread_with_check((char *)&orphan_ptr, sizeof(orphan_ptr));
+        orphan_number = (an_il_entry_number)orphan_ptr;
         /* Remap the entry number to a pointer immediately. */
-        *(char **)(entry_ptr - sizeof(char *)) = remap_entry_number_to_ptr(
-                                             orphan_number, entry_kind);
+        fs_orphan_pointer_of(entry_ptr) =
+                                       remap_entry_number_to_ptr(orphan_number,
+                                                                 entry_kind);
       }  /* if */
 #endif /* ORPHAN_PROCESSING_NEEDED */
     }  /* if */

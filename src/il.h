@@ -132,7 +132,7 @@ region.  These lists are walked during IL file writing and reading
 and when displaying the IL to ensure that all IL entries are
 visited.  Note, the first_entry and last_entry point to the first
 byte of the IL entry.  The address of the next entry in the linked list
-precedes the IL entry (entry_ptr - sizeof(char *)).
+precedes the IL entry.
 */
 typedef struct an_orphaned_il_entry_list {
   char *first_entry;	/* Pointer to the first IL entry of a specific
@@ -494,12 +494,20 @@ extern unsigned long show_il_space_used(void);
 #endif /* DEBUG */
 #if ORPHAN_PROCESSING_NEEDED
 
+/* Amount of space to allocate for the next-orphaned-entry pointer that
+   precedes each file-scope entry in the IL.  The size is the smallest
+   multiple of HOST_ALIGNMENT_REQUIRED that is at least as large as
+   the size of a "char *".  This preserves the necessary alignment
+   for the entry itself. */
+#define SPACE_FOR_FS_ORPHAN_POINTER                                   \
+ ((((sizeof(char *)-1)/HOST_ALIGNMENT_REQUIRED)+1)*                   \
+  HOST_ALIGNMENT_REQUIRED)
 /*
-Fetch and return the orphaned-list pointer that precedes the file-scope
-IL entry at ptr.
+Macro to allow reference to the next-orphaned-entry pointer that precedes
+the file-scope IL entry at ptr.
 */
-#define next_orphaned_il_entry(ptr)                                   \
-  (*(char **)((char *)(ptr) - sizeof(char *)))
+#define fs_orphan_pointer_of(ptr)                                     \
+  (*(char **)((char *)(ptr) - SPACE_FOR_FS_ORPHAN_POINTER))
 
 extern void add_orphaned_file_scope_il_entry(char             *entry_ptr,
                                              an_il_entry_kind entry_kind);

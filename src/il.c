@@ -83,7 +83,9 @@ static unsigned long
 		num_scopes_allocated,
 		string_literal_text_space_allocated;
 #if ORPHAN_PROCESSING_NEEDED
-unsigned long	num_orphaned_il_lists_allocated;
+static unsigned long
+		num_fs_orphan_pointers_allocated,
+		num_orphaned_il_lists_allocated;
 #endif /* ORPHAN_PROCESSING_NEEDED */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 #if ALTERNATE_IL_FILE_FORMAT
@@ -1255,6 +1257,7 @@ void db_initializer(a_variable_ptr  var,
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
+#if ALTERNATE_IL_FILE_FORMAT
 /*
 Macro to increment the entry number allocation count only if DEBUG
 is TRUE.  Used in do_alloc.
@@ -1265,18 +1268,16 @@ is TRUE.  Used in do_alloc.
 #else /* !DEBUG */
 #define incr_num_il_entry_numbers_allocated() /* Do nothing */
 #endif /* DEBUG */
-
-#if ALTERNATE_IL_FILE_FORMAT
 /*
 For the alternate IL file format, each entry's allocation must be preceded
 by an entry number, which is initialized to zero here.
 */
 #define do_alloc(ptr, region_number, size)                            \
 { ptr = alloc_in_region((region_number),                              \
-                         (sizeof_t)((size)+sizeof(an_il_entry_number))); \
-  *(an_il_entry_number *)ptr = 0;                                     \
+                         (sizeof_t)((size)+SPACE_FOR_IL_ENTRY_NUMBER)); \
   incr_num_il_entry_numbers_allocated();                              \
-  ptr += sizeof(an_il_entry_number);                                  \
+  *(an_il_entry_number *)ptr = 0;                                     \
+  ptr += SPACE_FOR_IL_ENTRY_NUMBER;                                   \
 }  /* do_alloc */
 #else /* !ALTERNATE_IL_FILE_FORMAT */
 /*
@@ -1291,14 +1292,25 @@ is required.
 /*
 Orphaned file scope IL entries need to be chained together to ensure that
 they will be visited when the IL is walked during writing, reading
-or display.  That pointer used to chain like IL entry types together
+or display.  The pointer used to chain like IL entry types together
 precedes the IL entry (and follows the IL entry number if there is one).
 The pointer is only needed in file-scope allocations.
 */
+/*
+Macro to increment the count of next-orphan pointers allocated only if
+DEBUG is TRUE.  Used in do_fs_alloc.
+*/
+#if DEBUG
+#define incr_fs_orphan_pointers_allocated()                         \
+  num_fs_orphan_pointers_allocated++
+#else /* !DEBUG */
+#define incr_fs_orphan_pointers_allocated() /* Do nothing */
+#endif /* DEBUG */
 #define do_fs_alloc(ptr, size)                                        \
-{ do_alloc(ptr, FILE_SCOPE_REGION_NUMBER, size+sizeof(char *));       \
+{ do_alloc(ptr, FILE_SCOPE_REGION_NUMBER, size+SPACE_FOR_FS_ORPHAN_POINTER); \
+  incr_fs_orphan_pointers_allocated();                                \
   *(char **)ptr = (char *)NULL;                                       \
-  ptr += sizeof(char *);                                              \
+  ptr += SPACE_FOR_FS_ORPHAN_POINTER;                                 \
 }  /* do_alloc */
 #define do_any_alloc(ptr, region_number, size)                        \
 { if (region_number == FILE_SCOPE_REGION_NUMBER) {                    \
@@ -1784,7 +1796,7 @@ allocated immediately preceding the entry.
 #endif /* CHECKING */
   /* Check if this IL entry is already on the orphaned entry list. */
   last_entry_ptr = &orphaned_file_scope_il_entries[(int)entry_kind].last_entry;
-  if (*(char **)(entry_ptr - sizeof(char *)) == NULL &&
+  if (fs_orphan_pointer_of(entry_ptr) == NULL &&
       entry_ptr != *last_entry_ptr) {
     /* This entry is not in the existing list; add it to the end of the
        list. */
@@ -1794,7 +1806,7 @@ allocated immediately preceding the entry.
                                                                entry_ptr;
     } else {
       /* Add to the tail of the existing list. */
-      *(char **)(*last_entry_ptr - sizeof (char *)) = entry_ptr;
+      fs_orphan_pointer_of(*last_entry_ptr) = entry_ptr;
     }  /* if */
     *last_entry_ptr = entry_ptr;
   }  /* if */
@@ -5508,6 +5520,12 @@ Display and return the amount of space used for various IL tables.
   fprintf(f_debug, "%25s %8lu %8lu %8lu\n", name, num, size, total);  \
   grand_total += total;                                               \
 }  /* write_one */
+#define write_onex(name, counter, sizex)                              \
+{ num = counter; total = num*sizex;                                   \
+  fprintf(f_debug, "%25s %8lu %8lu %8lu\n", name, num,                \
+                   (unsigned long)sizex, total);                      \
+  grand_total += total;                                               \
+}  /* write_onex */
 
   write_one("source file", num_source_files_allocated, a_source_file);
   write_one("constant", num_constants_allocated, a_constant);
@@ -5547,10 +5565,12 @@ Display and return the amount of space used for various IL tables.
 #if ORPHAN_PROCESSING_NEEDED
   write_one("orphaned il list", num_orphaned_il_lists_allocated,
             an_orphaned_il_list);
+  write_onex("fs orphan pointers", num_fs_orphan_pointers_allocated,
+             SPACE_FOR_FS_ORPHAN_POINTER);
 #endif /* ORPHAN_PROCESSING_NEEDED */
 #if ALTERNATE_IL_FILE_FORMAT
-  write_one("IL entry numbers", num_il_entry_numbers_allocated,
-            an_il_entry_number);
+  write_onex("IL entry numbers", num_il_entry_numbers_allocated,
+             SPACE_FOR_IL_ENTRY_NUMBER);
 #endif /* ALTERNATE_IL_FILE_FORMAT */
 
   fprintf(f_debug, "%25s %8s %8s %8lu\n", "Total", "", "", grand_total);
@@ -5581,6 +5601,8 @@ Display and return the amount of space used for various IL tables.
   }  /* if */
 
   return grand_total;
+#undef write_one
+#undef write_onex
 }  /* show_il_space_used */
 #endif /* DEBUG */
 
@@ -5669,6 +5691,7 @@ of the front end.
   num_compares_for_shareable_constants   = 0;
   num_get_based_type_calls               = 0;
 #if ORPHAN_PROCESSING_NEEDED
+  num_fs_orphan_pointers_allocated       = 0;
   num_orphaned_il_lists_allocated        = 0;
 #endif /* ORPHAN_PROCESSING_NEEDED */
 #if ALTERNATE_IL_FILE_FORMAT

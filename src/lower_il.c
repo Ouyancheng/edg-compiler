@@ -11297,7 +11297,7 @@ not reachable from the normal file-scope IL tree.
     /* Look at each entry on the list of orphaned entries of that kind. */
     for (entry_ptr = orphaned_file_scope_il_entries[(int)kind].first_entry;
          entry_ptr != NULL; 
-         entry_ptr = next_orphaned_il_entry(entry_ptr)) {
+         entry_ptr = fs_orphan_pointer_of(entry_ptr)) {
       /* Treat each entry as part of a list if that IL entry has a "next"
          pointer. */
       list_entry_ptr = entry_ptr;

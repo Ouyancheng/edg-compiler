@@ -128,20 +128,21 @@ entry_kind, and if it is a string, has length as given by entry_length.
 {
   an_il_entry_number *count_ptr;
   a_boolean          is_file_scope_entry;
-  an_il_entry_number *enp = (an_il_entry_number *)
-                                      (entry_ptr - sizeof(an_il_entry_number));
+  an_il_entry_number *enp;
   int                num_entries = 1;
+  char               *temp_entry_ptr;
 
+  /* Determine the address of the entry number preceding the entry. */
+  temp_entry_ptr = entry_ptr;
 #if ORPHAN_PROCESSING_NEEDED
   /* If the IL entry is in the file-scope region, the additional pointer
      for the orphaned IL entry list must be accommodated.  This pointer is
      between the IL entry number and the beginning of the IL entry. */
   if (in_file_scope(entry_ptr)) {
-    /* The IL entry number pointer must be decremented by the size of a
-       pointer. */
-    enp = (an_il_entry_number *)((char *)enp - sizeof(char *));
-  }
+    temp_entry_ptr = (char *)&fs_orphan_pointer_of(temp_entry_ptr);
+  }  /* if */
 #endif /* ORPHAN_PROCESSING_NEEDED */
+  enp = &il_entry_number_of(temp_entry_ptr);
 
   /* String entries can be referenced from several places, possibly in
      different regions.  A string entry is written in the same region
@@ -190,9 +191,8 @@ entry_kind, and if it is a string, has length as given by entry_length.
       /* This is an entry after the first.  Find the space preceding the
          array by using the current index number, provided by the il_walk
          routines. */
-      enp = (an_il_entry_number *)((char *)((a_bound_info_entry_ptr)entry_ptr -
-                                                      array_bound_walk_index) -
-                                            sizeof(an_il_entry_number));
+      enp = &il_entry_number_of((a_bound_info_entry_ptr)entry_ptr -
+                                                       array_bound_walk_index);
       /* Return the right entry number, but do not change *enp; it's
          supposed to keep the entry number of the first entry in the array. */
       *p_entry_number = (*enp + array_bound_walk_index) & ~ENTRY_WRITTEN_TAG;
@@ -285,24 +285,27 @@ corresponding entry number, and return that number cast to "char *".
 */
 {
   an_il_entry_number *enp, entry_number;
+  char               *temp_entry_ptr;
 
   if (entry_ptr == NULL) {
     /* A NULL pointer is represented by a zero entry number. */
     entry_number = 0;
   } else {
-    /* Test for entry number already assigned.  This test is  mostly for
-       speed, since most entries will have numbers assigned by the
-       time we get here.  The only case where an entry number would not have
-       been assigned is for a non-string entry in the file scope that is
-       referenced from an entry in a function scope. */
-    enp = (an_il_entry_number *)(entry_ptr - sizeof(an_il_entry_number));
+    /* Find the entry number preceding the entry. */
+    temp_entry_ptr = entry_ptr;
 #if ORPHAN_PROCESSING_NEEDED
     /* If the entry_ptr points into the file scope memory region, the
        orphaned IL entry pointer must be skipped over. */
     if (in_file_scope(entry_ptr)) {
-      enp = (an_il_entry_number *)((char *)enp - sizeof(char *));
+      temp_entry_ptr = (char *)&fs_orphan_pointer_of(temp_entry_ptr);
     }  /* if */    
 #endif /* ORPHAN_PROCESSING_NEEDED */
+    enp = &il_entry_number_of(temp_entry_ptr);
+    /* Test for entry number already assigned.  This test is mostly for
+       speed, since most entries will have numbers assigned by the
+       time we get here.  The only case where an entry number would not have
+       been assigned is for a non-string entry in the file scope that is
+       referenced from an entry in a function scope. */
     if (*enp == 0) {
 #if CHECKING
       if (is_string_entry_kind(entry_kind)) {
@@ -336,7 +339,7 @@ corresponding entry number, and return that number cast to "char *".
     /* Drop the "entry written" tag if it's set. */
     entry_number &= ~ENTRY_WRITTEN_TAG;
   }  /* if */
-  /* For Centerline-C -- suppress warning about bad pointer.  Version 3.0
+  /* For CodeCenter -- suppress warning about bad pointer.  Version 3.0
      warning number. */
   /*SUPPRESS 80*/
   return ((char *)entry_number);
@@ -590,9 +593,9 @@ its length.
       /* Must remap the orphaned file scope IL entry chain pointer.  Use
          a local copy of the pointer. */
       char *orphan_ptr = remap_ptr_to_entry_number(
-                           *(char **)(entry_ptr - sizeof(char *)), entry_kind);
+                                  fs_orphan_pointer_of(entry_ptr), entry_kind);
 
-      (void)fwrite((char *)&orphan_ptr, sizeof(char *), 1, f_il_output);
+      (void)fwrite((char *)&orphan_ptr, sizeof(orphan_ptr), 1, f_il_output);
     }  /* if */
 #endif /* ORPHAN_PROCESSING_NEEDED */
   }  /* if */
