@@ -542,18 +542,9 @@ ref field of a class object (or an array of same) remains uninitialized.
       if (brace_flag) {
         /* The list for the aggregate at this level is enclosed in { }. */
         if (curr_token == tok_rbrace) {
-          /* Empty initializer list --  "{ }".  An error, but allowed
-             as an extension in C++ (it's an error according to the
-             syntax, but it makes sense to initialize empty classes). */
+          /* Empty initializer list --  "{ }".  An error in C, okay in C++. */
+          if (C_mode()) error(ec_exp_primary_expr);
           any_more_initializers = FALSE;
-          if (C_dialect != C_dialect_cplusplus) {
-            /* C mode. */
-            error(ec_exp_primary_expr);
-          } else if (strict_ansi_mode) {
-            /* In C++ issue a diagnostic only in strict ANSI mode. */
-            diagnostic(strict_ansi_error_severity,
-                       ec_empty_initializer_list);
-          }  /* if */
         }  /* if */
       } else {
         /* The list for the aggregate is not enclosed in braces. */
