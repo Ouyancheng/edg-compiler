@@ -7646,11 +7646,12 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
         /* In ANSI C, both operands must be pointers to qualified or
            unqualified members of compatible object types (ANSI C 3.3.6).
            In C++, the standard pointer conversions are also done (ARM 4.6,
-           5.7). Result has type ptrdiff_t (see 3.3.6 and <stddef.h>). */
-        if (!check_object_pointer_operand(operand_1,
-                                          ec_expr_not_pointer_to_object) ||
-            !check_object_pointer_operand(&operand_2,
-                                          ec_expr_not_pointer_to_object)) {
+           5.7). The result has type ptrdiff_t (see 3.3.6 and <stddef.h>). */
+        /* Use bitwise OR to force both check (and possible diagnostics). */
+        if ((check_object_pointer_operand(
+                           operand_1, ec_expr_not_pointer_to_object) |
+             check_object_pointer_operand(
+                           &operand_2, ec_expr_not_pointer_to_object)) != 0) {
           err = TRUE;
         } else {
           if (types_are_compatible_ignoring_qualifiers(
