@@ -9718,14 +9718,17 @@ Place the tokens for a template parameter into a token cache.
 }  /* prescan_template_param_decl */
 
 
-static
-void scan_a_template_parameter_declaration(a_symbol_locator *param_locator,
-					   a_type_ptr       *param_type_ptr,
-					   a_boolean	    *is_unnamed)
+static void scan_a_template_parameter_declaration(
+				a_symbol_locator	*param_locator,
+				a_type_ptr		*param_type_ptr,
+				a_boolean		*is_unnamed,
+				a_boolean		*template_dependent)
 /*
 Scan the declaration of a single template nontype parameter.  If the
 parameter is unnamed, and is_unnamed is not NULL, return a flag indicating
-whether the nontype parameter is unnamed.
+whether the nontype parameter is unnamed.  If the parameter type
+depends on a template parameter type, return TRUE in *template_dependent
+(if it is not NULL).
 */
 {
   a_decl_flag_set              do_flags;
@@ -9764,6 +9767,12 @@ whether the nontype parameter is unnamed.
   if (is_unnamed != NULL) {
     /* Return a flag indicating whether the parameter is unnamed. */
     *is_unnamed = (do_flags & DO_REAL_DECLARATOR_SCANNED) == 0;
+  }  /* if */
+  if (template_dependent != NULL) {
+    /* Check whether the type depends on a template parameter.  This is
+       done before the parameter type is adjusted below because certain
+       dependencies could be eliminated. */
+    *template_dependent = is_or_contains_template_param(*param_type_ptr);
   }  /* if */
   /* Adjust the type if necessary (for example, "array of x"
      becomes "pointer to x"). */
@@ -9985,7 +9994,8 @@ this is the template parameter list of a template template parameter.
 
   /* Scan the declaration of the type of the nontype parameter. */
   scan_a_template_parameter_declaration(&param_locator, &param_type_ptr,
-                                        &is_unnamed);
+                                        &is_unnamed,
+                                        &const_type_involves_template_param);
   /* Create a symbol and bind a template param constant to it. At each
       point of instantiation an actual constant will be substituted. */
   sym = create_template_param_symbol((a_symbol_kind)sk_constant,
@@ -10006,8 +10016,6 @@ this is the template parameter list of a template template parameter.
        symbol header. */
     param_con->source_corresp.name = NULL;
   }  /* if */
-  const_type_involves_template_param = 
-				is_or_contains_template_param(param_type_ptr);
   /* Allocate a template parameter and set its fields based on sym. */
   template_param = alloc_template_param(sym);
   if (const_type_involves_template_param) {
@@ -10387,6 +10395,7 @@ resulting constant is stored in the pointer pointed to by "constant".
       rescan_reusable_cache(&param_ptr->cache.tokens);
       /* Scan the declaration specifiers. */
       scan_a_template_parameter_declaration(&param_locator, &constant_type,
+                                            (a_boolean*)NULL,
                                             (a_boolean*)NULL);
       /* Skip past any tokens remaining in the cache.  Extra tokens will
          be present under certain error conditions and when a default argument
