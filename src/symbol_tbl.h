@@ -570,6 +570,11 @@ typedef struct a_class_symbol_supplement {
 			   a template parameter type this field points
 			   back to the template parameter; otherwise
 			   it is NULL. */
+  a_symbol_ptr	corresp_prototype_sym;
+			/* If the class is a template class instance, or a
+			   class nested within a template class, this points
+			   to the corresponding prototype instantiation
+			   class.  Otherwise, it is NULL. */
   a_token_sequence_number
 		prototype_token_sequence_number;
 			/* The token sequence number of a token that
