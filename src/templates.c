@@ -765,13 +765,15 @@ may be a friend template.
   tp->export_position = decl_state->export_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   if (depth_scope_stack == depth_innermost_namespace_scope) {
     /* Set the source-sequence insert point for instantiations to NULL -- no
        instantiations should be inserted before it. */
     reset_ss_list_instantiation_insert_point();
   }  /* if */
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   /* There's not yet a name or symbol for the template declaration, so call
-     update_source_sequence_list directly. */
+     add_to_source_sequence_list directly. */
   add_to_source_sequence_list((char *)tp, (an_il_entry_kind)iek_template);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   db_exit();
@@ -18893,10 +18895,12 @@ that might be required.
         !mip->already_instantiated) {
       if (should_be_instantiated(tip, /*implicit_inclusion_okay=*/TRUE)) {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
         /* Reset the insert point for instantiations to NULL.  This assures
            that the source sequence entry for the instantiation will be
            added to the end of the source-sequence list. */
         reset_ss_list_instantiation_insert_point();
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         instantiate_entity(tip);
       }  /* if */

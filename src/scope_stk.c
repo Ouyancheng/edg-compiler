@@ -1746,8 +1746,10 @@ the scope being pushed.
   ssep->source_sequence_avail_list = NULL;
   ssep->source_sequence_entries_disallowed =
                                        source_sequence_entries_disallowed;
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   ssep->ss_list_instantiation_insert_point
                                  = NULL;
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   ssep->source_sequence_list     = NULL;
   ssep->end_of_source_sequence_list = NULL;
   if (kind == (a_scope_kind)sck_file && ssep->is_reactivation) {

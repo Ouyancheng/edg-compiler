@@ -13364,8 +13364,10 @@ classes.
            processing. */
         (void)select_curr_construct_pragmas(/*add_to_list=*/FALSE);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
         /* Reset the insertion point for instantiations to NULL. */
         reset_ss_list_instantiation_insert_point();
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         if (C_dialect == C_dialect_cplusplus) {
           /* An access specification may appear anywhere amid the member

@@ -563,6 +563,7 @@ typedef struct a_scope_stack_entry {
 		source_sequence_avail_list;
 			/* List of freed source sequence entries that are
 			   available for reuse; NULL if none. */
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   a_source_sequence_entry_ptr
 		ss_list_instantiation_insert_point;
 			/* If kind == sck_file, pointer to a source sequence
@@ -573,6 +574,7 @@ typedef struct a_scope_stack_entry {
 			   pointer in the file scope entry when push_scope is
 			   called and to which that pointer is restored by
 			   pop_scope.  Not used for any other scope kinds. */
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   a_source_sequence_entry_ptr
 		source_sequence_list,
 		end_of_source_sequence_list;

@@ -80,14 +80,14 @@ extern void insert_src_seq_list(a_source_sequence_entry_ptr  head,
                                 a_scope_depth                scope_depth,
                                 a_source_sequence_entry_ptr  insert_point);
 
-extern void reset_ss_list_instantiation_insert_point(void);
-
 extern a_src_seq_secondary_decl_ptr make_source_sequence_secondary_decl(
                                             char               *ptr,
                                             an_il_entry_kind   kind,
                                             a_type_ptr         declared_type);
 
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+
+extern void reset_ss_list_instantiation_insert_point(void);
 
 extern a_scope_depth scope_depth_for_class_ss_list(a_type_ptr  class_type);
 

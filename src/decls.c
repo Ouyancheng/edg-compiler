@@ -10751,6 +10751,7 @@ of local variables (and types, etc.) of functions and in blocks.
   set_err_pos_to_curr_token();
   copy_source_position(pos_curr_token, decl_start_pos);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   if (decl_scope_level == depth_innermost_namespace_scope) {
     /* For each declaration at namespace scope, reset the source-sequence
        insert point for instantiations to NULL -- it will be set to point
@@ -10759,6 +10760,7 @@ of local variables (and types, etc.) of functions and in blocks.
        entry associated with the current declaration. */
     reset_ss_list_instantiation_insert_point();
   }  /* if */
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (linkage_spec_range_ptr != NULL) {
     /* The caller has already scanned the linkage specifier. */
@@ -11081,6 +11083,7 @@ continue_with_declaration:
       }  /* if */
 #endif /* ASM_FUNCTION_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
       if (!first_declarator &&
           depth_scope_stack == depth_innermost_namespace_scope) {
         /* This is a declaration at file scope, and not the first declarator
@@ -11088,6 +11091,7 @@ continue_with_declaration:
            set the source-sequence insert point for instantiations to NULL. */
         reset_ss_list_instantiation_insert_point();
       }  /* if */
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if GNU_EXTENSIONS_ALLOWED
       /* Look for optional attributes, which are added to the specifier
@@ -12233,8 +12237,10 @@ In C++, however, the declaration list is optional (3.4):
                        "header stop position not found");
   /* Do any end-of-translation unit pragma processing that may be required. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   /* First reset the point for instantiations to NULL. */
   reset_ss_list_instantiation_insert_point();
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* A C99 predefined pragma in the file scope must appear between
      top-level declarations. */

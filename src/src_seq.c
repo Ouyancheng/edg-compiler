@@ -1803,7 +1803,6 @@ declared_type points to a type that should be recorded in the entry.
   }  /* if */
 }  /* add_source_sequence_entry_for_partial_instantiation */
 
-#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 
 void reset_ss_list_instantiation_insert_point(void)
 /*
@@ -1815,6 +1814,7 @@ to be added to the end of the current scope's source sequence list.
   scope_stack[depth_scope_stack].ss_list_instantiation_insert_point = NULL;
 }  /* reset_ss_list_instantiation_insert_point */
 
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 
 a_source_sequence_entry_ptr last_matching_source_sequence_entry(char  *entity)
 /*
