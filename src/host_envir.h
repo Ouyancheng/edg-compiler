@@ -714,6 +714,13 @@ form specified in the source program.
 #endif /* BACK_END_IS_CP_GEN_BE */
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
 
+#if RECORD_FORM_OF_NAME_REFERENCE && COMPILE_MULTIPLE_TRANSLATION_UNITS
+/* To change this, one would have to (at least) enhance trans_copy.c
+   so that it would handle form-of-reference lists attached to the
+   source correspondence entry. */
+ #error -- RECORD_FORM_OF_NAME_REFERENCE cannot be used when \
+           COMPILE_MULTIPLE_TRANSLATION_UNITS is TRUE
+#endif /* RECORD_FORM_OF_NAME_REFERENCE && COMPILE_MULTIPLE_TRANSLATION_UNITS*/
 /*
 Flag that is TRUE if the front end should record the original structure of
 constant-expressions in addition to their resulting value.  (See expr field
