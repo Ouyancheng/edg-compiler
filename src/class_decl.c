@@ -3002,13 +3002,11 @@ such member functions are present.
 */
 {
   a_boolean                      is_valid;
-  a_type_ptr                     tp;
+  a_type_ptr                     tp = field_type;
   a_class_symbol_supplement_ptr  cssp;
 
-  tp = skip_typerefs(field_type);
-  while (is_array_type(tp)) {
-    tp = array_element_type(tp);
-  }  /* while */
+  if (is_array_type(tp)) tp = underlying_array_element_type(tp);
+  tp = skip_typerefs(tp);
   is_valid = TRUE;
   if (is_class_struct_union_type(tp)) {
     cssp = symbol_supplement_for_class(tp);
@@ -3252,41 +3250,44 @@ class, struct, or union.
      qualified, including recursively the members of any contained
      classes, structs, or unions.  This is useful for determination of
      modifiable lvalues (see 3.2.2.1). */
-  if (is_const_qualified_type(member_type) ||
+  if (type_or_underlying_array_element_type_is_const_qualified(member_type) ||
       (is_class_struct_union_type(member_type) &&
        skip_typerefs(member_type)->
                             variant.class_struct_union.any_const_member)) {
     class_type->variant.class_struct_union.any_const_member = TRUE;
   }  /* if */
-  if (is_aggregate_or_union_type(member_type)) {
-    /* If a nonstatic data member of a class is itself a class object (or
-       an array whose elements are class objects) and the subobject has a
-       constructor and/or destructor, the containing class itself is required
-       to have a constructor and/or destructor.  Do the check at this time,
-       and record the requirement, if any. */
+  if (C_dialect == C_dialect_cplusplus) {
     cssp = symbol_supplement_for_class(class_type);
-    if (cssp->constructor_required && cssp->destructor_required) {
-      /* Requirement is already established.  No need to confirm it. */
-    } else if (is_anonymous_union) {
-      /* Constructor and destructor are not allowed, but other checking
-         is required. */
-      check_anonymous_union_symbols(class_type, field,
-                                    /*assoc_var_object=*/NULL);
-    } else {
-      a_type_ptr  tp;
-
-      tp = skip_typerefs(member_type);
-      while (is_array_type(tp)) {
-        tp = skip_typerefs(tp->variant.array.element_type);
-      }  /* while */
-      if (tp->kind == (a_type_kind)tk_class ||
-          tp->kind == (a_type_kind)tk_struct) {
-        member_cssp = symbol_supplement_for_class(tp);
-        if (member_cssp->constructor != NULL) {
-          cssp->constructor_required = TRUE;
+    if (is_reference_type(member_type)) {
+      cssp->any_ref_member = TRUE;
+    }  /* if */
+    if (is_aggregate_or_union_type(member_type)) {
+      /* If a nonstatic data member of a class is itself a class object (or
+         an array whose elements are class objects) and the subobject has a
+         constructor and/or destructor, the containing class itself is required
+         to have a constructor and/or destructor.  Do the check at this time,
+         and record the requirement, if any. */
+      if (cssp->constructor_required && cssp->destructor_required) {
+        /* Requirement is already established.  No need to confirm it. */
+      } else if (is_anonymous_union) {
+        /* Constructor and destructor are not allowed, but other checking
+           is required. */
+        check_anonymous_union_symbols(class_type, field,
+                                      /*assoc_var_object=*/NULL);
+      } else {
+        a_type_ptr  tp = skip_typerefs(member_type);
+        if (is_array_type(tp)) {
+          tp = skip_typerefs(underlying_array_element_type(tp));
         }  /* if */
-        if (member_cssp->destructor != NULL) {
-          cssp->destructor_required = TRUE;
+        if (tp->kind == (a_type_kind)tk_class ||
+            tp->kind == (a_type_kind)tk_struct) {
+          member_cssp = symbol_supplement_for_class(tp);
+          if (member_cssp->constructor != NULL) {
+            cssp->constructor_required = TRUE;
+          }  /* if */
+          if (member_cssp->destructor != NULL) {
+            cssp->destructor_required = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
@@ -4173,13 +4174,9 @@ operator routine or do bitwise assignment.
 #endif /* if 0 */
         /* If this is an array, we need the element type. */
         array_type = NULL;
-        tp = skip_typerefs(tp);
         if (is_array_type(tp)) {
           array_type = tp;
-          do {
-            tp = array_element_type(tp);
-          } while(is_array_type(tp));
-          tp = skip_typerefs(tp);
+          tp = underlying_array_element_type(tp);
         }  /* if */
         /* The destination is the appropriate field (lvalue) of the "this"
            parameter. */
@@ -4202,7 +4199,7 @@ operator routine or do bitwise assignment.
           } else if (array_type == NULL) {
             /* A bitwise copy may not be done.  Find the default assignment
                operator and put out a call to it. */
-            rp = select_assignment_operator(tp, &pass_by_value);
+            rp = select_assignment_operator(skip_typerefs(tp), &pass_by_value);
             source_expr = field_lvalue_selection_expr(source_expr, fp);
             if (pass_by_value) {
               source_expr = add_indirection_to_node(source_expr);
@@ -4467,7 +4464,7 @@ can copy a const object and whether bitwise copying is allowed.
       fp = sym->variant.field.ptr;
       tp = fp->type;
       /* Get the element type if this is an array field. */
-      while (is_array_type(tp)) tp = array_element_type(tp);
+      if (is_array_type(tp)) tp = underlying_array_element_type(tp);
       if (is_class_struct_union_type(tp)) {
         cssp = symbol_supplement_for_class(tp);
         if (local_const_okay) {
@@ -4525,7 +4522,7 @@ constructors that can copy const objects.
   for (; fp != NULL; fp = fp->next) {
     tp = fp->type;
     /* Get the element type if this is an array field. */
-    while (is_array_type(tp)) tp = array_element_type(tp);
+    if (is_array_type(tp)) tp = underlying_array_element_type(tp);
     if (is_class_struct_union_type(tp)) {
       cssp = symbol_supplement_for_class(tp);
       if (cssp->has_copy_constructor &&
