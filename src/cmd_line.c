@@ -1599,7 +1599,9 @@ by a command line option.
     }  /* if */
     single_ref_qual_ovl_res_tiebreaker = (microsoft_bugs &&
                                           microsoft_version < 1300);
-    allow_nonconst_ref_anachronism = TRUE;
+    if (!(option_kind_used[(int)optk_nonconst_ref_anachronism])) {
+      allow_nonconst_ref_anachronism = TRUE;
+    }  /* if */
     allow_nonconst_call_anachronism = (microsoft_version < 1000);
     flexible_array_members_allowed = TRUE;
     allow_default_arg_on_template_member_definition = TRUE;
@@ -1774,8 +1776,10 @@ Set the various flags appropriate to C99 mode.
     /* Support for variadic macros is turned on by default in C99 mode. */
     variadic_macros_allowed = TRUE;
   }  /* if */
-  /* Support for alternative tokens is turned on by default in C99 mode. */
-  alternative_tokens_allowed = TRUE;
+  if (!(option_kind_used[(int)optk_alternative_tokens])) {
+    /* Support for alternative tokens is turned on by default in C99 mode. */
+    alternative_tokens_allowed = TRUE;
+  }  /* if */
   /* In C99 mode, strict or otherwise, // comments are allowed. */
   end_of_line_comments_allowed = TRUE;
   /* The final field of a struct may be an incomplete array. */
@@ -2294,8 +2298,11 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
   }  /* if */
   if (C_mode()) {
     /* Set optional features to standard settings for strict C mode. */
-    /* Enable recognition of digraphs. */
-    alternative_tokens_allowed = TRUE;
+    if (!(option_kind_used[(int)optk_alternative_tokens])) {
+      /* If alternative_tokens was not explicitly set by a command line
+         option, set it now. */
+      alternative_tokens_allowed = TRUE;
+    }  /* if */
     /* Features enabled in C99 but not in older C are handled in
        set_c99_mode_flags. */
     if (!c99_mode) {
@@ -2561,8 +2568,10 @@ exclude the GNU modes already.  Hence those are not checked again here.)
   flexible_array_members_allowed = TRUE;
   /* Enable // comments. */
   end_of_line_comments_allowed = TRUE;
-  /* Enable recognition of digraphs. */
-  alternative_tokens_allowed = TRUE;
+  if (!(option_kind_used[(int)optk_alternative_tokens])) {
+    /* Enable recognition of digraphs. */
+    alternative_tokens_allowed = TRUE;
+  }  /* if */
   /* Treat "long long" as a standard feature. */
   long_long_is_standard = TRUE;
   long_long_promotion_allowed = FALSE;
