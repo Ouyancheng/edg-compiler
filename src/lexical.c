@@ -449,10 +449,10 @@ static	char	*raw_listing_buffer = NULL;
 			   by after_end_of_raw_listing_buffer.
 			   See lexical_init for the initial allocation. */
 #define RAW_LISTING_BUFFER_INITIAL_ALLOCATION 3000
-#define RAW_LISTING_BUFFER_INCREMENTAL_ALLOCATION 5000
-			/* Initial and incremental allocation sizes for
-			   raw_listing_buffer.  Should probably match the
-			   corresponding constants for curr_source_line. */
+			/* Initial allocation size for raw_listing_buffer.
+			   Subsequent reallocations will double the amount
+			   previously allocated.  Should probably match the
+			   corresponding constant for curr_source_line. */
 static char	*after_end_of_raw_listing_buffer = NULL;
 			/* Address past the last element of raw_listing_buffer,
 			   as an aid to checking for overflow, etc.  A variable
@@ -2794,7 +2794,7 @@ reallocate raw_listing_buffer to make it bigger.
   db_enter(4, "expand_raw_listing_buffer");
   old_size = after_end_of_raw_listing_buffer - raw_listing_buffer;
   /* Increase the size of raw_listing_buffer. */
-  new_size = old_size + RAW_LISTING_BUFFER_INCREMENTAL_ALLOCATION;
+  new_size = old_size * 2;
   new_raw_listing_buffer = realloc_general(raw_listing_buffer,
                                            old_size, new_size);
   loc_offset = loc_in_raw_listing_buffer - raw_listing_buffer;
@@ -4268,7 +4268,7 @@ reallocate curr_source_line to make it bigger.
   db_enter(4, "expand_curr_source_line");
   old_size = after_end_of_curr_source_line - curr_source_line;
   /* Increase the size of curr_source_line. */
-  new_size = old_size + CURR_SOURCE_LINE_INCREMENTAL_ALLOCATION;
+  new_size = old_size * 2;
   /* Allocate one more byte than required, so that a pointer past the end
      will not have the same address as a pointer to the next object in
      memory. */

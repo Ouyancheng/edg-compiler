@@ -43,11 +43,11 @@ static char	*macro_buffer;
 			   macro definitions.  Dynamically allocated,
 			   expanded as needed. */
 #define MACRO_BUFFER_INITIAL_ALLOCATION 4000
-#define MACRO_BUFFER_INCREMENTAL_ALLOCATION 5000
-			/* Initial and incremental allocation sizes for
-			   macro_buffer.  The initial allocation should be
-			   such that almost all cases can be accepted (so that
-			   the realloc is hardly ever needed). */
+			/* Initial allocation size for macro_buffer.  The
+			   initial allocation should be such that almost all
+			   cases can be accepted (so that the realloc is
+			   hardly ever needed).  Subsequent reallocations will
+			   double the amount previously allocated. */
 static char	*after_end_of_macro_buffer;
 			/* The address just past the last element of
 			   macro_buffer. */
@@ -62,12 +62,12 @@ static char	*aux_buffer_for_pcc_macros;
 			   macro expansion so that the token pasting can
 			   match pcc's. */
 #define AUX_BUFFER_FOR_PCC_MACROS_INITIAL_ALLOCATION 1000
-#define AUX_BUFFER_FOR_PCC_MACROS_INCREMENTAL_ALLOCATION 2000
-			/* Initial and incremental allocation sizes for
+			/* Initial allocation size for
 			   aux_buffer_for_pcc_macros.  The initial allocation
 			   should be such that almost all cases can be
 			   accepted (so that the realloc is hardly ever
-			   needed). */
+			   needed).  Subsequent reallocations will double the
+			   amount previously allocated. */
 static char	*after_end_of_aux_buffer_for_pcc_macros;
 			/* Pointer to just after the end of
 			   aux_buffer_for_pcc_macros. */
@@ -128,11 +128,11 @@ typedef struct a_macro_arg {
 			   escapes (e.g., end-of-token) in addition to the
 			   raw text of the tokens. */
 #define ARG_RAW_TEXT_INITIAL_ALLOCATION 400
-#define ARG_RAW_TEXT_INCREMENTAL_ALLOCATION 1000
-			/* Initial and incremental allocation sizes for
-			   raw_text.  The initial allocation should be
-			   such that almost all cases can be accepted (so that
-			   the realloc is hardly ever needed). */
+			/* Initial allocation size for raw_text.  The initial
+			   allocation should be such that almost all cases
+			   can be accepted (so that the realloc is hardly ever
+			   needed).  Subsequent reallocations will double the
+			   amount previously allocated. */
   sizeof_t	raw_alloc_len;
 			/* Allocated size of the raw_text array. */
   char		*initial_raw_text_not_in_primary_source_line;
@@ -167,11 +167,11 @@ typedef struct a_macro_arg {
 			   Contains various escapes (e.g., end-of-token) in
 			   addition to the raw text of the tokens. */
 #define ARG_EXPANDED_TEXT_INITIAL_ALLOCATION 400
-#define ARG_EXPANDED_TEXT_INCREMENTAL_ALLOCATION 2000
-			/* Initial and incremental allocation sizes for
-			   expanded_text.  The initial allocation should be
-			   such that almost all cases can be accepted (so that
-			   the realloc is hardly ever needed). */
+			/* Initial allocation size for expanded_text.  The
+			   initial allocation should be such that almost all
+			   cases can be accepted (so that the realloc is
+			   hardly ever needed).  Subsequent reallocations will
+			   double the amount previously allocated. */
   sizeof_t	expanded_alloc_len;
 			/* Allocated size of the expanded_text array. */
 } a_macro_arg;
@@ -318,14 +318,15 @@ ensure_macro_buffer_space.
   char     *new_macro_buffer;
 
   db_enter(4, "expand_macro_buffer");
+  old_size = after_end_of_macro_buffer - macro_buffer;
   /* Make sure we ask for enough to satisfy the current request and a
      little bit more. */
   increment = needed + needed/10 -
               (after_end_of_macro_buffer - next_avail_in_macro_buffer);
-  if (increment < MACRO_BUFFER_INCREMENTAL_ALLOCATION) {
-    increment = MACRO_BUFFER_INCREMENTAL_ALLOCATION;
+  if (increment < old_size) {
+    /* At least double the current allocation. */
+    increment = old_size;
   }  /* if */
-  old_size = after_end_of_macro_buffer - macro_buffer;
   new_size = old_size + increment;
   /* Allocate one more byte than required, so that a pointer past the end
      will not have the same address as a pointer to the next object in
@@ -370,15 +371,16 @@ the pointer to the next available position in that buffer.
   char     *new_aux_buffer_for_pcc_macros;
 
   db_enter(4, "expand_aux_buffer_for_pcc_macros");
+  old_size = after_end_of_aux_buffer_for_pcc_macros -
+             aux_buffer_for_pcc_macros;
   /* Not enough space; need to expand.  Make sure we ask for enough
      to satisfy the current request and a little bit more. */
   increment = needed + needed/10 -
               (after_end_of_aux_buffer_for_pcc_macros - pos_in_aux_buffer);
-  if (increment < AUX_BUFFER_FOR_PCC_MACROS_INCREMENTAL_ALLOCATION) {
-    increment = AUX_BUFFER_FOR_PCC_MACROS_INCREMENTAL_ALLOCATION;
+  if (increment < old_size) {
+    /* At least double the current allocation. */
+    increment = old_size;
   }  /* if */
-  old_size = after_end_of_aux_buffer_for_pcc_macros -
-             aux_buffer_for_pcc_macros;
   new_size = old_size + increment;
   /* Allocate one more byte than required, so that a pointer past the end
      will not have the same address as a pointer to the next object in
@@ -451,8 +453,9 @@ ensure_arg_raw_text_space.
   /* Need to expand.  Make sure we ask for enough to satisfy the current
      request and a little bit more. */
   increment = needed + needed/10 - (old_size - map->raw_len);
-  if (increment < ARG_RAW_TEXT_INCREMENTAL_ALLOCATION) {
-    increment = ARG_RAW_TEXT_INCREMENTAL_ALLOCATION;
+  if (increment < old_size) {
+    /* At least double the current allocation. */
+    increment = old_size;
   }  /* if */
   new_size = old_size + increment;
 #if DEBUG
@@ -523,8 +526,9 @@ ensure_arg_expanded_text_space.
   /* Need to expand.  Make sure we ask for enough to satisfy the current
      request and a little bit more. */
   increment = needed + needed/10 - (old_size - map->expanded_len);
-  if (increment < ARG_EXPANDED_TEXT_INCREMENTAL_ALLOCATION) {
-    increment = ARG_EXPANDED_TEXT_INCREMENTAL_ALLOCATION;
+  if (increment < old_size) {
+    /* At least double the current allocation. */
+    increment = old_size;
   }  /* if */
   new_size = old_size + increment;
 #if DEBUG

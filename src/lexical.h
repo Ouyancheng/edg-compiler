@@ -1017,13 +1017,13 @@ EXTERN char	*curr_source_line;
 			   contains just the LE_END_OF_LINE lexical escape
 			   sequence (no newline, nothing else). */
 #define CURR_SOURCE_LINE_INITIAL_ALLOCATION 3000
-#define CURR_SOURCE_LINE_INCREMENTAL_ALLOCATION 5000
-			/* Initial and incremental allocation sizes for
-			   curr_source_line.  The initial allocation should be
-			   such that almost all cases can be accepted (so that
-			   the realloc is hardly ever needed) -- that means
-			   big enough for all the lines of a large macro
-			   definition. */
+			/* Initial allocation size for curr_source_line.  The
+			   initial allocation should be such that almost all
+			   cases can be accepted (so that the realloc is
+			   hardly ever needed) -- that means big enough for
+			   all the lines of a large macro definition.
+			   Subsequent reallocations will double the amount
+			   previously allocated. */
 EXTERN char	*after_end_of_curr_source_line /* = NULL */;
 			/* Address past the last element of curr_source_line,
 			   as an aid to checking for overflow, etc.  A variable

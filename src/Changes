@@ -1,5 +1,12 @@
 Version 3.6
 
+1/27/05  Preprocessing performance
+
+Various extensible buffers used in preprocessing formerly grew by fixed
+amounts each time they were reallocated.  They now double in size on each
+reallocation.  As a result, preprocessing is much faster for macros that
+result in very large expansions.
+
 1/26/05  C++-generating back end and GCC_BUILTIN_VARARGS
 
 If a C++-generating back end version was configured with GCC_BUILTIN_VARARGS
