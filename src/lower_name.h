@@ -70,11 +70,13 @@ extern char *mangled_typeinfo_name(a_type_ptr type);
 
 extern char *mangled_id_object_name(a_type_ptr type);
 
+#if DO_IL_LOWERING
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE
 extern void mangle_promoted_entity_name(a_source_correspondence *scp,
                                         a_routine_ptr           routine,
                                         a_scope_ptr             scope);
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE */
+#endif /* DO_IL_LOWERING */
 
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
 extern void mangle_covariant_return_type_entry_name(

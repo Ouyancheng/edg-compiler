@@ -2528,11 +2528,13 @@ thereunder.  Note that this does not include final processing for type names.
       if (class_scope != NULL) {
         do_type_list_class_name_mangling(class_scope->types);
       }  /* if */
+#if DO_IL_LOWERING
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
       /* If some local types of member functions were promoted into the
          class on their way to the file scope, mangle them now too. */
       do_type_list_class_name_mangling(ctsp->promoted_local_types);
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
+#endif /* DO_IL_LOWERING */
     }  /* if */
   }  /* for */
 }  /* do_type_list_class_name_mangling */
@@ -2623,11 +2625,13 @@ thereunder.
       if (class_scope != NULL) {
         do_scope_other_name_mangling(class_scope);
       }  /* if */
+#if DO_IL_LOWERING
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
       /* If some local types of member functions were promoted into the
          class on their way to the file scope, mangle them now too. */
       do_type_list_other_name_mangling(ctsp->promoted_local_types);
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
+#endif /* DO_IL_LOWERING */
     } else if (is_immediate_enum_type(type) &&
                (type->source_corresp.is_class_member ||
                 type->source_corresp.parent.namespace_ptr != NULL)) {
@@ -2829,11 +2833,13 @@ and subscopes thereunder.
       if (class_scope != NULL) {
         do_type_list_final_type_name_mangling(class_scope->types);
       }  /* if */
+#if DO_IL_LOWERING
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
       /* If some local types of member functions were promoted into the
          class on their way to the file scope, mangle them now too. */
       do_type_list_final_type_name_mangling(ctsp->promoted_local_types);
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
+#endif /* DO_IL_LOWERING */
     }  /* if */
     /* Do name mangling on the type. */
     /* Note that the call here must be done after all subscopes have been
@@ -3192,6 +3198,7 @@ a temporary buffer and must be copied elsewhere.
   return mangled_prefixed_type_encoding("__TID_", type);
 }  /* mangled_id_object_name */
 
+#if DO_IL_LOWERING
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE
 
 static unsigned long search_scope_list(a_scope_ptr scope,
@@ -3273,6 +3280,7 @@ and that is after normal name mangling has been done.
 }  /* mangle_promoted_entity_name */
 
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE */
+#endif /* DO_IL_LOWERING */
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
 
 void mangle_covariant_return_type_entry_name(a_routine_ptr entry_routine,

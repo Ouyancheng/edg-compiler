@@ -154,8 +154,6 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(765,set_scope_kind)*/
 /*lint -esym(759,set_statement_kind)*/
 /*lint -esym(765,set_statement_kind)*/
-/*lint -esym(759,require_definitions_of_virtual_functions_in_class)*/
-/*lint -esym(765,require_definitions_of_virtual_functions_in_class)*/
 /*lint -esym(759,is_default_operator_delete)*/
 /*lint -esym(765,is_default_operator_delete)*/
 /*lint -esym(714,num_array_elements)*/
