@@ -5060,9 +5060,12 @@ NULL.
            be an error; declaring something a pointer to this type
            would be allowed. */
         /* Add it now to the current scope's type list.  It was not added
-           previously because no actual definition appeared. */
-        add_to_types_list(type_ptr, DEPTH_OF_FILE_SCOPE,
-                          /*in_old_style_param_decl_list=*/FALSE);
+           previously because no actual definition appeared.   Don't
+           do this for non-real template class instantiations. */
+        if (is_real_class_symbol(sym)) {
+          add_to_types_list(type_ptr, DEPTH_OF_FILE_SCOPE,
+                            /*in_old_style_param_decl_list=*/FALSE);
+        }  /* if */
       }  /* if */
 #if CHECKING
       scp = &type_ptr->source_corresp;
