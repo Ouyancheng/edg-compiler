@@ -9,6 +9,12 @@ defines=${EDG_DEFAULT_DEFINES-"-Dsparc -Dunix -Dsun"}
 EDG_BASE=${EDG_BASE-/edg/cpfe}
 EDG_CBASE=${EDG_CBASE-/edg/cfe}
 #
+# Default include directories.  The default directories are specified by
+# EDG_DEFAULT_INCLUDE_DIRS.  If this variable is not set, then we
+# select either INCLDIR or CINCLDIR depending on the language being
+# compiled.  This is done after command line processing when we know
+# the language being compiled.
+#
 # Directory where the C++ include files are to be found.
 #
 INCLDIR=$EDG_BASE/include
@@ -16,15 +22,6 @@ INCLDIR=$EDG_BASE/include
 # Directory where the C include files are to be found.
 #
 CINCLDIR=$EDG_CBASE/usr/include
-#
-# Default include directories.  The default directories are specified by
-# EDG_DEFAULT_INCLUDE_DIRS.  If this variable is not set, then we
-# select either INCLDIR or CINCLDIR depending on the language being
-# compiled.  This is done after command line processing when we know
-# the language being compiled (no default value - use environment
-# variable if set).
-#
-# EDG_DEFAULT_INCLUDE_DIRS=$EDG_DEFAULT_INCLUDE_DIRS
 #
 # Directory where libC.a is to be found.
 #
