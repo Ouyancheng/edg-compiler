@@ -901,10 +901,8 @@ the lists.
           /* The definition should have been eliminated at pop_scope
              time (the definition will be put out when the file is compiled
              as a primary file) unless the routine is inline. */
-          if (routine->assoc_scope != NULL_region_number) {
-            check_assertion(routine->is_inline);
-            clear_body_for_routine(routine);
-          }  /* if */
+          check_assertion(routine->assoc_scope == NULL_region_number ||
+                          routine->is_inline);
 #if DO_IL_LOWERING
           if (il_lowering_needed() &&
               routine->storage_class == (a_storage_class)sc_static) {
@@ -915,7 +913,16 @@ the lists.
             mangle_function_name(routine);
             externalize_source_correspondence(&routine->source_corresp,
                                               /*is_variable=*/FALSE);
-            routine->storage_class = (a_storage_class)sc_extern;
+            if (routine->assoc_scope == NULL_region_number) {
+              routine->storage_class = (a_storage_class)sc_extern;
+            } else {
+              /* A static inline function becomes extern inline. */
+              check_assertion(routine->is_inline);
+              routine->storage_class = (a_storage_class)sc_unspecified;
+#if INSTANTIATE_EXTERN_INLINE
+              routine->suppress_inline_body = TRUE;
+#endif /* INSTANTIATE_EXTERN_INLINE */
+            }  /* if */
           }  /* if */
 #endif /* DO_IL_LOWERING */
         }  /* if */
