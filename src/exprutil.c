@@ -8086,10 +8086,44 @@ non-NULL return *con_value == NULL.
           op1->next = conv_lvalue_expr_to_rvalue(op2, &constant_case2,
                                                  (a_constant_ptr *)NULL);
           *constant_case = constant_case2;
+#if GNU_EXTENSIONS_ALLOWED
+        } else if (op == (an_expr_operator_kind)eok_ignu_min ||
+                   op == (an_expr_operator_kind)eok_ignu_max ||
+                   op == (an_expr_operator_kind)eok_fgnu_min ||
+                   op == (an_expr_operator_kind)eok_fgnu_max ||
+                   op == (an_expr_operator_kind)eok_pgnu_min ||
+                   op == (an_expr_operator_kind)eok_pgnu_max ||
+                   op == (an_expr_operator_kind)eok_gnu_min  ||
+                   op == (an_expr_operator_kind)eok_gnu_max) {
+          /* GNU C++ minimum and maximum operators. */
+          op2 = op1->next;
+          op1->next = NULL;
+          op1 = conv_lvalue_expr_to_rvalue(op1, &constant_case2,
+                                           (a_constant_ptr *)NULL);
+          op2 = conv_lvalue_expr_to_rvalue(op2, &constant_case3,
+                                           (a_constant_ptr *)NULL);
+          op1->next = op2;
+          *constant_case = constant_case2 && constant_case3;
+          if (is_constant_node(op1) && is_constant_node(op2)) {
+            /* Both operands are now constant so fold to a constant result. */
+            a_boolean did_not_fold, template_constant;
+            con_expr_value = alloc_constant(op1->variant.constant->kind);
+            binary_operation(op,
+                             op1->variant.constant,
+                             op2->variant.constant,
+                             op1->type,
+                             con_expr_value,
+                             curr_expr_kind_is_const(),
+                             curr_expr_is_evaluated(),
+                             &did_not_fold,
+                             &template_constant,
+                             &error_position);
+            check_assertion(!did_not_fold);
+          }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
         } else {
-          /* The operation is an assignment, a prefix ++/--, or a GNU min/max
-             operator that returns an lvalue.  Change it to one that returns
-             an rvalue. */
+          /* The operation is an assignment or a prefix ++/-- that returns
+             an lvalue.  Change it to one that returns an rvalue. */
         }  /* if */
         optimized_case = TRUE;
         node->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
