@@ -1967,7 +1967,6 @@ the function.
   a_symbol_ptr                   sym = NULL, ext_sym;
   a_type_ptr                     tp, rout_type, old_type;
   a_routine_type_supplement_ptr  extra_info;
-  an_extern_linkage              external_linkage;
   an_id_linkage_kind             linkage;
   a_symbol_locator               locator;
 
@@ -2021,12 +2020,10 @@ the function.
     /* Create the symbol and routine entry.  Note that the routine entry
        is given a storage class of sc_extern since there is no definition
        in the current translation unit. */
-    external_linkage.kind = (a_name_linkage_kind)nlk_cplusplus_external;
-    external_linkage.is_explicit = FALSE;
     decl_var_or_routine(&locator, (a_storage_class)sc_extern,
                         rout_type, /*is_implicit_function=*/FALSE,
                         /*if_function_def_with_body=*/FALSE,
-                        /*is_inline=*/FALSE, external_linkage, &sym,
+                        /*is_inline=*/FALSE, &sym,
                         &linkage, &old_type, &ext_sym);
     sym->variant.routine->compiler_generated = TRUE;
   }  /* if */
