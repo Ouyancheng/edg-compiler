@@ -67,16 +67,6 @@ a "for"] would have to be rewritten.)
  #error -- The C++/C-generating back end requires RECORD_TEMPLATES_IN_IL.
 #endif /* !RECORD_TEMPLATES_IN_IL */
 
-#if RECORD_MACROS_IN_IL
-/* RECORD_MACROS_IN_IL is supported after a fashion in the C++-generating
-   back end, but if you enable it you produce output that won't necessarily
-   mean the same thing as the input (because some of the code may be subjected
-   to additional macro transformations even though it's already been
-   macro-expanded).  So it's pretty likely an error to attempt to have
-   macro output enabled here. */
- #error -- The C++/C-generating back end requires RECORD_MACROS_IN_IL FALSE.
-#endif /* RECORD_MACROS_IN_IL */
-
 /* Header files common to all files. */
 #include "fe_common.h"
 
@@ -303,9 +293,6 @@ static void gen_enum_definition(a_type_ptr type);
 static void gen_class_definition(a_type_ptr type);
 static a_boolean process_preprocessing_directives(void);
 static void gen_pragma(void);
-#if RECORD_MACROS_IN_IL
-static void gen_macro(void);
-#endif /* RECORD_MACROS_IN_IL */
 static void gen_template(void);
 static void gen_lvalue(an_expr_node_ptr node);
 static void gen_initializer_expr(an_expr_node_ptr expr,
@@ -2172,7 +2159,10 @@ pragmas and macros.  Return TRUE if anything was processed.
 #if RECORD_MACROS_IN_IL
     } else if (ss_entry_kind(curr_source_sequence_entry) == iek_macro) {
       /* A macro. */
-      gen_macro();
+      /* Advance past the source sequence entry for the macro.  It gets put
+         out at the end of the output file, so it won't get expanded
+         accidentally on code that's already macro-expanded. */
+      adv_curr_source_sequence_entry();
       anything_processed = TRUE;
 #endif /* RECORD_MACROS_IN_IL */
     } else {
@@ -4742,29 +4732,6 @@ is the one associated with the template.
   write_code_string(tp->text);
 }  /* gen_template */
 
-#if RECORD_MACROS_IN_IL
-
-static void gen_macro(void)
-/*
-Generate a declaration for a macro.  The current source sequence entry
-is the one associated with the macro.  This is used both for #define and
-for #undef.
-*/
-{
-  a_macro_ptr mp = ss_entry_ptr(curr_source_sequence_entry, a_macro_ptr);
-
-  /* Advance past the source sequence entry for the macro. */
-  adv_curr_source_sequence_entry();
-  end_output_line_if_begun();
-  set_output_position(&mp->source_corresp.decl_position);
-  disable_line_wrapping();
-  /* Write the macro string. */
-  write_str(mp->text);
-  enable_line_wrapping();
-  end_output_line();
-}  /* gen_macro */
-
-#endif /* RECORD_MACROS_IN_IL */
 
 static void gen_namespace(void)
 /*
@@ -6284,6 +6251,24 @@ that case) and old-style parameter declarations.
   (void)process_preprocessing_directives();
 }  /* gen_declaration */
 
+#if RECORD_MACROS_IN_IL
+
+static void gen_macro(a_macro_ptr mp)
+/*
+Generate a declaration for the indicated macro.  The output is a #define
+or #undef.
+*/
+{
+  end_output_line_if_begun();
+  set_output_position(&mp->source_corresp.decl_position);
+  disable_line_wrapping();
+  /* Write the macro string. */
+  write_str(mp->text);
+  enable_line_wrapping();
+  end_output_line();
+}  /* gen_macro */
+
+#endif /* RECORD_MACROS_IN_IL */
 
 static void process_file_scope_entities(void)
 /*
@@ -6303,6 +6288,15 @@ Process all the file scope entities, and everything under those.
     /* Generate the declaration of a file-scope entity. */
     gen_declaration(/*for_init=*/FALSE);
   }  /* for */
+#if RECORD_MACROS_IN_IL
+  /* Put out all macro definitions at the end so they won't affect the
+     already macro-expanded code put out previously. */
+  { a_macro_ptr mp;
+    for (mp = il_header.macros; mp != NULL; mp = mp->next) {
+      gen_macro(mp);
+    }  /* for */
+  }
+#endif /* RECORD_MACROS_IN_IL */
   pop_name_context();
 }  /* process_file_scope_entities */
 
