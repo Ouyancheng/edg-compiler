@@ -5103,9 +5103,11 @@ is TRUE when this is called for a member function definition.
 
   class_decl_modifiers =
           class_type->variant.class_struct_union.extra_info->decl_modifiers;
+  /* Only dllimport and dllexport are applied to members, so strip off any
+     others that may have been declared for the class as a whole (e.g.,
+     novtable). */
+  class_decl_modifiers &= (DM_DLLIMPORT | DM_DLLEXPORT);
   if (class_decl_modifiers != DM_NONE) {
-    check_assertion_str(class_decl_modifiers & (DM_DLLIMPORT | DM_DLLEXPORT),
-                        "merge_decl_modifiers: unexpected class modifiers");
     decl_modifiers = decl_info->decl_modifiers.flags;
     if (decl_modifiers & (DM_DLLIMPORT | DM_DLLEXPORT)) {
       /* If there are dll modifiers on the class, they cannot appear on the
