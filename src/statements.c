@@ -1752,12 +1752,20 @@ headed by goto_cfdp.
 
   define_label(label);
   if (!C_mode()) {
+    /* Do special C++ processing -- it's not needed in C mode because it is
+       only used to support object lifetimes. */
+    /* Create a control-flow entry to represent this label. */
     cfdp = alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_label);
     cfdp->variant.label_statement = label->variant.exec_stmt;
     cfdp->source_pos = pos_curr_token;
     add_to_control_flow_descr_list(cfdp);
+    /* Record the innermost object lifetime as the object lifetime associated
+       with this label. */
     label_olp = innermost_block_object_lifetime(curr_object_lifetime);
     label->variant.exec_stmt->variant.label.lifetime = label_olp;
+    /* For each branch that has this label as a target, record in the the
+       goto statement the common object lifetime (the one embracing both
+       the label and the goto). */
     for (; goto_cfdp != NULL;
            goto_cfdp = goto_cfdp->variant.goto_statement.prev_goto) {
       goto_olp_addr = &goto_cfdp->variant.goto_statement.ptr->
