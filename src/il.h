@@ -70,6 +70,13 @@ alloc_type will make the correction.
 EXTERN a_name_linkage_kind
 		default_routine_name_linkage;
 
+EXTERN a_type_ptr
+                type_of_type_info;
+                        /* Points to the definition of the type_info type
+			   returned by typeid.  This type is identified
+			   by a #pragma define_type_info that immediately
+			   precedes the class definition of type_info. */
+
 /*
 Macro that generates a unique unsigned long identifier from an IL pointer.
 This is useful for generating names for unnamed symbols, for cross-reference

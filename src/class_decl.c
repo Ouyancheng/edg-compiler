@@ -8041,7 +8041,6 @@ One-time initialization for class_decl.c static variables.
       pch_saved_var_array_elem(avail_routine_fixup),
       pch_saved_var_array_elem(avail_derivation_steps),
       pch_saved_var_array_elem(avail_override_registry_entries),
-      pch_saved_var_array_elem(type_of_type_info),
 #if DEBUG
       pch_saved_var_array_elem(num_routine_fixups_allocated),
 #endif /* if DEBUG */
@@ -8064,7 +8063,6 @@ Initializations for class declaration processing.
   avail_derivation_steps = NULL;
   /* Initialize the list of freed override-registry entries. */
   avail_override_registry_entries = NULL;
-  type_of_type_info = NULL;
 #if DEBUG
   num_routine_fixups_allocated = 0;
 #endif /* DEBUG */

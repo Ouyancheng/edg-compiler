@@ -10415,6 +10415,7 @@ in il_init.)
      headers */
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
+      pch_saved_var_array_elem(type_of_type_info),
       pch_array_saved_var_array_elem(float_types),
       pch_saved_var_array_elem(il_error_type),
       pch_saved_var_array_elem(il_unknown_type),
@@ -10539,6 +10540,7 @@ of the front end.
   initial_value_for_il_lowering_flag = 0;
 #endif /* DO_IL_LOWERING */
   curr_object_lifetime = NULL;
+  type_of_type_info = NULL;
 
   /* Static variables in il.c: */
   /* Depending on NULL represented as zero bits here. */

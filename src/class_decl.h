@@ -97,13 +97,6 @@ extern void db_base_class_list(a_type_ptr tp);
 extern void db_all_virtual_function_override_lists(a_type_ptr  class_type);
 #endif /* DEBUG */
 
-EXTERN a_type_ptr
-                type_of_type_info;
-                        /* Points to the definition of the type_info type
-			   returned by typeid.  This type is identified
-			   by a #pragma define_type_info that immediately
-			   precedes the class definition of type_info. */
-
 #endif /* CLASS_DECL_H */
 
 /******************************************************************************
