@@ -301,27 +301,26 @@ address taken, and if not issue an error.
 	pos_error(ec_address_of_register_variable, &rep->position);
 	/* Turn the reference into an error reference so that the error will
 	   be issued only once. */
-	rep->kind = (rep->kind & SRK_ALL_REFERENCES) | SRK_ERROR;
+	rep->kind = (rep->kind & ~SRK_ALL_REFERENCES) | SRK_ERROR;
 	rep->already_recorded = FALSE;
       }  /* if */
-    } else {
-      /* Indicate that the address of the variable has been taken.  Setting
-         the flag here means it is set even for cases where an address
-         is used at some intermediate step but doesn't escape, e.g.,
-           a[2] = 1;  // address_taken on "a"
-         but a simple interpretation of address_taken seems to be what
-         people prefer.  Note that the flag is also set when the
-         reference is recorded later, but only if the address-taken
-         reference survives to that point, so the setting there is
-         more discriminating.  One can remove the assignment here to
-         get the other interpretation.  If one does so, one should
-         consider whether one wants register variables and parameters
-         treated in some special way (e.g., one might want to set the
-         address_taken flag here anyway for those), since the address_taken
-         flag might be used to decide whether to allocate storage
-         for those variables. */
-      set_variable_address_taken(var);
     }  /* if */
+    /* Indicate that the address of the variable has been taken.  Setting
+       the flag here means it is set even for cases where an address
+       is used at some intermediate step but doesn't escape, e.g.,
+         a[2] = 1;  // address_taken on "a"
+       but a simple interpretation of address_taken seems to be what
+       people prefer.  Note that the flag is also set when the
+       reference is recorded later, but only if the address-taken
+       reference survives to that point, so the setting there is
+       more discriminating.  One can remove the assignment here to
+       get the other interpretation.  If one does so, one should
+       consider whether one wants register variables and parameters
+       treated in some special way (e.g., one might want to set the
+       address_taken flag here anyway for those), since the address_taken
+       flag might be used to decide whether to allocate storage
+       for those variables. */
+    set_variable_address_taken(var);
   } else if (sym->kind == (a_symbol_kind)sk_static_data_member) {
     /* For simple interpretation of address_taken, set address_taken
         on static data members here.  This can be removed.  See comments
@@ -4298,8 +4297,11 @@ and if so, change *operand to indicate the address.  If not, return FALSE.
   an_expr_node_ptr node;
   a_field_ptr      field;
   a_type_ptr       ptr_type;
+  an_operand       orig_operand;
 
   check_assertion(is_expression_operand(operand));
+  /* Save the operand's source position, etc. */
+  orig_operand = *operand;
   node = operand->variant.expression;
   /* Only handle the simplest case, not something like "&(i ? x.a : x.b)".
      A case like that could be handled, but it's tricky, since the
@@ -4321,6 +4323,13 @@ and if so, change *operand to indicate the address.  If not, return FALSE.
       make_expression_operand(node, ptr_type, operand);
     }  /* if */
   }  /* if */
+  /* Restore the original source position, etc.  Restore the references too. */
+  restore_operand_details_incl_ref(operand, &orig_operand);
+  if (address_taken) {
+    /* Change the kind in the reference entries to address-taken. */
+    /* This will check for taking the address of a register variable. */
+    change_ref_kinds(operand->ref_entries_list, SRK_ADDRESS_TAKEN);
+  }  /* if */
   return address_taken;
 }  /* take_address_of_bit_field */
 
@@ -4334,12 +4343,9 @@ operand isn't a register variable or a bit field, and set the
 address_taken flag.
 */
 {
-  an_operand orig_operand;
-
   if (is_error_operand(operand)) {
     /* Leave an error operand alone. */
   } else {
-    orig_operand = *operand;
 #if CHECKING
     if (!is_an_lvalue(operand)) {
       internal_error("take_address_of_lvalue: not an lvalue");
@@ -4368,8 +4374,6 @@ address_taken flag.
       /* This will check for taking the address of a register variable. */
       change_ref_kinds(operand->ref_entries_list, SRK_ADDRESS_TAKEN);
     }  /* if */
-    /* Restore the original source position, etc. */
-    restore_operand_details(operand, &orig_operand);
   }  /* if */
 }  /* take_address_of_lvalue */
 
