@@ -700,7 +700,10 @@ necessary to make it directly accessible in memory.
      changing their old addresses to new addresses. */
   if (reading_file_scope_il) {
     /* The memory region is the file scope region. */
-    /* Remap the pointers in the orphaned file scope IL entry table. */
+    /* Remap the "last" pointers in the orphaned file scope IL entry table.
+       The "first" pointers are left alone for now; they will be remapped
+       by the call of walk_orphaned_file_scope_il_entries at the end
+       of the file-scope IL walk. */
     remap_orphaned_file_scope_entry_array_ptrs(ptr_remap_function);
     /* Walk the file scope IL tree. */
     walk_file_scope_il((an_entry_process_function_ptr)NULL,
