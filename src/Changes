@@ -419,7 +419,7 @@ this in Microsoft mode.
     f(i, e);
   }
 
-1/18/97   Microsoft compatibility: return and "="-form declaration
+1/18/98   Microsoft compatibility: return and "="-form declaration
           initialization is direct-initialization
 
 The Microsoft VC++ compiler 5.0 seems to treat the initialization in
