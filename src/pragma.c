@@ -580,16 +580,13 @@ there is additional processing to be done.
   add_to_pragma_list(pp, at_file_scope, class_type);
   if (at_file_scope) switch_back_to_original_region(region_to_switch_back_to);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH &&
-      depth_template_declaration_scope == NO_SCOPE_DEPTH) {
-    update_source_sequence_list((char *)pp, (an_il_entry_kind)iek_pragma,
-                                  &pp->decl_position,
-                                  ppp->source_sequence_entry);
-    /* The source sequence entry is now attached to the IL pragma entry.
-       Clear the copy of the source_sequence_entry pointer in the pending
-       pragma entry because it is now obsolete. */
-    ppp->source_sequence_entry = NULL;
-  }  /* if */
+  update_source_sequence_list((char *)pp, (an_il_entry_kind)iek_pragma,
+                              &pp->decl_position,
+                              ppp->source_sequence_entry);
+  /* The source sequence entry is now attached to the IL pragma entry.
+     Clear the copy of the source_sequence_entry pointer in the pending
+     pragma entry because it is now obsolete. */
+  ppp->source_sequence_entry = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   ppp->il_pragma_entry = pp;
 }  /* add_pragma_to_il */
