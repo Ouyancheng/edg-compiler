@@ -4718,7 +4718,7 @@ If skip_num is positive, ignore the first skip_num arguments.
   an_expr_node_ptr arg = args;
 
   write_tok_ch('(');
-  for (; arg != NULL && skip_num > 0; arg = arg->next, --skip_num);
+  for (; arg != NULL && skip_num > 0; arg = arg->next, --skip_num) {}
   check_assertion(skip_num == 0);
   for (; arg != NULL; arg = arg->next) {
     if (arg != args) write_tok_str(", ");
