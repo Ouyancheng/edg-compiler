@@ -761,7 +761,8 @@ hiding.
                                           (a_scope_ptr)NULL);
           }  /* if */
           /* Do a similar check for tag names in containing scopes. */
-          if (!is_tag_symbol(old_sym_ptr)) {
+          if (!is_tag_symbol(old_sym_ptr) &&
+              !is_class_template_symbol(old_sym_ptr)) {
             clear_specific_symbol(locator);
             old_sym_ptr = normal_id_lookup(&locator, IDL_HIDDEN_NAME_LOOKUP |
                                                      IDL_MUST_BE_TAG |
