@@ -1,5 +1,24 @@
 Version 2.45
 
+11/1/00  Microsoft compatibility: call of non-const function on const
+         object via pointer-to-member
+
+MSVC++ (at least versions 6.0 and 7.0) allow a call of a non-const
+member function on a const object when the call is done via the
+pointer-to-member operator .* and ->*.  This is now emulated in
+Microsoft bugs mode.  A warning is issued.
+
+  struct A {
+    void f();
+  };
+  void (A::*pmf)() = &A::f;
+  int main() {
+    const A ca;
+    (ca.*pmf)();    // Accepted in Microsoft bugs mode
+    const A *pca = &ca;
+    (pca->*pmf)();  // Accepted in Microsoft bugs mode
+  }
+
 10/31/00 Abort on invalid string literal in Microsoft uuid construct
 
 The front end used to abort when processing a string literal with a missing

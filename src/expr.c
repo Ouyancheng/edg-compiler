@@ -1501,6 +1501,14 @@ Syntax:
            selector. */
         change_refs_on_selector_if_const_function(routine_type,
                                                   bound_function_selector);
+      } else if (microsoft_bugs && routine == NULL &&
+                 is_ptr_to_member_type(operand->type)) {
+        /* MSVC++ 6.0 and 7.0 allow a call via a pointer to member
+           where the object is constant and the function is not, e.g.,
+             (const_obj_ptr->*pm_non_const_func)();
+        */
+        pos_warning(ec_unqual_function_with_qual_object,
+                    &bound_function_selector->position);
       } else {
         /* Some mismatch (more qualifiers on selector than on "this" parameter
            type). */
