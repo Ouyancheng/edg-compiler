@@ -2031,6 +2031,9 @@ error code.
     case ec_used_before_set:
       m = "%n is used before its value is set";
       break;
+    case ec_set_but_not_used:
+      m = "%n was set and never used";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

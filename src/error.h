@@ -591,7 +591,8 @@ typedef enum /*an_error_code*/ {
   ec_branch_past_initialization,
   ec_name_at_decl_position,
   ec_branch_into_handler,
-  ec_used_before_set
+  ec_used_before_set,
+  ec_set_but_not_used
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
