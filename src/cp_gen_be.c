@@ -4742,8 +4742,6 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
              X::X()
            mean different things to the Microsoft compiler.  Also don't
            do it for explicit destructor calls (in any mode). */
-        /* Force the use of a qualified name for these cases. */
-        force_qualified_name = TRUE;
       } else if (rout->is_virtual &&
                  rout->source_corresp.qualification_needed &&
                  !suppress_virtual) {
@@ -4767,6 +4765,12 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
   if (suppress_virtual && rout->is_virtual) {
     /* The routine being called is a virtual function, and we're supposed
        to suppress its virtual-ness in this call, so force a qualified name. */
+    force_qualified_name = TRUE;
+  } else if (rout->special_kind == (a_special_function_kind)sfk_constructor ||
+             rout->special_kind == (a_special_function_kind)sfk_destructor) {
+    /* Force use of a qualified name when a constructor is called explicitly
+       (a Microsoft extension).  Also use a qualified name for explicit
+       destructor calls (in any mode). */
     force_qualified_name = TRUE;
   }  /* if */
   if (suppress_this && selection_class == naming_class && !rout->is_virtual) {
