@@ -3739,8 +3739,8 @@ End a name scope by popping an entry off the scope stack.
        controls whether the function body is walked. */
     set_routine_defined(curr_routine);
   }  /* if */
-#if MAINTAIN_NEEDED_FLAGS
   if (curr_routine != NULL) {
+#if MAINTAIN_NEEDED_FLAGS
     /* If the function is really needed (i.e., if it is referenced by code
        that is itself really needed or if it is globally visible and
        presumably needed by code in another translation unit) set the
@@ -3804,7 +3804,9 @@ End a name scope by popping an entry off the scope stack.
               db_storage_class_names[(int)curr_routine->storage_class]);
 #endif /* DEBUG */
     }  /* if */
+#endif /* MAINTAIN_NEEDED_FLAGS */
   } else if (kind == (a_scope_kind)sck_file) {
+#if MAINTAIN_NEEDED_FLAGS
     /* Set the "needed" flag in defined variables with external linkage --
        both in the file scope and in each of the namespace scopes. */
     end_of_file_scope_needed_flags_phase = TRUE;
@@ -3838,12 +3840,13 @@ End a name scope by popping an entry off the scope stack.
          need to be kept in the IL. */
       eliminate_unneeded_il_entries(il_scope);
     }  /* if */
+#endif /* MAINTAIN_NEEDED_FLAGS */
     /* Check for memory regions that were not written out but now should
        be.  Among other things, this deals with functions that have
-       keep_definition_in_il set but not definition_needed. */
+       keep_definition_in_il set but not definition_needed, and inline
+       functions. */
     check_for_done_with_all_function_memory_regions();
   }  /* if */
-#endif /* MAINTAIN_NEEDED_FLAGS */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   if (kind == (a_scope_kind)sck_file) {
     /* Set the IL flags used to pass automatic instantiation information to

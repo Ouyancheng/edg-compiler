@@ -1144,7 +1144,7 @@ memory or with an IL file.
   db_exit();
 }  /* check_for_done_with_memory_region */
 
-#if MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM
+#if !STANDALONE_UTILITY_PROGRAM
 
 void check_for_done_with_all_function_memory_regions(void)
 /*
@@ -1190,7 +1190,7 @@ not definition_needed, or (c) if they are inline.
   db_exit();
 }  /* check_for_done_with_all_function_memory_regions */
 
-#endif /* MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 #if DEBUG
 #if !STANDALONE_UTILITY_PROGRAM
