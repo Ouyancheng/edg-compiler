@@ -8987,6 +8987,11 @@ normal_function:
                                          result);
           }  /* if */
           break;
+        case sk_namespace:
+          /* The identifier is a namespace name. */
+          error_and_make_error_operand(ec_namespace_name_not_allowed,
+                                       result);
+          break;
         case sk_parameter:
           if (expr_stack->is_default_arg_expression ||
               !curr_expr_kind_is(ek_sizeof)) {
