@@ -503,11 +503,12 @@ as the class type, and use as a base class.
 }  /* proxy_class_for_template_param */
 
 
-a_symbol_ptr create_unknown_function_symbol(a_symbol_locator	*locator)
+a_symbol_ptr create_unknown_function_symbol(a_symbol_ptr	orig_sym)
 /*
 Create a ck_constant entry of kind tpck_unknown_function, and an sk_constant
 symbol that points to the constant.  These constants are used during
 prototype instantiations to represent functions in dependent calls.
+The symbol is created using the symbol header information from orig_sym.
 */
 {
   /* Create a ck_template_param constant.  We don't know the type of the
@@ -517,11 +518,14 @@ prototype instantiations to represent functions in dependent calls.
   a_scope_depth			depth = NO_SCOPE_DEPTH;
   a_symbol_ptr			sym;
   a_source_correspondence	*scp;
-  a_type_ptr			parent_class;
-  a_namespace_ptr		parent_namespace;
+  a_type_ptr			parent_class = NULL;
+  a_namespace_ptr		parent_namespace = NULL;
 
-  parent_class = qualifier_class_type(*locator);
-  parent_namespace = qualifier_namespace_ptr(*locator);
+  if (orig_sym->is_class_member) {
+    parent_class = orig_sym->parent.class_type;
+  } else {
+    parent_namespace = orig_sym->parent.namespace_ptr;
+  }  /* if */
 #if RECORD_SCOPE_DEPTH_IN_IL
   {
     a_source_correspondence	*parent_scp = NULL;
@@ -541,8 +545,8 @@ prototype instantiations to represent functions in dependent calls.
 #endif /* RECORD_SCOPE_DEPTH_IN_IL */
   /* Create a symbol for the member.  mark_declared is not called
      because this symbol is not visible to the user. */
-  sym = alloc_symbol((a_symbol_kind)sk_constant, locator->symbol_header,
-                     &locator->source_position);
+  sym = alloc_symbol((a_symbol_kind)sk_constant, orig_sym->header,
+                     &null_source_position);
   constant = fs_constant((a_constant_repr_kind)ck_template_param);
   set_template_param_constant_kind(
               constant, (a_template_param_constant_kind)tpck_unknown_function);
