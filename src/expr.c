@@ -295,6 +295,8 @@ is an explicit cast-to-void node, for which a warning should not be issued.
   }  /* while */
   /* See if the node has some effect. */
   if (!*has_effect) *has_effect = node_has_side_effects(node);
+  /* Mark the node to indicate that the result is not used. */
+  node->result_is_not_used = TRUE;
   /* Put the possibly updated pointer back into *node_ptr. */
   *node_ptr = node;
 }  /* simplify_void_node */
