@@ -75,6 +75,7 @@ Flags to be set when using the KAI inliner.
 /* Default to generating pcc C on SunOS. */
 #ifndef C_GEN_BE_GENERATES_ANSI_C
 #define C_GEN_BE_GENERATES_ANSI_C 0
+#define GCC_IS_C_GEN_BE_TARGET 0
 #endif /* ifndef C_GEN_BE_GENERATES_ANSI_C */
 #endif /* SUNOS */
 
