@@ -7400,10 +7400,7 @@ lifetime (the top of the object lifetime stack) is used.
       /* A non-static entity, probably a variable, that is associated with
          a scope lifetime.  If the current object lifetime is not that of
          a scope, find the innermost object lifetime that is. */
-      olp = curr_object_lifetime;
-      while (olp->entity.kind != (a_byte_il_entry_kind)iek_scope) {
-        olp = olp->parent_lifetime;
-      }  /* while */
+      olp = innermost_local_object_lifetime(curr_object_lifetime);
     } else {
       /* The default case is to use whatever is on top of the object lifetime
          stack. */
@@ -8073,6 +8070,22 @@ the object lifetime entry pointed to by stop_at.
     pop_object_lifetime();
   }  /* while */
 }  /* pop_object_lifetimes_until */
+
+
+an_object_lifetime_ptr innermost_local_object_lifetime(
+                                               an_object_lifetime_ptr  olp)
+/*
+Starting with the object lifetime entry pointed to by olp, advance though
+its parents and return the first entry that has a kind of olk_local.
+*/
+{
+  while (olp->kind != (an_object_lifetime_kind)olk_local) {
+    check_assertion_str(olp != NULL,
+                        "innermost_local_object_lifetime: not found");
+    olp = olp->parent_lifetime;
+  }  /* while */
+  return olp;
+}  /* innermost_local_object_lifetime */
 
 
 a_scope_ptr alloc_scope(a_scope_kind   kind,
