@@ -7235,13 +7235,14 @@ return a pointer to it in *symbol_ptr.
            changed. */
         if (!C_mode() && class_type != NULL && !is_error_type(tp)) {
           check_assertion(ssep->kind == (a_scope_kind)sck_class_struct_union);
-          if (tp->source_corresp.access != ssep->current_access) {
+          if (strict_ansi_mode) {
+            /* Member typedefs cannot be redeclared in strict C++ mode
+               (clarified in TC1; see 7.1.3/2 in the 2003 standard). */
+            pos_error(ec_duplicate_typedef, &locator->source_position);
+          } else if (tp->source_corresp.access != ssep->current_access) {
             /* Access for previous declaration does not correspond to access
                for current declaration. */
-            pos_sy_diagnostic(strict_ansi_mode ?
-                                strict_ansi_discretionary_severity :
-                                es_warning,
-                              ec_cannot_change_access,
+            pos_sy_diagnostic(es_warning, ec_cannot_change_access,
                               &locator->source_position, sym);
             /* Stay with the access specified on the original declaration. */
           }  /* if */

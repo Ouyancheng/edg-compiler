@@ -1,5 +1,19 @@
 Version 3.3
 
+6/23/03  Diagnostic for duplicate member typedef declaration
+
+In strict ANSI C++ mode, the front end now issues an error on duplicate
+member typedef declarations.  For example:
+
+  struct S {
+    typedef int I;
+    typedef int I;  // Error: Duplicate typedef declaration
+  };
+
+This is a consequence of a clarification in the TC1 revision of the C++
+standard.  Duplicate member typedefs are still accepted in non-strict C++
+modes (if they refer to identical underlying types).
+
 6/22/03  Abort in get_token: bad lexical escape on #define in macro arguments
 
 In some cases, the appearance of a #define within a macro argument
