@@ -2864,7 +2864,6 @@ fields, and return a pointer to it.
 
 #if RECORD_MACROS_IN_IL
 
-
 a_macro_ptr alloc_macro(void)
 /*
 Allocate a macro entry in the file-scope memory region, initialize its
@@ -2880,6 +2879,7 @@ fields, and return a pointer to it.
   set_default_source_corresp(mp->source_corresp);
   mp->next = NULL;
   mp->is_undef = FALSE;
+  mp->is_command_line_definition = FALSE;
   mp->text = NULL;
 
   return mp;

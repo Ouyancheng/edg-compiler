@@ -7771,6 +7771,10 @@ typedef struct a_macro {
   a_byte_boolean
 		is_undef;
 			/* TRUE for #undef, FALSE for #define. */
+  a_byte_boolean
+		is_command_line_definition;
+			/* TRUE if this entry is for a macro defined on the
+			   command line. */
   char		*text;
 			/* A null-terminated string representing the text of
 			   the macro declaration, starting with the keyword

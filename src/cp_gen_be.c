@@ -8815,11 +8815,14 @@ Generate a declaration for the indicated macro.  The output is a #define
 or #undef.
 */
 {
-  begin_pp_directive("");
-  set_output_position(&mp->source_corresp.decl_position);
-  /* Write the macro string. */
-  write_str(mp->text);
-  end_pp_directive();
+  /* Do not put out macros defined on the command line. */
+  if (!mp->is_command_line_definition) {
+    begin_pp_directive("");
+    set_output_position(&mp->source_corresp.decl_position);
+    /* Write the macro string. */
+    write_str(mp->text);
+    end_pp_directive();
+  }  /* if */
 }  /* gen_macro */
 
 #endif /* RECORD_MACROS_IN_IL */

@@ -2931,6 +2931,7 @@ the macro definition.
   mp->source_corresp.decl_position = *macro_pos;
   set_source_corresp(&mp->source_corresp, macro_sym);
   mdp->macro = mp;
+  mp->is_command_line_definition = (curr_command_line_macro_def != NULL);
   /* Add the macro to the IL list. */
   add_to_macros_list(mp);
 }  /* make_il_macro_entry */
