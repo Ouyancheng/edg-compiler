@@ -2213,6 +2213,7 @@ of the function, and again overloading is a possibility.
   a_class_list_entry_ptr  clep;
   a_boolean               is_overloaded_function;
   a_boolean               is_function_def_with_body;
+  a_storage_class         storage_class;
 
   db_enter(3, "decl_friend_function");
   if (!is_error_locator(*locator)) {
@@ -2226,8 +2227,13 @@ of the function, and again overloading is a possibility.
          specified as inline, that information should be passed on to
          decl_var_or_routine. */
       if (is_function_def_with_body) is_inline = TRUE;
-      decl_var_or_routine(locator, (a_storage_class)sc_unspecified,
-                          function_type, /*is_implicit_function=*/FALSE,
+      if (is_inline) {
+        storage_class = (a_storage_class)sc_static;
+      } else {
+        storage_class = (a_storage_class)sc_extern;
+      }  /* if */
+      decl_var_or_routine(locator, storage_class, function_type,
+                          /*is_implicit_function=*/FALSE,
                           is_function_def_with_body, is_inline,
                           def_external_linkage,
                           &sym, &linkage, &old_type, &ext_sym);
@@ -5624,7 +5630,7 @@ class/struct/union is actually defined.
                 }  /* if */
                 /* A comma-list of function definitions is not allowed. */
                 goto next_declaration;
-              } else {
+              } else if (!friend_specified) {
                 /* No function definition. */
                 if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
                   /* A member function declared in a local class definition
