@@ -1100,7 +1100,7 @@ source-sequence entries should be removed from the list.
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* for */
-}  /*  */
+}  /* record_param_id_list_declarations */
 
 
 #if !GENERATE_SOURCE_SEQUENCE_LISTS
