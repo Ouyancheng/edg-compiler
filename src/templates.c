@@ -1778,34 +1778,49 @@ static a_boolean function_template_declaration(a_symbol_ptr  *sym)
   if (curr_token == tok_end_of_source) {
     /* Advance past the end-of-source token. */
     (void)get_token();
-    if (!err && curr_token == tok_colon && is_constructor_symbol(*sym)) {
-      add_stop_token(tok_lbrace);
-      add_stop_token(tok_semicolon);
-      cache_token_stream(p_token_cache);
-      remove_stop_token(tok_lbrace);
-      remove_stop_token(tok_semicolon);
-    }  /* if */      
-    if (curr_token == tok_lbrace) {
-      if (!err) (*sym)->defined = TRUE;
-      /* Cache the "{" and advance past it. */
-      cache_curr_token(p_token_cache);
-      (void)get_token();
-      /* Cache all tokens up to the "}" (or end-of-source). */
-      add_stop_token(tok_rbrace);
-      cache_token_stream(p_token_cache);
-      remove_stop_token(tok_rbrace);
-      /* Cache the "}" and append an end-of-source token. */
-      if (curr_token == tok_rbrace) {
-        cache_curr_token(p_token_cache);
-        /* Advance to the next token. */
-        (void)get_token();
-      }  /* if */
+    if (curr_token == tok_lbrace ||
+        (curr_token == tok_colon && sym != NULL &&
+         is_constructor_symbol(*sym))) {
       if (!err) {
-        /* Add an end-of-source token to the end of the token cache to assure
-           that we don't scan past the end of the cache in the actual scan. */
-        terminate_token_cache(p_token_cache);
-      } else {
-        discard_token_cache(p_token_cache);
+        if ((*sym)->defined) {
+          err = TRUE;
+          pos_sy_error(ec_already_defined, &locator.source_position, *sym);
+          discard_token_cache(&local_token_cache);
+          clear_token_cache(&local_token_cache);
+          p_token_cache = &local_token_cache;
+        } else {
+          (*sym)->defined = TRUE;
+        }  /* if */
+      }  /* if */
+      if (curr_token == tok_colon) {
+        add_stop_token(tok_lbrace);
+        add_stop_token(tok_semicolon);
+        cache_token_stream(p_token_cache);
+        remove_stop_token(tok_lbrace);
+        remove_stop_token(tok_semicolon);
+      }  /* if */
+      if (curr_token == tok_lbrace) {
+        /* Cache the "{" and advance past it. */
+        cache_curr_token(p_token_cache);
+        (void)get_token();
+        /* Cache all tokens up to the "}" (or end-of-source). */
+        add_stop_token(tok_rbrace);
+        cache_token_stream(p_token_cache);
+        remove_stop_token(tok_rbrace);
+        /* Cache the "}" and append an end-of-source token. */
+        if (curr_token == tok_rbrace) {
+          cache_curr_token(p_token_cache);
+          /* Advance to the next token. */
+          (void)get_token();
+        }  /* if */
+        if (!err) {
+          /* Add an end-of-source token to the end of the token cache to
+             assure that we don't scan past the end of the cache in the actual
+             scan. */
+          terminate_token_cache(p_token_cache);
+        } else {
+          discard_token_cache(p_token_cache);
+        }  /* if */
       }  /* if */
     } else {
       /* No body to cache.  Check for final semicolon. */
