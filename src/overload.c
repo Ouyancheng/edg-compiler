@@ -2947,6 +2947,28 @@ other.  Return
 }  /* compare_candidate_functions */
 
 
+static a_boolean same_candidate_function(a_candidate_function_ptr cfp1,
+                                         a_candidate_function_ptr cfp2)
+/*
+Return TRUE if the candidate functions cfp1 and cfp2 are the same function.
+*/
+{
+  a_boolean    same = FALSE;
+  a_symbol_ptr sym1 = cfp1->function_symbol;
+  a_symbol_ptr sym2 = cfp2->function_symbol;
+
+  if (sym1 != NULL && sym2 != NULL) {
+    sym1 = fundamental_symbol_of(sym1);
+    sym2 = fundamental_symbol_of(sym2);
+    /* Compare IL entry pointers to deal with block extern symbols. */
+    if (sym1->variant.routine.ptr == sym2->variant.routine.ptr) {
+      same = TRUE;
+    }  /* if */
+  }  /* if */
+  return same;
+}  /* same_candidate_function */
+
+
 static a_boolean match_is_better_on_at_least_one_arg(
                                            a_candidate_function_ptr best_cfp,
                                            a_candidate_function_ptr candidates)
@@ -2974,10 +2996,7 @@ of something based strictly on the function itself or the call context
   for (cfp = candidates; cfp != NULL; cfp = cfp->next) {
     if (cfp == best_cfp) {
       /* Skip the chosen function itself. */
-    } else if (cfp->function_symbol != NULL &&
-               best_cfp->function_symbol != NULL &&
-               fundamental_symbol_of(cfp->function_symbol) ==
-               fundamental_symbol_of(best_cfp->function_symbol)) {
+    } else if (same_candidate_function(cfp, best_cfp)) {
       /* Skip other symbols that are the same function, which can appear
          in synthesized overload sets. */
     } else {
@@ -3164,10 +3183,7 @@ is set to NULL.
           if (best_cfp == NULL) {
             /* First function.  Take it as the best so far by definition. */
             best_cfp = cfp;
-          } else if (cfp->function_symbol != NULL &&
-                     best_cfp->function_symbol != NULL &&
-                     fundamental_symbol_of(cfp->function_symbol) ==
-                     fundamental_symbol_of(best_cfp->function_symbol)) {
+          } else if (same_candidate_function(cfp, best_cfp)) {
             /* The same function appears twice in the overload set,
                probably because the set is synthesized for a member lookup
                or because of a using directive.  Ignore the second function. */
