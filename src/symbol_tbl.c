@@ -1088,6 +1088,39 @@ for the scope it's in.
 }  /* remove_symbol */
 
 
+void remove_from_inactive_symbols_list(a_symbol_ptr sym_ptr)
+/*
+Remove the indicated symbol from its header's inactive symbol list.
+This is used in removing symbols inside unnamed unions before re-entering
+them up one level.
+*/
+{
+  a_symbol_header_ptr hdr_ptr = sym_ptr->header;
+  a_symbol_ptr        prev_sym;
+
+  db_enter(4, "remove_from_inactive_symbol_list");
+  
+  if (sym_ptr == hdr_ptr->inactive_symbols) {
+    /* The symbol is the first one on the list. */
+    hdr_ptr->inactive_symbols = sym_ptr->next;
+  } else {
+    /* Find the previous entry on the list. */
+    for (prev_sym = hdr_ptr->inactive_symbols;
+         prev_sym->next != sym_ptr;
+         prev_sym = prev_sym->next) {
+#if CHECKING
+      if (prev_sym->next == NULL) {
+        internal_error("remove_from_inactive_symbols_list: symbol not found");
+      }  /* if */
+#endif /* CHECKING */
+    }  /* for */
+    prev_sym->next = sym_ptr->next;
+  }  /* if */
+  sym_ptr->next = NULL;
+  db_exit();
+}  /* remove_from_inactive_symbols_list */
+
+
 static void link_symbol_into_symbol_table(a_symbol_ptr  sym_ptr,
                                           a_scope_depth scope_depth,
                                           a_boolean     suppress_error)

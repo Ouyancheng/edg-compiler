@@ -1029,6 +1029,8 @@ extern void set_symbol_kind(a_symbol_ptr  sym_ptr,
 
 extern void remove_symbol(a_symbol_ptr sym_ptr);
 
+extern void remove_from_inactive_symbols_list(a_symbol_ptr sym_ptr);
+
 extern a_symbol_ptr find_external_symbol(a_symbol_locator     *location,
                                          a_name_linkage_kind  linkage,
                                          a_type_ptr           type,
