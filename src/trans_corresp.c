@@ -4586,7 +4586,8 @@ way, determine to which other IL entry this might correspond.
      entry may need to be processed now.  Sometimes, such processing is also
      needed for members of instantiated classes.  Otherwise, it should already
      have been done or no correspondence can be expected. */
-  if ((correspondence_checking_underway || scp->is_class_member) &&
+  if ((correspondence_checking_underway ||
+       (correspondence_checking_done && scp->is_class_member)) &&
       trans_unit_corresp_of_unknown_entry(scp) == NULL) {
     a_type_ptr  root = NULL;
     /* Class members usually have their correspondence set when their parent
