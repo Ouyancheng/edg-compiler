@@ -1,5 +1,15 @@
 Version 2.20
 
+9/15/93  New symbol reference kinds
+
+Two new enumeration values were added to a_symbol_reference_kind to
+represent nonmodifying references to the value of an object (srk_use) and
+references that are uses and modifications in a single operation
+(srk_use_and_modif).  The latter is used to represent increment operations
+and the like.  These enable better cross reference output, with new codes
+"U" (for "used") and "C" (for "changed" -- an admittedly feeble
+approximation of "used and modified in one operation").
+
 9/14/93  Suppressing the used-before-set warning
 
 The "-j" command line option may be used to suppress used-before-set
