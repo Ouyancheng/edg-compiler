@@ -1,18 +1,5 @@
 Version 3.1
 
-10/03/02 Invalid IL for some friend class declarations in templates
-
-The IL produced for some nondependent friend class declarations appearing in
-class templates was some times invalid.  For example:
-
-  template<typename T> struct S {
-    friend class C;
-  };
-
-The IL entry for C was placed in the wrong scope.  This in turn could cause
-the IL display utility to abort with an IL write-read error.  The problem is
-now fixed.
-
 10/03/02 Internal error on function reference with explicit template arguments
 
 An internal error (in explicit_arg_list_identifies_specialization)

@@ -2243,12 +2243,6 @@ new expression and should therefore not be treated as a declaration.
       check_assertion(err || C_dialect != C_dialect_cplusplus ||
                       is_class_definition);
       class_type->declared_in_function_prototype = TRUE;
-    } else if (is_friend_decl &&
-               scope_stack[effective_decl_level].kind ==
-                                   (a_scope_kind)sck_template_instantiation) {
-      /* This is a new (real) type created during a prototype instantiation.
-         The type should still be placed on the namespace scope. */
-      effective_decl_level = depth_innermost_namespace_scope;
     }  /* if */
     if (C_dialect == C_dialect_cplusplus && error_tag_sym != NULL) {
       class_type->variant.class_struct_union.extra_info->template_arg_list =
