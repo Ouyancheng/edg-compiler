@@ -5519,32 +5519,48 @@ points to the template parameter list.
                                                        templ_param_list);
           if (!match && (flags & MTT_ALLOW_CONVERSION) != 0) {
             a_base_class_ptr	bcp;
-            a_boolean           base_match = FALSE;
+            a_type_ptr		matching_base_class = NULL;
             /* See if the type matches a base class type of actual argument
                type.  This is allows a Derived<T> to be passed to a function
                expecting a Base<T> as an argument. */
             complete_class_type_is_needed(type);
             bcp = type->variant.class_struct_union.extra_info->base_classes;
             while (bcp != NULL) {
+              a_template_arg_ptr	dummy_arg_list = NULL;
+              /* Do the deduction using an empty template argument list.
+                 We don't want the viability of the conversion to be
+                 biased by previous deduction results. */
               match = matches_template_type_for_class_type(bcp->type,
                                                            templ_type,
-                                                           templ_arg_list,
+                                                           &dummy_arg_list,
                                                            templ_param_list);
+              if (dummy_arg_list != NULL) {
+                free_template_arg_list(dummy_arg_list);
+              }  /* if */
               if (match) {
                 /* If we have already found one match, a second match should
                    cause deduction to fail. */
-                if (base_match) {
-                  base_match = FALSE;
+                if (matching_base_class != NULL) {
+                  matching_base_class = NULL;
                   break;
                 }  /* if */
                 /* This is the first match.  Keep searching in case the
                    conversion is ambiguous. */
-                base_match = TRUE;
+                matching_base_class = bcp->type;
               }  /* if */
               bcp = bcp->next;
             }  /* while */
             /* If exactly one base class matches, consider this a match. */
-            match = base_match;
+            match = FALSE;
+            if (matching_base_class != NULL) {
+              /* Redo the deduction with the actual template argument list.
+                 This could fail if the deduced arguments don't match the
+                 existing values. */
+              match = matches_template_type_for_class_type(matching_base_class,
+                                                           templ_type,
+                                                           templ_arg_list,
+                                                           templ_param_list);
+            }  /* if */
           }  /* if */
           break;
         case tk_typeref:
