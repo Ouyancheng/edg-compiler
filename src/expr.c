@@ -6331,8 +6331,6 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
   expr_stack->nested_construct_depth++;
   expr_stack->evaluated = expr2_evaluated;
   scan_expr(&operand_2, PREC_LOWEST, EOPT_NO_OPTIONS);
-  do_operand_transformations(&operand_2,
-                             TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
   expr_stack->evaluated = saved_evaluated;
   expr_stack->nested_construct_depth--;
 
@@ -6355,8 +6353,6 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
                          cfront_compatibility_mode) ? PREC_QUEST_MARK :
                                                       PREC_ASSIGNMENT,
                          EOPT_NO_OPTIONS);
-  do_operand_transformations(&operand_3,
-                             TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
   expr_stack->evaluated = saved_evaluated;
 
   /* Check the operands for compatibility.  Both must be arithmetic,
@@ -6375,8 +6371,8 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
   } else if (C_dialect == C_dialect_cplusplus) {
     if (types_are_compatible(operand_2.type, operand_3.type)) {
       /* In C++, if the types are the same the result has that type.
-         No arithmetic conversions are done (e.g., integral promotions
-         are not done). */
+         This is tested again later on the types after lvalue --> rvalue
+         transformation. */
       types_are_the_same = TRUE;
     } else {
       /* Check for cases where the operands are classes. */
@@ -6419,19 +6415,31 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
   }  /* if */
   if (!processed) {
     result_type = operand_2.type;  /* Assume. */
+    /* Note that at this point types_are_the_same is TRUE if the types
+       are exactly the same before any transformations like
+       lvalue --> rvalue. */
     if (types_are_the_same &&
         is_an_lvalue(&operand_2) && is_an_lvalue(&operand_3)) {
       /* In C++, if the types are the same and the second and third operands
          are lvalues they are left as lvalues. */
       result_is_an_lvalue = TRUE;
     } else {
-      /* Convert the operands to rvalues. */
+      /* Convert the operands to rvalues (etc.). */
       expr_stack->evaluated = expr2_evaluated;
-      conv_lvalue_to_rvalue(&operand_2);
+      do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
       expr_stack->evaluated = expr3_evaluated;
-      conv_lvalue_to_rvalue(&operand_3);
+      do_operand_transformations(&operand_3, TOPT_NO_OPTIONS);
       expr_stack->evaluated = saved_evaluated;
+      if (!types_are_the_same) {
+        /* Determine whether the types are the same after the
+           transformations. */
+        if (types_are_compatible(operand_2.type, operand_3.type)) {
+          types_are_the_same = TRUE;
+        }  /* if */
+      }  /* if */
     }  /* if */
+    /* Note that here types_are_the_same is TRUE if the types are the same
+       after any transformations. */
     if (types_are_the_same) {
       /* If the types are the same no further checking of types is needed. */
     } else if (is_throw_operand(&operand_2)) {
