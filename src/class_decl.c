@@ -5490,8 +5490,8 @@ respectively.
   db_enter(3, "decl_nonstd_member_constant");
   /* The current token is the "=".  Pointing to it issue a diagnostic that this
      is a nonstandard construct.  This is a strict ANSI diagnostic in
-     strict ANSI mode, otherwise it is a remark. */
-  diagnostic(strict_ansi_mode ? strict_ansi_error_severity : es_remark,
+     strict ANSI mode, otherwise it is a warning. */
+  diagnostic(strict_ansi_mode ? strict_ansi_error_severity : es_warning,
              ec_nonstd_const_member);
   /* Advance past the "=". */
   (void)get_token();
