@@ -10713,6 +10713,15 @@ TRUE if the declaration following this one is such a continuation.
                             !out_of_class_redecl) ||
                            (decl_scope_of(&rout->source_corresp) ==
                                                curr_name_context->assoc_scope);
+#if GNU_EXTENSIONS_ALLOWED
+  if (is_definition) {
+    /* Emit attributes associated with the routine.  For definitions, the
+       attributes must be part of the specifier.  For nondefining declarations,
+       we put them after the declarator (see below). */
+    write_routine_attributes(rout);
+    write_space();
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   /* Generate a declaration for the routine name with the right type. */
   gen_routine_specifiers_and_declaration(rout, rout_type,
                                          is_definition,
