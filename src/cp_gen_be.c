@@ -2443,7 +2443,7 @@ is the one associated with the definition of the enum.
      constants, and it's not a bad thing in general.) */
   gen_decl_name(&type->source_corresp, type);
   enum_con = type->variant.integer.enum_info.constant_list;
-  write_tok_str(" {");
+  write_tok_str(" { ");
   /* Output the enumeration constants. */
   /* Start with an expected value of 0 next. */
   next_enum_value = *enum_con;
@@ -2573,6 +2573,7 @@ source sequence entry is the one associated with the constant.
   /* Generate the constant value. */
   gen_constant(constant);
   write_tok_ch(';');
+  write_space();
 }  /* gen_member_constant_decl */
 
 
@@ -2599,6 +2600,7 @@ source sequence entry is the one associated with the field.
     write_unsigned_num((unsigned long)field->bit_size);
   }  /* if */
   write_tok_ch(';');
+  write_space();
 }  /* gen_field_decl */
 
 
@@ -2639,6 +2641,7 @@ entry is the one associated with the access adjustment.
   /* Write the access declaration, which is just a qualified name. */
   gen_qualified_name(scp, NO_TYPE);
   write_tok_ch(';');
+  write_space();
   /* For overloaded functions, there is an access adjustment and a source
      sequence entry for each function in the set.  If that is the case here,
      advance over the other entries. */
@@ -2713,7 +2716,7 @@ is the one associated with the definition of the class.
       }  /* for */
     }  /* if */
   }  /* if */
-  write_tok_str(" { ");
+  write_tok_str(" {");
   if (il_header.source_language == sl_Cplusplus) {
     push_name_context(&context, ctsp->assoc_scope);
     /* Keep track of the current access category, in order to emit a change
@@ -2773,7 +2776,6 @@ is the one associated with the definition of the class.
       default:
         unexpected_condition_str("gen_class_definition: bad entity kind");
     }  /* switch */
-    write_space();
   }  /* for */
 done:;
   if (il_header.source_language == sl_Cplusplus) pop_name_context();
@@ -2923,6 +2925,7 @@ a member type, nonmember type, or friend.
     }  /* if */
     /* Finish the declaration. */
     write_tok_ch(';');
+    write_space();
   }  /* if */
 }  /* gen_type_decl */
 
@@ -3123,6 +3126,11 @@ precedence confusion.
       gen_expr_with_parens(node);
       processed = TRUE;
     }  /* if */
+  } else if (kind == (an_expr_node_kind)enk_temp_init &&
+             node->variant.init.result_is_addr) {
+    /* A temporary initialization with the address of the temporary used as
+       the node value.  Just put out the underlying value. */
+    gen_temp_init(node, /*need_parens=*/TRUE);
   }  /* if */
   if (!processed) {
     /* Not a special case: write "*expression". */
@@ -3131,6 +3139,37 @@ precedence confusion.
     write_tok_ch(')');
   }  /* if */
 }  /* gen_lvalue */
+
+
+static an_expr_node_ptr skip_implicit_ptr_type_qualifier_adjustment_cast(
+                                                         an_expr_node_ptr expr)
+/*
+Remove any implicit casts on the top of the expression that merely adjust
+the type qualifiers on a pointer type (e.g., add const), and return the
+underlying expression.
+*/
+{
+try_again:
+  if (is_operation_node(expr) &&
+      expr->variant.operation.kind == (an_expr_operator_kind)eok_cast &&
+      expr->variant.operation.compiler_generated) {
+    a_type_ptr dest_type = expr->type;
+    a_type_ptr source_type = expr->variant.operation.operands->type;
+    if (is_pointer_type(dest_type) && is_pointer_type(source_type)) {
+      dest_type = type_pointed_to(dest_type);
+      source_type = type_pointed_to(source_type);
+      if (skip_typerefs(dest_type) == skip_typerefs(source_type)) {
+        /* The underlying types are the same ignoring qualifiers.  Since
+           this is an implicit cast, the qualifiers must be the same or
+           must increase with the cast. */
+        /* This is a cast that just adjusts the type qualifiers. */
+        expr = expr->variant.operation.operands;
+        goto try_again;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return expr;
+}  /* skip_implicit_ptr_type_qualifier_adjustment_cast */
 
 
 static void gen_initializer_expr(an_expr_node_ptr expr,
@@ -3146,16 +3185,18 @@ need_parens is TRUE.
 {
   /* When initializing a reference, remove one level of indirection. */
   if (type != NULL && is_reference_type(type)) {
-    if (expr->kind == (an_expr_node_kind)enk_temp_init &&
-        expr->variant.init.result_is_addr) {
-      /* A temporary initialization with the address of the temporary used as
-         the initial value. */
-      gen_temp_init(expr, need_parens);
-    } else {
-      /* Some other expression; put out as an lvalue to remove a level of
-         indirection. */
-      gen_lvalue(expr);
-    }  /* if */
+    /* Remove any cast that just adjusts the type qualifiers (e.g., adds
+       const); it's implied by the context. */
+    expr = skip_implicit_ptr_type_qualifier_adjustment_cast(expr);
+    /* Remove any implicit base-class casts; they're implied by the context. */
+    while (is_operation_node(expr) &&
+           expr->variant.operation.kind ==
+                                  (an_expr_operator_kind)eok_base_class_cast &&
+           expr->variant.operation.compiler_generated) {
+      expr = expr->variant.operation.operands;
+    }  /* while */
+    /* Put the expression out as an lvalue to remove a level of indirection. */
+    gen_lvalue(expr);
   } else {
     gen_expr(expr, need_parens);
   }  /* if */
@@ -3457,48 +3498,33 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
   a_routine_ptr rout;
   a_type_ptr    naming_class, selection_class;
 
-
+  /* Remove any cast that just adjusts the type qualifiers (e.g., adds
+     const); it's implied by the context. */
+  object_expr = skip_implicit_ptr_type_qualifier_adjustment_cast(object_expr);
+  /* Remove unnecessary base class casts. */
+  object_expr = optimized_expr_for_selection(object_expr, &naming_class);
+  if (is_variable_node(object_expr)) {
+    /* Use a pointer and "->". */
+    gen_expr_with_parens(object_expr);
+    write_tok_str("->");
+  } else {
+    /* Use an lvalue and ".". */
+    gen_lvalue(object_expr);
+    write_tok_ch('.');
+  }  /* if */
   check_assertion(func_expr->kind == (an_expr_node_kind)enk_routine_address);
   rout = func_expr->variant.routine;
-  if (object_expr->kind == (an_expr_node_kind)enk_temp_init &&
-      object_expr->variant.init.result_is_addr) {
-    /* The object is a temporary, so use the "." operator, because there's
-       no way to take the address of a temporary explicitly. */
-    gen_temp_init(object_expr, /*need_parens=*/FALSE);
-    write_tok_str(".");
-    if (il_header.source_language == sl_Cplusplus) {
-      naming_class = type_pointed_to(object_expr->type);
-      naming_class = skip_typerefs(naming_class);
-    }  /* if */
-  } else {
-    /* Normal case. */
-    if (il_header.source_language == sl_Cplusplus) {
-      /* Remove unnecessary base class casts. */
-      object_expr = optimized_expr_for_selection(object_expr, &naming_class);
-    }  /* if */
-    if (is_variable_address_node(object_expr)) {
-      /* Optimize (&x)->f as x.f. */
-      gen_lvalue(object_expr);
-      write_tok_ch('.');
-    } else {
-      /* Use a pointer and "->". */
-      gen_expr_with_parens(object_expr);
-      write_tok_str("->");
-    }  /* if */
-  }  /* if */
   if (suppress_virtual && rout->is_virtual) {
     /* The routine being called is a virtual function, and we're supposed
        to suppress its virtual-ness in this call, so use a qualified name. */
     gen_qualified_name(&rout->source_corresp, NO_TYPE);
   } else {
     /* Normal case. */
-    if (il_header.source_language == sl_Cplusplus) {
-      /* Use a qualified name if the class in which we want to name the member
-         is not the class indicated by the pointer. */
-      selection_class = type_pointed_to(object_expr->type);
-      selection_class = skip_typerefs(selection_class);
-      if (selection_class != naming_class) gen_class_qualifier(naming_class);
-    }  /* if */
+    /* Use a qualified name if the class in which we want to name the member
+       is not the class indicated by the pointer. */
+    selection_class = type_pointed_to(object_expr->type);
+    selection_class = skip_typerefs(selection_class);
+    if (selection_class != naming_class) gen_class_qualifier(naming_class);
     gen_unqualified_name(&rout->source_corresp, NO_TYPE);
   }  /* if */
 }  /* gen_bound_function */
@@ -4665,12 +4691,14 @@ Generate code for the indicated statement.
       /* Initialization for declaration.  Ignored at this level (the
          initialization was processed earlier when the stmk_decl was
          encountered). */
+      suppress_trailing_space = TRUE;
       break;
     case stmk_asm:
       /* asm statement. */
       write_tok_str("asm(");
       gen_constant(statement->variant.asm_entry->asm_string);
       write_tok_ch(')');
+      write_tok_ch(';');
       break;
     case stmk_decl:
       /* Statement that marks the location of declarations. */
@@ -5006,6 +5034,7 @@ sequence entry.
   if (is_definition) gen_initializer(var);
   /* Finish the declaration. */
   write_tok_ch(';');
+  write_space();
 }  /* gen_variable_decl */
 
 
@@ -5310,6 +5339,7 @@ declaration or definition.
     if (rout->pure_virtual) write_tok_str(" = 0");
     /* Finish the declaration. */
     write_tok_ch(';');
+    write_space();
   } else {
     /* The definition of the routine. */
     /* For an old-style function, declare the parameters. */
@@ -5352,6 +5382,8 @@ one associated with the asm.
   write_tok_str("asm(");
   gen_constant(asm_entry->asm_string);
   write_tok_ch(')');
+  write_tok_ch(';');
+  write_space();
 }  /* gen_asm_decl */
 
 
@@ -5414,7 +5446,6 @@ sequence entry.
       unexpected_condition_str(
                         "gen_declaration: bad entity kind on source seq list");
   }  /* switch */
-  write_space();
 }  /* gen_declaration */
 
 
