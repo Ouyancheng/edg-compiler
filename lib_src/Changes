@@ -1,5 +1,16 @@
 Version 2.33
 
+8/15/96 Linkage of function passed to atexit
+
+The 2.33 front end now includes a function's linkage as part of its
+type as required by the WP as of 7/96.  Because the language says
+that it is unspecified whether C library functions have C or C++ linkage,
+it is now impossible to pass a function pointer to a C library routine
+in a way that is guaranteed to be portable.  Presumably, this will be
+fixed in the WP at some point.  Until this is clarified, the argument
+to atexit (and on_exit on SunOS) is considered to be a pointer to
+a function with C linkage.
+
 7/22/96 Use standard name for the new handler type
 
 __new_handler was changed to new_handler as specified in the

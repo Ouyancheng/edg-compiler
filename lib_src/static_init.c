@@ -101,10 +101,20 @@ profiling version) will not be done.
 #endif /* !defined(sun) && USE_ATEXIT == 0 */
 
 
+/*
+The kind of function pointer accepted by atexit and on_exit.  Note
+that the WP has a problem with the definition of atexit (as of 7/96),
+because it is unspecified whether atexit has C or C++ linkage.  With
+the recent change in which linkage is now part of a routine's type,
+that means it is unspecified whether the argument passed to atexit
+must have C or C++ linkage.
+*/
+extern "C" typedef void (*void_c_function_ptr)();
+
 #if defined(sun) && USE_ATEXIT == 0
 /* Used to register a function to be called by exit to do wrapup
    processing. */
-extern "C" void on_exit(void (*)(), char *);
+extern "C" void on_exit(void_c_function_ptr, char *);
 #endif /* defined(sun) && USE_ATEXIT == 0 */
 
 
@@ -132,9 +142,9 @@ call the static initializer functions.
      exit is called during static initialization, any constructed objects
      will be destroyed. */
 #if USE_ATEXIT
-  atexit(__call_dtors);
+  atexit((void_c_functino_ptr)__call_dtors);
 #elif defined(sun)
-  on_exit(__call_dtors, (char *)NULL);
+  on_exit((void_c_function_ptr)__call_dtors, (char *)NULL);
 #endif /* USE_ATEXIT */
   if (use_patch_info) {
     /* Walk through the linked list of constructor/destructor function
