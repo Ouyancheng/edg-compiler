@@ -223,15 +223,6 @@ EXTERN a_boolean
                            by Sun CC release 5.0. */
 
 EXTERN a_boolean
-                gcc_mode
-#if VAR_INITIALIZERS
-                         = DEFAULT_GCC_COMPATIBILITY
-#endif /* VAR_INITIALIZERS */
-                                                    ;
-                        /* Accept C language features supported by GNU C
-                           compilers. */
-
-EXTERN a_boolean
                 cfront_2_1_mode /* = FALSE */;
                         /* Accept language features supported
                            by cfront release 2.1. */

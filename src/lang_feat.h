@@ -561,6 +561,26 @@ version of the Microsoft compiler that is being emulated (for example,
 #endif /* ifndef DEFAULT_MICROSOFT_VERSION */
 
 /*
+The global variable gcc_mode is defined here (rather than in cmd_line.h) so
+that it can be available to standalone utilities.
+*/
+#if GNU_EXTENSIONS_ALLOWED || defined(_lint)
+EXTERN a_boolean
+                gcc_mode
+#if VAR_INITIALIZERS
+                         = DEFAULT_GCC_COMPATIBILITY
+#endif /* VAR_INITIALIZERS */
+                                                    ;
+                        /* Accept C language features supported by GNU C
+                           compilers. */
+#else /* !(GNU_EXTENSIONS_ALLOWED || defined(_lint)) */
+/* Make gcc_mode a constant-expression so some code can be optimized away.
+   Since lint would warn about such code, we do not do this when processed
+   by lint. */
+#define gcc_mode FALSE
+#endif /*  GNU_EXTENSIONS_ALLOWED || defined(_lint) */
+
+/*
 Global variables related to Microsoft compatibility mode are defined here
 (rather than in cmd_line.h) so that they can be available to standalone
 utilities.
