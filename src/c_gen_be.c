@@ -157,23 +157,20 @@ static a_source_file_ptr
 		curr_output_file;
 static a_line_number
 		curr_output_line;
-static a_seq_number
-		curr_output_seq_number;
-			/* A value of 0 for the current sequence number
-			   indicates that the output position is unknown. */
 static unsigned long
 		curr_output_column;
 			/* The number of characters written to the current
 			   line of output.  Zero means nothing has been
 			   written so far. */
+static a_boolean
+		curr_output_pos_known;
+			/* TRUE if the current output position is known. */
 static unsigned long
 		indent;
 			/* Number of spaces to indent at the start of a
 			   line (when annotating). */
 /* Last output position set by a #line directive, saved as a "known good"
    position: */
-static a_seq_number
-		last_line_directive_seq;
 static a_line_number
 		last_line_directive_line;
 static a_source_file_ptr
@@ -192,10 +189,10 @@ typedef struct an_output_file_position {
 			/* File entry for output file. */
   a_line_number	curr_output_line;
 			/* Current output line number. */
-  a_seq_number	curr_output_seq_number;
-			/* Current output sequence number. */
   unsigned long	curr_output_column;
 			/* Current output column number. */
+  a_boolean	curr_output_pos_known;
+			/* Current output position is known. */
 } an_output_file_position;
 
 /*
@@ -367,8 +364,8 @@ position.
 {
   ofp->curr_output_file = NULL;
   ofp->curr_output_line = 0;
-  ofp->curr_output_seq_number = 0;
   ofp->curr_output_column = 0;
+  ofp->curr_output_pos_known = FALSE;
 }  /* clear_output_file_position */
 
 
@@ -403,8 +400,8 @@ later restoration.
 {
   ofp->curr_output_file = curr_output_file;
   ofp->curr_output_line = curr_output_line;
-  ofp->curr_output_seq_number = curr_output_seq_number;
   ofp->curr_output_column = curr_output_column;
+  ofp->curr_output_pos_known = curr_output_pos_known;
 }  /* save_output_position */
 
 
@@ -416,8 +413,8 @@ the information saved in *ofp.
 {
   curr_output_file = ofp->curr_output_file;
   curr_output_line = ofp->curr_output_line;
-  curr_output_seq_number = ofp->curr_output_seq_number;
   curr_output_column = ofp->curr_output_column;
+  curr_output_pos_known = ofp->curr_output_pos_known;
 }  /* restore_output_position */
 
 
@@ -449,10 +446,7 @@ End the current line of output.
     str_catastrophe(ec_file_write_error, "generated C output");
   }  /* if */
   /* Keep track of the current position if we know where we are. */
-  if (curr_output_seq_number != 0) {
-    curr_output_line++;
-    curr_output_seq_number++;
-  }  /* if */
+  if (curr_output_pos_known) curr_output_line++;
   curr_output_column = 0;
 }  /* end_output_line */
 
@@ -464,12 +458,10 @@ End the current output line if it has been started.
 { if (curr_output_column != 0) end_output_line(); }
 
 
-static void write_line_directive(a_seq_number      seq,
-                                 a_line_number     line_number,
+static void write_line_directive(a_line_number     line_number,
                                  a_source_file_ptr new_output_file)
 /*
-Write a #line directive for the indicated sequence number, line number, and
-file.
+Write a #line directive for the indicated line number and file.
 */
 {
 #if STANDALONE_UTILITY_PROGRAM
@@ -481,6 +473,7 @@ file.
   /* End the previous line if there is one. */
   end_output_line_if_begun();
   curr_output_line = line_number;
+  curr_output_pos_known = TRUE;
   if (gen_old_style_line_dirs) {
     /* Generate old-style directives, i.e., the kind output by the Reiser
        cpp. */
@@ -488,7 +481,6 @@ file.
   } else {
     (void)fprintf(f_C_output, "#line %lu", curr_output_line);
   }  /* if */
-  curr_output_seq_number = seq;
   if (new_output_file != curr_output_file) {
     /* The file name is put out only if it changed. */
     char      *p;
@@ -513,7 +505,6 @@ file.
   curr_output_column = 0;
   /* Remember the position at the latest #line directive as a "known good"
      output position. */
-  last_line_directive_seq = curr_output_seq_number;
   last_line_directive_line = curr_output_line;
   last_line_directive_file = curr_output_file;
 }  /* write_line_directive */
@@ -524,18 +515,16 @@ static void continue_on_new_line(void)
 Continue the current line of output on the next line.
 */
 {
-  if (curr_output_seq_number != 0) {
+  if (curr_output_pos_known) {
     /* Continue by emitting a #line directive to repeat the current line
        number. */
-    write_line_directive(curr_output_seq_number,
-                         curr_output_line,
+    write_line_directive(curr_output_line,
                          curr_output_file);
   } else {
     /* If the output position is unknown, put out a #line directive for the
        last "known good" position to avoid wandering into line numbers that
        don't exist in the source program file. */
-    write_line_directive(last_line_directive_seq,
-                         last_line_directive_line,
+    write_line_directive(last_line_directive_line,
                          last_line_directive_file);
   }  /* if */
 }  /* continue_on_new_line */
@@ -580,7 +569,7 @@ etc.
   error_position = *pos;
   if (seq == 0) {
     /* For an unknown position, continue on the same line. */
-    if (curr_output_seq_number == 0) {
+    if (!curr_output_pos_known) {
       /* If the current output position is unknown, start a new line with
          a #line directive for the last known good line position. */
       continue_on_new_line();
@@ -600,7 +589,7 @@ etc.
     /* Don't put out line 0 for empty files. */
     if (at_end_of_source && line_number == 0) line_number = 1;
     if (new_output_file != curr_output_file ||
-        curr_output_seq_number == 0) {
+        !curr_output_pos_known) {
       /* We've gone into a new file, or the current position is unknown,
          so we need a #line directive. */
       line_directive_needed = TRUE;
@@ -608,13 +597,13 @@ etc.
       /* We're still in the same file as last time.  See if we're close enough
          that we can advance there by spacing.  If not, use a #line
          directive. */
-      if (curr_output_seq_number > seq) {
+      if (curr_output_line > line_number) {
         /* We're already too far (we're backing up -- curious, but easy
            to handle). */
         line_directive_needed = TRUE;
       } else {
         /* We're going forward.  How far? */
-        if (seq > curr_output_seq_number + 5) {
+        if (line_number > curr_output_line + 5) {
           /* More than 5 lines (arbitrary) -- use a #line directive. */
           line_directive_needed = TRUE;
         }  /* if */
@@ -622,11 +611,11 @@ etc.
     }  /* if */
     if (line_directive_needed) {
       /* Write a #line directive for the new line position. */
-      write_line_directive(seq, line_number, new_output_file);
+      write_line_directive(line_number, new_output_file);
       started_new_line = TRUE;
     } else {
-      check_assertion(seq >= curr_output_seq_number);
-      while (seq > curr_output_seq_number) {
+      check_assertion(line_number >= curr_output_line);
+      while (line_number > curr_output_line) {
         /* Write blank lines until we get to the right line. */
         end_output_line();
         started_new_line = TRUE;
@@ -654,7 +643,7 @@ the next time a specific output position is requested.
 */
 {
   end_output_line_if_begun();
-  curr_output_seq_number = 0;
+  curr_output_pos_known = FALSE;
   curr_output_line = 0;
   /* Set the position for errors to "unknown". */
   error_position.seq = 0;
@@ -6375,8 +6364,7 @@ If C_output_file_name is NULL, use stdout for the output.
      source file contains #line directives, start with the file indicated
      therein as the primary file. */
   prim_source_file = eff_primary_source_file();
-  write_line_directive(prim_source_file->first_seq_number,
-                       prim_source_file->first_line_number,
+  write_line_directive(prim_source_file->first_line_number,
                        prim_source_file);
 
   /* Dump all of the declarative information at the top-most (file) level. */
@@ -6516,10 +6504,9 @@ must be redone for each generated C file.
   /* Output position is unknown. */
   curr_output_file = NULL;
   curr_output_line = 0;
-  curr_output_seq_number = 0;
   curr_output_column = 0;  /* Special value meaning there is no output line. */
+  curr_output_pos_known = FALSE;
   indent = 0;
-  last_line_directive_seq = 0;
   last_line_directive_line = 0;
   last_line_directive_file = NULL;
   in_comment = FALSE;
