@@ -104,6 +104,7 @@ Flags to be set when using the KAI inliner.
 #define DEFAULT_SVR4_C_MODE 0
 #define PRAGMA_WEAK_ALLOWED 1
 #define USER_CONTROL_OF_STRUCT_PACKING 1
+#define EXPENSIVE_CHECKING 1
 
 #endif /* !defined(OPTIMIZED_VERSION) */
 
@@ -198,6 +199,7 @@ Flags to be set when using the KAI inliner.
 #ifndef RUNTIME_USES_NAMESPACES
 #define RUNTIME_USES_NAMESPACES 0
 #endif /* ifndef RUNTIME_USES_NAMESPACES */
+#define EXPENSIVE_CHECKING 1
 
 #endif /* ifdef __LINUX__ */
 #endif /* defined(_WIN32) */
