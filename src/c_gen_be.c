@@ -2419,6 +2419,10 @@ there's some possibility of precedence confusion and need_parens is TRUE.
   switch (expr->kind) {
     case enk_operation:
       /* Expression operation. */
+      /* Lvalue cases should have been rewritten by IL lowering. */
+      check_assertion_str(!expr->variant.operation.
+                                        returns_lvalue_instead_of_usual_rvalue,
+                          "dump_expr: lvalue-returning operation");
       if (need_parens) m_write_tok_ch('(');
       operand_1 = expr->variant.operation.operands;
       operand_2 = operand_1->next;
