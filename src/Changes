@@ -1,5 +1,18 @@
 Version 2.42
 
+4/19/99  Partial specialization problem when the current partial specialization
+         is referenced using a template argument list
+
+A bug was introduced in 2.41 that caused a spurious error when, within
+a partial specialization, the current template was referenced using
+the template argument list associated with the partial specialization.
+This has been fixed.
+
+  template <class T1, class T2> struct A { };
+  template <class T> struct A<int, T> {
+    A<int, T>();
+  };
+
 4/18/99  Performance problem with name mangling introduced in 2.41
 
 The reworking of lower_name.c in 2.41 introduced a performance

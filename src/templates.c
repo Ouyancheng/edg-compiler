@@ -3063,9 +3063,11 @@ a template parameter (type or constant).
 }  /* template_arg_involves_template_param */
 
 
-a_symbol_ptr find_template_class(a_symbol_ptr        class_template_sym,
-                                 a_template_arg_ptr  *new_list,
-				 a_boolean	     prototype_allowed)
+a_symbol_ptr find_template_class(
+			     a_symbol_ptr        class_template_sym,
+                             a_template_arg_ptr  *new_list,
+			     a_boolean	         any_prototype_allowed,
+			     a_symbol_ptr        specific_prototype_allowed)
 /*
 Given a symbol for a class template and a template argument list (that is,
 a list of actual arguments), look for an existing class that is the
@@ -3101,10 +3103,12 @@ with the handling of pointers to incomplete non-template classes:
 Note, moreover, that even if class template X were defined there would be
 no need to actually instantiate X<int> in the example above.
 
-If prototype_allowed is TRUE then the prototype instantiation is checked
-before any of the other instantiations and is returned if the argument
-lists match.  If it is FALSE the prototype instantiation will not be
-included in the search.
+If any_prototype_allowed is TRUE then the prototype instantiations of
+the primary template any any partial specializations are checked
+before any of the other instantiations.  If it is FALSE the prototype
+instantiations will not be included in the search, except that if
+specific_prototype_allowed is non-NULL then only the specified
+prototype instantiation is considered as a potential match.
 */
 {
   a_symbol_ptr                      sym;
@@ -3123,8 +3127,10 @@ included in the search.
   if (microsoft_bugs) eta_options |= ETA_MS_IGNORE_QUALIFIERS;
   sym = NULL;
   prototype_sym = tssp->variant.class_template.prototype_instantiation;
-  if (prototype_allowed) {
-    if (prototype_sym != NULL) {
+  if (any_prototype_allowed || specific_prototype_allowed != NULL) {
+    if (prototype_sym != NULL &&
+        (any_prototype_allowed ||
+         specific_prototype_allowed == prototype_sym)) {
       /* Old list is the template argument list from the prototype
          instantiation of the primary template.  See if the list passed
          in matches it. */
@@ -3166,9 +3172,9 @@ included in the search.
        template. */
     sym = tssp->variant.class_template.instantiations;
     for (; sym != NULL; sym = next_instance_sym(sym)) {
-      /* Prototype instantiations should not be checked.  If
-         prototype_allowed is TRUE then we would have already checked them
-         in the test above. */
+      /* Prototype instantiations should not be checked.  If they are being
+         considered, then we would have already checked them in the tests
+         above. */
       if (is_prototype_instantiation_symbol(sym)) continue;
       /* Old list is the template argument list from a template class that has
          already been created.  See if the list passed in matches it. */
@@ -4396,7 +4402,8 @@ are looked up, if needed.  The symbol of the new instance is returned.
     new_sym = NULL;
   } else {
     new_sym = find_template_class(template_sym, &new_list,
-                                  (options & CTWS_PROTOTYPE_ALLOWED) != 0);
+                                  (options & CTWS_PROTOTYPE_ALLOWED) != 0,
+                                  (a_symbol_ptr)NULL);
   }  /* if */
   return new_sym;
 }  /* copy_template_class_reference_with_substitution */
