@@ -1,3 +1,10 @@
+Version 2.07
+
+6/4/92  Set address_taken flag on virtual function table variables.
+
+IL lowering now sets the address_taken flag on virtual function table
+variables.
+
 6/3/92  Improved error checking of constructor and destructor parameter
         declarations.
 
