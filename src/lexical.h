@@ -1210,9 +1210,12 @@ EXTERN a_boolean
 			   an asm function body or a Microsoft-style asm
 			   block. */
 
+#if ASM_FUNCTION_ALLOWED
 extern void copy_from_source_to_asm_func_buffer(char *stop_char,
                                                 char *after_comment_stop_char);
 
+extern void reset_asm_buffer(void);
+#endif /* ASM_FUNCTION_ALLOWED */
 #endif /* ASM_SUPPORT_NEEDED */
 
 #if EXTRA_SOURCE_POSITIONS_IN_IL

@@ -5706,6 +5706,9 @@ just after the initial left brace.
 static char *prev_stop_char;
 static a_seq_number prev_seq_number;
 
+#if !ASM_FUNCTION_ALLOWED
+static
+#endif /* !ASM_FUNCTION_ALLOWED */
 void reset_asm_buffer(void)
 /*
 Reset the static variables used while building the string representation
@@ -5720,6 +5723,9 @@ of an asm function or Microsoft asm block.
 #if !INCLUDE_COMMENTS_IN_ASM_FUNC_BODY
 /*ARGSUSED*/ /* after_comment_stop_char is unused. */
 #endif /* !INCLUDE_COMMENTS_IN_ASM_FUNC_BODY */
+#if !ASM_FUNCTION_ALLOWED
+static
+#endif /* !ASM_FUNCTION_ALLOWED */
 void copy_from_source_to_asm_func_buffer(char *stop_char,
                                          char *after_comment_stop_char)
 /*

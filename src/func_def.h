@@ -76,10 +76,6 @@ extern void require_definitions_of_virtual_functions_in_class(
 							a_type_ptr class_type);
 
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
-extern char *scan_asm_block(a_boolean  is_asm_block);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-
 #endif /* FUNC_DEF_H */
 
 /******************************************************************************
