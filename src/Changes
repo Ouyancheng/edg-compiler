@@ -68,9 +68,9 @@ of a source file.  The error is now issued earlier.
 6/27/99  Linkage of inline template functions
 
 If a function template was first declared without the inline specifier and
-was later redeclared inline (either explicitly or by virtual of being
+was later redeclared inline (either explicitly or by virtue of being
 defined in a friend declaration in a class) any previously created instances
-were incorrectly marked as having internal linkage.  The should only have
+were incorrectly marked as having internal linkage.  They should only have
 been so marked when the "extern inline" feature was disabled.  This has
 been fixed.
 
