@@ -5721,7 +5721,7 @@ float_accum_1:
     while (isxdigit((unsigned char)*(++curr_char_loc))) {
       any_hex_digits = TRUE;
     }  /* while */
-    if (!any_hex_digits) {
+    if (!any_hex_digits && !fetch_pp_tokens) {
       /* No hex digits were specified.  Something like "0x.". */
       error_at_line_pos(ec_bad_float_constant, curr_char_loc);
       any_hex_digits = TRUE;
@@ -5731,7 +5731,7 @@ float_accum_1:
   }  /* if */
   /* Check for the presence of an exponent. */
   if (kind == k_hex) {
-    if ((ch = *curr_char_loc) != 'p' && ch != 'P') {
+    if ((ch = *curr_char_loc) != 'p' && ch != 'P' && !fetch_pp_tokens) {
       /* A missing binary suffix -- this is an error. */
       error_at_line_pos(ec_bad_float_constant, curr_char_loc);
       err = TRUE;
@@ -5745,7 +5745,7 @@ float_accum_2:
      constant (or the "p" or "P" for a floating point constant specified
      as a hexadecimal value).  Take an optional sign, then decimal digits
      of the exponent. */
-  if (kind == k_hex && !any_hex_digits) {
+  if (kind == k_hex && !any_hex_digits && !fetch_pp_tokens) {
     /* No hex digits were specified.  Something like "0xp0". */
     error_at_line_pos(ec_bad_float_constant, curr_char_loc);
   }  /* if */

@@ -1,5 +1,15 @@
 Version 3.1
 
+8/21/02   Spurious error on text in "#if" that looks like hex FP constant
+
+In C99 mode a spurious error was issued on a string that looks like a
+hexadecimal floating point constant in text being skipped because of a "#if"
+directive.  This has been fixed.
+
+  #if 0
+  x is 0x1234.
+  #endif
+
 8/21/02   Missing syntax error on extraneous right parenthesis in ctor-initializer
 
 In some cases, the front end silently ignored an extraneous right parenthesis
