@@ -1396,6 +1396,19 @@ EXTERN a_boolean
 			   but a diagnostic is given indicating that the
 			   feature is not enabled. */
 
+EXTERN a_boolean
+		IEEE_handling_on_float_operation_exceptions
+#if VAR_INITIALIZERS
+                                                = TARG_HAS_IEEE_FLOATING_POINT
+#endif /* VAR_INITIALIZERS */
+                                                                              ;
+			/* TRUE if exceptions in compile-time floating-point
+			   conversions and operation folding (e.g., division
+			   by zero) should be handled according to the IEEE
+			   floating-point standard, i.e., they generate NaNs
+			   and Infinities and no errors are issued. */
+
+
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);
 #if COMPILE_MULTIPLE_SOURCE_FILES

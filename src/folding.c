@@ -2776,7 +2776,8 @@ Do the division operation on all types of float.
   *err_severity = es_warning;
 
   /* Check for division by zero to give a specific error message. */
-  if (fp_is_zero_constant(float_kind, &constant_2->variant.float_value)) {
+  if (!IEEE_handling_on_float_operation_exceptions &&
+      fp_is_zero_constant(float_kind, &constant_2->variant.float_value)) {
     *err_code = ec_divide_by_zero;
     *err_severity = es_error;
   } else {
@@ -3066,7 +3067,8 @@ Do the division operation on all types of complex.
          &err, &depends_on_rounding);
   accum_err |= err;
   *depends_on_rounding_mode |= depends_on_rounding;
-  if (fp_is_zero_constant(float_kind, &quad_norm)) {
+  if (!IEEE_handling_on_float_operation_exceptions &&
+      fp_is_zero_constant(float_kind, &quad_norm)) {
     *err_code = ec_divide_by_zero;
     *err_severity = es_error;
   } else {
@@ -3240,7 +3242,8 @@ Do the division of a real number by an imaginary number (any precision).
   *err_severity = es_warning;
 
   /* Check for division by zero to give a specific error message. */
-  if (fp_is_zero_constant(float_kind, &constant_2->variant.float_value)) {
+  if (!IEEE_handling_on_float_operation_exceptions &&
+      fp_is_zero_constant(float_kind, &constant_2->variant.float_value)) {
     *err_code = ec_divide_by_zero;
     *err_severity = es_error;
   } else {

@@ -1,5 +1,12 @@
 Version 2.46
 
+5/31/01  Operations like 1.0/0.0 get no diagnostic when IEEE floating-point
+         is supported
+
+When TARG_HAS_IEEE_FLOATING_POINT is TRUE, floating-point divisions
+by a constant zero are now allowed, without a diagnostic.  The result
+is the appropriate NaN or Infinity.
+
 5/30/01  static template should not be found on dependent call
 
 A template declared static is no longer found on the lookup for
