@@ -2867,11 +2867,22 @@ symbol lookup.
     sym->next = header->other_symbols;
     header->other_symbols = sym;
   }  /* if */
-  if (locator->is_file_scope_qualified_name) {
+  if (C_mode()) {
+    /* C mode -- always enter it at the file scope. */
+    depth = DEPTH_OF_FILE_SCOPE;
+  } else if (locator->is_file_scope_qualified_name) {
     /* "::" qualifier appears on the name -- not a namespace member. */
     depth = DEPTH_OF_FILE_SCOPE;
   } else if (scope_stack[depth_scope_stack].default_name_linkage ==
                                           (a_name_linkage_kind)nlk_external) {
+    /* Even in C++ all sk_extern... symbols for extern "C" entities are
+       entered in the file scope, even if the declaration appeared in a
+       namespace scope.  That it's a namespace member is not a property of
+       the entity itself, only of its declaration; i.e., lookup is affected,
+       but not name mangling.  For example:
+         extern "C" void f();
+         namespace N { extern "C" void f(); }
+       ::f and N::f refer to the same entity. */
     depth = DEPTH_OF_FILE_SCOPE;
   } else {
     /* See if this symbol is directly or indirectly a namespace member. */
