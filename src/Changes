@@ -46,19 +46,6 @@ parsing members of classes nested in class templates.
 
 This is now fixed.
 
-1/26/01  Missing default member functions in prototype instantiations
-
-The front end used to omit the generation of default member functions in
-prototype instantiations of class templates.  This could lead to errors
-when parsing templates that called such default members.
-
-  template <class T> struct X { X(); };  // Contains generated copy-constructor
-  template <class T> X<T>::X() {
-    new X<T>(*this);  // Calls generated copy constructor.  Used to trigger
-  }                   // a spurious diagnostic.
-
-This is now fixed.
-
 1/26/01  Mangled names for constructors in unnamed classes that get
          names from typedefs
 
