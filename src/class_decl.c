@@ -309,6 +309,11 @@ in class contexts.
   rfp->func_info = *func_info;
   rfp->function_body_token_cache = *body_cache;
   rfp->is_specialization = TRUE;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  rfp->func_info.is_movable_member_or_friend_def = TRUE;
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   add_to_routine_fixup_list(rfp);
 }  /* add_routine_fixup_for_specialization */
 
