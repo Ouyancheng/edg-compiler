@@ -2694,11 +2694,9 @@ of a routine.
 {
   a_routine_ptr rout = expr->variant.routine;
   a_type_ptr    rout_type = rout->type;
-  a_type_ptr    expr_rout_type = type_pointed_to(expr->type);
   a_boolean     need_parens = FALSE;
 
-  if (rout->superseded_external ||
-      skip_typerefs(expr_rout_type) != skip_typerefs(rout_type)) {
+  if (rout->superseded_external) {
     /* The type of the routine and the type in the call are different.
        This is probably because the call was generated and then
        the routine type was updated by a redeclaration.  Use a cast to
