@@ -4023,7 +4023,10 @@ of types after all of the function arguments have been processed.
 
   if (!is_deducible_constant_param(templ_constant)) {
     /* The array bound from the template is a constant (under an expression)
-       but is not a simple template parameter.  No match. */
+       but is not a simple template parameter.  This is a nondeduced context.
+       Consider this a match for now.  This expression will be evaluated in
+       the deduction wrapup process and compared with the actual value. */
+    match = TRUE;
   } else {
     a_template_arg_ptr        tap;
     /* This is a template parameter from the original source program

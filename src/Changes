@@ -1,5 +1,21 @@
 Version 2.43
 
+12/3/99  Nondeduced array bound expressions not handled properly
+
+Array bound expressions involving template parameters were not treated
+as nondeduced contexts.  Instead, they would cause deduction to fail.
+This has been fixed.
+
+  template <int I> class A {};
+  template <int I, int J>
+  void f( int (&x)[I+J], A<I>, A<J>);
+  int main() {
+    A<1> a;
+    A<2> b;
+    int arr[3];
+    f(arr, a, b);  // now accepted
+  }
+
 12/2/99  Microsoft compatibility: specifiers on free standing member type
          declarations
 
