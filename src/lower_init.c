@@ -3529,11 +3529,14 @@ The subtree of the node has not yet been lowered.
                                                       &insert_location);
           dedp = dyn_init_to_free_storage->destructible_entity_descr;
         }  /* if */
+        copy_init_pos_descr(&ipd, &dedp->init_pos_descr);
+        if (dedp->conditional_flag_var != NULL) {
+          /* Set the conditional flag variable to nonzero. */
+          set_conditional_flag_var(dedp->conditional_flag_var,
+                                   &insert_location);
+        }  /* if */
         dedp->cleanup_state_to_set_when_starting_destruction =
                                                             curr_cleanup_state;
-        copy_init_pos_descr(&ipd, &dedp->init_pos_descr);
-        /* Set the conditional flag variable to nonzero. */
-        set_conditional_flag_var(dedp->conditional_flag_var, &insert_location);
 #if GENERATE_EH_TABLES
         /* Make a cleanup region table entry to get the storage freed if
            a throw occurs before the entity is initialized. */
@@ -4549,15 +4552,17 @@ constructor scope, and also lower the user code.
                                                     dyn_init_to_free_storage,
                                                     (an_insert_location*)NULL);
         dedp = dyn_init_to_free_storage->destructible_entity_descr;
-        dedp->cleanup_state_to_set_when_starting_destruction =
-                                                            curr_cleanup_state;
         set_var_indirect_init_pos_descr(this_param_var,
                                         &dedp->init_pos_descr);
+        if (dedp->conditional_flag_var != NULL) {
+          /* Set the conditional_flag variable to nonzero.  The code to
+             initialize it to zero is inserted later in this routine. */
+          set_conditional_flag_var(dedp->conditional_flag_var,
+                                   &expr_insert_location);
+        }  /* if */
+        dedp->cleanup_state_to_set_when_starting_destruction =
+                                                            curr_cleanup_state;
 #if GENERATE_EH_TABLES
-        /* Set the conditional_flag variable to nonzero.  The code to
-           initialize it to zero is inserted later in this routine. */
-        set_conditional_flag_var(dedp->conditional_flag_var,
-                                 &expr_insert_location);
         /* Add the cleanup region table entry. */
         make_dyn_init_region_table_entry(dyn_init_to_free_storage,
                                          (a_dynamic_init_ptr)NULL,
@@ -4566,6 +4571,7 @@ constructor scope, and also lower the user code.
         /* Set the cleanup state to the delete cleanup entry. */
         set_curr_cleanup_state(dyn_init_to_free_storage,
                                &expr_insert_location);
+        curr_context->latest_initialization = dyn_init_to_free_storage;
       }  /* if */
       /* Make "(this = new_rout(size)) != NULL". */
       make_zero_of_proper_type(this_param_var->type, &null_constant);
@@ -4609,7 +4615,7 @@ constructor scope, and also lower the user code.
          lowered. */
       enclose_routine_in_if(scope, if_node, this_param_var);
 #if GENERATE_EH_TABLES
-      if (exceptions_enabled) {
+      if (exceptions_enabled && dedp->conditional_flag_var != NULL) {
         /* Initialize the conditional flag to zero.  This must be done after
            enclose_routine_in_if is called so that the initialization is
            done at the right place (i.e., outside the "if"). */
