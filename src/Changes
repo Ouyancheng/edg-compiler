@@ -9,12 +9,10 @@ an implicit argument.
 
 12/20/95  IL CHANGE: anonymous union parent object
 
-The class-type-supplement entry for an anonymous union now points to either
-a field or a variable; before, auk_variable anonymous unions did not have a
-pointer to the associated object.  Both pointers are variant fields:
-
-  ctsp->anonymous_union_object.field     (was ctsp->anonymous_union_field)
-  ctsp->anonymous_union_object.variable  (new)
+The class-type-supplement entry for an auk_variable anonymous union (i.e.,
+one whose associated object is a variable) now records the latter's storage
+class, which is needed by the C++-generating back end; the field pointer of
+an auk_field anonymous union is now a variant field.
 
 12/19/95  C++-generating back end: Address of member of anonymous union
 

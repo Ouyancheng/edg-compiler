@@ -194,6 +194,9 @@ typedef int	a_scope_depth;
 #define NO_SCOPE_DEPTH (-1)
 #define DEPTH_OF_FILE_SCOPE 0
 
+/* Define as "a_byte" to explicitly control storage size. */
+typedef a_byte a_storage_class;
+
 #ifdef CIL
 enum an_access_specifier_tag {
   /* C++ access control:  "public", "private", or "protected" for class
@@ -2649,15 +2652,18 @@ typedef struct a_class_type_supplement {
 			   union, and if so whether it is a field of some
 			   other class or a variable. */
   union {
+    /* When anonymous_union_kind == auk_field: */
     a_field_ptr	field;
-			/* When anonymous_union_kind is auk_field, a pointer
-			   to the unnamed field entry whose type is the
-			   anonymous union. */
-    a_variable_ptr
-		variable;
-			/* When anonymous_union_kind is auk_variable, a
-			   pointer to the unnamed variable entry whose type
-			   is the anonymous union. */
+			/* Pointer to the unnamed field entry whose type is
+			   the anonymous union. */
+    /* When anonymous_union_kind == auk_variable: */
+    a_storage_class
+		storage_class;
+			/* The storage_class of the unnamed variable entry
+			   whose type is the anonymous union; used by the C++
+			   generating back end.  (Note: the variable itself
+			   is not pointed to because it could belong to a
+			   function memory region.) */
   } anonymous_union_object;
   a_class_member_using_decl_ptr
                 class_member_using_decls;
@@ -3352,8 +3358,7 @@ enum a_storage_class_tag {
 #endif /* ifdef FIL */
   sc_last
 };
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte a_storage_class;
+/* a_storage_class has already been defined as a_byte. */
 
 #if DEBUG
 /*

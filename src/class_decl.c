@@ -4758,9 +4758,13 @@ specified by decl_scope_level.
       ctsp->anonymous_union_kind = (an_anonymous_union_kind)auk_field;
       ctsp->anonymous_union_object.field = assoc_object_sym->variant.field.ptr;
     } else {
+      /* Save the storage class, which is used by the C++ generating back
+         end.  The variable pointer cannot be stored in the class type
+         supplement because it need not be in the file-scope memory region,
+         but the type and its supplement always are. */
       ctsp->anonymous_union_kind = (an_anonymous_union_kind)auk_variable;
-      ctsp->anonymous_union_object.variable =
-                                      assoc_object_sym->variant.variable.ptr;
+      ctsp->anonymous_union_object.storage_class =
+                        assoc_object_sym->variant.variable.ptr->storage_class;
     }  /* if */
   }  /* if */
   /* Get the list of symbols that are to be either promoted (i.e., reused
