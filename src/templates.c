@@ -3094,6 +3094,7 @@ of a function template.
   a_decl_flag_set              di_flags;
   a_source_sequence_entry_ptr  declarator_ssep = NULL;
   a_type_qualifier_set         qualifiers;
+  a_source_position            decl_start_pos;
 
   dsi_flags = DSI_INLINE_ALLOWED |
               DSI_TYPE_SPECIFIER_ALLOWED |
@@ -3124,6 +3125,7 @@ of a function template.
     /* This is a declaration inside a class definition. */
     dsi_flags |= DSI_IS_MEMBER_DECLARATION;
   }  /* if */
+  decl_start_pos = pos_curr_token;
   (void)decl_specifiers(dsi_flags, dso_flags, storage_class, type,
                         &qualifiers, decl_modifiers);
   if (is_error_type(*type) && !is_declarator_start()) {
@@ -3165,6 +3167,16 @@ of a function template.
     if (is_function_type(*type) &&
         (*type)->kind == (a_type_kind)tk_typeref) {
       func_info->function_type_from_typedef = TRUE;
+    }  /* if */
+    if (is_function_type(*type) && parent_class == NULL &&
+        locator->is_class_member) {
+      /* This is a member template declaration outside the class definition,
+         so a storage class may not be specified (as in the nontemplate
+         case). */
+      if (*storage_class != (a_storage_class)sc_unspecified) {
+        pos_error(ec_storage_class_not_allowed, &decl_start_pos);
+        *storage_class = (a_storage_class)sc_unspecified;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (is_initial_decl) {
