@@ -17054,7 +17054,7 @@ for adding the entries to the actual instantiation request file.
               mip->add_to_request_file, mip->already_instantiated);
 #if MAINTAIN_NEEDED_FLAGS
       fprintf(f_debug, "  needed=%d\n", needed);
-#endif MAINTAIN_NEEDED_FLAGS
+#endif /* MAINTAIN_NEEDED_FLAGS */
     }  /* if */
 #endif /* DEBUG */
   }  /* for */
