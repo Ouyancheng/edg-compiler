@@ -811,7 +811,8 @@ do_variable:
   if (apo_sym != NULL) {
     if (!suppress_newline) (void)fputc('\n', f_debug);
     fprintf(f_debug, "%*s", indentation, "");
-    (void)sprintf(buffer, "- anon parent object [%lu]: ", apo_sym);
+    (void)sprintf(buffer, "- anon parent object [%lu]: ",
+                  (unsigned long)apo_sym);
     db_symbol(apo_sym, buffer, indentation + 2);
     suppress_newline = TRUE;
   }  /* if */
