@@ -588,7 +588,6 @@ part of a declarator is found, may_be_decl is set to FALSE.
 */
 {
   a_boolean       paren_initializer_seen = FALSE;
-  a_boolean	  pointer_operator_seen = FALSE;
 
   /* Look for one or more instances of a sequence of tokens corresponding
      to ptr-operator.  Syntax:
@@ -599,7 +598,6 @@ part of a declarator is found, may_be_decl is set to FALSE.
      in expressions, so their presence means this is a declaration. */
   for (;;) {
     if (curr_token == tok_star || curr_token == tok_ampersand) {
-      pointer_operator_seen = TRUE;
       /* Cache and bypass the "*" or "&". */
       cache_curr_token(token_cache_ptr);
       (void)get_token_and_coalesce_if_identifier();
