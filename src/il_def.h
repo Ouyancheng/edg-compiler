@@ -1013,6 +1013,13 @@ typedef struct a_class_type_supplement {
 			   variable that contains the virtual function table
 			   for this class when it is the most derived class.
 			   NULL until allocated and NULL if not needed. */
+  a_type_ptr	type_as_subobject;
+			/* When IL lowering is done, this points to a type
+			   (possibly the same one) for this class as a
+			   subobject, i.e., without allocated space for any
+			   virtual base classes.  NULL until set; in fact,
+			   non-NULL is used as an indication that certain
+			   lowering steps have already been done. */
 #endif /* DO_IL_LOWERING */
 } a_class_type_supplement;
 

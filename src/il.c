@@ -2216,6 +2216,7 @@ a pointer to it.
   ctsp->assoc_scope                            = NULL;
 #if DO_IL_LOWERING
   ctsp->virtual_function_table_var             = NULL;
+  ctsp->type_as_subobject                      = NULL;
 #endif /* DO_IL_LOWERING */
 
   return ctsp;
