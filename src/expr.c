@@ -2938,7 +2938,7 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
           if (!microsoft_mode) {
             /* Add cv-qualifiers from the first operand to the result type.
                (This was not in the ARM, but it's in the WP, and cfront does
-               it.)   Note: this isn't done for the pointer-to-member-function
+               it.)  Note: this isn't done for the pointer-to-member-function
                case, since applying type qualifiers to a function type is
                not allowed. */
             result_type = type_plus_qualifiers_from_second_type(
