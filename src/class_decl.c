@@ -6343,6 +6343,9 @@ Scan the body of a class definition, including the base classes list.
                 a_boolean   copy_needed = TRUE;
 
                 func_info.function_type_from_typedef = TRUE;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+                func_info.declarator_ssep = declarator_ssep;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
                 if (cfront_compatibility_mode &&
                     rout_type->variant.routine.extra_info->
                                             implicit_this_param_type != NULL) {
