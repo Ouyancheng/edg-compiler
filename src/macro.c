@@ -3868,6 +3868,15 @@ command line -D options.
                                /*cannot_be_redefined=*/TRUE,
                                /*ref_suppresses_pch_file=*/FALSE);
     }  /* if */
+    if (microsoft_mode) {
+      /* Define the _MSC_VER variable that indicates the version of the
+         Microsoft compiler that is being emulated. */
+      (void)enter_predef_macro(conv_unsigned_long_to_str(
+                                            (unsigned long)microsoft_version),
+                               "_MSC_VER",
+                               /*cannot_be_redefined=*/FALSE,
+                               /*ref_suppresses_pch_file=*/FALSE);
+    }  /* if */
 #if DEFINE_MACRO_WHEN_WCHAR_T_IS_KEYWORD
     if (wchar_t_is_keyword) {
       /* Enter a predefined macro that can be used to determine that

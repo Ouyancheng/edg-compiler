@@ -1,5 +1,10 @@
 Version 2.39
 
+8/3/98    Microsoft compatibility: _MSC_VER defined by the front end
+
+In Microsoft mode, the _MSC_VER macro is defined to the current value
+of microsoft_version.
+
 8/2/98    p->f(), where f is a static member function: p not cast to base
 
 The standard is not entirely clear on this, but we believe that on a
