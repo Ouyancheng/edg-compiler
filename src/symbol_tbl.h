@@ -799,8 +799,8 @@ typedef struct a_scope_stack_entry {
 			/* Kind of scope (file, function, block, function
 			   prototype, etc.).  See the definition of
 			   a_scope_kind in il_def.h. */
-  an_access_specifier
-		current_access;
+  unsigned int /*an_access_specifier*/
+		current_access:2;
 			/* The access control specification that currently
 			   prevails for declarations in the current scope;
 			   as_public by default, but may be otherwise for
@@ -809,6 +809,12 @@ typedef struct a_scope_stack_entry {
 			   the access to be applied to the enumeration
 			   constants may be derived from the setting of this
 			   field.) */
+  unsigned int	inactive_symbols_may_be_visible:1;
+			/* TRUE if the scope stack to this depth contains any
+			   class reactivation entries or class entries for
+			   classes with base classes.  In either case,
+			   symbols on a symbol header's inactive list may be
+			   visible from the current scope. */
   a_symbol_ptr	symbols,
 		last_symbol;
 			/* First/last pointers to the list of all symbols
