@@ -8248,12 +8248,12 @@ continue_with_declaration:
            function return type.  This is taken to apply to pointer-to-function
            type declarations as well to the function declarations. */
         a_boolean  is_function_type_decl = is_function;
-        if (!is_function) {
+        if (!is_function_type_decl) {
           a_type_ptr  tp = local_type_ptr;
           while (is_ptr_or_ref_type(tp)) tp = type_pointed_to(tp);
-          is_function = is_function_type(tp);
+          is_function_type_decl = is_function_type(tp);
         }  /* if */
-        if (is_function) {
+        if (is_function_type_decl) {
           pos_error(ec_type_def_not_allowed_in_func_type_decl,
                     &decl_start_pos);
         }  /* if */
