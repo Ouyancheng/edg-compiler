@@ -1434,7 +1434,7 @@ supplement indicates that it is required.
 #endif /* CHECKING */
     /* Create the variable.  Its type is pointer to the class type. */
     vp = alloc_variable();
-    vp->type = make_pointer_type(rout_type);
+    vp->type = make_pointer_type(return_type);
     vp->storage_class = (a_storage_class)sc_auto;
     vp->is_parameter = TRUE;
     /* Record the variable pointer in the routine's IL scope. */
