@@ -23,8 +23,9 @@ can be recorded.  If this list is updated, be sure to change
 pch_event_kind_names below.
 */
 typedef enum /* a_pch_event_kind */ {
-  pchek_unknown,
-			/* The event kind is not yet known. */
+  pchek_none,
+			/* The event kind is not yet known, or there is
+                           no event. */
   pchek_misc_unordered,
 			/* Information such as compiler version and
 			   command line information.  The sequence in
@@ -103,6 +104,15 @@ EXTERN a_boolean
 			   information for this compilation.  For example,
 			   running out of special PCH memory. */
 
+EXTERN a_source_position
+		header_stop_source_position;
+			/* The line number and column position in the
+			   primary source file of the first token of the
+			   file that is not part of a preprocessing
+			   directive.  This is used by the declaration
+			   processing routines to determine when they have
+			   reached the implied header stop point. */
+
 /*
 Macro called when a condition occurs that makes it impossible to generate or
 use precompiled header information.
@@ -117,6 +127,8 @@ void add_pch_event(a_pch_event_kind	kind,
 		   a_source_position	*position);
 
 extern void precompiled_header_processing(void);
+
+extern void write_precompiled_header_file(void);
 
 extern void pch_init(void);
 

@@ -44,6 +44,14 @@ static a_pch_event_ptr
 			/* Pointer to the end of the list of precompiled
                            header events for the current primary input file. */
 
+static char	*pch_file_name;
+			/* Name of the precompiled header file being written
+			   or read. */
+
+static FILE	*f_pch_output;
+			/* File to which the precompiled header information
+			   is being written. */
+
 #if DEBUG
 static long	num_pch_events_allocated;
 #endif /* DEBUG */
@@ -55,7 +63,7 @@ Create the string that is used to identify a flag as a precompiled header
 associated with this compiler version.
 */
 {
-  char		*format_string = "EDG C/C++ version %s (%s %s)";
+  char		*format_string = "EDG C/C++ version %s (%s %s)\n";
   check_assertion_str2(strlen(format_string) +
                        strlen(VERSION_NUMBER) +
                        strlen(build_date) +
@@ -131,7 +139,7 @@ Allocate and initialize a precompiled header event record.
   num_pch_events_allocated++;
 #endif /* DEBUG */
   pep->next = NULL;
-  pep->kind = pchek_unknown;
+  pep->kind = pchek_none;
   pep->ppd_kind = ppd_not_valid;
   pep->value = NULL;
   pep->position = null_source_position;
@@ -183,8 +191,6 @@ Do an initial scan of the primary source file to build the file prefix
 information.
 */
 {
-  an_input_stack_entry	saved_input_stack_entry;
-
   /* Set the flag that indicate that we are build the file prefix
      information.  This affects the way in which preprocessing directives
      are handled and the way end-of-file is processed. */
@@ -201,6 +207,7 @@ information.
        and close the primary input file. */
     pop_input_stack();
   }  /* if */
+  header_stop_source_position = pos_curr_token;
   /* Reset the state information maintained by the lexical routines. */
   lexical_reset();
   /* Update curr_char_loc to point to the end of the current line.  This
@@ -224,7 +231,96 @@ be used as part of the applicability check in subsequent compilations.
 */
 {
   build_prefix_information();
+#if 0
+#else
+  write_precompiled_header_file();
+#endif
 }  /* precompiled_header_processing */
+
+
+static void open_pch_file(void)
+/*
+Create or truncate the precompiled header file.
+*/
+{
+  a_boolean	cannot_open;
+  a_boolean	bad_name;
+
+  pch_file_name = derived_name(primary_source_file_name, PCH_FILE_SUFFIX);
+  f_pch_output = open_output_file(pch_file_name, /*binary_file=*/TRUE,
+                                  /*update_mode=*/FALSE,
+                                  &cannot_open, &bad_name);
+  if (bad_name) {
+    str_command_line_error(ec_cl_invalid_pch_output_file, pch_file_name);
+  } else if (cannot_open) {
+    str_command_line_error(ec_cl_cannot_open_pch_output_file,
+                           pch_file_name);
+  }  /* if */
+}  /* open_pch_file */
+
+
+/*
+Macro to write a value to the PCH output file.
+*/
+#define pch_write_value(value)						\
+  (void)fwrite(&value, sizeof(value), 1, f_pch_output);
+
+
+static void pch_write_string(char	*str)
+/*
+Write a null terminated character string to the PCH output file.  The
+string is written as a length followed by the characters of the string.
+Both the length and the actual string include the null terminator.
+*/
+{
+  sizeof_t	length;
+  if (str != NULL) {
+    length = strlen(str) + 1;
+    pch_write_value(length);
+    (void)fwrite(str, length, 1, f_pch_output);
+  } else {
+    /* The string pointer is null.  Represent this as a zero length
+       string. */
+    length = 0;
+    pch_write_value(length);
+  }  /* if */
+}  /* pch_write_string */
+
+
+static void write_pch_events(void)
+/*
+Write the list of precompiled header events to the PCH output file.
+*/
+{
+  a_pch_event_ptr	pep;
+  a_pch_event_kind	dummy_pchek;
+
+  for (pep = pch_event_list_head; pep != NULL; pep = pep->next) {
+    check_assertion(pep->kind != pchek_none);
+    pch_write_value(pep->kind);
+    pch_write_value(pep->ppd_kind);
+    pch_write_string(pep->value);
+    pch_write_value(pep->position);
+  }  /* for */
+  /* An event kind of "none" terminates the list. */
+  dummy_pchek = pchek_none;
+  pch_write_value(dummy_pchek);
+}  /* write_pch_events */
+
+
+void write_precompiled_header_file(void)
+/*
+Create a precompiled header file for the compilation up to the
+current point.
+*/
+{
+  open_pch_file();
+  /* Write the string that identifies this file as a precompiled header
+     file. */
+  (void)fputs(pch_id_string, f_pch_output);
+  write_pch_events();
+  (void)fclose(f_pch_output);
+}  /* write_precompiled_header_file */
 
 
 void pch_init(void)
