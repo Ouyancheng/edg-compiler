@@ -798,46 +798,6 @@ used in C++ mode.
 }  /* add_derived_class_casts */
 
 
-a_type_ptr related_ptr_to_member_type(a_type_ptr member_type,
-                                      a_type_ptr class_type)
-/*
-Make a pointer-to-member type having the indicated member type and class
-type and return a pointer to it.  If the member_type is a function type,
-alter the underlying "this" parameter type to be the new class_type.
-This is used when casting a pointer-to-member type to a related class
-type.
-*/
-{
-  a_type_ptr type, new_member_type, old_this_type, new_this_type;
-  a_type_ptr old_this_underlying_type;
-
-  if (is_function_type(member_type)) {
-    /* Alter a function type's "this" parameter. */
-    /* Build a type for the new "this" parameter.  Start with the new type
-       and build up, adding the qualifiers (both under and over the
-       pointer type) from the old "this" type. */
-    old_this_type = skip_typerefs(member_type)->variant.routine.extra_info->
-                                                      implicit_this_param_type;
-    old_this_underlying_type = type_pointed_to(old_this_type);
-    new_this_type = make_identically_qualified_type(class_type,
-                                                    old_this_underlying_type);
-    new_this_type = make_pointer_type(new_this_type);    
-    new_this_type = make_identically_qualified_type(new_this_type,
-                                                    old_this_type);
-    /* Allocate the new function type and copy into it. */
-    new_member_type = alloc_type((a_type_kind)tk_routine);
-    copy_type(member_type, new_member_type);
-    /* Insert the new "this" parameter type. */
-    new_member_type->variant.routine.extra_info->implicit_this_param_type =
-                                                                 new_this_type;
-    member_type = new_member_type;
-  }  /* if */
-  /* Make the pointer-to-member type. */
-  type = ptr_to_member_type(member_type, class_type);
-  return type;
-}  /* related_ptr_to_member_type */
-
-
 static void add_pm_base_class_casts(a_base_class_ptr  bcp,
                                     an_expr_node_ptr  *p_node,
                                     a_source_position *err_pos)

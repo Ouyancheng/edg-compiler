@@ -3620,6 +3620,73 @@ existing type entry.
 }  /* ptr_to_member_type */
 
 
+a_type_ptr related_member_type(a_type_ptr member_type,
+                               a_type_ptr class_type)
+/*
+member_type is intended to be the member type under a pointer-to-member type
+for the class class_type.  If member_type is a function type, check that
+the "this" parameter type matches class_type.  If not, create a new function
+type with the right underlying class type and return it.  In all other cases,
+return the original member type.
+*/
+{
+  a_type_ptr new_member_type, old_this_type, new_this_type;
+  a_type_ptr old_this_underlying_type, old_this_underlying_class;
+
+  if (is_function_type(member_type)) {
+    /* Take apart the "this" parameter type. */
+    old_this_type = skip_typerefs(member_type)->variant.routine.extra_info->
+                                                      implicit_this_param_type;
+    /* A function type under a pointer-to-member must be a member function
+       and therefore must have a "this" parameter type. */
+    check_assertion(old_this_type != NULL);
+    old_this_underlying_type = type_pointed_to(old_this_type);
+    old_this_underlying_class = skip_typerefs(old_this_underlying_type);
+    if (old_this_underlying_class != class_type) {
+      /* Make a new function type with the right "this" class.  Note that
+         there is no sharing of types going on here, so this may be
+         wasteful if called a lot. */
+      /* Build a type for the new "this" parameter.  Start with the new class
+         and build up, adding the qualifiers (both under and over the
+         pointer type) from the old "this" type. */
+      new_this_type = make_identically_qualified_type(class_type,
+                                                     old_this_underlying_type);
+      new_this_type = make_pointer_type(new_this_type);    
+      new_this_type = make_identically_qualified_type(new_this_type,
+                                                      old_this_type);
+      /* Allocate the new function type and copy into it. */
+      new_member_type = alloc_type((a_type_kind)tk_routine);
+      copy_type(member_type, new_member_type);
+      /* Insert the new "this" parameter type. */
+      new_member_type->variant.routine.extra_info->implicit_this_param_type =
+                                                                 new_this_type;
+      member_type = new_member_type;
+    }  /* if */
+  }  /* if */
+  return member_type;
+}  /* related_member_type */
+
+
+a_type_ptr related_ptr_to_member_type(a_type_ptr member_type,
+                                      a_type_ptr class_type)
+/*
+Make a pointer-to-member type having the indicated member type and class
+type and return a pointer to it.  If the member_type is a function type,
+alter the underlying "this" parameter type if necessary to be the new
+class_type.
+*/
+{
+  a_type_ptr type;
+
+  /* Make a new member type with an altered "this" parameter type,
+     or leave the member type unchanged. */
+  member_type = related_member_type(member_type, class_type);
+  /* Make the pointer-to-member type. */
+  type = ptr_to_member_type(member_type, class_type);
+  return type;
+}  /* related_ptr_to_member_type */
+
+
 a_type_ptr make_pointer_type(a_type_ptr type_pointed_to)
 /*
 Allocate a pointer type record and initialize it.  Attempt to find and reuse
