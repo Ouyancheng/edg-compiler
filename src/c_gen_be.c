@@ -316,6 +316,23 @@ that ordinarily this routine should not be called directly; use the macro
 }  /* local_skip_typerefs */
 
 
+a_boolean is_top_level_const_qualified_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is a top-level const-qualified type.
+*/
+{
+  a_boolean is_const = FALSE;
+
+  for (; tp->kind == (a_type_kind)tk_typeref; tp = tp->variant.typeref.type) {
+    if (tp->variant.typeref.is_const) {
+      is_const = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return is_const;
+}  /* is_top_level_const_qualified_type */
+
+
 #define type_pointed_to(tp) (skip_typerefs(tp)->variant.pointer.type)
 /*
 Return the type of the variable (lvalue) represented by node.  This mainly
@@ -1762,18 +1779,24 @@ cases the definition of the type is generated (rather than just a reference).
 
 
 /*
-Return TRUE if the indicated type is local to a function and it's not
-visible now because we're processing the file scope.
+Return TRUE if the indicated typeref is "invisible" now because (a) it's
+local to a function and we're processing the file scope, or (b) if
+suppress_const is TRUE (we're suppressing top-level "const") and the
+typedef contains the const.
 */
-#define is_invisible_local_type(type)                                 \
- ((type)->source_corresp.is_local_to_function && curr_function_scope == NULL)
+#define typedef_is_invisible(type, suppress_const)                    \
+ (((type)->source_corresp.is_local_to_function &&                     \
+                                      curr_function_scope == NULL) || \
+  ((suppress_const) && is_top_level_const_qualified_type(type)))
 
 /*
-Return TRUE if the indicated type is a typedef that is local to a
-function and is invisible now because we're processing the file scope.
+Return TRUE if the indicated type is a typedef that is "invisible" now
+(meaning it shouldn't be put out).  suppress_const is TRUE if top-level
+"const" should be suppressed in ANSI C mode.
 */
-#define is_invisible_local_typedef(type)                              \
-  ((type)->kind == (a_type_kind)tk_typeref && is_invisible_local_type(type))
+#define is_invisible_typedef(type, suppress_const)                    \
+  ((type)->kind == (a_type_kind)tk_typeref &&                         \
+   typedef_is_invisible((type), (suppress_const)))
 
 
 static void dump_type_specifier(a_type_ptr type,
@@ -1820,7 +1843,8 @@ of "const" in ANSI C mode.
            underlying type. */
         dump_type_qualifier(type, suppress_const);
         dump_type_specifier(type->variant.typeref.type, suppress_const);
-      } else if (!has_name(type) || is_invisible_local_type(type)) {
+      } else if (!has_name(type) ||
+                 typedef_is_invisible(type, suppress_const)) {
         /* This is an internally generated typeref, or a function-local
            typedef that is not visible here, so just output the underlying
            type. */
@@ -1847,7 +1871,7 @@ of "const" in ANSI C mode.
 */
 {
   for (; qual_type != type; qual_type = qual_type->variant.typeref.type) {
-    if (is_invisible_local_type(qual_type)) {
+    if (typedef_is_invisible(qual_type, suppress_const)) {
       /* This is a function-local type that's invisible here and is being
          skipped. */
     } else {
@@ -1870,11 +1894,13 @@ is TRUE, suppress generation of top-level "const" in ANSI C mode.
   a_type_kind kind;
   a_type_ptr  qual_type;
 
-  /* Remove type qualifiers but not typedefs.  Also drop local typedefs
+  /* Remove type qualifiers but not typedefs.  Also drop typedefs
      that aren't visible here. */
   qual_type = type;
   while (is_immediate_type_qualifier(type) ||
-         is_invisible_local_typedef(type)) type = type->variant.typeref.type;
+         is_invisible_typedef(type, suppress_const)) {
+    type = type->variant.typeref.type;
+  }  /* while */
   kind = type->kind;
   if (kind == (a_type_kind)tk_pointer) {
     /* Pointer type. */
@@ -2061,41 +2087,49 @@ Generate an array declarator for the indicated array type.
 
 
 static void dump_type_second_part(a_type_ptr type,
-                                  a_boolean  need_paren)
+                                  a_boolean  need_paren,
+                                  a_boolean  suppress_const)
 /*
 Output the second part of a type reference, the part of the declarator
 that follows the name.  If need_paren is TRUE, put a closing parenthesis
-out first if anything is generated.
+out first if anything is generated.  If suppress_const is TRUE,
+suppress generation of top-level "const" in ANSI C mode.
 */
 {
   a_type_kind kind;
 
-  /* Remove type qualifiers but not typedefs.  Also drop local typedefs
+  /* Remove type qualifiers but not typedefs.  Also drop typedefs
      that aren't visible here. */
   while (is_immediate_type_qualifier(type) ||
-         is_invisible_local_typedef(type)) type = type->variant.typeref.type;
+         is_invisible_typedef(type, suppress_const)) {
+    type = type->variant.typeref.type;
+  }  /* while */
   kind = type->kind;
   if (kind == (a_type_kind)tk_pointer) {
     /* Pointer or reference type. */
     if (need_paren) write_tok_ch(')');
-    dump_type_second_part(type->variant.pointer.type, /*need_paren=*/TRUE);
+    dump_type_second_part(type->variant.pointer.type, /*need_paren=*/TRUE,
+                          /*suppress_const=*/FALSE);
   } else if (kind == (a_type_kind)tk_ptr_to_member) {
     /* Pointer-to-member type. */
     if (need_paren) write_tok_ch(')');
     dump_type_second_part(type->variant.ptr_to_member.type,
-                          /*need_paren=*/TRUE);
+                          /*need_paren=*/TRUE,
+                          /*suppress_const=*/FALSE);
   } else if (kind == (a_type_kind)tk_routine) {
     /* Function type. */
     if (need_paren) write_tok_ch(')');
     dump_function_declarator(type, (a_scope_ptr)NULL);
     dump_type_second_part(type->variant.routine.return_type,
-                          /*need_paren=*/TRUE);
+                          /*need_paren=*/TRUE,
+                          /*suppress_const=*/FALSE);
   } else if (kind == (a_type_kind)tk_array) {
     /* Array type. */
     if (need_paren) write_tok_ch(')');
     dump_array_declarator(type);
     dump_type_second_part(type->variant.array.element_type,
-                          /*need_paren=*/TRUE);
+                          /*need_paren=*/TRUE,
+                          /*suppress_const=*/FALSE);
   }  /* if */
 }  /* dump_type_second_part */
 
@@ -2136,7 +2170,7 @@ of top-level "const" in ANSI C mode.
     dump_temp_name(temp);
   }  /* if */
   /* Write the second part of the declarator. */
-  dump_type_second_part(type, /*need_paren=*/FALSE);
+  dump_type_second_part(type, /*need_paren=*/FALSE, suppress_const);
 }  /* dump_general_declaration_using_type */
 
 
@@ -2168,7 +2202,7 @@ Output a reference to a type.  If add_pointer_to is TRUE, add an extra
      case, add an extra "*". */
   if (add_pointer_to) write_tok_str("(*)");
   /* Write the second part of the declarator. */
-  dump_type_second_part(type, /*need_paren=*/FALSE);
+  dump_type_second_part(type, /*need_paren=*/FALSE, /*suppress_const=*/FALSE);
 }  /* dump_type */
 
 
@@ -5188,7 +5222,7 @@ for the definition of the indicated routine.  scope is the associated scope.
   /* Write the second part of the declarator. */
   dump_function_declarator(type, scope);
   dump_type_second_part(type->variant.routine.return_type,
-                        /*need_paren=*/TRUE);
+                        /*need_paren=*/TRUE, /*suppress_const=*/FALSE);
 #if C_GEN_BE_GENERATES_ANSI_C
   /* For an old-style function, declare the parameters. */
   /* A routine is put out as unprototyped if its interface is unprototyped
