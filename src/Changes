@@ -121,7 +121,7 @@ The failure to check this heretofore led to internal errors, e.g., on
 
 5/7/97    int(3.0/1) is nonstandard in integral constant expression
 
-A floating constant is allowed in an integeral constant expression
+A floating constant is allowed in an integral constant expression
 only as the immediate operand of a cast to an integral type.  This was
 not correctly checked for a case like "int(3.0/1)".  An error is now
 issued in strict mode.
