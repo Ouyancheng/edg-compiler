@@ -5992,6 +5992,15 @@ by recursive calls.
       /* For arrays check the element type. */
       make_class_externally_linked(array_element_type(type), count);
       break;
+    case tk_ptr_to_member:
+      /* For pointer-to-member type check both the class type and the member
+         type.  Ordinarily this would be excessive, since the member type
+         should be handled recursively when the class type is processed.  The
+         the member type is handled independently to allow for the case where
+         no member of that type exists. */
+      tp = type->variant.ptr_to_member.class_of_which_a_member;
+      make_class_externally_linked(tp, count);
+      make_class_externally_linked(type->variant.ptr_to_member.type, count);
     default:
       /* Cannot have a class subtype. */
       break;
