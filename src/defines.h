@@ -66,6 +66,10 @@ Flags to be set when using the KAI inliner.
 #define ONE_INSTANTIATION_PER_OBJECT 0
 #define MAINTAIN_NEEDED_FLAGS 0
 #define DEFAULT_REMOVE_UNNEEDED_ENTITIES 0
+#ifdef SOLARIS
+#define _POSIX_C_SOURCE 0
+#define _XOPEN_VERSION 0
+#endif /* SOLARIS */
 #endif /* SELFCOMP_VERSION */
 #ifndef MAINTAIN_NEEDED_FLAGS
 #define MAINTAIN_NEEDED_FLAGS 1
