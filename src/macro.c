@@ -1356,6 +1356,7 @@ in Microsoft mode; in that case, token pasting off the end is not allowed.
      top-level modification (usually). */
   for (;;) {
     a_boolean need_inert_macro_indication;
+    macro_skip_white_space(any_white_space_skipped);
     if (!main_slmp->being_rescanned_for_token_pasting) {
       /* We've run off the end of the top-level macro, because a macro call
          begins in the top-level modification and continues into the text
@@ -1363,19 +1364,13 @@ in Microsoft mode; in that case, token pasting off the end is not allowed.
          flag to indicate this case.) Once we reach the text following the
          call, exit the loop. */
       if (macro_depth == 1) {
-        check_assertion(!within_curr_source_line(curr_char_loc));
-        /* See whether we're about to leave a macro insertion and return to
-           the primary source line.  After the first substitution on a
-           line in pcc mode, we may be returning to text created by
-           a previous expansion by this routine. */
-        while (curr_char_loc[0] == LE_ESCAPE &&
-               curr_char_loc[1] == LE_END_OF_INSERTION) {
-          slmp = assoc_source_line_modif(curr_char_loc);
-          leave_insertion(slmp, curr_char_loc);
-          if (slmp == main_slmp ||
-              parent_source_line_modif(slmp) ==
-              parent_source_line_modif(main_slmp)) goto end_loop;
-        }  /* while */
+        if (within_curr_source_line(curr_char_loc)) goto end_loop;
+        /* Check for the case where the main modification does not return
+           directly to the primary source line because it modifies the
+           result of a previous invocation of this top-level-expansion
+           routine. */
+        slmp = assoc_source_line_modif(curr_char_loc);
+        if (slmp == parent_source_line_modif(main_slmp)) goto end_loop;
       }  /* if */
     }  /* if */        
     /* We get back tok_end_of_source at the end of the top-level macro, or
@@ -1383,8 +1378,7 @@ in Microsoft mode; in that case, token pasting off the end is not allowed.
        because we were in the parentheses of a macro invocation when
        we ran off the modification (an error would have been issued already
        in that case). */
-    if (arg_get_token(&any_white_space_skipped) == tok_end_of_source ||
-        curr_token == tok_newline) break;
+    if (get_token() == tok_end_of_source || curr_token == tok_newline) break;
     need_inert_macro_indication = (!pcc_preprocessing_mode &&
                                    curr_token_is_inert_macro);
     /* Make enough room in the aux. buffer for the token text. */
