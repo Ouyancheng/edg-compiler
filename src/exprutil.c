@@ -6620,11 +6620,13 @@ expression case (a GNU C extension) is characterized by operand_2 being NULL.
           conv_object_pointer_to_lvalue(result);
         }  /* if */
         temp_init_from_operand(result, /*result_is_addr=*/FALSE);
-        check_assertion(is_expression_operand(result) &&
-                        result->variant.expression->kind ==
+        if (!is_error_operand(result)) {
+          check_assertion(is_expression_operand(result) &&
+                          result->variant.expression->kind ==
                                              (an_expr_node_kind)enk_temp_init);
-        result->variant.expression->variant.init.dynamic_init->
+          result->variant.expression->variant.init.dynamic_init->
                                is_result_for_class_rvalue_question_mark = TRUE;
+        }  /* if */
       }  /* if */
       if (result_is_an_lvalue) {
         check_assertion(is_expression_operand(result) &&
