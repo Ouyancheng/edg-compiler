@@ -1075,9 +1075,11 @@ not being eliminated.
   }  /* if */
 #endif /* INSTANTIATE_EXTERN_INLINE */
 #if DECL_MODIFIERS_IN_USE && MICROSOFT_EXTENSIONS_ALLOWED
-  /* If the __declspec(nothrow) specifier appeared on any of the declarations,
-     it should be retained. */
-  corresp_routine->decl_modifiers |= (routine->decl_modifiers & DM_NOTHROW);
+  /* Merge the __declspec(...) attributes that should be retained if they
+     appeared on any of the declarations. */
+  corresp_routine->decl_modifiers |=
+     (routine->decl_modifiers & (DM_FORCEINLINE | DM_NAKED | DM_NOINLINE |
+                                 DM_NORETURN | DM_NOTHROW));
 #endif /* DECL_MODIFIERS_IN_USE && MICROSOFT_EXTENSIONS_ALLOWED */
   /* Note that suppress_inline_body is meaningful only when the routine
      has a body, and the interesting value -- the one that sticks --

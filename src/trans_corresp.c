@@ -2240,6 +2240,10 @@ declaration modifiers.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_decl_modifier  dm_mask = (a_decl_modifier)(DM_DLLIMPORT |
                                                DM_DLLEXPORT |
+                                               DM_FORCEINLINE |
+                                               DM_NAKED |
+                                               DM_NOINLINE |
+                                               DM_NORETURN |
                                                DM_NOTHROW);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -2250,6 +2254,15 @@ declaration modifiers.
   result = ((rp1->decl_modifiers & ~dm_mask) !=
                                             (rp2->decl_modifiers & ~dm_mask));
   if (!result &&
+      (rp1->decl_modifiers & DM_NAKED) != (rp2->decl_modifiers & DM_NAKED)) {
+    /* __declspec(naked) need not be specified on every declaration, but if
+       it appears on one, it must also appear on the definition. */
+    if (((rp1->decl_modifiers & DM_NAKED) && rp2->defined) ||
+        ((rp2->decl_modifiers & DM_NAKED) && rp1->defined)) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  if (!result &&
       (rp1->decl_modifiers & DM_NOTHROW) !=
                                          (rp2->decl_modifiers & DM_NOTHROW)) {
     /* __declspec(nothrow) need not be specified on every declaration, but if
@@ -2258,6 +2271,25 @@ declaration modifiers.
         ((rp2->decl_modifiers & DM_NOTHROW) && rp1->defined)) {
       result = TRUE;
     }  /* if */
+  }  /* if */
+  if (!result &&
+      (rp1->decl_modifiers & DM_NORETURN) !=
+                                        (rp2->decl_modifiers & DM_NORETURN)) {
+    /* __declspec(noreturn) need not be specified on every declaration, but if
+       it appears on one, it must also appear on the definition. */
+    if (((rp1->decl_modifiers & DM_NORETURN) && rp2->defined) ||
+        ((rp2->decl_modifiers & DM_NORETURN) && rp1->defined)) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  if (!result &&
+      (((rp1->decl_modifiers & DM_FORCEINLINE) !=
+                                       (rp2->decl_modifiers & DM_NOINLINE)) ||
+       ((rp1->decl_modifiers & DM_NOINLINE) !=
+                                   (rp2->decl_modifiers & DM_FORCEINLINE)))) {
+    /* A routine shouldn't be declared both with __forceinline and with
+       __declspec(noinline). */
+    result = TRUE;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   return result;

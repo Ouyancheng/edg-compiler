@@ -1,5 +1,16 @@
 Version 3.6
 
+1/31/05  Microsoft routine specifier differences across translation units
+
+When simultaneously processing multiple translation units in Microsoft mode,
+the front end now allows more differences between routine declarations.
+First, the __declspec(naked) and __declspec(noreturn) attributes can differ,
+but if such a specifier appears on any declaration of the routine, it must
+also appear on the definition of the routine.  Second, the __forceinline and
+__declspec(noinline) specifiers can appear on some declarations and not on
+others, but a routine cannot be declared with __forceinline in one translation
+unit and with __declspec(noinline) in another.
+
 1/31/05  Microsoft compatibility: __wchar_t keyword
 
 The __wchar_t keyword is now supported when microsoft_version is >= 1300.

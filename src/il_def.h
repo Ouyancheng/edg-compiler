@@ -7203,12 +7203,15 @@ typedef struct a_routine {
 			   overriding virtual function with a covariant
 			   return type (C++ only). */
   a_bit_field	is_inline:1;
-			/* TRUE for C++ functions that were specified in the
+			/* TRUE for functions that were specified in the
 			   source as candidates for inlining (either by the
-			   "inline" keyword or definition within a class
+			   "inline" keyword or definition within a C++ class
 			   definition).  This flag is intended as a hint to
 			   the compiler and does not mean that inlining is
-			   required. */
+			   required.  Also TRUE when the Microsoft-specific
+			   specifiers __inline or __forceinline were used (in
+			   which case the variant is also recorded in the
+			   decl_modifiers field). */
   a_bit_field	compiler_generated:1;
 			/* TRUE for functions that are created by the
 			   compiler and have not been declared in the source,
