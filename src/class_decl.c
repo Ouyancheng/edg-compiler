@@ -506,55 +506,6 @@ Dump a sequence of virtual function numbers, for debug purposes.
 #endif /* DEBUG */
 
 
-a_boolean simplify_curr_class_qualified_name(void)
-/*
-
-If the current token is the start of a qualified name in which the class
-name component is the name of a class currently being defined, advance past
-the class name and the "::" so that the current token is a non-qualified
-name.  Return TRUE if such a modification is done and FALSE otherwise.
-This routine is called in C++ only.
-
-This functionality is provided to deal with declarations of class members
-where a qualified name is used instead of a simple name, e.g., when a
-constructor for class A is declared A::A() rather than A().  The ARM does
-not specifically allow this syntax, but it is supported by cfront.
-*/
-{
-  a_boolean                is_member_id = FALSE;
-  a_scope_stack_entry_ptr  ssep = &scope_stack[decl_scope_level];
-
-  db_enter(3, "simplify_curr_class_qualified_name");
-
-  if (ssep->kind == (a_scope_kind)sck_class_struct_union &&
-      is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL) &&
-      locator_for_curr_id.is_qualified_name) {
-    if (locator_for_curr_id.qualifier_class_type == ssep->assoc_type &&
-        locator_for_curr_id.is_global_qualified_name == FALSE) {
-      is_member_id = TRUE;
-      /* Issue any access errors encountered while scanning the
-	 qualifier -- even though there shouldn't be any for this
-	 case. */
-      issue_qualifier_access_errors(&locator_for_curr_id.access_errors);
-      /* Reset the fields in the locator to make it appear as if the
-         qualifier was not present. */
-      locator_for_curr_id.is_qualified_name = FALSE;
-      locator_for_curr_id.is_file_scope_qualified_name = FALSE;
-      locator_for_curr_id.is_global_qualified_name = FALSE;
-      locator_for_curr_id.qualifier_class_type = NULL;
-      /* Accepting qualified member names is an extension so issue a
-         diagnostic in strict ANSI mode. */
-      if (strict_ansi_mode) {
-        diagnostic(strict_ansi_error_severity,
-                   ec_qualifier_in_member_declaration);
-      }  /* if */ 
-    }  /* if */
-  }  /* if */
-  db_exit();
-  return is_member_id;
-}  /* simplify_curr_class_qualified_name */
-
-
 static void report_virtual_function_ambiguities(a_type_ptr class_type)
 /* 
 Report errors in virtual function declarations that result from the failure
@@ -2746,27 +2697,33 @@ the current class (class_type).
   a_class_list_entry_ptr      clep;
   a_class_type_supplement_ptr ctsp;
 
-  ctsp = friend_class_type->variant.class_struct_union.extra_info;
-  /* Issue a remark if this is a duplicate friend declaration. */
-  for (clep = ctsp->befriending_classes; clep != NULL; clep = clep->next) {
-    if (clep->class_type == class_type) {
-      remark(ec_duplicate_friend_decl);
-      break;
+  if (class_type == friend_class_type) {
+    /* Diagnostic on excessively narcissism. */
+    diagnostic(strict_ansi_mode ? strict_ansi_error_severity : es_warning,
+               ec_self_friendship);
+  } else {
+    ctsp = friend_class_type->variant.class_struct_union.extra_info;
+    /* Issue a remark if this is a duplicate friend declaration. */
+    for (clep = ctsp->befriending_classes; clep != NULL; clep = clep->next) {
+      if (clep->class_type == class_type) {
+        remark(ec_duplicate_friend_decl);
+        break;
+      }  /* if */
+    }  /* for */
+    if (clep == NULL) {
+      /* No duplication was detected. */
+      clep = alloc_list_entry_for_class();
+      clep->class_type = class_type;
+      clep->next = ctsp->befriending_classes;
+      ctsp->befriending_classes = clep;
+      /* Now add the friend_class_type to the friends list for the current
+         class. */
+      ctsp = class_type->variant.class_struct_union.extra_info;
+      clep = alloc_list_entry_for_class();
+      clep->class_type = friend_class_type;
+      clep->next = ctsp->friend_classes;
+      ctsp->friend_classes = clep;
     }  /* if */
-  }  /* for */
-  if (clep == NULL) {
-    /* No duplication was detected. */
-    clep = alloc_list_entry_for_class();
-    clep->class_type = class_type;
-    clep->next = ctsp->befriending_classes;
-    ctsp->befriending_classes = clep;
-    /* Now add the friend_class_type to the friends list for the current
-       class. */
-    ctsp = class_type->variant.class_struct_union.extra_info;
-    clep = alloc_list_entry_for_class();
-    clep->class_type = friend_class_type;
-    clep->next = ctsp->friend_classes;
-    ctsp->friend_classes = clep;
   }  /* if */
 }  /* decl_friend_class */
 
@@ -2930,6 +2887,11 @@ of the function, and again overloading is a possibility.
                           is_function_def_with_body, is_inline,
                           is_main_function, &sym, &linkage, &old_type,
                           &ext_sym);
+    } else if (sym->class_of_which_a_member == class_type) {
+      /* It's a member function of the very class that is according it
+         friendship.  Issue a diagnostic. */
+      diagnostic(strict_ansi_mode ? strict_ansi_error_severity : es_warning,
+                      ec_self_friendship);
     } else {
       /* It's a member function.  Find the right type signature for this
          member function name.  If none can be found, NULL is returned. */
@@ -6018,7 +5980,8 @@ Scan the body of a class definition, including the base classes list.
               declarator_input_flags |= DI_NONSTATIC_MEMBER;
             }  /* if */
             if (friend_specified) {
-              declarator_input_flags |= DI_QUALIFIED_NAME_ALLOWED;
+              declarator_input_flags |= DI_IS_FRIEND_DECL |
+                                        DI_QUALIFIED_NAME_ALLOWED;
             }  /* if */
             declarator_input_flags |= DI_OPERATOR_NAME_ALLOWED;
             /* Pass the class's type pointer to declarator if this might
