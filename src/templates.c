@@ -8554,6 +8554,13 @@ sure it matches the primary template.
                      &locator->source_position);
   sym->decl_scope = primary_sym->decl_scope;
   tssp = sym->variant.template_info;
+  if (primary_sym->is_class_member) {
+    sym->parent.class_type = primary_sym->parent.class_type;
+    sym->is_class_member = TRUE;
+    tssp->variant.class_template.access = decl_state->access; 
+  } else if (primary_sym->parent.namespace_ptr != NULL) {
+    sym->parent.namespace_ptr = primary_sym->parent.namespace_ptr;
+  }  /* if */
   tssp->variant.class_template.primary_template_sym = primary_sym;
   if (!decl_state->decl_scope_err && !is_error_locator(*locator)) {
     /* Only link the symbol to the primary template if some error has not
@@ -9564,6 +9571,7 @@ instantiation.
          the symbol. */
       sym = add_partial_specialization(decl_state, partial_spec_nonreal_sym,
                                        &locator, type_kind);
+      tssp = sym->variant.template_info;
     } else {
       sym = enter_symbol((a_symbol_kind)sk_class_template, &locator,
                          decl_state->effective_decl_level,
@@ -9573,16 +9581,16 @@ instantiation.
            mark it as invisible. */
         sym->is_invisible = decl_state->is_template_friend;
       }  /* if */
-    }  /* if */
-    tssp = sym->variant.template_info;
-    if (ssep->kind == (a_scope_kind)sck_namespace ||
-        ssep->kind == (a_scope_kind)sck_namespace_extension) {
-      set_namespace_membership(sym, (a_source_correspondence *)NULL,
-                               ssep->il_scope->variant.assoc_namespace);
-    } else if (ssep->kind == (a_scope_kind)sck_class_struct_union) {
-      set_class_membership(sym, (a_source_correspondence *)NULL,
-                           decl_state->class_declared_in);
-      tssp->variant.class_template.access = decl_state->access; 
+      tssp = sym->variant.template_info;
+      if (ssep->kind == (a_scope_kind)sck_namespace ||
+          ssep->kind == (a_scope_kind)sck_namespace_extension) {
+        set_namespace_membership(sym, (a_source_correspondence *)NULL,
+                                 ssep->il_scope->variant.assoc_namespace);
+      } else if (ssep->kind == (a_scope_kind)sck_class_struct_union) {
+        set_class_membership(sym, (a_source_correspondence *)NULL,
+                             decl_state->class_declared_in);
+        tssp->variant.class_template.access = decl_state->access; 
+      }  /* if */
     }  /* if */
     /* Save the type kind on the initial declaration.  This may be modified
        later on a definition. */
