@@ -2941,7 +2941,7 @@ entry is pushed on the scope stack.
 	    a_boolean	param_used;
 	    param_used = template_param_appears_in_param_list
                       (param_sym->variant.type, type, &only_in_default_args);
-	    if (!param_sym->referenced || !param_used) {
+	    if (!param_used) {
               pos_sy2_error(ec_not_used_in_template_function_params,
                             &param_sym->decl_position, param_sym, sym);
 	      tssp->variant.function.cannot_be_called = TRUE;
