@@ -2776,28 +2776,25 @@ initialized.  These are addressed in the course of the processing.
           member_or_base_sym = coalesce_and_lookup_generalized_identifier
                                    (GID_NO_OPTIONS, ilm_ctor_initializer_name,
                                     &gid_err);
-#if 0
-/* The following code should be removed when support for class-name-injection
-   is added. */
-#endif /* if 0 */
-          /* If no symbol was returned from the lookup, or if the symbol
-             returned was not a base class or member of the current class,
-             see if the name (if it was unqualified) matches the name of a
-             base class. This can be necessary in cases like this:
-               namespace N {
-                 class A { A(int); ... };
-               }
-               class B : public N::A {
-                 B() : A(0) { }
-               };
-             The check that follows does not quite emulate the results of
-             a lookup that supports class name injection (e.g., it doesn't
-             deal properly with hiding within the inheritance hierarchy),
-             but the differences will be manifested as slightly different
-             diagnostics, and then only in rather obscure cases.
-          */
-          if (!is_error_locator(locator_for_curr_id) &&
+          if (!class_name_injection_enabled &&
+              !is_error_locator(locator_for_curr_id) &&
               !locator_for_curr_id.is_qualified_name) {
+            /* If no symbol was returned from the lookup, or if the symbol
+               returned was not a base class or member of the current class,
+               see if the name (if it was unqualified) matches the name of a
+               base class. This can be necessary in cases like this:
+                 namespace N {
+                   class A { A(int); ... };
+                 }
+                 class B : public N::A {
+                   B() : A(0) { }
+                 };
+               The check that follows does not quite emulate the results of
+               a lookup that supports class name injection (e.g., it doesn't
+               deal properly with hiding within the inheritance hierarchy),
+               but the differences will be manifested as slightly different
+               diagnostics, and then only in rather obscure cases.
+            */
             a_boolean     check_base_classes;
 
             if (member_or_base_sym == NULL) {
