@@ -440,7 +440,7 @@ typedef enum /*an_error_code*/ {
   ec_nonstd_array_cast,
   ec_class_with_op_new_but_no_op_delete,
   ec_class_with_op_delete_but_no_op_new,
-  ec_class_with_virtual_func_but_nonvirtual_dtor,
+  ec_base_class_with_nonvirtual_dtor,
   ec_no_access_to_constructors,
   ec_member_function_redeclaration,
   ec_inline_main,
@@ -618,6 +618,8 @@ extern void pos_st_warning(an_error_code     error_code,
                            char              *error_string);
 extern void pos_warning(an_error_code     error_code,
                         a_source_position *error_pos);
+extern void str_warning(an_error_code error_code,
+                        char          *error_string);
 extern void warning(an_error_code error_code);
 extern void pos_ty_warning(an_error_code     error_code,
                            a_source_position *error_pos,
