@@ -102,6 +102,8 @@ lowered IL.
       }  /* if */
       result = lowered_complex_long_double;
       break;
+    default:
+      unexpected_condition_str("lowered_complex_type: invalid float kind");
   }  /* switch */
   return result;
 }  /* lowered_complex_type */
@@ -671,7 +673,7 @@ Transform the given cast expression into a function call (compatible with C89).
 }  /* lower_c99_complex_cast */
 
 
-void lower_c99_operator(an_expr_node_ptr  expr)
+static void lower_c99_operator(an_expr_node_ptr  expr)
 /*
 The given expression should be an operation.  If it is a complex or an
 imaginary operation, replace it by IL that is compatible with C89 IL.
@@ -784,7 +786,7 @@ replace them by a representation compatible with C89.
     case ck_imaginary:
       /* Represent the constant as a regular floating-point constant.
          It's type will similarly be adjusted. */
-      constant->kind = ck_float;
+      constant->kind = (a_constant_repr_kind)ck_float;
       break;
     case ck_address:
       switch (constant->variant.address.kind) {
@@ -840,7 +842,7 @@ Transform the given expression to remove certain C99-specific constructs.
                                               expr->type->variant.float_kind),
                                    scope_stack[DEPTH_OF_FILE_SCOPE].il_scope,
                                    /*force_static=*/FALSE);
-    tmp->init_kind = initk_static;
+    tmp->init_kind = (an_init_kind)initk_static;
     tmp->initializer.constant = expr->variant.constant;
     lower_c99_constant(tmp->initializer.constant);
     overwrite_node(expr, var_rvalue_expr(tmp));
