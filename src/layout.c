@@ -2100,8 +2100,9 @@ static a_field_ptr trailing_nonclass_field(a_type_ptr     class_type,
                                            a_targ_size_t  *offset)
 /*
 Return the last field of the given class type.  If the last field has a class
-type, return its last field, etc.  *offset is incremented by the offset of
-the field (if any).
+type, return its last field, etc.  If there are no fields, consider the fields
+of any trailing base class.  *offset is incremented by the offset of the field
+(if any).
 */
 {
   a_field_ptr  result = class_type->variant.class_struct_union.field_list;
@@ -2116,6 +2117,27 @@ the field (if any).
     }  /* if */
     if (result != NULL) {
       *offset = field_offset;
+    }  /* if */
+  } else if (class_type->variant.class_struct_union.extra_info != NULL) {
+    /* No fields: Check for base classes. */
+    a_base_class_ptr  bcp = base_classes_of(class_type), last_bcp = bcp;
+    if (bcp != NULL) {
+      /* Find the trailing base. */
+      a_targ_size_t  base_offset = bcp->offset;
+      bcp = bcp->next;
+      while (bcp != NULL) {
+        if (bcp->offset >= base_offset) {
+          last_bcp = bcp;
+          base_offset = bcp->offset;
+        }  /* if */
+        bcp = bcp->next;
+      }  /* while */
+      /* Look for a trailing field in this base. */
+      result = trailing_nonclass_field(skip_typerefs(last_bcp->type),
+                                       &base_offset);
+      if (result != NULL) {
+        *offset += base_offset;
+      }  /* if */
     }  /* if */
   }  /* if */
   return result;
@@ -2235,14 +2257,28 @@ base class ends with a bit field.
       bcp->offset + bcp->type->size >= *end_of_object &&
       !(bcp->type->source_corresp.assoc_info != NULL &&
         symbol_supplement_for_class(bcp->type)->is_POD)) {
-    a_targ_size_t  offset;
-    a_field_ptr    last_field = trailing_nonclass_field(bcp->type, &offset);
+    a_targ_size_t  offset = bcp->offset;
+    a_type_ptr     btp = bcp->type;
+    /* The call to trailing_nonclass_field set offset to the offset of the last
+       field. */
+    a_field_ptr    last_field = trailing_nonclass_field(btp, &offset);
     if (last_field != NULL && last_field->is_bit_field &&
         (last_field->offset_bit_remainder + last_field->bit_size) %
                                                          targ_char_bit != 0) {
       /* The trailing base ends with a bit field that leaves some unused
          bits in its last byte. */
-      --*end_of_object;
+      if (offset +
+              (last_field->offset_bit_remainder+last_field->bit_size)
+                                                               % targ_char_bit
+            < *end_of_object) {
+        /* The trailing bit field actually triggered the GNU bit field
+           overpadding bug.  In that case, more bytes are trimmed, but one
+           byte of overpadding remains nonetheless. */
+        *end_of_object -= (btp->alignment - 1);
+      } else {
+        /* No overpadding: Just trim the last byte. */
+        --*end_of_object;
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* gnu_trim_trailing_base_bits */
