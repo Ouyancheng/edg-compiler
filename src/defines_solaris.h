@@ -23,15 +23,15 @@ This version is for the Sun Solaris operating system.
 #define TARG_LITTLE_ENDIAN FALSE
 #define TARG_JMP_BUF_NUM_ELEMENTS 9
 #else /* ifndef SUNOS */
-#ifdef sparc
+#if defined(sparc) || defined(__sparc)
 /* SPARC Solaris specific defines. */
 #define TARG_LITTLE_ENDIAN FALSE
 #define TARG_JMP_BUF_NUM_ELEMENTS 12
-#else /* ifndef sparc */
+#else /* !(defined(sparc) || defined(__sparc)) */
 /* Intel Solaris specific defines. */
 #define TARG_LITTLE_ENDIAN TRUE
 #define TARG_JMP_BUF_NUM_ELEMENTS 10
-#endif /* ifdef sparc */
+#endif /* defined(sparc) || defined(__sparc) */
 #endif /* ifdef SUNOS */
 
 #define TARG_CHAR_BIT 8

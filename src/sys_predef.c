@@ -80,7 +80,8 @@ Linux using the gcc/g++ header files.
 }  /* enter_linux_predefined_macros */
 
 #endif /* ifdef __linux__ */
-#ifdef sparc
+
+#if defined(sparc) || defined(__sparc)
 
 static void enter_sparc_predefined_macros(void)
 /*
@@ -95,9 +96,15 @@ Enter the standard predefined macros for a SPARC system.
     (void)enter_predef_macro("1", "sparc", /*cannot_be_redefined=*/TRUE,
                              /*ref_suppresses_pch_file=*/FALSE);
   }  /* if */
+  (void)enter_predef_macro("1", "__unix", /*cannot_be_redefined=*/TRUE,
+                           /*ref_suppresses_pch_file=*/FALSE);
+  (void)enter_predef_macro("1", "__sun", /*cannot_be_redefined=*/TRUE,
+                           /*ref_suppresses_pch_file=*/FALSE);
+  (void)enter_predef_macro("1", "__sparc", /*cannot_be_redefined=*/TRUE,
+                           /*ref_suppresses_pch_file=*/FALSE);
 }  /* enter_sparc_predefined_macros */
 
-#endif /* ifdef sparc */
+#endif /* if defined(sparc) || defined(__sparc) */
 
 #if GNU_EXTENSIONS_ALLOWED
 
@@ -937,9 +944,9 @@ Define system-specific predefined macros and builtin #assert predicates
 #ifdef __linux__
   enter_linux_predefined_macros();
 #else /* !defined(__linux__) */
-#ifdef sparc
+#if defined(sparc) || defined(__sparc)
   enter_sparc_predefined_macros();
-#endif /* ifdef sparc */
+#endif /* defined(sparc) || defined(__sparc) */
 #endif /* ifdef __linux__ */
 }  /* enter_system_specific_predefined_macros_and_assertions */
 

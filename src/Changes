@@ -1,5 +1,13 @@
 Version 3.0
 
+3/18/02  Predefined macros on Sparc architecture
+
+The front end now tests both the "sparc" and "__sparc" macros to determine
+whether the Sparc architecture is being used (formerly only "sparc" was
+tested).  When using the Sparc architecture, the "__unix", "__sun", and
+"__sparc" macros are now predefined in addition to the "unix", "sun",
+and "sparc" macros that were previously defined.
+
 3/18/02  Microsoft compatibility: abort on const-qualified anonymous union
 
 The front end used to sometimes abort in Microsoft mode when an anonymous
