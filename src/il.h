@@ -707,7 +707,6 @@ extern void set_autonomous_tag_decl_flag(a_type_ptr  type,
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
-#if !STANDALONE_UTILITY_PROGRAM
 #if ORPHAN_PROCESSING_NEEDED
 /*
 Record a file-scope entry as a potential orphan.  The macro here ensures
@@ -723,9 +722,10 @@ extern void f_add_orphaned_file_scope_il_entry(char             *entry_ptr,
                                                an_il_entry_kind entry_kind);
 #endif /* ORPHAN_PROCESSING_NEEDED */
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
+#if !STANDALONE_UTILITY_PROGRAM
 extern void add_scope_orphaned_il_lists(a_scope_ptr scope);
-#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
+#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
 
 extern void init_type_of_type_info(void);
 
