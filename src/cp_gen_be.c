@@ -670,6 +670,8 @@ etc.
   a_boolean         line_directive_needed = FALSE;
   a_source_file_ptr new_output_file;
 
+  /* Record the position for use in internal errors. */
+  error_position = *pos;
   /* Do nothing for unknown positions. */
   if (seq != 0) {
     /* Find the file in which this sequence number lies. */
