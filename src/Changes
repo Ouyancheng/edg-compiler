@@ -1,5 +1,18 @@
 Version 2.32
 
+6/10/96 Microsoft compatibility -- field of type array-of-unknown-size
+
+In Microsoft compatibility mode, the only field of a struct may be of type
+array-of-unknown-size, e.g.,
+
+  struct S {
+    int a[];       // Accepted in Microsoft compatibility mode (C or C++)
+  };
+
+(Previously in Microsoft compatibility mode, the final field of a struct
+was permitted to be an array of unknown size as long as it was not the
+*only* field.)
+
 6/7/96  IL CHANGE: ck_cast removed, tpck_cast/tpck_sizeof/tpck_alignof added
 
 The ck_cast variant of the IL a_constant entry has been removed.  It was
