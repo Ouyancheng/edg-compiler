@@ -799,6 +799,7 @@ to indicate a primary declaration.
     }  /* if */
     if (autonomous &&
         il_header.source_language == sl_Cplusplus &&
+        is_immediate_class_type(type) &&
         type->variant.class_struct_union.extra_info->anonymous_union_kind ==
                                        (an_anonymous_union_kind)auk_variable) {
       /* An anonymous union type associated with a variable is marked as
