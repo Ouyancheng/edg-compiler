@@ -6472,7 +6472,8 @@ of compiler-generated function (e.g., a constructor).
   if (assoc_sym != NULL) {
     instance_ptr = assoc_sym->variant.routine.instance_ptr;
     if (instance_ptr != NULL) {
-      update_instantiation_required_flag(instance_ptr, TRUE);
+      update_instantiation_required_flag(instance_ptr, TRUE,
+                                         /*defer_inline=*/FALSE);
     }  /* if */
   }  /* if */
 }  /* mark_routine_referenced */

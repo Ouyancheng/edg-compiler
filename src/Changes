@@ -1,5 +1,29 @@
 Version 2.26
 
+9/19/94  Internal error on use of template parameter that references an
+         incomplete type
+
+A bug has been fixed that caused an internal error when a template
+parameter that refers to a type that is in the processing of
+being defined is dereferenced in a virtual inline function of a
+class template.  From a language point of view, the point of
+instantiation of A<Y>::f is not yet specified.  If the point of instantiation
+of a member function is specified to be that of the class of which
+it is a member, then this example would be illegal.
+
+The front end has been changed to defer the instantiation of A<Y>::f, so
+that Y is complete when the instantiation is done.
+
+  class X { };
+  template <class T> class A {
+    T *p;
+    virtual X f() { return *p; }
+  };
+  class Y : public X {
+    int i;
+    A<Y> a;
+  };
+
 9/19/94  Abort in invalid vacuous destructor call
 
 A bug has been fixed that could cause the compiler to abort during
@@ -11,8 +35,6 @@ type name.
     int *p;
     p->~xxx(); 
   }
-
-
 
 9/15/94  Return type checking for operator->()
 

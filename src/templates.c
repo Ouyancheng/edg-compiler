@@ -571,7 +571,8 @@ itself recursively to process classes nested within this class.
            occurs for compiler generated routines and under some error
            conditions.  Simply skip this routine. */
         update_instantiation_required_flag
-                      (tip, (a_boolean)(sym->variant.routine.ptr->is_virtual));
+                      (tip, (a_boolean)(sym->variant.routine.ptr->is_virtual),
+                       /*defer_inline=*/TRUE);
       }  /* if */
       rout = rout->next;
     }  /* while */
@@ -592,7 +593,8 @@ itself recursively to process classes nested within this class.
          generate a possibly spurious internal error. */
 #endif /* 0 */
       if (tip != NULL && !tip->instantiation_required) {
-        update_instantiation_required_flag(tip, /*value=*/TRUE);
+        update_instantiation_required_flag(tip, /*value=*/TRUE,
+                                           /*defer_inline=*/TRUE);
       }  /* if */
       var = var->next;
     }  /* while */
@@ -2174,7 +2176,8 @@ type based on the template argument list and the template parameter list
   if (!tip->instantiation_required) {
     /* If the flag is set then the entry is already on the list and the flag
        should not be reset. */
-    update_instantiation_required_flag(tip, /*value=*/FALSE);
+    update_instantiation_required_flag(tip, /*value=*/FALSE,
+                                       /*defer_inline=*/FALSE);
   }  /* if */
   db_exit();
   return sym;
@@ -2459,7 +2462,8 @@ the function instantiation entry and set all the pointers.
            declaration has been called or has had its address taken. */
         a_boolean	instantiate;
         instantiate = rp->address_taken || rp->called;
-        update_instantiation_required_flag(tip, instantiate);
+        update_instantiation_required_flag(tip, instantiate,
+                                           /*defer_inline=*/FALSE);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -4564,12 +4568,14 @@ function.
 
 
 void update_instantiation_required_flag(a_template_instance_ptr tip,
-                                        a_boolean               value)
+                                        a_boolean               value,
+					a_boolean		defer_inline)
 /*
 Updates the instantiation required flag in a template instance entry.  If the
 flag is set to TRUE the instance entry is added to a list of entries for which
 instantiation is required.  If the flag is set to FALSE the entry is simply
-updated but not removed from the list.
+updated but not removed from the list.  Inline functions are instantiated
+as they are added to the list, unless defer_inline is TRUE.
 */
 {
   a_symbol_ptr			   sym;
@@ -4608,7 +4614,7 @@ updated but not removed from the list.
          can occur in a sizeof operation applied to the address of a
          static member function -- anywhere else?).  Do not instantiate
          the function. */
-    } else if (is_function_symbol(sym) &&
+    } else if (!defer_inline && is_function_symbol(sym) &&
                tssp->token_cache.first_token != NULL &&
                is_inline_template_function(tip)) {
       /* Inline (member or nonmember) functions are instantiated at the
@@ -5263,7 +5269,8 @@ or the specific definition flag (if instantiate is FALSE).
       instantiation_required_flag = tip->instantiation_required;
       tip->explicit_can_instantiate = TRUE;
     }  /* if */
-    update_instantiation_required_flag(tip, instantiation_required_flag);
+    update_instantiation_required_flag(tip, instantiation_required_flag,
+                                       /*defer_inline=*/FALSE);
   }  /* if */
 #if DEBUG
   if (debug_level >= 3) {

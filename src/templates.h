@@ -74,10 +74,16 @@ extern void delayed_scan_for_function_template_default_args
 			  a_template_symbol_supplement_ptr tssp);
 
 extern a_symbol_ptr template_declaration(a_boolean  *defines_something);
-extern void update_instantiation_required_flag(a_template_instance_ptr tip,
-                                               a_boolean               value);
+
+extern
+void update_instantiation_required_flag(a_template_instance_ptr tip,
+                                        a_boolean               value,
+				        a_boolean	        defer_linline);
+
 extern void instantiation_wrapup(void);
+
 extern void templates_init(void);
+
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
 extern void create_or_remove_instantiation_information_file(void);
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
