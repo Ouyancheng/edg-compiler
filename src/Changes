@@ -1,5 +1,16 @@
 Version 2.36
 
+3/7/97   Setting "referenced" on static data member specialization
+
+The "referenced" flag was not be set properly on a template static data
+member that was explicitly specialized with an initializer and using the
+template<> syntax.  (It is a convention in the IL to set the flag on
+definitions of externally visible variables whether or not there is
+actually a reference in the current translation unit.)  Now fixed.
+
+  template <class T> struct A { static T t; }
+  template<> int A<int>::t = 10;        // "referenced" was not set
+
 3/7/97   Function templates incorrectly considered to be ordered
 
 The call of "f(ac, 'c')" in the example below should be ambiguous but
