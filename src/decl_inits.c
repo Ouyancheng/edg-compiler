@@ -1059,6 +1059,13 @@ In C99 mode, the processing is similar to that in C++.
           context->pending_init_con = *init_constant;
           context->pending_init_levels = levels_down;
           *init_constant = NULL;
+          if (curr_token != tok_comma && curr_token != tok_rbrace &&
+              curr_token != tok_semicolon) {
+            /* This initializer is not properly delimited: ignore it. */
+            pos_error(ec_exp_rbrace, &pos_curr_token);
+            context->pending_init_con = NULL;
+            context->pending_init_levels = 0;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
