@@ -2905,7 +2905,7 @@ be a routine type.
   if (rtsp->is_const) {
     write_tok_str(" __attribute__((__const__))");
   }  /* if */
-#if GNU_X86_ATTRIBUTES_ALLOWED
+#if GNU_X86_ATTRIBUTES_ALLOWED && GCC_IS_GENERATED_CODE_TARGET
   switch (rtsp->calling_convention) {
     case cc_default:
       /* No attribute to generate. */
@@ -2919,7 +2919,7 @@ be a routine type.
     default:
       unexpected_condition();
   }  /* if */
-#endif /* GNU_X86_ATTRIBUTES_ALLOWED */
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED && GCC_IS_GENERATED_CODE_TARGET */
 }  /* write_routine_type_attributes */
 
 
