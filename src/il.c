@@ -4881,6 +4881,10 @@ Make a copy of an expression tree and return a pointer to it.
     /* Copy the operands of the operation. */
     expr_copy->variant.operation.operands =
                      copy_list_of_expr_trees(expr->variant.operation.operands);
+    if (expr->variant.operation.kind == (an_expr_operator_kind)eok_comma) {
+      /* The value of the first operand of a comma operator is not used. */
+      set_expr_result_not_used(expr_copy->variant.operation.operands);
+    }  /* if */
   } else if (kind == (an_expr_node_kind)enk_temp_init) {
     /* Copy the dynamic init for a dynamic initialization. */
     expr_copy->variant.init.dynamic_init =
