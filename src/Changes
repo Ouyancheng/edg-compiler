@@ -1,5 +1,15 @@
 Version 2.27
 
+11/29/94 Static data member template instantiations
+
+When NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS (formerly
+FUNCTION_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS) is TRUE, source
+sequence entries will now be generated for instantiations of template
+static data members.
+
+Moreover, with the fix of a related problem, cross reference information is
+now put out on such instantiations.
+
 11/28/94 IL lowering rewrite of lvalue-returning operations
 
 In some complicated cases, the rewritten version of some lvalue-returning
