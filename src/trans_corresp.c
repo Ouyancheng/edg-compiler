@@ -1789,21 +1789,37 @@ also deals with the consequences of type becoming the new canonical entry.
   if (type->kind == (a_type_kind)tk_typeref && typeref_is_typedef(type)) {
     /* Setting a correspondence for a typedef sometimes also requires
        matching the underlying types. */
-    type = skip_typerefs(type);
-    corresp_type = skip_typerefs(corresp_type);
-    if (is_immediate_class_type(type) &&
-        type->variant.class_struct_union.originally_unnamed &&
-        is_immediate_class_type(corresp_type) &&
-        corresp_type->variant.class_struct_union.originally_unnamed) {
+    a_type_ptr  tp = skip_typerefs(type);
+    a_type_ptr  corresp_tp = skip_typerefs(corresp_type);
+    if (is_immediate_class_type(tp) &&
+        tp->variant.class_struct_union.originally_unnamed &&
+        is_immediate_class_type(corresp_tp) &&
+        corresp_tp->variant.class_struct_union.originally_unnamed) {
       /* These are unnamed class types that acquired linkage through a typedef.
          Since the typedefs correspond, these types should too. */
-      set_type_corresp(type, corresp_type);
-    } else if (is_immediate_enum_type(type) &&
-               type->variant.integer.originally_unnamed &&
-               is_immediate_enum_type(corresp_type) &&
-               corresp_type->variant.integer.originally_unnamed) {
+      if (C_mode()) {
+        /* In C mode a correspondence should be established only if the types
+           are actually compatible. */
+        if (!seek_type_corresp(tp, corresp_tp)) {
+          clear_type_correspondence(tp, /*visited=*/TRUE);
+          clear_type_correspondence(type, /*visited=*/TRUE);
+        }  /* if */
+      } else {
+        set_type_corresp(tp, corresp_tp);
+      }  /* if */
+    } else if (is_immediate_enum_type(tp) &&
+               tp->variant.integer.originally_unnamed &&
+               is_immediate_enum_type(corresp_tp) &&
+               corresp_tp->variant.integer.originally_unnamed) {
       /* Same for unnamed enum types. */
-      set_type_corresp(type, corresp_type);
+      if (C_mode()) {
+        if (!seek_type_corresp(tp, corresp_tp)) {
+          clear_type_correspondence(tp, /*visited=*/TRUE);
+          clear_type_correspondence(type, /*visited=*/TRUE);
+        }  /* if */
+      } else {
+        set_type_corresp(tp, corresp_tp);
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* set_type_corresp */
@@ -3772,6 +3788,10 @@ Otherwise, return FALSE.
     }  /* if */
     result = verify_type_correspondence(type_1);
     if (!result && !visited && total_errors == 0) {
+      /* Undo any correspondences established earlier.  This requires two
+         steps: One to detach the entities from each other, and a second
+         one to delete the correspondence entry altogether. */
+      clear_type_correspondence(type_1, /*visited=*/TRUE);
       clear_type_correspondence(type_1, /*visited=*/FALSE);
     }  /* if */
   }  /* if */

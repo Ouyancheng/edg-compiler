@@ -1,5 +1,18 @@
 Version 3.4
 
+10/22/03 Spurious typedef correspondence error in C mode
+
+When compiling multiple translation units in C mode, the front end issued
+spurious correspondence errors for identically-named typedefs of differing
+unnamed class types.  For example:
+
+  // File 1:
+  typedef struct { int x; } T;
+  // File 2:
+  typedef struct { int x, y; } T;
+
+(Unlike in C++, this is valid in C.)  This is now fixed.
+
 10/21/03 Microsoft compatibility: diagnostic on use of constructor name
 
 In general, a name like A::A refers to the constructor of A, but in
