@@ -8882,39 +8882,44 @@ a_type_ptr type_from_src_seq_declaration(a_source_sequence_entry_ptr ssep)
 /*
 ssep points to a source sequence entry.  If it points to a normal declaration
 (specifically, one that can appear in a comma list), fetch the type of the
-declared entity and return it.  Otherwise, return NULL.
+declared entity and return it.  Otherwise, return NULL.  If ssep is NULL,
+return NULL.
 */
 {
   a_type_ptr                   tp;
   a_src_seq_secondary_decl_ptr sssdp;
 
-  switch (ss_entry_kind(ssep)) {
-    case iek_variable:
-      tp = ss_entry_ptr(ssep, a_variable_ptr)->type;
-      break;
-    case iek_routine:
-      tp = ss_entry_ptr(ssep, a_routine_ptr)->type;
-      break;
-    case iek_type:
-      tp = ss_entry_ptr(ssep, a_type_ptr);
-      break;
-    case iek_field:
-      tp = ss_entry_ptr(ssep, a_field_ptr)->type;
-      break;
-    case iek_constant:
-      tp = ss_entry_ptr(ssep, a_constant_ptr)->type;
-      break;
-    case iek_src_seq_secondary_decl:
-      sssdp = ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
-      if (sssdp->entity.kind == (a_byte_il_entry_kind)iek_variable ||
-          sssdp->entity.kind == (a_byte_il_entry_kind)iek_routine ||
-          sssdp->entity.kind == (a_byte_il_entry_kind)iek_type) {
-        tp = sssdp->declared_type;
+  if (ssep == NULL) {
+    tp = NULL;
+  } else {
+    switch (ss_entry_kind(ssep)) {
+      case iek_variable:
+        tp = ss_entry_ptr(ssep, a_variable_ptr)->type;
         break;
-      }  /* if */
-    default:
-      tp = NULL;
-  }  /* switch */
+      case iek_routine:
+        tp = ss_entry_ptr(ssep, a_routine_ptr)->type;
+        break;
+      case iek_type:
+        tp = ss_entry_ptr(ssep, a_type_ptr);
+        break;
+      case iek_field:
+        tp = ss_entry_ptr(ssep, a_field_ptr)->type;
+        break;
+      case iek_constant:
+        tp = ss_entry_ptr(ssep, a_constant_ptr)->type;
+        break;
+      case iek_src_seq_secondary_decl:
+        sssdp = ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
+        if (sssdp->entity.kind == (a_byte_il_entry_kind)iek_variable ||
+            sssdp->entity.kind == (a_byte_il_entry_kind)iek_routine ||
+            sssdp->entity.kind == (a_byte_il_entry_kind)iek_type) {
+          tp = sssdp->declared_type;
+          break;
+        }  /* if */
+      default:
+        tp = NULL;
+    }  /* switch */
+  }  /* if */
   return tp;
 }  /* type_from_src_seq_declaration */
 
