@@ -2153,7 +2153,11 @@ is non-NULL, in which case that is the function scope.
 
   if (scope != NULL) param_var = scope->variant.routine.parameters;
   write_tok_ch('(');
-  if (!rtsp->prototyped) {
+  /* A routine is put out as unprototyped if its interface is unprototyped
+     or if this is the definition and the definition is old-style (i.e.,
+     there was a prototyped declaration and then an old-style definition). */
+  if (!rtsp->prototyped ||
+      (scope != NULL && rtsp->old_style_params_scanned)) {
     /* Old-style list. */
     if (scope != NULL) {
       /* This is the definition, so put out the parameter names. */
@@ -4731,7 +4735,13 @@ sequence entry.
   storage_class = var->storage_class;
   if (var->source_corresp.class_of_which_a_member != NULL) {
     /* Static data member. */
-    storage_class = (a_storage_class)sc_static;
+    if (is_definition) {
+      /* Definition -- no storage class. */
+      storage_class = (a_storage_class)sc_unspecified;
+    } else {
+      /* Declaration -- static storage class. */
+      storage_class = (a_storage_class)sc_static;
+    }  /* if */
   } else if (!is_definition) {
     /* The variable is not defined (here), so use "extern" instead of no
        storage class. */
@@ -5053,7 +5063,9 @@ declaration or definition.
   } else {
     /* The definition of the routine. */
     /* For an old-style function, declare the parameters. */
-    if (!rtsp->prototyped) {
+    /* Note that this does not use rtsp->prototyped, which is inaccurate
+       when there is a prototyped declaration and an old-style definition. */
+    if (rtsp->old_style_params_scanned) {
       gen_old_style_parameter_decls();
     }  /* if */
     write_space();
