@@ -2209,6 +2209,7 @@ scan_paren:
               set_error_constant(cp);
               dip->variant.constant = cp;
             }  /* if */
+            dip->is_constructor_init = TRUE;
             new_cip->initializer = dip;
           } else {
             /* A field whose initialization does not involve a constructor. */
@@ -2219,6 +2220,7 @@ scan_paren:
             (void)scan_initializer_of_simple_object(/*nonconst_allowed=*/TRUE,
                                                     /*static_lifetime=*/FALSE,
                                                     init_type, &dip);
+            dip->is_constructor_init = TRUE;
             if (new_cip != NULL) new_cip->initializer = dip;
             remove_stop_token(tok_rparen);
             if (!required_token(tok_rparen, ec_exp_rparen)) {
@@ -2455,6 +2457,7 @@ scan_paren:
         a_targ_size_t count;
         /* We have an array of objects with constructors.  Create a dynamic
            init entry to handle the aggregate. */
+        dip->is_constructor_init = TRUE;
         ctor_dip = dip;
         dip =
            alloc_dynamic_init((a_dynamic_init_kind)dik_nonconstant_aggregate);
@@ -2467,6 +2470,7 @@ scan_paren:
         repeat_nonconstant_init(ctor_dip, tp, dip, count);
       }  /* if */
       /* Attach the new dynamic init entry to the constructor initializer. */
+      dip->is_constructor_init = TRUE;
       cip->initializer = dip;
     }  /* if */
     prev_cip = cip;
@@ -2599,6 +2603,7 @@ though neither constructors nor initialization is involved here.)
           /* Create a dynamic init entry. */
           dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
           dip->destructor = rp;
+          dip->is_constructor_init = TRUE;
           if (exceptions_enabled) {
             /* Create a destruction entry and associate it with the
                appropriate object-lifetime entry. */
@@ -2652,6 +2657,7 @@ though neither constructors nor initialization is involved here.)
           /* Create a dynamic init entry. */
           dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
           dip->destructor = rp;
+          dip->is_constructor_init = TRUE;
           if (exceptions_enabled) {
             /* Create a destruction entry and associate it with the
                appropriate object-lifetime entry. */
@@ -2664,6 +2670,7 @@ though neither constructors nor initialization is involved here.)
             a_dynamic_init_ptr  dtor_dip = dip;
             dip = alloc_dynamic_init(
                              (a_dynamic_init_kind)dik_nonconstant_aggregate);
+            dip->is_constructor_init = TRUE;
             /* Build the looping constant entry. */
             if (array_type->size == 0) {
               count = 1;
