@@ -646,6 +646,7 @@ check_abbreviation()
 --suppress_vtbl
 --svr4
 --sys_include
+--template_directory
 --time_limit
 --timing
 --trace_includes
@@ -1142,6 +1143,7 @@ process_option()
          --pending_instantiations | \
          --preinclude | \
          --sys_include | \
+         --template_directory | \
          --time_limit | \
          --incl_suffixes | \
          --pack_alignment)
