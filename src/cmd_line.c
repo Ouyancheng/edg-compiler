@@ -356,6 +356,12 @@ Initialize the option information table.
   add_option_description(optk_pch_dir, "pch_dir",
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);
+  add_option_description(optk_restrict, "restrict",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_none);
+  add_option_description(optk_restrict, "no_restrict",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_none);
 }  /* initialize_option_descriptions */
 
 
@@ -1147,6 +1153,12 @@ Process the arguments on the command line that invoked the compiler.
         /* Directory to be used for PCH files. */
         pch_dir_name = opt_arg;
         break;
+#if RESTRICT_ALLOWED
+      case optk_restrict:
+        /* Enables or disables recognition of the restrict token. */
+        restrict_recognized = opt_value;
+        break;
+#endif /* RESTRICT_ALLOWED */
       default:
         /* It should not be possible to get here. */
         unexpected_condition();

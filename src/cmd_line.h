@@ -99,6 +99,9 @@ typedef enum /*an_option_kind*/ {
   optk_pch_mem,
 #endif /* !USE_MMAP_FOR_MEMORY_REGIONS */
   optk_pch_dir,
+#if RESTRICT_ALLOWED
+  optk_restrict,
+#endif /* RESTRICT_ALLOWED */
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -422,6 +425,18 @@ EXTERN char	*pch_dir_name /* = NULL*/;
 			/* Directory in which PCH files are to be stored.
 			   NULL if no directory has been specified. */
 
+
+#if RESTRICT_ALLOWED
+EXTERN a_boolean
+		restrict_recognized
+#if VAR_INITIALIZERS
+                                    = TRUE
+#endif /* VAR_INITIALIZERS */
+                                          ;
+			/* TRUE if the restrict token should be recognized.
+			   When this flag is FALSE, "restrict" is not entered
+			   into the symbol table. */
+#endif /* RESTRICT_ALLOWED */
 
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);
