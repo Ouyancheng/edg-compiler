@@ -3781,7 +3781,7 @@ current token on entry.
 
 an_expr_node_ptr scan_asm_operand_expression(a_boolean output)
 /*
-Scan and return the statement associated with an asm operand.  This is similar
+Scan and return the expression associated with an asm operand.  This is similar
 to scan_integer_expression with slightly different checks.
 */
 {
