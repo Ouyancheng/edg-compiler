@@ -4702,8 +4702,14 @@ way, determine to which other IL entry this might correspond.
                 type->variant.class_struct_union.is_template_class &&
                 type->variant.class_struct_union.extra_info
                                                 ->template_arg_list != NULL) {
-              record_class_template_instantiation(
+              /* Flush the pending instantiations list, in case the type we're
+                 interested in is on that list. */
+              process_pending_instantiations();
+              if (trans_unit_corresp_of(type) == NULL) {
+              
+                record_class_template_instantiation(
                               (a_symbol_ptr)type->source_corresp.assoc_info);
+              }  /* if */
             } else {
               find_type_correspondence(type, (a_boolean)scp->is_class_member);
             }  /* if */
