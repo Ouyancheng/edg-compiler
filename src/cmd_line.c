@@ -2624,6 +2624,12 @@ exclude the GNU modes already.  Hence those are not checked again here.)
     /* Enable recognition of digraphs. */
     alternative_tokens_allowed = TRUE;
   }  /* if */
+#if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
+  if (!(option_kind_used[(int)optk_thread_local_storage])) {
+    /* Support for "__thread" is turned on by default in GNU mode. */
+    thread_local_storage_specifier_enabled = TRUE;
+  }  /* if */
+#endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
   /* Treat "long long" as a standard feature. */
   long_long_is_standard = TRUE;
   long_long_promotion_allowed = FALSE;
