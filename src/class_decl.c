@@ -6125,8 +6125,9 @@ Scan the body of a class definition, including the base classes list.
             goto next_declaration;
           } else {
             /* Named member -- we need to call declarator. */
-            a_decl_flag_set    declarator_input_flags, declarator_output_flags;
-            a_type_ptr         bottom_derived_type;
+            a_decl_flag_set    		declarator_input_flags;
+            a_decl_flag_set    		declarator_output_flags;
+            a_type_ptr         		bottom_derived_type;
 
             if (!C_mode()) {
               /* C++ mode */
@@ -6183,6 +6184,7 @@ Scan the body of a class definition, including the base classes list.
                        member_type,
                        friend_specified ? (a_type_ptr)NULL : class_type,
                        &locator, &local_type, &bottom_derived_type,
+                       (a_calling_convention_ptr)NULL,
                        &declarator_ssep, &func_info);
             cfront_member_function_typedef =
                   declarator_output_flags & DO_CFRONT_MEMBER_FUNCTION_TYPEDEF;

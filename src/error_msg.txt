@@ -697,6 +697,8 @@ ec_calling_convention_not_allowed;;"a calling convention modifier may not be spe
 ec_conflicting_calling_conventions;;"conflicting calling convention modifiers"
 ec_cl_strict_ansi_incompatible_with_microsoft;;"strict ANSI mode is incompatible with Microsoft mode"
 ec_cl_cfront_incompatible_with_microsoft;;"cfront mode is incompatible with Microsoft mode"
+ec_calling_convention_ignored;;"calling convention specified here is ignored"
+ec_calling_convention_may_not_precede_nested_declarator;;"a calling convention may not be followed by a nested declarator"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

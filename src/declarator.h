@@ -148,22 +148,26 @@ abstract or real declarator.
 #define DO_LAST DO_PARAM_TYPE_IS_RESTRICT_QUALIFIED_ARRAY
 			/* Last bit in the bit vector that is in use. */
 
-extern void declarator(a_decl_flag_set   input_flags,
-                       a_decl_flag_set   *output_flags,
-		       a_type_ptr        specifiers_type,
-                       a_type_ptr        member_parent_type,
-                       a_symbol_locator  *locator,
-                       a_type_ptr        *p_complete_type,
-                       a_type_ptr        *p_bottom_derived_type,
-                       a_source_sequence_entry_ptr
+extern
+void declarator(a_decl_flag_set          input_flags,
+                a_decl_flag_set          *output_flags,
+                a_type_ptr               specifiers_type,
+                a_type_ptr               member_parent_type,
+                a_symbol_locator         *locator,
+                a_type_ptr               *p_complete_type,
+                a_type_ptr               *p_bottom_derived_type,
+                a_calling_convention_ptr p_calling_convention,
+                a_source_sequence_entry_ptr
                                          *declarator_ssep,
-                       a_func_info_block *func_info);
+                a_func_info_block        *func_info);
 
 extern
-a_type_ptr pointer_declarator(a_type_ptr  specifiers_type,
-                              a_boolean   reference_allowed,
-                              a_boolean	  unbound_qualifiers_allowed,
-                              a_type_qualifier_set *p_unbound_qualifiers);
+a_type_ptr pointer_declarator
+                     (a_type_ptr           specifiers_type,
+                      a_boolean   	   reference_allowed,
+		      a_boolean		   calling_convention_allowed,
+                      a_calling_convention *p_calling_convention,
+                      a_boolean		   *p_nested_declarator_may_follow);
 
 extern void array_declarator(a_type_ptr *new_type_ptr,
                              a_boolean  nonconstant_dimension_allowed,

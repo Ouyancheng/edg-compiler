@@ -979,7 +979,8 @@ scope is that of a class definition.
                      &do_flags, param_type_ptr,
                      /*member_parent_type=*/(a_type_ptr)NULL,
                      &param_locator, &param_type_ptr, &bottom_derived_type,
-                     &param_ssep, (a_func_info_block_ptr)NULL);
+                     (a_calling_convention_ptr)NULL, &param_ssep,
+                     (a_func_info_block_ptr)NULL);
 #if RESTRICT_ALLOWED
           restrict_qualified = 
                 (do_flags & DO_PARAM_TYPE_IS_RESTRICT_QUALIFIED_ARRAY) != 0;
@@ -1559,15 +1560,17 @@ same value may appear more than once.
     call_conv = new_call_conv;
     (void)get_token();
   }  /* while */
+  return call_conv;
 }  /* scan_microsoft_qualifiers */
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
 
 
-a_type_ptr pointer_declarator(a_type_ptr          specifiers_type,
-                              a_boolean   	  reference_allowed,
-			      a_boolean		  unbound_qualifiers_allowed,
-			      a_type_qualifier_set
-                                                  *p_unbound_qualifiers)
+a_type_ptr pointer_declarator
+                     (a_type_ptr           specifiers_type,
+                      a_boolean   	   reference_allowed,
+		      a_boolean		   calling_convention_allowed,
+                      a_calling_convention *p_calling_convention,
+                      a_boolean		   *p_nested_declarator_may_follow)
 /*
 Scan the pointer component of a declarator.  Syntax for C++ (ARM 8.0):
 
@@ -1587,7 +1590,7 @@ parameter controls the restrictions imposed by the context.
 Note that this routine actually scans a sequence of pointer declarators.
 
 In Microsoft mode, the Microsoft __cdecl, __stdcall, and __fastcall are
-recognized as cv-qualifiers.  Microsoft qualifiers are different than
+recognized as calling conventions.  Microsoft qualifiers are different than
 ordinary qualifiers in that they bind to the thing that that precede.
 If they precede something that is not a pointer declarator, they can't
 be bound within pointer_declarator.  These unbound qualifiers are returned
@@ -1614,10 +1617,15 @@ is empty.
   a_boolean      		err;
   a_type_ptr     		class_type;
   a_type_ptr     		rout_type;
-  a_type_qualifier_set		unbound_qualifiers = TQ_NONE;
-  a_source_position		unbound_qualifier_pos;
+  a_calling_convention		calling_convention = cc_default;
+  a_source_position		calling_convention_pos;
+  a_boolean			first_loop = TRUE;
+  a_boolean			last_operator_is_calling_convention;
+  a_boolean			is_calling_convention = FALSE;
 
   db_enter(3, "pointer_declarator");
+  calling_convention = p_calling_convention != NULL
+                                       ? *p_calling_convention : cc_default;
   for (;;) {
     /* Add a pointer type to the top of the existing type.  Note that this
        works out right.  For example, if one has
@@ -1629,6 +1637,12 @@ is empty.
        "const pointer to int" to "volatile pointer to const pointer to int"
        on successive iterations. */
     a_boolean	get_token_needed = TRUE;
+    a_boolean	calling_convention_significant;
+    calling_convention_significant =
+          first_loop && calling_convention == (a_calling_convention)cc_default;
+    last_operator_is_calling_convention = is_calling_convention;
+    is_calling_convention = FALSE;
+    first_loop = FALSE;
     err = FALSE;
     if (curr_token == tok_star ||
         (reference_allowed && curr_token == tok_ampersand)) {
@@ -1705,12 +1719,19 @@ is empty.
     } else if (is_microsoft_calling_convention()) {
       /* A Microsoft qualifier that may appear in a nonstandard place such
          as "int (_cdecl * fp)()". */
-      a_calling_convention	call_conv;
-      call_conv  = scan_microsoft_qualifiers();
-#if 0
-      unbound_qualifiers |= qualifiers;
-      unbound_qualifier_pos = pos_curr_token;
-#endif /* 0 */
+      a_calling_convention	new_calling_convention;
+      a_source_position		start_pos = pos_curr_token;
+      is_calling_convention = TRUE;
+      new_calling_convention = scan_microsoft_qualifiers();
+      /* Calling conventions are only valid as the first thing found in 
+         a pointer declarator.  Any calling conventions found further on
+         are ignored. */
+      if (calling_convention_significant) {
+        calling_convention = new_calling_convention;
+        calling_convention_pos = start_pos;
+      } else {
+        pos_remark(ec_calling_convention_ignored, &start_pos);
+      }  /* if */
       /* Suppress the get_token() that is normally done before scanning
          the qualifiers below, as this will have been done when scanning
          the Microsoft qualifiers. */
@@ -1778,28 +1799,32 @@ is empty.
   }  /* if */
 #endif /* DEBUG */
   /* Check for an unbound qualifier used where none is allowed. */
-  if (unbound_qualifiers != TQ_NONE && !unbound_qualifiers_allowed) {
+  if (calling_convention != cc_default && !calling_convention_allowed) {
     pos_diagnostic(es_discretionary_error, ec_calling_convention_not_allowed,
-                   &unbound_qualifier_pos);
-    unbound_qualifiers = TQ_NONE;
+                   &calling_convention_pos);
+    calling_convention = cc_default;
   }  /* if */
-  /* Return any unbound qualifiers to the caller. */
-  if (p_unbound_qualifiers != NULL) *p_unbound_qualifiers = unbound_qualifiers;
+  /* If specified, return the calling convention to the caller. */
+  if (p_calling_convention != NULL) *p_calling_convention = calling_convention;
+  if (p_nested_declarator_may_follow) {
+    *p_nested_declarator_may_follow = !last_operator_is_calling_convention;
+  }  /* if */
   db_exit();
   return complete_type;
 }  /* pointer_declarator */
 
 
-void declarator(a_decl_flag_set   input_flags,
-                a_decl_flag_set   *output_flags,
-                a_type_ptr        specifiers_type,
-                a_type_ptr        member_parent_type,
-                a_symbol_locator  *locator,
-                a_type_ptr        *p_complete_type,
-                a_type_ptr        *p_bottom_derived_type,
+void declarator(a_decl_flag_set          input_flags,
+                a_decl_flag_set          *output_flags,
+                a_type_ptr               specifiers_type,
+                a_type_ptr               member_parent_type,
+                a_symbol_locator         *locator,
+                a_type_ptr               *p_complete_type,
+                a_type_ptr               *p_bottom_derived_type,
+                a_calling_convention_ptr p_calling_convention,
                 a_source_sequence_entry_ptr
-                                  *declarator_ssep,
-                a_func_info_block *func_info)
+                                         *declarator_ssep,
+                a_func_info_block        *func_info)
 /*
 Scan a declarator (3.5.4) or an abstract declarator (3.5.5), depending
 on the values of real_declarator_allowed and abstract_declarator_allowed
@@ -1871,8 +1896,9 @@ otherwise it is NULL.  The syntax is:
   a_boolean       parenthesized_initializer_allowed;
   a_boolean       is_friend_decl = FALSE;
   a_boolean       class_scope_deactivation_required = FALSE;
-  a_type_qualifier_set
-		  unbound_qualifiers;
+  a_calling_convention
+		  calling_convention;
+  a_boolean	  nested_declarator_may_follow;
 
   db_enter(3, "declarator");
   set_err_pos_to_curr_token();
@@ -1896,12 +1922,15 @@ otherwise it is NULL.  The syntax is:
   }  /* if */
   /* Set the locator to indicate there is no identifier. */
   if (locator != NULL) set_to_error_locator(*locator);
+  calling_convention = p_calling_convention != NULL
+                                          ? *p_calling_convention : cc_default;
   /* Look for any initial "*" list indicating pointer types. */
   complete_type = pointer_declarator(specifiers_type,
                                      /*reference_allowed=*/
                                        C_dialect == C_dialect_cplusplus,
-                                     /*unbound_qualifiers_allowed=*/TRUE,
-                                     &unbound_qualifiers);
+                                     /*calling_convention_allowed=*/TRUE,
+                                     &calling_convention,
+                                     &nested_declarator_may_follow);
   derived_type = NULL;
   bottom_derived_type = NULL;
   /* The next thing is an identifier, or a parenthesis that begins a
@@ -1926,6 +1955,12 @@ otherwise it is NULL.  The syntax is:
         goto function_lparen;
       }  /* if */
     }  /* if */
+    if (!nested_declarator_may_follow) {
+      /* Constructs such as
+           int __cdecl (*fp)();
+         are not permitted. */
+      error(ec_calling_convention_may_not_precede_nested_declarator);
+    }  /* if */
     add_stop_token(tok_rparen);
     /* Get the nested declarator, removing the flag allowing parenthesized
        initializers from the input_flags bit vector.  (The other flags are
@@ -1933,7 +1968,8 @@ otherwise it is NULL.  The syntax is:
     declarator(~(~input_flags | DI_PARENTHESIZED_INITIALIZER_ALLOWED),
                &local_do_flags, /*specifiers_type=*/(a_type_ptr)NULL,
                member_parent_type, locator, &derived_type,
-               &bottom_derived_type, declarator_ssep, func_info);
+               &bottom_derived_type, &calling_convention,
+               declarator_ssep, func_info);
     if (local_do_flags & DO_REAL_DECLARATOR_SCANNED) {
       *output_flags |= DO_REAL_DECLARATOR_SCANNED;
     } else {

@@ -1963,7 +1963,8 @@ of a function template.
     *do_flags = 0;
   } else {
     declarator(di_flags, do_flags, *type, (a_type_ptr)NULL, locator, type,
-               &bottom_derived_type, &declarator_ssep, func_info);
+               &bottom_derived_type, (a_calling_convention_ptr)NULL,
+               &declarator_ssep, func_info);
     func_info->is_inline = ((*dso_flags & DSO_INLINE) != 0);
     /* Note whether this is a function type that comes from a typedef.  The
        setting is checked later if this turns out to be a function template
@@ -3451,7 +3452,8 @@ Scan the declaration of a single template nontype parameter.
   declarator(DI_REAL_DECLARATOR_ALLOWED, &do_flags,
              *param_type_ptr, /*member_parent_type=*/(a_type_ptr)NULL,
              param_locator, param_type_ptr, &bottom_derived_type,
-             &declarator_ssep, (a_func_info_block_ptr)NULL);
+             (a_calling_convention_ptr)NULL, &declarator_ssep,
+             (a_func_info_block_ptr)NULL);
   /* Adjust the type if necessary (for example, "array of x"
      becomes "pointer to x"). */
   adjust_parameter_type(param_type_ptr, /*restrict_qualified=*/FALSE);
@@ -5523,13 +5525,13 @@ assumed if the return type is omitted.
       /* Error of some sort. */
       set_to_error_locator(locator);
     } else {
-      a_func_info_block  func_info;
-
+      a_func_info_block  	func_info;
       clear_func_info(&func_info);
       declarator((DI_REAL_DECLARATOR_ALLOWED | DI_QUALIFIED_NAME_ALLOWED |
                   DI_OPERATOR_NAME_ALLOWED),
                  &do_flags, type, (a_type_ptr)NULL, &locator, &type,
-                 &bottom_derived_type, &declarator_ssep, &func_info);
+                 &bottom_derived_type, (a_calling_convention_ptr)NULL,
+                 &declarator_ssep, &func_info);
       done_with_func_info(func_info);
 #if 0
       /* Presumably, declarator_ssep will often be returned pointing at an
