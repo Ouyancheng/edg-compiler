@@ -1,5 +1,20 @@
 Version 2.25
 
+8/18/94  Suppressing redundant inclusion of header files
+
+The front end now recognizes header files that, if included again,
+would have no effect.  The idioms recognized are:
+
+  #ifndef NAME      (or #ifdef)
+  ... code ...
+  #endif
+
+and
+
+  #pragma once
+
+Note that recognition of "#if !defined(NAME)" is not currently supported.
+
 8/17/94  Source sequence entries for template instantiations
 
 When FUNCTION_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE,
