@@ -2086,10 +2086,11 @@ that do normal id lookup processing.
         lookup_state->add_to_active_list = FALSE;
         lookup_state->insert_sym = NULL;
       }  /* if */
-      /* The Microsoft compiler ignores inherited injected class names
-         in most cases.  The principal case in which it is found is at
-         the start of a qualified name. */
+      /* The Microsoft compiler (versions prior to 7.0) ignores inherited
+         injected class names in most cases.  The principal case in which
+         it is found is at the start of a qualified name. */
       if (sym != NULL && microsoft_bugs &&
+          microsoft_version < 1300 &&
           !lookup_state->must_be_class_or_namespace &&
           is_injected_class_symbol(fundamental_symbol_of(sym))) sym = NULL;
     }  /* if */
@@ -2148,10 +2149,10 @@ that do normal id lookup processing.
       if (!is_acceptable_symbol(sym, fund_sym, *lookup_state,
                                 /*invisible_okay=*/TRUE)) {
         sym = NULL;
-      } else if (microsoft_bugs) {
-        /* The Microsoft compiler ignores inherited injected class names
-           in most cases.  The principal case in which it is found is at
-           the start of a qualified name. */
+      } else if (microsoft_bugs && microsoft_version < 1300) {
+        /* The Microsoft compiler (versions prior to 7.0) ignores inherited
+           injected class names in most cases.  The principal case in which
+           it is found is at the start of a qualified name. */
         if (!lookup_state->must_be_class_or_namespace &&
             is_injected_class_symbol(fund_sym)) sym = NULL;
       }  /* if */

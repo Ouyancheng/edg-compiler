@@ -1,5 +1,19 @@
 Version 3.2
 
+3/4/03   Microsoft compatibility: injected class name handling
+
+In Microsoft bugs mode, special treatment is given to injected class
+names to emulate the special way they are handled by the Microsoft
+compiler.  This special treatment is no longer needed when emulating
+version 7.0 of the Microsoft compiler, so it is now done only when
+microsoft_version is < 1300.  This example compiles with the
+Microsoft 7.0 compiler but not with 6.2.
+
+  namespace N { struct A { }; }
+  struct B : public N::A {
+    A a;
+  };
+
 3/3/03   Invalid lowered code for virtual function call (this parameter
          mismatch)
 
