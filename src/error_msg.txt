@@ -1335,6 +1335,7 @@ ec_gnu_virtual_base_gap;;"virtual base %no1 placed outside %no2 object boundarie
 ec_nonstd_qualifier_in_namespace_member_decl;;"nonstandard qualified name in namespace member declaration"
 ec_declspec_align_reduction_ignored;;"reduction in alignment ignored"
 ec_const_ignored;;"const qualifier ignored"
+ec_return_in_function_marked_with_noreturn;;"return statement in function marked with \"noreturn\""
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

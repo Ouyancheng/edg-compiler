@@ -5273,7 +5273,7 @@ See also 3.6.6.4.
   an_expr_node_ptr   return_expr;
   a_dynamic_init_ptr dip = NULL;
   a_routine_ptr      rout;
-  a_type_ptr         return_type;
+  a_type_ptr         rout_type, return_type;
   a_boolean          microsoft_C_mode_void_return = FALSE, expr_present,
                        return_stmt_allowed = TRUE;
   a_source_position  return_pos;
@@ -5303,11 +5303,20 @@ See also 3.6.6.4.
     vla_dealloc_stmts = collect_vla_dealloc_stmts_for_function(
                                               end_of_control_flow_descr_list);
   }  /* if */
-  (void)get_token();
-  add_stop_token(tok_semicolon);
   /* Get a pointer to the current routine entry, and its return type. */
   rout = current_routine_entry();
-  return_type = skip_typerefs(rout->type)->variant.routine.return_type;
+  rout_type = skip_typerefs(rout->type);
+  return_type = rout_type->variant.routine.return_type;
+#if GNU_EXTENSIONS_ALLOWED
+  if (gnu_mode && rout_type->variant.routine.extra_info->does_not_return) {
+    warning(ec_return_in_function_marked_with_noreturn);
+    if (curr_reachability.reachable_considering_hints) {
+      rout_type->variant.routine.extra_info->does_not_return = FALSE;
+    }  /* if */
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+  (void)get_token();
+  add_stop_token(tok_semicolon);
   /* See if there is an expression after "return". */
   expr_present = (curr_token != tok_semicolon);
   if (rout->special_kind == (a_special_function_kind)sfk_constructor &&
