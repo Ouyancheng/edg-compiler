@@ -2042,11 +2042,11 @@ arrays are treated as one-dimensional arrays.
   a_constant_ptr           aggr_con, repeat_con, dynamic_init_con;
 
   /* The IL structure is
-       dynamic init (dik_nonconstant_aggregate) ->
+       new dynamic init new_dip (dik_nonconstant_aggregate) ->
          constant (ck_aggregate) ->
            constant (ck_init_repeat) ->
              constant (ck_dynamic_init) ->
-               original dynamic init (dik_constructor)
+               original dynamic init ctor_dip (dik_constructor)
   */
   /* Create a ck_aggregate constant. */
   aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
