@@ -5689,6 +5689,7 @@ Scan the body of a class definition, including the base classes list.
   a_symbol_ptr                    rout_sym;
   a_class_symbol_supplement_ptr   cssp;
   a_boolean                       class_aggregate_ruled_out = FALSE;
+  a_boolean                       any_nonpublic_members = FALSE;
   a_boolean                       any_friend_decls = FALSE;
   a_routine_fixup_ptr             saved_routine_fixup;
   a_boolean                       any_const_or_ref_fields = FALSE;
@@ -6003,9 +6004,9 @@ Scan the body of a class definition, including the base classes list.
 #endif /* if 0 */
           tp->source_corresp.referenced = TRUE;
           if (access != (an_access_specifier)as_public) {
-            /* A class with nonpublic member is not an aggregate.  Except in
-               cfront mode, this is construed to include member types. */
-            if (!any_cfront_mode()) class_aggregate_ruled_out = TRUE;
+            /* Strictly speaking, any nonpublic member prevents a class from
+               being an aggregate -- keep track. */
+            any_nonpublic_members = TRUE;
           }  /* if */
         } /* if */
         local_no_decl_specifiers = (dso_flags & DSO_NO_DECL_SPECIFIERS) != 0;
@@ -6476,13 +6477,9 @@ Scan the body of a class definition, including the base classes list.
                    function cannot be an "aggregate" (8.5.1). */
                 class_aggregate_ruled_out = TRUE;
               } else if (access != (an_access_specifier)as_public) {
-                /* A class with nonpublic member is not an aggregate.  (Cfront
-                   enforces this for nonstatic member functions but not for
-                   static member functions). */
-                if (!any_cfront_mode() ||
-                    member_storage_class != (a_storage_class)sc_static) {
-                  class_aggregate_ruled_out = TRUE;
-                }  /* if */
+                /* Strictly speaking, any nonpublic member prevents a class
+                   from being an aggregate -- keep track. */
+                any_nonpublic_members = TRUE;
               }  /* if */
               if (is_destructor) {
                 spec_kind = (a_special_function_kind)sfk_destructor;
@@ -6661,10 +6658,9 @@ Scan the body of a class definition, including the base classes list.
                          declarator_ssep);
             typedef_sym_ptr->variant.type->source_corresp.access = access;
             if (access != (an_access_specifier)as_public) {
-              /* A class with nonpublic member is not an aggregate.  (This
-                 restriction doesn't make a lot of sense for member typedefs,
-                 but it's what WP 8.5.1 says.)  Ignore it in cfront mode. */
-              if (!any_cfront_mode()) class_aggregate_ruled_out = TRUE;
+              /* Strictly speaking, any nonpublic member prevents a class from
+                 being an aggregate -- keep track. */
+              any_nonpublic_members = TRUE;
             }  /* if */
             if (curr_routine_fixup != NULL &&
                 curr_routine_fixup->def_arg_expr_fixup_list != NULL) {
@@ -6683,8 +6679,9 @@ Scan the body of a class definition, including the base classes list.
             decl_member_constant(&locator, class_type, local_type, access,
                                  declarator_ssep);
             if (access != (an_access_specifier)as_public) {
-              /* A class with nonpublic member is not an aggregate. */
-              if (!any_cfront_mode()) class_aggregate_ruled_out = TRUE;
+              /* Strictly speaking, any nonpublic member prevents a class from
+                 being an aggregate -- keep track. */
+              any_nonpublic_members = TRUE;
             }  /* if */
           } else {
             if (C_dialect == C_dialect_cplusplus) {
@@ -6715,9 +6712,9 @@ Scan the body of a class definition, including the base classes list.
                                       corresp_prototype_tag_sym,
                                       declarator_ssep, decl_modifiers);
               if (access != (an_access_specifier)as_public) {
-                /* A class with nonpublic member is not an aggregate.  Cfront
-                   doesn't enforce this restriction for static data members. */
-                if (!any_cfront_mode()) class_aggregate_ruled_out = TRUE;
+                /* Strictly speaking, any nonpublic member prevents a class
+                   from being an aggregate -- keep track. */
+                any_nonpublic_members = TRUE;
               }  /* if */
             } else {
               /* Non-static data member (= field). */
@@ -6826,10 +6823,11 @@ Scan the body of a class definition, including the base classes list.
                        nonpublic one (whatever that means) has no effect on
                        aggregate status. */
                   } else {
-                    /* No class with private or protected members is an
-                       aggregate (WP 8.5.1). */
+                    /* No class with private or protected nonstatic data
+                       members is an aggregate (WP 8.5.1). */
                     class_aggregate_ruled_out = TRUE;
                   }  /* if */
+#if 0
                 } else {
                   /* It is not explicit in the WP, but is seems appropriate
                      that a class with a field of nonaggregate class type (or
@@ -6843,6 +6841,7 @@ Scan the body of a class definition, including the base classes list.
                      !symbol_supplement_for_class(tp)->is_class_aggregate) {
                     class_aggregate_ruled_out = TRUE;
                   }  /* if */
+#endif /* if 0 */
                 }  /* if */
               }  /* if */
               if (!any_const_or_ref_fields &&
@@ -6954,7 +6953,16 @@ next_declaration:
       /* Classes with no constructors, no private or protected members, no
          base classes, and no virtual functions are used to declare
          "aggregate" objects (ARM 8.4.1). */
-      if (!class_aggregate_ruled_out) cssp->is_class_aggregate = TRUE;
+      if (!class_aggregate_ruled_out) {
+        /* May be an aggregate. */
+        if (strict_ansi_mode && any_nonpublic_members) {
+          /* In strict mode we'll take the WP literally -- an aggregate class
+             may have no nonpublic members (even if they are something other
+             than nonstatic data members). */
+        } else {
+          cssp->is_class_aggregate = TRUE;
+        }  /* if */
+      }  /* if */
       /* Issue a diagnostic on a class with no user-defined constructor and
          with one or more nonstatic data members with reference or const type.
          This check must be done before compiler-generated constructors, if
