@@ -7795,7 +7795,7 @@ rest.
   } else {
     /* These operators take an lvalue as their input, so use an
        eok_field for the added field selection. */
-    a_type_ptr  tp = type_pointed_to(node->type);
+    a_type_ptr tp = type_pointed_to(op1->type);
 
     new_op = (an_expr_operator_kind)eok_field;
     /* Carry through any cv-qualifiers on the left operand. */

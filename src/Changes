@@ -1,3 +1,16 @@
+Version 2.40
+
+8/13/98   Abort on lowering bit-field reference in anonymous union
+
+An abort in IL lowering while processing an rvalue bit-field reference
+in an anonymous union is now fixed.
+
+  class A {
+    union { unsigned int bf : 32;};
+    unsigned int f() { return bf; }
+  };
+
+-------------------------------------------------------------------------------
 Version 2.39, August 10, 1998
 
 8/10/98   IL version number changed to 2.31
