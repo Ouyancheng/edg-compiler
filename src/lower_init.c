@@ -2454,7 +2454,11 @@ will be changed to an aggregate constant for the constant parts and
        It's just a place-holder that gets overwritten by the dynamic
        initialization. */
     desired_type = ipdp->modifiers->type;
-    if (is_aggregate_or_union_type(desired_type)) {
+    if (is_aggregate_or_union_type(desired_type)
+#if DO_C99_IL_LOWERING
+        || is_complex_type(desired_type)
+#endif /* DO_C99_IL_LOWERING */
+                                                ) {
       /* An aggregate is initialized with a ck_dynamic_init.  This can
          come up in something like
            complex v[6] = {1, complex(1,2), complex(), 4};
@@ -2471,6 +2475,7 @@ will be changed to an aggregate constant for the constant parts and
          with a structure that matches the aggregate, but since the constant
          here is only used in the pointer-to-member-function case, we
          need do no more than the simplest change. */
+      /* Note that C99 complex types are lowered to aggregate types. */
       set_constant_kind(con_ptr, (a_constant_repr_kind)ck_aggregate);
     } else {
       /* Not an aggregate: a zero of the right type will be fine. */

@@ -1,5 +1,18 @@
 Version 2.46
 
+1/16/01  Lowering of an aggregate initializer containing a complex expression
+
+When DO_C99_IL_LOWERING is TRUE, the front end failed to entirely remove
+IL references to complex types in cases where an aggregate initializer
+contained a nonconstant complex expression.
+
+  int main() {
+    _Complex double z = 1.2;
+    _Complex double w[] = { 0.0, z*__I__ };  // Lowered initializer used to
+  }                                          // refer to complex type.
+
+This is now fixed.
+
 1/16/01  Support for complex unary minus in C++-generating back end
 
 Support for the complex unary minus operator had accidentally been left out
