@@ -1030,6 +1030,16 @@ typedef struct a_variable {
                         /* Type of the variable. */
   a_constant_ptr
                 initializer;
+#ifdef FIL
+                        /* If the variable is DATA initialized, this points
+                           to the initial value.  For arrays and COMMON
+                           blocks, the initializer is a ck_aggregate constant.
+                           For DATA-initialized user variables that belong to
+                           an EQUIVALENCE association or COMMON block, this
+                           field will be NULL; the initializer field of the
+                           association or COMMON block variable will supply
+                           the initial value. */
+#endif /* ifdef FIL */
 #ifdef CIL
                         /* If the variable is initialized with a constant
                            value, this points to the initial value.  If not,
@@ -1041,17 +1051,12 @@ typedef struct a_variable {
                            containing routine is called; in that case,
                            there is also a stmk_init statement for this
                            variable, but its expression pointer is NULL). */
+  a_type_ptr
+		parent_class_struct_union;
+			/* For a C++ static data member, a pointer to the
+			   type entry identifying the class (or struct or
+			   union) of which it is a member; otherwise NULL. */
 #endif /* ifdef CIL */
-#ifdef FIL
-                        /* If the variable is DATA initialized, this points
-                           to the initial value.  For arrays and COMMON
-                           blocks, the initializer is a ck_aggregate constant.
-                           For DATA-initialized user variables that belong to
-                           an EQUIVALENCE association or COMMON block, this
-                           field will be NULL; the initializer field of the
-                           association or COMMON block variable will supply
-                           the initial value. */
-#endif /* ifdef FIL */
   a_storage_class
                 storage_class;
                         /* Storage class. */
@@ -1116,7 +1121,7 @@ typedef struct a_field {
                         /* Size of this field (in bits).  Only non-zero
                            for bit-fields; for the others, the size is
                            gotten from the type. */
-  a_type_ptr    assoc_class_struct_union_type;
+  a_type_ptr    parent_class_struct_union;
                         /* Pointer to the class, struct, or union type of
                            which this field is a member. */
 } a_field;
@@ -1206,6 +1211,11 @@ typedef struct a_routine {
 #ifdef CIL
                         /* See also prototype_scope under
                            a_routine_type_supplement. */
+  a_type_ptr
+		parent_class_struct_union;
+			/* For a C++ member function, a pointer to the
+			   type entry identifying the class (or struct or
+			   union) of which it is a member; otherwise NULL. */
 #endif /* ifdef CIL */
 #ifdef FIL
                         /* For Fortran ENTRYs, this points to the scope for
