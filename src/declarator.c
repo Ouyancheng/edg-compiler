@@ -2169,9 +2169,8 @@ to FALSE if the entity being declared is not initializable.
          normal identifier case handled above. */
       (void)simplify_curr_class_qualified_name();
     }  /* if */
-    if ((curr_token == tok_identifier &&
-         locator_for_curr_id.is_destructor_name) ||
-        get_destructor_name()) {
+    if (is_generalized_identifier_start(GID_DTOR_RECOGNIZED) &&
+        locator_for_curr_id.is_destructor_name) {
       /* A destructor name, like "~A".  It must have the same name as
          the class currently being defined, it must be followed by a
          left paren, and the specifiers must include no type. */

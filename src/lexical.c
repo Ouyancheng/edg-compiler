@@ -5731,7 +5731,8 @@ only in C++ mode.
 */
 {
   /* Skip past the "~", check for an identifier. */
-  if (get_token() != tok_identifier) {
+  (void)get_token();
+  if (!is_generalized_identifier_start(GID_NO_OPTIONS)) {
     /* syntax_error is deliberately not called. */
     error(ec_exp_identifier);
     /* Put back the current token and make a fake error identifier. */
