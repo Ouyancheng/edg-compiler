@@ -1206,7 +1206,7 @@ base class casts and virtual function calls.
     case enk_temp_init:
       complete_object_type = node->variant.init.dynamic_init->variable->type;
       break;
-    case enk_new_init:
+    case enk_new_delete:
       /* Not easy to tell the type, and probably not worth it. */
       break;
 #if CHECKING
