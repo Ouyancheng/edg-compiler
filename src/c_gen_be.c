@@ -5608,29 +5608,34 @@ Otherwise, return NULL.
 }  /* constant_initializer */
 
 
-static a_boolean is_or_contains_union(a_type_ptr type)
+static a_boolean is_non_initializable_aggregate_type(a_type_ptr type)
 /*
-Return TRUE if the indicated type is a union type or if its first element
+Return TRUE if the indicated type is a type that cannot be initialized with
+"= {0}" in K&R C, e.g., if it is a union type or if its first element
 (recursively, all the way down) is a union type.
 */
 {
   a_type_kind tkind;
-  a_boolean   is_union = FALSE;
+  a_boolean   is_non_initializable = FALSE;
 
   type = skip_typerefs(type);
   tkind = type->kind;
   if (tkind == (a_type_kind)tk_union) {
-    is_union = TRUE;
+    is_non_initializable = TRUE;
   } else if (tkind == (a_type_kind)tk_array) {
-    is_union = is_or_contains_union(type->variant.array.element_type);
+    is_non_initializable = is_non_initializable_aggregate_type(
+                                             type->variant.array.element_type);
   } else if (tkind == (a_type_kind)tk_struct) {
-    a_field_ptr field = type->variant.class_struct_union.field_list;
+    a_field_ptr field = next_initializable_field(
+                                  type->variant.class_struct_union.field_list);
     if (field != NULL) {
-      is_union = is_or_contains_union(field->type);
+      is_non_initializable = is_non_initializable_aggregate_type(field->type);
+    } else {
+      is_non_initializable = TRUE;
     }  /* if */
   }  /* if */
-  return is_union;
-}  /* is_or_contains_union */
+  return is_non_initializable;
+}  /* is_non_initializable_aggregate_type */
 
 
 static void dump_variable(a_variable_ptr variable,
@@ -5764,13 +5769,13 @@ parameters.
               tkind == (a_type_kind)tk_struct || 
               tkind == (a_type_kind)tk_union) {
             /* Aggregates. */
-            if (is_or_contains_union(var_type)) {
-              /* Sorry, there's just no way to say this in K&R C.  That is,
+            if (is_non_initializable_aggregate_type(var_type)) {
+              /* Sorry, there's just no way to say this in K&R C.  For example,
                  there's no way to initialize a union so as to make it clear
                  that it is a definition.  Leave it as it is and hope it works
                  out. */
             } else {
-              /* Aggregate not containing a union. */
+              /* Normal aggregate. */
               (void)fprintf(f_C_output, " = {0}");
             }  /* if */
           } else {
