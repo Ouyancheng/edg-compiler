@@ -411,7 +411,7 @@ string literals were implemented).
 #endif /* ABI_CHANGES_FOR_RTTI */
   a_type_ptr    *type_ptr;
 #if IA64_ABI
-  a_targ_size_t num_bases = 0;
+  a_targ_size_t num_bases = 0, array_num_bases;
 #endif /* IA64_ABI */
           
 #if !IA64_ABI
@@ -472,6 +472,11 @@ string literals were implemented).
         if (base->direct) ++num_bases;
       }  /* for */
     }  /* if */
+    array_num_bases = num_bases;
+    if (emulate_gnu_abi_bugs) {
+      /* g++ 3.2 always puts one extra entry at the end of the structure. */
+      array_num_bases++;
+    }  /* if */
     if (num_bases == 1) {
       /* Use the entry in the typeinfo_types array. */
       type_ptr = &typeinfo_types[(int)tik_vmi_class];
@@ -488,7 +493,7 @@ string literals were implemented).
         base_field = (*type_ptr)->variant.class_struct_union.field_list->
                                                               next->next->next;
         check_assertion(is_array_type(base_field->type));
-        if (num_array_elements(base_field->type) == num_bases) break;
+        if (num_array_elements(base_field->type) == array_num_bases) break;
       }  /* for */
       /* If we did not find the type, create a new entry on the list. */
       if (clep == NULL) {
@@ -646,7 +651,7 @@ string literals were implemented).
                              *type_ptr, &last_field);
           /* field: base_info[num_bases] */
           array_type = array_of(make_base_class_spec_type());
-          array_type->variant.array.variant.number_of_elements = num_bases;
+          array_type->variant.array.variant.number_of_elements=array_num_bases;
           set_type_size(array_type);
           make_lowered_field("base_info", array_type, *type_ptr, &last_field);
         }
