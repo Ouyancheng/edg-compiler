@@ -9419,6 +9419,7 @@ instantiation.
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
   if (prototype_instantiations_in_il &&
+      !source_sequence_entries_disallowed &&
       tssp->variant.class_template.prototype_instantiation != NULL) {
     /* Record the prototype instantiation in the IL. */
     a_symbol_ptr  proto_sym = tssp->variant.class_template.
@@ -9439,6 +9440,7 @@ instantiation.
       a_src_seq_secondary_decl_ptr sssdp =
                              ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
       sssdp->template_decl = decl_state->template_decl;
+      sssdp->friend_decl = decl_state->is_template_friend;
       sssdp->autonomous_tag_decl = TRUE;
     } else {
       proto_type->variant.class_struct_union.extra_info->template_decl =
