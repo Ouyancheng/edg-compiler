@@ -246,18 +246,21 @@ corresponding entry in the primary file IL.
 {
   char *corresp;
 
-  /* If the pointer wasn't encountered previously, make sure its
-     copy address pointer is set.  This happens for "next" pointers. */
-  copy_address_setup(ptr, kind, /*known_will_process_in_curr_walk=*/FALSE);
   if (ptr == NULL) {
     /* Leave a NULL pointer unchanged. */
     corresp = NULL;
+  } else if (!in_secondary_trans_unit(ptr)) {
+    /* Leave a primary IL pointer unchanged. */
+    corresp = ptr;
   } else if (!in_file_scope(ptr)) {
     /* Leave a function scope pointer unchanged. */
     corresp = ptr;
   } else {
+    /* If the pointer wasn't encountered previously, make sure its
+       copy address pointer is set.  This happens for "next" pointers. */
+    copy_address_setup(ptr, kind, /*known_will_process_in_curr_walk=*/FALSE);
     /* Fetch the copy address assigned by copy_address_setup. */
-    corresp = checked_trans_unit_copy_address_of(ptr);
+    corresp = trans_unit_copy_address_of(ptr);
     check_assertion(corresp != NULL);
     if (in_secondary_trans_unit(corresp)) {
       /* This entry is getting merged, so the copy address points to the
