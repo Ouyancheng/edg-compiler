@@ -6151,9 +6151,14 @@ which instantiations are required.
   a_function_instantiation_entry_ptr fiep;
   fiep = instantiations_required_head;
   while (fiep != NULL) {
-#if 0
-    if (fiep->instantiation_required) instantiate_function(fiep);
-#endif /* 0 */
+    if (fiep->instantiation_required) {
+#if DEBUG
+      if (debug_level >= 4) {
+        db_symbol(fiep->routine_sym, "Instantiating:", 2);
+      }  /* if */
+#endif /* DEBUG */
+      instantiate_template_function(fiep);
+    }  /* if */
     fiep = fiep->next_instantiation_required;
   }  /* while */
 }  /* instantiation_wrapup */
