@@ -7614,7 +7614,7 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
            enum E { a,b,c };
            struct S { enum E x : 16; };
          No error will be issued even if sizeof(E) ends up being 1. */
-      max_size_allowed = targ_sizeof_int;
+      max_size_allowed = targ_sizeof_int*targ_char_bit;
     } else {
       max_size_allowed = bit_field_type->size*targ_char_bit;
     }  /* if */
