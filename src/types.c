@@ -1315,19 +1315,11 @@ because any exception it can handle would be caught by type_1's handler.
     if (is_class_struct_union_type(type_1) &&
         is_class_struct_union_type(type_2)) {
       bcp = find_base_class_of(type_2, type_1);
-#if 0
-      /* Strict interpretation of 15.4 para 2. */
-      masked = (bcp != NULL);
-#else /* 0 */
-      /* 15.4 para 1 is clear that a handler for a base class will not
-         handle the derived class if the base class is not accessible.
-         Does this apply to masking that can be diagnosed at compile time?
-         Or is it a restriction on runtime behavior?  For now, we will
-         ignore a strict literal interpretation of 15.4 para 2, even
-         though it is very explicit about when a masking error is required and
-         does not provide a loophole when the base class is inaccessible. */
-      masked = (bcp != NULL && is_accessible_base_class(bcp));
-#endif /* if 0 */
+      if (bcp != NULL) {
+        /* A handler for a base class masks the handler for the derived class
+           unless the base class is inaccessible or ambiguous. */
+        if (!bcp->ambiguous && is_accessible_base_class(bcp)) masked = TRUE;
+      }  /* if */
     } else if (is_pointer_type(type_1) && is_pointer_type(type_2)) {
       /* A pointer-type masks another pointer-type if the latter can be
          implicitly converted to the former.  (This is not explicit in
