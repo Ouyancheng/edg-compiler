@@ -1,5 +1,12 @@
 Version 2.21
 
+12/9/93  Walking of IL tree when using non-alternate file format
+
+A bug was fixed in the handling of shared a_param_type lists (i.e.,
+one list pointed to by several routine type supplements) when the file
+format selected is the "non-alternate" file format.  Formerly, an
+internal error was reported from ptr_remap_function.
+
 12/9/93  IL lowering: conditional flags for global scope expressions
 
 Conditional flags for temporaries constructed within conditional
