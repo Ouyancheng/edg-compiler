@@ -1,5 +1,14 @@
 Version 3.4
 
+8/14/03  GNU mode: Attribute init_priority only applies to definitions
+
+In GNU modes, the front end now issues an error when attempting to apply the
+init_priority attribute to a variable (or static data member) declaration that
+is not a definition.  For example:
+
+  struct D { D(); };
+  extern __attribute__((init_priority(3000))) D x;
+
 8/14/03  Microsoft compatibility: binding reference to non-const to rvalue
          in overload resolution
 

@@ -1258,10 +1258,12 @@ transparent.  If not, issue a diagnostic and return FALSE.
 
 
 void apply_attributes_to_variable(an_attribute_ptr  attributes,
-                                  a_variable_ptr    vp)
+                                  a_variable_ptr    vp,
+                                  a_boolean         is_definition)
 /*
 Apply the attributes to the indicated variable.  Issue diagnostics for
-invalid attributes.
+invalid attributes.  is_definition is TRUE if and only if the given
+attributes were specified on a definition.
 */
 {
   an_attribute_ptr  ap;
@@ -1332,7 +1334,8 @@ invalid attributes.
       case ak_init_priority:
         if ((is_file_or_namespace_scope(&scope_stack[depth_scope_stack]) ||
              vp->source_corresp.is_class_member) &&
-            is_class_struct_union_type(vp->type)) {
+            is_class_struct_union_type(vp->type) &&
+            is_definition) {
           vp->init_priority = ap->variant.init_priority;
         } else {
           pos_error(ec_bad_variable_for_init_priority, &ap->position);

@@ -254,7 +254,8 @@ extern a_type_ptr apply_attributes_to_variable_type(
                                                a_type_ptr        type);
 
 extern void apply_attributes_to_variable(an_attribute_ptr  attributes,
-                                         a_variable_ptr    vp);
+                                         a_variable_ptr    vp,
+                                         a_boolean         is_definition);
 
 extern void apply_attributes_to_field(an_attribute_ptr  attributes,
                                       a_field_ptr       fp);

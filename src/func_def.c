@@ -536,7 +536,8 @@ pointer decay).
 #endif /* RECORD_NAME_IN_PARAM_TYPE_ENTRY */
 #if GNU_EXTENSIONS_ALLOWED
   if (param_id->attributes != NULL) {
-    apply_attributes_to_variable(param_id->attributes, vp);
+    apply_attributes_to_variable(param_id->attributes, vp,
+                                 /*is_definition=*/TRUE);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if EXTRA_SOURCE_POSITIONS_IN_IL

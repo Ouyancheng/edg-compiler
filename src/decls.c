@@ -4584,7 +4584,7 @@ declaration.
   if (gnu_mode) {
     if (attributes != NULL) {
       /* Apply the attributes to the variable declaration. */
-      apply_attributes_to_variable(attributes, variable_ptr);
+      apply_attributes_to_variable(attributes, variable_ptr, is_variable_def);
     }  /* if */
     /* Record the assembly name. */
     if (asm_name != NULL) {
@@ -7089,7 +7089,7 @@ the symbol and its linkage (which is always "none").
                                 ssep);
 #if GNU_EXTENSIONS_ALLOWED
       if (attributes != NULL) {
-        apply_attributes_to_variable(attributes, var);
+        apply_attributes_to_variable(attributes, var, /*is_definition=*/TRUE);
       }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -11922,7 +11922,8 @@ continue_with_declaration:
           /* Scan any trailing attributes. */
           an_attribute_ptr  trailing_attributes = scan_attributes();
           /* Apply the attributes to the variable declaration. */
-          apply_attributes_to_variable(trailing_attributes, var_ptr);
+          apply_attributes_to_variable(trailing_attributes, var_ptr,
+                                       /*is_definition=*/TRUE);
           /* Free up the list of attributes. */
           free_attribute_list(trailing_attributes);
         }  /* if */

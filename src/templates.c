@@ -3394,7 +3394,7 @@ user later during real instantiations.
        static data member was defined. */
     var_ptr->type = apply_attributes_to_variable_type(attributes,
                                                       var_ptr->type);
-    apply_attributes_to_variable(attributes, var_ptr);
+    apply_attributes_to_variable(attributes, var_ptr, /*is_definition=*/TRUE);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -4026,7 +4026,8 @@ and the class instantiation will detect the runaway case.
   ++(tssp->pending_instantiations);
 #if GNU_EXTENSIONS_ALLOWED
   if (tssp->attributes != NULL) {
-    apply_attributes_to_variable(tssp->attributes, var_ptr);
+    apply_attributes_to_variable(tssp->attributes, var_ptr,
+                                 /*is_definition=*/TRUE);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   /* Call mark_defined *after* the template instantiation scope is pushed --

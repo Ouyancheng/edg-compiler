@@ -8113,7 +8113,7 @@ if p_ms_attributes is non-NULL, *p_ms_attributes is returned NULL.
   if (gpp_mode) {
     if (attributes != NULL) {
       /* Apply the attributes to the variable declaration. */
-      apply_attributes_to_variable(attributes, var);
+      apply_attributes_to_variable(attributes, var, /*is_definition=*/FALSE);
     }  /* if */
     /* If applicable, record the asm-name. */
     if (asm_name != NULL) {
