@@ -11314,6 +11314,12 @@ Check that this is a valid type and if so make member_type a friend.
                           class_key_string);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         if (kind == (a_type_kind)tk_template_param) {
+          if (!prototype_instantiations_in_il) {
+            /* We are in a prototype instantiation, but we do not record them,
+               in the IL: Nothing should be done in terms of source sequence
+               entries. */
+            goto done_with_sse_for_nonstandard_friend;
+          }  /* if */
           member_type = proxy_class_for_template_param(
                                                   skip_typerefs(member_type));
         }  /* if */
@@ -11332,6 +11338,7 @@ Check that this is a valid type and if so make member_type a friend.
           ((a_src_seq_secondary_decl_ptr)ssep->entity.ptr)
                                                  ->autonomous_tag_decl = TRUE;
         }
+done_with_sse_for_nonstandard_friend:;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       }  /* if */
       decl_friend_class(class_type, member_type);
