@@ -2254,15 +2254,6 @@ use typename.
 
 /*
 Switch that is TRUE if the C-generating or C++-generating back end should
-generate code for a Sun compiler.  This is the default value of the global
-variable sun_is_generated_code_target.
-*/
-#ifndef SUN_IS_GENERATED_CODE_TARGET
-#define SUN_IS_GENERATED_CODE_TARGET FALSE
-#endif /* SUN_IS_GENERATED_CODE_TARGET */
-
-/*
-Switch that is TRUE if the C-generating or C++-generating back end should
 generate code for a GNU compiler (gcc or g++).
 */
 /* The old name of this macro was GCC_IS_C_GEN_BE_TARGET; it that's set,
@@ -2331,6 +2322,19 @@ compilers (e.g., __builtin_va_list).
 #endif /* ifndef GCC_BUILTIN_VARARGS_IN_GENERATED_CODE */
 
 /*
+Switch that is TRUE if the C-generating or C++-generating back end should
+generate code for a Sun compiler.  This is the default value of the global
+variable sun_is_generated_code_target.
+*/
+#ifndef SUN_IS_GENERATED_CODE_TARGET
+#if defined(sun) && BACK_END_IS_C_GEN_BE && !GCC_IS_GENERATED_CODE_TARGET
+#define SUN_IS_GENERATED_CODE_TARGET TRUE
+#else /* !(defined(sun) && BACK_END_IS_C_GEN_BE && !GCC_IS_GENERATED_...) */
+#define SUN_IS_GENERATED_CODE_TARGET FALSE
+#endif /* defined(sun) && BACK_END_IS_C_GEN_BE && !GCC_IS_GENERATED_CODE_... */
+#endif /* SUN_IS_GENERATED_CODE_TARGET */
+
+/*
 Switch that is TRUE if bugs in some versions of MSVC++ regarding
 value-initialization should be emulated.  This is desirable in products
 that are trying to detect uninitialized values, but not in general.
@@ -2394,13 +2398,36 @@ Microsoft extensions is not likely an intentional configuration option.
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
 /*
 The C-generating and C++-generating back ends should never have to generate
-code for both the Microsoft compiler and the GNU compiler.
+code for more than one specific target dialect (Microsoft, GNU, or Sun).
 */
+#if MICROSOFT_DIALECT_IS_GENERATED_CODE_TARGET
+#ifndef SPECIFIC_TARGET_DIALECT_SET
+#define SPECIFIC_TARGET_DIALECT_SET TRUE
+#else /* !defined(SPECIFIC_TARGET_DIALECT_SET) */
+#define MULTIPLE_TARGET_DIALECTS_SET TRUE
+#endif /* ifndef SPECIFIC_TARGET_DIALECT_SET */
+#endif /* MICROSOFT_DIALECT_IS_GENERATED_CODE_TARGET */
 
-#if MSVC_IS_GENERATED_CODE_TARGET && GCC_IS_GENERATED_CODE_TARGET
- #error -- MSVC_IS_GENERATED_CODE_TARGET and GCC_IS_GENERATED_CODE_TARGET \
-           may not both be TRUE
-#endif /* MSVC_IS_GENERATED_CODE_TARGET && GCC_IS_GENERATED_CODE_TARGET */
+#if GCC_IS_GENERATED_CODE_TARGET
+#ifndef SPECIFIC_TARGET_DIALECT_SET
+#define SPECIFIC_TARGET_DIALECT_SET TRUE
+#else /* !defined(SPECIFIC_TARGET_DIALECT_SET) */
+#define MULTIPLE_TARGET_DIALECTS_SET TRUE
+#endif /* ifndef SPECIFIC_TARGET_DIALECT_SET */
+#endif /* GCC_IS_GENERATED_CODE_TARGET */
+
+#if SUN_IS_GENERATED_CODE_TARGET
+#ifndef SPECIFIC_TARGET_DIALECT_SET
+#define SPECIFIC_TARGET_DIALECT_SET TRUE
+#else /* !defined(SPECIFIC_TARGET_DIALECT_SET) */
+#define MULTIPLE_TARGET_DIALECTS_SET TRUE
+#endif /* ifndef SPECIFIC_TARGET_DIALECT_SET */
+#endif /* SUN_IS_GENERATED_CODE_TARGET */
+
+#ifdef MULTIPLE_TARGET_DIALECTS_SET
+ #error -- Multiple target dialects selected (GCC_IS_GENERATED_CODE_TARGET, \
+           SUN_IS_GENERATED_CODE_TARGET, or MSVC_IS_GENERATED_CODE_TARGET)
+#endif /* ifdef MULTIPLE_TARGET_DIALECTS_SET */
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
 
 #if BACK_END_IS_C_GEN_BE
