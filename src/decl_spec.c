@@ -577,17 +577,13 @@ is a pointer to a source position used for diagnostics.
   a_class_type_supplement_ptr ctsp;
 
   ctsp = class_type->variant.class_struct_union.extra_info;
-  if (is_class_definition) {
-    /* If there were any class-wide modifiers or memory attributes
-       specified, record them in the class type supplement. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    ctsp->decl_modifiers = extended_decl_info->decl_modifiers.flags;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* If there were any class-wide modifiers or memory attributes
+     specified, record them in the class type supplement. */
 #if NEAR_AND_FAR_ALLOWED
-    ctsp->qualifiers = extended_decl_info->qualifiers;
+  ctsp->qualifiers = extended_decl_info->qualifiers;
 #endif /* NEAR_AND_FAR_ALLOWED */
-  }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  ctsp->decl_modifiers = extended_decl_info->decl_modifiers.flags;
   if (extended_decl_info->inheritance_kind != (an_inheritance_kind)ihk_none) {
     /* Set the specified inheritance kind, unless a different inheritance
        kind has already been locked in -- either explicitly through a prior
