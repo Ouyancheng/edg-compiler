@@ -147,20 +147,37 @@ from db_symbol.
 }  /* str_access */
 
 
-static char *str_qualified_name(char         *buffer,
+static char *str_class_qualifier(char        buffer[],
+                                 a_type_ptr  tp)
+/*
+Construct a string in buffer that represents the class-qualifier part
+of a qualified name (e.g., A::).  This routine calls itself recursively
+to deal with nested classes.
+*/
+{
+  char*  name_ptr;
+
+  if (tp != NULL) {
+    (void)str_class_qualifier(&buffer[strlen(buffer)],
+                              tp->source_corresp.class_of_which_a_member);
+    name_ptr = tp->source_corresp.name;
+    (void)sprintf(&buffer[strlen(buffer)], "%s::", name_ptr == NULL ?
+                                                     "<null>" : name_ptr);
+  }  /* if */
+  return buffer;
+}  /* str_class_qualifier */
+
+
+static char *str_qualified_name(char         buffer[],
                                 a_symbol_ptr sym)
 /*
 Construct a string in buffer that represents a qualified name -- called
 from db_symbol.
 */
 {
-  if (sym->class_of_which_a_member != NULL) {
-    (void)sprintf(buffer, "%s::%s",
-                  sym->class_of_which_a_member->source_corresp.name,
-                  sym->header->identifier);
-  } else {
-    (void)sprintf(buffer, "%s", sym->header->identifier);
-  }  /* if */
+  buffer[0] = '\0';
+  (void)str_class_qualifier(buffer, sym->class_of_which_a_member);
+  (void)sprintf(&buffer[strlen(buffer)], "%s", sym->header->identifier);
   return buffer;
 }  /* str_qualified_name */
 
@@ -252,14 +269,18 @@ and indentation is the indentation desired.
   fprintf(f_debug, "<%s>", str);
   col += strlen(str) + 2;
 
-  str = sym->header->identifier;
-  if (sym->kind == (a_symbol_kind)sk_projection) {
-    a_symbol_ptr fsym = sym->variant.projection.extra_info->fundamental_symbol;
-    if (fsym != NULL) str = str_qualified_name(buffer, fsym);
-  }  /* if */
+  str = str_qualified_name(buffer, sym);
   put_separator("", strlen(str) + 2);
   fprintf(f_debug, "\"%s\"", str);
   col += strlen(str) + 2;
+
+  if (sym->kind == (a_symbol_kind)sk_projection) {
+    a_symbol_ptr fsym = sym->variant.projection.extra_info->fundamental_symbol;
+    if (fsym != NULL) str = str_qualified_name(buffer, fsym);
+    put_separator("", strlen(str) + 6);
+    fprintf(f_debug, "(= \"%s\")", str);
+    col += strlen(str) + 6;
+  }  /* if */
 
   (void)sprintf(buffer, "(%d/%d)", sym->decl_position.seq,
 		sym->decl_position.column);
@@ -4663,13 +4684,15 @@ End a name scope by popping an entry off the scope stack.
       fprintf(f_debug, "pop_scope: number = %d, depth = %d",
               ssep->number, depth_scope_stack);
       if (curr_routine != NULL) {
-        fprintf(f_debug, ", curr_routine = %s",
-                curr_routine->source_corresp.name);
+        (void)fputs(", curr_routine = \"", f_debug);
+        db_name(&curr_routine->source_corresp);
+        (void)fputc('"', f_debug);
       } else if ((kind == (a_scope_kind)sck_class_struct_union ||
                   kind == (a_scope_kind)sck_class_reactivation) &&
                  ssep->assoc_type != NULL) {
-        fprintf(f_debug, ", class = \"%s\"",
-                ssep->assoc_type->source_corresp.name);
+        (void)fputs(", class = \"", f_debug);
+        db_name(&ssep->assoc_type->source_corresp);
+        (void)fputc('"', f_debug);
       } else {
         fputs(", kind = ", f_debug);
         db_scope_kind(kind);
