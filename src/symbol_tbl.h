@@ -1418,6 +1418,10 @@ typedef struct a_scope_stack_entry {
   unsigned int	is_loop_scope:1;
 			/* TRUE if this scope is associated with the compound
 			   statement of a for, do, or while loop. */
+  unsigned int	slow_lookup_required:1;
+			/* TRUE if this a slow lookup is required because
+			   the scope stack contains a scope in which certain
+			   symbols on the active list must not be visible. */
   a_symbol_ptr	symbols,
 		last_symbol;
 			/* First/last pointers to the list of all symbols
