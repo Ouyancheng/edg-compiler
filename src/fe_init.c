@@ -64,8 +64,11 @@ in the include files will become external definitions for the symbols.
 #include "asm_func.h"
 #endif /* ASM_FUNCTION_ALLOWED */
 
-#if IL_SHOULD_BE_WRITTEN_TO_FILE
+#if IL_WALK_NEEDED
 #include "il_walk.h"
+#endif /* IL_WALK_NEEDED */
+
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
 #include "il_file.h"
 #include "il_write.h"
 #if BACK_END_SHOULD_BE_CALLED
