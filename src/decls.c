@@ -11799,9 +11799,10 @@ continue_with_declaration:
       } else
 #endif /* ASM_FUNCTION_ALLOWED */
       if (is_function && local_storage_class != (a_storage_class)sc_typedef) {
-        if (local_storage_class != (a_storage_class)sc_unspecified &&
-            local_storage_class != (a_storage_class)sc_extern &&
-            local_storage_class != (a_storage_class)sc_static) {
+        if ((local_storage_class != (a_storage_class)sc_unspecified &&
+             local_storage_class != (a_storage_class)sc_extern &&
+             local_storage_class != (a_storage_class)sc_static) ||
+            register_id != 0) {
           /* The storage class of a function must be extern or static. */
           pos_error(ec_bad_function_storage_class,
                     &decl_pos_block.storage_class_pos);

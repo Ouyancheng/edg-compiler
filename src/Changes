@@ -1,5 +1,14 @@
 Version 3.5
 
+7/22/04  Embedded C: Named-register storage class on function declarations
+
+The front end failed to diagnose the use of a named-register storage class on
+function declarations.  For example:
+
+  register _EDG_REG_1 void f();  // Previously accepted; now an error.
+
+This is now fixed (an error is issued).
+
 7/21/04  Microsoft compatibility: dllimport variable as nontype template
          argument
 
