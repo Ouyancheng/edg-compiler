@@ -31,6 +31,7 @@ lower_init.c -- IL lowering: initializations and new/delete.
 #if DO_IL_LOWERING
 
 /* Additional header files. */
+#include "class_decl.h"
 #include "expr.h"
 #include "exprutil.h"
 #if MAINTAIN_NEEDED_FLAGS
@@ -8488,6 +8489,45 @@ Insert the code at the location given by insert_location.
   }  /* if */
 }  /* insert_primary_vtbl_assignment */
                                      
+#if IA64_ABI
+
+static a_boolean is_direct_or_indirect_virtual_primary_base(
+                                                        a_base_class_ptr  bcp)
+/*
+Return TRUE if and only if the given base class is a direct or indirect
+primary base class.
+*/
+{
+  a_boolean         result;
+  a_type_ptr        class_type = bcp->derived_class;
+  a_base_class_ptr  primary_bcp =
+                             class_type->variant.class_struct_union.extra_info
+                                       ->primary_base_class;
+
+  check_assertion(bcp->is_virtual);
+  for (;;) {
+    if (primary_bcp == bcp) {
+      result = TRUE;
+      break;
+    } else if (primary_bcp == NULL) {
+      result = FALSE;
+      break;
+    } else {
+      a_base_class_ptr  descendent_bcp = primary_bcp;
+      primary_bcp = primary_bcp->type->variant.class_struct_union.extra_info
+                                     ->primary_base_class;
+      if (primary_bcp != NULL) {
+        a_base_class_ptr  disambiguator =
+                              find_disambiguator(descendent_bcp, primary_bcp);
+        primary_bcp = corresponding_base_class(primary_bcp, class_type,
+                                               disambiguator);
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* is_direct_or_indirect_virtual_primary_base */
+
+#endif /* IA64_ABI */
 
 void add_constructor_wrapper_code(a_scope_ptr        scope,
                                   an_insert_location *insert_location)
@@ -8900,6 +8940,20 @@ constructor, but may instead be after an assignment to "this".
                                           (an_expr_operator_kind)eok_passign,
                                           vtbl_addr_node,
                                           insert_location);
+#if IA64_ABI
+        if (bcp->is_virtual &&
+            is_direct_or_indirect_virtual_primary_base(bcp)) {
+          /* If a primary virtual base is located at the origin of the
+             subobject being constructed, we should not have clobbered its
+             virtual table pointer.  We could devise a run-time test to
+             detect such cases, but it's simpler and probably just as
+             efficient to reload the primary virtual table pointer of the
+             subobject being constructed. */
+          insert_primary_vtbl_assignment(class_type, this_param_var,
+                                         construction_vtbls_var,
+                                         insert_location);
+        }  /* if */
+#endif /* IA64_ABI */
       }  /* if */
     }  /* if */
   }  /* for */
@@ -9987,6 +10041,20 @@ destructor scope, and also lower the user code.
                                           (an_expr_operator_kind)eok_passign,
                                           vtbl_addr_node,
                                           &insert_location);
+#if IA64_ABI
+        if (bcp->is_virtual &&
+            is_direct_or_indirect_virtual_primary_base(bcp)) {
+          /* If a primary virtual base is located at the origin of the
+             subobject being destroyed, we should not have clobbered its
+             virtual table pointer.  We could devise a run-time test to
+             detect such cases, but it's simpler and probably just as
+             efficient to reload the primary virtual table pointer of the
+             subobject being destroyed. */
+          insert_primary_vtbl_assignment(class_type, this_param_var,
+                                         dtor_info.destruction_vtbls_var,
+                                         &insert_location);
+        }  /* if */
+#endif /* IA64_ABI */
       }  /* if */
     }  /* if */
   }  /* for */
