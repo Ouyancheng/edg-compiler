@@ -1696,7 +1696,7 @@ Output the definition of the indicated struct or union type.
     a_targ_alignment  pack_alignment;
 
     pack_alignment = type->variant.class_struct_union.max_member_alignment;
-    if (pack_alignment > 0) {
+    if (pack_alignment != 0) {
       if (pack_alignment == il_header.default_max_member_alignment) {
         /* No need to put out a pragma to override the default value. */
         pack_alignment = 0;
@@ -1841,7 +1841,7 @@ Output the definition of the indicated struct or union type.
     indent -= 2;
     write_tok_str("};");
 #if USER_CONTROL_OF_STRUCT_PACKING
-    if (pack_alignment > 0) {
+    if (pack_alignment != 0) {
       /* Restore the packing alignment to a default state. */
       unsigned long saved_indent = indent;
       end_output_line_if_begun();
@@ -1953,7 +1953,7 @@ with a routine.
     store_at = mangled_name + name_length;
     *store_at++ = '_';
     *store_at++ = '_';
-    if (routine_name_length > 0) {
+    if (routine_name_length != 0) {
       (void)strcpy(store_at, rout->source_corresp.name);
       store_at += routine_name_length;
     }  /* if */
@@ -3736,7 +3736,7 @@ open braces that were deferred until this point.
   if (!initializer_constants_started) {
     initializer_constants_started = TRUE;
     write_tok_str(" = ");
-    for (; num_initializer_open_braces_deferred > 0;
+    for (; num_initializer_open_braces_deferred != 0;
          num_initializer_open_braces_deferred--) {
       write_tok_ch('{');
     }  /* if */
@@ -3840,7 +3840,7 @@ brace was deferred in initializer_open_brace and then never put out,
 do not put out the closing brace either.
 */
 {
-  if (num_initializer_open_braces_deferred > 0) {
+  if (num_initializer_open_braces_deferred != 0) {
     num_initializer_open_braces_deferred--;
   } else {
     write_tok_ch('}');
