@@ -1,5 +1,20 @@
 Version 2.31
 
+12/18/95  Instantiation of template class before checking for operator()
+
+When the left operand of a call has a class type, and the type is a template
+class, it is now instantiated before the check for an operator() function.
+This bug was made visible by the instantiation change of 8/30/95.
+
+  template <class R, class A>
+  struct Func {
+    virtual R operator () (A p) const = 0;
+  };
+  int call_func1(char* s, const Func<int, char const*>* func)
+  {
+    return (*func)(s); // Got error in version 2.30
+  }
+
 12/14/95  Members of class templates need not have definitions when the
           entire class is being instantiated
 
@@ -224,7 +239,7 @@ wrong, as in this case.  We now allow the comparison, but we get it right
 11/25/95  Redundant instantiation of template class
 
 A bug has been fixed that caused the same template class to be
-instantiated more than once when a declaration involved an temporarily
+instantiated more than once when a declaration involved a temporarily
 incomplete array.  An internal error resulted in some circumstances.
 Here's a example:
 

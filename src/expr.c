@@ -1501,11 +1501,20 @@ Syntax:
     first_arg_position = pos_curr_token;
     already_after_left_paren = TRUE;
   } else {
+    member_function_symbol = NULL;
     if (C_dialect == C_dialect_cplusplus &&
-        is_class_struct_union_type(operand->type) &&
-        (member_function_symbol = opname_member_function_symbol(
+        is_class_struct_union_type(operand->type)) {
+      /* If the class is a template class make sure it is instantiated so its
+         operator() functions are visible. */
+      a_type_ptr class_type = operand->type;
+      class_type = skip_typerefs(class_type);
+      instantiate_template_class(class_type);
+      /* See if the class has an operator(). */
+      member_function_symbol = opname_member_function_symbol(
                                       (an_opname_kind)onk_function_call,
-                                      skip_typerefs(operand->type))) != NULL) {
+                                      class_type);
+    }  /* if */
+    if (member_function_symbol != NULL) {
       /* There is a C++ function call operator function that overloads function
          calls for the class of the left operand.  The operand becomes
          the selector object, and the function call operator routine
