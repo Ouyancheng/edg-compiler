@@ -3671,6 +3671,7 @@ do_assignment:;
         /* Lower any added arguments. */
         lower_arg_expr_list(dip->variant.constructor.args, ctor_routine_type,
                             param);
+#if ABI_COMPATIBILITY_VERSION >= 233
         if (exceptions_enabled && (options & LDIO_THROW) &&
             dip->variant.constructor.is_implicit_copy_for_copy_initialization){
           /* This is the top-level copy of a throw, and it does the implied
@@ -3691,6 +3692,7 @@ do_assignment:;
           }  /* if */
           record_exception_started(eff_insert_location);
         }  /* if */
+#endif /* ABI_COMPATIBILITY_VERSION >= 233 */
         /* Generate the constructor call. */
         add_constructor_call(dip, entity_node, source_node,
                              implied_arg_list, end_implied_arg_list,

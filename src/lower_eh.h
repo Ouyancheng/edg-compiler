@@ -97,7 +97,9 @@ extern an_expr_node_ptr make_thrown_object_address_node(void);
 
 extern void lower_throw(an_expr_node_ptr expr);
 
+#if ABI_COMPATIBILITY_VERSION >= 233
 extern void record_exception_started(an_insert_location *insert_location);
+#endif /* ABI_COMPATIBILITY_VERSION >= 233 */
 
 extern void set_curr_cleanup_state(a_dynamic_init_ptr cleanup_state,
                                    an_insert_location *insert_location);

@@ -3059,12 +3059,14 @@ param_type is the type of the catch parameter.
 
 
 #if DO_FULL_PORTABLE_EH_LOWERING
+#if ABI_COMPATIBILITY_VERSION >= 233
 /*
 Pointer to the routine entry for the runtime routine __exception_caught.
 NULL until created.
 */
 static a_routine_ptr
 		exception_caught_routine;
+#endif /* ABI_COMPATIBILITY_VERSION >= 233 */
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
 
 
@@ -3090,6 +3092,7 @@ for the scope of the handler.
     /* Mark the parameter as referenced. */
     handler->parameter->source_corresp.referenced = TRUE;
   }  /* if */
+#if ABI_COMPATIBILITY_VERSION >= 233
   /* Mark the point where the catch entry processing is finished, and the
      exception can be considered caught. */
 #if DO_FULL_PORTABLE_EH_LOWERING
@@ -3108,6 +3111,7 @@ for the scope of the handler.
     (void)insert_expr_statement(node, &insert_location);
   }
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
+#endif /* ABI_COMPATIBILITY_VERSION >= 233 */
 }  /* begin_catch_clause */
 
 
@@ -3774,6 +3778,8 @@ Lower an enk_throw expression node.
 }  /* lower_throw */
 
 
+#if ABI_COMPATIBILITY_VERSION >= 233
+
 #if DO_FULL_PORTABLE_EH_LOWERING
 /*
 Pointer to the routine entry for the runtime routine __exception_started.
@@ -3812,6 +3818,7 @@ the throw, whereas the rest of the throw expression evaluation is
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
 }  /* record_exception_started */
 
+#endif /* ABI_COMPATIBILITY_VERSION >= 233 */
 
 void set_curr_cleanup_state(a_dynamic_init_ptr cleanup_state,
                             an_insert_location *insert_location)
@@ -3970,8 +3977,10 @@ with each new translation unit are handled in eh_lower_init.)
       pch_saved_var_array_elem(setjmp_routine),
       pch_saved_var_array_elem(suppress_optim_on_vars_in_try_routine),
       pch_saved_var_array_elem(free_thrown_object_routine),
+#if ABI_COMPATIBILITY_VERSION >= 233
       pch_saved_var_array_elem(exception_caught_routine),
       pch_saved_var_array_elem(exception_started_routine),
+#endif /* ABI_COMPATIBILITY_VERSION >= 233 */
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
       pch_saved_var_array_terminating_elem()
     };
@@ -4018,8 +4027,10 @@ invocation of the front end.
   setjmp_routine = NULL;
   suppress_optim_on_vars_in_try_routine = NULL;
   free_thrown_object_routine = NULL;
+#if ABI_COMPATIBILITY_VERSION >= 233
   exception_caught_routine = NULL;
   exception_started_routine = NULL;
+#endif /* ABI_COMPATIBILITY_VERSION >= 233 */
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
   /* Variables in lower_eh.h: */
 #if ABI_CHANGES_FOR_RTTI
