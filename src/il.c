@@ -2563,16 +2563,7 @@ the address of the routine, e.g., a call).
   con->variant.address.kind = (an_address_base_kind)abk_routine;
   con->variant.address.variant.routine = routine;
   con->type = make_pointer_type(routine->type);
-  if (set_address_taken_flag) {
-    routine->address_taken = TRUE;
-#if MINIMAL_INLINING
-    /* For an inline function, force an out-of-line copy if the
-       address of the routine is taken. */
-    if (inlining_enabled && routine->is_inline) {
-      routine->need_out_of_line_copy = TRUE;
-    }  /* if */
-#endif /* MINIMAL_INLINING */
-  }  /* if */
+  if (set_address_taken_flag) routine->address_taken = TRUE;
 }  /* set_routine_address_constant */
 
 
@@ -2591,7 +2582,11 @@ the address of the variable, e.g., an lvalue).
   con->variant.address.kind = (an_address_base_kind)abk_variable;
   con->variant.address.variant.variable = variable;
   con->type = make_pointer_type(variable->type);
-  if (set_address_taken_flag) variable->address_taken = TRUE;
+  if (set_address_taken_flag) {
+    variable->address_taken = TRUE;
+    /* For a parameter, set param_value_has_been_changed. */
+    if (variable->is_parameter) variable->param_value_has_been_changed = TRUE;
+  }  /* if */
 }  /* set_variable_address_constant */
 
 
@@ -5328,7 +5323,7 @@ expression node.
   new_dip = alloc_dynamic_init(dip->kind);
   *new_dip = *dip;
 #if MINIMAL_INLINING
-  if (variable_remappings_for_inlining != NULL) {
+  if (currently_doing_inlining_of_function_call) {
     /* Look for variables that get remapped while copying the expressions
        in a function being inlined. */
     if (dip->variable != NULL) {
@@ -6585,7 +6580,7 @@ Make a copy of an expression tree and return a pointer to it.
   switch (expr->kind) {
     case enk_variable:
 #if MINIMAL_INLINING
-      if (variable_remappings_for_inlining != NULL) {
+      if (currently_doing_inlining_of_function_call) {
         /* Look for variables that get remapped while copying the expressions
            in a function being inlined. */
         a_boolean      is_constant;
@@ -6608,7 +6603,7 @@ Make a copy of an expression tree and return a pointer to it.
       break;
     case enk_variable_address:
 #if MINIMAL_INLINING
-      if (variable_remappings_for_inlining != NULL) {
+      if (currently_doing_inlining_of_function_call) {
         /* Look for variables that get remapped while copying the expressions
            in a function being inlined. */
         expr_copy->variant.variable =
@@ -6617,6 +6612,18 @@ Make a copy of an expression tree and return a pointer to it.
 #endif /* MINIMAL_INLINING */
       break;
     case enk_constant:
+#if MINIMAL_INLINING
+      if (currently_doing_inlining_of_function_call) {
+        /* When doing inlining, we may have a constant here that is in
+           a function scope memory region other than the one we are currently
+           working in.  If so, we need to make a copy of the constant so we
+           aren't pointing over to another function scope memory region. */
+        a_constant_ptr con = expr->variant.constant;
+        if (!in_file_scope(con)) {
+          expr_copy->variant.constant = copy_unshared_constant(con);
+        }  /* if */
+      }  /* if */
+#endif /* MINIMAL_INLINING */
       break;
     case enk_error:
     case enk_field:
