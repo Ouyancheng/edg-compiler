@@ -3277,12 +3277,10 @@ there's some possibility of precedence confusion and need_parens is TRUE.
     } else {
       /* Otherwise, just put a "&" in front of the node, which cancels the
          implicit indirection. */
-      if (need_parens) {
-        write_tok_ch('(');
-        need_reference_close_paren = TRUE;
-        need_parens = FALSE;
-      }  /* if */
+      write_tok_ch('(');
       write_tok_ch('&');
+      need_reference_close_paren = TRUE;
+      need_parens = TRUE;
     }  /* if */
   }  /* if */
   switch (expr->kind) {
