@@ -1,5 +1,9 @@
 Version 2.40
 
+11/24/98  Microsoft compatibility: support for __assume
+
+In Microsoft mode the __assume(expression) construct is now accepted.
+
 11/24/98  Microsoft compatibility: support for __forceinline
 
 In Microsoft mode the keyword __forceinline is now accepted wherever
