@@ -4398,16 +4398,16 @@ exception specifications are not checked.
       /* Qualifiers are being dropped. */
       okay = FALSE;
     }  /* if */
-  } else if (!(is_bool_type(source_type) &&
-               impl_conversion_possible(dest_type,
-                                        /*source_is_constant=*/FALSE,
-                                        /*source_is_string_literal=*/FALSE,
-                                        (a_constant *)NULL,
-                                        source_type,
-                                        allow_qualifier_or_eh_mismatch,
-                                        suppress_extensions,
-                                        ec_bad_cast,
-                                        std_conv)) ||
+  } else if ((!is_bool_type(source_type) &&
+              impl_conversion_possible(dest_type,
+                                       /*source_is_constant=*/FALSE,
+                                       /*source_is_string_literal=*/FALSE,
+                                       (a_constant *)NULL,
+                                       source_type,
+                                       allow_qualifier_or_eh_mismatch,
+                                       suppress_extensions,
+                                       ec_bad_cast,
+                                       std_conv)) ||
              /* Test for conversion of "void *" to a pointer to object type.
                 This does not fall out of the impl_conversion_possible
                 test for cases like "void *" --> "const char *".  See
