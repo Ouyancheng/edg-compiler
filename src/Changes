@@ -1,5 +1,10 @@
 Version 3.5
 
+9/2/04  IL display of UPC forall statement
+
+The IL display utility now displays UPC forall statements in a form distinct
+from standard "for" statements.
+
 9/1/04  C++-generating back end: qualified references to injected class
         names that are class template specializations
 

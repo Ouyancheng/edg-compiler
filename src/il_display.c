@@ -3903,7 +3903,16 @@ do_label:
 #endif /* UPC_EXTENSIONS_ALLOWED */
 #ifdef CFE
     case stmk_for:
-      (void)printf("stmk_for\n");
+#if UPC_EXTENSIONS_ALLOWED
+    case stmk_upc_forall:
+      if (ptr->kind == stmk_upc_forall) {
+        (void)printf("stmk_upc_forall\n");
+      } else
+#endif /* UPC_EXTENSIONS_ALLOWED */
+      /* Do not insert code here. */
+      {
+        (void)printf("stmk_for\n");
+      }  /* if */
       disp_ptr("initialization",
                (char *)ptr->variant.for_loop.extra_info->initialization,
                iek_statement);
@@ -3913,6 +3922,13 @@ do_label:
       disp_ptr("increment",
                (char *)ptr->variant.for_loop.extra_info->increment,
                iek_expr_node);
+#if UPC_EXTENSIONS_ALLOWED
+      if (ptr->kind == stmk_upc_forall) {
+        disp_ptr("affinity",
+                 (char *)ptr->variant.for_loop.extra_info->affinity,
+                 iek_expr_node);
+      }  /* if */
+#endif /* UPC_EXTENSIONS_ALLOWED */
       if (ptr->variant.for_loop.extra_info->for_init_scope != NULL) {
         disp_ptr("for_init_scope",
                  (char *)ptr->variant.for_loop.extra_info->for_init_scope,
