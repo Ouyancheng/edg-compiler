@@ -1,5 +1,12 @@
 Version 2.08
 
+7/9/92   Pointer-to-member operations lowered to inline code
+
+For compatibility with cfront, pointer-to-member operations are now
+lowered to inline code instead of to runtime routine calls.  The
+runtime routines _pmf_cast, _pdm_cast, _pmf_eq, and _pmf_ne have
+been deleted.
+
 7/9/92   __pure_virtual_called
 
 For compatibility with cfront, slots of virtual function tables that
