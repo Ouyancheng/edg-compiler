@@ -553,6 +553,12 @@ current token will be used as the operand position.
 {
   if (is_error_type(constant->type)) {
     make_error_operand(operand);
+#if 0
+#else
+  /* Temporary until ck_template_param constants fully handled. */
+  } else if (constant->kind == (a_constant_repr_kind)ck_template_param) {
+    make_error_operand(operand);
+#endif /* 0 */
   } else {
     clear_operand((an_operand_kind)ok_constant, operand);
     copy_constant(constant, &operand->variant.constant);
