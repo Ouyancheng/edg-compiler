@@ -1,5 +1,18 @@
 Version 3.5
 
+5/14/04  C++-generating back end: Microsoft compilers and global qualifiers
+
+MSVC++ 6.0 cannot parse base class initializers with global namespace
+qualifiers.  The C++-generating back end has been updated to avoid generating
+such constructs when generating code for MSVC++ 6.0 (and earlier).
+For example:
+
+  struct B { B(int) {} };
+  struct C1: virtual private B { C1(): B(3) {}; };
+  struct D: C1 {
+    D(int n): B(n) {}  // "B(n)" usually rendered as "::B(n)", but no longer
+  };                   // so when generating code for MSVC++ 6.0.
+
 5/12/04  Abort on value-initializer for flexible array members
 
 GNU and Microsoft C++ modes accept flexible array members (a C99 feature).

@@ -9820,7 +9820,18 @@ a constructor.
         case cik_direct_base_class:
           /* Initializing a base class. */
           type = ctor_init->variant.base_class->type;
-          gen_type_name(type);
+          { a_boolean  saved_qualification_needed = 
+                                   type->source_corresp.qualification_needed;
+            if (msvc_is_generated_code_target &&
+                msvc_target_version_number <= 1200) {
+              /* MSVC++ 6.0 cannot handle global qualifiers on base class
+                 initializers.  Versions 7.0 and above fixed the problem. */
+              type->source_corresp.qualification_needed = FALSE;
+            }  /* if */
+            gen_type_name(type);
+            type->source_corresp.qualification_needed =
+                                                   saved_qualification_needed;
+          }
           break;
         case cik_field:
           /* Initializing a nonstatic data member. */
