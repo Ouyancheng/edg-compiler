@@ -1172,13 +1172,10 @@ Output the indicated constant.
 {
 #if C_GEN_BE_GENERATES_ANSI_C
   if (il_header.source_language == sl_C &&
-      constant->implicit_cast &&
-      constant->kind == (a_constant_repr_kind)ck_integer &&
       is_pointer_type(constant->type) &&
-      cmplit_integer_constant(constant, 0L) == 0 &&
       type_contains_prototype_scope_type(constant->type)) {
     /* When generating ANSI C, types defined in prototype scopes are kept.
-       Suppress casts of NULL constants to types containing such types,
+       Suppress casts of constants to types containing such types,
        because they can't be written (the types defined in prototype scopes
        cannot be named elsewhere).  The cast must have been implicit
        in the original program.  Types cannot be defined in prototype scopes
@@ -2327,9 +2324,26 @@ static void dump_cast(a_type_ptr type)
 Generate a cast to the indicated type.
 */
 {
-  m_write_tok_ch('(');
-  dump_type(type, /*add_pointer_to=*/FALSE);
-  m_write_tok_ch(')');
+#if C_GEN_BE_GENERATES_ANSI_C
+  if (il_header.source_language == sl_C &&
+      is_pointer_type(type) &&
+      type_contains_prototype_scope_type(type)) {
+    /* When generating ANSI C, types defined in prototype scopes are kept.
+       Suppress casts to types containing such types, because they can't
+       be written (the types defined in prototype scopes cannot be named
+       elsewhere).  The cast must have been implicit in the original program.
+       Types cannot be defined in prototype scopes in C++, so there's no
+       need to check in C++ mode.  When generating K&R C, all function
+       declarators that involve a prototype scope are put out as unprototyped
+       if the prototype scope has not been examined to promote out types
+       defined therein, so a cast to such a type is always writable. */
+  } else
+#endif /* C_GEN_BE_GENERATES_ANSI_C */
+  {
+    m_write_tok_ch('(');
+    dump_type(type, /*add_pointer_to=*/FALSE);
+    m_write_tok_ch(')');
+  }  /* if */
 }  /* dump_cast */
 
 
