@@ -2935,6 +2935,8 @@ are created by a new expression (in which case sym is NULL).  In both cases
   a_name_linkage_kind  name_linkage;
   a_boolean            init_required;
   a_base_class_ptr     bcp;
+  a_boolean            is_empty_class = FALSE;
+  an_error_severity    severity;
 
   db_enter(4, "check_for_missing_initializer");
   if (sym != NULL) {
@@ -2957,11 +2959,12 @@ are created by a new expression (in which case sym is NULL).  In both cases
         is_class_struct_union_type(type) &&
         !symbol_supplement_for_class(type)->any_nonstatic_data_members) {
       /* Uninitialized const object that is an "empty" class (i.e., one with
-         no nonstatic data members).  No error is issued. */
-      /* Note that the ARM can be read as requiring initialization of
-         const objects even when they are empty.  Other C++ compilers don't
+         no nonstatic data members).  The WP probably requires initialization
+         of const objects even when they are empty.  Other C++ compilers don't
          enforce such a restriction, however. */
-    } else if (vp != NULL) {
+      is_empty_class = TRUE;
+    }  /* if */
+    if (vp != NULL) {
       /* Uninitialized const variable.  In C++ this is permitted only for
          externally linked variables.  In ordinary C we issue a warning for
          local variables (both static and automatic) here, but the warning
@@ -2973,7 +2976,17 @@ are created by a new expression (in which case sym is NULL).  In both cases
               decl_scope_level == DEPTH_OF_FILE_SCOPE)) {
            /* In C++ const qualified variables that are internally linked
               must be initialized (ARM 7.1.6). */
-           sym_error(ec_missing_initializer_on_const, sym);
+           if (is_empty_class) {
+             /* Except in -A mode, just issue a warning for an empty class. */
+             if (strict_ansi_mode) {
+               severity = strict_ansi_error_severity;
+             } else {
+               severity = es_warning;
+             }  /* if */
+           } else {
+             severity = es_error;
+           }  /* if */
+           sym_diagnostic(severity, ec_missing_initializer_on_const, sym);
          }  /* if */
        } else {
          /* Ordinary C -- a warning, and only on local variables. */
@@ -2985,8 +2998,14 @@ are created by a new expression (in which case sym is NULL).  In both cases
       /* Uninitialized const new-object.  Issue an discretionary error in
          strict mode, otherwise a warning. (One can infer from the ARM that
          an error is required, but it's not explicit.)  */
-      diagnostic(es_discretionary_error,
-                 ec_missing_initializer_on_unnamed_const);
+      if (is_empty_class &&
+          (!strict_ansi_mode || strict_ansi_error_severity <= es_warning)) {
+        /* Just issue a warning if the class is empty. */
+        severity = es_warning;
+      } else {
+        severity = es_discretionary_error;
+      }  /* if */
+      diagnostic(severity, ec_missing_initializer_on_unnamed_const);
     }  /* if */
   } else {
     if (is_array_type(type)) type = underlying_array_element_type(type);
