@@ -14281,9 +14281,16 @@ see expr.h).
       break;
 #if GNU_EXTENSIONS_ALLOWED
     case tok_null:
-      { a_constant  null_constant;
-        make_zero_of_proper_type(integer_type((an_integer_kind)ik_int),
-                                 &null_constant);
+      { a_constant      null_constant;
+        an_integer_kind ikind;
+        a_targ_size_t   ptr_size;
+        /* Pick an integer that is the same size as a "void *" pointer,
+           if possible. */
+        ptr_size = make_pointer_type(void_type())->size;
+        ikind = int_kind_for_bit_size((unsigned int)(ptr_size * targ_char_bit),
+                                      /*is_signed=*/TRUE);
+        if (ikind == (an_integer_kind)ik_none) ikind = (an_integer_kind)ik_int;
+        make_zero_of_proper_type(integer_type(ikind), &null_constant);
         make_constant_operand(&null_constant, &local_result);
         local_result.variant.constant.null_keyword = TRUE;
       }

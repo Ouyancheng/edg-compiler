@@ -1,5 +1,13 @@
 Version 3.2
 
+5/6/03   GNU C++ compatibility: __null same size as void * pointer
+
+The GNU C++ extension constant __null is now given an integer
+type whose size matches that of a "void *" pointer, rather than
+simply "int".  On Itanium and other 64-bit architectures, this
+makes the constant work better when passed to an ellipsis
+parameter.
+
 5/6/03   IA-64 ABI: pointer-to-data-member not set to -1 in casts
 
 The IA-64 ABI uses -1 for a NULL pointer-to-data-member value.
