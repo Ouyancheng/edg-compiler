@@ -3423,10 +3423,10 @@ error at that position and return NULL.  err_none_applies is the error
 code to use when no function applies, and err_ambiguous is the error
 code to use when more than one function applies.  If there is no
 error, an argument match list is returned in *arg_match_list (the
-caller must free this) and the symbol selected is returned.
-If single_function is non-NULL, and do_arg_dep_lookup is TRUE, and
-the set of functions found by the normal id lookup and the argument-
-dependent lookup contains exactly one function, set *single_function
+caller must free this) and the symbol selected is returned.  If
+single_function is non-NULL and the set of functions to be considered
+(the symbol passed in, if not undefined, plus any symbols added by
+argument-dependent lookup) contains exactly one function, set *single_function
 to TRUE and return the function, without checking whether the function
 matches the argument list provided (this allows the caller to revert
 to the simpler processing used for non-overloaded functions, which can
@@ -3460,6 +3460,17 @@ produce clearer error messages).  This routine is called only in C++ mode.
   }  /* if */
   if (!do_arg_dep_lookup) {
     /* No argument-dependent lookup.  Use only the function symbol provided. */
+    if (single_function != NULL) {
+      /* If the function is a single non-overloaded function, overload
+         resolution is not required. */
+      function_symbol = fundamental_symbol_of(overloaded_function_symbol);
+      if (function_symbol->kind == (a_symbol_kind)sk_routine ||
+          function_symbol->kind == (a_symbol_kind)sk_member_function) {
+        *single_function = TRUE;
+        function_symbol = overloaded_function_symbol;
+        goto have_function;
+      }  /* if */
+    }  /* if */
     /* Evaluate all matches in the function set. */
     try_overloaded_function_match(overloaded_function_symbol,
                                   is_template_id,
@@ -5102,6 +5113,7 @@ a_symbol_ptr select_and_prepare_to_call_overloaded_function(
                            a_source_position        *call_position,
                            a_source_position        *function_position,
                            a_source_position        *id_position,
+                           a_source_position        *closing_paren_position,
                            an_operand               *function_operand,
                            an_expr_node_ptr         *arg_expr_list)
 /*
@@ -5136,7 +5148,9 @@ types), and the symbol selected is returned.  (The symbol returned is
 never a projection symbol.)  function_position is the position of the
 function name or equivalent in the call, usually the same as
 call_position.  id_position is the source position of the function
-name identifier in the call.  This routine is called only in C++ mode.
+name identifier in the call.  closing_paren_position is the position
+of the closing parenthesis in the call; it is used only when
+do_arg_dep_lookup is TRUE.  This routine is called only in C++ mode.
 */
 {
   an_arg_match_summary_ptr arg_match_list;
@@ -5197,6 +5211,7 @@ name identifier in the call.  This routine is called only in C++ mode.
     start_call_argument_processing(routine_symbol_type(function_symbol),
                                    function_symbol->variant.routine.ptr,
                                    &arg_block);
+    arg_block.closing_paren_position = *closing_paren_position;
     for (arg_operand = arg_operand_list;
          arg_operand != NULL;
          arg_operand = arg_operand->next) {

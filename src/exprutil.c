@@ -6111,6 +6111,7 @@ is a "get" if put_operand is NULL.
                                             &locator.source_position,
                                             &locator.source_position,
                                             &locator.source_position,
+                                            (a_source_position *)NULL,
                                             &function_operand,
                                             &argument_list);
         if (getput_sym == NULL) {

@@ -513,6 +513,7 @@ extern a_symbol_ptr select_and_prepare_to_call_overloaded_function(
                                  a_source_position  *call_position,
                                  a_source_position  *function_position,
                                  a_source_position  *id_position,
+                                 a_source_position  *closing_paren_position,
                                  an_operand         *function_operand,
                                  an_expr_node_ptr   *arg_expr_list);
 

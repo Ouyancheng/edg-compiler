@@ -677,7 +677,8 @@ static void scan_call_arguments(a_type_ptr         function_type,
                                 a_boolean          already_after_left_paren,
                                 an_expr_node_ptr   *p_argument_list,
                                 a_boolean          overloaded_function_case,
-                                an_arg_operand_ptr *arg_operand_list)
+                                an_arg_operand_ptr *arg_operand_list,
+                                a_source_position  *closing_paren_position)
 /*
 Scan the arguments of a function call and return a list of argument
 expressions in *p_argument_list.  The type of the function being called is
@@ -692,6 +693,8 @@ function, so build an argument operand list and return a pointer to it in
 *arg_operand_list.  routine points to the routine being called; it's NULL
 if the specific function being called is not known, e.g., when
 overloaded_function_case is TRUE or when calling through a pointer.
+If closing_paren_position is non-NULL, *closing_paren_position is set to
+the source position of the closing parenthesis of the call.
 */
 {
   an_operand         argument_operand;
@@ -753,6 +756,7 @@ overloaded_function_case is TRUE or when calling through a pointer.
   /* End of argument list. */
   set_err_pos_to_curr_token();
   arg_block.closing_paren_position = pos_curr_token;
+  if (closing_paren_position != NULL) *closing_paren_position = pos_curr_token;
   if (!overloaded_function_case) {
     /* Do processing for the end of the argument list. */
     process_end_of_call_arguments(&arg_block);
@@ -893,7 +897,7 @@ is after the closing parenthesis of the argument list.
   scan_call_arguments(routine_type, routine,
                       /*already_after_left_paren=*/TRUE,
                       arg_expr_list, overloaded_function_case,
-                      &arg_operand_list);
+                      &arg_operand_list, (a_source_position *)NULL);
   error_position = start_position;
 
   if (overloaded_function_case) {
@@ -997,7 +1001,7 @@ Syntax:
   a_boolean         overloaded_function_case = FALSE;
   a_boolean         vacuous_destructor_case = FALSE;
   a_source_position call_position, function_position, first_arg_position;
-  a_source_position start_position;
+  a_source_position start_position, closing_paren_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position operator_position, end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -1176,7 +1180,8 @@ Syntax:
   /* Scan the arguments of the call. */
   scan_call_arguments(routine_type, routine,
                       already_after_left_paren, &argument_list,
-                      overloaded_function_case, &arg_operand_list);
+                      overloaded_function_case, &arg_operand_list,
+                      &closing_paren_position);
   error_position = call_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   end_position = curr_construct_end_position;
@@ -1212,6 +1217,7 @@ Syntax:
                                             &call_position,
                                             &function_position,
                                             &id_position,
+                                            &closing_paren_position,
                                             operand,
                                             &argument_list);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -4885,7 +4891,7 @@ specification allow a variable-sized array as the top type.
         scan_call_arguments((a_type_ptr)NULL, (a_routine_ptr)NULL,
                             /*already_after_left_paren=*/TRUE,
                             &dummy, /*overloaded_function_case=*/TRUE,
-                            &arg_operand_list);
+                            &arg_operand_list, (a_source_position *)NULL);
       }  /* if */
     }  /* if */
   }  /* if */
