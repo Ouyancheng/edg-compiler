@@ -1877,12 +1877,16 @@ the output.
   a_boolean     column_needed;
   a_boolean	local_display_error_number;
 
+#if STANDALONE_UTILITY_PROGRAM
+  local_display_error_number = FALSE;
+#else /* !STANDALONE_UTILITY_PROGRAM */
   /* Determine whether the error number should be displayed for this
      diagnostic.  Internal errors don't have error numbers.  If the
      caller passes the value ec_no_error, the error number display is
      suppressed. */
   local_display_error_number = display_error_number && 
                                error_code != ec_no_error;
+#endif /* STANDALONE_UTILITY_PROGRAM */
   capitalize_severity = FALSE;
   *src_text_needed = FALSE;
   *in_curr_src_line = FALSE;
