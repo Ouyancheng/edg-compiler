@@ -1831,10 +1831,7 @@ evaluated (but not checked to see if the match is good enough).
       arg_type = arg_operand->operand.type;
       type_qualifiers_added = FALSE;
       if (is_reference_type(param_type)) {
-        /* For a reference type, the argument must be an lvalue or a function
-           designator. */
-        /* Also allow error operands. */
-        if (is_an_rvalue(&arg_operand->operand)) goto done;
+        /* The parameter has a reference type. */
         /* Drop the reference type. */
         param_type = type_pointed_to(param_type);
         /* Check and adjust the top-level type qualifiers. */
