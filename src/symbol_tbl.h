@@ -1850,11 +1850,9 @@ extern an_access_specifier compute_access(an_access_specifier access,
                                           an_access_specifier class_access);
 
 extern an_access_specifier access_to_end_of_path
-                                         (an_access_specifier    sym_access,
-                                          a_derivation_step_ptr  path);
-
-#define normal_access_to_end_of_path(path)                                \
-  access_to_end_of_path((an_access_specifier)as_public, (path))
+                                      (an_access_specifier    sym_access,
+                                       a_derivation_step_ptr  path,
+                                       a_boolean              virt_derivation);
 
 extern an_access_specifier access_for_symbol(a_symbol_ptr sym_ptr);
 

@@ -3496,7 +3496,7 @@ accessiblility.
 }  /* compute_access */
 
 
-an_access_specifier r_access_to_end_of_path(
+an_access_specifier access_to_end_of_path(
                                         an_access_specifier    sym_access,
                                         a_derivation_step_ptr  path,
                                         a_boolean              virt_derivation)
@@ -3504,8 +3504,7 @@ an_access_specifier r_access_to_end_of_path(
 Compute the accessibility (public, protected, private, inaccessible) to an
 entity with access sym_access from the end of the derivation path pointed
 to by "path".  If virt_derivation is TRUE, this path comes from the
-derivation of a virtual base class.  This routine should not be called
-directly -- it exists to handle the recursion for access_to_end_of_path.
+derivation of a virtual base class.
 */
 {
   a_base_class_ptr bcp;
@@ -3513,7 +3512,10 @@ directly -- it exists to handle the recursion for access_to_end_of_path.
   if (path != NULL) {
     /* Use a recursive call to compute the access over all the steps
        after the first one. */
-    sym_access = access_to_end_of_path(sym_access, path->next);
+    if (path->next != NULL) {
+      sym_access = access_to_end_of_path(sym_access, path->next,
+                                         virt_derivation);
+    }  /* if */
     /* Now modify the access to account for the first step. */
     /* Virtual base classes get special handling, but not when they appear as
        the last step of their own derivations. */
@@ -3525,8 +3527,8 @@ directly -- it exists to handle the recursion for access_to_end_of_path.
          best access). */
       check_assertion(bcp->paths_to_virtual_base_class->preferred);
       path = bcp->paths_to_virtual_base_class->derivation;
-      sym_access = r_access_to_end_of_path(sym_access, path,
-                                           /*virt_derivation=*/TRUE);
+      sym_access = access_to_end_of_path(sym_access, path,
+                                         /*virt_derivation=*/TRUE);
     } else {
       /* The first step is a nonvirtual step, or it's a virtual step at
          the end of the derivation for a virtual base class.  Add the
@@ -3534,20 +3536,6 @@ directly -- it exists to handle the recursion for access_to_end_of_path.
       sym_access = compute_access(sym_access, bcp->access);
     }  /* if */
   }  /* if */
-  return sym_access;
-}  /* r_access_to_end_of_path */
-
-
-an_access_specifier access_to_end_of_path(an_access_specifier    sym_access,
-                                          a_derivation_step_ptr  path)
-/*
-Compute the accessibility (public, protected, private, inaccessible) to an
-entity with access sym_access from the end of the derivation path pointed
-to by "path".
-*/
-{
-  sym_access = r_access_to_end_of_path(sym_access, path,
-                                       /*virt_derivation=*/FALSE);
   return sym_access;
 }  /* access_to_end_of_path */
   
@@ -3683,7 +3671,7 @@ of protected derivations.
     /* Yes.  See if the derivation steps are such that a protected member
        of the base class can be accessed in the derived class. */
     if (access_to_end_of_path((an_access_specifier)as_protected,
-                              bcp->derivation) !=
+                              bcp->derivation, /*virt_derivation=*/FALSE) !=
                                         (an_access_specifier)as_inaccessible) {
       accessible = TRUE;
     }  /* if */
@@ -3919,7 +3907,8 @@ have_proj_sym:
       /* The access must be determined by looking at the derivation steps.
          This is probably a little faster than looking for the projection
          symbol. */
-      access = access_to_end_of_path(access_for_symbol(fund_sym), derivation);
+      access = access_to_end_of_path(access_for_symbol(fund_sym), derivation,
+                                     /*virt_derivation=*/FALSE);
     }  /* if */
   }  /* if */
   /* We now have the effective access to the member in the viewpoint class.
@@ -4322,7 +4311,8 @@ Given a pointer to a base class (the "current class") and a locator, determine
 whether the name specified in the locator is either defined in the class or
 has a progenitor in a class from which the current class is derived.  If either
 is found, update *path (the derivation path, starting from the current base
-class) and the access specification *access.
+class) and the access specification *access.  base_class is a direct base
+class of its derived class.
 */
 {
   a_symbol_ptr     sym, tag_sym;
