@@ -35,6 +35,7 @@ lower_il.c -- Lower C++ intermediate language to C intermediate language.
 #include "class_decl.h"
 #include "layout.h"
 #include "mem_manage.h"
+#include "symbol_tbl.h"
 
 
 /*
@@ -367,7 +368,24 @@ the IL object currently being considered.
 typedef struct a_context *a_context_ptr;
 typedef struct a_context {
   a_context_ptr parent;	/* Parent context. */
-  a_scope_ptr	scope;	/* Context scope. */
+  a_scope_ptr	scope;	/* Context scope.  NULL if this context is associated
+			   with a block without a scope. */
+  a_statement_ptr
+		block;	/* Context block.  If non-NULL, this context is
+			   associated with a stmk_block statement; scope
+			   (above) can be NULL in that case.  This is only
+			   non-NULL on the pass that lowers the statements,
+			   not the pass through the block scopes that lowers
+			   the declarations. */
+  a_scope_ptr	first_subscope,
+		last_subscope;
+			/* The list of subscopes of the current context.
+			   These may be non-NULL even if scope is NULL.
+			   The subscopes list has to be recreated as
+			   contexts are processed because scopes may
+			   be added during lowering (e.g., for temporaries).
+			   Maintained only for function and block scopes,
+			   and only on the pass that lowers statements. */
   a_required_destructor_call_ptr
 		required_destructor_calls;
 			/* Destructor calls required on exit from the scope. */
@@ -388,9 +406,12 @@ typedef struct a_context {
 } a_context;
 a_context_ptr	curr_context;
 			/* Current (bottom) end of the context chain. */
-a_scope_ptr	nearest_scope,
-		nearest_function_scope;
-			/* Nearest scope and function scope, as pushed by
+a_context_ptr	nearest_function_context;
+			/* Nearest function context in the context chain. */
+a_context_ptr	file_scope_context;
+			/* The context for the file scope. */
+a_scope_ptr	nearest_function_scope;
+			/* Nearest function scope, as pushed by
 			   push_context. */
 a_variable_ptr	nearest_this_param_variable;
 			/* The this_param_variable from
@@ -448,9 +469,10 @@ static void lower_call(an_expr_node_ptr      expr,
 static void add_constructor_wrapper_code(a_scope_ptr        scope,
                                          an_insert_location *insert_location);
 static void gen_required_destructor_calls(
-                                        a_scope_ptr            outer_scope,
+                                        a_context_ptr          outer_context,
                                         an_insert_location_ptr insert_location,
                                         a_boolean              make_block);
+static a_boolean any_required_destructor_calls(a_context_ptr outer_context);
 static void repr_for_ptr_to_data_member_constant(a_constant_ptr   constant, 
                                                  a_targ_ptrdiff_t *delta);
 static void repr_for_ptr_to_member_function_constant(a_constant_ptr   constant,
@@ -730,9 +752,7 @@ available list.
 {
   a_required_destructor_call_ptr rdcp_next;
 
-  for (rdcp = curr_context->required_destructor_calls;
-       rdcp != NULL;
-       rdcp = rdcp_next) {
+  for (; rdcp != NULL; rdcp = rdcp_next) {
     /* Free the list of init_pos_modifier entries pointed to. */
     free_init_pos_modifier_list(rdcp->init_pos_descr.modifiers);
     rdcp_next = rdcp->next;
@@ -742,25 +762,72 @@ available list.
 }  /* free_required_destructor_call_list */
 
 
-static void push_context(a_context      *context,
-                         a_scope_ptr    scope)
+static void add_subscope_list_to_context(a_scope_ptr   first_scope,
+                                         a_scope_ptr   last_scope,
+                                         a_context_ptr context)
 /*
-Add the context entry "context" to the context stack.  The associated scope
-is "scope".
+Add the list of scopes delimited by first_scope/last_scope to the subscope
+list associated with the indicated context.  The list to be added must be
+non-empty.
 */
 {
-  context->parent = curr_context;
+  check_assertion(context != NULL);
+  if (context->first_subscope == NULL) {
+    /* The context subscope list is empty, so add the subscopes as the entire
+       list. */
+    context->first_subscope = first_scope;
+  } else {
+    /* There are entries on the subscope list, so add the subscopes at the
+       end of the list. */
+    context->last_subscope->next = first_scope;
+  }  /* if */
+  /* In all cases, remember the last scope of this list as the last 
+     scope on the context list. */
+  context->last_subscope = last_scope;
+  last_scope->next = NULL;
+}  /* add_subscope_list_to_context */
+
+
+static void push_context(a_context       *context,
+                         a_scope_ptr     scope,
+                         a_statement_ptr block)
+/*
+Add the context entry "context" to the context stack.  The associated scope
+is "scope", and the associated block is "block".  One or the other can be
+NULL, but not both.  "block" is non-NULL only when processing a function
+or block scope, and only on the pass that lowers the statements.
+*/
+{
+  a_context_ptr parent_context = curr_context;
+
+  curr_context = context;
+  /* Remember the file scope context if this is the first push_context. */
+  if (parent_context == NULL) file_scope_context = context;
+  /* Set the fields. */
+  context->parent = parent_context;
   context->scope = scope;
+  context->block = block;
+  context->first_subscope = NULL;
+  context->last_subscope = NULL;
   context->required_destructor_calls = NULL;
   context->assoc_switch_clause = NULL;
   context->latest_dynamic_init_processed = NULL;
   context->dynamic_init_preceding_switch_clause = NULL;
-  curr_context = context;
-  nearest_scope = scope;
-  /* Keep track of the innermost function scope. */
-  if (scope->kind == (a_scope_kind)sck_function) {
-    nearest_function_scope = scope;
-    nearest_this_param_variable = scope->variant.routine.this_param_variable;
+  if (scope != NULL) {
+    if (scope->kind == (a_scope_kind)sck_block) {
+      /* For a block scope, add it to the list of subscopes of the parent
+         context.  This is part of rebuilding the subscope list, which is
+         necessary in case any scopes are created during lowering (e.g., for
+         temporaries). */
+      add_subscope_list_to_context(scope, scope, parent_context);
+    } else if (scope->kind == (a_scope_kind)sck_function) {
+      /* Keep track of the innermost function context/scope. */
+      nearest_function_context = curr_context;
+      nearest_function_scope = scope;
+      nearest_this_param_variable = scope->variant.routine.this_param_variable;
+    }  /* if */
+    /* If the subscopes list is going to be rebuilt, clear it here. */
+    if (block != NULL) scope->scopes = NULL;
   }  /* if */
 }  /* push_context */
 
@@ -770,16 +837,40 @@ static void pop_context(void)
 Pop an entry off the context stack.
 */
 {
-  a_context_ptr cp;
+  a_context_ptr cp, parent_context;
 
+  parent_context = curr_context->parent;
+  if (curr_context->block != NULL) {
+    /* This is a function or block scope. */
+    /* Re-establish the subscopes list. */
+    if (curr_context->scope != NULL) {
+      /* The current context has an associated scope, so record the subscope
+         lists under the scope.  This is usually the same list that was there
+         originally, but there might be subscopes added during lowering, or
+         the scope itself might have been created during lowering. */
+      curr_context->scope->scopes = curr_context->first_subscope;
+    } else {
+      /* The current context needs no associated scope.  Promote the
+         list of subscopes up to the parent context, and deal with it again
+         at the pop_context for that level. */
+      if (curr_context->first_subscope != NULL) {
+        add_subscope_list_to_context(curr_context->first_subscope,
+                                     curr_context->last_subscope,
+                                     parent_context);
+      }  /* if */
+    }  /* if */
+  }  /* if */
   /* Free any required destructor call entries. */
   free_required_destructor_call_list(curr_context->required_destructor_calls);
-  /* Keep track of the innermost function scope. */
-  if (nearest_scope == nearest_function_scope) {
+  /* Keep track of the innermost function context/scope. */
+  if (curr_context == nearest_function_context) {
+    nearest_function_context = NULL;
     nearest_function_scope = NULL;
     nearest_this_param_variable = NULL;
-    for (cp = curr_context->parent; cp != NULL; cp = cp->parent) {
-      if (cp->scope->kind == (a_scope_kind)sck_function) {
+    for (cp = parent_context; cp != NULL; cp = cp->parent) {
+      if (cp->scope != NULL &&
+          cp->scope->kind == (a_scope_kind)sck_function) {
+        nearest_function_context = cp;
         nearest_function_scope = cp->scope;
         nearest_this_param_variable = nearest_function_scope->
                                            variant.routine.this_param_variable;
@@ -787,8 +878,8 @@ Pop an entry off the context stack.
       }  /* if */
     }  /* for */
   }  /* if */
-  curr_context = curr_context->parent;
-  nearest_scope = (curr_context != NULL) ? curr_context->scope : NULL;
+  /* Pop to the surrounding context. */
+  curr_context = parent_context;
 }  /* pop_context */
 
 
@@ -1430,13 +1521,41 @@ have_ssep:
 }  /* make_temporary_in_scope */
 
 
+static a_scope_ptr nearest_scope(void)
+/*
+Return a pointer to the scope entry for the scope of the nearest context.
+The nearest context must be the file scope or a function or block scope.
+The scope will be created if necessary (i.e., for a block).
+*/
+{
+  a_scope_ptr   scope;
+  a_context_ptr parent_context = curr_context->parent;
+
+  scope = curr_context->scope;
+  if (scope == NULL) {
+    /* Create the scope.  This happens when a temporary is needed inside
+       a block statement in which the front end never had a need to
+       create a variable or temporary.  Now we need a temporary, and we
+       have to put it in the proper scope (so it gets destroyed at the
+       right time), so we need to create a scope. */
+    check_assertion(curr_context->block != NULL);
+    scope = alloc_scope((a_scope_kind)sck_block, next_scope_number++,
+                        (a_routine_ptr)NULL);
+    curr_context->scope = scope;
+    curr_context->block->variant.block.extra_info->assoc_scope = scope;
+    /* Add the scope at the right point in the parent context scopes list. */
+    add_subscope_list_to_context(scope, scope, parent_context);
+  }  /* if */
+  return scope;
+}  /* nearest_scope */
+
 /*
 Interface to make_temporary_in_scope for the common case where the
 nearest scope should be used.  Allocates a temporary variable of the
 indicated type and returns a pointer to the variable.
 */
 #define make_temporary(temp_type)                                     \
-  make_temporary_in_scope((temp_type), nearest_scope)
+  make_temporary_in_scope((temp_type), nearest_scope())
 
 
 static a_variable_ptr make_temporary_possibly_at_file_scope(
@@ -7435,6 +7554,9 @@ later will be made conditional on the temporary.
        most cases, the right place is the beginning of the current block.
        For switch clauses, it's the beginning of the clause. */
     scope = curr_context->scope;
+    /* Since we called make_temporary above, the scope should have been created
+       if it didn't exist already. */
+    check_assertion(scope != NULL);
     scp = curr_context->assoc_switch_clause;
     if (scp == NULL) {
       /* Normal case. */
@@ -7733,9 +7855,7 @@ do_assignment:;
       /* For processing of file-scope dynamic inits, put the entry on the
          file-scope list. */
       if (processing_file_scope_init_routine) {
-        while (destructor_context->parent != NULL) {
-          destructor_context = destructor_context->parent;
-        }  /* if */
+        destructor_context = file_scope_context;
       }  /* if */
       /* Put the new entry on the front of the existing list. */
       rdcp->next = destructor_context->required_destructor_calls;
@@ -10179,11 +10299,11 @@ have shorter lifetimes than normal variables.)
 
 
 static void lower_switch_clause_list(a_switch_clause_ptr clause_list,
-                                     a_scope_ptr         switch_scope)
+                                     a_context_ptr       switch_context)
 /*
 Do IL lowering of the indicated switch clause list and everything under it.
-If the switch statement has an associated scope, switch_scope points to
-it; otherwise switch_scope is NULL.
+If the switch statement has an associated context, switch_context points to
+it; otherwise switch_context is NULL.
 */
 {
   a_switch_clause_ptr clause;
@@ -10222,9 +10342,10 @@ it; otherwise switch_scope is NULL.
     }  /* if */
     if (break_reachable) {
       /* There is an implicit "break" at the end of the clause. */
-      if (switch_scope != NULL) {
-        /* The switch statement has a scope.  Generate any destructor calls
-           required at the end of the scope.  Note that the implicit "break"
+      if (switch_context != NULL &&
+          any_required_destructor_calls(switch_context)) {
+        /* The switch statement has a context.  Generate any destructor calls
+           required at the end of the context.  Note that the implicit "break"
            is only used at the top level within a switch; "break" statements
            from deeper (e.g., inside nested blocks) will be rendered as
            gotos. */
@@ -10238,7 +10359,7 @@ it; otherwise switch_scope is NULL.
           /* Insert after the last statement. */
           set_insert_location(last_statement, &insert_location);
         }  /* if */
-        gen_required_destructor_calls(switch_scope, &insert_location,
+        gen_required_destructor_calls(switch_context, &insert_location,
                                       /*make_block=*/FALSE);
       }  /* if */
     }  /* if */
@@ -10247,6 +10368,7 @@ it; otherwise switch_scope is NULL.
        have already been generated). */
     remove_temp_required_destructor_calls();
   }  /* for */
+  curr_context->assoc_switch_clause = NULL;
 }  /* lower_switch_clause_list */
 
 
@@ -10522,12 +10644,12 @@ Generate code for a stmk_init (dynamic initialization) statement.
 
 
 static void gen_required_destructor_calls(
-                                        a_scope_ptr            outer_scope,
+                                        a_context_ptr          outer_context,
                                         an_insert_location_ptr insert_location,
                                         a_boolean              make_block)
 /*
-Generate any destructor calls required to exit from the scopes indicated
-by curr_context->scope through outer_scope, inclusive.  Insert the code for
+Generate any destructor calls required to exit from the contexts indicated
+by curr_context through outer_context, inclusive.  Insert the code for
 the destructor calls at *insert_location.  If make_block is TRUE,
 rewrite the statement at the insert location as a block statement with the
 original statement as a dependent statement and insert the destructor calls
@@ -10539,7 +10661,7 @@ a branch of some kind (goto or return).
   a_context_ptr                  context_ptr;
   a_required_destructor_call_ptr rdcp;
 
-  /* Loop outward through the indicated scopes. */
+  /* Loop outward through the indicated contexts. */
   for (context_ptr = curr_context;; context_ptr = context_ptr->parent) {
     rdcp = context_ptr->required_destructor_calls;
     if (rdcp != NULL) {
@@ -10562,16 +10684,16 @@ a branch of some kind (goto or return).
         gen_one_required_destructor_call(rdcp, insert_location);
       }  /* for */
     }  /* if */
-    /* Stop when the outer scope is reached. */
-    if (context_ptr->scope == outer_scope) break;
+    /* Stop when the outer context is reached. */
+    if (context_ptr == outer_context) break;
   }  /* for */
 }  /* gen_required_destructor_calls */
 
 
-static a_boolean any_required_destructor_calls(a_scope_ptr outer_scope)
+static a_boolean any_required_destructor_calls(a_context_ptr outer_context)
 /*
-Return TRUE if any destructor calls are required to exit from the scopes
-indicated by curr_context->scope through outer_scope, inclusive.
+Return TRUE if any destructor calls are required to exit from the contexts
+indicated by curr_context through outer_context, inclusive.
 */
 {
   a_boolean     any_required = FALSE;
@@ -10584,8 +10706,8 @@ indicated by curr_context->scope through outer_scope, inclusive.
       any_required = TRUE;
       break;
     }  /* if */
-    /* Stop when the outer scope is reached. */
-    if (context_ptr->scope == outer_scope) break;
+    /* Stop when the outer context is reached. */
+    if (context_ptr == outer_context) break;
   }  /* for */
   return any_required;
 }  /* any_required_destructor_calls */
@@ -10611,36 +10733,37 @@ and their parents headed by block_list.
 }  /* block_is_on_parent_list */
 
 
-static void lower_end_of_block_scope(a_scope_ptr     scope,
-                                     a_statement_ptr statement,
-                                     a_statement_ptr last_statement)
+static void pop_block_context(a_statement_ptr last_statement)
 /*
-If scope is non-NULL, it points to an IL scope associated with the block
-statement "statement".  Generate any required destructor calls at
-the end of the block and pop the scope context.  last_statement points
-to the last statement within the block, or is NULL if there are no
-statements in the block.  If scope is NULL, do nothing.
+Pop the current context, which is a context for a block statement.
+Generate any destructor calls required at the end of the block and
+pop the scope context.  last_statement points to the last statement
+within the block, or is NULL if there are no statements in the block.
 */
 {
+  a_statement_ptr    block_statement;
+  a_scope_ptr        scope;
   an_insert_location insert_location;
 
+  block_statement = curr_context->block;
+  scope = block_statement->variant.block.extra_info->assoc_scope;
   if (scope != NULL) {
     /* Insert any required destructor calls after the last statement
        in the block if the end of the block is reachable. */
-    if (statement->variant.block.extra_info->end_of_block_reachable) {
+    if (block_statement->variant.block.extra_info->end_of_block_reachable) {
       if (last_statement == NULL) {
         /* The block is empty, so insert at its beginning. */
-        set_block_start_insert_location(statement, &insert_location);
+        set_block_start_insert_location(block_statement, &insert_location);
       } else {
         /* Insert after the last statement. */
         set_insert_location(last_statement, &insert_location);
       }  /* if */
-      gen_required_destructor_calls(nearest_scope, &insert_location,
+      gen_required_destructor_calls(curr_context, &insert_location,
                                     /*make_block=*/FALSE);
     }  /* if */
-    pop_context();
   }  /* if */
-}  /* lower_end_of_block_scope */
+  pop_context();
+}  /* pop_block_context */
 
 
 static void lower_statement(a_statement_ptr statement)
@@ -10650,9 +10773,12 @@ Do IL lowering of the indicated statement and everything under it.
 {
   a_routine_ptr      curr_routine;
   a_context          context;
-  a_scope_ptr        scope, outermost_scope_being_exited;
+  a_context_ptr      goto_context, outermost_context_being_exited;
+  a_context_ptr      switch_context;
+  a_scope_ptr        scope;
   an_insert_location insert_location;
   a_statement_ptr    last_statement, goto_block, label_block, body_statement;
+  a_statement_ptr    block_statement;
   a_boolean          make_block;
   an_expr_node_ptr   return_expr;
   a_variable_ptr     temp_var;
@@ -10672,30 +10798,31 @@ Do IL lowering of the indicated statement and everything under it.
       case stmk_goto:
         /* Generate any destructor calls required on exit from any blocks
            that the goto is inside of but the label is not. */
-        goto_block = nearest_scope->assoc_block;
+        goto_context = curr_context;
         label_block = statement->variant.label->parent_block;
 #if CHECKING
         if (label_block == NULL) {
           internal_error("lower_statement: goto label has NULL parent_block");
         }  /* if */
 #endif /* CHECKING */
-        outermost_scope_being_exited = NULL;
-        for (; !block_is_on_parent_list(goto_block, label_block);
-             goto_block = goto_block->variant.block.extra_info->parent_block) {
-          /* Here, goto_block is a block that the goto is inside of that
-             does not appear on the label block list; therefore, we are
-             leaving the block.  Remember the block only if it contains
-             declarations. */
-          if (goto_block->variant.block.extra_info->assoc_scope != NULL) {
-            outermost_scope_being_exited =
-                             goto_block->variant.block.extra_info->assoc_scope;
-          }  /* if */
+        outermost_context_being_exited = NULL;
+        for (;; goto_context = goto_context->parent) {
+          goto_block = goto_context->block;
+          check_assertion(goto_block != NULL);
+          /* End the loop when we find a block that both the goto and the
+             label are inside of.  At the worst, the block for the function
+             is such a block, so the loop would end on that block. */
+          if (block_is_on_parent_list(goto_block, label_block)) break;
+          /* Here, goto_context is a context that the goto is inside of whose
+             block does not appear on the label block list; therefore, we are
+             leaving the block.  */
+          outermost_context_being_exited = goto_context;
         }  /* for */
-        if (outermost_scope_being_exited != NULL) {
-          /* Some scopes are being exited.  Generate any destructor calls
-             for those scopes. */
+        if (outermost_context_being_exited != NULL) {
+          /* Some contexts are being exited.  Generate any destructor calls
+             for those contexts. */
           set_insert_location(statement, &insert_location);
-          gen_required_destructor_calls(outermost_scope_being_exited,
+          gen_required_destructor_calls(outermost_context_being_exited,
                                         &insert_location, /*make_block=*/TRUE);
         }  /* if */
         break;
@@ -10739,7 +10866,7 @@ Do IL lowering of the indicated statement and everything under it.
             check_assertion(!keep_dynamic_init);
           }  /* if */
         }  /* if */
-        if (any_required_destructor_calls(nearest_function_scope)) {
+        if (any_required_destructor_calls(nearest_function_context)) {
           /* Generate any destructor calls required on exit from the
              routine.  If the return has an expression, it must be evaluated
              before the destructor calls are done, so change
@@ -10769,7 +10896,7 @@ Do IL lowering of the indicated statement and everything under it.
                                    lowered_assignment_operator(temp_var->type),
                                    return_expr, &insert_location);
           }  /* if */
-          gen_required_destructor_calls(nearest_function_scope,
+          gen_required_destructor_calls(nearest_function_context,
                                         &insert_location, make_block);
         }  /* if */
         break;
@@ -10782,33 +10909,35 @@ Do IL lowering of the indicated statement and everything under it.
         lower_statement(statement->variant.loop_statement);
         break;
       case stmk_block:
-        /* If the block has an associated scope, push/pop the context around
-           the processing of the block. */
+        /* Push the block context around the processing of the block. */
         scope = statement->variant.block.extra_info->assoc_scope;
-        if (scope != NULL) push_context(&context, scope);
+        push_context(&context, scope, statement);
         lower_statement_list(statement->variant.block.statements,
                              &last_statement);
         /* Generate any required destructor calls and pop the context. */
-        lower_end_of_block_scope(scope, statement, last_statement);
+        pop_block_context(last_statement);
         break;
       case stmk_switch:
-        /* If there is a body statement and it has a scope, push the scope
-           context around the processing of the switch clauses. */
+        /* If there is a body statement that is a block statement, push
+           it as context around the processing of the switch clauses. */
         scope = NULL;
+        block_statement = NULL;
+        switch_context = NULL;
         body_statement = statement->variant.switch_stmt.body_statement;
         if (body_statement != NULL &&
             body_statement->kind == (a_statement_kind)stmk_block) {
-          scope = body_statement->variant.block.extra_info->assoc_scope;
-          if (scope != NULL) push_context(&context, scope);
-          body_statement = body_statement->variant.block.statements;
+          block_statement = body_statement;
+          scope = block_statement->variant.block.extra_info->assoc_scope;
+          push_context(&context, scope, block_statement);
+          body_statement = block_statement->variant.block.statements;
         }  /* if */
         lower_statement_list(body_statement, &last_statement);
         lower_switch_clause_list(statement->variant.switch_stmt.clause_list,
-                                 scope);
-        /* Generate any required destructor calls and pop the context. */
-        lower_end_of_block_scope(scope,
-                                 statement->variant.switch_stmt.body_statement,
-                                 last_statement);
+                                 switch_context);
+        if (block_statement != NULL) {
+          /* Generate any required destructor calls and pop the context. */
+          pop_block_context(last_statement);
+        }  /* if */
         break;
       case stmk_init:
         lower_stmk_init(statement);
@@ -10830,14 +10959,16 @@ Do lowering on the file-scope dynamic initializations list.
   a_dynamic_init_ptr dip;
   an_insert_location insert_location;
   a_boolean          keep_dynamic_init;
-  a_scope_ptr        file_scope = il_header.primary_scope;
+  a_scope_ptr        file_scope = il_header.primary_scope, scope;
   an_init_pos_descr  ipd;
   a_context          context;
 
   dip = file_scope->dynamic_inits;
   if (dip != NULL) {
-    /* There are some file-scope dynamic initializations. */
-    push_context(&context, file_scope_init_insert_location(&insert_location));
+    /* There are some file-scope dynamic initializations.  Generate a routine
+       containing them. */
+    scope = file_scope_init_insert_location(&insert_location);
+    push_context(&context, scope, scope->assoc_block);
     switch_il_region(file_scope_init_routine_il_region);
     processing_file_scope_init_routine = TRUE;
     for (; dip != NULL; dip = dip->next) {
@@ -10871,10 +11002,12 @@ Do lowering on the file-scope dynamic initializations list.
   }  /* if */
   /* Generate any destructor calls associated with the file scope. */
   if (curr_context->required_destructor_calls != NULL) {
-    /* There are some file-scope required destructor calls. */
-    push_context(&context, file_scope_term_insert_location(&insert_location));
+    /* There are some file-scope required destructor calls.  Generate a
+       routine containing them. */
+    scope = file_scope_term_insert_location(&insert_location);
+    push_context(&context, scope, scope->assoc_block);
     switch_il_region(file_scope_term_routine_il_region);
-    gen_required_destructor_calls(file_scope, &insert_location,
+    gen_required_destructor_calls(file_scope_context, &insert_location,
                                   /*make_block=*/FALSE);
     pop_context();
     done_with_memory_region(file_scope_term_routine_il_region);
@@ -11972,8 +12105,12 @@ Do IL lowering of the indicated scope and everything under it.
                    rtsp;
 
   db_enter(2, "lower_scope");
-  /* Add a context entry for the scope. */
-  push_context(&context, scope);
+  /* Add a context entry for the scope.  Note that we pass the block statement
+     as NULL for block scopes, because we are not lowering statements from
+     here. */
+  push_context(&context, scope,
+               (scope->kind == (a_scope_kind)sck_function) ?
+                                                    scope->assoc_block : NULL);
   if (scope->kind == (a_scope_kind)sck_function) {
     /* The scope is for a function.  Rewrite the parameters if necessary. */
     routine = scope->variant.routine.ptr;
@@ -12183,6 +12320,7 @@ C++ to C, so that a C back end can handle it without change.
 */
 {
   a_scope_ptr scope;
+  a_context   context;
 
   db_enter(1, "lower_il_memory_region");
   /* The lowering is only needed if the source language is C++, if the
@@ -12194,8 +12332,8 @@ C++ to C, so that a C back end can handle it without change.
                        (unsigned long)region_number);
     }  /* if */
 #endif /* DEBUG */
-    curr_context = NULL;
-    nearest_scope = nearest_function_scope = NULL;
+    curr_context = nearest_function_context = NULL;
+    nearest_function_scope = NULL;
     switch_il_region(region_number);
     /* Mark entries created during this traversal as having already been
        visited by IL lowering. */
@@ -12208,6 +12346,8 @@ C++ to C, so that a C back end can handle it without change.
       /* A function scope. */
       lowering_file_scope = FALSE;
       scope = il_header.region_scope_entry[region_number];
+      /* Put the file-scope context on the context stack. */
+      push_context(&context, il_header.primary_scope, (a_statement_ptr)NULL);
     }  /* if */
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
     if (!lowering_file_scope) {
@@ -12234,6 +12374,10 @@ C++ to C, so that a C back end can handle it without change.
          are not linked into the file scope memory region IL tree, so they have
          to be found through a separate list. */
       lower_orphaned_entries();
+    } else {
+      /* Pop the file-scope context that was put around the function scope
+         context. */
+      pop_context();
     }  /* if */
     initial_value_for_il_lowering_flag = !initial_value_for_il_lowering_flag;
   }  /* if */
