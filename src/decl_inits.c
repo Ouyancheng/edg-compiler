@@ -240,9 +240,10 @@ for unions and aggregates at that level).
            so we don't have to check for them here. */
       } else {
 #if CHECKING
-        if (kind != (a_type_kind)tk_struct &&
+        if (kind != (a_type_kind)tk_class &&
+            kind != (a_type_kind)tk_struct &&
             kind != (a_type_kind)tk_union) {
-          internal_error("get_initializer: not array, struct, or union");
+          internal_error("get_initializer: not array or class/struct/union");
         }  /* if */
 #endif /* CHECKING */
         curr_field = local_type->variant.class_struct_union.field_list;
@@ -255,7 +256,8 @@ for unions and aggregates at that level).
         /* Determine the type of the member being initialized. */
         if (kind == (a_type_kind)tk_array || kind == (a_type_kind)tk_error) {
           /* member_type was set outside the loop. */
-        } else if (kind == (a_type_kind)tk_struct ||
+        } else if (kind == (a_type_kind)tk_class ||
+                   kind == (a_type_kind)tk_struct ||
                    kind == (a_type_kind)tk_union) {
           /* Get the type of the current field. */
           member_type = curr_field->type;
@@ -299,8 +301,9 @@ for unions and aggregates at that level).
                 local_type->variant.array.number_of_elements <=
                 curr_array_element) no_more_members = TRUE;
             }  /* if */
-        } else if (kind == (a_type_kind)tk_struct) {
-          /* Advance to the next field of the struct. */
+        } else if (kind == (a_type_kind)tk_class ||
+                   kind == (a_type_kind)tk_struct) {
+          /* Advance to the next field of the class or struct. */
           curr_field = curr_field->next;
           /* Exit the loop if there are no fields remaining. */
           if (curr_field == NULL) {
