@@ -1,5 +1,20 @@
 Version 3.2
 
+2/19/03  Internal error when lowering base classes with classic EDG layout
+
+Under relatively rare circumstances, an internal error was triggered while
+lowering a class with a virtual base class, but without virtual functions.
+This problem only occurs in configurations with the classic (Cfront-like)
+EDG layout algorithm.  For example:
+
+  struct C1 {};
+  struct C2 { C1 d1; };
+  struct C3 {};
+  struct C4 : C2, virtual C3 {};
+  struct C5 : virtual C3, C1, C4 {};  // Abort while lowering this class
+
+This is now fixed.
+
 2/19/03  Internal error when using precompiled headers with export
 
 An internal error (in init_date_and_time_macros) could occur when using

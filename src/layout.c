@@ -2830,7 +2830,8 @@ function to confirm the "is_optimized_empty_base" bit.
         a_base_class_ptr  bcp = base_classes_of(type);
 
         for (; bcp != NULL; bcp = bcp->next) {
-          if (bcp->is_virtual && bcp->pointer_offset == last->offset) {
+          if (bcp->is_virtual && (bcp->pointer_offset == last->offset ||
+                                  bcp->offset == last->offset)) {
             last->is_optimized_empty_base = TRUE;
             break;
           }  /* if */
