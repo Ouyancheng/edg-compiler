@@ -42,11 +42,11 @@ il.c -- Construction of intermediate language trees.
 Pointers to shared types.  These are cleared by il_init.
 */
 static a_type_ptr int_types[(int)ik_last];
+static a_type_ptr signed_int_types[(int)ik_last];
 static a_type_ptr float_types[(int)fk_last];
 #define MAX_TRACKED_STRING_TYPE_LENGTH 80
 static a_type_ptr string_types[MAX_TRACKED_STRING_TYPE_LENGTH+1];
 static a_type_ptr wide_string_types[MAX_TRACKED_STRING_TYPE_LENGTH+1];
-static a_type_ptr il_signed_int_type;
 static a_type_ptr il_error_type;
 static a_type_ptr il_unknown_type;
 static a_type_ptr il_void_type;
@@ -3312,29 +3312,34 @@ return a pointer to it.
 }  /* integer_type */
 
 
-a_type_ptr signed_int_type(void)
+a_type_ptr signed_integer_type(an_integer_kind kind)
 /*
-Make or find a type entry for an explicitly signed "int" type.  Keeping
-track of the difference between a plain "int" and a "signed int" is
-necessary because the two may be different for bit fields.  Return a
-pointer to the type entry.
+Make or find a type entry for an explicitly signed integer type of the
+indicated kind, and return a pointer to it.  Such tagged types are equivalent
+to the untagged version in all contexts except as base types for bit fields;
+there, the explicit signedness overrides the implementation default for bit
+field signedness.
 */
 {
-  if (il_signed_int_type == NULL) {
+  a_type_ptr pit;
+
+  if (signed_int_types[kind] != NULL) {
+    /* The type has previously been created, and can be reused. */
+    pit = signed_int_types[kind];
+  } else {
     /* The type must be created. */
-    il_signed_int_type = alloc_type((a_type_kind)tk_integer);
-    il_signed_int_type->variant.integer.int_kind = (an_integer_kind)ik_int;
-    il_signed_int_type->variant.integer.explicitly_signed = TRUE;
-    set_type_size(il_signed_int_type);
+    signed_int_types[kind] = pit = alloc_type((a_type_kind)tk_integer);
+    pit->variant.integer.int_kind = kind;
+    pit->variant.integer.explicitly_signed = TRUE;
+    set_type_size(pit);
 #if ORPHAN_PROCESSING_NEEDED
     /* Record the type entry as an orphan in case it is discarded now
        and then found again in a later phase (e.g., IL lowering). */
-    add_orphaned_file_scope_il_entry((char *)il_signed_int_type,
-                                     (an_il_entry_kind)iek_type);
+    add_orphaned_file_scope_il_entry((char *)pit, (an_il_entry_kind)iek_type);
 #endif /* ORPHAN_PROCESSING_NEEDED */
   }  /* if */
-  return il_signed_int_type;
-}  /* signed_int_type */
+  return pit;
+}  /* signed_integer_type */
 
 
 a_type_ptr float_type(a_float_kind kind)
@@ -4511,6 +4516,7 @@ to it.
   fp->type       = NULL;
   fp->bit_offset = 0;
   fp->bit_size   = 0;
+  fp->bit_field_is_signed = FALSE;
 
   db_exit();
   return fp;
@@ -5933,10 +5939,11 @@ of the front end.
   /* Static variables in il.c: */
   /* Depending on NULL represented as zero bits here. */
   memzero((char *)int_types, sizeof(int_types));
+  memzero((char *)signed_int_types, sizeof(signed_int_types));
   memzero((char *)float_types, sizeof(float_types));
   memzero((char *)string_types, sizeof(string_types));
   memzero((char *)wide_string_types, sizeof(wide_string_types));
-  il_signed_int_type = il_error_type = il_unknown_type = il_void_type = NULL;
+  il_error_type = il_unknown_type = il_void_type = NULL;
   memzero((char *)shareable_constants_table,
           sizeof(shareable_constants_table));
 #if DEBUG
