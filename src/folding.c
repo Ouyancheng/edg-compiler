@@ -736,23 +736,17 @@ type.
     /* Converting an address to a floating-point type cannot be done at
        compile-time. */
     *did_not_fold = TRUE;
-  } else if (is_reinterpret_cast) {
-    /* Suppress the related-class processing for reinterpret_casts.  If
-       constant addressing expressions are not being folded, keep the
-       reinterpret_cast in executable form. */
-    if (!fold_constant_addr_exprs) {
-      *did_not_fold = TRUE;
-    }  /* if */
-  } else if (related_class_pointers(old_type, new_type,
+  } else if (!fold_constant_addr_exprs) {
+    /* Do not fold address casts in constant form unless told to.  That's to
+       preserve detailed addressing information in the IL. */
+    *did_not_fold = TRUE;
+  } else if (!is_reinterpret_cast &&
+             related_class_pointers(old_type, new_type,
                                     &baseward_cast, &bcp)) {
     /* In C++, a cast of a pointer to a class to a pointer to a base class
        or derived class. */
     conversion_handled = TRUE;
-    /* Do not fold such casts in constant form unless told to.  That's to
-       preserve detailed addressing information in the IL. */
-    if (!fold_constant_addr_exprs) {
-      *did_not_fold = TRUE;
-    } else if (baseward_cast) {
+    if (baseward_cast) {
       /* Derived --> base.  Valid unless the cast is ambiguous or
          the base class is inaccessible. */
       fold_base_class_cast(old_constant, bcp, new_constant, is_implicit_cast,
