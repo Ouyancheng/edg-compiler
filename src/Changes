@@ -69,7 +69,7 @@ same name and type in another translation unit.  However, the front end
 now makes an exception for functions defined in a friend declaration.
 (A similar exception was already made for inline member functions.)
 Such functions usually have external linkage, but in mode without support
-for "extern inline" function (e.g., Sun mode) they have internal linkage.
+for "extern inline" functions (e.g., Sun mode) they have internal linkage.
 For example:
 
   // Translation unit 1:
