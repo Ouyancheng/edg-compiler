@@ -11736,6 +11736,7 @@ bits of information that were acquired while parsing.
   a_symbol_ptr  tag_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
   a_class_symbol_supplement_ptr  cssp
                         = tag_sym->variant.class_struct_union.extra_info;
+  a_source_position saved_error_position;
 
   if (class_state->last_field_is_incomplete_array) {
     /* The last field that was recorded was an incomplete array.  This is
@@ -11790,6 +11791,7 @@ bits of information that were acquired while parsing.
      class definition produce diagnostics.  Set error_position to assure
      that these diagnostics will be associated with tag_sym instead of
      with the current token, which is the closing brace. */
+  saved_error_position = error_position;
   error_position = tag_sym->decl_position;
   if (C_dialect == C_dialect_cplusplus) {
     /* Reset the access to "public" for compiler-generated functions, if
@@ -11865,6 +11867,7 @@ bits of information that were acquired while parsing.
       class_state->override_registry = NULL;
     }  /* if */
   }  /* if */
+  error_position = saved_error_position;
 }  /* complete_class_definition */
 
 
