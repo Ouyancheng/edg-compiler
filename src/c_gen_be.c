@@ -3535,6 +3535,11 @@ done_with_operation:
       dump_expr(expr->variant.object_lifetime.expr, need_parens);
       break;
 #endif /* KEEP_OBJECT_LIFETIME_INFO_IN_LOWERED_IL_WHEN_EH_ENABLED */
+    case enk_runtime_sizeof:
+      write_tok_str("sizeof(");
+      dump_type(expr->variant.sizeof_type, /*add_pointer_to=*/FALSE);
+      write_tok_ch(')');
+      break;
     case enk_address_of_ellipsis:
       write_tok_str("&...");
       break;

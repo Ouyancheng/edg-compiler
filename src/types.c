@@ -1837,6 +1837,9 @@ base class casts and virtual function calls.
          indicated by the node type. */
       complete_object_type = type_pointed_to(node->type);
       break;
+    case enk_runtime_sizeof:
+      complete_object_type = node->type;
+      break;
     case enk_throw:
     case enk_field:
     case enk_condition:

@@ -1218,6 +1218,10 @@ Dump the contents of the indicated expression node for debug purposes.
         db_expr_node(node->variant.typeid_info.expr, level + 2);
       }  /* if */
       break;
+    case enk_runtime_sizeof:
+      fputs("runtime sizeof\n", f_debug);
+      db_abbreviated_type(node->variant.sizeof_type);
+      break;
     case enk_address_of_ellipsis:
       fputs("address of ellipsis\n", f_debug);
       break;
@@ -6398,6 +6402,7 @@ a set of options for the copy.
     case enk_variable_address:
     case enk_field:
     case enk_routine_address:
+    case enk_runtime_sizeof:
     case enk_address_of_ellipsis:
       /* Nothing more to copy. */
       break;
