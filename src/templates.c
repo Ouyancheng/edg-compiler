@@ -927,7 +927,7 @@ with respect to the primary template.
     if (new_is_more_specialized && !curr_is_more_specialized) {
       /* The new entry is more specialized than the one already on the
          list.  Remove the entry from the list.
-      /* Remove the entry from the list. */
+         Remove the entry from the list. */
       if (prev_pscp == NULL) {
         *psc_list = pscp->next;
       } else {
@@ -1541,6 +1541,7 @@ A pointer to the head of the list is returned in tcsp.
   db_enter(3, "instantiate_class_template");
   tssp = template_supplement_for_symbol(template_sym);
   instance_sym = tssp->variant.class_template.prototype_instantiation;
+  instance_sym->defined = TRUE;
   cssp = instance_sym->variant.class_struct_union.extra_info;
   is_class_member = prototype_type->source_corresp.is_class_member;
 #if CHECKING
@@ -5188,7 +5189,6 @@ initially used when processing the declaration of a partial specialization.
     primary_tssp = template_supplement_for_symbol(primary_sym);
     prototype_sym->next = primary_tssp->variant.class_template.instantiations;
     primary_tssp->variant.class_template.instantiations = prototype_sym;
-    prototype_sym->defined = TRUE;
     /* The prototype_instantiation field is set in the template supplement
        of what may be a partial specialization, not in the primary template. */
     tssp->variant.class_template.prototype_instantiation = prototype_sym;
