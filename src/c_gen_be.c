@@ -1841,6 +1841,15 @@ of "const" in ANSI C mode.
       if (is_immediate_type_qualifier(type)) {
         /* The top type is a type qualifier.  Output it and move on to the
            underlying type. */
+#if C_GEN_BE_GENERATES_ANSI_C
+        /* Some compilers have trouble with "const void".  Drop the const
+           in that case. */
+        if (type->variant.typeref.is_const &&
+            skip_typerefs(type->variant.typeref.type)->kind ==
+                                                        (a_type_kind)tk_void) {
+          suppress_const = TRUE;
+        }  /* if */
+#endif /* C_GEN_BE_GENERATES_ANSI_C */
         dump_type_qualifier(type, suppress_const);
         dump_type_specifier(type->variant.typeref.type, suppress_const);
       } else if (!has_name(type) ||
