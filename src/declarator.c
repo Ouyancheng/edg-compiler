@@ -1981,7 +1981,7 @@ is just thrown away.
 Also in Microsoft mode, type qualifiers can appear at the beginning of
 the declarator, e.g.,
 
-  int i, const j, const *k;  // Declares j as "const int", k as "const int *"
+  int i, const j, const *k;  // Declares j as "const int", k as "int *"
 
 This routine will see them only at the beginning of a declarator that
 is not immediately next to its specifiers list, as above, because otherwise
@@ -2054,6 +2054,15 @@ unbound qualifiers are just thrown away.
     if (microsoft_mode) {
       /* Apply pending qualifiers to the complete type being built up, now
          that we know those are not unbound qualifiers. */
+      if (pending_qualifiers != TQ_NONE) {
+        /* Drop qualifiers like const/volatile because Microsoft drops
+           them:
+             int p, const *q;
+           q has type "int *", not "const int *".  The only qualifiers
+           like this that can be dropped are from the qualifiers collected
+           above before the first iteration of the loop. */
+        pending_qualifiers &= (TQ_NEAR | TQ_FAR);
+      }  /* if */
       if (pending_qualifiers != TQ_NONE) {
         /* Some qualifiers like near were specified.  Apply them to
            the complete type or (at the beginning of a nested declarator)
