@@ -8229,11 +8229,6 @@ definition and marks them external as well.
      recursion if it is self referential. */
   type->source_corresp.name_linkage =
                                  (a_name_linkage_kind)nlk_cplusplus_external;
-#if MAINTAIN_NEEDED_FLAGS
-  /* An externally linked class is treated as "needed" even if it may not
-     have been referenced in the current translation unit. */
-  mark_as_needed((char *)type, (an_il_entry_kind)iek_type);
-#endif /* MAINTAIN_NEEDED_FLAGS */
   if (!type->source_corresp.is_class_member) {
     /* Increment the count.  This lets the caller know how many classes
        were changed from internal to external linkage and permits an early
