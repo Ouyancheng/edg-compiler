@@ -1691,6 +1691,70 @@ user, then issue an error.
 }  /* open_pch_input_file */
 
 
+static void pch_fixup_part_1(void)
+/*
+This routine is called after restoring the memory region information
+from the PCH file.  It updates the IL header (which is not restored
+from the PCH file) to reflect the information loaded from the file.
+*/
+{
+  a_source_file_ptr	sfp;
+  a_source_file_ptr	orig_sfp;
+
+  db_enter(0, "pch_fixup_part_1");
+  orig_sfp = il_header_from_pch.primary_source_file;
+  /* Make the source file pointer for the file that created the
+     precompiled header file the first child file of the new source
+     file.  This allows diagnostics that reference lines that come
+     from the precompiled header to work properly. */
+  il_header.primary_source_file = orig_sfp;
+  il_header.primary_scope = il_header_from_pch.primary_scope;
+  il_header.main_routine = il_header_from_pch.main_routine;
+#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
+  il_header.scope_orphaned_list_headers =
+                              il_header_from_pch.scope_orphaned_list_headers;
+#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
+#if RECORD_MACROS_IN_IL
+  il_header.macros = il_header_from_pch.macros;
+#endif /* RECORD_MACROS_IN_IL */
+  db_exit();
+}  /* pch_fixup_part_1 */
+
+
+void pch_fixup_part_2(void)
+/*
+This routine is called when we have reached the point in the current source
+file at which we make the transition from information supplied by the PCH
+to information generated as a result of this compilation.  This routine
+updates the source file pointer in the IL header to reflect the information
+loaded from the PCH file.  This needs to be done in both part 1 and 2
+of the fixup because a new source file entry for the primary source file
+is created when the primary source file is reopened between the two fixups.
+
+*/
+{
+  a_source_file_ptr	sfp;
+  a_source_file_ptr	orig_sfp;
+
+  db_enter(0, "pch_fixup_part_2");
+  building_pch_prefix = FALSE;
+  next_event_resumes_compilation = FALSE;
+  sfp = il_header.primary_source_file;
+  orig_sfp = il_header_from_pch.primary_source_file;
+  /* Make the source file pointer for the file that created the
+     precompiled header file the first child file of the new source
+     file.  This allows diagnostics that reference lines that come
+     from the precompiled header to work properly. */
+  sfp->first_child_file = orig_sfp;
+  sfp->last_child_file = orig_sfp;
+  sfp->first_seq_number = 1;
+  /* Set the ending sequence number for what was the primary source
+     file when the precompiled header was generated. */
+  orig_sfp->last_seq_number = saved_curr_seq_number;
+  db_exit();
+}  /* pch_fixup_part_2 */
+
+
 void restore_precompiled_header_information(void)
 /*
 Reload the compiler state information so that a precompiled header file
@@ -1728,6 +1792,10 @@ may be used.
     read_saved_variables();
     read_memory_regions();
   }  /* if */
+  /* Save the sequence number as of this point. */
+  saved_curr_seq_number = curr_seq_number;
+  /* Update the IL header to reflect the information in the PCH file. */
+  pch_fixup_part_1();
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
   /* We are building an IL file.  Any memory regions (other than the
      front end and file scope) that were read from the PCH file must
@@ -1740,8 +1808,6 @@ may be used.
   /* Clear the primary source file pointer, otherwise, push_input_stack
      will try to use the old source file as the parent. */
   il_header.primary_source_file = NULL;
-  /* Save the sequence number as of this point. */
-  saved_curr_seq_number = curr_seq_number;
 }  /* restore_precompiled_header_information */
 
 
@@ -1794,46 +1860,6 @@ be used as part of the applicability check in subsequent compilations.
   }  /* if */
   db_exit();
 }  /* precompiled_header_processing */
-
-
-void pch_fixup_for_curr_source_file(void)
-/*
-This routine is called when we have reached the point in the current source
-file at which we make the transition from information supplied by the PCH
-to information generated as a result of this compilation.  This routine
-updates the information restored from the PCH file so that it reflects
-the source file being compiled.
-*/
-{
-  a_source_file_ptr	sfp;
-  a_source_file_ptr	orig_sfp;
-
-  db_enter(0, "pch_fixup_for_curr_source_file");
-  building_pch_prefix = FALSE;
-  next_event_resumes_compilation = FALSE;
-  sfp = il_header.primary_source_file;
-  orig_sfp = il_header_from_pch.primary_source_file;
-  /* Make the source file pointer for the file that created the
-     precompiled header file the first child file of the new source
-     file.  This allows diagnostics that reference lines that come
-     from the precompiled header to work properly. */
-  sfp->first_child_file = orig_sfp;
-  sfp->last_child_file = orig_sfp;
-  sfp->first_seq_number = 1;
-  /* Set the ending sequence number for what was the primary source
-     file when the precompiled header was generated. */
-  orig_sfp->last_seq_number = saved_curr_seq_number;
-  il_header.primary_scope = il_header_from_pch.primary_scope;
-  il_header.main_routine = il_header_from_pch.main_routine;
-#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
-  il_header.scope_orphaned_list_headers =
-                              il_header_from_pch.scope_orphaned_list_headers;
-#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
-#if RECORD_MACROS_IN_IL
-  il_header.macros = il_header_from_pch.macros;
-#endif /* RECORD_MACROS_IN_IL */
-  db_exit();
-}  /* pch_fixup_for_curr_source_file */
 
 
 void register_pch_saved_variables(a_pch_saved_variable array[])

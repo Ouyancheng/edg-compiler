@@ -1348,7 +1348,7 @@ execute the preprocessor directive.
   dir_kind = identify_dir_keyword();
   if (next_event_resumes_compilation) {
      /* We are done skipping the file prefix when making use of a PCH. */
-     pch_fixup_for_curr_source_file();
+     pch_fixup_part_2();
   }  /* if */
   /* See if this directive is marks the header stop position.  If so,
      after processing the directive, we need to call

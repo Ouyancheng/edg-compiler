@@ -5359,7 +5359,7 @@ In C++, however, the declaration list is optional (3.4):
         to skip over the part of the file that is being replaced by
         information from the PCH).  We've encountered the first token of
         the normal compilation.  Do any fixup required. */
-    pch_fixup_for_curr_source_file();
+    pch_fixup_part_2();
   }  /* if */
   if (curr_token == tok_end_of_source) {
     /* Empty translation unit -- okay in C++ mode. */
