@@ -1,5 +1,11 @@
 Version 2.19
 
+6/27/93  Command line option to disable support for exception handling
+
+A command line options ("-x") has been added to disable the support
+that is provided by default in C++ for exception handling; the global
+flag exceptions_disabled is set to TRUE when -x is used.
+
 6/22/93  Type qualifiers on a cast to pointer to qualified class type
 
 On a cast of a pointer to a class type to a pointer to a base type,
@@ -19,9 +25,9 @@ a sequence number.  The default is FALSE.
 The following have been added to the intermediate language:
   - statement kind stmk_try_block,
   - expression node kind enk_throw,
-  - new data structures a_handler and an_exception_specification
+  - new data structures a_handler and a_throw_specification
   - in a_type: new flag used_in_exception
-  - in a_routine: new pointer exception_specifications
+  - in a_routine: new pointer throw_specification
   - in a_scope: new variant field (for sck_block) parameter
 
 -------------------------------------------------------------------------------
