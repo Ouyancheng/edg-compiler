@@ -2397,9 +2397,8 @@ typedef struct a_symbol {
       a_bit_field
 		declared_in_for_init:1;
 			/* TRUE if the variable was declared in a for-init
-			   block. */
+			   block in Microsoft mode. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-
     } variable;
     /* When kind == sk_static_data_member: */
     struct {

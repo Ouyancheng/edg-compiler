@@ -3967,7 +3967,7 @@ to TRUE if we are in Microsoft mode and in a for-init block.
   a_boolean  hiding = FALSE;
 
   check_assertion(microsoft_mode);
-  if (microsoft_mode && !C_mode() &&
+  if (!C_mode() &&
       struct_stmt_stack != NULL && depth_stmt_stack >= 0 &&
       struct_stmt_stack[depth_stmt_stack].for_init) {
     *in_for_init = TRUE;
