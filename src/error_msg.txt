@@ -1001,6 +1001,7 @@ ec_cl_nonstd_using_decl_option_only_in_cplusplus;;"option \"nonstd_using_decl\" 
 ec_bad_return_type_on_main;;"return type of function \"main\" must be \"int\""
 ec_template_parameter_has_class_type;;"a template parameter may not have class type"
 ec_default_arg_on_member_decl;;"a default template argument cannot be specified on the declaration of a member of a class template"
+ec_return_statement_not_allowed;;"a return statement is not allowed"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

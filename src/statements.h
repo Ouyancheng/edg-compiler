@@ -146,6 +146,11 @@ typedef struct a_control_flow_descr {
 			/* TRUE if this is the top level block of a try
 			   statement. */
       a_bit_field
+		is_function_try_block:1;
+			/* TRUE for the block that contains a function try
+			   block, including its catch clauses.  No particular
+			   statement corresponds to it. */
+      a_bit_field
 		is_within_catch_or_try_block:1;
 			/* TRUE if is_catch_block or is_try_block is TRUE for
 			   the current block or a block in which the current

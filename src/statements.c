@@ -234,6 +234,8 @@ purposes.
         fprintf(f_debug, ", try");
       } else if (cfdp->variant.block.is_within_catch_or_try_block) {
         fprintf(f_debug, ", inside catch or try");
+      } else if (cfdp->variant.block.is_function_try_block) {
+        fprintf(f_debug, ", function try");
       }  /* if */
       if (cfdp->variant.block.is_switch_block) {
         fprintf(f_debug, ", switch");
@@ -482,6 +484,7 @@ to it.
       cfdp->variant.block.exposed_init_in_switch = FALSE;
       cfdp->variant.block.is_catch_block = FALSE;
       cfdp->variant.block.is_try_block = FALSE;
+      cfdp->variant.block.is_function_try_block = FALSE;
       cfdp->variant.block.is_within_catch_or_try_block = FALSE;
       break;
     case cfdk_init:
@@ -4353,78 +4356,96 @@ See also 3.6.6.4.
   return_type = routine_type->variant.routine.return_type;
   /* See if there is an expression after "return". */
   expr_present = (curr_token != tok_semicolon);
-  /* In Microsoft C mode a return statement in a void function may have
-     the form "return expr;".  For this case the return statement is
-     allocated later so that the expression can be put out first as a
-     freestanding expression statement.  This feature is standard in C++,
-     and the rewrite in that case is handled by IL lowering. */
-  if (expr_present && is_void_type(return_type) &&
-      microsoft_mode && C_mode()) {
-    warning(ec_value_returned_in_void_function);
-    microsoft_C_mode_void_return = TRUE;
-    sp = add_statement((a_statement_kind)stmk_expr);
+  if (depth_stmt_stack > 0 &&
+      struct_stmt_stack[0].kind == ssk_try_block &&
+      struct_stmt_stack[1].is_catch_clause) {
+    /* This is a return statement inside a handler of function try block. */
+    pos_error(ec_return_statement_not_allowed, &return_pos);
+    discard_curr_construct_pragmas();
+    sp = NULL;
+    routine_type = error_type();
   } else {
-    /* Allocate the return statement. */
-    sp = add_statement_at_stmt_pos((a_statement_kind)stmk_return, &return_pos);
-    stmt_update_source_sequence_list(sp);
-  }  /* if */
-  /* Do processing required for any pragmas that are bound to the current
-     statement. */
-  process_curr_construct_pragmas((a_symbol_ptr)NULL, sp);
-  /* See if the optional expression is present. */
-  if (!expr_present) {
-    /* The expression is missing. */
-    check_void_return_okay(/*is_implicit_return=*/FALSE, &return_expr);
-  } else {
-    /* The expression is present. */
-    if (rout->special_kind == (a_special_function_kind)sfk_constructor ||
-        rout->special_kind == (a_special_function_kind)sfk_destructor) {
-      /* Constructors and destructors may not return a value (ARM 6.6.3). */
-      error(ec_value_returned_in_constructor);
-      return_type = error_type();
-    } else if (is_void_type(return_type)) {
-      /* A void function may return a void expression in C++, but not in C.
-         Microsoft C allows an expression of any type.  cfront 2.1 allows
-         a void expression.  cfront 3.0 does not allow any expression. */
-      if (C_mode()) {
-        if (microsoft_C_mode_void_return) {
-          /* Microsoft C mode.  A warning was already issued above. */
+    if (expr_present && is_void_type(return_type) &&
+        microsoft_mode && C_mode()) {
+      /* In Microsoft C mode a return statement in a void function may have
+         the form "return expr;".  For this case the return statement is
+         allocated later so that the expression can be put out first as a
+         freestanding expression statement.  This feature is standard in C++,
+         and the rewrite in that case is handled by IL lowering. */
+      warning(ec_value_returned_in_void_function);
+      microsoft_C_mode_void_return = TRUE;
+      sp = add_statement((a_statement_kind)stmk_expr);
+    } else {
+      /* Allocate the return statement. */
+      sp = add_statement_at_stmt_pos((a_statement_kind)stmk_return,
+           &return_pos);
+      stmt_update_source_sequence_list(sp);
+    }  /* if */
+    /* Do processing required for any pragmas that are bound to the current
+       statement. */
+    process_curr_construct_pragmas((a_symbol_ptr)NULL, sp);
+    /* See if the optional expression is present. */
+    if (!expr_present) {
+      /* The expression is missing. */
+      check_void_return_okay(/*is_implicit_return=*/FALSE, &return_expr);
+    } else {
+      /* The expression is present. */
+      if (rout->special_kind == (a_special_function_kind)sfk_constructor ||
+          rout->special_kind == (a_special_function_kind)sfk_destructor) {
+        /* Constructors and destructors may not return a value (ARM 6.6.3). */
+        error(ec_value_returned_in_constructor);
+        return_type = error_type();
+      } else if (is_void_type(return_type)) {
+        /* A void function may return a void expression in C++, but not in C.
+           Microsoft C allows an expression of any type.  cfront 2.1 allows
+           a void expression.  cfront 3.0 does not allow any expression. */
+        if (C_mode()) {
+          if (microsoft_C_mode_void_return) {
+            /* Microsoft C mode.  A warning was already issued above. */
+          } else {
+            /* Other C modes.  An expression is not allowed. */
+            error(ec_value_returned_in_void_function);
+            return_type = error_type();
+          }  /* if */
         } else {
-          /* Other C modes.  An expression is not allowed. */
-          error(ec_value_returned_in_void_function);
-          return_type = error_type();
-        }  /* if */
-      } else {
-        /* C++ modes. */
-        if (cfront_3_0_mode || microsoft_mode) {
-          /* cfront 3.0 does not allow an expression. */
-          /* Neither does Microsoft C++ mode (as of MSVC++ 6.0). */
-          error(ec_value_returned_in_void_function);
-          return_type = error_type();
+          /* C++ modes. */
+          if (cfront_3_0_mode || microsoft_mode) {
+            /* cfront 3.0 does not allow an expression. */
+            /* Neither does Microsoft C++ mode (as of MSVC++ 6.0). */
+            error(ec_value_returned_in_void_function);
+            return_type = error_type();
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
+  }  /* if */
+  if (expr_present) {
     /* Scan the return expression and convert it to the function type. */
     return_expr = scan_return_expression(return_type,
                                          ec_bad_return_value_type,
                                          &dip);
   }  /* if */
-  /* Put the expression into the statement. */
-  sp->expr = return_expr;
-  if (!microsoft_C_mode_void_return) {
-    sp->variant.return_dynamic_init = dip;
-  } else {
-    /* The Microsoft C compatibility case: "return expr" in a void function.
-       The statement already put out is an expression statement. Follow it
-       now by a return statement with a null expression. */
-    sp = add_statement_at_stmt_pos((a_statement_kind)stmk_return, &return_pos);
-    stmt_update_source_sequence_list(sp);
+  if (sp != NULL) {
+    /* Put the expression into the statement. */
+    sp->expr = return_expr;
+    if (!microsoft_C_mode_void_return) {
+      sp->variant.return_dynamic_init = dip;
+    } else {
+      /* The Microsoft C compatibility case: "return expr" in a void function.
+         The statement already put out is an expression statement. Follow it
+         now by a return statement with a null expression. */
+      sp = add_statement_at_stmt_pos((a_statement_kind)stmk_return,
+                                     &return_pos);
+      stmt_update_source_sequence_list(sp);
+    }  /* if */
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (curr_token == tok_semicolon) {
     curr_construct_end_position = end_pos_curr_token;
   }  /* if */
-  set_stmt_source_position(sp->end_position, curr_construct_end_position);
+  if (sp != NULL) {
+    set_stmt_source_position(sp->end_position, curr_construct_end_position);
+  }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Check for and ignore the final semicolon. */
   (void)required_token(tok_semicolon, ec_exp_semicolon);
@@ -5426,7 +5447,8 @@ done before function_try_block is called, but the object-lifetime for the
 function try block has to have been established first.
 */
 {
-  a_statement_ptr  sp;
+  a_statement_ptr           sp;
+  a_control_flow_descr_ptr  cfdp;
 
   db_enter(3, "start_of_function_try_block");
   /* Some of this is identical to initializations done for function blocks
@@ -5436,15 +5458,15 @@ function try block has to have been established first.
   goto_fixup_list = NULL;
   /* Clear statement stack just to be careful. */
   depth_stmt_stack = -1;
+  /* The function try block (including its catch clauses) are contained
+     within a a block entry in the control_flow_descr_list. */
+  cfdp = alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_block);
+  cfdp->variant.block.is_function_try_block = TRUE;
+  /* Set the lifetime in the control flow entry. */
+  cfdp->variant.block.object_lifetime = curr_object_lifetime;
+  add_to_control_flow_descr_list(cfdp);
   sp = alloc_statement((a_statement_kind)stmk_try_block);
   stmt_update_source_sequence_list(sp);
-#if 0
-  /* Pop the object lifetime previously allocated for the function scope.  It
-     isn't needed, since the object lifetime for the function try block
-     replaces it as the top level object lifetime of the function. */
-  pop_object_lifetime();
-  scope_stack[depth_scope_stack].curr_scope_object_lifetime = NULL;
-#endif /* if 0 */
   /* Do additional initialization generic to scanning a try statement. */
   start_of_try_block(sp);
   db_exit();
@@ -5469,6 +5491,9 @@ is in effect a wrapper around compound statement.
                                  (a_struct_stmt_kind)ssk_try_block);
   sp = struct_stmt_stack[depth_stmt_stack].statement;
   try_block_statement(sp, explicit_return_type);
+  /* Terminate the control flow block for the function try block. */
+  add_to_control_flow_descr_list(
+     alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_end_of_block));
 #if DEBUG
   if (debug_level >= 3 || db_flag_is_set("dump_stmts")) {
     int  how_deep = 3;
