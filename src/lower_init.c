@@ -2614,7 +2614,11 @@ default_arg_list.
     {
       /* We're calling a destructor from something that doesn't have
          parameters for the implied arguments, so make them if necessary. */
-      check_assertion(!dtor_needs_implied_arg_list(new_routine));
+#if IA64_ABI
+      check_assertion(new_routine->special_kind !=
+                                     (a_special_function_kind)sfk_destructor ||
+                      !dtor_needs_implied_arg_list(new_routine));
+#endif /* IA64_ABI */
       make_dtor_implied_arg_list(routine, /*have_complete_object=*/TRUE,
                                  &implied_arg_list, &end_implied_arg_list);
     }  /* if */
