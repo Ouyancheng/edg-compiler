@@ -422,12 +422,20 @@ has not yet been examined for a matching entry in another translation unit.
   } else {
     tcp = &trans_unit_corresp_of_unknown_entry(entity);
   }  /* if */
+  if (*tcp != NULL && (*tcp)->canonical != entity) {
+    /* Detach the given entity from the correspondence entry. */
+#if CHECKING
+    --(*tcp)->count;
+#endif /* CHECKING */
+    *tcp = NULL;
+  }  /* if */
   if (*tcp == NULL) {
     /* Allocate a correspondence node. */
     *tcp = alloc_trans_unit_corresp();
     (*tcp)->kind = kind;
   } else {
-    check_assertion((*tcp)->canonical != entity || (*tcp)->count <= 1);
+    /* Reuse the correspondence entry. */
+    check_assertion((*tcp)->count == 1);
   }  /* if */
   change_canonical_entry(*tcp, entity);
   if (!in_secondary_trans_unit(entity)) {
