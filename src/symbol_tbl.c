@@ -1027,7 +1027,7 @@ scope for the symbol must still be active.
   /* Record the scope depth of the declaration of this entity in the source
      correspondence. */
   sc->scope_depth = scope_depth_of(sp, &is_local_to_function);
-#else
+#else /* RECORD_SCOPE_DEPTH_IN_IL */
   (void)scope_depth_of(sp, &is_local_to_function);
 #endif /* RECORD_SCOPE_DEPTH_IN_IL */
   /* Set the is_local_to_function flag. */
@@ -5495,8 +5495,7 @@ do ambiguity and access control checking and return a pointer to the tag
 symbol.  Otherwise, return NULL.
 */
 {
-  a_symbol_ptr assoc_symbol, sym;
-  a_type_ptr   tp;
+  a_symbol_ptr assoc_symbol;
 
   /* Look up the current token.  Note that a qualified name is not allowed. */ 
   assoc_symbol = normal_id_lookup(locator, IDL_MUST_BE_TAG);
@@ -5509,7 +5508,41 @@ symbol.  Otherwise, return NULL.
     (void)current_class_symbol_if_class_template(&assoc_symbol);
   }  /* if */
   if (assoc_symbol != NULL) {
-    if (assoc_symbol->kind == (a_symbol_kind)sk_type) {
+    if (assoc_symbol->is_template_param) {
+      a_type_ptr   	tp;
+      a_symbol_ptr	new_sym;
+      /* We are within a template instantiation, so the name may map to a
+         template parameter.  For example,
+            class A { };
+            template <class T> class B { class T x; };
+            B<A> b;
+         The symbol is for a type template parameter (nontypes will not be
+         found by an IDL_MUST_BE_TAG lookup).  During prototype instantiation
+         the template parameter symbol is simply returned to the caller.
+         During a real instantiation the symbol associated with the type
+         pointed to by the template parameter is returned. */
+      check_assertion_str(assoc_symbol->kind == (a_symbol_kind)sk_type,
+                          "curr_tag_symbol: bad symbol kind");
+      tp = assoc_symbol->variant.type;
+      new_sym = (a_symbol_ptr)tp->source_corresp.assoc_info;
+      if (tp->kind == (a_type_kind)tk_template_param) {
+        /* A template parameter encountered during prototype instantiation.
+           Simply return the original symbol. */
+      } else if (new_sym != NULL && new_sym->kind == tag_kind) {
+        /* Use the template argument to which the template parameter points. */
+        assoc_symbol = new_sym;
+      } else {
+        /* The template argument is the wrong kind of tag. */
+        pos_stty_error(ec_tag_kind_incompatible_with_template_parameter,
+                       &error_position,
+                       name_of_symbol_kind(tag_kind), tp);
+        set_to_error_locator(*locator);
+        assoc_symbol = NULL;
+      }  /* if */
+    }  /* if */
+    if (assoc_symbol == NULL) {
+      /* A NULL symbol resulted from an error above. */
+    } else if (assoc_symbol->kind == (a_symbol_kind)sk_type) {
       /* This must be a symbol for a template parameter, and we must be in
          the midst of a prototype instantiation.  Return the symbol that
          was found. */
@@ -5529,35 +5562,6 @@ symbol.  Otherwise, return NULL.
       /* Do ambiguity and access control checking on the member. */
       check_ambiguity_and_verify_access(locator);
     }  /* if */
-  } else if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
-    /* We are within a template instantiation, so the name may map to a
-       template parameter.  For example,
-          class A { };
-          template <class T> class B { class T x; };
-          B<A> b;
-       The standard is not clear on this, but we are assuming that in the
-       second "class T" we have a reference to the type of the corresponding
-       template argument.  Should this be allowed if T is (as here) a class
-       type?  It's not clear.  We issue an error, but the code here can be
-       altered easily. */
-    sym = normal_id_lookup(locator, IDL_NO_OPTIONS);
-    if (sym != NULL && sym->kind == (a_symbol_kind)sk_type &&
-        sym->decl_scope ==
-                 scope_stack[depth_innermost_instantiation_scope].number) {
-      /* sym is a template parameter symbol representing a type.  If the
-         template argument with which it is currently associated can be
-         used in an elaborated-type-specifier of the required kind, use it. */
-      tp = sym->variant.type;
-      assoc_symbol = (a_symbol_ptr)tp->source_corresp.assoc_info;
-      if (assoc_symbol != NULL && assoc_symbol->kind == tag_kind) {
-        /* Use the template argument to which the template parameter points. */
-      } else {
-        /* The template argument is the wrong kind of tag. */
-        pos_sy_error(ec_bad_template_arg_use, &error_position, sym);
-        set_to_error_locator(*locator);
-        assoc_symbol = NULL;
-      }  /* if */
-    }  /* if */            
   }  /* if */
   return assoc_symbol;
 }  /* curr_tag_symbol */

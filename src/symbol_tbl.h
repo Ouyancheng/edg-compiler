@@ -2104,8 +2104,7 @@ extern a_param_id_ptr param_id_on_list(a_symbol_locator *locator,
    (sym)->kind == (a_symbol_kind)sk_union_tag ||                      \
    (sym)->kind == (a_symbol_kind)sk_enum_tag ||			      \
    (sym)->kind == (a_symbol_kind)sk_class_template ||		      \
-   ((sym)->kind == (a_symbol_kind)sk_type &&                          \
-    (sym)->variant.type->kind == (a_type_kind)tk_template_param))
+   ((sym)->kind == (a_symbol_kind)sk_type && (sym)->is_template_param))
 
 /* Return TRUE if a symbol is a type symbol.   A type symbol is
    one defined as a typedef, or, in C++, as a class, struct, union,
