@@ -9056,7 +9056,19 @@ entry that has already been created and linked in for this entity.
            that this includes the case where the pointer has been cleared
            because a prior declaration was turned into a secondary declaration
            -- e.g., a forward reference to a function -- see mark_declared. */
-        scp->source_sequence_entry = new_ssep;
+        if (depth_innermost_ss_list_scope != DEPTH_OF_FILE_SCOPE &&
+            in_file_scope(new_ssep) &&
+            (kind == (an_il_entry_kind)iek_routine ||
+             kind == (an_il_entry_kind)iek_variable)) {
+          /* This must be a block-extern declaration or (in C mode) an
+             implicit routine declaration.  Don't set the source sequence
+             pointer in the IL entry.  (It's not really needed, and it
+             introduces implementation difficulties for removing unneeded
+             function bodies from the IL.) */
+        } else {
+          /* Set the source sequence entry pointer in the IL entry. */
+          scp->source_sequence_entry = new_ssep;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */

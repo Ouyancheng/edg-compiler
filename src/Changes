@@ -1,5 +1,24 @@
 Version 2.36
 
+3/5/97   IL CHANGE: source-sequence-entry pointer in IL entities
+
+For implementations in which GENERATE_SOURCE_SEQUENCE_LISTS is TRUE, the
+source_sequence_entry field in the source-correspondence portion of IL
+entities no longer points to source-sequence entries that represent
+block-extern declarations or (in C mode) implicit function declarations,
+even when such declarations are the first in the translation unit.  This
+implies that the pointer may be NULL sometimes.  This change fixes an
+internal error that appeared in the following when it was compiled with
+--remove_unneeded_il_entries and no IL lowering was being performed:
+
+  static void f() {
+    extern void g();
+  };
+  void h() {
+    extern void g();
+    g();
+  }
+
 3/4/97   Reporting the use of features excluded from Embedded C++
 
 "Embedded C++", a subset of C++ that is intended for embedded applications,

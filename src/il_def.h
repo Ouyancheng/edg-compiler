@@ -903,11 +903,18 @@ typedef struct a_source_correspondence {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_source_sequence_entry_ptr
 		source_sequence_entry;
-			/* Pointer to source sequence entry that represents
-			   the place this entity appears within the current
-			   file, function, or class-struct-union scope
-			   relative to other declarations as well as
-			   statements, comments, etc. */
+			/* Pointer to a source sequence entry that represents
+			   the place this entity appears within the
+			   translation unit relative to other declarations as
+			   well as statements, comments, etc.  When an entity
+			   has more than one declaration, this pointer
+			   identifies its definition or, if there is no
+			   definition in the current translation unit, the
+			   first declaration that is not a block-extern
+			   or (in C mode) implicit function declaration. This
+			   pointer is NULL when there are no declarations of
+			   a file-scope routine or variable except within
+			   function bodies. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 } a_source_correspondence;
 
