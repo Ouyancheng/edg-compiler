@@ -679,11 +679,7 @@ EXTERN a_boolean
 			   defined. */
 
 EXTERN a_boolean
-		okay_to_eliminate_unneeded_il_entries
-#if VAR_INITIALIZERS
-                            = DEFAULT_OKAY_TO_ELIMINATE_UNNEEDED_IL_ENTRIES
-#endif /* VAR_INITIALIZERS */
-                                                     ;
+		okay_to_eliminate_unneeded_il_entries;
 			/* When TRUE unneeded entities may be pruned from the
 			   IL tree; otherwise, pruning is suppressed even if
 			   entities are determined to be unneeded. Always
@@ -694,6 +690,26 @@ EXTERN a_boolean
 			   template instantiation is not under the control
 			   of the front end (e.g., when the C++-generating
 			   back end is used).  */
+
+EXTERN a_boolean
+		remove_unneeded_entities
+#if VAR_INITIALIZERS
+                            = DEFAULT_REMOVE_UNNEEDED_ENTRIES
+#endif /* VAR_INITIALIZERS */
+                                                             ;
+			/* When TRUE unneeded entities may be pruned from the
+			   IL tree; otherwise, pruning is suppressed even if
+			   entities are determined to be unneeded. Always
+			   FALSE when MAINTAIN_NEEDED_FLAGS is FALSE.
+			   Otherwise, controlled by command line option
+			   --[no_]remove_unneeded_entities; also FALSE if
+			   templates appear in the source program and
+			   template instantiation is not under the control of
+			   the front end (e.g., when the C++-generating back
+			   end is used).  Value persists through compilation
+			   of multiple files; used to reset global variable
+			   okay_to_eliminate_unneeded_il_entries each time a
+			   new translation unit is started. */
 
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);

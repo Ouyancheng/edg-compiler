@@ -1460,7 +1460,7 @@ common_cfront_mode_settings:
         break;
       case optk_remove_unneeded_entities:
         /* If FALSE, suppress elimination of unneeded IL entries. */
-        okay_to_eliminate_unneeded_il_entries = opt_value;
+        remove_unneeded_entities = opt_value;
         break;
       case optk_typename:
         /* Enable/disable typename. */
