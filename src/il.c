@@ -4058,8 +4058,8 @@ nonidentical.
      don't want errors to be considered compatible with everything, but we
      do need a[] and a[3] to be considered compatible). */
   if (strictly_identical ? same_entities(cp1_type, cp2_type) :
-                           f_types_are_redecl_compatible(cp1_type, cp2_type,
-                                                         TCF_REDECLARATION)) {
+                           f_types_are_compatible(cp1_type, cp2_type,
+                                                  TCF_REDECLARATION)) {
     switch (cp1->kind) {
       case ck_error:
         /* No further field to check. */
