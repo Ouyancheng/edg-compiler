@@ -2,7 +2,7 @@ Version 2.32
 
 2/7/96   Rethrow failed while a new throw was being processed
 
-If a rethrow occurred after a the processing of a nested throw had
+If a rethrow occurred after the processing of a nested throw had
 already begun, but before the nested throw entered a handler, the
 runtime incorrectly called unexpected because it believed that no
 handler was active.  This has been fixed.
