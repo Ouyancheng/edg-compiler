@@ -637,17 +637,6 @@ typedef struct a_class_symbol_supplement {
 			   was in the global namespace.  This field is
 			   set when the instantiation_required flag is
 			   set. */
-  a_type_ptr	partial_instantiation_placeholder;
-			/* For a template class that has not yet been fully
-			   instantiated and whose partial instantiation was
-			   triggered by a reference inside a class definition,
-			   a pointer to the placeholder type (i.e., a
-			   tk_typeref type entry that is on the types list of
-			   the scope of the referencing class, that points
-			   to the associated template class, and for which
-			   is_placeholder_for_class_instantiation is TRUE).
-			   NULL in all other cases; in particular, the pointer
-			   is cleared when the full instantiation occurs. */
   a_dependent_type_fixup_ptr
 		dependent_type_fixup_list;
 			/* If the current class is not yet defined, a pointer
