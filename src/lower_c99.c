@@ -934,12 +934,10 @@ replace them by a representation compatible with C89.
       break;
     case ck_init_repeat:
       lower_c99_constant(constant->variant.init_repeat.constant);
-      /* FIXME?  Move lowering code here? */
       break;
     case ck_designator:
-      /* This is always encountered while processing a list of constants in
-         an aggregate constant. */
-      /* FIXME?  Move lowering code here? */
+      /* Note that designated initializers for unions remain even when
+         LOWER_DESIGNATED_INITIALIZERS is TRUE. */
       break;
     case ck_error:
     case ck_integer:
