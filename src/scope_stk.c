@@ -934,12 +934,12 @@ instantiation scope (the template parameters to be used, etc.).
   ssep->num_of_extra_times_pushed = 0;;
   ssep->active_using_directives   = NULL;
   ssep->previous_scope            = NO_SCOPE_DEPTH;
-  ssep->instantiation_context_scope
-                                   = NO_SCOPE_DEPTH;
+  ssep->instantiation_context_scope = NO_SCOPE_DEPTH;
   ssep->instantiation_common_scope = NO_SCOPE_DEPTH;
   ssep->saved_depth_of_initial_lookup_scope = depth_of_initial_lookup_scope;
   ssep->first_template_cache_segment = NULL;
   ssep->last_template_cache_segment = NULL;
+  ssep->class_def_state          = NULL;
   /* Clear the substructure shared with namespace symbol supplements. */
   ssep->assoc_pointers_block     = NULL;
   clear_scope_pointers_block(&ssep->pointers_block);

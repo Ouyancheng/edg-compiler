@@ -526,19 +526,25 @@ typedef struct a_scope_stack_entry {
 			   is pushed.  This value is restored when the
 			   scope is popped. */
   a_template_cache_segment_ptr
-			first_template_cache_segment;
+		first_template_cache_segment;
 			/* Pointer to the first template cache segment entry
 			   for a member class or function of the current
 			   prototype instantiation.  Present only for
 			   template instantiation scopes associated with
 			   prototype instantiations. */
   a_template_cache_segment_ptr
-			last_template_cache_segment;
+		last_template_cache_segment;
 			/* Pointer to the last template cache segment entry
 			   for a member class or function of the current
 			   prototype instantiation.  Present only for
 			   template instantiation scopes associated with
 			   prototype instantiations. */
+  struct a_class_def_state
+		*class_def_state;
+			/* For sck_class_struct_union scopes, pointer to an
+			   entry that tracks general information about the
+			   class/struct/union definition as it accumulates;
+			   NULL otherwise. */
 } a_scope_stack_entry;
 
 

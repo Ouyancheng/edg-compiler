@@ -8728,6 +8728,7 @@ completed (C++ only).
        region; pop_scope will switch back. */
     scope_ptr = push_scope((a_scope_kind)sck_class_struct_union,
                            NO_SCOPE_NUMBER, class_type, (a_routine_ptr)NULL);
+    scope_stack[depth_scope_stack].class_def_state = &class_state;
     if (C_dialect == C_dialect_cplusplus) {
       /* In C++ every class, struct, and union type entry will have a non-NULL
          pointer to a class type supplement entry.  Put a pointer to the
