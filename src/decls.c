@@ -6627,8 +6627,8 @@ to indicate whether an enumeration is actually defined.
       } else {
         mark_declared(tag_sym, &locator.source_position);
       }  /* if */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
     } else if (curr_token == tok_lbrace) {
+#if GENERATE_SOURCE_SEQUENCE_LISTS
       /* An unnamed enum type.  mark_defined can't be called to put out a
          source sequence entry for it, but we need one anyway, so call
          the subroutine directly. */
@@ -6640,6 +6640,9 @@ to indicate whether an enumeration is actually defined.
                                     (a_source_sequence_entry_ptr)NULL);
       }  /* if */
 #endif  /* GENERATE_SOURCE_SEQUENCE_LISTS */
+      /* set_source_corresp and mark_defined are not called, so copy in
+         the decl position manually. */
+      enum_type->source_corresp.decl_position = locator.source_position;
     }  /* if */
     /* When an enumeration is defined within a class definition, its access
        should be set based on the access recorded in the current scope stack
