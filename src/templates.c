@@ -19037,11 +19037,13 @@ Add the routine to an "instantiation list" of inline functions.
     rlep->next = inline_function_list;
     inline_function_list = rlep;
     rout_ptr->on_inline_function_list = TRUE;
+#if INSTANTIATE_EXTERN_INLINE 
     if (after_inline_function_wrapup) {
       /* If inline_function_wrapup has already been called, call the routine
          to set the body needed flag now. */
       set_body_needed_flag_for_inline_function(rout_ptr);
     }  /* if */
+#endif /* INSTANTIATE_EXTERN_INLINE */
 #if DEBUG
   if (db_trace("instantiations", rout_ptr, iek_routine)) {
     fprintf(f_debug, "Adding to inline function list: \n");
