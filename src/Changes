@@ -1,5 +1,12 @@
 Version 3.5
 
+10/25/04 Buffer overrun in call of strchr on Windows
+
+When __MICROSOFT_OS__ is TRUE (on Windows or MS-DOS), strchr is called
+(from append_to_path_name) with an argument that is not null-terminated.
+This causes strchr to read past the end of the string and can result in an
+abort.  Now fixed.
+
 10/25/04 Microsoft compatibility: parameter attribute parsing ambiguity
 
 When parsing a function declaration in which a parameter has function

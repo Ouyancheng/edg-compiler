@@ -879,7 +879,7 @@ Add "name" to the path name in "buffer".
   char	separator_char = DIRECTORY_SEPARATOR;
 
 #if __MICROSOFT_OS__
-  if (strchr(buffer->buffer, DIRECTORY_SEPARATOR) != NULL) {
+  if (memchr(buffer->buffer, DIRECTORY_SEPARATOR, buffer->size) != NULL) {
     /* The original path uses regular UNIX-style slashes; use one to splice
        the file and path to make it look consistent. */
     separator_char = DIRECTORY_SEPARATOR;
