@@ -1543,6 +1543,7 @@ common_cfront_mode_settings:
         if (microsoft_version < 700 || microsoft_version > 2000) {
           str_command_line_error(ec_cl_invalid_microsoft_version, opt_arg);
         }  /* if */
+        opt_value = TRUE;
         /* Note -- falls into setting microsoft mode. */
       case optk_microsoft_mode:
         /* Enable or disable Microsoft extensions, in 32-bit mode. */

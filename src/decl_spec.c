@@ -1077,7 +1077,7 @@ the template.
         } else if (is_class_definition ||
             (curr_token == tok_semicolon &&
              !is_friend_decl && !is_explicit_instantiation &&
-             (microsoft_mode && microsoft_version < 1100))) {
+             (!microsoft_mode || microsoft_version < 1100))) {
           /* We have a specific declaration of a template class.  Note that
              starting with version 11.0 (Visual C++ 5.0) the Microsoft
              compiler no longer considers a declaration such as
