@@ -879,9 +879,7 @@ Instantiate the body of the template function associated with tip.
     /* The function was declared using a typedef.  Now that it is being
        defined (given a body by the instantiation), create an unshared type
        with the typedef stripped off. */
-    a_type_ptr  new_tp = alloc_type((a_type_kind)tk_routine);
-    copy_routine_type_with_param_types(skip_typerefs(rout_ptr->type), new_tp);
-    rout_ptr->type = new_tp;
+    rout_ptr->type = copy_routine_type_with_param_types(rout_ptr->type);
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   rout_ptr->declared_type = rout_ptr->type;

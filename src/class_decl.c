@@ -6342,8 +6342,7 @@ Scan the body of a class definition, including the base classes list.
               if (copy_needed) {
                 /* Build a copy of the routine type so as to have a
                    non-shared routine type entry. */
-                local_type = alloc_type((a_type_kind)tk_routine);
-                copy_routine_type_with_param_types(rout_type, local_type);
+                local_type = copy_routine_type_with_param_types(rout_type);
                 if (!friend_specified &&
                     member_storage_class != (a_storage_class)sc_static) {
                   /* This is a nonstatic member function declared through
@@ -6355,13 +6354,13 @@ Scan the body of a class definition, including the base classes list.
 
                   tp = make_pointer_type(class_type);
                   tp = make_qualified_type(tp, TQ_CONST);
-                  local_type->variant.routine.extra_info->
+                  skip_typerefs(local_type)->variant.routine.extra_info->
                                     implicit_this_param_type = tp;
                 } else if (any_cfront_mode()) {
                   /* Just in case this is a copy of the weird
                      cfront-compatibility typedef, clear out the implicit
                      this-param pointer in the copied type entry. */
-                  local_type->variant.routine.extra_info->
+                  skip_typerefs(local_type)->variant.routine.extra_info->
                                           implicit_this_param_type = NULL;
                 }  /* if */
               }  /* if */

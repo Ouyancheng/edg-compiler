@@ -702,12 +702,8 @@ associated with the function is returned.
     /* Build a copy of the routine type that can be used below, to avoid
        further error recovery problems, and because we need a non-shared
        routine type entry that we can modify. */
-    /* The type was probably from a typedef, so skip past that. */
-    rout_type = skip_typerefs(rout_type);
-    check_assertion(rout_type->kind == (a_type_kind)tk_routine);
-    unqualified_rout_type = alloc_type((a_type_kind)tk_routine);
-    copy_routine_type_with_param_types(rout_type, unqualified_rout_type);
-    rout_type = unqualified_rout_type;
+    rout_type = copy_routine_type_with_param_types(rout_type);
+    unqualified_rout_type = make_unqualified_type(rout_type);
   } else {
     unqualified_rout_type = make_unqualified_type(rout_type);
     check_assertion(unqualified_rout_type->kind == (a_type_kind)tk_routine);

@@ -4745,8 +4745,7 @@ Copy the type entry "from" to "to".
 }  /* copy_type */
 
 
-void copy_routine_type_with_param_types(a_type_ptr from_type,
-                                        a_type_ptr to_type)
+a_type_ptr copy_routine_type_with_param_types(a_type_ptr from_type)
 /*
 Make a copy of a routine type and its param types list.  This routine is
 called in cases where a routine type and its copy may not share the same
@@ -4754,11 +4753,16 @@ param-types list (for example, when as the result of a user error a routine
 type in a function definition is based on a typedef).
 */
 {
-  a_param_type_ptr  old_ptp, new_ptp, prev_new_ptp;
+  a_param_type_ptr  	old_ptp, new_ptp, prev_new_ptp;
+  a_type_qualifier_set	qualifiers;
+  a_type_ptr		to_type;
 
-  copy_type(from_type, to_type);
+  /* Save any qualifiers above the routine type.  These will be
+     put on top of the newly created type later. */
+  qualifiers = get_type_qualifiers(from_type);
   from_type = skip_typerefs(from_type);
-  to_type = skip_typerefs(to_type);
+  to_type = alloc_type((a_type_kind)tk_routine);
+  copy_type(from_type, to_type);
   old_ptp = from_type->variant.routine.extra_info->param_type_list;
   prev_new_ptp = NULL;
   for (; old_ptp != NULL; old_ptp = old_ptp->next) {
@@ -4782,6 +4786,12 @@ type in a function definition is based on a typedef).
     }  /* if */
     prev_new_ptp = new_ptp;
   }  /* for */
+  if (qualifiers != TQ_NONE) {
+    /* If the original type had qualifiers above the routine type, add
+       them to the newly created type now. */
+    to_type = make_qualified_type(to_type, qualifiers);
+  }  /* if */
+  return to_type;
 }  /* copy_routine_type_with_param_types */
 
 

@@ -1953,9 +1953,8 @@ not be TRUE.
           routine_ptr->declared_type = type_ptr;
         } else {
            /* type_ptr will be modified, so copy it first. */
-          routine_ptr->declared_type = alloc_type((a_type_kind)tk_routine);
-          copy_routine_type_with_param_types(type_ptr,
-                                             routine_ptr->declared_type);
+          routine_ptr->declared_type = 
+                                 copy_routine_type_with_param_types(type_ptr);
         }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         routine_ptr->type = rout_type = type_ptr;
@@ -2948,11 +2947,9 @@ class template.
       /* Just as it is an error when a normal function is defined for the
          function type to come from a typedef, so too is that an error when
          a function template is being defined. */
-      a_type_ptr  tp = alloc_type((a_type_kind)tk_routine);
       error(ec_function_type_must_come_from_declarator);
       /* Copy the type entry, since the typedef type may not be shared. */
-      copy_routine_type_with_param_types(skip_typerefs(type_ptr), tp);
-      type_ptr = tp;
+      type_ptr = copy_routine_type_with_param_types(skip_typerefs(type_ptr));
     }  /* if */
   }  /* if */
   if (sym == NULL) {
@@ -4902,9 +4899,8 @@ continue_with_declaration:
                                                    source_corresp.assoc_info));
           /* Replace the type with one that does not have an implicit
              this param. */
-          local_type_ptr = alloc_type((a_type_kind)tk_routine);
-          copy_routine_type_with_param_types(tp, local_type_ptr);
-          local_type_ptr->variant.routine.extra_info->
+          local_type_ptr = copy_routine_type_with_param_types(tp);
+          skip_typerefs(local_type_ptr)->variant.routine.extra_info->
                                        implicit_this_param_type = NULL;
         }  /* if */
       }  /* if */
@@ -5158,7 +5154,8 @@ continue_with_declaration:
         if (pid != NULL) {
           /* If the function has a non-empty old-style identifier list of
              parameters, a body should have been present. */
-          if (!local_type_ptr->variant.routine.extra_info->prototyped) {
+          if (!skip_typerefs(local_type_ptr)->
+                                    variant.routine.extra_info->prototyped) {
             error(ec_param_id_list_needs_function_def);
           }  /* if */
           /* After updating xref information on each symbol, free the list
