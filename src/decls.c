@@ -1204,8 +1204,8 @@ declaration of this symbol.
 }  /* enter_local_symbol */
 
 
-static a_boolean is_default_operator_new(a_symbol_locator *locator,
-                                         a_type_ptr       type)
+a_boolean is_default_operator_new(a_symbol_locator *locator,
+                                  a_type_ptr       type)
 /*
 Return TRUE if the locator is for an operator new() and the type indicates
 that it is the default operator new() (i.e., if it has exactly one parameter,
