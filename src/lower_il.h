@@ -905,6 +905,8 @@ extern void il_lower_trans_unit_init(void);
 
 extern void il_lower_init(void);
 
+extern void clear_parent_information(void);
+
 #endif /* DO_IL_LOWERING */
 #endif /* NEED_NAME_MANGLING */
 

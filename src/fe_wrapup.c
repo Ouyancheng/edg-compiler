@@ -270,6 +270,16 @@ secondary translation units will have already been copied over.
        process at the end of the compilation. */
     wrapup_auto_instantiation_information();
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+#if DO_IL_LOWERING
+    if (il_lowering_needed()) {
+      /* Clear class/namespace membership information and the
+         is_local_to_function flag on entities promoted out of classes,
+         namespaces, and functions.  This must be done very late, after
+         the generation of instantiation flags, because after parents are
+         cleared it becomes impossible to generate mangled names. */
+      clear_parent_information();
+    }  /* if */
+#endif /* DO_IL_LOWERING */
   } else {
     /* Copy IL from the secondary translation units to the primary IL.
        In trans_unit_test mode, we don't check for duplicate definitions,

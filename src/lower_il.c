@@ -12390,7 +12390,7 @@ of types out of namespaces via placeholders.
 }  /* clear_parent_info_on_types */
 
 
-static void clear_parent_information(void)
+void clear_parent_information(void)
 /*
 Clear class/namespace membership information and the is_local_to_function
 flag on entities promoted out of classes, namespaces, and functions.
@@ -12669,12 +12669,6 @@ C++ to C, so that a C back end can handle it without change.
     }  /* if */
     /* Do any processing on classes that has to wait until the very end. */
     do_class_lowering_wrapup(scope);
-    if (lowering_file_scope) {
-      /* Clear class/namespace membership information and the
-         is_local_to_function flag on entities promoted out of classes,
-         namespaces, and functions. */
-      clear_parent_information();
-    }  /* if */
     /* Pop the file-scope context. */
     pop_context();
     initial_value_for_il_lowering_flag = !initial_value_for_il_lowering_flag;
