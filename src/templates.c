@@ -14088,6 +14088,7 @@ specific definition that made it unnecessary.
 }  /* instantiation_wrapup */
 
 #if INSTANTIATE_EXTERN_INLINE 
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
 
 static a_boolean inline_function_in_request_file(a_routine_ptr	rout_ptr)
 /*
@@ -14108,6 +14109,7 @@ file.
   return result;
 }  /* inline_function_in_request_file */
 
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
 static a_boolean inline_function_should_be_emitted(
 					a_routine_ptr	rout_ptr)
@@ -14138,8 +14140,10 @@ emitted in this translation unit.
   } else if (instantiation_mode == tim_all) {
     /* In -tall mode, always emit it. */
     result = TRUE;
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
   } else if (inline_function_in_request_file(rout_ptr)) {
     result = TRUE;
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   }  /* if */
   return result;
 }  /* inline_function_should_be_emitted */
@@ -14181,17 +14185,21 @@ are instantiated using a mechanism like the template instantiation mechanism.
 #if INSTANTIATE_EXTERN_INLINE
   a_routine_list_entry_ptr	rlep;
 
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
   /* Set the flag that indicates that this translation unit contains
      instantiatable entities. */
   if (inline_function_list != NULL) any_instantiations_required = TRUE;
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   for (rlep = inline_function_list; rlep != NULL; rlep = rlep->next) {
     set_body_needed_flag_for_inline_function(rlep->routine);
   }  /* for */
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
   if (any_instantiations_required && use_template_info_file &&
       generate_template_files()) {
     /* Make sure the template information file has been created. */
     if (f_template_info == NULL) open_template_info_file();
   }  /* if */
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 #endif /* INSTANTIATE_EXTERN_INLINE */
 }  /* inline_function_wrapup */
 
