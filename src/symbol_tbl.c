@@ -1313,10 +1313,15 @@ changed if there is no error.
            even though the name is the same. */
         if (class_symbol->header == sym_ptr->header) {
           /* If no constructor already exists we permit a field with the same
-             name as the class of which it is a member. */
+             name as the class of which it is a member, as long as it's not
+             an anonymous union field. */
           if (sym_ptr->kind == (a_symbol_kind)sk_field &&
               class_symbol->variant.
-                          class_struct_union.extra_info->constructor == NULL) {
+                          class_struct_union.extra_info->constructor == NULL &&
+              (sym_ptr->variant.field.ptr == NULL ||
+               sym_ptr->class_of_which_a_member ==
+                                sym_ptr->variant.field.ptr->
+                                    source_corresp.class_of_which_a_member)) {
             /* No error. */
           } else {
             /* Error: an identifier that is not a constructor and that
