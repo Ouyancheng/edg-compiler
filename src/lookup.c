@@ -456,7 +456,7 @@ as the class type, and use as a base class.
   a_class_symbol_supplement_ptr		cssp;
 
   tptsp = templ_param_type->variant.template_param.extra_info;
-  /* If the template parameter does not yet have a proxy class.  Create one
+  /* If the template parameter does not yet have a proxy class, create one
      now. */
   if (tptsp->class_type == NULL) {
     /* Get the symbol pointer associated with the template parameter. */
