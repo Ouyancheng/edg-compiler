@@ -5806,8 +5806,8 @@ function_lparen:
         if (derived_type != NULL) {
           /* If the function is pointed to by a pointer-to-member type, we need
              to pass the class-of-which-a-member to function_declarator. */
-          a_type_ptr tp = skip_typerefs(bottom_derived_type);
-          if (is_ptr_to_member_type(tp)) {
+          a_type_ptr tp = bottom_derived_type;
+          if (tp != NULL && is_ptr_to_member_type(tp)) {
             /* Declaration of a pointer to member function. */
             member_parent_type = pm_class_type(tp);
             is_nonstatic_member_function = TRUE;
@@ -5907,7 +5907,9 @@ function_lparen:
      (pointer derived type list plus specifiers_list), making
      the full type.  Note that this involves error checking. */
   if (derived_type != NULL) {
-    if (complete_type != NULL) {
+    if (is_error_type(derived_type)) {
+      bottom_derived_type = error_type();
+    } else if (complete_type != NULL) {
       if (bottom_derived_type->kind == (a_type_kind)tk_error) {
         /* The bottom derived type is an error, so we cannot attach the
            complete type to the bottom.  Also clear the pointer to the
@@ -5924,7 +5926,7 @@ function_lparen:
   }  /* if */
   /* If there were pointer types scanned at the beginning of this routine,
      the bottom-most derived type is the bottom-most pointer type. */
-  if (bottom_pointer_derived_type != NULL) {
+  if (bottom_pointer_derived_type != NULL && !is_error_type(complete_type)) {
     bottom_derived_type = bottom_pointer_derived_type;
   }  /* if */
   if (specifiers_type != NULL) {
