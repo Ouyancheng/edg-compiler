@@ -1419,7 +1419,7 @@ in Microsoft mode; in that case, token pasting off the end is not allowed.
     }  /* if */
     /* Copy the text of the token to the auxiliary buffer. */
     (void)memcpy(pos_in_aux_buffer, start_of_curr_token,
-                size_t_arg(len_of_curr_token));
+                 size_t_arg(len_of_curr_token));
     pos_in_aux_buffer += len_of_curr_token;
     last_token_of_expansion = curr_token;
   }  /* while */
