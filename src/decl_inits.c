@@ -2463,7 +2463,8 @@ are created by a new expression (in which case sym is NULL).  In both cases
   } else {
     if (is_array_type(type)) type = underlying_array_element_type(type);
     if (is_const_qualified_type(type)) {
-      if (is_class_struct_union_type(type) &&
+      if (C_dialect == C_dialect_cplusplus &&
+          is_class_struct_union_type(type) &&
           !symbol_supplement_for_class(type)->any_nonstatic_data_members) {
         /* Uninitialized const object that is an "empty" class (i.e., one with
            no nonstatic data members).  No error is issued. */
