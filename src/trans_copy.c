@@ -1222,6 +1222,19 @@ to the secondary translation unit.
       /* The type is a duplicate of one elsewhere and should be discarded. */
       keep_on_list = FALSE;
     }  /* if */
+    /* If the entry is being discarded or it will be merged into another
+       entry, preserve/merge any information in the used_in_exception_or_rtti
+       flag. */
+    if (type->used_in_exception_or_rtti &&
+        (!keep_on_list || entry_to_be_merged(type))) {
+      a_type_ptr corresp_type;
+      if (entry_should_overwrite_primary_entry(type)) {
+        corresp_type = (a_type_ptr)transitive_copy_address_of(type);
+      } else {
+        corresp_type = (a_type_ptr)canonical_il_entry_of(type);
+      }  /* if */
+      corresp_type->used_in_exception_or_rtti = TRUE;
+    }  /* if */
 #if DEBUG
     if (db_trace("trans_copy", type, iek_type)) {
       fprintf(f_debug, "prepare_for_trans_unit_copy, ");
@@ -1703,6 +1716,8 @@ the secondary translation unit IL).
   a_class_type_supplement_ptr primary_ctsp;
   a_symbol_ptr                sym =
                                (a_symbol_ptr)(type->source_corresp.assoc_info);
+  a_boolean                   saved_used_in_exception_or_rtti =
+                                       primary_type->used_in_exception_or_rtti;
   do_saves_for_overwrite(primary_type, a_type_ptr);
   if (is_class) {
     primary_ctsp = primary_type->variant.class_struct_union.extra_info;
@@ -1722,6 +1737,9 @@ the secondary translation unit IL).
                                                        saved_definition_needed;
 #endif /* MAINTAIN_NEEDED_FLAGS */
   }  /* if */
+  /* Note that used_in_exception_or_rtti was previously updated in the
+     primary routine, so we just save the value determined. */
+  primary_type->used_in_exception_or_rtti = saved_used_in_exception_or_rtti;
   establish_as_canonical(&primary_type->source_corresp);
   if (sym != NULL) {
     /* Make the symbol (in a secondary translation unit) point to the
