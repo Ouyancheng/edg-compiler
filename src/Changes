@@ -1,5 +1,23 @@
 Version 2.39
 
+3/2/98    Microsoft compatibility: C++ variable declared as zero-length array
+
+A previous change (see entry for 1/17/97) permitted the following variable
+declaration in Microsoft C++ mode:
+
+  char s[];     // treated as implicitly "extern" in Microsoft mode
+
+A bug was introduced at the same time insofar as const-qualified variables
+such as
+
+  const char x[] = "abc";
+  const char y[];
+
+were also made implicitly extern in Microsoft mode.  They shouldn't have
+been.  Both are now treated as implicitly "static", and the second case now
+gets the expected error (the definition of a const variable requires an
+initializer).
+
 3/2/98    Microsoft compatibility: cast on template argument to remove
           cv-qualifiers
 
