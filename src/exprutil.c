@@ -4244,9 +4244,9 @@ on function_type.  *call_pos gives the source position of the call.
     conv_object_pointer_to_lvalue(result);
     call_node->implicit_reference_indirection = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (microsoft_mode && !C_mode() &&
+  } else if (microsoft_bugs && !C_mode() &&
              is_class_struct_union_type(return_type)) {
-    /* In Microsoft mode, a function that returns a class type is considered
+    /* In Microsoft C++ mode, a function that returns a class type is considered
        to return an lvalue. */
     conv_class_operand_to_object_pointer(result);
     conv_object_pointer_to_lvalue(result);
