@@ -51,7 +51,6 @@ static unsigned long
 		symbol_name_string_space,
 		num_class_symbol_supplements_allocated,
                 num_conversion_list_entries_allocated,
-                num_anonymous_unions_allocated,
 		num_extern_symbol_descrs_allocated,
 		num_extern_type_fixups_allocated,
                 num_projection_descrs_allocated,
@@ -640,31 +639,6 @@ Allocate a new conversion list entry and return a pointer to it.
 }  /* alloc_conversion_header */
 
 
-an_anonymous_union_ptr alloc_anonymous_union(a_boolean  is_var)
-/*
-Allocate an anonymous union entry and return a pointer to it.
-*/
-{
-  an_anonymous_union_ptr  ptr;
-
-  db_enter(5, "alloc_anonymous_union");
-  ptr = (an_anonymous_union_ptr)alloc_fe(sizeof(an_anonymous_union));
-#if DEBUG
-  num_anonymous_unions_allocated++;
-#endif /* DEBUG */
-  ptr->next = NULL;
-  ptr->is_variable_object = is_var;
-  if (is_var) {
-    ptr->variant.variable = NULL;
-  } else {
-    ptr->variant.field = NULL;
-  }  /* if */
-
-  db_exit();
-  return ptr;
-}  /* alloc_anonymous_union */
-
-
 a_symbol_ptr find_symbol(char             *identifier,
 			 sizeof_t         length,
 			 a_symbol_locator *location)
@@ -860,7 +834,7 @@ state.
       break;
     case sk_field:
       sym_ptr->variant.field.ptr = NULL;
-      sym_ptr->variant.field.anonymous_union = NULL;
+      sym_ptr->variant.field.anonymous_union_variable = NULL;
       break;
     case sk_routine:
     case sk_member_function:
@@ -3872,16 +3846,17 @@ check_routine:
       scp = &sym->variant.constant->source_corresp;
       break;
     case sk_field:
-      if (sym->variant.field.anonymous_union == NULL) {
-        scp = &sym->variant.field.ptr->source_corresp;
+      if (sym->variant.field.anonymous_union_variable != NULL) {
+        scp = &sym->variant.field.anonymous_union_variable->source_corresp;
       } else {
-        an_anonymous_union_ptr  aup = sym->variant.field.anonymous_union;
-        while (aup->next != NULL) aup = aup->next;
-        if (aup->is_variable_object) {
-          scp = &aup->variant.variable->source_corresp;
-        } else {
-          scp = &aup->variant.field->source_corresp;
-        }  /* if */
+        a_field_ptr  fp = sym->variant.field.ptr;
+        for (;;) {
+          scp = &fp->source_corresp;
+          if (!is_class_struct_union_type(fp->type)) break;
+          fp = (skip_typerefs(fp->type))->variant.
+                         class_struct_union.extra_info->anonymous_union_field;
+          if (fp == NULL) break;
+        }  /* for */
       }  /* if */
       break;
     case sk_type:
@@ -4123,8 +4098,6 @@ scope).  Otherwise, return NO_SCOPE_DEPTH.
 */
 {
   a_scope_depth            sd, func_scope_depth = NO_SCOPE_DEPTH;
-  a_scope_stack_entry_ptr  ssep;
-  a_scope_kind             kind;
 
   if (decl_scope_level != DEPTH_OF_FILE_SCOPE) {
     if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
@@ -4419,8 +4392,6 @@ for space tracking purposes.
             a_class_symbol_supplement);
   write_one("conversion list entry", num_conversion_list_entries_allocated,
             a_conversion_list_entry);
-  write_one("anonymous union", num_anonymous_unions_allocated,
-            an_anonymous_union);
   write_one("projection symbol descr", num_projection_descrs_allocated,
             a_projection_descr);
 
@@ -4534,7 +4505,6 @@ to avoid an 8-character external name clash with symbol_table.)
   symbol_name_string_space               = 0;
   num_class_symbol_supplements_allocated = 0;
   num_conversion_list_entries_allocated  = 0;
-  num_anonymous_unions_allocated         = 0;
   num_extern_symbol_descrs_allocated     = 0;
   num_extern_type_fixups_allocated       = 0;
   num_projection_descrs_allocated        = 0;
