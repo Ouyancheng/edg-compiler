@@ -2630,7 +2630,31 @@ part of a template-dependent expression.
       break;
 #endif /* IA64_ABI */
     default:
-      unexpected_condition_str("mangled_encoding_for_expression: bad kind");
+      /* Unexpected expression kind.  These are allowed in some cases for
+         expressions under sizeof in the IA-64 ABI. */
+#if CHECKING
+#if IA64_ABI
+      if (!mctl->mangling_sizeof_expression)
+#endif /* IA64_ABI */
+      /* Do not insert code here. */
+      {
+        internal_error("mangled_encoding_for_expression: bad kind");
+      }  /* if */
+#endif /* CHECKING */
+#if IA64_ABI
+      /* Generate a zero constant instead of the unexpected expression.
+         We expect this in cases where the mangling doesn't matter.
+         See note in bad_mangled_expr_operator_name. */
+      { a_constant zero_constant;
+        make_zero_of_proper_type(integer_type((an_integer_kind)ik_int),
+                                 &zero_constant);
+        mangled_encoding_for_constant(&zero_constant,
+                                      /*old_form=*/FALSE,
+                                      /*in_dependent_expr=*/FALSE,
+                                      mctl);
+      }
+      break;
+#endif /* IA64_ABI */
   }  /* switch */
 }  /* mangled_encoding_for_expression */
 
