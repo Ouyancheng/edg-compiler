@@ -1667,9 +1667,10 @@ region description entry).
   set_unsigned_integer_constant(elem_size_con, (unsigned long)elem_type->size,
                                 targ_size_t_int_kind);
   size_con = alloc_constant((a_constant_repr_kind)ck_integer);
-  if (ipdp->whole_array) {
-    /* The entity really is an array.  Get the element count.  -1 indicates
-       that the runtime should look up the number of elements in the array. */
+  if (ipdp->array_element_sequence) {
+    /* The entity really is a sequence of array elements.  Get the element
+       count.  -1 indicates that the runtime should look up the number of
+       elements in the array. */
     elem_count = ipdp->array_element_count;
   } else {
     /* Not an array (see header comment above).  Use an element count of 0. */
@@ -1966,7 +1967,7 @@ aggregate constant for the region table entry.
   flags_value |= handle.flags;
 #endif /* !DO_FULL_PORTABLE_EH_LOWERING */
   /* See if we need array information on the entity. */
-  if (ipdp->whole_array) {
+  if (ipdp->array_element_sequence) {
     need_array_info = TRUE;
   } else if (is_delete) {
     /* Check for the 2-argument version of delete; we need array information

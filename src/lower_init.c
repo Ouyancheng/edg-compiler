@@ -666,7 +666,7 @@ Clear an initialization position description entry to default values.
   ipdp->thrown_object_address     = FALSE;
 #endif /* !DO_FULL_PORTABLE_EH_LOWERING */
   ipdp->indirect_through_variable = FALSE;
-  ipdp->whole_array               = FALSE;
+  ipdp->array_element_sequence    = FALSE;
   ipdp->base_class_subobject      = FALSE;
   ipdp->base_type                 = NULL;
   ipdp->modifiers                 = NULL;
@@ -2273,10 +2273,10 @@ static void lower_ck_dynamic_init(a_constant_ptr         con_ptr,
 Generate executable code to handle a ck_dynamic_init constant (pointed
 to by con_ptr).  The entity to be initialized is described by ipdp.
 The necessary statements are inserted at *insert_location and
-*insert_location is updated.  If ipdp->whole_array is TRUE, this
-call is handling all the elements of an array.  If dtor_case is TRUE, we
-are generating a destructor wrapper; do the destruction indicated in
-the dynamic init but ignore any initialization.  If the dynamic
+*insert_location is updated.  If ipdp->array_element_sequence is TRUE,
+this call is handling a sequence of elements in an array.  If dtor_case
+is TRUE, we are generating a destructor wrapper; do the destruction
+indicated in the dynamic init but ignore any initialization.  If the dynamic
 initialization is part of a constructor initializer, ctor_init points
 to the constructor-init entry.
 */
@@ -2415,7 +2415,7 @@ are any (genuine) constants in the aggregate, set *keep_constant to TRUE.
     "lower_dynamic_init_aggregate_constant: repeated con not ck_dynamic_init");
       }  /* if */
 #endif /* CHECKING */
-      ipd.whole_array = TRUE;
+      ipd.array_element_sequence = TRUE;
       ipd.array_element_count =
                           (a_targ_ptrdiff_t)con_ptr->variant.init_repeat.count;
       lower_ck_dynamic_init(repeated_con, &ipd, dtor_case, ctor_init,
@@ -3342,7 +3342,8 @@ in this routine must be FALSE in that case.
   /* See if this is an initialization of an array via a constructor.  For
      such initializations certain things get delayed because the actual
      initialization gets done by a runtime routine. */
-  if (dip->kind == (a_dynamic_init_kind)dik_constructor && ipdp->whole_array) {
+  if (dip->kind == (a_dynamic_init_kind)dik_constructor &&
+      ipdp->array_element_sequence) {
     constructor_array_init = TRUE;
     /* The init_expr_lifetime comes up in this case only if default arguments
        of the constructor require temporaries.  Leave that lifetime to be
@@ -3392,6 +3393,8 @@ in this routine must be FALSE in that case.
       break;
     case dik_zero:
       /* Initialize to zero. */
+      check_assertion_str(!ipdp->array_element_sequence,
+                          "lower_dynamic_init: repeated zero init");
       if (variable != NULL) {
         /* Entire variable initialized to zero.  Do nothing here.
            Processing is below (setting init_kind to initk_zero). */
@@ -3451,11 +3454,8 @@ in this routine must be FALSE in that case.
         lower_expr(source_node, expr_is_lvalue);
       }  /* if */
 do_assignment:;
-#if CHECKING
-      if (ipdp->whole_array) {
-        internal_error("lower_dynamic_init: array for const or expr init");
-      }  /* if */
-#endif /* CHECKING */
+      check_assertion_str(!ipdp->array_element_sequence,
+                          "lower_dynamic_init: repeated const or expr init");
       /* Make a node for the entity to be initialized. */
       entity_node = make_init_entity_node(ipdp, /*using_as_address=*/FALSE,
                                           /*using_as_dest=*/TRUE);
@@ -3502,8 +3502,8 @@ do_assignment:;
            arguments below. */
         param = param->next;
       }  /* if */
-      if (ipdp->whole_array) {
-        /* Construct an array. */
+      if (ipdp->array_element_sequence) {
+        /* Construct a sequence of array elements. */
 #if CHECKING
         if (implied_arg_list != NULL) {
           internal_error("lower_dynamic_init: implied arg list for array");

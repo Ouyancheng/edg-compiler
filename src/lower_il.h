@@ -144,11 +144,10 @@ typedef struct an_init_pos_descr {
 			/* If TRUE, variable is a pointer and its value gives
 			   the base address. */
   a_byte_boolean
-		whole_array;
-			/* TRUE if the entity is a whole array being
-			   initialized as one unit (or the tail piece of
-			   an array being initialized as a unit, after initial
-			   elements are initialized individually). */
+		array_element_sequence;
+			/* TRUE if the entity is a sequence of array elements
+			   initialized as one unit (i.e., under a
+			   ck_init_repeat). */
   a_byte_boolean
 		base_class_subobject;
 			/* TRUE if the entity is a base class of an object,
@@ -162,9 +161,9 @@ typedef struct an_init_pos_descr {
 			   modifier. */
   a_targ_ptrdiff_t
 		array_element_count;
-			/* If whole_array is TRUE, the count of elements in
-			   the array, or -1 for an unknown-length array
-			   (new/delete only).  Zero otherwise. */
+			/* If array_element_sequence is TRUE, the count of
+			   elements in the array, or -1 for an unknown-length
+			   array (new/delete only).  Zero otherwise. */
 } an_init_pos_descr;
 
 typedef struct a_destructible_entity_descr *a_destructible_entity_descr_ptr;
