@@ -16994,6 +16994,7 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
                                    /*lint -esym(550,added_to_list)*/
   a_master_instance_ptr		   mip = NULL;
   a_boolean			   defer_inline;
+  a_boolean			   defer_instantiation = FALSE;
   a_boolean			   use_master_instance;
 
   db_enter(5, "update_instantiation_required_flag");
@@ -17092,6 +17093,7 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
       deferred_instantiations_tail->next = slep;
     }  /* if */
     deferred_instantiations_tail = slep;
+    defer_instantiation = TRUE;
   } else {
     a_boolean	flag_already_set;
     flag_already_set = tip->instantiation_required;
@@ -17168,7 +17170,7 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
     }  /* if */
     /* See if the entity should be instantiated as a result of an
        assignment by the automatic instantiation mechanism. */
-    if (value &&
+    if (value && !defer_instantiation &&
         entity_can_be_instantiated(tip, /*implicit_inclusion_okay=*/FALSE) &&
         mip->automatically_instantiated && !mip->already_instantiated) {
       /* Implicit inclusion is not done for "on the fly" instantiations

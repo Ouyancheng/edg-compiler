@@ -1,5 +1,14 @@
 Version 3.0
 
+4/3/02   Spurious "incomplete type not allowed" during automatic instantiation
+
+Instantiations of functions and static data members are deferred while
+class instantiations are in progress to ensure that the class definition
+is completed before any references that might use the class are processed.
+This deferral did not work properly for entities instantiated because they
+were specified in the .ii file, resulting in possible spurious errors.
+This has been fixed.
+
 4/2/02   Abort in Cfront mode when redeclaring a class in its own definition
 
 The front end used to abort in Cfront mode when processing a declaration
