@@ -5512,12 +5512,14 @@ instantiations) below that on the scope stack.
 }  /* add_placeholder_for_class_instantiation */
 
 
-void add_to_types_list(a_type_ptr     type_ptr,
-                       a_scope_depth  scope_level)
+void add_to_types_list_full(a_type_ptr     type_ptr,
+                            a_scope_depth  scope_level,
+                            a_boolean      do_placeholder)
 /*
 Add the given type to the types list for the scope corresponding to
 scope_level.  When scope_level is NO_SCOPE_DEPTH, the scope is computed
-rather than determined directly.
+rather than determined directly.  If do_placeholder is TRUE, add
+a namespace placeholder if appropriate.
 */
 {
   a_scope_ptr                 sp;
@@ -5566,11 +5568,7 @@ rather than determined directly.
       fprintf(f_debug, "\n");
     }  /* if */
 #endif /* DEBUG */
-    if (!C_mode()
-#if DO_IL_LOWERING
-        && !il_lowering_underway
-#endif /* DO_IL_LOWERING */
-                                ) {
+    if (!C_mode() && do_placeholder) {
       if (sp->kind == (a_scope_kind)sck_namespace) {
         /* We are adding a type to the types list of a namespace scope.  Add
            a placeholder type to the types list of the filescope -- it's used
@@ -5580,6 +5578,18 @@ rather than determined directly.
       }  /* if */
     }  /* if */
   }  /* if */
+}  /* add_to_types_list_full */
+
+
+void add_to_types_list(a_type_ptr     type_ptr,
+                       a_scope_depth  scope_level)
+/*
+Add the given type to the types list for the scope corresponding to
+scope_level.  When scope_level is NO_SCOPE_DEPTH, the scope is computed
+rather than determined directly.
+*/
+{
+  add_to_types_list_full(type_ptr, scope_level, /*do_placeholder=*/TRUE);
 }  /* add_to_types_list */
 
 

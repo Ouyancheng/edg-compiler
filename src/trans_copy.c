@@ -1010,7 +1010,7 @@ source correspondence field is scp and whose kind is "kind" are consistent.
 
   if (tucp == NULL) {
     /* An entry without a correspondence should not have external linkage. */
-    if (scp->name != NULL &&
+    if (scp->name != NULL && !scp->externalized &&
         (scp->name_linkage == (a_name_linkage_kind)nlk_external ||
          scp->name_linkage == (a_name_linkage_kind)nlk_cplusplus_external)) {
 #if DEBUG
@@ -2468,8 +2468,7 @@ inline functions, if appropriate.
     a_routine_ptr primary_routine =
                             (a_routine_ptr)transitive_copy_address_of(routine);
     if (primary_routine->is_inline &&
-        (primary_routine->storage_class == (a_storage_class)sc_unspecified ||
-         primary_routine->source_corresp.static_used_by_instantiation)) {
+        primary_routine->storage_class == (a_storage_class)sc_unspecified) {
       if (primary_routine->on_inline_function_list) {
         /* There is already a list entry for the routine in the primary IL. */
 #if DEBUG

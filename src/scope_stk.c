@@ -4376,13 +4376,6 @@ been completed.
        definitions. */
     is_needed = (vp->source_corresp.needed ||
                  variable_needed_even_if_unreferenced(vp));
-#if DO_IL_LOWERING
-    /* In translation units with exported templates, all statics have
-       to be considered potentially referenced from a template. */
-    if (vp->source_corresp.static_used_by_instantiation) {
-      is_needed = TRUE;
-    }  /* if */
-#endif /* DO_IL_LOWERING */
     if (is_needed) {
       mark_as_needed((char *)vp, (an_il_entry_kind)iek_variable);
     }  /* if */
@@ -4396,17 +4389,10 @@ been completed.
        subtree.  The subtree is not visited until this phase, because it
        can change.  Note that the subtree here is the function type,
        not the body, which is handled elsewhere. */
-    a_boolean saved_defined = rp->defined;
-#if DO_IL_LOWERING
-    /* In translation units with exported templates, all statics have
-       to be considered potentially referenced from a template. */
-    if (rp->source_corresp.static_used_by_instantiation) {
-      mark_as_needed((char *)rp, (an_il_entry_kind)iek_routine);
-    }  /* if */
-#endif /* DO_IL_LOWERING */
     /* If the "defined" flag is TRUE, the body will already have been
        walked to mark its constituents as needed; we clear the flag to
        keep it from being walked again. */
+    a_boolean saved_defined = rp->defined;
     rp->defined = FALSE;
     remark_as_needed((char *)rp, (an_il_entry_kind)iek_routine);
     /* Restore the "defined" flag. */

@@ -4781,7 +4781,8 @@ this routine to do a relatively simple copy of the all the fields.
         /* For class and namespace members, and entities in the file scope,
            add_to_types_list can figure out the right processing, and the
            loop below fails if it runs into a namespace reactivation. */
-        add_to_types_list(subobject_type, NO_SCOPE_DEPTH);
+        add_to_types_list_full(subobject_type, NO_SCOPE_DEPTH,
+                               /*do_placeholder=*/FALSE);
         goto added_to_list;
       } else {
         /* See if the list is one of the ones being tracked in the scope
@@ -4792,7 +4793,8 @@ this routine to do a relatively simple copy of the all the fields.
           if (class_type ==
               assoc_pointers_block_of(&scope_stack[scope_depth])->last_type) {
             /* Found the list.  Add the subobject type to its end. */
-            add_to_types_list(subobject_type, scope_depth);
+            add_to_types_list_full(subobject_type, scope_depth,
+                                   /*do_placeholder=*/FALSE);
             goto added_to_list;
           }  /* if */
         }  /* for */
@@ -12735,12 +12737,12 @@ files can reference it.
   scp->same_name_as_external_entity_in_secondary_trans_unit = FALSE;
 }  /* externalize_source_correspondence */
 
+#if ONE_INSTANTIATION_PER_OBJECT
 
 void make_statics_referenced_from_instantiations_external(void)
 /*
 When generating instantiations in separate object files, make any
 static variables or functions referenced from instantiations external.
-This also comes up for statics referenced from exported templates.
 This must be called after IL lowering for the file scope, and after
 the needed-flag walk for the file scope.  Not done in secondary
 translation units (their statics are picked up after copying).
@@ -12768,11 +12770,9 @@ translation units (their statics are picked up after copying).
             rout->source_corresp.name_linkage ==
                                              (a_name_linkage_kind)nlk_internal)
 #endif /* LOWER_EXTERN_INLINE */
-#if ONE_INSTANTIATION_PER_OBJECT
 #if DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES
         && !rout->source_corresp.duplicate_static_in_instantiation_slices
 #endif /* DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES */
-#endif /* ONE_INSTANTIATION_PER_OBJECT */
                                                                          ) {
       if (rout->storage_class == (a_storage_class)sc_static) {
         externalize_source_correspondence(&rout->source_corresp,
@@ -12799,11 +12799,9 @@ translation units (their statics are picked up after copying).
 #endif /* !USE_INIT_SECTION_IN_GENERATED_C */
     /* Do not insert code here.  This is the "else" of an "if". */
     if (var->source_corresp.static_used_by_instantiation
-#if ONE_INSTANTIATION_PER_OBJECT
 #if DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES
         && !var->source_corresp.duplicate_static_in_instantiation_slices
 #endif /* DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES */
-#endif /* ONE_INSTANTIATION_PER_OBJECT */
                                                                         ) {
       if (var->storage_class == (a_storage_class)sc_static) {
         externalize_source_correspondence(&var->source_corresp,
@@ -12817,6 +12815,7 @@ translation units (their statics are picked up after copying).
   }  /* for */
 }  /* make_statics_referenced_from_instantiations_external */
 
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
 
 void lower_il_memory_region(a_memory_region_number region_number)
 /*
@@ -12876,15 +12875,9 @@ C++ to C, so that a C back end can handle it without change.
     push_context(&context, il_header.primary_scope,
                  (an_object_lifetime_ptr)NULL);
     /* Create definitions for virtual function tables.  This must be done
-       early when virtual function information is still available.  It must
-       be done before name mangling because the original names of nested
-       classes must go into any typeinfo variables created. */
+       early when virtual function information is still available. */
     define_scope_virtual_function_tables(scope);
     if (lowering_file_scope) {
-      /* Do name mangling.  This must be done early when original type
-         information is available (for example, references are still
-         references and not yet pointers). */
-      do_all_name_mangling();
       /* Create any needed typeinfo variables.  This must be done after
          virtual function table definition but before most lowering. */
       generate_typeinfo_vars();

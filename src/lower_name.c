@@ -3923,12 +3923,7 @@ mangled names.
     /* Name mangling is needed. */
     /* The encoding is the original name, followed by "__Lnn", where "nn"
        is the scope number within the function, followed by two underscores,
-       followed by the mangled name of the routine.  Note that the routine
-       name has not been mangled yet (except when it has been copied from
-       a secondary translation unit), but the entity's name has been (if
-       it needs mangling). */
-    check_assertion(!routine->source_corresp.name_has_been_mangled ||
-                    routine->source_corresp.copied_from_secondary_trans_unit);
+       followed by the mangled name of the routine. */
     /* Develop a scope number for the scope in which the entity appears.
        This number must be relative to the function rather than to the
        whole compilation so that if a given function (e.g., an extern inline

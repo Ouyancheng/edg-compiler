@@ -345,6 +345,10 @@ extern void add_placeholder_for_class_instantiation(a_type_ptr  type_ptr);
 extern a_boolean may_be_added_to_types_list(a_type_ptr     type_ptr,
                                             a_scope_depth  decl_level);
 
+extern void add_to_types_list_full(a_type_ptr     type_ptr,
+                                   a_scope_depth  scope_level,
+                                   a_boolean      do_placeholder);
+
 extern void add_to_types_list(a_type_ptr     type_ptr,
                               a_scope_depth  scope_level);
 

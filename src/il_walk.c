@@ -1019,9 +1019,8 @@ references.
        this, but doing it here reduces the possibility of error.  (In C++
        mode, extern inline functions may be lowered to static inline
        functions, in which case the definition may not be needed.) */
-    if ((rout->storage_class == (a_storage_class)sc_unspecified &&
-         (C_mode() || !treat_as_static_inline(rout))) ||
-        rout->source_corresp.static_used_by_instantiation) {
+    if (rout->storage_class == (a_storage_class)sc_unspecified &&
+        (C_mode() || !treat_as_static_inline(rout))) {
       set_routine_definition_needed(rout);
 #if GNU_EXTENSIONS_ALLOWED
     } else if (rout->is_initialization_routine ||
