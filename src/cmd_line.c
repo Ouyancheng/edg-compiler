@@ -449,6 +449,12 @@ Initialize the option information table.
   add_option_description(optk_building_runtime, "building_runtime", '\0',
                          /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_bool_is_keyword, "bool",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_bool_is_keyword, "no_bool",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -1324,6 +1330,10 @@ Process the arguments on the command line that invoked the compiler.
         check_assertion(opt_value == TRUE);
         building_runtime = TRUE;
         break;
+      case optk_bool_is_keyword:
+        /* bool is or is not a keyword. */
+        bool_is_keyword = opt_value;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -1377,6 +1387,9 @@ Process the arguments on the command line that invoked the compiler.
 #endif /* RTTI_ENABLING_POSSIBLE */
     if (option_kind_used[(int)optk_wchar_t_is_keyword]) {
       command_line_error(ec_cl_wchar_t_option_only_in_cplusplus);
+    }  /* if */
+    if (option_kind_used[(int)optk_bool_is_keyword]) {
+      command_line_error(ec_cl_bool_option_only_in_cplusplus);
     }  /* if */
     if (option_kind_used[(int)optk_alternative_tokens]) {
       command_line_error(ec_cl_alternative_token_option_only_in_cplusplus);

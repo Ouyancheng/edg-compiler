@@ -728,6 +728,8 @@ Dump the contents of the indicated type entry, for debug purposes.
     case tk_integer:
       if (tp->variant.integer.wchar_t_type) {
         fputs("wchar_t", f_debug);
+      } else if (tp->variant.integer.bool_type) {
+        fputs("bool", f_debug);
       } else {
         fprintf(f_debug, "%s", int_kind_name(tp->variant.integer.int_kind));
         if (tp->variant.integer.enum_type) fputs(" enum", f_debug);
@@ -4229,6 +4231,7 @@ to default values.
       pte->variant.integer.explicitly_signed = FALSE;
       pte->variant.integer.enum_type = FALSE;
       pte->variant.integer.wchar_t_type = FALSE;
+      pte->variant.integer.bool_type = FALSE;
 #if CHECKING
       pte->variant.integer.avoid_codecenter_warnings = 0;
 #endif /* CHECKING */

@@ -424,6 +424,34 @@ only used when DEFINE_MACRO_WHEN_WCHAR_T_IS_KEYWORD is TRUE.
 #endif /* DEFINE_MACRO_WHEN_WCHAR_T_IS_KEYWORD */
 
 /*
+Flag that is TRUE if, in C++ mode, bool is a keyword by default.  This is
+the default value for the global flag bool_is_keyword, the value of
+which may be modified using command line options.
+*/
+#ifndef DEFAULT_BOOL_IS_KEYWORD
+#define DEFAULT_BOOL_IS_KEYWORD FALSE
+#endif /* ifndef DEFAULT_BOOL_IS_KEYWORD */
+
+/*
+Flag that is TRUE if, when bool is a keyword, a preprocessing symbol
+should be defined to prevent header files from attempting to
+redefine bool as a typedef.
+*/
+#ifndef DEFINE_MACRO_WHEN_BOOL_IS_KEYWORD
+#define DEFINE_MACRO_WHEN_BOOL_IS_KEYWORD TRUE
+#endif /* ifndef DEFINE_MACRO_WHEN_BOOL_IS_KEYWORD */
+
+/*
+The name of the macro to be defined when bool is a keyword.  This is
+only used when DEFINE_MACRO_WHEN_BOOL_IS_KEYWORD is TRUE.
+*/
+#if DEFINE_MACRO_WHEN_BOOL_IS_KEYWORD
+#ifndef MACRO_DEFINED_WHEN_BOOL_IS_KEYWORD
+#define MACRO_DEFINED_WHEN_BOOL_IS_KEYWORD "_BOOL"
+#endif /* ifndef MACRO_DEFINED_WHEN_BOOL_IS_KEYWORD */
+#endif /* DEFINE_MACRO_WHEN_BOOL_IS_KEYWORD */
+
+/*
 Flag that is TRUE if, in C++ mode, operator keywords (e.g., bitand, compl)
 and digraphs are recognized.  This is the default value for the global
 flag alternative_tokens_allowed, the value of which may also be modified

@@ -293,6 +293,18 @@ Install the keywords in the symbol table.
     if (wchar_t_is_keyword) {
       enter_keyword((a_token_kind)tok_wchar_t, "wchar_t");
     }  /* if */
+    if (bool_is_keyword) {
+      /* Enter C++ keywords used for the bool type.  This is only
+         done when bool_is_keyword is TRUE.  When bool_is_keyword is FALSE,
+         "bool", "true", and "false" are not entered as unimplemented
+         keywords because it is anticipated that most current usage
+         will be compatible with the new language feature when it is
+         implemented so a diagnostic would not, in general, be
+         helpful. */
+      enter_keyword((a_token_kind)tok_bool,  "bool");
+      enter_keyword((a_token_kind)tok_false, "false");
+      enter_keyword((a_token_kind)tok_true,  "true");
+    }  /* if */
     /* Enter C++ keywords used as synonyms for operators. */
     if (alternative_tokens_allowed) {
       enter_keyword((a_token_kind)tok_and_and,        "and");
@@ -316,11 +328,7 @@ Install the keywords in the symbol table.
       enter_unimplemented_keyword("dynamic_cast", ec_unimplemented_keyword);
       enter_unimplemented_keyword("typeid",       ec_unimplemented_keyword);
     }  /* if */
-    /* Enter keywords for things that are not yet implemented.  Note that
-       "bool", "true", and "false" are not entered because it is anticipated
-       that most current usage will be compatible with the new language
-       feature when it is implemented so a diagnostic would not, in general,
-       be helpful. */
+    /* Enter keywords for things that are not yet implemented. */
     enter_unimplemented_keyword("const_cast",       ec_unimplemented_keyword);
     enter_unimplemented_keyword("mutable",          ec_unimplemented_keyword);
     enter_unimplemented_keyword("namespace",        ec_unimplemented_keyword);

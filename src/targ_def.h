@@ -482,6 +482,16 @@ Wide character constant type (wchar_t, see stddef.h and stdlib.h).
 #endif /* !defined(TARG_SIZEOF_WCHAR_T) */
 
 /*
+bool constant type.
+*/
+
+#ifndef TARG_BOOL_INT_KIND
+#define TARG_BOOL_INT_KIND ((an_integer_kind)ik_unsigned_short)
+			/* Default value, used to initialize global variable
+			   targ_bool_int_kind. */
+#endif /* !defined(TARG_BOOL_INT_KIND) */
+
+/*
 Pointer types:
 */
 #define TARG_ALL_POINTERS_SAME_SIZE TRUE

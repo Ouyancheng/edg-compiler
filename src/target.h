@@ -104,6 +104,14 @@ EXTERN a_targ_size_t
 			/* Size of a wchar_t entity.  Initialized to the
 			   default value but reconfigurable. */
 
+EXTERN an_integer_kind
+		targ_bool_int_kind
+#if VAR_INITIALIZERS
+                                      = TARG_BOOL_INT_KIND
+#endif /* VAR_INITIALIZERS */
+                                                          ;
+			/* Integer kind associated with bool.  Initialized
+			   to the default value but reconfigurable. */
 /*
 Integer types:
 */
@@ -589,6 +597,7 @@ EXTERN an_integer_kind
 #undef TARG_CHAR_CONSTANT_FIRST_CHAR_MOST_SIGNIFICANT
 #undef TARG_WCHAR_T_INT_KIND
 #undef TARG_SIZEOF_WCHAR_T
+#undef TARG_BOOL_INT_KIND
 #undef TARG_SIZEOF_SHORT
 #undef TARG_ALIGNOF_SHORT
 #undef TARG_SIZEOF_INT

@@ -3703,6 +3703,15 @@ command line -D options.
                                /*ref_suppresses_pch_file=*/FALSE);
     }  /* if */
 #endif /* DEFINE_MACRO_WHEN_WCHAR_T_IS_KEYWORD */
+#if DEFINE_MACRO_WHEN_WCHAR_T_IS_KEYWORD
+    if (bool_is_keyword) {
+      /* Enter a predefined macro that can be used to determine that
+         bool is a keyword. */
+      (void)enter_predef_macro("1", MACRO_DEFINED_WHEN_BOOL_IS_KEYWORD,
+                               /*cannot_be_redefined=*/TRUE,
+                               /*ref_suppresses_pch_file=*/FALSE);
+    }  /* if */
+#endif /* DEFINE_MACRO_WHEN_BOOL_IS_KEYWORD */
   }  /* if */
   if (building_runtime) {
     /* Define macros used to pass configuration information to the

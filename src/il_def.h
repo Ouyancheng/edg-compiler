@@ -2794,6 +2794,9 @@ typedef struct a_type {
 		wchar_t_type:1;
 			/* TRUE if this type is wchar_t in C++ when wchar_t
                            is a distinct type. */
+      unsigned int
+		bool_type:1;
+			/* TRUE if this type is bool in C++. */
       bitfield_to_avoid_codecenter_warnings();
       union {
         /* When enum_type is TRUE: */

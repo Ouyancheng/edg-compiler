@@ -893,6 +893,12 @@ Display the indicated type entry.
       if (ptr->variant.integer.explicitly_signed) {
         disp_boolean("explicitly_signed", TRUE);
       }  /* if */
+      if (ptr->variant.integer.wchar_t_type) {
+        disp_boolean("wchar_t_type", TRUE);
+      }  /* if */
+      if (ptr->variant.integer.bool_type) {
+        disp_boolean("bool_type", TRUE);
+      }  /* if */
       if (ptr->variant.integer.enum_type) {
         disp_boolean("enum_type", TRUE);
         disp_ptr("enum_info.constant_list",

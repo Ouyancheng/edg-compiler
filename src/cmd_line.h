@@ -122,6 +122,7 @@ typedef enum /*an_option_kind*/ {
   optk_rtti,
 #endif /* RTTI_ENABLING_POSSIBLE */
   optk_building_runtime,
+  optk_bool_is_keyword,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -502,6 +503,15 @@ EXTERN a_boolean
                            keyword.  Once command line processing has been
 			   completed, this value must only be TRUE in C++
                            mode. */
+
+EXTERN a_boolean
+		bool_is_keyword
+#if VAR_INITIALIZERS
+                                   = DEFAULT_BOOL_IS_KEYWORD
+#endif /* VAR_INITIALIZERS */
+                                                               ;
+			/* Indicates whether bool is to be considered a
+                           keyword. */
 
 #if USER_CONTROL_OF_STRUCT_PACKING
 EXTERN a_targ_alignment
