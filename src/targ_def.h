@@ -174,15 +174,47 @@ here.
 */
 #ifndef HOST_ALIGNMENT_REQUIRED
 #ifdef __alpha
+/* Alpha always needs 8 byte alignment. */
 #define HOST_ALIGNMENT_REQUIRED 8
-#else /* !defined(__alpha) */
+#else /* ifndef __alpha */
+#ifdef __i386__
+/* Intel architecture only required 4 byte alignment, even with long long. */
+#define HOST_ALIGNMENT_REQUIRED 4
+#else /* ifndef __i386__ */
 #if LONG_LONG_ALLOWED
 #define HOST_ALIGNMENT_REQUIRED 8
 #else /* !LONG_LONG_ALLOWED */
 #define HOST_ALIGNMENT_REQUIRED 4
 #endif /* LONG_LONG_ALLOWED */
+#endif /* ifdef __i386__ */
 #endif /* ifdef __alpha */
 #endif /* ifndef HOST_ALIGNMENT_REQUIRED */
+
+/*
+The alignment required by host pointers.  This is used to determine the
+size of the prefix allocated as part of each IL entry.  Four byte alignment
+is correct for most systems.  When checking code is enabled, the value of
+this macro is checked when the front end is executed.
+*/
+#ifndef HOST_POINTER_ALIGNMENT
+#ifdef __alpha
+/* Alpha always needs 8 byte alignment. */
+#define HOST_POINTER_ALIGNMENT 8
+#else /* ifndef __alpha */
+#define HOST_POINTER_ALIGNMENT 4
+#endif /* ifdef __alpha */
+#endif /* ifndef HOST_POINTER_ALIGNMENT */
+
+/*
+The alignment required for the an_il_entry_prefix structure defined in
+mem_tables.h.  This is used to determine the size of the prefix allocated
+as part of each IL entry.  For byte alignment is correct for most systems.
+When checking code is enabled, the value of this macro is checked when the
+front end is executed.
+*/
+#ifndef HOST_IL_ENTRY_PREFIX_ALIGNMENT
+#define HOST_IL_ENTRY_PREFIX_ALIGNMENT 4
+#endif /* ifndef HOST_IL_ENTRY_PREFIX_ALIGNMENT */
 
 /*
 Target byte order.  Little-endian means the least-significant part of a

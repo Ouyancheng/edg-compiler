@@ -146,6 +146,22 @@ static int	file_scope_entry_prefix_size;
 			   allocated in the file scope of the current
 			   translation unit. */
 
+static int	file_scope_entry_prefix_alignment_offset;
+			/* The offset from the beginning of the space allocated
+			   for an IL entry to where the prefix actually
+			   begins for file scope allocations.  This is a
+			   translation unit variable. */
+
+static int	non_file_scope_entry_prefix_size;
+			/* The size of the entry prefix for IL entries
+			   not allocated in the file scope.  This is not a
+			   translation unit variable. */
+
+static int	non_file_scope_entry_prefix_alignment_offset;
+			/* The offset from the beginning of the space allocated
+			   for an IL entry to where the prefix actually
+			   begins for non-file-scope allocations.  This is
+			   not a translation unit variable. */
 
 /*
 Macro to increment the entry prefix allocation count only if DEBUG
@@ -169,7 +185,9 @@ happens that it is usually known by the caller).
 */
 #define do_alloc(ptr, region_number, file_scope, size)                \
 { ptr = alloc_in_region((region_number),                              \
-                         (sizeof_t)((size)+SPACE_FOR_IL_ENTRY_PREFIX)); \
+                         (sizeof_t)((size)+non_file_scope_entry_prefix_size));\
+  /* There may be padding before the prefix if needed for alignment. */	\
+  ptr += non_file_scope_entry_prefix_alignment_offset;			\
   incr_num_il_entry_prefixes_allocated();                             \
   clear_il_entry_prefix(ptr, file_scope, !is_primary_translation_unit); \
   ptr += SPACE_FOR_IL_ENTRY_PREFIX;                                   \
@@ -234,6 +252,8 @@ units are involved).
 { ptr = alloc_in_region(					      \
           fs_region_number,                                           \
           (sizeof_t)((size) + file_scope_entry_prefix_size));         \
+  /* There may be padding before the prefix if needed for alignment. */	\
+  ptr += file_scope_entry_prefix_alignment_offset;			\
   if (!is_primary_translation_unit) {				      \
     clear_and_incr_past_trans_unit_copy_address_pointer(ptr);		      \
   }  /* if */							      \
@@ -3304,6 +3324,52 @@ Display and return the amount of space used for various IL tables.
 }  /* show_il_alloc_space_used */
 #endif /* DEBUG */
 
+#if CHECKING
+
+static void check_host_alignment_parameters(void)
+/*
+Make sure that the host alignment macros are set to the appropriate values.
+
+If you want to use an alignment value larger than what is actually required,
+you will need to modify or remove these tests.
+*/
+{
+  int	expected;
+  struct pointer_alignment_test {
+    char	dummy;
+    void	*ptr;
+  };
+  struct il_entry_prefix_alignment_test {
+    char	dummy;
+    an_il_entry_prefix
+		prefix;
+  };
+  struct host_alignment_test {
+    char	dummy;
+    a_constant	constant;
+  };
+  expected = offsetof(struct host_alignment_test, constant);
+  if (expected != HOST_ALIGNMENT_REQUIRED) {
+    fprintf(stderr, "Expected HOST_ALIGNMENT_REQUIRED is %d\n", expected);
+    internal_error(
+    "check_host_alignment...: HOST_ALIGNMENT_ALIGNMENT set incorrectly");
+  }  /* if */
+  expected = offsetof(struct pointer_alignment_test, ptr);
+  if (expected != HOST_POINTER_ALIGNMENT) {
+    fprintf(stderr, "Expected HOST_POINTER_ALIGNMENT is %d\n", expected);
+    internal_error(
+    "check_host_alignment...: HOST_POINTER_ALIGNMENT set incorrectly");
+  }  /* if */
+  expected = offsetof(struct il_entry_prefix_alignment_test, prefix);
+  if (expected != HOST_IL_ENTRY_PREFIX_ALIGNMENT) {
+    fprintf(stderr, "Expected HOST_IL_ENTRY_PREFIX_ALIGNMENT is %d\n",
+            (int)HOST_IL_ENTRY_PREFIX_ALIGNMENT);
+    internal_error(
+    "check_host_alignment...: HOST_IL_ENTRY_PREFIX_ALIGNMENT set incorrectly");
+  }  /* if */
+}  /* check_host_alignment_parameters */
+#endif /* CHECKING */
+
 void il_alloc_one_time_init(void)
 /*
 Do one-time initialization of variables related to the IL. (Variables
@@ -3383,6 +3449,11 @@ in il_alloc_init.)
 #if ONE_INSTANTIATION_PER_OBJECT
   def_source_corresp.per_instantiation_needed_flags = NULL;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+
+#if CHECKING
+  /* Make sure the host alignment macros are set properly. */
+  check_host_alignment_parameters();
+#endif /* CHECKING */
 
   /* Save static variables that are needed for precompiled headers */
   if (precompiled_header_processing_required) {
@@ -3491,9 +3562,12 @@ in il_alloc_init.)
 void compute_il_prefix_size(void)
 /*
 Compute the size of the IL entry prefix for file scope IL entries in this
-translation unit.
+translation unit.  On the initial call, also compute the prefix size
+for non-file-scope entities.
 */
 {
+  int	aligned_size;
+
   /* All entries allocated in the file scope have a prefix.  If we are
      doing orphan processing, they also have an orphan pointer.  In
      secondary translation units they also have a translation unit
@@ -3505,6 +3579,22 @@ translation unit.
             SPACE_FOR_FS_ORPHAN_POINTER +
 #endif /* ORPHAN_PROCESSING_NEEDED */
             SPACE_FOR_IL_ENTRY_PREFIX;
+  /* Compute the additional space required so that the prefix is a multiple
+     of the host alignment that is required. */
+  aligned_size = file_scope_entry_prefix_size;
+  do_host_alignment(aligned_size);
+  file_scope_entry_prefix_alignment_offset = aligned_size - 
+                                             file_scope_entry_prefix_size;
+  /* Set the prefix size to the aligned size. */
+  file_scope_entry_prefix_size = aligned_size;
+  /* Compute the size of the non-file-scope entry prefix and the associated
+     alignment offset. */
+  if (is_primary_translation_unit) {
+    non_file_scope_entry_prefix_size = SPACE_FOR_IL_ENTRY_PREFIX;
+    do_host_alignment(non_file_scope_entry_prefix_size);
+    non_file_scope_entry_prefix_alignment_offset =
+                  non_file_scope_entry_prefix_size - SPACE_FOR_IL_ENTRY_PREFIX;
+  }  /* if */
 }  /* compute_il_prefix_size */
 
 

@@ -46,7 +46,6 @@ This is the version for Linux.
 #define MAX_INTEGER_VALUE 9223372036854775807LL
 #define MIN_INTEGER_VALUE (-MAX_INTEGER_VALUE-1)
 #define MAX_UNSIGNED_INTEGER_VALUE 18446744073709551615ULL
-#define HOST_ALIGNMENT_REQUIRED 8
 
 
 /******************************************************************************

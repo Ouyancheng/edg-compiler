@@ -1,5 +1,20 @@
 Version 2.46
 
+11/28/01 Reduced IL prefix memory use when using 8 byte alignment
+
+When HOST_ALIGNMENT_REQUIRED is 8 bytes, but the alignment required for
+pointer and certain structures is less than 8 bytes, the IL prefix was
+larger than necessary.  This has been fixed by providing new configuration
+macros named HOST_POINTER_ALIGNMENT and HOST_IL_ENTRY_PREFIX_ALIGNMENT.
+These macros permit components of the IL prefix to be allocated using only
+the alignment actually required by each component.  The default value of
+these macros should be correct on most systems, but may require adjustment.
+
+When CHECKING code is enabled, the values of these macros is tested during
+the initialization of the front end.  If they are not set correctly, an
+internal error is issued.  Checking code is also now provided for the
+HOST_ALIGNMENT_REQUIRED macro.
+
 11/27/01 --sun rejected when Microsoft mode is the default
 
 When Microsoft mode is enabled by default, the front end would issue

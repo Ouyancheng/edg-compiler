@@ -208,12 +208,12 @@ typedef unsigned long /* Should be an unsigned type. */
 			/* Type of entry number when not in the prefix. */
 #endif /* ALTERNATE_IL_FILE_FORMAT */
 /* Amount of space to allocate for the prefix.  The size is the smallest
-   multiple of HOST_ALIGNMENT_REQUIRED that is at least as large as
+   multiple of HOST_IL_ENTRY_PREFIX_ALIGNMENT that is at least as large as
    the size of an_il_entry_prefix.  This preserves the necessary alignment
    for the entry itself. */
 #define SPACE_FOR_IL_ENTRY_PREFIX                                     \
- ((((sizeof(an_il_entry_prefix)-1)/HOST_ALIGNMENT_REQUIRED)+1)*       \
-  HOST_ALIGNMENT_REQUIRED)
+ ((((sizeof(an_il_entry_prefix)-1)/HOST_IL_ENTRY_PREFIX_ALIGNMENT)+1)*       \
+  HOST_IL_ENTRY_PREFIX_ALIGNMENT)
 /* Macro to allow reference to the IL entry prefix that precedes
    the IL entry at ptr. */
 #define il_entry_prefix_of(ptr)                                       \
@@ -224,12 +224,12 @@ typedef unsigned long /* Should be an unsigned type. */
    memory region is preceded by a next-orphaned-entry pointer (the
    pointer also precedes the an_il_entry_prefix). */
 /* Amount of space to allocate for the next-orphaned-entry pointer.
-   The size is the smallest multiple of HOST_ALIGNMENT_REQUIRED that is
+   The size is the smallest multiple of HOST_POINTER_ALIGNMENT that is
    at least as large as the size of a "char *".  This preserves the
    necessary alignment for the entry itself. */
 #define SPACE_FOR_FS_ORPHAN_POINTER                                   \
- ((((sizeof(char *)-1)/HOST_ALIGNMENT_REQUIRED)+1)*                   \
-  HOST_ALIGNMENT_REQUIRED)
+ ((((sizeof(char *)-1)/HOST_POINTER_ALIGNMENT)+1)*                   \
+  HOST_POINTER_ALIGNMENT)
 /*
 Macro to allow reference to the next-orphaned-entry pointer that precedes
 the file-scope IL entry at ptr.
@@ -248,12 +248,12 @@ the file-scope IL entry at ptr.
    (Such a pointer is used during the process that copies IL from
    secondary translation units to the primary IL).  This is allocated
    for file scope memory regions of secondary translation units.  The
-   size is the smallest multiple of HOST_ALIGNMENT_REQUIRED that is at
+   size is the smallest multiple of HOST_POINTER_ALIGNMENT that is at
    least as large as the size of a "char *".  This preserves the
    necessary alignment for the entry itself. */
 #define SPACE_FOR_TRANS_UNIT_COPY_ADDRESS_POINTER                          \
- ((((sizeof(char *)-1)/HOST_ALIGNMENT_REQUIRED)+1)*                   \
-  HOST_ALIGNMENT_REQUIRED)
+ ((((sizeof(char *)-1)/HOST_POINTER_ALIGNMENT)+1)*                   \
+  HOST_POINTER_ALIGNMENT)
 
 /*
 Macro to allow reference to the translation unit copy address pointer
