@@ -2014,10 +2014,10 @@ do_label:
                iek_dynamic_init);
       break;
     case stmk_asm:
-      /* stmk_asm is only used in versions with ASM_STATEMENT_ALLOWED set
-         TRUE. */
+      /* Asm statement. */
       (void)printf("stmk_asm\n");
-      disp_ptr("asm_string", (char *)ptr->variant.asm_string, iek_constant);
+      disp_ptr("asm_string", (char *)ptr->variant.asm_entry->asm_string,
+                iek_constant);
       break;
 #endif /* ifdef CFE */
 #ifdef FFE

@@ -6850,10 +6850,9 @@ Generate C for a statement.
       output_initializer_code_directly = FALSE;
       break;
     case stmk_asm:
-      /* stmk_asm is only used in versions with ASM_STATEMENT_ALLOWED set 
-         TRUE. */
+      /* Asm statement. */
       fputs("asm(", f_C_output);
-      dump_constant_value(statement->variant.asm_string);
+      dump_constant_value(statement->variant.asm_entry->asm_string);
       fputs(");", f_C_output);
       break;
 #endif /* ifdef CFE */
@@ -7407,9 +7406,7 @@ its subtree.
       case stmk_label:
       case stmk_return:
 #ifdef CFE
-#if ASM_STATEMENT_ALLOWED
       case stmk_asm:
-#endif /* ASM_STATEMENT_ALLOWED */
 #endif /* ifdef CFE */
 #ifdef FFE
       case stmk_iarith_if:
