@@ -32,15 +32,22 @@ instead of K&R C.
 /* For the main-program version, get global variables defined. */
 #define EXTERN /*empty*/
 #define VAR_INITIALIZERS 1
+#endif /* ifdef STANDALONE_C_GEN_BE */
+
+#include "basic_hdrs.h"
+
+#if STANDALONE_C_GEN_BE
+/* For the main-program version, get global variables defined. */
+#define EXTERN /*empty*/
+#define VAR_INITIALIZERS 1
 #if !BACK_END_IS_C_GEN_BE
 /* We could just set the flag here for THIS compilation, but we want to
    ensure that it's set for the compilation of the OTHER files needed
    in the standalone program version of c_gen_be. */
- #error -- BACK_END_IS_C_GEN_BE should be defined as 1 (on the command line)
+ #error -- BACK_END_IS_C_GEN_BE should be defined as 1 (on the command line
+           or in defines.h)
 #endif /* !BACK_END_IS_C_GEN_BE */
-#endif /* ifdef STANDALONE_C_GEN_BE */
-
-#include "basic_hdrs.h"
+#endif /* STANDALONE_C_GEN_BE */
 
 /* See if this code is needed at all. */
 #if BACK_END_IS_C_GEN_BE
