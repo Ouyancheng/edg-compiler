@@ -5016,7 +5016,10 @@ End a name scope by popping an entry off the scope stack.
 #if DO_IL_LOWERING
     if (is_primary_translation_unit &&
         secondary_translation_unit_seen() && !trans_unit_test_mode &&
-        !discard_function_body && il_lowering_needed()) {
+        !discard_function_body) {
+      /* Note that il_lowering_needed() is not tested on purpose, to get
+         proper error recovery behavior.  Also, it doesn't cover lowering
+         needed in C99 mode. */
       /* Don't lower template instantiations in the primary translation unit
          if there are exported templates, because we want to eliminate
          references to entities in the secondary translation unit IL first.
