@@ -10,9 +10,7 @@
 /*
 
 _vec_newdel.C -- C++ runtime routines to provide vector new() and 
-                 delete() functionality.  A hidden structure is used
-                 to track array size for later use by _vec_ctor() and 
-                 _vec_dtor() processing of an undimensioned array .
+                 delete() functionality.
 
 */
 
@@ -37,27 +35,23 @@ extern  void	*__nw__FUi(size_t);	/* Mangled name for simple
 /*
 For arrays, _vec_new() and _vec_delete() will maintain a linked list of 
 "hidden" information on each array allocated and subsequently deleted.
-This information will be used by _vec_ctor() and _vec_dtor() to determine
-the size of undimensioned arrays.
-*/
-
-/*
-Hidden structure of information for each array "allocated" by _vec_ new().
+This information is used to remember the size of an allocated array
+(or, more accurately, the number of elements and size of each element)
+because that information is not available at the point of deletion.
 */
 typedef struct vec_info *vec_info_ptr;
-				/* Pointer to a vector information struct. */
 typedef struct vec_info {
   vec_info_ptr next;		/* Pointer to the next structure in a linked
 				   list. */
-  void 	       *array_ptr;	/* Pointer to array. */
+  void 	       *array_ptr;	/* Pointer to the array. */
   size_t       array_size;	/* Size of memory in the array. */
 } vec_info;
 
 
-vec_info_ptr _head_vec_info = NULL;
+static vec_info_ptr head_vec_info = NULL;
 				/* Pointer to the beginning of the linked list
 				   of array information. */
-vec_info_ptr _free_vec_info = NULL;
+static vec_info_ptr free_vec_info = NULL;
 				/* Pointer to a list of free array information
 				   structures. */
 
@@ -68,40 +62,42 @@ char *_vec_new(char                         *array_ptr,
                a_ptr_to_func_returning_void ctor)
 
 /*
-If array_ptr is NULL, allocate the space for the array of class objects
-and construct the "behind the scenes" information to keep track of array
-sizes for subsequent _vec_delete() calls.  The number_of_elements and the
-element_size are used to calculate the amount of memory needed.  The new
-information is added to the front of the linked list pointed to by
-_head_vec_info.  If specified, a call of the constructor (may be NULL) for each
-element in the array is done.  Again, the element_size is used to determine
-the address of each object in the array.
+Allocate storage for an array, then call a constructor for each
+element of the array.  If array_ptr is NULL, allocate the space for an
+array of class objects (with number_of_elements elements each of size
+element_size).  Also remember the size of the array in a
+behind-the-scenes data structure so that it can be recalled at the
+time of the corresponding _vec_delete call.  If array_ptr is non-NULL,
+it points to an already-allocated array.  If ctor is non-NULL, it
+points to a constructor function to be called for each element of the
+array (whether the array is allocated here or pre-allocated).  Return
+the address of the array.
 */
 {
   register vec_info_ptr info_ptr;
-  int      array_size;
+  size_t   array_size;
   int      i;
   char     *arr_ptr;
 
   if (array_ptr == NULL) {
     /* Allocate the needed memory and construct the "hidden" array
        information. */
-    array_ptr = (char *)__nw__FUi((size_t)(array_size = number_of_elements *
-                                           element_size));
-    if (_free_vec_info != NULL) {
+    array_size = number_of_elements * element_size;
+    array_ptr = (char *)__nw__FUi(array_size);
+    if (free_vec_info != NULL) {
       /* Reuse a previously allocated structure. */
-      info_ptr = _free_vec_info;
-      _free_vec_info = info_ptr->next;
+      info_ptr = free_vec_info;
+      free_vec_info = info_ptr->next;
     } else {
       /* Allocate an array information structure from free memory. */
-      info_ptr = (vec_info_ptr)__nw__FUi(sizeof(vec_info));
+      info_ptr = (vec_info_ptr)malloc(sizeof(vec_info));
     }  /* if */
-    info_ptr->next       = _head_vec_info;
+    info_ptr->next       = head_vec_info;
     info_ptr->array_ptr  = array_ptr;
     info_ptr->array_size = array_size;
-    _head_vec_info  = info_ptr;
+    head_vec_info  = info_ptr;
   }  /* if */
-  /* Call the constructor, if any, for each member of the array.  Note,
+  /* Call the constructor, if any, for each member of the array.  Note that
      there may be zero elements. */
   if (ctor != NULL) {
     for (i = 0, arr_ptr = array_ptr;
@@ -122,14 +118,15 @@ void _vec_delete(char                *array_ptr,
                  int                 delete_flag,
                  int                 /*unused_arg*/)
 /*
-If an array of objects is provided (array_ptr not NULL), call the
-destructor for each element of the array, in reverse order.  Note, do
-not allow the destructor to delete the element.  If the number_of_elements
-is a -1, the array was allocated by _vec_new(), and the size of the array
-is determined by the size originally allocated and maintained in the "hidden"
-array information structure for this array.  If specified (by delete_flag = 1),
-delete the array and return the "hidden" array information to its available
-list.
+Call a destructor for each element of an array, then delete the storage
+for the array.  array_ptr points to the array, which has number_of_elements
+elements each of size element_size.  If number_of_elements is -1, use the
+size stored by _vec_new at the time of allocation of this array.
+If array_ptr is NULL, this routine does nothing and returns.
+If dtor is non-NULL, it points to a destructor function to be called
+for each element of the array.  If delete_flag is TRUE, the storage
+for the array is deallocated after the destruction; number_of_elements
+must be -1 for that case.
 */
 {
   vec_info_ptr          prev_ptr;
@@ -143,14 +140,13 @@ list.
     if (number_of_elements == -1) {
       /* Determine the number of elements from the memory allocation size. */
       /* Find the "hidden" information  for this array. */
-      for (prev_ptr = NULL, info_ptr = _head_vec_info;
+      for (prev_ptr = NULL, info_ptr = head_vec_info;
            (info_ptr != NULL) && (info_ptr->array_ptr != array_ptr);
            prev_ptr = info_ptr, info_ptr = info_ptr->next) {
       }  /* for */
       if (info_ptr == NULL) {
-        /* This array was not allocated with new(); there will be no array
-           size to be used to determine the number of elements in the
-           array. */
+        /* This array was not allocated by _vec_new, so we do not know the
+           size. */
         (void)fprintf(stderr,
      "EDG runtime - _vec_delete(): unknown dimension array not from new().\n");
         abort();
@@ -172,19 +168,19 @@ list.
     }  /* if (*/
 
     /* Delete the array, if requested. */
-    if (delete_flag == 1) {
+    if (delete_flag) {
       __dl__FPv(array_ptr);
       if (info_ptr != (vec_info_ptr)NULL) {
         /* Unhook this array information from the linked list and add to the
            front of the free list. */
-        if (prev_ptr == (vec_info_ptr)NULL) {
+        if (prev_ptr == NULL) {
           /* This structure is on the beginning of the linked list. */
-          _head_vec_info = info_ptr->next;
+          head_vec_info = info_ptr->next;
         } else {
           prev_ptr->next = info_ptr->next;
         }  /* if */
-        info_ptr->next = _free_vec_info;
-        _free_vec_info = info_ptr;
+        info_ptr->next = free_vec_info;
+        free_vec_info = info_ptr;
       }  /* if */
     }  /* if */
   }  /* if */
