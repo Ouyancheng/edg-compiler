@@ -8084,6 +8084,21 @@ with it.  Entries associated with scopes must also have no child entries.
               sp->variant.assoc_handler != NULL) {
             /* The lifetime associated with a catch clause is retained in
                the IL even if it has no destructions and no children. */
+#if DO_IL_LOWERING
+#if NEW_CAN_BE_FOLDED_INTO_CTOR
+          } else if (exceptions_enabled &&
+                     sp->kind == (a_scope_kind)sck_function &&
+                     sp->variant.routine.ptr->special_kind ==
+                                    (a_special_function_kind)sfk_constructor &&
+                     sp->variant.routine.ptr->
+                                       source_corresp.class_of_which_a_member->
+                                       variant.class_struct_union.extra_info->
+                                          assoc_operator_new_routine != NULL) {
+            /* When exceptions are enabled, a constructor with the allocation
+               folded in needs an object lifetime so an entry for the
+               deletion of the storage can be added. */
+#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
+#endif /* DO_IL_LOWERING */
           } else if (olp->child_lifetime == NULL) {
             /* No children, no destructions. */
             is_useless = TRUE;
