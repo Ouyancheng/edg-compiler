@@ -296,7 +296,7 @@ increase pos_in_templ_str_buffer by the number of characters added.
   if (curr_token == tok_int_constant || curr_token == tok_float_constant ||
       curr_token == tok_string_literal || curr_token == tok_char_constant) {
     /* Write out a string that represents the constant. */
-    form_constant(&const_for_curr_token, &octl);
+    form_constant(&const_for_curr_token, /*need_parens=*/TRUE, &octl);
   } else if (curr_token == tok_newline) {
     /* Ignore tok_newline.  It only comes up in pragma token caches, and
        when the sequence number changes the required number of newline

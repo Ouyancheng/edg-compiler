@@ -935,7 +935,7 @@ Dump the contents of the indicated constant, for debug purposes.
   octl.gen_pcc_code = (C_dialect == C_dialect_pcc);
 
   /* Output the constant. */
-  form_constant(cp, &octl);
+  form_constant(cp, /*need_parens=*/FALSE, &octl);
 }  /* db_constant */
 
 

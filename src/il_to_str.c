@@ -102,7 +102,7 @@ is put out.
         form_type(tap->variant.type, octl);
       } else {
         /* Nontype argument. */
-        form_constant(tap->variant.constant, octl);
+        form_constant(tap->variant.constant, /*need_parens=*/FALSE, octl);
       }  /* if */
       tap = tap->next;
       /* Stop after the last argument. */
@@ -853,18 +853,58 @@ by octl.
 }  /* form_cast */
 
 
+static void output_optional_open_paren(
+                       a_boolean                             *need_parens,
+                       a_boolean                             *need_close_paren,
+                       an_il_to_str_output_control_block_ptr octl)
+/*
+Output an opening parenthesis and set *need_close_paren to indicate that
+the close parenthesis is needed later.  However, if *need_parens is
+FALSE, the parenthesis can be optimized away: don't generate it,
+leave *need_close_paren set to FALSE, and set *need_parens to TRUE to
+prevent doing the optimization more than once.
+*/
+{
+  if (*need_parens) {
+    octl->output_str("(");
+    *need_close_paren = TRUE;
+  } else {
+    /* Suppress the parenthesis. */
+    *need_parens = TRUE;
+  }  /* if */
+}  /* output_optional_open_paren */
+
+
+static void output_optional_close_paren(
+                        a_boolean                             need_close_paren,
+                        an_il_to_str_output_control_block_ptr octl)
+/*
+Output the closing parenthesis that is part of an optional set of
+parentheses begun by output_optional_open_paren.  The parenthesis is
+output only if need_close_paren is TRUE.
+*/
+{
+  if (need_close_paren) octl->output_str(")");
+}  /* output_optional_close_paren */
+
+
 static void form_integer_constant(
                            a_constant_ptr                        constant,
                            a_boolean                             suppress_cast,
+                           a_boolean                             need_parens,
                            an_il_to_str_output_control_block_ptr octl)
 /*
 Output a string for an integer constant (i.e., a constant with a ck_integer
 representation; this includes integers cast to pointer types).
 If suppress_cast is TRUE, suppress any cast of the constant to another type.
+If need_parens is TRUE, parentheses are placed around the constant
+if there's any possibility of precedence confusion.  Do the output in
+the way described by octl.
 */
 {
   a_boolean       need_cast_close_paren = FALSE;
-  a_boolean       negative = FALSE, err, minus_1_trick = FALSE;
+  a_boolean       need_negative_close_paren = FALSE;
+  a_boolean       err, minus_1_trick = FALSE;
   a_constant_ptr  eff_constant = constant;
   a_constant      local_constant;
   a_type_ptr      con_type = skip_typerefs(constant->type);
@@ -895,14 +935,12 @@ If suppress_cast is TRUE, suppress any cast of the constant to another type.
          (pcc doesn't support unsigned integral constants), ... */
       (!signed_constant && octl->gen_pcc_code)) {
     /* ... then prefix the constant with an explicit cast. */
-    octl->output_str("(");
+    output_optional_open_paren(&need_parens, &need_cast_close_paren, octl);
     form_cast(constant->type, octl);
-    need_cast_close_paren = TRUE;
   }  /* if */
   if (signed_constant && sign_of_integer_constant(constant) < 0) {
     /* Negative value.  Put in parentheses. */
-    negative = TRUE;
-    octl->output_str("(");
+    output_optional_open_paren(&need_parens, &need_negative_close_paren, octl);
     if (octl->gen_compilable_code) {
       /* Check for cases on two's complement machines where the constant
          cannot be represented as a positive constant preceded by a minus
@@ -945,11 +983,9 @@ If suppress_cast is TRUE, suppress any cast of the constant to another type.
 #endif /* LONG_LONG_ALLOWED */
     }  /* if */
   }  /* if */
-  if (negative) {
-    if (minus_1_trick) octl->output_str("-1");
-    octl->output_str(")");
-  }  /* if */
-  if (need_cast_close_paren) octl->output_str(")");
+  if (minus_1_trick) octl->output_str("-1");
+  output_optional_close_paren(need_negative_close_paren, octl);
+  output_optional_close_paren(need_cast_close_paren, octl);
 }  /* form_integer_constant */
 
 
@@ -1077,11 +1113,14 @@ the way described by octl.
 static void form_pm_constant(
                            a_constant_ptr                        constant,
                            a_boolean                             minimal_casts,
+                           a_boolean                             need_parens,
                            an_il_to_str_output_control_block_ptr octl)
 /*
 Output a pointer-to-member constant.  If minimal_casts is TRUE, suppress
 any unnecessary casts in the generated form of the constant (casts that
-serve just to disambiguate).  Do the output in the way described by octl.
+serve just to disambiguate).  If need_parens is TRUE, parentheses are
+placed around the constant if there's any possibility of precedence confusion.
+Do the output in the way described by octl.
 */
 {
   a_type_ptr              orig_type = constant->type;
@@ -1109,9 +1148,8 @@ serve just to disambiguate).  Do the output in the way described by octl.
        TRUE. */
     if (!minimal_casts || constant->variant.ptr_to_member.cast_to_base ||
         entry == NULL) {
-      octl->output_str("(");
+      output_optional_open_paren(&need_parens, &need_cast_close_paren, octl);
       form_cast(orig_type, octl);
-      need_cast_close_paren = TRUE;
     }  /* if */
   }  /* if */
   if (entry == NULL) {
@@ -1120,7 +1158,8 @@ serve just to disambiguate).  Do the output in the way described by octl.
     octl->output_str("0");
   } else {
     /* A non-null pointer-to-member. */
-    octl->output_str("(");
+    a_boolean need_pm_close_paren = FALSE;
+    output_optional_open_paren(&need_parens, &need_pm_close_paren, octl);
     if (!minimal_casts && bcp != NULL) {
       /* The pointer-to-member has been cast to another class.  Put in
          proper casts.  Note that implicit_cast will be set and therefore
@@ -1141,24 +1180,29 @@ serve just to disambiguate).  Do the output in the way described by octl.
     }  /* if */
     octl->output_str("&");
     form_name(entry, entry_kind, octl);
-    octl->output_str(")");
+    output_optional_close_paren(need_pm_close_paren, octl);
   }  /* if */
-  if (need_cast_close_paren) octl->output_str(")");
+  output_optional_close_paren(need_cast_close_paren, octl);
 }  /* form_pm_constant */
 
 
 static void form_address_constant(
                           a_constant_ptr                        constant,
                           a_boolean                             do_indirection,
+                          a_boolean                             need_parens,
                           an_il_to_str_output_control_block_ptr octl)
 /*
 Output the value of a ck_address constant.  If do_indirection is TRUE,
 do one level of indirection (i.e., remove the "&"); that's used for reference
-initializations.  Do the output in the way described by octl.
+initializations.  If need_parens is TRUE, parentheses are placed around the
+constant if there's any possibility of precedence confusion.  Do the output
+in the way described by octl.
 */
 {
-  a_boolean        need_second_ptr_cast, need_scaling_cast;
-  a_boolean        need_ptr_cast, need_ampersand;
+  a_boolean        need_second_ptr_close_paren = FALSE, need_scaling_cast;
+  a_boolean        need_ptr_cast, need_ptr_cast_close_paren = FALSE;
+  a_boolean        need_ampersand, need_offset_close_paren = FALSE;
+  a_boolean        need_ampersand_close_paren = FALSE;
   a_type_ptr       orig_type = constant->type, underlying_object_type;
   a_type_ptr       con_type;
   a_targ_ptrdiff_t offset;
@@ -1167,7 +1211,6 @@ initializations.  Do the output in the way described by octl.
   /* We need a cast to the result type if the constant is implicitly
      cast to another type (but we may be able to optimize it away). */
   need_ptr_cast = constant->implicit_cast;
-  need_second_ptr_cast = FALSE;
   need_scaling_cast = FALSE;
   /* Extract the underlying type. */
   need_ampersand = TRUE;
@@ -1241,7 +1284,7 @@ initializations.  Do the output in the way described by octl.
   }  /* if */
   if (need_ptr_cast) {
     /* Start with a cast to the desired result type. */
-    octl->output_str("(");
+    output_optional_open_paren(&need_parens, &need_ptr_cast_close_paren, octl);
     form_cast(orig_type, octl);
     /* Look for cases where a pointer is implicitly cast to a strange type
        (e.g., "char").  The original code probably did this conversion
@@ -1253,12 +1296,12 @@ initializations.  Do the output in the way described by octl.
          con_type->size >= targ_sizeof_pointer)) {
       /* Okay. */
     } else {
-      need_second_ptr_cast = TRUE;
+      need_second_ptr_close_paren = TRUE;
       octl->output_str("((unsigned long)");
     }  /* if */
   }  /* if */
   if (offset != 0) {
-    octl->output_str("(");
+    output_optional_open_paren(&need_parens, &need_offset_close_paren, octl);
     if (need_scaling_cast) {
       /* Need a cast to "char *" to get the offset scaling right. */
       octl->output_str("(char *)");
@@ -1270,7 +1313,11 @@ initializations.  Do the output in the way described by octl.
   }  /* if */
   /* If using an ampersand, surround the name with parentheses to avoid
      precedence problems. */
-  if (need_ampersand) octl->output_str("(&");
+  if (need_ampersand) {
+    output_optional_open_paren(&need_parens, &need_ampersand_close_paren,
+                               octl);
+    octl->output_str("&");
+  }  /* if */
   switch (constant->variant.address.kind) {
     case abk_routine:
       form_name((char *)constant->variant.address.variant.routine,
@@ -1285,13 +1332,14 @@ initializations.  Do the output in the way described by octl.
       check_assertion_str(constant->variant.address.variant.constant->kind
                                             == (a_constant_repr_kind)ck_string,
                           "form_address_constant: address of nonstring con");
-      form_constant(constant->variant.address.variant.constant, octl);
+      form_constant(constant->variant.address.variant.constant,
+                    /*need_parens=*/FALSE, octl);
       break;
     default:
       unexpected_condition_str(
                               "form_address_constant: bad addr constant kind");
   }  /* switch */
-  if (need_ampersand) octl->output_str(")");
+  output_optional_close_paren(need_ampersand_close_paren, octl);
   if (offset != 0) {
     /* Add in the (signed) offset. */
     if (offset >= 0) {
@@ -1301,9 +1349,10 @@ initializations.  Do the output in the way described by octl.
       octl->output_str(" ");
     }  /* if */
     form_num((long)offset, octl);
+    output_optional_close_paren(need_offset_close_paren, octl);
   }  /* if */
-  if (need_second_ptr_cast) octl->output_str(")");
-  if (need_ptr_cast) octl->output_str(")");
+  output_optional_close_paren(need_second_ptr_close_paren, octl);
+  output_optional_close_paren(need_ptr_cast_close_paren, octl);
 }  /* form_address_constant */
 
 
@@ -1327,9 +1376,12 @@ Return TRUE if the indicated string is a wide string constant (L"abc").
 
 
 void form_constant(a_constant_ptr                        constant,
+                   a_boolean                             need_parens,
                    an_il_to_str_output_control_block_ptr octl)
 /*
-Output the indicated constant.  Do the output in the way described by octl.
+Output the indicated constant.  If need_parens is TRUE, parentheses are
+placed around the constant if there's any possibility of precedence
+confusion.  Do the output in the way described by octl.
 */
 {
   a_constant_repr_kind kind = constant->kind;
@@ -1350,9 +1402,8 @@ Output the indicated constant.  Do the output in the way described by octl.
       /* If the constant is implicitly cast to another type, ... */
       if (constant->implicit_cast) {
         /* ... then prefix the constant with an explicit cast. */
-        octl->output_str("(");
+        output_optional_open_paren(&need_parens, &need_cast_close_paren, octl);
         form_cast(orig_type, octl);
-        need_cast_close_paren = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -1368,23 +1419,25 @@ Output the indicated constant.  Do the output in the way described by octl.
       } else if (il_header.source_language == sl_Cplusplus &&
                  is_character_type(con_type)) {
         /* In C++, character constants have char type. */
-        a_boolean       ovflo, cast_used = FALSE;
+        a_boolean       ovflo, need_char_cast_close_paren = FALSE;
         an_integer_kind ikind = con_type->variant.integer.int_kind;
         /* Use a cast if the constant is signed or unsigned, e.g.,
            (unsigned char)'a'. */
         if (ikind == (an_integer_kind)ik_signed_char ||
             ikind == (an_integer_kind)ik_unsigned_char) {
-          octl->output_str("(");
+          output_optional_open_paren(&need_parens,
+                                     &need_char_cast_close_paren,
+                                     octl);
           form_cast(orig_type, octl);
-          cast_used = TRUE;
         }  /* if */
         output_partial_token_str("'", octl);
         form_char((char)value_of_integer_constant(constant, &ovflo), octl);
         output_partial_token_str("'", octl);
-        if (cast_used) octl->output_str(")");
+        output_optional_close_paren(need_char_cast_close_paren, octl);
       } else {
         /* A normal integer constant. */
-        form_integer_constant(constant, /*suppress_cast=*/FALSE, octl);
+        form_integer_constant(constant, /*suppress_cast=*/FALSE, need_parens,
+                              octl);
       }  /* if */
       break;
     case ck_string:
@@ -1481,12 +1534,13 @@ Output the indicated constant.  Do the output in the way described by octl.
 #ifdef CFE
     case ck_address:
       /* Address constant. */
-      form_address_constant(constant, /*do_indirection=*/FALSE, octl);
+      form_address_constant(constant, /*do_indirection=*/FALSE, need_parens,
+                            octl);
       break;
     case ck_ptr_to_member:
       /* Pointer-to-member constant. */
       form_pm_constant(constant, /*minimal_casts=*/!octl->gen_compilable_code,
-                       octl);
+                       need_parens, octl);
       break;
     case ck_dynamic_init:
       check_assertion(!octl->gen_compilable_code);
@@ -1497,7 +1551,7 @@ Output the indicated constant.  Do the output in the way described by octl.
       octl->output_str("{");
       { a_constant_ptr sub_con = constant->variant.aggregate.first_constant;
         while (sub_con != NULL) {
-          form_constant(sub_con, octl);
+          form_constant(sub_con, /*need_parens=*/FALSE, octl);
           sub_con = sub_con->next;
           if (sub_con != NULL) octl->output_str(", ");
         }  /* while */

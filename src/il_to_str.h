@@ -113,6 +113,7 @@ extern void form_type(a_type_ptr                            type,
                       an_il_to_str_output_control_block_ptr octl);
 
 extern void form_constant(a_constant_ptr                        constant,
+                          a_boolean                             need_parens,
                           an_il_to_str_output_control_block_ptr octl);
 
 #endif /* ifndef IL_TO_STR_H */

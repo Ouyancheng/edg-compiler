@@ -146,7 +146,7 @@ static void summarize_constant(a_constant *cp)
 Print a short version of the constant at *cp.
 */
 {
-  form_constant(cp, &octl);
+  form_constant(cp, /*need_parens=*/FALSE, &octl);
 }  /* summarize_constant */
 
 
@@ -530,28 +530,26 @@ Display the indicated constant entry.
     case ck_integer:
       (void)printf("ck_integer\n");
       disp_name("integer_value");
-      form_constant(ptr, &octl);
+display_constant_value:
+      summarize_constant(ptr);
       (void)printf("\n");
       break;
     case ck_string:
       (void)printf("ck_string\n");
       disp_unsigned_long("length", ptr->variant.string.length);
       disp_name("value");
-      form_constant(ptr, &octl);
-      (void)printf("\n");
+      goto display_constant_value;
       break;
     case ck_float:
       (void)printf("ck_float\n");
       disp_name("float_value");
-      form_constant(ptr, &octl);
-      (void)printf("\n");
+      goto display_constant_value;
       break;
 #ifdef FFE
     case ck_complex:
       (void)printf("ck_complex\n");
       disp_name("complex_value");
-      form_constant(ptr, &octl);
-      (void)printf("\n");
+      goto display_constant_value;
       break;
 #endif /* ifdef FFE */
 #ifdef CFE
