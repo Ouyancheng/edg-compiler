@@ -386,6 +386,92 @@ for pp-tokens.
 }  /* cache_curr_token */
 
 
+static void cache_token_stream_until_matching_token(a_token_cache *cache)
+/*
+Given curr_token of '(', '[', or '{', copy tokens into the token cache
+specified by cache up to but not including the corresponding closing token,
+')', ']', or '}', respectively.  Return immediately if end of source is
+reached.  (This routine is similar to flush_until_matching_token, but instead
+of throwing tokens away it adds them to the specified token cache.)
+*/
+{
+  a_token_kind  closing_token;
+  int           paren_count = 0, bracket_count = 0, brace_count = 0;
+
+  db_enter(4, "cache_token_stream_until_matching_token");
+  /* Determine the closing token that corresponds to curr_token. */
+  switch (curr_token) {
+    case tok_lparen:    closing_token = tok_rparen;   break;
+    case tok_lbracket:  closing_token = tok_rbracket; break;
+    case tok_lbrace:    closing_token = tok_rbrace;   break;
+#if CHECKING
+    default:
+      internal_error("cache_token_stream_until_matching_token: bad token");
+#endif /* CHECKING */
+  }  /* switch */
+  /* Cache the current token, and advance to its successor. */
+  cache_curr_token(cache);
+  (void)get_token();
+  /* Keep looping through successive tokens until the corresponding closing
+     token is found at level zero (i.e., not within a nesting of parens,
+     brackets, or braces). */
+  while (curr_token != closing_token ||
+         paren_count != 0 || bracket_count != 0 || brace_count != 0) {
+    /* Count paired tokens within the skip. */
+    switch (curr_token) {
+      case tok_lparen:                           paren_count++;   break;
+      case tok_rparen:    if (paren_count > 0)   paren_count--;   break;
+      case tok_lbracket:                         bracket_count++; break;
+      case tok_rbracket:  if (bracket_count > 0) bracket_count--; break;
+      case tok_lbrace:                           brace_count++;   break;
+      case tok_rbrace:    if (brace_count > 0)   brace_count--;   break;
+    }  /* switch */
+    /* Always stop the flush on end of source. */
+    if (curr_token == tok_end_of_source) break;
+    /* None of the conditions was satisfied, so keep going. */
+    cache_curr_token(cache);
+    (void)get_token();
+  }  /* while */
+  db_exit();
+}  /* cache_token_stream_until_matching_token */
+
+
+void cache_token_stream(a_token_cache *cache)
+/*
+Copy the current token and succeeding tokens into the token cache specified
+by cache up to but not including the first token that matches a member of
+the stop tokens array.  Return immediately if end of source is reached.
+(This routine is similar to flush_tokens, but instead of throwing tokens
+away it adds them to the specified token cache.)
+*/
+{
+  a_token_kind  closing_token;
+  int           paren_count = 0, bracket_count = 0, brace_count = 0;
+
+  db_enter(4, "cache_token_stream");
+  /* Loop through the tokens, beginning with the current token and stopping
+     when a token in the stop token array is found.  Whenever a '(', '[', or
+     '{' is encountered, ignore the stop token array until the corresponding
+     ')', ']', or '}' is reached. */
+  while (stop_token_array[(int)curr_token] == 0) {
+    if (curr_token == tok_lparen || curr_token == tok_lbracket ||
+        curr_token == tok_lbrace) {
+      cache_token_stream_until_matching_token(cache);
+      /* Be sure the closing token is not itself a token to stop on. */
+      if (stop_token_array[(int)curr_token] != 0) break;
+    }  /* if */
+    /* Stop immediatelty when end of source is reached. */
+    if (curr_token == tok_end_of_source) break;
+    /* Add the current token to the cache and advance to its successor. */
+    cache_curr_token(cache);
+    (void)get_token();
+  }  /* while */
+  /* Leave error_position associated with what is now curr_token. */
+  set_err_pos_to_curr_token();
+  db_exit();
+}  /* cache_token_stream */
+
+
 void rescan_cached_tokens(a_token_cache *cache)
 /*
 Put the tokens saved in *cache onto the rescan list so that they will be
