@@ -1,5 +1,16 @@
 Version 2.41
 
+2/25/99  Qualification conversion on throw of multi-level pointer
+
+The standard allows a qualification conversion on a throw of a pointer
+type.  Previously, this was implemented only for single-level pointers,
+e.g., throw "int *" and catch "const int *".  Now, it is also implemented
+for multi-level pointers, e.g., throw "int **" and catch
+"const int * const *".  This required an ABI CHANGE (for versions
+that use full or partial lowering of EH features): a new runtime
+routine __throw_setup_ptr has been added, and the exception specification
+type structure has an additional field (ptr_flags).
+
 2/24/99  MICROSOFT_DEFAULT_USE_NONSTANDARD_FOR_INIT_SCOPE eliminated
 
 The configuration macro MICROSOFT_DEFAULT_USE_NONSTANDARD_FOR_INIT_SCOPE

@@ -1233,8 +1233,8 @@ typedef unsigned long an_eh_type_flags_set;
 #define ETS_IS_POINTER		0x01
 			/* A pointer to an object of the type specified
 			   by typeinfo. */
-#define ETS_POINTER_TO_CONST	0x02
-#define ETS_POINTER_TO_VOLATILE	0x04
+#define ETS_CONST		0x02
+#define ETS_VOLATILE		0x04
 			/* Indication of the type qualifiers on the type
 			   pointed to, in the pointer case. */
 #define ETS_IS_REFERENCE	0x08
@@ -1246,17 +1246,73 @@ typedef unsigned long an_eh_type_flags_set;
 			/* TRUE if this is the last type specification in
 			   the array. */
 
+#if ABI_COMPATIBILITY_VERSION >= 241
 
-static a_variable_ptr typeinfo_var_for_type(a_type_ptr           type,
-                                            an_eh_type_flags_set *flags_value)
+static a_variable_ptr ptr_flags_var_for_type(a_type_ptr type)
+/*
+Build an initialized array whose values represent the cv-qualifiers of
+the multi-level pointer type type, for use in qualifying a typeinfo.
+Return a pointer to the variable.
+*/
+{
+  a_constant_ptr       aggr_con, flag_con;
+  a_variable_ptr       var;
+  a_boolean            done;
+  a_type_qualifier_set qualifiers;
+  unsigned long        flags_value;
+
+  /* Create the array variable. */
+#define PTR_FLAGS_INT_KIND ((an_integer_kind)ik_unsigned_char)
+  var = make_init_unnamed_local_static_array_var(
+                                              integer_type(PTR_FLAGS_INT_KIND),
+                                              /*in_function_scope=*/FALSE,
+                                              &aggr_con);
+  check_assertion(is_pointer_type(type));
+  do {
+    type = type_pointed_to(type);
+    done = !is_pointer_type(type);
+    qualifiers = get_type_qualifiers(type);
+    /* Make a flags set that describes the cv-qualifiers at this level. */
+    flags_value = 0;
+    if (qualifiers & TQ_CONST) {
+      flags_value |= ETS_CONST;
+    }  /* if */
+    if (qualifiers & TQ_VOLATILE) {
+      flags_value |= ETS_VOLATILE;
+    }  /* if */
+    if (done) {
+      flags_value |= ETS_LAST;
+    }  /* if */
+    /* Make a constant for the value of the flags set. */
+    flag_con = alloc_constant((a_constant_repr_kind)ck_integer);
+    set_unsigned_integer_constant(flag_con, flags_value, PTR_FLAGS_INT_KIND);
+    /* Add the constant to the aggregate initializer list. */
+    (void)add_elem_to_array_var(flag_con, var, aggr_con);
+  } while (!done);
+  /* Finish off the variable. */
+  finish_array_var(var, aggr_con);
+  return var;
+}  /* ptr_flags_var_for_type */
+
+#endif /* ABI_COMPATIBILITY_VERSION >= 241 */
+
+static a_variable_ptr typeinfo_var_for_type(
+                                           a_type_ptr           type,
+                                           an_eh_type_flags_set *flags_value,
+                                           a_variable_ptr       *ptr_flags_var)
 /*
 Create the typeinfo variable for the indicated type, and return a pointer
 to it.  This is used to create the representation for a type used in
 exception handling: the typeinfo returned is the "interesting" part
 of the type, and the relationship of the original type to the typeinfo
-type is indicated in the returned value of *flags_value.  For example,
-for a pointer to a class, the typeinfo for the underlying class is
-returned, and *flags_value is set to indicate a pointer.
+type is indicated in the returned value of *flags_value and
+*ptr_flags_var.  For example, for a pointer to a class, the typeinfo
+for the underlying class is returned, and *flags_value is set to indicate
+a pointer.  *ptr_flags_var is used for multi-level pointers.  It is
+returned pointing to an array of qualifier flag sets that describes the
+cv-qualifiers at each level of the multi-level pointer.  For cases other
+than multi-level pointers, it is returned NULL.  If ptr_flags_var is
+NULL, the array is not built because the caller does not need it.
 */
 {
   a_variable_ptr        typeinfo_var;
@@ -1265,6 +1321,7 @@ returned, and *flags_value is set to indicate a pointer.
 
   eff_type = type;
   *flags_value = 0;
+  if (ptr_flags_var != NULL) *ptr_flags_var = NULL;
   /* For a pointer or reference to a type, use the typeinfo for the
      underlying type and a flag to indicate the reference or pointer.
      Both flags are on for a reference to a pointer. */
@@ -1273,15 +1330,30 @@ returned, and *flags_value is set to indicate a pointer.
     *flags_value |= ETS_IS_REFERENCE;
   }  /* if */
   if (is_pointer_type(eff_type)) {
-    eff_type = type_pointed_to(eff_type);
-    *flags_value |= ETS_IS_POINTER;
-    /* Remember the type qualifiers on the type pointed to. */
-    qualifiers = get_type_qualifiers(eff_type);
-    if (qualifiers & TQ_CONST) {
-      *flags_value |= ETS_POINTER_TO_CONST;
-    }  /* if */
-    if (qualifiers & TQ_VOLATILE) {
-      *flags_value |= ETS_POINTER_TO_VOLATILE;
+    a_type_ptr under_ptr = type_pointed_to(eff_type);
+#if ABI_COMPATIBILITY_VERSION >= 241
+    if (is_pointer_type(under_ptr)) {
+      /* Multi-level pointer.  Build the flags array. */
+      /* Don't build the array if we don't need it. */
+      if (ptr_flags_var != NULL) {
+        *ptr_flags_var = ptr_flags_var_for_type(eff_type);
+      }  /* if */
+      eff_type = under_ptr;
+      while (is_pointer_type(eff_type)) eff_type = type_pointed_to(eff_type);
+    } else
+#endif /* ABI_COMPATIBILITY_VERSION >= 241 */
+    /* Do not insert code here. */
+    {
+      eff_type = under_ptr;
+      *flags_value |= ETS_IS_POINTER;
+      /* Remember the type qualifiers on the type pointed to. */
+      qualifiers = get_type_qualifiers(eff_type);
+      if (qualifiers & TQ_CONST) {
+        *flags_value |= ETS_CONST;
+      }  /* if */
+      if (qualifiers & TQ_VOLATILE) {
+        *flags_value |= ETS_VOLATILE;
+      }  /* if */
     }  /* if */
   }  /* if */
   /* Strip typerefs but watch out for rewritten pointers-to-members. */
@@ -1302,7 +1374,7 @@ information on it.
 
   /* We need a typeinfo variable for the underlying type.  Make it if it
      does not exist already. */
-  (void)typeinfo_var_for_type(type, &flags_value);
+  (void)typeinfo_var_for_type(type, &flags_value, (a_variable **)NULL);
 }  /* type_is_used_in_exception */
 
 #if DO_FULL_PORTABLE_EH_LOWERING
@@ -2359,8 +2431,10 @@ and return a pointer to it.  Its definition is
   struct exception_type_spec {
     typeinfo      *tinfo;
     unsigned char flags;
+    unsigned char *ptr_flags;
   };
 
+The ptr_flags field is not present for ABI levels less than 2.41.
 */
 {
   a_field_ptr   last_field;
@@ -2377,6 +2451,12 @@ and return a pointer to it.  Its definition is
     make_lowered_field("flags",
                        integer_type((an_integer_kind)ik_unsigned_char),
                        exception_type_spec_type, &last_field);
+#if ABI_COMPATIBILITY_VERSION >= 241
+    /* field: unsigned char *ptr_flags */
+    make_lowered_field("ptr_flags",
+                       make_pointer_type(integer_type(PTR_FLAGS_INT_KIND)),
+                       exception_type_spec_type, &last_field);
+#endif /* ABI_COMPATIBILITY_VERSION >= 241 */
     finish_class_type(exception_type_spec_type);
   }  /* if */
   return exception_type_spec_type;
@@ -2384,47 +2464,61 @@ and return a pointer to it.  Its definition is
 
 
 static a_variable_ptr make_exception_type_spec_array_var(
-                                                      a_constant_ptr *aggr_con)
+                                                      a_constant_ptr first_con,
+                                                      a_constant_ptr last_con,
+                                                      unsigned long  num_elems)
 /*
-Create a variable whose initial value will be an array of exception type
-specification entries, and return a pointer to the variable.  An empty
-aggregate constant is attached to the variable as its initial value, and
-a pointer to the aggregate constant is returned in *aggr_con.
+Create a variable whose initial value is an array of exception type
+specification entries, and return a pointer to the variable.  first_con
+and last_con point to the beginning and end of the list of initializing
+constants for the array, and num_elems is the count of elements on that list.
 */
 {
   a_variable_ptr var;
+  a_constant_ptr aggr_con;
 
   /* Make a variable that is an array of exception type specification
      entries. */
   var = make_init_unnamed_local_static_array_var(
                                               make_exception_type_spec_type(),
                                               /*in_function_scope=*/FALSE,
-                                              aggr_con);
+                                              &aggr_con);
+  aggr_con->variant.aggregate.first_constant = first_con;
+  aggr_con->variant.aggregate.last_constant  = last_con;
+  /* Set the array size. */
+  var->type->variant.array.variant.number_of_elements = num_elems;
+  /* Finish off the variable. */
+  finish_array_var(var, aggr_con);
   return var;
 }  /* make_exception_type_spec_array_var */
 
 
 static void add_exception_type_spec_array_entry(a_type_ptr     type,
-                                                a_variable_ptr var,
-                                                a_constant_ptr aggr_con)
+                                                a_constant_ptr *first_con,
+                                                a_constant_ptr *last_con,
+                                                unsigned long  *num_elems,
+                                                a_boolean      last_entry)
 /*
 Add an entry that describes the type "type" to the array of exception type
-specifications being built up as the initializer of the variable var.
-aggr_con points to the top-level aggregate constant that is the initial
-value of the variable.  If type is NULL, add an ellipsis entry.
+specifications being built up as the initializer for a variable.  If type
+is NULL, add an ellipsis entry.  *first_con and *last_con point to the
+beginning and end of the list of constants for the array.  Increment
+*num_elems.  last_entry is TRUE for the last entry in the array.
 */
 {
-  a_variable_ptr typeinfo_var;
+  a_variable_ptr typeinfo_var, ptr_flags_var = NULL;
   an_eh_type_flags_set
                  flags_value;
   a_constant_ptr typeinfo_con, flags_con, sub_aggr_con;
 
   /* Each element of the array is an exception_type_spec struct
-     containing a pointer to the typeinfo information and a flags byte.
+     containing a pointer to the typeinfo information, a flags byte,
+     and possibly a pointer to an array of flags bytes.
      The flags byte indicates the cases where the type indicated is a
      reference or pointer to the typeinfo type. */
-  /* Create an aggregate constant with two constants (a pointer to the
-     typeinfo variable and the flags value) under it. */
+  /* Create an aggregate constant with three constants (a pointer to the
+     typeinfo variable, the flags value, and the pointer to the
+     flags array) under it. */
   typeinfo_con = alloc_constant((a_constant_repr_kind)ck_address);
   if (type == NULL) {
     /* This entry is for an ellipsis, so the typeinfo pointer is NULL. */
@@ -2433,10 +2527,11 @@ value of the variable.  If type is NULL, add an ellipsis entry.
     flags_value = ETS_IS_ELLIPSIS;
   } else {
     /* Normal case. */
-    typeinfo_var = typeinfo_var_for_type(type, &flags_value);
+    typeinfo_var = typeinfo_var_for_type(type, &flags_value, &ptr_flags_var);
     set_variable_address_constant(typeinfo_var, typeinfo_con,
                                   /*set_address_taken_flag=*/TRUE);
   }  /* if */
+  if (last_entry) flags_value |= ETS_LAST;
   flags_con = alloc_constant((a_constant_repr_kind)ck_integer);
   set_unsigned_integer_constant(flags_con, flags_value,
                                 (an_integer_kind)ik_unsigned_char);
@@ -2444,34 +2539,39 @@ value of the variable.  If type is NULL, add an ellipsis entry.
   sub_aggr_con->type = exception_type_spec_type;
   sub_aggr_con->variant.aggregate.first_constant = typeinfo_con;
   typeinfo_con->next = flags_con;
+#if ABI_COMPATIBILITY_VERSION >= 241
+  /* Add the address of the array giving cv-qualifiers for a multi-level
+     pointer, if needed. */
+  {
+    a_constant_ptr ptr_flags_con =
+                              alloc_constant((a_constant_repr_kind)ck_address);
+    a_type_ptr     ptr_flags_type = make_pointer_type(
+                                             integer_type(PTR_FLAGS_INT_KIND));
+    if (ptr_flags_var == NULL) {
+      make_zero_of_proper_type(ptr_flags_type, ptr_flags_con);
+    } else {
+      set_variable_address_constant(ptr_flags_var, ptr_flags_con,
+                                    /*set_address_taken_flag=*/TRUE);
+      /* Do the array-to-pointer decay. */
+      implicit_cast(ptr_flags_con, ptr_flags_type);
+    }  /* if */
+    flags_con->next = ptr_flags_con;
+    sub_aggr_con->variant.aggregate.last_constant = ptr_flags_con;
+  }
+#else /* ABI_COMPATIBILITY_VERSION < 241 */
+  /* Old version: no ptr_flags field. */
   sub_aggr_con->variant.aggregate.last_constant = flags_con;
+#endif /* ABI_COMPATIBILITY_VERSION >= 241 */
   /* Add this aggregate constant to the list of constants under the aggregate
      constant for the array. */
-  (void)add_elem_to_array_var(sub_aggr_con, var, aggr_con);
+  if (*first_con == NULL) {
+    *first_con = sub_aggr_con;
+  } else {
+    (*last_con)->next = sub_aggr_con;
+  }  /* if */
+  *last_con = sub_aggr_con;
+  (*num_elems)++;
 }  /* add_exception_type_spec_array_entry */
-
-
-static void finish_exception_type_spec_array(a_variable_ptr var,
-                                             a_constant_ptr aggr_con)
-/*
-Finish the definition of a variable whose value is an array of exception
-type specification entries.  var is the variable, and aggr_con is
-the aggregate constant that is its initial value.
-*/
-{
-  a_constant_ptr       sub_aggr_con, flags_con;
-  an_eh_type_flags_set flags_value;
-  a_boolean            ovflo;
-
-  /* Put the ETS_LAST bit on in the last entry. */
-  sub_aggr_con = aggr_con->variant.aggregate.last_constant;
-  flags_con = sub_aggr_con->variant.aggregate.last_constant;
-  flags_value = unsigned_value_of_integer_constant(flags_con, &ovflo);
-  flags_value |= ETS_LAST;
-  set_unsigned_integer_value(&flags_con->variant.integer_value, flags_value);
-  /* Finish off the variable. */
-  finish_array_var(var, aggr_con);
-}  /* finish_exception_type_spec_array */
 
 
 static a_variable_ptr exception_type_spec_array_from_throw_spec(
@@ -2484,7 +2584,8 @@ throw specification indicates that no types may be thrown.
 {
   a_variable_ptr                       var;
   an_exception_specification_type_ptr  espt;
-  a_constant_ptr                       aggr_con;
+  a_constant_ptr                       first_con, last_con;
+  unsigned long                        num_elems = 0;
 
   espt = throw_spec->exception_specification_type_list;
   /* If the routine can throw nothing, return NULL. */
@@ -2493,16 +2594,18 @@ throw specification indicates that no types may be thrown.
   } else {
     /* There are some types on the throw list, so an array of those will
        have to be built. */
-    /* Make the variable. */
-    var = make_exception_type_spec_array_var(&aggr_con);
+    first_con = last_con = NULL;
     /* Fill the array with entries for the types that can be thrown. */
     for (;
          espt != NULL;
          espt = espt->next) {
-      add_exception_type_spec_array_entry(espt->type, var, aggr_con);
+      add_exception_type_spec_array_entry(espt->type, &first_con, &last_con,
+                                          &num_elems, (espt->next == NULL));
     }  /* for */
-    /* Finish off the array. */
-    finish_exception_type_spec_array(var, aggr_con);
+    /* Make the variable.  This is done late so that it appears on the
+       variable list after any variables needed in the initializer (e.g.,
+       ptr_flags arrays). */
+    var = make_exception_type_spec_array_var(first_con, last_con, num_elems);
   }  /* if */
   return var;
 }  /* exception_type_spec_array_from_throw_spec */
@@ -2516,10 +2619,10 @@ catch clauses on the indicated list.  Return a pointer to the variable.
 {
   a_variable_ptr var;
   a_handler_ptr  handler;
-  a_constant_ptr aggr_con;
+  a_constant_ptr first_con, last_con;
+  unsigned long  num_elems = 0;
 
-  /* Make the variable. */
-  var = make_exception_type_spec_array_var(&aggr_con);
+  first_con = last_con = NULL;
   /* Fill the array with entries for the catch clause types. */
   for (handler = handlers;
        handler != NULL;
@@ -2531,10 +2634,13 @@ catch clauses on the indicated list.  Return a pointer to the variable.
     } else {
       handler_type = handler->parameter->type;
     }  /* if */
-    add_exception_type_spec_array_entry(handler_type, var, aggr_con);
+    add_exception_type_spec_array_entry(handler_type, &first_con, &last_con,
+                                        &num_elems, (handler->next == NULL));
   }  /* for */
-  /* Finish off the array. */
-  finish_exception_type_spec_array(var, aggr_con);
+  /* Make the variable.  This is done late so that it appears on the
+     variable list after any variables needed in the initializer (e.g.,
+     ptr_flags arrays). */
+  var = make_exception_type_spec_array_var(first_con, last_con, num_elems);
   return var;
 }  /* make_catch_array_var */
 
@@ -3572,6 +3678,7 @@ NULL until allocated.
 static a_routine_ptr
 		throw_setup_routine,
 		throw_setup_dtor_routine,
+		throw_setup_ptr_routine,
 		throw_routine,
 		rethrow_routine,
 		internal_rethrow_routine;
@@ -3830,7 +3937,7 @@ Lower an enk_throw expression node.
                      tsp = expr->variant.throw_info;
 #if DO_FULL_PORTABLE_EH_LOWERING
   a_type_ptr         ptr_throw_type;
-  a_variable_ptr     temp_var, typeinfo_var;
+  a_variable_ptr     temp_var, typeinfo_var, ptr_flags_var;
   an_expr_node_ptr   call_node, typeinfo_node, size_node, flags_node;
   an_expr_node_ptr   assign_node;
   an_eh_type_flags_set
@@ -3867,6 +3974,9 @@ Lower an enk_throw expression node.
        thrown type has a destructor, the call is instead
          temp = __throw_setup_dtor(&typeinfo, size, flags, dtor)
        (This latter form was added in version 2.38.)
+       If the thrown type is a multi-level pointer, the call is instead
+         temp = __throw_setup_ptr(&typeinfo, size, ptr_flags);
+       (This latter form was added in version 2.41.)
     */
 #if !ABI_CHANGES_FOR_RTTI
     /* The old form is
@@ -3877,15 +3987,21 @@ Lower an enk_throw expression node.
     ptr_throw_type = make_pointer_type(throw_type);
     temp_var = make_local_temporary(ptr_throw_type);
     /* Make the typeinfo variable for the throw type. */
-    typeinfo_var = typeinfo_var_for_type(throw_type, &flags_value);
+    typeinfo_var = typeinfo_var_for_type(throw_type, &flags_value,
+                                         &ptr_flags_var);
     /* Make the arguments for the __throw_setup call. */
     typeinfo_node = var_lvalue_expr(typeinfo_var);
     size_node = node_for_integer_constant((long)throw_type->size,
                                           targ_size_t_int_kind);
     typeinfo_node->next = size_node;
-    flags_node = node_for_integer_constant((long)flags_value,
-                                           (an_integer_kind)ik_int);
-    size_node->next = flags_node;
+    if (ptr_flags_var != NULL) {
+      /* Build the parameter list for __throw_setup_ptr. */
+      size_node->next = array_var_lvalue_expr(ptr_flags_var);
+    } else {
+      flags_node = node_for_integer_constant((long)flags_value,
+                                             (an_integer_kind)ik_int);
+      size_node->next = flags_node;
+    }  /* if */
 #if !ABI_CHANGES_FOR_RTTI
     /* Make a string to describe the accessible base classes, and pass
        its address to the runtime routine. */
@@ -3923,8 +4039,19 @@ Lower an enk_throw expression node.
 #endif /* PASS_DTOR_POINTER_TO_THROW */
     /* Do not insert code here; this is the "else" of an "if". */
     {
-      call_node = make_runtime_rout_call("__throw_setup", &throw_setup_routine,
-                                         void_star_type(), typeinfo_node);
+      if (ptr_flags_var != NULL) {
+        /* A multi-level pointer.  Use __throw_setup_ptr. */
+        call_node = make_runtime_rout_call("__throw_setup_ptr",
+                                           &throw_setup_ptr_routine,
+                                           void_star_type(),
+                                           typeinfo_node);
+      } else {
+        /* Not a multi_level pointer. */
+        call_node = make_runtime_rout_call("__throw_setup",
+                                           &throw_setup_routine,
+                                           void_star_type(),
+                                           typeinfo_node);
+      }  /* if */
     }  /* if */
 #endif /* !ABI_CHANGES_FOR_RTTI */
     /* Cast the pointer to the right type. */
@@ -4160,6 +4287,7 @@ with each new translation unit are handled in eh_lower_init.)
 #if DO_FULL_PORTABLE_EH_LOWERING
       pch_saved_var_array_elem(throw_setup_routine),
       pch_saved_var_array_elem(throw_setup_dtor_routine),
+      pch_saved_var_array_elem(throw_setup_ptr_routine),
       pch_saved_var_array_elem(throw_routine),
       pch_saved_var_array_elem(rethrow_routine),
       pch_saved_var_array_elem(internal_rethrow_routine),
@@ -4223,6 +4351,7 @@ invocation of the front end.
 #if DO_FULL_PORTABLE_EH_LOWERING
   throw_setup_routine = NULL;
   throw_setup_dtor_routine = NULL;
+  throw_setup_ptr_routine = NULL;
   throw_routine = NULL;
   rethrow_routine = NULL;
   internal_rethrow_routine = NULL;
