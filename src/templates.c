@@ -10369,9 +10369,8 @@ void update_auto_instantiation_flags(void)
 /*
 Go through the instantiations_required list and set the fields in the
 variable and routine entries that are used to pass information to the
-to the link-time instantiation processor.  The "can instantiate" and
-"do not instantiate" flags are set here.  The "instance required" flag
-is set by update_instantiation_required_flag.
+link-time instantiation processor.  The "instance required", "can instantiate"
+and "do not instantiate" flags are set here.
 */
 {
   a_template_instance_ptr	tip;
