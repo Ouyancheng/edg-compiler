@@ -1,5 +1,19 @@
 Version 2.17
 
+5/3/93   Point at which virtual function table is set in constructor wrapper
+
+The virtual function table pointer in a class is now set before the
+members of the class are initialized.  The order of the code in constructor
+wrappers is now:
+
+  - Initialize virtual base classes.
+  - Initialize direct non-virtual base classes.
+  - Set virtual function table pointer.
+  - Initialize members of the class.
+
+This produces better results when virtual functions of the class are called
+while the members are being initialized.
+
 4/30/93  Bug in enum constant linked list
 
 A bug has been fixed in the construction of the linked list of enum

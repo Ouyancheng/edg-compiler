@@ -3461,11 +3461,6 @@ constructor, but may instead be after an assignment to "this".
          the ctor-initializer list, plus any virtual base class pointer
          arguments, using the added parameters for those).
      [endfor]
-     [For each initialized data member (entries for these are the rest
-         of the ctor-initializer list):]
-       Do the initialization (a constructor call or some other dynamic
-           initialization).
-     [endfor]
      [If the current class has any virtual functions:]
        Set the virtual function table pointer in the current class.
      [endif]
@@ -3476,6 +3471,11 @@ constructor, but may instead be after an assignment to "this".
              base classes must be accessed using the virtual base class
              pointer parameters.
        [endif]
+     [endfor]
+     [For each initialized data member (entries for these are the rest
+         of the ctor-initializer list):]
+       Do the initialization (a constructor call or some other dynamic
+           initialization).
      [endfor]
   */
   /* The constructor_inits list contains a list of initializations.  Each
@@ -3583,12 +3583,6 @@ constructor, but may instead be after an assignment to "this".
     lower_ctor_init(ctor_init, this_param_var, /*use_implicit_param=*/FALSE,
                     class_type, insert_location);
   }  /* for */
-  /* Generate initialization for each data member that appears on the
-     ctor_init list. */
-  for (; ctor_init != NULL; ctor_init = ctor_init->next) {
-    lower_ctor_init(ctor_init, this_param_var, /*use_implicit_param=*/FALSE,
-                    class_type, insert_location);
-  }  /* for */
   /* If the current class has any virtual functions, generate code to
      set the virtual function table pointer in the current class. */
   primary_vtbl_var = ctsp->virtual_function_table_var;
@@ -3636,6 +3630,12 @@ constructor, but may instead be after an assignment to "this".
                                         vtbl_addr_node,
                                         insert_location);
     }  /* if */
+  }  /* for */
+  /* Generate initialization for each data member that appears on the
+     ctor_init list. */
+  for (; ctor_init != NULL; ctor_init = ctor_init->next) {
+    lower_ctor_init(ctor_init, this_param_var, /*use_implicit_param=*/FALSE,
+                    class_type, insert_location);
   }  /* for */
 }  /* add_constructor_wrapper_code */
 
