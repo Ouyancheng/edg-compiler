@@ -1,5 +1,20 @@
 Version 2.41
 
+1/28/99   Missing access error on inherited name used in qualifier
+
+The front end failed to issue an error when an inaccessible inherited
+type was used in the qualifier of a qualified name.  This has been
+fixed.
+
+  struct A { A() {}
+    static int i;
+    typedef A my_a;
+  };
+  struct B : private A { };
+  struct C : public B {
+    int f() { return my_a::i; }  // my_a is inaccessible
+  };
+
 1/26/99   Overload resolution: comparing standard conversions from class
           pointers to void * after user-defined conversions
 

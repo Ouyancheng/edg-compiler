@@ -6437,7 +6437,8 @@ Put the freed entry on the available list to be reused.
 }  /* free_access_error_descr */
 
 
-void f_check_ambiguity_and_verify_access(a_symbol_locator *locator)
+void f_check_ambiguity_and_verify_access(a_symbol_locator *locator,
+					 a_boolean	  is_template_context)
 /*
 Verify that the indicated symbol is not ambiguous and that we have
 access to it.  In case of an ambiguity, the locator is set to an error
@@ -6462,6 +6463,10 @@ access to the return type cannot be checked until we know the parent
 class of the member being defined.  For friend functions, access to the
 return type and parameter types of the function cannot be checked until
 we have scanned the entire function declarator.
+
+is_template_context is TRUE if the token following the identifier is a
+"<" token and an unambiguous injected class template symbol should be
+accepted even though the injected class symbol is ambiguous.
 */
 {
   a_symbol_ptr   sym = locator->specific_symbol;
@@ -6471,7 +6476,10 @@ we have scanned the entire function declarator.
   /* Issue an error if the symbol is ambiguous.  Symbols can be ambiguous
      either as a result of using directives or as a result of inheritance.
      Ambiguity checking must precede access control (ARM, 10.1.1). */
-  if (sym->ambiguous) {
+  if (sym->ambiguous &&
+      !(is_template_context && sym->kind == (a_symbol_kind)sk_projection &&
+        sym->variant.projection.injected_class_template_name_is_unambiguous)) {
+
     pos_sy_error(ec_ambiguous_name, &locator->source_position, sym);
     set_to_error_locator(*locator);
   } else if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
@@ -6482,6 +6490,10 @@ we have scanned the entire function declarator.
        be done after the specific function is determined. */
   } else if (fund_sym->kind == (a_symbol_kind)sk_function_template) {
     /* Likewise treat templates as sets of overloaded functions. */
+  } else if (locator->is_template_id) {
+    /* The access of the template is checked when the template name
+       is looked up.  For functions, access is checked after overload
+       resolution has been done. */
   } else if (microsoft_mode && !locator->is_qualified_name &&
              is_type_symbol(fund_sym)) {
     /* The Microsoft compiler allows access to private types in base
@@ -6496,9 +6508,11 @@ we have scanned the entire function declarator.
       defer_access_checks = ssep->defer_access_checks;
     }  /* if */
     if (!defer_access_checks) {
-      issue_access_error(fundamental_symbol_of(sym),
-                         &locator->source_position);
-      locator->access_control_error_reported = TRUE;
+      if (!locator->access_control_error_reported) {
+        issue_access_error(fundamental_symbol_of(sym),
+                           &locator->source_position);
+        locator->access_control_error_reported = TRUE;
+      }  /* if */
     } else {
       /* Access checks are deferred, so put an entry on a list for later
          checking. */

@@ -2654,7 +2654,8 @@ extern a_boolean have_protected_member_access_privilege(a_type_ptr class_type);
 extern a_boolean have_access_to_symbol(a_symbol_ptr symbol);
 
 extern void f_check_ambiguity_and_verify_access
-			(a_symbol_locator		*loc);
+				(a_symbol_locator	*loc,
+				 a_boolean		is_template_context);
 
 extern void perform_deferred_access_checks(void);
 
@@ -2682,9 +2683,24 @@ does nothing when called in C mode.
       (locator)->specific_symbol != NULL &&                           \
       ((locator)->specific_symbol->is_class_member ||                 \
        (locator)->specific_symbol->ambiguous)) {                      \
-    f_check_ambiguity_and_verify_access(locator);                     \
+    f_check_ambiguity_and_verify_access(locator,		      \
+                                        /*is_template_context=*/FALSE); \
   }  /* if */                                                         \
 }  /* check_ambiguity_and_verify_access */
+
+
+/*
+Similar to check_ambiguity_and_verify_access, except that the templ_context
+flag is passed to the routine called.
+*/
+#define check_ambiguity_and_access_with_template_flag(locator, templ_context) \
+{ if (C_dialect == C_dialect_cplusplus &&                             \
+      (locator)->specific_symbol != NULL &&                           \
+      ((locator)->specific_symbol->is_class_member ||                 \
+       (locator)->specific_symbol->ambiguous)) {                      \
+    f_check_ambiguity_and_verify_access(locator, templ_context);      \
+  }  /* if */                                                         \
+}  /* check_ambiguity_and_access_with_template_flag */
 
 
 /*
@@ -2697,7 +2713,7 @@ The locator is set to an error locator by f_check_ambiguity_and_verify_access.
 #define check_for_ambiguity(locator)					\
 { if ((locator)->specific_symbol != NULL &&				\
       (locator)->specific_symbol->ambiguous) {				\
-    f_check_ambiguity_and_verify_access(locator);                	\
+    f_check_ambiguity_and_verify_access(locator, /*is_template_id=*/FALSE); \
   }  /* if */                                                         	\
 }  /* check_for_ambiguity */
 

@@ -8743,6 +8743,7 @@ selection operator, in which case it points to the type of the left operand.
   a_boolean             	is_ptr_to_member = FALSE;
   a_boolean			is_identifier = FALSE;
   a_symbol_ptr			qualifier_sym = NULL;
+  a_symbol_ptr			specific_sym = NULL;
   a_source_position		start_position;
   a_source_position		orig_error_position;
   a_token_kind			next_tok;
@@ -8941,31 +8942,24 @@ selection operator, in which case it points to the type of the left operand.
                          ec_nested_class_anachronism,
                          locator_for_curr_id.specific_symbol);
         }  /* if */
-        { a_symbol_ptr  specific_sym;
-	  /* See if this name is ambiguous.  This is done here because
-	     the specific symbol may be cleared and set to a different
-	     value before the access and ambiguity check is done below.
-	     The access check can still be done later, but the ambiguity
-	     check cannot because it must be done based on the projection
-	     symbol, not on the symbol pointed to by the projection symbol.
-             An ambiguous injected template symbol is accepted if it
-             unambiguously refers to a specific class template, and if the
-             next token is a "<" indicating that we are really referring to
-             the template and not the (ambiguous) class type. */
-	  specific_sym = locator_for_curr_id.specific_symbol;
-	  if (specific_sym != NULL && specific_sym->ambiguous &&
-              (specific_sym->kind != (a_symbol_kind)sk_projection ||
-               (!specific_sym->variant.projection.
-                               injected_class_template_name_is_unambiguous ||
-                next_tok != tok_lt))) {
-	    pos_sy_error(ec_ambiguous_name,
-			 &locator_for_curr_id.source_position,
-			 specific_sym);
-	    make_specific_symbol_error_locator(&locator_for_curr_id);
-            qualifier_sym = locator_for_curr_id.specific_symbol;
-	    err = TRUE;
-	  }  /* if */
-	}
+        /* See if this name is ambiguous.  This is done here because
+	   the specific symbol may be cleared and set to a different
+	   value below, and the ambiguity and access check must be
+	   done based on the projection symbol, not on the symbol
+	   pointed to by the projection symbol.  An ambiguous injected
+	   template symbol is accepted if it unambiguously refers to a
+	   specific class template, and if the next token is a "<"
+	   indicating that we are really referring to the template and
+	   not the (ambiguous) class type. */
+        check_ambiguity_and_access_with_template_flag(
+                          &locator_for_curr_id, (a_boolean)next_tok == tok_lt);
+        /* The call above will create an error locator if an ambiguity is
+           is detected. */
+        if (is_error_locator(locator_for_curr_id)) {
+          make_specific_symbol_error_locator(&locator_for_curr_id);
+          qualifier_sym = locator_for_curr_id.specific_symbol;
+          err = TRUE;
+        }  /* if */
       }  /* if */
       if (qualifier_separator == tok_period) {
         if (qualifier_sym != NULL && is_class_symbol(qualifier_sym)) {
@@ -8993,6 +8987,7 @@ selection operator, in which case it points to the type of the left operand.
        performed above.  It must be cleared in case this isn't actually a
        qualified name.  We clear it now because it may be set again if a
        template reference is coalesced and we don't want to lose that value. */
+    specific_sym = locator_for_curr_id.specific_symbol;
     clear_specific_symbol(locator_for_curr_id);
     /* If the class symbol is for a class template, process the argument
        list. */
@@ -9004,6 +8999,7 @@ selection operator, in which case it points to the type of the left operand.
          or if the next token is a "<" (which could be a function template
          reference or an error case). */
       qualifier_sym = coalesce_template_id(qualifier_sym, options, &err);
+      specific_sym = locator_for_curr_id.specific_symbol;
     }  /* if */
     /* See if the identifier is followed by "::".  Note that nex_tok is not
        used because the next token may have changed while scanning a
@@ -9027,7 +9023,7 @@ selection operator, in which case it points to the type of the left operand.
       /* Restore the specific_symbol with the class symbol determined earlier.
          This needs to be restored so that access and ambiguity checking can
 	 be done. */
-      locator_for_curr_id.specific_symbol = qualifier_sym;
+      locator_for_curr_id.specific_symbol = specific_sym;
       for (;;) {
         /* Keep looping while there are more levels of class qualification.
            Exit from loop is in the middle. */
@@ -9091,19 +9087,6 @@ selection operator, in which case it points to the type of the left operand.
           /* The qualifier symbol is valid. Record the reference on the
              symbol. */
           mark_referenced(qualifier_sym, &locator_for_curr_id.source_position);
-          if (qualifier_sym->is_class_member ||
-              locator_for_curr_id.specific_symbol->ambiguous) {
-            /* Do ambiguity and access control checking on the qualifier
-               symbol.  Access checking is only done for class members
-               to ensure  that the check will be suppressed for template
-               parameters (i.e., the T in T::X).  Access for template
-               parameters should be checked at the point at which the type
-               is used as a template argument.  The routine is also called
-               if the symbol is known to be ambiguous, so that it can
-               report the ambiguity error.  No access checking will be done
-               when an ambiguity error exists. */
-            check_ambiguity_and_verify_access(&locator_for_curr_id);
-          }  /* if */
         }  /* if */
         /* Skip over the class-name, and the "::".  After the two get_token
            calls, the current token will be whatever follows the
@@ -9245,6 +9228,29 @@ selection operator, in which case it points to the type of the left operand.
                 if (qualifier_sym != NULL && !is_type_symbol(qualifier_sym)) {
                   qualifier_sym = NULL;
                 }  /* if */
+              }  /* if */
+            }  /* if */
+          }  /* if */
+          if (qualifier_sym != NULL) {
+            if (qualifier_sym->is_class_member ||
+                locator_for_curr_id.specific_symbol->ambiguous) {
+              /* Do ambiguity and access control checking on the qualifier
+                 symbol.  Access checking is only done for class members
+                 to ensure  that the check will be suppressed for template
+                 parameters (i.e., the T in T::X).  Access for template
+                 parameters should be checked at the point at which the type
+                 is used as a template argument.  The routine is also called
+                 if the symbol is known to be ambiguous, so that it can
+                 report the ambiguity error.  No access checking will be done
+                 when an ambiguity error exists. */
+              check_ambiguity_and_access_with_template_flag(
+                          &locator_for_curr_id, (a_boolean)next_tok == tok_lt);
+              /* The call above will create an error locator if an ambiguity is
+                 is detected. */
+              if (is_error_locator(locator_for_curr_id)) {
+                make_specific_symbol_error_locator(&locator_for_curr_id);
+                qualifier_sym = locator_for_curr_id.specific_symbol;
+                err = TRUE;
               }  /* if */
             }  /* if */
           }  /* if */
