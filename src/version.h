@@ -21,6 +21,12 @@ file to make updates easy.
 #define VERSION_NUMBER "2.29"  /* May 24, 1995. */
 
 /*
+Version number used to set a predefined macro that expands to the
+front end version.  This must be a numeric value.
+*/
+#define VERSION_NUMBER_FOR_MACRO 229
+
+/*
 The date and time that this version was built.  These variables will
 be defined when fe_init.c is compiled.
 */
