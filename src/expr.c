@@ -3729,7 +3729,8 @@ Syntax:
   a_local_expr_options_set
                         local_options;
   an_expr_stack_entry   expr_stack_entry;
-
+  a_boolean             in_constant_expression = (expr_stack != NULL &&
+                                                  curr_expr_kind_is_const());
   db_enter(4, "scan_sizeof_operator");
 
 #if CHECKING
@@ -3853,7 +3854,7 @@ Syntax:
 
   if (vla_enabled && is_vla_type(sizeof_type)) {
     /* One or more of the top array types is a variable-length array. */
-    if (curr_expr_kind_is_const()) {
+    if (in_constant_expression) {
       /* Not allowed in a constant expression. */
       pos_error(ec_expr_not_constant, &start_position);
       make_error_operand(result);
