@@ -324,7 +324,8 @@ extern a_boolean f_types_are_compatible(a_type_ptr              type_1,
 extern a_boolean same_type_with_added_qualifiers
                                     (a_type_ptr dest_type,
 				     a_type_ptr source_type,
-				     a_boolean  ignore_qualifiers);
+				     a_boolean  ignore_qualifiers,
+				     a_boolean  *p_qualifiers_added);
 
 /*
 Description of a standard conversion (implicit or explicit), or at least

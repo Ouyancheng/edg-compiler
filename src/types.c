@@ -2442,7 +2442,8 @@ Return TRUE if the given constant is the address of a string constant.
 
 a_boolean same_type_with_added_qualifiers(a_type_ptr dest_type,
 					  a_type_ptr source_type,
-					  a_boolean  ignore_qualifiers)
+					  a_boolean  ignore_qualifiers,
+					  a_boolean  *p_qualifiers_added)
 /*
 Return TRUE if source_type and dest_type are compatible types except that
 dest_type may have some additional type qualifiers at some level(s).
@@ -2451,16 +2452,31 @@ which makes this routine something like a types_are_compatible that
 ignores type qualifiers.  This routine is used to deal with pointer
 conversions that add a type qualifier somewhere other than the top
 level, e.g., int ** --> const int **.
+
+If any qualifiers are added, the flag pointed to by p_qualifiers_added
+is set to TRUE.  Otherwise it is set to FALSE.  p_qualifiers_added
+can be NULL if the caller does not need this flag returned.
 */
 {
   a_boolean   same;
+  a_boolean   qualifiers_added = FALSE;
 
   for (same = TRUE; same == TRUE;) {
+    a_type_qualifier_set dest_type_qualifiers;
+    a_type_qualifier_set source_type_qualifiers;
+    dest_type_qualifiers = get_type_qualifiers(dest_type);
+    source_type_qualifiers = get_type_qualifiers(source_type);
     if (!ignore_qualifiers &&
-	any_qualifier_missing(dest_type, source_type)) {
+	any_qualifier_in_set_missing(dest_type_qualifiers,
+				     source_type_qualifiers)) {
       /* Some qualifier is missing. */
       same = FALSE;
     } else {
+      /* See whether the destination type has additional qualifiers. */
+      if (any_qualifier_in_set_missing(source_type_qualifiers,
+				       dest_type_qualifiers)) {
+	qualifiers_added = TRUE;
+      }  /* if */
       dest_type = skip_typerefs(dest_type);
       source_type = skip_typerefs(source_type);
       if (is_pointer_type(dest_type) && is_pointer_type(source_type)) {
@@ -2487,6 +2503,9 @@ level, e.g., int ** --> const int **.
       }  /* if */
     }  /* if */
   }  /* for */
+  /* If there were any qualifiers added, set the flag specified by the
+     caller. */
+  if (p_qualifiers_added != NULL) *p_qualifiers_added = qualifiers_added;
   return same;
 }  /* same_type_with_added_qualifiers */
 
@@ -2777,7 +2796,8 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
 		 same_type_with_added_qualifiers
                     (dest_type_pointed_to,
 		     source_type_pointed_to,
-		     /*ignore_qualifiers=*/check_as_operands_not_conversion)) {
+		     /*ignore_qualifiers=*/check_as_operands_not_conversion,
+		     &qualifiers_added)) {
         /* Allow conversion between pointers where type qualifiers are
            being added at levels other than the first, e.g.,
            "int **" -> "const int **".  This is similar to the qualification
@@ -2785,7 +2805,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
 	   cases are accepted. */
         okay = TRUE;
         std_conv->nontrivial_conversion = FALSE;
-        std_conv->type_qualifiers_added = TRUE;
+        std_conv->type_qualifiers_added = qualifiers_added;
 	if (!any_cfront_mode()) {
           std_conv->warning_suggested = default_warning_code;
 	}  /* if */
