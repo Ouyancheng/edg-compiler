@@ -1,5 +1,13 @@
 Version 2.31
 
+10/30/95  Copying expression containing enk_typeid
+
+copy_expr_tree had a bug with regard to copying expressions containing
+enk_typeid nodes.  Now fixed.
+
+  int i;
+  void *p = (void *)&typeid(i);  // Got internal error
+
 10/30/95  is_local_to_function set on handler and unnamed parameters
 
 The is_local_to_function flag is now set for unnamed parameters and
