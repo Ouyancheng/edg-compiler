@@ -1484,26 +1484,111 @@ Return TRUE if the template argument specified by "tap" has been given a value.
 }  /* template_arg_has_value */
 			
 
+static a_boolean template_param_used_in_type(a_symbol_ptr param_sym,
+                                             a_type_ptr   tp)
+/*
+Returns TRUE if the template parameter specified by param_sym is used in
+the type specified by tp.
+*/
+{
+  a_boolean	result;
+
+  if (param_sym->kind == (a_symbol_kind)sk_type) {
+    result =
+       is_or_contains_specific_template_param(tp, param_sym->variant.type.ptr);
+  } else if (param_sym->kind == (a_symbol_kind)sk_constant) {
+    result = type_contains_specific_template_param_constant(
+                                              tp, param_sym->variant.constant);
+  } else {
+    /* A template template argument. */
+    result = type_contains_specific_template_template_param(
+                      tp, param_sym->variant.template_info->il_template_entry);
+  }  /* if */
+  return result;
+}  /* template_param_used_in_type */
+
+
+static a_boolean template_param_appears_in_param_list
+				(a_symbol_ptr param_sym,
+                                 a_type_ptr   rout_type)
+/*
+tparam_type is a tk_template_parameter type entry used in a template
+declaration, and rout_type is a routine type.  Search each of the routine's
+parameter types to see if tparam_type appears in it.  If
+*/
+{
+  a_boolean         found = FALSE;
+  a_param_type_ptr  ptp;
+
+  ptp = rout_type->variant.routine.extra_info->param_type_list;
+  for (; ptp != NULL; ptp = ptp->next) {
+    /* Inspect all template parameters, not just those that involve
+       deduced template parameters.  A template parameter can affect the
+       type even in a nondeduced location. */
+    if (template_param_used_in_type(param_sym, ptp->type)) {
+      found = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return found;
+}  /* template_param_appears_in_param_list */
+
 
 static a_boolean all_templ_params_have_values(
-				a_template_arg_ptr	templ_arg_list,
-				a_template_param_ptr	templ_param_list)
+		a_template_arg_ptr			templ_arg_list,
+		a_template_param_ptr			templ_param_list,
+		a_boolean				is_partial_order_check,
+		a_symbol_ptr				template_sym,
+		a_template_symbol_supplement_ptr	tssp)
 /*
 This routine is used after doing argument deduction for a template
 argument list.  Its purpose is to make sure that a value has been deduced
 for each parameter.
+
+is_partial_order_check is TRUE when this function is called (indirectly)
+during wrapup processing by compare_function_templates.  template_sym is
+the symbol of the template being checked.  tssp is the associated template
+symbol supplement.
 */
 {
   a_boolean		result = TRUE;
   a_template_param_ptr	tpp;
   a_template_arg_ptr	tap;
+  a_type_ptr		rout_type = NULL;
+  a_boolean		is_conversion_operator = FALSE;
 
+  if (is_partial_order_check) {
+    /* The routine type of the prototype instantiation of the template
+       is only needed below when doing the partial ordering check. */
+    rout_type = skip_typerefs(tssp->variant.function.routine->type);
+    is_conversion_operator = is_conversion_function_symbol(template_sym);
+  }  /* if */
   tpp = templ_param_list;
   tap = templ_arg_list;
   for (; tpp != NULL; tpp = tpp->next, tap = tap->next) {
     if (!template_arg_has_value(tap)) {
-      result = FALSE;
-      break;
+      a_boolean	okay_if_no_value = FALSE;
+      if (is_partial_order_check) {
+        /* We are doing a check during the wrapup processing for partial
+           ordering of function templates.  A parameter can remain without
+           a value provided it is not used in the types being used for the
+           partial ordering comparison. */
+        if (is_conversion_operator) {
+          if (!template_param_used_in_type(
+                  tpp->param_symbol, rout_type->variant.routine.return_type)) {
+            okay_if_no_value = TRUE;
+          }  /* if */
+        } else {
+          if (!template_param_appears_in_param_list(tpp->param_symbol,
+                                                         rout_type)) {
+            okay_if_no_value = TRUE;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      if (!okay_if_no_value) {
+        result = FALSE;
+        break;
+      }  /* if */
     }  /* if */
   }  /* for */
   return result;
@@ -1513,7 +1598,8 @@ for each parameter.
 static a_boolean wrapup_template_argument_deduction(
 				a_template_arg_ptr   templ_arg_list,
                                 a_symbol_ptr         template_sym,
-                                a_template_param_ptr templ_param_list)
+                                a_template_param_ptr templ_param_list,
+				a_boolean	     is_partial_order_check)
 /*
 This routine is used after doing argument deduction for each argument to
 ensure that any nontype parameter whose type depends on a
@@ -1529,17 +1615,20 @@ template arguments of a partial specialization of a class template.
 For partial specializations the only tests that are needed are the
 check that all parameters have values, and the handling of array
 bounds of unknown type.
+
+is_partial_order_check is TRUE when this function is called (indirectly)
+during wrapup processing by compare_function_templates.
 */
 {
   a_boolean				match = TRUE;
   a_template_param_ptr			tpp;
   a_template_arg_ptr			tap;
+  a_template_symbol_supplement_ptr	tssp;
 
   check_assertion(template_sym != NULL);
+  tssp = template_supplement_for_symbol(template_sym);
   if (templ_param_list == NULL) {
-    a_template_symbol_supplement_ptr	tssp;
     a_template_decl_info_ptr		tdip;
-    tssp = template_supplement_for_symbol(template_sym);
     /* The decl_info pointer can be NULL if the template parameter list is
        missing (in an error case), and the template declaration information
        has not yet been filled in. */
@@ -1547,8 +1636,15 @@ bounds of unknown type.
     templ_param_list = tdip != NULL ? tdip->parameters : NULL;
   }  /* if */
   /* Make an initial pass through the argument list to see if all of the
-     arguments have deduced values. */
-  match = all_templ_params_have_values(templ_arg_list, templ_param_list);
+     arguments have deduced values.  In certain error cases, the template
+     argument list can be NULL. */
+  if (templ_arg_list == NULL) {
+    match = FALSE;
+  } else {
+    match = all_templ_params_have_values(templ_arg_list, templ_param_list,
+                                         is_partial_order_check, template_sym,
+                                         tssp);
+  }  /* if */
   if (match) {
     tpp = templ_param_list;
     tap = templ_arg_list;
@@ -1634,18 +1730,23 @@ bounds of unknown type.
 a_type_ptr wrapup_function_template_argument_deduction(
 				a_template_arg_ptr   templ_arg_list,
                                 a_symbol_ptr         rout_templ_sym,
-                                a_template_param_ptr templ_param_list)
+                                a_template_param_ptr templ_param_list,
+				a_boolean	     is_partial_order_check)
 /*
 Calls wrapup_template_argument_deduction and then produces a final
 routine type by substituting the completed template arguments into the
 template routine type.  The new routine type is returned.  If an error
 occurred in the substitution process, a NULL pointer is returned.
+
+is_partial_order_check is TRUE when this function is called by
+compare_function_templates.
 */
 {
   a_type_ptr	new_type = NULL;
 
   if (wrapup_template_argument_deduction(templ_arg_list, rout_templ_sym,
-                                         templ_param_list)) {
+                                         templ_param_list,
+                                         is_partial_order_check)) {
     new_type = substitute_template_arguments(rout_templ_sym, templ_arg_list,
                                              (a_template_arg_ptr*)NULL,
                                              templ_param_list);
@@ -1808,7 +1909,8 @@ more specialized than templ_sym1, and return 0 if they are unordered.
     /* Do the wrapup processing for the first argument list. */
     match1 = FALSE;
     if (wrapup_function_template_argument_deduction(
-               dummy_arg_list1, templ_sym2, templ_param_list1) != NULL) {
+               dummy_arg_list1, templ_sym2, templ_param_list1,
+               /*is_partial_order_check=*/TRUE) != NULL) {
       match1 = TRUE;
     }  /* if */
   }  /* if */
@@ -1816,7 +1918,8 @@ more specialized than templ_sym1, and return 0 if they are unordered.
     /* Do the wrapup processing for the second argument list. */
     match2 = FALSE;
     if (wrapup_function_template_argument_deduction(
-               dummy_arg_list2, templ_sym1, templ_param_list2) != NULL) {
+               dummy_arg_list2, templ_sym1, templ_param_list2,
+               /*is_partial_order_check=*/TRUE) != NULL) {
       match2 = TRUE;
     }  /* if */
   }  /* if */
@@ -1912,7 +2015,8 @@ in ps_arg_list.
   if (matches_template_type(instance_type, prototype_type, ps_arg_list,
                             templ_param_list, MTT_NO_FLAGS)) {
     if (wrapup_template_argument_deduction(
-                        *ps_arg_list, template_sym, templ_param_list)) {
+                        *ps_arg_list, template_sym, templ_param_list,
+                        /*is_partial_order_check=*/FALSE)) {
       a_type_ptr			test_type;
       a_boolean				copy_error = FALSE;
       /* Substitute the template parameters of the template with the deduced
@@ -8660,7 +8764,8 @@ matching process.
     /* Make sure the final type, after substitution of nondeduced contexts,
        is correct. */
     new_type = wrapup_function_template_argument_deduction(
-                                *templ_arg_list, templ_sym, templ_param_list);
+                                *templ_arg_list, templ_sym, templ_param_list,
+                                /*is_partial_order_check=*/FALSE);
     match = FALSE;
     if (new_type != NULL) {
       if (is_decl_context) {
@@ -8847,7 +8952,9 @@ matches, a new argument list is returned in *new_arg_list.
     /* The template argument list matches the template and the substitution
        of arguments was successful.  If all of the template parameters have
        values, then we have a match. */
-    if (!all_templ_params_have_values(*new_arg_list, templ_param_list)) {
+    if (!all_templ_params_have_values(*new_arg_list, templ_param_list,
+                                      /*is_partial_order_check=*/FALSE,
+                                      template_sym, tssp)) {
       /* Some parameters do not have values -- no match. */
       result_type = NULL;
     }  /* if */
@@ -10446,30 +10553,6 @@ class.  If so, issue an error.
     }  /* if */
   }  /* if */
 }  /* check_local_class_template_friend */
-
-
-static a_boolean template_param_used_in_type(a_symbol_ptr param_sym,
-                                             a_type_ptr   tp)
-/*
-Returns TRUE if the template parameter specified by param_sym is used in
-the type specified by tp.
-*/
-{
-  a_boolean	result;
-
-  if (param_sym->kind == (a_symbol_kind)sk_type) {
-    result =
-       is_or_contains_specific_template_param(tp, param_sym->variant.type.ptr);
-  } else if (param_sym->kind == (a_symbol_kind)sk_constant) {
-    result = type_contains_specific_template_param_constant(
-                                              tp, param_sym->variant.constant);
-  } else {
-    /* A template template argument. */
-    result = type_contains_specific_template_template_param(
-                      tp, param_sym->variant.template_info->il_template_entry);
-  }  /* if */
-  return result;
-}  /* template_param_used_in_type */
 
 
 static a_boolean is_constant_with_dependent_type(a_constant_ptr	cp)
@@ -13170,32 +13253,6 @@ existing type is simply used.
   }  /* if */
   return templ;
 }  /* rescan_template_template_default_arg */
-
-
-static a_boolean template_param_appears_in_param_list
-				(a_symbol_ptr param_sym,
-                                 a_type_ptr   rout_type)
-/*
-tparam_type is a tk_template_parameter type entry used in a template
-declaration, and rout_type is a routine type.  Search each of the routine's
-parameter types to see if tparam_type appears in it.  If
-*/
-{
-  a_boolean         found = FALSE;
-  a_param_type_ptr  ptp;
-
-  ptp = rout_type->variant.routine.extra_info->param_type_list;
-  for (; ptp != NULL; ptp = ptp->next) {
-    /* Inspect all template parameters, not just those that involve
-       deduced template parameters.  A template parameter can affect the
-       type even in a nondeduced location. */
-    if (template_param_used_in_type(param_sym, ptp->type)) {
-      found = TRUE;
-      break;
-    }  /* if */
-  }  /* for */
-  return found;
-}  /* template_param_appears_in_param_list */
 
 
 static void fixup_types_that_refer_to_incomplete_instantiations(

@@ -1,5 +1,26 @@
 Version 3.6
 
+2/4/04   Partial ordering and explicitly specified template arguments
+
+The original specification of partial ordering of function templates did
+not make any special provisions for function templates in which certain
+template parameters are not used in the signature of the template (and
+must therefore be explicitly specified when the function is called).
+As a result, examples like the one below resulted in ambiguity errors.
+Core issue 214, which clarified the partial ordering rules, included
+provisions making such examples well formed.  Our implementation already
+reflected most of the clarifications from core issue 214.  We now handle
+function templates with template parameters that must be explicitly
+specified according to the rules in core issue 214.  Version 7.1 of the
+Microsoft compiler also accepts such examples, so this change also address
+a Microsoft compatibility issue.
+
+  template <class T> T f(int) {return T();}
+  template <class T, class U> T f(U) {return T();}
+  int main() {
+    f<int>(1);
+  }
+ 
 2/4/04   Microsoft 7.1 compatibility: string as argument to built-in ==
 
 The emulation for MSVC++ 7.1 (microsoft_version=1310) now gives
