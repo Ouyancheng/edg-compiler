@@ -428,7 +428,8 @@ typedef enum /*an_error_code*/ {
   ec_virtual_function_in_union,
   ec_static_member_in_union,
   ec_bound_function_cast_anachronism,
-  ec_expr_not_ptr_to_member
+  ec_expr_not_ptr_to_member,
+  ec_superfluous_semicolon
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 

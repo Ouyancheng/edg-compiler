@@ -6487,7 +6487,7 @@ of local variables (and types, etc.) of functions and in blocks.
          and give a more specific "Expected a declaration" message. */
       if (curr_token == tok_semicolon) {
         /* An empty declaration is ignored (as an extension in ANSI mode). */
-        warning(ec_exp_declaration);
+        warning(ec_superfluous_semicolon);
       } else {
         if (curr_token == tok_lbrace) {
           /* Special error recovery on encountering an open brace: it

@@ -1228,6 +1228,9 @@ error code.
     case ec_expr_not_ptr_to_member:
       m = "expression must have pointer-to-member type";
       break;
+    case ec_superfluous_semicolon:
+      m = "superfluous \";\" ignored";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
