@@ -2014,11 +2014,19 @@ or struct definition.  The syntax is
       if (bcp_cssp->destructor != NULL) {
         cssp->destructor_required = TRUE;
       }  /* if */
-      /* The current derived class cannot be copy-constructed by bitwise
-         copying if the base class does not allow it or is a virtual base
-         class. */
-      if (is_virtual || !bcp_cssp->construction_by_bitwise_copy_allowed) {
+      /* The current derived class cannot be copy-constructed or assigned by
+         bitwise copying if the base class does not allow it or is a virtual
+         base class. */
+      if (is_virtual) {
         cssp->construction_by_bitwise_copy_allowed = FALSE;
+        cssp->assignment_by_bitwise_copy_allowed = FALSE;
+      } else {
+        if (!bcp_cssp->construction_by_bitwise_copy_allowed) {
+          cssp->construction_by_bitwise_copy_allowed = FALSE;
+        }  /* if */
+        if (!bcp_cssp->assignment_by_bitwise_copy_allowed) {
+          cssp->assignment_by_bitwise_copy_allowed = FALSE;
+        }  /* if */
       }  /* if */
       /* Update the flag indicating whether there are any virtual base
          classes. */
@@ -2872,9 +2880,10 @@ special function kind (e.g., constructor, destructor), if any.
                                    &locator->source_position)) {
       /* Classes with virtual functions require constructors. */
       cssp->constructor_required = TRUE;
-      /* Classes with virtual functions cannot be constructed by bitwise
-         copying. */
+      /* Classes with virtual functions cannot be constructed or assigned
+         by bitwise copying. */
       cssp->construction_by_bitwise_copy_allowed = FALSE;
+      cssp->assignment_by_bitwise_copy_allowed = FALSE;
     }  /* if */
     /* If this is a user-defined conversion or an overloaded operator,
        check for errors in the argument list. */
@@ -3445,7 +3454,6 @@ such member functions are present.
   a_type_ptr                     tp = skip_typerefs(field_type);
   a_class_symbol_supplement_ptr  cssp;
   a_symbol_ptr                   sym;
-  a_boolean                      is_overloaded;
 
   db_enter(4, "is_valid_union_field");
   if (is_array_type(tp)) tp = skip_typerefs(underlying_array_element_type(tp));
@@ -3455,29 +3463,11 @@ such member functions are present.
       is_valid = FALSE;
     } else if (cssp->assignment_operator != NULL) {
       /* Check for existence of a user defined assignment operator function.
-         If there is no compiler-generated assignment operator, then it must
-         be user-defined. */
+         There may be a compiler-generated assignment operator -- that's okay.
+         But if it's overloaded, there must be a user-defined operator. */
       sym = cssp->assignment_operator;
-      if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
-        is_overloaded = TRUE;
-        sym = sym->variant.overloaded_function.symbols;
-      } else {
-        is_overloaded = FALSE;
-      }  /* if */
-      for (; sym != NULL; sym = (is_overloaded ? sym->next : NULL)) {
-        if (sym->variant.routine->compiler_generated) break;
-      }  /* if */
-      if (sym == NULL) {
-#if CHECKING
-        /* Confirm that there is a default assignment operator. */
-        a_boolean  dummy_flag;
-        if (!assignment_operator_for_copy_exists(cssp->assignment_operator,
-                                                 &dummy_flag)) {
-          internal_error("is_valid_union_field: missing default operator=");
-        }  /* if */
-#endif /* CHECKING */
-        /* No compiler-generated default assignment operator was found, and
-           there must be one, so it must be user-defined. */
+      if (sym->kind == (a_symbol_kind)sk_overloaded_function ||
+          !sym->variant.routine->compiler_generated) {
         is_valid = FALSE;
       }  /* if */
     }  /* if */
@@ -3714,6 +3704,17 @@ class, struct, or union.
     }  /* if */
   }  /* if */
 #endif /* !TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE */
+  if (C_dialect == C_dialect_cplusplus) {
+    /* In C++ we need to keep track of whether any members have reference
+       type. */
+    cssp = symbol_supplement_for_class(class_type);
+    if (is_reference_type(member_type)) {
+      cssp->any_ref_member = TRUE;
+      /* Assignment by bitwise copy is not allowed when a class has reference
+         type members. */
+      cssp->assignment_by_bitwise_copy_allowed = FALSE;
+    }  /* if */
+  }  /* if */
   /* Remember if any member of the class, struct, or union is const-
      qualified, including recursively the members of any contained
      classes, structs, or unions.  This is useful for determination of
@@ -3723,13 +3724,10 @@ class, struct, or union.
        skip_typerefs(member_type)->
                             variant.class_struct_union.any_const_member)) {
     class_type->variant.class_struct_union.any_const_member = TRUE;
-  }  /* if */
-  if (C_dialect == C_dialect_cplusplus) {
-    /* In C++ we also need to keep track of whether any members have
-       reference type. */
-    cssp = symbol_supplement_for_class(class_type);
-    if (is_reference_type(member_type)) {
-      cssp->any_ref_member = TRUE;
+    if (C_dialect == C_dialect_cplusplus) {
+      /* Assignment by bitwise copy is not allowed when a class has const
+         qualified members. */
+      cssp->assignment_by_bitwise_copy_allowed = FALSE;
     }  /* if */
   }  /* if */
   if (is_aggregate_or_union_type(member_type)) {
@@ -3770,10 +3768,13 @@ class, struct, or union.
             cssp->destructor_required = TRUE;
           }  /* if */
         }  /* if */
-        /* The parent class cannot be copy-constructed by bitwise copying
-           if the member class does not allow it. */
+        /* The parent class cannot be copy-constructed or assigned by bitwise
+           copying if the member class does not allow it. */
         if (!member_cssp->construction_by_bitwise_copy_allowed) {
           cssp->construction_by_bitwise_copy_allowed = FALSE;
+        }  /* if */
+        if (!member_cssp->assignment_by_bitwise_copy_allowed) {
+          cssp->assignment_by_bitwise_copy_allowed = FALSE;
         }  /* if */
       }  /* if */
     }  /* if */
@@ -4714,7 +4715,7 @@ operator routine or do bitwise assignment.
   a_symbol_ptr                   sym;
   a_boolean                      pass_by_value, const_source_var;
   a_param_type_ptr               ptp;
-  a_boolean                      bitwise_assign;
+  a_boolean                      bitwise_assign, err = FALSE;
 
   db_enter(4, "make_default_assignment_body");
   /* The source variable of the copy is the first parameter on the parameters
@@ -4770,11 +4771,6 @@ operator routine or do bitwise assignment.
         if (symbol_supplement_for_class(bcp->type)->
                          assignment_by_bitwise_copy_allowed) {
           /* A bitwise copy may be performed. */
-#if 0
-          /* Even though the assignment operator is not actually invoked,
-             it must be accessible. */
-          check_access_on_assignment_operator(bcp->type, const_source_var);
-#endif /* if 0 */
           /* Dereference the pointer-to-base-class. */
           source_expr = add_indirection_to_node(source_expr);
           /* Create the assignment statement.  The appropriate operator
@@ -4786,6 +4782,13 @@ operator routine or do bitwise assignment.
           rp = select_assignment_operator(bcp->type, const_source_var,
                                           /*volatile_object_required=*/FALSE,
                                           &error_position, &pass_by_value);
+          /* Any assignment operator invoked by this publicly accessible
+             compiler-generated assignment operator should itself be publicly
+             accessible. (This is not exactly what ARM 12.8 says, but it
+             seems to be the intent.) */
+          if (rp->source_corresp.access != (an_access_specifier)as_public) {
+            err = TRUE;
+          }  /* if */
           if (pass_by_value) {
             source_expr = add_indirection_to_node(source_expr);
             /* Make sure a copy constructor call is added if one is needed. */
@@ -4812,20 +4815,18 @@ operator routine or do bitwise assignment.
         /* A field. */
         fp = sym->variant.field.ptr;
         tp = fp->type;
-#if 0
-        /* Do error checking -- ARM 12.8. */
-        if (is_reference_type(tp)) {
-          error();
-          continue;
-        }  /* if */
-        if (is_const_qualified_or_has_const_element_or_has_const_member) error;
-#endif /* if 0 */
+        /* An assignment operator should not be generated if a member has a
+           reference type. */
+        if (is_reference_type(tp)) err = TRUE;
         /* If this is an array, we need the element type. */
         array_type = NULL;
         if (is_array_type(tp)) {
           array_type = tp;
           tp = underlying_array_element_type(tp);
         }  /* if */
+        /* An assignment operator should not be generated if a member has a
+           const type. */
+        if (is_const_qualified_type(tp)) err = TRUE;
         tp = skip_typerefs(tp);
         /* The destination is the appropriate field (lvalue) of the "this"
            parameter. */
@@ -4839,11 +4840,6 @@ operator routine or do bitwise assignment.
           if (symbol_supplement_for_class(tp)->
                            assignment_by_bitwise_copy_allowed) {
             /* A bitwise copy may be performed. */
-#if 0
-            /* Even though the assignment operator is not actually invoked,
-               it must be accessible. */
-            check_access_on_assignment_operator(bcp->type, const_source_var);
-#endif /* if 0 */
             bitwise_assign = TRUE;
           } else {
             a_statement_ptr call_stmt;
@@ -4853,6 +4849,13 @@ operator routine or do bitwise assignment.
             rp = select_assignment_operator(tp, const_source_var,
                                             /*volatile_object_required=*/FALSE,
                                             &error_position, &pass_by_value);
+            /* Any assignment operator invoked by this publicly accessible
+               compiler-generated assignment operator should itself be publicly
+               accessible. (This is not exactly what ARM 12.8 says, but it
+               seems to be the intent.) */
+            if (rp->source_corresp.access != (an_access_specifier)as_public) {
+              err = TRUE;
+            }  /* if */
             source_expr = field_lvalue_selection_expr(source_expr, fp);
             if (array_type != NULL) {
               /* Copying an array of classes.  Generate a loop around the
@@ -4963,7 +4966,15 @@ operator routine or do bitwise assignment.
      it. */
   scope->assoc_block = alloc_statement((a_statement_kind)stmk_block);
   scope->assoc_block->variant.block.statements = head_of_statement_list.next;
-
+  /* If at any point in processing a condition was detected that should
+     disallow a compiler-generated assignment operator, issue an error now.
+     Such conditions are a const member, a reference member, or a member or a
+     base class with a private (which we interpret to *really* mean
+     nonpublic) operator=() (ARM 12.8). */
+  if (err) {
+    str_error(ec_missing_user_defined_assignment_for_copy,
+              class_type->source_corresp.name);
+  }  /* if */
   db_exit();
   return;
 }  /* make_default_assignment_body */
@@ -5080,15 +5091,11 @@ destructors, assignment operators, and conversion functions.
 }  /* reference_to_implicitly_invoked_function */
 
 
-static void default_assignment_operator_check(a_type_ptr  class_type,
-                                              a_boolean   *const_okay,
-                                              a_boolean   *bitwise_copy_okay)
+static a_boolean default_assignment_of_const_object_okay(a_type_ptr class_type)
 /*
 We are about to create a compiler-generated default assignment operator.
-Some of its characteristics are dependent on the assignment operators
+Whether it can copy a const object is dependent on the assignment operators
 defined for base classes and fields of the current class (class_type).
-Specifically, we need to determine whether the default assignment operator
-can copy a const object and whether bitwise copying is allowed.
 */
 {
   a_base_class_ptr               bcp;
@@ -5096,34 +5103,17 @@ can copy a const object and whether bitwise copying is allowed.
   a_class_symbol_supplement_ptr  cssp;
   a_symbol_ptr                   sym;
   a_field_ptr                    fp;
-  a_boolean                      local_const_okay = TRUE;
-  a_boolean                      local_bitwise_copy_okay = TRUE;
+  a_boolean                      const_okay = TRUE;
 
-  db_enter(4, "default_assignment_operator_check");
-  /* A bitwise copy to implement default assignment can be done if there are
-     no virtual base classes and no virtual functions and if all subobjects
-     can be assigned by bitwise copy.  The check for virtual base classes
-     and virtual functions is easy. */
-  if (class_type->variant.class_struct_union.any_virtual_base_classes ||
-      class_type->variant.class_struct_union.extra_info->
-                                                virtual_function_count > 0) {
-    local_bitwise_copy_okay = FALSE;
-  }  /* if */
-  /* Now check for const.  Do the base classes first. */
+  db_enter(4, "default_assignment_of_const_object_okay");
+  /* Check for const.  Do the base classes first. */
   bcp = class_type->variant.class_struct_union.extra_info->base_classes;
   for (; bcp != NULL; bcp = bcp->next) {
     if (bcp->direct || bcp->is_virtual) {
       cssp = symbol_supplement_for_class(bcp->type);
-      if (local_const_okay) {
-        (void)assignment_operator_for_copy_exists(cssp->assignment_operator,
-                                                  &local_const_okay);
-        if (!local_const_okay && !local_bitwise_copy_okay) goto done;
-      }  /* if */
-      if (local_bitwise_copy_okay &&
-          !cssp->assignment_by_bitwise_copy_allowed) {
-        local_bitwise_copy_okay = FALSE;
-        if (!local_const_okay) goto done;
-      }  /* if */
+      (void)assignment_operator_for_copy_exists(cssp->assignment_operator,
+                                                &const_okay);
+      if (!const_okay) goto done;
     }  /* if */
   }  /* for */
   /* Base classes are okay.  Now check the nonstatic data members. */
@@ -5137,24 +5127,16 @@ can copy a const object and whether bitwise copying is allowed.
       if (is_array_type(tp)) tp = underlying_array_element_type(tp);
       if (is_class_struct_union_type(tp)) {
         cssp = symbol_supplement_for_class(tp);
-        if (local_const_okay) {
-          (void)assignment_operator_for_copy_exists(cssp->assignment_operator,
-                                                    &local_const_okay);
-          if (!local_const_okay && !local_bitwise_copy_okay) goto done;
-        }  /* if */
-        if (local_bitwise_copy_okay &&
-            !cssp->assignment_by_bitwise_copy_allowed) {
-          local_bitwise_copy_okay = FALSE;
-          if (!local_const_okay) goto done;
-        }  /* if */
+        (void)assignment_operator_for_copy_exists(cssp->assignment_operator,
+                                                  &const_okay);
+        if (!const_okay) goto done;
       }  /* if */
     }  /* if */
   }  /* for */
-done:
-  *const_okay = local_const_okay;
-  *bitwise_copy_okay = local_bitwise_copy_okay;
+done:;
   db_exit();
-}  /* default_assignment_operator_check */
+  return const_okay;
+}  /* default_assignment_of_const_object_okay */
 
 
 static void default_copy_constructor_check(a_type_ptr  class_type,
@@ -5219,7 +5201,7 @@ The routine body is not generated until it is known to be needed.
 {
   a_param_type_ptr              ptp;
   a_class_symbol_supplement_ptr cssp;
-  a_boolean                     const_okay, bitwise_copy_okay;
+  a_boolean                     const_okay, dummy_flag;
 
   db_enter(3, "check_special_member_functions");
   cssp = symbol_supplement_for_class(class_type);
@@ -5243,22 +5225,21 @@ The routine body is not generated until it is known to be needed.
   }  /* if */
   /* Create a default assignment operator to copy an object of the current
      class if one doesn't already exist. */
-  if (!assignment_operator_for_copy_exists(cssp->assignment_operator,
-                                           &const_okay)) {
-    default_assignment_operator_check(class_type, &const_okay,
-                                      &bitwise_copy_okay);
-    if (bitwise_copy_okay) {
-      /* Don't bother generating a default assignment operator if bitwise
-         copying is allowed. */
-      cssp->assignment_by_bitwise_copy_allowed = bitwise_copy_okay;
-    } else {
-      ptp = alloc_param_type(make_reference_type(
+  if (assignment_operator_for_copy_exists(cssp->assignment_operator,
+                                          &dummy_flag)) {
+    /* If the user has already defined an assignment operator, neither
+       is bitwise copying allowed nor must the compiler generate one. */
+    cssp->assignment_by_bitwise_copy_allowed = FALSE;
+  } else if (!cssp->assignment_by_bitwise_copy_allowed) {
+    /* Only try to generate a default assignment operator if bitwise
+       copying is not allowed. */
+    const_okay = default_assignment_of_const_object_okay(class_type);
+    ptp = alloc_param_type(make_reference_type(
                                make_qualified_type(class_type,
                                                    /*is_const=*/const_okay,
                                                    /*is_volatile=*/FALSE)));
-      generate_special_function(class_type, ptp,
-                                (a_special_function_kind)sfk_operator);
-    }  /* if */
+    generate_special_function(class_type, ptp,
+                              (a_special_function_kind)sfk_operator);
   }  /* if */
   db_exit();
 }  /* check_special_member_functions */
@@ -5754,6 +5735,10 @@ to indicate whether the class/struct/union is actually defined.
        to TRUE initially, and change it if a base class or member is
        declared that precludes construction by bitwise copy. */
     cssp->construction_by_bitwise_copy_allowed = TRUE;
+    /* Similarly, assignment by bitwise copy is allowed unless there are
+       virtual base classes, virtual functions, or base classes or fields
+       for which bitwise copy is not allowed. */
+    cssp->assignment_by_bitwise_copy_allowed = TRUE;
   }  /* if */
   if (C_dialect == C_dialect_cplusplus && curr_token == tok_colon) {
     /* Scan the list of base specifiers. */
@@ -6385,13 +6370,23 @@ next_declaration:
     remove_stop_token(tok_rbrace);
     /* Check for and ignore the closing brace. */
     (void)required_token(tok_rbrace, ec_exp_rbrace);
-    /* Rescan tokens that were cached (inline function definitions, default
-       arguments). */
-    if (C_dialect == C_dialect_cplusplus &&
-        tag_sym->class_of_which_a_member == NULL) {
-      /* For non-nested classes do delayed processing for default argument
-         declarations and inline member function definitions. */
-      delayed_scan_fixup_for_class(tag_sym);
+    if (C_dialect == C_dialect_cplusplus) {
+      /* Rescan tokens that were cached (inline function definitions, default
+         arguments). */
+      if (tag_sym->class_of_which_a_member == NULL) {
+        /* For non-nested classes do delayed processing for default argument
+           declarations and inline member function definitions. */
+        delayed_scan_fixup_for_class(tag_sym);
+      }  /* if */
+      /* For compiler generated virtual destructors, generate the body at this
+         time, since the routine may be called indirectly through the virtual
+         function table. */
+      if (cssp->destructor != NULL) {
+        a_routine_ptr  rp = cssp->destructor->variant.routine;
+        if (rp->is_virtual && rp->compiler_generated) {
+          define_special_member_function(rp, class_type);
+        }  /* if */
+      }  /* if */
     }  /* if */
     /* If this is the resolution of a previously incomplete tag, and there
        is a list of array types to be resolved, look to see if any of them
