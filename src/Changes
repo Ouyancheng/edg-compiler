@@ -1,5 +1,29 @@
 Version 2.25
 
+8/8/94   Using new to create object with uninitialized const or ref fields
+
+An error is now issued (instead of a warning) when new is used, with no
+explicit initializer, to create an object with const or ref fields, e.g.,
+
+  class X {
+    const int i;
+  };                            // Still a warning for "missing" ctor
+  void f() {
+    X *px = new X;              // Error now issued because px->i is
+  }                             //   uninitialized.
+
+8/8/94   C mode: a struct with no named fields
+
+An error is now issued in C mode whenever a struct or union is defined
+with no named fields.  The following used to slip by:
+
+  struct S { int:0; };               // Now an error in C mode
+
+As a result of this change, an internal error is now fixed in how the
+following is handled:
+
+  struct S { int:1 } s[] = { 0 };    // No internal error in C mode
+
 8/8/94   Bug in disambiguation of function declarators with default arguments
 
 A bug has been fixed that caused the declaration of fptr to be
@@ -11,8 +35,6 @@ interpreted incorrectly.
   {
     int (*fptr)(int = i, int = j) = &f;
   }
-
-8/8/94   Bug in disambiguation of function declarators with default arguments
 
 8/5/94   Specifying the name of the generated C file
 
