@@ -344,7 +344,7 @@ typedef struct a_dynamic_init {
     a_constant_ptr
 		constant;
 			/* The constant initial value.  Not a ck_aggregate
-			   constant. */
+			   constant.  This is an unshared constant. */
     /* When kind == dik_expression: */
     an_expr_node_ptr
 		expression;
@@ -386,7 +386,8 @@ typedef struct a_dynamic_init {
 			/* Pointer to a ck_aggregate constant entry that heads
 			   a linked list of constant entries to be applied to
 			   the initialization of the components (fields or
-			   array elements) of the aggregate object. */
+			   array elements) of the aggregate object.  This is
+			   an unshared constant. */
       a_dynamic_init_ptr
 		dynamic_init_list;
 			/* Pointer to a linked list of dynamic-init entries
@@ -491,6 +492,7 @@ typedef struct a_constant {
         /* When kind == abk_constant: */
         a_constant_ptr
                 constant;
+			/* The constant may be a shared constant. */
       } variant;
       a_targ_ptrdiff_t
                 offset;
@@ -528,6 +530,8 @@ typedef struct a_constant {
 			   Only used in C++. */
 #endif /* ifdef CIL */
     /* When kind == ck_aggregate: */
+    /* A ck_aggregate constant is used only in initialization.  As such, it
+       is always an unshared constant. */
     struct {
       a_constant_ptr
                 first_constant,
@@ -536,6 +540,8 @@ typedef struct a_constant {
                            Both pointers are NULL if the list is empty. */
     } aggregate;
     /* When kind == ck_init_repeat: */
+    /* A ck_init_repeat constant is used only in initialization.  As such, it
+       is always an unshared constant. */
 #ifdef CIL
     /* Only used in C++.  Used to initialize an array of class objects with
        constructor initialization; the constant entry is a ck_dynamic_init
@@ -1509,7 +1515,7 @@ typedef struct a_variable {
 			   May be a ck_aggregate constant, but only one that
 			   is truly constant, i.e., one that does not contain
 			   ck_dynamic_init constants.  Only used for static
-			   variables. */
+			   variables.  The constant is unshared. */
 #ifdef FIL
                         /* If the variable is DATA initialized, this points
                            to the initial value.  For arrays and COMMON
@@ -2266,7 +2272,8 @@ typedef struct an_expr_node {
     /* When kind == enk_constant: */
     a_constant_ptr
                 constant;
-                        /* A pointer to the constant. */
+                        /* A pointer to the constant.  This may be a shared
+			   constant. */
 
     /* When kind == enk_variable or enk_variable_address: */
 #ifdef FIL
