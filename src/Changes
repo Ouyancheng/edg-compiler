@@ -1,5 +1,11 @@
 Version 2.29
 
+3/29/95  Support for __unaligned (Microsoft extension)
+
+When MICROSOFT_EXTENSIONS_ALLOWED is TRUE __unaligned is recognized as a
+keyword and accepted as a type qualifier.  There is no special handling
+-- it's just passed through to the back end as part of the qualifier set.
+
 3/28/95  Generating a preprocessed source file with implicit inclusion
 
 Formerly, when generating a preprocessed source file, it was not possible
