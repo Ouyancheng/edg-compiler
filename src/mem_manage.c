@@ -597,6 +597,7 @@ file and is no longer needed.
   db_exit();
 }  /* free_memory_region */
 
+#if !IL_SHOULD_BE_WRITTEN_TO_FILE || !ALTERNATE_IL_FILE_FORMAT
 
 void trim_memory_region(a_memory_region_number region_number)
 /*
@@ -607,6 +608,7 @@ any unused space.
   trim_mem_block(mem_region_table[region_number]);
 }  /* trim_memory_region */
 
+#endif /* !IL_SHOULD_BE_WRITTEN_TO_FILE || !ALTERNATE_IL_FILE_FORMAT */
 
 void done_with_memory_region(a_memory_region_number region_number)
 /*
