@@ -1,5 +1,19 @@
 Version 2.35
 
+2/21/97  Overaggressive removal of source sequence entries
+
+A bug has been fixed compiling a case like the following with the
+C++-generating back end and with --remove_unneeded_entities:
+
+  class A {
+    class B *pb;       // First declaration of class B
+  };
+  extern B * f();      // Subsequent reference means B is still needed
+
+If the body of class A was removed from the IL tree, the type entry for
+class B would be retained in the IL but not the corresponding source
+sequence entry.  This could sometimes result in an internal error.
+
 2/21/97  Selection of member of overload set to match pointer to member
          of base class
 
@@ -23,7 +37,6 @@ error.  This has been fixed.
   struct A {
     virtual ~ operator new(); 
   };
-
 
 2/21/97  No deduction of cv-qualified function types
 
