@@ -1128,17 +1128,20 @@ Check that if the member has a correspondence its parents do too.
                                           (a_name_linkage_kind)nlk_external)) {
     a_source_correspondence *scp = (a_source_correspondence *)ptr;
     for (;;) {
+      an_il_entry_kind parent_kind;
       if (scp->is_class_member) {
         scp = &scp->parent.class_type->source_corresp;
+        parent_kind = (an_il_entry_kind)iek_type;
       } else if (scp->parent.namespace_ptr != NULL) {
         scp = &scp->parent.namespace_ptr->source_corresp;
+        parent_kind = (an_il_entry_kind)iek_namespace;
       } else {
         break;
       }  /* if */
       if (!(trans_unit_corresp_pointer_of(scp) != NULL &&
             trans_unit_corresp_pointer_of(scp) != (char *)scp)) {
-        db_entity_info(ptr, iek_none);
-        db_entity_info((char *)scp, iek_none);
+        db_entity_info(ptr, kind);
+        db_entity_info((char *)scp, parent_kind);
         internal_error("entity has correspondence but parent does not");
       }  /* if */
     }  /* for */
