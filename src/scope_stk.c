@@ -3242,7 +3242,10 @@ NULL.
               }  /* if */
             } else if (!rp->source_corresp.referenced &&
                        !rp->compiler_generated &&
-                       !rp->is_virtual) {
+                       !rp->is_virtual &&
+                       !(rp->source_corresp.is_class_member &&
+                         rp->source_corresp.access !=
+                                            (an_access_specifier)as_public)) {
               report_unreferenced((a_symbol_ptr)rp->source_corresp.assoc_info,
                                   ec_declared_but_not_referenced,
                                   es_warning);
