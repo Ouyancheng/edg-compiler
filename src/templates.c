@@ -9050,8 +9050,11 @@ that follows.
                specializations are only permitted in Microsoft mode, so
                a specialization can only be considered a copy constructor
                in Microsoft mode too. */
-            member_decl_is_copy_constructor(rp, decl_state->class_declared_in,
-                                            /*compiler_generated=*/FALSE);
+            if (is_constructor_symbol(sym)) {
+              member_decl_is_copy_constructor(rp,
+                                              decl_state->class_declared_in,
+                                              /*compiler_generated=*/FALSE);
+            }  /* if */
           } else {
             scan_function_body(sym->variant.routine.ptr, &func_info,
                                SFB_NEW_STRUCT_STMT_STACK_REQUIRED);
