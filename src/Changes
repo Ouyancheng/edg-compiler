@@ -26,8 +26,10 @@ templates because they serve no purpose on such declarations.  The
 Microsoft compiler accepts and ignores default arguments on function
 template declarations.  We duplicate this behavior in Microsoft mode.
 
-  template< class T > class A { };
-  template<class T = A> void f(T);
+
+  template <class T = xyz> struct B {};  // invalid default
+  template<class T> class A { };
+  template<class T = int> void f(T);  // default on function template
 
 11/23/98  Needed flag processing for local static initializer
 
