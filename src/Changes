@@ -1,5 +1,22 @@
 Version 2.22
 
+1/12/94  Access declaration applied to overloaded function
+
+Under certain circumstances we failed to issue an error when an access
+declaration was applied to an overloaded function with nonuniform
+access.  That bug has been fixed.  For example:
+
+  class A {
+  public:
+    void f();
+  private:
+    void f(int);
+  };
+  class B : private A {
+  public:
+    A::f;                   // Error is issued consistently
+  };
+
 1/11/94  Optimization of next_token routines
 
 The routines next_token and next_two_tokens have been optimized
