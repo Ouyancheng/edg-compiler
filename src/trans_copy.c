@@ -2522,6 +2522,13 @@ inline functions, if appropriate.
           db_entity_info((char *)primary_routine, iek_routine);
         }  /* if */
 #endif /* DEBUG */
+        /* If the suppress_inline_body flag indicates that this function
+           is assigned to this compilation and that was noted in a secondary
+           translation unit, mark the function as needed in the primary
+           translation unit. */
+        if (!primary_routine->suppress_inline_body) {
+          mark_as_needed((char *)primary_routine, iek_routine);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */

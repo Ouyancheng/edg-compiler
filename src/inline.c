@@ -1785,9 +1785,6 @@ versions of those routines.
            The suppress_inline_body flag is meaningful when instantiating
            extern inlines and in C99 and GNU C modes. */
         routine->need_out_of_line_copy = TRUE;
-#if MAINTAIN_NEEDED_FLAGS
-        mark_as_needed((char *)routine, (an_il_entry_kind)iek_routine);
-#endif /* MAINTAIN_NEEDED_FLAGS */
       }  /* if */
       if (!routine->need_out_of_line_copy) {
         /* We don't need an out-of-line copy, so mark the routine as
