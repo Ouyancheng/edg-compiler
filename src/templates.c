@@ -568,7 +568,7 @@ Allocate an IL template entry.  The source position specified by start_pos
 (which should be the first tok_template keyword of the declaration) serves
 as the decl_position of the template declaration as a whole.  Don't add the
 entry to the templates list of its scope: the appropriate scope is not known
-for sure yet, since this may be friend template.
+for sure yet, since this may be a friend template.
 */
 {
   a_template_ptr  tp;
