@@ -9264,7 +9264,8 @@ to avoid an 8-character external name clash with symbol_table.)
 
   if (symbol_kind_names[(int)sk_last] == NULL ||
       strcmp(symbol_kind_names[(int)sk_last], "last") != 0) {
-    internal_error("sym_tbl_init: incorrect initialization of symbol_kind_names");
+    internal_error
+              ("sym_tbl_init: incorrect initialization of symbol_kind_names");
   }  /* if */
 #endif /* CHECKING */
 }  /* sym_tbl_init */
