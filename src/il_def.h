@@ -3153,7 +3153,7 @@ typedef struct a_type {
 			   user-defined types that are namespace members. */
       a_bit_field
 		is_placeholder_for_nested_class_def:1;
-			/* TRUE if the typedef appears on a file-scope or
+			/* TRUE if the typeref appears on a file-scope or
 			   namespace-scope types list to indicate where a
 			   nested class was defined when its definition was
 			   outside the scope of the parent class; the class
