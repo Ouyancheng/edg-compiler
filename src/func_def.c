@@ -984,6 +984,13 @@ associated with the function is returned.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       ss_entry_start_prev = init_param_source_sequence_sublist();
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if ASM_FUNCTION_ALLOWED
+      if (func_info->is_asm_function && curr_token != tok_lbrace) {
+        /* If an asm function is not prototyped, all it's old-style params
+           have to be implicitly declared. */
+        pos_error(ec_asm_func_must_be_prototyped, &pos_curr_token);
+      }  /* if */
+#endif /* ASM_FUNCTION_ALLOWED */
       while (curr_token == tok_identifier ||
              is_decl_start(/*expr_context=*/FALSE,
                            /*real_declarator_allowed=*/TRUE)) {
