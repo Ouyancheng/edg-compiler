@@ -3634,6 +3634,7 @@ do_sizeof_cases:
                     constant->variant.template_param.variant.templ_sizeof.type,
                     octl);
           }  /* if */
+          octl->output_str(")");
           break;
         case tpck_uuidof:
           /* The constant represents the address of the __uuidof, so add
