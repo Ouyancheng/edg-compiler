@@ -9508,6 +9508,34 @@ TRUE if a symbol that can only be a vacuous destructor is returned.
 }  /* look_up_qualifier_start */
 
 
+static a_boolean sym_can_follow_template_keyword(a_symbol_ptr sym)
+/*
+In a construct like "p->template X<...>" or "p->T::template X<...>",
+this routine determines whether the symbol (representing X) is
+permitted to follow the template keyword.
+*/
+{
+  a_boolean	result = FALSE;
+
+  /* The symbol must represent a template or an overload set containing
+     a template. */
+  if (symbol_is_or_contains_template(sym)) {
+    if (is_injected_class_symbol(sym)) {
+      /* For the purpose of this test, use the "real" symbol for a class in
+         place of the injected class symbol. */
+      a_type_ptr	tp;
+      tp = sym->variant.type.ptr;
+      sym = (a_symbol_ptr)tp->source_corresp.assoc_info;
+    }  /* if */
+    /* The symbol must name a member template. */
+    if (sym->is_class_member) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* sym_can_follow_template_keyword */
+
+
 /*
 Macro that calls qualifier_delimiter_does_not_follow_token to determine
 whether the next token may be one of the tokens that
@@ -9833,8 +9861,7 @@ selection operator, in which case it points to the type of the left operand.
       }  /* if */
       if (follows_template && qualifier_sym != NULL &&
           next_tok == tok_lt &&
-          (!symbol_is_or_contains_template(qualifier_sym) ||
-           !qualifier_sym->is_class_member)) {
+          !sym_can_follow_template_keyword(qualifier_sym)) {
         /* A construct like "p->template X< ...".  When the template keyword
            is so used, "X" must be a member template.   The test of next_tok
                is used to suppress this error if we already complained
@@ -10152,8 +10179,7 @@ selection operator, in which case it points to the type of the left operand.
           }  /* if */
           if (is_template && qualifier_sym != NULL &&
               !err && next_tok == tok_lt &&
-              (!symbol_is_or_contains_template(qualifier_sym) ||
-               !qualifier_sym->is_class_member)) {
+              !sym_can_follow_template_keyword(qualifier_sym)) {
             /* A construct like "p->A::template X< ...".  When the template
                keyword is so used, "X" must be a member template. The test of
                next_tok is used to suppress this error if we already complained
