@@ -8327,11 +8327,9 @@ and *decl_info track general information about the class definition and
 specific information about the member declaration, respectively.
 */
 {
-  long                           bit_field_size = 0;
   a_field_ptr                    field;
   a_symbol_ptr                   member_sym = NULL;
   a_class_symbol_supplement_ptr  cssp;
-  a_boolean                      bit_field_is_signed = FALSE;
   a_boolean                      unnamed_field = decl_info->is_unnamed_field;
 
   db_enter(3, "decl_nonstatic_data_member");
@@ -8364,8 +8362,6 @@ specific information about the member declaration, respectively.
                                             curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     field->is_bit_field = TRUE;
-    field->bit_size = (a_byte)bit_field_size;
-    field->bit_field_is_signed = bit_field_is_signed;
   }  /* if */
   /* Copy the type (which may have been changed by scan_bit_field_size) into
      the field entry. */
