@@ -6591,13 +6591,17 @@ Set the force_external_linkage flag in the symbol associated with any
 class or enum type contained in type_ptr.
 */
 {
-  a_type_tree_traversal_flag_set  ttt_flags = (TTT_SKIP_TYPEDEFS |
-                                               TTT_RETURN_TYPE |
-                                               TTT_PARAM_TYPES |
-                                               TTT_THIS_PARAM_TYPE);
+  /* This processing is needed only in cfront mode.  In other modes,
+     the linkage of a class is unaffected by how the class is used. */
+  if (any_cfront_mode()) {
+    a_type_tree_traversal_flag_set  ttt_flags = (TTT_SKIP_TYPEDEFS |
+                                                 TTT_RETURN_TYPE |
+                                                 TTT_PARAM_TYPES |
+                                                 TTT_THIS_PARAM_TYPE);
 
-  (void)traverse_type_tree(type_ptr, ttt_set_force_external_linkage_flag,
-                           ttt_flags);
+    (void)traverse_type_tree(type_ptr, ttt_set_force_external_linkage_flag,
+                             ttt_flags);
+  }  /* if */
 }  /* set_force_external_linkage_flag */
 
 

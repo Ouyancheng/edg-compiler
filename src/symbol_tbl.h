@@ -1888,7 +1888,9 @@ typedef struct a_symbol {
   a_bit_field	force_external_linkage:1;
 			/* TRUE if this is a class or enum type that has been
 			   used in a way that would force external linkage (if
-			   it has linkage at all). */
+			   it has linkage at all).  Maintained only in
+			   cfront mode (in other modes, the linkage of a class
+			   or enum is not affected by the ways it is used). */
   a_bit_field	ambiguous:1;
 			/* TRUE if the symbol name is ambiguous in
 			   the current scope, i.e., another symbol with the
