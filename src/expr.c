@@ -4196,62 +4196,6 @@ because the feature is used to implement offsetof, a standard feature.
 }  /* scan_intaddr_operator */
 
 
-static a_routine_ptr select_delete_routine(a_type_ptr        delete_type,
-                                           a_boolean         use_global_delete,
-                                           a_boolean         array_delete,
-                                           a_source_position *delete_position)
-/*
-Determine the delete routine to be used to delete an object of type
-delete_type, and return a pointer to the routine entry.  use_global_delete
-indicates that a global delete routine should be used even if there is
-a class-specific delete routine.  array_delete indicates that the deletion
-is of an array (delete_type in that case is the type pointed to, i.e.,
-the element type).  The symbol is marked as referenced at *delete_position,
-but the IL entry is not marked as referenced.
-*/
-{
-  a_symbol_ptr     operator_delete_symbol = NULL;
-  a_symbol_locator locator_for_delete;
-  an_opname_kind   opname_kind;
-
-  /* Select the proper "delete" routine.  If the type is a class type and
-     the class has a "delete" operator, use it, unless a global delete routine
-     is forced. */
-  opname_kind = (an_opname_kind)onk_delete;
-  /* For arrays, use "operator delete[]" instead of "operator delete". */
-  if (array_new_and_delete_enabled && array_delete) {
-    opname_kind = (an_opname_kind)onk_array_delete;
-  }  /* if */
-  if (!use_global_delete && (array_new_and_delete_enabled || !array_delete)) {
-    /* See if the underlying type is a class. */
-    if (is_class_struct_union_type(delete_type)) {
-      /* Look for a class-specific "operator delete" or "operator delete[]". */
-      operator_delete_symbol = opname_member_function_symbol(opname_kind,
-                                                             delete_type);
-      if (operator_delete_symbol != NULL) {
-        make_locator_for_symbol(operator_delete_symbol, &locator_for_delete);
-        locator_for_delete.source_position = *delete_position;
-        check_ambiguity_and_verify_access(&locator_for_delete);
-        operator_delete_symbol = fundamental_symbol_of(operator_delete_symbol);
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  if (operator_delete_symbol == NULL) {
-    /* Use the global "operator delete" or "operator delete[]". */
-    operator_delete_symbol = opname_function_symbol(opname_kind);
-  }  /* if */
-  /* Since delete cannot be overloaded, the symbol should not be
-     overloaded or a function template. */
-  check_assertion(operator_delete_symbol->kind == (a_symbol_kind)sk_routine ||
-                  operator_delete_symbol->kind ==
-                                            (a_symbol_kind)sk_member_function);
-  /* Mark the routine symbol referenced, but not the IL entry (yet). */
-  record_symbol_reference(SRK_REFERENCE, operator_delete_symbol,
-                          delete_position, /*update_il_entry=*/FALSE);
-  return operator_delete_symbol->variant.routine.ptr;
-}  /* select_delete_routine */
-
-
 static a_dynamic_init_ptr add_array_nonconstant_aggregate_init(
                                          a_dynamic_init_ptr element_dip,
                                          a_type_ptr         array_type,
@@ -4310,38 +4254,75 @@ of the array pointer.
 
 static a_dynamic_init_ptr f_determine_deletion_for_throw_before_new_init_done(
                                              a_type_ptr         base_new_type,
-                                             a_boolean          array_new,
-                                             a_boolean          use_global_new,
+                                             a_symbol_ptr       new_sym,
                                              a_source_position  *position)
 /*
 Exceptions are enabled, and a "new" with initialization is being scanned.
 If an exception is thrown between the time that the allocation is done and
 the time the initialization is completed, the allocated storage should be
 freed.  Develop a dynamic initialization entry that describes the
-deallocation and return a pointer to it.  base_new_type is the unqualified
-type of entity being allocated (the element type if an array is being
-allocated); array_new is TRUE for an array new; use_global_new is TRUE
-for a ::new; and *position gives the position to be used for errors.
+deallocation and return a pointer to it, or NULL if there is an error.
+base_new_type is the type of entity being allocated (the element type
+if an array is being allocated); new_sym is the "new" routine being
+called to do the allocation, stripped to its fundamental symbol; and
+*position gives the position to be used for errors.
 */
 {
-  a_dynamic_init_ptr dyn_init_to_free_storage;
-  /* Select the proper delete routine. */
-  a_routine_ptr      delete_routine = select_delete_routine(base_new_type,
-                                                            use_global_new,
-                                                            array_new,
-                                                            position);
-  /* Mark the routine referenced. */
-  if_evaluating_mark_routine_referenced(delete_routine);
-  /* The deletion is recorded in a dynamic initialization entry.
-     The delete routine is used as the "destructor". */
-  dyn_init_to_free_storage =
+  a_dynamic_init_ptr dyn_init_to_free_storage = NULL;
+  a_routine_ptr      delete_routine;
+  a_type_ptr         class_type;
+  a_symbol_ptr       delete_sym, overload_delete_sym;
+  a_boolean          ambiguous;
+
+  /* Select the delete routine that corresponds to the new routine selected. */
+  class_type = NULL;
+  if (is_class_struct_union_type(base_new_type)) {
+    class_type = skip_typerefs(base_new_type);
+  }  /* if */
+  delete_sym = find_corresponding_operator_delete_sym(new_sym,
+                                                      class_type,
+                                                      &ambiguous,
+                                                      &overload_delete_sym);
+  if (ambiguous) {
+    /* The symbol is ambiguous. */
+    pos_sy_error(ec_ambiguous_name, position, overload_delete_sym);
+  } else if (delete_sym == NULL) {
+    /* There is no available appropriate operator delete. */
+    pos_error(ec_no_appropriate_delete, position);
+  } else {
+    /* There is an appropriate operator delete. */
+    a_symbol_ptr fund_delete_sym = fundamental_symbol_of(delete_sym);
+    if (fund_delete_sym->kind == (a_symbol_kind)sk_function_template) {
+      internal_error("template operator delete not implemented");
+    }  /* if */
+    check_assertion(fund_delete_sym->kind == (a_symbol_kind)sk_routine ||
+                    fund_delete_sym->kind ==
+                                            (a_symbol_kind)sk_member_function);
+    delete_routine = fund_delete_sym->variant.routine.ptr;
+    if (delete_sym->is_class_member) {
+      /* Check access and ambiguity for class member operator deletes. */
+      a_symbol_locator locator_for_delete;
+      make_locator_for_symbol(delete_sym, &locator_for_delete);
+      locator_for_delete.source_position = *position;
+      overload_check_ambiguity_and_verify_access(&locator_for_delete,
+                                                 overload_delete_sym);
+    }  /* if */
+    /* Mark the symbol referenced. */
+    record_symbol_reference(SRK_REFERENCE, fund_delete_sym,
+                            position, /*update_il_entry=*/FALSE);
+    /* Mark the routine IL entry referenced. */
+    if_evaluating_mark_routine_referenced(delete_routine);
+    /* The deletion is recorded in a dynamic initialization entry.
+       The delete routine is used as the "destructor". */
+    dyn_init_to_free_storage =
                         alloc_expr_dynamic_init((a_dynamic_init_kind)dik_none);
-  dyn_init_to_free_storage->destructor = delete_routine;
-  dyn_init_to_free_storage->has_temporary_lifetime = TRUE;
-  dyn_init_to_free_storage->is_freeing_of_storage_on_exception = TRUE;
-  record_end_of_lifetime_destruction(dyn_init_to_free_storage,
-                                     /*static_lifetime=*/FALSE,
-                                     /*block_lifetime=*/FALSE);
+    dyn_init_to_free_storage->destructor = delete_routine;
+    dyn_init_to_free_storage->has_temporary_lifetime = TRUE;
+    dyn_init_to_free_storage->is_freeing_of_storage_on_exception = TRUE;
+    record_end_of_lifetime_destruction(dyn_init_to_free_storage,
+                                       /*static_lifetime=*/FALSE,
+                                       /*block_lifetime=*/FALSE);
+  }  /* if */
   return dyn_init_to_free_storage;
 }  /* f_determine_deletion_for_throw_before_new_init_done */
 
@@ -4356,15 +4337,13 @@ determined that the "new" has initialization, but before that
 initialization is scanned (so the cleanup entry gets onto the object
 lifetime list in the right place).
 */
-/* Do not record the deletion if exceptions are not enabled, if the
-   allocation is folded into a constructor (new_routine == NULL), or
-   for a "placement" new (the storage in that case is not freed
-   automatically when an exception is thrown). */
+/* Do not record the deletion if exceptions are not enabled or if the
+   allocation is folded into a constructor (new_routine == NULL). */
 #define determine_deletion_for_throw_before_new_init_done()           \
-{ if (exceptions_enabled && new_routine != NULL && !placement_new) {  \
+{ if (exceptions_enabled && new_routine != NULL) {                    \
     dyn_init_to_free_storage =                                        \
       f_determine_deletion_for_throw_before_new_init_done(            \
-        base_new_type, array_new, use_global_new, &new_position);     \
+                      base_new_type, function_symbol, &new_position); \
   }  /* if */                                                         \
 }  /* determine_deletion_for_throw_before_new_init_done */
 
@@ -4559,6 +4538,7 @@ specification allow a variable-sized array as the top type.
       unqual_base_new_type = skip_typerefs(base_new_type);
     }  /* while */
   }  /* if */
+  function_symbol = proj_function_symbol = NULL;
   if (!err) {
     /* Compute the allocation size in bytes. */
     if (new_array_dimension != NULL) {
@@ -4667,8 +4647,7 @@ specification allow a variable-sized array as the top type.
         a_symbol_ptr   sym = opname_function_symbol(array_opname_kind);
         a_boolean      ambiguous;
 
-        if (function_symbol ==
-                        find_default_operator_new_sym(sym, &ambiguous)) {
+        if (function_symbol == find_default_operator_new_sym(sym, &ambiguous)){
           new_routine = NULL;
         }  /* if */
       }  /* if */
@@ -4915,6 +4894,88 @@ specification allow a variable-sized array as the top type.
 }  /* scan_new_operator */
 
 
+static a_routine_ptr select_delete_routine(a_type_ptr        delete_type,
+                                           a_boolean         use_global_delete,
+                                           a_boolean         array_delete,
+                                           a_source_position *delete_position)
+/*
+Determine the delete routine to be used to delete an object of type
+delete_type, and return a pointer to the routine entry.  use_global_delete
+indicates that a global delete routine should be used even if there is
+a class-specific delete routine.  array_delete indicates that the deletion
+is of an array (delete_type in that case is the type pointed to, i.e.,
+the element type).  The symbol is marked as referenced at *delete_position,
+but the IL entry is not marked as referenced.  This routine returns NULL
+if the selected delete routine is ambiguous.
+*/
+{
+  a_symbol_ptr   operator_delete_set = NULL, operator_delete_symbol = NULL;
+  a_routine_ptr  delete_routine = NULL;
+  an_opname_kind opname_kind;
+
+  /* Select the proper "delete" routine.  If the type is a class type and
+     the class has a "delete" operator, use it, unless a global delete routine
+     is forced. */
+  opname_kind = (an_opname_kind)onk_delete;
+  /* For arrays, use "operator delete[]" instead of "operator delete". */
+  if (array_new_and_delete_enabled && array_delete) {
+    opname_kind = (an_opname_kind)onk_array_delete;
+  }  /* if */
+  if (!use_global_delete && (array_new_and_delete_enabled || !array_delete)) {
+    /* See if the underlying type is a class. */
+    if (is_class_struct_union_type(delete_type)) {
+      /* Look for a class-specific "operator delete" or "operator delete[]". */
+      operator_delete_set = opname_member_function_symbol(opname_kind,
+                                                          delete_type);
+    }  /* if */
+  }  /* if */
+  if (operator_delete_set == NULL) {
+    /* Use the global "operator delete" or "operator delete[]". */
+    operator_delete_set = opname_function_symbol(opname_kind);
+  }  /* if */
+  if (operator_delete_set != NULL) {
+    a_boolean ambiguous;
+    /* Pick the default operator delete out of an overload set, if any. */
+    operator_delete_symbol =
+                         find_default_operator_delete_sym(operator_delete_set,
+                                                          &ambiguous);
+    if (ambiguous) {
+      /* The symbol is ambiguous. */
+      pos_sy_error(ec_ambiguous_name, delete_position, operator_delete_set);
+      operator_delete_symbol = NULL;
+    } else if (operator_delete_symbol == NULL) {
+      /* There is no available default operator delete.  (Perhaps this is
+         a class with an operator delete, but there's no default operator
+         delete.) */
+      pos_error(ec_no_appropriate_delete, delete_position);
+    } else {
+      /* There is a default operator delete. */
+      a_symbol_ptr fund_operator_delete =
+                                 fundamental_symbol_of(operator_delete_symbol);
+      /* Note that a template function is not possible here, since a template
+         is not allowed to be the default delete. */
+      check_assertion(fund_operator_delete->kind ==
+                                                   (a_symbol_kind)sk_routine ||
+                      fund_operator_delete->kind ==
+                                            (a_symbol_kind)sk_member_function);
+      delete_routine = fund_operator_delete->variant.routine.ptr;
+      if (operator_delete_symbol->is_class_member) {
+        /* Check access and ambiguity for class member operator deletes. */
+        a_symbol_locator locator_for_delete;
+        make_locator_for_symbol(operator_delete_symbol, &locator_for_delete);
+        locator_for_delete.source_position = *delete_position;
+        overload_check_ambiguity_and_verify_access(&locator_for_delete,
+                                                   operator_delete_set);
+      }  /* if */
+      /* Mark the routine symbol referenced, but not the IL entry (yet). */
+      record_symbol_reference(SRK_REFERENCE, fund_operator_delete,
+                              delete_position, /*update_il_entry=*/FALSE);
+    }  /* if */
+  }  /* if */
+  return delete_routine;
+}  /* select_delete_routine */
+
+
 static void scan_delete_operator(an_operand *result)
 /*
 Scan the C++ delete operator.  See 5.3.4 in the ARM.
@@ -5081,6 +5142,7 @@ As an anachronism, allow an expression inside the [ ].
                                              use_global_delete,
                                              array_delete,
                                              &delete_position);
+      /* Note that delete_routine will be NULL if an ambiguity was found. */
 #if NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE
       if (array_delete) {
         /* If a deleting an array and a runtime routine will be used, the
