@@ -3335,7 +3335,7 @@ on for use in generating cross-reference output describing this declaration.
 */
 {
   a_symbol_ptr             sym = NULL;
-  a_symbol_ptr             linked_symbol, homonym_symbol;
+  a_symbol_ptr             linked_symbol, homonym_symbol = NULL;
   a_symbol_ptr             overload_symbol = NULL;
   a_boolean                redecl_error_already_issued = FALSE;
   a_boolean                linked_redecl_error = FALSE;
@@ -3406,26 +3406,33 @@ on for use in generating cross-reference output describing this declaration.
       linkage = idl_none;
     }  /* if */
     linked_symbol = NULL;
-    homonym_symbol = NULL;
     sym = *symbol_ptr;
-  } else if (!C_mode() && qualifier_namespace_ptr(*locator) != NULL &&
-             locator->specific_symbol != NULL) {
+  } else if (!C_mode() && locator->specific_symbol != NULL &&
+             (orig_nsp = qualifier_namespace_ptr(*locator)) != NULL) {
     /* This identifier is a namespace-qualified name that was previously
        declared.  Be sure this is a valid scope in which to define it
        (7.3.1.4). */
+    if (!is_friend_decl) {
+      /* This is assumed to be a definition of a namespace member appearing
+         in a scope other than that of the namespace to which it belongs, so
+         extend the original namespace scope. */
+      push_namespace_extension_scope(orig_nsp);
+    }  /* if */
+    /* Look up the name. */
     linked_symbol = namespace_member_redecl_sym(locator, type_ptr,
-                                                effective_decl_level,
+                                                decl_scope_level,
                                                 is_function_def,
                                                 is_friend_decl, &linkage,
                                                 &homonym_symbol);
-    /* orig_nsp is set for redeclarations of a namespace member in a
-       containing scope. */
-    if (linked_symbol != NULL && !is_friend_decl) {
-      orig_nsp = linked_symbol->parent.namespace_ptr;
-      /* This is a definition of a namespace member appearing in a scope
-         other than that of the namespace to which it belongs, so extend
-         the original namespace scope. */
-      push_namespace_extension_scope(orig_nsp);
+    if (!is_friend_decl) {
+      if (linked_symbol == NULL) {
+        /* The lookup failed, for whatever reason, so restore scope stack
+           to its previous state. */
+        pop_namespace_extension_scope();
+        orig_nsp = NULL;
+      } else {
+        effective_decl_level = decl_scope_level;
+      }  /* if */
     }  /* if */
   } else {
     /* Determine the linkage of this symbol. */
@@ -3601,10 +3608,10 @@ on for use in generating cross-reference output describing this declaration.
       }  /* if */
     }  /* if */
     if (template_function_specific_decl &&
-        effective_decl_level == DEPTH_OF_FILE_SCOPE) {
+        effective_decl_level == depth_innermost_namespace_scope) {
       /* This is an explicit declaration of a template function.  Note that
-         we are only interested in file-scope declarations -- declarations at
-         local scope are handled separately. */
+         we are only interested in file- and namespace-scope declarations --
+         declarations at local scope are handled separately. */
       sym = linked_symbol;
       routine_ptr = sym->variant.routine.ptr;
       old_decl_has_body = (routine_ptr->assoc_scope != NULL_region_number);
