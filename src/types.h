@@ -83,6 +83,11 @@ top of a class type).
   (is_const_qualified_type(tp) ||                                     \
    (is_array_type(tp) &&                                              \
     is_const_qualified_type(underlying_array_element_type(tp))))
+/* Return TRUE if the type qualifiers on two types match.  Typedefs and
+   the underlying types are ignored. */
+#define type_qualifiers_match(type_1, type_2)                         \
+  (is_const_qualified_type(type_1) == is_const_qualified_type(type_2) && \
+   is_volatile_qualified_type(type_1) == is_volatile_qualified_type(type_2))
 
 extern a_boolean f_is_const_qualified_type(a_type_ptr tp);
 extern a_boolean f_is_volatile_qualified_type(a_type_ptr tp);
