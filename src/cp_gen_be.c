@@ -307,18 +307,6 @@ sequence entries.
       sublist_parent_source_sequence_entry = curr_source_sequence_entry;
       curr_source_sequence_entry = sssp->source_sequence_list;
       /* Keep looping. */
-#if 0
-#else /* 0 */
-    /* Ignore end-of-construct entries for prototype scopes. */
-    } else if (ss_entry_kind(curr_source_sequence_entry) ==
-                                                iek_src_seq_end_of_construct) {
-      a_src_seq_end_of_construct_ptr ssecp =
-                                  ss_entry_ptr(curr_source_sequence_entry,
-                                               a_src_seq_end_of_construct_ptr);
-      if (ss_entry_kind(ssecp) != iek_routine) break;
-      curr_source_sequence_entry = curr_source_sequence_entry->next;
-      /* Keep looping. */
-#endif /* 0 */
 #if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
     } else if (ss_entry_kind(curr_source_sequence_entry) == iek_comment) {
       /* Ignore comments. */
