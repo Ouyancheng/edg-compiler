@@ -2391,7 +2391,8 @@ exit_loop:
 
   /* Return the position of the first specifier as the position of the
      overall list of specifiers for error purposes. */
-  set_err_pos_to_curr_token();
+  copy_source_position(start_pos, error_position);
+
   if (type_specifier_allowed) {
     if ((basic_type != bt_none && basic_type != bt_no_type) ||
         sign != sign_none || size != size_none) {
