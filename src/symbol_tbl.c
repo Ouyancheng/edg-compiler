@@ -10577,6 +10577,7 @@ are handled in symbol_tbl_init.)
 #endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
   register_trans_unit_variable(error_class_template_symbol);
   register_trans_unit_variable(file_scope_number);
+  register_trans_unit_variable(locator_for_curr_id);
 }  /* symbol_tbl_one_time_init */
 
 

@@ -12462,6 +12462,15 @@ are handled in lexical_init.)
   register_trans_unit_variable(curr_stop_token_stack_entry);
   register_trans_unit_variable(curr_token);
   register_trans_unit_variable(curr_token_pragmas);
+  register_trans_unit_variable(const_for_curr_token);
+  register_trans_unit_variable(curr_token_asm_string);
+  register_trans_unit_variable(pos_curr_token);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  register_trans_unit_variable(end_pos_curr_token);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  register_trans_unit_variable(start_of_curr_token);
+  register_trans_unit_variable(end_of_curr_token);
+  register_trans_unit_variable(len_of_curr_token);
   register_trans_unit_variable(cached_token_rescan_list);
   register_trans_unit_variable(reusable_cache_stack);
   register_trans_unit_variable(any_initial_get_token_tests_needed);
