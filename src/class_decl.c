@@ -6604,7 +6604,7 @@ next_declaration:
 
         if (class_aggregate_ruled_out) {
           /* Issue an error for a non-aggregate class, since there's no other
-             way to initialize an object of the claass. */
+             way to initialize an object of the class. */
           pos_sy_start_error(ec_no_ctor_but_const_or_ref_member,
                              &error_position, tag_sym);
         } else {

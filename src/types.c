@@ -763,7 +763,7 @@ serves to confirm the match.
   }  /* if */
 #endif /* DEBUG */
   if (base_class->derived_class == new_class) {
-    /* base_class is aleady a base class of new_class.  Just return it. */
+    /* base_class is already a base class of new_class.  Just return it. */
     new_base_class = base_class;
     goto done;
   }  /* if */
