@@ -1874,6 +1874,9 @@ error code.
     case ec_function_type_required:
       m = "function type is required";
       break;
+    case ec_operator_name_not_allowed:
+      m = "operator name is not allowed";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
