@@ -4492,7 +4492,7 @@ thrown away by the caller.
        allows the subtrees to be swept in the future because they
        can no longer change.*/
     walk_subtrees_of_local_entities(scope);
-    if (routine->defined && lowering_done) {
+    if (routine->defined && lowering_done) { /*lint !e774*/
       /* If the definition_needed flag is set already, sweep the body
          now that lowering has been done. */
       remark_routine_definition_needed(routine);
