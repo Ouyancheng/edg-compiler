@@ -1278,6 +1278,11 @@ to the secondary translation unit.
            so mark it to have that information merged. */
         keep_on_list = TRUE;
         mark_to_merge(routine, iek_routine);
+#if MAINTAIN_NEEDED_FLAGS
+        /* Eliminate any default argument object lifetimes associated with
+           the routine, because we don't want to copy those. */
+        eliminate_routine_default_arg_object_lifetimes(routine);
+#endif /* MAINTAIN_NEEDED_FLAGS */
       } else {
         /* The routine is a duplicate of one elsewhere and should be
            discarded. */
