@@ -4411,6 +4411,43 @@ that a function might throw.
 }  /* gen_throw_specification */
 
 
+static void gen_ctor_initializers(a_constructor_init_ptr ctor_init)
+/*
+Generate the list of constructor initializers in the definition of
+a constructor.
+
+  struct A {
+    int i;
+    A(int n) : i(n) { }
+             ^^^^^^
+                  \_This is what's generated.
+*/
+{
+  if (ctor_init != NULL) {
+    write_tok_str(": ");
+    for (; ctor_init != NULL; ctor_init = ctor_init->next) {
+      switch(ctor_init->kind) {
+        case cik_virtual_base_class:
+        case cik_direct_base_class:
+          /* Initializing a base class. */
+          gen_type_name(ctor_init->variant.base_class->type);
+          break;
+        case cik_field:
+          /* Initializing a nonstatic data member. */
+          gen_field_name(ctor_init->variant.field);
+          break;
+        default:
+          unexpected_condition();
+      }  /* switch */
+      /* Generate the initialization. */
+      gen_dynamic_init(ctor_init->initializer, /*parenthesized_init=*/TRUE);
+      if (ctor_init->next != NULL) write_tok_str(", ");
+    }  /* for */
+    write_space();
+  }  /* if */
+}  /* gen_ctor_initializers */
+
+
 static void gen_routine_decl(void)
 /*
 Generate a declaration of the routine indicated by the current source
@@ -4573,6 +4610,10 @@ declaration or definition.
       gen_old_style_parameter_decls();
     }  /* if */
     write_space();
+    if (rout->special_kind == (a_special_function_kind)sfk_constructor) {
+      /* For a constructor, put out the ctor-initializers. */
+      gen_ctor_initializers(scope->variant.routine.constructor_inits);
+    }  /* if */
     /* Generate the body of the function. */
     gen_function_definition(scope);
     /* Pop the name context for the function. */
