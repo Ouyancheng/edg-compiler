@@ -2153,6 +2153,7 @@ Set module_id to the string.
           if (routine->is_template_function) continue;
           external_name = routine->source_corresp.name;
           check_assertion(external_name != NULL);
+          break;
         }  /* if */
       }  /* for */
     }  /* if */

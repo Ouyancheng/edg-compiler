@@ -1,5 +1,11 @@
 Version 2.46
 
+1/25/01  Performance bug in module-id routine
+
+A bug in the routine that generates the module-id caused it to loop
+through the all of the file scope functions instead of stopping on the
+first one that could be used to form the module-id.  This has been fixed.
+
 1/25/01  C++-generating back end: missing throw specifications
 
 In some cases, the C++-generating back end did not put out throw
