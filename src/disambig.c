@@ -223,7 +223,7 @@ scanned.
       /* A right parenthesis.  Break out if this is a zero level
          parenthesis. */
       if (paren_count == 0) break;
-        paren_count--;
+      paren_count--;
     } else if (curr_token == tok_lparen) {
       paren_count++;   
     } else if (curr_token == tok_semicolon ||
