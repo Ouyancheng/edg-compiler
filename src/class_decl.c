@@ -1806,6 +1806,7 @@ or struct definition.  The syntax is
           base_class_type->variant.typeref.is_function_scope_tag) {
         base_class_type = base_class_type->variant.typeref.type;
       }  /* if */
+      base_class_type->source_corresp.referenced = TRUE;
       /* If it is a const or volatile qualified type name (where in the ARM is
          this required???) or if it is the the class now being defined or if
          it is a union or if it has been declared but not yet defined (ARM
