@@ -4725,6 +4725,7 @@ function.
     /* Class is an error type; no error. */
     have_access = TRUE;
   } else {
+    access_class = skip_typerefs(access_class);
     /* Get the class of the symbol being referenced. */
     base_class = sym->class_of_which_a_member;
     /* Try to find a class class_type such that
