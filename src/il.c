@@ -3315,7 +3315,11 @@ diagnostic if the parameter type is an abstract class.
       if (is_incomplete_type(param_type)) {
         /* Delay setting the flag till the class is defined -- add it to the
            fixup list. */
-        add_to_dependent_type_fixup_list(param_type, (a_type_ptr)NULL, ptp,
+        add_to_dependent_type_fixup_list(param_type,
+                                         (a_dependent_type_fixup_kind)
+                                                 dtfk_arg_transfer_method,
+                                         (char *)ptp,
+                                         (a_byte_il_entry_kind)iek_param_type,
                                          err_pos);
       } else {
         a_class_symbol_supplement_ptr cssp =
@@ -4673,7 +4677,11 @@ Copy the type entry "from" to "to".
          incomplete class type. */
       /* Pass the NULL source position since no errors should be issued about
          this type. */
-      add_to_dependent_type_fixup_list(tp, to, (a_param_type *)NULL,
+      add_to_dependent_type_fixup_list(tp,
+                                       (a_dependent_type_fixup_kind)
+                                                  dtfk_array_type_size,
+                                       (char *)to,
+                                       (a_byte_il_entry_kind)iek_type,
                                        &null_source_position);
     }  /* if */
   }  /* if */
@@ -6291,8 +6299,12 @@ the case if the return type was incomplete at the point of definition.
              special handling will be required for the return.  Enter the
              routine type on a fixup list and check again when the return
              type has been defined. */
-          add_to_dependent_type_fixup_list(return_type, routine_type,
-                                           (a_param_type *)NULL, err_pos);
+          add_to_dependent_type_fixup_list(return_type,
+                                           (a_dependent_type_fixup_kind)
+                                                  dtfk_routine_calling_method,
+                                           (char *)routine_type,
+                                           (a_byte_il_entry_kind)iek_type,
+                                           err_pos);
         } else if (!symbol_supplement_for_class(return_type)->
                                         construction_by_bitwise_copy_allowed) {
           rtsp->value_returned_by_cctor = TRUE;
@@ -6358,47 +6370,66 @@ node is returned for that case.
                                   /*is_expr_use=*/TRUE)) {
     /* There was some error in the return type, and a diagnostic was issued. */
     call_node = error_node();
-  } else {
-    if (function_node->kind == (an_expr_node_kind)enk_routine_address) {
-      /* We know which routine is being called.  Set its called flag. */
-      a_routine_ptr routine = function_node->variant.routine;
-      if (evaluated) routine->called = TRUE;
-    }  /* if */
-    /* Any type qualifiers on the return type are dropped because rvalues
-       do not have qualified types. */
-    return_type = skip_typerefs(function_type->variant.routine.return_type);
-    if (is_reference_type(return_type)) {
-      /* If the function returns a reference type, make the result a
-         pointer. */
-      return_type = make_pointer_type(type_pointed_to(return_type));
-    }  /* if */
-    /* Determine the operator to use for the call. */
-    if (is_ptr_to_member_type(function_node->type)) {
-      /* Call using a pointer-to-member-function. */
-      op = (an_expr_operator_kind)eok_pm_call;
-    } else if (is_virtual) {
-      /* Call of a virtual function. */
-      op = (an_expr_operator_kind)eok_virtual_call;
-    } else {
-      /* Normal call. */
-      op = (an_expr_operator_kind)eok_call;
-    }  /* if */
-    /* Make an expression for the function call. */
-    call_node = make_operator_node(op, return_type, function_node);
-    rtsp = function_type->variant.routine.extra_info;
-    if (rtsp->value_returned_by_cctor) {
-      temp_init_node = create_expr_temporary(return_type,
-                                             /*result_is_addr=*/FALSE,
-                                             evaluated,
-                                             in_return_by_cctor_expression,
-                                             err_pos);
-      dip = temp_init_node->variant.init.dynamic_init;
-      set_dynamic_init_kind(dip,
-                      (a_dynamic_init_kind)dik_call_returning_class_via_cctor);
-      dip->variant.expression = call_node;
-      call_node = temp_init_node;
+    goto done;
+  } /* if */
+  if (function_node->kind == (an_expr_node_kind)enk_routine_address) {
+    /* We know which routine is being called. */
+    a_routine_ptr rp = function_node->variant.routine;
+    if (evaluated && !rp->called) {
+      /* It is being called -- set the flag. */
+      rp->called = TRUE;
+      /* Special checking is required for operator-> functions. */
+      if (rp->special_kind == (a_special_function_kind)sfk_operator &&
+          rp->opname_kind == (an_opname_kind)onk_arrow) {
+        /* This is an operator-> function that has never before been called.
+           If it is a member of a template class, be sure it has a valid
+           return type.  (Note:  template classes may define operator->
+           functions that return invalid types as long as they are never
+           called. */
+        if (symbol_supplement_for_class(rp->source_corresp.
+                          class_of_which_a_member)->class_template != NULL) {
+          /* If the return type is invalid, change the return type to an
+             error_type and issue a diagnostic. */
+          check_operator_arrow_return_type(rp, /*is_expr_use=*/TRUE, err_pos);
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* if */
+  /* Any type qualifiers on the return type are dropped because rvalues
+     do not have qualified types. */
+  return_type = skip_typerefs(function_type->variant.routine.return_type);
+  if (is_reference_type(return_type)) {
+    /* If the function returns a reference type, make the result a
+       pointer. */
+    return_type = make_pointer_type(type_pointed_to(return_type));
+  }  /* if */
+  /* Determine the operator to use for the call. */
+  if (is_ptr_to_member_type(function_node->type)) {
+    /* Call using a pointer-to-member-function. */
+    op = (an_expr_operator_kind)eok_pm_call;
+  } else if (is_virtual) {
+    /* Call of a virtual function. */
+    op = (an_expr_operator_kind)eok_virtual_call;
+  } else {
+    /* Normal call. */
+    op = (an_expr_operator_kind)eok_call;
+  }  /* if */
+  /* Make an expression for the function call. */
+  call_node = make_operator_node(op, return_type, function_node);
+  rtsp = function_type->variant.routine.extra_info;
+  if (rtsp->value_returned_by_cctor) {
+    temp_init_node = create_expr_temporary(return_type,
+                                           /*result_is_addr=*/FALSE,
+                                           evaluated,
+                                           in_return_by_cctor_expression,
+                                           err_pos);
+    dip = temp_init_node->variant.init.dynamic_init;
+    set_dynamic_init_kind(dip,
+                      (a_dynamic_init_kind)dik_call_returning_class_via_cctor);
+    dip->variant.expression = call_node;
+    call_node = temp_init_node;
+  }  /* if */
+done:
   return call_node;
 }  /* func_call_expr */
 
