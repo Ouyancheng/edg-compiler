@@ -4234,6 +4234,12 @@ the symbol and its linkage (which is always "none").
       pos_sy_error(ec_not_compatible_with_previous_decl,
                    &locator->source_position, sym);
       err = TRUE;
+    } else if (!namespace_is_enclosed_by_scope(sym,
+                                           &scope_stack[depth_scope_stack])) {
+      /* This static data member is being defined in a scope that does not
+         enclose the scope in which the parent class was defined. */
+      sym_error(ec_bad_scope_for_definition, sym);
+      err = TRUE;
     } else {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       /* Since this is the defining declaration of the static data member,
