@@ -3762,6 +3762,7 @@ fields, and add it to the file-scope types list.
   placeholder = alloc_type((a_type_kind)tk_typeref);
   placeholder->variant.typeref.type = type_ptr;
   placeholder->variant.typeref.is_placeholder_for_namespace_type = TRUE;
+  type_ptr->referenced_by_namespace_placeholder_typeref = TRUE;
   add_to_types_list(placeholder, DEPTH_OF_FILE_SCOPE);
 }  /* add_placeholder_for_namespace_type */
 
@@ -3959,7 +3960,6 @@ nothing else needs to be done in regard to placeholder management.
       if (ns_placeholder_needed) {
         /* Create one and add it to the file-scope types list. */
         add_placeholder_for_namespace_type(type_ptr);
-        type_ptr->referenced_by_namespace_placeholder_typeref = TRUE;
       }  /* if */
     } else {
       /* They placeholder that is already on the file-scope types list either
