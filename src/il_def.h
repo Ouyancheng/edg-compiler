@@ -1858,6 +1858,28 @@ typedef struct a_routine {
 #endif /* ifdef FIL */
 } a_routine;
 
+
+typedef struct an_asm_entry *an_asm_entry_ptr;
+typedef struct an_asm_entry {
+  /* Description of an asm declaration. */
+  /* The source_corresp field must be first. */
+  a_source_correspondence
+                source_corresp;
+                        /* Information on any source entity that corresponds
+                           to this entity. */
+  an_asm_entry_ptr
+		next;
+                        /* Pointer to the asm entry declared in the same
+                           scope, NULL if this asm entry is the last in the
+                           scope. */
+  a_constant_ptr
+                asm_string;
+                        /* Constant giving the string that is the argument
+                           of the "asm" statement, i.e., an assembly-language
+                           line. */
+} an_asm_entry;
+
+
 /*
 Data structures related to labels:
 */
@@ -2404,9 +2426,7 @@ enum a_statement_kind_tag {
   stmk_end_test_while,  /* Loop, test at bottom. */
   stmk_switch,          /* Switch. */
   stmk_init,            /* Do a dynamic initialization. */
-  stmk_asm,             /* "asm" statement.  Only accepted in versions
-                           with ASM_STATEMENT_ALLOWED set to TRUE, but
-                           always here to keep all IL versions compatible. */
+  stmk_asm,             /* "asm" statement (or declaration). */
 #endif /* ifdef CIL */
 #ifdef FIL
   stmk_fentry,          /* Code label for an ENTRY. */
@@ -2850,13 +2870,11 @@ typedef struct a_statement {
 			/* The description of the dynamic initialization to be
 			   performed. */
     /* When kind == stmk_asm: */
-    a_constant_ptr
-                asm_string;
+    an_asm_entry_ptr
+                asm_entry;
                         /* Constant giving the string that is the argument
                            of the "asm" statement, i.e., an assembly-language
-                           line.  Only accepted in versions that have
-                           ASM_STATEMENT_ALLOWED set to TRUE, but always
-                           included here to keep all IL versions compatible. */
+                           line. */
 #endif /* ifdef CIL */
 #ifdef FIL
     /* When kind == stmk_fentry: */
@@ -3198,6 +3216,10 @@ typedef struct a_scope {
 			/* In a scope for a class, points to a list of the
 			   member functions for the class (both static and
 			   non-static). */
+  an_asm_entry_ptr
+		asm_entries;
+			/* List of asm entries declared in the current scope,
+			   NULL if none. */
   a_scope_ptr   scopes; /* List of local scopes that aren't function scopes
                            or prototype scopes -- i.e., scopes associated
                            with blocks that contain declarations.  NULL if
