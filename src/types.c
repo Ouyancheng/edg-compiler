@@ -1189,8 +1189,12 @@ types_are_compatible, which does the initial test for exact pointer equality.
           if (types_are_compatible(type_1->variant.routine.return_type,
                                    type_2->variant.routine.return_type) &&
               extra_info1->has_ellipsis == extra_info2->has_ellipsis &&
-              types_are_compatible(extra_info1->implicit_this_param_type,
-                                   extra_info2->implicit_this_param_type)) {
+              ((extra_info1->implicit_this_param_type == NULL) ?
+                  (extra_info2->implicit_this_param_type == NULL) :
+                  (extra_info2->implicit_this_param_type != NULL &&
+                   types_are_compatible(
+                                 extra_info1->implicit_this_param_type,
+                                 extra_info2->implicit_this_param_type)))) {
             list1_prototyped = extra_info1->prototyped;
             list2_prototyped = extra_info2->prototyped;
             if (!list1_prototyped && !list2_prototyped) {
@@ -2091,7 +2095,7 @@ Only callable in C++ mode.  See ARM 13.
   /* See if the old symbol is a list of overloaded functions. */
   if (old_sym_ptr->kind == (a_symbol_kind)sk_overloaded_function) {
     old_is_list = TRUE;
-    old_sym_ptr = old_sym_ptr->variant.function_symbols;
+    old_sym_ptr = old_sym_ptr->variant.overloaded_function.symbols;
   } else {
     old_is_list = FALSE;
   }  /* if */
