@@ -143,6 +143,12 @@ It's a static entity that may be referenced from exported templates.
   a_routine_ptr            rout;
   a_trans_unit_corresp_ptr tucp;
 
+#if DEBUG
+  if (db_has_traced_name(scp, kind)) {
+    fprintf(f_debug, "Externalizing for exported templates:\n");
+    db_entity_info((char *)scp, kind);
+  }  /* if */
+#endif /* DEBUG */
   externalize_source_correspondence(scp, is_variable);
   if (is_variable) {
     var = (a_variable_ptr)scp;
@@ -298,6 +304,12 @@ it needs to be executed after all templates have been instantiated.
   if (il_lowering_needed()) {
     /* Do name mangling for all entities.  This has to be done before
        the names for statics referenced from templates are externalized. */
+#if DEBUG
+    if (db_active) {
+      fprintf(f_debug, "About to do name mangling for %s\n",
+                       curr_translation_unit->source_file->name_as_written);
+    }  /* if */
+#endif /* DEBUG */
     do_all_name_mangling();
     if (any_exported_templates()) {
       a_scope_orphaned_list_header_ptr solhp;
