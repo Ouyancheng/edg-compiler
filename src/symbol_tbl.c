@@ -4615,7 +4615,6 @@ End a name scope by popping an entry off the scope stack.
   a_scope_stack_entry_ptr  ssep, parent_ssep;
   a_symbol_ptr             sym;
   a_routine_ptr            curr_routine = NULL;
-  a_symbol_ptr             prev_sym, next_sym;
   a_memory_region_number   old_memory_region_number, new_memory_region_number;
   a_scope_kind             kind;
   an_extern_type_fixup_ptr etfp;
@@ -4652,17 +4651,13 @@ End a name scope by popping an entry off the scope stack.
 #endif /* DEBUG */
   /* Remove the symbols declared in this scope from the symbol table.
      Check for unreferenced symbols, and issue warnings for those. */
-  prev_sym = NULL;
-  for (sym = ssep->symbols; sym != NULL; sym = next_sym) {
-    next_sym = sym->next_in_scope;
+  for (sym = ssep->symbols; sym != NULL; sym = sym->next_in_scope) {
     end_of_scope_symbol_check(sym, curr_routine);
-    /* Remove the symbol from the symbol table. */
-    remove_symbol(sym);
-    /* Keep all the removed symbols of the scope linked together.  This is
-       needed to keep the list of prototype scope symbols together for
-       later re-entry, and for the member symbols of a class. */
-    if (prev_sym != NULL) prev_sym->next_in_scope = sym;
-    prev_sym = sym;
+    /* Remove the symbol from the symbol table.  (Note that symbols are not
+       removed from the scope list.  This is because they must sometimes
+       remain accessible and the scope list, saved away in some other data
+       structure, is a convenient way to get at them again.) */
+    unlink_symbol_from_symbol_table(sym);
     /* Put struct/union/class members on the inactive list of the proper symbol
        header. */
     if (kind == (a_scope_kind)sck_class_struct_union) {
