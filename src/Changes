@@ -1,5 +1,14 @@
 Version 2.36
 
+5/8/97    Error on use of "this" in a constant expression
+
+An error is now issued on a use of "this" within a constant expression.
+The failure to check this heretofore led to internal errors, e.g., on
+
+  struct A {
+    void f() { int a[this]; }
+  };
+
 5/7/97    int(3.0/1) is nonstandard in integral constant expression
 
 A floating constant is allowed in an integeral constant expression

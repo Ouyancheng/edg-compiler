@@ -9960,6 +9960,9 @@ see expr.h).
       if (depth_innermost_function_scope == NO_SCOPE_DEPTH) {
         /* We're not inside a function. */
         error_and_make_error_operand(ec_this_used_incorrectly, &local_result);
+      } else if (curr_expr_kind_is_const()) {
+        /* "this" cannot be used in a constant expression. */
+        error_and_make_error_operand(ec_expr_not_constant, &local_result);
       } else {
         a_variable_ptr this_var = 
                          scope_stack[depth_innermost_function_scope].il_scope->
