@@ -1542,7 +1542,7 @@ written.
 
   /* We don't use fread_with_check here because we want to handle
      read errors more gracefully.  After all, we don't yet know
-     that is is actually a PCH written by this compiler. */
+     that is actually a PCH written by this compiler. */
   if (!fread_with_status(pch_buffer, size_t_arg(pch_id_string_length),
                          f_pch_input)) {
     /* The read failed -- the file must contain something unexpected. */
@@ -1986,7 +1986,7 @@ may be used.
     pch_input_file_name = name_with_dir;
   }  /* if */
   if (open_pch_input_file(pch_input_file_name)) {
-    /* Make sure the the PCH can still be used.  Also make sure that
+    /* Make sure the PCH can still be used.  Also make sure that
        the memory configuration needed by the PCH is compatible with
        what we can allocate. */
     last_event_from_pch = pch_is_applicable();

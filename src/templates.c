@@ -1501,7 +1501,7 @@ be NULL if the caller does not need to know whether a conversion was performed.
          no match. */
     } else {
       /* If the template parameter has an associated tag kind, make sure
-         that the type of the actual argument is consistent with the the
+         that the type of the actual argument is consistent with the
          tag kind. */
       a_boolean				tag_kind_ok = TRUE;
       a_template_param_type_descr_ptr	tptdp;
@@ -3798,7 +3798,7 @@ as the current token; otherwise, it is consumed.
                    (a_symbol_ptr)NULL, (a_template_arg_ptr)NULL);
   /* Bypass "template".  The next token should be "<". */
   (void)get_token();
-  /* The the template parameters. */
+  /* The template parameters. */
   template_param_list = scan_template_param_list();
   /* Cache the tokens for this declaration.  If this turns out to be
      a function the cache will be saved to generates new routine types

@@ -1510,7 +1510,7 @@ preceded by a "-".
   char			*sign_string = "";
   a_boolean		err;
   /* Compute the maximum power of 10 that can be represented in a long.
-     Compute the number of digits in the the maximum power of 10.
+     Compute the number of digits in the maximum power of 10.
      We will use sprintf to output groups of digits of this size. */
   if (!initialized) {
     initialized = TRUE;

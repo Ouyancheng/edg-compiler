@@ -754,7 +754,7 @@ the tokens from the copy of the cache.  The source cache must be terminated
 by a tok_end_of_source.  The copy of the cache will not include the
 end of source token.  This routine is used to allow a series of tokens
 to be cached into a reusable cache and the rescanned as if part of
-the original source with no need to worry about detection of the the
+the original source with no need to worry about detection of the
 tok_end_of_source later.
 */
 {
@@ -1926,7 +1926,7 @@ Examine the file history to see if "full_name" has been seen before. If
 it has, return a pointer to its history record in ret_hist, otherwise
 if create is TRUE, create a new history record, attach it to the file
 history chain, and return a pointer to the new entry in ifhp. Also, set
-first_time if the the latter case.  Return TRUE if the file was
+first_time if the latter case.  Return TRUE if the file was
 found in the list.
 */
 {

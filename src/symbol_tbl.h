@@ -1793,7 +1793,7 @@ typedef struct a_scope_stack_entry {
 			   otherwise, NO_SCOPE_DEPTH. */
   a_scope_depth depth_innermost_instantiation_scope;
                         /* Depth of the nearest enclosing instantiation scope
-			   of any kind.  This is a copy of the the global
+			   of any kind.  This is a copy of the global
 			   variable of the same name. */
   a_symbol_ptr  instance_sym;
                         /* When kind == sck_template_instantiation, contains

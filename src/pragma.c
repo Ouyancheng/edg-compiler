@@ -911,7 +911,7 @@ all of the active scope stack entries.
         prev_in_scope_list = ppp;
       }  /* if */
     }  /* for */
-    /* The appropriate list for the scope has been examined.  Move on the the
+    /* The appropriate list for the scope has been examined.  Move on the
        containing scope if appropriate; otherwise, terminate the loop. */
     if (is_bound_to_curr_construct || curr_scope_only) {
       /* Only one iteration of the loop for bind-to-next pragmas. */

@@ -71,7 +71,7 @@ should only be called if cross-reference information is being generated
   if (sym_ptr->kind == (a_symbol_kind)sk_extern_variable ||
              sym_ptr->kind == (a_symbol_kind)sk_extern_routine) {
     /* Ignore extern variable and routine symbols.  They are really just
-       shadow symbols for the the real ones. */
+       shadow symbols for the real ones. */
   } else if (is_unnamed_class_symbol(sym_ptr)) {
     /* Ignore symbols for unnamed classes */
   } else if (source_position->seq == 0) {
