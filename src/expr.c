@@ -1984,9 +1984,11 @@ whether an operator-> function (or several) applies to convert the
 operand to a class or pointer to class.  If so, do the transformation
 and return the updated operand.  tsn is the token sequence number of the
 "->" token.  parent points to a list of blocks indicating transformations
-done so far on this operand, as a way to catch loops.
+done so far on this operand, as a way to catch loops.  The current token
+is the "->".
 */
 {
+  check_assertion(curr_token == tok_arrow);
   /* Note that we do not use "is_overloadable_type_operand" here.  That's
      deliberate: doing so could cause infinite loops. */
   if (is_class_struct_union_type(operand->type)) {
@@ -2016,9 +2018,11 @@ done so far on this operand, as a way to catch loops.
                                      /*try_conversions=*/FALSE,
                                      /*has_predef_meaning=*/TRUE,
                                      operand, (an_operand *)NULL,
-                                     &operand->position,
+                                     &pos_curr_token,
                                      tsn,
                                      &result, &processed);
+      set_operand_position(&result, &operand->position, &end_pos_curr_token,
+                           &pos_curr_token);
     }  /* if */
     if (processed) {
       /* An operator-> function was found and applied. */

@@ -1,5 +1,15 @@
 Version 3.1
 
+6/23/02  Source positions on overloaded operator-> call
+
+The source positions on the operand for an overloaded operator->
+call have been adjusted so that they point appropriately to the
+operand and the "->" operator.  This is mostly visible in the
+position in error messages, because source positions are not
+recorded in expression nodes for generated operations (and would
+in any case be recorded only if EXTRA_SOURCE_POSITIONS_IN_IL is
+TRUE).
+
 6/20/02  Use of predefined macros on X86 architecture
 
 Formerly, the front end tested the __i386__ macro to determine whether
