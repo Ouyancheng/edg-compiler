@@ -440,6 +440,24 @@ If need_trailing_space is TRUE, put out a space after the type qualifier
       qualifier_put_out = TRUE;
     }  /* if */
   }  /* if */
+#if RESTRICT_ALLOWED
+#if SUPPRESS_RESTRICT_IN_GENERATED_CODE
+  /* Suppress "restrict" in generated compilable code. */
+  if (!octl->gen_compilable_code) {
+#endif /* SUPPRESS_RESTRICT_IN_GENERATED_CODE */
+    if (typeref_is_restrict_qualified(type)) {
+      if (octl->gen_pcc_code) {
+        /* "restrict" suppressed when generating K&R C. */
+      } else {
+        if (qualifier_put_out) octl->output_str(" ");
+        octl->output_str("restrict");
+        qualifier_put_out = TRUE;
+      }  /* if */
+    }  /* if */
+#if SUPPRESS_RESTRICT_IN_GENERATED_CODE
+  }  /* if */
+#endif /* SUPPRESS_RESTRICT_IN_GENERATED_CODE */
+#endif /* RESTRICT_ALLOWED */
   /* Put out trailing space if required. */
   if (need_trailing_space && qualifier_put_out) octl->output_str(" ");
 }  /* form_type_qualifier */
