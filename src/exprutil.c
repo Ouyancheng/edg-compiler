@@ -4162,7 +4162,7 @@ of the pointer to that bit field, in *ptr_type.
 */
 {
   a_boolean        addr_can_be_taken = FALSE;
-  a_targ_size_t    field_size, field_offset, type_size;
+  a_targ_size_t    field_size, type_size;
   a_targ_alignment type_alignment, struct_alignment;
   an_integer_kind  int_kind;
   a_type_ptr       int_type;
@@ -4174,9 +4174,7 @@ of the pointer to that bit field, in *ptr_type.
     if (field_size > 0 && (field_size % targ_char_bit == 0)) {
       field_size /= targ_char_bit;
       /* See if the bit field is at an even byte offset. */
-      field_offset = field->bit_offset;
-      if (field_offset % targ_char_bit == 0) {
-        field_offset /= targ_char_bit;
+      if (field->offset_bit_remainder == 0) {
         /* Get the overall alignment of the structure of which this field is
            a member. */
         struct_alignment =
@@ -4193,7 +4191,7 @@ of the pointer to that bit field, in *ptr_type.
                                            &type_alignment);
             if (type_size == field_size &&
                 type_alignment <= struct_alignment &&
-                field_offset % type_alignment == 0) {
+                field->offset % type_alignment == 0) {
               addr_can_be_taken = TRUE;
               int_type = integer_type(int_kind);
               *ptr_type = make_pointer_type(int_type);
