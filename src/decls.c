@@ -729,12 +729,16 @@ new fields are set properly.
 }  /* check_operator_function_params */
 
 
-static void check_scope_for_new_or_delete(a_symbol_locator  *locator)
+static a_boolean report_bad_scope_for_new_or_delete(a_symbol_locator  *locator,
+                                                    an_error_severity severity)
 /*
-Issue an error (or a warning in Microsoft compatibility mode) on declaring
-an operator new or delete function that is a namespace member.
+Issue a diagnostic of the indicated severity for declaring an operator new
+or delete function that is a namespace member.  Return TRUE if a diagnostic
+is issued.
 */
 {
+  an_error_code      error_code = ec_no_error;
+
   if (depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE &&
       locator->is_operator_name && !locator->is_class_member &&
       (!locator->is_qualified_name ||
@@ -742,29 +746,15 @@ an operator new or delete function that is a namespace member.
     /* This operator declaration either appears inside a namespace or else
        has the effect of injecting a declaration into a namespace.  Be sure
        it's not operator new, new[], delete, or delete[]. */
-    an_error_code      error_code = ec_no_error;
-    an_error_severity  severity;
-
     if (is_new_operator(locator->variant.opname)) {
       error_code = ec_allocation_operator_in_namespace;
     } else if (is_delete_operator(locator->variant.opname)) {
       error_code = ec_deallocation_operator_in_namespace;
     }  /* if */
-    if (error_code != ec_no_error) {
-      /* Issue a warning instead of an error in Microsoft mode. */
-      severity = microsoft_mode ? es_warning : es_error;
-      diagnostic(severity, error_code);
-      /* Set the is_error flag in the locator. */
-      /* Do this even in Microsoft mode -- processing will continue, except
-         that the symbol for the operator new/delete will not be added to
-         the symbol table. This seems to match Microsoft's behavior pretty
-         well -- it issues no diagnostic on a new/delete declaration that
-         appears inside a namespace but then ignores it when a new/delete
-         expression is processed. */
-      set_to_named_error_locator(*locator);
-    }  /* if */
+    if (error_code != ec_no_error) diagnostic(severity, error_code);
   }  /* if */
-}  /* check_scope_for_new_or_delete */
+  return (error_code != ec_no_error);
+}  /* report_bad_scope_for_new_or_delete */
 
 
 void check_exception_specification(a_type_ptr         new_rout_type,
@@ -3816,6 +3806,7 @@ on for use in generating cross-reference output describing this declaration.
   a_boolean                changed_to_inline = FALSE;
   a_boolean                is_friend_decl = (srk_flags & SRK_FRIEND) != 0;
   a_boolean                namespace_reactivated = FALSE;
+  a_boolean                invalid_scope_for_new_or_delete = FALSE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_boolean                first_decl = FALSE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -3852,6 +3843,8 @@ on for use in generating cross-reference output describing this declaration.
                                                       storage_class,
                                                       is_friend_decl);
   if (C_dialect == C_dialect_cplusplus) {
+    an_error_severity  severity;
+
     if (func_info->is_inline && !extern_inline_allowed) {
       check_assertion_str(storage_class == (a_storage_class)sc_unspecified ||
                           storage_class == (a_storage_class)sc_static,
@@ -3862,7 +3855,12 @@ on for use in generating cross-reference output describing this declaration.
        argument list. */
     check_operator_function_params(type_ptr, /*class_type=*/(a_type_ptr)NULL,
                                    locator);
-    check_scope_for_new_or_delete(locator);
+    severity = microsoft_mode ? es_warning : es_error;
+    if (report_bad_scope_for_new_or_delete(locator, severity)) {
+      /* Set the is_error flag in the locator. */
+      if (!microsoft_mode) set_to_named_error_locator(*locator);
+      invalid_scope_for_new_or_delete = TRUE;
+    }  /* if */
   }  /* if */
   if (microsoft_mode) {
     if (locator->is_template_id && locator->specific_symbol == NULL) {
@@ -4251,6 +4249,14 @@ skip_overloading:;
     sym = enter_local_symbol ((a_symbol_kind)sk_routine, locator,
                               effective_decl_level,
                               redecl_error_already_issued);
+    if (microsoft_mode && invalid_scope_for_new_or_delete) {
+      /* An operator new or delete function was declared in a namespace scope.
+         The Microsoft C++ compiler permits this (i.e., no error is issued),
+         yet it proceeds to ignore the declaration in processing new and
+         delete expressions.  We emulate this behavior by not adding the
+         symbol to the symbol table. */
+      remove_symbol(sym);
+    }  /* if */
   } else if (func_info->is_implicit_declaration) {
     /* This is an implicit declaration of a function.  The symbol has
        already been entered and marked as declared. */
@@ -4841,7 +4847,10 @@ is not a template declaration scope.
         check_operator_function_params(type_ptr, (a_type_ptr)NULL, locator);
         /* If it's a new or delete operator, be sure the scope is not a
            namespace scope. */
-        check_scope_for_new_or_delete(locator);
+        if (report_bad_scope_for_new_or_delete(locator, es_error)) {
+          /* Set the is_error flag in the locator. */
+          set_to_named_error_locator(*locator);
+        }  /* if */
       }  /* if */
       check_default_args(type_ptr);
       if (homonym_symbol != NULL &&
