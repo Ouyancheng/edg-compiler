@@ -7072,10 +7072,6 @@ Do IL lowering of the indicated scope and everything under it.
   lower_label_list(scope->labels);
   lower_routine_list(scope->routines);
   lower_asm_entry_list(scope->asm_entries);
-  /* If the current scope is a function, lower any block scopes within it.
-     Note that statements are not lowered during this processing; they are
-     handled in the lowering of assoc_block below. */
-  lower_scope_list(scope->scopes);
   /* In functions and blocks, the dynamic inits are also pointed to from
      stmk_init statements, so they need not be handled here.  At file scope
      the dynamic inits are not pointed to from elsewhere and must be handled
@@ -7083,8 +7079,12 @@ Do IL lowering of the indicated scope and everything under it.
   if (scope->kind == (a_scope_kind)sck_file) {
     lower_file_scope_dynamic_inits();
     make_code_to_invoke_file_scope_init_and_term_routines();
-  }  /* if */
-  if (scope->kind == (a_scope_kind)sck_function) {
+  } else if (scope->kind == (a_scope_kind)sck_function) {
+    /* A function scope. */
+    /* Lower any block scopes within it.  Note that statements are not
+       lowered during this processing; they are handled in the lowering
+       of assoc_block below. */
+    lower_scope_list(scope->scopes);
     routine_class_type = routine->source_corresp.class_of_which_a_member;
     if (routine_class_type != NULL) {
       /* Member function. */
@@ -7230,7 +7230,9 @@ C++ to C, so that a C back end can handle it without change.
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
     if (!lowering_file_scope) {
       /* Look at the function scope and its subscopes and promote local
-         types and static variables to the file scope where appropriate. */
+         types and static variables to the file scope where appropriate.
+         This must be done before name mangling so different name mangling
+         can be done on names promoted out of template functions. */
       check_assertion(scope->kind == (a_scope_kind)sck_function);
       if (local_entities_should_be_promoted(scope)) {
         promote_local_entities_to_file_scope(scope,
