@@ -51,7 +51,7 @@ typedef enum /*a_token_kind*/ {
   tok_cpp_quote,
   tok_ptr_to_member,	/* C++ only */
   /* Operators (standard, 3.1.5; sizeof appears with keywords): */
-  tok_lbracket              /* [ */
+  tok_lbracket              /* [ */,
   tok_rbracket              /* ] */,
   tok_lparen                /* ( */,
   tok_rparen                /* ) */,
