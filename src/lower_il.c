@@ -263,6 +263,9 @@ and return a pointer to it.
   rdcp->label_marker = NULL;
   clear_dynamic_init(&rdcp->dynamic_init, (a_dynamic_init_kind)dik_none);
   rdcp->first_time_test_var = NULL;
+#if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
+  rdcp->template_static_data_member_init_guard_var = NULL;
+#endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
   clear_init_pos_descr(&rdcp->init_pos_descr);
   rdcp->is_expr_temporary = FALSE;
   return rdcp;
@@ -1036,9 +1039,19 @@ it.  The variable has no name.
   return param_var;
 }  /* make_lowered_param_variable */
 
+/* Determine whether or not we need make_instantiation_info_var, and if
+   so, whether or not it needs to be external. */
+#if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
+#define MAKE_INSTANTIATION_INFO_VAR_LINKAGE /*external*/
+#else /* !TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
+#define MAKE_INSTANTIATION_INFO_VAR_LINKAGE static
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+#endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
+#ifdef MAKE_INSTANTIATION_INFO_VAR_LINKAGE
 
-static void make_instantiation_info_var(
+MAKE_INSTANTIATION_INFO_VAR_LINKAGE
+a_variable_ptr make_instantiation_info_var(
                                        char                    *prefix,
                                        a_source_correspondence *source_corresp)
 /*
@@ -1048,11 +1061,13 @@ source_corresp identifies the entity (variable or routine) for which some
 information is to be encoded.  The name of the generated variable encodes
 the information about that entity; it consists of the indicated prefix
 (e.g., something like "__DNI__" to indicate "do not instantiate") followed
-by the mangled name of the entity.
+by the mangled name of the entity.  The variable has type int.
 */
 {
-  char     *mangled_name, *info_name;
-  sizeof_t mangled_name_length, info_name_length, prefix_length, alloc_length;
+  a_variable_ptr var;
+  char           *mangled_name, *info_name;
+  sizeof_t       mangled_name_length, info_name_length;
+  sizeof_t       prefix_length, alloc_length;
 
   /* The name of the entity should be mangled already. */
   check_assertion(source_corresp->name_has_been_mangled);
@@ -1067,12 +1082,13 @@ by the mangled name of the entity.
   (void)strcpy(info_name, prefix);
   (void)strcpy(info_name+prefix_length, mangled_name);
   /* Make the variable.  Note that it is a definition of an external name. */  
-  (void)make_lowered_variable(info_name, /*already_il_name=*/TRUE,
+  var = make_lowered_variable(info_name, /*already_il_name=*/TRUE,
                               integer_type((an_integer_kind)ik_int),
                               (a_storage_class)sc_unspecified);
+  return var;
 }  /* make_instantiation_info_var */
 
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+#endif /* ifdef MAKE_INSTANTIATION_INFO_VAR_LINKAGE */
 
 an_expr_node_ptr make_node_for_il_constant(a_constant_ptr constant)
 /*
@@ -3815,15 +3831,15 @@ Do IL lowering of the indicated variable and everything under it.
       /* Static data member. */
       if (variable->instance_required) {
         /* This variable is template-based. */
-        make_instantiation_info_var("__TIR__", &variable->source_corresp);
+        (void)make_instantiation_info_var("__TIR__",&variable->source_corresp);
       }  /* if */
       if (variable->do_not_instantiate) {
         /* This variable cannot be instantiated. */
-        make_instantiation_info_var("__DNI__", &variable->source_corresp);
+        (void)make_instantiation_info_var("__DNI__",&variable->source_corresp);
       }  /* if */
       if (variable->can_be_instantiated) {
         /* This variable can be instantiated. */
-        make_instantiation_info_var("__CBI__", &variable->source_corresp);
+        (void)make_instantiation_info_var("__CBI__",&variable->source_corresp);
       }  /* if */
     }  /* if */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
@@ -3970,15 +3986,15 @@ Do IL lowering of the indicated routine and everything under it.
          names that encode instantiation information. */
       if (routine->instance_required) {
         /* This routine is template-based. */
-        make_instantiation_info_var("__TIR__", &routine->source_corresp);
+        (void)make_instantiation_info_var("__TIR__", &routine->source_corresp);
       }  /* if */
       if (routine->do_not_instantiate) {
         /* This routine cannot be instantiated. */
-        make_instantiation_info_var("__DNI__", &routine->source_corresp);
+        (void)make_instantiation_info_var("__DNI__", &routine->source_corresp);
       }  /* if */
       if (routine->can_be_instantiated) {
         /* This routine can be instantiated. */
-        make_instantiation_info_var("__CBI__", &routine->source_corresp);
+        (void)make_instantiation_info_var("__CBI__", &routine->source_corresp);
       }  /* if */
     }  /* if */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
@@ -5849,6 +5865,17 @@ is inserted at *insert_location and *insert_location is updated.
                          insert_location,
                          &insert_location2);
       effective_insert_loc = &insert_location2;
+#if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
+    } else if (rdcp->template_static_data_member_init_guard_var != NULL) {
+      /* This is the destruction of a static data member in a template, and
+         there is a guard variable to make sure that the variable is
+         destroyed only once. */
+      add_static_data_member_destruction_guard_test(
+                         rdcp->template_static_data_member_init_guard_var, 
+                         insert_location,
+                         &insert_location2);
+      effective_insert_loc = &insert_location2;
+#endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
     }  /* if */
     lower_destructor_dynamic_init(&rdcp->dynamic_init,
                                   &rdcp->init_pos_descr,

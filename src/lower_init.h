@@ -93,6 +93,13 @@ extern void add_last_time_test(a_variable_ptr         test_var,
                                an_insert_location_ptr insert_location,
                                an_insert_location_ptr insert_location2);
 
+#if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
+extern void add_static_data_member_destruction_guard_test(
+                               a_variable_ptr         test_var,
+                               an_insert_location_ptr insert_location,
+                               an_insert_location_ptr insert_location2);
+#endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
+
 extern void add_constructor_wrapper_code(a_scope_ptr        scope,
                                          an_insert_location *insert_location);
 

@@ -139,6 +139,13 @@ typedef struct a_required_destructor_call {
 			   been done.  This is needed for local static
 			   variables and for temporaries initialized under
 			   conditional operators. */
+#if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
+  a_variable_ptr
+		template_static_data_member_init_guard_var;
+			/* If non-NULL, points to a variable tested in guard
+			   code around the initialization and destruction of
+			   a static data member of a template. */
+#endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
   an_init_pos_descr
 		init_pos_descr;
 			/* Description of the object to destroy. */
@@ -356,6 +363,12 @@ extern a_variable_ptr make_lowered_variable(char            *var_name,
                                             a_storage_class var_storage_class);
 
 extern a_variable_ptr make_lowered_param_variable(a_type_ptr type);
+
+#if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
+extern a_variable_ptr make_instantiation_info_var(
+                                      char                    *prefix,
+                                      a_source_correspondence *source_corresp);
+#endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
 
 extern a_variable_ptr make_lowered_temporary(a_type_ptr temp_type);
 

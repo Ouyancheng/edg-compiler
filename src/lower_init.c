@@ -55,6 +55,14 @@ static a_required_destructor_call_ptr
 			   file scope. */
 
 
+#if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
+/* Needed because of forward reference: */
+static void add_static_data_member_init_guard_test(
+                                           a_variable_ptr     variable,
+                                           an_insert_location *insert_location,
+                                           a_variable_ptr     *guard_var);
+#endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
+
 
 /*
 If variable != NULL, transfer the position from it into stmt.
@@ -2132,6 +2140,10 @@ be kept, FALSE if it should be deleted.
   a_context_ptr     destructor_context;
   a_source_position saved_error_position;
   a_statement_ptr   expr_stmt;
+#if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
+  a_boolean         is_template_static_data_member_init = FALSE;
+  a_variable_ptr    template_static_data_member_init_guard_var = NULL;
+#endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
 
   *keep_dynamic_init = FALSE;
   saved_error_position = error_position;
@@ -2145,6 +2157,13 @@ be kept, FALSE if it should be deleted.
       internal_error("lower_dynamic_init: variable mismatch");
     }  /* if */
 #endif /* CHECKING */
+#if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
+    if (variable->is_template_static_data_member) {
+      /* This is the initialization of a static data member in a template. */
+      is_template_static_data_member_init = TRUE;
+      check_assertion(processing_file_scope_init_routine);
+    }  /* if */
+#endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
   }  /* if */
   switch (dip->kind) {
     case dik_none:
@@ -2182,6 +2201,14 @@ do_assignment:;
         internal_error("lower_dynamic_init: array for const or expr init");
       }  /* if */
 #endif /* CHECKING */
+#if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
+      /* If this is a static data member in a template, add guard code around
+         the initialization. */
+      if (is_template_static_data_member_init) {
+        add_static_data_member_init_guard_test(variable, insert_location,
+                                  &template_static_data_member_init_guard_var);
+      }  /* if */
+#endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
       /* Make a node for the entity to be initialized. */
       entity_node = make_init_entity_node(ipdp);
       add_init_assignment(dip, entity_node, insert_location);
@@ -2202,6 +2229,14 @@ do_assignment:;
            Similar reasoning applies to local static variables. */
         dip->variant.expression = copy_expr_tree(dip->variant.expression);
       }  /* if */
+#if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
+      /* If this is a static data member in a template, add guard code around
+         the initialization. */
+      if (is_template_static_data_member_init) {
+        add_static_data_member_init_guard_test(variable, insert_location,
+                                  &template_static_data_member_init_guard_var);
+      }  /* if */
+#endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
       expr_stmt = insert_expr_statement(dip->variant.expression,
                                         insert_location);
       transfer_pos_from_var_to_statement(variable, expr_stmt);
@@ -2222,6 +2257,14 @@ do_assignment:;
         dip->variant.constructor.args =
                         copy_list_of_expr_trees(dip->variant.constructor.args);
       }  /* if */
+#if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
+      /* If this is a static data member in a template, add guard code around
+         the initialization. */
+      if (is_template_static_data_member_init) {
+        add_static_data_member_init_guard_test(variable, insert_location,
+                                  &template_static_data_member_init_guard_var);
+      }  /* if */
+#endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
       /* Make a node for the entity to be initialized. */
       entity_node = make_init_entity_node(ipdp);
       source_node = NULL;
@@ -2259,6 +2302,14 @@ do_assignment:;
       /* Initialization with a nonconstant aggregate constant.  This is usually
          a whole-variable initialization, but can be used in a ctor-initializer
          to iterate over an array initialization, etc. */
+#if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
+      /* If this is a static data member in a template, add guard code around
+         the initialization. */
+      if (is_template_static_data_member_init) {
+        add_static_data_member_init_guard_test(variable, insert_location,
+                                  &template_static_data_member_init_guard_var);
+      }  /* if */
+#endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
       keep_constant = FALSE;
       lower_dynamic_init_aggregate_constant(dip->variant.constant,
                                             ipdp, first_time_test_var, 
@@ -2337,6 +2388,15 @@ do_assignment:;
            variable later to decide whether or not to do the destruction. */
         add_conditional_destruction_temp(rdcp, insert_location);
       }  /* if */
+#if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
+      if (template_static_data_member_init_guard_var != NULL) {
+        /* This is a static data member in a template and it has guard code
+           around the initialization, which means it also needs guard code
+           around the destruction. */
+        rdcp->template_static_data_member_init_guard_var =
+                                    template_static_data_member_init_guard_var;
+      }  /* if */
+#endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
     }  /* if */
   }  /* if */
   /* In the whole-variable cases, adjust the initialization specified in
@@ -3111,6 +3171,77 @@ first-time-test variable is returned in *first_time_test_var.
                                         insert_location);
 }  /* add_first_time_test */
 
+#if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
+
+static void add_static_data_member_init_guard_test(
+                                           a_variable_ptr     variable,
+                                           an_insert_location *insert_location,
+                                           a_variable_ptr     *guard_var)
+/*
+variable is a static data member of a template.  If its initialization
+requires guard code, insert the code as follows:
+
+  int guard_var;  // Global test var, implicitly init to 0
+  {
+    if (guard_var == 0) {
+      guard_var = 1;
+      ... real initialization of static data member being initialized
+    }
+  }
+
+The sequence is inserted at *insert_location.  *insert_location is updated
+for further insertion after the assignment statement.  A pointer to the
+guard variable is returned in *guard_var, or NULL if no guard code is
+needed.
+*/
+{
+  a_variable_ptr         test_var;
+  an_expr_node_ptr       test_var_node, compare_node;
+  an_insert_location     insert_location2;
+  a_constant             minus_one_constant;
+  a_memory_region_number region_to_switch_back_to;
+
+  /* Make the guard variable at the file scope. */
+  test_var = make_instantiation_info_var("__SDG__", &variable->source_corresp);
+  if (variable->specific_def) {
+    /* This variable is a specialization of a template entity, so its
+       initialization should take precedence over any initialization code
+       for other instances.  Initialize the guard variable to -1 to lock out
+       all other initialization code.  No test of the guard variable is
+       needed here.  Neither is any test needed at the time of destruction,
+       so return *guard_var == NULL. */
+    *guard_var = NULL;
+    test_var->init_kind = (an_init_kind)initk_static;
+    set_integer_constant(&minus_one_constant, -1L, (an_integer_kind)ik_int);
+    switch_to_file_scope_region(&region_to_switch_back_to);
+    test_var->initializer.constant =
+                                  alloc_unshared_constant(&minus_one_constant);
+    switch_back_to_original_region(region_to_switch_back_to);
+  } else {
+    /* This is not a specialization, so the guard variable must be tested here
+       and at the time of destruction. */
+    *guard_var = test_var;
+    /* Make "test_var == 0". */
+    test_var_node = var_rvalue_expr(test_var);
+    test_var_node->next = node_for_integer_constant(0L,
+                                                    (an_integer_kind)ik_int);
+    compare_node = make_operator_node((an_expr_operator_kind)eok_ieq,
+                                      integer_type((an_integer_kind)ik_int),
+                                      test_var_node);
+    /* Make an "if" statement and insert it into the program. */
+    insert_if_statement(compare_node, insert_location, &insert_location2);
+    /* Further inserts are done at the start of the block. */
+    *insert_location = insert_location2;
+    /* Make "test_var = 1" and insert it inside the "if" statement. */
+    (void)insert_var_assignment_statement(test_var,
+                                          (an_expr_operator_kind)eok_iassign,
+                                          node_for_integer_constant(1L,
+                                                      (an_integer_kind)ik_int),
+                                          insert_location);
+  }  /* if */
+}  /* add_static_data_member_init_guard_test */
+
+#endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
 
 void add_last_time_test(a_variable_ptr         test_var,
                         an_insert_location_ptr insert_location,
@@ -3141,6 +3272,50 @@ insertion within the "if".
   insert_if_statement(compare_node, insert_location, insert_location2);
 }  /* add_last_time_test */
 
+#if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
+
+void add_static_data_member_destruction_guard_test(
+                        a_variable_ptr         guard_var,
+                        an_insert_location_ptr insert_location,
+                        an_insert_location_ptr insert_location2)
+/*
+Add a sequence of code that tests the guard variable that protects
+initialization and destruction of a static data member of a template.
+The sequence is
+
+    if (guard_var > 0) {
+      guard_var = 0;
+      ... destruction of static data member
+    }
+
+(The test is "> 0" instead of "!= 0" because a value of -1 is used when a
+specialization is present.)
+
+The sequence is inserted at *insert_location.  *insert_location is updated
+for further insertion following the "if".  *insert_location2 is set for
+insertion within the "if".
+*/
+{
+  an_expr_node_ptr guard_var_node, compare_node;
+
+  /* Make "guard_var > 0". */
+  guard_var_node = var_rvalue_expr(guard_var);
+  guard_var_node->next = node_for_integer_constant(0L,
+                                                   (an_integer_kind)ik_int);
+  compare_node = make_operator_node((an_expr_operator_kind)eok_igt,
+                                    integer_type((an_integer_kind)ik_int),
+                                    guard_var_node);
+  /* Make an "if" statement and insert it into the program. */
+  insert_if_statement(compare_node, insert_location, insert_location2);
+  /* Add "guard_var = 0;" inside the "if". */
+  (void)insert_var_assignment_statement(guard_var,
+                                        (an_expr_operator_kind)eok_iassign,
+                                        node_for_integer_constant(0L,
+                                                      (an_integer_kind)ik_int),
+                                        insert_location2);
+}  /* add_static_data_member_destruction_guard_test */
+
+#endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
 
 void lower_stmk_init(a_statement_ptr statement)
 /*
