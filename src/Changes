@@ -1,5 +1,12 @@
 Version 3.5
 
+5/20/04  Abort in C-generating back end with "?" operating on mixed fixed-point
+
+An internal error in the C-generating back end
+("dump_expr: bad type on eok_question") occurred on compiling
+a "?" operation whose operands are mixed integer/fixed-point
+or two different fixed-point types.  Now fixed.
+
 5/19/04  static inline duplicated with ONE_INSTANTIATION_PER_OBJECT
 
 In ONE_INSTANTIATION_PER_OBJECT mode, static inline functions are
