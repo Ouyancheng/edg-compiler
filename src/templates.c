@@ -1660,10 +1660,14 @@ Instantiate the body of the template function associated with tip.
   ++(tssp->pending_instantiations);
   /* Push the template instantiation scope. */
   tcp = cache_for_template(tssp);
+  /* For member functions that are not member templates the argument
+     list comes from the enclosing class that is reactivated by
+     push_template_instantiation_scope and the value from the routine
+     entry (which should be NULL) is not used. */
   (void)push_template_instantiation_scope(tcp->decl_info,
 					  (a_type_ptr)NULL, rout_ptr,
 					  rout_sym, template_sym,
-					  tip->arg_list);
+					  rout_ptr->template_arg_list);
   if (rout_sym->defined) {
     /* Member functions of class templates where the definition appears
        inside the class definition will already have been marked as defined
@@ -1811,15 +1815,14 @@ and the class instantiation will detect the runaway case.
     /* Push a template instantiation scope.  The real values of the
        the template arguments will be associated with the template
        parameter names. */
-#if 0
-    /* But note that a template parameter T will be hidden by a member T --
-       is this correct? */
-#endif /* if 0 */
+    /* For static data members, the argument list comes from the enclosing
+       class that is reactivated by push_template_instantiation_scope. */
     (void)push_template_instantiation_scope(tssp->cache.decl_info,
 					    (a_type_ptr)NULL,
 					    (a_routine_ptr)NULL,
 					    static_data_member_sym,
-					    tip->template_sym, tip->arg_list);
+					    tip->template_sym,
+                                            (a_template_arg_ptr)NULL);
     /* Reactivate any pragmas that should be bound to the generated
        instance. */
     reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
@@ -3029,7 +3032,7 @@ It is FALSE if the instantiation scope was pushed by the caller.
                                                   (a_type_ptr)NULL, rout_ptr,
                                                   tip->instance_sym,
                                                   tip->template_sym,
-                                                  tip->arg_list);
+                                                  rout_ptr->template_arg_list);
         }  /* if */
         /* The function prototype scope should be reactivated and its symbols
            reentered because parameter names hide names from enclosing scopes
@@ -3369,6 +3372,7 @@ type based on the template argument list and the template parameter list
     set_membership_in_source_corresp(&rp->source_corresp, sym);
     rp->source_corresp.name_linkage = templ_rout->source_corresp.name_linkage;
     rp->source_corresp.access = templ_rout->source_corresp.access;
+    rp->template_arg_list = templ_arg_list;
     update_routine_decl_modifiers(rp, templ_rout->decl_modifiers,
                                   &locator_position,
                                   /*is_redecl=*/FALSE, /*is_definition=*/TRUE);
@@ -3385,7 +3389,6 @@ type based on the template argument list and the template parameter list
      onto the front of the instantiation list for the template. */
   tip = alloc_template_instance();
   tip->template_sym = templ_sym;
-  tip->arg_list = templ_arg_list;
   tip->next = tssp->variant.function.instantiations;
   tssp->variant.function.instantiations = tip;
   /* Make the function instantiation entry and its associated symbol
@@ -3666,7 +3669,6 @@ the function instantiation entry and set all the pointers.
          onto the front of the instantiation list for the template. */
       tip = alloc_template_instance();
       tip->template_sym = templ_sym;
-      tip->arg_list = templ_arg_list;
       /* Mark this function as a "specialization". */
       tip->specific_decl = TRUE;
       tssp = templ_sym->variant.template_info;
@@ -3677,6 +3679,7 @@ the function instantiation entry and set all the pointers.
       tip->instance_sym = rout_sym;
       rout_sym->variant.routine.instance_ptr = tip;
       rout_sym->variant.routine.ptr->is_template_function = TRUE;
+      rout_sym->variant.routine.ptr->template_arg_list = templ_arg_list;
     }  /* if */
   }  /* if */
   if (tssp != NULL) {
@@ -3889,14 +3892,6 @@ and create a function instantiation entry to bind the two symbols together.
      pointers to bind them together. */
   tip = alloc_template_instance();
   tip->template_sym = sym;
-  /* Get the template arg list for the class and use it.  Note that if
-     this is a nested class we have to climb the parent chain to find the
-     template class in which the template arg list is recorded. */
-  tp = rout_sym->parent.class_type;
-  while (tp->source_corresp.is_class_member) {
-    tp = tp->source_corresp.parent.class_type;
-  }  /* if */
-  tip->arg_list = tp->variant.class_struct_union.extra_info->template_arg_list;
   tssp = sym->variant.routine.instance_ptr->template_info;
   if (tssp->befriending_classes != NULL) {
     update_befriending_classes_for_function(tssp,
@@ -3989,15 +3984,7 @@ Also, add the instance to the definitions list for the template.
      to bind them all together. */
   tip = static_data_member_sym->variant.static_data_member.instance_ptr;
   tip->template_sym = sym;
-  /* Get the template arg list for the class and use it.  Note that if
-     this is a nested class we have to climb the parent chain to find the
-     template class in which the template arg list is recorded. */
-  tp = static_data_member_sym->parent.class_type;
-  while (tp->source_corresp.is_class_member) {
-    tp = tp->source_corresp.parent.class_type;
-  }  /* if */
-  tip->arg_list =
-             tp->variant.class_struct_union.extra_info->template_arg_list;
+  vp = static_data_member_sym->variant.static_data_member.variable;
   /* Link the new entry to the start of the definition list of the static
      data member template. */
   tssp = sym->variant.static_data_member.instance_ptr->template_info;
@@ -4005,9 +3992,7 @@ Also, add the instance to the definitions list for the template.
   tssp->variant.static_data_member.definitions = tip;
   /* Mark the variable entry as an instance of a static data member
      template. */
-  static_data_member_sym->variant.static_data_member.variable->
-                                      is_template_static_data_member = TRUE;
-
+  vp->is_template_static_data_member = TRUE;
   db_exit();
 }  /* find_static_data_member_template */
 
@@ -4060,7 +4045,9 @@ structure.
   tip = tssp->variant.function.instantiations;
   prev_tip = NULL;
   for (; tip != NULL; tip = tip->next) {
-    if (equiv_template_arg_lists(tip->arg_list, *new_list,
+    a_template_arg_ptr	arg_list;
+    arg_list = tip->instance_sym->variant.routine.ptr->template_arg_list;
+    if (equiv_template_arg_lists(arg_list, *new_list,
                                  /*error_matches_anything=*/FALSE)) {
       /* We've found a match.  Remove the found function instantiation entry
          from its current position in the instantiation list and add it to

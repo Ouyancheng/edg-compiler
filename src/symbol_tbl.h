@@ -1025,11 +1025,6 @@ typedef struct a_template_instance {
                            template_sym == instance_sym when instance_sym is
 			   a member of prototype instantiation; when this is
 			   the case template_info is non-NULL.) */
-  a_template_arg_ptr
-                arg_list;
-                        /* Pointer to the template argument list -- the
-                           arguments that correspond to the template
-                           parameter list (e.g., template <class T>). */
   a_namespace_ptr
 		referencing_namespace;
 			/* Pointer to the namespace in which the use that
@@ -1565,7 +1560,9 @@ typedef struct a_symbol {
 			   sk_overloaded_function symbols that were created
 			   as a result of a lookup that found one or more
 			   symbols that are visible as a result of
-			   using directives. */
+			   using directives.  Also TRUE for
+                           sk_overloaded_function symbols created by
+			   template instantiation lookups. */
   a_bit_field	qualified_lookup:1;
 			/* TRUE for synthesized namespace projection symbols
 			   that were generated as a result of a namespace
@@ -1786,16 +1783,26 @@ typedef struct a_symbol {
     struct {
       a_symbol_ptr
 		symbols;
-			/* Linked list of two or more symbols comprising an
+			/* Linked list of two or more symbols comprising an  
 			   function overload set, where each symbol in the
 			   list has the same name as the current symbol.
 			   When the latter is a class member, each symbol in
-			   the list is either an sk_member_function symbol or
-			   an sk_projection symbol with an sk_member_function
-			   fundamental symbol.  When the current symbol is
-			   not a class member, each symbol is either an
-			   sk_routine symbol or an sk_namespace_projection
-			   symbol with an sk_routine fundamental symbol. */
+			   the list is an sk_member_function,
+			   sk_function_template, or an sk_projection symbol
+			   that points to an sk_member_function or
+			   sk_function_template symbol.  fundamental symbol.
+			   Except for synthesized projection symbols, when
+			   the current symbol is not a class member, each
+			   symbol is either an sk_routine or
+			   sk_function_template symbol or an
+			   sk_namespace_projection that points to an
+			   sk_routine or sk_function_template symbol.
+			   Synthesized projection symbols can point to a a
+			   combination of sk_routine, sk_member_function,
+			   sk_namespace_projection, sk_projection, and
+			   sk_function_template symbols (and the
+			   sk_function_template symbols can me members,
+			   nonmembers,or a combination of both). */
       a_byte_boolean
 		mixed_static_nonstatic;
 			/* TRUE when the current symbol is a class member and

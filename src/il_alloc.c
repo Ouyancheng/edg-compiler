@@ -1323,6 +1323,7 @@ to it.  The entry is allocated in the file scope memory region.
 #endif /* DECL_MODIFIERS_IN_USE */
   rp->befriending_classes       = NULL;
   rp->virtual_function_number   = 0;
+  rp->template_arg_list         = NULL;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   rp->declared_type             = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */

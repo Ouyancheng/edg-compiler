@@ -789,6 +789,8 @@ the file scope, do not process it (but record an orphan in the latter case).
            walked automatically.  The entry_process_func can arrange
            to call walk_routine_scope_il if it wants to. */
 #ifdef CFE
+        walk_list(ptr->template_arg_list, a_template_arg_ptr,
+                  iek_template_arg);
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
         /* Note that we do not test "defined" here because defined gets cleared
            before some calls to walk the IL. */

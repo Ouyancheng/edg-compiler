@@ -7302,7 +7302,6 @@ Allocate a new function instantiation entry and return a pointer to it.
   tip->next_in_instantiation_list  = NULL;
   tip->instance_sym                = NULL;
   tip->template_sym                = NULL;
-  tip->arg_list                    = NULL;
   tip->referencing_namespace       = NULL;
   tip->template_info               = NULL;
   tip->instantiation_required      = FALSE;

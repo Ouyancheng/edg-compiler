@@ -4160,6 +4160,15 @@ typedef struct a_routine {
                            this function; it is unique among the virtual
 			   functions of a given class.  When is_virtual is
 			   FALSE, this field is undefined. */
+  a_template_arg_ptr
+		template_arg_list;
+			/* For routines that are instantiations of a function
+			   template, a list of entries describing the actual
+			   arguments on which the instantiation is based.
+			   It is present only for instances of function
+			   templates and member function templates (i.e.,
+			   this pointer is NULL for member functions of
+			   class templates and other nontemplate functions). */
 #endif /* ifdef CIL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_type_ptr	declared_type;

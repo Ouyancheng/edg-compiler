@@ -1592,6 +1592,9 @@ Display the indicated routine.
     disp_unsigned_long("virtual_function_number",
                        (unsigned long)ptr->virtual_function_number);
   }  /* if */
+  if (ptr->template_arg_list != NULL) {
+    disp_template_arg_list("template_arg_list", ptr->template_arg_list);
+  }  /* if */
 #endif /* ifdef CFE */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   disp_ptr("declared_type", (char *)ptr->declared_type, iek_type);
