@@ -22,6 +22,7 @@ error.c -- Error reporting routines.
 #include "float_pt.h"
 #include "const_ints.h"
 #include "il.h"
+#include "types.h"
 #if !STANDALONE_UTILITY_PROGRAM
 #include "symbol_tbl.h"
 #include "lexical.h"
@@ -31,42 +32,8 @@ error.c -- Error reporting routines.
 #if ASM_FUNCTION_ALLOWED
 #include "asm_func.h"
 #endif /* ASM_FUNCTION_ALLOWED */
-
-#else /* STANDALONE_UTILITY_PROGRAM */
-
-/* Many support functions and macros that are generally available in the
-   front end are duplicated here so that error.c can be compiled
-   independently of a front end (e.g. with a standalone IL display
-   utility). */
-
-/* Macro to strip tk_typeref entries from a type. */
-#define skip_typerefs(tp)                                             \
-  ((tp)->kind != (a_type_kind)tk_typeref ? (tp) : local_skip_typerefs(tp))
-
-static a_type_ptr local_skip_typerefs(a_type_ptr type_ptr)
-/*
-Strip any typeref entries off the given type to get to the real type, and
-return a pointer to that.  Note that the typeref may have some type
-qualifiers (const, volatile), and they will be dropped here.  Therefore,
-this routine should not be used when checking type qualifiers.  Note
-that ordinarily this routine should not be called directly; use the macro
-"skip_typerefs".
-*/
-{
-  while (type_ptr->kind == (a_type_kind)tk_typeref) {
-    type_ptr = type_ptr->variant.typeref.type;
-#if CHECKING
-    if (type_ptr == NULL) {
-      internal_error("local_skip_typerefs: NULL referenced type");
-    }  /* if */
-#endif /* CHECKING */
-  }  /* while */
-  return(type_ptr);
-}  /* local_skip_typerefs */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
-#define is_pointer_or_reference_type(tp) \
-	(skip_typerefs(tp)->kind == (a_type_kind)tk_pointer)
 
 /*
 Constants, structures and static variables used to format diagnostic
@@ -103,8 +70,8 @@ static a_boolean
 				   an error message is issued. */
 				   
 /*
-Diagnostics messages being generated can be one of several category of
-messages.
+Category codes for the various parts of the processing for multi-line
+diagnostics:
 */
 typedef enum a_diagnostic_category_kind_tag {
   dck_standalone,		/* The solitary diagnostic for an error
@@ -352,8 +319,8 @@ static an_error_file_index_ptr
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
-static void form_param_list(a_routine_type_supplement_ptr   suppl_ptr,
-                            a_msg_segment_ptr               seg_ptr);
+static void form_param_list(a_type_ptr        func_type,
+                            a_msg_segment_ptr seg_ptr);
 
 
 static char *error_text(an_error_code error_code)
@@ -2384,35 +2351,25 @@ Add the name of the floating point type to the type string being formatted.
 }  /* form_float_kind_name */
 
 
-static void form_type_qualifier(a_type_ptr        tp,
-                                a_boolean         postpositional,
+static void form_type_qualifier(a_type_ptr        type,
                                 a_msg_segment_ptr seg_ptr)
 /*
 Add a type qualifier to the type string being formatted at the position
-indicated by type_string_ptr.  type_string_ptr is then incremented by
-the length of the type qualifier added.
+indicated by seg_ptr.  The type must be a tk_typeref containing a type
+qualifier.
 */
 {
-  a_boolean is_const = FALSE,
-            is_volatile = FALSE;
+  a_boolean previous_qualifier = FALSE;
 
-  for (; tp->kind == (a_type_kind)tk_typeref; tp = tp->variant.typeref.type) {
-    if (tp->variant.typeref.is_const || tp->variant.typeref.is_volatile) {
-      if (tp->variant.typeref.is_const) is_const = TRUE;
-      if (tp->variant.typeref.is_volatile) is_volatile = TRUE;
-    } else {
-      /* A typedef name.  Stop here. */
-      break;
-    }  /* if */
-  }  /* for */
-  if (is_const || is_volatile) {
-    if (postpositional) add_string_to_segment(" ", seg_ptr);
-    if (is_const) {
-      add_string_to_segment("const", seg_ptr);
-      if (is_volatile) add_string_to_segment(" ", seg_ptr);
-    }  /* if */
-    if (is_volatile) add_string_to_segment("volatile", seg_ptr);
-    if (!postpositional) add_string_to_segment(" ", seg_ptr);
+  check_assertion_str(type->kind == (a_type_kind)tk_typeref,
+                      "form_type_qualifier: bad type kind");
+  if (type->variant.typeref.is_const) {
+    add_string_to_segment("const", seg_ptr);
+    previous_qualifier = TRUE;
+  }  /* if */
+  if (type->variant.typeref.is_volatile) {
+    if (previous_qualifier) add_string_to_segment(" ", seg_ptr);
+    add_string_to_segment("volatile", seg_ptr);
   }  /* if */
 }  /* form_type_qualifier */
 
@@ -2425,7 +2382,6 @@ static void form_class_qualifier(a_type_ptr        type,
 static void form_type_name(a_type_ptr        type,
                            a_msg_segment_ptr seg_ptr);
 static void form_type(a_type_ptr        type,
-                      a_boolean         need_parens,
                       a_msg_segment_ptr seg_ptr);
 
 
@@ -2521,7 +2477,7 @@ Add a string representing a constant value to a string being formed.
   if (cp->implicit_cast) {
     /* If the constant is implicitly cast, put out a cast. */
     add_string_to_segment("(", seg_ptr);
-    form_type(cp->type, /*need_parens=*/FALSE, seg_ptr);
+    form_type(cp->type, seg_ptr);
     add_string_to_segment(")", seg_ptr);
   }  /* if */
   switch (cp->kind) {
@@ -2715,13 +2671,22 @@ do_tag_name:
       form_type_name(type, seg_ptr);
       break;
     case tk_typeref:
-      /* Assume that the caller has stripped off type qualifiers -- this
-         tk_typeref represents a typedef name. */
-      check_assertion(!type->variant.typeref.is_const &&
-                      !type->variant.typeref.is_volatile);
-      form_class_qualifier(type->source_corresp.class_of_which_a_member,
-                           seg_ptr);
-      form_type_name(type, seg_ptr);
+      if (is_immediate_type_qualifier(type)) {
+        /* The top type is a type qualifier.  Output it and move on to the
+           underlying type. */
+        form_type_qualifier(type, seg_ptr);
+        add_string_to_segment(" ", seg_ptr);
+        form_type_specifier(type->variant.typeref.type, seg_ptr);
+      } else if (type->source_corresp.name == NULL) {
+        /* This is an internally generated typeref, so just output the
+           underlying type. */
+        form_type_specifier(type->variant.typeref.type, seg_ptr);
+      } else {
+        /* A typedef; output its name. */
+        form_class_qualifier(type->source_corresp.class_of_which_a_member,
+                             seg_ptr);
+        form_type_name(type, seg_ptr);
+      }  /* if */
       break;
     case tk_template_param:
       form_class_qualifier(type->source_corresp.class_of_which_a_member,
@@ -2739,116 +2704,142 @@ do_tag_name:
 }  /* form_type_specifier */
 
 
-static a_type_ptr unqualified_display_type(a_type_ptr type)
+static void form_pointer_type_qualifiers(a_type_ptr        qual_type,
+                                         a_type_ptr        type,
+                                         a_msg_segment_ptr seg_ptr)
 /*
-Drop type qualifiers but not typedefs from the indicated type and return
-what's left.  This is used to remove type qualifiers to get to the underlying
-type for display purposes.
+Generate type qualifiers, if any, to follow a pointer "*", reference "&",
+or pointer-to-member "name::*".  qual_type is the full pointer type,
+and type is the unqualified version of that type (e.g., the tk_pointer
+entry).  seg_ptr is the message segment into which the output should
+be placed.
 */
 {
-  /* Drop type qualifiers but stop on a typedef. */
-  while (type->kind == (a_type_kind)tk_typeref &&
-         type->source_corresp.name == NULL) {
-    type = type->variant.typeref.type;
-  }  /* while */
-  return type;
-}  /* unqualified_display_type */
+  for (; qual_type != type; qual_type = qual_type->variant.typeref.type) {
+    /* Put out a type qualifier. */
+    form_type_qualifier(qual_type, seg_ptr);
+    add_string_to_segment(" ", seg_ptr);
+  }  /* for */
+}  /* form_pointer_type_qualifiers */
 
 
 static void form_type_first_part(a_type_ptr        type,
-                                 a_boolean         need_parens,
+                                 a_boolean         under_lhs_declarator,
+                                 a_boolean         need_trailing_space,
                                  a_msg_segment_ptr seg_ptr)
 /*
-Add the first of possibly two parts of a type reference.
+For the indicated type, output the specifiers and the part of the declarator
+that precedes the name.  If under_lhs_declarator is TRUE, this type is
+directly under a type that uses a left-side declarator, e.g., a pointer type.
+(That's used to control use of parentheses around parts of the declarator.)
+If need_trailing_space is TRUE, put a space at the end of the specifiers
+part (needed if the declarator part is not empty, because it contains a
+name or a derived type).  seg_ptr is the message segment into which the
+output should be placed.
 */
 {
-  a_type_ptr local_type, unqualified_type;
+  a_type_kind kind;
+  a_type_ptr  qual_type;
 
-  /* Drop type qualifiers but not typedefs. */
-  unqualified_type = unqualified_display_type(type);
-  if (unqualified_type->kind == (a_type_kind)tk_pointer) {
+  qual_type = type;
+  /* Remove type qualifiers but not typedefs. */
+  while (is_immediate_type_qualifier(type)) type = type->variant.typeref.type;
+  kind = type->kind;
+  if (kind == (a_type_kind)tk_pointer) {
     /* Pointer or reference type. */
-    local_type = unqualified_type->variant.pointer.type;
-    /* Recursive call to print out any lower indirections. */
-    form_type_first_part(local_type,
-                         /*need_parens=*/
-                            !is_pointer_or_reference_type(local_type) &&
-                            skip_typerefs(local_type)->kind !=
-                                       (a_type_kind)tk_ptr_to_member,
+    form_type_first_part(type->variant.pointer.type,
+                         /*under_lhs_declarator=*/TRUE,
+                         /*need_trailing_space=*/TRUE,
                          seg_ptr);
-    if (skip_typerefs(local_type)->kind == (a_type_kind)tk_ptr_to_member) {
-      add_string_to_segment(" ", seg_ptr);
-    }  /* if */
-    /* Print out the star for this indirection. */
-    if (unqualified_type->variant.pointer.is_reference) {
+    /* Output "*" or "&" for pointer or reference. */
+    if (type->variant.pointer.is_reference) {
       /* This is a C++ reference type */
       add_string_to_segment("&", seg_ptr);
     } else {
       add_string_to_segment("*", seg_ptr);
     }  /* if */
-    form_type_qualifier(type, /*postpositional=*/TRUE, seg_ptr);
-    if (need_parens) add_string_to_segment("(", seg_ptr);
-  } else if (unqualified_type->kind == (a_type_kind)tk_array) {
-    /* Array type. */
-    local_type = unqualified_type->variant.array.element_type;
-    form_type_first_part(local_type,
-                         /*need_parens=*/
-                         (local_type->kind != (a_type_kind)tk_array &&
-                          !is_pointer_or_reference_type(local_type)),
+    /* Output the type qualifiers on the pointer, if any. */
+    form_pointer_type_qualifiers(qual_type, type, seg_ptr);
+  } else if (kind == (a_type_kind)tk_ptr_to_member) {
+    /* Pointer-to-member type. */
+    form_type_first_part(type->variant.ptr_to_member.type,
+                         /*under_lhs_declarator=*/TRUE,
+                         /*need_trailing_space=*/TRUE,
                          seg_ptr);
-    if (need_parens) add_string_to_segment("(", seg_ptr);
-  } else if (unqualified_type->kind == (a_type_kind)tk_ptr_to_member) {
-    /* C++ pointer to member type. */
-    form_type_first_part(unqualified_type->variant.ptr_to_member.type,
-                         /*needs_parens=*/TRUE, seg_ptr);
-    form_class_qualifier(unqualified_type->
-                            variant.ptr_to_member.class_of_which_a_member,
+    /* Output Classname::*. */
+    form_class_qualifier(type->variant.ptr_to_member.class_of_which_a_member,
                          seg_ptr);
     add_string_to_segment("*", seg_ptr);
-    form_type_qualifier(type, /*postpositional=*/TRUE, seg_ptr);
-    if (need_parens) add_string_to_segment("(", seg_ptr);
-  } else if (unqualified_type->kind == (a_type_kind)tk_routine) {
+    /* Output the type qualifiers on the pointer, if any. */
+    form_pointer_type_qualifiers(qual_type, type, seg_ptr);
+  } else if (kind == (a_type_kind)tk_routine) {
     /* Function type. */
-    local_type = unqualified_type->variant.routine.return_type;
-    form_type_first_part(local_type,
-                         /*need_parens=*/
-                         ! is_pointer_or_reference_type(local_type),
+    form_type_first_part(type->variant.routine.return_type,
+                         /*under_lhs_declarator=*/FALSE,
+                         /*need_trailing_space=*/TRUE,
                          seg_ptr);
-    if (need_parens) add_string_to_segment("(", seg_ptr);
+    /* This is a right-side declarator, so if it's under a left-side declarator
+       parentheses are needed. */
+    if (under_lhs_declarator) add_string_to_segment("(", seg_ptr);
+  } else if (kind == (a_type_kind)tk_array) {
+    /* Array type. */
+    form_type_first_part(type->variant.array.element_type,
+                         /*under_lhs_declarator=*/FALSE,
+                         /*need_trailing_space=*/TRUE,
+                         seg_ptr);
+    /* This is a right-side declarator, so if it's under a left-side declarator
+       parentheses are needed. */
+    if (under_lhs_declarator) add_string_to_segment("(", seg_ptr);
   } else {
-    form_type_qualifier(type, /*postpositional=*/FALSE, seg_ptr);
-    form_type_specifier(unqualified_type, seg_ptr);
-    if (need_parens) add_string_to_segment(" ", seg_ptr);
+    /* No declarator part to process.  Handle the specifier type. */
+    form_type_specifier(qual_type, seg_ptr);
+    if (need_trailing_space) add_string_to_segment(" ", seg_ptr);
   }  /* if */
 }  /* form_type_first_part */
 
 
 static void form_type_second_part(a_type_ptr        type,
-                                  a_boolean         need_parens,
+                                  a_boolean         under_lhs_declarator,
                                   a_msg_segment_ptr seg_ptr)
 /*
-Add the second part of a type reference to the type string being formed.
-If it's a pointer, just continue to look for the base type.  If it's an
-array, print out the dimension information.
+Output the second part of a type reference, the part of the declarator
+that follows the name.  If under_lhs_declarator is TRUE, this type is
+directly under a type that uses a left-side declarator, e.g., a pointer type.
+(That's used to control use of parentheses around parts of the declarator.)
+seg_ptr is the message segment into which the output should be placed.
 */
 {
-  a_type_ptr local_type;
+  a_type_kind kind;
 
-  /* Drop type qualifiers but not typedefs. */
-  type = unqualified_display_type(type);
-  if (type->kind == (a_type_kind)tk_pointer) {
-    local_type = type->variant.pointer.type;
-    if (need_parens) add_string_to_segment(")", seg_ptr);
-    form_type_second_part(local_type,  /*need_parens=*/
-                          !is_pointer_or_reference_type(local_type),
+  /* Remove type qualifiers but not typedefs. */
+  while (is_immediate_type_qualifier(type)) type = type->variant.typeref.type;
+  kind = type->kind;
+  if (kind == (a_type_kind)tk_pointer) {
+    /* Pointer or reference type. */
+    form_type_second_part(type->variant.pointer.type,
+                          /*under_lhs_declarator=*/TRUE,
                           seg_ptr);
-  } else if (type->kind == (a_type_kind)tk_array) {
+  } else if (kind == (a_type_kind)tk_ptr_to_member) {
+    /* Pointer-to-member type. */
+    form_type_second_part(type->variant.ptr_to_member.type,
+                          /*under_lhs_declarator=*/TRUE,
+                          seg_ptr);
+  } else if (kind == (a_type_kind)tk_routine) {
+    /* Function type. */
+    /* This is a right-side declarator, so if it's under a left-side declarator
+       parentheses are needed. */
+    if (under_lhs_declarator) add_string_to_segment(")", seg_ptr);
+    form_param_list(type, seg_ptr);
+    form_type_second_part(type->variant.routine.return_type,
+                          /*under_lhs_declarator=*/FALSE,
+                          seg_ptr);
+   } else if (kind == (a_type_kind)tk_array) {
     /* Array type. */
-    if (need_parens) add_string_to_segment(")", seg_ptr);
+    /* This is a right-side declarator, so if it's under a left-side declarator
+       parentheses are needed. */
+    if (under_lhs_declarator) add_string_to_segment(")", seg_ptr);
     if (type->variant.array.is_variable_size_array) {
-#if 0
-      /* THIS IS TEMPORARY AND SHOULD BE IMPROVED. */
-#endif /* if 0 */
+      /* Don't give full details on an array size.  It's too much work. */
       add_string_to_segment("[<expr>]", seg_ptr);
     } else if (type->variant.array.variant.number_of_elements == 0) {
       add_string_to_segment("[]", seg_ptr);
@@ -2867,79 +2858,50 @@ array, print out the dimension information.
                                      variant.array.variant.number_of_elements);
       add_string_to_segment(buffer, seg_ptr);
     }  /* if */
-    local_type = type->variant.array.element_type;
-    form_type_second_part(local_type,
-                          /*need_parens=*/
-                          (local_type->kind != (a_type_kind)tk_array &&
-                           !is_pointer_or_reference_type(local_type)),
-                          seg_ptr);
-  } else if (type->kind == (a_type_kind)tk_ptr_to_member) {
-    /* C++ pointer to member type. */
-    if (need_parens) add_string_to_segment(")", seg_ptr);
-    form_type_second_part(type->variant.ptr_to_member.type,
-                          /*needs_parens=*/TRUE, seg_ptr);
-  } else if (type->kind == (a_type_kind)tk_routine) {
-    /* Function type. */
-    local_type = type->variant.routine.return_type;
-    if (need_parens) add_string_to_segment(")", seg_ptr);
-    form_param_list(type->variant.routine.extra_info, seg_ptr);
-    form_type_second_part(local_type,
-                          /*need_parens=*/
-                          !is_pointer_or_reference_type(local_type),
+    form_type_second_part(type->variant.array.element_type,
+                          /*under_lhs_declarator=*/FALSE,
                           seg_ptr);
   }  /* if */
 }  /* form_type_second_part */
 
 
 static void form_type(a_type_ptr        type,
-                      a_boolean         need_parens,
                       a_msg_segment_ptr seg_ptr)
 /*
 Add a type to the string being formatted.
 */
 {
-  form_type_first_part(type, need_parens, seg_ptr);
-  form_type_second_part(type, need_parens, seg_ptr);
+  form_type_first_part(type, /*under_lhs_declarator=*/FALSE,
+                       /*need_trailing_space=*/FALSE, seg_ptr);
+  form_type_second_part(type, /*under_lhs_declarator=*/FALSE, seg_ptr);
 }  /* form_type */
 
 
-static void form_implicit_this_qualifiers(a_type_ptr        implicit_this_type,
-                                          a_msg_segment_ptr seg_ptr)
-/*
-Add any qualifiers associated with the implicit this parameter to
-the type string being formatted.
-*/
-{
-  a_type_ptr	type = skip_typerefs(implicit_this_type);
-  if (type->kind == (a_type_kind)tk_pointer &&
-      (type = type->variant.pointer.type)->kind == (a_type_kind)tk_typeref) {
-    if (type->variant.typeref.is_const) {
-      add_string_to_segment(" const", seg_ptr);
-    }  /* if */
-    if (type->variant.typeref.is_volatile) {
-      add_string_to_segment(" volatile", seg_ptr);
-    }  /* if */
-  }  /* if */
-}  /* form_implicit_this_qualifiers */
-
-
-static void form_param_list(a_routine_type_supplement_ptr suppl_ptr,
-                            a_msg_segment_ptr             seg_ptr)
+static void form_param_list(a_type_ptr        func_type,
+                            a_msg_segment_ptr seg_ptr)
 /*
 Add the parameter list of a function to the type string being formatted.
+func_type is the function type.
 */
 {
-  a_param_type_ptr	param_ptr;
-  a_type_ptr		type;
-  a_boolean		has_ellipsis;
+  a_routine_type_supplement_ptr rtsp = func_type->variant.routine.extra_info;
+  a_param_type_ptr              param_ptr;
+  a_type_ptr                    type;
 
   add_string_to_segment("(", seg_ptr);
-  if (suppl_ptr->prototyped || suppl_ptr->old_style_params_scanned) {
-    has_ellipsis = suppl_ptr->has_ellipsis;
-    for (param_ptr = suppl_ptr->param_type_list;
+  /* Note that in C++ mode the parameter types for old-style functions
+     are listed. */
+  if (C_mode() &&
+      (!rtsp->prototyped || rtsp->old_style_params_scanned)) {
+    /* An old-style function in C.  Do not list the parameter types. */
+  } else {
+    /* A prototyped function. */
+    a_boolean has_ellipsis = rtsp->has_ellipsis;
+    for (param_ptr = rtsp->param_type_list;
          param_ptr != NULL;
          param_ptr = param_ptr->next) {
-      form_type(param_ptr->type, /*need_parens=*/FALSE, seg_ptr);
+      /* Put out a parameter type. */
+      form_type(param_ptr->type, seg_ptr);
       if (param_ptr->next != NULL || has_ellipsis) {
         add_string_to_segment(", ", seg_ptr);
       }  /* if */
@@ -2949,13 +2911,15 @@ Add the parameter list of a function to the type string being formatted.
     }  /* if */
   }  /* if */
   add_string_to_segment(")", seg_ptr);
-#ifdef CFE
-  /* Check if this is a "const" or "volatile" member function by looking at
-     the type of the implicit "this" parameter. */
-  if ((type = suppl_ptr->implicit_this_param_type) != NULL) {
-    form_implicit_this_qualifiers(type, seg_ptr);
+  /* Put out cv-qualifiers for member function types if appropriate. */
+  if ((type = rtsp->implicit_this_param_type) != NULL) {
+    type = type_pointed_to(type);
+    for (; is_immediate_type_qualifier(type);
+         type = type->variant.typeref.type) {
+      add_string_to_segment(" ", seg_ptr);
+      form_type_qualifier(type, seg_ptr);
+    }  /* for */
   }  /* if */
-#endif /* ifdef CFE */
 }  /* form_param_list */
 
 
@@ -2973,7 +2937,7 @@ surrounded by "<" and ">".
     for (;;) {
       if (template_arg->is_type) {
         /* Type argument. */
-        form_type(template_arg->variant.type, /*need_parens=*/FALSE, seg_ptr);
+        form_type(template_arg->variant.type, seg_ptr);
       } else {
         /* Constant argument */
         form_constant(template_arg->variant.constant, seg_ptr);
@@ -3050,7 +3014,7 @@ segment described by *seg_ptr.
 {
   add_string_to_segment("\"", seg_ptr);
   seg_ptr->first_quote = seg_ptr->segment + seg_ptr->length - 1;
-  form_type(tp, /*need_parens=*/FALSE, seg_ptr);
+  form_type(tp, seg_ptr);
   add_string_to_segment("\"", seg_ptr);
   seg_ptr->second_quote = seg_ptr->segment + seg_ptr->length - 1;
 }  /* summarize_type */
@@ -3074,7 +3038,7 @@ string immediately into whichever memory region is appropriate.
   /* Make certain that there is a string buffer and that it contains an
      empty string. */
   add_string_to_segment("", curr_segment);
-  form_type(tp, /*need_parens=*/FALSE, curr_segment);
+  form_type(tp, curr_segment);
   /* Provide the length of the string and the address of the string
      buffer to the caller. */
   *len_ptr = curr_segment->length;
@@ -3200,10 +3164,7 @@ declaration position to eliminate redundant file names in a diagnostic.
 				   argument sym if it exists.  Otherwise,
 				   the value will be that of sym. */
   char		*entity_kind;
-  a_boolean	is_constructor = FALSE;
-  a_boolean	is_destructor = FALSE;
-  a_boolean	is_overloaded = FALSE;
-  a_boolean	is_conversion = FALSE;
+  a_boolean	is_overloaded = FALSE, return_type_needed = TRUE;
   a_boolean	is_declaration_like = FALSE;
 
   /* Determine the fundamental symbol of this symbol. */
@@ -3314,7 +3275,7 @@ declaration position to eliminate redundant file names in a diagnostic.
       goto symbol_name;
 symbol_name:
       /* Add the entity kind if not specified as name only or full type for
-         a declaration like entity. */
+         a declaration-like entity. */
       if (type == NULL) is_declaration_like = FALSE;
       if (! seg_ptr->variant.symbol.name_only &&
           ! (seg_ptr->variant.symbol.full_type && is_declaration_like) ) {
@@ -3323,27 +3284,26 @@ symbol_name:
       /* Add the beginning double quote. */
       add_string_to_segment("\"", seg_ptr);
       seg_ptr->first_quote = seg_ptr->segment + seg_ptr->length - 1;
-      /* Check if this is a C++ constructor, destructor or conversion 
-         routine. */
+      /* Check for special kinds of routines. */
       if (routine != NULL) {
-        is_constructor = is_constructor_symbol(fund_sym);
-        is_destructor = is_destructor_symbol(fund_sym);
-        is_overloaded = is_overloaded_function(fund_sym);
-        is_conversion = routine->special_kind ==
-                          (a_special_function_kind)sfk_conversion;
-      }  /* if */
-      if (seg_ptr->variant.symbol.full_type && 
-          type != NULL &&
-          ! is_constructor &&
-          ! is_destructor &&
-          ! is_conversion ) {
-        form_type_first_part(type, /*need_parens=*/FALSE, seg_ptr);
-        if (seg_ptr->segment[seg_ptr->length - 1] != ' ' &&
-            seg_ptr->segment[seg_ptr->length - 1] != '*' &&
-            seg_ptr->segment[seg_ptr->length - 1] != '(') {
-          add_string_to_segment(" ", seg_ptr);
+        if (is_constructor_symbol(fund_sym) ||
+            is_destructor_symbol(fund_sym) ||
+            routine->special_kind == (a_special_function_kind)sfk_conversion) {
+          /* The return type is not listed for constructors, destructors, and
+             conversion functions. */
+          return_type_needed = FALSE;
         }  /* if */
+        is_overloaded = is_overloaded_function(fund_sym);
       }  /* if */
+      /* Put out the first part of the type if needed, but not for
+         constructors, destructors, and conversion functions (the return type
+         is not listed for those). */
+      if (type != NULL && seg_ptr->variant.symbol.full_type &&
+          (routine == NULL || return_type_needed)) {
+        form_type_first_part(type, /*under_lhs_declarator=*/FALSE,
+                             /*need_trailing_space=*/TRUE, seg_ptr);
+      }  /* if */
+      /* Put out the name.  First, the class qualifier if any. */
       form_class_qualifier(sym->class_of_which_a_member, seg_ptr);
       if (sym->kind == (a_symbol_kind)sk_class_or_struct_tag ||
           sym->kind == (a_symbol_kind)sk_union_tag) {
@@ -3353,27 +3313,19 @@ symbol_name:
         /* Use the name in the header. */
         add_string_to_segment(sym->header->identifier, seg_ptr);
       }  /* if */
+      /* Put out the second part of the type if needed.  Don't put it
+         out in name-only mode.  Do put it out in full-type mode, or
+         for an overloaded function. */
       if (type != NULL &&
           !seg_ptr->variant.symbol.name_only &&
           (seg_ptr->variant.symbol.full_type || is_overloaded) ) {
-        if (is_conversion ||
-            (C_dialect != C_dialect_cplusplus && is_function_type(type) &&
-             !type->variant.routine.extra_info->prototyped)) {
-          /* This is either a conversion function for which there is no
-             parameter list or in C-mode a function with an old-style
-             declaration, in which case the param type list is accidental. */
-          add_string_to_segment("()", seg_ptr);
-          if (is_conversion) {
-            /* For conversion functions, add any qualifiers that may be
-               present. */
-            a_type_ptr	this_param_type = type->variant.routine.extra_info->
-                                                      implicit_this_param_type;
-            if (this_param_type != NULL) {
-              form_implicit_this_qualifiers(this_param_type, seg_ptr);
-            }  /* if */
-          }  /* if */
-        }  else {
-          form_type_second_part(type, /*need_parens=*/FALSE, seg_ptr);
+        if (routine != NULL && !return_type_needed) {
+          /* For constructors, destructors, and conversion functions,
+             put out the function type but not the return type. */
+          form_param_list(type, seg_ptr);
+        } else {
+          /* Normal case -- put out the complete second part of the type. */
+          form_type_second_part(type, /*under_lhs_declarator=*/FALSE, seg_ptr);
         }  /* if */
       }  /* if */
       break;
@@ -3390,7 +3342,8 @@ symbol_name:
   /* Add the closing double quote mark. */
   add_string_to_segment("\"", seg_ptr);
   seg_ptr->second_quote = seg_ptr->segment + seg_ptr->length - 1;
-
+  /* If the name is based on template arguments, add a message to that
+     effect. */
   if (seg_ptr->variant.symbol.template_args) {
     a_scope_stack_entry_ptr  ssep = error_msg_scopes[seg_ptr->sequence_no];
     check_assertion(sym->kind == (a_symbol_kind)sk_function_template ||
