@@ -1521,7 +1521,8 @@ routine entry; otherwise, rout is NULL.  rout must be non-NULL when
 calling a constructor or destructor, so that those can be treated as a
 special case: constructors and destructors can be called for const- and
 volatile-qualified objects even though they themselves are not (and
-cannot be) const- or volatile-qualified.  If conversion_function_case
+cannot be) const- or volatile-qualified.  bound_function_selector is
+not used in that case, and can be NULL.  If conversion_function_case
 is TRUE, the underlying type of the selector is assumed to be the proper
 class or a derived class thereof (except for error cases).
 */
@@ -1619,7 +1620,8 @@ static void try_overloaded_function_match(
 /*
 Find out how well the functions described by overloaded_function_symbol
 match the argument list given by arg_operand_list and the selector given
-(if have_selector is TRUE) by bound_function_selector.
+(if have_selector is TRUE) by bound_function_selector.  have_selector
+can be TRUE and bound_function_selector NULL when calling constructors.
 overloaded_function_symbol may be an overloaded function, a simple
 function, or a projection symbol for one of those.  bound_function_selector
 is an object pointer if selector_is_object_pointer is TRUE, an object
@@ -1898,9 +1900,7 @@ that are marked "explicit" are ignored.
             selector_match_with_this_param(bound_function_selector,
                                            selector_is_object_pointer,
                                            /*conversion_function_case=*/FALSE,
-                                          function_symbol->variant.routine.ptr,
-                                           this_param_type,
-                                           this_match);
+                                           rout, this_param_type, this_match);
             /* Set the "next" pointer again, because it is cleared by
                selector_match_with_this_param. */
             this_match->next = this_match_next;
@@ -1931,14 +1931,15 @@ that are marked "explicit" are ignored.
       add_function_to_candidate_functions_list(proj_function_symbol,
                                                arg_match_list,
                                                candidate_functions);
-      if (ctor_conversion_case) {
-        /* If we are analyzing a constructor to resolve an implicit or
-           explicit conversion, set "conversion" appropriately.
-           Note that this cannot happen for the template case. */
-        a_candidate_function_ptr candidate = *candidate_functions;
-        candidate->is_user_conversion = TRUE;
-        candidate->conversion.routine = function_symbol->variant.routine.ptr;
-      }  /* if */
+    }  /* if */
+    if (ctor_conversion_case) {
+      /* If we are analyzing a constructor to resolve an implicit or
+         explicit conversion, set "conversion" appropriately.
+         Note that this can happen for the template case also, with a
+         member template. */
+      a_candidate_function_ptr candidate = *candidate_functions;
+      candidate->is_user_conversion = TRUE;
+      candidate->conversion.routine = rout;
     }  /* if */
     goto next_function;
 reject_function:
