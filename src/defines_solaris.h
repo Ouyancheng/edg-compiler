@@ -19,7 +19,7 @@ This version is for the Sun Solaris operating system.
 /* Configuration definitions determined by dettarg.c: */
 
 #ifdef sparc
-/* Sparc Solaris specific defines. */
+/* SPARC Solaris specific defines. */
 #define TARG_LITTLE_ENDIAN FALSE
 #define TARG_JMP_BUF_NUM_ELEMENTS 12
 #else /* ifndef sparc */
@@ -78,7 +78,7 @@ Definitions for Solaris:
 
 #ifndef USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
 #define USE_LONG_DOUBLE_FOR_HOST_FP_VALUE 1
-#endif /* indef USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+#endif /* ifndef USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
 
 /*
 Determine the C compiler being used to configure initialization handling
