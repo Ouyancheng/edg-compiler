@@ -1,5 +1,31 @@
 Version 2.46
 
+12/25/01 Microsoft compatibility: lvalue cast that drops cv-qualifier
+
+A previous change (see entry for 1/17/00) emulates MSVC++ in
+allowing a cast that drops cv-qualifiers to remain an lvalue, as in
+
+  int i = 1;
+  const int j = i;
+  (int)j = 2;  // Allowed by MSVC++
+
+It turns out that MSVC++ doesn't interpret this as an lvalue cast
+if the entity being cast is a constant-valued variable, as in
+
+  const int j = 0;
+  (int)j = 2;  // Gets error from MSVC++
+
+(See related change 11/18/01 for the "?" operator.)  This is now
+emulated more accurately, which avoids strange generated C or C++
+output for cases like
+
+  const long MMM = 3;
+  long x = (long)MMM;
+
+Also, the code that converts lvalues to rvalues now recognizes this
+Microsoft case as a form of lvalue cast and produces the IL that would
+have been produced by a standard rvalue cast.
+
 12/19/01 Funny IL for compound literal in local static initializer, with
          RECORD_CONSTANT_EXPRESSIONS_IN_IL
 

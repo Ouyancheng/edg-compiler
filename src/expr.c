@@ -8127,6 +8127,7 @@ C-style casts and C++ functional-notation type conversions.
               f_identical_types(f_skip_typerefs(source_type),
                                 f_skip_typerefs(type_cast_to),
                                 ITF_NO_FLAGS) &&
+              value_of_constant_var_lvalue_operand(operand) == NULL &&
               !is_bit_field_operand(operand)) {
             /* In Microsoft mode, a cast of an lvalue to the same type
                is just ignored, and the operand stays an lvalue.  Note that

@@ -7656,6 +7656,37 @@ return without setting *optimized_case to TRUE.
 }  /* conv_lvalue_in_string_to_char_rvalue */
 
 
+static a_boolean is_cv_qualifier_dropping_microsoft_lvalue_cast(
+                                                         an_expr_node_ptr expr)
+/*
+Return TRUE if the indicated expression is a cast that serves as a kind
+of lvalue cast in Microsoft mode, to drop cv-qualifiers on an lvalue.
+The expression is an lvalue.  See microsoft_lvalue_cv_qual_adjustment.
+*/
+{
+  a_boolean is_lvalue_cast = FALSE;
+
+  check_assertion(microsoft_bugs);
+  if (is_operation_node(expr) &&
+      expr->variant.operation.kind == (an_expr_operator_kind)eok_cast &&
+      !expr->variant.operation.is_reinterpret_cast) {
+    a_type_ptr dest_type = expr->type;
+    a_type_ptr source_type = expr->variant.operation.operands->type;
+    if (is_pointer_type(dest_type) && is_pointer_type(source_type)) {
+      dest_type = type_pointed_to(dest_type);
+      source_type = type_pointed_to(source_type);
+      if (!identical_types(dest_type, source_type)) {
+        source_type = rvalue_type(source_type);
+        if (identical_types(dest_type, source_type)) {
+          is_lvalue_cast = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return is_lvalue_cast;
+}  /* is_cv_qualifier_dropping_microsoft_lvalue_cast */
+
+
 void conv_lvalue_to_rvalue(an_operand *operand)
 /*
 Convert an lvalue operand to an rvalue operand.  See section 3.2.2.1 of the
@@ -7782,8 +7813,10 @@ not an lvalue, it is left alone.
            node. */
         node = operand->variant.expression;
         if (is_operation_node(node) &&
-            node->variant.operation.kind ==
-                                      (an_expr_operator_kind)eok_lvalue_cast) {
+            (node->variant.operation.kind ==
+                                      (an_expr_operator_kind)eok_lvalue_cast ||
+             (microsoft_bugs &&
+              is_cv_qualifier_dropping_microsoft_lvalue_cast(node)))) {
           /* In certain modes, lvalues cast to another type can stay lvalues.
              This is indicated by casting the lvalue address to
              pointer-to-new-type using an eok_lvalue_cast.  Here, turn
