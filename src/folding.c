@@ -37,6 +37,21 @@ operation overflows.
 #endif /* TARG_NO_ERROR_ON_INTEGER_OVERFLOW */
 
 
+static void make_cast_constant(a_constant  *cp,
+                               a_type_ptr  new_type)
+/*
+Turn *cp into a ck_cast constant entry.  Its type is new_type and the
+source constant of the cast is the original constant pointed to by cp.
+*/
+{
+  a_constant_ptr  old_cp = alloc_shareable_constant(cp);
+
+  clear_constant(cp, (a_constant_repr_kind)ck_cast);
+  cp->variant.source_constant = old_cp;
+  cp->type = new_type;
+}  /* make_cast_constant */
+
+
 void implicit_cast(a_constant_ptr cp,
                    a_type_ptr     new_type)
 /*
