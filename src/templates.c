@@ -136,7 +136,7 @@ might not be able to if the template itself has not yet been defined.
               X<T,I+1> x;
             };
       */                
-      type_error(ec_runaway_recursive_instantiation, class_type);
+      sym_error(ec_runaway_recursive_instantiation, instance_sym);
       /* Give class_type a size of 1 so it won't be treated as incomplete in
          subsequent processing. */
       class_type->size = 1;
@@ -312,7 +312,7 @@ Instantiate the body of the template function associated with tip.
        not be detected this way because they are instantiated serially
        not recursively.
     */                
-    type_error(ec_runaway_recursive_instantiation, rout_type);
+    sym_error(ec_runaway_recursive_instantiation, rout_sym);
     goto done;
   }  /* if */
   /* Set the linkage and storage class. */

@@ -1730,7 +1730,7 @@ error code.
       m = "%simplicit generation of %nf %p";
       break;
     case ec_runaway_recursive_instantiation:
-      m = "excessive recursion at instantiation of %t";
+      m = "excessive recursion at instantiation of %n";
       break;
     case ec_bad_template_declaration:
       m = "\"%s\" is not a function or static data member";
