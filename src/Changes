@@ -1,11 +1,24 @@
 Version 2.23
 
+4/18/94  Empty translation unit
+
+A diagnostic is no longer issued in C++ when a translation unit contains
+no declarations.
+
+4/18/94  IL Change -- autonomous tag declarations
+
+When GENERATE_SOURCE_SEQUENCE_LISTS is TRUE, there is a new flag in a_type
+which may be set for class/struct/union and enum types.  When the primary
+declaration of a type (usually the definition) is a freestanding
+declaration (i.e., not part of the declaration of another entity), then
+autonomous_primary_tag_decl is TRUE.  A similar flag, autonomous_tag_decl,
+has been added to a_src_seq_secondary_decl.
+
 4/18/94  Template class parameter instantiated to check for conversions
 
-A function parameter that is a partially-instantiated template class
-is now fully instantiated as part of overload resolution analysis
-so that any constructors of the class are visible to be used as
-conversion functions.
+A function parameter that is a partially-instantiated template class is
+now fully instantiated as part of overload resolution analysis so that any
+constructors of the class are visible to be used as conversion functions.
 
   template <class X> struct test {
     test(int);
@@ -15,12 +28,11 @@ conversion functions.
     f(1); //1 must be converted to test<float>
   }
 
-
 4/18/94  Overload resolution -- some exact matches versus templates
 
 The overload resolution algorithm has been modified slightly to allow
-non-template functions called with exact but less desirable matches
-to compete against template functions:
+non-template functions called with exact but less desirable matches to
+compete against template functions:
 
   template <class T> void f(const T&) {}
   void f(int) {}
@@ -30,7 +42,6 @@ to compete against template functions:
     f(a);  // Was ambiguous, now chooses f(int)
     return 0;
   }
-
 
 4/15/94  Tentative variable definitions vs. redeclarations
 
