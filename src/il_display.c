@@ -4325,6 +4325,9 @@ Display the indicated dynamic_init structure.
   }  /* if */
   if (ptr->overlaps_temps_in_inner_lifetime) {
     disp_boolean("overlaps_temps_in_inner_lifetime", TRUE);
+    disp_ptr("lifetime_of_overlapping_temps",
+              (char *)ptr->lifetime_of_overlapping_temps,
+              iek_object_lifetime);
   }  /* if */
   if (ptr->is_explicit_cast) {
     disp_boolean("is_explicit_cast", TRUE);

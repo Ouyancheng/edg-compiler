@@ -1678,6 +1678,10 @@ typedef struct a_dynamic_init {
 			   form.  This is needed later when generating
 			   destruction code.  Not used for static variables. */
 #endif /* DO_IL_LOWERING */
+  an_object_lifetime_ptr
+		lifetime_of_overlapping_temps;
+			/* When overlaps_temps_in_inner_lifetime is TRUE, this
+			   identifies the inner lifetime. */
 } a_dynamic_init;
 
 

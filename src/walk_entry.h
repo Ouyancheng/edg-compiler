@@ -2233,6 +2233,8 @@ end_sizeof:;
 #if DO_IL_LOWERING
         conditionally_clear_fe_pointer(ptr->destructible_entity_descr);
 #endif /* DO_IL_LOWERING */
+        remap_ptr(ptr->lifetime_of_overlapping_temps, an_object_lifetime_ptr,
+                  iek_object_lifetime);
       }
       break;
     case iek_local_static_variable_init:

@@ -10545,6 +10545,7 @@ object lifetime if it is an expr-temporary lifetime).
         if (temp_olp->destructions != NULL) {
           temp_olp->parent_destruction_sublist = dip;
           dip->overlaps_temps_in_inner_lifetime = TRUE;
+          dip->lifetime_of_overlapping_temps = temp_olp;
         }  /* if */
       }  /* if */
     }  /* if */
@@ -11308,8 +11309,9 @@ the dynamic init entry to the object lifetime.
         a_dynamic_init_ptr outer_dip = olp->parent_destruction_sublist;
         if (outer_dip != NULL) {
           if (outer_dip->overlaps_temps_in_inner_lifetime &&
-              outer_dip->init_expr_lifetime == olp) {
+              outer_dip->lifetime_of_overlapping_temps == olp) {
             outer_dip->overlaps_temps_in_inner_lifetime = FALSE;
+            outer_dip->lifetime_of_overlapping_temps = NULL;
             olp->parent_destruction_sublist =
                                            outer_dip->next_in_destruction_list;
           }  /* if */

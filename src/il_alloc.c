@@ -1491,6 +1491,7 @@ Initialize a dynamic_init entry of the kind specified.
 #if DO_IL_LOWERING
   dip->destructible_entity_descr     = NULL;
 #endif /* DO_IL_LOWERING */
+  dip->lifetime_of_overlapping_temps = NULL;
 }  /* clear_dynamic_init */
 
 

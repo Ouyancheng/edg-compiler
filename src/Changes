@@ -187,6 +187,19 @@ with exception handling enabled.
   };
   static A x[5] = { (new A[100], 0) };
 
+Another similar example involving a temporary whose lifetime is
+extended by binding it to a reference, also fixed:
+
+  struct A {
+    A();
+    A(int);
+    ~A();
+    void *operator new[](unsigned int);
+  };
+  int main() {
+    const A &r = (new A[3], 1);
+  }
+
 2/5/02   Command-line option to allow long long in strict mode
 
 Except in C99 mode, the use of long long results in a diagnostic in
