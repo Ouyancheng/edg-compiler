@@ -1916,6 +1916,10 @@ data member being emitted in the generated code.
     printf("%d\n", sizeof(A<int>::i));
   }
 
+([04/20/04: The changes for this issue also fix a problem where the
+C-generating back end would in some cases drop the dimension of an
+instance of a static data member array.)
+
 11/20/03 Abort in inline_function_fixup_for_class
 
 When NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE,
