@@ -1,5 +1,11 @@
 Version 2.12
 
+11/10/92 Improved wording of global qualifier name error
+
+The message issued when a global qualifier is used where it one is not
+allowed has been changed to "global-scope qualifier (leading "::") is
+not allowed".
+
 11/10/92 C-generating back end processing of odd switch statements
 
 A bug in the C-generating back end having to do with generating C code

@@ -4900,7 +4900,7 @@ by the options.  Returns TRUE if any errors were diagnosed.
     pos_error(ec_qualified_name_not_allowed, pos);
     any_errors = TRUE;
   } else if (global_qualifier_error) {
-    pos_error(ec_unary_colon_colon_not_allowed, pos);
+    pos_error(ec_global_qualifier_not_allowed, pos);
     any_errors = TRUE;
   } /* if */
 #if CHECKING

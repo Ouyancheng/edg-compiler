@@ -1173,8 +1173,8 @@ error code.
     case ec_class_and_member_name_conflict:
       m = "invalid declaration of a member with the same name as its class";
       break;
-    case ec_unary_colon_colon_not_allowed:
-      m = "unary \"::\" is not allowed";
+    case ec_global_qualifier_not_allowed:
+      m = "global-scope qualifier (leading \"::\") is not allowed";
       break;
     case ec_name_not_found_in_file_scope:
       m = "the global scope has no %sq";
