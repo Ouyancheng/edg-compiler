@@ -1,6 +1,38 @@
 
 Version 2.06, May 22, 1992
 
+5/27/92  Extension to allow member function redeclaration.
+
+For Cfront compatibility we permit (contrary to ARM 9.2) multiple
+declarations of a member function within a class definition; a warning
+is issued.  We impose the following restrictions: accessibility must not
+be changed; static member functions cannot be redeclared as nonstatic
+and vice versa; nonvirtual member functions cannot be redeclared as
+virtual.  On the other hand, if either declaration specifies "inline",
+the routine entry is so marked, and there is support for merging default
+argument declarations (as per ARM 8.2.6).
+
+5/26/92  Added checks for inaccessible or ambiguous operator new() and
+         delete() member functions in constructor and destructor wrappers
+
+These checks are required only when support for the assignment-to-this
+ananchronism is activated.  For example:
+
+  class A {
+    void* operator new(size_t);   // private operator new()
+  public:
+    A();                          // force compiler to generate B::B()
+  };
+  class B : public A { };
+  B b;                            // no access to A::operator new()
+
+5/26/92  Added some warnings
+
+We now issue warnings on classes with
+   - one or more virtual functions but no virtual destructor
+   - operator new() but no operator delete() and vice versa
+   - all private constructors and friend declarations
+
 5/21/92  Fixed bug with virtual destructors.
 
 When IL lowering rewrites a "delete" as a destructor call, it must handle
