@@ -1,5 +1,16 @@
 Version 2.15
 
+3/3/93   Divide by zero when multiplying by (unsigned long)0
+
+Folding of a constant expression containing an unsigned multiply
+by zero caused a divide by zero error.  This error would occur only
+when using host integers to represent target integer values.
+
+  void f(void)
+  {
+    (unsigned long)1 * (unsigned long)0;
+  }
+
 2/26/93  Check type of extra argument for postfix incr/decr operator
 
 The type of the extra argument in declarations of postfix operator++ and
