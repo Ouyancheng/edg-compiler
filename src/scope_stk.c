@@ -2866,7 +2866,7 @@ type support.
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
 
 
-static a_boolean routine_defined(a_routine_ptr	rp)
+a_boolean routine_defined(a_routine_ptr	rp)
 /*
 Return TRUE if a definition has been supplied for the routine pointed to
 by "rp".  If "rp" is a template instance that has not been explicitly

@@ -1006,6 +1006,8 @@ extern a_boolean current_class_symbol_if_class_template(a_symbol_ptr *sym);
 extern void add_active_using_directive(a_using_decl_ptr udp,
 				       a_scope_depth    depth);
 
+extern a_boolean routine_defined(a_routine_ptr	rp);
+
 extern void report_for_init_difference(a_symbol_ptr       sym,
                                        a_source_position  *pos);
 
