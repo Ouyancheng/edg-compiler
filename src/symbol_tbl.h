@@ -368,16 +368,14 @@ typedef struct a_projection_descr {
 			   example, B::i is the progenitor symbol for C::i,
 			   but A::i is the fundamental symbol.  If ambiguous
 			   is TRUE, this symbol is one of several possible. */
-  a_derivation_step_ptr
-                derivation;
-			/* Pointer to a linked list of entries together
-			   specifying a path between the current class object
-			   and the member specified by fundamental_symbol.
-			   This path can be interpreted as a sequence of
-			   casts, the final cast being to the class of
-			   the fundamental base class member.  If ambiguous is
-			   TRUE this node identifies one of several possible
-                           paths. */
+  a_base_class_ptr
+		fundamental_base_class;
+			/* This field is a pointer to the base class entry for
+			   the entity represented by fundamental_symbol.  It
+			   will be a base class entry on the current class's
+			   base classes list, and its derivation field
+			   specifies the path between the current class object
+			   and the member specified by fundamental_symbol. */
   a_derivation_step_ptr
 		hidden_sym_path;
 			/* Pointer to a linked list of derivation node
