@@ -1,4 +1,14 @@
-Version 2.11
+Version 2.11, October 29, 1992
+
+10/29/92 long long support
+
+When the configuration flag LONG_LONG_ALLOWED is TRUE, the front end
+supports the "long long" and "unsigned long long" data types, and
+constants of those types (suffixes "ll" and "ull").
+
+At the moment, the integer constant handling has not been upgraded
+to handle constants larger than the host long, so this feature
+has certain limitations.
 
 10/28/92 Handling of type qualifiers on reference initialization
 
