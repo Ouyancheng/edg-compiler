@@ -6674,15 +6674,16 @@ block.
                                         (char *)nsp,
                                         (a_byte_il_entry_kind)iek_namespace);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-      remove_stop_token(tok_rbrace);
       if (curr_token == tok_rbrace) {
-        /* Closing brace -- advance past it in the caller. */
+        /* Caller will advance past the closing brace (required for
+           precompiled-header support). */
         cannot_bind_to_curr_construct();
       } else {
         /* Error -- closing brace was not found. */
-        error(ec_exp_rbrace);
+        syntax_error(ec_exp_rbrace);
         discard_curr_construct_pragmas();
       }  /* if */
+      remove_stop_token(tok_rbrace);
       /* Pop the namespace or namespace-extension scope. */
       pop_scope();
     } else {
@@ -6744,8 +6745,16 @@ A using-directive entry is created and activated for the current scope.
     }  /* if */
     (void)get_token();
   }  /* if */
+  if (curr_token == tok_semicolon) {
+    /* Caller will advance past the semicolon (required for precompiled-header
+       support). */
+    cannot_bind_to_curr_construct();
+  } else {
+    /* Error. */
+    discard_curr_construct_pragmas();
+    syntax_error(ec_exp_semicolon);
+  }  /* if */
   remove_stop_token(tok_semicolon);
-  (void)required_token(tok_semicolon, ec_exp_semicolon);
 }  /* using_directive */
 
 
@@ -6909,8 +6918,16 @@ current scope.
     /* Bypass the identifier. */
     (void)get_token();
   }  /* if */
+  if (curr_token == tok_semicolon) {
+    /* Caller will advance past the semicolon (required for precompiled-header
+       support). */
+    cannot_bind_to_curr_construct();
+  } else {
+    /* Error. */
+    discard_curr_construct_pragmas();
+    syntax_error(ec_exp_semicolon);
+  }  /* if */
   remove_stop_token(tok_semicolon);
-  (void)required_token(tok_semicolon, ec_exp_semicolon);
   db_exit();
 }  /* nonmember_using_declaration */
 
@@ -7246,7 +7263,7 @@ of local variables (and types, etc.) of functions and in blocks.
       } else {
         nonmember_using_declaration();
       }  /* if */
-      goto return_point;
+      goto advance_past_final_token;
     } else if (check_for_overload_anachronism()) {
       /* We check for and discard declarations of the form "overload f;" --
          issue diagnostics on pragmas that are trying to bind to an overload
