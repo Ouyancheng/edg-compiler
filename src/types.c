@@ -3320,7 +3320,10 @@ its parameters?).
       case tk_integer:
 	/* Integer type -- if this is an enumeration we need to check
 	   enclosing classes. */
-        if (type_ptr->variant.integer.enum_type) goto check_enclosing_classes;
+        if (type_ptr->variant.integer.enum_type &&
+	    type_ptr->source_corresp.class_of_which_a_member != NULL) {
+	  goto check_enclosing_classes;
+        }  /* if */
 	break;
       case tk_pointer:
         tp = type_ptr->variant.pointer.type;
