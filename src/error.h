@@ -847,6 +847,9 @@ extern DOES_NOT_RETURN str_catastrophe(an_error_code error_code,
 extern DOES_NOT_RETURN catastrophe(an_error_code error_code);
 
 /* Interfaces for producing multiple message diagnostics. */
+extern void pos_start_diagnostic(an_error_severity  error_severity,
+                                 an_error_code      error_code,
+                                 a_source_position  *error_pos);
 extern void pos_start_error(an_error_code     error_code,
                             a_source_position *error_pos);
 extern void pos_st_start_error(an_error_code     error_code,
