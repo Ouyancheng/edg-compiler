@@ -1,5 +1,10 @@
 Version 2.33
 
+9/17/96  --strip option added to eccp
+
+The --strip option has been added to the eccp script.  This option causes
+the "strip" command to be run on the executable file that is produced.
+
 8/13/96  "K" for extern C recognized by name demangler
 
 The name demangler now recognizes a "K" following the "F" for a function

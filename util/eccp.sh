@@ -211,6 +211,14 @@ ldoptions=
 #
 suppress_patch_munch=${EDG_SUPPRESS_PATCH_MUNCH-0}
 #
+# Should the executable be stripped
+#
+strip_executable=0
+#
+# Path name of the strip command used to strip executables
+#
+STRIP=${EDG_STRIP_PATH-strip}
+#
 # Options to be passed to the underlying C compiler
 #
 c_to_obj_options=
@@ -482,6 +490,10 @@ do
 #     Run the prelinker and request that it recompiles all of the objects
 #     in such a way that the instantiation flags will be removed
       remove_instantiation_flags=1
+      ;;
+    --strip)
+#     Run the "strip" command on the resulting executable
+      strip_executable=1
       ;;
     -sun*)
 #     SunOS 4.n option, as in "-sun4" -- ignored.
@@ -1237,6 +1249,14 @@ then
           fi
           rm -f $tmpfile.c $tmpfile.o
         fi
+      fi
+      if [ $strip_executable -ne 0 ] ; then
+#       Run the "strip" command on the executable if requested.
+        command="$STRIP $executable"
+        if [ $driver_debug -ne 0 ] ; then
+          echo $command
+        fi
+	$command
       fi
       if [ "$rofiles" != "" ] ; then
         rm -f $rofiles
