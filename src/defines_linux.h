@@ -50,6 +50,7 @@ This is the version for Linux.
 #define GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED 1
 #endif /* defined(__GNUC__) && !defined(GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED) */
 #define DEFAULT_GNU_COMPATIBILITY 0
+#define DEFAULT_USE_PREDEFINED_MACRO_FILE 1
 #ifndef IA64_ABI
 #define IA64_ABI 1
 #endif /* IA64_ABI */
