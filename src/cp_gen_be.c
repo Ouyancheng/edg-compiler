@@ -224,7 +224,6 @@ that ordinarily this routine should not be called directly; use the macro
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
-
 static a_boolean is_enum_constant(a_constant_ptr con)
 /*
 Return TRUE if the indicated constant is an enum constant, i.e., it is
