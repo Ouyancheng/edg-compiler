@@ -1,5 +1,11 @@
 Version 2.13
 
+12/4/92  Strict ANSI mode error on "useless declaration"
+
+The diagnostic issued on declarations which define nothing and have no
+declarator is now given error severity in strict ANSI mode (-A); it
+remains a warning otherwise.
+
 12/4/92  Use of a parameter name as an identifier in a function
 
 In cfront mode and in pcc mode an identifier used as function
@@ -16,7 +22,7 @@ In cfront mode, "int x" may be used before the declaration of "char x".
 12/4/92  Referencing template class member type in function template
 
 Template support has been enhanced to permit references to member types
-of template classes in the declaration of a function templates, for
+of template classes in the declaration of function templates -- for
 example:
 
   template <class T> class A {
