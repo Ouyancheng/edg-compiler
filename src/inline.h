@@ -40,7 +40,7 @@ typedef enum /*a_variable_remapping_kind*/ {
 			   record the arg_expr and arg_expr_next fields. */
   vrk_temporary,	/* Variable is remapped to a temporary variable. */
   vrk_constant,		/* Variable is remapped to a constant. */
-  vrk_addr_variable,	/* Variable is remapped to the address of a
+  vrk_addr_variable	/* Variable is remapped to the address of a
 			   variable. */
 } a_variable_remapping_kind;
 typedef struct a_variable_remapping_for_inlining
