@@ -187,19 +187,29 @@ line if needed; the code here should not be changed.
 #endif /* ifndef STANDALONE_C_GEN_BE */
 
 /*
-The flag STANDALONE_UTILITY_PROGRAM is set to TRUE when compiling one of
-the standalone utility programs (the C-generating back end c_gen_be or
-the IL display utility il_display).  It is forced to TRUE if either
-STANDALONE_IL_DISPLAY or STANDALONE_C_GEN_BE is TRUE
+The flag STANDALONE_CP_GEN_BE is set to TRUE when compiling the standalone
+C++/C-generating back end cp_gen_be.  It should be set on the command 
+line if needed; the code here should not be changed.
 */
-#if STANDALONE_IL_DISPLAY || STANDALONE_C_GEN_BE
+#ifndef STANDALONE_CP_GEN_BE
+#define STANDALONE_CP_GEN_BE FALSE /* Do not change this. */
+#endif /* ifndef STANDALONE_CP_GEN_BE */
+
+/*
+The flag STANDALONE_UTILITY_PROGRAM is set to TRUE when compiling one of
+the standalone utility programs (the C-generating back end c_gen_be, the
+C++/C generating back end cp_gen_be, or the IL display utility il_display).
+It is forced to TRUE if STANDALONE_IL_DISPLAY, STANDALONE_C_GEN_BE,
+or STANDALONE_CP_GEN_BE is TRUE.
+*/
+#if STANDALONE_IL_DISPLAY || STANDALONE_C_GEN_BE || STANDALONE_CP_GEN_BE
 #undef STANDALONE_UTILITY_PROGRAM
 #define STANDALONE_UTILITY_PROGRAM TRUE /* Do not change this. */
-#else /* !(STANDALONE_IL_DISPLAY || STANDALONE_C_GEN_BE) */
+#else /* !(STANDALONE_IL_DISPLAY || STANDALONE_C_GEN_BE || ...) */
 #ifndef STANDALONE_UTILITY_PROGRAM
 #define STANDALONE_UTILITY_PROGRAM FALSE  /* Do not change this. */
 #endif /* ifndef STANDALONE_UTILITY_PROGRAM */
-#endif /* STANDALONE_IL_DISPLAY || STANDALONE_C_GEN_BE */
+#endif /* STANDALONE_IL_DISPLAY || STANDALONE_C_GEN_BE || ... */
 
 /*
 Flag that is TRUE if the code necessary to display the IL in a readable
@@ -306,9 +316,26 @@ if the back end is being called).
 #endif /* ifndef BACK_END_IS_C_GEN_BE */
 
 /*
-When the C-generating back end (c_gen_be) is run, this is the suffix
-appended to the base of the primary source file to get the name of
-the generated C output file.
+Is the C++/C-generating back end included in the program currently being 
+compiled?  This flag should be set to TRUE externally when compiling the
+C++/C-generating back end; here, it's set for the compilation of the front
+end (i.e., FALSE if the back end is not being called, as appropriate
+if the back end is being called).
+*/
+#ifndef BACK_END_IS_CP_GEN_BE
+#if BACK_END_SHOULD_BE_CALLED
+#define BACK_END_IS_CP_GEN_BE FALSE  /* You can change this. */
+#else /* !BACK_END_SHOULD_BE_CALLED */
+/* Back end is not called, so back end is not included. */
+#undef BACK_END_IS_CP_GEN_BE
+#define BACK_END_IS_CP_GEN_BE FALSE  /* Do not change this. */
+#endif /* BACK_END_SHOULD_BE_CALLED */
+#endif /* ifndef BACK_END_IS_CP_GEN_BE */
+
+/*
+When the C-generating back end (c_gen_be) or C++/C-generating back end
+(cp_gen_be) is run, this is the suffix appended to the base of the primary
+source file to get the name of the generated C output file.
 */
 #if BACK_END_IS_C_GEN_BE
 #if __MSDOS__
@@ -359,6 +386,7 @@ source program.
 #ifndef GENERATE_SOURCE_SEQUENCE_LISTS
 #define GENERATE_SOURCE_SEQUENCE_LISTS TRUE
 #endif /* ifndef GENERATE_SOURCE_SEQUENCE_LISTS */
+/* The C++/C-generating back end requires this feature. */
 
 /*
 Flag that is TRUE if source sequence lists are being generated and if they
@@ -625,11 +653,11 @@ extern char *gs_directory_of(char *file_name);
 #define NEED_DERIVED_NAME TRUE
 #else /* !defined(CFE) */
 #if BACK_END_SHOULD_BE_CALLED
-#if BACK_END_IS_C_GEN_BE
-/* If the back end is c_gen_be and it's called in the same program,
-   derived_name is used to generate the C output file name. */
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
+/* If the back end is c_gen_be or cp_gen_be and it's called in the same
+   program, derived_name is used to generate the C output file name. */
 #define NEED_DERIVED_NAME TRUE
-#endif /* BACK_END_IS_C_GEN_BE */
+#endif /* BACK_END_IS_C_GEN_BE || ... */
 #else /* !BACK_END_SHOULD_BE_CALLED */
 /* If the back end is not called in the current program, derived_type
    is needed to generate the name of the IL file. */
