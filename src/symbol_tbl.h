@@ -3133,6 +3133,8 @@ extern void db_symbol(a_symbol_ptr	sym,
 /* Short-hand version of db_symbol. */
 #define db_sym(sym) db_symbol(sym, "", 2)
 
+extern void db_symbol_name(a_symbol_ptr  sym);
+
 /*
 Information used to gather performance statistics related to symbol
 table processing that needs to be externally visible.

@@ -374,6 +374,25 @@ from db_symbol.
 }  /* str_name_linkage */
 
 
+void db_symbol_name(a_symbol_ptr  sym)
+/*
+Write out the name (including function parameters if there are any) of the
+specified symbol.
+*/
+{
+  char  *str, buffer[1000];
+
+  str = str_qualified_name(buffer, sym);
+  fprintf(f_debug, "\"%s", str);
+  if (sym->kind == (a_symbol_kind)sk_routine ||
+      sym->kind == (a_symbol_kind)sk_member_function) {
+    a_type_ptr  tp = routine_symbol_type(sym);
+    if (tp != NULL) db_function_param_list(tp);
+  }  /* if */
+  fprintf(f_debug, "\"");
+}  /* db_symbol_name */
+
+
 void db_symbol(a_symbol_ptr	sym,
 	       char		*string,
 	       int		indentation)
