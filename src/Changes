@@ -1,5 +1,13 @@
 Version 2.29
 
+4/13/95  typeinfo structure changes
+
+The typeinfo structure has been enhanced for use with RTTI.
+It now contains a pointer to a name string, and the base class
+specifications indicate whether a base class is public.
+The old form is still available by setting ABI_CHANGES_FOR_RTTI
+to FALSE (but that will disable RTTI features too).
+
 4/12/95  C-generating back end: address of redeclared function
 
 The C-generating back end now checks, when putting out the address of
