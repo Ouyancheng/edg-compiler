@@ -3413,6 +3413,12 @@ this routine to do a relatively simple copy of the all the fields.
        (part-way through the compilation) and then be referenced later. */
 #endif /* 0 */
     subobject_type->source_corresp.referenced = TRUE;
+#if USER_CONTROL_OF_STRUCT_PACKING
+    /* The type-as-subobject gets the same alignment restriction as the
+       class type. */
+    subobject_type->variant.class_struct_union.max_member_alignment =
+                   class_type->variant.class_struct_union.max_member_alignment;
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
     /* Put the struct type on the file-scope types list right after the
        associated type.  This is done instead of calling add_to_types_list
        because we want to get the type at the right place on the list.
