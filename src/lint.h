@@ -290,6 +290,8 @@ extern int fileno(FILE *);
 /*lint -esym(759,do_type_name_mangling)*/
 /*lint -esym(765,do_type_name_mangling)*/
 /*lint -esym(769,ec_mangled_name_too_long)*/
+/*lint -esym(759,vtbl_addr_from_construction_vtbls_array)*/
+/*lint -esym(765,vtbl_addr_from_construction_vtbls_array)*/
 #else /* !IA64_ABI */
 /*lint -esym(759,add_cast_to_char_star)*/
 /*lint -esym(765,add_cast_to_char_star)*/

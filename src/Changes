@@ -1,5 +1,23 @@
 Version 3.1
 
+1/20/03  EH destruction of base class subobjects, with construction vtables
+
+When base class subobjects are constructed or destroyed in objects
+that have virtual function in base classes, it is sometimes necessary
+to use special versions of virtual function tables during the subobject
+construction and destruction (see Changes entry of 4/25/98).
+This mechanism has not worked correctly when the destruction
+call is done from the runtime as a result of a thrown exception
+(there was no way for the runtime to know that a special virtual
+function table was needed, let alone which one).  Now, a new
+RDF_SUBOBJECT_VTABLE flags has been added in the set of flags in
+the EH region table entry, and the front end and runtime have
+been changed to specify and pass the appropriate pointer.
+This is an ABI CHANGE, but an upward-compatible one.
+(Note in particular the way that RDF_SUBOBJECT_VTABLE is
+overlaid on the existing RDF_GUARD_VAR_FOR_LOCAL_STATIC bit,
+to avoid increasing the size of the flags byte.)
+
 1/20/03  Precompiled headers: workaround for mmap problem on Linux
 
 When using MAP_FIXED on Linux, mmap will succeed if a request is made to

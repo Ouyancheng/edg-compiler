@@ -255,6 +255,31 @@ typedef struct a_destructible_entity_descr {
 		initialization_done;
 			/* Set to TRUE once the initialization of this entity
 			   has been completed. */
+  a_byte_boolean
+		needs_subobject_construction_vtbl;
+			/* Set to TRUE if the initialization is of a base
+			   class subobject and a special construction vtable
+			   needs to be passed to the subobject constructor
+			   and destructor. */
+  a_byte_boolean
+		construction_vtbls_var_is_array;
+			/* Set to TRUE if the variable in
+			   construction_vtbls_var is itself the array, FALSE
+			   if the variable is a pointer to the array. */
+  a_variable_ptr
+		construction_vtbls_var;
+			/* When needs_subobject_construction_vtbl is TRUE,
+			   points to a variable for the appropriate
+			   construction vtables array, possibly a pointer
+			   as indicated by construction_vtbl_is_array.
+			   When needs_subobject_construction_vtbl is TRUE and
+			   this field is NULL, a NULL pointer should be
+			   passed to the constructor or destructor (in
+			   the IA-64 ABI). */
+  a_base_class_ptr
+		subobject_construction_base_class;
+			/* When needs_subobject_construction_vtbl is TRUE,
+			   the subobject base class. */
 } a_destructible_entity_descr;
 
 EXTERN a_destructible_entity_descr_ptr
@@ -631,9 +656,9 @@ extern a_type_ptr make_mptr_type(void);
 
 extern a_type_ptr pointer_to_vtbl_type(void);
 
-#if IA64_ABI
-
 extern a_type_ptr make_virtual_table_table_pointer_type(void);
+
+#if IA64_ABI
 
 extern a_boolean contains_ptr_to_data_member(a_type_ptr type);
 

@@ -886,6 +886,10 @@ and return a pointer to it.
   dedp->next_in_region_table = NULL;
 #endif /* GENERATE_EH_TABLES */
   dedp->initialization_done = FALSE;
+  dedp->needs_subobject_construction_vtbl = FALSE;
+  dedp->construction_vtbls_var_is_array = FALSE;
+  dedp->construction_vtbls_var = NULL;
+  dedp->subobject_construction_base_class = NULL;
   return dedp;
 }  /* alloc_destructible_entity_descr */
 
@@ -4693,7 +4697,7 @@ This is needed in the IA-64 ABI because pointers to data members use
   rtsp = rp->type->variant.routine.extra_info;
   rtsp->param_type_list->next = alloc_param_type(count_type);
   /* Build the definition of the routine.  */
-  scope = make_routine_definition(rp, /*make_return=*/FALSE, &il_region);
+  scope = make_routine_definition(rp, /*make_return=*/TRUE, &il_region);
   push_generated_routine_context(scope, il_region, &context);
   /* Create the parameters. */
   scope->variant.routine.parameters = entity_var = 
@@ -8069,7 +8073,7 @@ done:
 }  /* make_construction_vtbls_array */
 
 
-static an_expr_node_ptr vtbl_addr_from_construction_vtbls_array(
+an_expr_node_ptr vtbl_addr_from_construction_vtbls_array(
                         a_variable_ptr                  construction_vtbls_var,
                         a_boolean                       var_is_array,
                         a_construction_vtbl_array_index index)
@@ -8249,6 +8253,34 @@ we are processing a constructor.
 
 #if !IA64_ABI
 
+static void set_transfer_pointer(an_init_pos_descr_ptr ipdp,
+                                 a_type_ptr            subobject_class_type,
+                                 an_expr_node_ptr      array_addr,
+                                 an_insert_location    *insert_location)
+/*
+Set the "transfer pointer" in the base class subobject described by
+ipdp and subobject_class_type to the address given by array_addr.
+Insert the code at *insert_location.
+*/
+{
+  an_expr_node_ptr trans_ptr_node;
+
+  /* Get the address of the subobject. */
+  trans_ptr_node = make_init_entity_node(ipdp, /*using_as_address=*/FALSE,
+                                         /*using_as_dest=*/TRUE);
+  /* Get the address of a pointer in the object that is used to
+     do the transfer. */
+  trans_ptr_node =
+          make_construction_vtbl_transfer_pointer_lvalue(trans_ptr_node,
+                                                         subobject_class_type);
+  array_addr = add_cast(array_addr, type_pointed_to(trans_ptr_node->type));
+  (void)insert_assignment_statement(trans_ptr_node,
+                                    (an_expr_operator_kind)eok_passign,
+                                    array_addr,
+                                    insert_location);
+}  /* set_transfer_pointer */
+
+
 static void pass_construction_vtbls_to_subobject_constructor(
                         a_variable_ptr                  construction_vtbls_var,
                         a_boolean                       var_is_array,
@@ -8267,53 +8299,167 @@ The subobject class type is subobject_class_type (this is passed because
 the type of the expression produced from ipdp may have the type-as-subobject).
 */
 {
-  an_expr_node_ptr array_addr, trans_ptr_node;
+  an_expr_node_ptr array_addr;
 
   array_addr = vtbl_addr_from_construction_vtbls_array(construction_vtbls_var,
                                                        var_is_array,
                                                        index);
-  /* Get the address of the subobject. */
-  trans_ptr_node = make_init_entity_node(ipdp, /*using_as_address=*/FALSE,
-                                         /*using_as_dest=*/TRUE);
-  /* Get the address of a pointer in the object that is used to
-     do the transfer. */
-  trans_ptr_node =
-          make_construction_vtbl_transfer_pointer_lvalue(trans_ptr_node,
-                                                         subobject_class_type);
-  array_addr = add_cast(array_addr, type_pointed_to(trans_ptr_node->type));
-  (void)insert_assignment_statement(trans_ptr_node,
-                                    (an_expr_operator_kind)eok_passign,
-                                    array_addr,
-                                    insert_location);
+  set_transfer_pointer(ipdp, subobject_class_type, array_addr,
+                       insert_location);
 }  /* pass_construction_vtbls_to_subobject_constructor */
+
+
+a_routine_ptr make_subobject_destruction_routine(a_dynamic_init_ptr dip)
+/*
+Make a routine that contains the code necessary to do the destruction of
+a base class subobject whose initialization is described by dip.
+This is needed for the cases where a subobject destruction vtable must
+be passed to the destructor via the transfer pointer in the Cfront-like
+ABI.
+*/
+{
+  a_scope_ptr            scope;
+  an_insert_location     insert_location;
+  a_memory_region_number region_number;
+  a_generated_routine_context
+                         grcontext;
+  a_routine_ptr          routine;
+  a_routine_ptr          dtor_routine = dip->destructor;
+  a_type_ptr             this_param_type, vtt_ptr_type;
+  a_variable_ptr         this_param_var, vtt_ptr_var;
+  a_routine_type_supplement_ptr
+                         rtsp;
+  an_init_pos_descr      ipd;
+  a_destructible_entity_descr_ptr
+                         dedp = dip->destructible_entity_descr;
+
+  check_assertion(dedp != NULL &&
+                  dedp->subobject_construction_base_class != NULL);
+  /* Create a routine. */
+  this_param_type = implicit_this_param_type_of(dtor_routine->type);
+  vtt_ptr_type = make_virtual_table_table_pointer_type();
+  routine = make_rout_entry((char *)NULL,
+                            (a_storage_class) sc_static,
+                            void_type(),
+                            this_param_type);
+  rtsp = routine->type->variant.routine.extra_info;
+  rtsp->param_type_list->next = alloc_param_type(vtt_ptr_type);
+  /* Make a memory region, scope, and block for the routine definition. */
+  scope = make_routine_definition(routine, /*make_return=*/TRUE,
+                                  &region_number);
+  push_generated_routine_context(scope, region_number, &grcontext);
+  /* Make the first parameter, "this". */
+  this_param_var = make_lowered_param_variable(this_param_type);
+  scope->variant.routine.parameters = this_param_var;
+  this_param_var->is_this_parameter = TRUE;
+  /* Make the second parameter, the construction vtable pointer. */
+  vtt_ptr_var = make_lowered_param_variable(vtt_ptr_type);
+  this_param_var->next = vtt_ptr_var;
+  set_block_start_insert_location(scope->assoc_block, &insert_location);
+  /* Generate code to pass the subobject construction vtable. */
+  set_var_indirect_init_pos_descr(this_param_var, &ipd);
+  set_transfer_pointer(&ipd, dedp->subobject_construction_base_class->type,
+                       var_rvalue_expr(vtt_ptr_var), &insert_location);
+  /* Generate the code to call the destructor. */
+  add_destructor_call(dtor_routine, &ipd, /*have_complete_object=*/FALSE,
+                      (an_expr_node_ptr)NULL, &insert_location);
+  pop_generated_routine_context(scope, region_number, &grcontext);
+  return routine;
+}  /* make_subobject_destruction_routine */
 
 #endif /* !IA64_ABI */
 
 #if IA64_ABI
-/*ARGSUSED*/  /* <-- ipdp is not used in that case. */
+/*ARGSUSED*/  /* <-- ipdp and insert_location are not used in that case. */
+#else /* !IA64_ABI */
+/*ARGSUSED*/  /* <-- implied_arg_node is not used in that case. */
+#endif /* IA64_ABI */
+void build_construction_vtbls_pointer(a_dynamic_init_ptr     dip,
+                                      an_init_pos_descr      *ipdp,
+                                      an_insert_location_ptr insert_location,
+                                      an_expr_node_ptr       *implied_arg_node)
+/*
+If the destructible entity description under dip says so (as determined
+by build_construction_vtbls_pointer_for_subobject_construction),
+generate code to pass a pointer to an array of construction virtual
+function tables to a subobject constructor or destructor.  ipdp tells
+how to address the subobject base class (used for the Cfront-like ABI
+only).  Code is inserted at *insert_location (Cfront-like ABI) or
+returned in *implied_arg_node (IA-64 ABI; that's set to NULL if no
+code is needed).
+*/
+{
+  a_destructible_entity_descr_ptr dedp = dip->destructible_entity_descr;
+  a_base_class_ptr                base_class =
+                                       dedp->subobject_construction_base_class;
+
+#if !IA64_ABI
+  if (dedp->needs_subobject_construction_vtbl) {
+    /* Pass the construction vtable address via the transfer pointer. */
+    pass_construction_vtbls_to_subobject_constructor(
+                  dedp->construction_vtbls_var,
+                  dedp->construction_vtbls_var_is_array,
+                  base_class->type,
+                  base_class->base_subarray_index_in_construction_vtbl_array,
+                  ipdp,
+                  insert_location);
+  }  /* if */
+#else /* IA64_ABI */
+  *implied_arg_node = NULL;
+  if (dedp->needs_subobject_construction_vtbl) {
+    /* Pass the construction vtable address via an added argument. */
+    if (dedp->construction_vtbls_var != NULL) {
+      *implied_arg_node = vtbl_addr_from_construction_vtbls_array(
+                   dedp->construction_vtbls_var,
+                   dedp->construction_vtbls_var_is_array,
+                   base_class->base_subarray_index_in_construction_vtbl_array);
+    } else {
+      /* Pass a null VTT pointer. */
+      a_constant null_constant;
+      make_zero_of_proper_type(make_virtual_table_table_pointer_type(),
+                               &null_constant);
+      *implied_arg_node = alloc_node_for_constant(&null_constant);
+    }  /* if */
+  }  /* if */
+#endif /* !IA64_ABI */
+}  /* build_construction_vtbls_pointer */
+
+#if IA64_ABI
+/*ARGSUSED*/  /* <-- ipdp and insert_location are not used in that case. */
 #else /* !IA64_ABI */
 /*ARGSUSED*/  /* <-- implied_arg_node is not used in that case. */
 #endif /* IA64_ABI */
 static void build_construction_vtbls_pointer_for_subobject_construction(
+                                 a_dynamic_init_ptr     dip,
                                  a_base_class_ptr       base_class,
                                  an_init_pos_descr      *ipdp,
                                  a_variable_ptr         construction_vtbls_var,
                                  an_insert_location_ptr insert_location,
-                                 an_expr_node_ptr       *implied_arg_node)
+                                 an_expr_node_ptr       *implied_arg_node,
+                                 a_boolean              *just_test)
 /*
 We are about to generate a call of a constructor or destructor for a
 base class subobject, as part of a constructor or destructor for a larger
 object.  Generate code to pass a pointer to an array of construction
 virtual function tables to the subobject constructor or destructor,
 if one is needed because the class has virtual base classes.
-base_class is the subobject being initialized, ipdp tells how to
-address it (used for the Cfront-like ABI only), construction_vtbls_var
-is the variable for the construction vtables array for the complete
-class (if needed), any code added is inserted at *insert_location,
-and (IA-64 ABI only) *implied_arg_node is set to the expression for
-the VTT pointer, or NULL if one is not needed.
+dip describes the initialization, base_class is the subobject being
+initialized, ipdp tells how to address it (used for the Cfront-like
+ABI only), construction_vtbls_var is the variable for the construction
+vtables array for the complete class (if needed), any code added is
+inserted at *insert_location, and (IA-64 ABI only) *implied_arg_node
+is set to the expression for the VTT pointer, or NULL if one is not needed.
+Information on whether a construction vtable is needed, and which
+one, is recorded in the destructible entity description attached
+to dip so that build_construction_vtbls_pointer can be called again later.
+If just_test is non-NULL, just test whether a construction vtable
+is needed, and set *just_test accordingly, but do not record that
+under dip or generate code.
 */
 {
+  a_destructible_entity_descr_ptr dedp = dip->destructible_entity_descr;
+
+  if (just_test != NULL) *just_test = FALSE;
 #if !IA64_ABI
   /* See if the base class constructor needs to be passed an array
      of virtual function table pointers to use during the subobject
@@ -8324,14 +8470,15 @@ the VTT pointer, or NULL if one is not needed.
     /* Yes, this base class constructor needs the special information.
        Pass the address of a subarray of the overall class array of
        virtual function table pointers. */
-    check_assertion(construction_vtbls_var != NULL);
-    pass_construction_vtbls_to_subobject_constructor(
-                  construction_vtbls_var,
-                  /*var_is_array=*/FALSE,
-                  base_class->type,
-                  base_class->base_subarray_index_in_construction_vtbl_array,
-                  ipdp,
-                  insert_location);
+    if (just_test != NULL) {
+      *just_test = TRUE;
+    } else {
+      check_assertion(construction_vtbls_var != NULL);
+      dedp->needs_subobject_construction_vtbl = TRUE;
+      dedp->construction_vtbls_var_is_array = FALSE;
+      dedp->construction_vtbls_var = construction_vtbls_var;
+      dedp->subobject_construction_base_class = base_class;
+    }  /* if */
   } else if (base_class->is_virtual) {
     if (base_class->base_construction_vtbls != 0) {
       /* Yes, this virtual base class constructor needs the
@@ -8339,44 +8486,51 @@ the VTT pointer, or NULL if one is not needed.
          virtual function table pointers specific to this case.
          Note that we are calling the constructor directly from
          the constructor for a complete object. */
-      a_variable_ptr array_var =
+      if (just_test != NULL) {
+        *just_test = TRUE;
+      } else {
+        a_variable_ptr array_var =
                             make_construction_vtbls_array(
                                           base_class->derived_class,
                                           base_class->base_construction_vtbls);
-      pass_construction_vtbls_to_subobject_constructor(
-                            array_var,
-                            /*var_is_array=*/TRUE,
-                            base_class->type,
-                            (a_construction_vtbl_array_index)1,
-                            ipdp,
-                            insert_location);
+        dedp->needs_subobject_construction_vtbl = TRUE;
+        dedp->construction_vtbls_var_is_array = TRUE;
+        dedp->construction_vtbls_var = array_var;
+        dedp->subobject_construction_base_class = base_class;
+      }  /* if */
     }  /* if */
   }  /* if */
 #else /* IA64_ABI */
-  *implied_arg_node = NULL;
+  if (just_test == NULL) *implied_arg_node = NULL;
   /* See if the base class constructor needs to be passed an array
      of virtual function table pointers (the VTT) to use during the subobject
      construction.  If so, pass it as an implied argument. */
   if (base_class->type->variant.class_struct_union.any_virtual_base_classes) {
     /* The constructor or destructor takes a VTT pointer. */
-    if (base_class->base_subarray_index_in_construction_vtbl_array != 0) {
+    if (just_test != NULL) {
+      *just_test = TRUE;
+    } else if (base_class->base_subarray_index_in_construction_vtbl_array!=0) {
       /* Pass an element from the parent VTT. */
       check_assertion(construction_vtbls_var != NULL);
-      *implied_arg_node = vtbl_addr_from_construction_vtbls_array(
-                   construction_vtbls_var,
-                   /*var_is_array=*/FALSE,
-                   base_class->base_subarray_index_in_construction_vtbl_array);
+      dedp->needs_subobject_construction_vtbl = TRUE;
+      dedp->construction_vtbls_var_is_array = FALSE;
+      dedp->construction_vtbls_var = construction_vtbls_var;
+      dedp->subobject_construction_base_class = base_class;
     } else {
       /* The default VTT will work for this base class.  Pass a
          NULL pointer, and the subobject constructor or destructor will
          use the VTT for its class as a complete object. */
-      a_constant null_constant;
-      make_zero_of_proper_type(make_virtual_table_table_pointer_type(),
-                               &null_constant);
-      *implied_arg_node = alloc_node_for_constant(&null_constant);
+      dedp->needs_subobject_construction_vtbl = TRUE;
+      dedp->construction_vtbls_var = NULL;
+      dedp->subobject_construction_base_class = base_class;
     }  /* if */
   }  /* if */
 #endif /* !IA64_ABI */
+  if (just_test == NULL) {
+    /* Generate the code if required. */
+    build_construction_vtbls_pointer(dip, ipdp, insert_location,
+                                     implied_arg_node);
+  }  /* if */
 }  /* build_construction_vtbls_pointer_for_subobject_construction */
 
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
@@ -8477,11 +8631,13 @@ array if necessary.  The statement(s) created are inserted at
       /* Set up for passing an array of virtual function table pointers
          to use during the subobject construction, if one is necessary. */
       build_construction_vtbls_pointer_for_subobject_construction(
+                                                        dip,
                                                         base_class,
                                                         &ipd,
                                                         construction_vtbls_var,
                                                         insert_location,
-                                                        &implied_arg_node);
+                                                        &implied_arg_node,
+                                                        (a_boolean *)NULL);
 #if IA64_ABI
       /* The VTT pointer gets passed as an implied argument. */
       implied_arg_list = end_implied_arg_list = implied_arg_node;
@@ -9244,11 +9400,13 @@ The statements created are inserted at *insert_location, and
       /* Set up for passing an array of virtual function table pointers
          to use during the subobject destruction, if one is necessary. */
       build_construction_vtbls_pointer_for_subobject_construction(
+                                                        dip,
                                                         base_class,
                                                         &ipd,
                                                         destruction_vtbls_var,
                                                         insert_location,
-                                                        &vtt_addr_node);
+                                                        &vtt_addr_node,
+                                                        (a_boolean *)NULL);
     }  /* if */
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
     /* Normal case; generate the code to do the destruction. */
@@ -9258,12 +9416,16 @@ The statements created are inserted at *insert_location, and
 }  /* lower_dtor_init */
 
 
-static void initialize_dtor_init_for_cleanup(a_dynamic_init_ptr dip)
+static void initialize_dtor_init_for_cleanup(
+                                         a_dynamic_init_ptr     dip,
+                                         a_constructor_init_ptr ctor_init_list)
 /*
 Do cleanup initialization for the indicated destruction (from
 the constructor_inits list of a destructor) and to its successors.
 This is done early so the information is available when each entry
 is processed.  Called only when exceptions are enabled.
+ctor_init_list points to the complete constructor-inits list
+for the destructor.
 */
 {
   a_destructible_entity_descr_ptr dedp = dip->destructible_entity_descr;
@@ -9273,7 +9435,9 @@ is processed.  Called only when exceptions are enabled.
           "initialize_dtor_init_for_cleanup: called with exceptions disabled");
   dedp->cleanup_state_to_set_when_starting_destruction = next_dip;
   /* Do a recursive call to process the rest of the list. */
-  if (next_dip != NULL) initialize_dtor_init_for_cleanup(next_dip);
+  if (next_dip != NULL) {
+    initialize_dtor_init_for_cleanup(next_dip, ctor_init_list);
+  }  /* if */
 #if GENERATE_EH_TABLES
   { a_cleanup_region_number         region_number;
     /* Each destruction gets a region number one higher than the region
@@ -9288,6 +9452,36 @@ is processed.  Called only when exceptions are enabled.
       /* Add one more if there is a conditional flag (e.g., for a virtual
          base class). */
       if (next_dedp->conditional_flag_var != NULL) region_number++;
+      /* And another if there is a construction vtable address to be
+         passed to a subobject destructor. */
+      if (next_dip->is_constructor_init) {
+        a_constructor_init_ptr ctor_init;
+        /* Find the associated constructor-init entry. */
+        for (ctor_init = ctor_init_list;
+             ;
+             ctor_init = ctor_init->next) {
+          check_assertion(ctor_init != NULL);
+          if (ctor_init->initializer == next_dip) break;
+        }  /* for */
+        if (ctor_init->kind ==
+                             (a_constructor_init_kind)cik_virtual_base_class ||
+            ctor_init->kind ==
+                             (a_constructor_init_kind)cik_direct_base_class) {
+          a_boolean        needs_vtbl;
+          a_base_class_ptr base_class = ctor_init->variant.base_class;
+          /* This call just tests whether a vtable is needed; it doesn't
+             actually build anything. */
+          build_construction_vtbls_pointer_for_subobject_construction(
+                                                    next_dip,
+                                                    base_class,
+                                                    (an_init_pos_descr *)NULL,
+                                                    (a_variable_ptr)NULL,
+                                                    (an_insert_location *)NULL,
+                                                    (an_expr_node_ptr *)NULL,
+                                                    &needs_vtbl);
+          if (needs_vtbl) region_number++;
+        }  /* if */
+      }  /* if */
     } else {
       region_number = 0;  /* That is, the first region number. */
     }  /* if */
@@ -9396,8 +9590,7 @@ insert_dtor_member_and_base_destructions.
      base class and member that requires a destructor appears, in the
      order (1) data members, (2) normal base classes, (3) virtual base
      classes.  The order within each section is source declaration order. */
-  ctor_init = ctor_init_list =
-                   innermost_function_scope->variant.routine.constructor_inits;
+  ctor_init_list = innermost_function_scope->variant.routine.constructor_inits;
   innermost_function_scope->variant.routine.constructor_inits = NULL;
   if (exceptions_enabled) {
 #if DO_FULL_PORTABLE_EH_LOWERING
@@ -9423,7 +9616,9 @@ insert_dtor_member_and_base_destructions.
                                    prologue_insert_location);
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
       /* Process the ctor-inits for virtual base classes. */
-      for (; ctor_init != NULL; ctor_init = ctor_init->next) {
+      for (ctor_init = ctor_init_list;
+           ctor_init != NULL;
+           ctor_init = ctor_init->next) {
         if (ctor_init->kind ==
                              (a_constructor_init_kind)cik_virtual_base_class) {
           /* Add complete_obj_param_var as a conditional flag. */
@@ -9438,10 +9633,9 @@ insert_dtor_member_and_base_destructions.
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
         }  /* if */
       }  /* for */
-      ctor_init = ctor_init_list;
     }  /* if */
     /* Find the first destruction in the epilogue. */
-    first_epilogue_destruction = ctor_init->initializer;
+    first_epilogue_destruction = ctor_init_list->initializer;
     /* Watch out for the case of an array initialization; the top-level
        dynamic initialization is not on the destructions list. */
     if (first_epilogue_destruction->lifetime == NULL) {
@@ -9455,11 +9649,13 @@ insert_dtor_member_and_base_destructions.
     dtor_info->first_epilogue_destruction = first_epilogue_destruction;
     /* Do cleanup initialization for the destructions on the ctor-initializer
        list of the destructor. */
-    initialize_dtor_init_for_cleanup(first_epilogue_destruction);
+    initialize_dtor_init_for_cleanup(first_epilogue_destruction,
+                                     ctor_init_list);
   }  /* if */
   /* Generate a destructor call for each data member that appears on the
      ctor_init list. */
-  for (; ctor_init != NULL &&
+  for (ctor_init = ctor_init_list;
+       ctor_init != NULL &&
                          ctor_init->kind == (a_constructor_init_kind)cik_field;
        ctor_init = ctor_init->next) {
     lower_dtor_init(ctor_init, this_param_var, /*have_complete_object=*/TRUE,

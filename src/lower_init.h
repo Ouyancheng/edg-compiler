@@ -44,6 +44,11 @@ extern void do_ptr_to_data_member_arg_promotion_on_node(an_expr_node_ptr expr);
 
 extern void do_default_arg_promotions_on_node(an_expr_node_ptr expr);
 
+#if !IA64_ABI
+extern a_routine_ptr make_subobject_destruction_routine(
+                                                       a_dynamic_init_ptr dip);
+#endif /* !IA64_ABI */
+
 extern an_expr_node_ptr make_call_node(a_routine_ptr      routine,
                                        an_expr_node_ptr   arg_list,
                                        a_boolean          honor_virtual,
@@ -95,6 +100,19 @@ extern void init_conditional_flag_var(
 extern void lower_constant_init_of_static_in_extern_inline(
                                                     a_variable_ptr variable,
                                                     a_scope_ptr    scope);
+
+#if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
+extern void build_construction_vtbls_pointer(
+                                     a_dynamic_init_ptr     dip,
+                                     an_init_pos_descr      *ipdp,
+                                     an_insert_location_ptr insert_location,
+                                     an_expr_node_ptr       *implied_arg_node);
+
+extern an_expr_node_ptr vtbl_addr_from_construction_vtbls_array(
+                        a_variable_ptr                  construction_vtbls_var,
+                        a_boolean                       var_is_array,
+                        a_construction_vtbl_array_index index);
+#endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
 
 /*
 Options for calls of lower_dynamic_init:

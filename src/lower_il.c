@@ -1246,7 +1246,6 @@ tables are const.
   return type;
 }  /* pointer_to_vtbl_type */
 
-#if IA64_ABI
 
 a_type_ptr make_virtual_table_table_pointer_type(void)
 /*
@@ -1256,7 +1255,6 @@ Return the type of a pointer to a virtual table table.
   return make_pointer_type(pointer_to_vtbl_type());
 }  /* make_virtual_table_table_pointer_type */
 
-#endif /* IA64_ABI */
 
 a_type_ptr underlying_type(a_type_ptr type)
 /*

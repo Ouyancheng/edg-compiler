@@ -2618,7 +2618,8 @@ typedef unsigned long a_region_descr_flags_set;
 #define RDF_NONE		0
 #define RDF_INDIRECT		0x01
 			/* TRUE if the address provided by the handle field
-			   is a pointer to the object. */
+			   is a pointer to the object.  Not used in the
+			   fully-lowered portable form. */
 #define RDF_CONDITIONAL_FLAG	0x02
 			/* TRUE if the object has an associated flag that
 			   indicates whether the construction has occurred.
@@ -2658,16 +2659,26 @@ by the EDG-supplied runtime.
                            More detailed information on RDF_LET_THIS
                            is available from KAI. */
 #endif /* !DO_FULL_PORTABLE_EH_LOWERING && USING_KAI_INLINER */
-#if !IA64_ABI
 #define RDF_BASE_CLASS_SUBOBJECT	0x40
 			/* TRUE if the object is a base class of some other
 			   object and therefore is not a complete object. */
-#endif /* !IA64_ABI */
+#define RDF_SUBOBJECT_VTABLE		0x80
+			/* When RDF_BASE_CLASS_SUBOBJECT is TRUE, this
+			   flag indicates that a region entry following
+			   this one gives the address of the subobject
+			   destruction vtable table to be used when
+			   calling the destructor.  If there is also an
+			   extra entry for a conditional flag, the
+			   subobject vtable entry follows the flag entry.
+			   Note that this uses the same bit as
+			   RDF_GUARD_VAR_FOR_LOCAL_STATIC. */
 #define RDF_GUARD_VAR_FOR_LOCAL_STATIC	0x80
 			/* TRUE if the object is the guard variable associated
 			   with the initialization of a local static variable.
 			   The cleanup action is to set the variable back
-			   to zero. */
+			   to zero.  Note that this uses the same bit as
+			   RDF_SUBOBJECT_VTABLE, and is valid only when
+			   RDF_BASE_CLASS_SUBOBJECT is FALSE. */
 
 
 /* Type used to carry information about the location of an entity in the
@@ -3123,6 +3134,11 @@ the aggregate constant.
   a_constant_ptr dtor_con, handle_con, next_con, flags_con, aggr_con;
   a_type_ptr     ptr_func_type;
 
+#if !DO_FULL_PORTABLE_EH_LOWERING
+  /* Move any addressing flags (e.g., RDF_INDIRECT) from the handle to
+     the flags value. */
+  flags_value |= handle->flags;
+#endif /* !DO_FULL_PORTABLE_EH_LOWERING */
   /* Make the aggregate constant for the entry in the region description
      table.  It has a structure as follows:
        struct region_descr {
@@ -3173,8 +3189,10 @@ static a_constant_ptr make_region_table_entry(
                              a_routine_ptr           routine,
                              a_boolean               is_delete,
                              a_boolean               is_local_static_guard_var,
-                             a_variable_ptr          conditional_flag_var,
+                             a_boolean               has_conditional_flag,
                              a_handle                *conditional_flag_handle,
+                             a_boolean               has_subobject_vtable,
+                             a_handle                *subobject_vtable_handle,
                              a_cleanup_region_number next_region_number,
                              a_cleanup_region_number *region_number,
                              an_insert_location      *insert_location)
@@ -3186,11 +3204,14 @@ TRUE) to be called to do cleanup on the object.  is_local_static_guard_var
 is TRUE if the object is the guard variable for a local static variable
 initialization, and the region entry should indicate that the guard variable
 is to be reset to zero (that's the "destruction" associated with
-the guard variable).  conditional_flag_var, if non-NULL, points to a
+the guard variable).  has_conditional_flag is TRUE if there is a
 conditional flag variable that is non-zero to indicate that the
 destruction or deletion should be done.  In that case,
 conditional_flag_handle gives the handle for the address for the
-conditional flag.  next_region_number is used as the
+conditional flag.  has_subobject_vtable is TRUE if a subobject
+construction vtable needs to be passed to the destructor.  In that
+case, subobject_vtable_handle gives the handle for the address
+for the vtable.  next_region_number is used as the
 next-region-table-entry number for the new entry.  The region table
 entry number for the new entry is returned in *region_number.  Any
 initialization code required will be inserted at *insert_location.  The
@@ -3206,9 +3227,6 @@ aggregate constant for the region table entry.
 
   /* Make the handle for the entity. */
   make_handle_for_entity(ipdp, &handle, insert_location);
-#if !DO_FULL_PORTABLE_EH_LOWERING
-  flags_value |= handle.flags;
-#endif /* !DO_FULL_PORTABLE_EH_LOWERING */
   /* See if we need array information on the entity. */
   if (ipdp->array_element_sequence ||
       is_array_type(type_from_init_pos_descr(ipdp))) {
@@ -3232,7 +3250,7 @@ aggregate constant for the region table entry.
   if (is_local_static_guard_var) {
     flags_value |= RDF_GUARD_VAR_FOR_LOCAL_STATIC;
   }  /* if */
-  if (conditional_flag_var != NULL) {
+  if (has_conditional_flag) {
     /* This entry needs a conditional flag.  More on this below. */
     /* The object address table entry must be initialized when the conditional
        flag is initialized; here is too late because the runtime needs to
@@ -3247,9 +3265,12 @@ aggregate constant for the region table entry.
   if (ipdp->base_class_subobject) {
     /* The entity is a base class subobject (in a constructor or
        destructor). */
-#if !IA64_ABI
     flags_value |= RDF_BASE_CLASS_SUBOBJECT;
-#else /* IA64_ABI */
+    if (has_subobject_vtable) {
+      /* This entry has a subobject vtable.  More on this below. */
+      flags_value |= RDF_SUBOBJECT_VTABLE;
+    }  /* if */
+#if IA64_ABI
     routine = alternate_entry_point(routine, 
                                     (a_ctor_or_dtor_kind)cdk_subobject,
                                     /*define_now=*/FALSE);
@@ -3276,10 +3297,18 @@ aggregate constant for the region table entry.
                                               &handle,
                                               next_region_number,
                                               flags_value);
-  if (conditional_flag_var != NULL) {
+  if (has_conditional_flag) {
     /* Make a second region table entry for the conditional flag. */
     (void)add_region_table_entry((a_routine_ptr)NULL,
                                  conditional_flag_handle,
+                                 null_eh_region_number,
+                                 (a_region_descr_flags_set)RDF_NONE);
+  }  /* if */
+  if (has_subobject_vtable) {
+    /* Make an additional region table entry for the subobject vtable
+       address. */
+    (void)add_region_table_entry((a_routine_ptr)NULL,
+                                 subobject_vtable_handle,
                                  null_eh_region_number,
                                  (a_region_descr_flags_set)RDF_NONE);
   }  /* if */
@@ -3353,7 +3382,9 @@ The region table variable is created if necessary.
 {
   a_destructible_entity_descr_ptr dedp = dip->destructible_entity_descr;
   a_handle                        conditional_flag_handle;
+  a_handle                        subobject_vtable_handle;
   a_cleanup_region_number         next_region_number;
+  an_init_pos_descr               ipd;
 
   check_assertion(dedp != NULL);
   /* Make a handle that describes the address of the conditional flag if
@@ -3362,10 +3393,41 @@ The region table variable is created if necessary.
 #if DO_FULL_PORTABLE_EH_LOWERING
     conditional_flag_handle = dedp->conditional_flag_handle;
 #else /* !DO_FULL_PORTABLE_EH_LOWERING */
-    an_init_pos_descr ipd;
     set_var_init_pos_descr(dedp->conditional_flag_var, &ipd);
     make_handle_for_entity(&ipd, &conditional_flag_handle, insert_location);
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
+  }  /* if */
+  /* Make a handle that describes the address of the subobject vtable
+     if any. */
+  if (dedp->needs_subobject_construction_vtbl) {
+    an_expr_node_ptr vtt_addr_node;
+    a_variable_ptr   temp_var;
+    /* Make an expression that computes the address of the VTT to use. */
+#if IA64_ABI
+    build_construction_vtbls_pointer(dip,
+                                     (an_init_pos_descr *)NULL,
+                                     (an_insert_location_ptr)NULL,
+                                     &vtt_addr_node);
+#else /* !IA64_ABI */
+    vtt_addr_node = vtbl_addr_from_construction_vtbls_array(
+                             dedp->construction_vtbls_var,
+                             dedp->construction_vtbls_var_is_array,
+                             dedp->subobject_construction_base_class->
+                               base_subarray_index_in_construction_vtbl_array);
+#endif /* IA64_ABI */
+    /* Assign the VTT pointer to a temporary. */
+    temp_var = make_lowered_temporary(make_virtual_table_table_pointer_type());
+    (void)insert_var_assignment_statement(temp_var,
+                                          (an_expr_operator_kind)eok_passign,
+                                          vtt_addr_node,
+                                          insert_location);
+    set_var_indirect_init_pos_descr(temp_var, &ipd);
+    make_handle_for_entity(&ipd, &subobject_vtable_handle, insert_location);
+#if !IA64_ABI
+    /* Make a routine that sets the transfer pointer and calls the
+       destructor, and record that as the "destructor" to be called. */
+    dip->destructor = make_subobject_destruction_routine(dip);
+#endif /* IA64_ABI */
   }  /* if */
   dedp->next_in_region_table = next_dip;
   next_region_number = cleanup_region_number(
@@ -3377,8 +3439,10 @@ The region table variable is created if necessary.
                                             is_freeing_of_storage_on_exception,
                                      (a_boolean)dip->
                                         is_guard_var_for_local_static_var_init,
-                                     dedp->conditional_flag_var,
+                                     (dedp->conditional_flag_var != NULL),
                                      &conditional_flag_handle,
+                                     dedp->needs_subobject_construction_vtbl,
+                                     &subobject_vtable_handle,
                                      next_region_number,
                                      &dedp->region_number,
                                      insert_location);
