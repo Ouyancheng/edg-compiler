@@ -1556,10 +1556,14 @@ is set to TRUE; otherwise it is set to FALSE.
       /* Members of unions or aggregates cannot be incomplete. */
       a_boolean top_level = (context->prev_context == NULL);
       if (top_level && is_array_type(member_type) && (*field)->next == NULL) {
-        /* ... except that in several modes it's okay to initialize
-           a field of incomplete array type when it's the last field in
-           the struct (but only when the struct is the top-level object
-           type).  (See also: check_field_type.) */
+        /* ... except that in several modes it's okay to declare a field
+           of incomplete array type when it's the last field in the struct
+           (but only when the struct is the top-level object type).
+           (See also: check_field_type.)  Only in Microsoft mode can such
+           a field be initialized. */
+        if (!microsoft_mode) {
+          error(ec_too_many_initializer_values);
+        }  /* if */
       } else {
         internal_error("get_field_init_info: can't init 0-size member");
       }  /* if */

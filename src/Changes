@@ -1,5 +1,14 @@
 Version 2.45
 
+11/16/00 Abort on designator referring to a flexible array member
+
+A designation referring to a flexible array member used to trigger an
+internal error in the front end.  Now it is diagnosed with a normal
+error, except in Microsoft mode where it is accepted.
+
+  struct A { int i; int a[]; };
+  struct A a = { .b = 2; };  // Used to cause an abort
+
 11/16/00 On Linux, __unix__ predefined instead of unix
 
 When the front end is compiled on a Linux system, the macro __unix__
