@@ -1596,6 +1596,8 @@ is_explicit_instantiation is TRUE if the declaration being scanned
 is part of an explicit instantiation.  This causes a class specifier
 of the form "class A<int>" to not be considered a specific declaration of
 the template.  is_typedef is TRUE if the class specifier is being typedefed.
+is_ref_within_new_expr indicates that the specifier is parsed as part of a
+new expression and should therefore not be treated as a declaration.
 */
 {
   a_symbol_kind           tag_kind;
@@ -1924,6 +1926,7 @@ the template.  is_typedef is TRUE if the class specifier is being typedefed.
         if (is_template_specialization) {
           /* A specialization using the template<> syntax. */
           if (is_class_definition || curr_token == tok_semicolon) {
+            check_assertion(!is_ref_within_new_expr);
             is_template_specific_decl = TRUE;
             if (class_type->variant.class_struct_union.is_specialized) {
               /* Redeclaration. */
@@ -1991,7 +1994,7 @@ the template.  is_typedef is TRUE if the class specifier is being typedefed.
           set_to_named_error_locator(locator);
           err = TRUE;
         } else if (is_class_definition ||
-            (curr_token == tok_semicolon &&
+            (curr_token == tok_semicolon && !is_ref_within_new_expr &&
              !is_friend_decl && !is_explicit_instantiation &&
              (!microsoft_mode || microsoft_version < 1100))) {
           /* We have a specific declaration of a template class.  Note that
@@ -2190,6 +2193,7 @@ the template.  is_typedef is TRUE if the class specifier is being typedefed.
               (vacuous_decl_allowed && curr_token == tok_semicolon)) {
             /* Either a definition or a vacuous declaration -- the latter
                introduces a name into the current scope. */
+            check_assertion(!is_ref_within_new_expr);
             set_class_membership(tag_sym, &class_type->source_corresp,
                                  scope_stack[decl_scope_level].assoc_type);
             class_type->source_corresp.access = ssep->current_access;
