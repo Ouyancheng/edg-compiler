@@ -414,8 +414,20 @@ to be folded into the constructor or destructor if possible.
 /* IL lowering requires that the delete be folded into the destructor.
    Otherwise the size is not available for the two-argument delete case.
    There is a consistency check in lower_il.c */
-#define NEW_CAN_BE_FOLDED_INTO_CTOR TRUE
-#define DELETE_CAN_BE_FOLDED_INTO_DTOR TRUE
+#ifndef NEW_CAN_BE_FOLDED_INTO_CTOR
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
+#define NEW_CAN_BE_FOLDED_INTO_CTOR TRUE  /* cfront compatibility setting. */
+#else /* !CFRONT_OBJECT_CODE_COMPATIBILITY */
+#define NEW_CAN_BE_FOLDED_INTO_CTOR TRUE  /* Can be changed. */
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
+#endif /* ifndef NEW_CAN_BE_FOLDED_INTO_CTOR */
+#ifndef DELETE_CAN_BE_FOLDED_INTO_DTOR
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
+#define DELETE_CAN_BE_FOLDED_INTO_DTOR TRUE /* cfront compatibility setting. */
+#else /* !CFRONT_OBJECT_CODE_COMPATIBILITY */
+#define DELETE_CAN_BE_FOLDED_INTO_DTOR TRUE  /* Can be changed. */
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
+#endif /* ifndef DELETE_CAN_BE_FOLDED_INTO_DTOR */
 /* If assignment to "this" is allowed, the folding must be done. */
 #if ASSIGNMENT_TO_THIS_ALLOWED && !NEW_CAN_BE_FOLDED_INTO_CTOR
 ??=error -- NEW_CAN_BE_FOLDED_INTO_CTOR set wrong.
@@ -441,17 +453,16 @@ into the runtime routine to process those.
 /* This must be TRUE for IL lowering.  There's a consistency check there. */
 
 /*
-Enumerated types:
+Enumerated types:  Default setting for enum_types_can_be_smaller_than_int.
+If TRUE, enumerated types can be allocated in integral types smaller than int.
 */
+#ifndef DEFAULT_ENUM_TYPES_CAN_BE_SMALLER_THAN_INT
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
-#define DEFAULT_ENUM_TYPES_CAN_BE_SMALLER_THAN_INT FALSE /* Do not change */
+#define DEFAULT_ENUM_TYPES_CAN_BE_SMALLER_THAN_INT FALSE /* cfront compat. */
 #else /* !CFRONT_OBJECT_CODE_COMPATIBILITY */
-#define DEFAULT_ENUM_TYPES_CAN_BE_SMALLER_THAN_INT FALSE
+#define DEFAULT_ENUM_TYPES_CAN_BE_SMALLER_THAN_INT FALSE  /* Can be changed. */
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
-			/* Default setting for
-			   enum_types_can_be_smaller_than_int.  If TRUE,
-			   enumerated types can be allocated in integral
-			   types smaller than int. */
+#endif /* ifndef DEFAULT_ENUM_TYPES_CAN_BE_SMALLER_THAN_INT */
 
 /*
 Definition of shift operations:
