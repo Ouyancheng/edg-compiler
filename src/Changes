@@ -1,5 +1,16 @@
 Version 2.45
 
+8/9/00  Source position on expression from pointer-to-member call
+
+The source position in the IL expression for a pointer-to-member call
+of the form
+
+  (p->*x)(y)
+
+was not quite correct.  The start position of the call was
+given as the position of the "p" rather than the position of the
+opening left parenthesis.  Now fixed.
+
 8/9/00  Folding of constant address expressions in aggregate class
         initializations
 

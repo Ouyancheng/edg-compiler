@@ -294,31 +294,6 @@ IDL_PROJ_SYMBOL_ALLOWED is specified in options.
 
 
 #if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
-static int compare_source_positions(a_source_position	*pos1,
-			            a_source_position  *pos2)
-/*
-Compare two source positions.
-
-  Return +1 if pos1 is greater than pos2.
-  Return  0 if pos1 is equal to pos2.
-  Return -1 if pos1 is less than pos2.
-
-*/
-{
-  int		result;
-  a_seq_number	seq1 = pos1->seq;
-  a_seq_number	seq2 = pos2->seq;
-  if (seq1 != seq2) {
-    result = (seq1 > seq2) ? 1 : -1;
-  } else {
-    /* If the sequence numbers are equal, check the column numbers. */
-    a_column_number column1 = pos1->column;
-    a_column_number column2 = pos2->column;
-    result = (column1 == column2) ? 0 : ((column1 > column2) ? 1 : -1);
-  }  /* if */
-  return result;
-}  /* compare_source_positions */
-
 
 static a_symbol_ptr check_for_cfront_name_lookup_bug
 					(a_type_ptr                class_type,

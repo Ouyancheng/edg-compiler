@@ -1135,8 +1135,16 @@ Syntax:
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   opening_paren_tok_seq_number = curr_token_sequence_number;
   function_position = call_position = operand->position;
+  /* If the operand is a bound function, the start position of the call
+     is the start of the selector.  Watch out for pointer to
+     member calls like (x->*y)(z), where the position of the selector
+     is later than the position of the operand, because the latter includes
+     the left parenthesis. */
   start_position = (operand->bound_function &&
-                    bound_function_selector->position.seq != 0) ?
+                    bound_function_selector->position.seq != 0 &&
+                    compare_source_positions(
+                                &bound_function_selector->position,
+                                &call_position) < 0) ?
                                             bound_function_selector->position :
                                             call_position;
   if (curr_expr_kind_is_const()) {

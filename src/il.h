@@ -235,6 +235,10 @@ a function can be substituted that does something else.
 */
 #define unique_id_for_il_pointer(ptr) ((unsigned long)(ptr))
 
+
+extern int compare_source_positions(a_source_position  *pos1,
+				    a_source_position  *pos2);
+
 /*
 Dynamically-allocated and expandable buffer used for short-lived text.
 "short-lived" means text that is needed during a bit of processing during
