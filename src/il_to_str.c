@@ -1531,7 +1531,6 @@ handle_specifiers_type:
                             /*need_trailing_space=*/TRUE, octl);
       }  /* if */
       form_type_specifier(type, octl);
-      /* Put out a trailing space if required. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (type->has_microsoft_w64_specifier &&
           !(octl->gen_compilable_code && octl->c_generating_back_end)) {
@@ -1540,6 +1539,7 @@ handle_specifiers_type:
         octl->output_str(" __w64");
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      /* Put out a trailing space if required. */
       if (need_trailing_space) octl->output_str(" ");
     }  /* if */
   }  /* if */

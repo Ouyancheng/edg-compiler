@@ -4848,8 +4848,8 @@ Microsoft keyword __w64.
 
   if (source_type->has_microsoft_w64_specifier &&
       !dest_type->has_microsoft_w64_specifier &&
-      dest_type->size == 4 && is_integral_type(dest_type)) {
-    check_assertion(source_type->size == 4);
+      skip_typerefs(dest_type)->size == 4 && is_integral_type(dest_type)) {
+    check_assertion(skip_typerefs(source_type)->size == 4);
     result = TRUE;
   }  /* if */
   return result;
