@@ -7284,7 +7284,7 @@ that follows.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         rp->is_specialization = TRUE;
         rp->suppress_instantiation = TRUE;
-        if (func_info.is_inline) rp->is_inline = TRUE;
+        rp->is_inline = func_info.is_inline;
         if (func_info.is_inline ||
             storage_class == (a_storage_class)sc_static ||
             (scp->is_class_member ?
@@ -7973,7 +7973,7 @@ defer_inline is TRUE.
   a_template_symbol_supplement_ptr tssp;
   a_boolean			   add_to_list = TRUE;
 
-  db_enter(5, "update_instantiation_required_flag");
+  db_enter(5, "-update_instantiation_required_flag");
   sym = tip->instance_sym;
   tssp = template_supplement_for_symbol(tip->template_sym);
 #if DEBUG
@@ -8897,6 +8897,7 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
   a_source_position             template_keyword_pos;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
+  db_enter(3, "instantiation_directive");
   if (!is_pragma) {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     ssep = add_empty_source_sequence_entry();
@@ -9023,6 +9024,7 @@ done:;
     }  /* if */
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  db_exit();
 }  /* instantiation_directive */
 
 
@@ -9171,6 +9173,7 @@ access errors that were detected.
 	 			saved_instantiation_mode = instantiation_mode;
   a_scope_stack_entry_ptr	ssep = &scope_stack[depth_scope_stack];
 
+  db_enter(3, "explicit_instantiation");
   /* Pragmas cannot bind to explicit instantiations. */
   cannot_bind_to_curr_construct();
   add_stop_token(tok_semicolon);
@@ -9194,6 +9197,7 @@ access errors that were detected.
   }  /* if */
   remove_stop_token(tok_semicolon);
   instantiation_mode = saved_instantiation_mode;
+  db_exit();
 }  /* explicit_instantiation */
 
 
@@ -9207,6 +9211,7 @@ semicolon terminating the template declaration is left as the current token;
 otherwise, it is consumed.
 */
 {
+  db_enter(3, "template_directive_or_declaration");
   if (next_token() == tok_lt) {
     /* The template keyword is followed by a template parameter list.
        This is a template declaration or a specialization using the new
@@ -9223,6 +9228,7 @@ otherwise, it is consumed.
       (void)required_token(tok_semicolon, ec_exp_semicolon);
     }  /* if */
   }  /* if */
+  db_exit();
 }  /* template_directive_or_declaration */
 
 
