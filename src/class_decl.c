@@ -9197,17 +9197,17 @@ static void check_operator_new_and_delete(a_symbol_ptr  tag_sym)
         }  /* if */
         /* Loop through the entire overload set of operator new symbols. */
         for (; sym != NULL; sym = is_overloaded ? sym->next : NULL) {
-          if (sym->kind == (a_symbol_kind)sk_member_function) {
-            if (find_corresponding_operator_delete_sym(sym, class_type,
-                                                       &ambiguous) == NULL &&
-                !ambiguous) {
-              /* There is no operator delete that "corresponds" to this
-                 operator new (i.e., whose parameter types after the first
-                 match). */
-              pos_stsy_diagnostic(es_warning, ec_no_corresponding_op_delete,
-                                  &sym->decl_position,
-                                  array_pass ? "[]" : "", sym);
-            }  /* if */
+          a_symbol_ptr  ovl_sym;
+          if (find_corresponding_operator_delete_sym(sym, class_type,
+                                                     &ambiguous, &ovl_sym)
+                                                                   == NULL &&
+              !ambiguous) {
+            /* There is no operator delete that "corresponds" to this
+               operator new (i.e., whose parameter types after the first
+               match). */
+            pos_stsy_diagnostic(es_warning, ec_no_corresponding_op_delete,
+                                &sym->decl_position,
+                                array_pass ? "[]" : "", sym);
           }  /* if */
         }  /* for */
       }  /* if */
