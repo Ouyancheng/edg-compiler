@@ -640,7 +640,7 @@ error code.
       m = "name conflicts with previously used external name %sq";
       break;
     case ec_routine_definition_missing:
-      m = "the definition for function %sq is missing";
+      m = "function %n was referenced but not defined";
       break;
     case ec_unrecognized_pragma:
       m = "unrecognized #pragma";
