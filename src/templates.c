@@ -3353,7 +3353,7 @@ template parameter list.
             match = matches_template_type_for_class_type(type, templ_type,
                                                          templ_arg_list,
                                                          templ_param_list);
-            if (!match && (flags & MTT_ALLOW_CONVERSION != 0)) {
+            if (!match && (flags & MTT_ALLOW_CONVERSION) != 0) {
               a_base_class_ptr	bcp;
               /* See if the type matches a base class type of actual argument
                  type.  This is allows a Derived<T> to be passed to a function

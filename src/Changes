@@ -1,5 +1,11 @@
 Version 2.37
 
+6/25/97   Precedence warning caused by misplaced parenthesis
+
+A coding mistake in templates.c could cause a precedence warning when
+building the front end, although the code executed correctly.  This
+has been fixed.
+
 6/25/97   Suppressing automatic instantiation of unneeded template instance
 
 If automatic template instantiation is triggered by a reference that proves
