@@ -66,9 +66,6 @@ at the beginning of get_token need to be done.
                                         cached_token_rescan_list != NULL || \
                                         reusable_cache_stack != NULL)	   \
 
-/* Get a C++ operator name, like "operator+". */
-#define get_opname(class_type)                                        \
-  ((curr_token == tok_operator) ? f_get_opname(class_type) : FALSE)
 
 /* Macro to check prevent calling the error checking function unless some
    error flags have been specified. */
@@ -5256,15 +5253,14 @@ only in C++ mode.
 }  /* f_get_destructor_name */
 
 
-static a_boolean f_get_opname(a_type_ptr class_type)
+static a_boolean get_opname(a_type_ptr class_type)
 /*
 The current token is the token "operator" at the start of an operator name,
 like "operator+".  Scan the name and build a locator for the operator name
-in locator_for_curr_id.  Return TRUE always (this routine is called from the
-macro get_opname; it handles the FALSE case).  class_type is a pointer
-to the class type of a the qualified name associated with the generalized
-identifier being scanned.  If class_type is not NULL then push a class
-reactivation scope before scanning type name in a type conversion operator.
+in locator_for_curr_id.  class_type is a pointer to the class type of the
+class qualifier associated with the generalized identifier being scanned.
+If class_type is not NULL then push a class reactivation scope before
+scanning the type name in a type conversion operator.
 
 This routine is called only in C++ mode.
 */
@@ -5321,9 +5317,7 @@ This routine is called only in C++ mode.
     curr_token = tok_identifier;
     pos_curr_token = error_position = start_position;
   }  /* if */
-  /* Always return TRUE, as a convenience to macro get_opname. */
-  return TRUE;
-}  /* f_get_opname */
+}  /* get_opname */
 
 
 static a_boolean is_global_new_or_delete(void)
@@ -6565,7 +6559,7 @@ This routine may only be called in C++ mode.
       }  /* if*/
     }  /* if */
     /* The name can be an operator name like "operator+". */
-    (void)get_opname(class_type);
+    if (curr_token == tok_operator) get_opname(class_type);
 wrapup:
     /* The current token must now be the final identifier of the
        qualified name, e.g., "x" in "A::B::x".  In the destructor and
