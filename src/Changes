@@ -11,9 +11,9 @@ For example:
   template<typename> struct S {
     static int const c = 3;  // Member constant.
   };
-  template<typename T> int const S<T>::c = 3;
-      // Normally a duplicate initialization error, but now ignored with a
-      // warning in Sun mode.
+  template<typename T> int const S<T>::c = 4;
+      // Normally a duplicate initialization error (when instantiated),
+      // but now ignored with a warning in Sun mode.
 
 7/7/04   Abort on designated initializer in g++ mode
 
