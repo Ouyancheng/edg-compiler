@@ -48,6 +48,11 @@ static void lower_destructor_dynamic_init(
                                    an_insert_location_ptr insert_location);
 static void reset_conditional_flag_var(a_variable_ptr     conditional_flag_var,
                                        an_insert_location *insert_location);
+static an_expr_node_ptr make_assignment_expr_with_subobject_fix(
+                                    an_expr_node_ptr      dest_node,
+                                    a_boolean             have_complete_object,
+                                    an_expr_operator_kind op,
+                                    an_expr_node_ptr      source_node);
 #if IA64_ABI
 static a_routine_ptr helper_routine_to_zero_entity(
                                             a_type_ptr    type,
@@ -1140,14 +1145,17 @@ NULL pointer-to-data member in the IA-64 ABI.
 static void add_init_assignment(a_dynamic_init_ptr     dip,
                                 a_constant_ptr         con,
                                 an_expr_node_ptr       entity_node,
+                                a_boolean              have_complete_object,
                                 an_insert_location_ptr insert_location)
 /*
 Make an assignment statement to implement the dynamic initialization
 described by dip.  If dip is NULL, con indicates the constant value of
 the initializer.  entity_node is an expression that gives the address
-of the entity to be initialized.  Insert the statement at *insert_location
-and update *insert_location.  The constant or expression initial value
-pointed to by dip or con is already lowered.
+of the entity to be initialized.  have_complete_object is TRUE if the
+entity being initialized is a complete object; FALSE means a base
+class subobject.  Insert the statement at *insert_location and update
+*insert_location.  The constant or expression initial value pointed
+to by dip or con is already lowered.
 */
 {
   an_expr_node_ptr      init_val_node, assign_node;
@@ -1199,11 +1207,10 @@ pointed to by dip or con is already lowered.
   } else {
     op = lowered_assignment_operator(init_val_node->type);
   }  /* if */
-  assign_node = make_assignment_expr(entity_node, op, init_val_node);
-  if (op == (an_expr_operator_kind)eok_sassign) {
-    /* Eliminate empty base class assignments. */
-    eliminate_assignment_if_empty_class(assign_node);
-  }  /* if */
+  assign_node = make_assignment_expr_with_subobject_fix(entity_node,
+                                                        have_complete_object,
+                                                        op,
+                                                        init_val_node);
   assign_stmt = insert_expr_statement(assign_node, insert_location);
   set_stmt_pos_to_code_pos_for_lowering(assign_stmt);
 }  /* add_init_assignment */
@@ -1322,7 +1329,7 @@ subobject.  Insert the statement at *insert_location and update
 *insert_location.
 */
 {
-  an_expr_node_ptr      source_node, dest_node;
+  an_expr_node_ptr      source_node, dest_node, assign_node;
   a_type_ptr            type;
   an_expr_operator_kind op;
 
@@ -1358,8 +1365,11 @@ subobject.  Insert the statement at *insert_location and update
       /* For other kinds, use a block move. */
       op = (an_expr_operator_kind)eok_bassign;
     }  /* if */
-    (void)insert_assignment_statement(dest_node, op, source_node,
-                                      insert_location);
+    assign_node = make_assignment_expr_with_subobject_fix(dest_node,
+                                                          have_complete_object,
+                                                          op,
+                                                          source_node);
+    (void)insert_expr_statement(assign_node, insert_location);
   }  /* if */
 }  /* add_bitwise_copy */
 
@@ -3597,6 +3607,7 @@ aggregate, set *keep_constant to TRUE.
                                             /*using_as_dest=*/TRUE);
         con_ptr->next = NULL;
         add_init_assignment((a_dynamic_init *)NULL, con_ptr, entity_node,
+                            /*have_complete_object=*/FALSE,
                             insert_location);
       } else {
         /* Normal case.  Keep this as part of a constant aggregate. */
@@ -4794,7 +4805,6 @@ may have to be cloned.  If any are, *some_cloned is returned TRUE.
   set_curr_cleanup_state_to_latest_initialization();
 }  /* adjust_cleanup_state_for_aggregate_init */
 
-#if IA64_ABI
 
 /*
 Pointer to the routine entry for the C library routine memcpy.  NULL until
@@ -4803,6 +4813,122 @@ created.
 static a_routine_ptr
 		memcpy_routine;
 
+
+void rewrite_class_assignment_if_necessary(an_expr_node_ptr expr)
+/*
+expr is an eok_sassign assignment.  It's defined to do what the
+C++ generated bitwise operator= would do, which is copy the data
+of the class but not any tail padding.  If a C structure assignment
+would copy too much, replace the assignment with the proper operation.
+For an empty class, eliminate the copy (since it's supposed to
+copy nothing) but keep any side effects.
+*/
+{
+  a_type_ptr class_type = expr->type;
+  a_boolean  returns_lvalue =
+                expr->variant.operation.returns_lvalue_instead_of_usual_rvalue;
+
+  if (returns_lvalue) {
+    /* The assignment returns an lvalue, so the expression type is a
+       pointer to the class type. */
+    class_type = type_pointed_to(class_type);
+  }  /* if */
+  class_type = skip_typerefs(class_type);
+  /* The is_immediate_class_type test avoids problems with lowered
+     pointer-to-member-function assignments. */
+  if (is_immediate_class_type(class_type)) {
+    an_expr_node_ptr op1 = expr->variant.operation.operands;
+    an_expr_node_ptr op2 = op1->next;
+    if (class_type->variant.class_struct_union.is_empty_class) {
+      /* An empty class.  Eliminate the assignment but keep the side effects
+         by rewriting it as a comma node. */
+      /* Unless the assignment returns an lvalue, op1 needs an extra
+         indirection to produce an rvalue. */
+      if (!returns_lvalue) {
+        op1 = add_indirection_to_node(op1);
+      }  /* if */
+      /* If op2 has no side effects, just overwrite the original expression
+         with the (possibly adjusted) op1. */
+      if (!node_has_side_effects(op2, (a_boolean *)NULL)) {
+        overwrite_node(expr, op1);
+      } else {
+        /* Rewrite the expression as a comma node. */
+        /* Flip the operands so that the left-side operand is returned, for
+           the case where the assignment returns an lvalue. */
+        op2->next = op1;
+        op1->next = NULL;
+        set_node_operator(expr, (an_expr_operator_kind)eok_comma,
+                          expr->type, op2);
+      }  /* if */
+    } else {
+      a_class_type_supplement_ptr ctsp =
+                             class_type->variant.class_struct_union.extra_info;
+      if (ctsp != NULL) {
+        a_targ_size_t entity_size = class_type->variant.class_struct_union.
+                                 extra_info->size_without_virtual_base_classes;
+        if (entity_size != class_type->size) {
+          /* A class with tail padding.  Rewrite the copy as a memcpy call. */
+          an_expr_node_ptr call_node;
+          a_boolean        converted;
+          op1->next = NULL;
+          op1 = add_cast(op1, void_star_type());
+          /* op2 is an rvalue, but we need an address for the memcpy. */
+          conv_rvalue_expr_to_object_pointer(&op2, &converted,
+                                             /*see_if_possible=*/FALSE,
+                                             /*gcc_lvalue=*/FALSE,
+                                             /*ignore_casts=*/FALSE,
+                                             (a_type_ptr *)NULL);
+          if (!converted) {
+            /* Couldn't extract an address from the rvalue.  Copy the
+               rvalue to a temporary and take the address of the temporary. */
+            a_variable_ptr temp = assign_expr_to_temp(op2);
+            op2 = make_comma_node(op2, var_lvalue_expr(temp));
+            set_variable_address_taken(temp);
+          }  /* if */
+          op2 = add_cast(op2, make_pointer_type(
+                                  make_qualified_type(void_type(), TQ_CONST)));
+          op1->next = op2;
+          op2->next = node_for_host_large_integer(
+                                             (a_host_large_integer)entity_size,
+                                             targ_size_t_int_kind);
+          call_node = make_runtime_rout_call("memcpy", &memcpy_routine,
+                                             void_star_type(), op1);
+          if (!returns_lvalue && !expr->result_is_not_used) {
+            call_node = add_cast(call_node, make_pointer_type(expr->type));
+            call_node = add_indirection_to_node(call_node);
+          }  /* if */
+          overwrite_node(expr, call_node);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* rewrite_class_assignment_if_necessary */
+
+
+static an_expr_node_ptr make_assignment_expr_with_subobject_fix(
+                                    an_expr_node_ptr      dest_node,
+                                    a_boolean             have_complete_object,
+                                    an_expr_operator_kind op,
+                                    an_expr_node_ptr      source_node)
+/*
+Create and return an assignment node that assigns source_node to dest_node
+using the assignment operator op.  have_complete_object is TRUE if the
+destination is a complete object; FALSE means a base class subobject.
+If the assignment is to a subobject, alter the assignment appropriately.
+*/
+{
+  an_expr_node_ptr assign_node;
+
+  assign_node = make_assignment_expr(dest_node, op, source_node);
+  if (!have_complete_object &&
+      op == (an_expr_operator_kind)eok_sassign) {
+    /* Fix subobject assignments. */
+    rewrite_class_assignment_if_necessary(assign_node);
+  }  /* if */
+  return assign_node;
+}  /* make_assignment_expr_with_subobject_fix */
+
+#if IA64_ABI
 
 static a_routine_ptr helper_routine_to_zero_entity(
                                             a_type_ptr    type,
@@ -4831,6 +4957,7 @@ to a constructor to be called after the zeroing have been done.
   a_variable_ptr                model_var, entity_var, count_var;
   a_statement_ptr               loop_stmt, copy_stmt;
   an_expr_node_ptr              entity_expr, ctor_entity_expr, copy_expr;
+  an_expr_operator_kind         assign_op;
   
   /* Build the routine entry.  It has two parameters: a pointer to an entity
      of the indicated type and a count of the number of entities to
@@ -4884,31 +5011,12 @@ to a constructor to be called after the zeroing have been done.
   }  /* if */
   /* Build an expression to copy the model variable to the entity to
      be initialized. */
-  if (!have_complete_object) {
-    /* Base class subobject.  Generate a memcpy to avoid copying more space
-       than necessary. */
-    a_targ_size_t entity_size;
-    a_type_ptr    unqual_type = skip_typerefs(type);
-    check_assertion(is_immediate_class_type(unqual_type));
-    entity_size = unqual_type->variant.class_struct_union.extra_info->
-                                            size_without_virtual_base_classes;
-    /* Use the memcpy only if the class size as a subobject is different
-       that as a complete object. */
-    if (entity_size == unqual_type->size) goto normal_copy;
-    entity_expr->next = var_lvalue_expr(model_var);
-    set_lowering_variable_address_taken(model_var);
-    entity_expr->next->next = node_for_host_large_integer(
-                                             (a_host_large_integer)entity_size,
-                                             targ_size_t_int_kind);
-    copy_expr = make_runtime_rout_call("memcpy", &memcpy_routine,
-                                       void_star_type(), entity_expr);
-  } else {
-normal_copy:
-    /* Normal case -- generate an assignment. */
-    copy_expr = make_assignment_expr(entity_expr, 
-                                     lowered_assignment_operator(type),
-                                     var_rvalue_expr(model_var));
-  }  /* if */
+  assign_op = lowered_assignment_operator(type);
+  copy_expr = make_assignment_expr_with_subobject_fix(
+                                                   entity_expr,
+                                                   have_complete_object,
+                                                   assign_op,
+                                                   var_rvalue_expr(model_var));
   if (ctor_routine != NULL) {
     /* Add a call of the indicated constructor after the copying/zeroing
        code. */
@@ -5468,7 +5576,7 @@ do_assignment:;
       entity_node = make_init_entity_node(ipdp, /*using_as_address=*/FALSE,
                                           /*using_as_dest=*/TRUE);
       add_init_assignment(dip, (a_constant *)NULL, entity_node,
-                          eff_insert_location);
+                          have_complete_object, eff_insert_location);
       break;
     case dik_call_returning_class_via_cctor:
       /* Initialize the entry by calling a routine that returns its result
@@ -11456,8 +11564,8 @@ Do one-time initialization of static variables declared in lower_init.c.
       pch_saved_var_array_elem(vec_delete2_routine),
       pch_saved_var_array_elem(vec_delete3_routine),
       pch_saved_var_array_elem(vec_dtor_routine),
-      pch_saved_var_array_elem(memcpy_routine),
 #endif /* IA64_ABI */
+      pch_saved_var_array_elem(memcpy_routine),
       pch_saved_var_array_elem(memzero_routine),
       pch_saved_var_array_elem(record_needed_destruction_routine),
 #if !IA64_ABI
@@ -11509,8 +11617,8 @@ Do one-time initialization of static variables declared in lower_init.c.
   register_trans_unit_variable(vec_delete2_routine);
   register_trans_unit_variable(vec_delete3_routine);
   register_trans_unit_variable(vec_dtor_routine);
-  register_trans_unit_variable(memcpy_routine);
 #endif /* IA64_ABI */
+  register_trans_unit_variable(memcpy_routine);
   register_trans_unit_variable(memzero_routine);
   register_trans_unit_variable(record_needed_destruction_routine);
 #if !IA64_ABI
@@ -11565,8 +11673,8 @@ for each translation unit.
   vec_delete2_routine = NULL;
   vec_delete3_routine = NULL;
   vec_dtor_routine = NULL;
-  memcpy_routine = NULL;
 #endif /* IA64_ABI */
+  memcpy_routine = NULL;
   memzero_routine = NULL;
   record_needed_destruction_routine = NULL;
 #if !IA64_ABI

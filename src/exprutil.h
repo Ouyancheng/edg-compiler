@@ -798,6 +798,14 @@ extern void take_address_of_lvalue(an_operand *operand);
 
 extern void conv_object_pointer_to_lvalue(an_operand *operand);
 
+extern void conv_rvalue_expr_to_object_pointer(
+                                              an_expr_node_ptr *p_node,
+                                              a_boolean        *converted,
+                                              a_boolean        see_if_possible,
+                                              a_boolean        gcc_lvalue,
+                                              a_boolean        ignore_casts,
+                                              a_type_ptr       *lvalue_type);
+
 extern void conv_class_operand_to_object_pointer(an_operand *operand);
 
 extern a_constant_ptr value_of_constant_var_lvalue_operand(

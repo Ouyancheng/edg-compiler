@@ -771,6 +771,8 @@ extern an_expr_node_ptr make_vbase_class_lvalue_from_var(
                                              a_boolean        complete_object);
 #endif /* !IA64_ABI */
 
+extern a_variable_ptr assign_expr_to_temp(an_expr_node_ptr expr);
+
 extern an_expr_node_ptr assign_expr_to_temp_and_make_expr_for_reuse(
                                                         an_expr_node_ptr expr);
 
@@ -1000,8 +1002,6 @@ extern void lower_bool_incr_decr(an_expr_node_ptr expr);
 
 extern void lower_bool_compound_assignment(an_expr_node_ptr expr,
                                            a_boolean        is_lvalue);
-
-extern void eliminate_assignment_if_empty_class(an_expr_node_ptr expr);
 
 extern void lower_virtual_function_call(an_expr_node_ptr expr);
 

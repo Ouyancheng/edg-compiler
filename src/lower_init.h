@@ -97,6 +97,8 @@ extern void init_conditional_flag_var(
                              a_destructible_entity_descr_ptr dedp,
                              an_insert_location              *insert_location);
 
+extern void rewrite_class_assignment_if_necessary(an_expr_node_ptr expr);
+
 extern void lower_constant_init_of_static_in_extern_inline(
                                                     a_variable_ptr variable,
                                                     a_scope_ptr    scope);

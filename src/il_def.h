@@ -7436,7 +7436,15 @@ enum an_expr_operator_kind_tag {
   eok_pgnu_max,         /* Pointer maximum operator (a GNU C++ extension). */
   eok_pmeq,		/* Pointer-to-member equality. */
   eok_pmne,		/* Pointer-to-member inequality. */
-  eok_sassign,          /* Structure assignment. */
+  eok_sassign,		/* Structure assignment.  In unlowered C++ IL, this
+			   means the operation performed by the generated
+			   bitwise operator=, which is defined to copy only
+			   the data of the class, and not any tail padding
+			   (in other words, it has to be usable to copy a
+			   subobject base class; for an empty base class,
+			   it should copy nothing).  In lowered C++ IL or
+			   in C, this means just a normal C struct copy,
+			   which copies sizeof(struct) bytes. */
   eok_bassign,		/* Block assignment.  Only used in C++ after IL
 			   lowering, for copy constructors etc.  Both the
 			   source and destination are lvalues; does a memcpy

@@ -2641,12 +2641,10 @@ FALSE.
 }  /* is_assignment_to_temp */
 
 
-an_expr_node_ptr assign_expr_to_temp_and_make_expr_for_reuse(
-                                                         an_expr_node_ptr expr)
+a_variable_ptr assign_expr_to_temp(an_expr_node_ptr expr)
 /*
 Change the indicated expression into an assignment of the expression to a
-temporary, then create and return a new expression that refers to the
-temporary.
+temporary, and return a pointer to the temporary.
 */
 {
   an_expr_node_ptr expr_copy, temp_node;
@@ -2664,8 +2662,7 @@ temporary.
       temp_type->source_corresp.assoc_info != NULL) {
     if (!symbol_supplement_for_class(temp_type)->
                                         construction_by_bitwise_copy_allowed) {
-      internal_error(
- "assign_expr_to_temp_and_make_expr_for_reuse: temp of class type with cctor");
+      internal_error("assign_expr_to_temp: temp of class type with cctor");
     }  /* if */
   }  /* if */
 #endif /* CHECKING */
@@ -2676,6 +2673,22 @@ temporary.
   set_expr_node_kind(expr, (an_expr_node_kind)enk_operation);
   set_node_operator(expr, lowered_assignment_operator(temp_type),
                     temp_type, temp_node);
+  return temp;
+}  /* assign_expr_to_temp */
+
+
+an_expr_node_ptr assign_expr_to_temp_and_make_expr_for_reuse(
+                                                         an_expr_node_ptr expr)
+/*
+Change the indicated expression into an assignment of the expression to a
+temporary, then create and return a new expression that refers to the
+temporary.
+*/
+{
+  an_expr_node_ptr expr_copy;
+  a_variable_ptr   temp;
+
+  temp = assign_expr_to_temp(expr);
   /* Make a reference to the temporary as the copy. */
   expr_copy = var_rvalue_expr(temp);
   return expr_copy;
@@ -9315,52 +9328,6 @@ Lower the GNU C++ "<?" (min) and ">?" (max) operators.
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
-
-void eliminate_assignment_if_empty_class(an_expr_node_ptr expr)
-/*
-expr is an eok_sassign assignment.  Eliminate it if it copies an empty
-class, so that it will not disturb surrounding objects if the class
-happens to be a base class.  Keep any side effects.
-*/
-{
-  a_type_ptr class_type = expr->type;
-
-  if (expr->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
-    /* The assignment returns an lvalue, so the expression type is a
-       pointer to the class type. */
-    class_type = type_pointed_to(class_type);
-  }  /* if */
-  class_type = skip_typerefs(class_type);
-  /* The is_immediate_class_type test avoids problems with unlowered
-     pointer-to-member-function assignments. */
-  if (is_immediate_class_type(class_type) &&
-      class_type->variant.class_struct_union.is_empty_class) {
-    /* An empty class.  Eliminate the assignment but keep the side effects
-       by rewriting it as a comma node. */
-    an_expr_node_ptr op1 = expr->variant.operation.operands;
-    an_expr_node_ptr op2 = op1->next;
-    /* Unless the assignment returns an lvalue, op1 needs an extra indirection
-       to produce an rvalue. */
-    if (!expr->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
-      op1 = add_indirection_to_node(op1);
-    }  /* if */
-    /* If op2 has no side effects, just overwrite the original expression
-       with the (possibly adjusted) op1. */
-    if (!node_has_side_effects(op2, (a_boolean *)NULL)) {
-      overwrite_node(expr, op1);
-    } else {
-      /* Rewrite the expression as a comma node. */
-      /* Flip the operands so that the left-side operand is returned, for
-         the case where the assignment returns an lvalue. */
-      op2->next = op1;
-      op1->next = NULL;
-      set_node_operator(expr, (an_expr_operator_kind)eok_comma,
-                        expr->type, op2);
-    }  /* if */
-  }  /* if */
-}  /* eliminate_assignment_if_empty_class */
-
-
 static a_routine_ptr routine_from_node(an_expr_node_ptr node)
 /*
 node is an expression node that is the address of a specific routine.
@@ -11170,7 +11137,7 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
                                                                          type);
             break;
           case eok_sassign:
-            eliminate_assignment_if_empty_class(expr);
+            rewrite_class_assignment_if_necessary(expr);
             break;
           case eok_pm_field:
             /* Pointer-to-member selection of a data member. */

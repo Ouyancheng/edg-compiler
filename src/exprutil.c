@@ -31,13 +31,6 @@ exprutil.c -- Expression scanning utility routines.
 
 /* Forward declarations required: */
 static void conv_array_rvalue_to_lvalue(an_operand *operand);
-static void conv_rvalue_expr_to_object_pointer(
-                                              an_expr_node_ptr *p_node,
-                                              a_boolean        *converted,
-                                              a_boolean        see_if_possible,
-                                              a_boolean        gcc_lvalue,
-                                              a_boolean        ignore_casts,
-                                              a_type_ptr       *lvalue_type);
 
 
 /*
@@ -7586,13 +7579,12 @@ result type for the lvalue operation (with no extra pointer-to level).
 }  /* okay_as_gcc_lvalue_question */
 
 
-static void conv_rvalue_expr_to_object_pointer(
-                                              an_expr_node_ptr *p_node,
-                                              a_boolean        *converted,
-                                              a_boolean        see_if_possible,
-                                              a_boolean        gcc_lvalue,
-                                              a_boolean        ignore_casts,
-                                              a_type_ptr       *lvalue_type)
+void conv_rvalue_expr_to_object_pointer(an_expr_node_ptr *p_node,
+                                        a_boolean        *converted,
+                                        a_boolean        see_if_possible,
+                                        a_boolean        gcc_lvalue,
+                                        a_boolean        ignore_casts,
+                                        a_type_ptr       *lvalue_type)
 /*
 *p_node is an expression tree for an rvalue.  If possible, rewrite it
 as an object pointer for the object, and set *p_node to the new
