@@ -6560,7 +6560,8 @@ Scan the body of a class definition, including the base classes list.
             }  /* if */
           }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-          if (local_declares_something || is_anonymous_union) {
+          if (local_declares_something || local_defines_something ||
+              is_anonymous_union) {
             /* This is a free-standing declaration of a class, struct,
                union, or enum. */
             set_autonomous_tag_decl_flag(member_type,
