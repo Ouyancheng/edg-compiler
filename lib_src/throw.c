@@ -888,10 +888,12 @@ a try block with a catch that matches the type of the object thrown.
     }  /* if */
   }  /* if */
 
- /* Set the current stack entry to point to the appropriate location
+  /* Set the current stack entry to point to the appropriate location
     after all actions have taken place. */
   __curr_eh_stack_entry = destination_ehsep;
-
+  /* Indicate that the current thrown object is now in a handler.  This makes
+     the object eligible for a rethrow. */
+  curr_throw_stack_entry->in_handler = TRUE;
   if (destination_ehsep->kind == (an_eh_stack_entry_kind)ehsek_try_block) {
     __catch_clause_number = destination_catch_value;
     if (is_pointer && (etsp_found->flags & ETS_IS_REFERENCE)) {
@@ -915,7 +917,6 @@ a try block with a catch that matches the type of the object thrown.
        for the thrown object. */
     destination_ehsep->variant.try_block.catch_info =
                                                (void*)curr_throw_stack_entry;
-    curr_throw_stack_entry->in_handler = TRUE;
     longjmp(destination_ehsep->variant.try_block.setjmp_buffer, 1);
   } else if (destination_ehsep->kind ==
                                 (an_eh_stack_entry_kind)ehsek_throw_spec) {
