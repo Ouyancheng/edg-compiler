@@ -568,6 +568,14 @@ Initialize the option information table.
                          "old_style_preprocessing", '\0',
                          /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_old_for_variable_scope,
+                         "old_for_variable_scope", '\0',
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_old_for_variable_scope,
+                         "new_for_variable_scope", '\0',
+                         /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -1103,6 +1111,7 @@ common_cfront_mode_settings:
         typename_enabled = FALSE;
 #endif /* !RUNTIME_USES_TYPENAME */
         implicit_typename_enabled = TRUE;
+        use_nonstandard_for_init_scope = TRUE;
         break;
       case optk_front_end_only:
         /* Run just the front end to do syntax checking; do not run the back
@@ -1520,6 +1529,10 @@ common_cfront_mode_settings:
         /* Enable PCC style preprocessing. */
         old_style_preprocessing = TRUE;
         break;
+      case optk_old_for_variable_scope:
+        /* Enable/disable old-style scoping for for-init declarations. */
+        use_nonstandard_for_init_scope = opt_value;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -1593,6 +1606,10 @@ common_cfront_mode_settings:
     }  /* if */
     if (option_kind_used[(int)optk_implicit_typename]) {
       command_line_error(ec_cl_implicit_typename_option_only_in_cplusplus);
+    }  /* if */
+    if (option_kind_used[(int)optk_old_for_variable_scope]) {
+      command_line_error(
+                       ec_cl_old_for_variable_scope_option_only_in_cplusplus);
     }  /* if */
     /* Turn on features implied by SVR4 C mode. */
     if (SVR4_C_mode) {
@@ -1722,6 +1739,11 @@ common_cfront_mode_settings:
         /* If special_subscript_cost was not explicitly set by a command line
            option, turn it off now. */
         special_subscript_cost = FALSE;
+      }  /* if */
+      if (!(option_kind_used[(int)optk_old_for_variable_scope])) {
+        /* If old/new_for_variable_scope was not specified on the command
+           line, turn off use_nonstandard_for_variable_scope now. */
+        use_nonstandard_for_init_scope = FALSE;
       }  /* if */
     }  /* if */
     /* Make sure that strict ANSI messages come out even if the

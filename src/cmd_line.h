@@ -135,6 +135,7 @@ typedef enum /*an_option_kind*/ {
   optk_special_subscript_cost,
   optk_suppress_instantiation_flags,
   optk_old_style_preprocessing,
+  optk_old_for_variable_scope,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -727,6 +728,19 @@ EXTERN a_boolean
 			   of multiple files; used to reset global variable
 			   okay_to_eliminate_unneeded_il_entries each time a
 			   new translation unit is started. */
+
+EXTERN a_boolean
+		use_nonstandard_for_init_scope
+#if VAR_INITIALIZERS
+                                   = DEFAULT_USE_NONSTANDARD_FOR_INIT_SCOPE
+#endif /* VAR_INITIALIZERS */
+                                                                           ;
+			/* TRUE if the scope of a name declared in a C++
+			   for-init statement extends to the end of the scope
+			   in which the for-statement appears and FALSE if
+			   it extends only to the end of the for-statement;
+			   the latter is standard-conforming behavior. */
+
 
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);
