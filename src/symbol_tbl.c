@@ -7674,13 +7674,6 @@ can be completed for the dependent types, too.
               }  /* if */
             }  /* if */
             break;
-          case dtfk_check_op_arrow_return_type:
-            check_assertion(dtfp->entity.kind ==
-                                    (a_byte_il_entry_kind)iek_routine);
-            check_operator_arrow_return_type((a_routine_ptr)dtfp->entity.ptr,
-                                             /*is_expr_use=*/FALSE,
-                                             &dtfp->decl_position);
-            break;
 #if CHECKING
           default:
             internal_error("check_dependent_type_fixup_list: bad fixup kind");
