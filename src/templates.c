@@ -15209,7 +15209,7 @@ file we simply return.
                              /*is_implicit_include=*/TRUE,
                              dir_entry, ifhp);
             scan_implicitly_included_template_definition_file();
-            if (in_instantiation_wrapup ) {
+            if (in_instantiation_wrapup) {
               /* Set a flag if this implicit inclusion was done during
                  instantiation wrapup.  The presence of additional code
 		 means we need to recheck whether some instantiations can
@@ -19539,7 +19539,7 @@ Add the routine to an "instantiation list" of inline functions.
   rlep->next = inline_function_list;
   inline_function_list = rlep;
   rout_ptr->on_inline_function_list = TRUE;
-  if (in_instantiation_wrapup ) {
+  if (in_instantiation_wrapup) {
     /* Set a flag if this entry was added during instantiation wrapup.
        The addition of inline functions could cause additional instantiations
        to be done. */
