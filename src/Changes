@@ -24,7 +24,7 @@ yields a warning (instead of an error).  The qualifier is ignored.
 
 When EXTRA_SOURCE_POSITIONS_IN_IL is TRUE, the front end will now record the
 source position range of an exception specification (from the start of the
-"throw" token to end closing parenthesis) and the starting position of each
+"throw" token to the closing parenthesis) and the starting position of each
 type specified (if any).  Previously, only the start of the "throw" token was
 recorded.
 
