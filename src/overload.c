@@ -4759,80 +4759,82 @@ member name reference.
   a_base_class_ptr bcp;
 
   /* This routine is similar to make_this_pointer_operand. */
-  if (is_error_operand(operand_1)) goto end_of_routine;
-  class_struct_union_type = operand_1->type;
-  if (*is_arrow_operator) {
-    if (is_template_param_or_nonreal_class_type(class_struct_union_type)) {
-      /* Pointer type is unknown, in a prototype instantiation.  Or, the
-         selector is a nonreal class type, which might have an operator->
-         function. */
-      class_struct_union_type = type_of_unknown_templ_param_nontype;
-    } else {
-      /* Normal case.  Go from the pointer type to the underlying class
-         type. */
-      class_struct_union_type = type_pointed_to(class_struct_union_type);
+  /* Leave an error operand alone. */
+  if (!is_error_operand(operand_1)) {
+    class_struct_union_type = operand_1->type;
+    if (*is_arrow_operator) {
+      if (is_template_param_or_nonreal_class_type(class_struct_union_type)) {
+        /* Pointer type is unknown, in a prototype instantiation.  Or, the
+           selector is a nonreal class type, which might have an operator->
+           function. */
+        class_struct_union_type = type_of_unknown_templ_param_nontype;
+      } else {
+        /* Normal case.  Go from the pointer type to the underlying class
+           type. */
+        class_struct_union_type = type_pointed_to(class_struct_union_type);
+      }  /* if */
     }  /* if */
-  }  /* if */
-  /* Drop any typedefs on the class type. */
-  class_struct_union_type = skip_typerefs(class_struct_union_type);
-  check_assertion(is_immediate_class_type(class_struct_union_type) ||
-                  class_struct_union_type->kind ==
+    /* Drop any typedefs on the class type. */
+    class_struct_union_type = skip_typerefs(class_struct_union_type);
+    check_assertion(is_immediate_class_type(class_struct_union_type) ||
+                    class_struct_union_type->kind ==
                                                (a_type_kind)tk_template_param);
-  if (is_template_param_type(class_struct_union_type) ||
-      class_struct_union_type->variant.class_struct_union.is_nonreal_class ||
-      desired_class->variant.class_struct_union.is_nonreal_class) {
-    /* Don't do any checking on nonreal classes in prototype instantiations. */
-  } else {
-    /* If the member is protected, it can only be accessed through an object
-       or pointer of a type to which we have member access (ARM 11.5). */
-    if (!access_control_error_reported) {
-      check_protected_member_access(member_sym, member_pos,
-                                    class_struct_union_type);
-    }  /* if */
-    /* Do nothing if the type is already okay (which it almost always
-       will be; only in cases involving qualified names can it be
-       different). */
-    if (class_struct_union_type != desired_class) {
-      /* Some adjustment is required.  Find out how the classes are
-         related to one another. */
-      bcp = find_base_class_of(class_struct_union_type, desired_class);
-      check_assertion(bcp != NULL);
-      /* Cast the left operand to the proper type. */
-      base_class_cast_operand(operand_1, bcp, is_arrow_operator,
-                              /*check_cast_access=*/
+    if (is_template_param_type(class_struct_union_type) ||
+        class_struct_union_type->variant.class_struct_union.is_nonreal_class ||
+        desired_class->variant.class_struct_union.is_nonreal_class) {
+      /* Don't do any checking on nonreal classes in prototype
+         instantiations. */
+    } else {
+      /* If the member is protected, it can only be accessed through an object
+         or pointer of a type to which we have member access (ARM 11.5). */
+      if (!access_control_error_reported) {
+        check_protected_member_access(member_sym, member_pos,
+                                      class_struct_union_type);
+      }  /* if */
+      /* Do nothing if the type is already okay (which it almost always
+         will be; only in cases involving qualified names can it be
+         different). */
+      if (class_struct_union_type != desired_class) {
+        /* Some adjustment is required.  Find out how the classes are
+           related to one another. */
+        bcp = find_base_class_of(class_struct_union_type, desired_class);
+        check_assertion(bcp != NULL);
+        /* Cast the left operand to the proper type. */
+        base_class_cast_operand(operand_1, bcp, is_arrow_operator,
+                                /*check_cast_access=*/
                                                 !access_control_error_reported,
-                              /*is_implicit_cast=*/TRUE,
-                              /*implicit_in_naming=*/FALSE,
-                              /*is_object_pointer=*/TRUE);
-    }  /* if */
-    /* If the member symbol is a projection symbol (i.e., it's inherited
-       into the class where it is being referenced), cast the left operand
-       down to the base class in which the fundamental symbol is defined.
-       There's no access check on this part of the cast because the access
-       to the fundamental base class was checked as part of determining access
-       to the symbol. */
-    if (projection_member_sym->kind == (a_symbol_kind)sk_projection) {
-      bcp = projection_member_sym->variant.projection.extra_info->
+                                /*is_implicit_cast=*/TRUE,
+                                /*implicit_in_naming=*/FALSE,
+                                /*is_object_pointer=*/TRUE);
+      }  /* if */
+      /* If the member symbol is a projection symbol (i.e., it's inherited
+         into the class where it is being referenced), cast the left operand
+         down to the base class in which the fundamental symbol is defined.
+         There's no access check on this part of the cast because the access
+         to the fundamental base class was checked as part of determining
+         access to the symbol. */
+      if (projection_member_sym->kind == (a_symbol_kind)sk_projection) {
+        bcp = projection_member_sym->variant.projection.extra_info->
                                                         fundamental_base_class;
-      base_class_cast_operand(operand_1, bcp, is_arrow_operator,
-                              /*check_cast_access=*/FALSE,
-                              /*is_implicit_cast=*/TRUE,
-                              /*implicit_in_naming=*/TRUE,
-                              /*is_object_pointer=*/TRUE);
-    }  /* if */
-    if (projection_member_sym != member_sym &&
-        member_sym->kind == (a_symbol_kind)sk_projection) {
-      /* This comes up with overload sets that contain using-declarations.
-         Cast from the using-declaration class to the cast of the member. */
-      bcp = member_sym->variant.projection.extra_info->fundamental_base_class;
-      base_class_cast_operand(operand_1, bcp, is_arrow_operator,
-                              /*check_cast_access=*/FALSE,
-                              /*is_implicit_cast=*/TRUE,
-                              /*implicit_in_naming=*/TRUE,
-                              /*is_object_pointer=*/TRUE);
+        base_class_cast_operand(operand_1, bcp, is_arrow_operator,
+                                /*check_cast_access=*/FALSE,
+                                /*is_implicit_cast=*/TRUE,
+                                /*implicit_in_naming=*/TRUE,
+                                /*is_object_pointer=*/TRUE);
+      }  /* if */
+      if (projection_member_sym != member_sym &&
+          member_sym->kind == (a_symbol_kind)sk_projection) {
+        /* This comes up with overload sets that contain using-declarations.
+           Cast from the using-declaration class to the cast of the member. */
+        bcp= member_sym->variant.projection.extra_info->fundamental_base_class;
+        base_class_cast_operand(operand_1, bcp, is_arrow_operator,
+                                /*check_cast_access=*/FALSE,
+                                /*is_implicit_cast=*/TRUE,
+                                /*implicit_in_naming=*/TRUE,
+                                /*is_object_pointer=*/TRUE);
+      }  /* if */
     }  /* if */
   }  /* if */
-end_of_routine:;
 }  /* cast_pointer_for_field_selection */
 
 
