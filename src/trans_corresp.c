@@ -656,7 +656,7 @@ canonical entry in the primary IL.
 
 a_type_ptr canonical_imaginary_type(a_float_kind  kind)
 /*
-Return the canonical imaginary  type entry of the given kind.  This routine
+Return the canonical imaginary type entry of the given kind.  This routine
 takes into account the possibility that the trans_copy process created a new
 canonical entry in the primary IL.
 */
