@@ -2453,8 +2453,10 @@ for more information.
   db_enter(5, "f_identical_types");
 
   /* Although the macros do the type_1 == type_2 test, repeat it here
-     so it's present for the recursive calls. */
-  if (same_entities(type_1, type_2)) {
+     so it's present for the recursive calls.  Do not use the same_entities
+     macro: for this routine a slightly more thorough check is desirable
+     (so it can be called from the correspondence checking code). */
+  if (type_1 == type_2) {
     identical = TRUE;
   } else if (!type_qualifiers_match(type_1, type_2)) {
     /* The type qualifiers do not match, so the types are not identical. */
@@ -2464,7 +2466,7 @@ for more information.
        typerefs off the types. */
     type_1 = skip_typerefs(type_1);
     type_2 = skip_typerefs(type_2);
-    if (same_entities(type_1, type_2)) {
+    if (type_1 == type_2) {
       /* If the types are now the same, they are identical. */
       identical = TRUE;
     } else if (!equiv_type_kinds(type_1->kind, type_2->kind)) {
@@ -2898,8 +2900,10 @@ for exact pointer equality.
                  (flags & TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING) != 0;
   ignore_type_qualifiers = flags & TCF_IGNORE_TYPE_QUALIFIERS;
   /* Although the macros do the type_1 == type_2 test, repeat it here
-     so it's present for the recursive calls. */
-  if (same_entities(type_1, type_2)) {
+     so it's present for the recursive calls.  Do not use the same_entities
+     macro: for this routine a slightly more thorough check is desirable
+     (so it can be called from the correspondence checking code). */
+  if (type_1 == type_2) {
     compat = TRUE;
   } else {
     /* Test for a qualifier mismatch. */
@@ -2917,7 +2921,7 @@ for exact pointer equality.
     } else if (qualifier_mismatch) {
       /* The type qualifiers do not match, so the types are not compatible. */
       /* compat = FALSE;  -- Already set. */
-    } else if (same_entities(type_1, type_2)) {
+    } else if (type_1 == type_2) {
       /* If the types are now the same, they are compatible. */
       compat = TRUE;
     } else if (!equiv_type_kinds(type_1->kind, type_2->kind)) {
