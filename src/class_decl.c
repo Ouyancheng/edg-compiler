@@ -5449,7 +5449,8 @@ class/struct/union is actually defined.
        pointer in the tag symbol and set the access. */
     if (scope_stack[decl_scope_level].kind ==
                                 (a_scope_kind)sck_class_struct_union) {
-      tag_sym->class_of_which_a_member =
+      class_type->source_corresp.class_of_which_a_member =
+            tag_sym->class_of_which_a_member =
                               scope_stack[decl_scope_level].assoc_type;
       class_type->source_corresp.access =
                               scope_stack[decl_scope_level].current_access;
