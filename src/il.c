@@ -7898,6 +7898,46 @@ entry is needed.)
 }  /* push_object_lifetime */
 
 
+static a_boolean any_destruction_has_temp_lifetime(an_object_lifetime_ptr olp)
+/*
+Do through the destructions for lifetime *olp and return TRUE if any is
+marked as having "temporary lifetime" -- i.e., a lifetime (long or short)
+that is not governed by the lifetime of another entity to which it is
+bound (e.g., to variable of reference type).
+*/
+{
+  a_boolean           found = FALSE;
+  a_dynamic_init_ptr  dip = olp->destructions;
+
+  for (; dip != NULL; dip = dip->next_in_destruction_list) {
+    if (dip->has_temporary_lifetime) {
+      found = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return found;
+}  /* any_destruction_has_temp_lifetime */
+
+
+static a_boolean has_child_with_temporary_lifetime(an_object_lifetime_ptr olp)
+/*
+Go through the children of olp and return TRUE if any has a destruction
+marked as having "temporary lifetime".
+*/
+{
+  a_boolean               found = FALSE;
+  an_object_lifetime_ptr  child = olp->child_lifetime;
+
+  for (; child != NULL; child = child->next) {
+    if (any_destruction_has_temp_lifetime(child)) {
+      found = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return found;
+}  /* has_child_with_temporary_lifetime */
+
+
 a_boolean is_useless_object_lifetime(an_object_lifetime_ptr  olp)
 /*
 Return TRUE if the object lifetime entry pointed to by olp is "useless" --
@@ -7936,13 +7976,37 @@ with it.  Entries associated with scopes must also have no child entries.
           } else if (olp->has_block_after_label_child_lifetime) {
             /* A lifetime is kept in the IL even if it has no destructions of
                its own if it has a block-after-label child lifetime. */
+          } else if (has_child_with_temporary_lifetime(olp)) {
+            /* A block lifetime is kept in the IL if it has a child lifetime
+               that represents an expression temporary.  This is to keep
+               such a temporary from "floating up" the lifetime tree because
+               its parent was deemed useless. */
           } else {
             is_useless = TRUE;
           }  /* if */
-          break;
+        } else if (olp->entity.kind == (a_byte_il_entry_kind)iek_block &&
+                   has_child_with_temporary_lifetime(olp)) {
+          /* Lifetime is bound to a block entry (cfront dependent statement
+             case) and has one or more children.  As with the normal olk_block
+             case, we don't want expression temporary object lifetimes
+             "floating up". */
+        } else {
+          is_useless = TRUE;
         }  /* if */
-        /* olk_block lifetimes that are bound to a_block fall through. */
+        break;
       case olk_block_after_label:
+        if (has_child_with_temporary_lifetime(olp)) {
+          /* Do not remove a block-after-label lifetime if it has any children
+             that have temporary lifetimes. */
+        } else if (long_lifetime_temps &&
+                   any_destruction_has_temp_lifetime(olp->parent_lifetime)) {
+          /* If temps have long lifetimes, the label is the point at which
+             those temps have to be destroyed.  Preserve the current lifetime
+             in that case, too. */
+        } else {
+          is_useless = TRUE;
+        }  /* if */
+        break;
       case olk_expr_temporary:
         is_useless = TRUE;
         break;
