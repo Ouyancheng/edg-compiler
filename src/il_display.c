@@ -5217,6 +5217,14 @@ This routine is called during IL walking.
                                   (a_scope_orphaned_list_header_ptr)entry_ptr);
           break;
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
+#if RECORD_FORM_OF_NAME_REFERENCE
+        case iek_name_reference:
+          disp_name_reference((a_name_reference_ptr)entry_ptr);
+          break;
+        case iek_name_qualifier:
+          disp_name_qualifier((a_name_qualifier_ptr)entry_ptr);
+          break;
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
 #endif /* ifdef CFE */
         default:
           (void)printf("**BAD ENTRY KIND**\n");
