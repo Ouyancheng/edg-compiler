@@ -337,7 +337,7 @@ string.
     m = "%s: executing: %s\n";
     break;
   case pl_ec_unrecognized_option:
-    m = "Unrecognized option: %c\n";
+    m = "unrecognized option: %c\n";
     break;
   case pl_ec_error:
     m = "%s: error: %s\n";
