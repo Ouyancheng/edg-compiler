@@ -7100,6 +7100,7 @@ Also scans C9X compound literals:
       /* Check the type to see if it is valid in general terms. */
       error_position = type_position;
       err = cast_type_pre_check(&type_cast_to);
+      set_err_pos_to_curr_token();
       /* Scan the expression to be cast. */
       scan_cast_expression(type_cast_to, /*allow_comma=*/TRUE, PREC_CAST,
                            result, &local_bound_function_selector);
