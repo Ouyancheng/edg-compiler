@@ -1031,7 +1031,8 @@ vp had an incomplete array type that has been completed by an initializer.
          char a[] = "abc";  <-- Error; int [3] is incompatible with int [5].
     */
     make_locator_for_symbol(symbol_ptr, &locator);
-    name_linkage = symbol_ptr->variant.variable->source_corresp.name_linkage;
+    name_linkage = symbol_ptr->
+                           variant.variable.ptr->source_corresp.name_linkage;
     ext_sym = find_external_symbol(&locator, name_linkage,
                                    (a_type_ptr)NULL, &ext_locator);
 #if CHECKING
@@ -1108,7 +1109,7 @@ be TRUE to indicate an alternate syntax (ARM 8.4):
     pos_sy_error(ec_cannot_initialize, source_pos, symbol_ptr);
     err = TRUE;
   } else {
-    vp = symbol_ptr->variant.variable;
+    vp = symbol_ptr->variant.variable.ptr;
     vp_type = vp->type;
     if (symbol_ptr->kind == (a_symbol_kind)sk_variable &&
         symbol_ptr->decl_scope != FILE_SCOPE_NUMBER && 
@@ -1452,7 +1453,7 @@ the default constructor (if one exists) is called.
   if (C_dialect == C_dialect_cplusplus &&
       (sym->kind == (a_symbol_kind)sk_variable ||
       sym->kind == (a_symbol_kind)sk_static_data_member)) {
-    var = sym->variant.variable;
+    var = sym->variant.variable.ptr;
     tp = var_type = skip_typerefs(var->type);
     if (is_array_type(tp)) {
       tp = skip_typerefs(underlying_array_element_type(tp));

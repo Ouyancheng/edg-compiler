@@ -3718,7 +3718,7 @@ table.
        current class. */
     var = make_variable(member_type, (a_storage_class)sc_static,
                         /*at_file_scope=*/FALSE);
-    sym->variant.variable = var;
+    sym->variant.variable.ptr = var;
     /* Set the source correspondence fields of the variable. */
     set_source_corresp(&var->source_corresp, sym);
     var->source_corresp.class_of_which_a_member = class_type;
@@ -5254,7 +5254,8 @@ a pointer to it.
   aap->access = access;
   /* Add a pointer to the correct IL entity. */
   switch (aa_kind) {
-    case aak_variable:  aap->variant.variable = sym->variant.variable;   break;
+    case aak_variable:  aap->variant.variable =
+                                            sym->variant.variable.ptr;   break;
     case aak_constant:  aap->variant.constant = sym->variant.constant;   break;
     case aak_type:      aap->variant.type = sym->variant.type;           break;
     case aak_routine:   aap->variant.routine = sym->variant.routine.ptr; break;

@@ -2133,7 +2133,7 @@ symbol sym.
   vp = make_param_variable(type, storage_class);
   /* sym will be NULL when the parameter is unnamed. */
   if (sym != NULL) {
-    sym->variant.variable = vp;
+    sym->variant.variable.ptr = vp;
     set_source_corresp(&(vp->source_corresp), sym);
   }  /* if */
   add_to_parameters_list(vp);
@@ -2509,9 +2509,9 @@ will be involved in overloading.
               /* Functions always have linkage. */
               *linked_symbol = other_decl;
             } else if (other_decl->decl_scope == FILE_SCOPE_NUMBER ||
-                       other_decl->variant.variable->storage_class ==
+                       other_decl->variant.variable.ptr->storage_class ==
                                            (a_storage_class)sc_extern ||
-                       other_decl->variant.variable->storage_class ==
+                       other_decl->variant.variable.ptr->storage_class ==
                                            (a_storage_class)sc_unspecified) {
               /* Variables at file scope always have linkage.  Automatic,
                  register, and static variables in local scopes do not. */
@@ -2567,7 +2567,8 @@ determine_linkage:
         if (is_function) {
           local_storage_class = other_decl->variant.routine.ptr->storage_class;
         } else {
-          local_storage_class = other_decl->variant.variable->storage_class;
+          local_storage_class = other_decl->variant.variable.ptr->
+                                                                 storage_class;
         }  /* if */
         /* If we check again for visible identifiers, there can be no
            other visible identifier with the same name. */
@@ -3209,7 +3210,7 @@ otherwise, set *ext_sym to NULL.
         /* Linked symbol and new symbol are both variables.  See if they
            are compatible. */
         sym = linked_symbol;
-        variable_ptr = linked_symbol->variant.variable;
+        variable_ptr = linked_symbol->variant.variable.ptr;
 #if CHECKING
         if (variable_ptr == NULL) {
           internal_error(
@@ -3456,7 +3457,7 @@ skip_overloading:;
     }  /* if */
     source_corresp_ptr = &variable_ptr->source_corresp;
     /* Link the symbol to the IL variable entry. */
-    sym->variant.variable = variable_ptr;
+    sym->variant.variable.ptr = variable_ptr;
     if (*ext_sym != NULL) {
       /* Link the external symbol to the IL variable entry. */
       (*ext_sym)->variant.extern_symbol_descr->variant.variable = variable_ptr;
@@ -3874,7 +3875,7 @@ the symbol and its linkage (which is always "none").
     pos_error(ec_storage_class_not_allowed, &locator->source_position);
   }  /* if */
   if (sym->kind == (a_symbol_kind)sk_static_data_member) {
-    var = sym->variant.variable;
+    var = sym->variant.variable.ptr;
 #if CHECKING
     if (var->storage_class != (a_storage_class)sc_static) {
       internal_error("define_static_data_member:  not sc_static");
@@ -3937,9 +3938,9 @@ the symbol and its linkage (which is always "none").
                        locator, DEPTH_OF_FILE_SCOPE,
                        /*suppress_redecl_error=*/TRUE);
     sym->header = hdr;
-    sym->variant.variable = make_variable(error_type(),
-					  (a_storage_class)sc_static,
-					  /*at_file_scope=*/TRUE);
+    sym->variant.variable.ptr = make_variable(error_type(),
+                                              (a_storage_class)sc_static,
+                                              /*at_file_scope=*/TRUE);
     /* Make the error symbol have a class_of_which_a_member field, since
        it is expected on sk_static_data_member fields downstream. */
     sym->class_of_which_a_member = tp;
@@ -4279,7 +4280,7 @@ a new symbol is created and entered in the symbol table.
       set_symbol_kind(sym, (a_symbol_kind)sk_variable);
       reenter_symbol(sym, decl_scope_level, /*suppress_error=*/TRUE);
     }  /* if */
-    sym->variant.variable = vp;
+    sym->variant.variable.ptr = vp;
     set_source_corresp(&(vp->source_corresp), sym);
     sym->defined = TRUE;
 #if DEBUG
@@ -8723,7 +8724,7 @@ continue_with_declaration:
 				  local_type_ptr, &symbol_ptr, &linkage);
         /* Fetch the type of the symbol again, since it might have been
            changed when reconciled with the original declaration. */
-        local_type_ptr = symbol_ptr->variant.variable->type;
+        local_type_ptr = symbol_ptr->variant.variable.ptr->type;
       } else {
         decl_var_or_routine(&locator, local_storage_class, local_type_ptr,
                             /*is_implicit_function=*/FALSE,
@@ -8733,7 +8734,8 @@ continue_with_declaration:
         /* Fetch the storage class again, which might have been changed if
            this is a file scope redeclaration of an extern const variable. */
         if (symbol_ptr->kind == (a_symbol_kind)sk_variable) {
-          local_storage_class = symbol_ptr->variant.variable->storage_class;
+          local_storage_class = symbol_ptr->
+                                         variant.variable.ptr->storage_class;
         }  /* if */
         if (is_old_style_param_decl) {
           /* A variable has been entered for a name that appears in an
@@ -8807,13 +8809,13 @@ continue_with_declaration:
             !is_old_style_param_decl) {
           /* Fetch the type of the symbol again, since it might have been
              changed if it was an incomplete array and was initialized. */
-          local_type_ptr = symbol_ptr->variant.variable->type;
+          local_type_ptr = symbol_ptr->variant.variable.ptr->type;
           /* Set the storage class of a file-scope initialized variable to
              unspecified (meaning external) or static (meaning internal).
              See 3.7.2. */
           if (decl_scope_level == DEPTH_OF_FILE_SCOPE &&
               local_storage_class != (a_storage_class)sc_static) {
-            symbol_ptr->variant.variable->storage_class =
+            symbol_ptr->variant.variable.ptr->storage_class =
                                               (a_storage_class)sc_unspecified;
           }  /* if */
           /* All initialized variables are considered defined.  This flag
@@ -8823,10 +8825,10 @@ continue_with_declaration:
         } else if (symbol_ptr->kind == (a_symbol_kind)sk_static_data_member) {
           /* Fetch the type of the symbol again, since it might have been
              changed if it was an incomplete array and was initialized. */
-          local_type_ptr = symbol_ptr->variant.variable->type;
+          local_type_ptr = symbol_ptr->variant.variable.ptr->type;
         }  /* if */
       } else if (is_definition && !is_error_locator(locator)) {
-        a_variable_ptr  vp = symbol_ptr->variant.variable;
+        a_variable_ptr  vp = symbol_ptr->variant.variable.ptr;
         if (vp->init_kind != (an_init_kind)initk_none) {
           /* Already initialized -- this must be a redeclaration. */
         } else {
@@ -8934,7 +8936,7 @@ continue_with_declaration:
           if (!incomplete_type_error_reported) {
             error(ec_incomplete_type_not_allowed);
           }  /* if */
-          symbol_ptr->variant.variable->type = error_type();
+          symbol_ptr->variant.variable.ptr->type = error_type();
         }  /* if */
       }  /* if */
       remove_stop_token(tok_comma);

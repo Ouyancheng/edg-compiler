@@ -2326,8 +2326,8 @@ bound with the function in *bound_function_selector.
           /* Static data member reference.  The value of the left operand is
              discarded. */
           discard_operand(operand_1);
-          make_lvalue_variable_operand(member_sym->variant.variable, result,
-                                       xep);
+          make_lvalue_variable_operand(member_sym->variant.variable.ptr,
+                                       result, xep);
           break;
         case sk_member_function:
           /* Member function (static or non-static). */
@@ -6560,7 +6560,7 @@ The symbol may be a member of an anonymous union.
     } else {
       /* Get the variable for the symbol. */
       if (sym_ptr->kind == (a_symbol_kind)sk_variable) {
-        var = sym_ptr->variant.variable;
+        var = sym_ptr->variant.variable.ptr;
       } else {
 #if CHECKING
         if (sym_ptr->kind != (a_symbol_kind)sk_field) {
@@ -6723,7 +6723,7 @@ bound_function_selector to the associated "this" pointer.
           break;
         case sk_variable:
         case sk_static_data_member:
-          var_ptr = sym_ptr->variant.variable;
+          var_ptr = sym_ptr->variant.variable.ptr;
           if (is_const_expr_kind(expression_kind)) {
             /* A variable is allowed only in initializer expressions,
                and only if it is static and its address is being taken

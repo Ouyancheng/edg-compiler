@@ -568,7 +568,7 @@ and indentation is the indentation desired.
       break;
     case sk_static_data_member:
     case sk_variable:
-      var = sym->variant.variable;
+      var = sym->variant.variable.ptr;
       if (var == NULL) {
         put_string("<null>");
       } else {
@@ -782,8 +782,8 @@ and indentation is the indentation desired.
   if (!suppress_newline) (void)fputc('\n', f_debug);
   if (sym->kind == (a_symbol_kind)sk_variable ||
       sym->kind == (a_symbol_kind)sk_static_data_member) {
-    if (sym->variant.variable != NULL) {
-      db_initializer(sym->variant.variable, indentation);
+    if (sym->variant.variable.ptr != NULL) {
+      db_initializer(sym->variant.variable.ptr, indentation);
     }  /* if */
   }  /* if */
 }  /* db_symbol */
@@ -1174,7 +1174,8 @@ state.
       break;
     case sk_variable:
     case sk_static_data_member:
-      sym_ptr->variant.variable = NULL;
+      sym_ptr->variant.variable.ptr = NULL;
+      sym_ptr->variant.variable.template_info = NULL;
       break;
     case sk_field:
       sym_ptr->variant.field.ptr = NULL;
@@ -1531,10 +1532,10 @@ be issued by the caller.
     }  /* if */
   } else if ((cfront_compatibility_mode || C_dialect == C_dialect_pcc) &&
              old_sym->kind == (a_symbol_kind)sk_variable &&
-             old_sym->variant.variable->is_parameter &&
+             old_sym->variant.variable.ptr->is_parameter &&
 	     (!(new_sym->kind == (a_symbol_kind)sk_variable) ||
-             (new_sym->variant.variable == NULL ||
-              !(new_sym->variant.variable->is_parameter)))) {
+             (new_sym->variant.variable.ptr == NULL ||
+              !(new_sym->variant.variable.ptr->is_parameter)))) {
     /* The old symbol is a parameter and the new symbol not a
        parameter -- allowed in cfront and pcc modes.  Note that we
        test the variable pointer for being NULL before dereferencing it
@@ -3003,7 +3004,7 @@ allowed for that kind of symbol).
       break;
     case sk_variable:
     case sk_static_data_member:
-      entry_ptr = (a_constant_ptr)sym_ptr->variant.variable;
+      entry_ptr = (a_constant_ptr)sym_ptr->variant.variable.ptr;
       break;
     case sk_field:
       entry_ptr = (a_constant_ptr)sym_ptr->variant.field.ptr;
@@ -5470,7 +5471,7 @@ NULL.
   switch (sym->kind) {
     case sk_variable:
       /* Variable or parameter. */
-      var_ptr = sym->variant.variable;
+      var_ptr = sym->variant.variable.ptr;
       storage_class = var_ptr->storage_class;
       if (storage_class == (a_storage_class)sc_unspecified) {
         /* Note that if this test succeeds (i.e., the variable has
@@ -5513,13 +5514,12 @@ NULL.
             /* No warning for unused "extern" variables; this is a
                long-standing C tradition. */
           } else {
-            a_variable_ptr vp = sym->variant.variable;
             /* An unreferenced variable.  Check for a dynamic initialization
                that has side effects (such as a constructor call).  If
 	       such an initialization exists, issue a remark rather than a
 	       warning. */
-            if (vp->init_kind == (an_init_kind)initk_dynamic &&
-                dynamic_init_has_side_effects(vp->initializer.dynamic)) {
+            if (var_ptr->init_kind == (an_init_kind)initk_dynamic &&
+                dynamic_init_has_side_effects(var_ptr->initializer.dynamic)) {
               report_unreferenced(sym, ec_declared_but_not_referenced,
 				  es_remark);
             } else {
@@ -5696,7 +5696,7 @@ NULL.
       break;
 #if CHECKING
     case sk_static_data_member:
-      scp = &sym->variant.variable->source_corresp;
+      scp = &sym->variant.variable.ptr->source_corresp;
       break;
     case sk_constant:
       scp = &sym->variant.constant->source_corresp;

@@ -2700,8 +2700,8 @@ declaration position to eliminate redundant file names in a diagnostic.
       entity_kind = "enum ";
       goto symbol_name;
     case sk_variable:
-      type = fund_sym->variant.variable->type;
-      if (fund_sym->variant.variable->is_parameter) {
+      type = fund_sym->variant.variable.ptr->type;
+      if (fund_sym->variant.variable.ptr->is_parameter) {
         entity_kind = "parameter ";
       } else {
         entity_kind = "variable ";
@@ -2736,7 +2736,7 @@ declaration position to eliminate redundant file names in a diagnostic.
          be expressed as a declaration. */
       goto symbol_name;
     case sk_static_data_member:
-      type = fund_sym->variant.variable->type;
+      type = fund_sym->variant.variable.ptr->type;
       entity_kind = "member ";
       is_declaration_like = TRUE;
       goto symbol_name;

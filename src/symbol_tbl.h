@@ -960,9 +960,16 @@ typedef struct a_symbol {
 			   a C++ class. */
     } class_struct_union;
     /* When kind == sk_variable or sk_static_data_member: */
-    a_variable_ptr
-		variable;
-			/* The variable. */
+    struct {
+      a_variable_ptr
+		ptr;
+			/* Pointer to the variable entry. */
+      a_template_symbol_supplement_ptr
+                template_info;
+			/* For sk_static_data_member symbols only, pointer
+			   to an entry providing additional info about a C++
+			   static data member template. */
+    } variable;
     /* When kind == sk_field: */
     struct {
       a_field_ptr
@@ -1034,13 +1041,11 @@ typedef struct a_symbol {
 			   declared "static"; applies to sk_member_function
 			   overloading only. */
     } overloaded_function;
-    /* When kind = sk_class_template, sk_function_template, or
-       sk_static_data_member_template: */
+    /* When kind = sk_class_template or sk_function_template: */
     a_template_symbol_supplement_ptr
                 template_info;
 			/* Pointer to an entry providing additional info about
-			   a C++ class template, function template, or
-			   static data member template. */
+			   a C++ class template or function template. */
   } variant;
 } a_symbol;
 
