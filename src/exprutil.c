@@ -8712,18 +8712,53 @@ function.  See Core Issue 115.
   if (is_indefinite_function_operand(operand) &&
       operand->is_template_id) {
     a_template_arg_ptr new_arg_list;
-    an_operand         orig_operand;
-    orig_operand = *operand;
-    if (explicit_arg_list_identifies_specialization(operand->variant.symbol,
+    a_symbol_ptr       orig_sym = operand->variant.symbol, base_sym;
+    a_symbol_ptr       matching_sym = NULL;
+
+    base_sym = fundamental_symbol_of(orig_sym);
+    if (base_sym->kind == (a_symbol_kind)sk_function_template) {
+      if (explicit_arg_list_identifies_specialization(
+                                                    base_sym,
                                                     operand->template_arg_list,
                                                     &new_arg_list)) {
+        matching_sym = orig_sym;
+      }  /* if */
+    } else if (base_sym->kind == (a_symbol_kind)sk_overloaded_function) {
+      /* An overload set possibly containing function templates. */
+      a_symbol_ptr proj_sym;
+      for (proj_sym = base_sym->variant.overloaded_function.symbols;
+           proj_sym != NULL;
+           proj_sym = proj_sym->next) {
+        /* Remove projections for namespaces, if any. */
+        base_sym = fundamental_symbol_of(proj_sym);
+        if (base_sym->kind == (a_symbol_kind)sk_function_template) {
+          if (explicit_arg_list_identifies_specialization(
+                                                    base_sym,
+                                                    operand->template_arg_list,
+                                                    &new_arg_list)) {
+            if (matching_sym != NULL) {
+              /* There's more than one matching function template, so leave
+                 the operand as it is. */
+              matching_sym = NULL;
+              break;
+            } else {
+              matching_sym = proj_sym;
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      }  /* for */
+    }  /* if */
+    if (matching_sym != NULL) {
       /* The template reference -- something like f<1> -- corresponds to
          a single function. */
-      a_symbol_ptr sym = find_template_function(
-                                            operand->variant.symbol,
-                                            &new_arg_list,
-                                            /*explicit_arg_list_present=*/TRUE,
-                                            &orig_operand.position);
+      an_operand   orig_operand;
+      a_symbol_ptr sym;
+
+      orig_operand = *operand;
+      sym = find_template_function(matching_sym,
+                                   &new_arg_list,
+                                   /*explicit_arg_list_present=*/TRUE,
+                                   &orig_operand.position);
       check_assertion(sym != NULL &&
                       (sym->kind == (a_symbol_kind)sk_routine ||
                        sym->kind == (a_symbol_kind)sk_member_function));
