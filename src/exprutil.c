@@ -520,7 +520,7 @@ Free the list of argument operands pointed to by aop.
 }  /* free_arg_operand_list */
 
 
-a_dynamic_init_dtor_fixup_ptr alloc_dynamic_init_dtor_fixup(
+static a_dynamic_init_dtor_fixup_ptr alloc_dynamic_init_dtor_fixup(
                                                a_dynamic_init_ptr dynamic_init,
                                                a_source_position  *position)
 /*

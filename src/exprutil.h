@@ -552,10 +552,6 @@ extern an_arg_operand_ptr alloc_arg_operand(void);
 
 extern void free_arg_operand_list(an_arg_operand_ptr aop);
 
-extern a_dynamic_init_dtor_fixup_ptr alloc_dynamic_init_dtor_fixup(
-                                               a_dynamic_init_ptr dynamic_init,
-                                               a_source_position  *position);
-
 extern void free_dynamic_init_dtor_fixup(a_dynamic_init_dtor_fixup_ptr didfp);
 
 extern void if_evaluating_mark_routine_referenced(a_routine_ptr  routine);
