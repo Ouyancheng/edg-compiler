@@ -4028,15 +4028,17 @@ typedef struct a_routine {
 #endif /* DECL_MODIFIERS_IN_USE */
   a_class_list_entry_ptr
                 befriending_classes;
-                        /* A linked list of entries identifying classes that
-                           have declared the current routine a friend (i.e.,
-                           classes that have "befriended" the current routine).
-                           Note that the representation is backwards
-                           compared to the source language: in the source
-                           the befriended class (or routine) is declared in
-                           the befriending class; in the IL the befriending
-                           class is recorded in the befriended class (or
-                           routine). */
+			/* A linked list of entries identifying classes that
+			   have declared the current routine a friend (i.e.,
+			   classes that have "befriended" the current routine).
+			   If the routine is defined in a friend declaration
+			   (e.g., if defined_in_friend_decl is TRUE), the
+			   class in which the definition appears will be the
+			   first on the list.  (Note that the representation
+			   is backwards compared to the source language: in
+			   the source the befriended routine is declared in
+			   the befriending class; this list records the
+			   befriending class in the befriended routine. */
   a_virtual_function_number
 		virtual_function_number;
 			/* When is_virtual is TRUE, the number assigned to
