@@ -5836,8 +5836,6 @@ Generate code for an instantiation directive.
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   if (kind == iek_type) put_out = FALSE;
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-  /* Always keep Microsoft "extern template" directives. */
-  if (idp->do_not_instantiate) put_out = TRUE;
   if (put_out)
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   /* Do not insert code here; this is the body of an "if". */
