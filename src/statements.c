@@ -147,39 +147,46 @@ the current statement sequence.
       struct_stmt_stack[depth_stmt_stack-1].kind == ssk_switch) {
     sssep--;
   }  /* if */
-  ssp = sssep->statement;
   statement_list_allowed = FALSE;
-  switch(ssp->kind) {
-    case stmk_if:
-      if (sssep->in_else_of_if) {
-        head_ptr = &ssp->variant.if_stmt.else_statement;
-      } else {
-        head_ptr = &ssp->variant.if_stmt.then_statement;
-      }  /* if */
-      break;
-    case stmk_while:
-    case stmk_end_test_while:
-      head_ptr = &ssp->variant.loop_statement;
-      break;
-    case stmk_switch:
-      if (sssep->curr_switch_clause == NULL) {
-        /* There is no current switch clause, so add statements to the
-           body_statement of the switch (this is unusual). */
-        head_ptr = &ssp->variant.switch_stmt.body_statement;
-      } else {
-        head_ptr = &sssep->curr_switch_clause->statements;
+  if (sssep->extra_block != NULL) {
+    /* An extra block statement has already been added under the primary
+       statement.  The instruction should be added under this extra block. */
+    head_ptr = &sssep->extra_block->variant.block.statements;
+    statement_list_allowed = TRUE;
+  } else {
+    ssp = sssep->statement;
+    switch(ssp->kind) {
+      case stmk_if:
+        if (sssep->in_else_of_if) {
+          head_ptr = &ssp->variant.if_stmt.else_statement;
+        } else {
+          head_ptr = &ssp->variant.if_stmt.then_statement;
+        }  /* if */
+        break;
+      case stmk_while:
+      case stmk_end_test_while:
+        head_ptr = &ssp->variant.loop_statement;
+        break;
+      case stmk_switch:
+        if (sssep->curr_switch_clause == NULL) {
+          /* There is no current switch clause, so add statements to the
+             body_statement of the switch (this is unusual). */
+          head_ptr = &ssp->variant.switch_stmt.body_statement;
+        } else {
+          head_ptr = &sssep->curr_switch_clause->statements;
+          statement_list_allowed = TRUE;
+        }  /* if */
+        break;
+      case stmk_block:
+        head_ptr = &ssp->variant.block.statements;
         statement_list_allowed = TRUE;
-      }  /* if */
-      break;
-    case stmk_block:
-      head_ptr = &ssp->variant.block.statements;
-      statement_list_allowed = TRUE;
-      break;
+        break;
 #if CHECKING
-    default:
-      internal_error("add_statement: bad kind of stmt in struc. stmt stack");
+      default:
+        internal_error("add_statement: bad kind of stmt in struc. stmt stack");
 #endif /* CHECKING */
-  }  /* switch */
+    }  /* switch */
+  }  /* if */
   if (*head_ptr == NULL) {
     /* If the statement list is empty, make sure the last pointer is NULL.
        This is important for the starts of "else" and case clauses. */
@@ -188,8 +195,8 @@ the current statement sequence.
     /* Otherwise, if the last pointer is NULL, find the last statement
        in the list and set the pointer to it.  This is needed when
        switching back to a statement list that already has some statements
-       in it.  To do that, we clear last_dep_statement and let it get
-       re-established here. */
+       in it (e.g., after a break statement in a switch).  To do that,
+       we clear last_dep_statement and let it get re-established here. */
     temp_stmt = *head_ptr;
     while (temp_stmt->next != NULL) temp_stmt = temp_stmt->next;
     sssep->last_dep_statement = temp_stmt;
@@ -216,46 +223,33 @@ the current statement sequence.
        two dependent statements are required under the if, which only allows
        one.  It also happens for "continue" labels.  For cases like this,
        we create an additional block to contain the list of statements. 
-       We check to see if the block has already been created, so that on
-       subsequent calls we do not create additional blocks.  If the block
-       is present because the source dependent statement is a block,
-       that block likewise is used. */
-    if (*head_ptr != sssep->last_dep_statement) {
-      /* The current end-of-list pointer is not the first statement on
-         the list, which means that a previous run through this code has
-         already created the extra block and set last_dep_statement
-         pointing to the last statement in that block.  Therefore, the
-         addition can be done by just adding after the current end of
-         the list. */
+       If the dependent statement is a block (because the source dependent
+       statement is a block), that block is used. */
+    if ((*head_ptr)->kind == (a_statement_kind)stmk_block &&
+        (*head_ptr)->variant.block.extra_info->assoc_scope == NULL) {
+      /* There is an existing block from a source construct.  Find the 
+         end of its statement list, and add there.  Note that blocks that
+         contain declarations are ruled out: we don't want to add a
+         statement inside such a block.  (That's especially true in
+         C++, where the end of the block may kick off destructor calls
+         which must be done before the statement being added is executed.)
+         Also note that the top compound statement of a switch never has
+         an associated scope at this point (the scope gets added at the
+         closing brace), so it's acceptable, which is what we want. */
+      extra_block = *head_ptr;
+      temp_stmt = extra_block->variant.block.statements;
+      if (temp_stmt != NULL) {
+        while (temp_stmt->next != NULL) temp_stmt = temp_stmt->next;
+      }  /* if */
+      sssep->last_dep_statement = temp_stmt;
     } else {
-      /* It's necessary to use an existing or create a new block. */
-#if CHECKING
-      if ((*head_ptr)->next != NULL) {
-        internal_error("add_statement: stmt list not allowed under stmt");
-      }  /* if */
-#endif /* CHECKING */
-      if ((*head_ptr)->kind == (a_statement_kind)stmk_block &&
-          (*head_ptr)->variant.block.extra_info->assoc_scope == NULL) {
-        /* There is an existing block from a source construct.  Find the 
-           end of its statement list, and add there.  Note that blocks that
-           contain declarations are ruled out: we don't want to add a
-           statement inside such a block.  (That's especially true in
-           C++, where the end of the block may kick off destructor calls
-           which must be done before the statement being added is executed.) */
-        extra_block = *head_ptr;
-        temp_stmt = extra_block->variant.block.statements;
-        if (temp_stmt != NULL) {
-          while (temp_stmt->next != NULL) temp_stmt = temp_stmt->next;
-        }  /* if */
-        sssep->last_dep_statement = temp_stmt;
-      } else {
-        /* Create a new block to allow additional statements. */
-        extra_block = alloc_statement((a_statement_kind)stmk_block);
-        extra_block->variant.block.statements = *head_ptr;
-        *head_ptr = extra_block;
-      }  /* if */
-      head_ptr = &extra_block->variant.block.statements;
+      /* Create a new block to allow additional statements. */
+      extra_block = alloc_statement((a_statement_kind)stmk_block);
+      extra_block->variant.block.statements = *head_ptr;
+      *head_ptr = extra_block;
     }  /* if */
+    head_ptr = &extra_block->variant.block.statements;
+    sssep->extra_block = extra_block;
   } /* if */
   /* Now add the new statement to the end of the list. */
   if (*head_ptr == NULL) {
@@ -317,11 +311,21 @@ Return a pointer to the nearest enclosing compound statement.
 */
 {
   a_struct_stmt_stack_entry_ptr sssep;
+  a_statement_ptr               stmt;
 
-  for (sssep = &struct_stmt_stack[depth_stmt_stack];
-       sssep->kind != ssk_compound;
-       sssep--) {}
-  return sssep->statement;
+  for (sssep = &struct_stmt_stack[depth_stmt_stack]; ; sssep--) {
+    if (sssep->extra_block != NULL) {
+      /* The structured statement has an extra block attached to it so
+         that it can have more than one statement sttached to it. */
+      stmt = sssep->extra_block;
+      break;
+    } else if (sssep->kind == ssk_compound) {
+      /* The structured statement is a compound statement. */
+      stmt = sssep->statement;
+      break;
+    }  /* if */
+  }  /* for */
+  return stmt;
 }  /* nearest_enclosing_compound_statement */
 
 
@@ -476,6 +480,7 @@ the associated il statement.
   sssep->in_else_of_if        = FALSE;
   sssep->statement            = sp;
   sssep->curr_switch_clause   = NULL;
+  sssep->extra_block          = NULL;
   sssep->last_dep_statement   = NULL;
   sssep->break_label          = NULL;
   sssep->continue_label       = NULL;
