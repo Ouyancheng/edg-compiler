@@ -6896,6 +6896,13 @@ typedef struct a_routine {
                            this function; it is unique among the virtual
 			   functions of a given class.  When is_virtual is
 			   FALSE, this field is undefined. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_routine_ptr
+		overridden_function;
+			/* For selectively overriding virtual functions, this
+			   points to the member function being overridden.
+			   Otherwise, NULL. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_class_list_entry_ptr
                 befriending_classes;
 			/* A linked list of entries identifying classes that

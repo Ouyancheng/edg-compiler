@@ -2053,6 +2053,9 @@ to it.  The entry is allocated in the file scope memory region.
   rp->decl_modifiers              = DM_NONE;
 #endif /* DECL_MODIFIERS_IN_USE */
   rp->virtual_function_number     = VIRTUAL_FUNCTION_NUMBER_NONE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  rp->overridden_function         = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   rp->befriending_classes         = NULL;
   rp->template_arg_list           = NULL;
   rp->assoc_template              = NULL;

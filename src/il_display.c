@@ -2722,6 +2722,12 @@ Display the indicated routine.
     disp_unsigned_long("virtual_function_number",
                        (unsigned long)ptr->virtual_function_number);
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (ptr->overridden_function != NULL) {
+    disp_ptr("overridden_function", (char*)ptr->overridden_function,
+             iek_routine);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (ptr->befriending_classes != NULL) {
     disp_class_list("befriending_classes", ptr->befriending_classes);
   }  /* if */

@@ -2891,8 +2891,7 @@ routine entry and return TRUE; otherwise return FALSE.
         if (rp->is_virtual) {
           /* Base class destructor is virtual. */
           rout->is_virtual = TRUE;
-          if (exception_spec_is_less_restrictive(rout->type,
-                                                 rp->type)) {
+          if (exception_spec_is_less_restrictive(rout->type, rp->type)) {
             /* The exception specification for the overriding virtual function
                is less restrictive that that of the overridden function. */
             if (rout->compiler_generated) {
@@ -2929,7 +2928,6 @@ routine entry and return TRUE; otherwise return FALSE.
          the base class under examination. */
       for (sym = symbol_list; sym != NULL; sym = sym_next) {
         sym_next = sym->next;
-        sym_for_override_registry = sym;
         if (sym->decl_scope == base_class_scope->number) {
           /* Symbol represents a member of bcp's class. */
           if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
@@ -2949,6 +2947,7 @@ routine entry and return TRUE; otherwise return FALSE.
           }  /* if */
           /* Innermost loop is run only once for simple functions but more
              for overloaded functions. */
+          sym_for_override_registry = sym;
           any_override_candidates = FALSE;
           for (; sym != NULL; sym = overloaded ? sym->next : NULL) {
             if (sym->kind != (a_symbol_kind)sk_member_function) {
@@ -2983,6 +2982,12 @@ routine entry and return TRUE; otherwise return FALSE.
                    set. */
                 continue;
               }  /* if */
+            }  /* if */
+            if (rout->overridden_function != NULL &&
+                rout->overridden_function != rp) {
+              /* rout was declared to only override a specific member of
+                 another base class (a Microsoft extension). */
+              continue;
             }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             /* If rp is virtual, it must be non-static and therefore must
@@ -5979,12 +5984,17 @@ Return NULL if none is found.
 }  /* find_direct_member_function */
 
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/ /* overridden_function only used when Microsoft extensions are
+                enabled. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static a_symbol_ptr symbol_for_member_function(
-                                         a_symbol_locator       *locator,
-                                         a_type_ptr             type,
-                                         a_type_ptr             class_type,
-                                         a_member_decl_info_ptr decl_info,
-                                         a_symbol_ptr           *overload_sym)
+                                   a_symbol_locator       *locator,
+                                   a_type_ptr             type,
+                                   a_type_ptr             class_type,
+                                   a_routine_ptr          overridden_function,
+                                   a_member_decl_info_ptr decl_info,
+                                   a_symbol_ptr           *overload_sym)
 /*
 Return a pointer to an sk_member_function symbol to represent a function
 of a given type.  If this is a redeclaration, the existing symbol is
@@ -5992,12 +6002,19 @@ returned.  If this declaration overloads a function name, the symbol
 returned will be on the sk_overloaded_function symbol's list.  If there
 is an error in attempting to overload the function name, a new symbol
 is returned nonetheless, but it is not added to the list of overloaded
-function symbols.
+function symbols.  In Microsoft mode, it is possible to declare several
+members of the same type, provided they explicitly override different
+virtual functions: The function explicitly overridden by this declaration
+is indicated by overridden function (NULL if no explicit overriding syntax
+was used).
 */
 {
-  a_symbol_ptr  sym, new_sym = NULL;
-  an_error_code error_code;
-  a_boolean     suppress_redecl_error = FALSE;
+  a_symbol_ptr   sym, new_sym = NULL;
+  an_error_code  error_code;
+  a_boolean      suppress_redecl_error = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_boolean      make_new_sym_ambiguous = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_enter(4, "symbol_for_member_function");
   *overload_sym = NULL;
@@ -6016,6 +6033,18 @@ function symbols.
         /* The previously declared function with the same name (or, if it is
            already overloaded, any instance of it) does not have a matching
            type, so sym remains a candidate for overloading. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (microsoft_mode &&
+                 new_sym->kind == (a_symbol_kind)sk_member_function &&
+                 new_sym->variant.routine.ptr->overridden_function !=
+                                                        overridden_function) {
+        /* Although a declaration with a matching type was found, it overrides
+           a different base member.  Treat the new declaration as a distinct
+           member.  However, mark the symbols for both members as ambiguous. */
+        new_sym->ambiguous = TRUE;
+        new_sym = NULL;
+        make_new_sym_ambiguous = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else {
         /* This is a redeclaration.  Just return to old symbol entry, setting
            sym to NULL to avoid overload processing.  The caller will
@@ -6053,6 +6082,11 @@ function symbols.
           new_sym = enter_overloaded_symbol((a_symbol_kind)sk_member_function,
                                             locator, is_ctor, sym,
                                             overload_sym);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          if (make_new_sym_ambiguous) {
+            new_sym->ambiguous = TRUE;
+          }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         }  /* if */
       }  /* if */
     }  /* if */
@@ -6803,6 +6837,64 @@ functions that cannot be (user-)declared in interface class types.
   return is_virtual;
 }  /* check_virtual_interface_member */
 
+
+static a_routine_ptr find_explicitly_overridden_member(
+                                                a_symbol_locator  *locator,
+                                                a_type_ptr        class_type,
+                                                a_type_ptr        member_type)
+/*
+We're declaring a member function with type member_type using a qualified
+declarator described by locator.  class_type is the class in which the
+member is being declared. This is a microsoft extension to select a virtual
+function from a particular base class type to be overridden.  Return that
+function or NULL if none can be found.
+*/
+{
+  a_routine_ptr  result = NULL;
+
+  if (!locator->is_class_member ||
+      !is_same_class_or_base_class_thereof(
+                                    class_type, locator->parent.class_type)) {
+    /* The qualifier was not a class: Issue an error. */
+    pos_ty_error(ec_qualifier_must_be_base_class, &locator->source_position,
+                 class_type);
+  } else if (same_entities(locator->parent.class_type, class_type)) {
+    /* The qualifier was the class being defined.  This corresponds to a
+       different Microsoft bug/extension.  Nothing needs to be done here. */
+  } else if (locator->specific_symbol != NULL &&
+             locator->specific_symbol->ambiguous) {
+    pos_sy_error(ec_ambiguous_name, &locator->source_position,
+                 locator->specific_symbol);
+  } else {
+    a_symbol_ptr  sym = class_qualified_id_lookup(
+                                               locator,
+                                               locator->parent.class_type,
+                                               IDL_DO_NOT_CREATE_PROJ_SYM);
+    if (sym != NULL) {
+      if (is_member_function_symbol(sym)) {
+        sym = member_function_redecl_sym_with_template_flag(
+                                                    sym, member_type,
+                                                    /*templ_param_list=*/NULL,
+                                                    /*templates_only=*/FALSE);
+      } else {
+        sym = NULL;
+      }  /* if */
+    }  /* if */
+    if (sym == NULL) {
+      pos_error(ec_invalid_selective_overrider_declaration,
+                &locator->source_position);
+    } else {
+      result = sym->variant.routine.ptr;
+      if (!result->is_virtual || !result->pure_virtual) {
+        pos_error(ec_invalid_selective_overrider_declaration,
+                  &locator->source_position);
+        result = NULL;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* find_explicitly_overridden_member */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if !GNU_EXTENSIONS_ALLOWED
@@ -6838,6 +6930,7 @@ otherwise these are NULL).
   a_source_sequence_entry_ptr   declarator_ssep = NULL;
   a_name_linkage_kind           def_name_linkage;
   a_routine_type_supplement_ptr rtsp;
+  a_routine_ptr                 overridden_function = NULL;
 
   db_enter(3, "decl_member_function");
   rtsp = skip_typerefs(member_type)->variant.routine.extra_info;
@@ -6865,9 +6958,17 @@ otherwise these are NULL).
      creating the symbol, since an invalid conversion or operator should not
      be added to the overload list. */
   check_operator_function_params(member_type, class_type, locator);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode && locator->is_qualified_name &&
+      !is_error_locator(*locator)) {
+    overridden_function = find_explicitly_overridden_member(
+                                            locator, class_type, member_type);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Look for a prior declaration or function overloading. */
   sym = symbol_for_member_function(locator, member_type, class_type,
-                                   decl_info, &overload_sym);
+                                   overridden_function, decl_info,
+                                   &overload_sym);
   if (sym->variant.routine.ptr != NULL) {
     /* symbol_for_member_function has returned a symbol that has already been
        declared.  Issue an error to redeclare a member function. */
@@ -6965,6 +7066,12 @@ otherwise these are NULL).
                                   /*is_redecl=*/FALSE,
                                   (a_boolean)func_info->is_definition,
                                   (a_boolean)func_info->is_inline);
+    /* If this function explicitly overrides a virtual function in a base
+       class, record that fact. */
+    if (overridden_function != NULL) {
+      rtn->is_virtual = TRUE;
+      rtn->overridden_function = overridden_function;
+    }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
