@@ -6660,6 +6660,11 @@ next_declaration:
        that there may be symbols even if there there were no declarations,
        since symbols may be inherited. */
     cssp->symbols = scope_stack[depth_scope_stack].symbols;
+    /* A number of the checks done as a part the "wrapup" phase of scanning a
+       class definition produce diagnostics.  Set error_position to assure
+       that these diagnostics will be associated with tag_sym instead of
+       with the current token, which is the closing brace. */
+    error_position = tag_sym->decl_position;
     if (C_dialect == C_dialect_cplusplus) {
       /* Issue a diagnostic on a class with no user-defined constructor and
          with one or more members with reference or const type.  Note that
