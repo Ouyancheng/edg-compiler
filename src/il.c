@@ -9133,9 +9133,16 @@ entry into one representing a nondefining declaration.
     fputc('\n', f_debug);
   }  /* if */
 #endif /* if DEBUG */
-  check_assertion_str(!class_type->variant.class_struct_union.
-                                                             definition_needed,
-                   "turn_class_definition_into_declaration: class def needed");
+#if CHECKING
+  if (class_type->variant.class_struct_union.definition_needed) {
+#if DEBUG
+    fprintf(f_debug, "Class type: ");
+    db_abbreviated_type(class_type);
+    fprintf(f_debug, "\n");
+#endif /* DEBUG */
+    internal_error("turn_class_definition_into_declaration: class def needed");
+  }  /* if */
+#endif /* CHECKING */
   if (!C_mode()) {
     /* In C++ mode fix up the class-type-supplement and data structures
        pointed to from it. */
