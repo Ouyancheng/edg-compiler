@@ -1,5 +1,23 @@
 Version 2.26
 
+9/27/94  Internal error when suppressing a multi-line diagnostic
+
+If a command line option was used to change the severity of
+a multi-line diagnostic (such as the overloading diagnostics that
+list the set of overloaded functions), an internal error would
+result.  This has been corrected.
+
+9/27/94  Implicit inclusion and files that have already been included
+
+The implicit inclusion mechanism will no longer attempt to reinclude
+a file that has previously been explicitly or implicitly included.
+
+9/27/94  Implicit inclusion and specializations
+
+The compiler was incorrectly doing an implicit inclusion when
+one was not necessary because the a specialization had been provided
+in the source file being compiled.  This has been fixed.
+
 9/26/94  NEED_NAME_MANGLING without IL lowering
 
 Formerly, lower_name.c did not compile correctly if one set
