@@ -1296,6 +1296,14 @@ in generated C code.
 #endif /* ifndef LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C */
 
 /*
+Control whether a warning is put out when "long double" is put out
+as "double."
+*/
+#ifndef ISSUE_WARNING_ON_LONG_DOUBLE_AS_DOUBLE
+#define ISSUE_WARNING_ON_LONG_DOUBLE_AS_DOUBLE FALSE
+#endif /* ifndef ISSUE_WARNING_ON_LONG_DOUBLE_AS_DOUBLE */
+
+/*
 If ALLOW_ADDR_OF_REGISTER_IN_GENERATED_C is TRUE, "register" will be put
 out for register variables whose address is taken.  This can occur when
 compiling ANSI C code in SVR4 C compatibility mode.

@@ -480,11 +480,13 @@ way described by octl.
     if (kind == (a_float_kind)fk_long_double) {
       /* When generating K&R C from the C-generating back end, put out
          "double" for "long double" and issue a one-time-only warning. */
+#if ISSUE_WARNING_ON_LONG_DOUBLE_AS_DOUBLE
       static a_boolean warning_issued = FALSE;
       if (!warning_issued) {
         pos_warning(ec_double_for_long_double, &null_source_position);
         warning_issued = TRUE;
       }  /* if */
+#endif /* ISSUE_WARNING_ON_LONG_DOUBLE_AS_DOUBLE */
       kind = (a_float_kind)fk_double;
     }  /* if */
   }  /* if */
