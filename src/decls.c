@@ -8892,12 +8892,8 @@ continue_with_declaration:
                   }  /* for */
                 }  /* if */
                 if (init_required) {
-                  /* Make this a warning except in strict C++ ANSI mode. */
-                  pos_sy_diagnostic((strict_ansi_mode &&
-                                     C_dialect == C_dialect_cplusplus) ?
-                                       strict_ansi_error_severity : es_warning,
-                                    ec_var_with_uninitialized_field,
-                                    &declarator_pos, symbol_ptr);
+                  pos_sy_warning(ec_var_with_uninitialized_field,
+                                 &declarator_pos, symbol_ptr);
                 }  /* if */
               }  /* if */
             }  /* if */
