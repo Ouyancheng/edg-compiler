@@ -480,6 +480,15 @@ the file scope, do not process it (but record an orphan in the latter case).
           case ck_ptr_to_member:
             remap_ptr(ptr->variant.ptr_to_member.casting_base_class,
                       a_base_class_ptr, iek_base_class);
+#if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
+            set_proper_definition_needed_flag(pm_class_type(ptr->type));
+            if (ptr->variant.ptr_to_member.cast_to_base) {
+              /* On a cast from a derived to a base class, mark the derived
+                 class's definition as needed. */
+              set_proper_definition_needed_flag(
+                 ptr->variant.ptr_to_member.casting_base_class->derived_class);
+            }  /* if */
+#endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
             if (ptr->variant.ptr_to_member.is_function_ptr) {
               remap_ptr(ptr->variant.ptr_to_member.variant.routine,
                         a_routine_ptr, iek_routine);
