@@ -1942,7 +1942,7 @@ with a routine.
     alloc_length = mangled_name_length + 1;
     /* This space is not counted under any debug output.  There shouldn't
        be too much of it. */
-    mangled_name = alloc_il(alloc_length);
+    mangled_name = alloc_general(alloc_length);
     (void)strcpy(mangled_name, scp->name);
     store_at = mangled_name + name_length;
     *store_at++ = '_';
