@@ -1,5 +1,25 @@
 Version 3.0
 
+2/14/02  Microsoft mode: no tiebreakers for template overload resolution
+
+Overload resultion in Microsoft mode has been changed slightly
+so that late tiebreakers are not applied for function templates.
+This is what was already done in cfront mode, and it seems to match
+the behavior of MSVC++.
+
+  extern "C" int printf(const char*, ...);
+  struct function2 {
+    function2() {;}
+    template<typename Functor>
+    function2(Functor&) { printf("in function2 template ctor\n"); }
+  };
+  int main() {
+    function2 f1;
+    function2 f2(f1);  // Generated copy constructor selected in Microsoft mode
+                       // Template selected in default mode
+    return 0;
+  }
+
 2/14/02  Demangling of template member addresses in nontype template arguments
 
 A bug in demangling for nontype template arguments that are the address

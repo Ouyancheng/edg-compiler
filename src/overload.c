@@ -3444,9 +3444,10 @@ otherwise equivalent.  This is nonstandard, but it's what some compilers
   int                      result_cmp = 0;
   an_arg_match_summary_ptr arg1, arg2;
 
-  if (any_cfront_mode() &&
+  if ((any_cfront_mode() || microsoft_mode) &&
       (cfp1->is_function_template || cfp2->is_function_template)) {
-    /* Cfront doesn't consider tiebreakers for templates. */
+    /* Cfront doesn't consider tiebreakers for templates.  Neither does
+       Microsoft. */
   } else {
     /* Compare each argument. */
     for (arg1 = cfp1->arg_matches, arg2 = cfp2->arg_matches;
