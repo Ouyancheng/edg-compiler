@@ -1,6 +1,6 @@
 Version 3.4
 
-11/10/03 C++-generating back end: Spurious references to template parameters
+11/14/03 C++-generating back end: Spurious references to template parameters
 
 When NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS and/or
 CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE, the
