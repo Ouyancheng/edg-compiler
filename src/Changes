@@ -1,5 +1,21 @@
 Version 3.6
 
+1/19/05  Spurious error on __declspec(nothrow) across translation units
+
+When simultaneously processing multiple translation units in Microsoft mode,
+the front end previously issued an error if two declarations of a routine
+(in different translation units) differed only in the presence of the
+__declspec(nothrow) specifier.  For example:
+
+  // File 1:
+  __declspec(nothrow) void f() {}
+
+  // File 2:
+  void f();  // Previously an error when compiled with "File 1".
+
+Now such differences are accepted, except if the declaration missing the
+specifier is a definition.
+
 1/19/05  UPC mode: Branching in and out of upc_forall statements
 
 In UPC mode, the front end previously issued an error for every goto or return

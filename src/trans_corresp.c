@@ -2257,7 +2257,9 @@ declaration modifiers.
 {
   a_boolean        result = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  a_decl_modifier  dm_mask = (a_decl_modifier)(DM_DLLIMPORT | DM_DLLEXPORT);
+  a_decl_modifier  dm_mask = (a_decl_modifier)(DM_DLLIMPORT |
+                                               DM_DLLEXPORT |
+                                               DM_NOTHROW);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -2265,7 +2267,17 @@ declaration modifiers.
      there should not be two dllexport definitions, but that is covered by
      the more general check for multiple definitions. */
   result = ((rp1->decl_modifiers & ~dm_mask) !=
-            (rp2->decl_modifiers & ~dm_mask));
+                                            (rp2->decl_modifiers & ~dm_mask));
+  if (!result &&
+      (rp1->decl_modifiers & DM_NOTHROW) !=
+                                         (rp2->decl_modifiers & DM_NOTHROW)) {
+    /* __declspec(nothrow) need not be specified on every declaration, but if
+       it appears on one, it must also appear on the definition. */
+    if (((rp1->decl_modifiers & DM_NOTHROW) && rp2->defined) ||
+        ((rp2->decl_modifiers & DM_NOTHROW) && rp1->defined)) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   return result;
 }  /* incompatible_routine_decl_modifiers */
