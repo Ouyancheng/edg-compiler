@@ -1738,9 +1738,10 @@ then
       if [ $automatic_instantiation -ne 0 ] ; then
         command="$EDG_PRELINK $EDG_PRELINK_DEFAULT_OPTIONS \
                      $prelink_options \
-		     $Loptions ${library_option}$LIBDIR \
-                     $EDG_LINKER_LIB_PATHS \
+		     $Loptions \
                      $EDG_DEFAULT_LIB_PATHS \
+		     ${library_option}$LIBDIR \
+                     $EDG_LINKER_LIB_PATHS \
 		     $object_files -- \
                      $EDG_STD_LIBS"
         if [ $driver_debug -ne 0 ] ; then
