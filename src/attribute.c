@@ -1138,7 +1138,7 @@ messages about any invalid attributes.
       case ak_const:
         { a_routine_type_supplement_ptr  rtsp;
           ensure_routine_has_modifiable_type(rp);
-          rtsp = rp->type->variant.routine.extra_info;
+          rtsp = skip_typerefs(rp->type)->variant.routine.extra_info;
           if (ap->kind == (an_attribute_kind)ak_const) {
             rtsp->is_const = TRUE;
           } else {
@@ -1167,7 +1167,7 @@ messages about any invalid attributes.
           a_boolean                     error_occurred = FALSE;
           int                           count;
           ensure_routine_has_modifiable_type(rp);
-          rtsp = rp->type->variant.routine.extra_info;
+          rtsp = skip_typerefs(rp->type)->variant.routine.extra_info;
           if (!rtsp->prototyped) {
             /* For an unprototyped function, no checks are
                required. */
@@ -1232,7 +1232,7 @@ messages about any invalid attributes.
           int                           count;
           a_boolean                     error_occurred = FALSE;
           ensure_routine_has_modifiable_type(rp);
-          rtsp = rp->type->variant.routine.extra_info;
+          rtsp = skip_typerefs(rp->type)->variant.routine.extra_info;
           if (!rtsp->prototyped) {
             /* For an unprototyped function, no checks are
                required. */
@@ -1276,7 +1276,7 @@ messages about any invalid attributes.
       case ak_cdecl:
         { a_routine_type_supplement_ptr rtsp;
           ensure_routine_has_modifiable_type(rp);
-          rtsp = rp->type->variant.routine.extra_info;
+          rtsp = skip_typerefs(rp->type)->variant.routine.extra_info;
           if (rtsp->calling_convention == (a_calling_convention)cc_default) {
             /* The GNU C compiler appears to ignore the cdecl attribute if
                another calling convention is already specified. */
@@ -1287,7 +1287,7 @@ messages about any invalid attributes.
       case ak_stdcall:
         { a_routine_type_supplement_ptr rtsp;
           ensure_routine_has_modifiable_type(rp);
-          rtsp = rp->type->variant.routine.extra_info;
+          rtsp = skip_typerefs(rp->type)->variant.routine.extra_info;
           rtsp->calling_convention = (a_calling_convention)cc_stdcall;
         }
         break;
