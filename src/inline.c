@@ -316,7 +316,11 @@ body have side effects).
     if (is_constant_valued && var->is_this_parameter) *is_non_null = TRUE;
   } else if (is_routine_address_node(expr)) {
     is_constant_valued = TRUE;
-    *is_non_null = TRUE;
+    /* We assume that routines other than extern routines have non-null
+       addresses.  extern routines might have zero addresses because of
+       linker magic like weak externals. */
+    *is_non_null = (expr->variant.routine->storage_class !=
+                    (a_storage_class)sc_extern);
   } else if (is_operation_node(expr)) {
     an_expr_operator_kind op = expr->variant.operation.kind;
     if (op == (an_expr_operator_kind)eok_field) {
