@@ -5646,11 +5646,10 @@ transformations.
 */
 {
   if (is_array_type(operand->type)) {
-    /* An array lvalue (or rvalue, which is an error). */
+    /* An array lvalue or rvalue. */
     if (!(options & TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION)) {
-      /* In most contexts, an lvalue of array type is changed to
-         "pointer to first element of array".  See section 3.2.2.1 in the
-         ANSI C standard. */
+      /* In most contexts, an operand of array type is changed to
+         "pointer to first element of array". */
       conv_array_operand_to_pointer_operand(operand);
     }  /* if */
   } else if (is_an_lvalue(operand)) {
