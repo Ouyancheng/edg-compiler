@@ -307,10 +307,11 @@ extern void change_xref_kinds(an_xref_entry_ptr       xref_list,
 
 extern an_argument_summary_ptr alloc_argument_summary(void);
 
-an_argument_match_level selector_match_with_this_param(
-                                         an_operand *bound_function_selector,
-                                         a_boolean  selector_is_object_pointer,
-                                         a_type_ptr routine_type);
+extern void selector_match_with_this_param(
+                                an_operand          *bound_function_selector,
+                                a_boolean           selector_is_object_pointer,
+                                a_type_ptr          routine_type,
+                                an_argument_summary *arg_summary);
 
 extern a_symbol_ptr select_overloaded_function(
                             a_symbol_ptr            overloaded_function_symbol,
