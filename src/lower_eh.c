@@ -3959,19 +3959,19 @@ the throw, whereas the rest of the throw expression evaluation is
 #if DO_FULL_PORTABLE_EH_LOWERING
 /*ARGSUSED*/ /* <-- "unreachable" is not used in that case. */
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
-void insert_code_to_indicate_cleanup_state(an_insert_location *insert_location,
+void insert_code_to_indicate_cleanup_state(a_dynamic_init_ptr cleanup_state,
+                                           an_insert_location *insert_location,
                                            a_boolean          unreachable)
 /*
-Insert code to indicate the cleanup state (based on the current value of
-curr_context->curr_cleanup_state).  The code is inserted at *insert_location,
-and *insert_location is updated.  This routine is called only when exceptions
-are enabled.  unreachable is TRUE if the inserted code will be unreachable
-(presumably, it's being added to provide information for back ends that
-use the cleanup state information statically to build tables).
+Insert code to indicate the indicated cleanup state.  The code is inserted
+at *insert_location, and *insert_location is updated.  This routine is called
+only when exceptions are enabled.  unreachable is TRUE if the inserted
+code will be unreachable (presumably, it's being added to provide information
+for back ends that use the cleanup state information statically to build
+tables).
 */
 {
-  an_expr_node_ptr   node;
-  a_dynamic_init_ptr cleanup_state = curr_context->curr_cleanup_state;
+  an_expr_node_ptr node;
 
   check_assertion_str(exceptions_enabled,
      "insert_code_to_indicate_cleanup_state: called with exceptions disabled");

@@ -7303,7 +7303,8 @@ to the statement; otherwise, it is NULL.
       curr_context->curr_cleanup_state = saved_curr_cleanup_state;
       if (exceptions_enabled) {
         set_after_expr_insert_location(expr_to_lower, &insert_location);
-        insert_code_to_indicate_cleanup_state(&insert_location,
+        insert_code_to_indicate_cleanup_state(curr_context->curr_cleanup_state,
+                                              &insert_location,
                                               /*unreachable=*/FALSE);
       }  /* if */
     }  /* if */
@@ -7872,7 +7873,8 @@ Called only in long lifetime temporaries mode.
        is a label (because in that case it will be set in a moment
        anyway). */
     if ((*statement)->kind != (a_statement_kind)stmk_label) {
-      insert_code_to_indicate_cleanup_state(&insert_location,
+      insert_code_to_indicate_cleanup_state(curr_context->curr_cleanup_state,
+                                            &insert_location,
                                             /*unreachable=*/FALSE);
     }  /* if */
   }  /* if */
@@ -7984,7 +7986,8 @@ indicated statement.
   if (exceptions_enabled) {
     an_insert_location insert_location;
     set_insert_location(statement, &insert_location);
-    insert_code_to_indicate_cleanup_state(&insert_location,
+    insert_code_to_indicate_cleanup_state(curr_context->curr_cleanup_state,
+                                          &insert_location,
                                           /*unreachable=*/TRUE);
   }  /* if */
 }  /* reset_cleanup_state_at_unreachable_point */
@@ -9074,8 +9077,10 @@ Do IL lowering of the indicated statement and everything under it.
           /* Exceptions are enabled and the current function has
              destructible objects.  Insert code to set the cleanup state. */
           set_insert_location(statement, &insert_location);
-          insert_code_to_indicate_cleanup_state(&insert_location,
-                                                /*unreachable=*/FALSE);
+          insert_code_to_indicate_cleanup_state(
+                                              curr_context->curr_cleanup_state,
+                                              &insert_location,
+                                              /*unreachable=*/FALSE);
         }  /* if */
         break;
       case stmk_return:

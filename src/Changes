@@ -1,5 +1,12 @@
 Version 2.36
 
+6/9/97    EH cleanup state during initializations of file-scope entities
+
+A change made in 2.34 broke the code that sets the cleanup state when it's
+used within the generated file-scope initialization routine.  This bug
+is not particularly visible since exceptions thrown before all file-scope
+variables are initialized will generally cause a call of terminate().
+
 6/9/97    Missing diagnostic on default argument in template instance friend
           declaration
 
@@ -39,7 +46,7 @@ might be issued.
 
 6/6/97    Using-declarations: abort during error recovery
 
-An abort no longer occurs in the following case, were the name introduced by
+An abort no longer occurs in the following case, where the name introduced by
 a using-declaration is also the name of the class (which is disallowed):
 
   struct A {

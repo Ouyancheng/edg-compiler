@@ -2334,7 +2334,8 @@ and not for constructor_init entries in destructors.
   curr_context->curr_cleanup_state =
                           dedp->cleanup_state_to_set_when_starting_destruction;
   if (exceptions_enabled) {
-    insert_code_to_indicate_cleanup_state(insert_location,
+    insert_code_to_indicate_cleanup_state(curr_context->curr_cleanup_state,
+                                          insert_location,
                                           /*unreachable=*/FALSE);
   }  /* if */
   effective_insert_loc = insert_location;
@@ -2893,7 +2894,8 @@ Any code needed is inserted at *insert_location.
   /* Set the current cleanup state. */
   context->curr_cleanup_state = dip;
   if (exceptions_enabled) {
-    insert_code_to_indicate_cleanup_state(insert_location,
+    insert_code_to_indicate_cleanup_state(context->curr_cleanup_state,
+                                          insert_location,
                                           /*unreachable=*/FALSE);
   }  /* if */
   /* Record this dynamic initialization as the last encountered in the
@@ -3305,7 +3307,8 @@ enabled.
   check_assertion(dip != NULL && dip->next == NULL);
   curr_context->curr_cleanup_state = dip->destructible_entity_descr->
                                 cleanup_state_to_set_when_starting_destruction;
-  insert_code_to_indicate_cleanup_state(insert_location,
+  insert_code_to_indicate_cleanup_state(curr_context->curr_cleanup_state,
+                                        insert_location,
                                         /*unreachable=*/FALSE);
 }  /* remove_local_static_guard_var_cleanup */
 
@@ -4053,7 +4056,8 @@ and *insert_location is updated.
        and curr_context->curr_cleanup_state need not be maintained. */
     curr_context->curr_cleanup_state =
                           dedp->cleanup_state_to_set_when_starting_destruction;
-    insert_code_to_indicate_cleanup_state(insert_location,
+    insert_code_to_indicate_cleanup_state(curr_context->curr_cleanup_state,
+                                          insert_location,
                                           /*unreachable=*/FALSE);
   }  /* if */
   add_destructor_call(dip->destructor, ipdp, have_complete_object,
@@ -6184,7 +6188,8 @@ destructor scope, and also lower the user code.
          going into user code) to the first cleanup for the wrapper.
          Note that this is not set when exceptions are not enabled. */
       curr_context->curr_cleanup_state = first_prologue_destruction;
-      insert_code_to_indicate_cleanup_state(&prologue_insert_location,
+      insert_code_to_indicate_cleanup_state(curr_context->curr_cleanup_state,
+                                            &prologue_insert_location,
                                             /*unreachable=*/FALSE);
     } /* if */
   }  /* if */
