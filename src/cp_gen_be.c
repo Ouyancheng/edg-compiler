@@ -1673,7 +1673,7 @@ a class template.
   a_boolean is_proto = FALSE;
 
   if (is_immediate_class_type(type)) {
-    if (type->variant.class_struct_union.is_nonreal_class &&
+    if (type->variant.class_struct_union.is_prototype_instantiation &&
         /* Exclude prototype instantiations of partial specializations. */
         type->variant.class_struct_union.extra_info->
                                       partial_spec_template_arg_list == NULL) {
