@@ -1,5 +1,23 @@
 Version 2.13
 
+12/1/92  Redeclaration of typedef in derived class bug fixed
+
+When the same name is defined in a typedef in a derived class and
+a base class, a spurious error was being issued.  To fix this a 
+new lookup routine called curr_scope_id_lookup has been added.
+
+12/1/92  Structured statement stack reallocation bug fixed
+
+A bug was fixed in the reallocation of the structured statement
+stack.  This could occur if there were more than 30 levels of
+nested structured statements.
+
+12/1/92  Instantiation command line options
+
+Command line options have been added to control the instantiation
+of template functions and member functions of template classes.
+The -t option specifies a template instantiation mode.
+
 12/1/92  Change of default in enum layout
 
 The default for the configuration flag
