@@ -4093,7 +4093,9 @@ at the next level down.
            file found is not the same as the file we started with.  This
            could occur if the user included a .c file that contains a
            template declaration. */
-        if (compare_file_names(full_file_name, sfp->full_name) != 0) {
+        if (compare_file_names(full_file_name, sfp->full_name) == 0) {
+          (void)fclose(f_source);
+        } else {
 	  an_include_file_history_ptr	ifhp;
 #if DEBUG
           if (debug_level >= 3) {
