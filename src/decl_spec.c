@@ -578,6 +578,48 @@ done:
 }  /* scan_tag_name */
 
 
+static a_boolean namespace_scope_should_be_pushed(a_symbol_ptr       tag_sym,
+                                                  a_symbol_locator   *loc,
+                                                  a_source_position  *pos,
+                                                  a_boolean          *err)
+/*
+The class or enum indicated by tag_sym is being defined, having originally
+been declared a namespace member.  Determine whether it's legal in this
+context (if not, issue a diagnostic and return *err set to TRUE), and if it
+is legal, determine whether a scope stack entry needs to be pushed (in which
+case return TRUE).
+*/
+{
+  a_boolean    should_be_pushed = FALSE;
+  a_scope_ptr  scope = scope_stack[decl_scope_level].il_scope;
+
+  if (!namespace_is_enclosed_by_curr_scope(tag_sym)) {
+    /* This declaration appears within a namespace scope in which the name
+       cannot be defined -- it is a member (directly or indirectly) of a
+       namespace that is not enclosed by the current namespace scope (see
+       WP 7.3.1.4). */
+    pos_sy_error(ec_bad_scope_for_definition, pos, tag_sym);
+    *err = TRUE;
+  } else if (scope->kind != (a_scope_kind)sck_namespace ||
+             tag_sym->parent.namespace_ptr !=
+                                 scope->variant.assoc_namespace) {
+    /* Push a namespace extension scope. */
+    should_be_pushed = TRUE;
+  } else if (loc->is_qualified_name) {
+    /* A namespace-qualified name that refers to the current namespace is
+       not allowed in a definition. */
+    check_assertion_str2(scope->kind == (a_scope_kind)sck_namespace &&
+                         tag_sym->parent.namespace_ptr ==
+                                         scope->variant.assoc_namespace,
+                         "namespace_scope_should_be_pushed:",
+                         "expected curr-namespace qualified name");
+    pos_error(ec_qualifier_in_namespace_member_decl, pos);
+    *err = TRUE;
+  }  /* if */
+  return should_be_pushed;
+}  /* namespace_scope_should_be_pushed */
+
+
 static a_boolean class_specifier(a_boolean  vacuous_decl_allowed,
                                  a_boolean  is_friend_decl,
                                  a_boolean  is_ref_within_new_expr,
@@ -923,32 +965,15 @@ to indicate whether the class/struct/union is actually defined.
             /* The class being defined was originally declared a namespace
                member.  Determine (1) whether it's legal in this context and
                if so, (2) whether a scope stack entry needs to be pushed. */
-            if (!namespace_is_enclosed_by_curr_scope(tag_sym)) {
-              /* This declaration appears within a namespace scope in which
-                 the name cannot be defined -- it is a member (directly or
-                 indirectly) of a namespace that is not enclosed by the current
-                 namespace scope (see WP 7.3.1.4). */
-              pos_sy_error(ec_bad_scope_for_definition, &tag_position,
-                           tag_sym);
-              tag_sym = NULL;
-              set_to_error_locator(locator);
-            } else if (ssep->il_scope->kind != (a_scope_kind)sck_namespace ||
-                       tag_sym->parent.namespace_ptr !=
-                                   ssep->il_scope->variant.assoc_namespace) {
+            a_boolean  scope_err = FALSE;
+            if (namespace_scope_should_be_pushed(tag_sym, &locator,
+                                                 &tag_position, &scope_err)) {
               /* Push a namespace extension scope. */
               push_namespace_extension_scope(tag_sym->parent.namespace_ptr);
               namespace_extension_pushed = TRUE;
               effective_decl_level = depth_scope_stack;
-            } else if (locator.is_qualified_name) {
-              /* A namespace-qualified name that refers to the current
-                 namespace is not allowed in a definition. */
-              check_assertion_str2(ssep->il_scope->kind ==
-                                              (a_scope_kind)sck_namespace &&
-                                   tag_sym->parent.namespace_ptr ==
-                                     ssep->il_scope->variant.assoc_namespace,
-                                   "scan_tag_name:",
-                                   "expected curr-namespace qualified name");
-              pos_error(ec_qualifier_in_namespace_member_decl, &tag_position);
+            } else if (scope_err) {
+              /* An error was issued by the subroutine. */
               tag_sym = NULL;
               set_to_error_locator(locator);
             }  /* if */
@@ -1275,6 +1300,7 @@ to indicate whether an enumeration is actually defined.
   an_access_specifier      access;
   a_scope_depth            effective_decl_level = decl_scope_level;
   a_boolean                is_redeclaration;
+  a_boolean                namespace_extension_pushed = FALSE;
 
   db_enter(3, "enum_specifier");
 
@@ -1315,14 +1341,28 @@ to indicate whether an enumeration is actually defined.
     } else if (tag_sym != NULL && curr_token == tok_lbrace) {
       /* This is a definition of an enumeration that has previously been
          declared. */
-      if (tag_sym->is_class_member &&
-          tag_sym->parent.class_type != class_of_which_a_member) {
-        /* This is an attempt to define a member enum outside the class of
-           which it is a member. */
-        pos_sy_error(ec_bad_scope_for_definition, &tag_position, tag_sym);
-        tag_sym = NULL;
-        set_to_error_locator(locator);
-      }  /* if */
+      if (tag_sym->is_class_member) {
+        if (tag_sym->parent.class_type != class_of_which_a_member) {
+          /* This is an attempt to define a member enum outside the class of
+             which it is a member. */
+          pos_sy_error(ec_bad_scope_for_definition, &tag_position, tag_sym);
+          tag_sym = NULL;
+          set_to_error_locator(locator);
+        }  /* if */
+      } else if (tag_sym->parent.namespace_ptr != NULL) {
+        err = FALSE;
+        if (namespace_scope_should_be_pushed(tag_sym, &locator, &tag_position,
+                                             &err)) {
+          /* Push a namespace extension scope. */
+          push_namespace_extension_scope(tag_sym->parent.namespace_ptr);
+          namespace_extension_pushed = TRUE;
+          effective_decl_level = depth_scope_stack;
+        } else if (err) {
+          /* An error was issued by the subroutine. */
+          tag_sym = NULL;
+          set_to_error_locator(locator);
+        }  /* if */
+      }  /* if */ 
     }  /* if */
   } else {
     /* No tag identifier present. */
@@ -1705,6 +1745,8 @@ to indicate whether an enumeration is actually defined.
       move_to_end_of_types_list(enum_type, effective_decl_level);
     }  /* if */
   }  /* if */
+  /* If necessary, pop the namespace extension scope. */
+  if (namespace_extension_pushed) pop_namespace_extension_scope();
   *type_ptr = enum_type;
   db_exit();
 }  /* enum_specifier */
