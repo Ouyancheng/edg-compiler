@@ -7054,6 +7054,37 @@ This is used for stmk_init statements.
 }  /* dump_whole_variable_dynamic_init */
 
 
+static a_boolean is_implicit_return(a_statement_ptr statement)
+/*
+Return TRUE if the indicated return statement is an implicit return
+statement which therefore should not be put out.
+*/
+{
+  a_boolean is_implicit;
+
+  if (statement->expr != NULL ||
+      seq_number_from_stmt_source_position(statement->position) != 0 ||
+      statement->next != NULL) {
+    /* A return with a source position, with an expression, or that
+       is not the last in its statement list -- not implicit. */
+    is_implicit = FALSE;
+  } else {
+    /* Check that the statement is the last in the last block
+       of the function.  In constructors with function try blocks
+       an implicit return can be nested inside the try and shouldn't
+       be removed. */
+    a_statement_ptr stmt = innermost_function_scope->assoc_block;
+    while (stmt->kind == (a_statement_kind)stmk_block) {
+      stmt = stmt->variant.block.statements;
+      if (stmt == NULL) break;
+      while (stmt->next != NULL) stmt = stmt->next;
+    }  /* while */
+    is_implicit = (stmt == statement);
+  }  /* if */
+  return is_implicit;
+}  /* is_implicit_return */
+
+
 #if !CHECKING
 /*ARGSUSED*/  /* <-- last_in_statement_expr is not used in that case. */
 #endif /* !CHECKING */
@@ -7277,9 +7308,7 @@ statement expression, i.e., ({...}).
         write_tok_str("; ");
       }  /* if */
       /* Do not put out an implicit return. */
-      if (statement->expr != NULL ||
-          seq_number_from_stmt_source_position(statement->position) != 0 ||
-          statement->next != NULL) {
+      if (!is_implicit_return(statement)) {
         write_tok_str("return");
         if (statement->expr != NULL) {
           write_space();
