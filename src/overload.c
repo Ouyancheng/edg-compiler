@@ -9837,6 +9837,10 @@ direct binding is "possible" and not whether it is "valid".
     /* The type is correct, ignoring (first-level) qualifiers.
        Note that this handles qualified array cases. */
     type_is_correct_or_derived = TRUE;
+  } else if (is_or_contains_template_param(unqual_dest_type) ||
+             is_or_contains_template_param(unqual_source_type)) {
+    /* Assume a match for unknown template parameter types. */
+    type_is_correct_or_derived = TRUE;
   } else if (is_class_struct_union_type(unqual_dest_type) &&
              is_class_struct_union_type(unqual_source_type) &&
              find_base_class_of(unqual_source_type,
