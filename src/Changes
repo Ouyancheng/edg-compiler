@@ -1,5 +1,31 @@
 Version 2.42
 
+3/30/99  Spurious error when type_info appears in elaborated type specifier
+         following its definition.
+
+With PRAGMA_DEFINE_TYPE_INFO_IS_REQUIRED configured to TRUE, a spurious
+error might be issued on an elaborated type specifier that referred to
+class type_info even if the definition had already appeared.  Now fixed.
+
+  namespace std {
+    #pragma define_type_info
+    class type_info { };
+    class type_info *tip;
+  }
+
+3/30/99  Microsoft compatibility: binding of reference to _GUID to name of
+         predeclared type
+
+In Microsoft mode an elaborated type specifier referring to _GUID did
+not always bind to the name of the predeclared type (e.g., when it
+appeared in a function prototype).  Now fixed.
+
+  struct __declspec(uuid("447047e7-c64d-11d2-b57c-00105aa4d93d")) A { };
+  void f(const struct _GUID &);
+  main() {
+    f(__uuidof(A));                         // Spurious error eliminated
+  }
+
 3/30/99  Abort with type_info declared in unnamed namespace
 
 An abort would occur if a class named "type_info" were declared in an

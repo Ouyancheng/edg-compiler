@@ -809,6 +809,7 @@ caution when modifying this routine.
   a_boolean	             tag_err = FALSE;
   a_boolean	             is_tag_definition = FALSE;
   an_identifier_options_set  options;
+  a_scope_depth              computed_decl_level;
 
   db_enter(3, "scan_tag_name");
   *tag_resolution = FALSE;
@@ -835,6 +836,48 @@ caution when modifying this routine.
     /* Identifier is missing. */
     error(ec_exp_identifier);
     tag_err = TRUE;
+  }  /* if */
+  if (!C_mode() || microsoft_mode) {
+    /* The effective scope depth for the current declaration may need to
+       reset.  Compute the depth to which it should be reset now, since it's
+       used for processing declarations of predeclared types.  The actual
+       resetting, if required, will be done later. */
+    /* In C++ mode or Microsoft C, don't enter tags in prototype scopes. */
+    a_boolean     done = FALSE;
+    a_symbol_ptr  instance_sym;
+
+    computed_decl_level = *effective_decl_level;
+    do {
+      switch (scope_stack[computed_decl_level].kind) {
+        case sck_template_instantiation:
+          /* We hit a template instantiation scope.  If the
+             instantiation scope is for a real instantiation then
+             set effective_decl_level to file scope.  If it is a
+             prototype or nonreal instantiation then leave
+             effective_decl_level pointing at the instantiation
+             scope.  The problem is that a class declared in a
+             prototype instantiation may not be a real type, but we
+             don't know yet.  We want to avoid contaminating the name
+             space, etc., so it gets declared in the instantiation
+             scope. */
+          instance_sym =
+                     scope_stack[computed_decl_level].instance_sym;
+          if (instance_sym == NULL ||
+              is_real_class_symbol(instance_sym)) {
+            computed_decl_level = depth_innermost_namespace_scope;
+          }  /* if */
+          /*FALLTHROUGH*/
+        case sck_file:
+        case sck_namespace:
+        case sck_namespace_extension:
+        case sck_function:
+        case sck_block:
+          done = TRUE;
+          break;
+        default:
+          (computed_decl_level)--;
+      }  /* if */
+    } while (!done);
   }  /* if */
   if (!C_mode() && !tag_err) {
     /* Check for the presence of a qualified name.  If we have a qualified
@@ -929,12 +972,13 @@ caution when modifying this routine.
     }  /* if */
     if (tag_sym == NULL && !tag_err &&
         !locator_for_curr_id.is_qualified_name &&
-        decl_scope_level == depth_innermost_namespace_scope &&
+        computed_decl_level == depth_innermost_namespace_scope &&
         tag_kind != (a_symbol_kind)sk_enum_tag) {
       /* See if this is an explicit declaration of class type_info, which was
          already "predeclared".  If it is, reuse the original symbol. */
       a_type_ptr       predeclared_type = NULL;
       a_symbol_ptr     type_info_sym;
+      a_namespace_ptr  nsp = NULL;
 
       check_assertion(type_of_type_info != NULL);
       type_info_sym = (a_symbol_ptr)type_of_type_info->
@@ -943,18 +987,17 @@ caution when modifying this routine.
          namespace.  This depends on whether the implicitly declared type_info
          is expected to be in namespace "std" or in the global namespace. */
       if (locator_for_curr_id.symbol_header == type_info_sym->header) {
-        a_namespace_ptr       nsp = NULL;
         a_pending_pragma_ptr  ppp;
 
-        if (decl_scope_level == (DEPTH_OF_FILE_SCOPE + 1)) {
-          nsp = scope_stack[decl_scope_level].il_scope->
+        if (computed_decl_level == (DEPTH_OF_FILE_SCOPE + 1)) {
+          nsp = scope_stack[computed_decl_level].il_scope->
                                                   variant.assoc_namespace;
         }  /* if */
         if (type_info_in_namespace_std ?
             (nsp != NULL &&
              nsp->source_corresp.assoc_info ==
                                       (char *)symbol_for_namespace_std) :
-            (decl_scope_level == DEPTH_OF_FILE_SCOPE)) {
+            (computed_decl_level == DEPTH_OF_FILE_SCOPE)) {
           /* The identifier is indeed "type_info".  Check for the pragma that
              specifically identifies it as the type_info that is returned by
              typeid (typically, the type_info defined in typeinfo.h). */
@@ -976,12 +1019,15 @@ caution when modifying this routine.
             tag_sym = type_info_sym;
 #else /* PRAGMA_DEFINE_TYPE_INFO_IS_REQUIRED */
 #if ABI_CHANGES_FOR_RTTI
-            /* Run-time support for RTTI declares type_info, so consider the
-               name to be reserved. */
-            pos_st_error(ec_conflicts_with_predeclared_type_info,
-                         &locator_for_curr_id.source_position,
-                         type_info_in_namespace_std ? "std::type_info" :
-                                                      "type_info");
+            if (type_info_sym->decl_scope == NO_SCOPE_DEPTH) {
+              /* Not yet explicitly redeclared. */
+              /* Run-time support for RTTI declares type_info, so consider the
+                 name to be reserved. */
+              pos_st_error(ec_conflicts_with_predeclared_type_info,
+                           &locator_for_curr_id.source_position,
+                           type_info_in_namespace_std ? "std::type_info" :
+                                                        "type_info");
+            }  /* if */
             tag_sym = type_info_sym;
 #endif /* ABI_CHANGES_FOR_RTTI */
 #endif /* !PRAGMA_DEFINE_TYPE_INFO_IS_REQUIRED */
@@ -993,7 +1039,7 @@ caution when modifying this routine.
         }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       } else if (microsoft_mode && !C_mode() &&
-                 decl_scope_level == DEPTH_OF_FILE_SCOPE) {
+                 computed_decl_level == DEPTH_OF_FILE_SCOPE) {
         /* Similarly, check for predeclared "struct _GUID". */
         a_symbol_ptr  guid_sym;
         check_assertion(type_of_guid != NULL);
@@ -1011,15 +1057,14 @@ caution when modifying this routine.
            been added to the symbol table yet.  Use the current source
            position. */
         tag_sym->decl_position = locator_for_curr_id.source_position;
-        reenter_symbol(tag_sym, decl_scope_level, /*suppress_error=*/FALSE);
+        reenter_symbol(tag_sym, computed_decl_level, /*suppress_error=*/FALSE);
         /* Call set_source_corresp again to get everything in sync. */
         set_source_corresp(&(predeclared_type->source_corresp), tag_sym);
         set_namespace_membership(tag_sym,
-                                 &(predeclared_type->source_corresp),
-                                 (a_namespace_ptr)NULL);
+                                 &(predeclared_type->source_corresp), nsp);
         /* The referenced flag may have been reset by set_source_corresp. */
         predeclared_type->source_corresp.referenced = tag_sym->referenced;
-        add_to_types_list(predeclared_type, decl_scope_level);
+        add_to_types_list(predeclared_type, computed_decl_level);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -1161,49 +1206,8 @@ caution when modifying this routine.
              declaration of a member function within the definition of class
              A does not introduce the name of nested class A::B; rather, B
              is entered in the same scope as A.) */
-          if (C_dialect == C_dialect_cplusplus
-#if MICROSOFT_EXTENSIONS_ALLOWED
-              /* In Microsoft C mode, don't enter tags in prototype scopes. */
-              || microsoft_mode
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                              ) {
-            /* Pop out to the containing scope -- file scope, function scope,
-               or block scope.  *effective_decl_level will already have been
-               initialized to decl_scope_level. */
-            a_boolean     done = FALSE;
-            a_symbol_ptr  instance_sym;
-
-            do {
-              switch (scope_stack[*effective_decl_level].kind) {
-                case sck_template_instantiation:
-                  /* We hit a template instantiation scope.  If the
-                     instantiation scope is for a real instantiation then
-                     set effective_decl_level to file scope.  If it is a
-                     prototype or nonreal instantiation then leave
-                     effective_decl_level pointing at the instantiation
-                     scope.  The problem is that a class declared in a
-                     prototype instantiation may not be a real type, but we
-                     don't know yet.  We want to avoid contaminating the name
-                     space, etc., so it gets declared in the instantiation
-                     scope. */
-                  instance_sym =
-                             scope_stack[*effective_decl_level].instance_sym;
-                  if (instance_sym == NULL ||
-                      is_real_class_symbol(instance_sym)) {
-                    *effective_decl_level = depth_innermost_namespace_scope;
-                  }  /* if */
-                  /*FALLTHROUGH*/
-                case sck_file:
-                case sck_namespace:
-                case sck_namespace_extension:
-                case sck_function:
-                case sck_block:
-                  done = TRUE;
-                  break;
-                default:
-                  (*effective_decl_level)--;
-              }  /* if */
-            } while (!done);
+          if (C_dialect == C_dialect_cplusplus || microsoft_mode) {
+            *effective_decl_level = computed_decl_level;
           }  /* if */
         } else if (is_injected_class_symbol(tag_sym)) {
           /* A symbol representing an injected class name.  Use the tag symbol
