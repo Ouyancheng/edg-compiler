@@ -82,8 +82,13 @@ user-written copy constructor.
 
 1/21/00  Microsoft compatibility: type names as parameter names (C mode)
 
-When compiling C in Microsoft bugs mode, the front end accepts type names in
-parameter name lists of function declarators.  For example:
+In Microsoft bugs C mode, the front end accepts old-style parameter-id lists
+in function declarators even when the declarator is not the topmost declarator
+of a function definition (i.e., even in contexts where such lists are not
+allowed by the C standard, and where there is no way to define the type of the
+parameters).  In the past, the front end did not allow the names of such
+parameters after the first to match a type name; now, to conform to MSVC++, it
+does.  For example:
 
   typedef void *PVoid;
   typedef int (*Fptr)(ident, PVoid);  // Accepted with --c --microsoft_bugs
