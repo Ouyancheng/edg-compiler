@@ -12081,30 +12081,6 @@ continue_with_declaration:
         /* Fetch the type of the symbol again, since it might have been
            changed if it was an incomplete array and was initialized. */
         if (var_ptr != NULL) local_type_ptr = var_ptr->type;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        if (microsoft_mode &&
-            (decl_modifiers.flags &
-             ~(local_decl_modifiers.flags) & DM_SELECTANY)) {
-          /* Checking for the "selectany" decl-modifier was deferred. */
-          if (var_ptr->init_kind == (an_init_kind)initk_static) {
-            /* Flag the variable. */
-            var_ptr->decl_modifiers |= DM_SELECTANY;
-          } else if (var_ptr->init_kind == (an_init_kind)initk_dynamic) {
-            /* The "selectany" decl-modifier cannot appear with a dynamic
-               initialization in Microsoft versions prior to 1300. */
-            if (microsoft_version >= 1300) {
-              var_ptr->decl_modifiers |= DM_SELECTANY;
-            } else {
-              pos_st_diagnostic(es_discretionary_error,
-                              ec_decl_modifiers_invalid_for_this_decl,
-                              &locator.source_position,
-                              decl_modifier_names[(int)dmt_selectany]);
-            }  /* if */
-          } else {
-            /* Error in initializer. */
-          }  /* if */        
-        }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else if (is_old_style_param_decl) {
         /* Don't worry about missing initializer. */
       } else if (is_variable_def && !is_error_locator(locator) &&
@@ -12169,6 +12145,33 @@ continue_with_declaration:
            as though it were a definition. */
         mark_variable_value_set(symbol_ptr);
       }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (microsoft_mode &&
+          (decl_modifiers.flags &
+           ~(local_decl_modifiers.flags) & DM_SELECTANY)) {
+        /* Checking for the "selectany" decl-modifier was deferred until
+           after the initializer (if any) was scanned. */
+        if (var_ptr->init_kind == (an_init_kind)initk_static ||
+            (var_ptr->init_kind == (an_init_kind)initk_none &&
+             has_static_storage_duration(var_ptr->storage_class))) {
+          /* Flag the variable. */
+          var_ptr->decl_modifiers |= DM_SELECTANY;
+        } else if (var_ptr->init_kind == (an_init_kind)initk_dynamic) {
+          /* The "selectany" decl-modifier cannot appear with a dynamic
+             initialization in Microsoft versions prior to 1300. */
+          if (microsoft_version >= 1300) {
+            var_ptr->decl_modifiers |= DM_SELECTANY;
+          } else {
+            pos_st_diagnostic(es_discretionary_error,
+                            ec_decl_modifiers_invalid_for_this_decl,
+                            &locator.source_position,
+                            decl_modifier_names[(int)dmt_selectany]);
+          }  /* if */
+        } else {
+          /* Error in initializer. */
+        }  /* if */        
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
 #if DEBUG
       if (debug_level >= 3 || db_flag_is_set("dump_decl_pos_info")) {

@@ -1,5 +1,16 @@
 Version 3.4
 
+1/15/04  Microsoft compatibility: __declspec(selectany) ignored in some cases
+
+In Microsoft mode with microsoft_version >= 1300, the front end accepts the
+__declspec(selectany) specifier on certain variable definitions with no
+initializer, but the specifier was not recorded in the IL.  For example:
+
+  __declspec(selectany) int x;  // Accepted in Microsoft mode, but previously
+                                // treated identically to plain "int x;".
+
+This is now fixed.
+
 1/15/04  Microsoft compatibility: Spurious duplicate definition error on
          selectany variables
 
