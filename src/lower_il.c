@@ -9038,11 +9038,7 @@ arrays with class elements.
        case).  The entity_node is therefore a NULL pointer. */
     make_zero_of_proper_type(ptr_elem_type, &null_constant);
     entity_node = alloc_node_for_constant(&null_constant);
-    /* Lower "arg" even though it is ignored.  This is necessary to get the
-       IL walk flags flipped in the expressions.  Note that it is not
-       necessary to lower this as an argument list because it will not
-       be used as such. */
-    lower_expr_list(ndsp->arg, 0, FALSE);
+    /* ndsp->arg is not lowered because it is thrown away. */
     preserve_size_node = FALSE;
   } else {
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
@@ -9293,12 +9289,7 @@ The subtree of the node has not yet been lowered.
     /* The "new" call has been folded into the constructor call. */
     a_routine_ptr    ctor_routine = dip->variant.constructor.routine;
     an_expr_node_ptr implied_arg_list, end_implied_arg_list;
-
-    /* Lower "arg" even though it is ignored.  This is necessary to get the
-       IL walk flags flipped in the expressions.  Note that it is not
-       necessary to lower this as an argument list because it will not
-       be used. */
-    lower_expr_list(ndsp->arg, 0, FALSE);
+    /* ndsp->arg is not lowered because it is thrown away. */
     /* Pass a NULL for the "this" parameter to tell the constructor to
        do the allocation. */
     make_zero_of_proper_type(make_pointer_type(base_type), &null_constant);
