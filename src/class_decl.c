@@ -4234,9 +4234,9 @@ of the function, and again overloading is a possibility.
          member function name.  This could potentially be an instance of
          a member function template.  If none can be found, NULL is
          returned. */
-      sym = find_matching_template_instance(sym, function_type,
-                                            locator->template_arg_list,
-                                            locator->is_template_id);
+      sym = find_matching_template_instance(
+                               sym, function_type, locator->template_arg_list,
+                               (a_boolean)locator->is_template_id);
       if (sym == NULL) {
         /* This is a member function, but one with a type that doesn't
            match a previously declared member.  A diagnostic will have been
