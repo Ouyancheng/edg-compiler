@@ -2336,14 +2336,14 @@ Otherwise, return FALSE.
   a_boolean   changed = FALSE;
   a_type_ptr  new_type_1 = *type_1, new_type_2 = *type_2;
 
-  if (il_entry_prefix_of(new_type_1).secondary_trans_unit) {
+  if (in_secondary_trans_unit(new_type_1)) {
     new_type_1 = canonical_type_entry_of(new_type_1);
     if (new_type_1 != *type_1) {
       *type_1 = new_type_1;
       changed = TRUE;
     }  /* if */
   }  /* if */
-  if (il_entry_prefix_of(new_type_2).secondary_trans_unit) {
+  if (in_secondary_trans_unit(new_type_2)) {
     new_type_2 = canonical_type_entry_of(new_type_2);
     if (new_type_2 != *type_2) {
       *type_2 = new_type_2;

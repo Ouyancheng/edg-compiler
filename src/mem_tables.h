@@ -273,6 +273,14 @@ memory region.  ptr must point to something allocated in an IL memory
 region.
 */
 #define in_file_scope(ptr) ((a_boolean)(il_entry_prefix_of(ptr).file_scope))
+
+/*
+Return TRUE if the IL entry pointed to by ptr is in a secondary
+translation unit.  ptr must point to something allocated in an IL memory
+region.
+*/
+#define in_secondary_trans_unit(ptr) \
+  ((a_boolean)(il_entry_prefix_of(ptr).secondary_trans_unit))
 			
 
 EXTERN a_mem_block_header_ptr
