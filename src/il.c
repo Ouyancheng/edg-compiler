@@ -8551,8 +8551,8 @@ void eliminate_bodies_of_unneeded_functions(void)
           sssdp->declared_type = rp->type;
           sssdp->friend_decl = rp->defined_in_friend_decl;
         }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         rp->defined_in_friend_decl = FALSE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
         (void)eliminate_unneeded_scope_orphaned_list_headers(sp, rp);
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
