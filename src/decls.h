@@ -172,9 +172,10 @@ extern a_symbol_ptr enter_local_symbol(a_symbol_kind    kind,
                                        a_boolean        at_file_scope,
                                        a_boolean        suppress_redecl_error);
 
-extern void decl_typedef(a_symbol_locator   *locator,
-                         a_type_ptr         type_ptr,
-                         a_symbol_ptr       *symbol_ptr);
+extern void decl_typedef(a_symbol_locator             *locator,
+                         a_type_ptr                   type_ptr,
+                         a_symbol_ptr                 *symbol_ptr,
+                         a_source_sequence_entry_ptr  declarator_ssep);
 
 extern void inline_function_definition(a_routine_ptr     routine_ptr,
                                        a_func_info_block *func_info);
@@ -196,6 +197,8 @@ extern void decl_var_or_routine(a_symbol_locator    *locator,
                                 a_storage_class     storage_class,
                                 a_type_ptr          type_ptr,
                                 a_func_info_block   *func_info,
+                                a_source_sequence_entry_ptr
+                                                    declarator_ssep,
                                 a_boolean           is_variable_def,
                                 a_symbol_ptr        *symbol_ptr,
                                 an_id_linkage_kind  *linkage_ptr,
@@ -395,6 +398,8 @@ extern void declarator(a_decl_flag_set   input_flags,
                        a_symbol_locator  *locator,
                        a_type_ptr        *p_complete_type,
                        a_type_ptr        *p_bottom_derived_type,
+                       a_source_sequence_entry_ptr
+                                         *declarator_ssep,
                        a_func_info_block *func_info);
 
 extern a_boolean decl_specifiers(a_decl_flag_set      input_flags,
