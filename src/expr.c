@@ -12552,7 +12552,9 @@ FALSE and a pointer to the expression tree in *expression.
     do_operand_transformations(&result, TOPT_NO_OPTIONS);
   }  /* if */
   /* Check that the expression is integral or enum. */
-  (void)check_integral_or_enum_operand(&result);
+  if (!is_template_param_type(result.type)) {
+    (void)check_integral_or_enum_operand(&result);
+  }  /* if */
   /* Return a constant or expression depending on what was scanned. */
   *is_constant = TRUE;
   switch (result.kind) {
