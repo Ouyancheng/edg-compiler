@@ -1011,7 +1011,8 @@ occurred in the substitution process, a NULL pointer is returned.
   if (wrapup_template_argument_deduction(templ_arg_list, rout_templ_sym,
                                          templ_param_list)) {
     new_type = substitute_template_arguments(rout_templ_sym, templ_arg_list,
-                                             (a_template_arg_ptr*)NULL);
+                                             (a_template_arg_ptr*)NULL,
+                                             templ_param_list);
   }  /* if */
   return new_type;
 }  /* wrapup_function_template_argument_deduction */
@@ -1043,8 +1044,7 @@ comparison (such as top level references).
   param_type1 = skip_typerefs(param_type1);
   param_type2 = skip_typerefs(param_type2);
   result = matches_template_type(param_type1, param_type2, templ_arg_list,
-                                 templ_param_list, MTT_NO_FLAGS,
-                                 (a_base_class_ptr*)NULL);
+                                 templ_param_list, MTT_NO_FLAGS);
   return result;
 }  /* parameter_is_more_specialized */
 
@@ -3165,7 +3165,7 @@ list of a template function.  Returns TRUE if a match is found.
                              (a_template_param_constant_kind)tpck_cast) {
         if (matches_template_type(constant->type, templ_constant->type,
                                   templ_arg_list, templ_param_list,
-                                  MTT_NO_FLAGS, (a_base_class_ptr*)NULL)) {
+                                  MTT_NO_FLAGS)) {
           a_constant_ptr	tcp; 
           tcp = templ_constant->variant.template_param.variant.constant;
           /* Make sure the constant under the cast is not a ck_template_param
@@ -3291,8 +3291,7 @@ partial specialization.
                                     templ_tap->variant.type,
                                     templ_arg_list,
                                     templ_param_list,
-                                    MTT_NO_FLAGS,
-                                    (a_base_class_ptr*)NULL);
+                                    MTT_NO_FLAGS);
     } else {
       /* A nontype template parameter. */
       match = matches_template_constant(tap->variant.constant,
@@ -3387,8 +3386,7 @@ matches a class type from the parameter list of a template function.
           }  /* if */
           if (matches_template_type(tp, ttp, templ_arg_list,
                                     templ_param_list,
-                                    MTT_NO_FLAGS,
-                                    (a_base_class_ptr*)NULL)) {
+                                    MTT_NO_FLAGS)) {
             /* Members have the same names and the parent classes
                "match". */
             match = TRUE;
@@ -3423,8 +3421,7 @@ a_boolean matches_template_type(a_type_ptr           type,
                                 a_type_ptr           templ_type,
                                 a_template_arg_ptr   *templ_arg_list,
 				a_template_param_ptr templ_param_list,
-				an_mtt_flag_set      flags,
-                                a_base_class_ptr     *base_class_conv_needed)
+				an_mtt_flag_set      flags)
 /*
 Compare type and templ_type.  The latter is from a parameter list of a
 function template (function params, not template params).  If the types are
@@ -3434,12 +3431,8 @@ parameter, as represented in the template argument list.  Otherwise, return
 FALSE.  When for the nth template parameter, the nth template arg has not
 yet been created, extend the template argument list to include n entries.
 flags specifies a set of options used to control how the type matching
-is done.  See the MTT flag definitions in templates.h.  The value pointed
-to by base_class_conv_needed is set to point to the base class description
-if such a conversion is required; otherwise it is set to NULL.
-base_class_conv_needed may be NULL if the caller does not need to know
-whether a conversion was performed.  templ_param_list points to the
-template parameter list.
+is done.  See the MTT flag definitions in templates.h.  templ_param_list
+points to the template parameter list.
 */
 {
   a_boolean                      match = FALSE;
@@ -3450,7 +3443,6 @@ template parameter list.
   an_mtt_flag_set		 new_flags;
 
   db_enter(5, "matches_template_type");
-  if (base_class_conv_needed != NULL) *base_class_conv_needed = NULL;
   /* When this routine calls itself recursively, the recursive calls
      should not allow conversions or the special unknown implicit
      this parameter checks. */
@@ -3541,8 +3533,7 @@ template parameter list.
                 if (ttp != NULL) {
                   if (matches_template_type(tp, ttp, templ_arg_list,
   				            templ_param_list,
-                                            new_flags,
-                                            (a_base_class_ptr*)NULL)) {
+                                            new_flags)) {
                     /* Members have the same names and the parent classes
                        "match".  This will handle cases like T::B. */
                     match = TRUE;
@@ -3554,8 +3545,7 @@ template parameter list.
                   ttp = templ_type->source_corresp.parent.class_type;
                   if (matches_template_type(tp, ttp, templ_arg_list,
     				            templ_param_list,
-                                            new_flags,
-                                            (a_base_class_ptr*)NULL)) {
+                                            new_flags)) {
                     /* Members have the same names and the parent classes
                        "match".  This will handle cases like A<T>::B. */
                     match = TRUE;
@@ -3627,12 +3617,7 @@ template parameter list.
                                                              templ_type,
                                                              templ_arg_list,
                                                              templ_param_list);
-                if (match) {
-                  if (base_class_conv_needed != NULL) {
-                    *base_class_conv_needed = bcp;
-                  }  /* if */
-                  break;
-                }  /* if */
+                if (match) break;
                 bcp = bcp->next;
               }  /* while */
             }  /* if */
@@ -3646,8 +3631,7 @@ template parameter list.
               ttp = templ_type->variant.typeref.type;
               match = matches_template_type(tp, ttp, templ_arg_list,
                                             templ_param_list,
-                                            new_flags,
-                                            (a_base_class_ptr*)NULL);
+                                            new_flags);
             }  /* if */
             break;
           case tk_array:
@@ -3700,8 +3684,7 @@ template parameter list.
               ttp = templ_type->variant.array.element_type;
               match = matches_template_type(tp, ttp, templ_arg_list,
                                             templ_param_list,
-                                            new_flags,
-                                            (a_base_class_ptr*)NULL);
+                                            new_flags);
             }  /* if */
             break;
           case tk_pointer:
@@ -3715,8 +3698,7 @@ template parameter list.
               ttp = templ_type->variant.pointer.type;
               match = matches_template_type(tp, ttp, templ_arg_list,
                                             templ_param_list,
-                                            new_flags,
-                                            (a_base_class_ptr*)NULL);
+                                            new_flags);
             }  /* if */
             break;
           case tk_ptr_to_member:
@@ -3726,14 +3708,12 @@ template parameter list.
             ttp = templ_type->variant.ptr_to_member.type;
             if (matches_template_type(tp, ttp, templ_arg_list,
                                       templ_param_list,
-                                      new_flags,
-                                      (a_base_class_ptr*)NULL)) {
+                                      new_flags)) {
               tp = type->variant.ptr_to_member.class_of_which_a_member;
               ttp = templ_type->variant.ptr_to_member.class_of_which_a_member;
               match = (matches_template_type(tp, ttp, templ_arg_list,
                                              templ_param_list,
-                                             new_flags,
-                                             (a_base_class_ptr*)NULL));
+                                             new_flags));
             }  /* if */
             break;
           case tk_routine:
@@ -3744,8 +3724,7 @@ template parameter list.
             ttp = templ_type->variant.routine.return_type;
             if (matches_template_type(tp, ttp, templ_arg_list,
                                       templ_param_list,
-                                      new_flags,
-                                      (a_base_class_ptr*)NULL) &&
+                                      new_flags) &&
                 (type->variant.routine.extra_info->has_ellipsis ==
                     templ_type->variant.routine.extra_info->has_ellipsis)) {
               /* Return type and ellipsis are okay.  Check the param types. */
@@ -3762,8 +3741,7 @@ template parameter list.
                 ttp = tptp->type;
                 if (!matches_template_type(tp, ttp, templ_arg_list,
                                            templ_param_list,
-                                           new_flags,
-                                           (a_base_class_ptr*)NULL)) {
+                                           new_flags)) {
                   /* The first param type for which there is a mismatch causes
                      a mismatch for the entire type.  No need to keep
                      looping. */
@@ -3809,8 +3787,7 @@ template parameter list.
                      types match. */
                   match = matches_template_type(tp, ttp, templ_arg_list,
                                                 templ_param_list,
-                                                new_flags,
-                                                (a_base_class_ptr*)NULL);
+                                                new_flags);
                 }  /* if */
               }  /* if */
             }  /* if */
@@ -3847,8 +3824,7 @@ may have been deduced.
 
   db_enter(5, "tentatively_matches_template_type");
   result = matches_template_type(type, templ_type, &templ_arg_list,
-                                 templ_param_list, MTT_NO_FLAGS,
-                                 (a_base_class_ptr*)NULL);
+                                 templ_param_list, MTT_NO_FLAGS);
   if (templ_arg_list != NULL) free_template_arg_list(templ_arg_list);
   db_exit();
   return result;
@@ -4261,8 +4237,8 @@ make_new_type:
         new_type = type;
     }  /* switch */
   }
-  /* Return a NULL type pointer if a copy error occurred. */
-  if (*copy_error) new_type = NULL;
+  /* Return an error type pointer if a copy error occurred. */
+  if (*copy_error) new_type = error_type();
 #if DEBUG
   if (debug_level >= 5 || db_flag_is_set("ctws")) {
     fputs("out: ", f_debug);
@@ -4327,7 +4303,8 @@ supplement associated with the function template being used.
 a_type_ptr substitute_template_arguments(
 				a_symbol_ptr		templ_sym,
 				a_template_arg_ptr	templ_arg_list,
-				a_template_arg_ptr	*new_arg_list)
+				a_template_arg_ptr	*new_arg_list,
+				a_template_param_ptr	templ_param_list)
 /*
 In the function template specified by templ_sym, replace the template
 parameters in the function type with the values specified by
@@ -4336,16 +4313,22 @@ would result in an invalid type, a NULL type is returned.  If
 new_arg_list is non-NULL, templ_arg_list is an explicitly specified
 template argument list that must be converted into an argument list
 appropriate for the specified template.  The new argument list is
-returned in *new_arg_list.
+returned in *new_arg_list.  templ_param_list is the template parameter
+list to be used.  If a NULL pointer is provided, the template
+parameter list from the template symbol supplement is used.  The
+parameter is supplied because some calls of this routine occur before
+the field in the template symbol supplement has been set.
 */
 {
   a_boolean				copy_error = FALSE;
   a_template_symbol_supplement_ptr	tssp;
   a_type_ptr				templ_rout_type = NULL;
-  a_template_param_ptr			templ_param_list;
 
   tssp = template_supplement_for_symbol(templ_sym);
-  templ_param_list = tssp->variant.function.decl_cache.decl_info->parameters;
+  if (templ_param_list == NULL) {
+    /* Get the template parameter list, if one was not passed in. */
+    templ_param_list = tssp->variant.function.decl_cache.decl_info->parameters;
+  }  /* if */
   if (new_arg_list != NULL) {
     /* An explicit template argument list was specified, initialize the
        new template argument list with the specified list.  If the new
@@ -4654,8 +4637,7 @@ declared and before the partial instantiation of the function was done.
     ttp = templ_type->variant.routine.return_type;
     match = matches_template_type(tp, ttp, &templ_arg_list,
                                   templ_param_list,
-                                  MTT_NO_FLAGS,
-                                  (a_base_class_ptr*)NULL);
+                                  MTT_NO_FLAGS);
   } else {
     /* Attempt to do template argument matching on the parameter list of the
        function that was generated.  The return type is not checked because the
@@ -4673,8 +4655,7 @@ declared and before the partial instantiation of the function was done.
       ttp = tptp->type;
       if (!matches_template_type(tp, ttp, &templ_arg_list,
                                  templ_param_list,
-                                 MTT_NO_FLAGS,
-                                 (a_base_class_ptr*)NULL)) {
+                                 MTT_NO_FLAGS)) {
         /* The first param type for which there is a mismatch causes
            a mismatch for the entire type.  No need to keep
            looping. */
@@ -4692,8 +4673,7 @@ declared and before the partial instantiation of the function was done.
                           templ_arg_list, templ_sym, templ_param_list) != NULL;
   }  /* if */
   if (!match) {
-    if (!tssp->variant.function.cannot_be_called &&
-        !is_or_contains_error_type(type) &&
+    if (!is_or_contains_error_type(type) &&
         !is_or_contains_error_type(templ_rout->type)) {
       /* If the type contains an error type it is likely that the current
          routine type is already an error routine type produced earlier.
@@ -5226,9 +5206,9 @@ type should not be used in the matching process.
     /* Substitute the explicitly specified template arguments and
        produce an updated template routine type. */
     a_template_arg_ptr	new_arg_list;
-    templ_rout_type = substitute_template_arguments(templ_sym,
-                                                    explicit_arg_list,
-						    &new_arg_list);
+    templ_rout_type = substitute_template_arguments(
+                                  templ_sym, explicit_arg_list, &new_arg_list,
+                                  (a_template_param_ptr)NULL);
     *templ_arg_list = new_arg_list;
     /* A NULL type will be returned if the copy could not be done because
        the substitution of the template arguments would result in an invalid
@@ -5285,8 +5265,7 @@ type should not be used in the matching process.
                             templ_arg_list, templ_param_list,
                             (an_mtt_flag_set)
                             (is_decl_context ? MTT_UNKNOWN_IMPLICIT_THIS_TYPE
-                                            : MTT_NO_FLAGS),
-                            (a_base_class_ptr*)NULL)) {
+                                            : MTT_NO_FLAGS))) {
     match = TRUE;
   }  /* if */
   /* Make sure that the types of nontype template parameters that depend
@@ -5894,36 +5873,27 @@ sure that they are at the same nesting depth.  Return TRUE if they are.
 }  /* check_template_param_nesting_depths */
 
 
-static a_boolean reconcile_template_param_lists
-					(a_template_param_ptr param_list,
-                                         a_symbol_ptr         class_sym,
-					 a_source_position    *error_pos)
+a_boolean equiv_template_param_lists(
+				a_template_param_ptr	old_list,
+				a_template_param_ptr	new_list,
+				a_boolean		issue_errors,
+				a_source_position	*error_pos)
 /*
-Compare the template parameter list of the template declaration currently
-being scanned with the template parameter list of a previous declaration
-of the same class.  Make sure that the parameter lists match and
-merge the default argument information from the two lists.  The default
-argument information is updated into both lists because we don't know
-which version will be used as the "primary" argument list.  This routine
-is called for each redeclaration of a template argument list for a class.
-For example, this routine will be called for all of these declarations
-except for the first one:
-
-	template <class T, int I> class A;
-	template <class T, int I> class A { ... };
-	template <class T, int I> void A<T,I>::f() { ... };
-	template <class T, int I> int A<T,I>::i =  ... ;
-
-Return TRUE if the parameter lists are compatible.  Otherwise, return FALSE.
+Compare the template parameter list pointed to by old_list with the
+one pointed to by new_list.  To be equivalent, the parameter lists must
+have the same number of parameters, be of the same kind (type vs. nontype),
+and nontype parameters must be of the same type.  Return TRUE if the
+lists are equivalent.  If issue_errors is TRUE, errors are issued
+describing any incompatibilities.
 */
 {
   a_template_param_ptr	new_tpp;
   a_template_param_ptr	old_tpp;
-  a_template_param_ptr	prev_new_tpp = NULL;
   a_boolean		any_errors = FALSE;
+  a_template_param_ptr	prev_new_tpp = NULL;
 
-  new_tpp = param_list;
-  old_tpp = class_sym->variant.template_info->cache.decl_info->parameters;
+  old_tpp = old_list;
+  new_tpp = new_list;
   while (new_tpp != NULL && old_tpp != NULL) {
     a_symbol_ptr	old_sym = old_tpp->param_symbol;
     a_symbol_ptr	new_sym = new_tpp->param_symbol;
@@ -5949,8 +5919,10 @@ Return TRUE if the parameter lists are compatible.  Otherwise, return FALSE.
                           new_tpp->variant.constant.ptr);
     }  /* if */
     if (err) {
-      pos_sy_error(ec_not_compatible_with_previous_decl,
-                   &new_sym->decl_position, old_sym);
+      if (issue_errors) {
+        pos_sy_error(ec_not_compatible_with_previous_decl,
+                     &new_sym->decl_position, old_sym);
+      }  /* if */
       any_errors = TRUE;
     }  /* if */
     old_tpp = old_tpp->next;
@@ -5958,27 +5930,66 @@ Return TRUE if the parameter lists are compatible.  Otherwise, return FALSE.
     new_tpp = new_tpp->next;
   }  /* while */
   if (old_tpp != NULL || new_tpp != NULL) {
-    /* The number of template parameters does not match the previous
-       declaration. */
-    an_error_code	error_code;
-    a_source_position	*pos;
-    if (old_tpp == NULL) {
-      /* Too many parameters.  Use the position of the first extra
-         parameter as the error position. */
-      error_code = ec_too_many_template_params;
-      pos = &new_tpp->param_symbol->decl_position;
-    } else {
-      /* Too few parameters.  Use the position of the last parameter present
-         to report the error.  If there were no parameters specified,
-         use the position supplied by the caller, which will point to
-         the thing being declared. */
-      error_code = ec_too_few_template_params;
-      pos = prev_new_tpp == NULL ? error_pos :
-                                   &prev_new_tpp->param_symbol->decl_position;
-    }  /* if */
-    pos_error(error_code, pos);
+    /* The lists differ in the number of parameters. */
     any_errors = TRUE;
+    if (issue_errors) {
+      /* The number of template parameters does not match the previous
+         declaration. */
+      an_error_code	error_code;
+      a_source_position	*pos;
+      if (old_tpp == NULL) {
+        /* Too many parameters.  Use the position of the first extra
+           parameter as the error position. */
+        error_code = ec_too_many_template_params;
+        pos = &new_tpp->param_symbol->decl_position;
+      } else {
+        /* Too few parameters.  Use the position of the last parameter present
+           to report the error.  If there were no parameters specified,
+           use the position supplied by the caller, which will point to
+           the thing being declared. */
+        error_code = ec_too_few_template_params;
+        pos = prev_new_tpp == NULL ? error_pos :
+                                   &prev_new_tpp->param_symbol->decl_position;
+      }  /* if */
+      pos_error(error_code, pos);
+    }  /* if */
   }  /* if */
+  return !any_errors;
+}  /* equiv_template_param_lists */
+
+
+static a_boolean reconcile_template_param_lists
+					(a_template_param_ptr param_list,
+                                         a_symbol_ptr         class_sym,
+					 a_source_position    *error_pos)
+/*
+Compare the template parameter list of the template declaration currently
+being scanned with the template parameter list of a previous declaration
+of the same class.  Make sure that the parameter lists match and
+merge the default argument information from the two lists.  The default
+argument information is updated into both lists because we don't know
+which version will be used as the "primary" argument list.  This routine
+is called for each redeclaration of a template argument list for a class.
+For example, this routine will be called for all of these declarations
+except for the first one:
+
+	template <class T, int I> class A;
+	template <class T, int I> class A { ... };
+	template <class T, int I> void A<T,I>::f() { ... };
+	template <class T, int I> int A<T,I>::i =  ... ;
+
+Return TRUE if the parameter lists are compatible.  Otherwise, return FALSE.
+*/
+{
+  a_template_param_ptr	new_tpp;
+  a_template_param_ptr	old_tpp;
+  a_boolean		any_errors;
+
+  new_tpp = param_list;
+  old_tpp = class_sym->variant.template_info->cache.decl_info->parameters;
+  /* Compare the two template parameter lists. */
+  any_errors = !equiv_template_param_lists(old_tpp, new_tpp,
+                                           /*issue_errors=*/TRUE, error_pos);
   /* Merge the default argument information from the two parameter lists.
      This is only done if there were no errors in the previous tests so
      we know that the parameter lists match. */
@@ -8130,43 +8141,6 @@ existing type is simply used.
 }  /* rescan_template_type_default_arg */
 
 
-static a_boolean template_param_appears_in_param_list
-				(a_symbol_ptr param_sym,
-                                 a_type_ptr   rout_type,
-			         a_boolean    *only_used_in_default_args)
-/*
-tparam_type is a tk_template_parameter type entry used in a template
-declaration, and rout_type is a routine type.  Search each of the routine's
-parameter types to see if tparam_type appears in it.  If
-only_used_in_default_args is not NULL then also determine whether the
-template parameter is only used in function parameters with default
-arguments.
-*/
-{
-  a_boolean         found = FALSE;
-  a_boolean	    only_in_default_args;
-  a_param_type_ptr  ptp;
-
-  /* Only do this check if the pointer passed by the caller is non-NULL. */
-  only_in_default_args = (only_used_in_default_args != NULL);
-  ptp = rout_type->variant.routine.extra_info->param_type_list;
-  for (; ptp != NULL; ptp = ptp->next) {
-    if (ptp->type_involves_deduced_template_param) {
-      if (template_param_used_in_type(param_sym, ptp->type)) {
-        found = TRUE;
-        if (!ptp->has_default_arg) only_in_default_args = FALSE;
-      }  /* if */
-      /* If we've found all the information we are looking for then stop. */
-      if (found && !only_in_default_args) break;
-    }  /* if */
-  }  /* for */
-  if (only_used_in_default_args != NULL) {
-    *only_used_in_default_args = only_in_default_args;
-  }  /* if */
-  return found;
-}  /* template_param_appears_in_param_list */
-
-
 static void fixup_types_that_refer_to_incomplete_instantiations(
                                       a_symbol_ptr   sym,
 				      a_type_ptr     prototype_type)
@@ -8467,60 +8441,6 @@ returned to the caller.
 }  /* template_static_data_member_declaration */
 
 
-static void check_function_template_param_usage
-                         (a_symbol_ptr                     sym,
-			  a_type_ptr                       type,
-			  a_template_param_ptr             template_param_list,
-			  a_template_symbol_supplement_ptr tssp)
-/*
-Make sure that all of the template parameters are used as part of the
-signature of the functions that will be generated from this template.
-Use in a function parameter with a default argument is not counted as
-it would not be possible to deduce the value of a template parameter
-when the associated function argument was omitted.
-*/
-{
-  a_template_param_ptr   tpp;
-  a_type_ptr	         rout_type = skip_typerefs(type);
-  a_boolean		 is_conversion_operator;
-
-  is_conversion_operator = is_conversion_function_symbol(sym);
-  for (tpp = template_param_list; tpp != NULL; tpp = tpp->next) {
-    a_symbol_ptr param_sym = tpp->param_symbol;
-    a_boolean	 only_in_default_args;
-    a_boolean	 param_used;
-    if (tpp->has_default_arg) {
-      pos_error(ec_default_template_arg_not_allowed,
-                &param_sym->decl_position);
-    }  /* if */
-    if (is_conversion_operator) {
-      /* For conversion operator functions, the template parameters must be
-         used in the return type. */
-      param_used =  template_param_used_in_type(
-                            param_sym, rout_type->variant.routine.return_type);
-      only_in_default_args = FALSE;
-    } else {
-      /* Make sure that all template parameters are used by
-         function parameter types and not just by parameters
-         with default arguments.  If an error occurs set the
-         cannot_be_called flag to prevent an instantiation from
-         being attempted with an incomplete set of template arguments. */
-      param_used = template_param_appears_in_param_list
-                                 (param_sym, rout_type, &only_in_default_args);
-    }  /* if */
-    if (!param_used) {
-      pos_sy2_error(ec_not_used_in_template_function_params,
-                    &param_sym->decl_position, param_sym, sym);
-      tssp->variant.function.cannot_be_called = TRUE;
-    } else if (only_in_default_args) {
-      pos_sy2_error(ec_template_param_only_used_in_default_args,
-                    &param_sym->decl_position, param_sym, sym);
-        tssp->variant.function.cannot_be_called = TRUE;
-    } /* if */
-  } /* for */
-}  /* check_function_template_param_usage */
-
-
 static void add_befriending_class_to_function_template
                       (a_template_symbol_supplement_ptr     tssp,
 		       a_type_ptr                           class_declared_in)
@@ -8583,8 +8503,6 @@ caller.
 {
   a_boolean                        err = sym == NULL || sym->is_error;
   a_template_symbol_supplement_ptr tssp = NULL;
-  a_template_param_ptr             template_param_list =
-                                           decl_state->decl_info->parameters;
 
   if (!err && !is_function_or_template_symbol(sym)) {
     /* The symbol is something other than a function symbol.  Issue
@@ -8735,20 +8653,6 @@ caller.
                              current_max_alignment_for_class_members();
     }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
-  }  /* if */
-  if (err) {
-    /* Avoid spurious errors -- skip the check for template params, since
-       this might have been intended to be a member function. */
-  } else if (sym->kind != (a_symbol_kind)sk_function_template) {
-    /* Out-of-line definition of a member function of a class template.
-       Don't impose requirements on the use of template parameters in the
-       parameters. */
-  } else {
-    /* Go back through the template params and make sure that all of the
-       template parameters were used in a way that effects the function
-       signature. */
-    a_type_ptr  type = tssp->variant.function.routine->type;
-    check_function_template_param_usage(sym, type, template_param_list, tssp);
   }  /* if */
   *p_tssp = tssp;
 }  /* complete_function_template_decl */

@@ -716,11 +716,7 @@ do_variable:
         if (tssp->cache.tokens.first_token != NULL) {
           put_string("template body cached");
         }  /* if */
-        if (sym->kind == (a_symbol_kind)sk_function_template) {
-          if (tssp->variant.function.cannot_be_called) {
-            put_string("cannot be called");
-          }  /* if */
-        } else if (sym->kind == (a_symbol_kind)sk_class_template) {
+        if (sym->kind == (a_symbol_kind)sk_class_template) {
           a_symbol_ptr	prototype_sym;
           switch (tssp->variant.class_template.type_kind) {
             case tk_class:  put_string("class");           break;
@@ -1685,10 +1681,6 @@ and return a pointer to it.
       clear_template_cache(&tssp->variant.function.decl_cache,
                           /*reusable=*/TRUE);
       tssp->variant.function.substituted_types = FALSE;
-      tssp->variant.function.cannot_be_called = FALSE;
-#if CHECKING
-      tssp->variant.function.avoid_codecenter_warnings = FALSE;
-#endif /* CHECKING */
       tssp->variant.function.unused_instantiations = 0;
       break;
     case sk_static_data_member:

@@ -138,8 +138,7 @@ a_boolean matches_template_type(a_type_ptr           type,
                                 a_type_ptr           templ_type,
                                 a_template_arg_ptr   *templ_arg_list,
                                 a_template_param_ptr templ_param_list,
-				an_mtt_flag_set      flags,
-                                a_base_class_ptr     *base_class_conv_needed);
+				an_mtt_flag_set      flags);
 
 extern
 a_boolean tentatively_matches_template_type(
@@ -150,7 +149,8 @@ a_boolean tentatively_matches_template_type(
 extern a_type_ptr substitute_template_arguments(
 				a_symbol_ptr		templ_sym,
 				a_template_arg_ptr	templ_arg_list,
-				a_template_arg_ptr	*new_arg_list);
+				a_template_arg_ptr	*new_arg_list,
+				a_template_param_ptr	templ_param_list);
 
 extern a_type_ptr wrapup_function_template_argument_deduction(
 				a_template_arg_ptr   templ_arg_list,
@@ -225,6 +225,12 @@ extern a_boolean equiv_template_arg_lists(
 				a_template_arg_ptr list1,
 				a_template_arg_ptr list2,
 				an_equiv_templ_arg_options_set	options);
+
+extern a_boolean equiv_template_param_lists(
+				a_template_param_ptr	old_list,
+				a_template_param_ptr	new_list,
+				a_boolean		issue_errors,
+				a_source_position	*error_pos);
 
 extern void prescan_function_template_default_arg_expr(a_param_type_ptr  ptp);
 

@@ -1432,13 +1432,6 @@ typedef struct a_template_symbol_supplement {
 			   substitute_template_arguments to determine whether
 			   a type has already been produced for a given
 			   template argument list. */
-      a_bit_field
-		cannot_be_called:1;
-			/* TRUE if this function cannot be called because
-			   not all of the template parameters were used
-			   in function parameter types or were used only
-			   in function parameters that have default values. */
-      bitfield_to_avoid_codecenter_warnings()
       an_unused_instantiation_count
 		unused_instantiations;
 			/* When a function is added to the instantiations
