@@ -41,18 +41,15 @@ non-recursive) call to get_initializer.
 */
 typedef struct an_aggregate_init_info *an_aggregate_init_info_ptr;
 typedef struct an_aggregate_init_info {
-  a_bit_field	static_lifetime:1;
+  a_boolean	static_lifetime;
 			/* TRUE when the variable being initialized has
 			   static lifetime. */
-  a_bit_field	any_uninitialized_member:1;
+  a_boolean	any_uninitialized_member;
 			/* Set to TRUE if any member of the aggregate remains
 			   uninitialized. */
-  a_bit_field	any_uninitialized_const_or_ref_member:1;
+  a_boolean	any_uninitialized_const_or_ref_member;
 			/* Set to TRUE if any member of the aggregate that
 			   is uninitialized has const or reference type. */
-  a_bit_field	any_dynamic_initialization:1;
-			/* Set to TRUE if any member of the aggregate requires
-			   dynamic initialization. */
 } an_aggregate_init_info;
 
 
@@ -65,7 +62,6 @@ Initialize an entry of type an_aggregreate_init_info.
   init_info->static_lifetime = static_lifetime;
   init_info->any_uninitialized_member = FALSE;
   init_info->any_uninitialized_const_or_ref_member = FALSE;
-  init_info->any_dynamic_initialization = FALSE;
 }  /* initialize_init_info */
 
 
@@ -543,7 +539,6 @@ routine is called in C++ mode only.
       }  /* if */
       init_context->end_of_constant_list = cp;
       init_done = TRUE;
-      init_info->any_dynamic_initialization = TRUE;
       init_context->any_dynamic_initialization = TRUE;
     }  /* if */
   }  /* if */
@@ -768,7 +763,8 @@ static a_constant_ptr get_initializer(
                               a_type_ptr                    *type,
                               an_aggregate_init_info_ptr    init_info,
                               an_aggregate_init_context_ptr prev_init_context,
-                              a_boolean                     *nothing_taken)
+                              a_boolean                     *nothing_taken,
+                              a_boolean                     *any_dynamic_init)
 /*
 Scan a constant initializer or initializer list, and return a pointer to the
 constant for it (an aggregate constant if an initializer list is scanned).
@@ -780,7 +776,9 @@ tracking this initialization.  top_level is TRUE if this is a top-level
 initializer (braces are required surrounding initializers for unions and
 aggregates at that level).  *nothing_taken is returned TRUE if no source
 tokens were taken because the entity being initialized is an empty
-class.
+class.  *any_dynamic_init is returned TRUE if the entity being initialized
+required dynamic initialization -- i.e., if the constant entry returned by
+this function points to a tree that includes a dynamic-init entry.
 */
 {
   a_constant_ptr                 init_con = NULL;
@@ -791,7 +789,7 @@ class.
   a_targ_size_t                  curr_array_element;
   a_field_ptr                    curr_field;
   a_boolean                      any_more_initializers, any_more_members;
-  a_boolean                      local_nothing_taken;
+  a_boolean                      local_nothing_taken, local_any_dynamic_init;
   a_type_kind                    kind;
   a_boolean                      array_too_long_error_given = FALSE;
   a_boolean                      took_extra_comma;
@@ -803,6 +801,7 @@ class.
 
   db_enter(4, "get_initializer");
   *nothing_taken = FALSE;
+  *any_dynamic_init = FALSE;
   initialize_init_context(&init_context, prev_init_context);
   local_type = skip_typerefs(*type);
   /* There is special handling to initialize a field or array element that
@@ -872,7 +871,6 @@ class.
       init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
       init_con->type = local_type;
       init_con->variant.dynamic_init = dip;
-      init_info->any_dynamic_initialization = TRUE;
       init_context.any_dynamic_initialization = TRUE;
       if (exceptions_enabled && cssp->destructor != NULL) {
         /* If appropriate, add a destructor pointer to the dynamic init entry.
@@ -1028,7 +1026,8 @@ class.
         add_stop_token(tok_comma);
         /* Get the initializer for this one member. */
         member_con = get_initializer(&member_type, init_info, &init_context,
-                                     &local_nothing_taken);
+                                     &local_nothing_taken,
+                                     &local_any_dynamic_init);
         /* If exceptions are enabled and the type of the member being
            initialized is a class with a destructor, it may be appropriate to
            record the destructor in case an exception is thrown before the
@@ -1039,7 +1038,7 @@ class.
           cssp = symbol_supplement_for_class(member_type);
           if (cssp->destructor != NULL) {
             a_routine_ptr  dtor_rp = cssp->destructor->variant.routine.ptr;
-            if (init_context.any_dynamic_initialization) {
+            if (local_any_dynamic_init) {
               /* Not a ck_dynamic_init, yet there was dynamic initialization:
                  this must be an aggregate constant with a ck_dynamaic_init
                  in its tree somewhere.  Put a dik_nonconstant_aggregate on
@@ -1059,7 +1058,6 @@ class.
             member_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
             member_con->type = member_type;
             member_con->variant.dynamic_init = dip;
-            init_info->any_dynamic_initialization = TRUE;
             init_context.any_dynamic_initialization = TRUE;
           }  /* if */
         }  /* if */
@@ -1205,7 +1203,6 @@ class.
             if (init_remaining_fields(init_info, &init_context)) {
               curr_field = init_context.field;
               if (curr_field == NULL) any_more_members = FALSE;
-              init_info->any_dynamic_initialization = TRUE;
               init_context.any_dynamic_initialization = TRUE;
             }  /* if */
           }  /* if */
@@ -1263,7 +1260,6 @@ class.
       init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
       init_con->variant.dynamic_init = dip;
       init_con->type = local_type;
-      init_info->any_dynamic_initialization = TRUE;
       init_context.any_dynamic_initialization = TRUE;
       /* Since the destructor may have been added to a dynamic init entry
          that will not be "on top" when gen_dynamic_initialization is called,
@@ -1287,19 +1283,16 @@ class.
     if (init_context.any_dynamic_initialization) {
       prev_init_context->any_dynamic_initialization = TRUE;
     }  /* if */
-  } else {
-    /* This is the top-level init-context, so it and the init-info block
-       should agree about dynamic initialization. */
-    check_assertion_str2(init_info->any_dynamic_initialization ==
-                            init_context.any_dynamic_initialization,
-                         "get_initializer: any_dynamic_initialization flags",
-                         "are not in sync");
   }  /* if */
   /* If the return value constant was not allocated (because of an error),
      allocate an error constant to return. */
   if (init_con == NULL) {
     init_con = alloc_constant((a_constant_repr_kind)ck_error);
     set_error_constant(init_con);
+  } else {
+    /* Return to the caller information about whether init_con involves a
+       dynamic-init entry. */
+    *any_dynamic_init = init_context.any_dynamic_initialization;
   }  /* if */
   db_exit();
   return(init_con);
@@ -1328,7 +1321,7 @@ detection of uninitialized fields).
 */
 {
   an_aggregate_init_info  init_info;
-  a_boolean               nothing_taken;
+  a_boolean               nothing_taken, any_dynamic_init;
   a_boolean               err = FALSE;
   a_routine_ptr           dtor_rp = NULL;
 
@@ -1350,7 +1343,7 @@ detection of uninitialized fields).
   initialize_init_info(&init_info, static_lifetime);
   *init_con = get_initializer(type, &init_info,
                               (an_aggregate_init_context_ptr)NULL,
-                              &nothing_taken);
+                              &nothing_taken, &any_dynamic_init);
   if ((*init_con)->kind == (a_constant_repr_kind)ck_error) {
     err = TRUE;
   } else {
@@ -1362,9 +1355,9 @@ detection of uninitialized fields).
       dtor_rp = select_destructor(tp, tp, err_pos, /*honor_virtual=*/FALSE,
                                   /*evaluated=*/TRUE,
                                   /*suppress_access_check=*/FALSE);
-      if (dtor_rp != NULL) init_info.any_dynamic_initialization = TRUE;
+      if (dtor_rp != NULL) any_dynamic_init = TRUE;
     }  /* if */
-    if (init_info.any_dynamic_initialization) {
+    if (any_dynamic_init) {
       check_assertion((*init_con)->kind == (a_constant_repr_kind)ck_aggregate);
       *init_dip = alloc_dynamic_init(
                          (a_dynamic_init_kind)dik_nonconstant_aggregate);
