@@ -3817,10 +3817,12 @@ in il_alloc_init.)
 #if MICROSOFT_EXTENSIONS_ALLOWED
   def_source_corresp.member_of_unknown_super = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if GNU_EXTENSIONS_ALLOWED  && GENERATE_SOURCE_SEQUENCE_LISTS
+#if GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS
   def_source_corresp.marked_as_gnu_extension = FALSE;
-  def_source_corresp.has_gnu_deprecated_attribute = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS */
+#if GNU_EXTENSIONS_ALLOWED
+  def_source_corresp.has_gnu_deprecated_attribute = FALSE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
   def_source_corresp.externalized = FALSE;
 #if RECORD_SCOPE_DEPTH_IN_IL
   def_source_corresp.scope_depth = NO_SCOPE_DEPTH;

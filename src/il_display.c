@@ -626,10 +626,12 @@ Display the indicated source correspondence entry.
   if (scp->marked_as_gnu_extension) {
     disp_boolean("marked_as_gnu_extension", TRUE);
   }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS */
+#if GNU_EXTENSIONS_ALLOWED
   if (scp->has_gnu_deprecated_attribute) { 
     disp_boolean("has_gnu_deprecated_attribute", TRUE);
   }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   if (scp->externalized) {
     disp_boolean("externalized", TRUE);
   }  /* if */
