@@ -827,7 +827,7 @@ If the indicated routine has any thunks, mark them as needed.
        trout != NULL &&
          trout->overriding_function_for_covariant_return_type == rout;
        trout = trout->next) {
-    mark_as_needed((char *)rout, iek_routine);
+    mark_as_needed((char *)trout, iek_routine);
   }  /* for */
 }  /* mark_any_thunks_as_needed */
 
