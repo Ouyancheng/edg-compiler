@@ -3861,7 +3861,13 @@ prototype instantiation is considered as a potential match.
       class_type->size = 1;
       class_type->alignment = 1;
       if (prototype_instantiations_in_il) {
-        add_to_types_list(class_type, NO_SCOPE_DEPTH);
+        /* If this is a nonreal member, add the type to the file scope types
+           list.  Otherwise, pass in NO_SCOPE_DEPTH so that the add routine
+           will figure out the appropriate scope to be used. */
+        a_scope_depth	depth_to_add;
+        depth_to_add = tssp->is_nonreal_member ? DEPTH_OF_FILE_SCOPE
+                                               : NO_SCOPE_DEPTH;
+        add_to_types_list(class_type, depth_to_add);
       }  /* if */
     } else if (sym != prototype_sym) {
       /* Update the friend information associated with this template.
