@@ -10578,10 +10578,26 @@ resulting constant is stored in the pointer pointed to by "constant".
        we use the "prototype instantiation" value of the default argument. */
     a_boolean	dependent_arg_list;
     dependent_arg_list = template_arg_list_involves_template_param(arg_list);
-    if (constant_involves_template_param && !dependent_arg_list) {
+    if (constant_involves_template_param) {
       if (pending_instantiations == max_pending_instantiations) {
         error(ec_recursive_inst_of_templ_default_arg);
         *constant = alloc_error_constant();
+      } else if (dependent_arg_list) {
+        /* The template argument list depends on a template parameter.
+           In general, such expressions can only be scanned in "template
+           dependent" contexts.  So, instead of scanning it here, we use
+           the copy-with-substitution routines. */
+        /* Determine the template nesting depth of the template being
+           processed. */
+        a_template_nesting_depth	depth;
+        a_boolean			copy_error = FALSE;
+        depth = nesting_depth_of_template_param(param_ptr);
+        *constant = copy_template_param_con_with_substitution(
+                                   param_ptr->default_arg.constant, arg_list,
+                                   depth, constant_type,
+                                   &param_ptr->param_symbol->decl_position,
+                                   &copy_error);
+        check_assertion(!copy_error);
       } else {
         a_template_cache_ptr	tcp;
         /* Increment the count of pending default argument instantiations.
@@ -10644,10 +10660,25 @@ existing type is simply used.
      parameter type.  If so, we don't actually rescan the argument now,
      we use the "prototype instantiation" value of the default argument. */
   dependent_arg_list = template_arg_list_involves_template_param(arg_list);
-  if (param_ptr->def_arg_involves_template_param && !dependent_arg_list) {
+  if (param_ptr->def_arg_involves_template_param) {
     if (pending_instantiations == max_pending_instantiations) {
       error(ec_recursive_inst_of_templ_default_arg);
       tp = error_type();
+    } else if (dependent_arg_list) {
+      /* The template argument list depends on a template parameter.
+         In general, such expressions can only be scanned in "template
+         dependent" contexts.  So, instead of scanning it here, we use
+         the copy-with-substitution routines. */
+      /* Determine the template nesting depth of the template being
+         processed. */
+      a_template_nesting_depth	depth;
+      a_boolean			copy_error = FALSE;
+      depth = nesting_depth_of_template_param(param_ptr);
+      tp = copy_type_with_substitution(param_ptr->default_arg.type,
+                                       arg_list, depth,
+                                       &param_ptr->param_symbol->decl_position,
+                                       CTWS_NO_OPTIONS, &copy_error);
+      check_assertion(!copy_error);
     } else {
       a_template_cache_ptr	tcp;
       /* Increment the count of pending default argument instantiations.
@@ -10714,34 +10745,51 @@ existing type is simply used.
      parameter type.  If so, we don't actually rescan the argument now,
      we use the "prototype instantiation" value of the default argument. */
   dependent_arg_list = template_arg_list_involves_template_param(arg_list);
-  if (param_ptr->def_arg_involves_template_param && !dependent_arg_list) {
-    /* Push the template instantiation scope.  Note that the instance symbol
-       passed to push_scope is NULL because we don't yet know which instance
-       is being instantiated.  Also note that a class type is not being
-       passed for the same reason. */
-    a_template_cache_ptr	tcp = &param_ptr->default_arg_cache;
-    push_template_instantiation_scope(tcp->decl_info,
-                                      (a_type_ptr)NULL,
-				      (a_routine_ptr)NULL,
-				      (a_symbol_ptr)NULL,
-				      template_sym, arg_list,
-                                      /*push_stop_tokens=*/TRUE,
-				      PS_NO_OPTIONS);
-    saved_pos_curr_token = pos_curr_token;
-    saved_error_position = error_position;
+  if (param_ptr->def_arg_involves_template_param) {
+    if (dependent_arg_list) {
+      /* The template argument list depends on a template parameter.
+         In general, such expressions can only be scanned in "template
+         dependent" contexts.  So, instead of scanning it here, we use
+         the copy-with-substitution routines. */
+      /* Determine the template nesting depth of the template being
+         processed. */
+      a_template_nesting_depth	depth;
+      a_boolean			copy_error = FALSE;
+      depth = nesting_depth_of_template_param(param_ptr);
+      templ = copy_template_with_substitution(
+                                 param_ptr->default_arg.templ, arg_list, depth,
+			         &param_ptr->param_symbol->decl_position,
+				 CTWS_NO_OPTIONS, &copy_error);
+      check_assertion(!copy_error);
+    } else {
+      /* Push the template instantiation scope.  Note that the instance symbol
+         passed to push_scope is NULL because we don't yet know which instance
+         is being instantiated.  Also note that a class type is not being
+         passed for the same reason. */
+      a_template_cache_ptr	tcp = &param_ptr->default_arg_cache;
+      push_template_instantiation_scope(tcp->decl_info,
+                                        (a_type_ptr)NULL,
+				        (a_routine_ptr)NULL,
+				        (a_symbol_ptr)NULL,
+				        template_sym, arg_list,
+                                        /*push_stop_tokens=*/TRUE,
+				        PS_NO_OPTIONS);
+      saved_pos_curr_token = pos_curr_token;
+      saved_error_position = error_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    saved_curr_construct_end_position = curr_construct_end_position;
+      saved_curr_construct_end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    rescan_reusable_cache(&tcp->tokens);
-    templ = delayed_scan_of_template_default_template_arg(
+      rescan_reusable_cache(&tcp->tokens);
+      templ = delayed_scan_of_template_default_template_arg(
                  param_ptr->variant.templ->il_template_entry, &pos_curr_token);
-    error_position = saved_error_position;
-    pos_curr_token = saved_pos_curr_token;
+      error_position = saved_error_position;
+      pos_curr_token = saved_pos_curr_token;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    curr_construct_end_position = saved_curr_construct_end_position;
+      curr_construct_end_position = saved_curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    /* Pop the template instantiation scope. */
-    pop_template_instantiation_scope();
+      /* Pop the template instantiation scope. */
+      pop_template_instantiation_scope();
+    }  /* if */
   } else {
     templ = param_ptr->default_arg.templ;
   }  /* if */
