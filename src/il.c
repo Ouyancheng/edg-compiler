@@ -9057,7 +9057,7 @@ entry that has already been created and linked in for this entity.
            because a prior declaration was turned into a secondary declaration
            -- e.g., a forward reference to a function -- see mark_declared. */
         if (depth_innermost_ss_list_scope != DEPTH_OF_FILE_SCOPE &&
-            in_file_scope(new_ssep) &&
+            in_file_scope(new_ssep) && !scp->is_class_member &&
             (kind == (an_il_entry_kind)iek_routine ||
              kind == (an_il_entry_kind)iek_variable)) {
           /* This must be a block-extern declaration or (in C mode) an
