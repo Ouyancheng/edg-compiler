@@ -4356,11 +4356,13 @@ See also 3.6.6.4.
   return_type = routine_type->variant.routine.return_type;
   /* See if there is an expression after "return". */
   expr_present = (curr_token != tok_semicolon);
-  if (depth_stmt_stack > 0 &&
+  if (rout->special_kind == (a_special_function_kind)sfk_constructor &&
+      depth_stmt_stack > 0 && 
       struct_stmt_stack[0].kind == ssk_try_block &&
       struct_stmt_stack[1].is_catch_clause) {
-    /* This is a return statement inside a handler of a function try block. */
-    pos_error(ec_return_from_function_try_block_handler, &return_pos);
+    /* This is a return statement inside a handler of a function try block
+       of a constructor. */
+    pos_error(ec_return_from_ctor_function_try_block_handler, &return_pos);
     discard_curr_construct_pragmas();
     sp = NULL;
     routine_type = error_type();
@@ -5357,26 +5359,51 @@ branching into it is disallowed).
        right brace of a compound statement or to an implicit return. */
     cannot_bind_to_curr_construct();
   }  /* if */
-  if (at_function_level || is_function_try_block) {
-    /* We are at the right brace terminating a function definition.  If the
-       code at the end of a function runs off the end, a implicit return is
-       added (see 3.6.6.4) unless we are in dead code. */
-    if (curr_reachability.reachable) {
-      /* Falling off the end of a function in reachable code.  Check that a
-         void return (one returning no value) is compatible with the current
-         function (i.e., the current function should also have type void),
-         and add a return with no expression. */
-      a_statement_ptr  sp;
+  if (curr_reachability.reachable) {
+    a_boolean        implicit_return = FALSE;
+    a_boolean        implicit_rethrow = FALSE;
+    a_statement_ptr  sp;
+
+    if (at_function_level || is_function_try_block) {
+      /* Falling off the end of a function in reachable code. */
+      implicit_return = TRUE;
+    } else if (is_catch_clause && depth_stmt_stack == 1 && 
+               struct_stmt_stack[0].kind == ssk_try_block) {
+      /* Handler for a function try block. */
+      /* Falling off the end of a handler of a function try block for a
+         constructor or destructor produces an implicit rethrow; for other
+         functions it produces an implicit return (15.3 paragraph 16). */
+      a_routine_ptr  rp = current_routine_entry();
+      if (rp->special_kind == (a_special_function_kind)sfk_constructor ||
+          rp->special_kind == (a_special_function_kind)sfk_destructor) {
+        implicit_rethrow = TRUE;
+      } else {
+        implicit_return = TRUE;
+      }  /* if */
+    }  /* if */
+    if (implicit_return) {
+      /* Check that a void return (one returning no value) is compatible
+         with the current function (i.e., the current function should also
+         have type void), and add a return with no expression. */
       an_expr_node_ptr return_expr;
 
       /* Make sure that a void return is acceptable here.  If this is the main
          routine, generate an implicit return value, if possible. */
       check_void_return_okay(/*is_implicit_return=*/TRUE, &return_expr);
       /* The statement is not allocated earlier because we don't want it to
-         affect the reachability information. */
-      sp = add_statement((a_statement_kind)stmk_return);
+         affect the reachability information.  The source position on the
+         statement is null to indicate that it is compiler generated. */
+      sp = add_statement_at_stmt_pos((a_statement_kind)stmk_return,
+                                     &null_source_position);
       /* Insert an implied return value if there is one. */
       sp->expr = return_expr;
+    } else if (implicit_rethrow) {
+      /* Generate a rethrow.  The source position is null to indicate that
+         the statement is compiler generated. */
+      sp = add_statement_at_stmt_pos((a_statement_kind)stmk_expr,
+                                     &null_source_position);
+      sp->expr = alloc_expr_node((an_expr_node_kind)enk_throw);
+      set_unreachable(curr_reachability);
     }  /* if */
   }  /* if */
   /* Process pragmas associated with the closing brace before the current
