@@ -1470,7 +1470,7 @@ Check for the existence of a .ii file.
   }  /* if */
   strcpy(last_dot, INSTANTIATION_INFO_SUFFIX);
   ii_file = fopen(pl_filename_buffer, "r");
-  fclose(ii_file);
+  if (ii_file != NULL) fclose(ii_file);
   return (ii_file != NULL);  
 }  /* pl_check_for_ii_file  */
 
