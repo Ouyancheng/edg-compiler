@@ -2898,11 +2898,9 @@ from a primary IL entry.
   mark_as_needed(ptr, kind);
   /* If the entity is a class type with a definition, mark its definition
      as needed as well.  We don't actually know whether it is needed,
-     so we have to assume it is.  For routines, marking the entry as
-     needed automatically marks the definition as needed (except for
-     inline functions, but extern inline functions will have definitions
-     in all cases when they are referenced, so the primary IL copy will
-     be selected as the canonical entry and we won't get here). */
+     so we have to assume it is.  Likewise for routines (often
+     mark_as_needed will have taken care of that, but not in
+     every case). */
   if (kind == iek_type) {
     a_type_ptr type = (a_type_ptr)ptr;
     if (is_immediate_class_type(type) &&
@@ -2910,6 +2908,10 @@ from a primary IL entry.
       set_class_keep_definition_in_il(type);
       set_class_definition_needed(type);
     }  /* if */
+  } else if (kind == iek_routine) {
+    a_routine_ptr routine = (a_routine_ptr)ptr;
+    set_routine_keep_definition_in_il(routine);
+    set_routine_definition_needed(routine);
   }  /* if */
 } /* mark_secondary_il_entry_as_needed */
 

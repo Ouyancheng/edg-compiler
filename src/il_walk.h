@@ -142,7 +142,11 @@ extern void mark_to_keep_in_il(char             *entry_ptr,
 
 extern void remark_routine_definition_needed(a_routine_ptr rout);
 
+extern void set_routine_definition_needed(a_routine_ptr rout);
+
 extern void set_class_definition_needed(a_type_ptr type);
+
+extern void set_routine_keep_definition_in_il(a_routine_ptr rout);
 
 extern void set_class_keep_definition_in_il(a_type_ptr type);
 

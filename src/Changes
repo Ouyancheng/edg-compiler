@@ -1,5 +1,14 @@
 Version 3.2
 
+3/5/03   Missing definition of extern inline function with export and
+         LOWER_EXTERN_INLINE
+
+In some very complicated cases using export, in a configuration
+with LOWER_EXTERN_INLINE set to TRUE, the definition of a extern
+inline member function of a template might be missing (resulting
+in an unsatisfied external at link time).  This was due to a problem
+in the copy process for multiple translation unit IL, now fixed.
+
 3/5/03   compiler_generated flag in cast following conversion function
          call
 
