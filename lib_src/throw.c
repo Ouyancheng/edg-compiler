@@ -728,12 +728,14 @@ a try block with a catch that matches the type of the object thrown.
          specification is violated we cleanup until we reach the
          violated throw specification and then call unexpected.
          If result is zero, no match was found. */
-      int result = check_exception_type_specifications
-				(ehsep->variant.throw_specification,
-				 thrown_typeinfo, is_pointer, (void**)NULL);
-      if (result == 0) {
-        destination_ehsep = ehsep;
-        break;
+      if (ehsep->variant.throw_specification != NULL) {
+        int result = check_exception_type_specifications
+				  (ehsep->variant.throw_specification,
+				   thrown_typeinfo, is_pointer, (void**)NULL);
+        if (result == 0) {
+          destination_ehsep = ehsep;
+          break;
+        }  /* if */
       }  /* if */
     } else {
       unexpected_condition();
