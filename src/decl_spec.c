@@ -3734,6 +3734,26 @@ describes Microsoft attributes preceding the enum specifier (if any).
             }  /* if */
           }  /* if */
         }  /* if */
+        if (gpp_mode && scope_stack[depth_scope_stack].kind ==
+                                       (a_scope_kind)sck_class_struct_union) {
+          /* In GNU C++ mode, we remove any synthesized projection symbols
+             before entering a symbol for an enumeration specifier.  This
+             allows examples like
+               struct B { enum { e }; };
+               struct D: B { enum { d = D::e, e = d + 1 }; };
+             (which normally results in an "already declared" error). */
+          a_symbol_ptr  sym;
+          /* Look for existing symbols that would collide with the current
+             name.  The value returned by curr_scope_id_lookup is already
+             stripped of projections, but the original symbol is available
+             in the specific_symbol field of the symbol locator. */
+          (void)curr_scope_id_lookup(&locator, IDL_PROJ_SYMBOL_ALLOWED);
+          sym = locator.specific_symbol;
+          if (sym != NULL && sym->kind == (a_symbol_kind)sk_projection &&
+              !sym->variant.projection.is_using_decl) {
+            remove_symbol(sym);
+          }  /* if */
+        }  /* if */
         /* Enter the enumeration constant identifier. */
         enum_sym = enter_local_symbol((a_symbol_kind)sk_constant, &locator,
                                       decl_scope_level,

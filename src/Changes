@@ -1,5 +1,16 @@
 Version 3.6
 
+1/12/05  GNU C++ compatibility: Conflicts with inherited enumerator constants
+
+In GNU C++ mode, an enumerator constant that is a derivated class member can
+now use the same name as an inherited member even when it was already used
+in the derived class with the derived class as a qualifier.  For example:
+
+  struct B { enum { e }; };
+  struct D: B {
+    enum { d = D::e, e = d + 1 };  // Now okay in GNU C++ mode.
+  };
+
 1/12/05  Microsoft compatibility: casts like "class A(x)" and "const A(x)"
 
 In Microsoft mode, we now allow functional-notation casts in which the
