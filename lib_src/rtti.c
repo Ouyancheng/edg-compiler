@@ -578,6 +578,7 @@ The access_flags string was retained for backward compatibility.
   return result;
 }  /* __derived_to_base_conversion */
 
+#if ABI_CHANGES_FOR_RTTI
 
 static a_base_class_spec_ptr find_base_class_at_addr(
 					void			*obj_ptr,
@@ -691,7 +692,6 @@ this function is called; it is set to TRUE If the base class is found.
   return result;
 }  /* find_base_class_at_addr */
 
-#if ABI_CHANGES_FOR_RTTI
 
 static void tbc_downcast(
 		void					*ptr,
