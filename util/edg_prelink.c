@@ -1611,13 +1611,16 @@ or defined in that object file.
          the input line. */
       is_archive = name2 != NULL;
       for (pifp = pl_input_files; pifp != NULL; pifp = pifp->next) {
-        if (strcmp(pifp->file_name, name1) == 0) break;
         /* Look for a match among the instantiation object files associated
            with this input file. */
         for (pofp = pifp->objects; pofp != NULL; pofp = pofp->next) {
           if (strcmp(pofp->file_name, name1) == 0) break;
         }  /* if */
         if (pofp != NULL) break;
+        /* If we didn't find a matching object, but the input file matches,
+           stop the loop.  This occurs when an input file has no template
+           information file. */
+        if (strcmp(pifp->file_name, name1) == 0) break;
       }  /* for */
       if (pifp == NULL) {
         pl_internal_error("Input file not in list");
@@ -1923,11 +1926,21 @@ symbol.
       }  /* if */
       if (psp->defined) {
         if (sym->defined) {
-         sym->multiple_definition = TRUE;
+          sym->multiple_definition = TRUE;
         } else {
           sym->defined_in = input_file;
           sym->defined = TRUE;
        }  /* if */
+      }  /* if */
+      /* Process flags that can be set based on symbols read from
+         a template information file. */
+      if (psp->do_not_instantiate) sym->do_not_instantiate = TRUE;
+      if (psp->is_template) sym->is_template = TRUE;
+      if (psp->can_be_instantiated) {
+        sym->can_be_instantiated = TRUE;
+        /* Add the current input file to the list of files that could
+           instantiate the symbol. */
+        add_possible_instantiation_site(sym, input_file);
       }  /* if */
       sym->tentative_definition |= psp->tentative_definition;
     }  /* if */
@@ -2058,14 +2071,19 @@ Each line is made up of a line type code followed by the information for
 that line type.
 */
 {
-  sizeof_t	instantiation_dir_length = 0;
-  sizeof_t	instantiation_suffix_length;
-  sizeof_t	extra_space;
-  FILE		*f_template_info;
-  a_boolean	instantiation_dir_set = FALSE;
+  sizeof_t		instantiation_dir_length = 0;
+  sizeof_t		instantiation_suffix_length;
+  sizeof_t		extra_space;
+  FILE			*f_template_info;
+  a_boolean		instantiation_dir_set = FALSE;
+  a_pl_object_file_ptr	pofp;
 
   f_template_info = fopen(pifp->template_info_file_name, "r");
   if (f_template_info != NULL) {
+    /* Allocate an object file entry for this file, but don't attach it
+       to the input file yet -- it must be the first entry on the list. */
+    pofp = alloc_pl_object_file();
+    pofp->file_name = pl_copy_string(pifp->file_name);
     instantiation_suffix_length = strlen(INSTANTIATION_OBJECT_SUFFIX);
     while (pl_read_input_line(f_template_info)) {
       char		*line_type = pl_input_line;
@@ -2081,15 +2099,13 @@ that line type.
         if (flag_pos == NULL) pl_internal_error("bad template info file");
         /* Replace the ":" with a NULL so that the name is null terminated. */
         *flag_pos++ = '\0';
-        /* Update the symbol information for this name. */
-        sym = pl_find_symbol(info, (a_pl_symbol_ptr)NULL, /*add=*/TRUE,
-                             (a_boolean*)NULL);
+        sym = alloc_pl_symbol();
+        sym->name = pl_copy_string(info);
         for (; *flag_pos != '\0'; flag_pos++) {
           switch (*flag_pos) {
             case 'C':
               sym->can_be_instantiated = TRUE;
               sym->is_template = TRUE;
-              add_possible_instantiation_site(sym, pifp);
               break;
             case 'D':
               sym->do_not_instantiate = TRUE;
@@ -2102,6 +2118,8 @@ that line type.
              pl_internal_error("bad template info file");
           };
         }  /* for */
+        sym->next = pofp->symbols;
+        pofp->symbols = sym;
       } else if (strncmp(line_type, "ifn:", 4) == 0) {
         /* An instantiation file name.  Create the full path name by
            adding in the instantiation directory name.  The "extra_space"
@@ -2153,6 +2171,10 @@ that line type.
       }  /* if */
     }  /* while */
     fclose(f_template_info);
+    /* Add the object file entry for the primary object file to the
+       front of the list of objects for this input file. */
+    pofp->next = pifp->objects;
+    pifp->objects = pofp;
   }  /* if */
 }  /* pl_read_template_info_file */
 
