@@ -5149,6 +5149,8 @@ a template parameter constant.
                                                TTT_PARAM_TYPES |
                                                TTT_TEMPLATE_ARGS);
 
+  check_assertion_str(!C_mode(),
+                      "is_or_contains_template_param: not callable in C mode");
   /* Setting these pointers to NULL indicates that any template param type
      or constant will do. */
   specific_template_param_type = NULL;
