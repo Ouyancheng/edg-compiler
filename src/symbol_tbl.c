@@ -3783,7 +3783,17 @@ check_routine:
       scp = &sym->variant.constant->source_corresp;
       break;
     case sk_field:
-      scp = &sym->variant.field.ptr->source_corresp;
+      if (sym->variant.field.anonymous_union == NULL) {
+        scp = &sym->variant.field.ptr->source_corresp;
+      } else {
+        an_anonymous_union_ptr  aup = sym->variant.field.anonymous_union;
+        while (aup->next != NULL) aup = aup->next;
+        if (aup->is_variable_object) {
+          scp = &aup->variant.variable->source_corresp;
+        } else {
+          scp = &aup->variant.field->source_corresp;
+        }  /* if */
+      }  /* if */
       break;
     case sk_type:
       scp = &sym->variant.type->source_corresp;
