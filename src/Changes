@@ -1,5 +1,14 @@
 Version 2.22
 
+1/13/94  Change in handling of the source line index used for error processing
+
+The error handling routines maintain, for each input file, a table of
+file positions associated with source line numbers within the file.
+These routines have been modified to reduce the number of ftell calls
+executed, and to provide a more uniform distribution of index entries
+when compiling very large input files (files with more than a few thousand
+lines).
+
 1/13/94  Compilation timing information
 
 A command line option (-#) has been added that causes the compiler
