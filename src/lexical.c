@@ -2059,7 +2059,7 @@ no effect.
   a_boolean	result;
   /* Find an existing include file history record for this file, or create
      one if none exists. */
-  find_include_history(full_name, fstate, /*create=*/TRUE);
+  (void)find_include_history(full_name, fstate, /*create=*/TRUE);
   result = suppress_subsequent_include(fstate->include_history);
   return result;
 } /* suppress_subsequent_include_of_file */
