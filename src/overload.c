@@ -901,7 +901,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
     /* See if the operand is an lvalue for a constant-valued variable.
        If so, an lvalue --> rvalue transformation might be useful.
        Don't do this in cfront mode. */
-    if (!cfront_compatibility_mode &&
+    if (!any_cfront_mode() &&
         arg_operand != NULL && is_an_lvalue(arg_operand)) {
       a_constant_ptr con_var_value = NULL;
       if (is_constant_operand(arg_operand)) {
@@ -1033,7 +1033,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
     /* If the cast is from a pointer to a derived class to a pointer to a
        base class, set cast_base_class. */
     determine_cast_base_class(arg_type, param_type, arg_summary);
-    if (cfront_compatibility_mode && param_is_reference &&
+    if (cfront_2_1_mode && param_is_reference &&
         arg_summary->cast_base_class == NULL) {
       /* cfront 2.1 has a bug: when a reference parameter is initialized
          with something that requires a standard conversion that isn't
@@ -1200,7 +1200,7 @@ class or a derived class thereof (except for error cases).
                               this_param_type,
                               /*try_user_conversions=*/FALSE,
                               this_match_summary);
-    if (cfront_compatibility_mode &&
+    if (cfront_2_1_mode &&
         this_match_summary->match_level == aml_none) {
       /* No match.  Try the cfront anachronism of calling a function that
          does not require a const "this" with a const selector.  See also
@@ -5254,7 +5254,7 @@ is used only in C++ mode.
 #endif  /* CHECKING */
   /* Check for the cfront anachronism that allows a non-const function to be
      called for a const selector (see selector_match_with_this_param). */
-  if (cfront_compatibility_mode &&
+  if (cfront_2_1_mode &&
       is_const_qualified_type(operand->type) &&
       !is_const_qualified_type(type_pointed_to(this_param_type))) {
     pos_warning(ec_const_function_anachronism, &operand->position);
@@ -6127,7 +6127,7 @@ user-defined conversion part (if any) of any required conversion.
                                   unqual_dest_type) != NULL) {
       /* The initializer has a derived type. */
       type_is_correct_or_derived = TRUE;
-    } else if (cfront_compatibility_mode &&
+    } else if (any_cfront_mode() &&
                is_pointer_type(unqual_dest_type) &&
                is_pointer_type(unqual_source_type) &&
                same_type_with_added_qualifiers(unqual_dest_type,
@@ -6161,7 +6161,7 @@ user-defined conversion part (if any) of any required conversion.
            const B *pb;
            A &rr = pb->a;  // okay according to cfront, warning
       */
-      if (cfront_compatibility_mode &&
+      if (cfront_2_1_mode &&
           !ref_to_const && is_const_qualified_type(base_source_type) &&
           is_field_selection_lvalue_operand(source_operand)) {
         /* Okay.  Note that a temporary will not be used in these cases. */
@@ -6195,7 +6195,7 @@ user-defined conversion part (if any) of any required conversion.
         /* Initializing a reference to NULL, which is not allowed:
              int &p = *(int *)0;
         */
-        if (cfront_compatibility_mode) {
+        if (any_cfront_mode()) {
           pos_warning(ec_null_reference, &source_operand->position);
         } else {
           error_in_operand(ec_null_reference, source_operand);
