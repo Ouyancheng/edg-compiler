@@ -6637,7 +6637,8 @@ in-class member function declarations.)
                                   locator, is_ctor, sym, &overload_sym);
   }  /* if */
   rtn = make_routine(member_type, (a_storage_class)sc_unspecified,
-                     NO_SCOPE_DEPTH);
+                     prototype_instantiations_in_il ? effective_decl_level :
+                                                      NO_SCOPE_DEPTH);
   tssp = template_supplement_for_symbol(sym);
   tssp->variant.function.routine = rtn;
   /* Copy the func_info block and then null out its param-id pointer so that
