@@ -55,7 +55,13 @@ extern int finite(double);
 /* Not Windows, not Solaris, not SunOS. */
 #include <math.h>
 #define is_NaN(x) (isnan(x))
+/* C99 has the "isfinite" function.  If that isn't available, use the
+   older "finite". */
+#ifdef NAN
 #define is_finite(x) (isfinite(x))
+#else /* !defined(NAN) */
+#define is_finite(x) (finite(x))
+#endif /* ifdef NAN */
 #endif /* ifdef sun */
 #endif /* EDG_WIN32 */
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
