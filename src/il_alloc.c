@@ -3168,9 +3168,6 @@ in il_alloc_init.)
 #if ONE_INSTANTIATION_PER_OBJECT
   def_source_corresp.per_instantiation_needed_flags = NULL;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
-#ifdef TRACE_ALLOC
-  trace_alloc_ptr = NULL;
-#endif /* ifdef TRACE_ALLOC */
 
   /* Save static variables that are needed for precompiled headers */
   if (precompiled_header_processing_required) {
