@@ -2477,7 +2477,6 @@ pointed to by scope_ptr.
   }  /* while */
 }  /* wrapup_namespace_scopes */
 
-#if 0
 #if MAINTAIN_NEEDED_FLAGS
 
 void mark_variables_as_needed(a_scope_ptr  scope)
@@ -2507,7 +2506,6 @@ scope is a pointer to the file scope or a namespace scope.  Set the
 }  /* mark_variables_as_needed */
 
 #endif /* MAINTAIN_NEEDED_FLAGS */
-#endif /* if 0 */
 
 void pop_scope(void)
 /*
@@ -2812,6 +2810,10 @@ End a name scope by popping an entry off the scope stack.
          cleared. */
       mark_as_needed((char *)curr_routine, (an_il_entry_kind)iek_routine);
     }  /* if */
+  } else if (kind == (a_scope_kind)sck_file) {
+    /* Set the "needed" flag in defined variables with external linkage --
+       both in the file scope and in each of the namespace scopes. */
+    mark_variables_as_needed(il_scope);
 #endif /* MAINTAIN_NEEDED_FLAGS */
   }  /* if */
   /* The IL scope, if any, is no longer on the stack.  This must occur
