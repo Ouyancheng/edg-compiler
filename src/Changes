@@ -1,5 +1,23 @@
 Version 2.30
 
+8/23/95  C-generating back end: mutable
+
+The C-generating back end now accommodates "mutable" by adding extra
+casts as necessary on member selections to make the resulting entity
+nonconst.  This problem was visible only when generating ANSI/ISO C,
+and resulted in generated C code that would not compile.
+
+  struct A {
+    mutable int i;
+    mutable int b:1;
+    A();
+  };
+  main () {
+    const A ca;
+    ca.i = 1;
+    ca.b = 1;
+  }
+
 8/23/95  IL lowering: preservation of more type information on pointers to
          members
 
@@ -252,7 +270,7 @@ programs should not be affected.  For instance:
     void f(int);     // used to be an error ("f" already declared), now
   };                 //   okay (overload set "f" has two members)
 
-(No compilation mode is provided to reenable the previous behavior.)
+(No compilation mode is provided to re-enable the previous behavior.)
 
 Also, several diagnostic messages, no longer needed, have been marked
 "REMOVED" in error_msg.txt.

@@ -1500,7 +1500,7 @@ Output a reference to a type.  If add_pointer_to is TRUE, add an extra
                               /*need_trailing_space=*/FALSE, &octl);
   /* The "name" in the type declarator is null.  For the add_pointer_to
      case, add an extra "*". */
-  if (add_pointer_to) write_tok_ch('*');
+  if (add_pointer_to) write_tok_str(" *");
   /* Write the second part of the declarator. */
   form_type_second_part_simple(type, /*under_lhs_declarator=*/add_pointer_to,
                                &octl);
@@ -2294,6 +2294,47 @@ or enk_variable_address node.  The output is usually just the variable name.
 }  /* dump_variable_reference_node */
 
 
+static void dump_lvalue_field_selection(an_expr_node_ptr expr)
+/*
+expr is a field selection that takes an lvalue struct and returns an lvalue
+for a field (i.e., eok_field, eok_bit_field).  Dump it as an lvalue.
+It is assumed that the caller will surround the output with parentheses.
+*/
+{
+  an_expr_node_ptr operand_1 = expr->variant.operation.operands;
+  a_field_ptr      field = operand_1->next->variant.field;
+  a_boolean        mutable_case = FALSE;
+  a_type_ptr       unqual_underlying_type;
+
+  /* Look for a field selection of a mutable field from a const structure.
+     A cast to remove the const must be added to the address of the struct
+     in that case so that the resulting selected field will be nonconst. */
+  if (field->is_mutable) {
+    a_type_ptr underlying_operand_1_type = type_pointed_to(operand_1->type);
+    if (is_const_qualified_type(underlying_operand_1_type)) {
+      mutable_case = TRUE;
+      unqual_underlying_type = f_skip_typerefs(underlying_operand_1_type);
+    }  /* if */
+  }  /* if */
+  if (operand_1->kind == (an_expr_node_kind)enk_variable || mutable_case) {
+    /* Optimize "(*p).i" as "p->i". */
+    if (mutable_case) {
+      /* For the mutable case, cast away const on the struct address. */
+      write_tok_ch('(');
+      dump_cast_to_pointer_to(unqual_underlying_type);
+    }  /* if */
+    dump_expression(operand_1);
+    if (mutable_case) write_tok_ch(')');
+    write_tok_str("->");
+  } else {
+    /* Normal "." case. */
+    dump_lvalue(operand_1);
+    write_tok_ch('.');
+  }  /* if */
+  dump_field_from_second_operand(expr);
+}  /* dump_lvalue_field_selection */
+
+
 static void dump_adding_indirection(an_expr_node_ptr node)
 /*
 Dump the indicated expression with an additional indirection on the front
@@ -2329,16 +2370,7 @@ of an assignment).  It's also used for a normal "*" for indirection.
          in front of it (in C terms).  Adding the indirection removes 
          the "&". */
       write_tok_ch('(');
-      if (operand_1->kind == (an_expr_node_kind)enk_variable) {
-        /* Optimize "(*p).i" as "p->i". */
-        dump_expression(operand_1);
-        write_tok_str("->");
-      } else {
-        /* Normal "." case. */
-        dump_lvalue(operand_1);
-        m_write_tok_ch('.');
-      }  /* if */
-      dump_field_from_second_operand(node);
+      dump_lvalue_field_selection(node);
       write_tok_ch(')');
       processed = TRUE;
     }  /* if */
@@ -2970,11 +3002,7 @@ process_assignment:
           goto done_with_operation;
         case eok_field:
           dump_ampersand(type_pointed_to(expr_type));
-          m_write_tok_ch('(');
-          dump_lvalue(operand_1);
-          m_write_tok_ch('.');
-          dump_field_from_second_operand(expr);
-          m_write_tok_ch(')');
+          dump_lvalue_field_selection(expr);
           goto done_with_operation;
         case eok_value_field:
           dump_rvalue_selection(expr);
