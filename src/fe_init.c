@@ -845,6 +845,11 @@ Initialize everything that has to do with the front end.
     il_lower_init();
   }  /* if */
 #endif /* DO_IL_LOWERING */
+#if NEED_NAME_MANGLING
+  /* Do lower_name.c initialization.  Name mangling can be included
+     independently of the rest of IL lowering. */
+  name_lower_init();
+#endif /* NEED_NAME_MANGLING */
 
   /* Push the file scope for the symbol table.  This is done after
      names (like predefined macros) are entered so that they are

@@ -7672,8 +7672,8 @@ of the front end.
   num_cleanup_actions_allocated = 0;
   num_return_memos_allocated    = 0;
 #endif /* DEBUG */
-  /* Do lower_name.c initialization. */
-  name_lower_init();
+  /* name_lower_init is called from fe_init.c because name mangling can
+     be used separately from the rest of IL lowering. */
   /* Do lower_init.c initialization. */
   init_lower_init();
   /* Do lower_eh.c initialization. */
