@@ -5009,7 +5009,8 @@ token.
         (*curr_char_loc == 'i' || *curr_char_loc == 'I') &&
         isdigit((unsigned char)curr_char_loc[1])) {
       /* The Microsoft compiler allows a suffix like "i32" indicating a
-         32-bit integer.  "ui32" indicates an unsigned 32-bit integer. */
+         32-bit integer.  "ui32" indicates an unsigned 32-bit integer (for
+         that case, the "u" was scanned above). */
       do {
         curr_char_loc++;
       } while (isdigit((unsigned char)(*curr_char_loc)));
