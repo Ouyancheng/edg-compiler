@@ -1097,22 +1097,17 @@ is the source position of the _Pragma token.
 */
 {
   a_source_line_modif_ptr	slmp;
-  char				*save_delete_source_from_loc;
   char				*save_curr_char_loc;
   a_pointer_registration_ptr	save_registered_pointers = registered_pointers;
-  a_pointer_registration	save_delete_source_from_loc_reg;
   a_pointer_registration	save_curr_char_loc_reg;
 
   /* Register the pointer variables used by the routine in case any of
      the structures get reallocated during this processing. */
   register_pointer_variable(save_curr_char_loc, save_curr_char_loc_reg);
-  register_pointer_variable(save_delete_source_from_loc,
-                            save_delete_source_from_loc_reg);
   /* Save the state of the lexical variables used by the source line
      modification process. */
-  save_delete_source_from_loc = delete_source_from_loc;
   save_curr_char_loc = curr_char_loc;
-  delete_source_from_loc = NULL;
+  check_assertion(delete_source_from_loc == NULL);
   /* Insert a modification for the copied contents of the string at the
      current token.  It doesn't really matter what is replaced; we're
      going to remove the modification later.  It just needs to be linked
@@ -1139,7 +1134,6 @@ is the source position of the _Pragma token.
   }
   rem_source_line_modif(slmp);
   /* Restore the saved lexical state variables. */
-  delete_source_from_loc = save_delete_source_from_loc;
   curr_char_loc = save_curr_char_loc;
   /* Unlink the registered pointers for this function from the list. */
   registered_pointers = save_registered_pointers;
@@ -1221,7 +1215,7 @@ Call record_pragma to scan the pragma body and create the pragma entry.
   pkdp = look_up_pragma_id(&id_position);
   if (pkdp != NULL &&
       pkdp->binding_kind == pbk_preproc_immediate) {
-    /* Preprocessing pragmas cannot be used in _Pragma operators. */
+    /* Preprocessing pragmas cannot be used in __pragma operators. */
     pos_error(ec_invalid_microsoft_pragma_operator, &id_position);
     flush_to_closing_paren();
   } else {
@@ -1235,7 +1229,7 @@ static void scan_microsoft_pragma_operator(
 				a_boolean *got_proper_closing_token)
 /*
 Process a Microsoft __pragma operator.  The current token is the
-__pragma identifier token.  The form of a _pragma invocation is:
+__pragma identifier token.  The form of a __pragma invocation is:
 
 	__pragma(tokens)
 
@@ -1251,7 +1245,7 @@ end, got_proper_closing_token is set to FALSE, otherwise it is unchanged.
   a_source_position	start_of_dir_position;
   a_boolean		found_end_of_operator = FALSE;
 
-  /* The inside of the _Pragma directive should be processed as pp-tokens. */
+  /* The inside of the _pragma directive should be processed as pp-tokens. */
   fetch_pp_tokens = TRUE;
   expand_macros = FALSE;
   /* Record the position of the start of the pragma. */
@@ -2364,20 +2358,20 @@ end_scan_for_macro_modifs:;
            Call a routine to translate the string into a pending pragma
            entry. */
         is_macro_call = FALSE;
+        delete_source_from_loc = NULL;
         scan_pragma_operator(&got_proper_closing_token); 
-        repl_text = "";
-        repl_text_len = 0;
-        special_repl_text = FALSE;
+        rescan_loc = curr_char_loc;
+        goto return_point;
       } else if (macro_symbol == microsoft_pragma_macro_symbol) {
         /* The Microsoft __pragma operator.  This is invoked as
                __pragma(pragma-name pragma-operands(opt))
            Call a routine to translate the string into a pending pragma
            entry. */
         is_macro_call = FALSE;
-        scan_microsoft_pragma_operator(&got_proper_closing_token); 
-        repl_text = "";
-        repl_text_len = 0;
-        special_repl_text = FALSE;
+        delete_source_from_loc = NULL;
+        scan_microsoft_pragma_operator(&got_proper_closing_token);
+        rescan_loc = curr_char_loc;
+        goto return_point;
       } else if (macro_symbol == counter_macro_symbol) {
         /* The Microsoft __COUNTER__ macro.  This returns a different
            integer value each time it is used, starting with zero. */

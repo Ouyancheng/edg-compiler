@@ -1,5 +1,11 @@
 Version 3.5
 
+8/17/04  Preprocessed output for _Pragma() operator
+
+The _Pragma operator (and the Microsoft __pragma version of that) is
+now passed through to the output when preprocessed output is
+requested.  Formerly, it was deleted.
+
 8/16/04  Deduction should fail when "function returning array" is deduced
 
 Deduction should fail if template argument deduction attempts to create
