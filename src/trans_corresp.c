@@ -267,13 +267,102 @@ given entity.
   f_change_canonical_entry((tcp), (char*)(ptr))
 
 
+static int canonical_ranking(an_il_entry_kind  kind,
+                             char              *entity)
+/*
+This routine computes a value reflecting the appropriateness for the given
+entity to be the canonical entry.  The value is obtained by adding certain
+powers of 2 for various binary criteria (some of which apply only to
+certain kinds of entities.  The criteria are (in increasing order of
+importance):
+   (a) Is the entity's parent canonical?
+   (b) Is the entity in the primary IL?
+   (c) Does the entity have an explicit initializer? (variables only)
+   (d) Is the entity a definition?
+   (e) Is the entity a template specialization?
+The entity with the highest ranking in a correspondence set should be the
+canonical entry.  (See also corresp_ranking in trans_copy.c for a reduced
+version of this function.)
+The given entity should have a source correspondence.
+*/
+{
+  int                          rank = 0;
+  a_source_correspondence_ptr  scp = (a_source_correspondence_ptr)entity;
+
+  check_assertion(kind != (an_il_entry_kind)iek_base_class);
+  /* Is the parent canonical? */
+  if (scp->is_class_member) {
+    if (canonical_il_entry_of(scp->parent.class_type) ==
+                                              (char*)scp->parent.class_type) {
+      rank = 1;
+    }  /* if */
+  } else if (scp->parent.namespace_ptr != NULL) {
+    if (canonical_il_entry_of(scp->parent.namespace_ptr) ==
+                                           (char*)scp->parent.namespace_ptr) {
+      rank = 1;
+    }  /* if */
+  }  /* if */
+  /* Is the entity in the primary translation unit? */
+  if (!in_secondary_trans_unit(entity)) {
+    rank += 2;
+  }  /* if */ 
+  switch (kind) {
+    case iek_constant:
+    case iek_field:
+    case iek_namespace:
+      /* No other criteria apply. */
+      break;
+    case iek_routine:
+      if (assoc_sym_defined(entity)) {
+        rank += 8;
+      }  /* if */
+      if (((a_routine_ptr)entity)->is_specialized) {
+        rank += 16;
+      }  /* if */
+      break;
+    case iek_template:
+      if (assoc_sym_defined(entity)) {
+        rank += 8;
+      }  /* if */
+      break;
+    case iek_type:
+      { a_type_ptr  type = (a_type_ptr)entity;
+        if (type_has_definition(type)) {
+          rank += 8;
+        }  /* if */
+        if (is_immediate_class_type(type) &&
+            type->variant.class_struct_union.is_specialized) {
+          rank += 16;
+        }  /* if */
+      }
+      break;
+    case iek_variable:
+      { a_variable_ptr  var = (a_variable_ptr)entity;
+        if (var->storage_class == (a_storage_class)sc_unspecified) {
+          if (var->init_kind != (an_init_kind)initk_none) {
+            rank += 4;
+          }  /* if */
+          rank += 8;
+        }  /* if */
+        if (var->is_specialized) {
+          rank += 16;
+        }  /* if */
+      }
+      break;
+    default:
+      unexpected_condition_str("Bad kind for correspondence checking");
+  }  /* if */
+  return rank;
+}  /* canonical_ranking */
+
+
 static void update_canonical_entry(an_il_entry_kind  kind,
                                    char              *entity)
 /*
 The given IL entity (of the given kind) may be a more appropriate canonical
 entry than the current canonical in the attached correspondence entry.  If so,
 the canonical entity is changed by this routine.  In general, canonical
-entries be definitions if possible, and among the definitions, one from
+entries should be definitions if possible, and among the definitions, one from
 the primary translation unit is preferred.
 */
 {
@@ -284,141 +373,42 @@ the primary translation unit is preferred.
       change_canonical_entry(bcp->trans_unit_corresp, entity);
     }  /* if */
   } else {
-    a_boolean             do_update = FALSE;
     a_trans_unit_corresp  *tcp = trans_unit_corresp_of_unknown_entry(entity);
     check_assertion(tcp != NULL && kind == tcp->kind);
-    if (tcp->canonical != entity) {
-      switch (kind) {
-        case iek_constant:
-          {
-            a_source_correspondence  *scp = (a_source_correspondence*)entity;
-            if (scp->is_class_member) {
-              a_type_ptr  parent = scp->parent.class_type;
-              if (canonical_il_entry_of(parent) == (char*)parent) {
-                do_update = TRUE;
-              }  /* if */
-            } else if (scp->parent.namespace_ptr != NULL &&
-                       canonical_il_entry_of(scp->parent.namespace_ptr) ==
-                                           (char*)scp->parent.namespace_ptr) {
-              do_update = TRUE;
-            } else if (!in_secondary_trans_unit(entity)) {
-              do_update = TRUE;
-            }  /* if */
-          }
-          break;
-        case iek_field:
-          {
-            a_type_ptr  parent = ((a_field_ptr)entity)
-                                           ->source_corresp.parent.class_type;
-            if (canonical_il_entry_of(parent) == (char*)parent) {
-              do_update = TRUE;
-            }  /* if */
-          }
-          break;
-        case iek_namespace:
-          if (!in_secondary_trans_unit(entity)) {
-            do_update = TRUE;
-          }  /* if */
-          break;
-        case iek_routine:
-          {
-            a_routine_ptr  canon = (a_routine*)canonical_il_entry_of(entity);
-            if (assoc_sym_defined(entity)) {
-              if (!assoc_sym_defined(canon) ||
-                  !in_secondary_trans_unit(entity)) {
-                do_update = TRUE;
-              }  /* if */
-            } else {
-              if (!assoc_sym_defined(canon) &&
-                  !canon->is_specialized &&
-                  ((a_routine_ptr)entity)->is_specialized) {
-                /* Prefer the specialized declaration over the nonspecialized
-                   one. */
-                do_update = TRUE;
-              }  /* if */
-            }  /* if */
-          }
-          break;
-        case iek_template:
-          {
-            a_template_ptr
+    if (tcp->canonical != entity &&
+        canonical_ranking(kind, entity) > canonical_ranking(kind,
+                                                            tcp->canonical)) {
+      if (kind == iek_template) {
+        /* Since the canonical template is changing, the associated
+           all_instantiations list must be moved too. */
+        a_template_ptr
                  corresp_templ = (a_template_ptr)entity,
-                 templ = (a_template_ptr)canonical_il_entry_of(entity);
-            if (assoc_sym_defined(entity) &&
-                (!assoc_sym_defined(canonical_il_entry_of(entity)) ||
-                 !in_secondary_trans_unit(entity))) {
-              /* Since the canonical template is changing, the associated
-                 all_instantiations list must be moved too. */
-              a_symbol_ptr
+                 templ = (a_template_ptr)tcp->canonical;
+        a_symbol_ptr
                  templ_sym = (a_symbol_ptr)templ->source_corresp.assoc_info,
                  corresp_sym =
                        (a_symbol_ptr)corresp_templ->source_corresp.assoc_info;
-              a_template_symbol_supplement_ptr
+        a_template_symbol_supplement_ptr
                  tssp = template_supplement_for_symbol(templ_sym),
                  corresp_tssp = template_supplement_for_symbol(corresp_sym);
-              if (tssp->all_instantiations != NULL) {
-                /* The canonical entry is changing: the list of all
-                   instantiations should be reattached to the new canonical
-                   entry. */
-                check_assertion(corresp_tssp->all_instantiations == NULL);
+        if (tssp->all_instantiations != NULL) {
+          /* The canonical entry is changing: the list of all instantiations
+             should be reattached to the new canonical entry. */
+          check_assertion(corresp_tssp->all_instantiations == NULL);
 #if DEBUG
-                if (db_trace("trans_corresp", templ, iek_template) ||
-                    db_trace("trans_corresp", corresp_templ, iek_template)) {
-                  fprintf(f_debug, "all_instantiations transferred because\n");
-                }  /* if */
+          if (db_trace("trans_corresp", templ, iek_template) ||
+              db_trace("trans_corresp", corresp_templ, iek_template)) {
+            fprintf(f_debug, "all_instantiations transferred because\n");
+          }  /* if */
 #endif /* DEBUG */
-                corresp_tssp->all_instantiations = tssp->all_instantiations;
-                tssp->all_instantiations = NULL;
-              }  /* if */
-              do_update = TRUE;
-            }  /* if */
-          }
-          break;
-        case iek_type:
-          {
-            a_type_ptr  type = (a_type_ptr)entity;
-            a_type_ptr  canon = (a_type_ptr)canonical_il_entry_of(type);
-            if (type_has_definition(type) &&
-                (!type_has_definition(canon) ||
-                 !in_secondary_trans_unit(type))) {
-              do_update = TRUE;
-            }  /* if */
-          }
-          break;
-        case iek_variable:
-          {
-            a_variable_ptr  var = (a_variable_ptr)entity;
-            a_variable_ptr  canon = (a_variable_ptr)canonical_il_entry_of(var);
-            if (var->storage_class == (a_storage_class)sc_unspecified) {
-              /* Prefer variable definitions over declarations.  If both are
-                 defined, prefer the entry with an initializer and if both
-                 have an initializer, prefer the one in the primary translation
-                 unit. */
-              if (canon->storage_class != (a_storage_class)sc_unspecified ||
-                  (var->init_kind != (an_init_kind)initk_none &&
-                   canon->init_kind == (an_init_kind)initk_none) ||
-                  (!in_secondary_trans_unit(var) &&
-                   (var->init_kind == (an_init_kind)initk_none) ==
-                            (canon->init_kind == (an_init_kind)initk_none))) {
-                do_update = TRUE;
-              }  /* if */
-            } else {
-              if (canon->storage_class != (a_storage_class)sc_unspecified &&
-                  !canon->is_specialized && var->is_specialized) {
-                do_update = TRUE;
-              }  /* if */
-            }  /* if */
-          }
-          break;
-        default:
-          unexpected_condition_str("Bad kind for correspondence checking");
-      }  /* switch */
-      if (do_update) {
-        if (in_secondary_trans_unit(tcp->canonical)) {
-          add_verification_entry(kind, tcp->canonical);
+          corresp_tssp->all_instantiations = tssp->all_instantiations;
+          tssp->all_instantiations = NULL;
         }  /* if */
-        change_canonical_entry(tcp, entity);
       }  /* if */
+      if (in_secondary_trans_unit(tcp->canonical)) {
+        add_verification_entry(kind, tcp->canonical);
+      }  /* if */
+      change_canonical_entry(tcp, entity);
     }  /* if */
   }  /* if */
 }  /* update_canonical_entry */
