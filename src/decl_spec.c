@@ -1048,12 +1048,13 @@ to indicate whether an enumeration is actually defined.
       enum_type->source_corresp.decl_position = locator.source_position;
     }  /* if */
     if (class_of_which_a_member != NULL) {
+      /* Add a pointer to the parent class in the symbol and the type. */
       set_class_membership(tag_sym, &enum_type->source_corresp,
                            class_of_which_a_member);
     }  /* if */
     /* When an enumeration is defined within a class definition, its access
        should be set based on the access recorded in the current scope stack
-       entry and its parent class should be recorded. */
+       entry. */
     enum_type->source_corresp.access = access;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_mode) {
