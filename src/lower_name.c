@@ -3298,6 +3298,49 @@ base class) is a part there is also a virtual base class of the same name.
 }  /* virtual_base_class_of_same_name_exists */
 
 
+static long ambiguous_base_class_number(a_base_class_ptr bcp)
+/*
+Return an "ambiguous base class number" for the (ambiguous) base class bcp,
+to be used in qualifying its name in a virtual function table mangled
+name.  A return value of -1 indicates the base class that cfront discards,
+which gets special treatment; otherwise, the value is non-negative.
+*/
+{
+  long             num, count = -1;
+  a_base_class_ptr test_bcp;
+  a_type_ptr       class_type = bcp->derived_class;
+
+  check_assertion(bcp->ambiguous);
+  for (test_bcp = base_classes_of(class_type);
+       ;
+       test_bcp = test_bcp->next) {
+    check_assertion(test_bcp != NULL);
+    /* Count ambiguous base classes with the same name, in order. */
+    if (test_bcp->ambiguous &&
+        same_entities(test_bcp->type, bcp->type)) {
+      if (bcp->direct && !bcp->is_virtual &&
+          virtual_base_class_of_same_name_exists(bcp)) {
+        /* This base class is a direct nonvirtual base class and there is
+           a virtual base class with the same name.  cfront discards this
+           base class (and therefore its virtual function table too), so
+           this one is always qualified, even if it is the first one.
+           That allows us to generate the same mangled name (an unqualified
+           one) for the base class that cfront does keep (at least, if there
+           is only one of those). */
+        num = -1;
+      } else {
+        count++;
+        num = count;
+      }  /* if */
+      /* Stop if we have found the base class we were looking for.  num is
+         the number to use for it. */
+      if (test_bcp == bcp) break;
+    }  /* if */
+  }  /* for */
+  return num;
+}  /* ambiguous_base_class_number */
+
+
 static void mangled_vtbl_base_class_name(a_base_class_ptr         bcp,
                                          a_mangling_control_block *mctl)
 /*
@@ -3322,15 +3365,27 @@ a virtual function table.  The name describes the base class given by bcp.
   /* Put out the name length and the name. */
   add_number_to_mangled_name((unsigned long)sctl.slength, mctl);
   mangled_derivation_name(dsp, mctl);
-  if (bcp->ambiguous && bcp->direct && !bcp->is_virtual &&
-      virtual_base_class_of_same_name_exists(bcp)) {
-    /* This base class is a direct nonvirtual base class and there is
-       a virtual base class with the same name, so put a suffix on the name
-       to distinguish it from the virtual base class.  We change the name of
-       the direct nonvirtual base class rather than the other one because
-       cfront eliminates the direct base class (and therefore its virtual
-       function table instance too). */
-    add_str_to_mangled_name("__A", mctl);
+  if (bcp->ambiguous) {
+    /* Ambiguous base classes get a suffix to differentiate the different
+       like-named base classes. */
+    long num = ambiguous_base_class_number(bcp);
+    if (num == 0) {
+      /* The first ambiguous base class gets no suffix. */
+    } else {
+      add_str_to_mangled_name("__A", mctl);
+      if (num < 0) {
+        /* The base class that cfront discards (a direct nonvirtual base class
+           with the same name as a virtual base class) gets the simple "__A"
+           encoding.  This is for historical reasons: until version 3.0 of
+           the EDG C++ Front End, this was the only ambiguity qualifier
+           (we hadn't realized that there were other possibilities), so
+           this one is kept the same to avoid an ABI change. */
+      } else {
+        /* For other base classes, use a __Ann encoding, where nn is the
+           base class number. */
+        add_number_to_mangled_name((unsigned long)num, mctl);
+      }  /* if */
+    }  /* if */
   }  /* if */
 }  /* mangled_vtbl_base_class_name */
 

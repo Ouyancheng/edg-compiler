@@ -2301,6 +2301,8 @@ length returned the second time will be correct).
       /* "__A" indicates an ambiguous base class. */
       write_id_str(" (ambiguous)", dctl);
       end_ptr += 3;
+      /* Ignore the number following __A, if any. */
+      while (isdigit((unsigned char)*end_ptr)) end_ptr++;
     }  /* if */
     if (start_of_id_is("__", end_ptr)) {
       /* Virtual function table for base class in derived class. */

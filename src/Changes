@@ -1,5 +1,12 @@
 Version 2.46
 
+1/18/02  Mangling of virtual function table names for ambiguous base classes
+
+The name mangling for virtual function tables for ambiguous base classes
+has been changed in some cases: the "__A" suffix now sometimes has a
+number following it to distinguish multiple ambiguous base classes with
+the same name.  The demangler has been changed to demangle such names.
+
 1/17/02  Abort in IL lowering for "new" of array of pointer-to-member
 
 An abort in new_or_delete_type_requires_array_handling which occurred
