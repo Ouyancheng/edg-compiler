@@ -3256,11 +3256,9 @@ cross-reference output describing this declaration.
     (void)set_src_seq_secondary_decl_type((char *)variable_ptr,
                                           declared_type);
   } else {
-    /* The defining declaration of the variable.  Record the type. */
+    /* The defining declaration of the variable.  Record the type.  */
     if (variable_ptr->declared_type == NULL) {
       variable_ptr->declared_type = declared_type;
-    } else {
-      check_assertion(C_mode());
     }  /* if */
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
