@@ -2030,7 +2030,7 @@ buffer.
 }  /* get_curr_dir_name */
 
 
-#if !C_GEN_BE_GENERATES_ANSI_C || DO_IL_LOWERING
+#if MODULE_ID_NEEDED
 /*
 Routines used by lower_init.c and c_gen_be.c to generate module IDs
 used to create unique external names.
@@ -2157,11 +2157,9 @@ Set module_id to the string.
   }  /* if */
   return module_id;
 }  /* make_module_id */
-#endif /* !C_GEN_BE_GENERATES_ANSI_C || DO_IL_LOWERING */
 
-
+#endif /* MODULE_ID_NEEDED */
 #if USE_MMAP_FOR_MEMORY_REGIONS
-
 
 #if EDG_WIN32
 

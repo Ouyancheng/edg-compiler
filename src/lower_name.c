@@ -2318,7 +2318,6 @@ types; just put out the base encoded name.
   }  /* if */
 }  /* mangled_function_name */
 
-#if AUTOMATIC_TEMPLATE_INSTANTIATION || DO_IL_LOWERING
 
 static a_boolean function_name_mangling_needed(
                                         a_routine_ptr routine,
@@ -2352,7 +2351,6 @@ mangled without parameter encoding.
   return mangling_needed;
 }  /* function_name_mangling_needed */
 
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION || DO_IL_LOWERING */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
 
 char *get_mangled_function_name(a_routine_ptr routine)
@@ -2482,9 +2480,6 @@ name in the variable entry.
 
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
-/* Exclude routines that are needed for IL lowering but not for name
-   mangling in the absence of IL lowering. */
-#if DO_IL_LOWERING
 /* Declaration required because of forward reference: */
 static void do_scope_other_name_mangling(a_scope_ptr scope);
 
@@ -2619,9 +2614,11 @@ thereunder.
     if (is_immediate_class_type(type)) {
       a_class_type_supplement_ptr ctsp =
                                    type->variant.class_struct_union.extra_info;
+#if DO_IL_LOWERING
       /* Make sure the type-as-subobject for a class gets the class name
          before it is changed, if it is a nested class name. */
       prelower_class_type(type);
+#endif /* DO_IL_LOWERING */
       class_scope = ctsp->assoc_scope;
       if (class_scope != NULL) {
         do_scope_other_name_mangling(class_scope);
@@ -2904,8 +2901,6 @@ orphan lists).
   /* Do final mangling on type names. */
   do_final_type_name_mangling();
 }  /* do_all_name_mangling */
-
-#endif /* DO_IL_LOWERING */
 
 #if ABI_COMPATIBILITY_VERSION >= 230 && CFRONT_OBJECT_CODE_COMPATIBILITY
 

@@ -1,5 +1,12 @@
 Version 2.43
 
+11/29/99 NEED_NAME_MANGLING TRUE and DO_IL_LOWERING FALSE
+
+The front end did not include the name mangling driver routines when
+compiled with NEED_NAME_MANGLING TRUE but DO_IL_LOWERING FALSE (an
+unusual combination).  The driver routines (e.g., do_all_name_mangling)
+are now included in that configuration.
+
 11/23/99 Internal error on erroneous use of reserved class name "type_info"
 
 Some unusual and erroneous uses of the reserved class name "type_info" in
