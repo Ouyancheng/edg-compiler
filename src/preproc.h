@@ -147,10 +147,18 @@ EXTERN a_boolean
 EXTERN a_boolean
 		exp_header_name;
 			/* TRUE means that a header name (name on a #include)
-			   is expected next, and tells get_token to scan
-			   accordingly.  exp_header_name is valid even
-			   when in_preprocessing_directive is FALSE (it's
-			   always FALSE in that case).  */
+			   of the form "..." is expected next, and tells
+			   get_token to scan accordingly.  exp_header_name
+			   is valid even when in_preprocessing_directive is
+			   FALSE (it's always FALSE in that case).  */
+EXTERN a_boolean
+		exp_system_header_name;
+			/* TRUE means that a header name (name on a #include)
+			   of the form <...> is expected next, and tells
+			   get_token to scan accordingly.
+			   exp_system_header_name is valid even when
+			   in_preprocessing_directive is FALSE (it's always
+			   FALSE in that case).  */
 EXTERN a_boolean
 		exp_digit_sequence;
 			/* TRUE means that a digit-sequence

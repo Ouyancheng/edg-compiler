@@ -724,17 +724,26 @@ FALSE.
   a_source_position saved_end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
+  (void)skip_white_space();
+  if (*curr_char_loc == '<') {
+    /* The next token appears to be a system header name.  Scan it as a
+       single header name token.  Note that this is done only when the
+       <...> appears at the top level, not when it appears within a
+       macro invocation (in those cases, individual pp-tokens are scanned
+       and then assembled into a header name token; see below). */
+    exp_system_header_name = TRUE;
+  }  /* if */
   /* Try to expand macros to get one of the normal forms. */
   expand_macros = TRUE;
-  exp_header_name = TRUE;
   /* Fetch a token, expecting a header name. */
+  exp_header_name = TRUE;
   (void)get_token();
   exp_header_name = FALSE;
-  if (*start_of_curr_token == '<' && len_of_curr_token == 1) {
-    /* For <xxx.h> form header names, the get_token call returns only the
-       "<".  Fetch the rest of the pp-tokens in the header name and
-       make up a pseudo-token for the overall name.  This is necessary
-       to handle macro expansion within the <...>. */
+  exp_system_header_name = FALSE;
+  if (curr_token == tok_lt) {
+    /* For <xxx.h> form header names that come from macro expansions,
+       fetch the rest of the pp-tokens in the header name and make up a
+       pseudo-token for the overall name. */
     saved_pos_curr_token = pos_curr_token;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     saved_end_pos_curr_token = end_pos_curr_token;
@@ -745,6 +754,7 @@ FALSE.
        temp_text_buffer. */
     while (get_token() != tok_gt) {
       if (curr_token == tok_newline) {
+        /* Missing closing ">". */
         curr_token = tok_error;
         pos_in_temp_text_buffer = 0;
         goto end_of_header_name;
@@ -1914,6 +1924,7 @@ established by init_predefined_macros.)
   do_string_literal_concatenation = TRUE;
   in_pp_if_expression = FALSE;
   exp_header_name = FALSE;
+  exp_system_header_name = FALSE;
   exp_digit_sequence = FALSE;
   do_not_put_curr_line_in_pp_output = TRUE;
   pass_pp_directive_to_output = FALSE;

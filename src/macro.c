@@ -1578,7 +1578,6 @@ associated global variables will also have been set).
   int		  param_num = 0;
   a_boolean       save_fetch_pp_tokens = fetch_pp_tokens;
   a_boolean       save_expand_macros = expand_macros;
-  a_boolean       save_exp_header_name;
   int             recursion_depth;
   a_source_line_modif_ptr
 		  slmp,
@@ -1859,10 +1858,6 @@ end_scan_for_macro_modifs:;
          macro-expanded form). */
       fetch_pp_tokens = TRUE;
       expand_macros = FALSE;
-      /* Header names should only be recognized at the top level in #include
-         directives, not in macro invocations therein. */
-      save_exp_header_name = exp_header_name;
-      exp_header_name = FALSE;
       /* Get the "(" as a token, and delete its characters. */
       (void)arg_get_token(&any_white_space_skipped);
       add_stop_token(tok_rparen);
@@ -2129,7 +2124,6 @@ end_arg_expansion:;
            runs into the end of file. */
         pos_error(ec_improperly_terminated_macro_call, &start_pos);
       }  /* if */
-      exp_header_name = save_exp_header_name;
     }  /* if */
   }  /* if */
 #if DEBUG

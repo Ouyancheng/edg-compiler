@@ -6004,9 +6004,9 @@ preprocessing #if expression), integer constants will get an implicit
 "L" suffix, and undefined identifiers will be returned as the integer
 constant 0L.
 
-If exp_header_name is TRUE, then <...> and "..." will be scanned
-as a header name for a #include (tok_header_name).  Other tokens will
-be processed normally.
+If exp_header_name is TRUE, then "..." will be scanned as a header name
+for a #include (tok_header_name).  Other tokens will be processed normally.
+exp_system_header_name is similar, for header names of the form <...>.
 
 If exp_digit_sequence is TRUE, then a string of decimal digits will be
 scanned as a tok_digit_sequence (used in the #line directive).  Other tokens
@@ -6313,12 +6313,11 @@ start_of_token_scan:  /* Restart here after scanning white space. */
       break;
     case '<':
       /* One of "<<", "<<=", "<=", or "<". In C++, "<%" or "<:".
-         If exp_header_name is TRUE, a header name of the form <filename>. */
-      if (exp_header_name) {
-        /* Take just the opening "<" now; let the preprocessing code fetch
-           the rest as tokens, to allow macro expansion. */
-        ctoken = tok_header_name;
-        break;
+         If exp_system_header_name is TRUE, a header name of the form
+         <filename>. */
+      if (exp_system_header_name) {
+        ctoken = accum_quoted_string(tok_header_name, &num_chars, &err);
+        goto end_of_token_scan;
       } else if ((ch = *(curr_char_loc+1)) == '<') {
         if (*(curr_char_loc+2) == '=') {
           ctoken = tok_shift_left_assign;
