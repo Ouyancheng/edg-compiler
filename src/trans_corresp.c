@@ -2342,7 +2342,7 @@ way, determine to which other IL entry this might correspond.
             a_routine_ptr  routine = (a_routine_ptr)scp;
             if (routine->is_template_function) {
               record_function_template_instantiation(
-                           ((a_symbol_ptr)scp)->variant.routine.instance_ptr);
+               ((a_symbol_ptr)scp->assoc_info)->variant.routine.instance_ptr);
             } else {
               find_routine_correspondence((a_routine_ptr)scp);
             }  /* if */
