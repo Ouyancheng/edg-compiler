@@ -4055,24 +4055,15 @@ generating cross-reference output describing this declaration.
         if (linked_symbol->variant.variable.ptr->init_kind !=
                                                (an_init_kind)initk_none) {
           /* The variable was initialized on a prior declaration, so this
-             cannot be a tentative definition. */
-          if (srk_flags & SRK_TENTATIVE_DEF) {
-            srk_flags &= ~(SRK_TENTATIVE_DEF | SRK_DEFINITION);
-            check_assertion(srk_flags & SRK_DECLARATION);
-            is_variable_def = FALSE;
-          }  /* if */
-        } else {
-          /* The variable must have been marked "defined" as a result of a
-             previous tentative definition.  If the current declaration is
-             a primary declaration and not another tentative definition,
-             clear the defined flag to avoid spurious redefinition errors. */
-          if (is_variable_def && !(srk_flags & SRK_TENTATIVE_DEF)) {
-            linked_symbol->defined = FALSE;
-          }  /* if */
+             cannot be a definition or a tentative definition.  (The error
+             will be reported by the caller if there is an initializer on
+             this declaration, too.) */
+          srk_flags &= ~(SRK_TENTATIVE_DEF | SRK_DEFINITION);
+          check_assertion(srk_flags & SRK_DECLARATION);
+          is_variable_def = FALSE;
         }  /* if */
       }  /* if */
-      if (linked_symbol->defined && is_variable_def &&
-          (!C_mode() || !(srk_flags & SRK_TENTATIVE_DEF))) {
+      if (linked_symbol->defined && is_variable_def && !C_mode()) {
         /* Variable has already been defined.  Issue an error here and
            suppress an error when the symbol is entered. */
         pos_sy_error(ec_already_defined, &locator->source_position,
@@ -4630,8 +4621,11 @@ skip_overloading:;
       set_src_seq_secondary_decl_type((char *)variable_ptr, declared_type);
     } else {
       /* The defining declaration of the variable.  Record the type. */
-      check_assertion(variable_ptr->declared_type == NULL);
-      variable_ptr->declared_type = declared_type;
+      if (variable_ptr->declared_type == NULL) {
+        variable_ptr->declared_type = declared_type;
+      } else {
+        check_assertion(C_mode());
+      }  /* if */
     }  /* if */
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
