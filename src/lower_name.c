@@ -257,6 +257,11 @@ typedef struct a_mangling_control_block {
                 last_substitution;
 			/* The last (most recent) substitution candidate for
 			   this mangling operation. */
+  a_byte_boolean
+		force_dependent_array_mangling;
+			/* Used to emulate a g++ bug with regard to use
+			   of an expression instead of a constant bound
+			   for a non-dependent array bound. */
 #else /* !IA64_ABI */
   a_boolean	suppress_partial_spec_args;
 			/* TRUE to suppress extra information on partial
@@ -369,6 +374,7 @@ Set the fields of the indicated mangling control block to default values.
 #if IA64_ABI
   mctl->first_substitution = NULL;
   mctl->last_substitution = NULL;
+  mctl->force_dependent_array_mangling = FALSE;
 #else /* !IA64_ABI */
   mctl->suppress_partial_spec_args = FALSE;
 #endif /* !IA64_ABI */
@@ -3829,6 +3835,7 @@ Add to the mangled name the encoding for the type "type".
              qualifiers;
 #if IA64_ABI
   a_type_ptr qualified_type = type;
+  a_boolean  saved_force_dependent_array_mangling;
 #endif /* IA64_ABI */
 
 #if IA64_ABI
@@ -4086,6 +4093,10 @@ Add to the mangled name the encoding for the type "type".
         /* Put out the array size, an underscore, and then the element type,
            i.e., int[10] is put out as A10_i. */
         check_assertion(!type->variant.array.is_variable_size_array);
+#if IA64_ABI
+        saved_force_dependent_array_mangling =
+                                          mctl->force_dependent_array_mangling;
+#endif /* IA64_ABI */
         if (type->variant.array.is_template_dependent_size_array) {
           /* Template-dependent size arrays are possible when putting out
              function prototypes. */
@@ -4095,6 +4106,14 @@ Add to the mangled name the encoding for the type "type".
           check_assertion(distinct_template_signatures);
 #if !IA64_ABI
           add_to_mangled_name('_', mctl);
+#else /* IA64_ABI */
+          if (emulate_gnu_abi_bugs &&
+              type->variant.array.variant.element_count_constant->kind ==
+                                     (a_constant_repr_kind)ck_template_param) {
+            /* Force bounds under this one it to be mangled as expressions
+               to match a g++ bug. */
+            mctl->force_dependent_array_mangling = TRUE;
+          }  /* if */
 #endif /* !IA64_ABI */
           /* Put out an encoding for the bound. */
           mangled_encoding_for_constant(
@@ -4106,6 +4125,15 @@ Add to the mangled name the encoding for the type "type".
         } else if (!type->variant.array.bound_is_zero && 
                    type->variant.array.variant.number_of_elements == 0) {
           /* If there is no bound, nothing is output.  */
+        } else if (mctl->force_dependent_array_mangling) {
+          /* Put out a constant bound as an expression to emulate a g++ bug. */
+          check_assertion(emulate_gnu_abi_bugs);
+          add_to_mangled_name('L', mctl);
+          add_to_mangled_name('i', mctl);  /* int type. */
+          add_number_to_mangled_name((unsigned long)type->variant.array.
+                                                    variant.number_of_elements,
+                                     mctl);
+          add_to_mangled_name('E', mctl);
 #endif /* IA64_ABI */
         } else {
           /* Put out the (constant) number of elements. */
@@ -4116,6 +4144,11 @@ Add to the mangled name the encoding for the type "type".
         add_to_mangled_name('_', mctl);
         /* Put out the element type. */
         mangled_encoding_for_type(type->variant.array.element_type, mctl);
+#if IA64_ABI
+        /* Note that this is restored AFTER the element type is mangled. */
+        mctl->force_dependent_array_mangling = 
+                                          saved_force_dependent_array_mangling;
+#endif /* IA64_ABI */
         break;
       default:;
         /* Many cases don't require any handling. */

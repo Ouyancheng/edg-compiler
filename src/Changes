@@ -1,5 +1,13 @@
 Version 3.2
 
+4/15/03  IA-64 ABI: g++ bug emulation with mangling for array with
+         dependent bound
+
+An additional case has been added to the emulation of g++ 3.2 IA-64 ABI
+bugs: the name mangling for a non-dependent array bound under a
+dependent array bound is now rendered as an expression instead of a
+constant.
+
 4/15/03  IA-64 ABI RTTI information for pointer to array: g++ bug emulation
 
 An additional case has been added to the emulation of g++ 3.2 IA-64 ABI
