@@ -3719,29 +3719,6 @@ issue a diagnostic complaining about skipping over an initialization.
 }  /* report_goto_past_init */
 
 
-static an_object_lifetime_ptr innermost_keepable_lifetime(
-                                            an_object_lifetime_ptr  olp)
-/*
-Starting from the object lifetime entry pointed to by olp, walk the object
-lifetime stack via parent pointers and return the first olk_block or
-olk_block_after_label object lifetime entry that will be retained in the
-IL because it has a non-NULL destructions pointer.  If none is found before
-reaching the object lifetime for the function scope itself, return that
-one (even if its destructions pointer is NULL).
-*/
-{
-  while (olp != function_scope_object_lifetime) {
-    if ((olp->kind == (an_object_lifetime_kind)olk_block ||
-         olp->kind == (an_object_lifetime_kind)olk_block_after_label) &&
-         !is_useless_object_lifetime(olp)) {
-      break;
-    }  /* if */
-    olp = olp->parent_lifetime;
-  }  /* while */
-  return olp;
-}  /* innermost_keepable_lifetime */
-
-
 static void check_goto_and_label(a_control_flow_descr_ptr  label_cfdp,
                                  a_control_flow_descr_ptr  goto_cfdp,
                                  a_boolean                 is_forwards)
@@ -4748,15 +4725,16 @@ label_position indicates the source position of the label.
         /* Set the object lifetime for the goto statement.  Note: the goto
            belongs to the object lifetime for the switch statement itself,
            which may be different from the current object lifetime when
-           label_directly_in_switch is FALSE. */
+           label_directly_in_switch is FALSE.  Note that if the lifetime
+           assigned here later turns out to be useless, the goto will be
+           updated (see fixup_curr_block_labels_and_gotos). */
         check_assertion_str2(label_directly_in_switch ?
                                (sssep->curr_block_object_lifetime ==
                                                     curr_object_lifetime) :
                                (sssep->curr_block_object_lifetime != NULL),
                              "add_switch_clause: bad lifetime in struct",
                              "stmt stack entry for switch statement");
-        goto_stmt->variant.label.lifetime =
-                innermost_keepable_lifetime(sssep->curr_block_object_lifetime);
+        goto_stmt->variant.label.lifetime = sssep->curr_block_object_lifetime;
         /* Create a control flow entry for this goto statement.  Note that it
            isn't needed in C mode, since it's only used for tracking and
            promoting object lifetimes. */
@@ -5092,15 +5070,11 @@ rescan_statement:
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
           if (!C_mode()) {
             /* Record the innermost object lifetime that this label is part
-               of, ignoring any object lifetimes that are "useless".  (They
-               can be ignored because, given how object lifetimes nest and
-               the way new block-bound scopes are created after labels, no
-               other destructions will ever be added to them. The exception
-               is the outermost object lifetime of the function, which may
-               turn out to be keepable after all; if not, the label
-               statement's lifetime pointer will be cleared.) */
+               of.  If that lifetime turns out to be "useless," the label
+               lifetime will be updated later.  See
+               fixup_curr_block_labels_and_gotos. */
             label->variant.exec_stmt->variant.label.lifetime =
-                           innermost_keepable_lifetime(curr_object_lifetime);
+                                                          curr_object_lifetime;
           }  /* if */
           /* If there have been forward gotos referencing this label, check
              whether any have jumped over initializing declarations. */
