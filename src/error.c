@@ -754,6 +754,9 @@ declaration position to eliminate redundant file names in a diagnostic.
         entity_kind = "field ";
       }  /* if */
       goto symbol_name;
+    case sk_namespace:
+      entity_kind = "namespace ";
+      goto symbol_name;
     case sk_function_template:
       entity_kind = "function template ";
       routine = fund_sym->variant.template_info->variant.function.routine;
@@ -872,7 +875,7 @@ modifiers:
 	o	- name or qualified name only.
 	a	- name or qualified name followed by template argument list
 
-Symbol name expansions may have a declaration position modifier"d" which
+Symbol name expansions may have a declaration position modifier "d" which
 requests that the declaration position of the symbol be added at the end
 of the expansion.
 
