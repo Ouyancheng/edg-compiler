@@ -374,6 +374,9 @@ Initialize the option information table.
   add_option_description(optk_microsoft_mode, "microsoft",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_microsoft_mode, "no_microsoft",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* initialize_option_descriptions */
 
@@ -1180,9 +1183,8 @@ Process the arguments on the command line that invoked the compiler.
         break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case optk_microsoft_mode:
-        /* Enable Microsoft extensions. */
-        check_assertion(opt_value == TRUE);
-        microsoft_mode = TRUE;
+        /* Enable or disable Microsoft extensions. */
+        microsoft_mode = opt_value;
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       default:
@@ -1238,6 +1240,10 @@ Process the arguments on the command line that invoked the compiler.
     /* Strict ANSI mode is incompatible with Microsoft mode. */
     if (microsoft_mode) {
       command_line_error(ec_cl_strict_ansi_incompatible_with_microsoft);
+    }  /* if */
+    /* cfront mode is incompatible with Microsoft mode. */
+    if (microsoft_mode) {
+      command_line_error(ec_cl_cfront_incompatible_with_microsoft);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Strict ANSI mode is incompatible with allowing anachronisms.  Don't

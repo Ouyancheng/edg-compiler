@@ -456,9 +456,9 @@ EXTERN a_boolean
 EXTERN a_boolean
 		microsoft_mode
 #if VAR_INITIALIZERS
-                               = FALSE
+                               = DEFAULT_MICROSOFT_MODE
 #endif /* VAR_INITIALIZERS */
-                                      ;
+                                                       ;
 			/* TRUE if microsoft extensions are to be accepted. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
