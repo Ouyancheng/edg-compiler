@@ -3106,9 +3106,13 @@ type based on the template argument list and the template parameter list
        into the symbol table -- it will appear on a function instantiation
        list under the function template symbol and, optionally, in the overload
        list if it is also explicitly declared by the user. */
-    sym = make_template_function_symbol(
-                templ_sym, source_pos, rout_type->variant.routine.return_type);
-    sym->variant.routine.ptr = rp;
+    { a_type_ptr	return_type = NULL;
+      if (is_function_type(rout_type)) {
+        return_type = skip_typerefs(rout_type)->variant.routine.return_type;
+      }  /* if */
+      sym = make_template_function_symbol(templ_sym, source_pos, return_type);
+      sym->variant.routine.ptr = rp;
+    }
     /* Give the routine entry the type passed in, and set other fields in
        accord with the settings in the template. */
     rp->type = rout_type;
@@ -4768,22 +4772,26 @@ operations that must be done to determine the type of entity being processed.
     cache_template_param_list(param_list_token_cache);
   }  /* if */
   clear_token_cache(decl_token_cache, /*reusable=*/TRUE);
-  /* Cache the current token and advance past it. */
-  cache_curr_token(decl_token_cache);
-  (void)get_token();
-  /* Initialize a local stop token set. */
-  clear_token_set_array(stop_tokens);
-  /* Cache all tokens up to the ";" that follows a declaration, the "{" that
-     begins a definition, or a ":" that begins a ctor initializer list.
-     For static data members, some or all of the initializer will be
-     in the cache.  The initializer tokens will be removed from this
-     cache later.  The only case in which the entire initializer will not
-     be in this cache is in cases where the initializer contains a
-     brace enclosed list. */
-  incr_token_set_array_element(stop_tokens, tok_lbrace);
-  incr_token_set_array_element(stop_tokens, tok_colon);
-  incr_token_set_array_element(stop_tokens, tok_semicolon);
-  cache_token_stream(decl_token_cache, stop_tokens);
+  if (curr_token != tok_end_of_source) {
+    /* In an error case, we could be at the end of the source file.  Don't
+       try to cache the end-of-source token. */
+    /* Cache the current token and advance past it. */
+    cache_curr_token(decl_token_cache);
+    (void)get_token();
+    /* Initialize a local stop token set. */
+    clear_token_set_array(stop_tokens);
+    /* Cache all tokens up to the ";" that follows a declaration, the "{" that
+       begins a definition, or a ":" that begins a ctor initializer list.
+       For static data members, some or all of the initializer will be
+       in the cache.  The initializer tokens will be removed from this
+       cache later.  The only case in which the entire initializer will not
+       be in this cache is in cases where the initializer contains a
+       brace enclosed list. */
+    incr_token_set_array_element(stop_tokens, tok_lbrace);
+    incr_token_set_array_element(stop_tokens, tok_colon);
+    incr_token_set_array_element(stop_tokens, tok_semicolon);
+    cache_token_stream(decl_token_cache, stop_tokens);
+  }  /* if */
   /* Add an end-of-source token to the end of the token cache to
      assure that we don't scan past the end of the cache in the actual
      scan. */
@@ -6152,8 +6160,6 @@ as the current token; otherwise, it is consumed.
        A pointer to this entry will be stored in the template cache entries
        that contain tokens from this declaration. */
     template_decl_info = alloc_template_decl_info();
-    template_decl_info->declaration_scope =
-                                         scope_stack[decl_scope_level].number;
     template_decl_info->enclosing_scope = enclosing_scope;
     if (curr_token == tok_lt) {
       (void)push_scope((a_scope_kind)sck_template_declaration, NO_SCOPE_NUMBER,
@@ -6161,6 +6167,8 @@ as the current token; otherwise, it is consumed.
       number_of_template_decl_scopes++;
       template_param_list = scan_template_param_list(template_decl_info,
                                                      nesting_depth);
+      template_decl_info->declaration_scope =
+                                         scope_stack[decl_scope_level].number;
       template_decl_info->parameters = template_param_list;
     } else {
       error(ec_missing_template_param_list);
