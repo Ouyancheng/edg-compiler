@@ -338,7 +338,7 @@ even when that alignment is less than the alignment dictated by the member's
 type.
 */
 #ifndef USER_CONTROL_OF_STRUCT_PACKING
-#define USER_CONTROL_OF_STRUCT_PACKING FALSE
+#define USER_CONTROL_OF_STRUCT_PACKING MICROSOFT_EXTENSIONS_ALLOWED
 #endif /* ifndef USER_CONTROL_OF_STRUCT_PACKING */
 
 /*
