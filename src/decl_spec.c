@@ -2986,32 +2986,39 @@ process_class_specifier:
             }  /* if */
           }  /* if */
 #endif /* if 0 */
-          /* The identifier is a type name and should be treated as a
-             type specifier. */
-          if (locator_for_curr_id.is_semivisible_nested_type) {
-            /* The symbol in the locator is a nested class that is not
-               visible according to the ARM lookup rules but is returned
-               in support of the nested class anachronism (ARM 18.3.5).
-               Issue an anachronism diagnostic. */
-            sym_diagnostic(anachronism_error_severity, 
-                           ec_nested_class_anachronism,
-                           locator_for_curr_id.specific_symbol);
-          }  /* if */
           /* Do ambiguity and access control checking. */
           check_ambiguity_and_verify_access(&locator_for_curr_id);
-          /* If the symbol is a projection symbol, get the fundamental
-             symbol. */
-          reduce_projection_symbol_to_fundamental_symbol(
-                                                      curr_token_type_symbol);
-          mark_referenced(curr_token_type_symbol,
-                          &locator_for_curr_id.source_position);
-          if (!type_specifier_allowed) {
-            error(ec_type_specifier_not_allowed);
+          /* The identifier is a type name and should be treated as a
+             type specifier. */
+          if (is_error_locator(locator_for_curr_id)) {
+            /* Ambiguity error was issued. */
             err = TRUE;
-          } else {
-            /* Save the type. */
             basic_type = bt_typedef;
-            *type_ptr = type_symbol_type(curr_token_type_symbol);
+            *type_ptr = error_type();
+          } else {
+            if (locator_for_curr_id.is_semivisible_nested_type) {
+              /* The symbol in the locator is a nested class that is not
+                 visible according to the ARM lookup rules but is returned
+                 in support of the nested class anachronism (ARM 18.3.5).
+                 Issue an anachronism diagnostic. */
+              sym_diagnostic(anachronism_error_severity, 
+                             ec_nested_class_anachronism,
+                             locator_for_curr_id.specific_symbol);
+            }  /* if */
+            /* If the symbol is a projection symbol, get the fundamental
+               symbol. */
+            reduce_projection_symbol_to_fundamental_symbol(
+                                                      curr_token_type_symbol);
+            mark_referenced(curr_token_type_symbol,
+                            &locator_for_curr_id.source_position);
+            if (!type_specifier_allowed) {
+              error(ec_type_specifier_not_allowed);
+              err = TRUE;
+            } else {
+              /* Save the type. */
+              basic_type = bt_typedef;
+              *type_ptr = type_symbol_type(curr_token_type_symbol);
+            }  /* if */
           }  /* if */
           break;
         }  /* if */
