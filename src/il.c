@@ -230,7 +230,7 @@ Dump the name from a source correspondence (if any).
 }  /* db_name */
 
 
-void db_template_arg_list(a_template_arg_ptr tap)
+static void db_template_arg_list(a_template_arg_ptr tap)
 /*
 Dump a list of template arguments, enclosed by angle brackets.
 */
@@ -251,7 +251,7 @@ Dump a list of template arguments, enclosed by angle brackets.
 }  /* if */
 
 
-void db_type_name(a_type_ptr  tp)
+static void db_type_name(a_type_ptr  tp)
 /*
 Dump the name of a type.  If it's a class generated on the basis of a
 template, dump the template arguments, too.
@@ -433,6 +433,10 @@ debug purposes.
 
 static void db_virtual_base_class_ptr(a_base_class *bcp,
                                       int          depth)
+/*
+Dump information on a virtual base class pointer (the pointer, not the
+base class itself), for debug purposes.
+*/
 {
   int        i;
 
@@ -613,6 +617,7 @@ Dump a virtual base class entry, for debug purposes.
 
 static void db_access_adjustment(an_access_adjustment_ptr aap)
 /*
+Dump information on an access adjustment entry, for debug purposes.
 */
 {
   a_source_correspondence  *sc;
