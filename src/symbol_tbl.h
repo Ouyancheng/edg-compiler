@@ -2834,6 +2834,12 @@ supplement.
   (is_class_struct_union_symbol(sym) &&					\
    (sym)->variant.class_struct_union.extra_info->is_prototype_instantiation)
 
+/* If a symbol represents a subordindate temlate, return a pointer to the
+   prototype template; otherwise return the symbol provided. */
+#define prototype_template_of(sym)					\
+  ((sym)->variant.template_info->prototype_template != NULL ?		\
+      (sym)->variant.template_info->prototype_template : (sym))
+
 /* Return a pointer to the namespace associated with a namespace symbol.
    Remove any namespace aliases that may be present.  The symbol provided
    must be a namespace symbol. */
