@@ -15123,33 +15123,42 @@ when a base class return type is needed.  Definitions will be put out later.
                                                                          ) {
           /* The adjustment offset is non-NULL, or the base class is
              virtual, so an entry/wrapper routine is needed. */
-          (void)make_covariant_return_type_entry_routine(routine,
-                                                         ovf->primary_function,
-                                                         adjustment_bcp,
-                                                         delta,
-                                                         vcall_index);
 #if IA64_ABI
-          /* Add thunks for any alternate entry points. */
+          /* Add thunks for any alternate entry points.  Note that in the
+             IA-64 ABI no thunk is made for the routine itself for a
+             destructor, because that's the internal entry point.
+             Constructors do not get here because they are not virtual. */
           if (routine->special_kind ==
-                                    (a_special_function_kind)sfk_constructor ||
-              routine->special_kind ==
                                     (a_special_function_kind)sfk_destructor) {
             a_routine_list_entry_ptr rlep;
             for (rlep = routine->variant.ctor_dtor.alternate_entry_points;
                  rlep != NULL;
                  rlep = rlep->next) {
               a_routine_ptr arout = rlep->routine, arouto;
-              arouto = alternate_entry_point(ovf->primary_function,
-                                             arout->ctor_dtor_kind,
-                                             /*define_now=*/FALSE);
-              (void)make_covariant_return_type_entry_routine(arout,
-                                                             arouto,
-                                                             adjustment_bcp,
-                                                             delta,
-                                                             vcall_index);
+              /* Add thunks only for the complete and deleting destructor. */
+              if (arout->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_complete ||
+                  arout->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_deleting) {
+                arouto = alternate_entry_point(ovf->primary_function,
+                                               arout->ctor_dtor_kind,
+                                               /*define_now=*/FALSE);
+                (void)make_covariant_return_type_entry_routine(arout,
+                                                               arouto,
+                                                               adjustment_bcp,
+                                                               delta,
+                                                               vcall_index);
+              }  /* if */
             }  /* for */
-          }  /* if */
+          } else
 #endif /* IA64_ABI */
+          /* Do not insert code here. */
+          {
+            (void)make_covariant_return_type_entry_routine(
+                                                         routine,
+                                                         ovf->primary_function,
+                                                         adjustment_bcp,
+                                                         delta,
+                                                         vcall_index);
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* for */

@@ -1,5 +1,13 @@
 Version 3.2
 
+1/29/03  IA-64 ABI: extra unneeded thunks
+
+In the IA-64 ABI, extra unneeded thunks were sometimes generated
+for virtual destructors.  This caused no problem, other than
+possibly code bloat, but the thunks (for the internal and
+subobject versions of the destructor) were unnecessary and never
+called.
+
 1/29/03  Compilation problem with GENERATE_EH_TABLES set to FALSE
 
 lower_eh.c did not compile correctly when GENERATE_EH_TABLES is
