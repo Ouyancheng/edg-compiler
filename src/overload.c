@@ -1641,6 +1641,10 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
            would not come here. */
         arg_summary->match_level = aml_exact;
         arg_summary->conversion.std.type_qualifiers_added = TRUE;
+        if (param_is_reference) {
+          /* This is a Microsoft bug extension.  Mark it as less desirable. */
+          arg_summary->anachronism_used = TRUE;
+        }  /* if */
         goto have_level;
       }  /* if */
     }  /* if */
