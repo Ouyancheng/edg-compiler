@@ -750,6 +750,7 @@ ec_cl_bool_option_only_in_cplusplus;;"bool option can be used only when compilin
 ec_bad_storage_class_on_condition_decl;;"invalid storage class for condition declaration"
 ec_array_type_not_allowed;;"an array type is not allowed here"
 ec_exp_assign;;"expected an \"=\""
+ec_exp_declarator_in_condition_decl;;"expected a declarator in condition declaration"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
