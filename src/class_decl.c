@@ -734,50 +734,6 @@ for the class to which they belong.
 }  /* insert_in_virtual_function_override_list */
 
 
-static a_boolean overriding_virtual_function_lists_correspond(
-                                    an_overriding_virtual_function_ptr  list1,
-                                    an_overriding_virtual_function_ptr  list2)
-/*
-Return TRUE if the lists of overriding virtual functions, list1 and list2,
-correspond item for item (that is, if entries in the same position of the
-lists refer to the same virtual function override).
-*/
-{
-  a_boolean  lists_correspond = TRUE;
-
-  while (list1 != NULL || list2 != NULL) {
-    if (list1 == NULL || list2 == NULL ||
-        list1->primary_function != list2->primary_function ||
-        list1->overriding_function != list2->overriding_function) {
-      lists_correspond = FALSE;
-      break;
-    }  /* if */
-    list1 = list1->next;
-    list2 = list2->next;
-  }  /* while */
-  return lists_correspond;
-}  /* overriding_virtual_function_lists_correspond */
-
-
-static a_boolean already_on_overriding_virtual_function_list(
-                                     a_base_class_ptr                    bcp,
-                                     an_overriding_virtual_function_ptr  ovfp)
-{
-  a_boolean                           already_on_list = FALSE;
-  an_overriding_virtual_function_ptr  ovfp_from_list;
-
-  for (ovfp_from_list = bcp->overriding_virtual_functions;
-       ovfp_from_list != NULL;
-       ovfp_from_list = ovfp_from_list->next) {
-    if (ovfp_from_list->primary_function == ovfp->primary_function &&
-        ovfp_from_list->overriding_function == ovfp->overriding_function) {
-      already_on_list = TRUE;
-    }  /* if */
-  }  /* for */
-  return already_on_list;
-}  /* already_on_overriding_virtual_function_list */
-
-
 static void copy_virtual_function_override_list(a_base_class_ptr  old_bcp,
                                                 a_base_class_ptr  new_bcp,
                                                 a_type_ptr        old_class,
@@ -789,52 +745,125 @@ being copied from a base class of old_class to a base class of new_class.
 new_bcp is the base class being created in new_class.
 */
 {
-  an_overriding_virtual_function_ptr  ovfp, new_ovfp, old_list;
+  an_overriding_virtual_function_ptr  ovfp_to_copy, new_ovfp;
+  an_overriding_virtual_function_ptr  ovfp_from_new_list;
+  a_base_class_ptr                    new_ovfp_base_class;
   a_boolean                           check_new_list;
 
   db_enter(4, "copy_virtual_function_override_list");
-  old_list = old_bcp->overriding_virtual_functions;
-  if (old_list != NULL) {
-    if (new_bcp->overriding_virtual_functions == NULL) {
-      check_new_list = FALSE;
-    } else if (overriding_virtual_function_lists_correspond(
-                       old_list, new_bcp->overriding_virtual_functions)) {
-      goto done;
-    } else {
-      check_new_list = TRUE;
-    }  /* if */
-    /* Make a pass over the existing list. */
-    for (ovfp = old_list; ovfp != NULL; ovfp = ovfp->next) {
-      if (!check_new_list ||
-          !already_on_overriding_virtual_function_list(new_bcp, ovfp)) {
-        /* Allocate a new entry and copy fields from the original. */
-        new_ovfp = alloc_overriding_virtual_function();
-        new_ovfp->primary_function = ovfp->primary_function;
-        new_ovfp->overriding_function = ovfp->overriding_function;
-        /* The base class of the overriding function must be translated into
-           the new class. */
-        if (ovfp->base_class == NULL) {
-          new_ovfp->base_class = find_direct_base_class_of(new_class,
-                                                           old_class);
-        } else {
-          new_ovfp->base_class = 
-                         corresponding_base_class(ovfp->base_class, new_class,
-                                                  (a_base_class_ptr)NULL);
-        }  /* if */
+  if (old_bcp->overriding_virtual_functions == NULL) {
+    /* Nothing to copy. */
+  } else {
+    /* if new_bcp does not have a list of overriding virtual functions, no
+       cross checking is required before doing the copies. */
+    check_new_list = (new_bcp->overriding_virtual_functions != NULL);
+    /* Make a pass over the list from old_bcp.  For each entry on it, see if
+       a copy needs to be made.  If so, allocate an new entry and add it to
+       the appropriate place in the list. */
+    for (ovfp_to_copy = old_bcp->overriding_virtual_functions;
+         ovfp_to_copy != NULL;
+         ovfp_to_copy = ovfp_to_copy->next) {
+      /* The base class of the overriding function must be translated into
+         the new class. */
+      if (ovfp_to_copy->base_class == NULL) {
+        new_ovfp_base_class = find_direct_base_class_of(new_class,
+                                                        old_class);
+      } else {
+        new_ovfp_base_class = 
+                  corresponding_base_class(ovfp_to_copy->base_class, new_class,
+                                           (a_base_class_ptr)NULL);
+      }  /* if */
+      if (check_new_list) {
+        for (ovfp_from_new_list = new_bcp->overriding_virtual_functions;
+             ovfp_from_new_list != NULL;
+             ovfp_from_new_list = ovfp_from_new_list->next) {
+          if (ovfp_from_new_list->primary_function ==
+                                            ovfp_to_copy->primary_function) {
+            if (ovfp_from_new_list->overriding_function ==
+                                         ovfp_to_copy->overriding_function) {
+              /* This override is already recorded.  No copy is needed. */
+              goto next_entry_from_old_list;
+            } else if (is_on_any_derivation_of(new_ovfp_base_class,
+                                             ovfp_from_new_list->base_class)) {
+              /* The override that is already recorded dominates the new
+                 once, since the base class to which the new override belongs
+                 is on a derivation of the other one.  Don't enter the
+                 override from the dominated base class.  For example:
+                        A virtual A::f()
+                       / \
+                     AA   B B::f()    -- B is new_ovfp_base_class
+                       \ / \
+                        BB  C C::f()  -- C is ovfp_from_new_list->base_class
+                         \ /
+                          D
+                 In other words, we don't want to enter the override of
+                 A::f by B::f in D if the override of B::f by C::f is already
+                 on the list.  If that were done, a spurious ambiguity would
+                 be diagnosed.  In this case, C::f dominates B::f since C-in-D
+                 is on at least one derivation of B-in-D. */
+              goto next_entry_from_old_list;
+            } else if (is_on_any_derivation_of(ovfp_from_new_list->base_class,
+                                               new_ovfp_base_class)) {
+              an_overriding_virtual_function_ptr  ovfp, prev_ovfp;
+
+              /* Similar to last case, but with the dominance relation
+                 reversed.  Change the entry on the list to reflect the new
+                 override. */
+              ovfp_from_new_list->overriding_function =
+                                           ovfp_to_copy->overriding_function;
+              ovfp_from_new_list->base_class = new_ovfp_base_class;
+              /* If there are any other entries on the list that are
+                 similarly dominated by the new override, they should be
+                 removed from the list.  Otherwise spurious amiguity errors
+                 would be issued. */
+              prev_ovfp = ovfp_from_new_list;
+              ovfp = ovfp_from_new_list->next;
+              while (ovfp != NULL &&
+                     ovfp->primary_function ==
+                                         ovfp_to_copy->primary_function) {
+                if (is_on_any_derivation_of(ovfp->base_class,
+                                            new_ovfp_base_class)) {
+                  /* Same dominance relation.  Remove ovfp from the list. */
+                  prev_ovfp->next = ovfp->next;
+                } else {
+                  prev_ovfp = ovfp;
+                }  /* if */
+                /* Advance to the next entry, and continue looping. */
+                ovfp = ovfp->next;
+              }  /* while */
+              goto next_entry_from_old_list;
+            } else {
+              /* We've found another entry on the list that records an
+                 override of the very same primary function, but the
+                 overriding function is distinct.  Keep looping. */
+            }  /* if */
+          } else if (ovfp_from_new_list->primary_function->
+                                                   virtual_function_number >
+                     ovfp_to_copy->primary_function->virtual_function_number) {
+            /* Since the lists are ordered by virtual_function_number,
+               no further checking is required. */
+            break;
+          }  /* if */
+        }  /* for */
+      }  /* if */
+      /* Allocate a new entry and copy fields from the original. */
+      new_ovfp = alloc_overriding_virtual_function();
+      new_ovfp->primary_function = ovfp_to_copy->primary_function;
+      new_ovfp->overriding_function = ovfp_to_copy->overriding_function;
+      new_ovfp->base_class = new_ovfp_base_class;
 #if DEBUG
-        if (debug_level >= 4) {
-          fputs("copy for base class ", f_debug);
-          db_type_name(new_bcp->type);
-          fputs(": ", f_debug);
-          db_virtual_function_override(ovfp);
-        }  /* if */
+      if (debug_level >= 4) {
+        fputs("copy for base class ", f_debug);
+        db_type_name(new_bcp->type);
+        fputs(": ", f_debug);
+        db_virtual_function_override(ovfp_to_copy);
+      }  /* if */
 #endif /* DEBUG */
-        /* Add it to the new list. */
-        insert_in_virtual_function_override_list(new_bcp, new_ovfp);
-      }  /* for */
-    }  /* if */
+      /* Add it to the new list. */
+      insert_in_virtual_function_override_list(new_bcp, new_ovfp);
+next_entry_from_old_list:;
+    }  /* for */
   }  /* if */
-done:;
   db_exit();
 }  /* copy_virtual_function_override_list */
 
