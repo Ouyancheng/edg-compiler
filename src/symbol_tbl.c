@@ -8320,13 +8320,27 @@ created for this entity; otherwise, it is NULL.
           if (class_type != NULL) {
             sp = class_type->
                     variant.class_struct_union.extra_info->assoc_scope;
-            check_assertion(sp != NULL);
-            if (check_for_tag_sym && !is_tag_symbol(old_sym_ptr)) {
+            if (sp == NULL) {
+              /* This can happen if a name is a member of class that is
+                 a template parameter -- e.g.,
+                   template <class T> void f(T t, T::S s) { ... }
+                 In such a case, a class type for T is created to serve as the
+                 parent for S but it is undefined.  A similar case occurs with
+                 friend declarations withing a class template:
+                   template <class T> class A {
+                     friend void T::f();
+                   };
+              */
+            } else {
+              if (check_for_tag_sym && !is_tag_symbol(old_sym_ptr)) {
+                record_defeatable_name_hiding(sym_ptr,
+                                              /*tag_hidden_by_nontag=*/TRUE,
+                                              sp);
+              }  /* if */
               record_defeatable_name_hiding(sym_ptr,
-                                            /*tag_hidden_by_nontag=*/TRUE, sp);
+                                            /*tag_hidden_by_nontag=*/FALSE,
+                                            sp);
             }  /* if */
-            record_defeatable_name_hiding(sym_ptr,
-                                          /*tag_hidden_by_nontag=*/FALSE, sp);
           }  /* if */
         }  /* for */
       }  /* if */
