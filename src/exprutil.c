@@ -3710,7 +3710,7 @@ the member.
                                  con,
                                  (a_template_param_constant_kind)tpck_address);
       con->variant.template_param.variant.constant = memcon;
-      con->type = type_of_unknown_templ_param_nontype;
+      con->type = make_pointer_type(memcon->type);
       operand->state = (an_operand_state)os_lvalue;
     }  /* if */
   }  /* if */
