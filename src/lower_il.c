@@ -2760,10 +2760,7 @@ the constant.
         assoc_var->init_kind = (an_init_kind)initk_static;
         assoc_var->initializer.constant = constant;
         /* Make sure the variable gets lowered so that the constant will
-           be lowered too.  This is necessary when the recording of orphan
-           entries is turned off in lower_os_constant because we're
-           maintaining "needed" flags and we don't want to record orphans
-           from functions that will be deleted. */
+           be lowered too. */
         if (!lowering_file_scope) mark_as_not_visited(assoc_var);
       } else {
         /* The constant is in the function scope, so use a function-local
