@@ -1911,8 +1911,10 @@ The safe return value is FALSE.
       cannot_be = TRUE;
     }  /* if */
   } else if (expr->kind == (an_expr_node_kind)enk_variable_address ||
-             expr->kind == (an_expr_node_kind)enk_routine_address) {
-    /* A variable or routine cannot have an address that's NULL. */
+             expr->kind == (an_expr_node_kind)enk_routine_address ||
+             expr->kind == (an_expr_node_kind)enk_address_of_ellipsis) {
+    /* A variable or routine cannot have an address that's NULL, nor can
+       "&...". */
     cannot_be = TRUE;
   } else if (is_operation_node(expr)) {
     an_expr_operator_kind op = expr->variant.operation.kind;
