@@ -7850,17 +7850,17 @@ enum an_expr_operator_kind_tag {
   /* The following binary fixed-point operations may have one operand
      of integral type.  (No "promotion" to a fixed-point or other type
      is done for mixed-type arithmetic.) */
-  eok_fxadd,             /* Fixed-point addition. */
-  eok_fxsubtract,        /* Fixed-point subtraction. */
-  eok_fxmultiply,        /* Fixed-point multiplication. */
-  eok_fxdivide,          /* Fixed-point division. */
-  eok_fxeq,              /* Fixed-point equality. */
-  eok_fxne,              /* Fixed-point inequality. */
-  eok_fxgt,              /* Fixed-point greater than. */
-  eok_fxlt,              /* Fixed-point less than. */
-  eok_fxge,              /* Fixed-point greater than or equal. */
-  eok_fxle,              /* Fixed-point less than or equal. */
-  eok_fxassign,          /* Fixed-point assignment. */
+  eok_fxadd,            /* Fixed-point addition. */
+  eok_fxsubtract,       /* Fixed-point subtraction. */
+  eok_fxmultiply,       /* Fixed-point multiplication. */
+  eok_fxdivide,         /* Fixed-point division. */
+  eok_fxeq,             /* Fixed-point equality. */
+  eok_fxne,             /* Fixed-point inequality. */
+  eok_fxgt,             /* Fixed-point greater than. */
+  eok_fxlt,             /* Fixed-point less than. */
+  eok_fxge,             /* Fixed-point greater than or equal. */
+  eok_fxle,             /* Fixed-point less than or equal. */
+  eok_fxassign,         /* Fixed-point assignment. */
 #endif /* FIXED_POINT_ALLOWED */
   eok_fadd,             /* Floating addition. */
   eok_fsubtract,        /* Floating subtraction. */
