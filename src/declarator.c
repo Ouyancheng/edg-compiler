@@ -888,7 +888,7 @@ scope is that of a class definition.
       /* Destructors are allowed no arguments. */
       error(ec_too_many_params_for_destructor);
     } else {
-      /* In C++ f(...) is legal, though it is not recommended since is not
+      /* In C++ f(...) is legal, though it is not recommended since it is not
          portable (ARM 8.3).  In C it's an extension that is supported when
          ALLOW_ELLIPSIS_ONLY_PARAM_IN_C_MODE is TRUE. */
       extra_info->has_ellipsis = TRUE;
