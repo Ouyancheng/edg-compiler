@@ -6249,15 +6249,17 @@ cache the expected tokens.
   (void)get_token();
   /* Initialize a local stop token set. */
   clear_token_set_array(stop_tokens);
-  /* Cache all tokens up to the ";" that follows a declaration, the "{" that
-     begins a definition, or a ":" that begins a ctor initializer list.
+  /* Cache all tokens up to the ";" that follows a declaration or the "{" that
+     begins a definition.  We don't stop on the ":" that begins a ctor
+     initializer list because there are other contexts in which a ":"
+     could occur that cannot be detected during the caching process
+     (for example, a ? : operator in a default template argument).
      For static data members, some or all of the initializer will be
      in the cache.  The initializer tokens will be removed from this
      cache later.  The only case in which the entire initializer will not
      be in this cache is in cases where the initializer contains a
      brace enclosed list. */
   incr_token_set_array_element(stop_tokens, tok_lbrace);
-  incr_token_set_array_element(stop_tokens, tok_colon);
   incr_token_set_array_element(stop_tokens, tok_semicolon);
   cache_token_stream(p_cache, stop_tokens);
   /* Add an end-of-source token to the end of the token cache to

@@ -1,5 +1,13 @@
 Version 2.35
 
+1/20/97 Internal error on default template argument with ? : operator
+
+An internal error would occur when processing a template declaration
+with a default template argument containing a ? : operation that was
+not in parentheses.  This has been fixed.
+
+  template <int I, int J, int K = (I > J) ? I : J> struct A {};
+
 1/19/97 Microsoft compatibility: sizeof typename, without parentheses
 
 In Microsoft C++ mode, "sizeof typename" may now be used instead of the
