@@ -9651,6 +9651,7 @@ continue_with_declaration:
                             (!locator.specific_symbol->is_class_member &&
                              locator.specific_symbol->
                                           parent.namespace_ptr == NULL));
+            func_info.is_main_function = is_main_function = TRUE;
             check_main_function(&func_info, local_type_ptr,
                                 &declared_storage_class, &inline_specified,
                                 &locator.source_position);
