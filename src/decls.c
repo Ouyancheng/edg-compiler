@@ -3357,10 +3357,10 @@ the routine-name-linkages of the two declarations are compatible.
   rtsp = type_ptr->variant.routine.extra_info;
   if (rtsp->routine_name_linkage_is_explicit) {
     rout_type = skip_typerefs(rout_type);
-    if (rtsp->routine_name_linkage !=
-             rout_type->variant.routine.extra_info->routine_name_linkage) {
-      compat = FALSE;
-    }  /* if */
+    compat = routine_linkages_are_compatible(
+                  rtsp->routine_name_linkage,
+                  rout_type->variant.routine.extra_info->routine_name_linkage,
+                  /*is_impl_conv=*/FALSE);
   }  /* if */
   return compat;
 }  /* routine_name_linkages_are_compatible */
