@@ -6952,11 +6952,14 @@ where the class type is already correct and nothing should be done to it.
 On return, source_operand is an rvalue.
 */
 {
-  a_type_ptr       source_type;
+  a_type_ptr       source_type = source_operand->type;
   a_base_class_ptr bcp;
 
-  source_type = source_operand->type;
-  if (identical_types(source_type, dest_type)) {
+  if (C_mode()) {
+    /* In C mode, the types will always be the same, ignoring cv-qualifiers.
+       We don't want to adjust the cv-qualifiers of the operand to match
+       the destination type, since rvalues don't have cv-qualifiers in C. */
+  } else if (identical_types(source_type, dest_type)) {
     /* The source and destination types are the same type, so no conversion
        is necessary. */
   } else {

@@ -1,5 +1,19 @@
 Version 2.37
 
+8/11/97   Invalid IL for return in C function with cv-qualified class type
+
+A change in 2.36 introduced a bug in C mode: a return of a class value
+in a function whose return type is a cv-qualified class type can create
+IL that includes an enk_temp_init node, which is valid only in C++ mode.
+
+  struct A {
+    int i;
+  };
+  const struct A f();
+  const struct A g() {
+    return f();
+  }
+
 8/8/97    TARG_SIZE_T_INT_MAX default inappropriate when host long long
           is used as a_host_large_integer
 
