@@ -1,5 +1,21 @@
 Version 2.31
 
+11/20/95  C-generating back end: obscure problems with qualified array typedefs
+
+The C-generating back end removes top-level "const" from the types of
+nonstatic data members and initialized variables.  This process did not
+work right for variables or data members whose type was given by a
+array typedef.
+
+  typedef const int A[4];
+  typedef int AA[4];
+  struct B {
+    volatile A x;  // Cannot use typedef
+    A y;           // Cannot use typedef
+    const AA z;    // Can use typedef
+    AA zz;         // Can use typedef
+  } *p;
+
 11/18/95  Fixed loop in IL lowering processing of placeholder typerefs
 
 A bug in the use of placeholder typerefs to guide the process of type
