@@ -121,29 +121,41 @@ is prepared to accept all of the C99 IL extensions.
  #error -- C99 IL lowering cannot be done if C99 IL extensions not supported
 #endif /* !C99_IL_EXTENSIONS_SUPPORTED && DO_C99_IL_LOWERING */
 
-#if C99_IL_EXTENSIONS_SUPPORTED
-
-/* Enable support of variable length arrays. */
+/* Enable support of variable-length arrays (VLAs). */
 #ifndef VLA_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
 #define VLA_ALLOWED TRUE
+#else /* !C99_IL_EXTENSIONS_SUPPORTED */
+#define VLA_ALLOWED FALSE
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #endif /* VLA_ALLOWED */
 
 /* Enable support of compound literals. */
 #ifndef COMPOUND_LITERAL_ENABLING_POSSIBLE
+#if C99_IL_EXTENSIONS_SUPPORTED
 #define COMPOUND_LITERAL_ENABLING_POSSIBLE TRUE
+#else /* !C99_IL_EXTENSIONS_SUPPORTED */
+#define COMPOUND_LITERAL_ENABLING_POSSIBLE FALSE
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #endif /* ifndef COMPOUND_LITERAL_ENABLING_POSSIBLE */
 
 /* Enable support of designated initializers. */
 #ifndef DESIGNATED_INITIALIZER_ENABLING_POSSIBLE
+#if C99_IL_EXTENSIONS_SUPPORTED
 #define DESIGNATED_INITIALIZER_ENABLING_POSSIBLE TRUE
+#else /* !C99_IL_EXTENSIONS_SUPPORTED */
+#define DESIGNATED_INITIALIZER_ENABLING_POSSIBLE FALSE
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #endif /* ifndef DESIGNATED_INITIALIZER_ENABLING_POSSIBLE */
 
 /* Enable long long. */
 #ifndef LONG_LONG_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
 #define LONG_LONG_ALLOWED TRUE
-#endif /* ifndef LONG_LONG_ALLOWED */
-
+#else /* !C99_IL_EXTENSIONS_SUPPORTED */
+#define LONG_LONG_ALLOWED FALSE
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#endif /* ifndef LONG_LONG_ALLOWED */
 
 /*
 Target byte order.  Little-endian means the least-significant part of a
