@@ -320,7 +320,7 @@ typedef enum /*an_error_code*/ {
   ec_increasing_access_not_allowed,
   ec_restricting_access_not_allowed,
   ec_improperly_terminated_macro_call,
-  ec_dominated_reference_not_allowed,
+  ec_not_equivalent_to_inherited_member,
   ec_id_must_be_class_name
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;

@@ -891,8 +891,8 @@ error code.
     case ec_improperly_terminated_macro_call:
       m = "improperly terminated macro invocation";
       break;
-    case ec_dominated_reference_not_allowed:
-      m = "dominated base class member name is not allowed";
+    case ec_not_equivalent_to_inherited_member:
+      m = "qualfied name not equivalent to inherited member \"%s\"";
       break;
     case ec_id_must_be_class_name:
       m = "name followed by \"::\" must be a class name";
