@@ -495,10 +495,10 @@ Install the keywords in the symbol table.
          will be compatible with the new language feature when it is
          implemented so a diagnostic would not, in general, be
          helpful. */
-      if (microsoft_mode) {
-        /* In Microsoft compatibility mode, "bool" is really a predeclared
-           typedef name, not a keyword.  It's entered into the symbol table
-           later. */
+      if (microsoft_mode && microsoft_version < 1310) {
+        /* MSVC++ 6.0 and 7.0 treat "bool" as a predeclared typedef name, not
+           a keyword.  When emulating those compilers, we enter bool into the
+           symbol table later. */
       } else {
         enter_keyword((a_token_kind)tok_bool,  "bool");
       }  /* if */
@@ -1240,10 +1240,10 @@ when it is a secondary file.
     }  /* if */
     /* Add a symbol for predeclared size_t. */
     make_predeclared_size_t_symbol();
-    if (bool_is_keyword) {
-      /* In Microsoft mode, "bool" is not really a keyword.  It's a typedef
-         name in the global scope.  This means it can be redeclared to
-         something else in other scopes. */
+    if (bool_is_keyword && microsoft_version < 1310) {
+      /* MSVC++ 6.0 and 7.0 treat "bool" as a predeclared typedef name, not
+         a keyword.  This means it can be redeclared to something else in
+         other scopes. */
       make_predeclared_bool_symbol();
     }  /* if */
   }  /* if */

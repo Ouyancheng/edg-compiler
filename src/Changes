@@ -1,5 +1,17 @@
 Version 3.5
 
+9/3/04  Microsoft C++ compatibility: Type bool
+
+MSVC++ 7.0 and earlier treated "bool" as a predeclared typedef in global scope
+and the EDG front end emulated this behavior in all Microsoft C++ modes.
+However, MSVC++ 7.1 fixed this by making "bool" a keyword.  The front end has
+been adapted to restore the standard behavior when microsoft_version >= 1310.
+For example:
+
+  namespace N {
+    typedef int *bool;  // Previously accepted in all Microsoft C++ modes.
+  }                     // Now only accepted with microsoft_version < 1310.
+
 9/2/04  Microsoft compatibility: Checking UUIDs across translation units
 
 In Microsoft mode, when compiling multiple translation units simultaneously,
