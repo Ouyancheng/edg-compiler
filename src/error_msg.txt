@@ -993,6 +993,7 @@ ec_unsigned_enum_bit_field_with_signed_enumerator;;"enum bit-fields are always u
 ec_cl_class_name_injection_option_only_in_cplusplus;;"option \"class_name_injection\" can be used only when compiling C++"
 ec_cl_arg_dependent_lookup_option_only_in_cplusplus;;"option \"arg_dep_lookup\" can be used only when compiling C++"
 ec_cl_friend_injection_option_only_in_cplusplus;;"option \"friend_injection\" can be used only when compiling C++"
+ec_invalid_name_after_template;;"name following \"template\" must be a member template"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
