@@ -25,47 +25,6 @@ lower_il.h -- Declarations related to lower_il.c (having to do with
 #include "il.h"
 #endif /* ifndef IL_DEF_H */
 
-/*
-This switch controls whether or not types and static variables that are local
-to function and block scopes are moved onto the file scope lists.  Such
-entities are allocated in the file scope memory region, but they are
-normally linked on the local scope types or variables list.  That accurately
-reflects the source form, which is desirable for generating symbolic
-debug information.  That form probably works fine when the IL is being
-fed into a true back end, but will not work when the IL is being turned
-into C output (as with the C-generating back end), because the local
-types and variables will not be visible from member functions of local
-classes and in the file-scope termination routine when it deals with
-calling destructors for local static variables.  When the switch here
-is TRUE, the local types and variables will be (selectively) promoted
-to the actual file scope.
-*/
-#define PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE BACK_END_IS_C_GEN_BE
-
-/*
-This switch controls whether or not all functions and function calls will
-be turned into old-style unprototyped form.  This is what cfront effectively
-does, in generating old-style C that is compiled by a C compiler.
-This change is important if one wants to be able to call libraries that
-were compiled by cfront.  (cfront's +a1 option requests generation of ANSI C
-code; if one wants compatibility with cfront in that mode, this option
-should be set to FALSE.)
-*/
-#define MAKE_ALL_FUNCTIONS_UNPROTOTYPED CFRONT_OBJECT_CODE_COMPATIBILITY
-
-
-/*
-Integer kind to use for an offset into a class.  Its size must match
-TARG_SIZEOF_PTR_TO_DATA_MEMBER.
-*/
-#define TARG_DELTA_INT_KIND ((an_integer_kind)ik_short)
-
-/*
-Integer kind to use for an index into a virtual function table.  Must be
-no smaller than the size of a_virtual_function_number.
-*/
-#define TARG_VIRTUAL_FUNCTION_INDEX_INT_KIND ((an_integer_kind)ik_short)
-
 
 /*
 Access the il_lowering_flag in an IL entry.
