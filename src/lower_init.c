@@ -558,6 +558,7 @@ block.
   a_scope_ptr            scope;
   a_memory_region_number region_to_switch_back_to = curr_il_region_number;
   a_statement_ptr        block_stmt;
+  a_type_ptr             rout_type;
 
   /* Make a new memory region and scope. */
   scope = new_il_region((a_scope_kind)sck_function, next_scope_number++,
@@ -565,7 +566,8 @@ block.
   *il_region = curr_il_region_number;
   /* Link the routine to the scope.  new_il_region did the link in the
      other direction. */
-  rout_ptr->type->variant.routine.extra_info->assoc_routine = rout_ptr;
+  rout_type = skip_typerefs(rout_ptr->type);
+  rout_type->variant.routine.extra_info->assoc_routine = rout_ptr;
   rout_ptr->assoc_scope = curr_il_region_number;
   /* Make the top-level block statement. */
   scope->assoc_block = block_stmt =
@@ -3041,6 +3043,7 @@ do_assignment:;
       /* Cast the entity node pointer to the right type to eliminate
          qualifier and type-as-subobject differences. */
       ctor_routine_type = dip->variant.constructor.ptr->type;
+      ctor_routine_type = skip_typerefs(ctor_routine_type);
       this_param_type = implicit_this_param_type_of(ctor_routine_type);
       entity_node = add_cast_if_necessary(entity_node,
                                           f_skip_typerefs(this_param_type));
