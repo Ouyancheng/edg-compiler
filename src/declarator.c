@@ -2278,6 +2278,7 @@ expression can be a multiple of the special UPC THREADS constant.
           if (!threads_dimension_allowed) {
             error(ec_expr_not_constant);
             err = TRUE;
+            break;
           }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
         case ck_integer:
