@@ -3411,8 +3411,7 @@ of the function, and again overloading is a possibility.
     /* Create a dummy symbol to return when there's been an error.  This is
        required for further processing, in case there's a definition of the
        the routine body. */
-    sym = enter_symbol((a_symbol_kind)sk_routine, locator,
-                       /*at_file_scope=*/FALSE,
+    sym = enter_symbol((a_symbol_kind)sk_routine, locator, DEPTH_OF_FILE_SCOPE,
                        /*suppress_redecl_error=*/FALSE);
     sym->variant.routine.ptr =
                        make_routine(function_type, (a_storage_class)sc_static,
