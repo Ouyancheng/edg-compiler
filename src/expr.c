@@ -7661,7 +7661,9 @@ normal_function:
           if (curr_expr_kind_is(ek_integral_constant)) {
             /* Not allowed in integral constant expressions. */
             error_and_make_error_operand(ec_expr_not_constant, result);
-          } else if (sym_ptr->variant.field.anonymous_parent_object != NULL) {
+          } else if (sym_ptr->variant.field.anonymous_parent_object != NULL &&
+                     sym_ptr->variant.field.anonymous_parent_object->kind ==
+                                                  (a_symbol_kind)sk_variable) {
             /* This field is a member of a top-level anonymous union. */
             /* If we're inside a local class, we are not allowed to reference
                non-static variables of the containing function.  If we're
