@@ -40,7 +40,7 @@ predicates.
 /* Incomplete types are types that have no size and are neither functions
    nor references. */
 #define is_incomplete(tp) \
-  (!is_function(tp) && !is_reference(tp) && (tp)->size == 0)
+  ((tp)->size == 0 && !is_function(tp) && !is_reference_ptr(tp))
 
 /* The void type is simply the void type. */
 #define is_void(tp) ((tp)->kind == (a_type_kind)tk_void)
@@ -70,8 +70,8 @@ predicates.
                         !(tp)->variant.pointer.is_reference)
 
 /* The reference type is simply the reference type. */
-#define is_reference(tp) ((tp)->kind == (a_type_kind)tk_pointer &&    \
-                          (tp)->variant.pointer.is_reference)
+#define is_reference_ptr(tp) ((tp)->kind == (a_type_kind)tk_pointer &&\
+                              (tp)->variant.pointer.is_reference)
 
 /* Scalar types are the arithmetic types plus the pointer types. */
 #define is_scalar(tp) (is_arithmetic(tp) || is_pointer(tp))
@@ -288,7 +288,7 @@ Return TRUE if the given type is a reference type.
 */
 {
   tp = skip_typerefs(tp);
-  return(is_reference(tp));
+  return(is_reference_ptr(tp));
 }  /* is_reference_type */
 
 
@@ -418,11 +418,13 @@ to an array of abstract class objects.
     switch (tp->kind) {
       case tk_pointer:
         tp = type_pointed_to(tp);
+#if 0
         if (tp->variant.pointer.is_reference) {
           /* Check for NULL pointer in situation where type is being
              constructed but is not yet complete. */
           if (tp == NULL) goto done;
         }  /* if */
+#endif
         array_type_required = TRUE;
         break;
       case tk_array:
