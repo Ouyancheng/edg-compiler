@@ -529,7 +529,7 @@ definition of the routine is needed, and not just the declaration.
 */
 {
 #if ONE_INSTANTIATION_PER_OBJECT
-  if (one_instantiation_per_object) {
+  if (one_instantiation_per_object && !in_secondary_trans_unit(rout)) {
     if (!treat_as_static_inline(rout)) {
       if (needed_flag_bit_number != 0) {
       /* If we reach this spot while doing a walk for a particular
@@ -979,7 +979,8 @@ references.
     mark_to_keep_in_il(entry_ptr, entry_kind);
   }  /* if */
 #if ONE_INSTANTIATION_PER_OBJECT
-  if (one_instantiation_per_object && needed_flag_bit_number == 0) {
+  if (one_instantiation_per_object && needed_flag_bit_number == 0 &&
+      !in_secondary_trans_unit(entry_ptr)) {
     /* Determine a separate set of "needed" flags for each instantiation,
        so each can be put out in a separate object file.  If this is
        an externally-defined routine or variable, do the processing. */

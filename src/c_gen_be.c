@@ -7241,9 +7241,7 @@ if this routine has a body (dump nothing if it has no body).
 #if DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES
       !rout->source_corresp.duplicate_static_in_instantiation_slices &&
 #endif /* DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES */
-      (!rout->is_inline ||
-       (instantiate_extern_inline &&
-        rout->storage_class != (a_storage_class)sc_static))) {
+      !treat_as_static_inline(rout)) {
     /* We're generating separate files for each instantiation, so do not
        put instantiation definitions into the primary output file, or
        primary-file routine definitions into the instantiation files.
