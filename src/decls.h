@@ -173,13 +173,6 @@ extern a_boolean reconcile_external_symbol_types(
                             a_type_ptr            type_ptr,
                             a_boolean             suppress_incompatible_error);
 
-extern a_symbol_ptr scan_tag_name(a_symbol_kind     tag_kind,
-                                  a_symbol_locator  *locator,
-                                  a_boolean         check_for_vacuous_decl,
-                                  a_boolean         is_ref_within_new_expr,
-                                  a_scope_depth     *effective_decl_level,
-                                  a_boolean         *tag_resolution);
-
 extern a_variable_ptr make_variable(a_type_ptr      type_ptr,
                                     a_storage_class storage_class,
                                     a_boolean       at_file_scope);
