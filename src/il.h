@@ -411,6 +411,8 @@ extern a_statement_ptr alloc_statement(a_statement_kind stmt_kind);
 
 extern a_constructor_init_ptr alloc_ctor_init(a_constructor_init_kind  kind);
 
+extern a_hidden_name_ptr alloc_hidden_name(void);
+
 extern a_pragma_ptr alloc_pragma(a_pragma_kind  kind);
 
 extern void add_to_pragma_list(a_pragma_ptr   pragma,
