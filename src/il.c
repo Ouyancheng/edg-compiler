@@ -5351,14 +5351,36 @@ Make a copy of an expression tree and return a pointer to it.
       break;
     case enk_object_lifetime:
       /* For an object lifetime, create a new object lifetime for the copy. */
-      push_object_lifetime(iek_none, (char *)NULL,
-                           expr->variant.object_lifetime.ptr->kind);
-      expr_copy->variant.object_lifetime.expr =
+#if MINIMAL_INLINING
+      { a_boolean need_to_pop_function_lifetime = FALSE;
+        if (currently_doing_inlining_of_function_call) {
+          /* When doing inlining, we might be expanding a function that has
+             object lifetimes into a function that has none.  If so, we need
+             to add an object lifetime to the current function. */
+          if (!in_file_scope(expr_copy)) {
+            check_assertion(innermost_function_scope != NULL);
+            if (innermost_function_scope->lifetime == NULL) {
+              /* Add an object lifetime for the function. */
+              push_object_lifetime(iek_scope,
+                                   (char *)innermost_function_scope,
+                                   (an_object_lifetime_kind)olk_block);
+              need_to_pop_function_lifetime = TRUE;
+            }  /* if */
+          }  /* if */
+        }  /* if */
+#endif /* MINIMAL_INLINING */
+        push_object_lifetime(iek_none, (char *)NULL,
+                             expr->variant.object_lifetime.ptr->kind);
+        expr_copy->variant.object_lifetime.expr =
                             copy_expr_tree(expr->variant.object_lifetime.expr);
-      expr_copy->variant.object_lifetime.ptr = NULL;
-      bind_object_lifetime(curr_object_lifetime, iek_expr_node,
-                           (char *)expr_copy);
-      (void)pop_object_lifetime();
+        expr_copy->variant.object_lifetime.ptr = NULL;
+        bind_object_lifetime(curr_object_lifetime, iek_expr_node,
+                             (char *)expr_copy);
+        (void)pop_object_lifetime();
+#if MINIMAL_INLINING
+        if (need_to_pop_function_lifetime) pop_object_lifetime();
+      }
+#endif /* MINIMAL_INLINING */
       break;
     case enk_typeid:
       /* If the expr field is non-NULL, copy it. */
