@@ -1,5 +1,18 @@
 Version 2.43
 
+12/7/99  Microsoft compatibility: template class names are not injected
+
+In Microsoft mode, the name of a template class is not injected into
+its own scope.
+
+  namespace N {
+    template <class T> struct A { };
+  }
+  typedef int A;
+  struct B : public N::A<int> {
+    A *p;  // Finds global A
+  };
+
 12/7/99  Offset to base of object in virtual function table when
          construction vtbls are used
 

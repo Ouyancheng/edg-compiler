@@ -8559,10 +8559,12 @@ a routine to lookup the appropriate instance (or generate one if needed).
          not enabled, the current instance will be used except when the
          template was named with a qualified name. */
       if (class_is_being_instantiated &&
-          !class_name_injection_enabled &&
+          (!class_name_injection_enabled || microsoft_mode) &&
           !locator_for_curr_id.is_qualified_name) {
         /* We have the symbol for the current instantiation of the
-           class template. */
+           class template.  This is done in Microsoft mode even when class
+           name injection is enabled because template names are not injected
+           in Microsoft mode. */
         new_sym = current_instantiation_sym;
         goto normal_exit;
       } else {
