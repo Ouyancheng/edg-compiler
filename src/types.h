@@ -387,6 +387,13 @@ Bit flags for calls of f_types_are_compatible et al.
 			/* The conversion appears in the context of an
 			   implicit conversion, which (in C++) may affect how
 			   how routine linkage compatibility is determined. */
+#define TCF_DONT_IGNORE_PARAM_TYPE_QUALIFIERS 0x20
+			/* Parameter types should be regarded as incompatible
+			   when their top-level type qualifiers differ, even
+			   when remove_qualifiers_from_param_types is TRUE.
+			   This flag is used in Microsoft-bugs mode only,
+			   to deal with a bug in checking for overriding
+			   virtual functions. */
 
 #define TCF_NO_FLAGS 0x0
 typedef int a_type_compat_flags_set;

@@ -2075,6 +2075,7 @@ routine entry and return TRUE; otherwise return FALSE.
   a_virtual_function_number       virtual_function_number = 0;
   a_boolean                       any_override_candidates = FALSE;
   an_override_registry_entry_ptr  *registry_ptr;
+  a_base_class_ptr                return_adjustment_bcp;
 
   db_enter(4, "check_for_virtual_function");
   check_assertion(rout_sym->kind == (a_symbol_kind)sk_member_function);
@@ -2157,110 +2158,125 @@ routine entry and return TRUE; otherwise return FALSE.
              for loop because we can be sure of the initial conditions on the
              first iteration. */
           any_override_candidates = FALSE;
-          do {
-            if (sym->kind == (a_symbol_kind)sk_member_function) {
-              rp = sym->variant.routine.ptr;
-              if (rp->is_virtual) any_override_candidates = TRUE;
-              /* We are only interested in virtual functions with the same
-                 type signature.  See first whether the parameter types are
-                 compatible and whether the implicit "this" param types are
-                 consistent (either both must be absent or both must be
-                 present and qualified identically). */
-              if (rp->is_virtual &&
-                  param_types_are_compatible(rout->type, rp->type,
-                                             TCF_NO_FLAGS)) {
-                /* If rp is virtual, it must be non-static and therefore must
-                   have a this parameter. */
-                check_assertion(skip_typerefs(rp->type)->
-                                             variant.routine.extra_info->
-                                             implicit_this_param_type != NULL);
-                /* Be sure the new routine also has a this parameter.  If not,
-                   it must be static. */
-                if (skip_typerefs(rout->type)->variant.routine.extra_info->
-                                            implicit_this_param_type == NULL) {
-                  /* A static member function "redeclares" a virtual nonstatic
-                     member function from a base class. */
-                  pos_error(ec_virtual_static_not_allowed, source_pos);
-                  goto done;                                       
-                } else if (!this_param_types_correspond(
-                                             rout->type, rp->type,
+          for (; sym != NULL; sym = overloaded ? sym->next : NULL) {
+            if (sym->kind != (a_symbol_kind)sk_member_function) {
+              /* An overload set could include other symbol kinds, but only
+                 sk_member_functions are checked. */
+              continue;
+            }  /* if */
+            rp = sym->variant.routine.ptr;
+            if (!rp->is_virtual) {
+              /* sym does not represent a virtual function, so (if this is
+                 an overload set) keep looking. */
+              continue;
+            }  /* if */
+            any_override_candidates = TRUE;
+            /* We are only interested in virtual functions with the same
+               type signature.  Check first whether the parameter types are
+               compatible. */
+            if (!param_types_are_compatible(rout->type, rp->type,
+                                            TCF_NO_FLAGS)) {
+              /* Parameter type mismatch. Keep looking for another match in
+                 the current overload set. */
+              continue;
+            }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            if (microsoft_bugs && remove_qualifiers_from_param_types) {
+              /* For the Microsoft compiler the functions may still not
+                 match if the top-level type qualifiers on the parameters
+                 (yes, the ones that have been stripped off) do not match. */
+              if (!param_types_are_compatible(rout->type, rp->type,
+                                     TCF_DONT_IGNORE_PARAM_TYPE_QUALIFIERS)) {
+                /* Keep looking for another match in the current overload
+                   set. */
+                continue;
+              }  /* if */
+            }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+            /* If rp is virtual, it must be non-static and therefore must
+               have a this parameter. */
+            check_assertion(skip_typerefs(rp->type)->variant.routine.
+                              extra_info->implicit_this_param_type != NULL);
+            /* Be sure the new routine also has a this parameter.  If not,
+               it must be static. */
+            if (skip_typerefs(rout->type)->variant.routine.extra_info->
+                                          implicit_this_param_type == NULL) {
+              /* A static member function "redeclares" a virtual nonstatic
+                 member function from a base class. */
+              pos_error(ec_virtual_static_not_allowed, source_pos);
+              goto done;
+            }  /* if */
+            /* Check whether the implicit "this" param types are
+               consistent -- they must be qualified identically). */
+            if (!this_param_types_correspond(rout->type, rp->type,
                                              /*check_as_conversion=*/FALSE,
                                              /*check_as_operands=*/FALSE)) {
-                  /* Both rp and rout have this parameters, but their types do
-                     not correspond.  Keep looking for a match. */
-                } else {
-                  /* The this parameter types correspond; now compare the
-                     return types. */
-                  a_base_class_ptr  return_adjustment_bcp;
-
-                  if (return_types_are_override_compatible(
-                                                    rout->type, rp->type,
-                                                    &return_adjustment_bcp)) {
-                    /* Match */
-                    is_virtual = TRUE;
-                    if (exception_spec_is_less_restrictive(rout->type,
-                                                           rp->type)) {
-                      /* The exception specification for the overriding
-                         virtual function is less restrictive that that of
-                         the overridden function. */
-                      if (rout->compiler_generated) {
-                        /* Issue a warning on a compiler-generated constructor
-                           or assignment operator. */
-                        pos_sy2_warning(
-                              ec_generated_exception_spec_override_incompat,
-                              source_pos, rout_sym, sym);
-                      } else {
-                        pos_sy2_diagnostic(es_discretionary_error,
-                                           ec_exception_spec_override_incompat,
-                                           source_pos, rout_sym, sym);
-                      }  /* if */
-                    }  /* if */
-                    /* Record the virtual function override in the base class
-                       entry.  It can be used later, e.g., for building a
-                       virtual function table. */
-                    record_virtual_function_override(bcp, rp, rout,
-                                                     return_adjustment_bcp);
-                    if (return_adjustment_bcp != NULL) {
-                      /* The overriding function has a covariant return type.
-                         Set a flag, since some extra processing may be needed
-                         later. */
-                      rout->covariant_return_virtual_override = TRUE;
-                    } else if (shares_virtual_function_info(class_type, bcp)) {
-                      /* The virtual function table is being shared and there
-                         is no base-class adjustment on the return type, so we
-                         can use the same virtual function number. */
-                      virtual_function_number = rp->virtual_function_number;
-                    }  /* if */
-                    /* If this declaration amounts to an override of a member
-                       of an overload set, record some information about it
-                       in the partial-override-registry.  This allows for a
-                       diagnostic later if the rest of the members are not
-                       also overridden. */
-                    if (!rout->compiler_generated) {
-                      update_override_registry(registry_ptr,
-                                               sym_for_override_registry,
-                                               (a_symbol_ptr)NULL, bcp);
-                    }  /* if */
-                  } else {
-                    /* Error -- return type must be identical to or covariant
-                       with that of the overridden function. */
-                    an_error_code  error_code =
+              /* Both rp and rout have this parameters, but their types do
+                 not correspond.  Keep looking for a match. */
+              continue;
+            }  /* if */
+            /* The parameter types correspond; now compare the return types. */
+            if (!return_types_are_override_compatible(rout->type, rp->type,
+                                                     &return_adjustment_bcp)) {
+              /* Error -- return type must be identical to or covariant
+                 with that of the overridden function. */
+              an_error_code  error_code =
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
                         ec_bad_return_type_on_virtual_function_override;
 #else /* !ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
                         ec_different_return_type_on_virtual_function_override;
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
-                    pos_syty_error(error_code, source_pos, sym,
-                                   skip_typerefs(rp->type)->
+              pos_syty_error(error_code, source_pos, sym,
+                             skip_typerefs(rp->type)->
                                              variant.routine.return_type);
-                  }  /* if */
-                  goto next_base_class;                                       
-                }  /* if */
+              /* Since, except for the return types, there is a match, there
+                 is no need to look any further in the current base class.
+                 Advance to the next base class. */
+              goto next_base_class;                                       
+            }  /* if */
+            /* Match */
+            is_virtual = TRUE;
+            if (exception_spec_is_less_restrictive(rout->type, rp->type)) {
+              /* The exception specification for the overriding virtual
+                 function is less restrictive that that of the overridden
+                 function. */
+              if (rout->compiler_generated) {
+                /* Issue a warning on a compiler-generated constructor
+                   or assignment operator. */
+                pos_sy2_warning(ec_generated_exception_spec_override_incompat,
+                                source_pos, rout_sym, sym);
+              } else {
+                pos_sy2_diagnostic(es_discretionary_error,
+                                   ec_exception_spec_override_incompat,
+                                   source_pos, rout_sym, sym);
               }  /* if */
             }  /* if */
-            if (!overloaded) break;
-            sym = sym->next;
-          } while (sym != NULL);
+            /* Record the virtual function override in the base class entry.
+               It can be used later, e.g., for building a virtual function
+               table. */
+            record_virtual_function_override(bcp, rp, rout,
+                                             return_adjustment_bcp);
+            if (return_adjustment_bcp != NULL) {
+              /* The overriding function has a covariant return type.
+                 Set a flag, since some extra processing may be needed
+                 later. */
+              rout->covariant_return_virtual_override = TRUE;
+            } else if (shares_virtual_function_info(class_type, bcp)) {
+              /* The virtual function table is being shared and there
+                 is no base-class adjustment on the return type, so we
+                 can use the same virtual function number. */
+              virtual_function_number = rp->virtual_function_number;
+            }  /* if */
+            /* If this declaration amounts to an override of a member of an
+               overload set, record some information about it in the
+               partial-override-registry.  This allows for a diagnostic later
+               if the rest of the members are not also overridden. */
+            if (!rout->compiler_generated) {
+              update_override_registry(registry_ptr, sym_for_override_registry,
+                                       (a_symbol_ptr)NULL, bcp);
+            }  /* if */
+            goto next_base_class;                                       
+          }  /* for */
           if (any_override_candidates && !rout->compiler_generated) {
             check_assertion(sym_for_override_registry != NULL);
             update_override_registry(registry_ptr, sym_for_override_registry,

@@ -1966,9 +1966,13 @@ typedef struct a_param_type {
 			   context in which a template argument value can
 			   be deduced. */
   a_bit_field	qualifiers:NUM_BITS_FOR_TYPE_QUALIFIER_SET;
-			/* Top-level type qualifiers on the parameter type
-			   on the definition of the function.  Not updated
-			   for declarations. */
+			/* Top-level type qualifiers that have been removed
+			   from the parameter type; always DM_NONE except in
+			   C++ mode when remove_qualifiers_from_param_types
+			   is TRUE.  If the routine type to which this
+			   param-type entry belongs is associated with a
+			   defined function, then this field reflects how
+			   the function was defined. */
   bitfield_to_avoid_codecenter_warnings()
   an_expr_node_ptr
 		default_arg_expr;

@@ -656,13 +656,14 @@ a new symbol is created and entered in the symbol table.
     }  /* if */
 #endif /* DEBUG */
   }  /* if */
+#if CHECKING
   if (remove_qualifiers_from_param_types) {
-    /* A top-level type qualifier may have been stripped off.  Record the
-       type qualification in the param type entry, based on the parameter
-       variable's type qualifier. */
-    check_assertion(!C_mode());
-    ptp->qualifiers = get_type_qualifiers(param_id->type);
+    /* A top-level type qualifier may have been stripped off.  The type
+       qualifier has been recorded in the param type entry; make sure it
+       corresponds to the parameter variable's type qualifier. */
+    check_assertion(ptp->qualifiers == get_type_qualifiers(param_id->type));
   }  /* if */
+#endif /* CHECKING */
   db_exit();
 }  /* decl_parameter */
 

@@ -1234,6 +1234,12 @@ issue an error if a default argument expression is encountered.
           ptp->name = param_locator.symbol_header->identifier;
         }  /* if */
 #endif /* RECORD_NAME_IN_PARAM_TYPE_ENTRY */
+        if (remove_qualifiers_from_param_types) {
+          /* Record the top-level type qualifiers that were declared for this
+             parameter and then removed. */
+          check_assertion(!C_mode());
+          ptp->qualifiers = get_type_qualifiers(last_param_id->type);
+        }  /* if */
         if (last_param_type == NULL) {
           extra_info->param_type_list = ptp;
         } else {

@@ -2410,6 +2410,17 @@ not compared.  flags is a set of bit flags that modify the comparison.
     /* Compare the types of the parameters on the two lists. */
     for (; list1 != NULL && list2 != NULL;
          list1 = list1->next, list2 = list2->next) {
+      if (flags & TCF_DONT_IGNORE_PARAM_TYPE_QUALIFIERS) {
+        /* Even though the top-level qualifiers have been removed from the
+           parameter types, report an incompatibility if they differ. */
+        /* This is an issue in Microsoft bugs mode: the type qualifiers are
+           stripped from the parameter types as far as overloading is
+           concerned, yet they still affect virtual function overriding. */
+        if (list1->qualifiers != list2->qualifiers) {
+          compatible = FALSE;
+          goto done;
+        }  /* if */
+      }  /* if */
       /* Compare the parameter types, with the second parameter type
          type promoted appropriately if it is old-style. */
       param_1_type = list1->type;
@@ -4762,16 +4773,9 @@ make_new_comp_type:
           new_ptp->passed_via_copy_constructor = TRUE;
         }  /* if */
         if (remove_qualifiers_from_param_types) {
-          if (ptp1->qualifiers != TQ_NONE) {
-            /* If the "qualifiers" carried around by the two param-type
-               entries are not identical, then one or the other should be
-               empty. */
-            check_assertion(ptp2 == NULL || ptp2->qualifiers == TQ_NONE ||
-                            ptp2->qualifiers == ptp1->qualifiers);
-            new_ptp->qualifiers = ptp1->qualifiers;
-          } else if (ptp2 != NULL) {
-            new_ptp->qualifiers = ptp2->qualifiers;
-          }  /* if */
+          /* Arbitrarily select the qualifiers from one of the types for
+             the composite. */
+          new_ptp->qualifiers = ptp1->qualifiers;
         }  /* if */
       }  /* if */
 #if RECORD_NAME_IN_PARAM_TYPE_ENTRY
