@@ -6408,9 +6408,11 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
         case stmk_goto:           s = "goto";     break;
         case stmk_label:          s = "label";    break;
         case stmk_return:         s = "return";   break;
+        case stmk_block:          s = "block";    break;
         case stmk_end_test_while: s = "do-while"; break;
         case stmk_for:            s = "for";      break;
         case stmk_switch:         s = "switch";   break;
+      /*case stmk_init:           Missing on purpose. */
         case stmk_asm:            s = "asm";      break;
         case stmk_try_block:      s = "try";      break;
         default:  s = "*** BAD STMT KIND ***"; break;
