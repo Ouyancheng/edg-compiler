@@ -1243,7 +1243,8 @@ new fields are set properly.
     check_assertion(class_type != NULL);
     /* Check the target type of the conversion -- which is the return type
        of rout_type. */
-    if (is_void_type(rout_type->variant.routine.return_type)) {
+    if (!cfront_compatibility_mode &&
+        is_void_type(rout_type->variant.routine.return_type)) {
       /* Conversion operators specifying conversion to void type are not
          allowed (Boston X3J16). */
       pos_ty2_error(ec_conversion_to_type_not_allowed,

@@ -3409,6 +3409,11 @@ special function kind (e.g., constructor, destructor), if any.
           (symbol_supplement_for_class(tp))->
                                    target_of_conversion_function = TRUE;
         }  /* if */
+      } else if (is_void_type(tp)) {
+        /* Except in cfront-compatibility mode, conversion to void type will
+           already have been checked for. */
+        check_assertion(cfront_compatibility_mode);
+        is_usable = FALSE;
       }  /* if */
       if (is_usable) {
         /* Create a conversion list entry.  This list provides an alternative
@@ -3420,8 +3425,9 @@ special function kind (e.g., constructor, destructor), if any.
            a base class or a reference to a base class "is never used" (WP
            12.3.2; that is, it is not used in implicit or explicit conversions
            but only in an explicit invocations of the function). */
-        pos_sy_warning(ec_conversion_function_not_usable,
-                       &locator->source_position, sym);
+        pos_sy_diagnostic(cfront_compatibility_mode ? es_remark : es_warning,
+                          ec_conversion_function_not_usable,
+                          &locator->source_position, sym);
       }  /* if */
     } else {
       rtn->special_kind = spec_kind;
