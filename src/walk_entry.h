@@ -1627,7 +1627,9 @@ the file scope, do not process it (but record an orphan in the latter case).
       {
         a_condition_supplement_ptr ptr = (a_condition_supplement_ptr)entry_ptr;
 
+#if !NEEDED_FLAG_WALK
         walk_ptr(ptr->scope, a_scope_ptr, iek_scope);
+#endif /* !NEEDED_FLAG_WALK */
         walk_ptr(ptr->dynamic_init, a_dynamic_init_ptr, iek_dynamic_init);
         walk_ptr(ptr->expr, an_expr_node_ptr, iek_expr_node);
       }
