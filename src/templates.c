@@ -2517,7 +2517,18 @@ A pointer to the head of the list is returned in tcsp.
                               /*delayed_nested_class_def=*/is_class_member,
                               /*is_template_instantiation=*/TRUE,
                               decl_state->il_template_entry,
-                              (a_decl_pos_block_ptr)NULL);
+                              &decl_state->decl_pos_block);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  if (prototype_type->source_corresp.decl_pos_info != NULL) {
+    /* Record extended position information for the template declaration. */
+    a_decl_pos_block_ptr            pos_src = &decl_state->decl_pos_block;
+    a_decl_position_supplement_ptr  pos_dst = prototype_type->
+                                                 source_corresp.decl_pos_info;
+    pos_dst->identifier_range = pos_src->identifier_range;
+    pos_dst->specifiers_range = pos_src->specifiers_range;
+    pos_dst->variant.declarator_range = pos_src->declarator_range;
+  }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   prototype_type->source_corresp.access = access_for_symbol(template_sym);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   prototype_type->autonomous_primary_tag_decl = TRUE;

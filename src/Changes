@@ -1,5 +1,13 @@
 Version 2.45
 
+9/12/00  Additional source position information for class template
+         prototype instantiations
+
+When EXTRA_SOURCE_POSITIONS_IN_IL is TRUE, prototype instantiations of class
+templates now carry the same kind of extra position information as ordinary
+class types do.  (Previously, the decl_pos_info field of prototype
+instantiations pointed to a block of null positions.)
+
 9/11/00  Abort on invalid friend declaration in a class template
 
 2.44 introduced a problem that could cause an abort on a friend declaration
