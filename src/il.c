@@ -3303,17 +3303,14 @@ a_base_class_derivation_ptr preferred_virtual_derivation_of(
 Return a pointer to the base class derivation entry associated with virtual
 base class bcp that is marked "preferred", namely, the one with the greatest
 accessibility of a public member in the context of the most derived class.
+Return NULL if none is found.
 */
 {
   a_base_class_derivation_ptr  bcdp = bcp->derivation;
 
-  while (!bcdp->preferred) {
-    bcdp = bcdp->next;
-    /* Assertion will fail if preferred flag has not yet been set. */
-    check_assertion(bcdp != NULL)
-  }  /* while */
+  while (!bcdp->preferred) bcdp = bcdp->next;
   return bcdp;
-}  /* preferred_derivation_of */
+}  /* preferred_virtual_derivation_of */
 
 
 a_base_class_derivation_ptr direct_virtual_derivation_of(
