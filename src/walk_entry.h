@@ -691,6 +691,7 @@ the file scope, do not process it (but record an orphan in the latter case).
            to call walk_routine_scope_il if it wants to. */
 #ifdef CFE
 #if NEEDED_FLAG_WALK
+#if GENERATE_SOURCE_SEQUENCE_LISTS
         /* When setting the "needed" flag, the befriending list is generally
            not significant.  However, if the function is defined in a friend
            declaration, the class in which it is defined gets marked as
@@ -700,6 +701,7 @@ the file scope, do not process it (but record an orphan in the latter case).
              list. */
           walk_ptr(ptr->befriending_classes->class_type, a_type_ptr, iek_type);
         }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #else /* !NEEDED_FLAG_WALK */
         walk_list(ptr->befriending_classes, a_class_list_entry_ptr,
                   iek_class_list_entry);
