@@ -5953,10 +5953,11 @@ This routine is only used in SVR4 C compatibility mode.
 
 
 static
-a_symbol_ptr find_svr4_out_of_scope_declaration(a_symbol_locator *locator)
+a_symbol_ptr find_out_of_scope_declaration(a_symbol_locator *locator)
 /*
-This routine is used in SVR4 C compatibility mode to make external symbol
-declarations from other scopes visible in the current scope.  For example
+This is an SVR4 compatibility feature that has is now a default ANSI C
+mode feature.  This routine is used to make external symbol declarations
+from other scopes visible in the current scope.  For example
 
 int f1(void)
 {
@@ -6004,7 +6005,7 @@ such pointer is found, NULL is returned.
     }  /* if */
   }  /* if */
   return sym;
-}  /* find_svr4_out_of_scope_declaration */
+}  /* find_out_of_scope_declaration */
 
 
 a_symbol_ptr normal_id_lookup(a_symbol_locator         *locator,
@@ -6352,13 +6353,15 @@ next_scope:
       sym = add_member_to_proxy_or_nonreal_class(class_with_nonreal_base,
 						 options, locator);
     }  /* if */
-    if (sym == NULL && SVR4_C_mode &&
+    if (sym == NULL && C_dialect == C_dialect_ANSI && !strict_ansi_mode &&
         (options & IDL_TENTATIVE_TYPE_LOOKUP) == 0) {
-      /* In SVR4 C compatibility mode, a symbol declared as a block extern in
-         a block that is no longer in scope may be referenced later.  Look
-         for an external variable or routine that matches the name being
-         looked up.  This is not done during tentative type lookups. */
-      sym = find_svr4_out_of_scope_declaration(locator);
+      /* This is a feature taken from SVR4 compatibility mode that has been
+         expanded to be used in default ANSI C mode. A symbol declared as
+	 a block extern in a block that is no longer in scope may be
+	 referenced later.  Look for an external variable or routine that
+	 matches the name being looked up.  This is not done during
+	 tentative type lookups. */
+      sym = find_out_of_scope_declaration(locator);
     }  /* if */
 end_lookup:
 #if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG

@@ -233,6 +233,15 @@ layer additional functionality on top of it.  For instance, macros
 routine_linkages_are_compatible and routine_linkages_are_identical in
 types.c might need to be customized.)
 
+2/24/95  Finding out of scope declarations in ANSI C mode
+
+In ANSI C mode, an extension has been added that permits use of
+declarations of file scope entities that were declared in a local
+scope that is no longer active.  This is disabled in strict mode.
+
+void f1(void) { extern void f(); }
+void f2() { f(); /* Using out of scope declaration */ }
+
 2/24/95  SVR4 C compatibility mode
 
 An option has been added to provide additional compatibility with the
