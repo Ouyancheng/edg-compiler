@@ -1199,6 +1199,12 @@ might not be able to if the template itself has not yet been defined.
 	   when a partial specialization is used. */
         cssp->class_template = template_sym;
       }  /* if */
+      /* Update the type_kind of the instance with the type_kind from the
+         template.  Ordinarily, this will have already been done when the
+         partial instantiation was done.  But, for partial specializations
+         the type kind of the partial specialization may be different than
+         that of the primary template. */
+      class_type->kind = tssp->variant.class_template.type_kind;
 #if DEBUG
       if (debug_level >= 3 || db_flag_is_set("instantiations")) {
         fprintf(f_debug, "Beginning full instantiation of: ");
@@ -1587,6 +1593,12 @@ A pointer to the head of the list is returned in tcsp.
     db_symbol(template_sym, "prototype instantiation of: ", 2);
   }  /* if */
 #endif /* DEBUG */
+  /* Update the type_kind of the instance with the type_kind from the
+     template.  Ordinarily, this will have already been done when the
+     partial instantiation was done.  But, for partial specializations
+     the type kind of the partial specialization may be different than
+     that of the primary template. */
+  prototype_type->kind = tssp->variant.class_template.type_kind;
   template_arg_list = templ_arg_list_for_class(prototype_type);
   cssp->instantiation_in_progress = TRUE;
   /* Record the namespace that is the "referencing context" namespace for

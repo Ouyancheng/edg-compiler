@@ -1,5 +1,18 @@
 Version 2.35
 
+1/7/97   Spurious access errors in template class instantiations
+
+If a primary class template was declared using the class keyword and a partial
+specialization was declared using the struct keyword, the members of the
+partial specialization were incorrectly considered to be private.  This
+has been fixed.
+
+  template <class T> class A;
+  template <class T> struct A<T*> {
+    A();
+  };
+  A<int*> a;
+
 1/6/97   Microsoft compatibility: __asm blocks in template member functions
 
 A bug has been fixed that caused a spurious error to be issued when a
