@@ -3511,8 +3511,8 @@ process_class_specifier:
               !(decl_specifiers_seen & ~(DS_VIRTUAL | DS_STORAGE_CLASS |
                                          DS_EXPLICIT | DS_INLINE |
                                          DS_DECLSPEC | DS_MICROSOFT_INLINE)) &&
-              (*storage_class == sc_unspecified ||
-               *storage_class == sc_static)) {
+              (*storage_class == (a_storage_class)sc_unspecified ||
+               *storage_class == (a_storage_class)sc_static)) {
             a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
             a_type_ptr               class_type;
 
