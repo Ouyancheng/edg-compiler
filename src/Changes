@@ -344,7 +344,6 @@ been fixed.  [Patch sent out 1/23/01.]
     (char []){1 , .* , 2} = 0;
   }
 
-
 1/10/01  Use if __VA_ARGS__diagnosed in nonvariadic macros
 
 The front end used to accept the use (as a normal identifier) of __VA_ARGS__
@@ -492,7 +491,7 @@ This has been fixed.  [Patch sent out 1/23/01.]
     struct C : A<T> {
 	typedef X my_X;  // X should be B::X not A::X
     };
-};
+  };
 
 1/2/01   Spurious error on initialization of multilevel array field
 
