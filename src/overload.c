@@ -732,8 +732,8 @@ pointer transformation should be done.
   */
   if (is_pointer_type(base_param_type)) {
     base_param_type = type_pointed_to(base_param_type);
-    if (types_are_compatible(f_skip_typerefs(base_param_type),
-                             f_skip_typerefs(array_element_type(arg_type)))) {
+    if (types_are_compatible_ignoring_qualifiers(base_param_type,
+                                               array_element_type(arg_type))) {
       transform_needed = TRUE;
     }  /* if */
   }  /* if */
@@ -761,8 +761,7 @@ pointer transformation should be done.
   */
   if (is_pointer_type(base_param_type)) {
     base_param_type = type_pointed_to(base_param_type);
-    if (types_are_compatible(f_skip_typerefs(base_param_type),
-                             f_skip_typerefs(arg_type))) {
+    if (types_are_compatible_ignoring_qualifiers(base_param_type, arg_type)) {
       transform_needed = TRUE;
     }  /* if */
   }  /* if */
@@ -935,7 +934,10 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
      checking of type qualifiers. */
   if (!ref_type_qualifiers_dropped) {
     /* Check for an exact match.  This is case [1] in the ARM. */
-    if (types_are_compatible(unqual_arg_type, unqual_param_type)) {
+    /* The "_ignoring_qualifiers" version is called here to deal with
+       array types with qualifiers on the element type. */
+    if (types_are_compatible_ignoring_qualifiers(unqual_arg_type,
+                                                 unqual_param_type)) {
       /* There is an exact match, possibly involving trivial conversions. */
       arg_summary->match_level = aml_exact;
       if (ref_type_qualifiers_added) {
@@ -958,8 +960,8 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
     if (is_pointer_type(param_type) && is_pointer_type(arg_type)) {
       a_type_ptr arg_type_pointed_to = type_pointed_to(arg_type);
       a_type_ptr param_type_pointed_to = type_pointed_to(param_type);
-      if (types_are_compatible(skip_typerefs(arg_type_pointed_to),
-                               skip_typerefs(param_type_pointed_to))) {
+      if (types_are_compatible_ignoring_qualifiers(arg_type_pointed_to,
+                                                   param_type_pointed_to)) {
         /* The types pointed to are compatible.  See if the qualifiers
            are okay.  Note that the case where the qualifiers are the same
            need not be checked for, since it would have been handled
@@ -1693,8 +1695,8 @@ Compare two argument match summary entries and return
                different than the other on the basis of qualifiers. */
           } else {
             /* The qualifiers are different, so it's worth checking further. */
-            if (types_are_compatible(skip_typerefs(under_type1),
-                                     skip_typerefs(under_type2))) {
+            if (types_are_compatible_ignoring_qualifiers(under_type1,
+                                                         under_type2)) {
               /* The underlying types are the same, so it's possible than
                  one has a subset of the other's qualifiers. */
               if (!any_qualifier_missing(under_type1, under_type2)) {
@@ -3441,8 +3443,7 @@ is only used in C++ mode.
     }  /* if */
     if (dest_type != NULL) {
       /* We're looking for a specific type. */
-      if (types_are_compatible(skip_typerefs(dest_type),
-                               skip_typerefs(return_type))) {
+      if (types_are_compatible_ignoring_qualifiers(dest_type, return_type)) {
         /* This conversion function returns the type we want, ignoring
            type qualifiers.  That means we can use it.  It's easy to
            see that we can use it in the case where the type qualifiers
@@ -6076,7 +6077,6 @@ user-defined conversion part (if any) of any required conversion.
 {
   a_type_ptr base_dest_type, base_source_type;
   a_type_ptr unqual_dest_type, unqual_source_type;
-  a_type_ptr underlying_dest_type, underlying_source_type;
   a_boolean  type_is_correct_or_derived, err = FALSE, dropping_qualifiers;
   a_boolean  ref_to_const, temporary_used, warn = FALSE;
   an_operand orig_operand;
@@ -6095,47 +6095,17 @@ user-defined conversion part (if any) of any required conversion.
               and the reference points to the temporary.
     */
     base_dest_type = type_pointed_to(dest_type);
-    /* The "unqual" types are the unqualified versions of the base types. */
+    /* The "unqual" types are the unqualified versions of the base types,
+       except that array types can still be qualified down at the element
+       level. */
     unqual_source_type = skip_typerefs(base_source_type);
     unqual_dest_type = skip_typerefs(base_dest_type);
-    /* The "underlying" types are the same as the base types except in the
-       array case, where they are the underlying array element types. */
-    underlying_source_type = base_source_type;
-    underlying_dest_type = base_dest_type;
     /* See if the types are correct without conversion. */
     type_is_correct_or_derived = FALSE;
-    if (is_array_type(base_dest_type)) {
-      /* Initializing a reference to an array.  Special rules apply.
-         Specifically, one wants to be able to do
-           typedef float Mat[3];
-           Mat b;
-           const Mat &a = b;
-         which is complicated by the fact that the const type goes on the
-         array element type rather than the array type. */
-      /* Compare the array types step by step to get down to the underlying
-         type.  We need to go all the way on the dest type even if the
-         match fails because we need to know if the reference is to a
-         const type (which is determined from the underlying type). */
-      type_is_correct_or_derived = TRUE;  /* Assume for the moment. */
-      do {
-        /* Step through the source type only as long as things match up. */
-        if (type_is_correct_or_derived) {
-          /* Drop typedefs (there shouldn't be any typerefs). */
-          underlying_source_type = skip_typerefs(underlying_source_type);
-          underlying_dest_type = skip_typerefs(underlying_dest_type);
-          if (is_array_type(underlying_source_type) &&
-              identical_array_type_level(underlying_dest_type,
-                                         underlying_source_type)) {
-            underlying_source_type= array_element_type(underlying_source_type);
-          } else {
-            /* Mismatch. */
-            type_is_correct_or_derived = FALSE;
-          }  /* if */
-        }  /* if */
-        underlying_dest_type = array_element_type(underlying_dest_type);
-      } while (is_array_type(underlying_dest_type));
-    } else if (types_are_compatible(unqual_dest_type, unqual_source_type)) {
-      /* The type is correct. */
+    if (types_are_compatible_ignoring_qualifiers(unqual_dest_type,
+                                                 unqual_source_type)) {
+      /* The type is correct, ignoring (first-level) qualifiers.
+         Note that this handles qualified array cases. */
       type_is_correct_or_derived = TRUE;
     } else if (is_class_struct_union_type(unqual_dest_type) &&
                is_class_struct_union_type(unqual_source_type) &&
@@ -6156,12 +6126,12 @@ user-defined conversion part (if any) of any required conversion.
       type_is_correct_or_derived = TRUE;
     }  /* if */
     /* Determine whether or not the reference is to a const type. */
-    ref_to_const = is_const_qualified_type(underlying_dest_type);
+    ref_to_const = is_const_qualified_type(base_dest_type);
     /* The destination type must have no fewer type qualifiers than the source
        type to be usable without conversion (ARM 8.4.3). */
     dropping_qualifiers = type_is_correct_or_derived &&
-                          any_qualifier_missing(underlying_dest_type,
-                                                underlying_source_type);
+                          any_qualifier_missing(base_dest_type,
+                                                base_source_type);
     if (dropping_qualifiers) {
       /* There are fewer qualifiers on the destination than on the source,
          so the initialization would involve dropping qualifiers. */
