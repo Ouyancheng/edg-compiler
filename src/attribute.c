@@ -903,8 +903,7 @@ function returns the address of the last attribute.
             break;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
           default:
-            str_error(ec_arguments_required_for_attribute,
-                      attribute_name);
+            error(ec_exp_lparen);
             attribute_kind = (an_attribute_kind)ak_error;
             break;
         }  /* switch */
