@@ -16,11 +16,11 @@ const_ints.c -- Manipulation of target integer constants.
 /* Header files common to all files. */
 #include "fe_common.h"
 
-#if HDRSTOP_RECOGNIZED
+#ifdef PCH_PRAGMA_GUARD
 /* Mark the end of the sequence of headers subject to precompiled header
    processing. */
 #pragma hdrstop
-#endif /* HDRSTOP_RECOGNIZED */
+#endif /* ifdef PCH_PRAGMA_GUARD */
 
 
 /*
