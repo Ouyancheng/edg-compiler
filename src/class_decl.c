@@ -3968,7 +3968,15 @@ the first parameter is a reference type.  Set *accepts_const and
   }  /* if */
   if (is_class_struct_union_type(tp)) {
     if (skip_typerefs(tp) == sym->class_of_which_a_member ||
-        (any_cfront_mode() &&
+        (
+#if 0
+/* Strictly speaking, what is referred to in the header comment as a cfront
+   compatibility feature is not part of the current language. However, many
+   compilers support this use, and the ATT/USL iostream library depends on
+   it.  Until this is resolved one way or another, we should allow it in
+   default mode.  Eventually, we may want a diagnostic in strict mode. */
+         any_cfront_mode() &&
+#endif /* if 0 */
          find_base_class_of(sym->class_of_which_a_member, tp) != NULL)) {
       /* Found it. */
       found = TRUE;
