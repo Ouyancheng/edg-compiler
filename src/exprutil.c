@@ -805,6 +805,26 @@ major expression.
 }  /* pop_expr_stack */
 
 
+void rule_out_expr_kinds(a_ruled_out_expr_kind_set ruled_out_set,
+                         an_operand                *operand)
+/*
+Set flags in the operand "operand" indicating that the kinds of expressions
+indicated by the bit set ruled_out_set are ruled out, meaning that
+constructs have appeared in the expression that are not allowed to
+appear in the ruled-out kinds of expressions.  This is not an error;
+we're just keeping track so that we can ask later if the expression
+qualifies as, for example, an integral constant expression.
+*/
+{
+  if (ruled_out_set & ROEK_CONSTANT) {
+    /* If a constant expression is ruled out, an integral constant
+       expression is ruled out also. */
+    ruled_out_set |= ROEK_INTEGRAL_CONSTANT;
+  }  /* if */
+  operand->ruled_out_expr_kinds |= ruled_out_set;
+}  /* rule_out_expr_kinds */
+
+
 static a_boolean examine_expr_list_for_unordered_temp_inits(
                      an_expr_node_ptr                    expr_list,
                      a_boolean                           seq_point_after_first,
@@ -1291,6 +1311,7 @@ values.
 #if RECORD_FORM_OF_NAME_REFERENCE
   operand->name_reference_set = FALSE;
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
+  operand->ruled_out_expr_kinds = ROEK_NONE;
   operand->position = null_source_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   operand->end_position = null_source_position;
@@ -1644,6 +1665,7 @@ destroyed its source position, etc.  Restore such things from
                                    orig_operand->access_control_error_reported;
   operand->is_operand_of_address_of = orig_operand->is_operand_of_address_of;
   operand->is_using_decl_name = orig_operand->is_using_decl_name;
+  operand->ruled_out_expr_kinds = orig_operand->ruled_out_expr_kinds;
 }  /* restore_operand_details */
 
 
@@ -4506,7 +4528,7 @@ to a fixed-point operand).
       op != (an_expr_operator_kind)eok_question) {
     /* Fixed-point arithmetic does not promote the operands to a
        common type if the result has fixed-point type (as opposed
-       to floating-point type).  But the "?" Operator gets the usual
+       to floating-point type).  But the "?" operator gets the usual
        handling of converting the operands to the result type. */
     adjust_fixed_point_binary_operands(operand_1, operand_2, op);
   } else
@@ -6003,6 +6025,8 @@ if possible.  operator_position indicates the operator position.
     }  /* if */
   }  /* if */
   result->state = (an_operand_state)os_rvalue;
+  result->ruled_out_expr_kinds = (operand_1->ruled_out_expr_kinds |
+                                  operand_2->ruled_out_expr_kinds);
 }  /* do_binary_operation */
 
 
@@ -6397,6 +6421,7 @@ indicates the operator position.
       make_constant_operand(&result_constant, result);
     }  /* if */
   }  /* if */
+  result->ruled_out_expr_kinds = operand->ruled_out_expr_kinds;
 }  /* do_unary_operation */
 
 
@@ -6464,6 +6489,7 @@ be used (e.g., eok_negate, not eok_inegate).
     do_unary_operation(op, operand, result_type,
                        result, start_position);
   }  /* if */
+  result->ruled_out_expr_kinds = operand->ruled_out_expr_kinds;
 }  /* template_unary_operation */
 
 
@@ -6524,6 +6550,12 @@ expression case (a GNU C extension) is characterized by operand_2 being NULL.
     } else if ((operand_2 == NULL || is_constant_operand(operand_2)) &&
                is_constant_operand(operand_3)) {
       /* Fold if the second and third operands are constants. */
+      do_folding = TRUE;
+    } else if (((operand_2->ruled_out_expr_kinds |
+                 operand_3->ruled_out_expr_kinds) & ROEK_CONSTANT) == 0) {
+      /* Fold if all the operands have the form of a constant expression.
+         This deals with cases like 0 ? 1 : 1/0, in which the last operand
+         would not be in constant form because it couldn't be folded. */
       do_folding = TRUE;
     } else {
       /* Otherwise, we can fold at our discretion. */
@@ -6626,6 +6658,11 @@ expression case (a GNU C extension) is characterized by operand_2 being NULL.
       }  /* if */
     }  /* if */
   }  /* if */
+  result->ruled_out_expr_kinds = (operand_1->ruled_out_expr_kinds |
+                                  operand_3->ruled_out_expr_kinds);
+  if (operand_2 != NULL) {
+    result->ruled_out_expr_kinds |= operand_2->ruled_out_expr_kinds;
+  }  /* if */
 }  /* do_question_operation */
 
 
@@ -6715,6 +6752,8 @@ void add_reference_indirection(an_operand *result)
     restore_operand_details(result, &orig_result);
     result->ref_entries_list = NULL;
   }  /* if */
+  /* A reference indirection rules out a constant expression. */
+  rule_out_expr_kinds(ROEK_CONSTANT, result);
 }  /* add_reference_indirection */
 
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
@@ -9335,6 +9374,10 @@ not an lvalue, it is left alone.
        information on lvalue addresses. */
     operand->ref_entries_list = NULL;
     restore_operand_form_of_name_reference(operand, &orig_operand);
+    if (!constant_case) {
+      /* An lvalue-to-rvalue conversion rules out a constant expression. */
+      rule_out_expr_kinds(ROEK_CONSTANT, operand);
+    }  /* if */
   }  /* if */
 }  /* conv_lvalue_to_rvalue */
 
@@ -9868,6 +9911,7 @@ is a "get" if put_operand is NULL.
       }  /* if */
     }  /* if */
   }  /* if */
+  rule_out_expr_kinds(ROEK_CONSTANT, operand);
 }  /* rewrite_property_field_reference */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -10320,6 +10364,8 @@ If validate_only is TRUE, no conversions or normalizations are performed.
               /* Normal case (constant bool value is known at compile time). */
               make_integer_constant_operand(operand,
                        (a_host_large_integer)(!op_is_false_constant(operand)));
+              operand->ruled_out_expr_kinds =
+                                             orig_operand.ruled_out_expr_kinds;
               con->null_pointer_constant_ruled_out =
                  orig_operand.variant.constant.null_pointer_constant_ruled_out;
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL

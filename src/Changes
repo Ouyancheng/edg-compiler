@@ -1,5 +1,29 @@
 Version 3.5
 
+9/8/04  Warning eliminated on division by zero in unevaluated code
+
+A warning is no longer issued for a division by zero in a context
+like the following:
+
+  int main() {
+    0 && (14/0) ? 14/0 : 0;
+  }
+
+Note that the nesting of two short-circuiting operators and two
+divisions by zero was necessary to get the warning.  Simpler cases
+did not get a warning.  Also, configurations with
+ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS set to TRUE did
+not get the warning even on the complex cases.
+
+This was fixed by adding a rather large bit of functionality for
+such a small issue: the expression-processing routines now keep
+track, as they build up an expression, of whether the expression
+contains any operations that rule out an integral constant
+expression or a constant expression.  This is used in this
+case to force folding of constant expressions even when they
+don't look constant in the IL, as in the above, but it has
+potential utility for a number of other issues in the future.
+
 9/7/04  Microsoft compatibility: For-init scope
 
 MSVC++ 7.0 and earlier always use a nonstandard for-init scope.  I.e.,

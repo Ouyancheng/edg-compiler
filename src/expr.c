@@ -595,7 +595,7 @@ Syntax:
             result,
             &(operands_have_been_reversed ? &operand_2 : operand_1)->position,
             &end_position, &operator_position);
-
+  rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, result);
   db_exit();
 }  /* scan_subscript_operator */
 
@@ -1738,6 +1738,14 @@ Syntax:
 #endif /* GNU_EXTENSIONS_ALLOWED */
   set_operand_position(result, &start_position, &end_position,
                        &operator_position);
+  
+#if GNU_EXTENSIONS_ALLOWED
+  if (!call_folded_to_constant)
+#endif /* GNU_EXTENSIONS_ALLOWED */
+  {
+    /* A function call rules out a constant expression. */
+    rule_out_expr_kinds(ROEK_CONSTANT, result);
+  }  /* if */
   db_exit();
 }  /* scan_function_call */
                            
@@ -2836,6 +2844,9 @@ nonstatic_member_function:
         error_in_operand(ec_expr_not_constant, result);
       }  /* if */
     }  /* if */
+  } else {
+    /* A field selection rules out an integral constant expression. */
+    rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, result);
   }  /* if */
 
   db_exit();
@@ -2875,16 +2886,20 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
   operator_tok_seq_number = curr_token_sequence_number;
 
   if (curr_expr_kind_is(ek_pp)) {
-    /* Field selection not allowed in preprocessor expression. */
+    /* Operation not allowed in preprocessor expression. */
     pos_error(ec_bad_pp_operator, &operator_position);
     err = TRUE;
   } else if (curr_expr_kind_is(ek_integral_constant)) {
-    /* Field selection not allowed in integral constant expression. */
+    /* Operation not allowed in integral constant expression. */
     pos_error(ec_bad_integral_operator, &operator_position);
     err = TRUE;
   } else if (curr_expr_kind_is(ek_template_arg)) {
-    /* Field selection not allowed in a template argument expression. */
+    /* Operation not allowed in a template argument expression. */
     pos_error(ec_bad_templ_arg_expr_operator, &operator_position);
+    err = TRUE;
+  } else if (curr_expr_kind_is_const()) {
+    /* Operation not allowed in constant expressions. */
+    pos_error(ec_bad_constant_operator, &operator_position);
     err = TRUE;
   }  /* if */
 
@@ -3088,6 +3103,7 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
     set_operand_position(result, &operand_1->position,
                          &operand_2.end_position, &operator_position);
   }  /* if */
+  rule_out_expr_kinds(ROEK_CONSTANT, result);
   db_exit();
 }  /* scan_ptr_to_member_operator */
 
@@ -3433,6 +3449,7 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   set_operand_position(result, &operand->position, &end_position,
                        &operator_position);
+  rule_out_expr_kinds(ROEK_CONSTANT, result);
 
   db_exit();
 }  /* scan_postfix_incr_decr */
@@ -3686,6 +3703,7 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   set_operand_position(result, &start_position, &operand.end_position,
                        &start_position);
+  rule_out_expr_kinds(ROEK_CONSTANT, result);
 
   db_exit();
 }  /* scan_prefix_incr_decr */
@@ -3882,6 +3900,7 @@ operation is a pointer-to-member (see ARM 5.3).
 
   set_operand_position(result, &start_position, &end_position,
                        &start_position);
+  rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, result);
   db_exit();
 }  /* scan_ampersand_operator */
 
@@ -3948,6 +3967,7 @@ current token on entry.
 
   set_operand_position(result, &start_position, &end_pos_curr_token, 
 		       &start_position);
+  rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, result);
   db_exit();
 }  /* scan_address_of_label_expression */
 
@@ -4130,6 +4150,7 @@ See section 3.3.3.2 of the standard.
   /* set_operand_position is not used on purpose, because we want to keep
      the position that is in the underlying expression. */
   set_base_operand_position(result, &start_position, &operand.end_position);
+  rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, result);
 
   db_exit();
 }  /* scan_indirection_operator */
@@ -5306,6 +5327,7 @@ the given expression is true.
 
   set_operand_position(result, &start_position, &end_position,
                        &start_position);
+  rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, result);
   pop_expr_stack();
 
   db_exit();
@@ -5362,6 +5384,7 @@ This is allowed in both Microsoft C and C++ modes.
   result->is_microsoft_noop = TRUE;
   set_operand_position(result, &start_position, &end_position,
                        &start_position);
+  rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, result);
   pop_expr_stack();
 
   db_exit();
@@ -5511,6 +5534,7 @@ This is the C++ syntax.  C++ type-id is the same as C type-name.
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
                        &start_position);
+  rule_out_expr_kinds(ROEK_CONSTANT, result);
   db_exit();
 }  /* scan_typeid_operator */
 
@@ -5671,6 +5695,7 @@ When single_operand is TRUE, the <varargs.h> form is expected:
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
                        &start_position);
+  rule_out_expr_kinds(ROEK_CONSTANT, result);
   db_exit();
 }  /* scan_va_start_operator */
 
@@ -5768,6 +5793,7 @@ and type is the type of the argument to be extracted.
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
                        &start_position);
+  rule_out_expr_kinds(ROEK_CONSTANT, result);
   db_exit();
 }  /* scan_va_arg_operator */
 
@@ -5823,6 +5849,7 @@ where va_list_var is a variable declared with the builtin type va_list.
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
                        &start_position);
+  rule_out_expr_kinds(ROEK_CONSTANT, result);
   db_exit();
 }  /* scan_va_end_operator */
 
@@ -5892,6 +5919,7 @@ builtin type va_list.
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
                        &start_position);
+  rule_out_expr_kinds(ROEK_CONSTANT, result);
   db_exit();
 }  /* scan_va_copy_operator */
 
@@ -6123,6 +6151,7 @@ which case it's the token after __uuidof.
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
                        &start_position);
+  rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, result);
   db_exit();
 }  /* scan_uuidof_operator */
 
@@ -6443,6 +6472,7 @@ Syntax:
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
                        &start_position);
+  rule_out_expr_kinds(ROEK_CONSTANT, result);
   db_exit();
 }  /* scan_dynamic_cast_operator */
 
@@ -7468,6 +7498,7 @@ specification allow a variable-sized array as the top type.
   free_arg_match_summary_list(arg_match_list);
   set_operand_position(result, &start_position, &end_position,
                        &start_position);
+  rule_out_expr_kinds(ROEK_CONSTANT, result);
   db_exit();
 }  /* scan_new_operator */
 
@@ -7820,6 +7851,7 @@ As an anachronism, allow an expression inside the [ ].
 
   set_operand_position(result, &start_position, &operand.end_position,
                        &start_position);
+  rule_out_expr_kinds(ROEK_CONSTANT, result);
   db_exit();
 }  /* scan_delete_operator */
 
@@ -8043,14 +8075,16 @@ Lvalue-to-rvalue transformations are done on the operand if appropriate
                             type_cast_to,
                             node);
   make_expression_operand(node, type_cast_to, operand);
+  rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, operand);
 }  /* cast_operand_to_void */
 
 
 static a_boolean cast_is_valid_in_current_expression_kind(
-                                     an_operand               *operand,
-                                     a_type_ptr               dest_type,
-                                     a_local_expr_options_set local_options,
-                                     a_source_position        *type_position)
+                               an_operand                *operand,
+                               a_type_ptr                dest_type,
+                               a_local_expr_options_set  local_options,
+                               a_source_position         *type_position,
+                               a_ruled_out_expr_kind_set *ruled_out_expr_kinds)
 /*
 Return TRUE if a cast of operand to dest_type is valid in the current kind
 of expression.  local_options is the set of local expression options.
@@ -8059,139 +8093,205 @@ Note that this routine does not do all validity checking.  It only checks
 for certain restrictions that apply in certain kinds of expressions,
 but apply for all kinds of casts.  If the operand is supposed to undergo
 array --> pointer (etc.) transformations, they should have been done before
-this routine is called.
+this routine is called.  *ruled_out_expr_kinds is set to to the kinds of
+expressions that are ruled out by this cast (e.g., integral constant
+expressions allow only certain limited casts).
 */
 {
-  a_boolean  err = FALSE;
-  a_type_ptr source_type = operand->type;
+  a_boolean         err = FALSE;
+  a_type_ptr        source_type = operand->type;
+  a_boolean         valid_in_integral_const_expr;
+  a_boolean         valid_in_const_expr;
+  an_error_code     err_code;
+  an_error_severity err_severity = es_none;
+  a_boolean         use_type_position_in_diag = FALSE;
 
-  if (curr_expr_kind_is(ek_integral_constant)) {
-    /* Only casts from arithmetic to integral or enum types are permitted in
-       integral constant expressions. */
-    if (is_integral_or_enum_type(dest_type)) {
-      /* Okay, cast is to integral type. */
-      /* The cast should be from an arithmetic or enum type. */
-      if (is_arithmetic_or_enum_type(source_type)) {
-        /* Okay. */
-      } else if (is_pointer_type(source_type) &&
-                 is_constant_operand(operand) &&
-                 operand->variant.constant.kind ==
+  *ruled_out_expr_kinds = ROEK_NONE;
+  /* Determine whether this cast is allowed in an integral constant
+     expression.  This is done even if the current expression is not
+     an integral constant expression so that we can ask after the scan
+     whether an expression meets the requirements for an integral constant
+     expression. */
+  valid_in_integral_const_expr = FALSE;
+  use_type_position_in_diag = FALSE;
+  err_code = ec_no_error;
+  /* Only casts from arithmetic to integral or enum types are permitted in
+     integral constant expressions. */
+  if (is_integral_or_enum_type(dest_type)) {
+    /* Okay, cast is to integral type. */
+    /* The cast should be from an arithmetic or enum type. */
+    if (is_arithmetic_or_enum_type(source_type)) {
+      /* Okay. */
+      valid_in_integral_const_expr = TRUE;
+    } else if (is_pointer_type(source_type) &&
+               is_constant_operand(operand) &&
+               operand->variant.constant.kind ==
                                             (a_constant_repr_kind)ck_integer) {
-        /* As an extension, allow pointer --> int for pointer constants
-           that come from casting an integer constant to a pointer type,
-           as in (int)(char *)1. */
-        if (strict_ansi_mode) {
-          pos_diagnostic(strict_ansi_error_severity,
-                         enum_type_is_integral ?
-                           ec_expr_not_arithmetic :
-                           ec_expr_not_arithmetic_or_enum,
-                         &operand->position);
-          err = (strict_ansi_error_severity == es_error);
-        }  /* if */
-      } else if (is_template_param_type(source_type)) {
-        /* Casting from an unknown template parameter type is okay. */
-      } else {
-        /* The destination type is integral, but the source type is not
-           arithmetic. */
-        if (!is_error_type(source_type)) {
-          pos_error(enum_type_is_integral ?
-                      ec_expr_not_arithmetic : ec_expr_not_arithmetic_or_enum,
-                    &operand->position);
-        }  /* if */
-        err = TRUE;
-      }  /* if */
-    } else if ((local_options & (EOPT_OPERAND_OF_CAST |
-                                 EOPT_MICROSOFT_CASE_LABEL)) &&
-               is_pointer_type(dest_type) &&
-               (is_integral_or_enum_type(source_type) ||
-                is_template_param_type(source_type))) {
-      /* When the cast is the immediate operand of another cast, allow
-         integer --> pointer as an extension.  Also allowed for a case
-         label in Microsoft mode. */
+      /* As an extension, allow pointer --> int for pointer constants
+         that come from casting an integer constant to a pointer type,
+         as in (int)(char *)1. */
+      valid_in_integral_const_expr = TRUE;
       if (strict_ansi_mode) {
-        pos_diagnostic(strict_ansi_error_severity,
-                       enum_type_is_integral ?
-                         ec_cast_not_integral :
-                         ec_cast_not_integral_or_enum,
-                       type_position);
-        err = (strict_ansi_error_severity == es_error);
+        err_severity = strict_ansi_error_severity;
+        err_code = enum_type_is_integral ?
+                           ec_expr_not_arithmetic :
+                           ec_expr_not_arithmetic_or_enum;
+        if (err_severity == es_error) valid_in_integral_const_expr = FALSE;
       }  /* if */
-    } else if (is_template_param_type(dest_type)) {
-      /* Casting to an unknown template parameter type is okay. */
+    } else if (is_template_param_type(source_type)) {
+      /* Casting from an unknown template parameter type is okay. */
+      valid_in_integral_const_expr = TRUE;
     } else {
-      /* Casting to a non-integral type in an integral constant expression. */
-      if (!is_error_type(dest_type)) {
-        pos_error(enum_type_is_integral ?
-                    ec_cast_not_integral : ec_cast_not_integral_or_enum,
-                  type_position);
+      /* The destination type is integral, but the source type is not
+         arithmetic. */
+      if (is_error_type(source_type)) {
+        valid_in_integral_const_expr = TRUE;
+      } else {
+        err_severity = es_error;
+        err_code = enum_type_is_integral ?
+                      ec_expr_not_arithmetic : ec_expr_not_arithmetic_or_enum;
       }  /* if */
-      err = TRUE;
     }  /* if */
-#if GNU_EXTENSIONS_ALLOWED
+  } else if ((local_options & (EOPT_OPERAND_OF_CAST |
+                               EOPT_MICROSOFT_CASE_LABEL)) &&
+             is_pointer_type(dest_type) &&
+             (is_integral_or_enum_type(source_type) ||
+              is_template_param_type(source_type))) {
+    /* When the cast is the immediate operand of another cast, allow
+       integer --> pointer as an extension.  Also allowed for a case
+       label in Microsoft mode. */
+    valid_in_integral_const_expr = TRUE;
+    if (strict_ansi_mode) {
+      err_severity = strict_ansi_error_severity;
+      err_code = enum_type_is_integral ?
+                         ec_cast_not_integral :
+                         ec_cast_not_integral_or_enum;
+      use_type_position_in_diag = TRUE;
+      if (err_severity == es_error) valid_in_integral_const_expr = FALSE;
+    }  /* if */
+  } else if (is_template_param_type(dest_type)) {
+    /* Casting to an unknown template parameter type is okay. */
+    valid_in_integral_const_expr = TRUE;
+  } else {
+    /* Cast is to an invalid type for an integral constant expression. */
+    if (is_error_type(dest_type)) {
+      valid_in_integral_const_expr = TRUE;
+    } else {
+      err_severity = es_error;
+      err_code = enum_type_is_integral ?
+                    ec_cast_not_integral : ec_cast_not_integral_or_enum;
+      use_type_position_in_diag = TRUE;
+    }  /* if */
+  }  /* if */
+  if (curr_expr_kind_is(ek_integral_constant)) {
+    if (err_code != ec_no_error) {
+      pos_diagnostic(err_severity, err_code,
+                     use_type_position_in_diag ? type_position :
+                                                 &operand->position);
+      if (err_severity == es_error) err = TRUE;
+    }  /* if */
+  }  /* if */
+  if (!valid_in_integral_const_expr) {
+    /* This cast is not valid in an integral constant expression. */
+    *ruled_out_expr_kinds |= ROEK_INTEGRAL_CONSTANT;
+  }  /* if */
+  /* Determine whether this cast is allowed in a constant expression. */
+  valid_in_const_expr = FALSE;
+  use_type_position_in_diag = FALSE;
+  err_code = ec_no_error;
+  if (is_arithmetic_or_enum_type(dest_type)) {
+    /* Casting to arithmetic or enum; source must be arithmetic or enum. */
+    if (is_arithmetic_or_enum_type(source_type)) {
+      /* Okay. */
+      valid_in_const_expr = TRUE;
+    } else if (is_pointer_type(source_type) &&
+               is_integral_type(dest_type)) {
+      /* Pointer --> integral.  Allowed as an extension.  The check
+         that the integral type is large enough is done in
+         reinterpret_cast_conversion_possible. */
+      valid_in_const_expr = TRUE;
+      if (strict_ansi_mode) {
+        err_severity = strict_ansi_error_severity;
+        err_code = enum_type_is_integral ?
+                           ec_expr_not_arithmetic :
+                           ec_expr_not_arithmetic_or_enum;
+        if (err_severity == es_error) valid_in_const_expr = FALSE;
+      }  /* if */
+    } else if (is_template_param_type(source_type)) {
+      /* Casting from an unknown template parameter type is okay. */
+      valid_in_const_expr = TRUE;
+    } else {
+      /* Non-arithmetic --> arithmetic or enum. */
+      if (is_error_type(source_type)) {
+        valid_in_const_expr = TRUE;
+      } else {
+        err_severity = es_error;
+        err_code = enum_type_is_integral ?
+                      ec_expr_not_arithmetic : ec_expr_not_arithmetic_or_enum;
+      }  /* if */
+    }  /* if */
+  } else if (is_pointer_type(dest_type)) {
+    /* Casting to pointer; source must be integer or pointer. */
+    if (is_pointer_type(source_type) ||
+        is_integral_type(source_type) ||
+        is_template_param_type(source_type)) {
+      /* Okay. */
+      valid_in_const_expr = TRUE;
+    } else {
+      err_severity = es_error;
+      err_code = ec_expr_not_pointer;
+    }  /* if */
+  } else if (is_ptr_to_member_type(dest_type)) {
+    /* Casting to pointer to member; source must be integer or pointer-to-
+       member. */
+    if (is_ptr_to_member_type(source_type) ||
+        is_integral_type(source_type) ||
+        is_template_param_type(source_type)) {
+      /* Okay. */
+      valid_in_const_expr = TRUE;
+    } else {
+      err_severity = es_error;
+      err_code = ec_expr_not_ptr_to_member;
+    }  /* if */
+  } else if (is_reference_type(dest_type)) {
+    /* A cast to a reference type is allowed. */
+    valid_in_const_expr = TRUE;
   } else if (gcc_mode &&
              is_class_struct_union_type(dest_type) &&
              f_identical_types(f_skip_typerefs(source_type),
                                f_skip_typerefs(dest_type),
                                ITF_NO_FLAGS)) {
     /* GNU C allows a do-nothing cast to a struct or union type. */
-#endif /* GNU_EXTENSIONS_ALLOWED */
-  } else if (curr_expr_kind_is(ek_init_constant)) {
-    /* Initializer constant expression: arithmetic/enum --> arithmetic/enum
-       and scalar --> pointer are allowed, pointer --> integral as
-       an extension. */
-    if (is_arithmetic_or_enum_type(dest_type)) {
-      /* Casting to arithmetic or enum; source must be arithmetic or enum. */
-      if (is_arithmetic_or_enum_type(source_type)) {
-        /* Okay. */
-      } else if (is_pointer_type(source_type) &&
-                 is_integral_type(dest_type)) {
-        /* Pointer --> integral.  Allowed as an extension.  The check
-           that the integral type is large enough is done in
-           reinterpret_cast_conversion_possible. */
-        if (strict_ansi_mode) {
-          pos_diagnostic(strict_ansi_error_severity,
-                         enum_type_is_integral ?
-                           ec_expr_not_arithmetic :
-                           ec_expr_not_arithmetic_or_enum,
-                         &operand->position);
-          err = (strict_ansi_error_severity == es_error);
-        }  /* if */
-      } else if (is_template_param_type(source_type)) {
-        /* Casting from an unknown template parameter type is okay. */
-      } else {
-        /* Non-arithmetic --> arithmetic or enum. */
-        if (!is_error_type(source_type)) {
-          pos_error(enum_type_is_integral ?
-                      ec_expr_not_arithmetic : ec_expr_not_arithmetic_or_enum,
-                    &operand->position);
-        }  /* if */
-        err = TRUE;
-      }  /* if */
-    } else if (is_pointer_type(dest_type)) {
-      /* Casting to pointer; source must be scalar. */
-      if (is_scalar_type(source_type) ||
-          is_template_param_type(source_type)) {
-        /* Okay. */
-      } else {
-        pos_error(enum_type_is_integral ?
-                    ec_expr_not_scalar :
-                    ec_expr_not_arithmetic_or_enum_or_pointer,
-                  &operand->position);
-        err = TRUE;
-      }  /* if */
-    } else if (is_template_param_type(dest_type)) {
-      /* Casting to an unknown template parameter type is okay. */
+    valid_in_const_expr = TRUE;
+  } else if (is_template_param_type(dest_type)) {
+    /* Casting to an unknown template parameter type is okay. */
+    valid_in_const_expr = TRUE;
+  } else {
+    /* Cast is to an invalid type for a constant expression. */
+    if (is_error_type(dest_type)) {
+      valid_in_const_expr = TRUE;
     } else {
-      /* Casting to a non-scalar type in an initializer expression. */
-      if (!is_error_type(dest_type)) {
-        pos_error(enum_type_is_integral ?
+      err_severity = es_error;
+      err_code = enum_type_is_integral ?
                     ec_cast_not_scalar :
-                    ec_cast_not_arithmetic_or_enum_or_pointer,
-                  type_position);
-      }  /* if */
-      err = TRUE;
+                    ec_cast_not_arithmetic_or_enum_or_pointer;
+      use_type_position_in_diag = TRUE;
     }  /* if */
-  } else if (curr_expr_kind_is(ek_template_arg)) {
+  }  /* if */
+  if (curr_expr_kind_is(ek_init_constant)) {
+    /* Diagnose casts not allowed in an init-constant expression. */
+    if (err_code != ec_no_error) {
+      pos_diagnostic(err_severity, err_code,
+                     use_type_position_in_diag ? type_position :
+                                                 &operand->position);
+      if (err_severity == es_error) err = TRUE;
+    }  /* if */
+  }  /* if */
+  if (!valid_in_const_expr) {
+    /* This cast is not valid in a constant expression. */
+    *ruled_out_expr_kinds |= ROEK_CONSTANT;
+  }  /* if */
+  if (curr_expr_kind_is(ek_template_arg)) {
     /* Only casts between integral or enum types are allowed in nontype
        template arguments. */
     if (is_integral_or_enum_type(dest_type)) {
@@ -8435,6 +8535,10 @@ for non-class operands).  This routine is called only in C++ mode.
           *processed = TRUE;
         }  /* if */
       }  /* if */
+    }  /* if */
+    if (*processed) {
+      /* A user-defined conversion rules out a constant expression. */
+      rule_out_expr_kinds(ROEK_CONSTANT, operand);
     }  /* if */
   }  /* if */
 }  /* check_user_defined_conversions_for_cast */
@@ -8737,6 +8841,8 @@ C-style casts and C++ functional-notation type conversions.
   an_error_code warning_suggested;
   a_boolean     cast_to_void, cast_to_reference = FALSE, processed = FALSE;
   a_boolean     allow_rvalue_on_rewrite = FALSE;
+  a_ruled_out_expr_kind_set
+                ruled_out_expr_kinds = ROEK_NONE;
 
   /* The bound function test is done first to make sure bound functions
      cannot wander into the rest of the cases. */
@@ -8778,7 +8884,8 @@ C-style casts and C++ functional-notation type conversions.
          rewriting or anything else that changes type_cast_to. */
       if (!cast_is_valid_in_current_expression_kind(operand, type_cast_to,
                                                     local_options,
-                                                    type_position)) {
+                                                    type_position,
+                                                    &ruled_out_expr_kinds)) {
         /* This cast is not valid in this kind of expression. */
         err = TRUE;
       }  /* if */
@@ -8956,6 +9063,7 @@ C-style casts and C++ functional-notation type conversions.
   }  /* if */
   if (err) conv_to_error_operand(operand);
   operand->position = *start_position;
+  rule_out_expr_kinds(ruled_out_expr_kinds, operand);
 }  /* do_cast */
 
 
@@ -8976,6 +9084,8 @@ Syntax:
   a_boolean         reference_case = FALSE, err = FALSE;
   a_boolean         microsoft_enum_cast_case = FALSE;
   a_boolean         microsoft_lvalue_cast_case = FALSE;
+  a_ruled_out_expr_kind_set
+                    ruled_out_expr_kinds = ROEK_NONE;
 
   db_enter(4, "scan_const_cast_operator");
   /* Save the position of the const_cast keyword. */
@@ -9033,7 +9143,8 @@ Syntax:
      rewriting or anything else that changes cast_type. */
   if (!cast_is_valid_in_current_expression_kind(&operand, cast_type,
                                                 EOPT_NO_OPTIONS,
-                                                &type_position)) {
+                                                &type_position,
+                                                &ruled_out_expr_kinds)) {
     /* This cast is not valid in this kind of expression. */
     err = TRUE;
   }  /* if */
@@ -9151,6 +9262,7 @@ Syntax:
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
                        &start_position);
+  rule_out_expr_kinds(ruled_out_expr_kinds, result);
   db_exit();
 }  /* scan_const_cast_operator */
 
@@ -9169,6 +9281,8 @@ Syntax:
   a_boolean         err = FALSE, processed = FALSE;
   a_boolean         allow_rvalue_on_rewrite = FALSE;
   an_error_code     warning_suggested;
+  a_ruled_out_expr_kind_set
+                    ruled_out_expr_kinds = ROEK_NONE;
 
   db_enter(4, "scan_static_cast_operator");
   /* Save the position of the static_cast keyword. */
@@ -9226,7 +9340,8 @@ Syntax:
          rewriting or anything else that changes type_cast_to. */
       if (!cast_is_valid_in_current_expression_kind(result, type_cast_to,
                                                     EOPT_NO_OPTIONS,
-                                                    &type_position)) {
+                                                    &type_position,
+                                                    &ruled_out_expr_kinds)) {
         /* This cast is not valid in this kind of expression. */
         err = TRUE;
       }  /* if */
@@ -9352,6 +9467,7 @@ Syntax:
   if (err) conv_to_error_operand(result);
   set_operand_position(result, &start_position, &end_position,
                        &start_position);
+  rule_out_expr_kinds(ruled_out_expr_kinds, result);
   db_exit();
 }  /* scan_static_cast_operator */
 
@@ -9370,6 +9486,8 @@ Syntax:
   a_boolean         cast_to_reference = FALSE, err = FALSE;
   an_error_code     warning_suggested;
   a_boolean         processed = FALSE;
+  a_ruled_out_expr_kind_set
+                    ruled_out_expr_kinds = ROEK_NONE;
 
   db_enter(4, "scan_reinterpret_cast_operator");
   /* Save the position of the reinterpret_cast keyword. */
@@ -9408,7 +9526,8 @@ Syntax:
        rewriting or anything else that changes type_cast_to. */
     if (!cast_is_valid_in_current_expression_kind(result, type_cast_to,
                                                   EOPT_NO_OPTIONS,
-                                                  &type_position)) {
+                                                  &type_position,
+                                                  &ruled_out_expr_kinds)) {
       /* This cast is not valid in this kind of expression. */
       err = TRUE;
     }  /* if */
@@ -9481,6 +9600,7 @@ Syntax:
   if (err) conv_to_error_operand(result);
   set_operand_position(result, &start_position, &end_position,
                        &start_position);
+  rule_out_expr_kinds(ruled_out_expr_kinds, result);
   db_exit();
 }  /* scan_reinterpret_cast_operator */
 
@@ -9649,6 +9769,7 @@ both C and C++ modes.
   (void)required_token(tok_rparen, ec_exp_rparen);
   set_operand_position(result, &start_position, &pos_curr_token,
                        &start_position);
+  rule_out_expr_kinds(ROEK_CONSTANT, result);
 }  /* scan_gnu_statement_expression */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -9747,6 +9868,7 @@ to the compound literal.
     result->state = (an_operand_state)os_lvalue;
   }  /* if */
   if (is_static) switch_back_to_original_region(region_to_switch_back_to);
+  rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, result);
 }  /* scan_compound_literal */
 
 
@@ -9974,6 +10096,7 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
   a_class_symbol_supplement_ptr cssp;
   an_operand                    local_bound_function_selector;
   a_boolean                     allow_array = microsoft_bugs && !C_mode();
+  a_ruled_out_expr_kind_set     ruled_out_expr_kinds = ROEK_NONE;
 
   db_enter(4, "scan_functional_notation_type_conversion");
 
@@ -10085,7 +10208,9 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
         make_integer_constant_operand(result, (a_host_large_integer)0L);
         if (!cast_is_valid_in_current_expression_kind(result, type_cast_to,
                                                       local_options,
-                                                      start_position)) {
+                                                      start_position,
+                                                      &ruled_out_expr_kinds)) {
+
           /* This cast is not valid in this kind of expression. */
           err = TRUE;
         } else if (is_void_type(type_cast_to)) {
@@ -10165,6 +10290,7 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
     remove_matching_stop_token(tok_rparen);
   }  /* if */
   set_operand_position(result, start_position, &end_position, start_position);
+  rule_out_expr_kinds(ruled_out_expr_kinds, result);
   db_exit();
 }  /* scan_functional_notation_type_conversion */
 
@@ -11515,6 +11641,11 @@ standard.
          which are too expensive to eliminate. */
       /* reduce = FALSE; -- already set. */
 #endif /* ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS */
+      } else if ((operand_2.ruled_out_expr_kinds & ROEK_CONSTANT) == 0) {
+      /* Reduce if the second operand has the form of a constant expression.
+         This deals with cases like 0 && 1/0, in which the second operand
+         would not be in constant form because it couldn't be folded. */
+        reduce = TRUE;
       } else {
         /* Otherwise, we can reduce at our discretion. */
         reduce = ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS;
@@ -11554,6 +11685,8 @@ standard.
 
   set_operand_position(result, &operand_1->position, &operand_2.end_position,
                        &operator_position);
+  result->ruled_out_expr_kinds = (operand_1->ruled_out_expr_kinds |
+                                  operand_2.ruled_out_expr_kinds);
   db_exit();
 }  /* scan_logical_operator */
 
@@ -12493,6 +12626,7 @@ Scan the simple assignment operator ("=").  See section 3.3.16 of the standard.
 
   set_operand_position(result, &operand_1->position, &operand_2.end_position,
                        &operator_position);
+  rule_out_expr_kinds(ROEK_CONSTANT, result);
   db_exit();
 }  /* scan_simple_assignment_operator */
 
@@ -12820,6 +12954,7 @@ See section 3.3.16 of the standard.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   set_operand_position(result, &operand_1->position, &operand_2.end_position,
                        &operator_position);
+  rule_out_expr_kinds(ROEK_CONSTANT, result);
   db_exit();
 }  /* scan_compound_assignment_operator */
 
@@ -13114,6 +13249,7 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
                        &start_position);
+  rule_out_expr_kinds(ROEK_CONSTANT, result);
   db_exit();
 }  /* scan_throw_operator */
 
@@ -13210,6 +13346,7 @@ EOPT_DISALLOW_COMMA_OPERATOR).
 
   set_operand_position(result, &operand_1->position, &operand_2.end_position,
                        &operator_position);
+  rule_out_expr_kinds(ROEK_CONSTANT, result);
   db_exit();
 }  /* scan_comma_operator */
 
@@ -13428,6 +13565,7 @@ If p_sym_ptr is not NULL, set *p_sym_ptr to point to the symbol scanned
   a_type_ptr        qual_class_type;
   a_boolean         err = FALSE, is_operand_of_address_of;
   a_boolean         force_indefinite_function = FALSE;
+  a_boolean         okay_for_integral_const_expr = FALSE;
 
   db_enter(4, "scan_identifier");
 
@@ -13572,6 +13710,7 @@ If p_sym_ptr is not NULL, set *p_sym_ptr to point to the symbol scanned
                an lvalue rather than a constant. */
             change_nonreal_member_constant_operand_to_lvalue(result);
           }  /* if */
+          okay_for_integral_const_expr = TRUE;
           break;
         case sk_static_data_member:
           var_ptr = sym_ptr->variant.static_data_member.variable;
@@ -13670,6 +13809,7 @@ variable:
             }  /* if */
           }  /* if */
           set_operand_name_reference_from_locator_for_curr_id(result);
+          okay_for_integral_const_expr = TRUE;
           break;
         case sk_routine:
           if (force_indefinite_function) {
@@ -13889,6 +14029,7 @@ overloaded_function:
                                                      &start_position,
                                                      result,
                                                      local_options);
+            okay_for_integral_const_expr = TRUE;
             goto after_advance_past_id;
           } else {
             /* Otherwise, an error. */
@@ -13976,6 +14117,14 @@ overloaded_function:
   /* Remember whether or not this operand is the immediate operand of
      a "&" operator. */
   result->is_operand_of_address_of = is_operand_of_address_of;
+  if (!okay_for_integral_const_expr ||
+      !(is_integral_type(result->type) ||
+        is_template_param_type(result->type) ||
+        is_error_operand(result))) {
+    /* Certain kinds of identifiers rule out an integral constant
+       expression. */
+    rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, result);
+  }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -14566,6 +14715,7 @@ have_variable:
                                  /*record_expr=*/FALSE);
   }  /* if */
 end_of_routine:
+  rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, result);
   (void)get_token();
 }  /* make_function_name_operand */
 
@@ -14691,6 +14841,7 @@ and the other function-name tokens.
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
                        &start_position);
+  rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, result);
 }  /* scan_microsoft_lprefix_operator */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -14894,6 +15045,7 @@ see expr.h).
           /* Make an rvalue for the "this" variable. */
           make_this_variable_operand(this_var, /*is_implicit=*/FALSE,
                                      &local_result);
+          rule_out_expr_kinds(ROEK_CONSTANT, &local_result);
         }  /* if */
       }  /* if */
       (void)get_token();
@@ -14930,6 +15082,18 @@ see expr.h).
     case tok_fixed_point_constant:
     case tok_float_constant:
       { a_boolean float_con_allowed = TRUE;
+        a_boolean float_con_allowed_in_integral_const_expr = FALSE;
+        /* Identify the case where float constants are allowed as
+           part of an integral constant expression, i.e., when they are
+           the immediate operand of a cast to integral.  Here we can
+           only check that the constant is the operand of a cast; the check
+           for the destination type is done higher up. */
+        if ((local_options & EOPT_OPERAND_OF_CAST) &&
+            curr_token == tok_float_constant &&
+            /* Guard against something like "int(3.0/1)". */
+            token_ends_expr(next_token(), prec_level, local_options)) {
+          float_con_allowed_in_integral_const_expr = TRUE;
+        }  /* if */
         if (curr_expr_kind_is(ek_pp)) {
           /* Floating constants are not allowed in preprocessing
              expressions. */
@@ -14941,15 +15105,7 @@ see expr.h).
              allowed only as the immediate operand of a cast; fixed-point
              literals are not allowed at all.  Template argument expressions
              are usually the same as integral constant expressions. */
-          float_con_allowed = FALSE;
-          if ((local_options & EOPT_OPERAND_OF_CAST) &&
-#if FIXED_POINT_ALLOWED
-              curr_token != tok_fixed_point_constant &&
-#endif /* FIXED_POINT_ALLOWED */
-              /* Guard against something like "int(3.0/1)". */
-              token_ends_expr(next_token(), prec_level, local_options)) {
-            float_con_allowed = TRUE;
-          }  /* if */
+          float_con_allowed = float_con_allowed_in_integral_const_expr;
         }  /* if */
         if (float_con_allowed) {
 #if TARG_HAS_IEEE_FLOATING_POINT
@@ -14977,7 +15133,12 @@ see expr.h).
                                          ec_expr_not_integral_or_enum,
                                        &local_result);
         }  /* if */
-      }  /* if */
+        /* Float constants are generally not allowed in integral constant
+           expressions. */
+        if (!float_con_allowed_in_integral_const_expr) {
+          rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, result);
+        }  /* if */
+      }
       (void)get_token();
       break;
     case tok_string_literal:
@@ -14997,6 +15158,7 @@ see expr.h).
                                          ec_expr_not_integral_or_enum,
                                        &local_result);
         }  /* if */
+        rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, &local_result);
         (void)get_token();
       }  /* if */
       break;

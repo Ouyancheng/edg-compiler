@@ -112,6 +112,18 @@ enum an_expression_kind_tag {
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte an_expression_kind;
 
+/*
+Kinds of expressions again, this time as bits in a set used to
+record occurrence of constructs that rule out certain expression
+kinds.
+*/
+typedef a_byte a_ruled_out_expr_kind_set;
+#define ROEK_NONE              ((a_ruled_out_expr_kind_set)0)
+#define ROEK_INTEGRAL_CONSTANT ((a_ruled_out_expr_kind_set)0x1)
+			/* An integral constant expression is ruled out. */
+#define ROEK_CONSTANT          ((a_ruled_out_expr_kind_set)0x2)
+			/* A constant expression is ruled out. */
+
 #if GNU_EXTENSIONS_ALLOWED
 
 /*
@@ -307,6 +319,15 @@ typedef struct an_operand {
 			   (e.g., a function name).  Valid when
 			   name_reference_set is TRUE. */
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
+  a_ruled_out_expr_kind_set
+		ruled_out_expr_kinds;
+			/* Bits indicating kinds of expressions ruled out.
+			   For example, if the expression contains something
+			   not allowed in an integral constant expression,
+			   the roek_integral_constant bit will be set.
+			   Of use in checking after a scan whether an
+			   scanned in default mode meets the requirements of
+			   a certain expression kind. */
   a_source_position
 		position;
 			/* The source position for the operand. */
@@ -786,6 +807,9 @@ extern void push_expr_stack(an_expression_kind      expression_kind,
                             a_boolean               suppress_object_lifetime);
 
 extern void pop_expr_stack(void);
+
+extern void rule_out_expr_kinds(a_ruled_out_expr_kind_set ruled_out_set,
+                                an_operand                *operand);
 
 extern an_expr_node_ptr wrap_up_full_expression(an_expr_node_ptr expr);
 

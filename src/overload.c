@@ -5611,6 +5611,7 @@ TRUE if the selector is a pointer, and FALSE if it is a class.
     /* Restore the reference entries list too so that we can get
        address_taken set on the function. */
     restore_operand_details_incl_ref(operand, &orig_operand);
+    rule_out_expr_kinds(ROEK_CONSTANT, operand);
   }  /* if */
 }  /* combine_unneeded_selector_with_operand */
 
@@ -5835,6 +5836,7 @@ FALSE.  The operand is an rvalue.
   node = var_rvalue_expr(this_var);
   /* Make an operand for the node. */
   make_expression_operand(node, node->type, result);
+  rule_out_expr_kinds(ROEK_CONSTANT, result);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (!is_implicit) {
     /* Set the position in the expression too when the reference is
@@ -5966,6 +5968,7 @@ only in C++ mode.  Note that this routine is called only for an implicit
     }  /* if */
   }  /* if */
   result->position = *member_pos;
+  rule_out_expr_kinds(ROEK_CONSTANT, result);
   return okay;
 }  /* make_this_pointer_operand */
 
@@ -9864,7 +9867,10 @@ select_best_function:
     }  /* if */
   }  /* if */
   /* If an operand was created, put the right position in it. */
-  if (*processed) result->position = *operator_position;
+  if (*processed) {
+    result->position = *operator_position;
+    rule_out_expr_kinds(ROEK_CONSTANT, result);
+  }  /* if */
 #if DEBUG
   if (debug_level >= 4 || db_flag_is_set("overload")) {
     db_display_overload_level();
@@ -10988,6 +10994,7 @@ the source position.
   dip->variant.constructor.value_initialization = is_value_init;
   /* Make an operand for the overall expression. */
   make_expression_operand(temp_init_node, temp_init_node->type, result);
+  rule_out_expr_kinds(ROEK_CONSTANT, result);
 }  /* make_constructor_dynamic_init */
 
 
@@ -11017,6 +11024,7 @@ an explicit cast.
   dip->variant.expression = make_node_from_operand(operand);
   /* Make an operand for the overall expression. */
   make_expression_operand(temp_init_node, temp_init_node->type, operand);
+  rule_out_expr_kinds(ROEK_CONSTANT, operand);
 }  /* temp_init_by_bitwise_copy_from_operand */
 
 
@@ -12885,6 +12893,7 @@ see conversion_to_class_possible.
     make_expression_operand(temp_init_node, temp_init_node->type,
                             source_operand);
     restore_operand_details(source_operand, &orig_operand);
+    rule_out_expr_kinds(ROEK_CONSTANT, source_operand);
   }  /* if */
 }  /* prep_arg_passed_via_copy_constructor */
 
@@ -13141,6 +13150,7 @@ GNU C extensions.)
                                    /*result_is_addr=*/FALSE,
                                    /*is_explicit_cast=*/FALSE);
   make_expression_operand(init_expr, dest_type, source_operand);
+  rule_out_expr_kinds(ROEK_CONSTANT, source_operand);
   db_exit();
 }  /* prep_transparent_union_conversion_operand */
 
