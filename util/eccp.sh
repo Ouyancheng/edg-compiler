@@ -604,6 +604,16 @@ then
   then
     if [ $cc_only -ne 1 ]
     then
+#
+#     If automatic instantiation is enabled, run the prelink phase to
+#     determine if any additional instantiations need to be generated
+#     or if any existing instantiations are no longer needed.
+#     If any instantiation list files are changed edg_prelink will
+#     do the necessary recompilations.  When edg_prelink exits
+#     the files will have been compiled and the necessary instantiations
+#     generated.  Any instantiations that edg_prelink could not find
+#     a way to generate will cause linker errors to be issued later.
+#
       if [ $automatic_instantiation -ne 0 ] ; then
         $EDG_PRELINK $ofiles $lfiles $instantiation_libraries
       fi
