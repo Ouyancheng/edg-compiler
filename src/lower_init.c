@@ -2572,9 +2572,7 @@ NULL until created.
 static a_type_ptr
 		needed_destruction_type;
 static a_field_ptr
-		needed_destruction_next_field,
-		needed_destruction_object_field,
-		needed_destruction_dtor_field;
+		needed_destruction_object_field;
 
 
 static a_type_ptr make_needed_destruction_type(void)
@@ -2604,7 +2602,6 @@ See the runtime files dtor_list.h and dtor_list.c.
     /* field: a_needed_destruction_ptr next */
     make_lowered_field("next", make_pointer_type(needed_destruction_type),
                        &byte_offset, needed_destruction_type, &last_field);
-    needed_destruction_next_field = last_field;
     /* field: void *object */
     make_lowered_field("object", void_star_type(),
                        &byte_offset, needed_destruction_type, &last_field);
@@ -2612,7 +2609,6 @@ See the runtime files dtor_list.h and dtor_list.c.
     /* field: __vptp dtor */
     make_lowered_field("dtor", make_vptp_type(),
                        &byte_offset, needed_destruction_type, &last_field);
-    needed_destruction_dtor_field = last_field;
     finish_class_type(needed_destruction_type, &byte_offset);
   }  /* if */
   return needed_destruction_type;
@@ -2674,7 +2670,7 @@ and update *insert_location accordingly.
 {
   a_variable_ptr         var;
   a_constant_ptr         aggr_con, next_con, object_con, dtor_con;
-  a_boolean              complex_cleanup;
+  a_boolean              complex_cleanup, complex_address;
   a_routine_ptr          dtor_routine;
   a_memory_region_number region_to_switch_back_to = NULL_region_number;
   an_init_pos_descr_ptr  ipdp;
@@ -2700,11 +2696,10 @@ and update *insert_location accordingly.
      to a routine generated specifically for this case and containing
      the necessary destruction code.  next is always initialized to
      NULL; the runtime routine sets it. */
-  complex_cleanup = requires_nontrivial_cleanup(cap) ||
-                    /* Force the complex case if the address of the entity
-                       must be computed (even trivially), because we can't
-                       (easily) do static initialization in that case. */
-                    ipdp->indirect_through_variable ||
+  complex_cleanup = requires_nontrivial_cleanup(cap);
+  /* Compute the object address (instead of doing static initialization to
+     the address) if it is more than a simple variable. */
+  complex_address = ipdp->indirect_through_variable ||
                     ipdp->modifiers != NULL;
   switch_to_file_scope_region(&region_to_switch_back_to);
   /* Make an unnamed static variable for the descriptive structure. */
@@ -2727,9 +2722,15 @@ and update *insert_location accordingly.
   } else {
     /* Simple cleanup -- the object field points to the object variable and
        the dtor field points to the destructor. */
-    set_variable_address_constant(ipdp->variable, object_con,
-                                  /*set_address_taken_flag=*/TRUE);
-    implicit_cast(object_con, void_star_type());
+    if (complex_address) {
+      /* For a complex object address, initialize the field to NULL and
+         set the object address via code (below). */
+      make_zero_of_proper_type(void_star_type(), object_con);
+    } else {
+      set_variable_address_constant(ipdp->variable, object_con,
+                                    /*set_address_taken_flag=*/TRUE);
+      implicit_cast(object_con, void_star_type());
+    }  /* if */
     dtor_routine = cap->variant.object.dynamic_init.destructor;
   }  /* if */
   set_routine_address_constant(dtor_routine, dtor_con,
@@ -2743,6 +2744,21 @@ and update *insert_location accordingly.
   /* Free the cleanup action now that it's no longer needed. */
   free_cleanup_action(cap);
   switch_back_to_original_region(region_to_switch_back_to);
+  if (!complex_cleanup && complex_address) {
+    /* For simple cleanup with a complex address, compute the object address
+       in code and store it in the object field of the struct. */
+    an_expr_node_ptr object_node, field_node;
+    a_statement_ptr  assign_stmt;
+    object_node = make_init_entity_node(ipdp, /*using_as_address=*/TRUE,
+                                        /*using_as_dest=*/FALSE);
+    field_node = field_lvalue_selection_expr(var_lvalue_expr(var),
+                                             needed_destruction_object_field);
+    assign_stmt = insert_assignment_statement(field_node,
+                                            (an_expr_operator_kind)eok_passign,
+                                              object_node,
+                                              insert_location);
+    set_stmt_pos_to_code_pos_for_lowering(assign_stmt);
+  }  /* if */
   /* Make a call of __record_needed_destruction.  Its argument is the
      address of the structure variable created above. */
   call_node = make_runtime_rout_call("__record_needed_destruction",
@@ -5205,9 +5221,7 @@ are handled in il_lower_init.)
       pch_saved_var_array_elem(vec_new_eh_routine),
       pch_saved_var_array_elem(vec_new_routine),
       pch_saved_var_array_elem(needed_destruction_type),
-      pch_saved_var_array_elem(needed_destruction_next_field),
       pch_saved_var_array_elem(needed_destruction_object_field),
-      pch_saved_var_array_elem(needed_destruction_dtor_field),
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
