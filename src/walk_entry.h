@@ -206,12 +206,12 @@ simple walk_list.
 #if KEEP_IN_IL_WALK
 #define walk_needed_on_list(ptr, ptr_type, entry_kind) \
 { if (do_only_needed_entries_on_lists) { \
-    ptr_type *ptr_ptr = &(ptr); \
-    for (; *ptr_ptr != NULL; ptr_ptr = &(*ptr_ptr)->next) { \
-      if ((*ptr_ptr)->source_corresp.needed || \
-          il_entry_prefix_of(*ptr_ptr).keep_in_il) { \
-        il_entry_prefix_of(*ptr_ptr).keep_in_il = FALSE; \
-        walk_ptr(*ptr_ptr, ptr_type, (entry_kind)); \
+    ptr_type local_ptr = (ptr); \
+    for (; local_ptr != NULL; local_ptr = local_ptr->next) { \
+      if (local_ptr->source_corresp.needed || \
+          il_entry_prefix_of(local_ptr).keep_in_il) { \
+        il_entry_prefix_of(local_ptr).keep_in_il = FALSE; \
+        walk_ptr(local_ptr, ptr_type, (entry_kind)); \
       }  /* if */ \
     }  /* for */ \
   } else { \
@@ -1231,7 +1231,21 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_list(ptr->variables, a_variable_ptr, iek_variable);
 #endif /* ifdef CFE */
         walk_list_not_needed(ptr->labels, a_label_ptr, iek_label);
+#if NEEDED_FLAG_WALK
+        /* On the "needed" flag walk for a class, mark all the virtual
+           functions as needed.  Note that if IL lowering is done, there will
+           be no functions attached to the class anymore. */
+        if (kind == (a_scope_kind)sck_class_struct_union) {
+          a_routine_ptr rout_ptr = ptr->routines;
+          for (; rout_ptr != NULL; rout_ptr = rout_ptr->next) {
+            if (rout_ptr->is_virtual) {
+              walk_ptr(rout_ptr, a_routine_ptr, iek_routine);
+            }  /* if */
+          }  /* for */
+        }  /* if */
+#else /* !NEEDED_FLAG_WALK */
         walk_needed_on_list(ptr->routines, a_routine_ptr, iek_routine);
+#endif /* NEEDED_FLAG_WALK */
 #ifdef CFE
         walk_list(ptr->scopes, a_scope_ptr, iek_scope);
         walk_needed_on_list(ptr->namespaces, a_namespace_ptr, iek_namespace);
