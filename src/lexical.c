@@ -3551,7 +3551,7 @@ source text (end of token, start of expansion, end of expansion).
    keep_comments_in_pp_output switch, this is basically a time optimization --
    we avoid doing the comment deletion if we will not be outputting the
    modified line text in some way (as preprocessing or raw listing output). */
-#if ASM_FUNCTION_ALLOWED
+#if ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 /* If asm functions are allowed, also delete comments if inside an asm
    function body. */
 #define NEED_TO_DELETE_COMMENT                                        \
@@ -3559,12 +3559,12 @@ source text (end of token, start of expansion, end of expansion).
      f_raw_listing != NULL) &&                                        \
     !keep_comments_in_pp_output) ||                                   \
    in_asm_function_body)
-#else /* !ASM_FUNCTION_ALLOWED */
+#else /* !ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 #define NEED_TO_DELETE_COMMENT                                        \
   (((generate_pp_output && !do_not_put_curr_line_in_pp_output) ||     \
     f_raw_listing != NULL) &&                                         \
    !keep_comments_in_pp_output)
-#endif /* ASM_FUNCTION_ALLOWED */
+#endif /* ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 /* Macro used to check whether the comment start position has been determined
    and to determine it if not already done. */
 #define determine_comment_pos_if_not_yet_done()				\
@@ -3590,10 +3590,10 @@ white_space_loop:
       /* Newline is white space ordinarily, but a token to be returned if
          in a preprocessing directive. */
       if (in_preprocessing_directive) goto end_skip;
-#if ASM_FUNCTION_ALLOWED
+#if ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
       /* Newline is also a token in asm functions. */
       if (in_asm_function_body) goto end_skip;
-#endif /* ASM_FUNCTION_ALLOWED */
+#endif /* ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
       /* The newline character is white space, and is being thrown away. */
       kind_skipped |= WHITE_SPACE_OTHER;
       curr_char_loc++;
@@ -4646,11 +4646,11 @@ This routine is called an enormous number of times, and therefore has
 been written to be as fast as possible.  Structure has been sacrificed
 to speed in some cases.
 */
-#if ASM_FUNCTION_ALLOWED
+#if ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 /*
 If in_asm_function_body is TRUE, return tok_newline for ends of lines.
 */
-#endif /* ASM_FUNCTION_ALLOWED */
+#endif /* ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 {
   register a_token_kind ctoken;
   register char         ch;
@@ -4748,10 +4748,10 @@ start_of_token_scan:  /* Restart here after scanning white space. */
       /* Newline.  Is white space ordinarily, but a token within
          preprocessing directives. */
       if (in_preprocessing_directive
-#if ASM_FUNCTION_ALLOWED
+#if ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
           /* ... or if inside an asm function body. */
           || in_asm_function_body
-#endif /* ASM_FUNCTION_ALLOWED */
+#endif /* ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
                                     ) {
         ctoken = tok_newline;
       } else {
