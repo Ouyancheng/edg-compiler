@@ -2906,7 +2906,7 @@ base-class casts on the object, if there are any, and determine which
 of those can be folded into the member name.  Return the expression to
 be used to address the object (the part not including the casts that
 can be elided), and set *naming_class to the class qualifier name
-to be used to name the member.
+to be used to name the member.  Only used in C++.
 */
 {
   an_expr_node_ptr node = object_expr, naming_node = NULL;
@@ -2977,8 +2977,10 @@ and field_expr is an enk_field node.
 {
   a_type_ptr naming_class, selection_class;
 
-  /* Remove unnecessary base class casts. */
-  object_expr = optimized_expr_for_selection(object_expr, &naming_class);
+  if (il_header.source_language == sl_Cplusplus) {
+    /* Remove unnecessary base class casts. */
+    object_expr = optimized_expr_for_selection(object_expr, &naming_class);
+  }  /* if */
   if (object_expr->kind == (an_expr_node_kind)enk_variable) {
     /* Optimize "(*p).i" as "p->i". */
     gen_expression(object_expr);
@@ -2988,11 +2990,13 @@ and field_expr is an enk_field node.
     gen_lvalue(object_expr);
     m_write_tok_ch('.');
   }  /* if */
-  /* Use a qualified name if the class in which we want to name the member
-     is not the class indicated by the pointer. */
-  selection_class = type_pointed_to(object_expr->type);
-  selection_class = skip_typerefs(selection_class);
-  if (selection_class != naming_class) gen_class_qualifier(naming_class);
+  if (il_header.source_language == sl_Cplusplus) {
+    /* Use a qualified name if the class in which we want to name the member
+       is not the class indicated by the pointer. */
+    selection_class = type_pointed_to(object_expr->type);
+    selection_class = skip_typerefs(selection_class);
+    if (selection_class != naming_class) gen_class_qualifier(naming_class);
+  }  /* if */
   gen_field_reference(field_expr);
 }  /* gen_simple_field_selection */
 
@@ -3431,10 +3435,16 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
        no way to take the address of a temporary explicitly. */
     gen_temp_init(object_expr, /*need_parens=*/FALSE);
     write_tok_str(".");
+    if (il_header.source_language == sl_Cplusplus) {
+      naming_class = type_pointed_to(object_expr->type);
+      naming_class = skip_typerefs(naming_class);
+    }  /* if */
   } else {
     /* Normal case. */
-    /* Remove unnecessary base class casts. */
-    object_expr = optimized_expr_for_selection(object_expr, &naming_class);
+    if (il_header.source_language == sl_Cplusplus) {
+      /* Remove unnecessary base class casts. */
+      object_expr = optimized_expr_for_selection(object_expr, &naming_class);
+    }  /* if */
     if (is_variable_address_node(object_expr)) {
       /* Optimize (&x)->f as x.f. */
       gen_lvalue(object_expr);
@@ -3451,11 +3461,13 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
     gen_qualified_name(&rout->source_corresp, NO_TYPE);
   } else {
     /* Normal case. */
-    /* Use a qualified name if the class in which we want to name the member
-       is not the class indicated by the pointer. */
-    selection_class = type_pointed_to(object_expr->type);
-    selection_class = skip_typerefs(selection_class);
-    if (selection_class != naming_class) gen_class_qualifier(naming_class);
+    if (il_header.source_language == sl_Cplusplus) {
+      /* Use a qualified name if the class in which we want to name the member
+         is not the class indicated by the pointer. */
+      selection_class = type_pointed_to(object_expr->type);
+      selection_class = skip_typerefs(selection_class);
+      if (selection_class != naming_class) gen_class_qualifier(naming_class);
+    }  /* if */
     gen_unqualified_name(&rout->source_corresp, NO_TYPE);
   }  /* if */
 }  /* gen_bound_function */
