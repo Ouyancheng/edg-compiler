@@ -155,13 +155,6 @@ extern a_boolean reconcile_external_symbol_types(
                             a_type_ptr            type_ptr,
                             a_boolean             suppress_incompatible_error);
 
-extern a_boolean reconcile_routine_types(
-                               a_routine_ptr     routine_ptr,
-                               a_source_position *position,
-                               a_type_ptr        type_ptr,
-                               a_boolean         preserve_rout_type,
-                               a_boolean         preserve_type_ptr,
-                               a_boolean         *redecl_error_already_issued);
 extern a_symbol_ptr curr_tag_symbol(a_symbol_kind tag_kind);
 
 extern a_variable_ptr make_variable(a_type_ptr      type_ptr,
