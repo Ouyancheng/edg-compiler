@@ -6317,14 +6317,110 @@ so efficiency is not a prime concern.
 }  /* unget_token */
 
 
-static void get_destructor_name(void)
+static a_symbol_ptr name_matches_base_class(a_type_ptr tp)
+/*
+Determine if the name in the locator matches the name of a base class
+of tp.  If so, return a pointer to the symbol associated with the matching
+base class.
+*/
+{
+  a_base_class_ptr	bcp;
+  a_symbol_ptr		result_sym = NULL;
+
+  bcp = base_classes_of(tp);
+  for (; bcp != NULL; bcp = bcp->next) {
+    /* Get the symbol pointer associated with the base class. */
+    a_symbol_ptr	sym;
+    a_type_ptr		base_type = bcp->type;
+    sym = (a_symbol_ptr)base_type->source_corresp.assoc_info;
+    if (sym->header == locator_for_curr_id.symbol_header) {
+      result_sym = sym;
+      break;
+    }  /* if */
+  }  /* for */
+  return result_sym;
+}  /* name_matches_base_class */
+
+
+static
+a_symbol_ptr look_up_destructor_name(
+		a_symbol_locator		*locator,
+		a_boolean			is_file_scope_qualified_name,
+		a_symbol_ptr			qualifier_sym,
+                a_boolean			no_normal_lookup,
+                an_identifier_options_set	options)
+/*
+Look up the name of a destructor.  The locator provides the name of
+the destructor (the thing following the "~".  qualifier_sym points to
+a symbol that represent the qualifier that preceded the destructor
+name, if any.  is_file_scope_qualified_name is true if a leading :: was
+present.
+*/
+{
+  a_symbol_ptr	type_sym = NULL;
+  clear_specific_symbol(*locator);
+  if (is_file_scope_qualified_name) {
+    type_sym = file_scope_id_lookup(locator, options);
+  } else if (qualifier_sym != NULL && qualifier_sym->is_class_member) {
+    type_sym = class_qualified_id_lookup(locator,
+                                         qualifier_sym->parent.class_type,
+                                         options);
+  } else if (qualifier_sym != NULL && !qualifier_sym->is_class_member &&
+             qualifier_sym->parent.namespace_ptr != NULL) {
+    type_sym = namespace_qualified_id_lookup
+                                         (locator,
+                                          qualifier_sym->parent.namespace_ptr,
+                                          options);
+  } else if (!no_normal_lookup) {
+    type_sym = normal_id_lookup(locator, options);
+  }  /* if */
+  return type_sym;
+}  /* look_up_destructor_name */
+
+
+static void get_destructor_name(a_type_ptr	field_sel_type,
+				a_boolean	is_file_scope_qualified_name,
+				a_symbol_ptr	qualifier_sym)
 /*
 The current token is the "~" at the start of a destructor name.  Scan the
 name and build a locator for the destructor name in locator_for_curr_id.
-Note that this routine does not check that the name is a class name or that
-the destructor exists.  The caller is responsible for ensuring that the
-current token is "~" before calling this routine.  This routine is called
-only in C++ mode.
+
+A destructor declaration can only use the true name of the class.  A
+destructor reference (in a field selection operation), on the other
+hand, can use either the true name of the class or can use a typedef
+that refers to the class.  Because of this, the lookup of the name
+that follows the "~" in a destructor reference is quite complicated.
+
+If the destructor reference is not a qualified name the lookup is done
+as a normal lookup and a lookup in the class of the right operand of
+the field selection.
+
+If the reference is a qualified name the lookup is done as a normal
+lookup, and a lookup in the scope that contains the class specified in
+the qualifier.  For example:
+
+	::A::~B		B is looked up in the file scope
+	X::A::~B	B is looked up in X
+
+In addition to these lookups, the name of the destructor is compared with
+the name of the class of the right operand of the field selection.
+
+If any of these lookups result in a class that matches the class of the
+field selection operation, that result is used as the destructor.
+Otherwise, each of the lookup results is checked to see if it matches
+a base class of the field selection.  If exactly one of the lookups
+matches a base class, that result is used.  If more than one matches, the
+lookup is ambiguous.  If no match is found, the original name is converted
+to a destructor name (e.g., "X" is changed to "~X") and a lookup error
+will be diagnosed by the caller.
+
+The caller is responsible for ensuring that the current token is "~" before
+calling this routine.  This routine is called only in C++ mode.
+
+field_sel_type is NULL except when scanning the right operand of a field
+selection operator, in which case it points to the type of the left operand.
+qualifier_sym points to a symbol that describes the qualifier when
+the destructor is part of a qualified name (e.g., "A::B::~B").
 */
 {
   /* Skip past the "~", check for an identifier. */
@@ -6339,59 +6435,179 @@ only in C++ mode.
     make_specific_symbol_error_locator(&locator_for_curr_id);
   } else {
     /* "~identifier" is present. */
-    if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
-      a_symbol_ptr sym;
-      /* Check for situations like p->~T, where T is a template parameter.
-         This is unlike other template parameter references because the T
-         must be replaced by the actual argument name before the lookup
-         is done.  Lookup the identifier and see if it is a template parameter.
-         If the type kind is tk_template_param then we are in a prototype
-         instantiation and no substitution is attempted.  Note that this
-         routine is not called for nonclass vacuous destructors. */
-      sym = normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
-      if (sym != NULL && sym->is_template_param &&
-          sym->kind == (a_symbol_kind)sk_type &&
-          is_class_symbol(sym)) {
-        a_symbol_ptr		type_sym;
-        a_type_ptr		tp;
-        a_source_position	saved_position;
-        saved_position = locator_for_curr_id.source_position;
-        /* If the template parameter refers to a typedef, skip to the
-           underlying type. */
-        tp = skip_typerefs(sym->variant.type);
-        /* Get the symbol pointer associated with the type pointed to. */
-        type_sym = (a_symbol_ptr)tp->source_corresp.assoc_info;
-        make_locator_for_symbol(type_sym, &locator_for_curr_id);
-        locator_for_curr_id.source_position = saved_position;
+    if (field_sel_type == NULL ||
+        !is_class_struct_union_type(field_sel_type)) {
+      /* Either no field type was provided, or the type provided is not a
+         class type.  Don't do the special lookup processing in this case. */
+    } else {
+      a_symbol_ptr	field_sym;
+      a_symbol_ptr	type_sym = NULL;
+      a_symbol_locator	normal_locator;
+      a_symbol_locator	other_locator;
+      a_symbol_ptr	normal_sym = NULL;
+      a_symbol_ptr	other_sym = NULL;
+      a_symbol_ptr	base_sym = NULL;
+      a_symbol_ptr	ambiguous_sym = NULL;
+      a_boolean		destructor_okay = FALSE;
+      a_boolean		is_nonstd = FALSE;
+      a_type_ptr	normal_tp = NULL;
+      a_type_ptr	other_tp = NULL;
+      a_type_ptr	tp;
+      a_boolean		ambiguous = FALSE;
+
+      field_sel_type = skip_typerefs(field_sel_type);
+      field_sym = (a_symbol_ptr)field_sel_type->source_corresp.assoc_info;
+      check_assertion_str2(field_sym != NULL, "get_destructor_name:",
+                           "NULL assoc_info");
+      if (field_sym->header == locator_for_curr_id.symbol_header) {
+        /* The destructor name matches the class name -- this is a normal
+           destructor reference. */
+        destructor_okay = TRUE;
       } else {
-        /* We don't need to do anything here.  The locator will be reset
-           by tildize_locator. */
+        clear_specific_symbol(locator_for_curr_id);
+        /* Do a normal lookup.  If this produces a class symbol, see if the
+           class matches the field selection class or one of its base classes.
+           If it matches the class, the lookup is done.  If it matches a
+           base, save this result for later.  Make a copy of the locator and
+           use that for the lookup.  A copy is made to preserve other
+           flags set by the lookup (such as the semivisible nested class
+           flag). */
+        normal_locator = locator_for_curr_id;
+        normal_sym = normal_id_lookup(&normal_locator, IDL_MUST_BE_CLASS);
+        if (normal_sym != NULL && is_class_symbol(normal_sym)) {
+          normal_tp = skip_typerefs(normal_sym->variant.type);
+          if (identical_types(field_sel_type, normal_tp)) {
+            type_sym = normal_sym;
+            destructor_okay = TRUE;
+            locator_for_curr_id = normal_locator;
+          } else {
+            if (find_base_class_of(field_sel_type, normal_tp) == NULL) {
+              normal_sym = NULL;
+            }  /* if */
+          }  /* if */
+        }  /* if */
+        if (!destructor_okay) {
+          /* Look up the destructor name based on the qualifier that was
+             present (if any).  If no qualifier was present, look up the
+             destructor in the field selection class. */
+          other_locator = locator_for_curr_id;
+          if (qualifier_sym != NULL || is_file_scope_qualified_name) {
+            other_sym = look_up_destructor_name(&other_locator,
+                                                is_file_scope_qualified_name,
+                                                qualifier_sym,
+                                                /*no_normal_lookup=*/TRUE,
+                                                IDL_MUST_BE_CLASS);
+          } else {
+            other_sym = class_qualified_id_lookup(&other_locator,
+                                                  field_sel_type,
+                                                  IDL_MUST_BE_CLASS);
+          }  /* if */
+          if (other_sym != NULL && is_class_symbol(other_sym)) {
+            other_tp = skip_typerefs(other_sym->variant.type);
+            if (identical_types(field_sel_type, other_tp)) {
+              type_sym = other_sym;
+              destructor_okay = TRUE;
+              /* Set the nonstandard flag because this lookup is not
+                 currently (09/96) specified by the Working Paper. */
+              is_nonstd = TRUE;
+              locator_for_curr_id = other_locator;
+            } else {
+              if (find_base_class_of(field_sel_type, other_tp) == NULL) {
+                other_sym = NULL;
+              }  /* if */
+            }  /* if */
+          }  /* if */
+        }  /* if */
       }  /* if */
-    } else if (any_cfront_mode()) {
-      /* Cfront allows a destructor name to refer to a file scope typedef
-         to a particular class. */
-      a_symbol_ptr sym;
-      sym = file_scope_id_lookup(&locator_for_curr_id,
-                                 IDL_MUST_BE_CLASS_OR_NAMESPACE);
-      if (sym != NULL &&
-          sym->kind == (a_symbol_kind)sk_type && is_class_symbol(sym) &&
-          sym->decl_scope == scope_stack[DEPTH_OF_FILE_SCOPE].number) {
-        a_symbol_ptr		type_sym;
-        a_type_ptr		tp;
+      if (!destructor_okay) {
+        /* None of the lookups match the field selection class.  Determine
+           whether any of them match a base class.  If either of the
+           previous lookups do match a base class, the symbol will still be
+           set to the lookup result.  Otherwise, the symbol (normal_sym and/or
+           other_sym) will have been set to NULL.  The "tp" pointer is used
+           to point to the type of the destructor found.  This is used to
+           determine whether two of the symbols actually point to the same
+           type.  The ambiguous flag is set if two or more of the symbols found
+           point to different types. */
+        tp = NULL;
+        base_sym = name_matches_base_class(field_sel_type);
+        if (base_sym != NULL) tp = type_symbol_type(base_sym);
+        if (base_sym != NULL) type_sym = base_sym;
+        /* Use the normal symbol if the base name lookup failed. */
+        if (normal_sym != NULL && normal_tp != tp) {
+          if (type_sym != NULL) {
+            ambiguous = TRUE;
+            if (ambiguous_sym == NULL) ambiguous_sym = normal_sym;
+          }  /* if */
+          if (!ambiguous) {
+            type_sym = normal_sym;
+            tp = normal_tp;
+            locator_for_curr_id = normal_locator;
+          }  /* if */
+        }  /* if */
+        /* Use the "other" lookup symbol if both the base name lookup and
+           normal lookups produced no result. */
+        if (other_sym != NULL && other_tp != tp) {
+          if (type_sym != NULL) {
+            ambiguous = TRUE;
+            if (ambiguous_sym == NULL) ambiguous_sym = other_sym;
+          }  /* if */
+          if (!ambiguous) {
+            type_sym = other_sym;
+            locator_for_curr_id = other_locator;
+          }  /* if */
+        }  /* if */
+        if (type_sym != NULL) destructor_okay = TRUE;
+      }  /* if */
+      if (!destructor_okay) {
+        /* No match was found -- issue an error. */
+        pos_ty_error(ec_invalid_destructor_name,
+                     &locator_for_curr_id.source_position,
+                     field_sel_type);
+        set_to_error_locator(locator_for_curr_id);
+      } else if (ambiguous) {
+        /* The destructor reference is ambiguous.  Although it is possible for
+           three lookup results to be produced, only two are included in the
+           diagnostic. */
+        pos_sy2_error(ec_ambiguous_destructor,
+                      &locator_for_curr_id.source_position,
+                      type_sym, ambiguous_sym);
+        set_to_error_locator(locator_for_curr_id);
+      } else if (type_sym == NULL) {
+        /* We are using the original destructor name for which we don't
+           need to construct a new locator. */
+      } else {
+        /* The lookup produced a unique symbol. */
         a_source_position	saved_position;
+        if (locator_for_curr_id.is_semivisible_nested_type) {
+          /* The symbol in the locator is a nested class that is not visible
+             according to the ARM lookup rules but is returned in support of
+             the nested class anachronism (ARM 18.3.5). Issue an anachronism
+             diagnostic. */
+          sym_diagnostic(anachronism_error_severity,
+                         ec_nested_class_anachronism,
+                         locator_for_curr_id.specific_symbol);
+        }  /* if */
+        if (is_nonstd && strict_ansi_mode) {
+          /* Issue a diagnostic if this destructor would not be found using
+             the standard lookup rules. */
+          pos_sy_diagnostic(strict_ansi_discretionary_severity,
+                            ec_nonstandard_destructor_reference,
+                            &locator_for_curr_id.source_position, type_sym);
+        }  /* if */
+        /* Create a locator that points to the type described by the symbol
+           that was found. */
         saved_position = locator_for_curr_id.source_position;
-        tp = skip_typerefs(sym->variant.type);
-        /* Get the symbol pointer associated with the type pointed to. */
+        tp = skip_typerefs(type_sym->variant.type);
         type_sym = (a_symbol_ptr)tp->source_corresp.assoc_info;
         make_locator_for_symbol(type_sym, &locator_for_curr_id);
         locator_for_curr_id.source_position = saved_position;
-      } else {
-        /* We don't need to do anything here.  The locator will be reset
-           by tildize_locator. */
       }  /* if */
     }  /* if */
     /* Convert the locator to a locator for the destructor. */
-    tildize_locator(&locator_for_curr_id);
+    if (!is_error_locator(locator_for_curr_id)) {
+      tildize_locator(&locator_for_curr_id);
+    }  /* if */
   }  /* if */
 }  /* get_destructor_name */
 
@@ -7207,7 +7423,9 @@ is returned.
     next_two_tokens(separator, second_token))
 
 
-a_boolean f_is_generalized_identifier_start(an_identifier_options_set options)
+a_boolean f_is_generalized_identifier_start(
+			an_identifier_options_set	options,
+			a_type_ptr			field_sel_type)
 /*
 Determine whether the current token is the start of a "generalized
 identifier" -- a qualified name, identifier, operator name, conversion
@@ -7283,6 +7501,9 @@ an attempt is made to use the thing after the qualifier.
 
 This routine performs ambiguity and access checking on the components of the
 qualified name.
+
+field_sel_type is NULL except when scanning the right operand of a field
+selection operator, in which case it points to the type of the left operand.
 */
 {
   a_type_ptr			qualifier_type = NULL;
@@ -7880,23 +8101,13 @@ qualified name.
 	   we have a typedef name.  For a type name like "int" it will
 	   already have been set. */
         dtor_class_type = qualifier_type;
-        if (is_file_scope_qualified_name) {
-          type_sym = file_scope_id_lookup(&locator_for_curr_id,
-                                          IDL_NO_OPTIONS);
-	} else if (qualifier_sym != NULL && qualifier_sym->is_class_member) {
-          type_sym = class_qualified_id_lookup
-                                             (&locator_for_curr_id,
-                                              qualifier_sym->parent.class_type,
-                                              IDL_NO_OPTIONS);
-        } else if (qualifier_sym != NULL && !qualifier_sym->is_class_member &&
-                   qualifier_sym->parent.namespace_ptr != NULL) {
-          type_sym = namespace_qualified_id_lookup
-                                          (&locator_for_curr_id,
-                                           qualifier_sym->parent.namespace_ptr,
+        /* Look up the destructor name based on the qualifier that was
+           present (if any). */
+        type_sym = look_up_destructor_name(&locator_for_curr_id,
+                                           is_file_scope_qualified_name,
+                                           qualifier_sym,
+                                           /*no_normal_lookup=*/FALSE,
                                            IDL_NO_OPTIONS);
-	} else {
-	  type_sym = normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
-        }  /* if */
         if (type_sym != NULL) {
           /* Make sure the lookup of the destructor type was not ambiguous. */
           check_for_ambiguity(&locator_for_curr_id);
@@ -7936,7 +8147,10 @@ qualified name.
                 (is_qualified_name && qualifier_is_type)) &&
                !is_file_scope_qualified_name) {
       /* The name can be a destructor name like "~A". */
-      if (curr_token == tok_compl) get_destructor_name();
+      if (curr_token == tok_compl) {
+        get_destructor_name(field_sel_type, is_file_scope_qualified_name,
+                            qualifier_sym);
+      }  /* if */
     }  /* if */
     if (locator_for_curr_id.is_destructor_name) {
       /* The position of the current identifier should be the tilde that
@@ -7955,7 +8169,13 @@ qualified name.
              the name of the destructor matches the name of the class. */
           a_symbol_ptr	class_sym;
           class_sym = (a_symbol_ptr)qualifier_type->source_corresp.assoc_info;
-          if (!destructor_name_matches_class_name(class_sym)) {
+          if (is_error_locator(locator_for_curr_id)) {
+             /* An error occurred earlier while checking the destructor. */
+             err = TRUE;
+            /* Set the class type to NULL as an indicator to the
+	       coalesce routine that an error has occurred. */
+             qualifier_type = NULL;
+          } else if (!destructor_name_matches_class_name(class_sym)) {
             pos_ty_error(ec_destructor_name_mismatch, &tilde_position,
 			 qualifier_type);
   	    err = TRUE;

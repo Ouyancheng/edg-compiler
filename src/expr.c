@@ -2055,7 +2055,8 @@ bound with the function in *bound_function_selector.
 {
   a_symbol_ptr          member_sym, projection_member_sym;
   a_boolean             is_arrow_operator, rvalue_result;
-  a_type_ptr            class_struct_union_type, orig_class_struct_union_type;
+  a_type_ptr            class_struct_union_type = NULL;
+  a_type_ptr            orig_class_struct_union_type;
   a_boolean             err = FALSE, processed = FALSE, found_id = FALSE;
   a_boolean             operand_1_is_complete_class = FALSE, local_err;
   a_boolean             need_operand_1_type_check = FALSE;
@@ -2179,7 +2180,7 @@ bound with the function in *bound_function_selector.
       gid_flags |= GID_DTOR_MUST_BE_NONCLASS;
     }  /* if */
   }  /* if */
-  if (is_generalized_identifier_start(gid_flags)) {
+  if (f_is_generalized_identifier_start(gid_flags, class_struct_union_type)) {
     found_id = TRUE;
     member_sym = NULL;
     /* See if the name following the operator is a C++ qualified name, as

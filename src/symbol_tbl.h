@@ -243,7 +243,11 @@ Clear a symbol locator.
 /* Clear the specific symbol field of the locator unless instructed not
    to by the do_not_clear_specific_symbol field of the locator. */
 #define clear_specific_symbol(loc)					\
-{  if (!((loc).do_not_clear_specific_symbol)) (loc).specific_symbol = NULL;}
+{  if (!((loc).do_not_clear_specific_symbol)) {				\
+     (loc).specific_symbol = NULL;					\
+     (loc).is_semivisible_nested_type = FALSE;				\
+   }									\
+}
 
 
 #ifndef LEXICAL_H

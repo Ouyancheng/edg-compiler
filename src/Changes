@@ -30,6 +30,11 @@ and --no_extern_inline_allowed; DEFAULT_EXTERN_INLINE_ALLOWED can be set to
 determine the default, and strict mode turns extern-inline support on while
 cfront mode turns it off.
 
+9/23/96 Use of typedef names in destructor calls
+
+A typedef that refers to a class may now be used in an explicit destructor
+call.  Previously, typedef names were only permitted pseudo-destructor calls.
+
 9/22/96 c_gen_be.c did not compile with CHECKING and STANDALONE_UTILITY_PROGRAM
 
 Due to a change in 2.32, c_gen_be.c did not compile with CHECKING and

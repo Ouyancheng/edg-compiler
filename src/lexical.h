@@ -1409,7 +1409,8 @@ extern void wrapup_rescan_of_pragma_tokens(a_boolean          error_in_pragma,
                                            a_stop_token_array stop_tokens);
 
 extern a_boolean f_is_generalized_identifier_start
-                     (an_identifier_options_set options);
+                     (an_identifier_options_set options,
+                      a_type_ptr                field_sel_type);
 extern a_boolean coalesce_and_lookup_qualified_name
                      (an_identifier_options_set        options,
 		      an_identifier_lookup_mode	       ilm,
@@ -1430,7 +1431,7 @@ extern a_symbol_ptr coalesce_and_lookup_generalized_identifier
             locator_for_curr_id.has_been_coalesced) /* { */ ?		\
     TRUE								\
   /* } else { */ :							\
-    f_is_generalized_identifier_start(options))				\
+    f_is_generalized_identifier_start(options, (a_type_ptr)NULL))	\
   /* } */								\
 
 
