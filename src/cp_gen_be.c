@@ -866,7 +866,8 @@ expression, e.g.,
          processing. */
       skip_type_and_delay_definition(type, is_definition);
     } else if (il_header.source_language == sl_C &&
-               curr_src_seq_entry_is_routine_decl(&rout, &sec_decl)) {
+               curr_src_seq_entry_is_routine_decl(&rout, &sec_decl) &&
+               sec_decl != NULL && sec_decl->implicit_decl) {
       /* An implicit declaration of a function in C.  Ignore the
          source sequence entry. */
       adv_curr_source_sequence_entry();
