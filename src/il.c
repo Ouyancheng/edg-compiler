@@ -1462,7 +1462,7 @@ next-orphaned-entry pointer preceding the entry and the entry prefix.
 /* When orphan processing is not needed, file-scope allocation is like
    allocation in any other memory region. */
 #define do_fs_alloc(ptr, size)                                        \
-  do_alloc((ptr), FILE_SCOPE_MEMORY_REGION, TRUE, (size))
+  do_alloc((ptr), FILE_SCOPE_REGION_NUMBER, TRUE, (size))
 #endif /* ORPHAN_PROCESSING_NEEDED */
 
 
@@ -4996,7 +4996,8 @@ to it.  The entry is allocated in the file scope memory region.
   rp->do_not_instantiate      = FALSE;
   rp->instance_required       = FALSE;
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
-  rp->specific_def	      = FALSE;
+  rp->specific_def            = FALSE;
+  rp->contains_try_block      = FALSE;
   rp->befriending_classes     = NULL;
   rp->virtual_function_number = 0;
 #ifdef FIL
@@ -6452,27 +6453,31 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
       a_source_correspondence *scp;
       a_symbol_ptr            sym;
 
-      if (kind == iek_src_seq_secondary_decl) {
-        a_src_seq_secondary_decl_ptr  sssdp =
-                             (a_src_seq_secondary_decl_ptr)ssep->entity.ptr;
-        scp = &((a_variable_ptr)sssdp->entity.ptr)->source_corresp;
-        pos = &sssdp->decl_position;
+      if (ssep->entity.ptr == NULL) {
+        fputs(" <null entity ptr>", f_debug);
       } else {
-        scp = &((a_variable_ptr)ssep->entity.ptr)->source_corresp;
-        pos = &scp->decl_position;
+        if (kind == iek_src_seq_secondary_decl) {
+          a_src_seq_secondary_decl_ptr  sssdp =
+                               (a_src_seq_secondary_decl_ptr)ssep->entity.ptr;
+          scp = &((a_variable_ptr)sssdp->entity.ptr)->source_corresp;
+          pos = &sssdp->decl_position;
+        } else {
+          scp = &((a_variable_ptr)ssep->entity.ptr)->source_corresp;
+          pos = &scp->decl_position;
+        }  /* if */
+        sym = (a_symbol_ptr)scp->assoc_info;
+        fputs(" (", f_debug);
+        if (sym != NULL && sym->decl_seq > 0) {
+          fprintf(f_debug, "#%lu, ", sym->decl_seq);
+        }  /* if */
+        fprintf(f_debug, "at %lu): \"", pos->seq);
+        if (kind == iek_type) {
+          db_type_name((a_type_ptr)ssep->entity.ptr);
+        } else {
+          db_name(scp);
+        }  /* if */
+        fputc('"', f_debug);
       }  /* if */
-      sym = (a_symbol_ptr)scp->assoc_info;
-      fputs(" (", f_debug);
-      if (sym != NULL && sym->decl_seq > 0) {
-        fprintf(f_debug, "#%lu, ", sym->decl_seq);
-      }  /* if */
-      fprintf(f_debug, "at %lu): \"", pos->seq);
-      if (kind == iek_type) {
-        db_type_name((a_type_ptr)ssep->entity.ptr);
-      } else {
-        db_name(scp);
-      }  /* if */
-      fputc('"', f_debug);
     }  /* if */
     fputc('\n', f_debug);
   }  /* if */
@@ -6678,9 +6683,10 @@ within a function scope.
 }  /* add_to_source_sequence_list */
 
 
-void update_source_sequence_list(char               *entity_ptr,
-                                 an_il_entry_kind   kind,
-                                 a_source_position  *pos)
+void update_source_sequence_list(char                 *entity_ptr,
+                                 an_il_entry_kind     kind,
+                                 a_source_position    *pos,
+                                 a_decl_seq_info_ptr  decl_seq_info)
 /*
 Allocate a source sequence entry for the entity and add it to the list for
 the current scope.  pos is the source position, for use in cases where this
@@ -6688,13 +6694,15 @@ call records a secondary declaration; for entities for which that
 concept does not apply, pos can be NULL.
 */
 {
-  a_source_sequence_entry_ptr   ssep = alloc_source_sequence_entry();
+  a_source_sequence_entry_ptr   ssep, old_ssep = NULL;
   a_src_seq_secondary_decl_ptr  sssdp;
   a_source_correspondence       *scp;
   a_boolean                     force_alloc_in_filescope;
   a_memory_region_number        region_to_switch_back_to;
 
-
+  if (decl_seq_info != NULL) {
+    old_ssep = decl_seq_info->source_sequence_entry;
+  }  /* if */
   if (curr_il_region_number != FILE_SCOPE_REGION_NUMBER &&
       kind != iek_statement && kind != iek_switch_clause &&
 #if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
@@ -6706,7 +6714,16 @@ concept does not apply, pos can be NULL.
   } else {
     force_alloc_in_filescope = FALSE;
   }  /* if */
-  ssep = alloc_source_sequence_entry();
+  if (old_ssep != NULL) {
+    check_assertion(kind == old_ssep->entity.kind);
+    check_assertion(old_ssep->entity.ptr == NULL);
+#if 0
+  /* Check for memory region? */
+#endif /* if 0 */
+    ssep = old_ssep;
+  } else {
+    ssep = alloc_source_sequence_entry();
+  }  /* if */
   /* First set the pointer in the IL entity to point  back to the source
      sequence entry. */
   if (kind == iek_statement) {
@@ -6745,8 +6762,44 @@ concept does not apply, pos can be NULL.
   if (force_alloc_in_filescope) {
     switch_back_to_original_region(region_to_switch_back_to);
   }  /* if */
-  add_to_source_sequence_list(ssep, force_alloc_in_filescope);
+  if (old_ssep == NULL) {
+    add_to_source_sequence_list(ssep, force_alloc_in_filescope);
+  } else {
+#if 0
+    /* ??? */
+#endif /* if 0 */
+  } /* if */
 }  /* update_source_sequence_list */
+
+
+a_source_sequence_entry_ptr add_incomplete_source_sequence_entry(
+                                                     an_il_entry_kind  kind)
+/*
+*/
+{
+  a_source_sequence_entry_ptr   ssep = alloc_source_sequence_entry();
+  a_memory_region_number        region_to_switch_back_to;
+  a_scope_stack_entry_ptr       scope_stack_ptr;
+  a_scope_ptr                   sp;
+
+  check_assertion(kind == (an_il_entry_kind)iek_routine);
+  switch_to_file_scope_region(&region_to_switch_back_to);
+  ssep = alloc_source_sequence_entry();
+  ssep->entity.kind = (a_byte_il_entry_kind)kind;
+  switch_back_to_original_region(region_to_switch_back_to);
+  scope_stack_ptr = &scope_stack[DEPTH_OF_FILE_SCOPE];
+  sp = scope_stack_ptr->il_scope;
+  if (sp->source_sequence_list == NULL) {
+    ssep->prev = NULL;
+    sp->source_sequence_list = ssep;
+  } else {
+    ssep->prev = scope_stack_ptr->last_source_sequence_entry;
+    scope_stack_ptr->last_source_sequence_entry->next = ssep;
+  }  /* if */
+  scope_stack_ptr->last_source_sequence_entry = ssep;
+  ssep->next = NULL;
+  return ssep;
+}  /* add_incomplete_source_sequence_entry */
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
