@@ -1280,13 +1280,6 @@ already_il_name is TRUE.
                 "make_lowered_variable: bad storage class for file scope var");
   }  /* if */
 #endif /* CHECKING */
-#if MAINTAIN_NEEDED_FLAGS
-  if (var_storage_class == (a_storage_class)sc_unspecified) {
-    /* An external variable is reachable from other compilations, so it's
-       needed. */
-    mark_as_needed((char *)var, iek_variable);
-  }  /* if */
-#endif /* MAINTAIN_NEEDED_FLAGS */
   /* Add the variable to the file scope list. */
   add_to_variables_list(var, DEPTH_OF_FILE_SCOPE);
   return var;
@@ -3586,16 +3579,6 @@ virtual function table.
     add_vtbl_entry_init((a_targ_ptrdiff_t)0, (a_routine_ptr)NULL,
                         (a_variable_ptr)NULL, aggr_con, first_virtual);
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
-#if MAINTAIN_NEEDED_FLAGS
-    if (vtbl_var->storage_class == (a_storage_class)sc_unspecified ||
-        vtbl_var->source_corresp.needed) {
-      /* If the variable is external, or static and previously marked as
-         needed, mark it as needed.  Clear the flag first to ensure that
-         the new definition subtree is visited. */
-      vtbl_var->source_corresp.needed = FALSE;
-      mark_as_needed((char *)vtbl_var, iek_variable);
-    }  /* if */
-#endif /* MAINTAIN_NEEDED_FLAGS */
     switch_back_to_original_region(region_to_switch_back_to);
   }  /* if */
 }  /* define_one_virtual_function_table */
@@ -9510,9 +9493,6 @@ Do IL lowering of the indicated scope and everything under it.
                 !is_incomplete_type(var->type)) {
               var->storage_class = (a_storage_class)sc_unspecified;
               var->source_corresp.referenced = TRUE;
-#if MAINTAIN_NEEDED_FLAGS
-              mark_as_needed((char *)var, iek_variable);
-#endif /* MAINTAIN_NEEDED_FLAGS */
             }  /* if */
           }  /* for */
         }  /* if */

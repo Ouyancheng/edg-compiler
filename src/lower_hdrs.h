@@ -23,9 +23,6 @@ lower_hdrs.h -- Inclusion of header files used by files involved in IL
 #include "inline.h"
 #endif /* MINIMAL_INLINING */
 #include "pch.h"
-#if MAINTAIN_NEEDED_FLAGS
-#include "il_walk.h"
-#endif /* MAINTAIN_NEEDED_FLAGS */
 				   
 /******************************************************************************
 *                                                             \  ___  /       *
