@@ -6030,8 +6030,12 @@ at the point of definition.
       return_type = skip_typerefs(routine_type->variant.routine.return_type);
       if (is_immediate_class_type(return_type)) {
         if (is_incomplete_type(return_type)) {
-          (void)add_to_dependent_type_fixup_list(return_type, routine_type,
-                                                 (a_param_type *)NULL);
+          /* The return type is an incomplete class so we can't tell whether
+             special handling will be required for the return.  Enter the
+             routine type on a fixup list and check again when the return
+             type has been defined. */
+          add_to_dependent_type_fixup_list(return_type, routine_type,
+                                           (a_param_type *)NULL);
         } else if (!symbol_supplement_for_class(return_type)->
                                         construction_by_bitwise_copy_allowed) {
           rtsp->value_returned_by_cctor = TRUE;
