@@ -2209,6 +2209,12 @@ scan_paren:
   }  /* if */
   /* Make a pass over the new list, adding default constructors where
      appropriate. */
+  if (exceptions_enabled) {
+    /* Push an object lifetime on which to record destructions required if
+       an exception is thrown during construction. */
+    push_object_lifetime((an_il_entry_kind)iek_none, (char *)NULL,
+                         (an_object_lifetime_kind)olk_constructor_init);
+  }  /* if */
   prev_cip = NULL;
   for (cip = cip_list; cip != NULL; cip = next_cip) {
     a_boolean          is_const_qualified;
@@ -2384,16 +2390,24 @@ scan_paren:
           dip->variant.constructor.args = copy_default_arg_expr_list(ptp);
         }  /* if */
       }  /* if */
-      if (exceptions_enabled && cssp != NULL && cssp->destructor != NULL) {
-        /* If exception handling is enabled, record the destructor in the
-           constructor initializer.  This is required if an exception
-           occurs in the middle of constructing an object of this type --
-           the information is used to register which destructors need to be
-           called for a partially constructed object. */
-        dip->destructor = select_destructor(tp, object_class_type, &err_pos,
-                                            /*honor_virtual=*/FALSE,
-                                            /*evaluated=*/TRUE,
-                                            /*suppress_access_check=*/FALSE);
+      if (exceptions_enabled && cssp != NULL) {
+        if (cssp->destructor != NULL) {
+          /* If exception handling is enabled, record the destructor in the
+             constructor initializer.  This is required if an exception
+             occurs in the middle of constructing an object of this type --
+             the information is used to register which destructors need to be
+             called for a partially constructed object. */
+          dip->destructor = select_destructor(tp, object_class_type, &err_pos,
+                                              /*honor_virtual=*/FALSE,
+                                              /*evaluated=*/TRUE,
+                                              /*suppress_access_check=*/FALSE);
+        }  /* if */
+        /* Now, in case a destructor was found, record the need for a
+           destruction in the context of the current lifetime. */
+        check_assertion(curr_object_lifetime->kind ==
+                              (an_object_lifetime_kind)olk_constructor_init);
+        record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
+                                           /*scope_lifetime=*/FALSE);
       }  /* if */
       if (array_type != NULL &&
           dip->kind == (a_dynamic_init_kind)dik_constructor) {
@@ -2416,6 +2430,11 @@ scan_paren:
     }  /* if */
     prev_cip = cip;
   }  /* for */
+  if (exceptions_enabled) {
+    /* Pop the object lifetime.  Note that the binding will be done as part
+       of this processing if the lifetime is not "useless". */
+    pop_object_lifetime();
+  }  /* if */
   if (uninit_list != NULL) {
     /* Issue an error for uninitialized const and ref members. */
     if (ctor_rout->compiler_generated) {
