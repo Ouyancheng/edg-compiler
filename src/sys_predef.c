@@ -13,14 +13,18 @@ sys_predef.c -- System dependent predefined macros and assertions.
 
 */
 
-#include "basics.h"
-#include "host_envir.h"
-#include "sys_predef.h"
-#include "lang_feat.h"
-#include "cmd_line.h"
-#include "symbol_tbl.h"
+/* Header files common to all files. */
+#include "fe_common.h"
+
+#if HDRSTOP_RECOGNIZED
+/* Mark the end of the sequence of headers subject to precompiled header
+   processing. */
+#pragma hdrstop
+#endif /* HDRSTOP_RECOGNIZED */
+
+/* Additional header files. */
 #include "macro.h"
-#include "fe_init.h"
+#include "sys_predef.h"
 
 
 void enter_system_specific_predefined_macros_and_assertions(void)

@@ -13,17 +13,22 @@ literals.c -- Literal constant conversion to and from internal form.
 
 */
 
-#include "basics.h"
-#include "literals.h"
-#include "il.h"
-#include "cmd_line.h"
-#include "target.h"
-#include "error.h"
-#include "preproc.h"
-#include "lexical.h"
-#include "float_pt.h"
-#include "const_ints.h"
+/* Header files common to all files. */
+#include "fe_common.h"
+/* Include types.h before the hdrstop.  It will cause symbol_tbl.h and
+   lexical.h to be pulled in, too, so they don't need to be specified
+   explicitly. */
 #include "types.h"
+
+#if HDRSTOP_RECOGNIZED
+/* Mark the end of the sequence of headers subject to precompiled header
+   processing. */
+#pragma hdrstop
+#endif /* HDRSTOP_RECOGNIZED */
+
+/* Additional header files. */
+#include "literals.h"
+#include "preproc.h"
 
 
 /* Convert a character hex digit to the associated hex digit value. */
