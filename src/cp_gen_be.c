@@ -1574,7 +1574,8 @@ reference to a bound function.
     /* Put out no name for the topmost level in a non-field anonymous union. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (bound_function && microsoft_mode &&
-             class_type->source_corresp.is_class_member) {
+             (class_type->source_corresp.is_class_member ||
+              class_type->source_corresp.parent.namespace_ptr != NULL)) {
     /* MSVC++ 5.0 has a bug with multi-level qualified names for bound
        functions.  Just put out a single-level qualified name. */
     gen_unqualified_name(&class_type->source_corresp, iek_type);

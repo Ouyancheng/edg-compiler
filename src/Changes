@@ -1,5 +1,14 @@
 Version 2.39
 
+3/20/98   Microsoft compatibility, C++-generating back end: namespace
+          qualified names in bound function reference
+
+A change made previously to suppress qualified names in bound function
+references put out by the C++-generating back end in Microsoft mode, to
+work around a bug in MSVC++ 5.0 (see item 2 of the Changes entry of
+8/25/97), has been extended to cover namespace members as well as
+class members.
+
 3/20/98   C++-generating back end: no storage class on condition declaration
 
 Condition declarations do not allow a storage class.  The C++-generating
