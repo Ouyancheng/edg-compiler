@@ -1987,7 +1987,7 @@ needed.
 
 The principal drawback of the new approach is that it usually requires
 a prelinking step even for programs that don't make use of templates.
-This may require changes in user's Makefiles when creating libraries
+This may require changes in users' Makefiles when creating libraries
 because the object files that comprise the library may need to be
 prelinked before the library is built.
 
