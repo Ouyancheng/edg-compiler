@@ -67,7 +67,7 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
   sizeof(a_variable),
 #ifdef CIL
   sizeof(a_field),
-  sizeof(an_exception_specification),
+  sizeof(a_throw_specification),
 #endif /* ifdef CIL */
   sizeof(a_routine),
   sizeof(a_label),
