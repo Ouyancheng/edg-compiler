@@ -1,5 +1,17 @@
 Version 2.36
 
+4/8/97    Internal error after use of an undefined operator function
+
+An internal error could result when an undefined operator function
+that is first called by name is later called implicitly through use
+of the operator.  This has been fixed.
+
+  struct A {};
+  int main() {
+    A a;
+    operator, +(a, 1);  // internal error processing "a, 1"
+  }
+
 4/8/97    Microsoft compatibility: overloaded operator functions favored
           over built-in operators
 

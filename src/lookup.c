@@ -3172,6 +3172,8 @@ no routine is on the list twice.
        projection symbol, including a synthesized namespace projection symbol
        created by a using-directive lookup. */
     sym_to_find = fundamental_symbol_of(rout_sym);
+    /* Ignore sk_undefined symbols created for error recovery purposes. */
+    if (sym->kind == (a_symbol_kind)sk_undefined) continue;
     check_assertion_str2(
                      sym_to_find->kind == (a_symbol_kind)sk_routine ||
                      sym_to_find->kind == (a_symbol_kind)sk_function_template,
