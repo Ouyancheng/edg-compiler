@@ -475,20 +475,22 @@ Close the open IL output file.  If il_file_name is NULL, the IL file is
 a temporary_file.
 */
 {
+  if (f_il_output != NULL) {
 #if BACK_END_SHOULD_BE_CALLED
-  /* If the intermediate language file is a temp file, delete it. */
-  if (il_file_name == NULL) {
-    close_temp_file(f_il_output);
-  } else {
+    /* If the intermediate language file is a temp file, delete it. */
+    if (il_file_name == NULL) {
+      close_temp_file(f_il_output);
+    } else {
 #endif /* BACK_END_SHOULD_BE_CALLED */
-    /* The  intermediate language file is being written to an external
-       file; close it. */
-    if (fclose(f_il_output)) {
-      str_catastrophe(ec_file_write_error, "intermediate language");
+      /* The  intermediate language file is being written to an external
+         file; close it. */
+      if (fclose(f_il_output)) {
+        str_catastrophe(ec_file_write_error, "intermediate language");
+      }  /* if */
+#if BACK_END_SHOULD_BE_CALLED
     }  /* if */
-#if BACK_END_SHOULD_BE_CALLED
-  }  /* if */
 #endif /* BACK_END_SHOULD_BE_CALLED */
+  }  /* if */
 }  /* close_il_output_file */
 
 

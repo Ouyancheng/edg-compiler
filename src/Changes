@@ -1,5 +1,10 @@
 Version 2.11
 
+9/30/92  close_il_output_file
+
+Change to avoid calling fclose with a NULL pointer when the IL file
+has been closed prematurely because of an error.
+
 9/29/92  referenced flag for virtual function table variables
 
 The referenced flag for virtual function tables (created by IL
