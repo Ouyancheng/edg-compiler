@@ -2027,7 +2027,7 @@ they should be used for the outermost instantiation scope.
      context scope so that its previous scope is the file scope.
      Strictly speaking, this shouldn't be necessary, but is done for safety.
      When a context scope is pushed, the instantiation_context_lookup is used
-     to correctly inspect the defintion, context, and common scopes.  In
+     to correctly inspect the definition, context, and common scopes.  In
      other words, when the previous scope is not already the file scope,
      the previous scope pointer of this scope shouldn't be used. */
   if (depth_of_first_context_scope != NO_SCOPE_DEPTH) {
