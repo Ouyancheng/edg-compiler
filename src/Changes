@@ -1,5 +1,15 @@
 Version 2.46
 
+1/5/01   Poorly worded diagnostic for invalid STDC pragma
+
+The message issued for an invalid STDC pragma was mangled.  This has been
+fixed.
+
+  void f() {
+    int x;
+    #pragma STDC FP_CONTRACT ON
+  }
+
 1/4/01   Spurious error on compiler generated virtual destructor in an
          unnamed namespace
 

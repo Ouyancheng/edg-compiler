@@ -1088,7 +1088,7 @@ ec_invalid_identifier_start_UCN;;"this universal character cannot begin an ident
 ec_exp_string_literal;;"expected a string literal"
 ec_unrecognized_stdc_pragma;;"unrecognized STDC pragma"
 ec_bad_stdc_pragma_arg;;"expected \"ON\", \"OFF\", or \"DEFAULT\""
-ec_stdc_pragma_not_allowed_here;;"a STDC pragma may only appear in the global scope or as the before any statements or declarations in a block scope"
+ec_stdc_pragma_not_allowed_here;;"a STDC pragma may only appear in the global scope or before any statements or declarations in a block scope"
 ec_bad_va_copy;;"incorrect use of va_copy"
 ec_only_applies_to_float_types;;"%s can only be used with floating-point types"
 ec_complex_type_not_allowed;;"complex type is not allowed"
