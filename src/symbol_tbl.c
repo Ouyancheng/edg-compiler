@@ -5390,7 +5390,7 @@ class_type that is a ck_template_param.
   cssp = symbol_supplement_for_class(class_type);
   sym->decl_scope = cssp->member_decl_scope;
 #if RECORD_SCOPE_DEPTH_IN_IL
-  depth = class_type->source_corresp.
+  depth = class_type->source_corresp.scope_depth;
 #endif /* RECORD_SCOPE_DEPTH_IN_IL */
   /* Create the type or constant. */
   if (is_type) {
