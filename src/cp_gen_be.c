@@ -6313,7 +6313,23 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
       }  /* if */
     } else {
       /* Use an lvalue and ".". */
+      a_boolean  overparenthesize = FALSE;
+      if (msvc_is_generated_code_target &&
+          object_expr->kind == (an_expr_node_kind)enk_temp_init &&
+          rout->special_kind == (a_special_function_kind)sfk_operator &&
+          rout->variant.opname_kind == (an_opname_kind)onk_function_call) {
+        /* The Microsoft Visual C++ parser (all versions so far) has a bug
+           that prevents it from parsing something like "S().operator()(x)"
+           in some circumstances.  The workaround is to add two levels of
+           parentheses around the object expression; i.e.
+           "((S())).operator()(x)" (one level of parentheses won't do). */
+        write_tok_str("((");
+        overparenthesize = TRUE;
+      }  /* if */
       gen_lvalue(object_expr);
+      if (overparenthesize) {
+        write_tok_str("))");
+      }  /* if */
       write_tok_ch('.');
     }  /* if */
   }  /* if */

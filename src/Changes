@@ -1,5 +1,23 @@
 Version 3.5
 
+8/5/04   C++-generating back end: MSVC++ cannot parse call to operator()
+
+The C++-generating back end always renders calls to a function call operator
+using explicit member-call syntax.  For example:
+
+  struct S {
+    bool operator()(int);
+  };
+  int main() {
+    if (S()(7));  // Previously rendered as: "if (S().operator()(7));".
+  }               // Now rendered as: "if (((S())).operator()(7));".
+
+In some cases where the operator was applied to a function-style cast (like
+"S()" in the example above), MSVC++ compilers could not parse the resulting
+expression (due to a bug in those compilers).  Adding two levels of
+parentheses in such cases (which we now do) makes the code acceptable to
+Microsoft compilers.
+
 8/5/04   Unneeded template constructors put out in IA-64 ABI with -tused
 
 In the IA-64 ABI, in -tused mode, in some cases constructors of class
