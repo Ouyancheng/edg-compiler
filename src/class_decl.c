@@ -2629,7 +2629,7 @@ or struct definition.  The syntax is
       /* Scan the base class name. */
       base_class_decl_pos = pos_curr_token;
       sym = curr_type_symbol(/*is_new_type_name=*/FALSE, /*in_prescan=*/FALSE);
-      /* Be sure a type symbol was found and that it is identifies a class. */
+      /* Be sure a type symbol was found and that it identifies a class. */
       if (sym == NULL || !is_class_symbol(sym)) {
         /* Not a class symbol.  In most cases, issue and error and skip it.
            When a template param is involved, just skip it. */
