@@ -3555,6 +3555,7 @@ it is set to "" if not needed.
         } else if (ch2 == 'r') {
           /* Scope resolution operator "::". */
           str = "::";
+          *num_operands = 0;
         } else if (ch2 == 'z') {
           /* sizeof(expression) */
           str = "sizeof(";
@@ -3765,10 +3766,20 @@ The syntax is:
         write_id_str(":", dctl);
         ptr = demangle_expression(ptr, dctl);
       } else {
-        /* Special cases: sizeof(type). */
+        /* Special cases: sizeof(type), scope resolution "::" */
         if (strcmp(op_str, "sizeof(") == 0) {
+          /* sizeof(type). */
           write_id_str(op_str, dctl);
           ptr = demangle_type(ptr, dctl);
+        } else if (strcmp(op_str, "::") == 0) {
+          /* Scope resolution "::":
+               sr <type> <name>
+             The <name> is limited to <unqualified-name> or
+             <unqualified-name> <template-args>, but we don't check that. */
+          a_func_block func_block;
+          ptr = demangle_type(ptr, dctl);
+          write_id_str(op_str, dctl);
+          ptr = demangle_name(ptr, &func_block, dctl);
         } else {
           bad_mangled_name(dctl);
         }  /* if */
