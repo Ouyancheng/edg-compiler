@@ -3605,8 +3605,9 @@ promoted out of classes (because that destroys the list of member
 functions, including virtual functions, needed in this process).
 */
 {
-  a_type_ptr  type;
-  a_scope_ptr class_scope, block_scope;
+  a_type_ptr      type;
+  a_scope_ptr     class_scope, block_scope;
+  a_namespace_ptr nsp;
 
   /* Visit all types to find all class types. */
   for (type = scope->types; type != NULL; type = type->next) {
@@ -3616,6 +3617,12 @@ functions, including virtual functions, needed in this process).
       if (class_scope != NULL) {
         define_scope_virtual_function_tables(class_scope);
       }  /* if */
+    }  /* if */
+  }  /* for */
+  /* Visit all namespaces. */
+  for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
+    if (!nsp->is_namespace_alias) {
+      define_scope_virtual_function_tables(nsp->variant.assoc_scope);
     }  /* if */
   }  /* for */
   /* Visit all block scopes. */
@@ -4254,6 +4261,32 @@ Do IL lowering of the indicated type and everything under it.
     }  /* switch */
   }  /* if */
 }  /* lower_type */
+
+
+static void lower_namespace(a_namespace_ptr nsp)
+/*
+Do IL lowering of the indicated namespace and everything under it.
+*/
+{
+  if (!nsp->is_namespace_alias) {
+    /* Lower the members of the namespace.  Note that nothing is promoted out
+       of the namespace at this time (see do_namespace_member_promotion). */
+    lower_scope(nsp->variant.assoc_scope);
+  }  /* if */
+}  /* lower_namespace */
+
+
+static void lower_namespace_list(a_namespace_ptr namespace_list)
+/*
+Do IL lowering of the indicated list of namespaces and everything under it.
+*/
+{
+  a_namespace_ptr nsp;
+
+  for (nsp = namespace_list; nsp != NULL; nsp = nsp->next) {
+    lower_namespace(nsp);
+  }  /* for */
+}  /* lower_namespace_list */
 
 
 static void lower_variable_list(a_variable_ptr variable_list)
@@ -8445,12 +8478,14 @@ promotion_scope, at the position indicated by *insert_pointer, and
 static void do_scope_class_member_promotion(a_scope_ptr scope)
 /*
 Do promotion of members of classes out of those classes in the indicated
-scope and all subscopes.
+scope (the file scope, a function or block scope, or a namespace scope)
+and all subscopes.
 */
 {
-  a_type_ptr    type, next_type, insert_pointer;
-  a_scope_ptr   block_scope;
-  a_scope_depth depth;
+  a_type_ptr      type, next_type, insert_pointer;
+  a_scope_ptr     block_scope;
+  a_scope_depth   depth;
+  a_namespace_ptr nsp;
 
 #if DEBUG
   if (debug_level >= 4) {
@@ -8542,6 +8577,12 @@ scope and all subscopes.
       assoc_pointers_block_of(&scope_stack[depth])->last_type = insert_pointer;
     }  /* if */
   }  /* if */
+  /* Visit all namespaces. */
+  for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
+    if (!nsp->is_namespace_alias) {
+      do_scope_class_member_promotion(nsp->variant.assoc_scope);
+    }  /* if */
+  }  /* for */
   /* Visit all block scopes. */
   for (block_scope = scope->scopes;
        block_scope != NULL;
@@ -8628,6 +8669,7 @@ by things that will be in the file scope.
         }  /* if */
       }  /* if */
     }  /* for */
+    check_assertion(scope->namespaces == NULL);
     /* Visit all block scopes. */
     for (block_scope = scope->scopes;
          block_scope != NULL;
@@ -8842,6 +8884,7 @@ scope) along with the class members.
       assoc_pointers_block_of(&scope_stack[depth])->last_variable = NULL;
     }  /* if */
   }  /* if */
+  check_assertion(scope->namespaces == NULL);
   /* Visit all block scopes and promote the local entities therein. */
   for (block_scope = scope->scopes;
        block_scope != NULL;
@@ -8851,6 +8894,84 @@ scope) along with the class members.
 }  /* promote_local_entities_to_file_scope */
 
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
+
+static void do_namespace_member_promotion(void)
+/*
+Promote the members of all namespaces into the file scope.  This function is
+called at the end of lowering of the file scope, and after members of classes
+have been promoted out of those classes.
+*/
+{
+  a_type_ptr type, prev_type, type_next;
+
+  /* Scan through the file-scope types list.  Whenever a type entry that is
+     a placeholder for a namespace type is encountered, move the namespace
+     type to the file scope list in place of the placeholder.  Namespace
+     types without associated placeholders (e.g., types promoted out of
+     classes into the namespace) as moved to the file scope list ahead of
+     the next namespace type with a placeholder. */
+  prev_type = NULL;
+  for (type = il_header.primary_scope->types;
+       type != NULL;
+       type = type_next) {
+    type_next = type->next;
+    if (type->kind != (a_type_kind)tk_typeref ||
+        !type->variant.typeref.is_placeholder_for_namespace_type) {
+      /* A normal type (not a placeholder).  Keep track of the previous type
+         as an insert location. */
+      prev_type = type;
+    } else {
+      /* A placeholder typeref for a namespace type. */
+      a_type_ptr      namespace_type = type->variant.typeref.type;
+      a_type_ptr      temp_type, temp_type_next;
+      a_namespace_ptr nsp;
+      a_scope_ptr     scope;
+#if DEBUG
+      if (debug_level >= 4) {
+        (void)fprintf(f_debug, "Promoting type out of namespace: ");
+        db_abbreviated_type(namespace_type);
+        (void)fprintf(f_debug, "\n");
+      }  /* if */
+#endif /* DEBUG */
+      check_assertion(!namespace_type->source_corresp.is_class_member);
+      nsp = namespace_type->source_corresp.parent.namespace_ptr;
+      check_assertion(nsp != NULL && !nsp->is_namespace_alias);
+      scope = nsp->variant.assoc_scope;
+      /* Move the namespace_type, and all types preceding it on the namespace
+         types list, into the file scope following prev_type.  Since the
+         types list of the namespace is updated on each of these promotions,
+         the types preceding the namespace_type should only be types without
+         associated placeholders. */
+      for (temp_type = scope->types;
+           /* Termination test in loop. */;
+           temp_type = temp_type_next) {
+        check_assertion_str(temp_type != NULL,
+                    "do_namespace_member_promotion: namespace type not found");
+        /* Save the next pointer since it gets changed when the type is moved
+           to the file scope list. */
+        temp_type_next = temp_type->next;
+        /* Move temp_type to the file scope types list, following prev_type. */
+        if (prev_type == NULL) {
+          add_to_front_of_file_scope_types_list(temp_type);
+        } else {
+          temp_type->next = prev_type->next;
+          prev_type->next = temp_type;
+        }  /* if */
+        prev_type = temp_type;
+        scope->types = temp_type_next;
+        /* Stop on reaching the type pointed to by the placeholder. */
+        if (temp_type == namespace_type) break;
+      }  /* for */
+      /* Remove the placeholder type entry from the list.  It's just
+         discarded. */
+      check_assertion(prev_type != NULL && prev_type->next == type);
+      prev_type->next = type->next;
+    }  /* if */
+  }  /* for */
+  /* Update the "last" pointer for the file-scope types list. */
+  scope_stack[DEPTH_OF_FILE_SCOPE].pointers_block.last_type = prev_type;
+}  /* do_namespace_member_promotion */
+
 
 static void lower_scope_list(a_scope_ptr scope_list)
 /*
@@ -9022,7 +9143,8 @@ Do IL lowering of the indicated scope and everything under it.
   }  /* if */
   lower_constant_list(scope->constants);
   if (lowering_file_scope) {
-    /* Lower the file-scope lists or the lists for a class scope. */
+    /* Lower the file-scope lists or the lists for a class or namespace
+       scope. */
     lower_type_list(scope->types);
     lower_variable_list(scope->variables);
     if (scope_kind == (a_scope_kind)sck_class_struct_union &&
@@ -9076,6 +9198,7 @@ Do IL lowering of the indicated scope and everything under it.
   lower_label_list(scope->labels);
   lower_routine_list(scope->routines);
   lower_asm_entry_list(scope->asm_entries);
+  lower_namespace_list(scope->namespaces);
   if (scope_kind == (a_scope_kind)sck_function) {
     /* A function scope. */
     /* Lower any block scopes within it.  Note that statements are not
@@ -9263,6 +9386,7 @@ C++ to C, so that a C back end can handle it without change.
     /* Promote class members out of the classes. */
     do_scope_class_member_promotion(scope);
     if (lowering_file_scope) {
+      do_namespace_member_promotion();
       /* Generate code to handle file-scope dynamic initializations and
          the corresponding destructions.  This is done after scope class
          member promotions so that the initialization routine is last. */
