@@ -1550,9 +1550,15 @@ routine entry and return TRUE; otherwise return FALSE.
                                                  rp->type)) {
             /* The exception specification for the overriding virtual function
                is less restrictive that that of the overridden function. */
-            pos_sy2_diagnostic(es_discretionary_error,
-                               ec_exception_specs_override_incompat,
-                               source_pos, rout_sym, sym);
+            if (rout->compiler_generated) {
+              /* Issue a warning on a compiler-generated destructor. */
+              pos_sy2_warning(ec_generated_exception_spec_override_incompat,
+                              source_pos, rout_sym, sym);
+            } else {
+              pos_sy2_diagnostic(es_discretionary_error,
+                                 ec_exception_spec_override_incompat,
+                                 source_pos, rout_sym, sym);
+            }  /* if */
           }  /* if */
           record_virtual_function_override(bcp, rp, rout);
           if (shares_virtual_function_info(class_type, bcp)) {
@@ -1644,9 +1650,17 @@ routine entry and return TRUE; otherwise return FALSE.
                       /* The exception specification for the overriding
                          virtual function is less restrictive that that of
                          the overridden function. */
-                      pos_sy2_diagnostic(es_discretionary_error,
-                                         ec_exception_specs_override_incompat,
-                                         source_pos, rout_sym, sym);
+                      if (rout->compiler_generated) {
+                        /* Issue a warning on a compiler-generated constructor
+                           or assignment operator. */
+                        pos_sy2_warning(
+                              ec_generated_exception_spec_override_incompat,
+                              source_pos, rout_sym, sym);
+                      } else {
+                        pos_sy2_diagnostic(es_discretionary_error,
+                                           ec_exception_spec_override_incompat,
+                                           source_pos, rout_sym, sym);
+                      }  /* if */
                     }  /* if */
                     /* Record the virtual function override in the base class
                        entry.  It can be used later, e.g., for building a
@@ -5728,6 +5742,210 @@ class, struct, or union.
 }  /* decl_nonstatic_data_member */
 
 
+static a_symbol_ptr special_function_symbol(
+                                        a_type_ptr               class_type,
+                                        a_special_function_kind  sfkind,
+                                        a_param_type_ptr         first_param,
+                                        a_boolean                *ambiguous)
+/*
+Find a member function (a constructor, destructor, or assignment operator,
+as indicated by sfkind) whose parent class is class_type.  first_param, which
+will be non-NULL for copy constructors and assignment operators, represents
+the first parameter of the member function in a derived class to which the
+the sought-for function corresponds.  If the lookup is successful, return a
+pointer to the symbol; otherwise, return NULL.  If there is more than one
+matching function, set *ambiguous to TRUE.
+*/
+{
+  a_symbol_ptr          sym;
+  a_boolean             class_bitwise_copy, pass_by_value;
+  a_type_qualifier_set  qualifiers;
+
+  if (first_param != NULL) {
+    /* A copy constructor or an assignment operator.  If the parameter is
+       of reference type, the qualifier underneath the reference is
+       significant. */
+    a_type_ptr  tp = first_param->type;
+    if (is_reference_type(tp)) {
+      /* Reference argument. */
+      qualifiers = get_type_qualifiers(type_pointed_to(tp));
+    } else {
+      qualifiers = TQ_NONE;
+    }  /* if */
+  }  /* if */
+  switch (sfkind) {
+    case sfk_constructor:
+      if (first_param == NULL) {
+        /* Default constructor. */
+        sym = find_default_constructor(class_type, ambiguous);
+      } else {
+        /* Copy constructor. */
+        sym = find_copy_constructor(class_type, qualifiers,
+                                    ambiguous, &class_bitwise_copy);
+      }  /* if */
+      break;
+    case sfk_destructor:
+      /* Destructor. */
+      sym = (symbol_supplement_for_class(class_type))->destructor;
+      break;
+    case sfk_operator:
+      /* Assignment operator. */
+      check_assertion(first_param != NULL);
+      sym = find_copy_assignment_operator(class_type, qualifiers,
+                                          ambiguous, &pass_by_value);
+      break;
+    default:
+      unexpected_condition_str2("form_exception_spec...:",
+                                "bad special function kind");
+  }  /* switch */
+  return sym;
+}  /* special_function_symbol */
+
+
+static a_boolean merge_exception_specifications(a_func_info_block  *func_info,
+                                                a_symbol_ptr       sym)
+/*
+Look up the exception specification associated with the member function
+indicated by sym and record it in func_info, merging it with exception
+specification already there, if any.  If sym can throw any exception, return
+TRUE.
+*/
+{
+  a_boolean                            throw_any;
+  an_exception_specification_ptr       old_esp, new_esp;
+  an_exception_specification_type_ptr  old_estp, estp;
+
+  check_assertion(sym->kind == (a_symbol_kind)sk_member_function);
+  /* Fetch the exception specification associated with the member function
+     indicated by sym. */
+  old_esp = sym->variant.routine.ptr->type->
+                  variant.routine.extra_info->exception_specification;
+  if (old_esp == NULL) {
+    /* The function can throw any exception. */
+    throw_any = TRUE;
+  } else {
+    throw_any = FALSE;
+    new_esp = func_info->exception_specification;
+    if (new_esp == NULL) {
+      /* No exception specification has been recorded in func_info yet, so
+         allocate the entry. */
+      new_esp = alloc_exception_specification();
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      new_esp->throw_position = sym->decl_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      func_info->exception_specification = new_esp;
+    }  /* if */
+    /* Now traverse the types specified for the exception specification of the
+       function indicated by sym.  Make a copy of any that does not already
+       appear on the func_info list. */
+    old_estp = old_esp->exception_specification_type_list;
+    for (; old_estp != NULL; old_estp = old_estp->next) {
+      if (old_estp->redundant) {
+        /* Skip it. */
+      } else {
+        /* See if it's already on the list. */
+        estp = new_esp->exception_specification_type_list;
+        for (; estp != NULL; estp = estp->next) {
+          if (identical_types(estp->type, old_estp->type)) {
+            /* It's already on the list. */
+            break;
+          }  /* if */
+        }  /* for */
+        if (estp != NULL) {
+          /* Skip it. */
+        } else {
+          /* It hasn't been added to the list yet.  Allocate a new
+             exception-specification type entry and add it to the list
+             attached to the func_info block.  The order is unimportant, so
+             it can be placed on the front of the list. */
+          estp = alloc_exception_specification_type();
+          estp->type = old_estp->type;
+          estp->next = new_esp->exception_specification_type_list;
+          new_esp->exception_specification_type_list = estp;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return throw_any;
+}  /* merge_exception_specifications */
+
+
+static void form_exception_specification_for_generated_function(
+                                      a_special_function_kind  sfkind,
+                                      a_type_ptr               rout_type,
+                                      a_type_ptr               class_type,
+                                      a_func_info_block        *func_info)
+/*
+Synthesize an exception specification for an implicitly declared (i.e.,
+compiler-generated) member function -- a constructor, destructor, or
+assignment operator, as indicated by sfkind.  rout_type is the type of the
+function being generated, and class_type is its parent class.  The exception
+specification is still recorded in the func_info block at this point in the
+processing.  The synthesized exception specification is the union of all
+exception specifications for the routines that will be called when the
+definition of the compiler-generated member function is finally put out.  For
+instance, if a destructor is implicitly generated, it is assumed to throw all
+exceptions that any destructor it calls (for a base class or nonstatic data
+member) is able to throw.  This routine is only called in C++ mode and only
+when exception support is enabled.
+*/
+{
+  a_base_class_ptr  bcp;
+  a_field_ptr       fp;
+  a_type_ptr        tp;
+  a_symbol_ptr      sym;
+  a_boolean         throw_any = FALSE;
+  a_boolean         ambiguous;
+  a_param_type_ptr  first_param;
+
+  check_assertion(C_dialect == C_dialect_cplusplus && exceptions_enabled);
+  first_param = rout_type->variant.routine.extra_info->param_type_list;
+  /* Go through the base classes looking for matching special functions, and
+     merge the exception specifications. */
+  bcp = base_classes_of(class_type);
+  for (; bcp != NULL; bcp = bcp->next) {
+    if (bcp->direct) {
+      sym = special_function_symbol(bcp->type, sfkind, first_param,
+                                    &ambiguous);
+      if (ambiguous) {
+        /* If there's an ambiguity, assume anything might be thrown. */
+        throw_any = TRUE;
+      } if (sym != NULL) {
+        /* Form the union of exception specifications. */
+        throw_any = merge_exception_specifications(func_info, sym);
+      }  /* if */
+    }  /* if */
+    /* If any exception might be thrown, (i.e., the union is the universe),
+       stop looking. */
+    if (throw_any) break;
+  }  /* for */
+  if (!throw_any) {
+    fp = class_type->variant.class_struct_union.field_list;
+    for (; fp != NULL; fp = fp->next) {
+      tp = fp->type;
+      if (is_array_type(tp)) tp = underlying_array_element_type(tp);
+      tp = skip_typedefs(tp);
+      if (is_immediate_class_type(tp)) {
+        sym = special_function_symbol(tp, sfkind, first_param, &ambiguous);
+        if (ambiguous) {
+          /* If there's an ambiguity, assume anything might be thrown. */
+          throw_any = TRUE;
+        } if (sym != NULL) {
+          /* Form the union of exception specifications. */
+          throw_any = merge_exception_specifications(func_info, sym);
+        }  /* if */
+      }  /* if */
+      /* If any exception might be thrown, stop looking. */
+      if (throw_any) break;
+    }  /* for */
+  }  /* if */
+  if (throw_any) {
+    /* Clear the exception_specification pointer, in case it had been set. */
+    func_info->exception_specification = NULL;
+  }  /* if */
+}  /* form_exception_specification_for_generated_function */
+
+
 static void generate_special_function(a_type_ptr               class_type,
                                       a_param_type_ptr         ptp,
                                       a_special_function_kind  sfkind)
@@ -5795,7 +6013,11 @@ routine body is generated at this time.
     }  /* if */
   }  /* if */
   clear_func_info(&func_info);
-  if (exceptions_enabled) func_info.throw_position = pos_curr_token;
+  if (exceptions_enabled) {
+    func_info.throw_position = pos_curr_token;
+    form_exception_specification_for_generated_function(sfkind, rout_type,
+                                                       class_type, &func_info);
+  }  /* if */
   func_info.is_inline = TRUE;
   /* Create a symbol and enter it in the symbol table, and create a routine
      entry and add it to the routines list for the current scope. */
