@@ -4166,7 +4166,6 @@ FALSE .
 {
   a_type_ptr                     tp = skip_typerefs(field_type);
   a_class_symbol_supplement_ptr  cssp;
-  a_symbol_ptr                   sym;
   an_error_severity              severity = es_none;
 
   db_enter(4, "is_valid_union_field");
