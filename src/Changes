@@ -1,5 +1,14 @@
 Version 2.44
 
+5/12/00  static_cast of bool to pointer-to-member no longer allowed
+
+A static_cast of a bool to a pointer-to-member type is no longer
+accepted.  This was allowed -- probably by mistake -- in some versions
+of the Working Paper, but 5.2.9p6 of the standard makes it clear that
+it no longer is.  Conversions of bool constants to pointer-to-member
+constants used to provoke an internal error.  They now simply get
+an error.
+
 5/9/00   Internal error when defining a friend of a local class with a
          namespace-scope qualified name
 

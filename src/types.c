@@ -4398,15 +4398,16 @@ exception specifications are not checked.
       /* Qualifiers are being dropped. */
       okay = FALSE;
     }  /* if */
-  } else if (impl_conversion_possible(dest_type,
-                                      /*source_is_constant=*/FALSE,
-                                      /*source_is_string_literal=*/FALSE,
-                                      (a_constant *)NULL,
-                                      source_type,
-                                      allow_qualifier_or_eh_mismatch,
-                                      suppress_extensions,
-                                      ec_bad_cast,
-                                      std_conv) ||
+  } else if (!(is_bool_type(source_type) &&
+               impl_conversion_possible(dest_type,
+                                        /*source_is_constant=*/FALSE,
+                                        /*source_is_string_literal=*/FALSE,
+                                        (a_constant *)NULL,
+                                        source_type,
+                                        allow_qualifier_or_eh_mismatch,
+                                        suppress_extensions,
+                                        ec_bad_cast,
+                                        std_conv)) ||
              /* Test for conversion of "void *" to a pointer to object type.
                 This does not fall out of the impl_conversion_possible
                 test for cases like "void *" --> "const char *".  See
@@ -4415,7 +4416,9 @@ exception specifications are not checked.
               is_pointer_type(dest_type) &&
               is_void_type(type_pointed_to(source_type)) &&
               is_object_type(type_pointed_to(dest_type)))) {
-    /* The inverse implicit conversion can be done. */
+    /* The inverse implicit conversion can be done.  Note that the
+       inverse of conversions to bool is not allowed (see [expr.static.cast]
+       paragraph 9). */
     okay = TRUE;
     /* If the conversion is a pointer or pointer to member conversion, make
        sure qualifiers are not being removed. */
