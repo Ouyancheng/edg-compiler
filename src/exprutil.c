@@ -4215,29 +4215,31 @@ the member.
 void revert_gcc_rvalue_to_lvalue_if_possible(an_operand *operand,
                                              a_boolean  ignore_casts)
 /*
-Called only in gcc mode in a context where an lvalue is required.
+Called only in gcc or g++ mode in a context where an lvalue is required.
 If operand is an rvalue that can be turned back into an lvalue, do
 the transformation.  If ignore_casts is TRUE, casts on an lvalue do
 not interfere with turning it back into an lvalue (this is true,
 for example, in something like "(short)i = 0").
 */
 {
-  check_assertion(gcc_mode);
+  check_assertion(gnu_mode);
   if (is_an_rvalue(operand)) {
     if (is_expression_operand(operand)) {
       an_expr_node_ptr expr = operand->variant.expression;
       if (is_operation_node(expr) &&
           (expr->variant.operation.kind == (an_expr_operator_kind)eok_cast ||
-           expr->variant.operation.kind ==
+           (gcc_mode &&
+            (expr->variant.operation.kind ==
                                          (an_expr_operator_kind)eok_question ||
-           expr->variant.operation.kind == (an_expr_operator_kind)eok_comma)) {
+             expr->variant.operation.kind ==
+                                         (an_expr_operator_kind)eok_comma)))) {
         a_boolean converted;
         a_boolean casts_removed = 
              (expr->variant.operation.kind == (an_expr_operator_kind)eok_cast);
         /* See whether we can find an underlying lvalue. */
         conv_rvalue_expr_to_object_pointer(&expr, &converted,
                                            /*see_if_possible=*/TRUE,
-                                           /*gcc_lvalue=*/TRUE,
+                                           /*gcc_lvalue=*/gcc_mode,
                                            ignore_casts,
                                            (a_type_ptr *)NULL);
         if (converted) {
@@ -4250,7 +4252,7 @@ for example, in something like "(short)i = 0").
           }  /* if */
           conv_rvalue_expr_to_object_pointer(&expr, &converted,
                                              /*see_if_possible=*/FALSE,
-                                             /*gcc_lvalue=*/TRUE,
+                                             /*gcc_lvalue=*/gcc_mode,
                                              ignore_casts,
                                              &lvalue_type);
           make_expression_operand(expr, expr->type, operand);
@@ -4278,7 +4280,7 @@ lvalue.  If there is an error, change the operand to an error operand.
   a_type_ptr type;
   a_boolean  is_lvalue_with_complete_type;
 
-  if (gcc_mode) {
+  if (gnu_mode) {
     /* Get an lvalue back from what is ordinarily an rvalue in some cases
        in gcc mode. */
     revert_gcc_rvalue_to_lvalue_if_possible(operand, /*ignore_casts=*/TRUE);
