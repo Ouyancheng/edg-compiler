@@ -1,5 +1,35 @@
 Version 2.40
 
+11/11/98  C++-generating back end: scope in which specialization is
+          put out to represent an instantiation
+
+When TEMPLATES_IN_SOURCE_SEQUENCE_LISTS is configured to TRUE, if a class
+definition contains a template instance reference in which a template
+argument refers that very class, the C++-generating back end now avoids
+when possible putting out the specialization within the scope of the class.
+For example:
+
+  template <class T> struct A { };
+  struct B {
+    A<B> f();
+    struct N;
+    A<N> g();
+  };
+
+The specialization declaration that represents the instantiation of A<B> is
+now put out in front of B, with a non-defining declaration of B preceding
+it.  However, this cannot be done for A<B::N>.  Here's the output:
+
+  template <class T> struct A { };
+  struct B;
+  template<> struct A<B>;         // improved location
+  struct B {
+    A<B> f();
+    struct N;
+    template<> struct A<N>;       // unavoidable
+    A<N> g();
+  };
+
 11/11/98  Support for building source sequence lists reworked
 
 A major overhaul of source sequence list management in the front end has
