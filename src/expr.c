@@ -5713,20 +5713,21 @@ Scan the "&", "^", and "|" operators.  See sections 3.3.10, 3.3.11, and
 }  /* scan_bit_operator */
 
 
-static void sequence_point_after_operand(an_operand *operand)
+static void prepare_for_sequence_point_after_operand(an_operand *operand)
 /*
-There is a sequence point after the evaluation of the indicated operand.
-Commit any references made therein.
+There is a potential sequence point after the evaluation of the indicated
+operand.  Commit all references other than those directly associated
+with the operand.  If it turns out the operator is overloaded in this
+case, there is no sequence point, but flushing the references at this
+point is one of the valid interpretations, so it's okay.  The references
+associated with the operand are left alone, because they can still be
+changed if the operator is overloaded.  In practice, there will almost
+never be any references to flush at this point.
 */
 {
-  /* Clear the references list on the operand, and flush the global list
-     maintained for the current expression. */
-  operand->ref_entries_list = NULL;
-  /* We expect that the operand is not bound. */
-  check_assertion_str(!operand->bound_function,
-                      "sequence_point_after_operand: bound operand");
-  flush_ref_entries_list();
-}  /* sequence_point_after_operand */
+  flush_ref_entries_except(operand->ref_entries_list, (a_ref_entry_ptr)NULL,
+                           curr_expr_ref_entries);
+}  /* prepare_for_sequence_point_after_operand */
 
 
 static void scan_logical_operator(an_operand *operand_1,
@@ -5748,7 +5749,7 @@ standard.
   a_boolean             might_be_overloaded = FALSE;
   int                   prec_level;
   a_boolean             operand_1_transformations_done = FALSE;
-  a_boolean             saved_evaluated = expr_stack->evaluated;
+  a_boolean             saved_evaluated = curr_expr_is_evaluated();
   a_boolean             expr2_evaluated;
 
   db_enter(4, "scan_logical_operator");
@@ -5766,8 +5767,9 @@ standard.
   }  /* if */
   /* Save the position of the operator in case of error. */
   copy_source_position(pos_curr_token, operator_position);
-  /* There is a sequence point after the first operand. */
-  sequence_point_after_operand(operand_1);
+  /* There is a potential sequence point after the first operand, so flush
+     references other than those associated with the first operand. */
+  prepare_for_sequence_point_after_operand(operand_1);
 
   if (C_dialect == C_dialect_cplusplus &&
       opname_symbol_table[opname_kind_for_token[(int)save_token]] != NULL) {
@@ -5778,7 +5780,7 @@ standard.
 
   /* Determine whether or not the second operand should be evaluated. */
   expr2_evaluated = saved_evaluated;
-  if (curr_expr_is_evaluated() && !might_be_overloaded) {
+  if (saved_evaluated && !might_be_overloaded) {
     /* The operator is not overloaded, so it will have the built-in
        meaning.  Examine the first operand to see if it is a constant.
        If so, we can determine whether or not the second operand should be
@@ -5793,6 +5795,9 @@ standard.
       /* See if the first operand is a constant. */
       do_operand_transformations(operand_1, TOPT_NO_OPTIONS);
       operand_1_transformations_done = TRUE;
+      /* There is a sequence point after the first operand, so record any
+         modifications made in that operand. */
+      flush_ref_entries_list();
       /* Note that pointer to member constants are tested by
          op_is_false_constant; that's why the is_scalar_type test is needed. */
       if (is_constant_operand(operand_1) && is_scalar_type(operand_1->type)) {
@@ -5847,6 +5852,11 @@ standard.
     /* Both operands must be scalar. */
     if (!operand_1_transformations_done) {
       do_operand_transformations(operand_1, TOPT_NO_OPTIONS);
+      /* There is a sequence point after the first operand, so record any
+         modifications made in that operand. */
+      flush_ref_entries_except(operand_2.ref_entries_list,
+                               (a_ref_entry_ptr)NULL,
+                               curr_expr_ref_entries);
     }  /* if */
     (void)check_boolean_controlling_expr(operand_1);
     do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
@@ -6072,7 +6082,7 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
   a_type_ptr            unqual_type_pointed_to_2, unqual_type_pointed_to_3;
   a_type_ptr            operation_type_underlying_class;
   a_boolean             operand_2_is_ptr_to_member, operand_3_is_ptr_to_member;
-  a_boolean             saved_evaluated = expr_stack->evaluated;
+  a_boolean             saved_evaluated = curr_expr_is_evaluated();
   a_boolean             expr2_evaluated, expr3_evaluated;
   a_boolean             types_are_the_same = FALSE;
 
@@ -6080,9 +6090,12 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
 
   /* Check the first operand's type. */
   process_boolean_controlling_expression(operand_1);
+  /* There is a sequence point after the first operand, so record any
+     modifications made in that operand. */
+  flush_ref_entries_list();
 
   expr2_evaluated = expr3_evaluated = saved_evaluated;
-  if (curr_expr_is_evaluated()) {
+  if (saved_evaluated) {
     /* If the first operand is a constant and if the constant is zero, evaluate
        the third operand only.  If the first operand is constant and is not a
        constant zero, evaluate the second operand only. */
@@ -6100,9 +6113,6 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
       }  /* if */
     }  /* if */
   }  /* if */
-
-  /* There is a sequence point after the first operand. */
-  sequence_point_after_operand(operand_1);
 
   /* Scan the second operand.   Evaluate the expression if the first
      operand is non-constant or a non-zero constant, and if we are currently
@@ -6825,8 +6835,9 @@ EOPT_DISALLOW_COMMA_OPERATOR).
   /* Save the position of the operator in case of error. */
   copy_source_position(pos_curr_token, operator_position);
 
-  /* There is a sequence point after the first operand. */
-  sequence_point_after_operand(operand_1);
+  /* There is a potential sequence point after the first operand, so flush
+     references other than those associated with the first operand. */
+  prepare_for_sequence_point_after_operand(operand_1);
 
   if (curr_expr_kind_is_const()) {
     /* Comma operator not allowed in constant expressions. */
@@ -6858,6 +6869,11 @@ EOPT_DISALLOW_COMMA_OPERATOR).
     if (!processed) {
       /* Non-operator-function cases. */
       do_operand_transformations(operand_1, TOPT_NO_OPTIONS);
+      /* There is a sequence point after the first operand, so record any
+         modifications made in that operand. */
+      flush_ref_entries_except(operand_2.ref_entries_list,
+                               (a_ref_entry_ptr)NULL,
+                               curr_expr_ref_entries);
       do_operand_transformations(&operand_2,
                                  TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
       /* Simplify the void expression. */
