@@ -2734,9 +2734,10 @@ static a_boolean optimizable_rvalue_selection(an_expr_node_ptr expr,
                                               a_boolean        *comma_case)
 /*
 Return TRUE if the first operand of the given expression (an rvalue selection
-operation) has either of the forms
+operation) has one of the forms
   variable
   (something, variable)
+  *expression
 *comma_case is returned TRUE to indicate the second case.  These forms can
 be optimized by dump_rvalue_selection.
 */
@@ -2750,16 +2751,21 @@ be optimized by dump_rvalue_selection.
     /* The field is being selected from a simple variable (IL lowering
        generates some cases like this for pointer-to-member calls). */
     optimizable = TRUE;
-  } else if (struct_expr->kind == (an_expr_node_kind)enk_operation &&
-             struct_expr->variant.operation.kind ==
-                                            (an_expr_operator_kind)eok_comma) {
-    /* The first operand is a comma expression. */
-    /* Check for a second operand of the comma expression that is the value
-       of a variable. */
-    comma_operand_2 = struct_expr->variant.operation.operands->next;
-    if (comma_operand_2->kind == (an_expr_node_kind)enk_variable) {
+  } else if (struct_expr->kind == (an_expr_node_kind)enk_operation) {
+    an_expr_operator_kind op = struct_expr->variant.operation.kind;
+    if (op == (an_expr_operator_kind)eok_comma) {
+      /* The first operand is a comma expression. */
+      /* Check for a second operand of the comma expression that is the value
+         of a variable. */
+      comma_operand_2 = struct_expr->variant.operation.operands->next;
+      if (comma_operand_2->kind == (an_expr_node_kind)enk_variable) {
+        optimizable = TRUE;
+        *comma_case = TRUE;
+      }  /* if */
+    } else if (op == (an_expr_operator_kind)eok_indirect) {
+      /* The first operand is *expression, so we can easily refer to it
+         as an lvalue. */
       optimizable = TRUE;
-      *comma_case = TRUE;
     }  /* if */
   }  /* if */
   return optimizable;
@@ -2787,6 +2793,9 @@ ANSI C), copy the struct to a temp and select the field from the temp.
      return value of a function returning a struct), the transformation is
      done by changing that to
        (expr2, variable.field)
+     If the struct expression looks like
+       *expr3
+     the field selection is added directly to the expression.
   */
   struct_expr = expr->variant.operation.operands;
   write_tok_ch('(');
@@ -2802,6 +2811,7 @@ ANSI C), copy the struct to a temp and select the field from the temp.
       dump_expr_with_parens(comma_operand_2);
     } else {
       /* (variable).field -> variable.field, a normal C case. */
+      /* Or (*expr3).field --> (*expr3).field */
       dump_expression(struct_expr);
     }  /* if */
   } else {
