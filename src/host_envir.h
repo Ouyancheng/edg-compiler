@@ -629,7 +629,8 @@ in the current translation unit.
 
 /*
 Flag that is TRUE to cause additional IL entries to contain source position
-information.
+information.  Note that this can take a lot of extra space, so you should
+enable this only if you really need it.
 */
 #ifndef EXTRA_SOURCE_POSITIONS_IN_IL
 #define EXTRA_SOURCE_POSITIONS_IN_IL FALSE
