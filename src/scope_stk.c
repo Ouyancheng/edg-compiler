@@ -2184,8 +2184,10 @@ body.  Only called in C++ mode.
               /* An error will already have been issued on the instantiation
                  attempt. */
             } else if (is_inline_virtual) {
-              /* An undefined inline virtual function.  This is definitely an
-                 error when extern inline is TRUE, and is plausibly an error
+              /* An undefined inline virtual function.  This is definitely
+                 an error when extern_inline_allowed is TRUE (because simply
+                 being declared virtual counts as a use, and inline functions
+                 that are used must be defined), and it is plausibly an error
                  otherwise.  However, cfront accepts it (though it may put
                  out bad code). */
               pos_sy_diagnostic(any_cfront_mode() ? es_warning : es_error,
