@@ -6131,7 +6131,7 @@ name lookup.
 }  /* make_using_directive */
 
 
-void namespace_declaration(a_boolean  extern_implied)
+static void namespace_declaration(a_boolean  extern_implied)
 /*
 Scan a namespace declaration, which may be an original namespace definition,
 an extension namespace definition, an unnamed namespace definition, or a
