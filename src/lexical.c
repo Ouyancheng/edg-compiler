@@ -7297,18 +7297,19 @@ Flush tokens in an argument list.
 }  /* flush_to_end_of_arg_list */
 
 
-static a_template_arg_ptr scan_unknown_template_arg_list(void)
+static a_template_arg_ptr scan_unknown_template_arg_list(a_boolean is_nonreal)
 /*
 Scan a template argument list associated with an unknown template
 parameter list.  This is done when scanning the template arguments
 for an explicitly specified function template argument list, when
 the specific template whose arguments are being scanned may not be
-known yet.
+known yet.  is_nonreal is FALSE to indicate that an explicit function
+template argument list is being scanned.
 
-It is also done when the template is a member of a proxy or nonreal class.
-This occurs as a result of constructs like T::A<int>.  In such cases there is
-no template parameter list to use as a basis for the template arguments that
-are scanned.
+When is_nonreal is TRUE, the argument list being scanned is associated with
+a template that is a member of a proxy or nonreal class.  This occurs as a 
+result of constructs like T::A<int>.  In such cases there is no template
+parameter list to use as a basis for the template arguments that are scanned.
 
 For each argument, determine whether it is a type or nontype.  This is
 done using the disambiguation routines.
@@ -7334,12 +7335,20 @@ done using the disambiguation routines.
       type_name(&argument_type);
       arg_ptr->variant.type = argument_type;
     } else {  /* else executed when !is_type_param */
-      /* Scan a constant.  We can't know the type, so use the special
-         type of an unknown template parameter constant. */
-      constant = fs_constant((a_constant_repr_kind)ck_error);
-      scan_template_argument_constant_expression(
+      if (is_nonreal) {
+        /* Scan a constant.  We can't know the type, so use the special
+           type of an unknown template parameter constant. */
+        constant = fs_constant((a_constant_repr_kind)ck_error);
+        scan_template_argument_constant_expression(
                                type_of_unknown_templ_param_constant, constant);
-      arg_ptr->variant.constant = constant;
+        arg_ptr->variant.constant = constant;
+      } else {
+        /* Scan the expression, but retain it in the form of an operand so
+           that the necessary conversions can be done later when the parameter
+           type is known. */
+        arg_ptr->constant_is_an_arg_operand = TRUE;
+        arg_ptr->variant.arg_operand = scan_nontype_template_argument();
+      }  /* if */
     }  /* if */
     /* Link this entry on to the argument list. */
     if (arg_list == NULL) arg_list = arg_ptr;
@@ -7705,7 +7714,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
        have been supplied.  This kind of scan is also done when there
        is no template symbol, which happens if an undefined symbol is
        followed by a template argument list. */
-    arg_list = scan_unknown_template_arg_list();
+    arg_list = scan_unknown_template_arg_list(/*is_nonreal=*/TRUE);
   }  /* if */
   arg_list_processed = TRUE;
   /* We should now be at the closing angle bracket.  Note that we don't
@@ -7904,7 +7913,7 @@ the one actually associated with this reference.
   /* Increment the number of template argument lists that are being scanned. */
   scope_stack[depth_scope_stack].pending_templ_arg_lists++;
   /* Scan the template argument list. */
-  arg_list = scan_unknown_template_arg_list();
+  arg_list = scan_unknown_template_arg_list(/*is_nonreal=*/FALSE);
   /* We should now be at the closing angle bracket.  Note that we don't
      scan the token after the closing angle because we update the current
      token below to represent the original identifier with the newly

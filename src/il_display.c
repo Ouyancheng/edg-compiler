@@ -1517,7 +1517,13 @@ Display the indicated name and template arg list.
       if (ptr->is_type) {
         disp_ptr("  type", (char *)ptr->variant.type, iek_type);
       } else {
-        disp_ptr("  constant", (char *)ptr->variant.constant, iek_constant);
+        if (ptr->is_array_bound_of_unknown_type) {
+          printf("Error: is_array_bound_of_unknown_type");
+        } else if (ptr->constant_is_an_arg_operand) {
+          printf("Error: constant_is_an_arg_operand");
+        } else {
+          disp_ptr("  constant", (char *)ptr->variant.constant, iek_constant);
+        }  /* if */
       }  /* if */
     }  /* for */
   }  /* if */

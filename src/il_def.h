@@ -2492,6 +2492,21 @@ typedef struct a_template_arg {
   a_bit_field	is_array_bound_of_unknown_type:1;
 			/* TRUE if the template argument is a deduced array
 			   bound whose type is not yet known. */
+  a_bit_field	constant_is_an_arg_operand:1;
+			/* When an explicit function template argument list
+			   is scanned, the corresponding parameter type is
+			   not yet known.  Consequently, the argument cannot
+			   be converted to its eventual type, nor can a member
+			   of an overload set be selected.  Instead, the
+			   argument must be retained in a form that permits
+			   such operations to be performed later when the
+			   parameter type (or potential parameter type) is
+			   known.  The argument is represented by the
+			   type "an_arg_operand", which is used within the
+			   expression processing routines.  This flag should
+			   never be set for template arguments that are
+			   part of the IL.  This field will never be
+			   TRUE when is_array_bound_of_unknown_type is TRUE. */
   bitfield_to_avoid_codecenter_warnings()
   union {
     /* When is_type == TRUE. */
@@ -2509,6 +2524,14 @@ typedef struct a_template_arg {
                            parameter being deduced is known and this value
                            is converted into a normal constant parameter.
                            Contains zero if no value has been deduced yet. */
+    /* When is_type == FALSE and constant_is_an_arg_operand is TRUE. */
+    struct an_arg_operand*
+		arg_operand;
+			/* The internal form of a template argument that has
+			   been scanned, but not yet converted to the
+			   type of the corresponding template parameter.
+			   See the comment on constant_is_an_arg_operand for
+			   more information. */
   } variant;
 } a_template_arg;
 

@@ -813,10 +813,12 @@ for each parameter.
          filled in. */
       arg_okay = tap->variant.type != NULL;
     } else {
-      /* A nontype argument -- the argument is okay if the constant has been
-         filled in, or if it is an array bound of unknown type. */
-      arg_okay = tap->is_array_bound_of_unknown_type ||
-                 tap->variant.constant != NULL;
+      /* A nontype argument -- the argument is okay if the constant is not
+         in the form of an operand, has been filled in, or if it is an array
+         bound of unknown type. */
+      arg_okay = !tap->constant_is_an_arg_operand &&
+                 (tap->is_array_bound_of_unknown_type ||
+                  tap->variant.constant != NULL);
     }  /* if */
     if (!arg_okay) {
       result = FALSE;
@@ -2348,6 +2350,9 @@ lengths are permitted.
       /* Unknown array bounds should not escape the type deduction process. */
       check_assertion(!arg1->is_array_bound_of_unknown_type &&
                       !arg2->is_array_bound_of_unknown_type);
+      /* Argument in the form of an operand cannot be compared. */
+      check_assertion(!arg1->constant_is_an_arg_operand &&
+                      !arg2->constant_is_an_arg_operand);
       if (eq_constants(con1, con2) ||
           (error_matches_anything &&
            (is_error_constant(con1) || is_error_constant(con2)))) {
@@ -2687,6 +2692,9 @@ new argument list is created and a NULL pointer is returned.
   a_template_arg_ptr	new_list = NULL;
 
   if (partial_arg_list != NULL) {
+    /* An explicit template argument list was supplied.  Do some initial
+       tests to see if this template is a viable match for the specific
+       arguments. */
     for (tpp = templ_param_list, tap = partial_arg_list;
          tpp != NULL && tap != NULL; tpp = tpp->next, tap = tap->next) {
       a_boolean			is_type_param;
@@ -2695,7 +2703,24 @@ new argument list is created and a NULL pointer is returned.
         arg_kind_mismatch = TRUE;
         break;
       }  /* if */
+      if (!is_type_param) {
+        a_type_ptr	constant_type;
+        check_assertion(tap->constant_is_an_arg_operand);
+        /* Verify that the constant value can be converted to the type of the
+           corresponding template parameter. */
+        constant_type = tpp->param_symbol->variant.constant->type;
+        if (!nontype_template_arg_is_compatible_with_param_type(
+                                    tap->variant.arg_operand, constant_type)) {
+          arg_kind_mismatch = TRUE;
+          break;
+        }  /* if */
+      }  /* if */
     }  /* for */
+    if (!arg_kind_mismatch && tap != NULL && tpp == NULL) {
+       /* There were more arguments specified than there are parameters.
+          This can't be a match. */
+       arg_kind_mismatch = TRUE;
+    }  /* if */
   }  /* if */
   if (!arg_kind_mismatch) {
     a_template_arg_ptr		prev_tap = NULL;
@@ -2717,7 +2742,16 @@ new argument list is created and a NULL pointer is returned.
         if (is_type_param) {
           tap->variant.type = specified_tap->variant.type;
         } else {
-          tap->variant.constant = specified_tap->variant.constant;
+          /* Convert the constant value to the type of the template
+             parameter. */
+          a_type_ptr		constant_type;
+          a_constant_ptr	constant;
+          constant = fs_constant((a_constant_repr_kind)ck_error);
+          constant_type = tpp->param_symbol->variant.constant->type;
+          conv_nontype_template_arg_to_param_type(
+                  specified_tap->variant.arg_operand, constant_type, constant);
+          tap->constant_is_an_arg_operand = FALSE;
+          tap->variant.constant = constant;
         }  /* if */
       }  /* if */
       if (prev_tap == NULL) {
@@ -2853,6 +2887,7 @@ list of a template function.  Returns TRUE if a match is found.
           }  /* if */
         }  /* if */
       } else {
+        check_assertion(!tap->constant_is_an_arg_operand);
         if (tap->variant.constant == NULL) {
           /* No constant has been bound to this template argument yet, so
              just use "constant".  This counts as a match. */
@@ -2997,6 +3032,7 @@ of types after all of the function arguments have been processed.
     } else {
       /* A constant value has already been deduced for this argument. */
       a_constant_ptr	cp = tap->variant.constant;
+      check_assertion(!tap->constant_is_an_arg_operand);
       if (is_integral_type(cp->type)) {
         /* An array bound can only match an integral value.  We have
            a match if the number of elements matches the previously
@@ -3604,6 +3640,7 @@ values, and the handling of array bounds of unknown type.
         /* The template argument has a deduced value with a type.  The
            type must match the declared type.  This test is only needed if
            the type involves a template parameter. */
+        check_assertion(!tap->constant_is_an_arg_operand);
         if (tpp->variant.constant.type_involves_template_param) {
           check_assertion(rout_templ_sym != NULL);
           match = identical_types(constant_type, tap->variant.constant->type);
@@ -4242,7 +4279,7 @@ type based on the template argument list and the template parameter list
       rout_type = scan_member_declaration(parent_class, templ_rout, tip);
 #if 0
       /* We should get the locator position returned. */
-#endif
+#endif /* 0 */
     } else {
       a_decl_flag_set	      do_flags;
       a_func_info_block	      func_info;
