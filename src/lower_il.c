@@ -5671,6 +5671,7 @@ not include the function scope memory region, if any.
          out as external variables) are done elsewhere. */
       routine->storage_class = (a_storage_class)sc_static;
       routine->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
+      routine->source_corresp.externalized = FALSE;
 #if ONE_INSTANTIATION_PER_OBJECT
 #if DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES
       if (one_instantiation_per_object) {
