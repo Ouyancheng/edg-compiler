@@ -9870,6 +9870,8 @@ Lower an stmk_return statement.
 {
   an_expr_node_ptr   return_expr = statement->expr;
   a_statement_ptr    return_statement, assign_statement;
+  a_routine_ptr      routine = innermost_function_scope->variant.routine.ptr;
+  a_type_ptr         routine_type = skip_typerefs(routine->type);
   a_boolean          make_block, any_cleanup_on_return;
   a_dynamic_init_ptr dip;
   a_variable_ptr     temp_var;
@@ -9879,9 +9881,7 @@ Lower an stmk_return statement.
   if (return_expr != NULL) {
     /* Lower the returned expression.  It's an lvalue if the routine returns
        a reference type. */
-    return_type = f_skip_typerefs(innermost_function_scope->
-                                                   variant.routine.ptr->type)->
-                                                   variant.routine.return_type;
+    return_type = routine_type->variant.routine.return_type;
     lower_full_expr(return_expr, /*is_lvalue=*/is_reference_type(return_type),
                     (a_statement_ptr)NULL);
   }  /* if */
@@ -9943,7 +9943,9 @@ Lower an stmk_return statement.
     set_stmt_pos_to_code_pos_for_lowering(expr_stmt);
   } else if (any_cleanup_on_return ||
              (exceptions_enabled &&
-              innermost_function_scope->lifetime != NULL)) {
+              (innermost_function_scope->lifetime != NULL ||
+               routine_type->variant.routine.extra_info->
+                                           exception_specification != NULL))) {
     /* Some code will have to be inserted on return, either for
        cleanup or to pop the exception handling stack entry.  It has
        to be inserted after the evaluation of the return expression,
@@ -9957,8 +9959,7 @@ Lower an stmk_return statement.
     */
     if (return_expr != NULL &&
         !is_invariant_expr(return_expr, /*vars_can_change=*/TRUE) &&
-        innermost_function_scope->variant.routine.ptr->special_kind !=
-                                    (a_special_function_kind)sfk_constructor) {
+        routine->special_kind != (a_special_function_kind)sfk_constructor) {
       /* There is a nonconstant return expression, so use a temporary.
          Note that the return type cannot call for a copy constructor,
          or the routine would be returning its value via an added

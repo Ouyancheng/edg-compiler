@@ -1,5 +1,15 @@
 Version 2.44
 
+1/21/00  Exception thrown in return of function with throw specification
+
+The code generated for IL lowering to handle throw specifications
+was wrong in the case where a function that contains no destructible
+objects and has a throw specification calls a function in the return
+statement.  The throw specification stack entry was popped off the
+stack before the function call was executed.  Now, the return statement
+is broken apart and the function call is done before the throw
+specification stack entry is popped.
+
 1/21/00  Microsoft compatibility: initializing enums with integer values
 
 In Microsoft mode, the front end now allows the initialization of enum
