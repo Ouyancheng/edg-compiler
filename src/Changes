@@ -1,5 +1,11 @@
 Version 3.1
 
+7/10/02  GNU compatibility: __VERSION__ macro
+
+In GNU mode, the __VERSION__ macro is now supported.  The macro
+expands to a string literal, the value of which is specified by
+the GCC_VERSION_STRING configuration macro.
+
 7/9/02   C++-generating back end: name references
 
 When RECORD_FORM_OF_NAME_REFERENCE is TRUE (which it is by default

@@ -421,6 +421,15 @@ The value of the __GNUC_MINOR__ macro in gcc mode.
 #endif /* ifndef GCC_MINOR_VERSION */
 
 /*
+The value of the __VERSION__ macro in gcc mode.  Note that an extra
+set of quotes are needed as this is the actual macro replacement string
+to be used.
+*/
+#ifndef GCC_VERSION_STRING
+#define GCC_VERSION_STRING "\"EDG gcc 3.0 mode\""
+#endif /* GCC_VERSION_STRING */
+
+/*
 Flag that is TRUE if GNU C builtin operators should be accepted in support of
 <stdarg.h> and <varargs.h>.
 */

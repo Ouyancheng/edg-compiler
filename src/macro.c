@@ -4572,6 +4572,9 @@ Enter symbols for the gcc predefined macros.
                            "__GNUC_MINOR__",
                            /*cannot_be_redefined=*/FALSE,
                            /*ref_suppresses_pch_file=*/FALSE);
+  (void)enter_predef_macro(GCC_VERSION_STRING, "__VERSION__",
+                           /*cannot_be_redefined=*/TRUE,
+                           /*ref_suppresses_pch_file=*/FALSE);
   base_file_macro_symbol = enter_predef_macro((char *)NULL, "__BASE_FILE__",
                                             /*cannot_be_redefined=*/TRUE,
                                             /*ref_suppresses_pch_file=*/FALSE);
