@@ -79,7 +79,10 @@ also incorrect.  Now fixed.
 
 6/22/99  Abort on unprototyped definition in C mode
 
-In C mode, the front end used to abort on the following code:
+In C mode, the front end used to abort when an unprototyped function
+declaration was followed by an unprototyped function definition with a
+return type that is different from, but compatible with that of the
+first declaration.
 
   char (*f())[5];
   char (*f(c))[] char c; { return 0; }
