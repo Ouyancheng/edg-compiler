@@ -11428,8 +11428,11 @@ nested classes when their definition appears outside of the class template.
       variant.class_struct_union.extra_info->surrounding_name_linkage_state =
                           scope_stack[depth_scope_stack].default_name_linkage;
 #endif /* BACK_END_IS_CP_GEN_BE */
-    if (cssp->is_prototype_instantiation) {
-      /* This is a prototype instantiation, so the resulting class is
+    if (cssp->is_prototype_instantiation ||
+        (scope_stack[depth_scope_stack].in_prototype_instantiation &&
+         class_type->source_corresp.is_local_to_function)) {
+      /* This is a prototype instantiation or an instantiation of a local
+         class type (template template parameter), so the resulting class is
          "nonreal" (i.e., based on template arguments that include the dummy
          types and constants of template parameters rather than real types and
          constants). Note that for nested classes the flag is set later. */
