@@ -778,15 +778,8 @@ the file scope, do not process it (but record an orphan in the latter case).
             walk_ptr(ptr->variant.array.bound_constant,
                      a_constant_ptr, iek_constant);
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
-            if (ptr->variant.array.element_type != NULL) {
-              walk_ptr(ptr->variant.array.element_type, a_type_ptr, iek_type);
-              definition_needed_if_class(ptr->variant.array.element_type);
-            } else {
-              /* Only error situations should get us here.  (This can happen
-                 because a VLA type was discarded during parsing, but it is
-                 still pointed to by a_vla_dimension.) */
-              check_assertion(total_errors > 0);
-            }  /* if */
+            walk_ptr(ptr->variant.array.element_type, a_type_ptr, iek_type);
+            definition_needed_if_class(ptr->variant.array.element_type);
             break;
           case tk_class:
           case tk_struct:
