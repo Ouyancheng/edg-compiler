@@ -4383,12 +4383,7 @@ nonidentical.
         break;
       case ck_ptr_to_member:
         if (cp1->variant.ptr_to_member.is_function_ptr ==
-                                  cp2->variant.ptr_to_member.is_function_ptr
-#if RECORD_FORM_OF_NAME_REFERENCE
-            && cp1->variant.ptr_to_member.name_reference ==
-                                  cp2->variant.ptr_to_member.name_reference
-#endif /* RECORD_FORM_OF_NAME_REFERENCE */
-                                                                           ) {
+                                  cp2->variant.ptr_to_member.is_function_ptr) {
           if (cp1->variant.ptr_to_member.is_function_ptr) {
             eq = corresponding_routines(
                                   cp1->variant.ptr_to_member.variant.routine,
@@ -4786,6 +4781,13 @@ put it on a list of constants).
        not be shared. */
     scp = alloc_unshared_constant(cp);
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+#if RECORD_FORM_OF_NAME_REFERENCE
+  } else if (cp->kind == (a_constant_repr_kind)ck_ptr_to_member &&
+             cp->variant.ptr_to_member.name_reference != NULL) {
+    /* Pointer to member constants with an attached name reference should
+       not be shared. */
+    scp = alloc_unshared_constant(cp);
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   } else if (cp->kind == (a_constant_repr_kind)ck_template_param &&
              !prototype_instantiations_in_il) {
     /* Template param constants should not be made part of the IL tree proper.
