@@ -1703,7 +1703,7 @@ end_scan_for_macro_modifs:;
              is "undefined" behavior according to the standard.  Do not
              generate the warning if the argument was ended because of
              the end of source or of a preprocessing directive. */
-          if (map->raw_len == 0 &&
+          if (strict_ansi_mode && map->raw_len == 0 &&
               (curr_token != tok_end_of_source && curr_token != tok_newline)) {
             warning(ec_empty_macro_argument);
           }  /* if */
