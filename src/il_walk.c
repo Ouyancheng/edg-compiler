@@ -353,6 +353,16 @@ walked immediately.
    ((entry_kind) == iek_routine)))
 
 
+#if DO_IL_LOWERING
+/*
+Macro that returns TRUE if the class parent information in an entry of kind
+entry_kind will remain after IL lowering is done.
+*/
+#define parent_will_exist_after_lowering(entry_kind) \
+  (suppress_il_lowering || entry_kind == iek_field)
+#endif /* DO_IL_LOWERING */
+
+
 static a_boolean prune_needed_flag_il_walk(char             *entry_ptr,
                                            an_il_entry_kind entry_kind)
 /*
@@ -417,6 +427,21 @@ as needed.
              needed. */
           prune = TRUE;
         }  /* if */
+      }  /* if */
+      if (prune && scp->is_class_member
+#if DO_IL_LOWERING
+          /* Do not process parent information that will be removed by
+             IL lowering. */
+          && parent_will_exist_after_lowering(entry_kind)
+#endif /* DO_IL_LOWERING */
+                                                         ) {
+        /* When the subtree is not going to be walked now and the entity is
+           a class member, mark the parent as needed anyway.  This is done
+           in the normal processing, but we're suppressing that by not walking
+           the subtree. */
+        a_type_ptr parent_class = scp->parent.class_type;
+        walk_tree_and_set_needed((char *)parent_class, iek_type);
+        set_class_definition_needed(parent_class);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -702,7 +727,13 @@ to be kept.
         prune = TRUE;
       }  /* if */
     }  /* if */
-    if (prune) {
+    if (prune
+#if DO_IL_LOWERING
+        /* Do not process parent information that will be removed by
+           IL lowering. */
+        && parent_will_exist_after_lowering(entry_kind)
+#endif /* DO_IL_LOWERING */
+                                                       ) {
       /* When the subtree is not going to be walked now and the entity is
          a class member, mark the parent as needed anyway.  This is done
          in the normal processing, but we're suppressing that by not walking
