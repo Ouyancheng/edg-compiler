@@ -918,6 +918,7 @@ ec_unexpected_type_for_size_t;;"declaration of \"size_t\" does not match the exp
 ec_exp_gt_not_shift_right;;"space required between adjacent \">\" delimiters of nested template argument lists (\">>\" is the right shift operator)"
 ec_bad_multibyte_char_locale;;"could not set locale %sq to allow processing of multibyte characters"
 ec_bad_multibyte_char;;"invalid multibyte character sequence"
+ec_bad_type_from_instantiation;;"template instantiation resulted in unexpected function type of %t1 (the meaning of a name may have changed since the template declaration -- the type of the template is %t2)"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
