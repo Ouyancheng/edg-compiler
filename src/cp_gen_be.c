@@ -3148,6 +3148,69 @@ pragmas and macros.  Return TRUE if anything was processed.
   return anything_processed;
 }  /* process_preprocessing_directives */
 
+#if GNU_EXTENSIONS_ALLOWED
+
+static void write_alignment_attribute(a_targ_alignment alignment)
+/*
+Write out an alignment attribute to indicate the explicit alignment
+given to the entity just declared.
+*/
+{
+  write_tok_str(" __attribute__((__aligned__(");
+  write_unsigned_num((a_host_large_unsigned)alignment);
+  write_tok_str(")))");
+}  /* write_alignment_attribute */
+
+
+static void write_type_attributes(a_type_ptr type)
+/*
+Write out attributes that apply to the indicated type.
+*/
+{
+  if (type->variant.integer.packed) {
+    /* Output the "packed" attribute. */
+    write_tok_str(" __attribute__((__packed__))");
+  }  /* if */
+  if (type->variables_are_implicitly_referenced) {
+    /* Output the "unused" attribute. */
+    write_tok_str(" __attribute__((__unused__))");
+  }  /* if */
+  if (type->alignment_set_explicitly) {
+    /* Output an attribute to indicate the explicit alignment. */
+    write_alignment_attribute(type->alignment);
+  }  /* if */
+}  /* write_type_attributes */
+  
+
+static void write_variable_attributes(a_variable_ptr var)
+/*
+Write out attributes that apply to the indicated variable.
+*/
+{
+  if (var->alignment != 0) {
+    /* Output the alignment attribute. */
+    write_alignment_attribute(var->alignment);
+  }  /* if */
+}  /* write_variable_attributes */
+
+
+static void write_routine_attributes(a_routine_ptr rout)
+/*
+Write out attributes that apply to the indicated routine.
+*/
+{
+  /* If this is an initialization routine, arrange for it to be
+     called. */
+  if (rout->is_initialization_routine) {
+    write_tok_str(" __attribute__((__constructor__))");
+  }  /* if */
+  /* Similarly, for finalization routines. */
+  if (rout->is_finalization_routine) {
+    write_tok_str(" __attribute__((__destructor__))");
+  }  /* if */
+}  /* write_routine_attributes */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 static void gen_enum_definition(a_type_ptr type)
 /*
@@ -3240,6 +3303,10 @@ is the one associated with the definition of the enum.
     adv_curr_source_sequence_entry();
   }
   write_tok_ch('}');
+#if GNU_EXTENSIONS_ALLOWED
+  /* Emit any attributes associated with the type. */
+  write_type_attributes(type);
+#endif /* GNU_EXTENSIONS_ALLOWED */
 }  /* gen_enum_definition */
 
 
@@ -3714,6 +3781,10 @@ is the one associated with the definition of the class.
   }
   if (il_header.source_language == sl_Cplusplus) pop_name_context();
   write_tok_ch('}');
+#if GNU_EXTENSIONS_ALLOWED
+  /* Emit any attributes associated with the type. */
+  write_type_attributes(type);
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if USER_CONTROL_OF_STRUCT_PACKING
   if (pack_alignment > 0) {
     /* Restore the packing alignment to a default state. */
@@ -3798,6 +3869,10 @@ declaration following this one is such a continuation.
                                          iek_type, sec_decl, TQ_NONE,
                                          suppress_specifiers,
                                          GDO_NO_OPTIONS);
+#if GNU_EXTENSIONS_ALLOWED
+      /* Emit any attributes associated with the type. */
+      write_type_attributes(under_type);
+#endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
     /* See if there are comma-separated declarations attached to this one. */
     *another_decl_in_comma_list =
@@ -7594,7 +7669,7 @@ Generate code for the indicated statement.
       gen_expr_with_parens(statement->expr);
       write_tok_ch(';');
       break;
-#endif
+#endif /* GNU_EXTENSIONS_ALLOWED */
     case stmk_label:
       /* Label statement: generate "name:;".  Note that labels generated for
          "break" and "continue" were thrown away above and do not get here. */
@@ -8287,6 +8362,10 @@ declaration following this one is such a continuation.
                                      force_unqualified_name ?
                                                    GDO_FORCE_UNQUALIFIED_NAME :
                                                    GDO_NO_OPTIONS);
+#if GNU_EXTENSIONS_ALLOWED
+  /* Emit attributes associated with this variable. */
+  write_variable_attributes(var);
+#endif /* GNU_EXTENSIONS_ALLOWED */
   /* Output the initializer, if any, but only if this is a definition.
      For member constants (static data members initialized within the
      class), the initializer gets put out on the declaration rather than
@@ -8931,6 +9010,10 @@ TRUE if the declaration following this one is such a continuation.
     /* A declaration of the routine. */
     /* For a pure virtual function, add "= 0". */
     if (rout->pure_virtual) write_tok_str(" = 0");
+#if GNU_EXTENSIONS_ALLOWED
+    /* Emit attributes associated with the routine. */
+    write_routine_attributes(rout);
+#endif /* GNU_EXTENSIONS_ALLOWED */
     /* See if there are comma-separated declarations attached to this one. */
     *another_decl_in_comma_list =
              another_declaration_in_comma_list_follows(rout_type,

@@ -1921,7 +1921,7 @@ Write out attributes that apply to the indicated type.
     write_tok_str(" __attribute__((__packed__))");
   }  /* if */
   if (type->variables_are_implicitly_referenced) {
-    /* Output the "used" attribute. */
+    /* Output the "unused" attribute. */
     write_tok_str(" __attribute__((__unused__))");
   }  /* if */
   if (type->alignment_set_explicitly) {
@@ -1930,6 +1930,35 @@ Write out attributes that apply to the indicated type.
   }  /* if */
 }  /* write_type_attributes */
   
+
+static void write_variable_attributes(a_variable_ptr var)
+/*
+Write out attributes that apply to the indicated variable.
+*/
+{
+  if (var->alignment != 0) {
+    /* Output the alignment attribute. */
+    write_alignment_attribute(var->alignment);
+  }  /* if */
+}  /* write_variable_attributes */
+
+
+static void write_routine_attributes(a_routine_ptr rout)
+/*
+Write out attributes that apply to the indicated routine.
+*/
+{
+  /* If this is an initialization routine, arrange for it to be
+     called. */
+  if (rout->is_initialization_routine) {
+    write_tok_str(" __attribute__((__constructor__))");
+  }  /* if */
+  /* Similarly, for finalization routines. */
+  if (rout->is_finalization_routine) {
+    write_tok_str(" __attribute__((__destructor__))");
+  }  /* if */
+}  /* write_routine_attributes */
+
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 static void dump_typedef_decl(a_type_ptr type)
@@ -2256,10 +2285,8 @@ final semicolon if output_final_semi is TRUE.
     indent -= 2;
     write_tok_ch('}');
 #if GNU_EXTENSIONS_ALLOWED
-    if (type->alignment_set_explicitly) {
-      /* Output an attribute to indicate the explicit alignment. */
-      write_alignment_attribute(type->alignment);
-    }  /* if */
+    /* Emit any attributes associated with the type. */
+    write_type_attributes(type);
 #endif /* GNU_EXTENSIONS_ALLOWED */
     if (output_final_semi) write_tok_ch(';');
 #if USER_CONTROL_OF_STRUCT_PACKING
@@ -5461,11 +5488,8 @@ parameters.
       }  /* if */
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
 #if GNU_EXTENSIONS_ALLOWED
-      /* If there is an explicit alignment for this variable, emit it
-	 here. */
-      if (variable->alignment != 0) {
-	write_alignment_attribute(variable->alignment);
-      }  /* if */
+      /* Emit attributes associated with this variable. */
+      write_variable_attributes(variable);
 #endif /* GNU_EXTENSIONS_ALLOWED */
       /* Dump the initializer if there is a constant one or if the
          variable should be initialized to zero. */
@@ -6118,7 +6142,7 @@ Generate C for a statement.
       dump_expr_with_parens(statement->expr);
       write_tok_ch(';');
       break;
-#endif
+#endif /* GNU_EXTENSIONS_ALLOWED */
     case stmk_label:
       if (start_unreferenced_bracket(
                               &statement->variant.label.ptr->source_corresp)) {
@@ -6879,15 +6903,8 @@ if this routine has a body (dump nothing if it has no body).
       }  /* if */
 #endif /* GCC_IS_C_GEN_BE_TARGET && !USE_INIT_SECTION_IN_GENERATED_C */
 #if GNU_EXTENSIONS_ALLOWED
-      /* If this is an initialization routine, arrange for it to be
-	 called. */
-      if (rout->is_initialization_routine) {
-        write_tok_str(" __attribute__((__constructor__))");
-      }  /* if */
-      /* Similarly, for finalization routines. */
-      if (rout->is_finalization_routine) {
-        write_tok_str(" __attribute__((__destructor__))");
-      }  /* if */
+      /* Emit attributes associated with the routine. */
+      write_routine_attributes(rout);
 #endif /* GNU_EXTENSIONS_ALLOWED */
       write_tok_ch(';');
 #if SUNPRO_C_IS_C_GEN_BE_TARGET

@@ -137,8 +137,9 @@ Scan the arguments to an attribute, and store them in the attribute
 provided.
 */
 {
-  char *name;
-  int i;
+  char               *name;
+  int                i;
+  a_source_position  pos = error_position;
 
   /* Different kinds of attributes take different kinds of 
      arguments.  */
@@ -165,7 +166,7 @@ provided.
           if (ovflo || 
               !check_pack_alignment_value(alignment,
                                           &attribute->variant.alignment)) {
-            error(ec_bad_attribute_alignment);
+            pos_error(ec_bad_attribute_alignment, &pos);
             error_occurred = TRUE;
           }  /* if */
         }  /* if */
@@ -218,8 +219,9 @@ provided.
   goto done;
 
   error:
-  str_error(ec_invalid_argument_to_attribute,
-            attribute_kind_names[(int)attribute->kind]);
+  pos_st_error(ec_invalid_argument_to_attribute,
+               &pos,
+               attribute_kind_names[(int)attribute->kind]);
   flush_tokens();
 
   done:
