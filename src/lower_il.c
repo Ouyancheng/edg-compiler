@@ -10432,73 +10432,43 @@ the expression have already been lowered.
 
 #if LOWER_LVALUE_RETURNING_OPERATIONS
 
+#if GNU_EXTENSIONS_ALLOWED
+
+static void check_expr_for_statement_expression(
+                                    an_expr_node_ptr                    expr,
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+Called from traverse_expr to check whether the expression is a
+statement expression.
+*/
+{
+  if (expr->kind == (a_statement_kind)enk_statement) {
+    /* This expression is a statement expression.  Stop the tree walk. */
+    tblock->result = TRUE;
+    tblock->terminate = TRUE;
+  }  /* if */
+}  /* check_expr_for_statement_expression */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
 #if !GNU_EXTENSIONS_ALLOWED
 /*ARGSUSED*/ /* <-- expr is not used in that case. */
 #endif /* !GNU_EXTENSIONS_ALLOWED */
-static a_boolean has_statement_expression(an_expr_node_ptr  expr)
+static a_boolean has_statement_expression(an_expr_node_ptr expr)
 /*
 Return whether expr contains a statement expression (a GNU extension).
 */
 {
-  a_boolean         result = FALSE;
+  a_boolean result = FALSE;
 
 #if GNU_EXTENSIONS_ALLOWED
-  if (gcc_mode) {
-    switch (expr->kind) {
-      case enk_error:
-      case enk_address_of_ellipsis:
-      case enk_constant:
-      case enk_variable:
-      case enk_variable_address:
-      case enk_routine_address:
-      case enk_field:
-#if DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
-      case enk_result_of_overriding_function:
-#endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
-        /* No subexpressions. */
-        break;
-      case enk_operation:
-        /* Check if any subexpression has a statement expression. */
-        { an_expr_node_ptr  operand;
-          for (operand = expr->variant.operation.operands;
-               operand != NULL;
-               operand = operand->next) {
-            if (has_statement_expression(operand)) {
-              result = TRUE;
-              break;
-            }  /* if */
-          } /* for */
-        }
-        break;
-      case enk_temp_init:
-        { a_dynamic_init_ptr  dip = expr->variant.init.dynamic_init;
-          if (dip->kind == (a_dynamic_init_kind)dik_expression) {
-            /* This is the only relevant case in C mode. */
-            result = has_statement_expression(dip->variant.expression);
-          }  /* if */
-        }
-        break;
-      case enk_runtime_sizeof:
-        if (!expr->variant.runtime_sizeof.is_type) {
-          result = has_statement_expression(
-                                   expr->variant.runtime_sizeof.variant.expr);
-        }  /* if */
-        break;
-      case enk_statement:
-        result = TRUE;
-        break;
-      case enk_new_delete:
-      case enk_throw:
-      case enk_condition:
-      case enk_object_lifetime:
-      case enk_typeid:
-#if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
-      case enk_lowered_eh_construct:
-#endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
-        /* C++ only and there are no statement expressions in C++ mode. */
-      default:
-        unexpected_condition();
-    }  /* switch */
+  if (gnu_mode) {
+    an_expr_or_stmt_traversal_block tblock;
+
+    clear_expr_or_stmt_traversal_block(&tblock);
+    tblock.process_expr = check_expr_for_statement_expression;
+    traverse_expr(expr, &tblock);
+    result = tblock.result;
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   return result;
