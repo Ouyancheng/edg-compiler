@@ -700,6 +700,27 @@ in preprocessing output.  see gen_pp_line_info in lexical.c.
 #endif /* ifndef GEN_EXTRA_LINE_ID_INFO */
 
 /*
+Flag that is TRUE if the front end should include support for
+precompiled header processing.
+*/
+#ifndef SUPPORT_PRECOMPILED_HEADERS
+#define SUPPORT_PRECOMPILED_HEADERS TRUE
+#endif /* SUPPORT_PRECOMPILED_HEADERS */
+
+/*
+USE_MMAP_FOR_MEMORY_REGIONS is TRUE if memory mapping available for use
+in allocating memory regions.  By default, it is assumed to be available
+on systems other than MS-DOS.
+*/
+#ifndef USE_MMAP_FOR_MEMORY_REGIONS
+#if __MSDOS__
+#define USE_MMAP_FOR_MEMORY_REGIONS FALSE
+#else /* !__MSDOS__ */
+#define USE_MMAP_FOR_MEMORY_REGIONS TRUE
+#endif /* __MSDOS__ */
+#endif /* ifndef USE_MMAP_FOR_MEMORY_REGIONS */
+
+/*
 The flags HOSTID and HOSTID2 can be set to host id numbers if the
 front end is only allowed to be run on a few CPUs.  They should be left
 undefined otherwise.  An example of proper setting is
@@ -1045,19 +1066,6 @@ extern DOES_NOT_RETURN exit_compilation(an_error_severity severity);
 
 /* Get the next file name from the current directory. */
 extern char *get_file_name_from_curr_dir(a_boolean first);
-
-/*
-USE_MMAP_FOR_MEMORY_REGIONS is TRUE if memory mapping available for use
-in allocating memory regions.  By default, it is assumed to be available
-on systems other than MS-DOS.
-*/
-#ifndef USE_MMAP_FOR_MEMORY_REGIONS
-#if __MSDOS__
-#define USE_MMAP_FOR_MEMORY_REGIONS FALSE
-#else /* !__MSDOS__ */
-#define USE_MMAP_FOR_MEMORY_REGIONS TRUE
-#endif /* __MSDOS__ */
-#endif /* ifndef USE_MMAP_FOR_MEMORY_REGIONS */
 
 #if USE_MMAP_FOR_MEMORY_REGIONS
 extern int get_page_size(void);
