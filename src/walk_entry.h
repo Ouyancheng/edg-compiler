@@ -1815,10 +1815,12 @@ the file scope, do not process it (but record an orphan in the latter case).
                                        (a_source_sequence_entry_ptr)entry_ptr;
         an_il_entry_kind            kind = (an_il_entry_kind)ptr->entity.kind;
 
+#if !KEEP_IN_IL_WALK
         remap_next_ptr(ptr->next, a_source_sequence_entry_ptr,
                        iek_source_sequence_entry);
         remap_ptr(ptr->prev, a_source_sequence_entry_ptr,
                   iek_source_sequence_entry);
+#endif /* !KEEP_IN_IL_WALK */
 #if CHECKING
         /* Check for empty source sequence entries that remain in the IL. */
         if (kind == (an_il_entry_kind)iek_none) {
@@ -1869,6 +1871,7 @@ the file scope, do not process it (but record an orphan in the latter case).
         }  /* if */
       }
       break;
+#if !KEEP_IN_IL_WALK
     case iek_src_seq_sublist:
       {
         a_src_seq_sublist_ptr ptr = (a_src_seq_sublist_ptr)entry_ptr;
@@ -1879,6 +1882,7 @@ the file scope, do not process it (but record an orphan in the latter case).
                   iek_source_sequence_entry);
       }
       break;
+#endif /* !KEEP_IN_IL_WALK */
 #if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
     case iek_comment:
       /* No pointers. */
