@@ -582,7 +582,10 @@ typedef enum /*an_error_code*/ {
   ec_previously_included_throw_type,
   ec_no_exception_support,
   ec_omitted_throw_specification,
-  ec_cannot_create_instantiation_information_file
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
+  ec_cannot_create_instantiation_information_file,
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+  ec_non_arith_operation_in_templ_arg
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 

@@ -816,7 +816,7 @@ error code.
       }  /* if */
       break;
     case ec_non_zero_int_conv_to_pointer:
-      m = "conversion of non-zero integer to pointer";
+      m = "conversion of nonzero integer to pointer";
       break;
     case ec_expr_not_struct_or_union:
       if (C_dialect == C_dialect_cplusplus) {
@@ -2005,8 +2005,13 @@ error code.
     case ec_omitted_throw_specification:
       m = "omission of throw specification is incompatible with previous %nd";
       break;
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
     case ec_cannot_create_instantiation_information_file:
       m = "could not create instantiation information file %sq";
+      break;
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+    case ec_non_arith_operation_in_templ_arg:
+      m = "non-arithmetic operation not allowed in nontype template argument";
       break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
