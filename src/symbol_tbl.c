@@ -1238,11 +1238,12 @@ a_symbol_ptr find_symbol(char             *identifier,
 			 sizeof_t         length,
 			 a_symbol_locator *location)
 /*
-Look up a symbol in the table.  If the symbol header is not there, create one
-and set the symbol locator to point to the header.  Note that the source
-position in the locator is not changed; usually, it will have been set
-by get_token when an identifier is scanned, but sometimes the caller may
-have to set it directly.
+Look up a symbol in the symbol table.  Return a pointer to the first symbol
+under the symbol header for that name.  If the symbol header is not there,
+create one and set the symbol locator to point to the header.  Note that
+the source position in the locator is not changed; usually, it will have
+been set by get_token when an identifier is scanned, but sometimes the
+caller may have to set it directly.
 */
 {
   register unsigned            hash_value = 0;
