@@ -2003,6 +2003,7 @@ list passed in.  The pointer to the start of the list is returned.
 {
   a_cached_token_ptr		ctp;
   a_cached_token_ptr		prev_ctp = NULL;
+  a_cached_token_ptr		next_prev_ctp = NULL;
   a_template_cache_segment_ptr	start_found_list = NULL;
   a_template_cache_segment_ptr	complete_list = NULL;
   a_template_cache_segment_ptr	curr_tcsp = cache_segments;
@@ -2021,9 +2022,13 @@ list passed in.  The pointer to the start of the list is returned.
 #endif /* CHECKING */
 
   for (ctp = tssp->cache.tokens.first_token;
-       ctp != NULL; prev_ctp = ctp, ctp = ctp->next) {
+       ctp != NULL; prev_ctp = next_prev_ctp, ctp = ctp->next) {
     /* Stop searching if there are no more entries to be processed. */
     if (curr_tcsp == NULL && start_found_list == NULL) break;
+    if (ctp->extra_info_kind != (a_token_extra_info_kind)teik_pragma) {
+      /* Don't use a pragma entry as a previous token. */
+      next_prev_ctp = ctp;
+    }  /* if */
     if (curr_tcsp != NULL &&
         ctp->token_sequence_number == curr_tcsp->first_token_number) {
       /* We've found the first token of the current segment.  Move it to
