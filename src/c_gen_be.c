@@ -4175,6 +4175,7 @@ static unsigned long
 			   is a union, i.e., that we can't initialize
 			   any of the entity.  We would then have put out
 			   something syntactically invalid like "= {}". */
+#ifdef CFE
 static a_boolean
 		initializer_assignments_started;
 			/* At least one initializer assignment has been
@@ -4190,6 +4191,7 @@ static a_boolean
 			/* If TRUE, initializer executable code can be
 			   output directly to f_C_output instead of to
 			   a temporary file. */
+#endif /* ifdef CFE */
 
 
 static void clear_initialization_flags(void)
@@ -4199,8 +4201,10 @@ Clear the flags that control dump_initializer output.
 {
   initializer_constants_started = FALSE;
   num_initializer_open_braces_deferred = 0;
+#ifdef CFE
   initializer_assignments_started = FALSE;
   first_time_test_closing_needed = FALSE;
+#endif /* ifdef CFE */
 }  /* clear_initialization_flags */
 
 
@@ -4246,7 +4250,9 @@ static void set_init_file(a_variable_ptr variable,
                           int            *prev_indent)
 /*
 Set f_C_output to the temporary file to which an initialization assignment
-for the indicated variable should be written.
+for the indicated variable should be written.  Save the previous value
+of f_C_output in *prev_f_C_output and the previous value of indent in
+*prev_indent for restoration by unset_init_file.
 */
 {
   *prev_f_C_output = f_C_output;
@@ -4305,9 +4311,7 @@ described by the list pointed to by "ipdp" to the constant pointed to by
 
   /* Find the start of the ipdp list by following the prev links. */
   if (ipdp != NULL) while (ipdp->prev != NULL) ipdp = ipdp->prev;
-  /* The assignment is written to a temporary file, to be dumped out
-      at the appropriate time later.  Select the appropriate file,
-      and open it if necessary. */
+  /* Direct the assignment output to the proper file. */
   set_init_file(variable, &save_f_C_output, &save_indent);
   /* Generate an assignment.  For string initialization, generate a call
      to memcpy or bcopy instead. */
@@ -4355,9 +4359,7 @@ Generate code to set the indicated variable entirely to zeros.
   FILE *save_f_C_output;
   int  save_indent;
 
-  /* The assignment is written to a temporary file, to be dumped out
-      at the appropriate time later.  Select the appropriate file,
-      and open it if necessary. */
+  /* Direct the assignment output to the proper file. */
   set_init_file(variable, &save_f_C_output, &save_indent);
   startline(variable->source_corresp.decl_position.seq);
 #if __BSD__
@@ -4419,9 +4421,7 @@ If this assignment is the first one, put out anything that must precede it.
     if (variable->storage_class == (a_storage_class)sc_static &&
         variable->source_corresp.name_linkage ==
                                                (a_name_linkage_kind)nlk_none) {
-      /* The assignment is written to a temporary file, to be dumped out
-          at the appropriate time later.  Select the appropriate file,
-          and open it if necessary. */
+      /* Direct the assignment output to the proper file. */
       set_init_file(variable, &save_f_C_output, &save_indent);
       startline((a_seq_number)0);
       fprintf(f_C_output,
@@ -4433,9 +4433,16 @@ If this assignment is the first one, put out anything that must precede it.
       /* There was no constant initialization at all, so we are generating
          assignments for the entire initialization of the variable.  If the
          variable is not static, start by zeroing it in case it is
-         incompletely initialized.  See 3.5.7. */
+         incompletely initialized.  See 3.5.7.  Only do this for non-scalar
+         variables; scalar variables contain only one value and therefore
+         cannot be partially initialized. */
       if (!static_storage_class(variable->storage_class)) {
-        zero_variable(variable);
+        a_type_ptr type = skip_typerefs(variable->type);
+        if (type->kind == (a_type_kind)tk_struct ||
+            type->kind == (a_type_kind)tk_union ||
+            type->kind == (a_type_kind)tk_array) {
+          zero_variable(variable);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -4463,6 +4470,8 @@ at the end of the assignments.
       fprintf(f_C_output, "}}");
       unset_init_file(save_f_C_output, save_indent);
     }  /* if */
+    /* End the unreferenced #if 0 if one was started in
+       start_initializer_assignments. */
     set_init_file(variable, &save_f_C_output, &save_indent);
     end_unreferenced_bracket(&variable->source_corresp);
     unset_init_file(save_f_C_output, save_indent);
@@ -4537,7 +4546,7 @@ static void dump_initializer_part(a_variable_ptr        variable,
 Dump out an initializer for part of a variable.  The variable being
 initialized is "variable"; the piece of it being initialized has type "type",
 and gets the value indicated by "constant"; and outer_level_pos points
-to a list of of entries that describe the location of this initialization
+to a list of of entries that describes the location of this initialization
 within the overall variable (it is the history of the recursive calls
 of this routine that got us to this point).
 */
@@ -4562,14 +4571,14 @@ characters should be put out separately (to initialize a substring, probably).
   a_type_ptr        elem_type;
   a_boolean         need_close_brace = FALSE;
   int               count_until_newline;
+  unsigned long     repeat_count;
+  a_constant_ptr    init_con;
 #ifdef FFE
   a_boolean         association_init =
                                   (type->kind == (a_type_kind)tk_association ||
                     variable->storage_class == (a_storage_class)sc_associated);
   a_boolean         repeated_for_association;
   a_targ_size_t     curr_offset;
-  unsigned long     repeat_count;
-  a_constant_ptr    init_con;
 #endif /* ifdef FFE */
 
   type = skip_typerefs(type);
@@ -4636,6 +4645,7 @@ characters should be put out separately (to initialize a substring, probably).
         dump_exploded_string(constant);
         fputc('}', f_C_output);
       } else {
+        /* Normal case -- output the constant value. */
         dump_constant_value(constant);
       }  /* if */
     }  /* if */
@@ -4650,6 +4660,8 @@ characters should be put out separately (to initialize a substring, probably).
 #ifdef CFE
     ipdp->type = type;
 #endif /* ifdef CFE */
+    /* Determine the type of the aggregate member first up to be
+       initialized. */
 #ifdef FFE
     if (association_init) {
       elem_type = NULL;
@@ -4690,6 +4702,7 @@ characters should be put out separately (to initialize a substring, probably).
 #endif /* CHECKING */
       }  /* switch */
     }  /* if */
+    /* If generating initializer constants, output a "{". */
     if (!*gen_assignments) {
       initializer_open_brace();
       need_close_brace = TRUE;
@@ -4733,17 +4746,21 @@ characters should be put out separately (to initialize a substring, probably).
         elem_con = elem_con->next;
       }  /* if */
       repeated_for_association = FALSE;
+#endif /* ifdef FFE */
+      /* ck_init_repeat indicates a repeated constant. */
       repeat_count = 1;
       init_con = elem_con;
       if (elem_con->kind == (a_constant_repr_kind)ck_init_repeat) {
-        /* ck_init_repeat indicates a repeated constant. */
         repeat_count = elem_con->variant.init_repeat.count;
         init_con = elem_con->variant.init_repeat.constant;
+#ifdef FFE
         if (association_init) {
           (void)fprintf(f_C_output, "{");
           repeated_for_association = TRUE;
         }  /* if */
+#endif /* ifdef FFE */
       }  /* if */
+#ifdef FFE
       if (association_init || type->kind == (a_type_kind)tk_fcharacter) {
         /* The element type is gotten from the init_con. */
         elem_type = init_con->type;
@@ -4754,12 +4771,13 @@ characters should be put out separately (to initialize a substring, probably).
         internal_error("dump_initializer_part: elem_type is NULL");
       }  /* if */
 #endif /* CHECKING */
-#ifdef FFE
       while (repeat_count-- > 0)  {
         /* Generate the initialization for one constant or aggregate piece. */
         dump_initializer_part(variable, elem_type, init_con, gen_assignments,
                               separate_chars, ipdp);
+#ifdef FFE
         curr_offset += elem_type->size;
+#endif /* ifdef FFE */
         if (repeat_count != 0) {
           if (!*gen_assignments) {
             /* Put out a comma except after the last constant.  Start a
@@ -4768,12 +4786,10 @@ characters should be put out separately (to initialize a substring, probably).
           }  /* if */
         }  /* if */
       }  /* while */
+#ifdef FFE
       if (repeated_for_association) {
         (void)fprintf(f_C_output, "}");
       }  /* if */
-#else /* !defined(FFE) */
-      dump_initializer_part(variable, elem_type, elem_con, gen_assignments,
-                            separate_chars, ipdp);
 #endif /* ifdef FFE */
       if (elem_con->next != NULL) {
         if (!*gen_assignments) {
@@ -4801,6 +4817,7 @@ characters should be put out separately (to initialize a substring, probably).
 #endif /* ifdef CFE */
       }  /* if */
     }  /* for */
+    /* If generating initializer constants, output a "}". */
     if (need_close_brace) initializer_close_brace();
     if (outer_level_pos != NULL) outer_level_pos->next = NULL;
   }  /* if */
@@ -4823,7 +4840,9 @@ of the variable (and before the closing semicolon).
 If is_dynamic_init is TRUE, this routine is being called for a dynamic
 initialization (i.e., an stmk_init statement or, in C++, a file-scope
 dynamic initialization).  In that case, executable statements must be
-generated.
+generated.  The constant in that case is allowed to be a ck_aggregate
+that contains ck_dynamic_init entries (i.e., a partly constant/partly
+nonconstant aggregate).
 
 Executable statements will also be generated when is_dynamic_init is FALSE
 for cases where K&R/pcc C cannot express a constant initialization (i.e.,
@@ -4857,8 +4876,10 @@ following it will be rendered as executable code.
   dump_initializer_part(variable, type, constant, &gen_assignments,
                         /*separate_chars=*/FALSE,
                         (an_init_pos_descr_ptr)NULL);
+#ifdef CFE
   /* If any assignments were generated, do any wrapup required. */
   end_initializer_assignments(variable);
+#endif /* ifdef CFE */
 }  /* dump_initializer */
 
 #ifdef FFE
@@ -6347,19 +6368,24 @@ static void dump_dynamic_init(a_dynamic_init_ptr    dip,
                               a_variable_ptr        variable)
 /*
 Dump code for a dynamic initialization operation.  If this dynamic init is
-pointed to from an stmk_init entry, var_expr is the expr field from that
-entry; otherwise, var_expr is NULL.  If this dynamic init is pointed to
-from a ck_dynamic_init entry, ipdp gives information about the aggregate
-element to be initialized, and variable identifies the variable; otherwise,
-both are NULL.
+pointed to from an stmk_init entry that initializes a partial variable,
+var_expr is the expr field from that entry; otherwise, var_expr is NULL.
+If this dynamic init is pointed to from a ck_dynamic_init entry, ipdp gives
+information about the aggregate element to be initialized, and variable
+identifies the variable; otherwise, both are NULL.  If neither of the
+above cases applies, the dynamic initialization must be a whole-variable
+initialization (i.e., dip->variable != NULL).
 */
 {
   FILE             *save_f_C_output;
   int              save_indent;
   an_expr_node_ptr constr_arg;
 
+  /* Fetch the variable for the whole-variable case. */
   if (dip->variable != NULL) variable = dip->variable;
+  /* Output position information if it is known. */
   if (variable != NULL) {
+    /* Direct the assignment output to the proper file. */
     set_init_file(variable, &save_f_C_output, &save_indent);
     startline(variable->source_corresp.decl_position.seq);
   } else {
@@ -6406,7 +6432,7 @@ both are NULL.
 #if CHECKING
     case dik_aggregate:
       /* Initialization by an aggregate constant. */
-      /* Should have been handled in dump_stmk_init. */
+      /* Should have been handled in dump_whole_variable_dynamic_init. */
     default:
       internal_error("dump_dynamic_init: bad kind");
 #endif /* CHECKING */
@@ -6420,6 +6446,8 @@ both are NULL.
 static void dump_whole_variable_dynamic_init(a_dynamic_init_ptr dip)
 /*
 Generate code for a dynamic initialization that applies to a whole variable.
+This is used for stmk_init statements that initialize a whole variable
+and for file-scope dynamic initializations (which only occur in C++).
 */
 {
   a_variable_ptr whole_variable = dip->variable;
@@ -6440,7 +6468,9 @@ Generate code for a dynamic initialization that applies to a whole variable.
     init_already_done = TRUE;
   }  /* if */
   if (!init_already_done) {
-    /* Initialization is still to be done. */
+    /* Initialization needs to be done.  It wasn't done by dump_variable
+       and it's not a constant case that can be handled by calling
+       dump_initializer. */
     clear_initialization_flags();
     start_initializer_assignments(whole_variable);
     dump_dynamic_init(dip, (an_expr_node_ptr)NULL, (an_init_pos_descr_ptr)NULL,
@@ -6460,7 +6490,8 @@ Generate code for a stmk_init (dynamic initialization) statement.
   a_dynamic_init_ptr dip = statement->variant.dynamic_init;
 
   /* The executable code can be output directly to f_C_output instead
-     of to a temporary file. */
+     of to a temporary file, because we're in the executable code part of
+     the current routine. */
   output_initializer_code_directly = TRUE;
   if (dip->variable != NULL) {
     /* This is a whole-variable initialization. */
@@ -7938,8 +7969,8 @@ Generate old-style (K&R/pcc) C from the intermediate language.
 #endif /* ifdef FFE */
 #ifdef CFE
   f_file_scope_inits = f_rout_dynamic_inits = NULL;
-#endif /* ifdef CFE */
   output_initializer_code_directly = FALSE;
+#endif /* ifdef CFE */
 
   switch (il_header.source_language) {
 #ifdef CFE
