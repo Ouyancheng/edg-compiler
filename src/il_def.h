@@ -8434,7 +8434,8 @@ EXTERN struct il_header_tag {
 			   instantiations were recorded in the IL.  In that
 			   case, templates can be regenerated from the IL.
 			   However, if only class templates prototype
-			   instantiations were recorded, all templates should					  be regenerated from strings, since in-class member
+			   instantiations were recorded, all templates should
+			   be regenerated from strings, since in-class member
 			   definitions would not have their prototype
 			   instantiation recorded. */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
