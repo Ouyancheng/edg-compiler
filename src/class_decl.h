@@ -30,6 +30,8 @@ typedef struct a_delayed_scan_fixup *a_delayed_scan_fixup_ptr;
 #include "symbol_tbl.h"
 #endif /* ifndef SYMBOL_TBL_H */
 
+extern void prescan_default_arg_expr(a_param_type_ptr  ptp);
+
 extern a_boolean do_alignment(a_targ_size_t    *byte_offset,
                               int              *bit_offset,
                               a_targ_alignment alignment);
