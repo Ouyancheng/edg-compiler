@@ -637,22 +637,23 @@ Advance the source sequence list to the next entry.
 }  /* adv_curr_source_sequence_entry */
 
 
-static a_source_sequence_entry_ptr advance_past_preprocessing_directives(
-                                              a_source_sequence_entry_ptr ssep)
+static void advance_past_preprocessing_directives(void)
 /*
-Return ssep, advanced past any pragmas, macros, or insignificant entries.
+Advance curr_source_sequence_entry past any pragmas, macros, or
+insignificant entries.
 */
 {
-  while (ssep != NULL &&
-         (ss_entry_kind(ssep) == iek_pragma
+  while (curr_source_sequence_entry != NULL &&
+         (ss_entry_kind(curr_source_sequence_entry) == iek_pragma
 #if RECORD_MACROS_IN_IL
-          || ss_entry_kind(ssep) == iek_macro
+          || ss_entry_kind(curr_source_sequence_entry) == iek_macro
 #endif /* RECORD_MACROS_IN_IL */
 #if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
-          || ss_entry_kind(ssep) == iek_comment
+          || ss_entry_kind(curr_source_sequence_entry) == iek_comment
 #endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
-                                               )) ssep = ssep->next;
-  return ssep;
+                                               )) {
+    adv_curr_source_sequence_entry();
+  }  /* while */
 }  /* advance_past_preprocessing_directives */
 
 
@@ -662,10 +663,11 @@ Return TRUE if the current source sequence entry is for a declaration.
 */
 {
   a_boolean                   is_decl = FALSE;
-  a_source_sequence_entry_ptr ssep = curr_source_sequence_entry;
+  a_source_sequence_entry_ptr ssep;
 
   /* Look past any pragmas or macros. */
-  ssep = advance_past_preprocessing_directives(ssep);
+  advance_past_preprocessing_directives();
+  ssep = curr_source_sequence_entry;
   if (ssep != NULL) {
     switch (ss_entry_kind(ssep)) {
       case iek_constant:
@@ -930,8 +932,7 @@ declarations.
                                                     curr_source_sequence_entry;
       /* Skip past macros, etc.  We come back and process these entries if
          there's actually a declaration following them. */
-      curr_source_sequence_entry =
-             advance_past_preprocessing_directives(curr_source_sequence_entry);
+      advance_past_preprocessing_directives();
       found_decl = is_routine = FALSE;
       if (curr_src_seq_entry_is_type_decl(&type, &sec_decl, &is_definition)) {
         if (is_autonomous_decl(type, sec_decl)) break;
@@ -1868,7 +1869,8 @@ will be put out when they are encountered when generating the parameter types.
   a_src_seq_secondary_decl_ptr sec_decl;
   a_boolean                    is_definition;
 
-  while (curr_src_seq_entry_is_type_decl(&type, &sec_decl, &is_definition)) {
+  while(advance_past_preprocessing_directives(),
+        curr_src_seq_entry_is_type_decl(&type, &sec_decl, &is_definition)) {
     /* In C mode, we know all the types will be in the prototype scope,
        so it's easy to find the end of the list.  In C++, there can be
        declarations that appear in the function declarator but get entered
@@ -1901,6 +1903,7 @@ will be put out when they are encountered when generating the parameter types.
   a_boolean                    is_definition;
 
   for (;;) {
+    advance_past_preprocessing_directives();
     if (ss_entry_kind(curr_source_sequence_entry) == iek_variable) {
       /* Bypass a parameter declaration. */
       adv_curr_source_sequence_entry();
@@ -2340,9 +2343,10 @@ it is a typedef.
         /* Include cases where the tag has a name only for linkage purposes. */
         (kind != (a_type_kind)tk_enum &&
          type->variant.class_struct_union.originally_unnamed)))) {
-    a_source_sequence_entry_ptr ssep = curr_source_sequence_entry;
+    a_source_sequence_entry_ptr ssep;
     /* Skip macros and pragmas. */
-    ssep = advance_past_preprocessing_directives(ssep);
+    advance_past_preprocessing_directives();
+    ssep = curr_source_sequence_entry;
     /* See if the next source sequence entry is for a declaration, and if so,
        get its type. */
     if (ssep != NULL) {
