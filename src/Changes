@@ -1,3 +1,29 @@
+Version 2.36
+
+3/4/97   Extern "C" names found via using-directives
+
+In 2.34, the handling of extern "C" declarations was changed such that
+declarations of the same object or function name in different namespaces
+were treated as redeclarations of the same entity (e.g., the declarations
+of N::f and ::f declare the same function in the example below).  See
+the Changes file entry on 2/4/97 for more information.  Even though the
+declarations now declare the same entity, an entity could be referenced
+using any of the names that refer to that entity (e.g., ::f or N::f).  This
+resulted in a problem when more than one of the names was visible as the
+result of a using-directive.  Such use would result in a spurious ambiguity
+error.  This has been corrected.
+
+namespace N {
+  extern "C" int i;
+  extern "C" int f(int);
+}
+extern "C" int i;
+extern "C" int f(int);
+using namespace N;
+int j = i;
+int k = f(1);
+
+-------------------------------------------------------------------------------
 Version 2.35, February 28, 1997
 
 2/28/97  IL version number changed to 2.27

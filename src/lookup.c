@@ -773,6 +773,35 @@ such pointer is found, NULL is returned.
 }  /* find_out_of_scope_declaration */
 
 
+static a_boolean symbols_are_lookup_equivalent(a_symbol_ptr	sym1,
+				               a_symbol_ptr	sym2)
+/*
+Returns TRUE if sym1 is the same as sym2 or if sym1 and sym2 point
+to the same IL entities.  The latter check is used, for example, to
+determine whether two symbols from different namespaces point to
+the same underlying extern "C" variable or function.  Two such symbols
+that appear in the same using-directive lookup set are considered to
+represent the same entity, so one of the two symbols is arbitrarily
+selected.  sym1 and sym2 must have been reduced to their fundamental
+symbols by the caller.
+*/
+{
+  a_boolean	result = FALSE;
+  if (sym1 == sym2) {
+    /* The symbols are the same. */
+    result = TRUE;
+  } else if (sym1->kind == sym2->kind) {
+    /* The symbols refer to the same kind of entity -- check further. */
+    if (sym1->kind == (a_symbol_kind)sk_variable) {
+      result = sym1->variant.variable.ptr == sym2->variant.variable.ptr;
+    } else if (sym1->kind == (a_symbol_kind)sk_routine) {
+      result = sym1->variant.routine.ptr == sym2->variant.routine.ptr;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* symbols_are_lookup_equivalent */
+
+
 a_boolean already_in_lookup_set(a_symbol_ptr curr_sym,
                                 a_symbol_ptr new_sym)
 /*
@@ -791,22 +820,28 @@ symbol(s) in curr_sym.
     /* No current list -- return FALSE. */
   } else if (curr_sym->kind == (a_symbol_kind)sk_namespace_projection) {
     /* See if the current symbol is a projection symbol that points to
-       new_sym. */
-    result = new_sym == fundamental_symbol_of(curr_sym);
+       new_sym or a symbol equivalent to new_sym. */
+    a_symbol_ptr	fund_curr_sym = fundamental_symbol_of(curr_sym);
+    result = new_sym == fund_curr_sym ||
+             symbols_are_lookup_equivalent(new_sym, fund_curr_sym);
   } else if (curr_sym->kind == (a_symbol_kind)sk_overloaded_function) {
     /* Look through the overload set for a fundamental symbol that matches
        new_sym. */
     a_symbol_ptr	sym;
     for (sym = curr_sym->variant.overloaded_function.symbols;
          sym != NULL; sym = sym->next) {
-      if (new_sym == fundamental_symbol_of(sym)) break;
+      a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
+      if (new_sym == fund_sym ||
+          symbols_are_lookup_equivalent(new_sym, fund_sym)) break;
     }  /* for */
     if (sym != NULL) result = TRUE;
   } else {
     /* See if the current symbol is a routine symbol that is the same as
-       new symbol. */
+       new symbol.  This case is used when the first symbol found is
+       a function or template symbol. */
     check_assertion(is_function_or_template_symbol(curr_sym));
-    result = curr_sym == new_sym;
+    result = curr_sym == new_sym ||
+             symbols_are_lookup_equivalent(curr_sym, new_sym);
   }  /* if */
   return result;
 }  /* already_in_lookup_set */
