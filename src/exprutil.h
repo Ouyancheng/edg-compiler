@@ -159,6 +159,60 @@ typedef struct an_operand {
   } variant;
 } an_operand;
 
+/*
+Entry describing a function that is a candidate instance of an overloaded
+function.  This entry is used is resolving overloaded function calls.
+*/
+typedef struct a_candidate_function *a_candidate_function_ptr;
+typedef struct a_candidate_function {
+  a_candidate_function_ptr
+		next;	/* Next entry on the list of candidates, or NULL
+			   if this is the last entry. */
+  a_symbol_ptr	function_symbol;
+			/* Pointer to the symbol for the function. */
+} a_candidate_function;
+/*
+Entry describing how well a given actual argument matches the corresponding
+formal parameter, used in resolving overloaded function calls.
+*/
+typedef enum /*an_argument_match_level*/ {
+  /* Match levels -- See ARM 13.2. */
+  aml_exact,		/* Exact match or trivial conversions. */
+  aml_exact_qualified,	/* Trivial conversions including removal of a type
+			   qualifier from the base type of a reference or
+			   pointer. */
+  aml_promotion,	/* Match with promotions. */
+  aml_std_conversion,	/* Match with standard conversions. */
+  aml_user_conversion,	/* Match with user-defined conversions. */
+  aml_ellipsis,		/* Match with ellipsis. */
+  aml_error,		/* Match with error type (not in ARM). */
+  aml_none		/* No match.  Must be last (highest value). */
+} an_argument_match_level;
+typedef struct an_argument_match_summary *an_argument_match_summary_ptr;
+typedef struct an_argument_match_summary {
+  an_argument_match_summary_ptr
+		next;	/* Pointer to entry for following argument, or NULL
+			   if this is the last argument.  Also used to link
+			   entries on the avail_argument_match_summries
+			   list. */
+  an_argument_match_level
+		match_level;
+			/* Match level -- see ARM 13.2.  Primary key. */
+  a_derivation_step_ptr
+		downward_cast_derivation;
+			/* If match_level == aml_std_conversion and the
+			   compatibility involves a downward cast, this is
+			   the derivation.  Otherwise, NULL.  Secondary key. */
+  an_error_code	warning_suggested;
+			/* If not ec_no_error, the code for a warning to be
+			   issued if this match is chosen. */
+  a_source_position
+		position;
+			/* Source position of the argument expression. */
+} an_argument_match_summary;
+
+
+/* Copy an operand. */
 #define copy_operand(from, to) (*(to) = *(from))
 
 /*
@@ -231,16 +285,21 @@ extern an_xref_entry_ptr xref_entry(a_symbol_ptr            sym_ptr,
 extern void change_xref_kinds(an_xref_entry_ptr       xref_list,
                               a_symbol_reference_kind kind);
 
-extern a_candidate_function_ptr alloc_candidate_function(void);
-
-extern void free_candidate_function_list(a_candidate_function_ptr cfp);
-
-extern void clear_argument_match_summary(an_argument_match_summary_ptr amsp);
-
 extern an_argument_match_summary_ptr alloc_argument_match_summary(void);
 
-extern void free_argument_match_summary_list(
-                                           an_argument_match_summary_ptr amsp);
+an_argument_match_level selector_match_with_this_param(
+                              an_operand              *bound_function_selector,
+                              a_type_ptr              routine_type);
+
+a_symbol_ptr select_overloaded_function(
+                      a_symbol_ptr                  overloaded_function_symbol,
+                      a_boolean                     have_selector,
+                      an_operand                    *bound_function_selector,
+                      an_expr_node_ptr              *arg_expr_list,
+                      an_argument_match_summary_ptr orig_arg_match_list,
+                      an_error_code                 err_none_applies,
+                      an_error_code                 err_ambiguous,
+                      a_source_position             *err_pos);
 
 extern a_constant_ptr var_constant_value(a_variable_ptr var);
 
