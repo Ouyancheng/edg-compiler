@@ -244,9 +244,6 @@ be represented by a host long.  These routines have been modified to operate on
 values whose type is specified by the typedefs a_host_large_integer and
 a_host_large_unsigned.  These typedefs are automatically set to
 TYPE_OF_AN_INTEGER_VALUE and TYPE_OF_A_SIGNED_INTEGER_VALUE, respectively.
-Consequently, it is now possible to configure the front end to use long
-long as the representation of an_integer_value without using simulated
-integers.
 
 2/19/97  Multibyte characters accepted in source
 
