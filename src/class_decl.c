@@ -7801,9 +7801,20 @@ respectively.
              This can't be determined by looking at the next token in C++
              mode, since any member (other than a field) could legitimately
              follow, or even in C mode (with an "autonomous" nested struct
-             declaration). */
+             declaration). Note that fields marked as "properties" (Microsoft
+             mode), never need to be complete either: such fields behave more
+             like member functions. */
           incomplete_okay = TRUE;
           class_state->last_field_is_incomplete_array = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          if (microsoft_mode &&
+              (decl_info->decl_modifiers.get_property_name != NULL ||
+               decl_info->decl_modifiers.put_property_name != NULL)) {
+            /* This is a property field: no need to guard against additionally
+               appended fields. */
+            class_state->last_field_is_incomplete_array = FALSE;
+          }
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         }  /* if */
       }  /* if */
     }  /* if */
