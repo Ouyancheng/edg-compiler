@@ -2558,6 +2558,10 @@ and field_expr is an enk_field node.
     /* Optimize "(*p).i" as "p->i". */
     gen_expression(object_expr);
     write_tok_str("->");
+  } else if (object_expr->kind == (an_expr_node_kind)enk_variable_address &&
+             object_expr->variant.variable->is_anonymous_parent_object) {
+    /* For an anonymous union variable, do not put out the variable or "."
+       at all. */
   } else {
     /* Normal "." case. */
     gen_lvalue(object_expr);
