@@ -6174,6 +6174,82 @@ points to the associated routine if the kind is sck_function.
 
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
+#if DEBUG
+void db_source_sequence_entry(a_source_sequence_entry_ptr  ssep)
+/*
+*/
+{
+  an_il_entry_kind  kind = ssep->entity.kind;
+
+  fputs(il_entry_kind_names[(int)kind], f_debug);
+  if (kind == iek_source_sequence_entry) {
+    fputs(" ==> ", f_debug);
+    db_source_sequence_entry((a_source_sequence_entry_ptr)ssep->entity.ptr);
+  } else {
+    if (kind == iek_statement) {
+      char      *s;
+      a_statement_ptr   sp = (a_statement_ptr)ssep->entity.ptr;
+
+      switch (sp->kind) {
+        case stmk_expr:           s = "expr";     break;
+        case stmk_if:             s = "if";       break;
+        case stmk_while:          s = "while";    break;
+        case stmk_goto:           s = "goto";     break;
+        case stmk_label:          s = "label";    break;
+        case stmk_return:         s = "return";   break;
+        case stmk_end_test_while: s = "do-while"; break;
+        case stmk_for:            s = "for";      break;
+        case stmk_switch:         s = "switch";   break;
+        case stmk_asm:            s = "asm";      break;
+        case stmk_try_block:      s = "try";      break;
+        default:  s = "*** BAD STMT KIND ***"; break;
+      }  /* if */
+      fprintf(f_debug, " (%lu): %s",
+             seq_number_from_stmt_source_position(sp->position), s);
+      if (sp->kind == (a_statement_kind)stmk_expr) {
+        if (sp->expr != NULL) {
+          switch (sp->expr->kind) {
+            case enk_operation:
+              fprintf(f_debug, " (operator %s)",
+                      db_operator_names[sp->expr->variant.operation.kind]);
+              break;
+            case enk_throw:
+              fprintf(f_debug, " (throw)");
+              break;
+            case enk_new_delete:
+              fprintf(f_debug, " (%s)",
+                      sp->expr->variant.new_delete->is_new ? "new" : "delete");
+              break;
+            default:;
+          }  /* switch */
+        }  /* if */
+      }  /* if */
+#if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
+    } else if (kind == iek_comment) {
+#endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
+    } else {
+      a_source_position       *pos;
+      a_source_correspondence *scp;
+
+      if (kind == iek_src_seq_secondary_decl) {
+        a_src_seq_secondary_decl_ptr  sssdp =
+                             (a_src_seq_secondary_decl_ptr)ssep->entity.ptr;
+        scp = &((a_variable_ptr)sssdp->entity.ptr)->source_corresp;
+        pos = &sssdp->decl_position;
+      } else {
+        scp = &((a_variable_ptr)ssep->entity.ptr)->source_corresp;
+        pos = &scp->decl_position;
+      }  /* if */
+      fprintf(f_debug, " (%lu): \"", pos->seq);
+      db_name(scp);
+      fputc('"', f_debug);
+    }  /* if */
+    fputc('\n', f_debug);
+  }  /* if */
+}  /* db_source_sequence_entry */
+#endif /* DEBUG */
+
+
 a_source_sequence_entry_ptr alloc_source_sequence_entry(void)
 /*
 Allocate a source sequence entry, initialize its fields, and return a pointer
@@ -6194,6 +6270,7 @@ to it.
 
   return ssep;
 }  /* alloc_source_sequence_entry */
+
 
 a_src_seq_secondary_decl_ptr alloc_src_seq_secondary_decl(void)
 /*
@@ -6238,38 +6315,159 @@ Allocate a comment entry, initialize its fields, and return a pointer to it.
 }  /* alloc_comment */
 #endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
 
-void add_to_source_sequence_list(a_source_sequence_entry_ptr  src_seq_ptr)
+void add_to_source_sequence_list(a_source_sequence_entry_ptr  src_seq_ptr,
+                                 a_boolean                    force_to_fs)
 /*
 */
 {
   a_scope_stack_entry_ptr  ssep;
   a_scope_ptr              sp;
 
-  ssep = &scope_stack[depth_scope_stack];
-  if (ssep->kind == (a_scope_kind)sck_file ||
-      ssep->kind == (a_scope_kind)sck_function ||
-      (C_dialect == C_dialect_cplusplus &&
-       ssep->kind == (a_scope_kind)sck_class_struct_union)) {
-    /* Use the current scope. */
-  } else if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
-    /* Use the function scope. */
-    ssep = &scope_stack[depth_innermost_function_scope];
-  } else {
+  if (force_to_fs) {
+    /* This source sequence entry is supposed to be placed on the list of
+       a function but refers to an entity that has been allocated in the
+       filescope memory region.  Given the pointers back and forth between
+       entities and source-sequence entries, and given the EDG convention
+       that no pointer from something allocated in filescope memory can
+       reference something allocated elsewhere, there is a problem:
+
+                          entity
+         filescope           ^
+          memory             |
+                      --------------------
+         memory for          |
+          function           v (disallowed pointer reference)
+                        src-seq-entry
+
+      The solution is to introduce a proxy source sequence entry and to
+      restrict the backpointer.
+
+                          entity
+         filescope           ^
+          memory             |
+                             v
+                        src-seq-entry (proxy)
+                             ^
+                             |
+                      --------------------
+         memory for          |
+          function           |
+                        src-seq-entry   (not pointed to from the entity)
+
+      The proxy source sequence entry is allocated in filescope memory and
+      is added to the filescope's list, and the source sequence entry on the
+      function scope list points to it.  A drawback of this scheme is that
+      this is no way to get directly from such an entity back to the
+      corresponding source-sequence entry in the function scope -- it is
+      necessary to search through the list to find it.  (This limitation
+      only affects local static variables, extern declarations within a
+      function scope, and local type declarations.) */
+    a_source_sequence_entry_ptr  proxy_ssep;
+
+    check_assertion(curr_il_region_number != FILE_SCOPE_REGION_NUMBER);
+    check_assertion(in_file_scope(src_seq_ptr));
+    proxy_ssep = alloc_source_sequence_entry();
+    proxy_ssep->entity.kind = (a_byte_il_entry_kind)iek_source_sequence_entry;
+    proxy_ssep->entity.ptr  = (char *)src_seq_ptr;
+    add_to_source_sequence_list(proxy_ssep, /*force_to_fs=*/FALSE);
     /* Use the file scope. */
     ssep = &scope_stack[DEPTH_OF_FILE_SCOPE];
+  } else {
+    ssep = &scope_stack[depth_scope_stack];
+    if (ssep->kind == (a_scope_kind)sck_file ||
+        ssep->kind == (a_scope_kind)sck_function ||
+        (C_dialect == C_dialect_cplusplus &&
+         ssep->kind == (a_scope_kind)sck_class_struct_union)) {
+      /* Use the current scope. */
+    } else if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+      /* Use the function scope. */
+      ssep = &scope_stack[depth_innermost_function_scope];
+    } else {
+      /* Use the file scope. */
+      ssep = &scope_stack[DEPTH_OF_FILE_SCOPE];
+    }  /* if */
   }  /* if */
-  sp = ensure_il_scope_exists(ssep);
   sp = ssep->il_scope;
   check_assertion_str(sp != NULL,
                       "add_to_source_sequence_list: NULL IL scope");
   if (sp->source_sequence_list == NULL) {
+    src_seq_ptr->prev = NULL;
     sp->source_sequence_list = src_seq_ptr;
   } else {
+    src_seq_ptr->prev = ssep->last_source_sequence_entry;
     ssep->last_source_sequence_entry->next = src_seq_ptr;
   }  /* if */
   ssep->last_source_sequence_entry = src_seq_ptr;
   src_seq_ptr->next = NULL;
 }  /* add_to_source_sequence_list */
+
+
+void update_source_sequence_list(char               *entity_ptr,
+                                 an_il_entry_kind   kind,
+                                 a_source_position  *pos)
+/*
+Allocate a source sequence entry for the entity and add it to the list for
+the current scope.
+*/
+{
+  a_source_sequence_entry_ptr   ssep = alloc_source_sequence_entry();
+  a_src_seq_secondary_decl_ptr  sssdp;
+  a_source_correspondence       *scp;
+  a_boolean                     force_alloc_in_filescope;
+  a_memory_region_number        region_to_switch_back_to;
+
+
+  if (curr_il_region_number != FILE_SCOPE_REGION_NUMBER &&
+      kind != iek_statement &&
+#if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
+                               kind != iek_comment &&
+#endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
+        in_file_scope(entity_ptr)) {
+    force_alloc_in_filescope = TRUE;
+    switch_to_file_scope_region(&region_to_switch_back_to);
+  } else {
+    force_alloc_in_filescope = FALSE;
+  }  /* if */
+  ssep = alloc_source_sequence_entry();
+  /* First set the pointer in the IL entity to point  back to the source
+     sequence entry. */
+  if (kind == iek_statement) {
+    /* Statement. */
+    ((a_statement_ptr)entity_ptr)->source_sequence_entry = ssep;
+#if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
+  } else if (kind == iek_comment) {
+    /* Comments have no pointer back to the source sequence entry. */
+#endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
+  } else {
+    /* Declared entity -- extract the source correspondence field. */
+    scp = &((a_variable_ptr)entity_ptr)->source_corresp;
+    if (scp->source_sequence_entry == NULL) {
+      /* The entity does not yet point to a source sequence entry.  Note
+         that this includes the case where the pointer has been cleared
+         because a prior declaration was turned into a secondary declaration
+         -- e.g., a forward reference to a function -- see mark_declared. */
+      scp->source_sequence_entry = ssep;
+    } else {
+      /* There was a prior declaration, and this one is the secondary
+         declaration.  Create a source sequence entry to represent a
+         secondary declaration. */
+      sssdp = alloc_src_seq_secondary_decl();
+      sssdp->decl_position = *pos;
+      sssdp->entity.kind = (a_byte_il_entry_kind)kind;
+      sssdp->entity.ptr = entity_ptr;
+      /* Change the parameter values accordingly. */
+      kind = iek_src_seq_secondary_decl;
+      entity_ptr = (char *)sssdp;
+    }  /* if */
+  }  /* if */
+  ssep->entity.kind = (a_byte_il_entry_kind)kind;
+  ssep->entity.ptr = entity_ptr;
+  if (force_alloc_in_filescope) {
+    switch_back_to_original_region(region_to_switch_back_to);
+  }  /* if */
+  add_to_source_sequence_list(ssep, force_alloc_in_filescope);
+}  /* update_source_sequence_list */
+
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 
