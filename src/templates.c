@@ -1590,7 +1590,6 @@ values, and the handling of array bounds of unknown type.
       } else if (is_template_templ_arg(tap)) {
         /* Check whether this template template parameter must be rescanned
            because of a dependence on another template argument. */
-        a_template_ptr		templ;
         a_template_ptr		param_template;
         a_template_param_ptr	param_list_for_param;
         a_template_param_ptr	param_list_for_arg;
@@ -4932,7 +4931,6 @@ are not checked at this point.
        tpp1 = tpp1->next, tpp2 = tpp2->next) {
     a_symbol_ptr	sym1 = tpp1->param_symbol;
     a_symbol_ptr	sym2 = tpp2->param_symbol;
-    a_boolean		err = FALSE;
     if (sym1->kind != sym2->kind) {
       result = FALSE;
       break;
