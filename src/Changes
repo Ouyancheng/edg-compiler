@@ -108,7 +108,7 @@ This is now fixed.
 3/1/01   Abort on invalid designated initializer
 
 The front end used to abort when encountering certain designated initializers
-for flexible array members in inside unions.
+for flexible array members inside unions.
 
   union U {
     struct S {
