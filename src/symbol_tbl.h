@@ -951,6 +951,12 @@ typedef struct a_template_instance {
   unsigned int	explicit_can_instantiate:1;
 			/* TRUE if instantiation has been explicitly declared
                            as being possible by a can_instantiate pragma. */
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
+  unsigned int	in_info_file:1;
+			/* TRUE if the instance was listed in the instantiation
+			   information file as an instantiation assigned to
+			   this compilation. */
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   a_source_position
 		explicit_instantiation_pos;
 			/* The position of the instantiation request pragma

@@ -89,6 +89,7 @@ extern void templates_init(void);
 
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
 extern void create_or_remove_instantiation_information_file(void);
+extern void update_auto_instantiation_flags(void);
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
 extern void instantiation_pragma(a_pending_pragma_ptr	ppp);

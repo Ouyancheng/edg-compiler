@@ -102,6 +102,12 @@ and before the back end (if any) is executed.
     check_class_linkage();
   }  /* if */
 
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
+  /* Set the IL flags used to pass automatic instantiation information
+     to the link-time instantiation processor. */
+  update_auto_instantiation_flags();
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+
   /* Pop the file declaration scope off the scope stack. */
   pop_scope();
 

@@ -78,6 +78,11 @@ static a_boolean
 			   by this file.  This is used to determine whether
 			   to create an instantiation information file. */
 
+static a_boolean
+		any_auto_instantiations_required;
+			/* TRUE if any entries were read from the
+		           instantiation information file. */
+
 static char	*instantiation_info_file_name;
                         /* The name of a file containing a list of names
 			   of template functions and static data members to
@@ -4585,156 +4590,7 @@ function.
 }  /* too_many_unused_instantiations */
 
 
-void update_instantiation_required_flag(a_template_instance_ptr tip,
-                                        a_boolean               value,
-					a_boolean		defer_inline)
-/*
-Updates the instantiation required flag in a template instance entry.  If the
-flag is set to TRUE the instance entry is added to a list of entries for which
-instantiation is required.  If the flag is set to FALSE the entry is simply
-updated but not removed from the list.  Inline functions are instantiated
-as they are added to the list, unless defer_inline is TRUE.
-*/
-{
-  a_symbol_ptr			   sym;
-  a_template_symbol_supplement_ptr tssp;
-  a_boolean			   add_to_list = TRUE;
-
-  db_enter(5, "update_instantiation_required_flag");
-  sym = tip->instance_sym;
-  tssp = template_supplement_for_symbol(tip->template_sym);
-#if DEBUG
-  if (debug_level >= 5) {
-    a_symbol_ptr sym = tip->instance_sym;
-    fprintf(f_debug, "Setting instantiation_required flag to %s for ",
-            value ? "TRUE" : "FALSE");
-    db_symbol(tip->instance_sym, "", 0);
-    fprintf(f_debug, "is_function_symbol=%d\n", is_function_symbol(sym));
-    fprintf(f_debug, "defined=%d\n", sym->defined);
-    if (is_function_symbol(sym)) {
-      fprintf(f_debug, "inline=%d\n", sym->variant.routine.ptr->is_inline);
-    }  /* if */
-  }  /* if */
-#endif /* DEBUG */
-  if (instantiation_mode == tim_can_instantiate) {
-    /* Leave the instantiation_required flag unchanged in this mode. */
-  } else if (instantiation_mode == tim_all && !value) {
-    /* An "unused" instantiation is being added to the list. */
-    if (too_many_unused_instantiations(tip->template_sym, tssp)) {
-      /* Don't add this entry to the list.  This prevents infinite
-         instantiation loops. */
-      add_to_list = FALSE;
-    }  /* if */
-  } else if (value) {
-    if (sym == tip->template_sym) {
-      /* Somehow a member function of a nonreal class (e.g., a prototype
-         instantiation of a class template) has been referenced.  (This
-         can occur in a sizeof operation applied to the address of a
-         static member function -- anywhere else?).  Do not instantiate
-         the function. */
-    } else if (!defer_inline && is_function_symbol(sym) &&
-               tssp->token_cache.first_token != NULL &&
-               is_inline_template_function(tip)) {
-      /* Inline (member or nonmember) functions are instantiated at the
-         point of first use, in case the back end requires the function
-         body immediately to perform inlining. */
-      if (!tip->already_instantiated) {
-        instantiate_template_function(tip);
-      }  /* if */
-      tip->instantiation_required = TRUE;
-    } else if (value == (a_boolean)tip->instantiation_required) {
-      /* The instantiation required flag is already set to the desired
-         value.  This test is used to ensure that an entry that is already
-         on the instantiation required list won't be instantiated until
-         reached on the list.  This prevents things on the list from being
-         instantiated during the instantiation of other functions of entries
-         earlier on the list. */
-    } else {
-      /* If we are in instantiation wrapup then instantiate the function now
-	 instead of just adding it to the end of the list.  This makes
-	 it possible to detect runaway recursive instantiations that
-	 are very difficult to detect when the instantiations are done
-	 serially. */
-      tip->instantiation_required = TRUE;
-      if (in_instantiation_wrapup) {
-        if (!tip->already_instantiated &&
-            should_be_instantiated(tip, /*implicit_inclusion_ok=*/FALSE)) {
-          /* Implicit inclusion is not done for "on the fly" instantiations
-             because the includes cannot be processed in the middle of
-	     the instantiation of another function.  The entry will be put
-	     on the instantiation required list and instantiated later in
-             instantiation_wrapup. */
-          if (tip->instance_sym->kind ==
-                                        (a_symbol_kind)sk_static_data_member) {
-            define_template_static_data_member(tip);
-          } else {
-            instantiate_template_function(tip);
-          }  /* if */
-        }  /* if */
-      }  /* if */
-    }  /* if */
-  } else {
-    tip->instantiation_required = FALSE;
-  }  /* if */
-  if (add_to_list) {
-    /* The entry is added to the instantiations list even if the instantiation
-       required flag is FALSE because certain entries for which instantiation
-       is not required need to be processed for automatic instantiation
-       processing. */
-    add_to_instantiations_required_list(tip);
-  }  /* if */
-  db_exit();
-}  /* update_instantiation_required_flag */
-
-
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
-static a_boolean open_instantiation_info_file(void)
-/*
-Open the instantiation information file associated with the primary source
-file.  Return TRUE if the file was successfully opened.
-*/
-{
-  f_instantiation_info = NULL;
-  if (strcmp(primary_source_file_name, FILE_NAME_FOR_STDIN) != 0) {
-    /* Only open the file if the input is coming from a file. */
-    instantiation_info_file_name =
-            derived_name(primary_source_file_name, INSTANTIATION_FILE_SUFFIX);
-    f_instantiation_info = fopen(instantiation_info_file_name, "r");
-  }  /* if */
-  return f_instantiation_info != NULL;
-}  /* open_instantiation_info_file */
-
-
-void create_or_remove_instantiation_information_file(void)
-{
-  FILE		*f_ii_file;
-
-  if (strcmp(primary_source_file_name, FILE_NAME_FOR_STDIN) != 0) {
-    /* Only create the file if the input is coming from a file.  Note
-       that the file will have been closed after all input was read so
-       it must be reopened now. */
-    f_ii_file = fopen(instantiation_info_file_name, "r");
-    if (f_ii_file != NULL) (void)fclose(f_ii_file);
-    if (any_instantiations_required) {
-      /* If the file does not exist, create it. */
-      if (f_ii_file == NULL) {
-        f_ii_file = fopen(instantiation_info_file_name, "a");
-        if (f_ii_file == NULL) {
-          str_catastrophe(ec_cannot_create_instantiation_information_file,
-                          instantiation_info_file_name);
-        }  /* if */
-      }  /* if */
-    } else {
-      /* No instantiation information needed.  Delete the file if it
-         already exits. */
-      if (f_ii_file != NULL) {
-        delete_file(instantiation_info_file_name);
-      }  /* if */
-    }  /* if */
-  }  /* if */
-}  /* create_or_remove_instantiation_information_file */
-
-
 static an_instance_lookup_entry_ptr alloc_instance_lookup_entry(void)
 /*
 Allocate an instance lookup entry, initialize it, and return a pointer
@@ -4813,6 +4669,201 @@ list if an entry does not already exist.
 symbol_found:
   return ilp;
 }  /* find_instance */
+
+
+static void check_if_present_in_info_file(a_template_instance_ptr tip)
+/*
+See if the specified instantiation is one that is included in the
+instantiation information file.  If so, set the in_info_file flag
+in the template instance.
+*/
+{
+  if (any_auto_instantiations_required) {
+    char	*name;
+    if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
+      a_variable_ptr	variable;
+      variable = tip->instance_sym->variant.static_data_member.variable;
+      name = get_mangled_static_data_member_name(variable);
+    } else {
+      a_routine_ptr	routine;
+      routine = tip->instance_sym->variant.routine.ptr;
+      name = get_mangled_function_name(routine);
+    }  /* if */
+    if (find_instance(name, /*add=*/FALSE) != NULL) {
+      tip->in_info_file = TRUE;
+    }  /* if  */
+  }  /* if */
+}  /* check_if_present_in_info_file */
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+
+
+void update_instantiation_required_flag(a_template_instance_ptr tip,
+                                        a_boolean               value,
+					a_boolean		defer_inline)
+/*
+Updates the instantiation required flag in a template instance entry.  If the
+flag is set to TRUE the instance entry is added to a list of entries for which
+instantiation is required.  If the flag is set to FALSE the entry is simply
+added to the list.  Once set to TRUE, the flag cannot be reset to FALSE.
+Inline functions are instantiated as they are added to the list, unless
+defer_inline is TRUE.
+*/
+{
+  a_symbol_ptr			   sym;
+  a_template_symbol_supplement_ptr tssp;
+  a_boolean			   add_to_list = TRUE;
+
+  db_enter(5, "update_instantiation_required_flag");
+  sym = tip->instance_sym;
+  tssp = template_supplement_for_symbol(tip->template_sym);
+#if DEBUG
+  if (debug_level >= 5) {
+    a_symbol_ptr sym = tip->instance_sym;
+    fprintf(f_debug, "Setting instantiation_required flag to %s for ",
+            value ? "TRUE" : "FALSE");
+    db_symbol(tip->instance_sym, "", 0);
+    fprintf(f_debug, "is_function_symbol=%d\n", is_function_symbol(sym));
+    fprintf(f_debug, "defined=%d\n", sym->defined);
+    if (is_function_symbol(sym)) {
+      fprintf(f_debug, "inline=%d\n", sym->variant.routine.ptr->is_inline);
+    }  /* if */
+  }  /* if */
+#endif /* DEBUG */
+  if (instantiation_mode == tim_can_instantiate) {
+    /* Leave the instantiation_required flag unchanged in this mode. */
+  } else if (instantiation_mode == tim_all && !value) {
+    /* An "unused" instantiation is being added to the list. */
+    if (too_many_unused_instantiations(tip->template_sym, tssp)) {
+      /* Don't add this entry to the list.  This prevents infinite
+         instantiation loops. */
+      add_to_list = FALSE;
+    }  /* if */
+  } else if (sym == tip->template_sym) {
+      /* Somehow a member function of a nonreal class (e.g., a prototype
+         instantiation of a class template) has been referenced.  (This
+         can occur in a sizeof operation applied to the address of a
+         static member function -- anywhere else?).  Do not instantiate
+         the function. */
+    add_to_list = FALSE;
+  } else if (value) {
+    tip->instantiation_required = TRUE;
+    /* Set the instantiation required flag in the routine or variable
+       entry. */
+    if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
+      a_variable_ptr	variable;
+      variable = sym->variant.static_data_member.variable;
+      variable->instance_required = TRUE;
+    } else {
+      a_routine_ptr	routine;
+      routine = sym->variant.routine.ptr;
+      routine->instance_required = TRUE;
+    }  /* if */
+    if (!defer_inline && is_function_symbol(sym) &&
+               tssp->token_cache.first_token != NULL &&
+               is_inline_template_function(tip)) {
+      /* Inline (member or nonmember) functions are instantiated at the
+         point of first use, in case the back end requires the function
+         body immediately to perform inlining. */
+      if (!tip->already_instantiated) {
+        instantiate_template_function(tip);
+      }  /* if */
+    } else if (value == (a_boolean)tip->instantiation_required) {
+      /* The instantiation required flag is already set to the desired
+         value.  This test is used to ensure that an entry that is already
+         on the instantiation required list won't be instantiated until
+         reached on the list.  This prevents things on the list from being
+         instantiated during the instantiation of other functions of entries
+         earlier on the list. */
+    } else {
+      /* If we are in instantiation wrapup then instantiate the function now
+	 instead of just adding it to the end of the list.  This makes
+	 it possible to detect runaway recursive instantiations that
+	 are very difficult to detect when the instantiations are done
+	 serially. */
+      if (in_instantiation_wrapup) {
+        if (!tip->already_instantiated &&
+            should_be_instantiated(tip, /*implicit_inclusion_ok=*/FALSE)) {
+          /* Implicit inclusion is not done for "on the fly" instantiations
+             because the includes cannot be processed in the middle of
+	     the instantiation of another function.  The entry will be put
+	     on the instantiation required list and instantiated later in
+             instantiation_wrapup. */
+          if (tip->instance_sym->kind ==
+                                        (a_symbol_kind)sk_static_data_member) {
+            define_template_static_data_member(tip);
+          } else {
+            instantiate_template_function(tip);
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  } else {
+    /* Once set, the flag cannot be reset.  When value is FALSE we add
+       the entry to the instantiations required list but do not alter
+       the value of instantiation_required. */
+    tip->instantiation_required = FALSE;
+  }  /* if */
+  if (add_to_list) {
+    /* The entry is added to the instantiations list even if the instantiation
+       required flag is FALSE because certain entries for which instantiation
+       is not required need to be processed for automatic instantiation
+       processing. */
+    add_to_instantiations_required_list(tip);
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
+    /* See if this is an instantiation assigned to this compilation. */
+    check_if_present_in_info_file(tip);
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+  }  /* if */
+  db_exit();
+}  /* update_instantiation_required_flag */
+
+
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
+static a_boolean open_instantiation_info_file(void)
+/*
+Open the instantiation information file associated with the primary source
+file.  Return TRUE if the file was successfully opened.
+*/
+{
+  f_instantiation_info = NULL;
+  if (strcmp(primary_source_file_name, FILE_NAME_FOR_STDIN) != 0) {
+    /* Only open the file if the input is coming from a file. */
+    instantiation_info_file_name =
+            derived_name(primary_source_file_name, INSTANTIATION_FILE_SUFFIX);
+    f_instantiation_info = fopen(instantiation_info_file_name, "r");
+  }  /* if */
+  return f_instantiation_info != NULL;
+}  /* open_instantiation_info_file */
+
+
+void create_or_remove_instantiation_information_file(void)
+{
+  FILE		*f_ii_file;
+
+  if (strcmp(primary_source_file_name, FILE_NAME_FOR_STDIN) != 0) {
+    /* Only create the file if the input is coming from a file.  Note
+       that the file will have been closed after all input was read so
+       it must be reopened now. */
+    f_ii_file = fopen(instantiation_info_file_name, "r");
+    if (f_ii_file != NULL) (void)fclose(f_ii_file);
+    if (any_instantiations_required) {
+      /* If the file does not exist, create it. */
+      if (f_ii_file == NULL) {
+        f_ii_file = fopen(instantiation_info_file_name, "a");
+        if (f_ii_file == NULL) {
+          str_catastrophe(ec_cannot_create_instantiation_information_file,
+                          instantiation_info_file_name);
+        }  /* if */
+      }  /* if */
+    } else {
+      /* No instantiation information needed.  Delete the file if it
+         already exits. */
+      if (f_ii_file != NULL) {
+        delete_file(instantiation_info_file_name);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* create_or_remove_instantiation_information_file */
 
 
 static char *read_info_file(void)
@@ -4942,15 +4993,12 @@ instantiation of a given template instance.
 
 static void automatic_instantiation(void)
 /*
-This is the main routine that handles automatic instantiation processing.
-The list of instantiations that are to be performed by this compilation is
-read from the instantiation information file.  We then go through the
-instantiations required list and look for names that match the
-instantiations to be done.  When a match is found the instantiation is
-performed.
+Go through the instantiations_required list and look for entries that
+were in the instantiation information file.  See if the entry can be
+instantiated (and has not already been instantiated).  Instantiate any
+entities from the info file list that can be instantiated.
 */
 {
-  a_boolean			instantiations_needed;
   a_template_instance_ptr	tip;
   a_template_instantiation_mode	saved_instantiation_mode;
 
@@ -4962,66 +5010,29 @@ performed.
      instantiations that are performed. */
   saved_instantiation_mode = instantiation_mode;
   instantiation_mode = tim_none;
-  /* We always need to go through the full instantiation list to set the
-     flags to be passed to the back-end.  We don't, however, need to
-     compare mangled names unless there are actually instantiations that
-     we need to do.   The read routine returns a flag that indicates whether
-     any information was present in the instantiation file. */
-  instantiations_needed = read_instantiation_info_file();
   tip = instantiations_required;
   for (; tip != NULL; tip = tip->next_in_instantiation_list) {
-    char	*name;
-    a_symbol_ptr			instance_sym = tip->instance_sym;
-    a_routine_ptr			routine;
-    a_variable_ptr			variable;
-    a_boolean				is_static_data_member;
-    a_boolean				can_instantiate;
-    an_instance_lookup_entry_ptr	ilp = NULL;
-
+    /* Set the flag that indicates that this compilation includes
+       external template entities. */
+    any_instantiations_required = TRUE;
+    /* Skip entries that do were not included in the instantiation
+       information file. */
+    if (!tip->in_info_file) continue;
     /* Skip non-external function. */
     if (is_static_or_inline_template_function(tip)) continue;
-    /* Get a pointer to the IL entry to be processed. */
-    if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
-      is_static_data_member = TRUE;
-      variable = instance_sym->variant.static_data_member.variable;
-    } else {
-      is_static_data_member = FALSE;
-      routine = instance_sym->variant.routine.ptr;
-    }  /* if */
+    /* Skip entries that have already been instantiated. */
+    if (tip->already_instantiated) continue;
 #if DEBUG
     if (debug_level >= 4) {
       fprintf(f_debug, "Automatic instantiation processing for:\n");
-      db_symbol(instance_sym, "", 0);
+      db_symbol(tip->instance_sym, "", 0);
     }  /* if */
 #endif /* DEBUG */
-    any_instantiations_required = TRUE;
-    can_instantiate = can_be_instantiated(tip);
-    if (instantiations_needed && can_instantiate) {
-      /* If an instantiation list is present and if this template could
-         be instantiated then check whether it was present in the
-         instantiation list file. */
-      if (is_static_data_member) {
-        name = get_mangled_static_data_member_name(variable);
+    if (can_be_instantiated(tip)) {
+      if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
+        define_template_static_data_member(tip);
       } else {
-        name = get_mangled_function_name(routine);
-      }  /* if */
-      ilp = find_instance(name, /*add=*/FALSE);
-#if DEBUG
-    if (debug_level >= 4) {
-      fprintf(f_debug, " instantiation_required=%d\n",
-              tip->instantiation_required);
-      fprintf(f_debug, " explicit_can_instantiate=%d\n",
-              tip->explicit_can_instantiate);
-    }  /* if */
-#endif /* DEBUG */
-      if (ilp != NULL) {
-        /* The name was in the instantiation list.  Generate an
-           instantiation. */
-        if (is_static_data_member) {
-          define_template_static_data_member(tip);
-        } else {
-          instantiate_template_function(tip);
-        }  /* if */
+        instantiate_template_function(tip);
       }  /* if */
     }  /* if */
   }  /* for */
@@ -5033,22 +5044,19 @@ performed.
 }  /* automatic_instantiation */
 
 
-static void update_auto_instantiation_flags(void)
+void update_auto_instantiation_flags(void)
 /*
-This is the main routine that handles automatic instantiation processing.
-The list of instantiations that are to be performed by this compilation is
-read from the instantiation information file.  We then go through the
-instantiations required list and look for names that match the
-instantiations to be done.  When a match is found the instantiation is
-performed.  The routine and variable IL entries contain flags which are used
-to pass information to a link-time instantiation processor.  This routine
-is responsible for setting the appropriate flags.
+Go through the instantiations_required list and set the fields in the
+variable and routine entries that are used to pass information to the
+to the link-time instantiation processor.  The "can instantiate" and
+"do not instantiate" flags are set here.  The "instance required" flag
+is set by update_instantiation_required_flag.
 */
 {
   a_template_instance_ptr	tip;
 
   db_enter(3, "update_auto_instantiation_flags");
-  /* Make a second pass through all of the instantiations to set the
+  /* Make a pass through all of the instantiations to set the
      flags to be passed to the link time instantiation mechanism.
      This needs to be done after all instantiations have been done
      so that the flags are in their final state. */
@@ -5070,7 +5078,7 @@ is responsible for setting the appropriate flags.
       is_static_data_member = FALSE;
       routine = instance_sym->variant.routine.ptr;
     }  /* if */
-    can_instantiate = can_be_instantiated(tip);
+    can_instantiate = tip->already_instantiated || can_be_instantiated(tip);
 #if DEBUG
     if (debug_level >= 4) {
       fprintf(f_debug, " already_instantiated=%d\n",
@@ -5082,14 +5090,10 @@ is responsible for setting the appropriate flags.
     }  /* if */
 #endif /* DEBUG */
     if (is_static_data_member) {
-      variable->can_be_instantiated = can_instantiate ||
-                                      tip->already_instantiated;
-      variable->instance_required = tip->instantiation_required;
+      variable->can_be_instantiated = can_instantiate;
       variable->do_not_instantiate = tip->explicit_do_not_instantiate;
     } else {
-      routine->can_be_instantiated = can_instantiate ||
-				     tip->already_instantiated;
-      routine->instance_required = tip->instantiation_required;
+      routine->can_be_instantiated = can_instantiate;
       routine->do_not_instantiate = tip->explicit_do_not_instantiate;
     }  /* if */
   }  /* for */
@@ -5193,7 +5197,6 @@ specific definition that made it unnecessary.
   if (automatic_instantiation_mode) {
     /* Do processing related to automatic instantiation processing. */
     automatic_instantiation();
-    update_auto_instantiation_flags();
   }  /* if */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
@@ -5698,6 +5701,7 @@ Initializations for template.
   instantiation_info_file_name = NULL;
   f_instantiation_info = NULL;
   memzero((char *)instance_lookup_table, sizeof(instance_lookup_table));
+  any_auto_instantiations_required = read_instantiation_info_file();
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 #if RECORD_TEMPLATES_IN_IL
   /* Initialize the output control block for the il-to-str routines. */
