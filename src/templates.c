@@ -4985,6 +4985,7 @@ that matches the template template parameter specified by sym_for_templ.
      generated (if any). */
   cssp = symbol_supplement_for_class(type);
   templ_for_type = cssp->class_template;
+  templ_for_type = primary_template_of(templ_for_type);
   /* If there is no template, the type is not template based so this is
      not a match. */
   if (templ_for_type != NULL) {

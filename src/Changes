@@ -1,5 +1,21 @@
 Version 3.1
 
+1/14/03  Partial specialization fails to match template template parameter
+
+As a result of a bug in template argument deduction, partially specialized
+classes would fail to match template template parameters in certain cases.
+This has been fixed.
+
+  template <class T1, class T2> struct A {};
+  template <class T> struct A<T, T> {};
+  template <class T> struct B {};
+  template <template <class T1, class T2> class X, class T1, class T2>
+  struct B<X<T1, T2> > {
+    typedef int type;
+  };
+  A<int, int> a;  // next line fails if this declaration is present
+  B<A<int,int> >::type b;
+
 1/9/03   address_taken flag on use of static member function with
          selector
 
