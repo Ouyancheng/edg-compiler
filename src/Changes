@@ -1,5 +1,24 @@
 Version 2.42
 
+3/18/99  Name mangling for uses of partial specialization classes
+
+Name mangling now includes the template argument list for a partial
+specialization only in parent name references.  Formerly, the
+partial specialization arguments were included in all references to
+the class, which was inappropriate.  In particular, it meant that
+mangled names could be different depending on whether the class was
+complete or not.
+
+  template <class T> struct A {};
+  template <class T> struct A<T*> {};
+  void f(A<int*>*){}
+  #ifdef COMPLETE
+  A<int*> a;
+  #endif
+
+This produced different mangled names depending on whether COMPLETE
+was defined.  Now, the same mangled name is produced in both cases.
+
 3/17/99  name field in typeinfo now const
 
 The "name" field in the typeinfo structure now has "const char *" type.

@@ -1196,6 +1196,7 @@ Add to the mangled name the encoding qualifier that indicates specialization.
 
 static void mangled_full_class_name(
                          a_type_ptr               type,
+                         a_boolean                show_partial_spec_args,
                          a_boolean                show_template_specialization,
                          a_boolean                show_specialization,
                          a_mangling_control_block *mctl)
@@ -1205,10 +1206,12 @@ This is not the version that contains a leading count of the number
 of characters in the name; here, the name is usually just the original
 name, but is different if the class is a template class or is unnamed.
 Also, this routine does not do anything special with nested types.
-show_template_specialization is TRUE if the class is generated from a
-specialization of a template and an indication of that fact should be
-put out.  show_specialization is TRUE if the class is itself a specialization
-and an indication of that fact should be put out.
+show_partial_spec_args is TRUE if template arguments for a partial
+specialization should be put out.  show_template_specialization is TRUE
+if the class is generated from a specialization of a template and an
+indication of that fact should be put out.  show_specialization is TRUE
+if the class is itself a specialization and an indication of that fact
+should be put out.
 */
 {
   char                        *name;
@@ -1230,7 +1233,12 @@ and an indication of that fact should be put out.
   /* See if template arguments are needed.  For partial specializations,
      there are two argument lists. */
   template_args = ctsp->template_arg_list;
-  if (distinct_template_signatures &&
+#if ABI_COMPATIBILITY_VERSION < 242
+  /* Before this change, all names included partial specialization
+     arguments. */
+  show_partial_spec_args = distinct_template_signatures;
+#endif /* ABI_COMPATIBILITY_VERSION < 242 */
+  if (show_partial_spec_args &&
       ctsp->partial_spec_template_arg_list != NULL) {
     /* A partial specialization.  The first list is the argument list
        from the prototype instantiation of the partial specialization.
@@ -1296,11 +1304,12 @@ and an indication of that fact should be put out.
 
 /*
 Interface to mangled_full_class_name for the case where
-show_template_specialization and show_specialization are FALSE (meaning no
-information about those things should be put out).
+show_partial_spec_args, show_template_specialization, and
+show_specialization are FALSE (meaning no information about those things
+should be put out).
 */
 #define mangled_basic_class_name(type, mctl)                          \
-  mangled_full_class_name((type), FALSE, FALSE, (mctl))
+  mangled_full_class_name((type), FALSE, FALSE, FALSE, (mctl))
 
 
 static void mangled_name_with_length(char                     *name,
@@ -1318,6 +1327,7 @@ null-terminated.
 
 static void mangled_class_encoding(
                          a_type_ptr               type,
+                         a_boolean                show_partial_spec_args,
                          a_boolean                show_template_specialization,
                          a_boolean                show_specialization,
                          a_mangling_control_block *mctl)
@@ -1326,11 +1336,12 @@ Add to the mangled name the encoding for the name of the class "type".
 This is the version that contains a leading count of the number of
 characters in the name, but not information on parents.  If the class
 is a proxy class for a template parameter, the encoding for the template
-parameter is put out (without a length).  show_template_specialization is
-TRUE if the class is generated from a specialization of a template and
-an indication of that fact should be put out.  show_specialization is TRUE
-if the class is itself a specialization and an indication of that fact
-should be put out.
+parameter is put out (without a length).  show_partial_spec_args is
+TRUE if template arguments for a partial specialization should be
+put out.  show_template_specialization is TRUE if the class is generated
+from a specialization of a template and an indication of that fact should
+be put out.  show_specialization is TRUE if the class is itself a
+specialization and an indication of that fact should be put out.
 */
 {
   a_type_ptr template_param = NULL;
@@ -1372,11 +1383,13 @@ should be put out.
     /* Do the mangling once to get the length, then again for real. */
     set_control_block_for_suppression(&sctl, mctl);
     mangled_full_class_name(type,
+                            show_partial_spec_args,
                             show_template_specialization,
                             show_specialization,
                             &sctl);
     add_number_to_mangled_name((unsigned long)sctl.slength, mctl);
     mangled_full_class_name(type,
+                            show_partial_spec_args,
                             show_template_specialization,
                             show_specialization,
                             mctl);
@@ -1445,6 +1458,7 @@ mangled_parent_qualifier, which supplies the usual nesting_level == 1.
   if (scp->is_class_member) {
     /* Class name. */
     a_type_ptr type = scp->parent.class_type;
+    a_boolean  show_partial_spec_args = FALSE;
     a_boolean  is_specialization = FALSE;
     a_boolean  is_template_specialization = FALSE;
     if (distinct_template_signatures) {
@@ -1467,8 +1481,10 @@ mangled_parent_qualifier, which supplies the usual nesting_level == 1.
           !type->variant.class_struct_union.specialized_with_old_syntax) {
         is_specialization = TRUE;
       }  /* if */
+      show_partial_spec_args = distinct_template_signatures;
     }  /* if */
     mangled_class_encoding(type,
+                           show_partial_spec_args,
                            is_template_specialization,
                            is_specialization,
                            mctl);
@@ -1544,6 +1560,7 @@ and for unnamed classes and enums.  Nested types are encoded as such.
   if (is_immediate_class_type(type)) {
     /* Class name. */
     mangled_class_encoding(type,
+                           /*show_partial_spec_args=*/FALSE,
                            /*show_template_specialization*/FALSE,
                            /*show_specialization=*/FALSE,
                            mctl);
