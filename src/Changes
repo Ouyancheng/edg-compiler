@@ -1,5 +1,39 @@
 Version 2.39
 
+8/6/98    C++-generating back end: position of template instantiations
+          triggered by default argument expressions within class scope
+
+When TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is configured to
+TRUE, template instantiations are represented by explicit template
+specializations.  The standard says such declarations are not allowed
+inside the body of a class definition; however, they have to appear prior
+to the declaration containing the default argument, and the template
+argument can be dependent on a class member.  There is sometimes no way to
+resolve these conflicting constraints without causing the C++-generating
+back end to put out invalid code.  Here's an example:
+
+  template <class T> int f(T);
+                              // Insert "template<> int f(B::N);" here?
+  class B {
+    static class N { } n;
+                              // ... or here?
+    void g(int = f(n));
+  };
+
+When the C++-generating back end can put out the instantiation of f<B::N>
+as an explicit specialization, it can be inserted either in the right
+scope or else immediately before the declaration that triggers it.  In
+this case, neither strategy produces standard-conforming C++ output.
+
+Global variable instantiations_permitted_in_class_src_seq_list (see
+DEFAULT_INSTANTIATIONS_PERMITTED_IN_CLASS_SRC_SEQ_LIST in host_envir.h)
+now determines which constraint is given priority.  The default setting is
+FALSE, causing the instantiation to float out of the class scope; this
+usually results in valid output.  However, if compilable output is not
+required or if the generated C++ is to be fed to a compiler that accepts
+explicit specializations within class scopes, the other setting might be
+preferred.
+
 8/6/98    C++-generating back end: no instantiation directives when
           instantiations are put out as specializations
 
