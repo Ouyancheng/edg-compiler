@@ -3319,7 +3319,6 @@ entry is pushed on the scope stack.
 }  /* template_declaration */
 
 
-#if 0
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
 static void do_implicit_include_if_needed(a_template_instance_ptr tip)
 /*
@@ -3330,6 +3329,7 @@ we return without doing anything.  If there is no corresponding source
 file we simply return.
 */
 {
+#if 0
   a_source_position	*decl_position;
   a_line_number		line_number;
   a_boolean		at_end_of_source;
@@ -3345,20 +3345,20 @@ file we simply return.
                             /*physical_line=*/FALSE);
   /* If we haven't already included the corresponding source file then
      do so now. */
-  if (sfp != NULL && sfp->related_file_implicit_include_done) {
+  if (sfp != NULL && !sfp->related_file_implicit_include_done) {
     sfp->related_file_implicit_include_done = TRUE;
     /* Call a routine to search for a file with an appropriate suffix. */
     f_source = open_file_for_input(sfp->file_name, incl_search_path,
-				   (char *)NULL /* suffixes */,
+				   /*replace_suffix=*/TRUE,
 				   &full_file_name);
     if (f_source != NULL) {
       /* If such a file was found include it now. */
       push_input_stack(f_source, sfp->file_name, full_file_name);
     }  /* if */
   }  /* if */
+#endif /* 0 */
 }  /* do_implicit_include_if_needed */
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
-#endif /* 0 */
 
 
 void add_to_instantiations_required_list(a_template_instance_ptr  tip)
@@ -3464,6 +3464,15 @@ such as instantiating a template for which no body was supplied.
     if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
       specific_def = tip->instance_sym->defined;
       template_def = tip->template_sym->defined;
+#if INSTANTIATION_BY_IMPLICIT_INCLUSION
+      if (!template_def) {
+        /* If a template definition is not present, attempt to include a
+           source file that will provide the definition.  Then check
+           again to see if a template definition is present. */
+        do_implicit_include_if_needed(tip);
+        template_def = tip->template_sym->defined;
+      }  /* if */
+#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
     } else {
       a_template_symbol_supplement_ptr  tssp;
       specific_def = tip->specific_def;
@@ -3479,6 +3488,15 @@ such as instantiating a template for which no body was supplied.
         tssp = tip->template_sym->variant.routine.instance_ptr->template_info;
       }  /* if */
       template_def = tssp->token_cache.first_token != NULL;
+#if INSTANTIATION_BY_IMPLICIT_INCLUSION
+      if (!template_def) {
+        /* If a template definition is not present, attempt to include a
+           source file that will provide the definition.  Then check
+           again to see if a template definition is present. */
+        do_implicit_include_if_needed(tip);
+        template_def = tssp->token_cache.first_token != NULL;
+      }  /* if */
+#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
     }  /* if */
     if (!template_def && !specific_def) {
       /* A template can be declared and referenced without ever being defined.
@@ -3801,6 +3819,15 @@ instantiation of a given template instance.
     tssp = template_supplement_for_symbol(template_sym);
     specific_def = tip->specific_def;
     template_def = tssp->token_cache.first_token != NULL;
+#if INSTANTIATION_BY_IMPLICIT_INCLUSION
+    if (!template_def) {
+      /* If a template definition is not present, attempt to include a
+         source file that will provide the definition.  Then check
+         again to see if a template definition is present. */
+      do_implicit_include_if_needed(tip);
+      template_def = tssp->token_cache.first_token != NULL;
+    }  /* if */
+#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
   }  /* if */
   result = template_def && !specific_def && !tip->already_instantiated;
   return result;
