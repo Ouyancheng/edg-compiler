@@ -1052,7 +1052,7 @@ caution when modifying this routine.
          new class that has nothing to do with the template. */
       /* There are two situations that need to be handled: this could be the
          first time we are scanning this template reference -- in which case
-         we to scan the arguments (using coalesce_template_class_reference).
+         we must scan the arguments (using coalesce_template_class_reference).
          Alternately, the arguments may have already been coalesced.  If the
          symbol is a class template then we need to scan the arguments.  If
          the symbol is a template class symbol then the arguments have already
@@ -2243,6 +2243,12 @@ new expression and should therefore not be treated as a declaration.
       check_assertion(err || C_dialect != C_dialect_cplusplus ||
                       is_class_definition);
       class_type->declared_in_function_prototype = TRUE;
+    } else if (is_friend_decl &&
+               scope_stack[effective_decl_level].kind ==
+                                   (a_scope_kind)sck_template_instantiation) {
+      /* This is a new (real) type created during a prototype instantiation.
+         The type should still be placed on the namespace scope. */
+      effective_decl_level = depth_innermost_namespace_scope;
     }  /* if */
     if (C_dialect == C_dialect_cplusplus && error_tag_sym != NULL) {
       class_type->variant.class_struct_union.extra_info->template_arg_list =
