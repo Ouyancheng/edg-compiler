@@ -9137,6 +9137,7 @@ entry into one representing a nondefining declaration.
     a_type_ptr                   friend_class;
     a_routine_ptr                friend_rout;
     a_class_list_entry_ptr       clep, prev_clep, next_clep;
+    a_template_arg_ptr           template_arg_list;
 
     ctsp = class_type->variant.class_struct_union.extra_info;
     /* If the definition of class_type included friend declarations, the
@@ -9198,9 +9199,12 @@ entry into one representing a nondefining declaration.
       /* Check the next friend function. */
       ctsp->friend_routines = ctsp->friend_routines->next;
     }  /* if */
-    /* Clear all the pointers in the class_type_supplement.  This includes the
-       assoc_scope pointer. */
+    /* Clear the pointers in the class_type_supplement, including the
+       assoc_scope pointer; however, the template arg list should be
+       preserved. */
+    template_arg_list = ctsp->template_arg_list;
     clear_class_type_supplement(ctsp);
+    ctsp->template_arg_list = template_arg_list;
     /* Clear flags that can only be TRUE for classes with definitions. */
     class_type->variant.class_struct_union.any_const_member = FALSE;
     class_type->variant.class_struct_union.any_virtual_base_classes = FALSE;
