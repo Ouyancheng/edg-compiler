@@ -3076,30 +3076,77 @@ only the same members of the same class but with equivalent derivations).
 {
   a_derivation_step_ptr  tail1, tail2;
   a_boolean              equiv = FALSE;
+  a_symbol_ptr           fundamental_sym1;
+  a_type_ptr             rout_type;
 
   db_enter(4, "projections_are_equivalent");
-  equiv = FALSE;
-  if (fundamental_symbol_of(sym1) == fundamental_symbol_of(sym2)) {
-    /* Fundamental symbols are the same.  See if the paths are equivalent.
-       Note that if either symbol is a projection symbol, it path must
-       be (temporarily) modified to reflect the path all the way to
-       the fundamental symbol. */
-    tail1 = tail2 = NULL;
-    if (sym1->kind == (a_symbol_kind)sk_projection) {
-      for (tail1 = path1; tail1->next != NULL; tail1 = tail1->next) {}
-      tail1->next = sym1->variant.projection.extra_info->
-                                      fundamental_base_class->derivation;
+  fundamental_sym1 = fundamental_symbol_of(sym1);
+  if (fundamental_sym1 == fundamental_symbol_of(sym2)) {
+    /* Fundamental symbols are the same.  Set equiv to TRUE if they
+       represent the same function, object, type, or enumerator (ARM 10.1.1).
+       In other words, if they are independent of a class object, they are
+       equivalent (any path to a static data member, for example, gets to
+       the same object) or if they are dependent on the same class object
+       (e.g., if a field belongs to a virtual base class). */
+    switch (fundamental_sym1->kind) {
+      case sk_field:
+        /* Nonstatic data member.  Equivalence must be determined by comparing
+           the paths to the subclass object. */
+        break;
+      case sk_overloaded_function:
+        /* Overloaded function.  If there are any nonstatic member functions,
+           we must compare the paths. */
+        if (fundamental_sym1->
+                      variant.overloaded_function.mixed_static_nonstatic) {
+          /* One or more is a nonstatic member function. */
+          break;
+        } else {
+          /* Either all are static or all are nonstatic.  Check the first in
+             the list. */
+          rout_type = fundamental_sym1->variant.overloaded_function.symbols->
+                                                         variant.routine->type;
+          goto check_rout_type;
+        }
+      case sk_member_function:
+        /* See if the member function is static.  Otherwise the paths must be
+           compared. */
+        rout_type = fundamental_sym1->variant.routine->type;
+check_rout_type:
+        if (!routine_type_is_nonstatic_member_function(rout_type)) {
+          /* There is only one instance of a static member function. */
+          equiv = TRUE;
+        }  /* if */
+        break;
+      default:
+        /* Static data member, member constant, or member type. */
+        equiv = TRUE;
+    }  /* switch */
+    if (!equiv) {
+      /* Fundamental symbols are the same but may not represent the same
+         object (= field) or routine.  ("The same routine" is taken to mean
+         the same static member function or the same nonstatic member function
+         called with the same "this" pointer.  Is that justified by the ARM?)
+         In other words, they are the same if the paths are equivalent.
+         Note that if either symbol is a projection symbol, its path must
+         be (temporarily) modified to reflect the path all the way to
+         the fundamental symbol. */
+      tail1 = tail2 = NULL;
+      if (sym1->kind == (a_symbol_kind)sk_projection) {
+        for (tail1 = path1; tail1->next != NULL; tail1 = tail1->next) {}
+        tail1->next = sym1->variant.projection.extra_info->
+                                        fundamental_base_class->derivation;
+      }  /* if */
+      if (sym2->kind == (a_symbol_kind)sk_projection) {
+        for (tail2 = path2; tail2->next != NULL; tail2 = tail2->next) {}
+        tail2->next = sym2->variant.projection.extra_info->
+                                        fundamental_base_class->derivation;
+      }  /* if */
+      /* Compare the modified paths. */
+      if (equivalent_paths(path1, path2)) equiv = TRUE;
+      /* Restore the paths to the original state, if necessary. */
+      if (tail1 != NULL) tail1->next = NULL;
+      if (tail2 != NULL) tail2->next = NULL;
     }  /* if */
-    if (sym2->kind == (a_symbol_kind)sk_projection) {
-      for (tail2 = path2; tail2->next != NULL; tail2 = tail2->next) {}
-      tail2->next = sym2->variant.projection.extra_info->
-                                      fundamental_base_class->derivation;
-    }  /* if */
-    /* Compare the modified paths. */
-    if (equivalent_paths(path1, path2)) equiv = TRUE;
-    /* Restore the paths to the original state, if necessary. */
-    if (tail1 != NULL) tail1->next = NULL;
-    if (tail2 != NULL) tail2->next = NULL;
   }  /* if */
   db_exit();
   return equiv;
