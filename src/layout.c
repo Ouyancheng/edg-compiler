@@ -1919,7 +1919,7 @@ base class.
                         cts = bcp->type->variant.class_struct_union.extra_info;
       a_targ_alignment  alignment=cts->alignment_without_virtual_base_classes;
       a_targ_size_t     size = cts->size_without_virtual_base_classes;
-      do_alignment(&size, &dummy, alignment);
+      (void)do_alignment(&size, &dummy, alignment);
       if (field->offset < bcp->offset + size) {
         pos_warning(ec_field_uses_tail_padding,
                     &field->source_corresp.decl_position);
