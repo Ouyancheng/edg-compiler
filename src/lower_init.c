@@ -2782,7 +2782,7 @@ with the indicated bit number.
     (void)strcpy(name+prefix_len, module_id);
 #if ONE_INSTANTIATION_PER_OBJECT
     if (needed_bit_number != 0) {
-      (void)strcpy(name+prefix_len+strlen(module_id), buffer);
+      (void)strcpy(name+prefix_len+strlen(module_id), buffer); /*lint !e645*/
     }  /* if */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
   }  /* if */
@@ -5192,12 +5192,14 @@ Do IL lowering of an enk_temp_init expression node.
           /* If necessary, add a cast to adjust qualification.  We check the
              second level for compatibility because the first is likely to be
              a pointer in one case and a reference in the other. */
-          if (!result_is_not_used &&
-              !il_identical_types(type_pointed_to(expr->type),
-                                  type_pointed_to(first_operand->type))) {
-            first_operand->next = NULL;
-            first_operand->result_is_not_used = FALSE;
-            first_operand = add_cast(first_operand, expr->type);
+          if (!result_is_not_used) {
+            a_type_ptr expr_und_type = type_pointed_to(expr->type);
+            a_type_ptr first_op_und_type= type_pointed_to(first_operand->type);
+            if (!il_identical_types(expr_und_type, first_op_und_type)) {
+              first_operand->next = NULL;
+              first_operand->result_is_not_used = FALSE;
+              first_operand = add_cast(first_operand, expr->type);
+            }  /* if */
           }  /* if */
           overwrite_node(expr, first_operand);
         }  /* if */
@@ -6793,7 +6795,6 @@ after all initialization routines for instantiations have been generated.
 #if ONE_INSTANTIATION_PER_OBJECT
   if (needed_bit_number == 1) eff_needed_bit_number = 0;
   if (needed_bit_number != 0) {
-    a_dynamic_init_ptr dip_next;
     /* We're putting out separate initialization routines for each
        instantiation.   Split the dynamic initializations list into two
        lists: one that gets processed on this call (because the variables
