@@ -1584,13 +1584,6 @@ list.
   register a_symbol_header_ptr hdr_ptr;
 
   db_enter(4, "unlink_symbol_from_symbol_table");
-#if DEBUG
-  if (db_active && 
-      (debug_level >= 3 ||
-       db_flag_is_set("dump_symbols"))) {
-    db_symbol(sym_ptr, "unlinking: ", 2);
-  }  /* if */
-#endif /* CHECKING */
   if (sym_ptr->is_error) {
     /* Error symbols are never added to a symbol list and cannot be removed. */
   } else if (sym_ptr->kind == (a_symbol_kind)sk_extern_variable ||
