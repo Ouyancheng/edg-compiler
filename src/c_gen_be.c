@@ -2275,7 +2275,8 @@ Print a typedef declaration.
 
 static void dump_enum_definition(a_type_ptr type)
 /*
-Output the definition of the indicated enum type.  No final ";" is added.
+Output the definition of the indicated enum type, as a type specifier (no
+final ";").
 */
 {
   a_constant_ptr enum_con;
@@ -2290,15 +2291,6 @@ Output the definition of the indicated enum type.  No final ";" is added.
      to be output as the corresponding integral type, but higher up; they
      shouldn't get here. */
   check_assertion_str(enum_con != NULL, "dump_enum_definition: empty enum");
-#if !C_GEN_BE_GENERATES_ANSI_C
-  /* Enum types are rendered as integers in K&R C, so this definition is
-     not needed when generating K&R C, except as an annotation. */
-  if (!annotate) goto done;
-  /* As an annotation, put out the enum inside a #if 0. */
-  write_if_0_directive();
-#endif /* !C_GEN_BE_GENERATES_ANSI_C */
-  /* Dump any pragmas associated with the type. */
-  dump_decl_associated_pragmas(&type->source_corresp);
   set_output_position(&type->source_corresp.decl_position);
   /* Generate "enum <name>". */
   write_tok_str("enum ");
@@ -2329,25 +2321,18 @@ Output the definition of the indicated enum type.  No final ";" is added.
     incr_integer_value(&next_enum_value.variant.integer_value);
   }  /* for */
   write_tok_ch('}');
-#if !C_GEN_BE_GENERATES_ANSI_C
-  /* Close the #if 0 started above. */
-  write_endif_0_directive();
-done:;
-#endif /* !C_GEN_BE_GENERATES_ANSI_C */
 }  /* dump_enum_definition */
 
 
 static void dump_struct_union_definition(a_type_ptr type)
 /*
-Output the definition of the indicated struct or union type.  No final ";"
-is added.
+Output the definition of the indicated struct or union type, as a type
+specifier (no final ";").
 */
 {
   a_field_ptr field;
 
   type->definition_put_out = TRUE;
-  /* Dump any pragmas associated with the type. */
-  dump_decl_associated_pragmas(&type->source_corresp);
   set_output_position(&type->source_corresp.decl_position);
   write_tok_str(tag_kind(type->kind));
   write_space();
@@ -2494,8 +2479,21 @@ pass), dump typedefs, and structs/unions as definitions (if they are defined).
         /* start_unreferenced_bracket is not used here because the enumerator
            constants might be referenced even though the enum type itself is
            not. */
+#if !C_GEN_BE_GENERATES_ANSI_C
+        /* Enum types are rendered as integers in K&R C, so this definition is
+           not needed when generating K&R C, except as an annotation. */
+        if (!annotate) break;
+        /* As an annotation, put out the enum inside a #if 0. */
+        write_if_0_directive();
+#endif /* !C_GEN_BE_GENERATES_ANSI_C */
+        /* Dump any pragmas associated with the type. */
+        dump_decl_associated_pragmas(&type->source_corresp);
         dump_enum_definition(type);
         write_tok_ch(';');
+#if !C_GEN_BE_GENERATES_ANSI_C
+        /* Close the #if 0 started above. */
+        write_endif_0_directive();
+#endif /* !C_GEN_BE_GENERATES_ANSI_C */
       }  /* if */
       break;
     case tk_struct:
@@ -2517,6 +2515,8 @@ pass), dump typedefs, and structs/unions as definitions (if they are defined).
         }  /* if */
       } else if (type->size != 0) {
         if (start_unreferenced_bracket(&type->source_corresp)) {
+          /* Dump any pragmas associated with the type. */
+          dump_decl_associated_pragmas(&type->source_corresp);
           dump_struct_union_definition(type);
           write_tok_ch(';');
           end_unreferenced_bracket(&type->source_corresp);
