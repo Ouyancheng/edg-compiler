@@ -450,7 +450,6 @@ typedef enum /*an_error_code*/ {
   ec_incomplete_return_type_not_allowed,
   ec_protected_access_problem,
   ec_param_not_allowed,
-  ec_unimplemented_keyword,
   ec_asm_not_allowed,
   ec_no_conversion_function,
   ec_delete_of_incomplete_class,
@@ -570,7 +569,9 @@ typedef enum /*an_error_code*/ {
   ec_void_param_not_allowed,
   ec_template_function_declaration_context,
   ec_template_class_argument_list_context,
-  ec_bad_templ_arg_expr_operator
+  ec_bad_templ_arg_expr_operator,
+  ec_missing_handler,
+  ec_missing_exception_declaration
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 

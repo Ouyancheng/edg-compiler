@@ -1602,9 +1602,6 @@ error code.
     case ec_param_not_allowed:
       m = "a parameter is not allowed";
       break;
-    case ec_unimplemented_keyword:
-      m = "%no is reserved for future use as a keyword";
-      break;
     case ec_asm_not_allowed:
       m = "an \"asm\" declaration is not allowed at this point";
       break;
@@ -1970,6 +1967,12 @@ error code.
       break;
     case ec_bad_templ_arg_expr_operator:
       m = "this operator is not allowed in a template argument expression";
+      break;
+    case ec_missing_handler:
+      m = "try block requires at least one handler";
+      break;
+    case ec_missing_exception_declaration:
+      m = "handler requires an exception declaration";
       break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
