@@ -7751,6 +7751,47 @@ Put the freed entry on the available list to be reused.
 }  /* free_access_error_descr */
 
 
+static void record_access_error(a_symbol_ptr		sym,
+				a_symbol_locator	*locator)
+/*
+An access error on "sym" has been detected.  "locator" is the
+corresponding symbol locator.  If access checking is not being
+deferred, issue the error now.  Otherwise, create an access error
+entry so that the access error can be rechecked or discarded later.
+*/
+{
+  a_boolean			defer_access_checks = FALSE;
+  a_scope_stack_entry_ptr	ssep;
+
+  if (curr_deferred_access_scope != NO_SCOPE_DEPTH) {
+    ssep = &scope_stack[curr_deferred_access_scope];
+    defer_access_checks = ssep->defer_access_checks;
+  }  /* if */
+  if (!defer_access_checks) {
+    if (!locator->access_control_error_reported) {
+      issue_access_error(fundamental_symbol_of(sym),
+                         &locator->source_position);
+      locator->access_control_error_reported = TRUE;
+    }  /* if */
+  } else {
+    /* Access checks are deferred, so put an entry on a list for later
+       checking. */
+    an_access_error_descr_ptr	aedp;
+    aedp = alloc_access_error_descr();
+    aedp->sym = sym;
+    aedp->position = locator->source_position;
+    aedp->token_sequence_number = curr_token_sequence_number;
+    if (ssep->deferred_access_checks == NULL) {
+      ssep->deferred_access_checks = aedp;
+    }  /* if */
+    if (ssep->last_deferred_access_check != NULL) {
+      ssep->last_deferred_access_check->next = aedp;
+    }  /* if */
+    ssep->last_deferred_access_check = aedp;
+  }  /* if */
+}  /* record_access_error */
+
+
 void f_check_ambiguity_and_verify_access(a_symbol_locator *locator,
 					 a_boolean	  is_templ_context)
 /*
@@ -7805,36 +7846,9 @@ accepted even though the injected class symbol is ambiguous.
     /* The Microsoft compiler allows access to private types in base
        classes as long as they are named by the inherited name. */
   } else if (!have_access_to_symbol(sym)) {
-    /* The symbol is not accessible. */
-    a_boolean			defer_access_checks = FALSE;
-    a_scope_stack_entry_ptr	ssep;
-
-    if (curr_deferred_access_scope != NO_SCOPE_DEPTH) {
-      ssep = &scope_stack[curr_deferred_access_scope];
-      defer_access_checks = ssep->defer_access_checks;
-    }  /* if */
-    if (!defer_access_checks) {
-      if (!locator->access_control_error_reported) {
-        issue_access_error(fundamental_symbol_of(sym),
-                           &locator->source_position);
-        locator->access_control_error_reported = TRUE;
-      }  /* if */
-    } else {
-      /* Access checks are deferred, so put an entry on a list for later
-         checking. */
-      an_access_error_descr_ptr	aedp;
-      aedp = alloc_access_error_descr();
-      aedp->sym = sym;
-      aedp->position = locator->source_position;
-      aedp->token_sequence_number = curr_token_sequence_number;
-      if (ssep->deferred_access_checks == NULL) {
-        ssep->deferred_access_checks = aedp;
-      }  /* if */
-      if (ssep->last_deferred_access_check != NULL) {
-        ssep->last_deferred_access_check->next = aedp;
-      }  /* if */
-      ssep->last_deferred_access_check = aedp;
-    }  /* if */
+    /* The symbol is not accessible.  Issue the error or record it
+       for later checking if access checking is deferred. */
+    record_access_error(sym, locator);
   }  /* if */
 }  /* f_check_ambiguity_and_verify_access */
 
@@ -8020,10 +8034,10 @@ kinds of symbols.
        projection symbols from the specific symbol. */
     if (!have_access_across_derivations(locator->specific_symbol,
                                         overloaded_symbol)) {
-      /* The symbol is not accessible. */
-      issue_access_error(fundamental_symbol_of(locator->specific_symbol),
-                         &locator->source_position);
-      locator->access_control_error_reported = TRUE;
+      /* The symbol is not accessible.  Issue the error or record it
+         for later checking if access checking is deferred. */
+      record_access_error(fundamental_symbol_of(locator->specific_symbol),
+                          locator);
     }  /* if */
   }  /* if */
 }  /* overload_check_ambiguity_and_verify_access */

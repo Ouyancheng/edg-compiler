@@ -1,5 +1,18 @@
 Version 3.1
 
+9/18/02  Spurious access error on overloaded function in explicit instantiation
+
+Explicit instantiation directives are permitted to make use of inaccessible
+entities.  A spurious access error was issued when an inaccessible overloaded
+function was used in an explicit instantiation directive.  This has been fixed.
+
+  class C {
+    static int g ();
+    static int g (int);
+  };
+  template <int I> void f(){}
+  template void f<sizeof (C::g ())>();
+
 9/17/02  Cleanup state on branch back to label inside "if" statement
 
 The cleanup state in the IL (used to generate destructions on
