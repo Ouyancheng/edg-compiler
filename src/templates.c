@@ -11094,11 +11094,11 @@ a real instantiation.
 {
   a_type_ptr			encl_class;
   a_symbol_ptr			encl_class_sym;
-  a_scope_stack_entry_ptr	ssep = &scope_stack[depth_scope_stack];
   a_symbol_ptr			proto_sym;
+
   encl_class = decl_state->class_declared_in;
   encl_class_sym = (a_symbol_ptr)encl_class->source_corresp.assoc_info;
-  if (ssep->in_prototype_instantiation) {
+  if (is_prototype_instantiation_symbol(encl_class_sym)) {
     proto_sym = encl_class_sym;
     set_friend_info_for_prototype(proto_sym, sym);
   } else {
