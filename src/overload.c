@@ -901,8 +901,10 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
        with rvalues.  One cannot distinguish f(int) and f(const int). */
     param_type = skip_typerefs(param_type);
     /* See if the operand is an lvalue for a constant-valued variable.
-       If so, an lvalue --> rvalue transformation might be useful. */
-    if (arg_operand != NULL && is_an_lvalue(arg_operand)) {
+       If so, an lvalue --> rvalue transformation might be useful.
+       Don't do this in cfront mode. */
+    if (!cfront_compatibility_mode &&
+        arg_operand != NULL && is_an_lvalue(arg_operand)) {
       a_constant_ptr con_var_value = NULL;
       if (is_constant_operand(arg_operand)) {
         a_constant_ptr con = &arg_operand->variant.constant;
