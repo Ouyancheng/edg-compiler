@@ -3506,8 +3506,8 @@ is set to NULL.
   a_symbol_list_entry_ptr	symbol_list = NULL;
   a_type_list_entry_ptr		tlep;
   a_namespace_list_entry_ptr	nlep;
-  a_namespace_list_entry_ptr	namespace_list;
-  a_type_list_entry_ptr		class_list;
+  a_namespace_list_entry_ptr	namespace_list = NULL;
+  a_type_list_entry_ptr		class_list = NULL;
 
   /* Build a list of namespaces and classes to be included in the search. */
   for (tlep = *type_list; tlep != NULL; tlep = tlep->next) {
