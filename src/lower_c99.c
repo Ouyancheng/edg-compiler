@@ -1355,6 +1355,19 @@ Replace the imaginary and complex C99 types by their lowered representations.
 }  /* lower_c99_nonreal_float_types */
 
 
+static void lower_c99_bool_type(void)
+/*
+Replace the C99 _Bool type by its lowered representation.
+*/
+{
+  if (bool_type_used()) {
+    a_type_ptr type = bool_type();
+    /* Clear the bool flag and make this a simple integral type. */
+    type->variant.integer.bool_type = FALSE;
+  }  /* if */
+}  /* lower_c99_bool_type */
+
+
 void lower_c99_il_memory_region(a_scope_ptr scope)
 /*
 Do C99 lowering for a memory region.  scope is the top-level scope for
@@ -1365,6 +1378,7 @@ the memory region, i.e., either the file scope or a function scope.
   lower_c99_scope(scope);
   if (scope->kind == (a_scope_kind)sck_file) {
     lower_c99_nonreal_float_types();
+    lower_c99_bool_type();
   }  /* if */
   il_lowering_underway = FALSE;
 }  /* lower_c99_il_memory_region */

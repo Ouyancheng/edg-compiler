@@ -5039,6 +5039,17 @@ This is only used when wchar_t is a distinct type.
   return pit;
 }  /* wchar_t_type */
 
+#if C99_IL_EXTENSIONS_SUPPORTED
+
+a_boolean bool_type_used(void)
+/*
+Return TRUE if the bool type has been used.
+*/
+{
+  return il_bool_type != NULL;
+}  /* bool_type_used */
+
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
 a_type_ptr bool_type(void)
 /*
