@@ -667,6 +667,17 @@ Initialize the option information table.
                          "embedded_c++",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
+#if VLA_ALLOWED
+  add_option_description(optk_vla,
+			 "vla",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_vla,
+			 "no_vla",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_none);
+
+#endif /* VLA_ALLOWED */
 }  /* initialize_option_descriptions */
 
 
@@ -1734,6 +1745,11 @@ enable_microsoft_mode:
       case optk_embedded_cplusplus:
         report_embedded_cplusplus_noncompliance = opt_value;
         break;
+#if VLA_ALLOWED
+      case optk_vla:
+        vla_enabled = opt_value;
+        break;
+#endif /* VLA_ALLOWED */
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -1862,6 +1878,12 @@ enable_microsoft_mode:
     if (!option_kind_used[(int)optk_long_preserving_rules]) {
       long_preserving_rules = FALSE;
     }  /* if */
+#if VLA_ALLOWED
+    if (option_kind_used[(int)optk_vla]) {
+      command_line_error(ec_cl_vla_option_only_in_C);
+    }  /* if */
+    vla_enabled = FALSE;
+#endif /* VLA_ALLOWED */
   }  /* if */
   if (strict_ansi_mode) {
     /* Strict ANSI mode is incompatible with K&R/pcc mode. */
@@ -1939,6 +1961,12 @@ enable_microsoft_mode:
       /* Set optional features to standard settings for strict C mode. */
       /* Enable recognition of digraphs. */
       alternative_tokens_allowed = TRUE;
+#if VLA_ALLOWED
+      if (!(option_kind_used[(int)optk_vla])) {
+        /* Support for VLAs is turned off by default in strict C mode. */
+        vla_enabled = FALSE;
+      }  /* if */
+#endif /* VLA_ALLOWED */
     } else {
       /* Set optional features to standard settings for strict C++ mode. */
       allow_copy_assignment_op_with_base_class_param = FALSE;

@@ -154,6 +154,9 @@ typedef enum /*an_option_kind*/ {
   optk_multibyte_chars,
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
   optk_embedded_cplusplus,
+#if VLA_ALLOWED
+  optk_vla,
+#endif /* VLA_ALLOWED */
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -396,6 +399,17 @@ EXTERN a_boolean
 			   external linkage (as specified by the standard) and
 			   FALSE if they imply internal linkage (as specified
 			   in the ARM).  Significant only in C++ mode. */
+
+EXTERN a_boolean
+		vla_enabled
+#if VAR_INITIALIZERS
+                            = DEFAULT_VLA_ENABLED
+#endif /* VAR_INITIALIZERS */
+                                                 ;
+			/* TRUE if support for variable length arrays (VLAs)
+			   is enabled.  Always FALSE in C++ mode.  Controlled
+			   by command-line options --[no_]vla. */
+
 EXTERN a_boolean
 		special_subscript_cost
 #if VAR_INITIALIZERS
