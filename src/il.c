@@ -169,24 +169,28 @@ classes, structs, unions, which may contain fields that point to
 objects of their own type.
 */
 {
-  switch (tp->kind) {
-    case tk_class:
-      fputs("class", f_debug);
-      goto print_name;
-    case tk_struct:
-      fputs("struct", f_debug);
-      goto print_name;
-    case tk_union:
-      fputs("union", f_debug);
+  if (tp == NULL) {
+    fputs("null type pointer", f_debug);
+  } else {
+    switch (tp->kind) {
+      case tk_class:
+        fputs("class", f_debug);
+        goto print_name;
+      case tk_struct:
+        fputs("struct", f_debug);
+        goto print_name;
+      case tk_union:
+        fputs("union", f_debug);
 print_name:
-      if (tp->source_corresp.name != NULL) {
-        fprintf(f_debug, " \"%s\"", tp->source_corresp.name);
-      }  /* if */
-      break;
-    default:
-      db_type(tp);
-      break;
-  }  /* switch */
+        if (tp->source_corresp.name != NULL) {
+          fprintf(f_debug, " \"%s\"", tp->source_corresp.name);
+        }  /* if */
+        break;
+      default:
+        db_type(tp);
+        break;
+    }  /* switch */
+  }  /* if */
 }  /* db_abbreviated_type */
 
 
