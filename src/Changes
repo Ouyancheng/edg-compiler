@@ -3,9 +3,9 @@ Version 2.32
 6/15/96 Duplicate class-member using-declarations
 
 The restriction on duplicate class-member using-declarations has been
-relaxed, pending further clarification in WP of cases involving aliasing
-and virtual base classes.  This means a strict-mode warning is issued on
-this sort of case:
+relaxed, pending further clarification in the WP of cases involving
+aliasing and virtual base classes.  This means a strict-mode warning is
+issued on this sort of case:
 
   struct B { void f(); };
   struct D : public B {
