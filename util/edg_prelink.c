@@ -19,7 +19,7 @@ Prelink utility for template instantiation.
 #include <malloc.h>
 #include "basics.h"
 #include "host_envir.h"
-#include "target.h"
+#include "targ_def.h"
 #include "edg_prelink.h"
 #include "decode.h"
 
