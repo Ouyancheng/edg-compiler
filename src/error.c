@@ -1151,6 +1151,9 @@ error code.
     case ec_bad_second_arg_type_for_operator_delete:
       m = "second argument of operator delete must be of type \"size_t\"";
       break;
+    case ec_type_must_be_object_type:
+      m = "type must be an object type";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
