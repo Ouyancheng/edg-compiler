@@ -2255,7 +2255,7 @@ associated with tssp, and remove the tokens from the token cache.
              "standalone" nested class (i.e., one that is not anonymous
              and is not followed by a declarator). */
           if (!tcsp->template_info->
-                           variant.class_template.not_standalone_nested_class) {
+                          variant.class_template.not_standalone_nested_class) {
             a_cached_token_ptr	first_token = tcsp->before_first_token->next;
             replace_body_with_semicolon(tcsp);
             /* Remove the tokens for the nested class from the original
