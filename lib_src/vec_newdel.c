@@ -38,14 +38,6 @@ extern "C" {
                             int, int);
 }
 
-
-vec_info_ptr _head_vec_info = NULL;
-				/* Pointer to the beginning of the linked list
-				   of array information. */
-vec_info_ptr _free_vec_info = NULL;
-				/* Pointer to a list of free array information
-				   structures. */
-
 char *_vec_new(char                         *array_ptr,
                int                          number_of_elements,
                size_t                       element_size,
