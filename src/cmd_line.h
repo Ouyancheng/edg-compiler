@@ -1480,7 +1480,7 @@ EXTERN a_boolean
 			   of its base class. */
 
 EXTERN a_boolean
-		targ_reuse_tail_padding;
+		targ_reuse_tail_padding
 #if VAR_INITIALIZERS
 			= TARG_REUSE_TAIL_PADDING
 #endif /* VAR_INITIALIZERS */
