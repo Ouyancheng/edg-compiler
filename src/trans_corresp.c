@@ -527,7 +527,12 @@ Clear the correspondence pointers in the substructure of a class type.
       /* Traverse entities only available in C++ mode. */
       a_scope_ptr  scope = type->
                            variant.class_struct_union.extra_info->assoc_scope;
+      a_base_class_ptr  base = type->variant.class_struct_union.extra_info
+                                                               ->base_classes;
       set_no_scope_correspondence(scope);
+      for (; base != NULL; base = base->next) {
+        trans_unit_corresp_pointer_of(base) = NULL;
+      }  /* for */
     }  /* if */
   }  /* if */
 }  /* set_no_class_type_correspondence */
@@ -1130,9 +1135,11 @@ type is in fact valid.
       }
       /* Traverse base classes. */
       {
-        /* Base class entries do not have their correspondence pointers set,
-           but we want to ensure that the list of base classes is compatible
-           across translation units. */
+        /* Ensure that the list of base classes is compatible across
+           translation units.  If so, we set the correspondence pointers
+           for the convenience of later processing stages, but note that
+           this is an unusual case in that a correspondence is set for an
+           entity without source correspondence. */
         a_base_class_ptr  base = type->variant.class_struct_union.extra_info
                                                                 ->base_classes;
         a_base_class_ptr  corresp_base = corresp_type
@@ -1151,6 +1158,8 @@ type is in fact valid.
             report_error = TRUE;
             goto done;
           }  /* if */
+          /* Set source correspondence: */
+          trans_unit_corresp_pointer_of(base) = (char*)corresp_base;
         }  /* for */
         if ((base == NULL && corresp_base != NULL) ||
             (base != NULL && corresp_base == NULL)) {
