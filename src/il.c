@@ -1018,7 +1018,7 @@ void db_initializer(a_variable_ptr  var,
 }  /* db_initializer */
 #endif /* DEBUG */
 
-#endif /* if !STANDALONE_UTILITY_PROGRAM */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 #if ALTERNATE_IL_FILE_FORMAT
 /*
@@ -1273,7 +1273,7 @@ by recording that the last sequence number contained therein is seq_number.
   db_exit();
 }  /* record_end_of_source_file */
 
-#endif /* if !STANDALONE_UTILITY_PROGRAM */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 static a_source_file_ptr source_file_for_seq(a_seq_number  seq_number,
                                              a_line_number *line_number,
@@ -4342,7 +4342,7 @@ of the front end.
 #endif /* DEBUG */
 }  /* il_init */
 
-#endif /* if !STANDALONE_UTILITY_PROGRAM */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 /******************************************************************************
 *                                                             \  ___  /       *
