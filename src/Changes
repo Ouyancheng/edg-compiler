@@ -16,6 +16,11 @@ A warning is no longer issued for out-of-range subscripts on
 arrays with size 1, on the assumption that a size of 1 means there's
 some trickery going on.
 
+6/5/92  Implicit casts identified.
+
+The flag compiler_generated in an_expression is now set to indicate
+compiler-generated casts.
+
 6/5/92  Constant address expressions not folded to address constants.
 
 In nonconstant expressions, constant addressing expressions are now
