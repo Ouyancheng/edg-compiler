@@ -2165,7 +2165,8 @@ created; the caller must set it.
     /* Use the default name linkage for the current declaration. */
     name_linkage = scope_stack[depth_scope_stack].default_name_linkage;
   }  /* if */
-  if (suppress_ext_sym_lookup) {
+  if (is_error_locator(*locator)) err = TRUE;
+  if (suppress_ext_sym_lookup || err) {
     /* Ignore the presence of an external symbol with which the current
        symbol is compatible. */
     ext_sym = NULL;
@@ -2230,7 +2231,7 @@ created; the caller must set it.
 	}  /* if */
       }  /* if */
     }  /* if */
-  } else if (is_function) {
+  } else if (is_function && !err) {
     if (!C_mode() && name_linkage == (a_name_linkage_kind)nlk_external &&
         !func_info->is_main_function) {
       /* This is an extern "C" function declaration in C++.  Be sure no other
@@ -2248,6 +2249,7 @@ created; the caller must set it.
                the same name. */
             pos_sy_error(ec_overloaded_function_linkage,
                          &locator->source_position, sym);
+            err = TRUE;
             break;
           }  /* if */
         }  /* if */
