@@ -343,6 +343,7 @@ necessary to make it directly accessible in memory.
   a_boolean                 first_block;
   a_boolean                 any_blocks_at_different_addresses;
 #endif /* ALTERNATE_IL_FILE_FORMAT */
+  a_remap_function_ptr      saved_walk_remap_func = walk_remap_func;
 
   db_enter(2, "read_memory_region");
 #if DEBUG
@@ -802,6 +803,7 @@ necessary to make it directly accessible in memory.
   }  /* if */
 #endif /* ALTERNATE_IL_FILE_FORMAT */
 
+  walk_remap_func = saved_walk_remap_func;
   db_exit();
 }  /* read_memory_region */
 

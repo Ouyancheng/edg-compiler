@@ -1,5 +1,11 @@
 Version 2.39
 
+4/12/98   Using IL read routines during IL walk
+
+The routine read_memory_region now saves and restores the global variable
+walk_remap_func (which it sets for its own purposes), so that a memory
+region can be read during an IL walk.
+
 4/11/98   C++-generating back end: extern "C" definition storage class
 
 In some cases involving extern "C" and const-typed variable definitions,
