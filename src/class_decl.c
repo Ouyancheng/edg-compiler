@@ -4116,7 +4116,6 @@ TRUE if a const object can be copied.
   a_boolean             is_ref_arg;
   a_type_qualifier_set  qualifiers_accepted;
   a_boolean             found_assignment_operator_for_copy = FALSE;
-  a_boolean             found_nonconst_assignment_operator_for_copy = FALSE;
 
   db_enter(4, "assignment_operator_for_copy_exists");
   /* Set *const_okay to TRUE unless this subobject's type has a default
