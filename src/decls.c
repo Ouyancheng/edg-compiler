@@ -6397,7 +6397,7 @@ A sk_namespace_projection is created and added to the symbol table for the
 current scope.
 */
 {
-  a_symbol_ptr             sym, new_sym, overload_sym = NULL;
+  a_symbol_ptr             sym, new_sym, overload_sym, other_decl;
   a_boolean                err = FALSE;
   a_symbol_locator         locator;
   a_boolean                is_list = FALSE;
@@ -6445,6 +6445,13 @@ current scope.
     } else {
       check_assertion(qualifier_namespace_ptr(locator_for_curr_id) != NULL ||
                       locator_for_curr_id.is_global_qualified_name);
+      
+      locator = locator_for_curr_id;
+      clear_specific_symbol(locator);
+      /* Look for a declaration of the same name in the current scope. */
+      (void)curr_scope_id_lookup(&locator, IDL_PROJ_SYMBOL_ALLOWED);
+      other_decl = locator.specific_symbol;
+      overload_sym = NULL;
       if (is_function_symbol(sym) ||
           sym->kind == (a_symbol_kind)sk_function_template) {
         /* The specified name represents a function or function template (or
@@ -6455,60 +6462,66 @@ current scope.
           is_list = TRUE;
           sym = sym->variant.overloaded_function.symbols;
         }  /* if */
-        locator = locator_for_curr_id;
-        clear_specific_symbol(locator);
-        /* Look for a declaration of the same name in the current scope. */
-        (void)curr_scope_id_lookup(&locator, IDL_PROJ_SYMBOL_ALLOWED);
-        overload_sym = locator.specific_symbol;
-        if (overload_sym != NULL) {
-          a_symbol_ptr  fund_sym = fundamental_symbol_of(overload_sym);
+        if (other_decl != NULL) {
+          a_symbol_ptr  fund_sym = fundamental_symbol_of(other_decl);
           if (is_function_symbol(fund_sym) ||
               fund_sym->kind == (a_symbol_kind)sk_function_template) {
             /* Overloading is okay. */
+            overload_sym = other_decl;
           } else {
             /* There is no function symbol in the current scope with which the
                new symbol should be overloaded. */
-            overload_sym = NULL;
           }  /* if */
         }  /* if */
       }  /* if */
-      /* Create the new sk_namespace_projection symbol(s). */
-      for (; sym != NULL; sym = is_list ? sym->next : NULL) {
-        locator = locator_for_curr_id;
-        clear_specific_symbol(locator);
-        if (overload_sym == NULL) {
-          /* No overloading. */
-          new_sym = enter_namespace_projection_symbol
-                                         (sym, &locator, depth_scope_stack,
-                                          /*suppress_error=*/FALSE);
-          /* If is_list is TRUE, there will be overloading on the next
-             iteration of this loop. */
-          if (is_list) overload_sym = new_sym;
-        } else if (already_in_lookup_set(overload_sym, sym)) {
-          /* Don't try to add a symbol that is already pointed to by
-             overload_sym. */
-          continue;
-        } else if (conflicts_with_previous_function_decl(
+      if (other_decl != NULL && overload_sym == NULL &&
+          (ssep->kind == (a_scope_kind)sck_file ||
+           ssep->kind == (a_scope_kind)sck_namespace ||
+           ssep->kind == (a_scope_kind)sck_namespace_extension) &&
+          fundamental_symbol_of(sym) == fundamental_symbol_of(other_decl)) {
+        /* This is a duplicate using declaration of something other than a
+           function or function template.  7.3.3 [namespace.udecl] para 7
+           says duplicates are allowed in file or namespace scope, so ignore
+           the declaration. */
+      } else {
+        /* Create the new sk_namespace_projection symbol(s). */
+        for (; sym != NULL; sym = is_list ? sym->next : NULL) {
+          locator = locator_for_curr_id;
+          clear_specific_symbol(locator);
+          if (overload_sym == NULL) {
+            /* No overloading. */
+            new_sym = enter_namespace_projection_symbol
+                                           (sym, &locator, depth_scope_stack,
+                                            /*suppress_error=*/FALSE);
+            /* If is_list is TRUE, there will be overloading on the next
+               iteration of this loop. */
+            if (is_list) overload_sym = new_sym;
+          } else if (already_in_lookup_set(overload_sym, sym)) {
+            /* Don't try to add a symbol that is already pointed to by
+               overload_sym. */
+            continue;
+          } else if (conflicts_with_previous_function_decl(
                                      fundamental_symbol_of(sym),
                                      overload_sym,
                                      &locator_for_curr_id.source_position)) {
-          /* A function introduced by a using declaration cannot have the
-             same type as a function already declared in the scope (WP 7.3.3
-             [namespace.udecl] paragraph 12).  The diagnostic will have been
-             issued by the subroutine; don't create a projection symbol. */
-          continue;
-        } else {
-          /* Add a new symbol to the overload set. */
-          new_sym = make_namespace_projection_symbol(sym, &locator,
-                                                     depth_scope_stack);
-          new_sym = add_symbol_to_overload_list(new_sym, overload_sym,
-                                                /*use_namespace=*/FALSE,
-                                                (a_namespace_ptr)NULL);
-          overload_sym = new_sym;
-        }  /* if */
-        set_namespace_membership(new_sym, (a_source_correspondence *)NULL,
-                                 (a_namespace_ptr)NULL);
-      }  /* for */
+            /* A function introduced by a using declaration cannot have the
+               same type as a function already declared in the scope (WP 7.3.3
+               [namespace.udecl] paragraph 12).  The diagnostic will have been
+               issued by the subroutine; don't create a projection symbol. */
+            continue;
+          } else {
+            /* Add a new symbol to the overload set. */
+            new_sym = make_namespace_projection_symbol(sym, &locator,
+                                                       depth_scope_stack);
+            new_sym = add_symbol_to_overload_list(new_sym, overload_sym,
+                                                  /*use_namespace=*/FALSE,
+                                                  (a_namespace_ptr)NULL);
+            overload_sym = new_sym;
+          }  /* if */
+          set_namespace_membership(new_sym, (a_source_correspondence *)NULL,
+                                   (a_namespace_ptr)NULL);
+        }  /* for */
+      }  /* if */
     }  /* if */
     /* Bypass the identifier. */
     (void)get_token();
