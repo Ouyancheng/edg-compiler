@@ -191,15 +191,7 @@ typedef struct a_name_context {
 		next;	/* The name context outside of this one, or NULL
 			   if there are no more. */
   a_scope_ptr	assoc_scope;
-			/* The scope that defines the name context, or
-			   NULL for a name context for a block without
-			   an associated scope. */
-  a_scope_ptr	innermost_scope;
-			/* The innermost scope that this context is inside
-			   of.  If assoc_scope != NULL, innermost_scope is
-			   the same as assoc_scope.  Otherwise, it is the
-			   scope of the nearest context with
-			   assoc_scope != NULL. */
+			/* The scope that defines the name context. */
   an_access_specifier
 		access;	/* When putting out a class, the current default
 			   access for a member declaration. */
@@ -443,9 +435,8 @@ This routine is called for both C and C++.
     ncp = (a_name_context_ptr)alloc_general(sizeof(a_name_context));
   }  /* if */
   /* Initialize the entry. */
+  check_assertion_str(scope != NULL, "push_name_context: NULL scope");
   ncp->assoc_scope = scope;
-  ncp->innermost_scope = (scope != NULL) ? scope :
-                                           curr_name_context->innermost_scope;
   ncp->access = (an_access_specifier)as_public;
   ncp->fixups = NULL;
   ncp->invisible_to_cfront = FALSE;
@@ -582,6 +573,19 @@ namespace.  Otherwise, return NULL.
   }  /* if */
   return scope;
 }  /* parent_scope_of */
+
+
+static a_scope_ptr parent_scope_of_full(a_source_correspondence *scp)
+/*
+Like parent_scope_of, but if parent_scope_of would return NULL this routine
+returns the file scope instead.
+*/
+{
+  a_scope_ptr scope = parent_scope_of(scp);
+
+  if (scope == NULL) scope = il_header.primary_scope;
+  return scope;
+}  /* parent_scope_of_full */
 
 
 static a_scope_ptr decl_scope_of(a_source_correspondence *scp)
@@ -3221,6 +3225,95 @@ declaration following this one is such a continuation.
 }  /* gen_typedef_definition */
 
 
+static void adjust_current_namespace(a_scope_ptr desired_scope,
+                                     a_scope_ptr common_scope)
+/*
+Put out ends and starts of namespaces to get to the namespace indicated by
+desired_scope.  common_scope is the innermost scope that that namespace and
+the current state have in common.
+*/
+{
+  /* Pop any namespaces we're inside of that we do not want to be inside of. */
+  while (curr_name_context->assoc_scope != common_scope) {
+    write_tok_str("} ");
+    pop_name_context();
+  }  /* while */
+  /* Push any namespaces we want to be inside of. */
+  while (curr_name_context->assoc_scope != desired_scope) {
+    a_namespace_ptr nsp;
+    /* Find the scope one down from the current one. */
+    a_scope_ptr     temp_scope = desired_scope, parent;
+    for (;;) {
+      nsp = temp_scope->variant.assoc_namespace;
+      parent = parent_scope_of_full(&nsp->source_corresp);
+      if (parent == curr_name_context->assoc_scope) break;
+      temp_scope = parent;
+    }  /* for */
+    nsp = temp_scope->variant.assoc_namespace;
+    write_tok_str("namespace");
+    if (has_name(nsp)) {
+      write_space();
+      /* Put out the name of the namespace. */
+      gen_unqualified_name(&nsp->source_corresp, iek_namespace);
+    }  /* if */
+    write_tok_str(" { ");
+    push_name_context(temp_scope);
+  }  /* while */
+}  /* adjust_current_namespace */
+
+
+static void adjust_namespace_state_for_specialization(
+                                         a_source_correspondence *scp,
+                                         a_scope_ptr             *common_scope,
+                                         a_scope_ptr             *orig_scope)
+/*
+scp points to the source correspondence entry of a routine, class, or
+variable that is a specialization.  If it is necessary to adjust the
+current namespace to get to the right state to put out the specialization,
+do that and set *common_scope and *orig_scope to scope information
+necessary to restore the previous state later; otherwise, set *common_scope
+and *orig_scope to NULL.
+*/
+{
+ a_scope_ptr desired_scope;
+
+  *common_scope = NULL;
+  *orig_scope = NULL;
+  if (curr_name_context->assoc_scope->kind == (a_scope_kind)sck_namespace) {
+    /* See if it's necessary to adjust the current namespace before putting
+       out this specialization. */
+    /* Find the scope in which the specialization must be put out, which is
+       the innermost namespace scope that contains the entity. */
+    if (scp->is_class_member) {
+      desired_scope = scp->parent.class_type->variant.class_struct_union.
+                                                       extra_info->assoc_scope;
+      while (desired_scope->kind == (a_scope_kind)sck_class_struct_union) {
+        desired_scope = parent_scope_of_full(
+                           &desired_scope->variant.assoc_type->source_corresp);
+      }  /* while */
+    } else if (scp->parent.namespace_ptr != NULL) {
+      desired_scope = scp->parent.namespace_ptr->variant.assoc_scope;
+    } else {
+      /* File scope. */
+      desired_scope = il_header.primary_scope;
+    }  /* if */
+    if (desired_scope != curr_name_context->assoc_scope) {
+      /* We need to adjust the current namespace. */
+      *orig_scope = curr_name_context->assoc_scope;
+      /* Find the namespace scope that's common to the desired state and
+         the current state. */
+      *common_scope = desired_scope;
+      while (!scope_is_in_name_context_stack(*common_scope)) {
+        *common_scope =
+              parent_scope_of_full(
+                    &(*common_scope)->variant.assoc_namespace->source_corresp);
+      }  /* while */
+      /* Put out starts/ends of namespaces to get to the right namespace. */
+      adjust_current_namespace(desired_scope, *common_scope);
+    }  /* if */
+  }  /* if */
+}  /* adjust_namespace_state_for_specialization */
+
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 /* ARGSUSED */ /* <-- scp is not used in that case. */
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
@@ -3344,6 +3437,7 @@ this one is such a continuation.
   a_boolean                    suppress_closing_punct = FALSE;
   a_boolean                    need_to_unset_typedefs = FALSE;
   a_template_arg_ptr           template_arg_list = NULL;
+  a_scope_ptr                  common_scope, orig_scope = NULL;
 
   *another_decl_in_comma_list = FALSE;
   /* Deal with the primary/secondary declaration difference. */
@@ -3386,6 +3480,8 @@ this one is such a continuation.
       /* A specialization. */
       template_arg_list = type->variant.class_struct_union.
                                                  extra_info->template_arg_list;
+      adjust_namespace_state_for_specialization(&type->source_corresp,
+                                                &common_scope, &orig_scope);
       if (microsoft_mode) {
         /* Avoid a bug in the Microsoft VC++ 5.0 compiler on uses of
            template class arguments in a specialization argument list. */
@@ -3460,13 +3556,18 @@ this one is such a continuation.
       /* A class type definition. */
       gen_class_definition(type);
     }  /* if */
+    if (!suppress_closing_punct) {
+      write_end_of_declaration_punctuation(*another_decl_in_comma_list);
+    }  /* if */
     if (need_to_unset_typedefs) {
       (void)gen_typedefs_for_template_classes_in_specialization_arg_list(
                                                              template_arg_list,
                                                              /*set=*/FALSE);
     }  /* if */
-    if (!suppress_closing_punct) {
-      write_end_of_declaration_punctuation(*another_decl_in_comma_list);
+    if (orig_scope != NULL) {
+      /* Restore the original namespace state if it was changed for a
+         specialization. */
+      adjust_current_namespace(orig_scope, common_scope);
     }  /* if */
   }  /* if */
 }  /* gen_type_decl */
@@ -6468,7 +6569,7 @@ is a condition variable if is_condition is TRUE.
   an_init_kind       init_kind;
   an_initializer_ptr initializer;
 
-  get_variable_initializer(var, curr_name_context->innermost_scope,
+  get_variable_initializer(var, curr_name_context->assoc_scope,
                            &init_kind, &initializer);
   /* Push the name context for a class/namespace member. */
   push_name_context_if_member(&var->source_corresp);
@@ -6582,6 +6683,7 @@ declaration following this one is such a continuation.
   a_type_ptr                   var_type;
   a_boolean                    is_specialization;
   a_boolean                    force_unqualified_name;
+  a_scope_ptr                  common_scope, orig_scope = NULL;
                              
   /* Deal with the primary/secondary declaration difference. */
   if (curr_src_seq_entry_is_secondary_decl(&sec_decl)) {
@@ -6616,6 +6718,8 @@ declaration following this one is such a continuation.
     gen_member_access_specifier_for_decl_of(&var->source_corresp);
   }  /* if */
   if (is_specialization) {
+    adjust_namespace_state_for_specialization(&var->source_corresp,
+                                              &common_scope, &orig_scope);
     /* For a specialization, put out "template<>" at the beginning. */
     gen_template_specialization_header(&var->source_corresp,
                                        (a_template_arg_ptr)NULL);
@@ -6753,6 +6857,11 @@ declaration following this one is such a continuation.
     check_assertion(!is_condition && !*another_decl_in_comma_list);
     write_tok_ch('}');
     write_space();
+  }  /* if */
+  if (orig_scope != NULL) {
+    /* Restore the original namespace state if it was changed for a
+       specialization. */
+    adjust_current_namespace(orig_scope, common_scope);
   }  /* if */
 }  /* gen_variable_decl */
 
@@ -7062,6 +7171,7 @@ TRUE if the declaration following this one is such a continuation.
                                             (innermost_function_scope != NULL);
   a_boolean                     force_unqualified_name;
   a_boolean                     need_to_unset_typedefs = FALSE;
+  a_scope_ptr                   common_scope, orig_scope = NULL;
 
   *another_decl_in_comma_list = FALSE;
   /* Note that compiler-generated routines don't appear on the source sequence
@@ -7132,6 +7242,8 @@ TRUE if the declaration following this one is such a continuation.
     }  /* if */
   }  /* if */
   if (is_specialization) {
+    adjust_namespace_state_for_specialization(&rout->source_corresp,
+                                              &common_scope, &orig_scope);
     /* For a specialization, put out "template<>" at the beginning. */
     gen_template_specialization_header(&rout->source_corresp,
                                        rout->template_arg_list);
@@ -7321,6 +7433,11 @@ TRUE if the declaration following this one is such a continuation.
   /* Pop the name context for a class/namespace member. */
   if (context_pop_needed) {
     pop_name_context_if_member(&rout->source_corresp);
+  }  /* if */
+  if (orig_scope != NULL) {
+    /* Restore the original namespace state if it was changed for a
+       specialization. */
+    adjust_current_namespace(orig_scope, common_scope);
   }  /* if */
   if (is_definition) {
     restore_function_state(&state);

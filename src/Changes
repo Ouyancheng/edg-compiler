@@ -1,5 +1,15 @@
 Version 2.42
 
+3/22/99  C++-generating back end: location of generated instance
+         specializations
+
+In versions using the C++-generating back end in which generated
+instances of templates are put out as specializations, code is now
+put out around the specializations to adjust the current namespace
+state.  This allows the specializations to be put out in contexts
+where formerly they could not be, and that produces compilable output
+in some complicated cases that formerly failed.
+
 3/18/99  Internal error in decl_routine eliminated
 
 An internal error could occur in decl_routine when the following was
