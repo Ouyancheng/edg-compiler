@@ -1,4 +1,6 @@
-Version 3.3
+Version 3.3, July 31, 2003
+
+7/31/03  IL version number changed to 3.3
 
 7/30/03  C++-generating back end: Nonstandard friend class declarations
 
