@@ -468,44 +468,57 @@ Pop the top entry off the name context stack.
 }  /* pop_name_context */
 
 
-static void push_class_name_context_if_member(a_source_correspondence *scp)
+static void push_name_context_if_member(a_source_correspondence *scp)
 /*
 If the entity with the given source correspondence information is a class
-member, push the class onto the name context stack.  If the class is a
-nested class, also push the containing classes.
+or namespace member, push the class or namespace onto the name context stack.
+For a nested class/namespace, also push the containing classes/namespaces.
 */
 {
-  a_type_ptr class_type;
-
-  if (il_header.source_language == sl_Cplusplus && scp->is_class_member) {
-    /* The entity is a class member. */
-    class_type = scp->parent.class_type;
-    /* Push the surrounding class(es) for a nested class. */
-    push_class_name_context_if_member(&class_type->source_corresp);
-    /* Push the class. */
-    push_name_context(class_type->variant.class_struct_union.extra_info->
+  if (il_header.source_language == sl_Cplusplus) {
+    if (scp->is_class_member) {
+      /* The entity is a class member. */
+      a_type_ptr class_type = scp->parent.class_type;
+      /* Push the surrounding class(es)/namespace(s) for a nested class. */
+      push_name_context_if_member(&class_type->source_corresp);
+      /* Push the class. */
+      push_name_context(class_type->variant.class_struct_union.extra_info->
                                                                   assoc_scope);
+    } else if (scp->parent.namespace_ptr != NULL) {
+      /* The entity is a namespace member. */
+      a_namespace_ptr nsp = scp->parent.namespace_ptr;
+      /* Push the surrounding namespace(s) for a nested namespace. */
+      push_name_context_if_member(&nsp->source_corresp);
+      /* Push the namespace. */
+      push_name_context(nsp->variant.assoc_scope);
+    }  /* if */
   }  /* if */
-}  /* push_class_name_context_if_member */
+}  /* push_name_context_if_member */
 
 
-static void pop_class_name_context_if_member(a_source_correspondence *scp)
+static void pop_name_context_if_member(a_source_correspondence *scp)
 /*
 If the entity with the given source correspondence information is a class
-member, pop the class from the name context stack.  If the class is a
-nested class, also pop the containing classes.
+or namespace member, pop the class or namespace from the name context stack.
+For a nested class/namespace, also pop the containing classes/namespaces.
 */
 {
-  a_type_ptr class_type;
-
-  if (il_header.source_language == sl_Cplusplus && scp->is_class_member) {
-    /* The entity is a class member. */
-    class_type = scp->parent.class_type;
-    pop_name_context();
-    /* Pop the surrounding class(es) for a nested class. */
-    pop_class_name_context_if_member(&class_type->source_corresp);
+  if (il_header.source_language == sl_Cplusplus) {
+    if (scp->is_class_member) {
+      /* The entity is a class member. */
+      a_type_ptr class_type = scp->parent.class_type;
+      pop_name_context();
+      /* Pop the surrounding class(es)/namespace(s) for a nested class. */
+      pop_name_context_if_member(&class_type->source_corresp);
+    } else if (scp->parent.namespace_ptr != NULL) {
+      /* The entity is a namespace member. */
+      a_namespace_ptr nsp = scp->parent.namespace_ptr;
+      pop_name_context();
+      /* Pop the surrounding namespace(s) for a nested namespace. */
+      pop_name_context_if_member(&nsp->source_corresp);
+    }  /* if */
   }  /* if */
-}  /* pop_class_name_context_if_member */
+}  /* pop_name_context_if_member */
 
 
 static void adv_to_signif_source_sequence_entry(void)
@@ -1948,13 +1961,13 @@ declarations (e.g., in a for-init statement).
     set_decl_position(scp, sec_decl);
     /* Write the name. */
     gen_decl_name(scp, entry_kind);
-    /* Push the name context class(es) for a class member. */
-    push_class_name_context_if_member(scp);
+    /* Push the name context for a class/namespace member. */
+    push_name_context_if_member(scp);
   }  /* if */
   /* Write the second part of the declarator. */
   form_type_second_part_simple(type, /*under_lhs_declarator=*/FALSE, &octl);
-  /* Pop the name context class(es) for a class member. */
-  if (scp != NULL) pop_class_name_context_if_member(scp);
+  /* Pop the name context for a class/namespace member. */
+  if (scp != NULL) pop_name_context_if_member(scp);
 }  /* gen_declaration_using_type */
 
 
@@ -4900,8 +4913,8 @@ Output the initializer, if any, for the indicated variable.
   an_init_kind       init_kind;
   an_initializer_ptr initializer;
 
-  /* Push the name context class(es) for a class member. */
-  push_class_name_context_if_member(&var->source_corresp);
+  /* Push the name context for a class/namespace member. */
+  push_name_context_if_member(&var->source_corresp);
   get_variable_initializer(var, curr_name_context->innermost_scope,
                            &init_kind, &initializer);
   switch (init_kind) {
@@ -4944,8 +4957,8 @@ Output the initializer, if any, for the indicated variable.
     default:
       unexpected_condition_str("gen_initializer: bad init kind");
   }  /* switch */
-  /* Pop the name context class(es) for a class member. */
-  pop_class_name_context_if_member(&var->source_corresp);
+  /* Pop the name context for a class/namespace member. */
+  pop_name_context_if_member(&var->source_corresp);
 }  /* gen_initializer */
 
 
@@ -5220,7 +5233,7 @@ declaration or definition.
   a_src_seq_secondary_decl_ptr  sec_decl;
   a_boolean                     is_definition = FALSE, friend_decl;
   a_boolean                     decl_within_class = FALSE;
-  a_boolean                     class_pop_needed = FALSE;
+  a_boolean                     context_pop_needed = FALSE;
   a_storage_class               storage_class;
   a_scope_ptr                   scope = NULL;
   a_memory_region_number        scope_region_number;
@@ -5380,7 +5393,7 @@ declaration or definition.
   /* Generate a declaration for the routine name with the right type. */
   if (rout_type->kind == (a_type_kind)tk_typeref) {
     /* If the function type comes from a typedef, handle the declaration
-       in the conventional way.  This can only occur for declarations. */
+       in the conventional way.  This can occur only for declarations. */
     gen_declaration_using_type(rout_type, &rout->source_corresp, iek_routine,
                                sec_decl, /*suppress_specifiers=*/FALSE);
   } else {
@@ -5407,9 +5420,9 @@ declaration or definition.
     set_decl_position(&rout->source_corresp, sec_decl);
     /* Write the routine name. */
     gen_decl_name(&rout->source_corresp, iek_routine);
-    /* Push the name context class(es) for a member function. */
-    push_class_name_context_if_member(&rout->source_corresp);
-    class_pop_needed = TRUE;
+    /* Push the name context for a class/namespace member. */
+    push_name_context_if_member(&rout->source_corresp);
+    context_pop_needed = TRUE;
     if (is_definition) {
       /* Follow the source sequence list for the function. */
       saved_curr_source_sequence_entry = curr_source_sequence_entry;
@@ -5464,9 +5477,9 @@ declaration or definition.
     sublist_parent_source_sequence_entry =
                                     saved_sublist_parent_source_sequence_entry;
   }  /* if */
-  /* Pop the name context class(es) for a member function. */
-  if (class_pop_needed) {
-    pop_class_name_context_if_member(&rout->source_corresp);
+  /* Pop the name context for a class/namespace member. */
+  if (context_pop_needed) {
+    pop_name_context_if_member(&rout->source_corresp);
   }  /* if */
 }  /* gen_routine_decl */
 
