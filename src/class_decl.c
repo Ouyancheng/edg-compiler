@@ -2194,7 +2194,7 @@ must be unsigned.
     /* The signedness is not forced by the enum values, so use the 
        target preference.  Make a one-bit field always unsigned. */
     use_signed = (bit_field_size != 1 &&
-                  !TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED);
+                  !(TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED));
   }  /* if */
   /* Make the largest and smallest values that will fit in the
      bit field, given the signedness selected. */
@@ -5220,7 +5220,6 @@ destructors, assignment operators, and conversion functions.
 */
 {
   a_routine_ptr  rp = sym->variant.routine;
-  an_error_code  err_code;
 
 #if CHECKING
   if (rp->special_kind != (a_special_function_kind)sfk_constructor &&
