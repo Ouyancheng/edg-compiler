@@ -6164,7 +6164,6 @@ functions could still apply).
         /* Find any non-member function for the operator. */
         if (!must_be_member_function) {
           a_symbol_ptr            normal_sym;
-          a_symbol_header_ptr     sym_header;
           a_symbol_locator        locator;
           a_type_list_entry_ptr   type_list = NULL;
           a_symbol_list_entry_ptr symbol_list, slep;
@@ -6177,7 +6176,6 @@ functions could still apply).
              look up "operator +".  Ignore member functions, which were
              covered above. */
           make_opname_locator(kind, &locator, operator_position);
-          sym_header = locator.symbol_header;
           normal_sym = normal_id_lookup(&locator, IDL_SKIP_CLASS_SCOPES);
           /* If the symbol found is a block extern, skip the argument-dependent
              processing.  This is not in the standard, but at the Nov. 98
@@ -6193,7 +6191,7 @@ functions could still apply).
           }  /* if */
           /* Do argument-dependent lookup, producing a list of symbols to
              be considered as candidate functions. */
-          symbol_list = argument_dependent_lookup(normal_sym, sym_header,
+          symbol_list = argument_dependent_lookup(normal_sym, &locator,
                                                   &type_list);
           for (slep = symbol_list; slep != NULL; slep = slep->next) {
             nonmember_functions_symbol = slep->symbol;
