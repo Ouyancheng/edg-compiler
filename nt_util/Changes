@@ -11,3 +11,8 @@ edgcc has been updated to work with the version 7 tools.  The version
 7 linker no longer includes symbol information in the .exe file, so
 edg_munch cannot be used.  An improved static initialization mechanism
 is now used the eliminates the need for edg_munch.
+
+edg_munch is still needed when targeting older versions of the Microsoft
+compiler.  A new environment variable named EDG_MSVC_VERSION can be
+used to specify that an older version is being used.  It should be
+set to 6 if MSVC version 6 is being used.
