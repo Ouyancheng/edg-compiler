@@ -1348,8 +1348,7 @@ stack.
 Determine whether RTTI can be enabled.  It cannot be if we are doing IL
 lowering and the ABI changes for RTTI aren't enabled.
 */
-#if RTTI_ENABLING_POSSIBLE==DEFAULT
-#undef RTTI_ENABLING_POSSIBLE
+#ifndef RTTI_ENABLING_POSSIBL
 #if DO_IL_LOWERING
 #if ABI_CHANGES_FOR_RTTI
 #define RTTI_ENABLING_POSSIBLE TRUE
@@ -1359,21 +1358,21 @@ lowering and the ABI changes for RTTI aren't enabled.
 #else /* !DO_IL_LOWERING */
 #define RTTI_ENABLING_POSSIBLE TRUE
 #endif /* DO_IL_LOWERING */
-#else /* !RTTI_ENABLING_POSSIBLE==DEFAULT */
+#else /* ifdef RTTI_ENABLING_POSSIBLE */
 #if RTTI_ENABLING_POSSIBLE && DO_IL_LOWERING
 #if !ABI_CHANGES_FOR_RTTI
   #error -- ABI_CHANGES_FOR_RTTI must be TRUE when RTTI_ENABLING_POSSIBLE \
             is TRUE
 #endif /* !ABI_CHANGES_FOR_RTTI */
 #endif /* RTTI_ENABLING_POSSIBLE && DO_IL_LOWERING */
-#endif /* RTTI_ENABLING_POSSIBLE==DEFAULT */
+#endif /* ifndef RTTI_ENABLING_POSSIBLE */
 
 /*
 Determine whether array new and delete can be enabled.  They cannot be if
 we are doing IL lowering and the ABI changes for array new and delete
 aren't enabled.
 */
-#if ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE==DEFAULT
+#ifndef ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE
 #undef ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE
 #if DO_IL_LOWERING
 #if ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE
@@ -1384,14 +1383,14 @@ aren't enabled.
 #else /* !DO_IL_LOWERING */
 #define ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE TRUE
 #endif /* DO_IL_LOWERING */
-#else /* !ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE==DEFAULT */
+#else /* ifdef ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE */
 #if ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE && DO_IL_LOWERING
 #if !ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE
   #error -- ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE must be TRUE when \
             ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE is TRUE
 #endif /* !ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE */
 #endif /* ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE && DO_IL_LOWERING */
-#endif /* ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE==DEFAULT */
+#endif /* ifndef ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE */
 
 #endif /* !defined(TARG_DEF_H) */
 

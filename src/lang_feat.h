@@ -518,21 +518,19 @@ Flag that is TRUE if support for wchar_t can be enabled.
 #endif /* ifndef WCHAR_T_ENABLING_POSSIBLE */
 
 /*
-Flag that is TRUE if RTTI can be enabled.  The special value "DEFAULT"
-causes the setting of this flag to be determined in targ_def.h based
-on other configuration flags.
+Flag that is TRUE if RTTI can be enabled.
 */
 #ifndef RTTI_ENABLING_POSSIBLE
-#define RTTI_ENABLING_POSSIBLE DEFAULT
+/* No default value is given here.  The default value is set in
+   targ_def.h based on other configuration flags. */
 #endif /* ifndef RTTI_ENABLING_POSSIBLE */
 
 /*
-Flag that is TRUE if array new and delete can be enabled.  The special
-value "DEFAULT" causes the setting of this flag to be determined in
-targ_def.h based on other configuration flags.
+Flag that is TRUE if array new and delete can be enabled.
 */
 #ifndef ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE
-#define ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE DEFAULT
+/* No default value is given here.  The default value is set in
+   targ_def.h based on other configuration flags. */
 #endif /* ifndef ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE */
 
 
