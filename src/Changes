@@ -1,5 +1,19 @@
 Version 2.15
 
+2/19/93  Use of typedef name to specify an empty parameter list
+
+As an extension in both C and C++ modes (accompanied by a warning in
+strict ANSI mode) we now allow a typedef name bound to void type to
+specify an empty parameter list, in place of the keyword "void".  For
+instance, this program is accepted:
+
+  typedef void T;
+  T f(T) { }        // Declares "void f()"; warning in strict ANSI mode
+  void main()
+  {
+    f();            // Error no longer issued for "too few arguments"
+  }
+
 2/19/93  Bug in scanning type qualifier lists
 
 A bug has been fixed to correctly parse a type qualifier list that is
