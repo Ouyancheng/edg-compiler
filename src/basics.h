@@ -232,7 +232,7 @@ typedef size_t	sizeof_t;
 typedef unsigned long sizeof_t;
 /* size_t_arg checks for truncation. */
 #define size_t_arg(arg) \
-  ((sizeof_t)(arg) > UINT_MAX ? size_t_arg_error() : (true_size_t)(arg)))
+  ((sizeof_t)(arg) > UINT_MAX ? size_t_arg_error() : (true_size_t)(arg))
 #define NEED_SIZE_T_ARG_ERROR 1
 extern true_size_t size_t_arg_error(void);
 #endif /* !__MSC__ */
