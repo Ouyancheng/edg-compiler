@@ -583,7 +583,7 @@ and indentation is the indentation desired.
         (void)str_name_linkage(buffer, &(var->source_corresp));
         put_string(buffer);
         if (var->is_parameter) put_string("is param");
-        if (var->is_instantiation) put_string("is instance");
+        if (var->is_template_static_data_member) put_string("is instance");
         type = var->type;
       }  /* if */
       break;
@@ -610,7 +610,7 @@ and indentation is the indentation desired.
         put_string(buffer);
         (void)str_name_linkage(buffer, &(rp->source_corresp));
         put_string(buffer);
-        if (rp->is_instantiation) put_string("is instance");
+        if (rp->is_template_function) put_string("is instance");
         type = rp->type;
         if (C_dialect == C_dialect_cplusplus) {
           a_throw_specification_ptr  tsp;
