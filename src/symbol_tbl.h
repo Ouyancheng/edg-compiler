@@ -1878,6 +1878,17 @@ typedef struct a_scope_stack_entry {
 			/* The value of expr_stack when this scope was pushed,
 			   used to restore the value when the scope is
 			   popped. */
+  an_object_lifetime_ptr
+		saved_curr_object_lifetime;
+			/* The value of curr_object_lifetime when the scope
+			   is pushed onto the stack, and the value to which
+			   it will be restored when the scope is popped. */
+  an_object_lifetime_ptr
+		object_lifetime_avail_list;
+			/* List of freed object lifetime entries that are
+			   available for reuse.  Only used for file and
+			   function scopes; the entries on the list belong to
+			   the memory region associated with the scope. */
 } a_scope_stack_entry;
 
 

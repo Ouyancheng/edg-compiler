@@ -6930,6 +6930,8 @@ specific version of the template.
 				 = curr_deferred_access_scope;
   ssep->saved_expr_stack         = expr_stack;  /* See also the setting of
                                                    expr_stack to NULL below. */
+  ssep->object_lifetime_avail_list = NULL;
+  ssep->saved_curr_object_lifetime = curr_object_lifetime;
   /* Put the associated type (if any) into the IL scope (if any). */
   /* Note that the corresponding routine case was handled by the
      new_il_region call. */
