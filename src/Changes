@@ -3,7 +3,7 @@ Version 2.44
 12/27/99 Corrupted source sequence list when
          NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE
 
-When including nonclass instantiations in the source sequence list, the
+When nonclass instantiations are included in the source sequence list, the
 entry for the partial instantiation of a function template first referenced
 in a class declaration was not handled properly.  This could cause the
 links that establish the list to become corrupted, effectively removing
