@@ -35,7 +35,6 @@ gcc.
 
 #include "basics.h"
 #include "host_envir.h"
-#include "targ_def.h"
 #include "decode.h"
 
 
@@ -144,11 +143,10 @@ typedef struct a_template_param_block {
 /*
 Declarations needed because of forward references:
 */
-static char *demangle_name_with_preceding_length(
-                                char                       *ptr,
-                                a_boolean                  allow_member,
-                                a_template_param_block_ptr temp_par_info,
-                                a_decode_control_block_ptr dctl);
+static char *demangle_identifier_with_preceding_length(
+                     char                       *ptr,
+                     a_boolean                  suppress_parent_and_local_info,
+                     a_decode_control_block_ptr dctl);
 static char *demangle_operation(char                       *ptr,
                                 a_decode_control_block_ptr dctl);
 static char *demangle_operator(char      *ptr,
@@ -172,12 +170,14 @@ Interface to full_demangle_type_name for the simple case.
   full_demangle_type_name((ptr), /*base_name_only=*/FALSE,            \
                           /*temp_par_info=*/(a_template_param_block_ptr)NULL, \
                           (dctl))
-static char *full_demangle_identifier(char                       *ptr,
-                                      unsigned long              nchars,
-                                      a_decode_control_block_ptr dctl);
+static char *full_demangle_identifier(
+                     char                       *ptr,
+                     unsigned long              nchars,
+                     a_boolean                  suppress_parent_and_local_info,
+                     a_decode_control_block_ptr dctl);
 /* Interface to full_demangle_identifier for the simple case. */
 #define demangle_identifier(ptr, dctl)                                \
-  full_demangle_identifier((ptr), (unsigned long)0, (dctl))
+  full_demangle_identifier((ptr), (unsigned long)0, FALSE, (dctl))
 
 #endif /* !IA64_ABI */
 
@@ -553,9 +553,10 @@ position following what was demangled.
     /* A name preceded by its length, e.g., "3abc".  Put out "&name". */
     write_id_ch('&', dctl);
     /* Process the length and name. */
-    p = demangle_name_with_preceding_length(p, /*allow_member=*/TRUE,
-                                            (a_template_param_block_ptr)NULL,
-                                            dctl);
+    p = demangle_identifier_with_preceding_length(
+                                      p,
+                                      /*suppress_parent_and_local_info=*/FALSE,
+                                      dctl);
   } else if (*p == 'L') {
     if (p[1] != 'M') {
       /* Normal literal constant.  Form is something like
@@ -666,9 +667,10 @@ position following what was demangled.
         (void)demangle_type_name(type+2, dctl);
         write_id_str("::", dctl);
         /* Demangle the length and name. */
-        p = demangle_name_with_preceding_length(p, /*allow_member=*/FALSE,
-                                              (a_template_param_block_ptr)NULL,
-                                                dctl);
+        p = demangle_identifier_with_preceding_length(
+                                      p,
+                                      /*suppress_parent_and_local_info=*/TRUE,
+                                      dctl);
       } else {
         /* Not a non-virtual function.  The encoding for the third component
            should be simply "0". */
@@ -1148,13 +1150,16 @@ Demangle the name at ptr and output the demangled form.  Return a pointer
 to the character position following what was demangled.  A "name" is
 usually just a string of alphanumeric characters.  However, names of
 constructors, destructors, and operator functions require special
-handling, as do template entity names.  nchars indicates the number
+handling, as do template entity names.  A name at this level
+does not include any associated parent or function-local information,
+nor function-parameter information.  nchars indicates the number
 of characters in the name, or is zero if the name is open-ended
 (it's ended by a null or double underscore).  A double underscore
 ends the name if stop_on_underscores is TRUE (though some sequences
-beginning with two underscores, e.g., "__pt", end the name even if
-stop_on_underscores is FALSE).  If nchars_left is non-NULL, no
-error is issued if too few characters are taken to satisfy nchars;
+beginning with two underscores and related to templates, e.g., "__pt",
+are recognized and processed locally regardless of the setting of
+stop_on_underscores).  If nchars_left is non-NULL, no error is
+issued if too few characters are taken to satisfy nchars;
 the count of remaining characters is placed in *nchars_left.
 mclass, when non-NULL, points to the mangled form of the class of
 which this name is a member.  When it's non-NULL, constructor and
@@ -1367,7 +1372,9 @@ indication like "f(void)::".
     p += 2;
     /* Put out the function name. */
     if (nchars != 0) nchars -= (p - ptr);
-    p = full_demangle_identifier(p, nchars, dctl);
+    p = full_demangle_identifier(p, nchars,
+                                 /*suppress_parent_and_local_info=*/FALSE,
+                                 dctl);
     /* Put out the block number if needed.  Block 0 is the top-level block
        of the function, and need not be identified. */
     if (block_number != 0) {
@@ -1383,27 +1390,39 @@ indication like "f(void)::".
 }  /* demangle_function_local_indication */
 
 
-static char *demangle_name_with_preceding_length(
+static char *demangle_type_name_with_preceding_length(
                                    char                       *ptr,
-                                   a_boolean                  allow_member,
+                                   a_boolean                  base_name_only,
+                                   unsigned long              nchars,
+                                   unsigned long              *nchars_left,
                                    a_template_param_block_ptr temp_par_info,
                                    a_decode_control_block_ptr dctl)
 /*
-Demangle a name that is preceded by a length, e.g., "3abc" for the type
-name "abc".  Return a pointer to the character position following what
-was demangled.  When temp_par_info != NULL, it points to a block that
-controls output of extra information on template parameters.
-If allow_member is TRUE, the name may be a member name.
+Demangle a type name that is preceded by a length, e.g., "3abc" for the type
+name "abc".  The name can include template parameters or a function-local
+indication but is not a nested type.  If nchars is non-zero on input, the
+length has already been scanned and nchars gives its value.  In that
+case, not all nchars characters of input need be taken, and *nchars_left
+is set to the number of characters not taken.  Return a pointer to the
+character position following what was demangled.  When temp_par_info != NULL,
+it points to a block that controls output of extra information on template
+parameters.  When base_name_only is TRUE, suppress any function-local
+information.
 */
 {
-  char          *p = ptr;
+  char          *p = ptr, *orig_end;
   char          *p2;
-  unsigned long nchars, nchars2;
+  unsigned long nchars2;
   a_boolean     has_function_local_info = FALSE;
-  a_boolean     is_member = FALSE;
 
-  /* Get the length. */
-  p = get_length(p, &nchars, dctl);
+  if (nchars == 0) {
+    /* Get the length. */
+    p = get_length(p, &nchars, dctl);
+    nchars_left = NULL;
+  } else {
+    orig_end = ptr+nchars;
+    if (nchars_left != NULL) *nchars_left = 0;
+  }  /* if */
   if (nchars >= 8) {
     /* Look for a function-local indication, e.g., "__Ln__f" for block
        "n" of function "f". */
@@ -1415,54 +1434,34 @@ If allow_member is TRUE, the name may be a member name.
         nchars = p2 - p;
         p2 += 3;  /* Points to block number after "__L". */
         nchars2 -= (p2 - p);
-        /* Scan over (but do not output) the block number and function name. */
-        dctl->suppress_id_output++;
+        /* Output the block number and function name. */
+        if (base_name_only) dctl->suppress_id_output++;
         p2 = demangle_function_local_indication(p2, nchars2, dctl);
-        dctl->suppress_id_output--;
+        if (base_name_only) dctl->suppress_id_output--;
         break;
       }  /* if */
     }  /* for */
   }  /* if */
-  if (allow_member) {
-    /* This might be a member name.  Demangle once to see if we take
-       the whole name.  If not, the rest should be two underscores
-       and the parent name. */
-    unsigned long nchars_left, old_nchars;
-    dctl->suppress_id_output++;
-    p2 = demangle_name(p, nchars, /*stop_on_underscores=*/FALSE,
-                       &nchars_left, (char *)NULL,
-                       (a_template_param_block_ptr)NULL, dctl);
-    dctl->suppress_id_output--;
-    if (nchars_left != 0) {
-      /* We came up short on the name.  Expect two underscores and the
-         parent type. */
-      if (p2[0] != '_' || p2[1] != '_') {
+  /* Demangle the name. */
+  p = demangle_name(p, nchars, /*stop_on_underscores=*/FALSE,
+                    nchars_left, (char *)NULL, temp_par_info, dctl);
+  if (has_function_local_info) {
+    p = p2;
+    if (nchars_left != NULL) {
+      if (p2 > orig_end) {
         bad_mangled_name(dctl);
       } else {
-        is_member = TRUE;
-        old_nchars = nchars;
-        nchars = p2 - p;
-        p2 += 2;
-        p2 = demangle_type_name(p2, dctl);
-        write_id_str("::", dctl);
-        /* See if we ended up in the right place. */
-        if (p2 != p+old_nchars) {
-          bad_mangled_name(dctl);
-        }  /* if */
+        *nchars_left = orig_end - p2;
       }  /* if */
     }  /* if */
   }  /* if */
-  /* Demangle the name. */
-  p = demangle_name(p, nchars, /*stop_on_underscores=*/FALSE,
-                    (unsigned long *)NULL,
-                    (char *)NULL, temp_par_info, dctl);
-  if (has_function_local_info || is_member) p = p2;
   return p;
-}  /* demangle_name_with_preceding_length */
+}  /* demangle_type_name_with_preceding_length */
 
 
 static char *demangle_simple_type_name(
                                    char                       *ptr,
+                                   a_boolean                  base_name_only,
                                    a_template_param_block_ptr temp_par_info,
                                    a_decode_control_block_ptr dctl)
 /*
@@ -1471,6 +1470,7 @@ by the name.  Return a pointer to the character position following what
 was demangled.  The name is not a nested name, but it can have template
 arguments.  When temp_par_info != NULL, it points to a block that
 controls output of extra information on template parameters.
+When base_name_only is TRUE, suppress any function-local information.
 */
 {
   char *p = ptr;
@@ -1481,8 +1481,10 @@ controls output of extra information on template parameters.
   } else {
     /* A simple mangled type name consists of digits indicating the length of
        the name followed by the name itself, e.g., "3abc". */
-    p = demangle_name_with_preceding_length(p, /*allow_member=*/FALSE,
-                                            temp_par_info, dctl);
+    p = demangle_type_name_with_preceding_length(p, base_name_only,
+                                                 (unsigned long)0,
+                                                 (unsigned long *)NULL,
+                                                 temp_par_info, dctl);
   }  /* if */
   return p;
 }  /* demangle_simple_type_name */
@@ -1523,13 +1525,13 @@ interface to this routine for the simple case.
       /* Do not put out the nested type qualifiers if base_name_only is
          TRUE. */
       if (base_name_only && nquals != 1) dctl->suppress_id_output++;
-      p = demangle_simple_type_name(p, temp_par_info, dctl);
+      p = demangle_simple_type_name(p, base_name_only, temp_par_info, dctl);
       if (nquals != 1) write_id_str("::", dctl);
       if (base_name_only && nquals != 1) dctl->suppress_id_output--;
     }  /* for */
   } else {
     /* A simple (non-nested) type name. */
-    p = demangle_simple_type_name(p, temp_par_info, dctl);
+    p = demangle_simple_type_name(p, base_name_only, temp_par_info, dctl);
   }  /* if */
   return p;
 }  /* full_demangle_type_name */
@@ -1543,42 +1545,68 @@ function table name.  Such names are mangled mostly as types, but with
 a few special quirks.
 */
 {
-  char      *p = ptr;
-  a_boolean nested_name_case = FALSE;
+  char          *p = ptr;
+  unsigned long nchars, nchars_left;
 
-  /* If the name begins with a number, "Q", and another number, assume
-     it's a name with a form like "7Q2_1A1B", which is used to encode
-     A::B as the complete object class name component of a virtual
-     function table name.  This doesn't have any particular sense to
-     it; it's just what cfront does (and EDG's front end does the same
-     at ABI versions >= 2.30 in cfront compatibility mode).  This could
-     fail if the user actually has a class with a name that begins
-     like "Q2_", but there's not much we can do about that. */
-  if (isdigit((unsigned char)*p)) {
-    do { p++; } while (isdigit((unsigned char)*p));
-    if (*p == 'Q') {
-      char *save_p = p;
-      p++;
-      if (isdigit((unsigned char)*p)) {
-        do { p++; } while (isdigit((unsigned char)*p));
-        if (*p == '_') {
-          /* Yes, this is the strange nested name case.  Start the demangling
-             at the "Q". */
-          nested_name_case = TRUE;
-          p = save_p;
+  /* This code handles both the base class part of the name and
+     the class part.  A base class name has the form
+       <length> followed by one or more <class spec> optionally followed
+         by an ambiguity specification, __A optionally followed by a number.
+         The ambiguity specification is not included in the length.
+     A <class spec> is a class name mangling without preceding length, or
+       a "Q" nested-type-name specification.
+     A class name has the form
+       <length> <class spec>
+     or 
+       Q nested-type-name specification (i.e., without preceding length).
+  */
+  if (*p == 'Q') {
+    /* Nested-type-name "Q" without preceding length.  This is used only
+       for the complete object class (the last section), not for the
+       base classes. */
+    p = demangle_type_name(p, dctl);
+  } else {
+    /* Get the length. */
+    p = get_length(p, &nchars, dctl);
+    while (!dctl->err_in_id) {
+      if (*p == 'Q') {
+        /* Nested class name. */
+        char          *end_ptr = demangle_type_name(p, dctl);
+        unsigned long chars_taken = end_ptr - p;
+        if (chars_taken > nchars) {
+          bad_mangled_name(dctl);
+        } else {
+          nchars -= chars_taken;
         }  /* if */
+        p = end_ptr;
+      } else {
+        /* Non-nested class name without preceding length. */
+        p = demangle_type_name_with_preceding_length(
+                                              p, /*base_name_only=*/FALSE,
+                                              nchars, &nchars_left,
+                                              (a_template_param_block_ptr)NULL,
+                                              dctl);
+        nchars = nchars_left;
       }  /* if */
+      /* Leave the loop if there is not another base class in the
+         derivation. */
+      if (nchars < 3 || !start_of_id_is("__", p)) break;
+      p += 2;
+      nchars -= 2;
+      write_id_str(" in ", dctl);
+    }  /* while */
+    /* Make sure we took all the characters indicated by the length. */
+    if (nchars != 0) {
+      bad_mangled_name(dctl);
     }  /* if */
-  }  /* if */
-  if (!nested_name_case) p = ptr;
-  /* Now use the normal routine to demangle the class name. */
-  p = demangle_type_name(p, dctl);
-  if (start_of_id_is("__A", p)) {
-    /* "__A" indicates an ambiguous base class. */
-    write_id_str(" (ambiguous)", dctl);
-    p += 3;
-    /* Ignore the number following __A, if any. */
-    while (isdigit((unsigned char)*p)) p++;
+    if (start_of_id_is("__A", p)) {
+      /* "__A" indicates an ambiguous base class.  This is used only on
+         the base class specifications. */
+      write_id_str(" (ambiguous)", dctl);
+      p += 3;
+      /* Ignore the number following __A, if any. */
+      while (isdigit((unsigned char)*p)) p++;
+    }  /* if */
   }  /* if */
   return p;
 }  /* demangle_vtbl_class_name */
@@ -1996,19 +2024,48 @@ the character position following what was demangled.
 }  /* demangle_type */
 
 
-static char *full_demangle_identifier(char                       *ptr,
-                                      unsigned long              nchars,
-                                      a_decode_control_block_ptr dctl)
+static char *demangle_identifier_with_preceding_length(
+                     char                       *ptr,
+                     a_boolean                  suppress_parent_and_local_info,
+                     a_decode_control_block_ptr dctl)
+/*
+Demangle the identifier at ptr and output the demangled form.  The
+identifier is preceded by a length.  Return a pointer to the character
+position following what was demangled.  An identifier can include template
+argument, parent, and function-local information.
+If suppress_parent_and_local_info is TRUE, do not output parent and
+function-local information if present (but do scan over it).
+*/
+{
+  char          *p = ptr;
+  unsigned long nchars;
+
+  p = get_length(p, &nchars, dctl);
+  p = full_demangle_identifier(p, nchars, suppress_parent_and_local_info,
+                               dctl);
+  return p;
+}  /* demangle_identifier_with_preceding_length */
+
+
+static char *full_demangle_identifier(
+                     char                       *ptr,
+                     unsigned long              nchars,
+                     a_boolean                  suppress_parent_and_local_info,
+                     a_decode_control_block_ptr dctl)
 /*
 Demangle the identifier at ptr and output the demangled form.  Return
 a pointer to the character position following what was demangled.
 If nchars > 0, take no more than that many characters.
+If suppress_parent_and_local_info is TRUE, do not output parent
+and function-local information if present (but do scan over it).
+An identifier can include template argument, parent, and function-local
+information.
 */
 {
   char          *p = ptr, *pname, *end_ptr, *function_local_end_ptr = NULL;
   char          *final_specialization, *end_ptr_first_scan;
   char          ch;
-  a_boolean     member_function = TRUE;
+  a_boolean     is_function = TRUE;
   a_template_param_block
                 temp_par_info;
   a_boolean     is_externalized_static = FALSE;
@@ -2072,6 +2129,7 @@ If nchars > 0, take no more than that many characters.
        Members of namespaces are encoded similarly. */
     p = end_ptr;
     pname = NULL;
+    if (suppress_parent_and_local_info) dctl->suppress_id_output++;
     ch = get_char(end_ptr, ptr, nchars);
     if (ch == 'L') {
       unsigned long nchars2 = nchars;
@@ -2089,7 +2147,7 @@ If nchars > 0, take no more than that many characters.
       function_local_end_ptr =
                           demangle_function_local_indication(p, nchars2, dctl);
       p = end_ptr = ptr + nchars;
-      member_function = FALSE;
+      is_function = FALSE;
       /* Go on to demangle the name of the local entity. */
     } else if (ch != 'F') {
       /* A class (or namespace) name must be next. */
@@ -2112,10 +2170,11 @@ If nchars > 0, take no more than that many characters.
       ch = get_char(end_ptr, ptr, nchars);
       if (ch == '\0' ||
           (ch == '_' && get_char(end_ptr+1, ptr, nchars) == '_')) {
-        member_function = FALSE;
+        is_function = FALSE;
       }  /* if */
     }  /* if */
-    if (member_function) {
+    if (suppress_parent_and_local_info) dctl->suppress_id_output--;
+    if (is_function) {
       /* "S" here means a static member function (ignore). */
       if (get_char(end_ptr, ptr, nchars) == 'S') end_ptr++;
       /* Write the specifier part of the type. */
@@ -2125,7 +2184,8 @@ If nchars > 0, take no more than that many characters.
                                            /*need_trailing_space=*/TRUE, dctl);
     }  /* if */
     temp_par_info.nesting_level = 0;
-    if (pname != NULL) {
+    if (pname != NULL &&
+        !suppress_parent_and_local_info) {
       /* Write the parent class or namespace qualifier. */
       if (temp_par_info.final_specialization != NULL) {
         /* Up to the final specialization, put out actual template arguments
@@ -2143,7 +2203,7 @@ If nchars > 0, take no more than that many characters.
     (void)demangle_name(ptr, nchars, /*stop_on_underscores=*/TRUE,
                         (unsigned long *)NULL,
                         pname, &temp_par_info, dctl);
-    if (member_function) {
+    if (is_function) {
       /* Write the declarator part of the type. */
       demangle_type_second_part(end_ptr, /*under_lhs_declarator=*/FALSE,
                                 dctl);
@@ -2430,9 +2490,12 @@ length returned the second time will be correct).
     /* Previous error (not enough room in the buffer to uncompress). */
   } else if (start_of_id_is("__vtbl__", id)) {
     write_id_str("virtual function table for ", dctl);
-    /* Note that if the first name is a base class name and it's not simple,
-       this will produce output containing partially-mangled information.
-       It's hard to do better given the cfront encoding form. */
+    /* The overall mangled name is one of
+         __vtbl__ <class mangling>
+         __vtbl__ <base class mangling> __ <class mangling>
+         __vtbl__ <base class mangling> __ <base class mangling>
+                                        __ <class mangling>
+    */
     end_ptr = demangle_vtbl_class_name(id+8, dctl);
     while (start_of_id_is("__", end_ptr)) {
       /* Further derived class. */

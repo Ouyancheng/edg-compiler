@@ -1,3 +1,31 @@
+Version 3.3
+
+7/10/03  Demangling fixes, Cfront-like ABI: virtual function table names,
+         function-local entities
+
+Several demangling problems have been fixed in the Cfront-like ABI:
+
+-- A virtual function table name in which a base class name has more
+   than one derivation step is now demangled correctly
+
+   __vtbl__38B__L0__main__FiPPc__D__L1__main__FiPPc__18F__L2__main__FiPPc
+
+   (The fix for the Changes entry of 2/19/03 was not quite right.)
+
+-- A virtual function name in a pointer-to-member constant is now
+   demangled correctly when it is a member of a local class
+
+   g__FP53X__tm__44_XCMQ2_1A1BFQ2_1A1B_vLM0_L_2_n1_10f__Q2_1A1B
+
+-- Certain address-of-member references are now demangled correctly
+
+   f__tm__8_X5v__1B__FR13A__tm__5_XZ1Z_v
+
+-- Certain function-local types are now fully identified in the
+   demangled name.  Formerly, they did not give the containing
+   function information.
+
+-------------------------------------------------------------------------------
 Version 3.2, May 12, 2003
 
 5/6/03   Demangling for __alignof__ operator, IA-64 ABI
