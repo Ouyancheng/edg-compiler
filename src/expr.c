@@ -3933,18 +3933,35 @@ Syntax:
        in bytes, of type size_t (see ISO C 6.3.3.4 and <stddef.h>). */
     if (is_error_type(sizeof_type)) {
       set_error_constant(&constant);
-    } else if (!C_mode() && is_template_dependent_context() &&
-               is_template_dependent_type(sizeof_type)) {
-      /* For the size of a template type, use a ck_template_param. */
-      clear_constant(&constant, (a_constant_repr_kind)ck_template_param);
-      set_template_param_constant_kind(&constant,
-                                (a_template_param_constant_kind)tpck_sizeof);
-      constant.variant.template_param.variant.type = sizeof_type;
-      constant.type = integer_type(targ_size_t_int_kind);
     } else {
-      set_unsigned_integer_constant(&constant,
-                                    (a_host_large_unsigned)sizeof_type->size,
-                                    targ_size_t_int_kind);
+      if (!C_mode() && is_template_dependent_context() &&
+          is_template_dependent_type(sizeof_type)) {
+        /* For the size of a template type, use a ck_template_param. */
+        clear_constant(&constant, (a_constant_repr_kind)ck_template_param);
+        set_template_param_constant_kind(&constant,
+                                  (a_template_param_constant_kind)tpck_sizeof);
+        constant.variant.template_param.variant.type = sizeof_type;
+        constant.type = integer_type(targ_size_t_int_kind);
+      } else {
+        /* Normal case; known constant sizeof. */
+        set_unsigned_integer_constant(&constant,
+                                      (a_host_large_unsigned)sizeof_type->size,
+                                      targ_size_t_int_kind);
+      }  /* if */
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+      /* Make a sizeof expression that sits behind the constant and
+         gives the original expression. */
+      { an_expr_node_ptr node =
+                        alloc_expr_node((an_expr_node_kind)enk_runtime_sizeof);
+        node->type = integer_type(targ_size_t_int_kind);
+        node->variant.runtime_sizeof.type = sizeof_type;
+        if (!is_type) {
+          prep_generic_operand(&operand, /*lvalue_expected=*/FALSE);
+          node->variant.runtime_sizeof.expr = make_node_from_operand(&operand);
+        }  /* if */
+        constant.expr = node;
+      }
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
     }  /* if */
     make_constant_operand(&constant, result);
   }  /* if */
