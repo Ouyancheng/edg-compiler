@@ -1,5 +1,13 @@
 Version 2.23
 
+5/20/94  C mode null pointer constants in pointer operations
+
+When, in C mode, an operation has a left operand that is a (void *)0
+null pointer constant, and a right operand that is some pointer (not void *),
+the front end formerly converted the right operand to the "void *"
+type of the left operand.  Now, it makes the types the same by
+converting in the other direction.
+
 5/20/94  typeinfo variables put out with virtual function tables
 
 When exception handling is enabled, typeinfo variables are put out

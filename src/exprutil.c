@@ -2137,21 +2137,22 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
   an_error_code warning_suggested;
 
   /* The loop here tries the conversions once without extensions
-     allowed, and (if that fails) again with extensions allowed.
-     This is necessary for cases like the following in C mode:
-       int f();
-       void m() { 0 ? (void *)0 : f }
-     The conversion from f --> void * can be done, but only as an
-     extension.  (void *)0 --> pointer to function is standard.  If we
-     did not do the tests twice, we would find the nonstandard conversion
-     first and use it, and issue a warning, when in fact there is a
-     standard conversion that could be used instead. */
+     allowed, and (if that fails) again with extensions allowed,
+     so we won't pick a conversion direction that requires an
+     extension when the opposite direction doesn't. */
   suppress_extensions = TRUE;
   for (;;) {
     if (operand_1_is_pointer) {
       /* See if the second operand can be converted to the type of the
-         first operand. */
-      if (impl_pointer_conversion(operand_2_type,
+         first operand.  In C mode, suppress the attempt to find an
+         implicit conversion to the type of a null pointer constant
+         (if the constant is 0, the conversion won't be possible anyway,
+         and if it's (void *)0, we want to favor the conversion in the
+         other direction). */
+      if ((!C_mode() ||
+           !is_constant_operand(operand_1) ||
+           !is_null_pointer_constant(&operand_1->variant.constant)) &&
+          impl_pointer_conversion(operand_2_type,
                                   is_constant_operand(operand_2),
                                   &operand_2->variant.constant,
                                   operand_1_type,
@@ -2167,8 +2168,12 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
     }  /* if */
     if (operand_2_is_pointer) {
       /* See if the first operand can be converted to the type of the
-         second operand. */
-      if (impl_pointer_conversion(operand_1_type,
+         second operand.  In C mode, suppress conversion toward a null
+         pointer constant (see comment above). */
+      if ((!C_mode() ||
+           !is_constant_operand(operand_2) ||
+           !is_null_pointer_constant(&operand_2->variant.constant)) &&
+          impl_pointer_conversion(operand_1_type,
                                   is_constant_operand(operand_1),
                                   &operand_1->variant.constant,
                                   operand_2_type,
