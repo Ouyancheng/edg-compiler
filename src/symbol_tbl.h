@@ -570,6 +570,13 @@ typedef struct a_class_symbol_supplement {
 			   a template parameter type this field points
 			   back to the template parameter; otherwise
 			   it is NULL. */
+  a_token_sequence_number
+		prototype_token_sequence_number;
+			/* The token sequence number of a token that
+			   represents this class.  Present for the prototype
+			   instantiation of a class template and the
+			   prototype instantiation of any nested classes
+			   within the class template. */
   a_dependent_type_fixup_ptr
 		dependent_type_fixup_list;
 			/* If the current class is not yet defined, a pointer

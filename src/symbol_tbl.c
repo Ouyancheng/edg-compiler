@@ -1456,6 +1456,7 @@ state.
         cssp->class_template = NULL;
         cssp->member_decl_scope = NO_SCOPE_NUMBER;
         cssp->template_param_for_proxy_class = NULL;
+        cssp->prototype_token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
         cssp->dependent_type_fixup_list = NULL;
         cssp->constructor_required = FALSE;
         cssp->destructor_required = FALSE;
