@@ -2830,8 +2830,10 @@ diagnostics.
                            routine->decl_modifiers &
                            new_modifiers->flags)) {
                 /* The current declaration is inconsistent with a previous
-                   declaration.  Issue a warning. */
+                   declaration.  Issue a warning and clear the previous
+                   dllimport/dllexport state. */
                 invalid_redecl = TRUE;
+                routine->decl_modifiers &= ~(DM_DLLIMPORT | DM_DLLEXPORT);
               }  /* if */
             }  /* if */
             break;

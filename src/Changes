@@ -1,5 +1,20 @@
 Version 2.44
 
+3/8/00   Microsoft compatibility: ignore __declspec(dllimport) from class
+         definition on out-of-class member function definition
+
+When a class is marked __declspec(dllimport), the front end used to also mark
+the out-of-class definitions as dllimport (with a warning).  Such definitions
+were conseuqently discarded (to avoid conflict with the definition that
+should presumably have been imported).  However, Microsoft compilers treat
+such out-of-class definitions as not having the dllimport property and the
+front end now emulates that behavior.
+
+  struct __declspec(dllimport) X {
+    void f();
+  };
+  void X::f() {}  // Not a dllimport routine: keep its definition in the IL.
+
 3/8/00   Pointer-to-member argument deduction problem
 
 A bug was introduced in version 2.43 that caused template argument deduction
