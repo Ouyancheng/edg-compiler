@@ -337,31 +337,44 @@ optimization is suppressed.
          in as FALSE.  There's no point in looking ahead in such cases:
          "sizeof(x y)" isn't syntactically possible, so if x is not a
          type name, we'll assume it's an object name. */
-    } else if (curr_token == tok_identifier) {
+    } else if (curr_token == tok_identifier &&
+               locator_for_curr_id.specific_symbol == NULL) {
       /* If the current token is an identifier we'll proceed with the error
          recovery optimization only if we can be quite sure the name can't
-         have another meaning.  We bail out if there are any symbols still
-         in scope or if this is an expression context and there is the
-         possibility that a class member name could be found -- e.g., in a
-         friend function body. */
-      if (symbol_list_from_locator(locator_for_curr_id) == NULL &&
-          (!expr_context ||
-           inactive_symbol_list_from_locator(locator_for_curr_id) == NULL)) {
-        /* An undefined identifier.  Check the next token -- we may have a
-           token pattern that can be nothing but a declaration. */
-        next_tok = next_token();
-        if (next_tok == tok_identifier || next_tok == tok_operator) {
-          /* Pattern "x y" or "x operator..." -- looks like a declaration in
-             'most any context. */
-          is_start = TRUE;
-        } else if (next_tok == tok_star || next_tok == tok_ampersand) {
-          /* Pattern "x *..." or x &..." -- looks like a declaration as long as
-             the context rules out expressions. */
-          is_start = !expr_context;
-        }  /* if */
+         have another meaning.  The first indication of that is that
+         specific symbol is NULL, meaning (almost) that nothing was found in
+         the lookup.  The exception is when the scope stack has a class or
+         class reactivation entry on it and that class has base classes: a
+         member of a base class may have been found but, since it was not a
+         type name, "thrown away" (i.e., no projection symbol was created and
+         no specific_symbol returned in the locator.  Note that this is an
+         issue only if we are in a context that accepts an expression and
+         there are inactive symbols associated with this name. */
+      if (expr_context &&
+          inactive_symbol_list_from_locator(locator_for_curr_id) != NULL) {
+        a_scope_stack_entry_ptr  ssep = &scope_stack[decl_scope_level];
+        for (; ssep != &scope_stack[0]; ssep--) {
+          if (ssep->kind == (a_scope_kind)sck_class_struct_union ||
+              ssep->kind == (a_scope_kind)sck_class_reactivation) {
+            goto done;
+          }  /* if */
+        }  /* for */
+      }  /* if */
+      /* An undefined identifier.  Check the next token -- we may have a
+         token pattern that can be nothing but a declaration. */
+      next_tok = next_token();
+      if (next_tok == tok_identifier || next_tok == tok_operator) {
+        /* Pattern "x y" or "x operator..." -- looks like a declaration in
+           'most any context. */
+        is_start = TRUE;
+      } else if (next_tok == tok_star || next_tok == tok_ampersand) {
+        /* Pattern "x *..." or x &..." -- looks like a declaration as long as
+           the context rules out expressions. */
+        is_start = !expr_context;
       }  /* if */
     }  /* if */
   }  /* if */
+done:
   return(is_start);
 }  /* is_decl_start */
 
@@ -3268,14 +3281,18 @@ otherwise, set *ext_sym to NULL.
          same name but a different type signature from that of the current
          declaration.  We may have an instance of function overloading. */
       an_error_code  error_code;
-      a_routine_ptr  rp = homonym_symbol->variant.routine;
-      if (rp->special_kind == (a_special_function_kind)sfk_operator &&
-          rp->opname_kind == (an_opname_kind)onk_delete) {
-        /* Overloading is not allowed for operator delete() (ARM 12.5). */
-        pos_error(ec_delete_already_declared, &locator->source_position);
-        redecl_error_already_issued = TRUE;
-      } else if (!overload_distinguishable(homonym_symbol, type_ptr,
-                                           &error_code)) {
+
+      if (homonym_symbol->kind != (a_symbol_kind)sk_overloaded_function) {
+        a_routine_ptr  rp = homonym_symbol->variant.routine;
+        if (rp->special_kind == (a_special_function_kind)sfk_operator &&
+            rp->opname_kind == (an_opname_kind)onk_delete) {
+          /* Overloading is not allowed for operator delete() (ARM 12.5). */
+          pos_error(ec_delete_already_declared, &locator->source_position);
+          redecl_error_already_issued = TRUE;
+          goto skip_overloading;
+        }  /* if */
+      }  /* if */      
+      if (!overload_distinguishable(homonym_symbol, type_ptr, &error_code)) {
         /* The previous declaration and the current one are not "overload
            distinguishable" for a reason given by the error code returned. */
         pos_error(error_code, &locator->source_position);
@@ -3286,6 +3303,7 @@ otherwise, set *ext_sym to NULL.
         sym = enter_overloaded_symbol((a_symbol_kind)sk_routine, locator,
                                       homonym_symbol, &overload_symbol);
       }  /* if */
+skip_overloading:;
     }  /* if */
   }  /* if */
   if (linked_redecl_error) {
@@ -5954,8 +5972,13 @@ process_class_specifier:
               /* Assume that the undefined identifier that is apparently
                  followed by a declarator was intended to be a type name. */
               err = TRUE;
-              str_error(ec_undefined_identifier,
-                        locator_for_curr_id.symbol_header->identifier);
+              if (normal_id_lookup(&locator_for_curr_id,
+                                   IDL_NO_OPTIONS) == NULL) {
+                str_error(ec_undefined_identifier,
+                          locator_for_curr_id.symbol_header->identifier);
+              } else {
+                error(ec_exp_type_specifier);
+              }  /* if */
               basic_type = bt_typedef;
               *type_ptr = error_type();
               break;
