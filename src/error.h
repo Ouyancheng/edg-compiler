@@ -483,7 +483,8 @@ typedef enum /*an_error_code*/ {
   ec_missing_template_param,
   ec_missing_template_arg_list,
   ec_too_few_template_args,
-  ec_too_many_template_args
+  ec_too_many_template_args,
+  ec_not_a_type_arg
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 

@@ -1671,6 +1671,9 @@ error code.
     case ec_too_many_template_args:
       m = "to many arguments for %nf";
       break;
+    case ec_not_a_type_arg:
+      m = "only type arguments are allowed on a function template";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
