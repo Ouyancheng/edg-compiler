@@ -61,7 +61,8 @@ in C99 mode.
 The conversion specifiers for long long types for the library
 functions in the printf/scanf family are standard in C99.
 Therefore the front end has been changed not to issue warnings
-on those in strict C99 mode.
+on those.  The warnings are not issued in all modes, not just
+strict C99 mode.
 
 12/17/03 Variable pragma_defined_type_info_is_required is misspelled
 

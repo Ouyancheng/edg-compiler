@@ -5941,9 +5941,6 @@ after_precision:;
 #if LONG_LONG_ALLOWED
         } else if (ll_size) {
           required_type = integer_type((an_integer_kind)ik_long_long);
-          if (strict_ansi_mode && !c99_mode) {
-            pos_warning(ec_nonstd_printf_format_string, err_pos);
-          }  /* if */
 #endif /* LONG_LONG_ALLOWED */
         } else if (j_size) {
           required_type = integer_type(targ_intmax_kind);
@@ -5980,9 +5977,6 @@ after_precision:;
 #if LONG_LONG_ALLOWED
         } else if (ll_size) {
           required_type = integer_type((an_integer_kind)ik_unsigned_long_long);
-          if (strict_ansi_mode && !c99_mode) {
-            pos_warning(ec_nonstd_printf_format_string, err_pos);
-          }  /* if */
 #endif /* LONG_LONG_ALLOWED */
         } else if (j_size) {
           required_type = integer_type(targ_uintmax_kind);
@@ -6002,12 +5996,8 @@ after_precision:;
         break;
       case 'a':  /* Added in C99. */
       case 'A':  /* Added in C99. */
-      case 'F':  /* Added in C99. */
-        if (strict_ansi_mode && C_mode() && !c99_mode) {
-          pos_warning(ec_nonstd_printf_format_string, err_pos);
-        }  /* if */
-        /* FALLTHRU */
       case 'f':
+      case 'F':  /* Added in C99. */
       case 'e':
       case 'E':
       case 'g':
@@ -6063,9 +6053,6 @@ after_precision:;
 #if LONG_LONG_ALLOWED
         } else if (ll_size) {
           required_type = integer_type((an_integer_kind)ik_long_long);
-          if (strict_ansi_mode && !c99_mode) {
-            pos_warning(ec_nonstd_printf_format_string, err_pos);
-          }  /* if */
 #endif /* LONG_LONG_ALLOWED */
         } else if (j_size) {
           required_type = integer_type(targ_intmax_kind);
