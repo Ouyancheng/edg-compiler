@@ -857,7 +857,8 @@ typedef struct a_param_id {
 			/* For an old-style parameter, the source position of
 			   the initial reference (i.e., of the declaration
 			   within the parenthesized comma-list of parameter
-			   names). */
+			   names).  null_source_position for a new-style
+			   parameter. */
 } a_param_id;
 
 
