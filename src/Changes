@@ -1,5 +1,13 @@
 Version 2.41
 
+2/24/99  MICROSOFT_DEFAULT_USE_NONSTANDARD_FOR_INIT_SCOPE eliminated
+
+The configuration macro MICROSOFT_DEFAULT_USE_NONSTANDARD_FOR_INIT_SCOPE
+has been eliminated.  That feature is now controlled by the
+microsoft_version option instead.  (As of MSVC++ 6.0, however, the
+new for-init scope has not been implemented in MSVC++, so the feature
+is always off in Microsoft mode.)
+
 2/23/99  near/far support: assignment of class object declared "far"
 
 When near/far support is enabled (e.g., in Microsoft 16-bit mode),

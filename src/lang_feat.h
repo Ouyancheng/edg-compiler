@@ -863,12 +863,6 @@ C a for-init statement may not be a declaration.
 #ifndef DEFAULT_USE_NONSTANDARD_FOR_INIT_SCOPE
 #define DEFAULT_USE_NONSTANDARD_FOR_INIT_SCOPE FALSE
 #endif /* ifndef DEFAULT_USE_NONSTANDARD_FOR_INIT_SCOPE */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-/* Separate default for Microsoft mode. */
-#ifndef MICROSOFT_DEFAULT_USE_NONSTANDARD_FOR_INIT_SCOPE
-#define MICROSOFT_DEFAULT_USE_NONSTANDARD_FOR_INIT_SCOPE TRUE
-#endif /* ifndef MICROSOFT_DEFAULT_USE_NONSTANDARD_FOR_INIT_SCOPE */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
 Flag that is TRUE if a diagnostic should be issued when a name that is

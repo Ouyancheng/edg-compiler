@@ -1175,8 +1175,8 @@ by a command line option.
     }  /* if */
     allow_copy_assignment_op_with_base_class_param = FALSE;
     if (!option_kind_used[(int)optk_old_for_init]) {
-      use_nonstandard_for_init_scope =
-                              MICROSOFT_DEFAULT_USE_NONSTANDARD_FOR_INIT_SCOPE;
+      /* As of MSVC++ 6.0, this feature is still not implemented. */
+      use_nonstandard_for_init_scope = FALSE;
     }  /* if */
     ptr_to_unknown_bound_array_allowed_in_param_type = TRUE;
     /* Exception specifications should be ignored in Microsoft bugs mode. */
