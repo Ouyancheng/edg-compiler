@@ -1115,6 +1115,9 @@ Display the indicated variable.
   }  /* if */
   disp_boolean("is_partially_initialized",
                (a_boolean)ptr->is_partially_initialized);
+  if (ptr->is_anonymous_parent_object) {
+    disp_boolean("is_anonymous_parent_object", TRUE);
+  }  /* if */
   disp_name("init_kind");
   switch (ptr->init_kind) {
     case initk_none:
@@ -1169,6 +1172,9 @@ Display the indicated field.
                        (unsigned long)ptr->offset_bit_remainder);
     disp_unsigned_long("bit_size", (unsigned long)ptr->bit_size);
     disp_boolean("bit_field_is_signed", (a_boolean)ptr->bit_field_is_signed);
+  }  /* if */
+  if (ptr->is_anonymous_parent_object) {
+    disp_boolean("is_anonymous_parent_object", TRUE);
   }  /* if */
 }  /* disp_field */
 
