@@ -4629,6 +4629,16 @@ generating cross-reference output describing this declaration.  */
          specified. */
       suppress_inline_body = TRUE;
     }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  } else if (gcc_mode && 
+             storage_class == (a_storage_class)sc_extern &&
+             func_info->is_inline && func_info->is_definition) {
+    /* In GCC mode, if a function definition uses both the "extern"
+       and "inline" keywords then no definition of the function
+       should be emitted, even though it has external linkage.  This
+       treatment is analogous to the C99 "inline definition" concept. */
+    suppress_inline_body = TRUE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
   clear_id_linkage_block(&idlb);
   idlb.locator = locator;
@@ -5428,6 +5438,12 @@ skip_overloading:;
     } else {
       routine_ptr->suppress_inline_body = suppress_inline_body;
     }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  } else if (gcc_mode && suppress_inline_body) {
+    /* In GNU mode only the keywords present at the point of
+       definition matter. */
+    routine_ptr->suppress_inline_body = TRUE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
   source_corresp_ptr = &routine_ptr->source_corresp;
   update_routine_decl_modifiers(routine_ptr, decl_modifiers,
