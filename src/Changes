@@ -16,16 +16,15 @@ to a ?: operator.  For instance,
 
 This program is now parsed correctly.
 
-5/29/92  Permit name of field to be same as name of struct.
+5/29/92  Permit name of field to be same as name of class of which it is
+         a member.
 
 This change, based on ARM 9.2, deals with a murky part of the language
 that has been much debated in X3J16.  For the time being we have made
 the change in such a way as to provide compatibility with C but not
 much more: a nonstatic data member with the same name as its class is
 allowed only in a class for which no constructor is declared.  No
-other member may be so named.  This is almost the same as cfront 2.1,
-for which the order of declaration affects how a field and a
-constructor interact (a cfront bug?).
+other member may be so named.
 
 5/28/92  Fixed bugs in processing main() declarations.
 
@@ -62,7 +61,7 @@ ananchronism is activated.  For example:
 5/26/92  Added some warnings
 
 We now issue warnings on classes with
-   - one or more virtual functions but no virtual destructor
+   - one or more virtual functions but nonvirtual destructor
    - operator new() but no operator delete() and vice versa
    - all private constructors and friend declarations
 
