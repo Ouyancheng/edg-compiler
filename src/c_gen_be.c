@@ -2236,17 +2236,20 @@ Dump a single #pragma from the IL entry.
 {
   unsigned long saved_indent = indent;
 
-  end_output_line_if_begun();
-  set_output_position(&pp->decl_position);
-  indent = 0;
-  disable_line_wrapping();
-  write_str("#pragma ");
-  check_assertion_str(pp->pragma_text != NULL,
-                      "dump_pragma: NULL pragma_text");
-  write_str(pp->pragma_text);
-  enable_line_wrapping();
-  end_output_line();
-  indent = saved_indent;
+  /* Ignore this entry if told to do so. */
+  if (!pp->ignore_in_back_end) {
+    end_output_line_if_begun();
+    set_output_position(&pp->decl_position);
+    indent = 0;
+    disable_line_wrapping();
+    write_str("#pragma ");
+    check_assertion_str(pp->pragma_text != NULL,
+                        "dump_pragma: NULL pragma_text");
+    write_str(pp->pragma_text);
+    enable_line_wrapping();
+    end_output_line();
+    indent = saved_indent;
+  }  /* if */
 }  /* dump_pragma */
 
 
