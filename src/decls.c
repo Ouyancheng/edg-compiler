@@ -3916,10 +3916,12 @@ otherwise it is NULL.  The syntax is:
             rescan_cached_tokens(&cache);
           }  /* if */
           if (!is_function_decl) {
-            *output_flags |= DO_PARENTHESIZED_INITIALIZER;
             /* Be sure that a parenthesized initializer is allowed. */
-            if (!is_scalar_type(complete_type)) {
-              a_type_ptr  tp = skip_typerefs(complete_type);
+            a_type_ptr  tp = skip_typerefs(complete_type);
+            while (is_ptr_or_ref_type(tp)) {
+              tp = skip_typerefs(type_pointed_to(tp));
+            }  /* while */
+            if (!is_scalar_type(tp)) {
 #if CHECKING
               /* Should have been checked when the input flag was defined. */
               if (!is_class_struct_union_type(tp)) {
@@ -3935,6 +3937,7 @@ otherwise it is NULL.  The syntax is:
                 pos_error(ec_paren_initialization_not_allowed, &lparen_pos);
               }  /* if */
             }  /* if */
+            *output_flags |= DO_PARENTHESIZED_INITIALIZER;
             /* Function_declarator should not be called, so exit the loop. */
             break;
           }  /* if */
