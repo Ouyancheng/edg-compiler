@@ -42,7 +42,8 @@ In Microsoft C mode, "asm" is no longer treated as a keyword.
 
 In C++ mode, the front end now accepts multilevel pointer types with differing
 cv-qualification signatures on relational operators, and as second and third
-arguments to conditional operators.
+arguments to conditional operators.  (Previously, this was only accepted when
+one pointer type could be implicitly converted to the other type.)
 
   bool f(int const **p1, int **p2) {
     return p1 < p2;
