@@ -37,9 +37,9 @@ extern char *realloc(char *ptr, unsigned size);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 
-#if IL_WALK_NEEDED
+#if ORPHAN_PROCESSING_NEEDED
 #include "il_walk.h"
-#endif /* IL_WALK_NEEDED */
+#endif /* ORPHAN_PROCESSING_NEEDED */
 
 
 static a_mem_block_header_ptr
@@ -767,7 +767,7 @@ of the front end.
   init_memory_region(NULL_region_number);
   /* Initialize the memory region for file scope IL information. */
   init_memory_region(FILE_SCOPE_REGION_NUMBER);
-#if IL_WALK_NEEDED
+#if ORPHAN_PROCESSING_NEEDED
   /* Initialize the orphaned_file_scope_il_entries array to NULL
      pointers. */
   memzero((char *)orphaned_file_scope_il_entries,
@@ -776,7 +776,7 @@ of the front end.
      pointers. */
   memzero((char *)orphaned_file_scope_il_lists,
           sizeof(orphaned_file_scope_il_lists));
-#endif /* IL_WALK_NEEDED */
+#endif /* ORPHAN_PROCESSING_NEEDED */
 }  /* mem_manage_init */
 
 
