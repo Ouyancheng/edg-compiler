@@ -4677,8 +4677,6 @@ parameter field of the current block scope, and return a pointer to it.
 */
 {
   a_variable_ptr           vp;
-  a_scope_stack_entry_ptr  ssep;
-  a_scope_ptr              sp;
 
   db_enter(5, "make_handler_parameter");
   /* Allocate the variable. */
