@@ -1049,6 +1049,25 @@ Instantiate the body of the template function associated with tip.
        inside the class definition will already have been marked as defined
        (when the class was instantiated).  If mark_defined is called for
        such cases, an incorrect source sequence entry can be generated. */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+#if !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+    /* A source sequence entry for this member function definition will not
+       have been put out as part of putting out the class, so do it out now.
+       Note that this is only required when source sequence entries for the
+       bodies of template functions are put out -- the source sequence entry
+       for the function itself must be in the list to know when to make use
+       of the source sequence list for the function body. */
+    check_assertion_str2(rout_ptr->
+                            source_corresp.source_sequence_entry == NULL,
+                         "instantiate_template_function:",
+                         "non-NULL source sequence ptr in member function");
+    update_source_sequence_list((char *)rout_ptr,
+                                (an_il_entry_kind)iek_routine,
+                                (a_source_sequence_entry_ptr)NULL);
+#endif /* !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   } else {
     /* We wait till after the scope is pushed before calling mark_defined
        because the fact that a template instantiation scope is on the scope
