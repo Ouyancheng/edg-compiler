@@ -146,7 +146,9 @@ should be suppressed.  If suppress_warning == NULL, it is not set.
     case enk_variable_address:
     case enk_routine_address:
     case enk_field:
+    case enk_typeid:
     case enk_address_of_ellipsis:
+      /* No side effects. */
       break;
     case enk_operation:
       has_side_effects = operation_has_side_effects(node, &suppress);
