@@ -1,5 +1,13 @@
 Version 2.30
 
+10/7/95  C++-generating back end: extern declaration of static
+
+extern declarations that refer back to existing static variables are
+now correctly output by the C++-generating back end.
+
+  static int i;
+  extern int i;  // Was put out as "static", which is wrong
+
 10/7/95  C++-generating back end: Nonstandard anonymous unions
 
 The C++-generating back now handles nonstandard anonymous unions (a
