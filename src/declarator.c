@@ -580,6 +580,11 @@ type is legal.
           } else if (get_type_qualifiers(new_type_ptr) == TQ_RESTRICT) {
             /* Okay. */
 #endif /* RESTRICT_ALLOWED */
+#if MICROSOFT_KEYWORDS_ALLOWED
+          } else if ((get_type_qualifiers(new_type_ptr) &
+                                     TQ_CALLING_CONVENTION_QUALIFIERS) != 0) {
+            /* Okay. */
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
           } else {
             warning(ec_useless_type_qualifiers);
           }  /* if */
@@ -2573,13 +2578,18 @@ function_lparen:
     add_to_derived_type_list(complete_type,
                              &derived_type, &bottom_derived_type);
     complete_type = derived_type;
-  }  /* if */
-  /* If there were pointer types scanned at the beginning of this routine,
-     the bottom-most derived type is the bottom-most pointer type. */
-  if (bottom_pointer_derived_type != NULL &&
-      skip_typerefs_allow_null_referenced_type(complete_type) != NULL && 
-      !is_error_type(complete_type)) {
-    bottom_derived_type = bottom_pointer_derived_type;
+  } else {
+    /* If there were pointer types scanned at the beginning of this routine,
+       the bottom-most derived type is the bottom-most pointer type. */
+    if (bottom_pointer_derived_type != NULL &&
+#if MICROSOFT_KEYWORDS_ALLOWED
+        /* When Microsoft keywords are allowed, complete_type may be a
+           typeref with no underlying type. */
+        skip_typerefs_allow_null_referenced_type(complete_type) != NULL && 
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+        !is_error_type(complete_type)) {
+      bottom_derived_type = bottom_pointer_derived_type;
+    }  /* if */
   }  /* if */
   if (specifiers_type != NULL) {
     /* This is a top-level call to declarator. */
