@@ -920,12 +920,7 @@ and return a pointer to it in *arg_summary_list.
 	}  /* if */
       }  /* if */
 
-      /* Arguments must have object types (3.3.2.2), which rules out
-         incomplete types (e.g., void).  Handle these first to get
-         more specific messages. */
-      if (is_error_operand(&argument_operand)) {
-        /* Previous error, do not check type further. */
-      } else if (overloaded_function_case) {
+      if (overloaded_function_case) {
         /* For the overloaded function case, we do not know yet what the
            parameter type is, so save it as is.  The lvalue to rvalue
            and prototyped parameter conversions will be done once the
