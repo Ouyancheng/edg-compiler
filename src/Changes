@@ -1,5 +1,12 @@
 Version 2.32
 
+4/27/96 IL lowering: pointer to dynamic init entry on return not cleared
+
+In the presence of return value optimization, the return_dynamic_init
+field of an stmk_return statement was not cleared to NULL.  Back ends
+that only understand C IL should of course not be looking at that field,
+but it should have been cleared.
+
 4/27/96 Improved output of prototype scope types when generating ANSI/ISO C
 
 When ANSI/ISO C input to the front end is turned into ANSI/ISO C output via

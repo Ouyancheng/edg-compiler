@@ -7982,6 +7982,7 @@ Lower an stmk_return statement.
   return_statement = statement;
   make_block = TRUE;
   dip = statement->variant.return_dynamic_init;
+  statement->variant.return_dynamic_init = NULL;
   /* If the routine returns its value via a copy constructor, generate
      code for the dynamic initialization.  However, if return value
      optimization applies, just skip the copy constructor call
@@ -7993,7 +7994,6 @@ Lower an stmk_return statement.
        The dynamic initialization entry indicates the operation to
        be done. */
     an_init_pos_descr ipd;
-    statement->variant.return_dynamic_init = NULL;
     set_var_indirect_init_pos_descr(return_value_pointer_variable, &ipd);
     /* Put the return statement under a block so we can insert in
        front of it. */
