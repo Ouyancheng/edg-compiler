@@ -2531,6 +2531,39 @@ Do processing required upon completion of a condition "block".
 }  /* finish_condition_block */
 
 
+static void scan_condition(a_statement_ptr  sp,
+                           a_boolean        *is_condition_decl)
+/*
+Scan a "condition", which is either an expression or in C++ a condition
+declaration; if the latter, set *is_condition_decl to TRUE.  This routine
+is called for if, switch, for, and while statements, but not for do-while
+statements since they are not allowed to have condition declarations even
+in C++.
+*/
+{
+  a_boolean  repeated_in_loop = FALSE;
+
+  if (!C_mode() &&
+      is_decl_not_expr(/*abstract_declarator_allowed=*/FALSE,
+                       /*real_declarator_allowed=*/TRUE,
+                       /*single_type_required=*/FALSE)) {
+    /* A condition declaration.  Start a scope for the variable declared in
+       the condition and scan the declaration. */
+    *is_condition_decl = TRUE;
+    sp->expr = start_condition_block(sp);
+  } else if (sp->kind == (a_statement_kind)stmk_switch) {
+    /* Scan the controlling expression and check to see that it is integral. */
+    sp->expr = scan_integer_expression();
+  } else {
+    /* Scan the controlling expression, and check to see that it is scalar. */
+    a_boolean  repeated_in_loop = (sp->kind != (a_statement_kind)stmk_if);
+
+    sp->expr = scan_boolean_controlling_expression(/*is_condition_expr=*/TRUE,
+                                                   repeated_in_loop);
+  }  /* if */
+}  /* scan_condition */
+
+
 static void if_statement(void)
 /*
 Scan an "if" statement (with or without else) and add it to the current
@@ -2567,17 +2600,7 @@ See also 3.6.4.1.
   (void)required_token(tok_lparen, ec_exp_lparen);
   add_stop_token(tok_rparen);
   /* Scan the condition, which in C++ may be a condition declaration. */
-  if (!C_mode() &&
-      is_decl_not_expr(/*abstract_declarator_allowed=*/FALSE,
-                       /*real_declarator_allowed=*/TRUE,
-                       /*single_type_required=*/FALSE)) {
-    is_condition_decl = TRUE;
-    sp->expr = start_condition_block(sp);
-  } else {
-    /* Scan the controlling expression, and check to see that it is scalar. */
-    sp->expr = scan_boolean_controlling_expression(/*is_condition_expr=*/TRUE,
-                                                   /*repeated_in_loop=*/FALSE);
-  }  /* if */
+  scan_condition(sp, &is_condition_decl);
   /* Check for and skip the closing parenthesis. */
   (void)required_token(tok_rparen, ec_exp_rparen);
   remove_stop_token(tok_rparen);
@@ -2657,16 +2680,7 @@ See also 3.6.4.2.
   (void)required_token(tok_lparen, ec_exp_lparen);
   add_stop_token(tok_rparen);
   /* Scan the "condition", which in C++ may be a condition declaration. */
-  if (!C_mode() &&
-      is_decl_not_expr(/*abstract_declarator_allowed=*/FALSE,
-                       /*real_declarator_allowed=*/TRUE,
-                       /*single_type_required=*/FALSE)) {
-    is_condition_decl = TRUE;
-    sp->expr = start_condition_block(sp);
-  } else {
-    /* Scan the controlling expression and check to see that it is integral. */
-    sp->expr = scan_integer_expression();
-  }  /* if */
+  scan_condition(sp, &is_condition_decl);
   if (!is_error_node(sp->expr)) {
     /* The expression is integral.  Promote it (to int) if necessary. */
     if (C_dialect != C_dialect_pcc) {
@@ -2762,17 +2776,7 @@ See also 3.6.5.1.
   (void)required_token(tok_lparen, ec_exp_lparen);
   add_stop_token(tok_rparen);
   /* Scan the condition, which in C++ may be a condition declaration. */
-  if (!C_mode() &&
-      is_decl_not_expr(/*abstract_declarator_allowed=*/FALSE,
-                       /*real_declarator_allowed=*/TRUE,
-                       /*single_type_required=*/FALSE)) {
-    is_condition_decl = TRUE;
-    sp->expr = start_condition_block(sp);
-  } else {
-    /* Scan the controlling expression, and check to see that it is scalar. */
-    sp->expr = scan_boolean_controlling_expression(/*is_condition_expr=*/TRUE,
-                                                   /*repeated_in_loop=*/TRUE);
-  }  /* if */
+  scan_condition(sp, &is_condition_decl);
   /* Check for and skip the closing parenthesis. */
   (void)required_token(tok_rparen, ec_exp_rparen);
   remove_stop_token(tok_rparen);
@@ -3214,18 +3218,7 @@ either an expression statement or a declaration statement.
     /* Controlling expression was omitted. */
   } else {
     /* Scan the condition, which in C++ may be a condition declaration. */
-    if (!C_mode() &&
-        is_decl_not_expr(/*abstract_declarator_allowed=*/FALSE,
-                         /*real_declarator_allowed=*/TRUE,
-                         /*single_type_required=*/FALSE)) {
-      is_condition_decl = TRUE;
-      sp->expr = start_condition_block(sp);
-    } else {
-      /* Scan the controlling expression and check to see that it is scalar. */
-      sp->expr =
-            scan_boolean_controlling_expression(/*is_condition_expr=*/TRUE,
-                                                /*repeated_in_loop=*/TRUE);
-    }  /* if */
+    scan_condition(sp, &is_condition_decl);
   }  /* if */
   (void)required_token(tok_semicolon, ec_exp_semicolon);
   remove_stop_token(tok_semicolon);
