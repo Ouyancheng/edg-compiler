@@ -4318,10 +4318,10 @@ list.  Returns a pointer to the new end of the list.
        The base class list for D will first list the virtual base V because
        it is the "leftmost" base class of B, but it is also marked "direct".
        This for-loop therefore enumerates the direct base numbers which we
-       the search for using an additional loop.  In most cases, this will
+       then search for using an additional loop.  In most cases, this will
        only require a single traversal of the base class list, but in some
-       pathological hierarchies the cost of the nested loops could be
-       quadratic in the length of the base class list. */
+       unusual hierarchies the cost of the nested loops could be quadratic
+       in the length of the base class list. */
     a_base_class_ptr start = bcp;
     /* Look for the base with the next sequence number. */
     while (bcp->direct_base_number != next_base) {
