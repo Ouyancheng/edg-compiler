@@ -220,6 +220,9 @@ static void gen_type(a_type_ptr type);
 static void gen_enum_definition(a_type_ptr type);
 static void gen_class_definition(a_type_ptr type);
 static void gen_lvalue(an_expr_node_ptr node);
+static void gen_initializer_expr(an_expr_node_ptr expr,
+                                 a_type_ptr       type,
+                                 a_boolean        need_parens);
 static void gen_dynamic_init(a_dynamic_init_ptr dip,
                              a_type_ptr         init_entity_type,
                              a_boolean          parenthesized_init,
@@ -2250,7 +2253,8 @@ is non-NULL, in which case that is the function scope.
         /* Put out a default argument expression if there is one. */
         if (param->default_arg_expr != NULL) {
           write_tok_str(" = ");
-          gen_expr_with_parens(param->default_arg_expr);
+          gen_initializer_expr(param->default_arg_expr, param->type,
+                               /*need_parens=*/TRUE);
 #if 0
 #else /* 0 */
           /* Temporary trick -- put out the default argument expression only
