@@ -5002,6 +5002,7 @@ is not a template declaration scope.
       id_linkage(&idlb);
       sym = idlb.linked_symbol;
       homonym_symbol = idlb.homonym_symbol;
+      overload_symbol = idlb.overload_symbol;
       if (sym != NULL && sym->kind != (a_symbol_kind)sk_function_template) {
         /* Invalid redeclaration. */
         pos_sy_error(ec_not_compatible_with_previous_decl,
@@ -5148,6 +5149,15 @@ is not a template declaration scope.
       reconcile_routine_types(rout_ptr, type_ptr,
                               /*preserve_rout_type=*/TRUE,
                               /*preserve_type_ptr=*/FALSE);
+      /* If appropriate, clear the is_invisible flag in the symbol and
+         in the symbol representing its overload set. */
+      if (sym->is_invisible && !idlb.is_friend_decl) {
+        sym->is_invisible = FALSE;
+        if (sym->overload_set_member) {
+          check_assertion(overload_symbol != NULL);
+          overload_symbol->is_invisible = FALSE;
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* if */
   if (!is_error_locator(*locator)) {
