@@ -363,12 +363,15 @@ if it turns out that no IL pragma entry is created).
 */
 {
   a_pending_pragma_ptr	ppp = curr_token_pragmas;
-  while (ppp != NULL) {
-    if (ppp->source_sequence_entry == NULL) {
-      ppp->source_sequence_entry = add_empty_source_sequence_entry();
-    }  /* if */
-    ppp = ppp->next;
-  }  /* while */
+  if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH &&
+      depth_template_declaration_scope == NO_SCOPE_DEPTH) {
+    while (ppp != NULL) {
+      if (ppp->source_sequence_entry == NULL) {
+        ppp->source_sequence_entry = add_empty_source_sequence_entry();
+      }  /* if */
+      ppp = ppp->next;
+    }  /* while */
+  }  /* if */
 }  /* add_source_sequence_entry_to_curr_token_pragmas */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
