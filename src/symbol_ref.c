@@ -1002,7 +1002,7 @@ created for this entity; otherwise, it is NULL.
         if (scptr->decl_pos_info == NULL) {
           scptr->decl_pos_info =
                        alloc_decl_position_supplement(in_file_scope(scptr));
-        } else {        
+        } else {
           clear_decl_position_supplement(scptr->decl_pos_info);
         }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
