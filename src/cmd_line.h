@@ -239,6 +239,32 @@ EXTERN a_template_instantiation_mode
                                              ;
                         /* The default template instantiation mode. */
 
+EXTERN char	*instantiation_list_filename
+#if VAR_INITIALIZERS
+			          = NULL
+#endif /* VAR_INITIALIZERS */
+                                             ;
+                        /* The name of a file containing a list of names
+			   of template functions and static data members to
+			   be instantiated.  Intended to be used for linker
+			   feedback mechanisms to provide automatic
+			   instantiation. */
+
+EXTERN a_boolean	do_auto_instantiation
+#if VAR_INITIALIZERS
+			          = FALSE
+#endif /* VAR_INITIALIZERS */
+                                             ;
+                        /* TRUE if automatic instantiation processing should
+			   be done.  This flag is set when an automatic
+			   instantiation list filename is specified. */
+
+EXTERN FILE	*f_instantiation_information /* = NULL */;
+			/* File from which the instantiation list should be
+			   read.  Only valid when do_auto_instantiation is
+			   TRUE. */
+
+
 
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);

@@ -255,7 +255,7 @@ Process the arguments on the command line that invoked the compiler.
   /* Suppress getopt's error on non-recognized option. */
   opterr = 0;
   /* Scan the command-line options. */
-#define COMMAND_LIST "AEPCKMHNOabnsuvwxrmpV$I:D:U:e:L:X:S:o:i:d:t:"
+#define COMMAND_LIST "ACEHKMNOPabnsuvwxrmpV$I:D:U:e:L:X:S:o:i:d:t:T:"
   while ((optchar = getopt(argc, argv, COMMAND_LIST)) != EOF) {
     switch (optchar) {
       case 'A':
@@ -365,6 +365,26 @@ Process the arguments on the command line that invoked the compiler.
       			           instantiation_mode_string);
           }  /* if */
         }  /* if */
+        break;
+      case 'T':
+        {
+          /* Specify file containing a list of names of template functions
+             and static data members to be instantiated.  Intended to be
+             used for linker feedback mechanisms for automatic
+	     instantiation. */
+	  a_boolean	not_found;
+	  a_boolean	bad_format;
+	  a_boolean	bad_name;
+          instantiation_list_filename = optarg;
+          do_auto_instantiation = TRUE;
+          f_instantiation_information =
+                          open_source_file(instantiation_list_filename,
+                                           &not_found, &bad_format, &bad_name);
+          if (f_instantiation_information == NULL) {
+            str_command_line_error("cannot open instantiation list file: ",
+				   instantiation_list_filename);
+          }  /* if */
+        }
         break;
       case 'u':
         /* Use unsigned chars. */
@@ -538,6 +558,10 @@ unknown_option:
     if (instantiation_mode_string != NULL) {
       command_line_error(
       "instantiation mode (-t) can only be used when compiling C++");
+    }  /* if */
+    if (do_auto_instantiation) {
+      command_line_error(
+      "instantiation information file (-T) can only be used when compiling C++");
     }  /* if */
     if (exceptions_disabled != DEFAULT_EXCEPTIONS_DISABLED) {
       if (exceptions_disabled) {
