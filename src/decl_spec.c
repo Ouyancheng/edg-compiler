@@ -1639,10 +1639,12 @@ Returns TRUE if there is an error in the specifiers.
                 goto process_class_specifier;
               } else {
                 a_type_ptr  tp = NULL;
+                a_boolean   is_typedef = FALSE;
 
                 if (tag_sym != NULL && is_class_symbol(tag_sym)) {
                   tp = type_symbol_type(tag_sym);
                   if (tp->kind == (a_type_kind)tk_typeref) {
+                    is_typedef = TRUE;
                     if (is_qualified_type(tp)) {
                       /* This should be an error:
                            typedef const struct A TA;
@@ -1663,21 +1665,10 @@ Returns TRUE if there is an error in the specifiers.
                 } else {
                   /* This declaration is of the form "friend T;" and T is
                      a previously declared class name.  Issue a diagnostic
-                     (by default a remark, but potentially a more severe
-                     diagnostic in strict ANSI mode) to report the use of a
-                     nonstandard feature. */
-                  an_error_severity  severity;
+                     for using a nonstandard feature. */
                   char               *class_key_string;
 
-                  if (strict_ansi_mode) {
-                    /* Strict ANSI diagnostic in strict ANSI mode. */
-                    severity = strict_ansi_error_severity;
-                  } else {
-                    /* Default case -- remark. */
-                    severity = es_remark;
-                  }  /* if */
-                  *type_ptr = tp;
-                  switch ((*type_ptr)->kind) {
+                  switch (tp->kind) {
                     case tk_class:   class_key_string = "class";   break;
                     case tk_struct:  class_key_string = "struct";  break;
                     case tk_union:   class_key_string = "union";   break;
@@ -1685,11 +1676,22 @@ Returns TRUE if there is an error in the specifiers.
                     default: internal_error("decl_specifiers: bad type kind");
 #endif /* CHECKING */
                   }  /* switch */
-                  pos_st_diagnostic(severity, ec_nonstd_friend_decl,
-                                    &ident_pos, class_key_string);
+                  /* Strict ANSI diagnostic in strict ANSI mode, remark
+                     otherwise. */
+                  pos_st_diagnostic(strict_ansi_mode ?
+                                      strict_ansi_error_severity : es_remark,
+                                    ec_nonstd_friend_decl, &ident_pos,
+                                    class_key_string);
+                  /* Note that scan_class_specifier is not called for this
+                     case.  Therefore, mark the symbol declared. */
+                  record_symbol_declaration(SRK_DECLARATION | SRK_FRIEND,
+                                            tag_sym, &ident_pos,
+                                            (a_source_sequence_entry_ptr)NULL);
+                  if (!is_typedef) declares_something = TRUE;
+                  *type_ptr = tp;
+                  basic_type = bt_struct_union;
+                  is_elaborated_type_specifier = TRUE;
                 }  /* if */
-                basic_type = bt_struct_union;
-                is_elaborated_type_specifier = TRUE;
               }  /* if */
             }  /* if */
           }  /* if */
