@@ -208,12 +208,17 @@ this macro is checked when the front end is executed.
 /*
 The alignment required for the an_il_entry_prefix structure defined in
 mem_tables.h.  This is used to determine the size of the prefix allocated
-as part of each IL entry.  Four-byte alignment is correct for most systems.
-When checking code is enabled, the value of this macro is checked when the
-front end is executed.
+as part of each IL entry.  The IL entry prefix alignment must be a multiple
+of HOST_POINTER_ALIGNMENT because things like the file scope orphan pointer
+are stored immediately before the IL prefix and must be suitably aligned.
+Because of this requirement, the default value based on HOST_POINTER_ALIGNMENT
+is correct in most cases.  When checking code is enabled, the value of
+this macro is checked when the front end is executed.  The check ensures
+that the value is large enough.  The preprocessor test below makes sure
+the value is a multiple of HOST_POINTER_ALIGNMENT.
 */
 #ifndef HOST_IL_ENTRY_PREFIX_ALIGNMENT
-#define HOST_IL_ENTRY_PREFIX_ALIGNMENT 4
+#define HOST_IL_ENTRY_PREFIX_ALIGNMENT HOST_POINTER_ALIGNMENT
 #endif /* ifndef HOST_IL_ENTRY_PREFIX_ALIGNMENT */
 
 /*
