@@ -7680,11 +7680,11 @@ in doing substitution on a type), set *copy_error to TRUE.
         }
         break;
       case tpck_member:
-        /* If a tpck_member remains after the parent substitution done
-           earlier, simply leave it unsubstituted for now.  The parent
-           type substitution may be attempted again later. */
-        break;
       case tpck_unknown_function:
+        /* If a tpck_member or unknown function remains after the parent
+           substitution done earlier, simply leave it unsubstituted for now.
+           The parent type substitution may be attempted again later. */
+        break;
       default:
         unexpected_condition_str("copy_template_param_con: unexpected kind");
     }  /* switch */
