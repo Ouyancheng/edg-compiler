@@ -1723,20 +1723,25 @@ the proper insert location.
   	     allowed to hide a function parameter. */
             if (!symbols_may_coexist_in_curr_scope(old_sym_ptr, sym_ptr,
                                                    &insert_after,
-  						 suppress_error)) {
+                                                   suppress_error)) {
               /* Error, this identifier has already been declared. */
               if (!suppress_error) {
   	      /* Note that we pass the identifier string to the error routine
                  rather than using the standard symbol name fill-in. 
                  This is done because the variable pointer may not have been
   		 filled in at the time the symbol is entered. */
-                pos_st_error((is_type_symbol(sym_ptr) &&
-                              is_type_symbol(old_sym_ptr) &&
-                              C_dialect == C_dialect_cplusplus) ?
+                if (sym_ptr->kind == (a_symbol_kind)sk_parameter &&
+                    old_sym_ptr->kind == (a_symbol_kind)sk_parameter) {
+                  pos_error(ec_dupl_param_name, &sym_ptr->decl_position);
+                } else {
+                  pos_st_error((is_type_symbol(sym_ptr) &&
+                                is_type_symbol(old_sym_ptr) &&
+                                C_dialect == C_dialect_cplusplus) ?
                                                ec_bad_type_name_redeclaration :
                                                ec_id_already_declared,
-                             &(sym_ptr->decl_position),
-                             sym_ptr->header->identifier);
+                               &(sym_ptr->decl_position),
+                               sym_ptr->header->identifier);
+                }  /* if */
               }  /* if */
             }  /* if */
             /* Go ahead and enter the symbol anyway.  Both symbols will be
@@ -6909,10 +6914,11 @@ void add_to_param_id_list(a_symbol_locator      *locator,
                           a_func_info_block_ptr func_info,
                           a_param_id_ptr        *last_param_id)
 /*
-Add the indicated identifier to the parameter id list pointed to by
-func_info.  Do nothing if func_info == NULL.  If there is a parameter
-id list, *last_param_id points to the last entry on it.  type_ptr and
-storage_class are the type and storage class for the parameter.
+Create a new param_id entry and an sk_parameter symbol to go with it.  If
+func_info is non-null (the normal case) add the indicated identifier to
+its parameter id list.  If there is a parameter id list, *last_param_id
+points to the last entry on it.  type_ptr and storage_class are the type
+and storage class for the parameter.
 */
 {
   a_param_id_ptr  new_param_id;
@@ -6920,53 +6926,55 @@ storage_class are the type and storage class for the parameter.
   a_boolean       unnamed_param = FALSE;
   a_boolean       is_prototype_param_decl = (type_ptr != NULL);
 
-  if (func_info != NULL) {
-    /* See if this identifier name already appears on the list.  If so, issue
-       an error.  Create a param_id entry if this is a prototype parameter
-       list, but not otherwise. */
-    if (!is_error_locator(*locator)) {
+  /* See if this identifier name already appears on the list.  If so, issue
+     an error.  Create a param_id entry if this is a prototype parameter
+     list, but not otherwise. */
+  if (!is_error_locator(*locator)) {
+    if (func_info != NULL) {
       if (param_id_on_list(locator, func_info->param_id_list) != NULL) {
         error(ec_dupl_param_name);
         set_to_error_locator(*locator);
       } /* if */
-    } else if (is_prototype_param_decl) {
-      /* Assume that if an error locator is passed in and this is a prototype
-         parameter declaration that we have an unnamed parameter.  We'll need
-         a param_id entry to keep track of the type. */
-      unnamed_param = TRUE;
     } /* if */
-    /* Create a param_id entry and enter it onto the param_id list.  Skip
-       this if we have an old-style param id list in which a duplicate was
-       encountered. */
-    if (is_prototype_param_decl || !is_error_locator(*locator)) {
-      new_param_id = alloc_param_id();
-      /* Save the type and storage class for the later declaration. */
-      if (is_prototype_param_decl) {
-        new_param_id->type = type_ptr;
-        copy_source_position(*type_pos, new_param_id->type_pos);
-        new_param_id->storage_class = storage_class;
-      }  /* if */
-      /* Create a parameter symbol.  It is used during parameter processing
-         only.  The corresponding symbol in the function scope itself is a
-         variable symbol for which the variable's is_parameter flag is set to
-         TRUE. */
-      if (unnamed_param) {
-        /* Create no symbol for an unnamed parameter. */
-        sym = NULL;
-      } else if (type_ptr != NULL) {
-        /* Prototyped parameter list.  The symbol is entered in the the
-           function prototype scope.  It will later be copied to the function
-           scope when it is changed to sk_variable. */
-        sym = enter_symbol((a_symbol_kind)sk_parameter, locator,
-                           depth_scope_stack, /*suppress_redecl_error=*/FALSE);
-      } else {
-        /* Must be an old-style parameter declaration.  The type and storage
-           class will be supplied later.  We won't actually enter this symbol
-           until the function scope is pushed. */
-        sym = make_parameter_symbol(locator);
-      }  /* if */
-      new_param_id->symbol = sym;
-      if (sym != NULL) sym->variant.param_id = new_param_id;
+  } else if (is_prototype_param_decl) {
+    /* Assume that if an error locator is passed in and this is a prototype
+       parameter declaration that we have an unnamed parameter.  We'll need
+       a param_id entry to keep track of the type. */
+    unnamed_param = TRUE;
+  } /* if */
+  /* Create a param_id entry and enter it onto the param_id list.  Skip
+     this if we have an old-style param id list in which a duplicate was
+     encountered. */
+  if (is_prototype_param_decl || !is_error_locator(*locator)) {
+    new_param_id = alloc_param_id();
+    /* Save the type and storage class for the later declaration. */
+    if (is_prototype_param_decl) {
+      new_param_id->type = type_ptr;
+      copy_source_position(*type_pos, new_param_id->type_pos);
+      new_param_id->storage_class = storage_class;
+    }  /* if */
+    /* Create a parameter symbol.  It is used during parameter processing
+       only.  The corresponding symbol in the function scope itself is a
+       variable symbol for which the variable's is_parameter flag is set to
+       TRUE. */
+    if (unnamed_param) {
+      /* Create no symbol for an unnamed parameter. */
+      sym = NULL;
+    } else if (type_ptr != NULL) {
+      /* Prototyped parameter list.  The symbol is entered in the the
+         function prototype scope.  It will later be copied to the function
+         scope when it is changed to sk_variable. */
+      sym = enter_symbol((a_symbol_kind)sk_parameter, locator,
+                         depth_scope_stack, /*suppress_redecl_error=*/FALSE);
+    } else {
+      /* Must be an old-style parameter declaration.  The type and storage
+         class will be supplied later.  We won't actually enter this symbol
+         until the function scope is pushed. */
+      sym = make_parameter_symbol(locator);
+    }  /* if */
+    new_param_id->symbol = sym;
+    if (sym != NULL) sym->variant.param_id = new_param_id;
+    if (func_info != NULL) {
       /* Put this entry on the end of the list of param ids. */
       if (func_info->param_id_list == NULL) {
         func_info->param_id_list = new_param_id;
