@@ -1590,6 +1590,45 @@ Do the output in the way described by octl.
           form_pm_derived_casts(path, con_type, octl);
         }  /* if */
       }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (microsoft_mode && microsoft_version < 1100 &&
+          octl->gen_compilable_code) {
+        /* MSVC++ 4.2 doesn't like pointer-to-member casts that adjust both
+           the base class and the member type, so add an extra cast to
+           adjust the member type, if necessary. */
+        a_type_ptr new_member_type = pm_member_type(con_type);
+        a_type_ptr member_type = NULL, member_class;
+        if (constant->variant.ptr_to_member.is_function_ptr) {
+          a_routine_ptr rout = constant->variant.ptr_to_member.variant.routine;
+          if (rout != NULL) {
+            member_type = rout->type;
+            member_class = rout->source_corresp.parent.class_type;
+          }  /* if */
+        } else {
+          a_field_ptr field = constant->variant.ptr_to_member.variant.field;
+          if (field != NULL) {
+            member_type = field->type;
+            member_class = field->source_corresp.parent.class_type;
+          }  /* if */
+        }  /* if */
+        if (member_type != NULL) {
+          /* The cast is not needed if the old and new types are the same.
+             This test is done with a pointer comparison so as not to
+             drag in front-end only routines, but that means it probably
+             does nothing for pointers to functions. */
+          if (member_type == new_member_type) member_type = NULL;
+        }  /* if */
+        /* No cast is needed for a null pointer-to-member constant. */
+        if (member_type != NULL) {
+          /* Make a local pointer to member type and cast to it. */
+          a_type temp_type;
+          clear_type(&temp_type, (a_type_kind)tk_ptr_to_member);
+          temp_type.variant.ptr_to_member.type = new_member_type;
+          temp_type.variant.ptr_to_member.class_of_which_a_member=member_class;
+          form_cast(&temp_type, octl);
+        }  /* if */
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
     octl->output_str("&");
     /* Output the name, forcing it to be a qualified name. */

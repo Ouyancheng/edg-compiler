@@ -1820,13 +1820,16 @@ initialized is not a reference.
     gen_dynamic_init(constant->variant.dynamic_init, type,
                      /*parenthesized_init=*/FALSE,
                      /*force_parens=*/FALSE);
-  } else if (constant->kind == (a_constant_repr_kind)ck_ptr_to_member &&
+  } else if ((!microsoft_mode || microsoft_version >= 1100) &&
+             constant->kind == (a_constant_repr_kind)ck_ptr_to_member &&
              pm_cast_is_unambiguous(constant)) {
     /* A pointer-to-member constant cast to a derived class where there
        is only one copy of the base class (the usual case) -- we can avoid
        the class-by-class casts to the derived type.  This is actually
        necessary to get around a cfront bug -- cfront generates bad C code for
        casts like that in initializer constants. */
+    /* But MSVC++ 4.2 doesn't like adjusting the base class and the member
+       type in a single cast, so avoid that. */
     form_pm_constant(constant, /*minimal_casts*/TRUE, /*need_parens=*/TRUE,
                      &octl);
   } else if (type != NULL && is_reference_type(type)) {

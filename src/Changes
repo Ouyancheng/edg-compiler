@@ -1,5 +1,12 @@
 Version 2.37
 
+7/10/97   C++-generating back end: pointer-to-member casts for MSVC++ 4.2
+
+MSVC++ 4.2 doesn't like pointer-to-member casts that change both the
+base class and the member type, so the C++-generating back end has
+been changed to avoid putting out such things when --microsoft_version=1000
+or less.
+
 7/10/97   IL CHANGE: microsoft_mode and microsoft_version added to il_header
 
 When MICROSOFT_EXTENSIONS_ALLOWED is TRUE, the values of global variables
