@@ -1487,7 +1487,7 @@ necessary.
           /* We did not find anything to share an offset with, so allocate a
              byte for the last empty base. */
           ++lob->byte_offset;
-        }
+        }  /* if */
       }  /* if */
     }  /* if */
     if (last_optimized_base &&
