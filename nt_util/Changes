@@ -1,0 +1,8 @@
+Version 3.1
+
+5/23/02  Support for Microsoft C version 7
+
+edgcc has been updated to work with the version 7 tools.  The version
+7 linker no longer includes symbol information in the .exe file, so
+edg_munch cannot be used.  An improved static initialization mechanism
+is now used the eliminates the need for edg_munch.

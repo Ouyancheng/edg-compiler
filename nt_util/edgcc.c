@@ -35,7 +35,7 @@ Driver program.
 #define LIBC_NAME			"libedg.lib"
 /*#define DEFAULT_DEFINES			"-D__cdecl=\"\" -D_M_IX86=500 -D_WIN32"*/
 #define DEFAULT_DEFINES			""
-#define LINKER_OPTIONS			"/Zi -link /debug /debugtype:both"
+#define LINKER_OPTIONS			"/Zi -link /debug"
 #define EDG_MUNCH			"edg_munch"
 #define MUNCH_C_FILE			"munchtmp.c"
 #define MUNCH_OBJ_FILE			"munchtmp.obj"
@@ -109,6 +109,11 @@ a_command_line	c_to_obj_options;
 a_command_line	instantiation_command_line;
 			/* The options to be recorded in the instantiation
 			   information file. */
+
+static a_boolean
+		use_munch = FALSE;
+			/* TRUE if edg_munch should be used for static
+			   initialization. */
 
 /*
 Buffer into which commands are built.
@@ -1026,7 +1031,7 @@ to handle static initialization.
   /* Add libC to the original link line and execute the link. */
   add_cl_argument(&link_command, edg_libc);
   status = execute_command(&link_command);
-  if (status == 0) {
+  if (status == 0 && use_munch) {
     init_command_line(&cl);
     /* Run munch on the output. */
 #if __WIN32__

@@ -1,5 +1,11 @@
 Version 3.1
 
+5/23/02  Static initialization on Windows
+
+The C generating back end now emits a Microsoft-specific code sequence to
+get static initialization routines invoked at program startup.  This code
+is emitted if MSVC_IS_GENERATED_CODE_TARGET is TRUE.
+
 5/23/02  Spurious error on destructor reference
 
 When a destructor is called using a qualified name that names a base
