@@ -436,11 +436,12 @@ extern a_dynamic_init_ptr alloc_dtor_dynamic_init(
 extern an_expr_node_ptr alloc_temp_init_node(a_type_ptr temp_type,
                                              a_boolean  result_is_addr);
 
-extern an_expr_node_ptr create_expr_temporary(
+extern an_expr_node_ptr make_temp_init(
                                a_type_ptr        temp_type,
                                a_boolean         result_is_addr,
                                a_boolean         evaluated,
                                a_boolean         in_return_by_cctor_expression,
+                               a_boolean         inside_conditional_expression,
                                a_source_position *position);
 
 extern an_expr_node_ptr func_call_expr(
@@ -449,6 +450,7 @@ extern an_expr_node_ptr func_call_expr(
                                a_boolean         is_virtual,
                                a_boolean         evaluated,
                                a_boolean         in_return_by_cctor_expression,
+                               a_boolean         inside_conditional_expression,
                                a_source_position *err_pos);
 
 extern void mark_routine_referenced(a_routine_ptr  routine);

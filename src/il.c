@@ -6555,11 +6555,12 @@ must do that).
 }  /* alloc_temp_init_node */
 
 
-an_expr_node_ptr create_expr_temporary(
+an_expr_node_ptr make_temp_init(
                                a_type_ptr        temp_type,
                                a_boolean         result_is_addr,
                                a_boolean         evaluated,
                                a_boolean         in_return_by_cctor_expression,
+                               a_boolean         inside_conditional_expression,
                                a_source_position *position)
 /*
 Create an enk_temp_init node and return a pointer to it.  The implied
@@ -6570,8 +6571,9 @@ under the enk_temp_init node.  The value of the enk_temp_init is the address
 If evaluated is FALSE, the reference is within an unevaluated expression.
 If in_return_by_cctor_expression is TRUE, the reference is within the
 expression of a return statement in a routine that returns its value by
-calling a copy constructor.  *position is the position of the reference.
-Only used in C++.
+calling a copy constructor.  If inside_conditional_expression is TRUE,
+the reference is inside an operand of a conditional operator.
+*position is the position of the reference.  Only used in C++.
 */
 {
   a_dynamic_init_ptr dip;
@@ -6581,6 +6583,7 @@ Only used in C++.
   dip = alloc_dtor_dynamic_init((a_dynamic_init_kind)dik_none, temp_type,
                                 evaluated, in_return_by_cctor_expression,
                                 position);
+  dip->inside_conditional_expression = inside_conditional_expression;
   if (evaluated) {
     /* Put the destruction (if any) on the list for the current object
        lifetime. */
@@ -6591,7 +6594,7 @@ Only used in C++.
   temp_init_node = alloc_temp_init_node(temp_type, result_is_addr);
   temp_init_node->variant.init.dynamic_init = dip;
   return temp_init_node;
-}  /* create_expr_temporary */
+}  /* make_temp_init */
 
 
 void set_routine_calling_method_flag(a_type_ptr         routine_type,
@@ -6665,6 +6668,7 @@ an_expr_node_ptr func_call_expr(
                                a_boolean         is_virtual,
                                a_boolean         evaluated,
                                a_boolean         in_return_by_cctor_expression,
+                               a_boolean         inside_conditional_expression,
                                a_source_position *err_pos)
 /*
 Make an expression for a call of the function indicated by function_node,
@@ -6673,12 +6677,13 @@ a pointer-to-member-function call if the type of function_node is
 pointer-to-member-function.  evaluated is FALSE if the function call
 is within an unevaluated expression.  If in_return_by_cctor_expression
 is TRUE, the reference is within the expression of a return statement in
-a routine that returns its value by calling a copy constructor.  The
-arguments of the call are already attached to function_node.  A
-skip_typerefs need not have been done on function_type.  Return a
-pointer to the call node.  *err_pos gives an error position for the case
-where the function return type is invalid (i.e., incomplete); an error
-node is returned for that case.
+a routine that returns its value by calling a copy constructor.
+If inside_conditional_expression is TRUE, the reference is inside an
+operand of a conditional operator.  The arguments of the call are
+already attached to function_node.  A skip_typerefs need not have been
+done on function_type.  Return a pointer to the call node.  *err_pos
+gives an error position for the case where the function return type is
+invalid (i.e., incomplete); an error node is returned for that case.
 */
 {
   an_expr_operator_kind         op;
@@ -6747,11 +6752,12 @@ node is returned for that case.
   call_node = make_operator_node(op, return_type, function_node);
   rtsp = function_type->variant.routine.extra_info;
   if (rtsp->value_returned_by_cctor) {
-    temp_init_node = create_expr_temporary(return_type,
-                                           /*result_is_addr=*/FALSE,
-                                           evaluated,
-                                           in_return_by_cctor_expression,
-                                           err_pos);
+    temp_init_node = make_temp_init(return_type,
+                                    /*result_is_addr=*/FALSE,
+                                    evaluated,
+                                    in_return_by_cctor_expression,
+                                    inside_conditional_expression,
+                                    err_pos);
     dip = temp_init_node->variant.init.dynamic_init;
     set_dynamic_init_kind(dip,
                       (a_dynamic_init_kind)dik_call_returning_class_via_cctor);
@@ -6873,6 +6879,7 @@ for errors (e.g., the function has an invalid return type).
   node = func_call_expr(func_addr_node, rout->type,
                         (a_boolean)rout->is_virtual, /*evaluated=*/TRUE,
                         /*in_return_by_cctor_expression=*/FALSE,
+                        /*inside_conditional_expression=*/FALSE,
                         err_pos);
   /* Allocate the statement. */
   stmt = alloc_expr_statement(node);
