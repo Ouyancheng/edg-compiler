@@ -15246,6 +15246,45 @@ one following the closing parenthesis.
   db_exit();
 }  /* scan_dependent_type_parenthesized_initializer */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+void scan_microsoft_case_label_constant_expression(a_constant *constant)
+/*
+Scan an integral constant expression for a Microsoft case label constant,
+and return the value of the constant in *constant.  MSVC++ allows
+things like (void *)1 as case constants.
+*/
+{
+  an_operand          result;
+  an_expr_stack_entry expr_stack_entry;
+
+  db_enter(4, "scan_microsoft_case_label_constant_expression");
+  push_expr_stack((an_expression_kind)ek_init_constant, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
+  /* Scan the constant expression. */
+  scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
+  do_operand_transformations(&result, TOPT_NO_OPTIONS);
+  /* Make a constant from the operand. */
+  extract_constant_from_operand(&result, constant);
+  /* Check that the constant is represented as an integer constant. */
+  if (is_error_constant(constant)) {
+    /* Previous error, okay. */
+  } else if (constant->kind == (a_constant_repr_kind)ck_template_param) {
+    /* Template parameter constant, okay. */
+  } else if (constant->kind != (a_constant_repr_kind)ck_integer) {
+    /* The expression doesn't reduce to a value that will be an integer
+       constant once cast to an integral type. */
+    error_in_operand(ec_expr_not_integral_constant, &result);
+    set_error_constant(constant);
+  } else if (!is_integral_type(constant->type)) {
+    pos_warning(ec_expr_not_integral_constant, &result.position);
+  }  /* if */
+  pop_expr_stack();
+  db_exit();
+}  /* scan_microsoft_case_label_constant_expression */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 an_expr_node_ptr scan_boolean_controlling_expression(void)
 /*

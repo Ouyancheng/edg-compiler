@@ -165,6 +165,9 @@ extern void scan_constant_initializer_expression(a_type_ptr required_type,
 extern void scan_dependent_type_parenthesized_initializer(
                                       a_boolean          force_object_lifetime,
                                       a_dynamic_init_ptr *dip);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+void scan_microsoft_case_label_constant_expression(a_constant *constant);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern an_expr_node_ptr scan_boolean_controlling_expression(void);
 

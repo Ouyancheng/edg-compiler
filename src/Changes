@@ -1,5 +1,14 @@
 Version 2.46
 
+12/9/01  Microsoft mode: (void *)1 allowed as case label constant
+
+MSVC++ allows integral constants cast to pointer types as case label
+constants, as in
+
+  case (int *)2:
+
+These are now accepted by the C++ Front End, with a warning.
+
 12/9/01  No function-to-pointer conversion on second operand of comma
          operator
 

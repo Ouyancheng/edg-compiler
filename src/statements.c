@@ -5650,7 +5650,16 @@ called to scan the second constant in a GNU C case range.
 
   label_position = pos_curr_token;
   /* Scan the constant expression. */
-  scan_integral_constant_expression(&constant);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode) {
+    /* MSVC++ allows things like (void *)1 as case label constants. */
+    scan_microsoft_case_label_constant_expression(&constant);
+  } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
+  {
+    scan_integral_constant_expression(&constant);
+  }  /* if */
   if (is_error_constant(&constant)) {
     /* Error; constant_ptr is left NULL. */
   } else {
