@@ -455,7 +455,7 @@ A new region is used for each function's executable code and data.
   db_enter(5, "new_memory_region");
   if (highest_used_region_number == MAX_MEMORY_REGION_NUMBER) {
     /* Too many regions (extremely unlikely). */
-    catastrophe(ec_too_many_memory_regions);
+    catastrophe(ec_program_too_large);
   }  /* if */
   region_number = ++highest_used_region_number;
 #if DEBUG

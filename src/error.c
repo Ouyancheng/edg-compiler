@@ -776,8 +776,8 @@ error code.
     case ec_expr_not_pointer_to_object:
       m = "expression must have pointer-to-object type";
       break;
-    case ec_too_many_memory_regions:
-      m = "program too large to compile (too many functions)";
+    case ec_program_too_large:
+      m = "program too large to compile";
       break;
     case ec_bad_initializer_type:
       m = "incorrect initial value type";

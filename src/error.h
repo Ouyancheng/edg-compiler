@@ -182,7 +182,7 @@ typedef enum /*an_error_code*/ {
   ec_too_many_arguments,
   ec_all_proto_params_must_be_named,
   ec_expr_not_pointer_to_object,
-  ec_too_many_memory_regions,
+  ec_program_too_large,
   ec_bad_initializer_type,
   ec_cannot_initialize,
   ec_too_many_initializer_values,
