@@ -194,6 +194,7 @@ do
       compile_command=$1
       used_two_params=1
       add_to_instantiation_command=0
+      ;;
     -o)
 #     Explicitly name the executable.
       shift;
