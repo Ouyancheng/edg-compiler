@@ -1034,6 +1034,12 @@ typedef struct a_source_correspondence {
 			   names.  They require qualification unless used
 			   to the left of "::".  Set/used only within the
 			   C++-generating back end. */
+  a_bit_field	visible_as_unqualified_name:1;
+			/* This name is currently visible as an unqualified
+			   name, even if its class or namespace parent is
+			   not active.  This is used for injected class names
+			   and block extern declarations.  Set/used only within
+			   the C++-generating back end. */
 #endif /* BACK_END_IS_CP_GEN_BE */
 #if ONE_INSTANTIATION_PER_OBJECT
   a_bit_field	static_used_by_instantiation:1;
