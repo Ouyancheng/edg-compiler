@@ -1006,8 +1006,8 @@ bcp.
   bcp->pointer_offset = set_offset_and_alignment(lob, size, alignment);
 }  /* pointer_offset_for_virtual_base_class */
 
-
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
+
 /* This is a set of routines that allocate space for pointers to virtual
    base class data sections in cfront compatibility mode.  It is much more
    complicated that what is provided for normal mode because we have had
@@ -1242,8 +1242,8 @@ base classes, direct and indirect, and allocate pointers as needed for them.
     }  /* if */
   }  /* if */
 }  /* set_pointer_offsets_for_direct_virtual_base_class */
-#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
 
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
 
 static void set_virtual_base_class_pointer_offsets(a_layout_block_ptr lob)
 /*
@@ -1307,8 +1307,87 @@ is not shared (i.e., where the pointer from a base class is not used).
   db_exit();
 }  /* set_virtual_base_class_pointer_offsets */
 
-
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
+
+static void fixup_embedded_virtual_base_classes(a_base_class_ptr base_class,
+                                                a_type_ptr       class_type)
+/*
+base_class is a virtual base class whose data section is being allocated;
+base_class will be represented as a "complete subobject" of class_type, which
+means space will be reserved for all its own virtual base classes. Therefore,
+if it has any virtual base classes with data sections that have not already
+been associated with some other base class, record the "official" location
+of the latter as its position within base_class.  This is a recursive
+algorithm.
+*/
+{
+  a_base_class_ptr  bcp, embedded_base_class;
+
+  db_enter(4, "fixup_embedded_virtual_base_classes");
+  if (base_class->type->variant.class_struct_union.any_virtual_base_classes) {
+    /* base_class has one or more virtual base classes of its own. */
+    for (bcp = base_classes_of(base_class->type);
+         bcp != NULL;
+         bcp = bcp->next) {
+      if (bcp->is_virtual) {
+        /* bcp is one of the virtual base class of base_class.  Find the
+           base class entry that corresponds to it in the base classes list
+           for class_type. */
+        embedded_base_class = corresponding_base_class(bcp, class_type,
+                                                       (a_base_class_ptr)NULL);
+        if (embedded_base_class->data_section_base_class != NULL) {
+          /* The data section for this virtual base class has already been
+             assigned a location. */
+        } else {
+          /* Proceed to specify how it should be embedded. */
+          if (bcp->data_section_base_class == NULL) {
+            /* In the context of base_class, it was not embedded (for instance,
+               it may have been a direct virtual base class or a virtual
+               base class that was inherited through a direct base class
+               represented as an "incomplete subobject").  Therefore it will
+               be embedded in the data section reserved for base_class in
+               the layout of class_type. */
+            embedded_base_class->data_section_base_class = base_class;
+          } else {
+            /* In the context of base class it was embedded (for instance,
+               it may have been inherited through another virtual base class
+               or through a "complete subobject" base class).  Use the same
+               location in the layout of class_type. */
+            embedded_base_class->data_section_base_class =
+                  corresponding_base_class(bcp->data_section_base_class,
+                                           class_type, (a_base_class_ptr)NULL);
+          }  /* if */
+          /* Apply the algorithm recursively. */
+          fixup_embedded_virtual_base_classes(embedded_base_class, class_type);
+        }  /* if */
+      }  /* for */
+    }  /* for */
+  }  /* for */
+  db_exit();
+}  /* fixup_embedded_virtual_base_classes */
+
+
+static a_boolean is_embedded_virtual_base_class(a_base_class_ptr  bcp)
+/*
+*/
+{
+  a_boolean         is_embedded = FALSE;
+  a_base_class_ptr  dupl;
+
+  if (bcp->data_section_base_class) {
+    is_embedded = TRUE;
+  } else {
+    for (dupl = bcp->duplicate_entries; dupl != NULL; dupl = dupl->next) {
+      if (dupl->derivation->base_class->complete_subobject) {
+        is_embedded = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return is_embedded;
+}  /* is_embedded_virtual_base_class */
+
+
 static void set_offsets_for_corresponding_virtual_base_classes(
                                              a_layout_block_ptr lob,
                                              a_base_class_ptr   base_class,
@@ -1328,7 +1407,7 @@ static void set_offsets_for_corresponding_virtual_base_classes(
       }  /* if */
       bcp = corresponding_base_class(base_class, lob->class_type,
                                      (a_base_class_ptr)NULL);
-      if (bcp->data_section_base_class == NULL && bcp->offset == 0 &&
+      if (!is_embedded_virtual_base_class(bcp) && bcp->offset == 0 &&
           !lob->any_overflow) {
 #if CHECKING
         /* All virtual base classes should be marked as "complete
@@ -1355,7 +1434,17 @@ static void cfc_set_virtual_base_class_offsets(a_layout_block_ptr lob,
                                                a_base_class_ptr   base_class,
                                                a_boolean        use_decl_order)
 /*
-base_class is a direct or indirect base class of class_type for which
+lob->class_type is the most-derived-type whose offsets are currently being
+specified.  base_class may be NULL, in which case the direct base classes of
+lob->class_type are processed; if base_class is non-NULL, the direct base
+classes of base_class->type are process.  A non-NULL base_class is a direct
+or indirect nonvirtual base class of lob->class_type with a complete_subobject
+flag set to FALSE.  The processing involves going through the appropriate set
+of direct base classes (of either lob->class_type of of base_class->type) and
+locating virtual base classes that are not embedded anywhere else.  Space in
+lob->class_type must be reserved for them.
+
+base_class is a direct or indirect base class of lob->class_type for which
 the complete_subobject flag is FALSE and whose virtual base classes, therefore,
 may space reserved in the compete derived class.  Examine the direct
 virtual base classes of base_class, find the corresponding indirect virtual
@@ -1368,8 +1457,14 @@ base class of class_type, and allocate space for the latter.
   if (base_class == NULL) {
     base_class_list = base_classes_of(lob->class_type);
     for (bcp = base_class_list; bcp != NULL; bcp = bcp->next) {
+      if (bcp->data_section_base_class != NULL) {
+        fixup_embedded_virtual_base_classes(bcp, lob->class_type);
+      }  /* if */
+    }  /* for */
+    for (bcp = base_class_list; bcp != NULL; bcp = bcp->next) {
       if (bcp->direct && bcp->is_virtual &&
-          bcp->type->variant.class_struct_union.any_virtual_base_classes) {
+          bcp->type->variant.class_struct_union.any_virtual_base_classes &&
+          !is_embedded_virtual_base_class) {
         /* Record the current offset in the data_section_offset of the
            virtual base class entry.  This allows for direct access of
            its fields (rather than through a pointer) as an optimization
@@ -1398,8 +1493,8 @@ base class of class_type, and allocate space for the latter.
   }  /* if */
   db_exit();
 }  /* cfc_set_virtual_base_class_offsets */
-#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
 
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
 
 static void set_virtual_base_class_offsets(a_layout_block_ptr  lob)
 /*
@@ -1554,12 +1649,6 @@ setting the offset field in the latter.
      the proximate_derivation base class. */
   for (; ref_bcp != NULL; ref_bcp = ref_bcp->next) {
     if (ref_bcp->direct) {
-#if DEBUG
-      if (debug_level >= 4) {
-        fputs("reference base class ", f_debug);
-        db_base_class(ref_bcp, /*show_offset=*/TRUE);
-      }  /* if */
-#endif /* DEBUG */
       bcp = corresponding_base_class(ref_bcp,
                                      proximate_derivation->derived_class,
                                      proximate_derivation);
@@ -1568,6 +1657,8 @@ setting the offset field in the latter.
         bcp->offset = proximate_derivation->offset + ref_bcp->offset;
 #if DEBUG
         if (debug_level >= 4) {
+          fputs("reference base class ", f_debug);
+          db_base_class(ref_bcp, /*show_offset=*/TRUE);
           fputs("new offset for ", f_debug);
           db_base_class(bcp, /*show_offset=*/TRUE);
         }  /* if */
@@ -1582,6 +1673,8 @@ setting the offset field in the latter.
           bcp->offset = proximate_derivation->offset + ref_bcp->offset;
 #if DEBUG
           if (debug_level >= 4) {
+            fputs("reference base class ", f_debug);
+            db_base_class(ref_bcp, /*show_offset=*/TRUE);
             fputs("new offset for ", f_debug);
             db_base_class(bcp, /*show_offset=*/TRUE);
           }  /* if */
@@ -1594,6 +1687,27 @@ setting the offset field in the latter.
       /* Make a recursive call to apply this processing to the next level of
          base classes. */
       set_base_class_offsets(bcp);
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
+    } else if (ref_bcp->is_virtual) {
+      /* Virtual indirect base class. */
+      bcp = corresponding_base_class(ref_bcp,
+                                     proximate_derivation->derived_class,
+                                     (a_base_class_ptr)NULL);
+      if (bcp->data_section_base_class == proximate_derivation) {
+        /* bcp is a virtual base class whose data section is embedded in
+           the data section of another base class data section.  Update
+           the offset. */
+        bcp->offset = proximate_derivation->offset + ref_bcp->offset;
+#if DEBUG
+        if (debug_level >= 4) {
+          fputs("reference base class ", f_debug);
+          db_base_class(ref_bcp, /*show_offset=*/TRUE);
+          fputs("new offset for ", f_debug);
+          db_base_class(bcp, /*show_offset=*/TRUE);
+        }  /* if */
+#endif /* DEBUG */
+      }  /* if */
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
     }  /* if */
   }  /* for */
   db_exit();
@@ -1632,8 +1746,8 @@ addressed to indirect base classes.
   db_exit();
 }  /* set_offsets_for_indirect_base_classes */
 
-
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
+
 static void set_embedded_virtual_base_class_offset(a_base_class_ptr base_class)
 /*
 base_class is a direct or indirect virtual base class of class_type.  If
@@ -1690,8 +1804,8 @@ classes.
   }  /* if */
   db_exit();
 }  /* set_embedded_virtual_base_class_offset */
-#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
 
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
 
 static void fixup_shared_virtual_base_class_offsets(a_type_ptr  class_type)
 /*
