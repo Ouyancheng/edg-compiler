@@ -1077,6 +1077,41 @@ A pointer to the head of the list is returned in tcsp.
 }  /* instantiate_class_template */
 
 
+static void check_for_definition_in_friend_declaration(
+                            a_template_symbol_supplement_ptr tssp,
+			    a_routine_ptr                    rout_ptr)
+/*
+Functions defined in friend declarations are treated specially in the
+IL.  The class in which the function is defined appears at the front
+of the befriending classes list, and the defined_in_friend_decl flag
+is set in the routine entry.  For template functions, we can't tell
+until the function is instantiated whether it is defined in a friend
+declaration (because there could be a specialization that we have not
+yet seen).  This routine is called when the function is instantiated,
+when we know whether or not the template was defined in a friend
+declaration.
+*/
+{
+  a_scope_ptr		   definition_scope;
+  a_type_ptr		   definition_class = NULL;
+
+#if 0
+  /* This will need to be updated for member templates.  Member templates
+     cannot be defined in friend declarations. */
+#endif /* 0 */
+  definition_scope = tssp->cache.decl_info->enclosing_scope;
+  if (definition_scope->kind == (a_scope_kind)sck_class_struct_union) {
+    definition_class = definition_scope->variant.assoc_type;
+  }  /* if */
+  if (definition_class != NULL) {
+    update_friend_function_info(rout_ptr, definition_class,
+                                /*is_definition=*/TRUE,
+                                /*move_to_front=*/TRUE);
+    rout_ptr->defined_in_friend_decl = TRUE;
+  }  /* if */
+}  /* check_for_definition_in_friend_declaration */
+
+
 static void instantiate_template_function(a_template_instance_ptr  tip)
 /*
 Instantiate the body of the template function associated with tip.
@@ -1243,7 +1278,12 @@ Instantiate the body of the template function associated with tip.
      a reference, we should set the referenced flag anyway, so that
      the back-end will be sure to generate the function. */ 
   tip->instance_sym->variant.routine.ptr->source_corresp.referenced = TRUE;
-
+  if (tssp->befriending_classes != NULL) {
+    /* If this template is a friend of one or more classes, check whether
+       the template was defined in a friend declaration.  If so, update
+       the friend information accordingly. */
+    check_for_definition_in_friend_declaration(tssp, rout_ptr);
+  }  /* if */
 done:;
   /* The already instantiated flag is set even if certain error conditions
      (such as runaway instantiation) to prevent the compiler from attempting
@@ -2659,7 +2699,8 @@ function a friend and update the friend information.
 
   for (clep = tssp->befriending_classes; clep != NULL; clep = clep->next) {
     update_friend_function_info(rout_ptr, clep->class_type,
-                                /*is_definition=*/FALSE);
+                                /*is_definition=*/FALSE,
+                                /*move_to_front=*/FALSE);
   }  /* for */
 }  /* update_befriending_classes_for_function */
 
@@ -5224,7 +5265,8 @@ been instantiated, update the befriending information for the instances.
     a_symbol_ptr  instance_sym = tip->instance_sym;
     a_routine_ptr rout_ptr = instance_sym->variant.routine.ptr;
     update_friend_function_info(rout_ptr, class_declared_in,
-                                /*is_definition=*/FALSE);
+                                /*is_definition=*/FALSE,
+                                /*move_to_front=*/FALSE);
   }  /* for */
 }  /* add_befriending_class_to_function_template */
 
