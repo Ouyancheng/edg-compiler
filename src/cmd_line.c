@@ -594,6 +594,14 @@ Initialize the option information table.
                          /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
 #endif /* NEED_NAME_MANGLING */
+  add_option_description(optk_old_specializations,
+                         "old_specializations", '\0',
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_old_specializations,
+                         "no_old_specializations", '\0',
+                         /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -1131,6 +1139,7 @@ common_cfront_mode_settings:
         implicit_typename_enabled = TRUE;
         use_nonstandard_for_init_scope = TRUE;
         allow_copy_assignment_op_with_base_class_param = TRUE;
+        old_specializations_allowed = TRUE;
         break;
       case optk_front_end_only:
         /* Run just the front end to do syntax checking; do not run the back
@@ -1563,6 +1572,10 @@ common_cfront_mode_settings:
         distinct_mangling_for_templates = opt_value;
         break;
 #endif /* NEED_NAME_MANGLING */
+      case optk_old_specializations:
+        /* Enable/disable old-style specialization declarations. */
+        old_specializations_allowed = opt_value;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -1642,6 +1655,9 @@ common_cfront_mode_settings:
     }  /* if */
     if (option_kind_used[(int)optk_for_init_diff_warning]) {
       command_line_error(ec_cl_for_init_diff_warning_option_only_in_cplusplus);
+    }  /* if */
+    if (option_kind_used[(int)optk_old_specializations]) {
+      command_line_error(ec_cl_old_specializations_option_only_in_cplusplus);
     }  /* if */
     /* Turn on features implied by SVR4 C mode. */
     if (SVR4_C_mode) {
@@ -1780,6 +1796,11 @@ common_cfront_mode_settings:
         /* If old/new_for_init was not specified on the command line, turn
            off use_nonstandard_for_init_scope now. */
         use_nonstandard_for_init_scope = FALSE;
+      }  /* if */
+      if (!(option_kind_used[(int)optk_old_specializations])) {
+        /* If old_specializations_allowed was not set on the command line,
+           turn it off now. */
+        old_specializations_allowed = FALSE;
       }  /* if */
     }  /* if */
     /* Make sure that strict ANSI messages come out even if the

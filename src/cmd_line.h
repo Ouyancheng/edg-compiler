@@ -140,6 +140,7 @@ typedef enum /*an_option_kind*/ {
 #if NEED_NAME_MANGLING
   optk_distinct_template_signatures,
 #endif /* NEED_NAME_MANGLING */
+  optk_old_specializations,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -771,6 +772,16 @@ EXTERN a_boolean
 			   initial value, this variable will always be FALSE
 			   in strict-ANSI and microsoft-compatibility modes
 			   and always TRUE in cfront-compatibility mode.) */
+
+EXTERN a_boolean
+		old_specializations_allowed
+#if VAR_INITIALIZERS
+                                       = DEFAULT_OLD_SPECIALIZATIONS_ALLOWED
+#endif /* VAR_INITIALIZERS */
+                                                                            ;
+			/* TRUE if old-style template specialization
+			   declarations are permitted (i.e., if "template <>"
+			   syntax is not required). */
 
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);
