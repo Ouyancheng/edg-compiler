@@ -932,6 +932,12 @@ part of a declarator is found, may_be_decl is set to FALSE.
       }  /* if */
     }  /* if */
     /* Get the nested declarator. */
+#if GNU_EXTENSIONS_ALLOWED
+    if (curr_token == tok_attribute) {
+      /* A GNU __attribute__ may appear at the start of a nested declarator. */
+      prescan_attribute(state, flags);
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     prescan_declarator(state, flags,
                        /*paren_initializer_allowed=*/FALSE,
                        /*is_top_level=*/FALSE);
