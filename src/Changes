@@ -1,5 +1,16 @@
 Version 2.23
 
+4/20/94  Symbol reference kind flags on declarations
+
+A new routine, record_symbol_declaration, has been added (replacing
+f_mark_defined and f_mark_declared), with the change that a bit vector of
+type a_symbol_reference_kind can be passed to it to provide finer control
+over the information available for cross-reference output (thereby giving
+for declarations the functionality previously provided for references).
+With new flags SRK_FRIEND and SRK_TENTATIVE_DEF, it is now possible, for
+example, to report a declaration as specifically a friend declaration in
+the cross-reference listing.
+
 4/19/94  Overload resolution: overloaded function pointer --> void *
 
 An internal error was formerly issued when an overloaded function
@@ -13,7 +24,6 @@ This is now fixed (and gives an error).
   main () {
     f(g);  // Caused internal error, now gets proper error
   }
-
 
 4/18/94  Empty translation unit
 
