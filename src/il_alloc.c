@@ -1502,9 +1502,6 @@ variant fields to default values.
 #if DO_IL_LOWERING
   pte->typeinfo_var = NULL;
 #endif /* DO_IL_LOWERING */
-#if IA64_ABI && NEED_NAME_MANGLING
-  pte->discriminator = 0;
-#endif /* IA64_ABI && NEED_NAME_MANGLING */
   set_type_kind(pte, kind);
 }  /* clear_type */
 
@@ -1789,9 +1786,6 @@ to it.
   vp->association_offset          = 0;
   vp->function_result_var_function= NULL;
 #endif /* ifdef FIL */
-#if IA64_ABI && NEED_NAME_MANGLING
-  vp->discriminator               = 0;
-#endif /* IA64_ABI && NEED_NAME_MANGLING */
 
   db_exit();
   return vp;

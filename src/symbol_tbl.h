@@ -45,6 +45,7 @@ typedef struct a_tmpl_decl_state a_tmpl_decl_state_dummy_typedef;
 typedef struct an_exception_spec_error_descr
                                           *an_exception_spec_error_descr_ptr;
 typedef struct an_attribute    an_attribute_dummy_typedef;
+typedef struct a_symbol_list_entry *a_symbol_list_entry_ptr;
 
 /* The pointer to a_routine_fixup is declared here even though the struct
    itself is defined in class_decl.c.  This allows the pointer to be made
@@ -576,7 +577,6 @@ typedef struct a_dependent_type_fixup {
 } a_dependent_type_fixup;
 
 
-typedef struct a_symbol_list_entry *a_symbol_list_entry_ptr;
 typedef struct a_symbol_list_entry {
   /* Entry created to produce a list of symbols for some special purpose.
      (For example, such a list is created to track the user-defined conversion
@@ -642,6 +642,16 @@ typedef struct a_namespace_list_entry {
 
 /* Forward definition. */
 typedef struct a_template_symbol_supplement *a_template_symbol_supplement_ptr;
+
+
+#if IA64_ABI && NEED_NAME_MANGLING
+/* Type of a discriminator, which is an identifying number used to
+   distinguish multiple entities with the same name in the same function
+   in the name mangling for the IA-64 ABI. */
+typedef unsigned long
+                a_discriminator;
+#endif /* IA64_ABI && NEED_NAME_MANGLING */
+
 
 typedef struct a_class_symbol_supplement *a_class_symbol_supplement_ptr;
 typedef struct a_class_symbol_supplement {
@@ -811,6 +821,14 @@ typedef struct a_class_symbol_supplement {
 			   to find a previously allocated entry so that it
 			   can be reused. */
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
+#if IA64_ABI && NEED_NAME_MANGLING
+  a_discriminator
+		discriminator;
+			/* An identifying number used to distinguish multiple
+			   entities with the same name in the same function
+			   in the name mangling for the IA-64 ABI.  Zero if
+			   not needed. */
+#endif /* IA64_ABI && NEED_NAME_MANGLING */
   a_bit_field	has_nontrivial_default_constructor:1;
 			/* TRUE if a default constructor has been explicitly
 			   declared or a nontrivial default constructor has
@@ -2399,6 +2417,14 @@ typedef struct a_symbol {
 			/* TRUE if the variable was declared in a for-init
 			   block in Microsoft mode. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if IA64_ABI && NEED_NAME_MANGLING
+      a_discriminator
+		discriminator;
+			/* An identifying number used to distinguish multiple
+			   entities with the same name in the same function
+			   in the name mangling for the IA-64 ABI.  Zero if
+			   not needed. */
+#endif /* IA64_ABI && NEED_NAME_MANGLING */
     } variable;
     /* When kind == sk_static_data_member: */
     struct {

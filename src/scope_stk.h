@@ -187,6 +187,14 @@ typedef struct a_generated_entity_block {
 } a_generated_entity_block;
 
 
+#if IA64_ABI && NEED_NAME_MANGLING
+/*
+A hash table type to detect name collisions between declarations in function
+scope.  The type is defined in scope_stk.c.
+*/
+typedef union a_collision_table *a_collision_table_ptr;
+#endif /* IA64_ABI && NEED_NAME_MANGLING */
+
 /* Scope stack, containing an entry for each currently-active scope. */
 typedef struct a_scope_stack_entry *a_scope_stack_entry_ptr;
 typedef struct a_scope_stack_entry {
@@ -734,6 +742,16 @@ typedef struct a_scope_stack_entry {
 			   for the current instantiation.  During a real
 			   instantiation this list is used to determine
 			   whether a given call is dependent. */
+#if IA64_ABI && NEED_NAME_MANGLING
+  a_collision_table_ptr
+		local_name_collision_table;
+			/* A hash table of local symbols to detect local
+			   entities with a same name.  Such entities must
+			   have a discriminator appended to their mangled
+			   name.  (Non-NULL only for function scopes.)
+			   The union type a_collision_table is defined in
+			   scope_stk.c. */
+#endif /* IA64_ABI && NEED_NAME_MANGLING */
 } a_scope_stack_entry;
 
 /*
@@ -952,6 +970,11 @@ EXTERN a_boolean
 		function_body_processing_delayed_on_some_func_in_primary_il;
 			/* TRUE if function body processing (e.g., lowering)
 			   was delayed for some function in the primary IL. */
+
+
+#if IA64_ABI && NEED_NAME_MANGLING
+void compute_name_collision_discriminator(a_symbol_ptr  sym);
+#endif /* IA64_ABI && NEED_NAME_MANGLING */
 
 /* Begin a name scope. */
 extern a_scope_ptr push_scope(a_scope_kind       kind,

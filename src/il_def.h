@@ -4598,15 +4598,6 @@ typedef struct a_based_type_list_member {
 } a_based_type_list_member;
 
 
-#if IA64_ABI && NEED_NAME_MANGLING
-/* Type of a discriminator, which is an identifying number used to
-   distinguish multiple entities with the same name in the same function
-   in the name mangling for the IA-64 ABI. */
-typedef unsigned long
-                a_discriminator;
-#endif /* IA64_ABI && NEED_NAME_MANGLING */
-
-
 /* Type used for the internal representation of UPC block sizes. */
 typedef long a_upc_block_size;
 #define UPC_BLOCK_SIZE_NONE ((a_upc_block_size)(-1))
@@ -5302,14 +5293,6 @@ typedef struct a_type {
     } farray;
 #endif /* ifdef FIL */
   } variant;
-#if IA64_ABI && NEED_NAME_MANGLING
-  a_discriminator
-		discriminator;
-			/* An identifying number used to distinguish multiple
-			   entities with the same name in the same function
-			   in the name mangling for the IA-64 ABI.  Zero if
-			   not needed. */
-#endif /* IA64_ABI && NEED_NAME_MANGLING */
 } a_type;
 
 
@@ -5886,14 +5869,6 @@ typedef struct a_variable {
                            points to the associated function.  NULL
                            otherwise. */
 #endif /* ifdef FIL */
-#if IA64_ABI && NEED_NAME_MANGLING
-  a_discriminator
-		discriminator;
-			/* An identifying number used to distinguish multiple
-			   entities with the same name in the same function
-			   in the name mangling for the IA-64 ABI.  Zero if
-			   not needed. */
-#endif /* IA64_ABI && NEED_NAME_MANGLING */
 } a_variable;
 
 #ifdef CIL

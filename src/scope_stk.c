@@ -352,6 +352,125 @@ debugging).
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #endif /* DEBUG */
 
+#if IA64_ABI && NEED_NAME_MANGLING
+
+#define LOCAL_NAME_COLLISION_TABLE_SIZE 16
+
+/*
+A hash table type to detect name collisions between declarations in function
+scope.
+*/
+typedef union a_collision_table {
+  a_symbol_list_entry_ptr
+		buckets[LOCAL_NAME_COLLISION_TABLE_SIZE];
+			/* The actual table of lists. */
+  a_collision_table_ptr
+		next_avail;
+			/* Pointer to the next available free list. */
+} a_collision_table;
+
+
+/*
+Pointer to a list of available collision tables.
+*/
+static a_collision_table_ptr avail_collision_tables;
+
+
+static void initialize_local_name_collision_table(a_scope_stack_entry_ptr ssep)
+/*
+Allocate and initialize a local name collision table for the given scope stack
+entry.
+*/
+{
+  if (avail_collision_tables == NULL) {
+    ssep->local_name_collision_table = (a_collision_table_ptr)
+                                           alloc_fe(sizeof(a_collision_table));
+  } else {
+    ssep->local_name_collision_table = avail_collision_tables;
+    avail_collision_tables = avail_collision_tables->next_avail;
+  }  /* if */
+  memzero((char *)ssep->local_name_collision_table->buckets,
+          size_t_arg(
+            sizeof(a_symbol_list_entry_ptr[LOCAL_NAME_COLLISION_TABLE_SIZE])));
+}  /* initialize_local_name_collision_table */
+
+
+static void release_local_name_collision_table(a_scope_stack_entry_ptr ssep)
+/*
+Release the storage allocated for the name collision table associated with
+the given scope stack entry.
+*/
+{
+  int  k;
+  a_symbol_list_entry_ptr  *sleps = ssep->local_name_collision_table->buckets;
+
+  /* First free up the lists. */
+  for (k = 0; k<LOCAL_NAME_COLLISION_TABLE_SIZE; ++k) {
+    if (sleps[k] != NULL) {
+      free_list_of_symbol_list_entries(sleps[k]);
+    }  /* if */
+  }  /* for */
+  /* Return the table entry to the available list. */
+  ssep->local_name_collision_table->next_avail = avail_collision_tables;
+  avail_collision_tables = ssep->local_name_collision_table;
+  ssep->local_name_collision_table = NULL;
+}  /* release_local_name_collision_table */
+
+
+void compute_name_collision_discriminator(a_symbol_ptr  sym)
+/*
+Look in the name collision table associated with current function scope for a
+symbol that has the same name (i.e., header) as the given symbol sym.  If
+there is one, the current symbol is assigned a discriminator value one higher
+than that of the symbol found, and it replaces that symbol in the table.
+Otherwise the discriminator value of sym remain zero, and the symbol is added
+to the table.
+*/
+{
+  int                      hash_index;
+  a_scope_stack_entry_ptr  ssep;
+  a_symbol_list_entry_ptr  sep;
+  a_symbol_header_ptr      header = sym->header;
+
+  check_assertion(depth_innermost_function_scope != NO_SCOPE_DEPTH);
+  ssep = &scope_stack[depth_innermost_function_scope];
+  if (ssep->local_name_collision_table == NULL) {
+    initialize_local_name_collision_table(ssep);
+  }  /* if */
+  /* Symbols corresponding to identical names have identical symbol headers.
+     So we use the symbol header pointer value as a basis for a hash value.
+     The three least significant bits are discarded because they are possibly
+     always zero due to alignment requirements. */
+  hash_index = (((int)header) >> 3) % LOCAL_NAME_COLLISION_TABLE_SIZE;
+  sep = ssep->local_name_collision_table->buckets[hash_index];
+  for (; sep != NULL; sep = sep->next) {
+    if (sep->symbol->header == header && sep->symbol->kind == sym->kind) {
+      a_discriminator  discriminator;
+      if (sep->symbol->kind == (a_symbol_kind)sk_variable) {
+        discriminator = sep->symbol->variant.variable.discriminator;
+      } else if (is_class_struct_union_symbol(sep->symbol)) {
+        discriminator = sep->symbol->variant.class_struct_union.extra_info
+                                   ->discriminator;
+      }  /* if */ 
+      if (sym->kind == (a_symbol_kind)sk_variable) {
+        sym->variant.variable.discriminator = discriminator+1;
+      } else if (is_class_struct_union_symbol(sep->symbol)) {
+        sym->variant.class_struct_union.extra_info->discriminator =
+                                                              discriminator+1;
+      }  /* if */ 
+      sep->symbol = sym;
+      break;
+    }  /* if */
+  }  /* for */
+  if (sep == NULL) {
+    a_symbol_list_entry_ptr  new_entry = alloc_symbol_list_entry();
+    new_entry->next = ssep->local_name_collision_table->buckets[hash_index];
+    ssep->local_name_collision_table->buckets[hash_index] = new_entry;
+    new_entry->symbol = sym;
+  }  /* if */
+}  /* compute_name_collision_discriminator */
+
+#endif /* IA64_ABI && NEED_NAME_MANGLING */
 
 a_scope_pointers_block *get_pointers_block_for_scope(a_scope_ptr scope)
 /*
@@ -1399,6 +1518,9 @@ the scope being pushed.
   ssep->tmpl_decl_state		 = NULL;
   ssep->pending_templ_arg_lists  = 0;
   ssep->next_nondependent_call   = NULL;
+#if IA64_ABI && NEED_NAME_MANGLING
+  ssep->local_name_collision_table = NULL;
+#endif /* IA64_ABI && NEED_NAME_MANGLING */
   /* Clear the substructure shared with namespace symbol supplements. */
   ssep->assoc_pointers_block     = NULL;
   clear_scope_pointers_block(&ssep->pointers_block);
@@ -5211,6 +5333,11 @@ End a name scope by popping an entry off the scope stack.
   depth_of_initial_lookup_scope = ssep->saved_depth_of_initial_lookup_scope;
   /* Determine the memory region to restore for the outer scope. */
   new_memory_region_number = ssep->prev_il_memory_region;
+#if IA64_ABI && NEED_NAME_MANGLING
+  if (ssep->local_name_collision_table != NULL) {
+    release_local_name_collision_table(ssep);
+  }  /* if */
+#endif /* IA64_ABI && NEED_NAME_MANGLING */
   /* Pop the stack. */
   if (--depth_scope_stack >= 0) {
     /* The stack is not empty, so do anything necessary to activate the
@@ -5849,6 +5976,9 @@ are handled in scope_stk_init.)
       pch_saved_var_array_elem(avail_name_linkage_stack_entries),
       pch_saved_var_array_elem(
                   function_body_processing_delayed_on_some_func_in_primary_il),
+#if IA64_ABI && NEED_NAME_MANGLING
+      pch_saved_var_array_elem(avail_collision_tables),
+#endif /* IA64_ABI && NEED_NAME_MANGLING */
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
@@ -5921,6 +6051,9 @@ of the front end.
   avail_names_hidden_by_old_for_init = NULL;
   name_linkage_stack = NULL;
   avail_name_linkage_stack_entries = NULL;
+#if IA64_ABI && NEED_NAME_MANGLING
+  avail_collision_tables = NULL;
+#endif /* IA64_ABI && NEED_NAME_MANGLING */
   function_body_processing_delayed_on_some_func_in_primary_il = FALSE;
 }  /* scope_stk_init */
 

@@ -1334,11 +1334,6 @@ Display the indicated type entry.
     disp_ptr("typeinfo_var", (char *)ptr->typeinfo_var, iek_variable);
   }  /* if */
 #endif /* DO_IL_LOWERING */
-#if IA64_ABI && NEED_NAME_MANGLING
-  if (ptr->discriminator != 0) {
-    disp_unsigned_long("discriminator", (unsigned long)ptr->discriminator);
-  }  /* if */
-#endif /* IA64_ABI && NEED_NAME_MANGLING */
   disp_name("kind");
   switch (ptr->kind) {
     case tk_error:
@@ -2088,11 +2083,6 @@ Display the indicated variable.
              (char *)ptr->function_result_var_function, iek_routine);
   }  /* if */
 #endif /* ifdef FFE */
-#if IA64_ABI && NEED_NAME_MANGLING
-  if (ptr->discriminator != 0) {
-    disp_unsigned_long("discriminator", (unsigned long)ptr->discriminator);
-  }  /* if */
-#endif /* IA64_ABI && NEED_NAME_MANGLING */
 }  /* disp_variable */
 
 #ifdef CFE

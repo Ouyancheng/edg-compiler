@@ -4579,6 +4579,13 @@ declaration.
      scope stack is restored, since processing depends on the pending_pragmas
      pointer in the scope stack entry. */
   process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
+#if IA64_ABI && NEED_NAME_MANGLING
+  if (variable_ptr->storage_class == (a_storage_class)sc_static &&
+      variable_ptr->source_corresp.is_local_to_function &&
+      !variable_ptr->source_corresp.is_class_member) {
+    compute_name_collision_discriminator(sym);
+  }  /* if */
+#endif /* IA64_ABI && NEED_NAME_MANGLING */
   /* Return symbol and linkage pointers. */
   *symbol_ptr = sym;
   *linkage_ptr = linkage;

@@ -2715,7 +2715,6 @@ should be put out).
 #if IA64_ABI
 
 static void add_discriminator_if_necessary(a_source_correspondence  *scp,
-                                           an_il_entry_kind         entry_kind,
                                            a_mangling_control_block *mctl)
 /*
 The entity (of kind entry_kind) whose source correspondence entry is
@@ -2727,10 +2726,12 @@ IA-64 ABI to distinguish function-local entities with the same name.
   a_discriminator discriminator = 0;
 
   if (scp->is_local_to_function) {
-    if (entry_kind == iek_variable) {
-      discriminator = ((a_variable_ptr)scp)->discriminator;
-    } else if (entry_kind == iek_type) {
-      discriminator = ((a_type_ptr)scp)->discriminator;
+    a_symbol_ptr  sym = (a_symbol_ptr)scp->assoc_info;
+    if (sym->kind == (a_symbol_kind)sk_variable) {
+      discriminator = sym->variant.variable.discriminator;
+    } else if (is_class_struct_union_symbol(sym)) {
+      discriminator = sym->variant.class_struct_union.extra_info
+                         ->discriminator;
     }  /* if */
     if (discriminator > 0) {
       add_to_mangled_name('_', mctl);
@@ -2829,7 +2830,7 @@ that fact should be put out.
 #if !IA64_ABI
       fill_in_length(&length_reservation, mctl);
 #else /* IA64_ABI */
-      add_discriminator_if_necessary(&type->source_corresp, iek_type, mctl);
+      add_discriminator_if_necessary(&type->source_corresp, mctl);
 #endif /* !IA64_ABI */
     }  /* if */
   }  /* if */
@@ -3110,7 +3111,7 @@ and for unnamed classes and enums.  Nested types are encoded as such.
     }  /* if */
     mangled_name_with_length(name, mctl);
 #if IA64_ABI
-    add_discriminator_if_necessary(&type->source_corresp, iek_type, mctl);
+    add_discriminator_if_necessary(&type->source_corresp, mctl);
 #endif /* IA64_ABI */
   }  /* if */
 #if IA64_ABI
@@ -5549,7 +5550,7 @@ embedded in other mangled names.
                           &mctl);
     add_to_mangled_name('E', &mctl);
     mangled_name_with_length(scp->name, &mctl);
-    add_discriminator_if_necessary(scp, entry_kind, &mctl);
+    add_discriminator_if_necessary(scp, &mctl);
 #endif /* !IA64_ABI */
     (void)end_mangling(scp, final, &mctl);
   }  /* if */
