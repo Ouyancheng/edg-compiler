@@ -48,6 +48,8 @@ static unsigned long
 		num_constants_allocated,
 		num_param_types_allocated,
 		num_routine_type_supplements_allocated,
+                num_access_adjustments_allocated;
+                num_class_list_entries_allocated;
 		num_class_type_supplements_allocated,
                 num_base_classes_allocated,
                 num_virtual_base_classes_allocated,
@@ -357,6 +359,49 @@ Dump a virtual base class entry, for debug purposes.
 }  /* db_virtual_base_class */
 
 
+static void db_access_adjustment(an_access_adjustment_ptr aap)
+/*
+*/
+{
+  a_source_correspondence  *sc;
+  a_type_ptr               class;
+  char                     *str;
+
+  switch (aap->kind) {
+    case aak_variable:
+      sc = &aap->variant.variable->source_corresp;
+      str = "static data member";
+      break;
+    case aak_field:
+      sc = &aap->variant.field->source_corresp;
+      str = "field";
+      break;
+    case aak_routine:
+      sc = &aap->variant.routine->source_corresp;
+      str = "member function";
+      break;
+    case aak_type:
+      sc = &aap->variant.type->source_corresp;
+      str = "member type";
+      break;
+    case aak_constant:
+      sc = &aap->variant.constant->source_corresp;
+      str = "member constant";
+      break;
+  }  /* switch */
+  fputs("    ", f_debug);
+  db_access_control(aap->access);
+  fputs(" \"", f_debug);
+  db_name(sc);
+  fprintf(f_debug, "\" = %s ", str);
+  class = ((a_symbol_ptr)(sc->assoc_info))->class_of_which_a_member;
+  db_name(&class->source_corresp);
+  fputs("::", f_debug);
+  db_name(sc);
+  fputc('\n', f_debug);
+}  /* db_access_adjustment */
+
+
 void db_type(a_type *tp)
 /*
 Dump the contents of the indicated type entry, for debug purposes.
@@ -421,6 +466,7 @@ class_struct_union:
         a_virtual_base_class_ptr vbcp = ctsp->virtual_base_classes;
 	a_variable_ptr	         vp = ctsp->assoc_scope->variables;
         a_routine_ptr            rp = ctsp->assoc_scope->routines;
+        an_access_adjustment_ptr aap = ctsp->access_adjustments;
 
         if (vbcp != NULL) {
           fputs("  collected virtual base classes:\n", f_debug);
@@ -435,6 +481,10 @@ class_struct_union:
         if (rp != NULL) {
           fputs("  member functions:\n", f_debug);
           for (; rp != NULL; rp = rp->next) db_member_function(rp);
+        }  /* if */
+        if (aap != NULL) {
+          fputs("  access adjustments:\n", f_debug);
+          for (; aap != NULL; aap = aap->next) db_access_adjustment(aap);
         }  /* if */
       }  /* if */
       fprintf(f_debug, "} : size = %lu, alignment = %d",
@@ -1629,6 +1679,51 @@ pointer to it.
 
   return vbcp;
 }  /* alloc_virtual_base_class */
+
+
+an_access_adjustment_ptr alloc_access_adjustment(an_access_adjustment_kind kind)
+/*
+Allocate an access-adjustment entry, initialize its fields, and return a
+pointer to it.
+*/
+{
+  an_access_adjustment_ptr aap;
+
+  aap = (an_access_adjustment_ptr)alloc_cil(sizeof(an_access_adjustment));
+#if DEBUG
+  num_access_adjustments_allocated++;
+#endif /* DEBUG */
+  aap->next    = NULL;
+  aap->access  = (an_access_specifier)as_public;
+  aap->kind    = NULL;
+  switch (kind) {
+    case aak_field:     aap->variant.field    = NULL;  break;
+    case aak_variable:  aap->variant.variable = NULL;  break;
+    case aak_routine:   aap->variant.routine  = NULL;  break;
+    case aak_constant:  aap->variant.constant = NULL;  break;
+    case aak_type:      aap->variant.type     = NULL;  break;
+  }  /* switch */
+
+  return aap;
+}  /* alloc_access_adjustment */
+
+
+a_class_list_entry_ptr alloc_list_entry_for_class(void)
+/*
+Allocate a class-list-entry, initialize its fields, and return a pointer to it.
+*/
+{
+  a_class_list_entry_ptr clep;
+
+  clep = (a_class_list_entry_ptr)alloc_cil(sizeof(a_class_list_entry));
+#if DEBUG
+  num_class_list_entries_allocated++;
+#endif /* DEBUG */
+  clep->next  = NULL;
+  clep->class = NULL;
+
+  return clep;
+}  /* alloc_list_entry_for_class */
 
 
 static a_class_type_supplement_ptr alloc_class_type_supplement(void)
@@ -2880,6 +2975,10 @@ Display and return the amount of space used for various IL tables.
                                        a_routine_type_supplement);
   write_one("class type supplement", num_class_type_supplements_allocated,
                                      a_class_type_supplement);
+  write_one("access_adjustment", num_access_adjustments_allocated,
+                                 an_access_adjustment);
+  write_one("class_list_entry", num_class_list_entries_allocated,
+                                a_class_list_entry);
   write_one("base class", num_base_classes_allocated, a_base_class);
   write_one("virtual base class", num_virtual_base_classes_allocated,
                                   a_virtual_base_class);
@@ -2970,6 +3069,8 @@ of the front end.
   num_constants_allocated                = 0;
   num_param_types_allocated              = 0;
   num_routine_type_supplements_allocated = 0;
+  num_access_adjustments_allocated       = 0;
+  num_class_list_entries_allocated       = 0;
   num_class_type_supplements_allocated   = 0;
   num_base_classes_allocated             = 0;
   num_virtual_base_classes_allocated     = 0;
