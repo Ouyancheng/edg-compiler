@@ -5208,6 +5208,106 @@ Return a pointer to the variable that is declared.
 }  /* condition_declaration */
 
 
+void namespace_declaration(a_boolean  extern_implied)
+/*
+*/
+{
+  a_source_position           namespace_pos;
+  a_namespace_ptr             nsp;
+  a_symbol_ptr                sym;
+  a_symbol_locator            locator;
+  a_boolean                   is_unnamed_namespace = FALSE;
+  a_boolean                   is_namespace_alias = FALSE;
+  a_scope_pointers_block_ptr  pointers_block;
+
+  namespace_pos = pos_curr_token;
+  (void)get_token();
+  if (curr_token == tok_identifier) {
+    locator = locator_for_curr_id;
+    if (next_token() == tok_assign) is_namespace_alias = TRUE;
+  } else {
+    is_unnamed_namespace = TRUE;
+  }  /* if */
+  if (!is_namespace_alias) {
+    if (depth_scope_stack != DEPTH_OF_FILE_SCOPE &&
+        scope_stack[depth_scope_stack].kind != (a_scope_kind)sck_namespace) {
+      pos_error(ec_namespace_decl_not_allowed, &namespace_pos);
+      set_to_error_locator(locator);
+    }  /* if */
+  }  /* if */
+  if (is_unnamed_namespace) {
+    pointers_block = assoc_pointers_block_of(&scope_stack[depth_scope_stack]);
+    sym = pointers_block->unnamed_namespace_sym;
+    if (sym == NULL) {
+      sym = make_unnamed_namespace_symbol(&pos_curr_token);
+      pointers_block->unnamed_namespace_sym = sym;
+    }  /* if */
+  } else {
+    sym = curr_scope_id_lookup(&locator, IDL_NO_OPTIONS);
+    if (sym != NULL) {
+      if (sym->kind != (a_symbol_kind)sk_namespace) {
+        str_error(ec_id_already_declared, locator.symbol_header->identifier);
+        sym = NULL;
+      }  /* if */
+    }  /* if */
+    if (sym == NULL) {
+      sym = enter_symbol((a_symbol_kind)sk_namespace, &locator,
+                         depth_scope_stack, /*suppress_redecl_error=*/FALSE);
+    }  /* if */
+    /* Bypass the identifier. */
+    (void)get_token();
+  }  /* if */
+  if (is_namespace_alias) {
+    /* Bypass the "=". */
+    (void)get_token();
+    add_stop_token(tok_semicolon);
+    if (!is_qualified_name_start()) {
+      syntax_error(ec_exp_identifier);
+    } else {
+      a_boolean     err;
+      a_symbol_ptr  ns_sym;
+
+      ns_sym = coalesce_and_lookup_generalized_identifier(GID_NO_OPTIONS,
+                                                          ilm_normal, &err);
+      if (!err) {
+        if (ns_sym == NULL || ns_sym->kind != (a_symbol_kind)sk_namespace) {
+          error(ec_missing_namespace_name);
+        } else if (sym != NULL) {
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    remove_stop_token(tok_semicolon);
+    required_token(tok_semicolon, ec_exp_semicolon);
+  } else {
+    /* Namespace definition. */
+    if (required_token(tok_lbrace, ec_exp_lbrace)) {
+      if (sym->variant.namespace_info.ptr == NULL) {
+        /* Original definition. */
+        nsp = alloc_namespace(/*is_alias=*/FALSE);
+        set_source_corresp(&nsp->source_corresp, sym);
+        sym->variant.namespace_info.ptr = nsp;
+        sym->variant.namespace_info.extra_info =
+                                       alloc_namespace_symbol_supplement();
+        add_to_namespaces_list(nsp);
+        (void)push_namespace_scope((a_scope_kind)sck_namespace, nsp);
+        nsp->variant.assoc_scope->variant.assoc_namespace = nsp;
+      } else {
+        /* Supplementary defintion. */
+        nsp = sym->variant.namespace_info.ptr;
+        (void)push_namespace_scope((a_scope_kind)sck_namespace_extension, nsp);
+      }  /* if */
+      while (curr_token != tok_rbrace && curr_token != tok_end_of_source) {
+        declaration(/*function_definition_allowed=*/TRUE, extern_implied,
+                    /*is_old_style_param_decl=*/FALSE,
+                    /*is_top_level_declaration=*/FALSE, (a_param_id_ptr)NULL);
+      }  /* while */
+      (void)required_token(tok_rbrace, ec_exp_rbrace);
+      pop_scope();
+    }  /* if */
+  }  /* if */
+}  /* namespace_declaration */
+
+
 /*
 Local macro for the routine "declaration".  Does any remove_stop_token
 calls that have not yet been done.  Useful in ensuring that all the stop
@@ -5358,6 +5458,10 @@ of local variables (and types, etc.) of functions and in blocks.
            already have advanced past the final token. */ 
         goto return_point;
       }  /* if */
+    } else if (curr_token == tok_namespace) {
+      /* Process a namespace definition or a namespace alias declaration. */
+      namespace_declaration(extern_implied);
+      goto return_point;
     } else if (check_for_overload_anachronism()) {
       /* We check for and discard declarations of the form "overload f;" --
          issue diagnostics on pragmas that are trying to bind to an overload
