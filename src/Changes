@@ -1,5 +1,10 @@
 Version 3.3
 
+7/16/03  Microsoft compatibility: default Microsoft version changed
+
+The default Microsoft version number is now "1310".  This corresponds
+to the value of _MSC_VER used with Visual C++ 7.1.
+
 7/16/03  Microsoft mode: internal error on in-class specialization
 
 When EXPENSIVE_CHECKING is enabled, an internal error would occur

@@ -638,7 +638,7 @@ version of the Microsoft compiler that is being emulated (for example,
 1100 corresponds to Visual C++ version 5.0).
 */
 #ifndef DEFAULT_MICROSOFT_VERSION
-#define DEFAULT_MICROSOFT_VERSION 1200
+#define DEFAULT_MICROSOFT_VERSION 1310
 #endif /* ifndef DEFAULT_MICROSOFT_VERSION */
 
 /*
