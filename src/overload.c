@@ -2638,8 +2638,8 @@ apply that would make one better than the other, and return
     }  /* if */
   }  /* if */
   if (cmp == 0 &&
-      arg_match1->conversion.std.type_qualifiers_added ||
-      arg_match2->conversion.std.type_qualifiers_added) {
+      (arg_match1->conversion.std.type_qualifiers_added ||
+       arg_match2->conversion.std.type_qualifiers_added)) {
     /* There is the possibility of a tie-breaker because of a difference
        in adding cv-qualifiers. */
     /* Get the corresponding parameter types. */
