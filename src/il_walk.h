@@ -158,6 +158,9 @@ EXTERN a_boolean
 			   and classes to set needed flags. */
 #endif /* MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM */
 
+extern void walk_entry_and_subtree(char             *entry_ptr,
+                                   an_il_entry_kind entry_kind);
+
 extern void remap_pointers_in_il_entry(char             *entry_ptr,
                                        an_il_entry_kind entry_kind);
 

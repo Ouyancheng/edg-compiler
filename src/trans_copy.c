@@ -118,7 +118,12 @@ entries of various kinds.
 
 /*
 Return TRUE if an entry has a correspondence in the primary IL
-with which the entry may have to be merged.
+with which the entry may have to be merged.  If the entry has
+a copy address assigned, then the corresponding entry is just
+the destination of the copy, and not another entry for which
+a merge should be considered.  Note that if it's necessary to
+use this macro after preassign_copy_address is called it would
+be necessary to test the merge flag as well.
 */
 #define has_corresp_that_may_require_merge(ptr) \
   (has_corresp(ptr) && !entry_copy_address_assigned(ptr))
@@ -187,11 +192,17 @@ is returned, and *known is returned FALSE.
 
 
 static void corresp_setup(char             *ptr,
-                          an_il_entry_kind kind)
+                          an_il_entry_kind kind,
+                          a_boolean        known_in_curr_trans_unit,
+                          a_boolean        known_will_process_in_curr_walk)
 /*
 Called during the IL walk that copies IL from the secondary translation
 unit to the primary translation unit to set up the correspondence
 pointer of the entry pointed to by ptr, of kind "kind".
+known_in_curr_trans_unit is TRUE if it is known that the entry is
+in the current (secondary) translation unit.  known_will_process_in_curr_walk
+is TRUE if it is known that the entry has been or will be processed
+(and not merely have its address remapped) in the current IL walk.
 */
 {
   /* Ensure that the entry pointed to has a correspondence pointer
@@ -257,35 +268,43 @@ pointer of the entry pointed to by ptr, of kind "kind".
       /* Make the canonical entry for this entry point to the copy also if
          it's in a secondary translation unit. */
       if (canonical != ptr && in_secondary_trans_unit(canonical)) {
-        a_boolean known;
         checked_trans_unit_corresp_pointer_of(canonical) = copy;
-        /* Check for the weird case where the canonical entry is in the
-           current translation unit (presumably, ptr is from some
-           other secondary translation unit).  In that case, do the
-           copy from the canonical entry.  If we didn't do that, the
-           copy wouldn't get done at all in the current translation
-           unit, and we will need to look at the copied entry
-           to link it into the primary IL. */
-        if (!in_other_secondary_trans_unit(canonical, kind, &known) &&
-            known) {
-          ptr = canonical;
-        }  /* if */
       }  /* if */
       /* Set the flag to indicate that a copy address has been assigned. */
       entry_copy_address_assigned(ptr) = TRUE;
       /* Set the flag to request copying. */
       set_entry_needs_copy_flag(ptr);
-      if (!walking_file_scope) {
-        /* A reference from a function scope to the file scope.  Make sure
-           we come back to this entry if it's an orphan. */
-        add_orphaned_file_scope_il_entry(ptr, kind);
+      if (!known_will_process_in_curr_walk) {
+        /* We don't know for sure that the entry will be processed in the
+           current IL walk.  It might be from another secondary translation
+           unit.  Unless we know it's from the current translation unit,
+           do the copy now to be sure. */
+        a_boolean known;
+        if (known_in_curr_trans_unit ||
+            (!in_other_secondary_trans_unit(ptr, kind, &known) && known)) {
+          /* The entity is in the current translation unit, so it will
+             get copied in the current IL walk. */
+          if (!walking_file_scope) {
+            /* A reference from a function scope to the file scope.  Make sure
+               we come back to this entry if it's an orphan. */
+            add_orphaned_file_scope_il_entry(ptr, kind);
+          }  /* if */
+        } else {
+          /* We don't know for sure whether the entry is in the current
+             translation unit, so copy it now to ensure that it will get
+             copied. */
+          /* Clear the walk_remap_function around the call. */
+          a_remap_function_ptr saved_walk_remap_func = walk_remap_func;
+          walk_remap_func = NULL;
+          walk_entry_and_subtree(ptr, kind);
+          walk_remap_func = saved_walk_remap_func;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
 }  /* corresp_setup */
 
 
-/*ARGSUSED*/ /* <-- "kind" is not used. */
 static a_boolean copy_termination_test(char             *ptr,
                                        an_il_entry_kind kind)
 /*
@@ -297,7 +316,9 @@ pruned at the entry pointed to by ptr, of kind "kind".
   a_boolean prune;
 
   /* Make sure the correspondence pointer, if any, is set. */
-  corresp_setup(ptr, kind);
+  corresp_setup(ptr, kind,
+                /*known_in_curr_trans_unit=*/FALSE,
+                /*known_will_process_in_curr_walk=*/TRUE);
   if (!in_secondary_trans_unit(ptr)) {
     /* This entry is in the primary file IL, so stop and don't process
        it. */
@@ -333,7 +354,6 @@ pruned at the entry pointed to by ptr, of kind "kind".
 }  /* copy_termination_test */
 
 
-/*ARGSUSED*/ /* <-- "kind" is not used. */
 static char *remap_secondary_ptr_to_primary(char             *ptr,
                                             an_il_entry_kind kind)
 /*
@@ -347,7 +367,9 @@ corresponding entry in the primary file IL.
 
   /* If the pointer wasn't encountered previously, make sure its
      correspondence pointer is set.  This happens for "next" pointers. */
-  corresp_setup(ptr, kind);
+  corresp_setup(ptr, kind,
+                /*known_in_curr_trans_unit=*/FALSE,
+                /*known_will_process_in_curr_walk=*/FALSE);
   if (ptr == NULL) {
     /* Leave a NULL pointer unchanged. */
     corresp = NULL;
@@ -386,10 +408,6 @@ correspondence pointer to point to the copy.
     (void)memcpy(copy, ptr, size_t_arg(length));
   }  /* if */
 }  /* copy_string_entry */
-
-
-static void copy_entry(char             *ptr,
-                       an_il_entry_kind kind);
 
 
 static void copy_entry_basic(char                 *ptr,
@@ -714,7 +732,7 @@ classes need to be merged.
 static a_boolean class_body_should_be_copied(a_type_ptr type,
                                              a_type_ptr primary_type)
 /*
-Return TRUE if the type "type", in a secondary translation unit, has
+Return TRUE if the class type "type", in a secondary translation unit, has
 a definition that should be copied onto the type "primary_type", in
 the primary IL.
 */
@@ -737,6 +755,27 @@ the primary IL.
 }  /* class_body_should_be_copied */
 
 
+static a_boolean enum_body_should_be_copied(a_type_ptr type,
+                                            a_type_ptr primary_type)
+/*
+Return TRUE if the enum type "type", in a secondary translation unit, has
+a definition that should be copied onto the type "primary_type", in
+the primary IL.
+*/
+{
+  a_boolean should_copy = FALSE;
+
+  if (!is_incomplete_type(type)) {
+    if (is_incomplete_type(primary_type)) {
+      /* The enum in the secondary translation unit has a body, and the
+         one in the primary translation unit does not, so copy. */
+      should_copy = TRUE;
+    }  /* if */
+  }  /* if */
+  return should_copy;
+}  /* enum_body_should_be_copied */
+
+
 static a_boolean type_should_be_merged(a_type_ptr type)
 /*
 Return TRUE if the indicated type, which has a corresponding type in the
@@ -756,7 +795,7 @@ primary IL, should be merged into that type.
       merge = TRUE;
     }  /* if */
   } else if (is_immediate_enum_type(type)) {
-    if (!is_incomplete_type(type) && is_incomplete_type(corresp_type)) {
+    if (enum_body_should_be_copied(type, corresp_type)) {
       /* This type is an enum with a definition, and the corresponding type
          has no definition.  Therefore the definition must be merged into
          the corresponding type. */
@@ -767,29 +806,45 @@ primary IL, should be merged into that type.
 }  /* type_should_be_merged */
 
 
+static a_boolean variable_body_should_be_copied(
+                                               a_variable_ptr variable,
+                                               a_variable_ptr primary_variable)
+/*
+Return TRUE if the variable "variable", in a secondary translation unit, has
+a definition that should be copied onto the variable "primary_variable", in
+the primary IL.
+*/
+{
+  a_boolean should_copy = FALSE;
+
+  if (variable->storage_class == (a_storage_class)sc_unspecified) {
+    if (primary_variable->storage_class != (a_storage_class)sc_unspecified) {
+      /* This variable has a definition, and the corresponding variable
+         has no definition.  Therefore the definition must be merged into
+         the corresponding variable. */
+      should_copy = TRUE;
+    } else if (variable->is_specialized && !primary_variable->is_specialized) {
+      /* This variable has a definition that is a specialization, and the
+         other variable has a definition that is not a specialization.
+         Copy this definition over to the corresponding variable. */
+      should_copy = TRUE;
+    }  /* if */
+  }  /* if */
+  return should_copy;
+}  /* variable_body_should_be_copied */
+
+
 static a_boolean variable_should_be_merged(a_variable_ptr variable)
 /*
 Return TRUE if the indicated variable, which has a corresponding variable
 in the primary IL, should be merged into that variable.
 */
 {
-  a_boolean      merge = FALSE;
+  a_boolean      merge;
   a_variable_ptr corresp_variable =
                                (a_variable_ptr)canonical_il_entry_of(variable);
 
-  if (variable->storage_class == (a_storage_class)sc_unspecified) {
-    if (corresp_variable->storage_class != (a_storage_class)sc_unspecified) {
-      /* This variable has a definition, and the corresponding variable
-         has no definition.  Therefore the definition must be merged into
-         the corresponding variable. */
-      merge = TRUE;
-    } else if (variable->is_specialized && !corresp_variable->is_specialized) {
-      /* This variable has a definition that is a specialization, and the
-         other variable has a definition that is not a specialization.
-         Copy this definition over to the corresponding variable. */
-      merge = TRUE;
-    }  /* if */
-  }  /* if */
+  merge = variable_body_should_be_copied(variable, corresp_variable);
   return merge;
 }  /* variable_should_be_merged */
 
@@ -828,8 +883,7 @@ static a_boolean routine_should_be_merged(
 Return TRUE if the indicated routine, which has a corresponding routine
 in the primary IL, should be merged into that routine.  If both this
 routine and the corresponding routine have bodies, the one here is
-deleted, and *any_removed_function_bodies is set to TRUE.  If
-any_removed_function_bodies is NULL, that deletion is suppressed.
+deleted, and *any_removed_function_bodies is set to TRUE.
 */
 {
   a_boolean     merge = FALSE;
@@ -838,8 +892,7 @@ any_removed_function_bodies is NULL, that deletion is suppressed.
   if (routine_body_should_be_copied(routine, corresp_routine)) {
     /* The routine definition needs to be copied to corresp_routine. */
     merge = TRUE;
-  } else if (any_removed_function_bodies != NULL &&
-             routine->assoc_scope != NULL_region_number &&
+  } else if (routine->assoc_scope != NULL_region_number &&
              corresp_routine->assoc_scope != NULL_region_number) {
     /* Both instances have definitions.  Eliminate the body of this copy. */
     clear_body_for_routine(routine);
@@ -856,52 +909,67 @@ any_removed_function_bodies is NULL, that deletion is suppressed.
 }  /* routine_should_be_merged */
 
 
-static a_boolean entry_should_be_merged(char             *ptr,
-                                        an_il_entry_kind kind)
+static a_boolean entry_will_overwrite(char             *ptr,
+                                      an_il_entry_kind kind)
 /*
 Return TRUE if the indicated entry, which has the indicated kind, and
-which has a corresponding entry in the primary IL, should be merged
-into that entry.
+which has a corresponding entry in the primary IL, will overwrite
+that entry (e.g., because it has a definition and the other entry
+does not).
 */
 {
-  a_boolean merge;
+  a_boolean overwrite;
 
-  /* For certain kinds, use a special routine (which can deal with
-     references to entries that have not been processed yet).  For the
-     others, use the generic macro, which depends on the entry having
-     been processed previously. */
   switch (kind) {
     case iek_type:
       { a_type_ptr type = (a_type_ptr)ptr;
-        merge = type_should_be_merged(type);
+        a_type_ptr corresp_type = (a_type_ptr)canonical_il_entry_of(type);
+        if (is_immediate_class_type(type)) {
+          overwrite = class_body_should_be_copied(type, corresp_type);
+        } else if (is_immediate_enum_type(type)) {
+          overwrite = enum_body_should_be_copied(type, corresp_type);
+        } else {
+          overwrite = FALSE;
+        }  /* if */
       }
       break;
     case iek_variable:
       { a_variable_ptr var = (a_variable_ptr)ptr;
-        merge = variable_should_be_merged(var);
+        a_variable_ptr corresp_var= (a_variable_ptr)canonical_il_entry_of(var);
+        overwrite = variable_body_should_be_copied(var, corresp_var);
       }
       break;
     case iek_routine:
       { a_routine_ptr rout = (a_routine_ptr)ptr;
-        merge = routine_should_be_merged(rout, (a_boolean *)NULL);
+        a_routine_ptr corresp_rout= (a_routine_ptr)canonical_il_entry_of(rout);
+        overwrite = routine_body_should_be_copied(rout, corresp_rout);
       }
       break;
     default:
-      merge = entry_to_be_merged(ptr);
+      overwrite = FALSE;
       break;
   }
-  return merge;
-}  /* entry_should_be_merged */
+  return overwrite;
+}  /* entry_will_overwrite */
 
 
 /*
-Macro that returns TRUE if the indicated entry should be copied to
-the primary file IL.  That can be because it's new (it has no
-correspondence) or because it provides a definition for a corresponding
-entry that is already in the primary file IL.
+Macro that returns TRUE if the indicated entry will be copied to
+the primary file IL.  An entry can be copied because it's new
+(it has no correspondence) or because it provides a definition
+for a corresponding entry that is already in the primary file IL.
+Not included are cases that are kept on the list only because
+they need to be merged for details (and not to copy the definition).
+Note that this macro needs to work for entries that may not have
+been encountered yet in the prepare_for_trans_unit_copy processing.
+The entry copy address is already assigned for entries that have been
+processed.
 */
 #define entry_should_be_copied(ptr, kind) \
-  (!has_corresp(ptr) || entry_should_be_merged((char *)(ptr), (kind)))
+  ((entry_copy_address_assigned(ptr) ? \
+     !entry_to_be_merged(ptr) : \
+     !has_corresp(ptr)) || \
+   entry_will_overwrite((char *)(ptr), (kind)))
 
 
 static void process_variable_if_unneeded_template(a_variable_ptr variable)
@@ -978,6 +1046,50 @@ do any necessary processing, e.g., externalizing it if it is static.
   }  /* if */
 }  /* process_routine_if_unneeded_non_template */
 
+#if CHECKING
+
+static void f_check_no_pending_copies(char *ptr)
+/*
+Check that there are no pending copies on the entry pointed to by ptr
+or any of the entities on its correspondence list.
+*/
+{
+  char *new_ptr;
+  do {
+    check_assertion_str(!entry_needs_copy_flag_is_set(ptr),
+                        "f_check_no_pending_copies: pending copy flag");
+    new_ptr = checked_trans_unit_corresp_pointer_of(ptr);
+    if (new_ptr == NULL || new_ptr == ptr) break;
+    ptr = new_ptr;
+  } while (in_secondary_trans_unit(ptr));
+}  /* f_check_no_pending_copies */
+
+#endif /* CHECKING */
+
+/*
+Interface macro for f_check_no_pending_copies.
+*/
+#if CHECKING
+#define check_no_pending_copies(ptr) \
+  f_check_no_pending_copies((char *)(ptr))
+#else /* !CHECKING */
+#define check_no_pending_copies(type) /* Nothing */
+#endif /* CHECKING */
+
+
+/*
+Preassign a copy address (if one is not already assigned) to an entry
+kept on the lists during prepare_for_trans_unit_copy.  This is important
+to ensure that if the entry is a canonical entry, and another entry
+(from a different secondary translation unit) that points to the
+canonical entry is encountered during the copy walk, the entry in
+the current translation is copied rather than the other one.
+*/
+#define preassign_copy_address(ptr, kind) \
+  corresp_setup((char *)(ptr), (kind), \
+                /*known_in_curr_trans_unit=*/TRUE, \
+                /*known_will_process_in_curr_walk=*/TRUE)
+
 
 static a_boolean prepare_for_trans_unit_copy(
                                       a_scope_ptr scope,
@@ -1017,6 +1129,9 @@ the lists.
     a_scope_ptr corresp_scope = translation_units->primary_scope;
     checked_trans_unit_corresp_pointer_of(scope) = (char *)corresp_scope;
     mark_to_merge(scope);
+    /* Make sure flag_value_meaning_visited is set so that
+       entry_needs_copy_flag_is_set can be used. */
+    flag_value_meaning_visited = !il_entry_prefix_of(scope).il_walk_flag;
     if (scope->lifetime != NULL && corresp_scope->lifetime != NULL) {
       /* The object lifetime of the file scope corresponds with the
          object lifetime of the corresponding scope, and gets merged into
@@ -1109,6 +1224,7 @@ the lists.
   /* Visit all types. */
   prev_type = NULL;
   for (type = scope->types; type != NULL; type = type->next) {
+    check_no_pending_copies(type);
     keep_on_list = TRUE;
     if (is_immediate_class_type(type) &&
         type->variant.class_struct_union.extra_info != NULL &&
@@ -1143,6 +1259,7 @@ the lists.
     if (keep_on_list) {
       prev_type = type;
       any_members_to_process = TRUE;
+      preassign_copy_address(type, iek_type);
     } else {
       /* Remove this entry from the list. */
       if (prev_type == NULL) {
@@ -1159,6 +1276,7 @@ the lists.
   for (variable = scope->variables;
        variable != NULL;
        variable = variable->next) {
+    check_no_pending_copies(variable);
     keep_on_list = TRUE;
     /* If we're supposed to copy only generated templates, other variables
        are made external (if necessary) and their definitions are
@@ -1178,6 +1296,7 @@ the lists.
     if (keep_on_list) {
       prev_variable = variable;
       any_members_to_process = TRUE;
+      preassign_copy_address(variable, iek_variable);
     } else {
       /* Remove this entry from the list. */
       if (prev_variable == NULL) {
@@ -1215,6 +1334,7 @@ the lists.
   for (routine = scope->routines;
        routine != NULL;
        routine = routine->next) {
+    check_no_pending_copies(routine);
     keep_on_list = TRUE;
     /* If we're supposed to copy only generated templates, other routines
        are made external (if necessary) and their definitions are
@@ -1256,6 +1376,7 @@ the lists.
     if (keep_on_list) {
       prev_routine = routine;
       any_members_to_process = TRUE;
+      preassign_copy_address(routine, iek_routine);
     } else {
       /* Remove this entry from the list. */
       if (prev_routine == NULL) {
@@ -1277,6 +1398,7 @@ the lists.
   for (templ = scope->templates;
        templ != NULL;
        templ = templ->next) {
+    check_no_pending_copies(templ);
     keep_on_list = TRUE;
     if (has_corresp_that_may_require_merge(templ)) {
       /* This entry corresponds to something in the primary IL, so remove
@@ -1286,6 +1408,7 @@ the lists.
     if (keep_on_list) {
       prev_templ = templ;
       any_members_to_process = TRUE;
+      preassign_copy_address(templ, iek_template);
     } else {
       /* Remove this entry from the list. */
       if (prev_templ == NULL) {
@@ -1301,6 +1424,7 @@ the lists.
   for (nsp = scope->namespaces;
        nsp != NULL;
        nsp = nsp->next) {
+    check_no_pending_copies(nsp);
     /* Entities with correspondences don't get copied; they get merged
        into the corresponding entry.  Set a flag to indicate that. */
     if (!nsp->is_namespace_alias) {
@@ -1319,6 +1443,7 @@ the lists.
     if (keep_on_list) {
       prev_nsp = nsp;
       any_members_to_process = TRUE;
+      preassign_copy_address(nsp, iek_namespace);
     } else {
       /* Remove this entry from the list. */
       if (prev_nsp == NULL) {
@@ -1334,6 +1459,7 @@ the lists.
   for (pragma = scope->pragmas;
        pragma != NULL;
        pragma = pragma->next) {
+    check_no_pending_copies(pragma);
     /* Keep the pragma if it has an associated entity that will be kept. */
     keep_on_list = FALSE;
     if (pragma->entity.ptr != NULL &&
@@ -1702,6 +1828,12 @@ secondary scope to the primary file IL.
   a_boolean              is_class_scope =
                          (scope->kind == (a_scope_kind)sck_class_struct_union);
 
+  if (scope->kind == (a_scope_kind)sck_file) {
+    /* Top-level call. */
+    /* Make sure flag_value_meaning_visited is set so that
+       entry_needs_copy_flag_is_set can be used. */
+    flag_value_meaning_visited = !il_entry_prefix_of(scope).il_walk_flag;
+  }  /* if */
   /* Process only scopes that must be merged into their counterparts. */
   if (entry_to_be_merged(scope)) {
     /* Find the corresponding scope. */
@@ -1722,6 +1854,7 @@ secondary scope to the primary file IL.
       for (type = scope->types; type != NULL; type = type->next) {
         a_type_ptr corresp_type =
                        (a_type_ptr)checked_trans_unit_corresp_pointer_of(type);
+        check_no_pending_copies(type);
         if (is_immediate_class_type(type) &&
             type->variant.class_struct_union.extra_info != NULL &&
             type->variant.class_struct_union.extra_info->assoc_scope != NULL) {
@@ -1793,6 +1926,7 @@ end_of_type_list_add:;
            variable = variable->next) {
         a_variable_ptr corresp_variable =
                (a_variable_ptr)checked_trans_unit_corresp_pointer_of(variable);
+        check_no_pending_copies(variable);
         if (entry_to_be_merged(variable)) {
           /* Merge the information from this variable into the primary IL
              variable (the secondary translation unit instance has a definition
@@ -1893,6 +2027,7 @@ end_of_variable_list_add:;
            routine = routine->next) {
         a_routine_ptr corresp_routine =
                  (a_routine_ptr)checked_trans_unit_corresp_pointer_of(routine);
+        check_no_pending_copies(routine);
         if (entry_to_be_merged(routine)) {
           /* The entry gets merged into the corresponding type. */
           a_routine_ptr primary_routine =
@@ -1968,6 +2103,7 @@ end_of_routine_list_add:;
       for (templ = scope->templates; templ != NULL; templ = templ->next) {
         a_template_ptr corresp_templ =
                   (a_template_ptr)checked_trans_unit_corresp_pointer_of(templ);
+        check_no_pending_copies(templ);
         check_assertion(!entry_to_be_merged(templ));
         /* An entry that had no correspondence. */
         if (is_class_scope && last_templ == NULL) {
@@ -1996,6 +2132,7 @@ end_of_routine_list_add:;
       for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
         a_namespace_ptr corresp_nsp =
                    (a_namespace_ptr)checked_trans_unit_corresp_pointer_of(nsp);
+        check_no_pending_copies(nsp);
         if (!entry_to_be_merged(nsp)) {
           /* An entry that had no correspondence.  Add it to the end of
              the list. */
@@ -2026,6 +2163,7 @@ end_of_routine_list_add:;
       for (pragma = scope->pragmas; pragma != NULL; pragma = pragma->next) {
         a_pragma_ptr corresp_pragma =
                    (a_pragma_ptr)checked_trans_unit_corresp_pointer_of(pragma);
+        check_no_pending_copies(pragma);
         if (is_class_scope && last_pragma == NULL) {
           /* Determine the last pragma the first time it is needed. */
           last_pragma = primary_scope->pragmas;
@@ -2059,6 +2197,7 @@ end_of_routine_list_add:;
            asm_entry = asm_entry->next) {
         an_asm_entry_ptr corresp_asm_entry =
             (an_asm_entry_ptr)checked_trans_unit_corresp_pointer_of(asm_entry);
+        check_no_pending_copies(asm_entry);
         if (is_class_scope && last_asm_entry == NULL) {
           /* Determine the last asm entry the first time it is needed. */
           last_asm_entry = primary_scope->asm_entries;

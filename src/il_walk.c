@@ -119,7 +119,7 @@ static void walk_string_entry(char             *entry_ptr,
 #define DO_SUBTREE_WALK TRUE
 #define NEEDED_FLAG_WALK FALSE
 #define KEEP_IN_IL_WALK FALSE
-#define WALK_ENTRY_ROUTINE_STATIC static
+#define WALK_ENTRY_ROUTINE_STATIC /* extern */
 #define WALK_ENTRY_ROUTINE_NAME walk_entry_and_subtree
 #define WALK_ORPHANED_ENTRY_ROUTINE_NAME walk_orphaned_file_scope_il_entries
 #undef UNDEF_WALK_ENTRY_MACROS_AT_END
