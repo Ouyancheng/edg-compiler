@@ -33,7 +33,15 @@ The problem applies to hollerith constants as well.
 */
 #endif /* ifdef FFE */
 
-#include "basics.h"
+/* Header files common to all files. */
+#include "fe_common.h"
+
+#if HDRSTOP_RECOGNIZED
+/* Insert a marker in case headers are saved and restored. */
+#pragma hdrstop
+#endif /* HDRSTOP_RECOGNIZED */
+
+/* Additional header files. */
 #if __ANSIC__
 /* For strtod: */
 #include <stdlib.h>
@@ -45,9 +53,6 @@ EXTERN_C double strtod(char *, char **);
 /* BSD errno.h doesn't define "errno". */
 EXTERN_C int errno;
 #endif /* __BSD__ */
-#include "target.h"
-#include "float_pt.h"
-#include "il.h"
 
 
 static void store_double(double                  temp,
