@@ -4252,12 +4252,21 @@ the type.  If is_type is FALSE, this is a "sizeof expression", and
     node->variant.runtime_sizeof.variant.type = type;
   } else {
     /* sizeof expression. */
+    a_boolean        is_lvalue;
+    an_expr_node_ptr expr;
     if (is_template_dependent_context()) {
       /* An expression in a prototype instantiation. */
       prep_generic_operand(operand, /*lvalue_expected=*/FALSE);
     }  /* if */
-    node->variant.runtime_sizeof.is_lvalue = is_an_lvalue(operand);
-    node->variant.runtime_sizeof.variant.expr= make_node_from_operand(operand);
+    is_lvalue = is_an_lvalue(operand);
+    node->variant.runtime_sizeof.is_lvalue = is_lvalue;
+    expr = make_node_from_operand(operand);
+    node->variant.runtime_sizeof.variant.expr = expr;
+    /* Make sure the referenced flag is set on a VLA variable. */
+    if (is_lvalue && is_variable_address_node(expr)) {
+      a_variable_ptr var = expr->variant.variable;
+      var->source_corresp.referenced = TRUE;
+    }  /* if */
   }  /* if */
   return node;
 }  /* make_runtime_sizeof_expr */
