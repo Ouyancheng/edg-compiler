@@ -588,11 +588,9 @@ inheritance_kind_pos are pointers to source positions used for diagnostics.
                      inheritance_kind_names[(int)ctsp->inheritance_kind],
                      (a_symbol_ptr)class_type->source_corresp.assoc_info);
     }  /* if */
-#if BACK_END_IS_CP_GEN_BE
     if (ctsp->inheritance_kind == inheritance_kind) {
       ctsp->inheritance_kind_is_explicit = TRUE;
     }  /* if */
-#endif /* BACK_END_IS_CP_GEN_BE */
   }  /* if */
   if (decl_modifiers->uuid_string != NULL) {
     if (ctsp->uuid_string != NULL) {
