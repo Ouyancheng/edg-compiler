@@ -1,3 +1,23 @@
+Version 3.6
+
+11/9/04  C++-generating back end: Sun compatibility
+
+In order to avoid syntactic ambiguity, the C++-generating back end never
+generated casts using the functional notation (X(y)) but always used C-style
+notation ((X)y).  The Sun Workshop compiler, however, treats these two
+notations differently, allowing a functional cast to be used as an lvalue
+while treating C-style casts as rvalues.  To avoid changing an lvalue into
+an rvalue in Sun code, the C++-generating back end now relies on a different
+syntactic disambiguation strategy and generates functional casts where
+possible.  For example:
+
+  struct X {
+    X &operator*=(double);
+  };
+  void f(const X &x) {
+    X(x) *= 1;   // Previous generated as ((X)((x))), now (X((x)))
+  }
+
 Version 3.5, November 8, 2004
 
 11/5/04  IL version number updated to 3.5
