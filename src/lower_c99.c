@@ -32,6 +32,9 @@ lower_c99.c -- Routines to transform C99 IL constructs into constructs
 #include "lower_hdrs.h"
 /* Additional header files. */
 #include "exprutil.h"
+#if MAINTAIN_NEEDED_FLAGS
+#include "il_walk.h"
+#endif /* MAINTAIN_NEEDED_FLAGS */
 
 /* Forward declarations (needed because of mutual recursion situations). */
 static void lower_c99_constant_list(a_constant_ptr constant_list);
@@ -1777,6 +1780,15 @@ The lowered type is given the name indicated by "name".
     cmplx_type->source_corresp.name = alloc_il((sizeof_t)(strlen(name)+1));
     strcpy(cmplx_type->source_corresp.name, name);
     cmplx_type->variant.typeref.type = lowered_repr;
+#if MAINTAIN_NEEDED_FLAGS
+    if (secondary_translation_unit_seen()) {
+      /* Ensure it is kept in the IL. */
+      mark_as_needed((char *)lowered_repr, iek_type);
+      set_class_definition_needed_flag(lowered_repr);
+      set_class_keep_definition_in_il(lowered_repr);
+      mark_as_needed((char *)cmplx_type, iek_type);
+    }  /* if */
+#endif /* MAINTAIN_NEEDED_FLAGS */
     /* Link the types into the IL (in the right order). */
     add_to_front_of_file_scope_types_list(cmplx_type);
     add_to_front_of_file_scope_types_list(cmplx_type->variant.typeref.type);
