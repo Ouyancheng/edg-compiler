@@ -4253,41 +4253,41 @@ Set the pointer_offset fields in direct virtual base classes where the
 virtual base class pointer is shared with some other base class.
 */
 {
-  a_base_class_ptr             direct_virtual_base_class;
+  a_base_class_ptr             virtual_base_class;
   a_base_class_ptr             pointer_base_class, data_base_class;
   a_base_class_ptr             bcp;
-  a_class_type_supplement_ptr  ctsp;
 
   /* Make a pass over all the base classes for the current derived class and
-     check each direct virtual base class. */
-  ctsp = class_type->variant.class_struct_union.extra_info;
-  for (direct_virtual_base_class = ctsp->base_classes;
-       direct_virtual_base_class != NULL;
-       direct_virtual_base_class = direct_virtual_base_class->next) {
-    if (direct_virtual_base_class->direct &&
-        direct_virtual_base_class->is_virtual) {
-      /* If the pointer_base_class field is non-NULL, the virtual base class
-         pointer for the derived class is the same as the pointer to the
-         corresponding virtual base class for pointer_base_class. */
-      pointer_base_class = direct_virtual_base_class->pointer_base_class;
-      if (pointer_base_class != NULL) {
-        /* Look for the corresponding virtual base class. */
-        for (bcp = pointer_base_class->type->
-                      variant.class_struct_union.extra_info->base_classes;
-             bcp != NULL;
-             bcp = bcp->next) {
-          if (bcp->is_virtual &&
-              bcp->type == direct_virtual_base_class->type) {
-            break;
-          }  /* if */
-        }  /* for */
-        /* The pointer_offset value in the context of the derived class
-           is the offset of the pointer base class plus the offset of the
-           virtual base class pointer within the latter. */
-        direct_virtual_base_class->pointer_offset = bcp->pointer_offset +
+     check each virtual base class. */
+  for (virtual_base_class = class_type->variant.
+                                  class_struct_union.extra_info->base_classes;
+       virtual_base_class != NULL;
+       virtual_base_class = virtual_base_class->next) {
+    if (virtual_base_class->is_virtual) {
+      if (virtual_base_class->direct) {
+        /* If the pointer_base_class field is non-NULL, the virtual base class
+           pointer for the derived class is the same as the pointer to the
+           corresponding virtual base class for pointer_base_class. */
+        pointer_base_class = virtual_base_class->pointer_base_class;
+        if (pointer_base_class != NULL) {
+          /* Look for the corresponding virtual base class. */
+          for (bcp = pointer_base_class->type->
+                        variant.class_struct_union.extra_info->base_classes;
+               bcp != NULL;
+               bcp = bcp->next) {
+            if (bcp->is_virtual &&
+                bcp->type == virtual_base_class->type) {
+              break;
+            }  /* if */
+          }  /* for */
+          /* The pointer_offset value in the context of the derived class
+             is the offset of the pointer base class plus the offset of the
+             virtual base class pointer within the latter. */
+          virtual_base_class->pointer_offset = bcp->pointer_offset +
                                                     pointer_base_class->offset;
+        }  /* if */
       }  /* if */
-      data_base_class = direct_virtual_base_class->data_section_base_class;
+      data_base_class = virtual_base_class->data_section_base_class;
       if (data_base_class != NULL) {
         /* Look for the corresponding virtual base class. */
         for (bcp = data_base_class->type->
@@ -4295,15 +4295,14 @@ virtual base class pointer is shared with some other base class.
              bcp != NULL;
              bcp = bcp->next) {
           if (bcp->is_virtual &&
-              bcp->type == direct_virtual_base_class->type) {
+              bcp->type == virtual_base_class->type) {
             break;
           }  /* if */
         }  /* for */
         /* The pointer_offset value in the context of the derived class
            is the offset of the pointer base class plus the offset of the
            virtual base class pointer within the latter. */
-        direct_virtual_base_class->offset =
-                                       bcp->offset + data_base_class->offset;
+        virtual_base_class->offset = bcp->offset + data_base_class->offset;
       }  /* if */
     }  /* if */
   }  /* for */
