@@ -12839,11 +12839,24 @@ next_declaration:
     process_curr_token_pragmas();
     /* Check for and ignore the closing brace. */
     last_token_number_of_definition = curr_token_sequence_number;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    /* Record the end-of-decl-specifiers source position. */
+    if (decl_pos_block != NULL) {
+      decl_pos_block->specifiers_range.end = pos_curr_token;
+    }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     (void)required_token(tok_rbrace, ec_exp_rbrace);
 #if GNU_EXTENSIONS_ALLOWED
     if (gnu_mode && curr_token == tok_attribute) {
       /* Process attributes that apply to this class. */
-      attributes = f_scan_attributes(&last_token_number_of_definition);
+      a_source_position  *end_pos = NULL;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      if (decl_pos_block != NULL) {
+        end_pos = &decl_pos_block->specifiers_range.end;
+      }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      attributes = f_scan_attributes(&last_token_number_of_definition,
+                                     end_pos);
       apply_attributes_to_type(attributes, class_type, /*is_typedef=*/FALSE);
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -12971,12 +12984,6 @@ next_declaration:
       }  /* if */
     }  /* if */
     remove_stop_token(tok_rbrace);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    /* Record the end-of-decl-specifiers source position. */
-    if (decl_pos_block != NULL) {
-      decl_pos_block->specifiers_range.end = pos_curr_token;
-    }  /* if */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* Restore the stop token state. */
     pop_stop_token_stack();
     /* If entities dependent on this class were declared before the class

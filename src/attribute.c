@@ -927,7 +927,8 @@ function returns the address of the last attribute.
 }  /* scan_attribute_list */
 
 
-an_attribute_ptr f_scan_attributes(a_token_sequence_number  *last_token)
+an_attribute_ptr f_scan_attributes(a_token_sequence_number  *last_token,
+                                   a_source_position        *end_pos)
 /*
 Scan an (optional) series of attributes.  Each has the form:
 
@@ -936,7 +937,8 @@ Scan an (optional) series of attributes.  Each has the form:
 This function returns a list of all of the attributes in the order
 that they appeared.  If last_token is non-NULL, *last_token is set
 to the sequence number of the final right parenthesis (used for
-template processing).
+template processing).  Similarly, if end_pos is non-NULL, *end_pos is
+set to the position of the final right parenthesis.
 */
 {
   an_attribute_ptr  attributes = NULL;
@@ -962,6 +964,9 @@ template processing).
     (void)required_token(tok_rparen, ec_exp_rparen);
     if (last_token != NULL) {
       *last_token = curr_token_sequence_number;
+    }  /* if */
+    if (end_pos != NULL) {
+      *end_pos = pos_curr_token;
     }  /* if */
     (void)required_token(tok_rparen, ec_exp_rparen);
     remove_stop_token(tok_rparen);

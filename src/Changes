@@ -1,5 +1,12 @@
 Version 3.1
 
+10/31/02 Incorrect end-of-specifiers position when defining classes
+
+The end-of-specifier position recorded for a class definition (available
+when EXTRA_SOURCE_POSITIONS_IN_IL is TRUE) used to be set to the position
+of the token following the closing brace.  This is now fixed: The position
+of the closing brace is used if it is the last token of the specifier.
+
 10/31/02 Microsoft __inline and __forceinline specifiers set is_inline flag
 
 In Microsoft mode, the front end accepts the __inline and __forceinline

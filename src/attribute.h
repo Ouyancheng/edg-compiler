@@ -210,10 +210,12 @@ typedef struct an_attribute {
 			/* The next attribute in the list. */
 } an_attribute;
 
-extern an_attribute_ptr f_scan_attributes(
-                                        a_token_sequence_number  *last_token);
+extern an_attribute_ptr f_scan_attributes(a_token_sequence_number  *last_token,
+                                          a_source_position        *end_pos);
 
-#define scan_attributes() f_scan_attributes((a_token_sequence_number*)NULL)
+#define scan_attributes()                                                  \
+   f_scan_attributes((a_token_sequence_number*)NULL,                       \
+                     (a_source_position*)NULL)
 
 extern an_attribute_ptr copy_attribute_list(an_attribute_ptr attributes);
 
