@@ -234,7 +234,9 @@ Flags to be set when using the KAI inliner.
 #ifndef CHECKING
 #define CHECKING 1
 #endif /* ifndef CHECKING */
+#ifndef DEBUG
 #define DEBUG 1
+#endif /* ifndef DEBUG */
 #define SAME_REPR_INTS_INTERCHANGEABLE_IN_IL 0
 #define ASSIGNMENT_TO_THIS_ALLOWED 0
 #define DEFAULT_ALLOW_ANACHRONISMS 0
