@@ -5405,13 +5405,13 @@ static void lower_operations_returning_lvalue_instead_of_usual_rvalue(
                                                     a_boolean        is_lvalue)
 /*
 Transform lvalue-returning assignments, prefix ++/-- operators, and "?" and
-"." operators to valid C.  If the expression passed in is not one of those
+"," operators to valid C.  If the expression passed in is not one of those
 it is left alone.  expr is being used as an lvalue if is_lvalue is TRUE.
 */
 {
   if (is_operation_node(expr)) {
     /* Look at the first operand of this operation to see if it is an
-       lvalue-returning "?" or ".". */
+       lvalue-returning "?" or ",". */
     an_expr_node_ptr child1 = expr->variant.operation.operands;
     an_expr_operator_kind op;
     if (is_operation_node(child1) &&
@@ -5420,7 +5420,7 @@ it is left alone.  expr is being used as an lvalue if is_lvalue is TRUE.
                                          (an_expr_operator_kind)eok_question ||
          op == (an_expr_operator_kind)eok_comma)) {
       /* The first operand of expr is an lvalue-returning "?" or ",".
-         That is, expr is the node on top of a "?" or ".". */
+         That is, expr is the node on top of a "?" or ",". */
       an_expr_node_ptr child2 = child1->next;
       an_expr_node_ptr gchild1 = child1->variant.operation.operands;
       an_expr_node_ptr gchild2 = gchild1->next;
@@ -5497,7 +5497,7 @@ it is left alone.  expr is being used as an lvalue if is_lvalue is TRUE.
       an_expr_node_ptr newop;
       a_boolean        expr_result_is_not_used = expr->result_is_not_used;
       a_boolean        suppress_warning, vars_can_change;
-      /* expr is an lvalue-returning operation that is not a "?" or ".".
+      /* expr is an lvalue-returning operation that is not a "?" or ",".
          Rewrite
            x = y          really: &x = y
          using an rvalue-returning operator as
@@ -5989,7 +5989,7 @@ is updated.
       }  /* if */
       lower_destructor_dynamic_init(&cap->variant.object.dynamic_init,
                                     &cap->variant.object.init_pos_descr,
-                                    /*dtor_case=*/FALSE,
+                                    cap,
                                     /*have_complete_object=*/TRUE,
                                     effective_insert_loc);
     } else if (cap->kind == cak_try_block) {
