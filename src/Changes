@@ -1798,7 +1798,7 @@ was also made in the C++-generating back end.
 
 Overload resolution will no longer consider a template conversion
 function for a conversion to an abstract class type.  A conversion
-function is not allowed to return an abtract class type, so instantiating
+function is not allowed to return an abstract class type, so instantiating
 such a thing causes an error.  This change operates before type
 deduction is attempted on the template, and therefore avoids an error
 on the partial instantiation of a conversion function that turns out
