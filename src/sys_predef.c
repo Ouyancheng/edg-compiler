@@ -886,7 +886,7 @@ Enter the standard predeclared functions for GCC.
   			       (a_type_ptr)NULL,
   			       /*is_varargs=*/FALSE);
       enter_gnu_builtin_function((a_builtin_function_kind)bfk_crealf,
-  			       float_type,
+  			       floating_type,
   			       complex_float_type,
   			       (a_type_ptr)NULL,
   			       (a_type_ptr)NULL,
@@ -907,7 +907,7 @@ Enter the standard predeclared functions for GCC.
   			       (a_type_ptr)NULL,
   			       /*is_varargs=*/FALSE);
       enter_gnu_builtin_function((a_builtin_function_kind)bfk_cimagf,
-  			       float_type,
+  			       floating_type,
   			       complex_float_type,
   			       (a_type_ptr)NULL,
   			       (a_type_ptr)NULL,
