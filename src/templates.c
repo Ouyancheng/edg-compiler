@@ -3550,9 +3550,12 @@ file we simply return.
   sfp = source_file_for_seq(decl_position->seq, &line_number,
                             &at_end_of_source, &nesting_depth,
                             /*physical_line=*/FALSE);
-  if (sfp != NULL && sfp != il_header.primary_source_file) {
+  if (sfp != NULL && sfp != il_header.primary_source_file &&
+      sfp->name_as_written != NULL) {
     /* A source file was found and it does not refer to the primary source
-       file. */
+       file.  sfp->name_as_written will be NULL if the file name came from
+       a #line directive.  In which case the implicit inclusion will not
+       be attempted. */
     if (!sfp->related_file_implicit_include_done) {
       /* If we haven't already included the corresponding source file then
          do so now. */
