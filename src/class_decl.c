@@ -3855,8 +3855,15 @@ pointed to by cssp.
     slep = alloc_symbol_list_entry();
     slep->symbol = orig_sym;
     /* Add it to the list associated with the parent class. */
-    slep->next = cssp->conversion_list;
-    cssp->conversion_list = slep;
+    if (orig_sym->kind == (a_symbol_kind)sk_function_template) {
+      /* Add it to the list for templates. */
+      slep->next = cssp->conversion_template_list;
+      cssp->conversion_template_list = slep;
+    } else {
+      /* Add it to the list for ordinary conversion functions. */
+      slep->next = cssp->conversion_list;
+      cssp->conversion_list = slep;
+    }  /* if */
   }  /* if */
   db_exit();
 }  /* add_to_conversion_list */
@@ -4502,49 +4509,10 @@ function declarations.)
                                          &locator->source_position);
       }  /* if */
     } else if (locator->is_conversion_name) {
-#if 0
-      /* User-defined conversion function. */
-      a_boolean  is_usable = TRUE;
-
-      /* Check the target type of the conversion -- which is the return type
-         of rout_type. */
-      tp = skip_typerefs(rtn->type);
-      tp = skip_typerefs(tp->variant.routine.return_type);
-      if (is_reference_type(tp)) {
-        tp = skip_typerefs(type_pointed_to(tp));
-      }  /* if */
-      if (tp == class_type) {
-        is_usable = FALSE;
-      } else if (is_class_struct_union_type(tp)) {
-        if (!cfront_2_1_mode && find_base_class_of(class_type, tp) != NULL) {
-          /* An operator that converts from a derived class to a base class
-             is allowed by cfront 2.1, but not by cfront 3.0. */
-          is_usable = FALSE;
-        } else {
-          /* The target type of the conversion is a class or ref-to-class
-             type: set a flag to mark it as target of a conversion. */
-          set_target_of_conversion_function_flag(tp);
-        }  /* if */
-      } else if (is_void_type(tp)) {
-        /* Except in cfront-compatibility mode, conversion to void type will
-           already have been checked for. */
-        check_assertion(any_cfront_mode());
-        is_usable = FALSE;
-      }  /* if */
-      if (is_usable) {
-        /* Create a conversion list entry.  This list provides an alternative
-           to traversing the entire symbols list for a class to find its
-           conversion functions. */
-        add_to_conversion_list(sym, cssp);
-      } else {
-        /* Conversion to the same type or a reference to the same type or to
-           a base class or a reference to a base class "is never used" (WP
-           12.3.2; that is, it is not used in implicit or explicit conversions
-           but only in an explicit invocations of the function). */
-        pos_sy_warning(ec_conversion_function_not_usable,
-                       &locator->source_position, sym);
-      }  /* if */
-#endif /* if 0 */
+      /* Create a conversion list entry.  This list provides an alternative
+         to traversing the entire symbols list for a class to find its
+         conversion functions. */
+      add_to_conversion_list(sym, cssp);
     }  /* if */
     if (dso_flags & DSO_CONSTRUCTOR) {
       rtn->special_kind = (a_special_function_kind)sfk_constructor;
@@ -4559,27 +4527,6 @@ function declarations.)
         /* The overloaded function symbol was just created. */
         cssp->constructor = overload_sym;
       }  /* if */
-#if 0
-      /* Determine if this is a default constructor. */
-      if (is_default_constructor(rtn, /*is_declarative_context=*/TRUE)) {
-        cssp->has_default_constructor = TRUE;
-      }  /* if */
-      /* Determine if this is a copy constructor.  If so, set the class symbol
-         supplement flags appropriately. */
-      if (is_copy_constructor(rtn, class_type, &qualifiers,
-                              /*is_declarative_context=*/TRUE)) {
-        cssp->has_copy_constructor = TRUE;
-        cssp->has_copy_constructor_for_const_object |= 
-                                               ((qualifiers & TQ_CONST) != 0);
-        if (!compiler_generated) {
-          /* If a user-defined copy constructor is declared for the class,
-             construction by bitwise copying is not allowed.  (On the other
-             hand, this flag *may* be TRUE even when the compiler generates a
-             a copy constructor.) */
-          cssp->construction_by_bitwise_copy_allowed = FALSE;
-        }  /* if */
-      }  /* if */
-#endif /* if 0 */
     }  /* if */
     update_routine_decl_modifiers(rtn, decl_modifiers,
                                   &locator->source_position,
@@ -6924,8 +6871,8 @@ or implicit) controlling the declaration.
     fund_sym = fundamental_symbol_of(sym);
     is_overloaded = FALSE;
     /* See if the using declaration refers to a function or overload set. */
-    if (is_function_symbol(fund_sym)) {
-      /* Member function. */
+    if (is_function_or_template_symbol(fund_sym)) {
+      /* Member function or member function template. */
       /* If other_sym is non-NULL, there is already a function declaration by
          this name in the current class: we will add the declared symbol or
          symbols to an overload set of the current class. */
@@ -6965,6 +6912,7 @@ or implicit) controlling the declaration.
         /* Find the base class of class_type to which fund_sym belongs.  bcp
            points to the base class to which declared_sym belongs. */
         a_base_class_ptr  fund_base_class;
+        a_routine_ptr     rp = NULL;
 
         if (fund_sym == declared_sym ||
             fund_sym->parent.class_type == declared_sym->parent.class_type) {
@@ -7005,28 +6953,42 @@ or implicit) controlling the declaration.
                                                   (a_namespace_ptr)NULL);
           set_mixed_static_nonstatic_flag(other_sym);
         }  /* if */
-        if (fund_sym->kind == (a_symbol_kind)sk_member_function &&
-            fund_sym->variant.routine.ptr->special_kind ==
-                                 (a_special_function_kind)sfk_conversion) {
+        if (fund_sym->kind == (a_symbol_kind)sk_member_function) {
+          rp = fund_sym->variant.routine.ptr;
+        } else if (fund_sym->kind == (a_symbol_kind)sk_function_template) {
+          rp = fund_sym->variant.template_info->variant.function.routine;
+        }  /* if */
+        if (rp != NULL &&
+            rp ->special_kind == (a_special_function_kind)sfk_conversion) {
           /* Allocate the new conversion list entry and link it in the
              list for the current class. */
           add_to_conversion_list(new_sym,
                                  symbol_supplement_for_class(class_type));
         }  /* if */
-        /* Create a class member using decl entry to represent this
-           declaration in the IL. */
-        cmudp = new_class_member_using_decl(fund_sym, access);
-        /* Attach it the class type entry. */
-        cmudp->next = class_type->variant.class_struct_union.
+        if (fund_sym->kind == (a_symbol_kind)sk_function_template) {
+#if 0
+/* If RECORD_TEMPLATES_IN_IL is FALSE there's no IL entry for the
+   class-member-using-decl to point to.  Even if it's TRUE there's no easy
+   way to get from the sk_function_template symbol to the corresponding IL
+   entry.  So this will go unimplemented for the time being. */
+#endif /* if 0 */
+        } else {
+          /* Create a class member using decl entry to represent this
+             declaration in the IL. */
+          cmudp = new_class_member_using_decl(fund_sym, access);
+          /* Attach it the class type entry. */
+          cmudp->next = class_type->variant.class_struct_union.
                                         extra_info->class_member_using_decls;
-        class_type->variant.class_struct_union.extra_info->
+          class_type->variant.class_struct_union.extra_info->
                                             class_member_using_decls = cmudp;
-        /* Record the class that was actually specified in the qualified
-           name in the source. */
-        cmudp->class_specified_in_qualifier = declared_sym->parent.class_type;
-        /* Update cross-reference and source sequence info, if required. */
-        record_class_member_using_decl(cmudp, fund_sym,
-                                       &locator_for_curr_id.source_position);
+          /* Record the class that was actually specified in the qualified
+             name in the source. */
+          cmudp->class_specified_in_qualifier =
+                                         declared_sym->parent.class_type;
+          /* Update cross-reference and source sequence info, if required. */
+          record_class_member_using_decl(cmudp, fund_sym,
+                                         &locator_for_curr_id.source_position);
+        }  /* if */
       }  /* if */
       if (!is_overloaded) break;
       if ((sym = sym->next) == NULL) break;
