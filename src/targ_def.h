@@ -1624,6 +1624,31 @@ errors will be issued when compiling programs using the feature).
 #endif /* ABI_COMPATIBILITY_VERSION <= 233 */
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 
+/*
+This switch controls whether or not ABI changes are made to fix problems
+with virtual function tables during construction of classes that have
+virtual base classes.  The changes include adding a parameter to some
+constructors and destructors and increasing the size of a field in
+the region table for the portable implementation of EH.
+*/
+#ifndef ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
+/* This feature CAN be turned on when CFRONT_OBJECT_CODE_COMPATIBILITY is on,
+   but that produces a cfront-like ABI rather than a cfront-compatible ABI. */
+#if ABI_COMPATIBILITY_VERSION <= 238 || CFRONT_OBJECT_CODE_COMPATIBILITY
+#define ABI_CHANGES_FOR_CONSTRUCTION_VTBLS FALSE
+                                                    /* Versions up to 2.38. */
+#else /* ABI_COMPATIBILITY_VERSION > 238 && !CFRONT_... */
+#define ABI_CHANGES_FOR_CONSTRUCTION_VTBLS TRUE
+                                                    /* Versions after 2.38. */
+#endif /* ABI_COMPATIBILITY_VERSION <= 238 || CFRONT_... */
+#endif /* ifndef ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
+#if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
+#if ABI_COMPATIBILITY_VERSION <= 238
+ #error -- ABI_CHANGES_FOR_CONSTRUCTION_VTBLS TRUE is incompatible \
+           with ABI_COMPATIBILITY_VERSION <= 238
+#endif /* ABI_COMPATIBILITY_VERSION <= 238 */
+#endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
+
 #if DO_IL_LOWERING
 
 /* Switches that control aspects of IL lowering: */
