@@ -2263,6 +2263,9 @@ for handling virtual bases and functions.
 
 void layout_one_time_init(void)
 /*
+Do one-time initialization of variables related to class layout.  (Variables
+that need to be reinitialized with each new translation unit are handled in
+layout_init.)
 */
 {
 #if USER_CONTROL_OF_STRUCT_PACKING
@@ -2282,7 +2285,10 @@ void layout_one_time_init(void)
 
 void layout_init(void)
 /*
-Do layout initialization.
+Initialize static variables related to class layout.  This is done as a
+subroutine (rather than relying on static initialization) so that it
+can be redone to compile more than one source file in a single invocation
+of the front end.
 */
 {
 #if USER_CONTROL_OF_STRUCT_PACKING
