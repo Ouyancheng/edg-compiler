@@ -5339,6 +5339,7 @@ bound (i.e., one declared with "[*]").
   return found;
 }  /* ttt_is_or_contains_vla_with_unspecified_bound */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 static a_boolean ttt_is_variably_modified_type(
                                        a_type_ptr  type_ptr,
@@ -5358,8 +5359,6 @@ referring to a variably modified type.
   return found;
 }  /* ttt_is_variably_modified_type */    
 
-
-#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_boolean traverse_type_tree(a_type_ptr                     type_ptr,
                              a_type_predicate_function_ptr  func,
@@ -5763,6 +5762,7 @@ unspecified bound (i.e., declared with [*]).
   return result;
 }  /* is_or_contains_vla_type_with_unspecified_bound */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_boolean is_variably_modified_type(a_type_ptr  tp)
 /*
@@ -5780,6 +5780,7 @@ typedefs referring to variably modified types.
   return result;
 }  /* is_variably_modified_type */
 
+#if !STANDALONE_UTILITY_PROGRAM
 
 /* Type of service function called by traverse_and_modify_type_tree to return
    TRUE if the type was modified or FALSE if it was not. */
