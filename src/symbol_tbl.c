@@ -6439,10 +6439,10 @@ and return a pointer to it.
   ptr->next           = NULL;
   ptr->param_symbol   = sym;
   if (sym->kind == (a_symbol_kind)sk_type) {
-    ptr->variant.param_type     = NULL;
+    ptr->variant.param_type     = sym->variant.type;
   } else {
     check_assertion(sym->kind == (a_symbol_kind)sk_constant);
-    ptr->variant.param_constant = NULL;
+    ptr->variant.param_constant = sym->variant.constant;
   }  /* if */
   db_exit();
   return ptr;
