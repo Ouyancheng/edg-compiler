@@ -1832,14 +1832,14 @@ Reserve space at the end of the class object for virtual base classes.
        the order of their appearance in the base classes list, which
        corresponds to a depth-first left-to-right traversal of the base
        classes represented in a directed acyclic graph (see ARM 12.6.2). */
-    a_base_class_ptr   bcp = ctsp->base_classes;
-    a_targ_size_t      size;
-    a_targ_alignment   alignment;
-
-    if (bcp != NULL) {
+    if (ctsp->base_classes != NULL) {
       /* Now add the virtual base classes to the storage.  This is done
          almost exactly as for nonvirtual base classes. */
-      for (; bcp != NULL; bcp = bcp->next) {
+      a_base_class_ptr   bcp;
+      a_targ_size_t      size;
+      a_targ_alignment   alignment;
+
+      for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
         if (bcp->is_virtual) {
           /* Record the current offset in the data_section_offset of the
              virtual base class entry.  This allows for direct access of
