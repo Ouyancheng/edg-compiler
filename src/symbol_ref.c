@@ -592,8 +592,11 @@ static void record_defeatable_hiding_if_not_same(
                                             a_boolean    sym_is_injected_class)
 /*
 Look up an inherited symbol in the current scope and record the hiding, if any.
-If sym_is_injected_class is TRUE, make sure that the found symbol and sym_ptr
-are not the same class type.
+If sym_is_injected_class is TRUE, sym_ptr represents an injected class name
+(either the real injected class name or, for template instances in Microsoft
+bugs mode, a simulation thereof for purposes of the hidden name table only).
+In this case a symbol found in the surrounding context might represent the same
+class type and should not be hidden.
 */
 {
   a_symbol_ptr     old_sym_ptr;
@@ -703,8 +706,9 @@ hidden name checking on its own members, too.
       /* Microsoft compilers do not inject the name of a template instance,
          so this class does not contain an injected class name.  However, to
          enable the C++-generating back end to generate correctly-qualified
-         code for consumption by other compilers, we need to simulate an
-         injected class name in this case for hidden name processing. */
+         code for dialects that do inject the template name, we need to
+         simulate an injected class name in this case for hidden name
+         processing. */
       sym_ptr = (a_symbol_ptr)class_type->source_corresp.assoc_info;
       record_defeatable_hiding_if_not_same(sym_ptr,
                                            sp,

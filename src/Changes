@@ -22,9 +22,10 @@ msvc_target_version_number is < 1300.  For example:
 Microsoft compilers through version 7.1 continue not to inject the name of
 a class template instance.  As a result, the C++-generating back end used
 unqualified names to refer to entities that would otherwise have been
-hidden by the injected name.  In order to produce more portable code, the
-C++ generating back end now qualifies such names, as if the class template
-name had been injected.  For instance:
+hidden by the injected name.  In order to facilitate generating code for
+different dialects when parsing in Microsoft mode, the C++ generating back
+end now qualifies such names, as if the class template name had been injected.
+For instance:
 
   template<typename T> struct iterator { };
   struct vec {
