@@ -164,8 +164,18 @@ is not null, return *is_non_null TRUE.
 
   *is_non_null = FALSE;
   if (is_constant_node(expr)) {
+    a_constant_ptr con = expr->variant.constant;
     is_constant_valued = TRUE;
-    *is_non_null = !is_false_constant(expr->variant.constant);
+    /* Dont treat string literals as constant, because if we generate C code
+       and refer to the constant several times, the address of the string
+       literal will be different on each reference. */
+    if (con->kind == (a_constant_repr_kind)ck_address &&
+        con->variant.address.kind == (an_address_base_kind)abk_constant &&
+        con->variant.address.variant.constant->kind ==
+                                             (a_constant_repr_kind)ck_string) {
+      is_constant_valued = FALSE;
+    }  /* if */
+    *is_non_null = !is_false_constant(con);
   } else if (is_variable_address_node(expr)) {
     is_constant_valued = TRUE;
     /* We assume that variables other than extern variables have non-null
