@@ -37,6 +37,7 @@ operation overflows.
 #endif /* TARG_NO_ERROR_ON_INTEGER_OVERFLOW */
 #endif /* ifndef ES_INT_OVERFLOW */
 
+#if FIXED_POINT_ALLOWED
 /*
 Determine the severity (error or warning) to be used for fixed-point
 operation overflows.  This really has to be a warning even in strict
@@ -47,6 +48,7 @@ is by definition not an error).
 #ifndef ES_FIXED_POINT_OVERFLOW
 #define ES_FIXED_POINT_OVERFLOW es_warning
 #endif /* ifndef ES_FIXED_POINT_OVERFLOW */
+#endif /* FIXED_POINT_ALLOWED */
 
 
 a_boolean constant_bool_value_known_at_compile_time(a_constant_ptr con)
