@@ -838,7 +838,7 @@ typedef struct a_base_class {
 			   base class would be ambiguous because it appears
 			   more than once in the derivation. */
   unsigned int	any_virtual_steps_in_derivation:1;
-			/* TRUE if any derivation steps mentioned in the
+			/* TRUE if any derivation step mentioned in the
 			   derivation list for this base class is a virtual
 			   base class. */
   unsigned int	inaccessible:1;
