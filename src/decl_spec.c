@@ -2377,7 +2377,7 @@ new expression and should therefore not be treated as a declaration.
     }  /* if */
     if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&
         tag_sym->is_class_member) {
-      /* Determine whether this is a referenced to a nested class within
+      /* Determine whether this is a reference to a nested class within
          a class template.  If so, set the correspondence with the
          corresponding prototype class. */
       set_nested_template_class_symbol_info(tag_sym, type_kind);
