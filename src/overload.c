@@ -9174,7 +9174,7 @@ because of an error.  This routine is used only in C++ mode.
         } else {
           try_as_arg_of_bitwise_cctor = TRUE;
         }  /* if */
-      } else {
+      } else if (any_cfront_mode()) {
         /* In a departure from the standard, look for a conversion function
            that converts to exactly the required type.  That makes sense
            because in that case the copy constructor call can be elided

@@ -9190,6 +9190,14 @@ one argument, return TRUE; otherwise, return FALSE.
       clear_token_set_array(stop_tokens);
       incr_token_set_array_element(stop_tokens, tok_comma);
       incr_token_set_array_element(stop_tokens, tok_rparen);
+      /* Note that this really should use the version of cache_token_stream
+         that coalesces ids, to get the right answer with template
+         references.  That's hard to do, because you have to have a 
+         cache pre-built containing the right tokens.  But this routine
+         is now used only in some corner cases in some corner modes
+         (e.g., cfront), so this answer is good enough.  (Before this
+         was relegated to use in corner modes, it was in use for years,
+         and we got no bug reports about it.) */
       cache_token_stream(&cache, stop_tokens);
       /* If we stopped on a right parenthesis, the argument list has exactly
          one argument. */
@@ -9243,8 +9251,11 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
     if (ctor_sym != NULL) {
       /* The class has a constructor. */
       ctor_case = TRUE;
-      if (cssp->target_of_conversion_function &&
+      if (any_cfront_mode() && 
+          cssp->target_of_conversion_function &&
           conversion_has_one_argument()) {
+        /* Old rules for cfront mode: conversion functions compete with
+           constructors. */
         /* The class has a constructor, there is at least one conversion
            function from some other class to this one, and the argument list
            contains a single value, so this is treated as a normal

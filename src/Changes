@@ -1,5 +1,29 @@
 Version 3.0
 
+3/20/02  How conversion functions compete with constructors
+
+The C++ standards committee in closing core issue 243 without action
+affirmed a piece of the C++ standard we weren't sure was intended,
+that constructors win out over conversion functions in direct-
+initializations.  Accordingly, we have changed the Front End to
+follow that rule, except in cfront mode.
+
+  extern "C" int printf(const char *, ...);
+  struct B;
+  struct A {
+    A(B);
+  };
+  struct B {
+    operator A() { printf("B::operator A()\n"); return A(*this); }
+  } b;
+  A::A(B) { printf("A(B)\n"); }
+  void f(A) {}
+  int main() {
+    f(A(b));  // Prints A(B)
+    f((A)b);  // Prints A(B)
+    return 0;
+  }
+
 3/20/02  GNU C: --short_enums option
 
 The front end now accepts the --short_enums option in GNU C mode.  It
