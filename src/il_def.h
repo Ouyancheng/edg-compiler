@@ -725,10 +725,10 @@ typedef struct a_base_class {
 			/* TRUE if a direct cast from the current class to this
 			   base class would be ambiguous because it appears
 			   more than once in the derivation. */
-  unsigned int	is_accessible:1;
-			/* TRUE if at least one member of the base class is
-			   accessible in the current class, or else it is a
-			   direct base class. */
+  unsigned int	inaccessible:1;
+			/* TRUE if no member of the base class is accessible
+			   in the current class (unless it is a direct base
+			   class). */
   an_access_specifier
                 access; /* If direct is TRUE, the kind of derivation (public,
 			   protected, or private) indicated by the access
