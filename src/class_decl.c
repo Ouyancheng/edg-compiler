@@ -5745,8 +5745,8 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
           /* Check for and discard declarations of the form "overload f;". */
           a_boolean		err;
           if (check_for_overload_anachronism()) goto next_declaration;
-          if (curr_token == tok_identifier &&
-              !simplify_curr_class_qualified_name() &&
+          if (is_qualified_name_start() &&
+	      locator_for_curr_id.qualifier_class_type != class_type &&
               coalesce_and_lookup_qualified_name
                   (GID_DTOR_RECOGNIZED, ilm_normal, &err) &&
               next_token() == tok_semicolon) {
