@@ -7219,7 +7219,14 @@ non-NULL return *con_value == NULL.
 {
   a_constant_ptr con_expr_value = NULL;
   a_boolean      optimized_case = FALSE;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_range saved_expr_range;
+  a_source_position
+                 saved_operator_position;
 
+  saved_expr_range = node->expr_range;
+  saved_operator_position = node->operator_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   *constant_case = FALSE;
   if (con_value != NULL) *con_value = NULL;
   if (C_dialect == C_dialect_cplusplus) {
@@ -7298,6 +7305,13 @@ non-NULL return *con_value == NULL.
       /* Make a distinct copy of the constant so we can change it. */
       con_expr_value = alloc_unshared_constant(con_expr_value);
       con_expr_value->expr = node;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      /* Restore the original expression position. */
+      node->expr_range = saved_expr_range;
+      if (is_operation_node(node)) {
+        node->operator_position = saved_operator_position;
+      }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     }  /* if */
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
     if (con_value != NULL) {
@@ -7327,6 +7341,13 @@ non-NULL return *con_value == NULL.
        the type qualifiers as appropriate. */
     node = add_indirection_to_node(node);
   }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  /* Restore the original expression position. */
+  node->expr_range = saved_expr_range;
+  if (is_operation_node(node)) {
+    node->operator_position = saved_operator_position;
+  }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   return node;
 }  /* conv_lvalue_expr_to_rvalue */
 

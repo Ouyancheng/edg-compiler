@@ -1,5 +1,14 @@
 Version 2.46
 
+6/17/01  Extra source positions on operands of "?" operator
+
+The extra source positions recorded when EXTRA_SOURCE_POSITIONS_IL_IL
+is TRUE were missing in some cases for "?" operators (and other
+operators that may return lvalues but turn out to return rvalues
+in the problem cases).  The source positions were not transferred
+correctly when the internal expression tree is converted to an
+rvalue.
+
 6/16/01  C++-generating back end, prototype instantiations: output of
          dependent Microsoft __uuidof
 
