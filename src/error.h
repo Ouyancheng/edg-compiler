@@ -458,7 +458,8 @@ typedef enum /*an_error_code*/ {
   ec_class_and_member_function_name_conflict,
   ec_nested_class_anachronism,
   ec_too_many_args_for_destructor,
-  ec_bad_constructor_arg
+  ec_bad_constructor_arg,
+  ec_incomplete_return_type_not_allowed
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
