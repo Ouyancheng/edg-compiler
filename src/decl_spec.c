@@ -3521,7 +3521,7 @@ decl_specifiers.
 #if MICROSOFT_EXTENSIONS_ALLOWED
         *type_ptr = extended_integer_type((an_integer_kind)ikind,
                                           microsoft_version >= 1200 &&
-                                          size == (int)size_int8);
+                                          (int)size == (int)size_int8);
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
         *type_ptr = integer_type((an_integer_kind)ikind);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -3628,8 +3628,8 @@ decl_specifiers.
         *type_ptr = extended_signed_integer_type((an_integer_kind)ikind,
 #if MICROSOFT_EXTENSIONS_ALLOWED
                                                  microsoft_version >= 1200 &&
-                                                 size >= (int)size_int8 &&
-                                                 size <= (int)size_int64
+                                                 (int)size >= (int)size_int8 &&
+                                                 (int)size <= (int)size_int64
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
                                                  /*microsoft_intrinsic=*/FALSE
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -3638,8 +3638,8 @@ decl_specifiers.
         *type_ptr = extended_integer_type((an_integer_kind)ikind,
 #if MICROSOFT_EXTENSIONS_ALLOWED
                                           microsoft_version >= 1200 &&
-                                          size >= (int)size_int8 &&
-                                          size <= (int)size_int64
+                                          (int)size >= (int)size_int8 &&
+                                          (int)size <= (int)size_int64
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
                                           /*microsoft_intrinsic=*/FALSE
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
