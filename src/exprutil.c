@@ -8926,9 +8926,10 @@ prep_elision_initializer_operand.
     ref_to_nonconst = !is_const_qualified_type(base_dest_type);
     /* The destination type must have no fewer type qualifiers than the source
        type to be usable without conversion (ARM 8.4.3). */
-    dropping_qualifiers = any_qualifier_missing(base_dest_type,
+    dropping_qualifiers = type_is_correct_or_derived &&
+                          any_qualifier_missing(base_dest_type,
                                                 base_source_type);
-    if (dropping_qualifiers && type_is_correct_or_derived) {
+    if (dropping_qualifiers) {
       /* There are fewer qualifiers on the destination than on the source,
          so the initialization would involve dropping qualifiers. */
       /* cfront makes a field selected from a const structure compatible
