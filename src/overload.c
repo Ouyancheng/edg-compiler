@@ -7584,7 +7584,10 @@ match, promotion, etc.) for the operand and record it in arg_match.
                is required.  See if the type gets changed by promotion. */
             a_type_ptr promoted_type =
                                 operand_type_after_integral_promotion(operand);
-            if (!types_are_compatible(promoted_type, operand_type)) {
+            if (microsoft_bugs) {
+              /* MSVC++ (6.0, 7.0, 7.1) doesn't count these as promotions. */
+              /* match_level = aml_exact -- already set. */
+            } else if (!types_are_compatible(promoted_type, operand_type)) {
               /* The type gets changed by promotion, so the cost is a
                  promotion. */
               match_level = aml_promotion;

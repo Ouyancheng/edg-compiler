@@ -1,5 +1,35 @@
 Version 3.3
 
+7/24/03  Microsoft compatibility: change in overload resolution for
+         built-in operators with promoted operands
+
+MSVC++ (6.0, 7.0, and 7.1, at least) has a bug in overload
+resolution for built-in operators.  The prototypes for operators
+like "+" are supposed to include only promoted arithmetic
+types, and those for operators like "%" are supposed to include
+only promoted integral types.  However, it appears that
+unpromoted types are also included.  This causes an
+ambiguity on a case like
+
+  struct A {
+    operator int();
+  };
+  struct B {
+    B(A);
+  };
+  int operator+(B, unsigned short);
+  int main() {
+    A a;
+    unsigned short us;
+    a + us;  // Ambiguous in MSVC++ and now in Microsoft bugs mode
+  }
+
+One can also come up with cases like this that the Microsoft
+compiler considers unambiguous, whereas the EDG Front End
+issued an ambiguity error (one case appears in the fwcommon.h
+header in MSVC++ 7.1).  The MSVC++ behavior is now emulated
+in Microsoft bugs mode.
+
 7/24/03  Microsoft compatibility: _WCHAR_T_DEFINED predefined macro
 
 In Microsoft mode, the macro _WCHAR_T_DEFINED is predefined when wchar_t
