@@ -1,5 +1,22 @@
 Version 3.5
 
+9/2/04  Microsoft compatibility: Checking UUIDs across translation units
+
+In Microsoft mode, when compiling multiple translation units simultaneously,
+the front end previously always issued an error if a type appeared in two
+different translation units with differing UUID specifications.  Now, no error
+is issued if no specifier appears at all on one of the declarations.
+For example:
+
+  // File 1:
+  struct __declspec(uuid("941bf074-8711-4417-9399-3e26297b0e4e")) ITraceMgr;
+
+  // File 2:
+  struct ITraceMgr;  // Previously an error.  Now okay.
+
+This relaxation is possible because this sort of difference does not affect
+the generated code.
+
 9/2/04  C- and C++-generating back ends: UPC THREADS constants
 
 The C- and C++-generating back ends did not consider the possibility that a
