@@ -471,7 +471,7 @@ there was an overflow error.
          alignment. */
       overflow = !increment_field_offsets(byte_offset, bit_offset,
                                          (a_targ_size_t)(alignment - byte_mod),
-					 0);
+					 (an_unnormalized_bit_offset)0);
     }  /* if */
   }  /* if */
   return !overflow;
@@ -709,21 +709,21 @@ if there's no overflow TRUE is returned.
       /* Increment the current offsets to account for the field. */
       if (field->is_bit_field) {
         /* For a bit-field. */
-        overflow = !increment_field_offsets(p_byte_offset, p_bit_offset,
-                                            (a_targ_size_t)0,
-                                            field->bit_size);
+        overflow = !increment_field_offsets(
+                                 p_byte_offset, p_bit_offset, (a_targ_size_t)0,
+                                 (an_unnormalized_bit_offset)field->bit_size);
       } else {
         /* For a normal field. */
         overflow = !increment_field_offsets(p_byte_offset, p_bit_offset,
-                                           (a_targ_size_t)field_type->size, 0);
+                                            (a_targ_size_t)field_type->size,
+                                            (an_unnormalized_bit_offset)0);
       }  /* if */
       if (!overflow) {
         /* Now compute the field's bit offset within the struct.  We know the
            sum will fit in the bit_offset field because increment_field_offsets
            did not report overflow. */
         field->offset = save_byte_offset;
-        check_assertion(save_bit_offset >= 0 &&
-                        save_bit_offset < targ_char_bit);
+        check_assertion(save_bit_offset < targ_char_bit);
         field->offset_bit_remainder = (an_offset_bit_remainder)save_bit_offset;
       }  /* if */
     }  /* if */
@@ -770,7 +770,8 @@ which it is allocated.
   /* Advance the layout block's byte_offset value -- it will be class's
      size if no new subobjects are added or else the offset for the *next*
      subobject. */
-  if (!increment_field_offsets(&lob->byte_offset, &lob->bit_offset, size, 0)) {
+  if (!increment_field_offsets(&lob->byte_offset, &lob->bit_offset, size,
+                               (an_unnormalized_bit_offset)0)) {
     /* Not enough space remains available in the class for this subobject. */
     if (!lob->any_overflow) {
       /* Issue an error only if one has not yet been put out. */
@@ -1529,7 +1530,7 @@ Reserve space at the end of the class object for virtual base classes.
 */
 {
   a_class_type_supplement_ptr	ctsp;
-  unsigned int                  zero = 0;
+  an_unnormalized_bit_offset    zero = 0;
   
   db_enter(4, "set_virtual_base_class_offsets");
 
@@ -1540,7 +1541,8 @@ Reserve space at the end of the class object for virtual base classes.
     /* If the last data field was a bit field, bump the byte count by one
        before setting the size-without-virtual-base-classes value. */
     if (!increment_field_offsets(&lob->byte_offset, &lob->bit_offset,
-                                 (a_targ_size_t)1, 0)) {
+                                 (a_targ_size_t)1,
+                                 (an_unnormalized_bit_offset)0)) {
       if (!lob->any_overflow) {
         error(struct_too_large_error());
         lob->any_overflow = TRUE;
