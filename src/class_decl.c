@@ -1297,6 +1297,7 @@ nested class.
           check_assertion(tip != NULL && tip->partial_instantiation != NULL);
           ssep = tip->partial_instantiation;
           check_assertion(scope_depth != NO_SCOPE_DEPTH);
+          tip->partial_instantiation = NULL;
           insert_src_seq_list(ssep, ssep, scope_depth, insert_point);
           rfp->symbol->variant.routine.ptr->
                          source_corresp.source_sequence_entry = ssep;
