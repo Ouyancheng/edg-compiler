@@ -376,6 +376,12 @@ static sizeof_t mangled_basic_class_name(a_type_ptr type,
                                          char       *store_at);
 static sizeof_t mangled_encoding_for_type(a_type_ptr type,
                                           char       *store_at);
+static sizeof_t mangled_function_name(a_routine_ptr routine,
+                                      a_boolean     suppress_param_encoding,
+                                      char          *store_at);
+static sizeof_t mangled_static_data_member_name(a_variable_ptr variable,
+                                                a_type_ptr     class_type,
+                                                char           *store_at);
 static void lower_constant(a_constant_ptr constant);
 static void lower_os_constant(a_constant_ptr constant);
 static void lower_type(a_type_ptr type);
@@ -2911,42 +2917,69 @@ used to encode constants as part of the mangled names of template classes.
         }  /* if */
       } else {
         /* Address of something other than a constant, i.e., a variable or
-           routine. */
+           routine.  The encoding is like
+             4abcd <-- encoding for address of "abcd"
+              ^^^^---- Name of entity.
+             ^-------- Length of the name.
+           This is compatible with cfront 3.0.1. */
+        a_variable_ptr variable;
+        a_type_ptr     class_type;
+        a_routine_ptr  routine;
         if (abkind == (an_address_base_kind)abk_variable) {
-          str = con->variant.address.variant.variable->source_corresp.name;
+          variable = con->variant.address.variant.variable;
+          class_type = variable->source_corresp.class_of_which_a_member;
+          if (class_type != NULL) {
+            /* Static data member. */
+            str_length = mangled_static_data_member_name(variable,
+                                                         class_type,
+                                                         (char *)NULL);
+          } else {
+            /* Normal variable. */
+            str = variable->source_corresp.name;
+#if CHECKING
+            if (str == NULL) {
+              internal_error("literal_representation: addr of unnamed");
+            }  /* if */
+#endif /* CHECKING */
+            str_length = strlen(str);
+          }  /* if */
         } else {
 #if CHECKING
           if (abkind != (an_address_base_kind)abk_routine) {
             internal_error("literal_representation: bad abkind");
           }  /* if */
 #endif /* CHECKING */
-          str = con->variant.address.variant.routine->source_corresp.name;
+          routine = con->variant.address.variant.routine;
+          str_length = mangled_function_name(routine,
+                                             /*suppress_param_encoding=*/TRUE,
+                                             (char *)NULL);
         }  /* if */
-#if CHECKING
-        if (str == NULL) {
-          internal_error("literal_representation: addr of unnamed");
-        }  /* if */
-#endif /* CHECKING */
-        /* The encoding is like
-             c4abcd <-- encoding for address of "abcd"
-               ^^^^---- Name of entity.
-              ^-------- Length of the name.
-             ^--------- "c" indicates a constant address.
-           This is compatible with cfront 3.0.1. */
-        str_length = strlen(str);
         digits = digits_to_represent((unsigned long)str_length);
-        literal_length = 1 + digits + str_length;
+        literal_length = digits + str_length;
         if (store_at != NULL) {
-          *store_at++ = 'c';
           (void)sprintf(store_at, "%lu", (unsigned long)str_length);
           store_at += digits;
-          (void)memcpy(store_at, str, (int)str_length);
+          if (abkind == (an_address_base_kind)abk_variable) {
+            if (class_type != NULL) {
+              /* Static data member. */
+              (void)mangled_static_data_member_name(variable,
+                                                    class_type,
+                                                    store_at);
+            } else {
+              /* Normal variable. */
+              (void)memcpy(store_at, str, (int)str_length);
+            }  /* if */
+          } else {
+            (void)mangled_function_name(routine,
+                                        /*suppress_param_encoding=*/TRUE,
+                                        store_at);
+          }  /* if */
           store_at += str_length;
         }  /* if */
       }  /* if */
       /* If the offset is non-zero, add it at the end, in a form similar
          to the integer constant form, except using "O", e.g., O3n12
-         for -12. */
+         for -12.  This convention is not used by cfront; we invented it. */
       offset = con->variant.address.offset;
       if (offset != 0) {
         (void)sprintf(buffer, "%ld", (long)offset);
@@ -3742,20 +3775,27 @@ types; just put out the base encoded name.
     mangled_name_length += section_length;
     if (store_at != NULL) store_at += section_length;
   }  /* if */
-  if (!suppress_param_encoding) {
+  /* See if the function is a member function. */
+  class_type = routine->source_corresp.class_of_which_a_member;
+  /* If we will be adding the class name or the parameter types, put out
+     two underscores to separate the function name from the rest. */
+  if (class_type != NULL || !suppress_param_encoding) {
     /* Add two underscores after the name. */
     mangled_name_length += 2;
     if (store_at != NULL) {
       *store_at++ = '_';
       *store_at++ = '_';
     }  /* if */
-    /* See if the function is a member function. */
-    class_type = routine->source_corresp.class_of_which_a_member;
+  }  /* if */
+  if (class_type != NULL) {
+    /* Put out the name of the class of which this function is a member. */
+    section_length = mangled_encoding_for_type(class_type, store_at);
+    mangled_name_length += section_length;
+    if (store_at != NULL) store_at += section_length;
+  }  /* if */
+  if (!suppress_param_encoding) {
     if (class_type != NULL) {
-      /* Put out the name of the class of which this function is a member. */
-      section_length = mangled_encoding_for_type(class_type, store_at);
-      mangled_name_length += section_length;
-      if (store_at != NULL) store_at += section_length;
+      /* Member function. */
       this_param_type = routine_type->variant.routine.extra_info->
                                                       implicit_this_param_type;
       if (this_param_type != NULL) {
@@ -3777,7 +3817,7 @@ types; just put out the base encoded name.
         if (store_at != NULL) *store_at++ = 'S';
       }  /* if */
     }  /* if */
-    /* Now output the function type. */
+    /* Now output the function type, including the parameter types. */
     section_length = mangled_encoding_for_function_type(routine_type,
                                                         store_at);
     mangled_name_length += section_length;
