@@ -697,7 +697,7 @@ Otherwise, return TRUE.
 {
   a_boolean is_not_local = TRUE;
 
-  if (!has_static_storage_duration(variable->storage_class)) {
+  if (variable->source_corresp.is_local_to_function) {
     pos_st_error(ec_attribute_does_not_apply_to_local_variable,
                  &attribute->position, 
                  attribute_kind_names[(int)attribute->kind]);
