@@ -435,7 +435,9 @@ Return TRUE if the type is a complete class, struct, or union type.
 
   tp = skip_typerefs(tp);
   if (is_class_struct_union(tp)) {
+#if !STANDALONE_UTILITY_PROGRAM
     complete_class_type_is_needed(tp);
+#endif /* !STANDALONE_UTILITY_PROGRAM */
     if (!is_incomplete(tp)) is_complete_class = TRUE;
   }  /* if */
   return is_complete_class;
