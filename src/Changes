@@ -33,10 +33,10 @@ instantiation directives when those specifications match those implied by
 the template declaration.  For example:
 
   template<class T> void f() throw (T) {}
-  template void f<int> f() throw(int);    // Accepted now.
-  template void f<char> f();              // Always accepted.
-  template void f<bool> f() throw(char);  // Error: exception specification
-                                          // mismatch.
+  template void f<int>() throw(int);    // Accepted now.
+  template void f<char>();              // Always accepted.
+  template void f<bool>() throw(char);  // Error: exception specification
+                                        // mismatch.
 
 8/19/99  Fetching value of volatile bit field is a side effect
 
