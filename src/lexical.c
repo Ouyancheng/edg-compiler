@@ -6026,6 +6026,9 @@ point to the character after the universal character name.
 }  /* scan_universal_character */
 
 
+#if !MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+/*ARGSUSED*/  /* <-- is_wide is not used in that case.*/
+#endif /* !MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
 static a_boolean accum_quoted_string(unsigned long *num_chars,
                                      a_boolean     is_header_name,
                                      a_boolean     is_wide,

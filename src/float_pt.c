@@ -1230,7 +1230,8 @@ be NULL if the corresponding return value is not needed.
        LDBL_MIN in a funny place with regard to rounding and the Sun CC
        compiler doesn't accept that value converted in that way.  So on
        systems with 128-bit long double, just stick with LDBL_DIG. */
-    (void)sprintf(str, "%.*Le", (LDBL_DIG>30) ? LDBL_DIG : LDBL_DIG + 1, temp);
+    (void)sprintf(str, "%.*Le",
+                  (LDBL_DIG>30) ? LDBL_DIG : LDBL_DIG + 1, temp);/*lint !e506*/
   }  /* if */
 #else /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
   if (kind == (a_float_kind)fk_float) {
@@ -1576,7 +1577,7 @@ Initialize static variables related to float_pt.c.
      For example, the Intel long double uses only 10 bytes (80 bits) of
      the 12 bytes of allocated space. */
 #if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
-  data_size_of_host_fp_value = (LDBL_MANT_DIG == 64
+  data_size_of_host_fp_value = (LDBL_MANT_DIG == 64 /*lint !e506*/
                               ? ((LDBL_MANT_DIG + 16) / CHAR_BIT)
                               : sizeof(a_host_fp_value));
   /* The routines that handle hex floating point constants must know the
