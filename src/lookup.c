@@ -2868,7 +2868,9 @@ C and C++.
       /* The lookup did not find a symbol but we looked in some classes
          with dependent base classes that may have symbols that were not
          considered.  Look again in a special mode that will find such
-         symbols. */
+         symbols.  The second lookup is also done if the first lookup found
+         a function.  The second lookup will find the same function again
+         if there are no dependent base class symbols found first. */
       lookup_state.force_lookup_in_dependent_bases = TRUE;
       sym = scope_stack_lookup(locator, &lookup_state,
                                depth_of_initial_lookup_scope,
