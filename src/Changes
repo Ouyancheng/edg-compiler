@@ -1,5 +1,18 @@
 Version 2.44
 
+6/13/00  Microsoft compatibility: const/volatile anonymous unions
+
+When ALLOW_NONSTANDARD_ANONYMOUS_UNIONS is TRUE, the front end accepts
+anonymous unions qualified with "const" and/or "volatile".  The qualifier
+does not affect the semantics of the fields of the anonymous union.
+
+  struct S {
+    const union {
+      int i;
+      double d;
+    };  // Accepted in Microsoft mode; not in default and strict ANSI modes
+  };
+
 6/13/00  Microsoft compatibility: spurious floating point range error
 
 When the front end is built using the Microsoft Visual C++ Compiler

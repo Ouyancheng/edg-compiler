@@ -7785,7 +7785,7 @@ also set the is_nonstd_anonymous_union flag in the member-decl-info block.
     /* Skip the typedefs but not cv qualifiers. */
     a_type_ptr  tp = skip_typedefs(member_type);
 
-    if (tp->kind == (a_type_kind)tk_typeref) {
+    if (tp->kind == (a_type_kind)tk_typeref && !microsoft_mode) {
       /* This must be a cv qualifier on top of what we already know to be a
          class, struct, or union type.  The qualifier disqualifies it from
          being treated as an anonymous-union-like construct. */
