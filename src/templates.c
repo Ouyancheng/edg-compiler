@@ -16052,7 +16052,7 @@ that follows.
           update_routine_decl_modifiers(rp, &decl_modifiers,
                                         &locator.source_position,
                                         already_specialized, is_definition,
-                                        rp->is_inline);
+                                        (a_boolean)rp->is_inline);
         }  /* if */
 #endif /* SUN_EXTENSIONS_ALLOWED */
         if (is_definition) {
