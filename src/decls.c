@@ -3810,10 +3810,6 @@ skip_overloading:;
          "original declaration line number" is displayed accurately. */
       check_throw_specification(func_info, routine_ptr);
     }  /* if */
-    /* There is a linked symbol that is compatible with the new declaration.
-       Record the re-declaration for cross-reference purposes. */
-    mark_declared(sym, &locator->source_position,
-                  /*save_as_decl_position=*/is_function_def);
   }  /* if */
   if (C_dialect == C_dialect_cplusplus) {
     if (!is_function && decl_scope_level == DEPTH_OF_FILE_SCOPE &&
@@ -3864,8 +3860,6 @@ skip_overloading:;
   }  /* if */
   if (!is_function) {
     /* The entity being declared is a variable. */
-    /* Set the defined flag in the symbol. */
-    if (is_variable_definition) sym->defined = TRUE;
     if (variable_ptr == NULL) {
       /* There is no IL entry, so create one now.  If the variable has
          internal or external linkage, it is entered at the file scope. */
@@ -4377,8 +4371,6 @@ the symbol and its linkage (which is always "none").
     } else {
       /* The type of the variable should be the composite of the two types. */
       var->type = composite_type(type_ptr, var->type);
-      /* Mark the static data member defined.  It can only be defined once. */
-      sym->defined = TRUE;
       /* Set the IL referenced flag since, as an externally visible variable,
          it could be referenced from another translation unit. */
       var->source_corresp.referenced = TRUE;
@@ -4409,10 +4401,6 @@ the symbol and its linkage (which is always "none").
     }  /* if */
     err = TRUE;
   }  /* if */
-  /* Record the symbol declaration, using the original symbol, even if there
-     was an error.  This will make it show up on a cross reference listing. */
-  mark_declared(sym, &locator->source_position,
-                /*save_as_decl_position=*/FALSE);
   if (err) {
     /* An error occurred which prevents using the object specified as
        target of any initialization that may follow.  Create a dummy
@@ -4421,6 +4409,10 @@ the symbol and its linkage (which is always "none").
     a_type_ptr           tp = sym->class_of_which_a_member;
     a_symbol_header_ptr  hdr = locator->symbol_header;
 
+    /* Record the symbol declaration, using the original symbol, even
+       though there was an error.  This will make it show up on a cross
+       reference listing. */
+    mark_declared(sym, &locator->source_position);
     /* "Enter" the symbol using an error locator -- this means a symbol
        entry will be created but it will not be added to any lists.  Then
        we'll restore the header to the new symbol, so that the correct name
@@ -4589,8 +4581,6 @@ on a prior declaration.
        be done before the routine's decl position is modified, to assure that
        the "original declaration line number" is displayed accurately. */
     check_throw_specification(func_info, rp);
-    mark_declared(sym, &locator->source_position,
-                  /*save_as_decl_position=*/TRUE);
     copy_source_position(locator->source_position,
                          rp->source_corresp.decl_position);
     /* If this is an member function of an instantiation of a class
@@ -4611,7 +4601,6 @@ on a prior declaration.
     }  /* if */
     sym->variant.routine.ptr->is_inline = TRUE;
   }  /* if */
-  sym->defined = TRUE;
   *symbol_ptr = sym;
   *ext_sym = NULL;
   *linkage_ptr = idl_external;
@@ -4669,8 +4658,7 @@ a pointer to it in *symbol_ptr.
             pos_diagnostic(strict_ansi_error_severity,
                            ec_duplicate_typedef, &locator->source_position);
           }  /* if */
-          mark_declared(sym, &locator->source_position,
-                        /*save_as_decl_position=*/FALSE);
+          mark_declared(sym, &locator->source_position);
           goto return_point;
         } else {
           /* C++ only.  Must be a tag symbol. */
@@ -4723,7 +4711,7 @@ a pointer to it in *symbol_ptr.
      scope. */
   sym->variant.type = tp = alloc_type((a_type_kind)tk_typeref);
   tp->variant.typeref.type = type_ptr;
-  sym->defined = TRUE;
+  mark_defined(sym, &locator->source_position);
   set_decl_sequence_number(sym);
   set_source_corresp(&(tp->source_corresp), sym);
   add_to_types_list(tp, decl_scope_level);
@@ -4750,9 +4738,10 @@ turned into an sk_variable symbol; but if function_instantiation is TRUE,
 a new symbol is created and entered in the symbol table.
 */
 {
-  a_symbol_ptr   sym;
-  a_variable_ptr vp;
-  a_type_ptr     tp;
+  a_symbol_ptr      sym;
+  a_variable_ptr    vp;
+  a_type_ptr        tp;
+  a_symbol_locator  locator;
 
   db_enter(3, "decl_parameter");
   /* Choose the type to use, the one in the param-type entry or the one in
@@ -4785,9 +4774,8 @@ a new symbol is created and entered in the symbol table.
     /* This param_id entry represents an unnamed parameter (which is legal
        in function definitions in C++). */
   } else {
+    make_locator_for_symbol(sym, &locator);
     if (function_instantiation) {
-      a_symbol_locator  locator;
-      make_locator_for_symbol(sym, &locator);
       sym = enter_local_symbol((a_symbol_kind)sk_variable, &locator,
                                decl_scope_level,
                                /*suppress_redecl_error=*/FALSE);
@@ -4798,7 +4786,7 @@ a new symbol is created and entered in the symbol table.
     }  /* if */
     sym->variant.variable.ptr = vp;
     set_source_corresp(&(vp->source_corresp), sym);
-    sym->defined = TRUE;
+    mark_defined(sym, &locator.source_position);
     mark_variable_value_set(sym);
 #if DEBUG
     if (debug_level >= 3) {
@@ -4937,12 +4925,10 @@ is_definition is TRUE if the label is being scanned as part of a label.
   if (!is_error_locator(locator_for_curr_id)) {
     /* Record the right kind of reference to the label symbol. */
     if (is_definition) {
-      /* Note that we want mark_declared called even if the symbol
+      /* Note that we want mark_defined is called even if the symbol
          was previously entered.  Labels are strange in that a reference
          can come up before a declaration. */
-      mark_declared(label_sym, &pos_curr_token,
-                    /*save_as_decl_position=*/TRUE);
-      label_sym->defined = TRUE;
+      mark_defined(label_sym, &pos_curr_token);
       /* Set the declaration sequence number. */
       set_decl_sequence_number(label_sym);
     } else {
@@ -6207,6 +6193,11 @@ to indicate whether an enumeration is actually defined.
       set_source_corresp(&(enum_type->source_corresp), tag_sym);
       tag_sym->class_of_which_a_member = class_of_which_a_member;
       tag_sym->variant.type = enum_type;
+      if (curr_token == tok_lbrace) {
+        mark_defined(tag_sym, &locator.source_position);
+      } else {
+        mark_declared(tag_sym, &locator.source_position);
+      }  /* if */
     }  /* if */
     /* When an enumeration is defined within a class definition, its access
        should be set based on the access recorded in the current scope stack
@@ -6219,8 +6210,7 @@ to indicate whether an enumeration is actually defined.
     enum_type = tag_sym->variant.type;
     /* Record cross-reference information. */
     if (curr_token == tok_lbrace) {
-      mark_declared(tag_sym, &locator.source_position,
-                    /*save_as_decl_position=*/TRUE);
+      mark_defined(tag_sym, &locator.source_position);
     } else {
       mark_referenced(tag_sym, &locator.source_position);
     }  /* if */
@@ -6230,12 +6220,10 @@ to indicate whether an enumeration is actually defined.
        allocated in the file scope memory region, all its components should
        also be.  Switch to the file scope memory region here at the start of
        the definition and switch back when we reach the right brace. */
+#if 0
     switch_to_file_scope_region(&region_to_switch_back_to);
+#endif /* if 0 */
     *defines_something = TRUE;
-    if (tag_sym != NULL) {
-      tag_sym->defined = TRUE;
-      set_decl_sequence_number(tag_sym);
-    }  /* if */
     (void)get_token();
     if (C_dialect == C_dialect_cplusplus) {
       /* In C++ (see ARM 7.2) the type of an enumerator is the same as that
@@ -6342,7 +6330,6 @@ to indicate whether an enumeration is actually defined.
         enum_sym = enter_local_symbol((a_symbol_kind)sk_constant, &locator,
                                       decl_scope_level,
                                       /*suppress_redecl_error=*/FALSE);
-        enum_sym->defined = TRUE;
         *declares_something = TRUE;
         /* Track the highest and lowest values in the enumeration.  These are
            used to determine the appropriate representation type. */
@@ -6359,11 +6346,16 @@ to indicate whether an enumeration is actually defined.
           min_value = constant;
         }  /* if */
         /* Assign the value to the enumeration constant. */
+        switch_to_file_scope_region(&region_to_switch_back_to);
         enum_con = alloc_constant((a_constant_repr_kind)ck_integer);
+        /* Switch back from the file scope memory region to whatever region
+           was current upon entry. */
+        switch_back_to_original_region(region_to_switch_back_to);
         copy_constant(&constant, enum_con);
         set_source_corresp(&(enum_con->source_corresp), enum_sym);
         enum_sym->variant.constant = enum_con;
         enum_con->type = enum_con_type;
+        mark_defined(enum_sym, &locator.source_position);
         /* Specify membership and access. */
         enum_con->source_corresp.class_of_which_a_member =
                 enum_sym->class_of_which_a_member = class_of_which_a_member;
@@ -6460,9 +6452,11 @@ to indicate whether an enumeration is actually defined.
     } else {
       add_to_types_list(enum_type, effective_decl_level);
     }  /* if */
+#if 0
     /* Switch back from the file scope memory region to whatever region
        was current upon entry. */
     switch_back_to_original_region(region_to_switch_back_to);
+#endif /* if 0 */
   }  /* if */
 
   *type_ptr = enum_type;
@@ -8399,7 +8393,7 @@ explicitly specified (rather than defaulted to "int").
     decl_var_or_routine(locator, storage_class, rout_type, func_info,
                         &symbol_ptr, &linkage, &old_type, &ext_sym);
   }  /* if */
-  symbol_ptr->defined = TRUE;
+  mark_defined(symbol_ptr, &locator->source_position);
   routine_ptr = symbol_ptr->variant.routine.ptr;
   check_assertion(make_unqualified_type(routine_ptr->type) ==
                                                       unqualified_rout_type);
@@ -8658,6 +8652,7 @@ Process a handler declaration:
             sym = enter_symbol((a_symbol_kind)sk_variable, &locator,
                                decl_scope_level,
                                /*suppress_redecl_error=*/FALSE);
+            mark_defined(sym, &locator.source_position);
           }  /* if */
         }  /* if */
         if (!exceptions_enabled) {
@@ -9601,6 +9596,7 @@ continue_with_declaration:
         a_type_ptr  tp = local_type_ptr;
         if (is_reference_type(tp)) tp = type_pointed_to(tp);
         check_for_uninstantiated_template_class(tp);
+        mark_defined(symbol_ptr, &locator.source_position);
       }  /* if */
       incomplete_type_error_reported = FALSE;
       if (has_initializer) {
@@ -9618,7 +9614,6 @@ continue_with_declaration:
           /* All initialized variables are considered defined.  This flag
              may have already been set based on storage class and scope
              level. */
-          symbol_ptr->defined = TRUE;
           mark_variable_value_set(symbol_ptr);
         }  /* if */
         /* If the symbol is a parameter, the subroutine will generate the

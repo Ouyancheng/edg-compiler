@@ -3321,9 +3321,6 @@ special function kind (e.g., constructor, destructor), if any.
     rtn->is_inline = func_info->is_inline;
     if (compiler_generated) {
       rtn->compiler_generated = TRUE;
-    } else {
-      /* Set the declaration sequence number. */
-      set_decl_sequence_number(sym);
     }  /* if */
     add_throw_specification(func_info, rtn);
     if (cssp->is_nonreal_class) {
@@ -3558,6 +3555,7 @@ inconsistent with the restriction to integral type.
   /* Update the symbol and the constant entry. */
   sym->variant.constant = cp;
   set_source_corresp(&(cp->source_corresp), sym);
+  mark_defined(sym, &locator->source_position);
   cp->source_corresp.access = access;
   cp->source_corresp.class_of_which_a_member =
                           sym->class_of_which_a_member = class_type;
@@ -3598,8 +3596,6 @@ table.
   var = make_variable(member_type, (a_storage_class)sc_static,
                       /*at_file_scope=*/FALSE);
   sym->variant.static_data_member.variable = var;
-  /* Set the source correspondence fields of the variable. */
-  set_source_corresp(&var->source_corresp, sym);
   var->source_corresp.class_of_which_a_member = class_type;
   /* Static data members will have the same name linkage as the class of
      which they are members.  For now, the class will have internal linkage.
@@ -3607,6 +3603,11 @@ table.
      data members will also be changed. */
   var->source_corresp.name_linkage = class_type->source_corresp.name_linkage;
   var->source_corresp.access = access;
+  /* Set the source correspondence fields of the variable. */
+  set_source_corresp(&var->source_corresp, sym);
+  /* This is entered as a declaration rather than a definition, since the
+     definition must appear outside the class definition. */
+  mark_declared(sym, &locator->source_position);
   if (is_anonymous_union) {
     /* A static data members is not allowed to be an anonymous union.  An error
        will have been issued already, but promote the fields anyway. */
@@ -3969,8 +3970,8 @@ class, struct, or union.
       set_decl_sequence_number(member_sym);
       member_sym->class_of_which_a_member = class_type;
       member_sym->variant.field.ptr = field;
-      member_sym->defined = TRUE;
       set_source_corresp(&(field->source_corresp), member_sym);
+      mark_defined(member_sym, &locator->source_position);
     }  /* if */
     field->source_corresp.class_of_which_a_member = class_type;
     field->source_corresp.access = access;
@@ -5637,12 +5638,6 @@ Scan the body of a class definition, including the base classes list.
        to the file scope memory region here at the start of the definition and
        switch back when we reach the right brace. */
     switch_to_file_scope_region(&region_to_switch_back_to);
-    /* This is a class, struct, or union definition -- not merely a
-       declaration. */
-    tag_sym->defined = TRUE;
-    /* Since this is the class's definition, set the declaration sequence
-       number. */
-    set_decl_sequence_number(tag_sym);
     /* If this is the definition of a nested class, set the parent class
        pointer in the tag symbol and set the access. */
     if (!is_template_instantiation &&
@@ -6276,7 +6271,7 @@ Scan the body of a class definition, including the base classes list.
                                       /*reusable=*/FALSE);
                   }  /* if */
                 } else {
-                  rout_sym->defined = TRUE;
+                  mark_defined(rout_sym, &locator.source_position);
                 }  /* if */
                 if (!friend_specified) {
                   /* The inline flag is set for friend functions in
@@ -6317,6 +6312,7 @@ Scan the body of a class definition, including the base classes list.
                 goto next_declaration;
               } else {
                 /* Not a function definition. */
+                mark_declared(rout_sym, &locator.source_position);
                 if (curr_token == tok_assign) {
                   /* Look for a pure specifier ("= 0"), which may appear on
                      virtual functions. */
@@ -7036,6 +7032,11 @@ skip_tag_scan:
                                          (a_name_linkage_kind)nlk_internal;
       }  /* if */
     }  /* if */
+    if (is_class_definition) {
+      mark_defined(tag_sym, &locator.source_position);
+    } else {
+      mark_declared(tag_sym, &locator.source_position);
+    }  /* if */
   } else if (tag_sym->kind == (a_symbol_kind)sk_type) {
     /* Use of template parameter name as a proxy tag name during a
        prototype instantiation. */
@@ -7044,8 +7045,11 @@ skip_tag_scan:
     class_type = tag_sym->variant.class_struct_union.type;
     /* Record cross-reference information. */
     if (is_class_definition) {
-      mark_declared(tag_sym, &locator.source_position,
-                  /*save_as_decl_position=*/!is_template_class_instantiation);
+      if (is_template_class_instantiation) {
+        mark_declared(tag_sym, &locator.source_position);
+      } else {
+        mark_defined(tag_sym, &locator.source_position);
+      }  /* if */
       /* Allow for alternating between class and struct, but stay with the
          one associated with the definition.  The difference only affects
          default member access. */
