@@ -6262,7 +6262,8 @@ parameters.
         dump_microsoft_align_declspec(variable->alignment);
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if DECL_MODIFIERS_IN_USE
+#if DECL_MODIFIERS_IN_USE && \
+    (MICROSOFT_EXTENSIONS_ALLOWED || THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED)
       if (!microsoft_dialect_is_generated_code_target &&
           (variable->decl_modifiers & DM_THREAD)) {
         /* Non-Microsoft dialects usually include a "__thread" keyword to
@@ -6270,7 +6271,7 @@ parameters.
            been emitted by the call to dump_microsoft_decl_modifiers.) */
         write_tok_str("__thread ");
       }  /* if */
-#endif /* DECL_MODIFIERS_IN_USE */
+#endif /* DECL_MODIFIERS_IN_USE && (MICROSOFT_EXTENSIONS_ALLOWED || ...) */
 #if C_GEN_BE_GENERATES_ANSI_C
       underlying_var_type = var_type;
       if (is_array_type(var_type)) {

@@ -9580,9 +9580,9 @@ __declspec specifiers that are not valid in this context.  The diagnostic is
 emitted for the position indicated by the given locator.
 */
 {
+#if MICROSOFT_EXTENSIONS_ALLOWED
   a_decl_modifier  flags = decl_info->decl_modifiers.flags;
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
   flags &= (DM_DLLIMPORT | DM_DLLEXPORT | DM_NAKED | DM_SELECTANY |
             DM_NOTHROW | DM_NOVTABLE | DM_NORETURN | DM_NOINLINE);
   if (decl_info->decl_modifiers.allocate_segname != NULL) {

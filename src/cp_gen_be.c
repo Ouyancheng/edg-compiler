@@ -10350,7 +10350,8 @@ declaration following this one is such a continuation.
       gen_microsoft_align_declspec(var->alignment);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if DECL_MODIFIERS_IN_USE
+#if DECL_MODIFIERS_IN_USE && \
+    (MICROSOFT_EXTENSIONS_ALLOWED || THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED)
     if (!microsoft_dialect_is_generated_code_target &&
         (var->decl_modifiers & DM_THREAD)) {
       /* Non-Microsoft dialects usually include a "__thread" keyword to
@@ -10358,7 +10359,7 @@ declaration following this one is such a continuation.
          been emitted by the call to gen_microsoft_decl_modifiers.) */
       write_tok_str("__thread ");
     }  /* if */
-#endif /* DECL_MODIFIERS_IN_USE */
+#endif /* DECL_MODIFIERS_IN_USE && (MICROSOFT_EXTENSIONS_ALLOWED || ...) */
   }  /* if */
   /* An unqualified name is used in the declarator if this is a declaration
      rather than a definition.  Specializations are an exception, and
