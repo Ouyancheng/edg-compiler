@@ -3224,10 +3224,10 @@ This routine performs the lookup described in [over.match.oper].
 Specifically, it produces the set of nonmember candidates by doing
 a normal lookup (but excluding member functions) and combining the
 result of that lookup with a lookup in the namespaces of the classes
-pointed to by type_1 and type_2 including the namespaces of their base
-classes.  type_1 and type_2 may point to any kind of type or may be
-NULL.  If the type pointed to by type_1 or type_2 is not a class
-type, that type is ignored by this routine.
+or enumerations pointed to by type_1 and type_2 including the namespaces
+of their base classes.  type_1 and type_2 may point to any kind of type
+or may be NULL.  If the type pointed to by type_1 or type_2 is not a class
+or enum type, that type is ignored by this routine.
 
 The result of this lookup is a symbol list, each entry of which points
 to a routine or function template (i.e., there are no overloaded
@@ -3238,19 +3238,56 @@ functions symbols or namespace projection symbols in the list).
   a_namespace_list_entry_ptr	nlep_2 = NULL;
   a_symbol_header_ptr		sym_hdr;
   a_symbol_list_entry_ptr	symbol_list = NULL;
+  a_namespace_list_entry	enum_nle_1;
+  a_namespace_list_entry	enum_nle_2;
 
   db_enter(4, "nonmember_operator_function_lookup");
-  /* Get a pointer to the namespace list associated with each class. */
-  if (type_1 != NULL && is_class_struct_union_type(type_1)) {
+  /* Get a pointer to the namespace list associated with each class or
+     enumeration.  Enumerations don't have an associated namespace list
+     because they only have one associated namespace -- the namespace
+     in which the enumeration is defined (or in which the enclosing class
+     is defined for a member enum).  A local namespace list entry, which points
+     to the associated namespace for the enum, is created for each enum 
+     type. */
+  if (type_1 != NULL) {
     type_1 = skip_typerefs(type_1);
-    nlep_1 = symbol_supplement_for_class(type_1)->operator_lookup_namespaces;
+    if (is_class_struct_union_type(type_1)) {
+      nlep_1 = symbol_supplement_for_class(type_1)->operator_lookup_namespaces;
+    } else if (is_enum_type(type_1)) {
+      /* Find the parent namespace of the enum type.  Create a namespace list
+         entry that points to that namespace. */
+      a_type_ptr	tp = type_1;
+      while (tp->source_corresp.is_class_member) {
+        tp = tp->source_corresp.parent.class_type;
+      }  /* while */
+      enum_nle_1.ptr = tp->source_corresp.parent.namespace_ptr;
+      enum_nle_1.next = NULL;
+      /* Set the namespace list entry for the type to point to the
+         local entry just created. */
+      nlep_1 = &enum_nle_1;
+    }  /* if */
   }  /* if */
-  if (type_2 != NULL && is_class_struct_union_type(type_2)) {
+  if (type_2 != NULL) {
     type_2 = skip_typerefs(type_2);
     if (type_2 != type_1) {
       /* If the two types are the same, we don't need to bother looking
          though the same list twice. */
-      nlep_2 = symbol_supplement_for_class(type_2)->operator_lookup_namespaces;
+      if (is_class_struct_union_type(type_2)) {
+        nlep_2 = symbol_supplement_for_class(type_2)->
+                                                   operator_lookup_namespaces;
+      } else if (is_enum_type(type_2)) {
+        /* Find the parent namespace of the enum type.  Create a namespace list
+           entry that points to that namespace. */
+        a_type_ptr	tp = type_2;
+        while (tp->source_corresp.is_class_member) {
+          tp = tp->source_corresp.parent.class_type;
+        }  /* while */
+        enum_nle_2.ptr = tp->source_corresp.parent.namespace_ptr;
+        enum_nle_2.next = NULL;
+        /* Set the namespace list entry for the type to point to the
+           local entry just created. */
+        nlep_2 = &enum_nle_2;
+      }  /* if */
     }  /* if */
   }  /* if */
   /* See if there are any functions for this operator. */
