@@ -26,9 +26,8 @@ compilation command line in the .ii file.
 A new configuration flag has been added to edg_prelink.h called
 PL_DEFAULT_VERBOSE_MODE.  This lets you specify whether or not
 the prelinker should produce verbose output by default.  A new
-command line option has been added to the prelinker that specifies
-that verbose output should not be produced.  The new option is
-the -q (quiet) option.
+command line option (-q) has been added to the prelinker that specifies
+that verbose output should not be produced. 
 
 12/27/95 Building the utility programs with the Sun C++ compiler
 
@@ -48,7 +47,7 @@ is -iN, where N is the number of lines to be ignored.
 
 10/12/95 Change in path used for nm on Solaris in edg_prelink
 
-edg_prelink now looks for nm in the users search path on Solaris
+edg_prelink now looks for nm in the user's search path on Solaris
 instead of having a directory name included in the default nm command.
 
 10/12/95 New eccp environment variable for edg_munch options
