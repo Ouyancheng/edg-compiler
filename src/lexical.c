@@ -5403,6 +5403,8 @@ This routine may only be called in C++ mode.
   a_type_ptr		dtor_class_type = NULL;
   a_type_ptr		dtor_type = NULL;
   a_source_position	tilde_position;
+  a_boolean             might_be_qualifier;
+  a_token_kind          qualifier_separator = tok_colon_colon;
 
   db_enter(4, "f_is_generalized_identifier_start");
   /* If the current token is an identifier, then check the flag in the
@@ -5443,15 +5445,38 @@ This routine may only be called in C++ mode.
      a simple type name.  The function "type_keyword" will detect
      a token than begins a simple type.  We will check later to determine
      whether the identifier is a class name or a type name, if needed.  */
-  if ((curr_token == tok_identifier &&
-      ((next_tok = next_two_tokens(tok_colon_colon, &next_tok_2)) ==
-							 tok_colon_colon ||
-       next_tok == tok_lt)) ||
-      /* Check for a things like "int::~". */
-      (dtor_must_be_nonclass && ((dtor_class_type = type_keyword()) != NULL) &&
-       (next_tok = next_two_tokens(tok_colon_colon, &next_tok_2)) ==
-							 tok_colon_colon &&
-        next_tok_2 == tok_compl)) {
+  might_be_qualifier = FALSE;
+  if (curr_token == tok_identifier) {
+    next_tok = next_two_tokens(tok_colon_colon, &next_tok_2);
+    if (next_tok == tok_colon_colon || next_tok == tok_lt) {
+      might_be_qualifier = TRUE;
+    } else if (cfront_compatibility_mode && next_tok == tok_period) {
+      /* Check for the anachronism of allowing a "." as a qualifier separator
+         where a "::" should be used.  This is only done in cfront mode
+         because this is something that cfront labels as an anachronism but
+         is not in the ARM list of anachronisms.  Note that when using the
+         "." notation, you must use "." at all levels of qualification
+         except global.  That is, you must say A.B.C not A.B::C or A::B.C.
+         Also "." qualifiers are not supported for vacuous destructor
+         references or template references.  We can't tell yet whether this
+         is a qualified name or simply a normal field reference.  We'll
+         assume this is a qualifier for now and make a final decision after
+         we try to look up the identifier.  A warning will be issued,
+         if appropriate, after the lookup is done. */
+      next_tok = next_two_tokens(tok_period, &next_tok_2);
+      might_be_qualifier = TRUE;
+      qualifier_separator = tok_period;
+    }  /* if */
+  } else if (dtor_must_be_nonclass) {
+    dtor_class_type = type_keyword();
+    if (dtor_class_type != NULL) {
+      next_tok = next_two_tokens(tok_colon_colon, &next_tok_2);
+      if (next_tok == tok_colon_colon && next_tok_2 == tok_compl) {
+        might_be_qualifier = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (might_be_qualifier) {
     /* Look up the identifier to see if it could be a class name.  Note that
        we don't consider the normal eclipsing rules.  A class can be found
        even when hidden by something else:
@@ -5518,6 +5543,21 @@ This routine may only be called in C++ mode.
                          locator_for_curr_id.specific_symbol);
         }  /* if */
       }  /* if */
+      if (qualifier_separator == tok_period) {
+        if (class_symbol != NULL) {
+          /* In cfront mode we have a construct like "A." where A is a
+             class name.  This is a use of a cfront anachronism where "."
+             is used in a qualified name where "::" should be used.
+             Issue a warning. */
+          warning(ec_period_used_as_qualifier);
+        } else {
+          /* In cfront mode we have found a construct like "A." and A is not
+             a class name.  What we have is probably just a normal field
+             reference.  Reset the qualifier_separator so that we don't
+             try to process this as a qualified name. */
+          qualifier_separator = tok_colon_colon;
+        }  /* if */
+      }  /* if */
       /* If we think we have a vacuous destructor reference, make sure the
          symbol found is a type.  An error will be issued below. */
       if (is_vacuous_dtor && class_symbol != NULL &&
@@ -5545,7 +5585,7 @@ This routine may only be called in C++ mode.
       (void)get_token();  /* The "::" that follows the type name. */
       is_qualified_name = TRUE;
       is_file_scope_qualified_name = FALSE;
-    } else if (next_token() == tok_colon_colon) {
+    } else if (next_token() == qualifier_separator) {
       a_boolean         first_class = TRUE;
       a_source_position type_position;
       type_position = start_position;
@@ -5593,7 +5633,8 @@ This routine may only be called in C++ mode.
         /* Skip over the class-name, and the "::". */
         (void)get_token();
         if (get_token() != tok_identifier ||
-            next_two_tokens(tok_colon_colon, &next_tok_2) != tok_colon_colon) {
+            next_two_tokens(qualifier_separator, &next_tok_2) !=
+                                                       qualifier_separator) {
           /* Not an identifier followed by "::", so end the loop. */
           break;
         }  /* if */

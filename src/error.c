@@ -1941,6 +1941,9 @@ error code.
     case ec_self_friendship:
       m = "pointless friend declaration";
       break;
+    case ec_period_used_as_qualifier:
+      m = "\".\" used for qualification (cfront anachronism)";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

@@ -1,5 +1,22 @@
 Version 2.18
 
+6/2/93 Using "." for qualification
+
+Cfront allows "." to be used in place of "::" in qualified names.
+Cfront refers to this as an anachronism even though it is not included
+in the ARM list of anachronisms.  This feature is now supported in
+cfront compatibility mode.  A warning is issued.
+
+  struct A {
+    static int i;
+  };
+
+  int main()
+  {
+    int i;
+    i = A.i;   // Equivalent to A::i
+  }
+
 6/2/93 Useless function parameter declaration
 
 A warning (or error in strict ANSI mode) is reported on cases like this:

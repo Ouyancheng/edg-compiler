@@ -563,7 +563,8 @@ typedef enum /*an_error_code*/ {
   ec_unexpected_template_arg_list,
   ec_missing_initializer_list,
   ec_incompatible_ptr_to_member_selection_operands,
-  ec_self_friendship
+  ec_self_friendship,
+  ec_period_used_as_qualifier
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
