@@ -338,42 +338,6 @@ field or array element.
   }  /* if */
 }  /* add_dtor_for_partially_constructed_aggregate */
 
-#if 0
-static void check_for_uninitialized_const_or_ref_member(
-                                  an_aggregate_init_context_ptr  init_context,
-                                  an_aggregate_init_info_ptr     init_info)
-/*
-*/
-{
-  for (; context_info != NULL; context_info = context_info->prev_context) {
-    for (fp = context_info->field; fp != NULL; fp = fp->next) {
-      if (is_reference_type(tp)) {
-        /* Field is a reference -- an error should be put out. */
-        init_info->any_uninitialized_const_or_ref_member = TRUE;
-        break;
-      } else if (C_mode()) {
-        /* Check for const qualified members in C mode.  An error will be
-           issued. */
-        if (is_const_qualified_type(tp)) {
-          init_info->any_uninitialized_const_or_ref_member = TRUE;
-          break;
-        } else {
-          if (is_array_type(tp)) tp = underlying_array_element_type(tp);
-          tp = skip_typerefs(tp);
-          if (is_immediate_class_type(tp)) {
-            /* Field is a class type (or an array of class-type elements). */
-            if (tp->variant.class_struct_union.any_const_member) {
-              init_info->any_uninitialized_const_or_ref_member = TRUE;
-              break;
-            }  /* if */
-          }  /* if */
-        }  /* if */
-      }  /* if */
-    }  /* for */
-    if (init_info->any_uninitialized_const_or_ref_member) break;
-  }  /* for */
-}  /* check_for_uninitialized_const_or_ref_member */
-#endif /* if 0 */
 
 static a_boolean any_constructible_fields_remaining(
                                   an_aggregate_init_context_ptr  init_context,
@@ -417,20 +381,6 @@ init_info is a pointer to a block of information tracking this initialization.
       }  /* if */
     }  /* if */
   }  /* for */
-#if 0
-  if (!ctor_found) {
-    an_aggregate_init_context_ptr  prev_init_context;
-    for (prev_init_context = init_context->prev_context;
-         prev_init_context != NULL;
-         prev_init_context = prev_init_context->prev_context) {
-      if (prev_init_context->field != NULL) {
-        ctor_found = any_constructible_fields_remaining(prev_init_context,
-                                                        init_info);
-        break;
-      }  /* if */
-    }  /* for */
-  }  /* if */
-#endif /* if 0 */
   return ctor_found;
 }  /* any_constructible_fields_remaining */
 
