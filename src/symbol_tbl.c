@@ -2778,7 +2778,8 @@ the symbol table, this routine is not called for them.
     /* If no constructor already exists we permit a field with the same
        name its class, as long as it's not an anonymous union field being
        promoted to a containing class with the same name. */
-    if (member_sym->kind == (a_symbol_kind)sk_field &&
+    if (!class_name_injection_enabled &&
+        member_sym->kind == (a_symbol_kind)sk_field &&
         class_sym->variant.
                     class_struct_union.extra_info->constructor == NULL &&
         ((fp = member_sym->variant.field.ptr) == NULL ||
@@ -3952,7 +3953,7 @@ specified by tag_sym, and enter it into the symbol table.
   a_type_ptr        class_type = tag_sym->variant.class_struct_union.type;
   a_boolean         suppress_error = FALSE;
 
-  if (!is_unnamed_tag_symbol(tag_sym)) {
+  if (!is_unnamed_tag_symbol(tag_sym) && !tag_sym->is_error) {
     sym = alloc_symbol((a_symbol_kind)sk_type, tag_sym->header,
                        &tag_sym->decl_position);
     sym->variant.type.ptr = class_type;
