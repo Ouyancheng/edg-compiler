@@ -2815,6 +2815,13 @@ Display the indicated routine.
   }  /* if */
 #endif /* IA64_ABI */
 #endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+#if DO_IL_LOWERING && IA64_ABI
+  if (ptr->primary_ctor_or_dtor != NULL) {
+    disp_ptr("primary_ctor_or_dtor",
+             (char *)ptr->primary_ctor_or_dtor,
+             iek_routine);
+  }  /* if */
+#endif /* DO_IL_LOWERING && IA64_ABI */
 #if ONE_INSTANTIATION_PER_OBJECT
   if (ptr->instantiation_needed_bit_number != 0) {
     disp_unsigned_long("instantiation_needed_bit_number",

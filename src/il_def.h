@@ -7176,6 +7176,13 @@ typedef struct a_routine {
 			   is required. */
 #endif /* IA64_ABI */
 #endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+#if DO_IL_LOWERING && IA64_ABI
+  a_routine_ptr	primary_ctor_or_dtor;
+			/* In an entry for a constructor or destructor
+			   alternate entry point (i.e., an entry with
+			   ctor_dtor_kind != cdk_none), this points to the
+			   underlying constructor or destructor routine. */
+#endif /* DO_IL_LOWERING && IA64_ABI */
 #if ONE_INSTANTIATION_PER_OBJECT
   unsigned long	instantiation_needed_bit_number;
 			/* When a separate "needed" flag is maintained for

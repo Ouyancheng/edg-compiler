@@ -2127,6 +2127,9 @@ to it.  The entry is allocated in the file scope memory region.
   rp->vbase_index                 = 0;
 #endif /* IA64_ABI */
 #endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+#if DO_IL_LOWERING && IA64_ABI
+  rp->primary_ctor_or_dtor        = NULL;
+#endif /* DO_IL_LOWERING && IA64_ABI */
 #if ONE_INSTANTIATION_PER_OBJECT
   rp->instantiation_needed_bit_number = 0;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
