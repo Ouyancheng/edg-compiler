@@ -32,6 +32,7 @@ static void prep_conversion_operand(
                                  a_type_ptr        dest_type,
                                  a_boolean         *is_transparent,
                                  a_conv_descr      *conversion,
+                                 a_boolean         initializing_return_value,
                                  a_boolean         is_copy_initialization,
                                  a_boolean         orig_is_copy_initialization,
                                  a_boolean         processed_arg,
@@ -1789,6 +1790,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
                   after we've gone to the trouble of rejecting them above. */
                (conversion_to_class_possible(orig_arg_operand, param_type,
                                              /*try_bitwise_copy=*/FALSE,
+                                           /*initializing_return_value=*/FALSE,
                                              /*is_copy_initialization=*/TRUE,
                                              /*orig_is_copy_initialization=*/
                                                                           TRUE,
@@ -2390,6 +2392,7 @@ static void determine_function_viability(
                  a_boolean                selector_is_object_pointer,
                  a_type_ptr               implicit_selector_type,
                  a_boolean                ctor_conversion_case,
+                 a_boolean                initializing_return_value,
                  a_boolean                effects_copy_initialization,
                  a_boolean                allow_udc_on_arguments,
                  a_boolean                from_arg_dep_lookup,
@@ -2426,14 +2429,16 @@ done as part of resolving an implicit or explicit conversion to a
 class type: the functions are constructors, have_selector is FALSE
 (sic; the "this" parameter is not matched up); the "conversion" field
 is set in any candidate function entries created.
-effects_copy_initialization is TRUE if this call is the user-defined
-conversion in a copy-initialization; constructors that are marked
-"explicit" are ignored.  allow_udc_on_arguments is TRUE if
-user-defined conversions should be allowed on the argument matches.
-from_arg_dep_lookup is TRUE if the function was found by
-argument-dependent lookup.  dependent_call is TRUE if the call is a
-template-dependent call.  known_to_be_visible is TRUE if the function
-is known to be visible and the visibility check should be suppressed.
+initializing_return_value is TRUE if the initialization is being done
+to return a value in a return statement.  effects_copy_initialization
+is TRUE if this call is the user-defined conversion in a
+copy-initialization; constructors that are marked "explicit" are
+ignored.  allow_udc_on_arguments is TRUE if user-defined conversions
+should be allowed on the argument matches.  from_arg_dep_lookup is
+TRUE if the function was found by argument-dependent lookup.
+dependent_call is TRUE if the call is a template-dependent call.
+known_to_be_visible is TRUE if the function is known to be visible and
+the visibility check should be suppressed.
 */
 {
   a_symbol_ptr             function_symbol;
@@ -2466,9 +2471,10 @@ is known to be visible and the visibility check should be suppressed.
                                        &invisible_because_explicit)) {
       /* The function is not visible. */
       if (microsoft_bugs && microsoft_version == 1200 &&
-          invisible_because_explicit) {
+          invisible_because_explicit && initializing_return_value) {
         /* MSVC++ 6.0 sees invisible explicit constructors, but considers
-           them worse than others. */
+           them worse than others.  It seems to allow this on return
+           statements only (not variable initializations). */
         microsoft_explicit_constructor_case = TRUE;
       } else {
         /* The function is not visible, so ignore it. */
@@ -2811,6 +2817,7 @@ static void try_overloaded_function_match(
                  an_operand               *bound_function_selector,
                  a_boolean                selector_is_object_pointer,
                  a_boolean                ctor_conversion_case,
+                 a_boolean                initializing_return_value,
                  a_boolean                effects_copy_initialization,
                  a_boolean                allow_udc_on_arguments,
                  a_boolean                from_arg_dep_lookup,
@@ -2840,7 +2847,9 @@ error messages.  If ctor_conversion_case is TRUE, this analysis is
 being done as part of resolving an implicit or explicit conversion
 to a class type: the functions are constructors, have_selector is FALSE
 (sic; the "this" parameter is not matched up); the "conversion" field
-is set in any candidate function entries created.  effects_copy_initialization
+is set in any candidate function entries created.
+initializing_return_value is TRUE if the initialization is being done
+to return a value in a return statement.  effects_copy_initialization
 is TRUE if this call is the user-defined conversion in a copy-initialization;
 constructors that are marked "explicit" are ignored.  allow_udc_on_arguments
 is TRUE if user-defined conversions should be allowed on the argument
@@ -2934,6 +2943,7 @@ is known to be visible and the visibility check should be suppressed.
                                  selector_is_object_pointer,
                                  implicit_selector_type,
                                  ctor_conversion_case,
+                                 initializing_return_value,
                                  effects_copy_initialization,
                                  allow_udc_on_arguments,
                                  from_arg_dep_lookup,
@@ -2973,6 +2983,7 @@ are viable functions, FALSE if not.  Issues no errors.
                                 bound_function_selector,
                                 selector_is_object_pointer,
                                 /*ctor_conversion_case=*/FALSE,
+                                /*initializing_return_value=*/FALSE,
                                 /*effects_copy_initialization=*/FALSE,
                                 /*allow_udc_on_arguments=*/TRUE,
                                 /*from_arg_dep_lookup=*/FALSE,
@@ -3065,6 +3076,7 @@ arguments of the call (given by arg_operand_list).
                                        /*selector_is_object_pointer=*/TRUE,
                                        (a_type_ptr)NULL,
                                        /*ctor_conversion_case=*/FALSE,
+                                       /*initializing_return_value=*/FALSE,
                                        /*effects_copy_initialization=*/FALSE,
                                        /*allow_udc_on_arguments=*/TRUE,
                                        /*from_arg_dep_lookup=*/FALSE,
@@ -4695,6 +4707,7 @@ in_instantiation:
                                     bound_function_selector,
                                     /*selector_is_object_pointer=*/TRUE,
                                     /*ctor_conversion_case=*/FALSE,
+                                    /*initializing_return_value=*/FALSE,
                                     /*effects_copy_initialization=*/FALSE,
                                     /*allow_udc_on_arguments=*/TRUE,
                                     /*from_arg_dep_lookup=*/FALSE,
@@ -4767,6 +4780,7 @@ in_instantiation:
                                       bound_function_selector,
                                       /*selector_is_object_pointer=*/TRUE,
                                       /*ctor_conversion_case=*/FALSE,
+                                      /*initializing_return_value=*/FALSE,
                                       /*effects_copy_initialization=*/FALSE,
                                       /*allow_udc_on_arguments=*/TRUE,
                                       /*from_arg_dep_lookup=*/
@@ -7974,6 +7988,7 @@ the target type to be used).
                                          &arg_operand->operand,
                                          eff_specific_type,
                                          /*try_bitwise_copy=*/FALSE,
+                                         /*initializing_return_value=*/FALSE,
                                          /*is_copy_initialization=*/TRUE,
                                          /*orig_is_copy_initialization=*/TRUE,
                                          /*is_reference_binding=*/FALSE,
@@ -8743,6 +8758,7 @@ Adjust the operand type to match the type requirement.
         prep_conversion_operand(operand, specific_type, 
                                 (a_boolean *)NULL,
                                 &arg_match->conversion,
+                                /*initializing_return_value=*/FALSE,
                                 /*is_copy_initialization=*/TRUE,
                                 /*orig_is_copy_initialization=*/TRUE,
                                 /*processed_arg=*/FALSE,
@@ -8979,6 +8995,7 @@ such cases (where operator overloading might apply, but we can't tell).
                                                      (an_operand *)NULL,
                                          /*selector_is_object_pointer=*/FALSE,
                                          /*ctor_conversion_case=*/FALSE,
+                                         /*initializing_return_value=*/FALSE,
                                          /*effects_copy_initialization=*/FALSE,
                                          /*allow_udc_on_arguments=*/TRUE,
                                          /*from_arg_dep_lookup=*/FALSE,
@@ -9017,6 +9034,7 @@ such cases (where operator overloading might apply, but we can't tell).
                                          operand_1,
                                          /*selector_is_object_pointer=*/FALSE,
                                          /*ctor_conversion_case=*/FALSE,
+                                         /*initializing_return_value=*/FALSE,
                                          /*effects_copy_initialization=*/FALSE,
                                          /*allow_udc_on_arguments=*/TRUE,
                                          /*from_arg_dep_lookup=*/FALSE,
@@ -9085,6 +9103,7 @@ such cases (where operator overloading might apply, but we can't tell).
                                          (an_operand *)NULL,
                                          /*selector_is_object_pointer=*/TRUE,
                                          /*ctor_conversion_case=*/FALSE,
+                                         /*initializing_return_value=*/FALSE,
                                          /*effects_copy_initialization=*/FALSE,
                                          /*allow_udc_on_arguments=*/TRUE,
                                          /*from_arg_dep_lookup=*/
@@ -9375,6 +9394,7 @@ a_boolean conversion_to_class_possible(
                           an_operand               *source_operand,
                           a_type_ptr               dest_type,
                           a_boolean                try_bitwise_copy,
+                          a_boolean                initializing_return_value,
                           a_boolean                is_copy_initialization,
                           a_boolean                orig_is_copy_initialization,
                           a_boolean                is_reference_binding,
@@ -9388,11 +9408,13 @@ If source_operand can be converted to the class type dest_type (via a
 constructor, conversion function, or bitwise copy) set *conversion
 to describe the conversion and return TRUE.  Otherwise, return FALSE.
 The result is always an rvalue.  Bitwise copies are considered if
-try_bitwise_copy is TRUE.  If is_copy_initialization is TRUE, the
-initialization is copy-initialization ("="-form initialization); if
-FALSE, it's direct-initialization ("()"-form initialization).
-User-defined conversions on constructor arguments are considered only
-for direct-initialization.  In some cases, the caller has rewritten
+try_bitwise_copy is TRUE.  initializing_return_value is TRUE if the
+initialization is being done to return a value in a return statement.
+If is_copy_initialization is TRUE, the initialization is
+copy-initialization ("="-form initialization); if FALSE, it's
+direct-initialization ("()"-form initialization).  User-defined
+conversions on constructor arguments are considered only for
+direct-initialization.  In some cases, the caller has rewritten
 a copy-initialization as a direct-initialization; in those cases,
 orig_is_copy_initialization indicates whether the original initialization
 was copy-initialization (this controls whether explicit constructors
@@ -9505,6 +9527,7 @@ mode.
                                     (an_operand *)NULL,
                                     /*selector_is_object_pointer=*/FALSE,
                                     /*ctor_conversion_case=*/TRUE,
+                                    initializing_return_value,
                                     /*effects_copy_initialization=*/
                                                    orig_is_copy_initialization,
                                     /*allow_udc_on_arguments=*/
@@ -9842,6 +9865,7 @@ a_boolean user_defined_conversion_possible(
                                       an_operand   *source_operand,
                                       a_type_ptr   dest_type,
                                       a_boolean    need_lvalue_result,
+                                      a_boolean    initializing_return_value,
                                       a_boolean    is_copy_initialization,
                                       a_boolean    orig_is_copy_initialization,
                                       a_boolean    is_reference_binding,
@@ -9860,6 +9884,8 @@ type), and no conversion was found, issue an error, change
 source_operand to an error operand, set *failed to TRUE, and return
 FALSE.  need_lvalue_result is TRUE if the result is required to be
 an lvalue; otherwise, the result can be an lvalue or an rvalue.
+initializing_return_value is TRUE if the initialization is being
+done to return a value in a return statement.
 If is_copy_initialization is TRUE, this is copy-initialization
 ("="-form initialization); if FALSE, it's direct-initialization
 ("()"-form initialization).  User-defined conversions on constructor
@@ -9901,6 +9927,7 @@ a reference type (the caller should have rewritten that case).
        be picked up below. */
     if (conversion_to_class_possible(source_operand, dest_type,
                                      /*try_bitwise_copy=*/TRUE,
+                                     initializing_return_value,
                                      is_copy_initialization,
                                      orig_is_copy_initialization,
                                      is_reference_binding,
@@ -10056,6 +10083,7 @@ static a_boolean conversion_possible(
                                  a_boolean         *is_transparent,
                                  a_type_ptr        orig_dest_type,
                                  a_boolean         need_lvalue_result,
+                                 a_boolean         initializing_return_value,
                                  a_boolean         is_copy_initialization,
                                  a_boolean         orig_is_copy_initialization,
                                  a_boolean         is_reference_binding,
@@ -10069,9 +10097,11 @@ destination type, implicitly in an initialization.  If so, set
 *conversion to describe the conversion, and return TRUE.  If not, issue
 the error incompatible_err at the position err_pos, change the operand
 to an error operand, and return FALSE.  The result of the conversion
-must be an lvalue if need_lvalue_result is TRUE.  If
-is_copy_initialization is TRUE, this is copy-initialization
-("="-form); otherwise, it's direct-initialization ("()"-form).  See
+must be an lvalue if need_lvalue_result is TRUE.
+initializing_return_value is TRUE if the initialization is being done
+to return a value in a return statement.  If is_copy_initialization
+is TRUE, this is copy-initialization ("="-form); otherwise,
+it's direct-initialization ("()"-form).  See
 user_defined_conversion_possible for orig_is_copy_initialization.  If
 is_reference_binding is TRUE, the result will be bound to a reference,
 so also consider conversions to derived classes of dest_type.  For
@@ -10105,6 +10135,7 @@ is not a parameter.
   if (!C_mode() && !curr_expr_kind_is_const() &&
       user_defined_conversion_possible(source_operand, dest_type,
                                        need_lvalue_result,
+                                       initializing_return_value,
                                        is_copy_initialization,
                                        orig_is_copy_initialization,
                                        is_reference_binding,
@@ -10638,6 +10669,7 @@ static a_boolean conversion_usable_or_possible(
                                  a_boolean         *is_transparent,
                                  a_type_ptr        orig_dest_type,
                                  a_boolean         need_lvalue_result,
+                                 a_boolean         initializing_return_value,
                                  a_boolean         is_copy_initialization,
                                  a_boolean         orig_is_copy_initialization,
                                  a_boolean         is_reference_binding,
@@ -10653,8 +10685,10 @@ is non-NULL, the feasibility of the conversion has previously been determined.
 Otherwise, set *p_conversion to point to *local_conversion (probably a
 local variable in the caller), and call conversion_possible to fill in
 the conversion information.  The result of the conversion must be an
-lvalue if need_lvalue_result is TRUE.  If is_copy_initialization is
-TRUE, this is copy-initialization ("="-form); otherwise, it's
+lvalue if need_lvalue_result is TRUE.  initializing_return_value is
+TRUE if the initialization is being done to return a value in a
+return statement.  If is_copy_initialization is TRUE, this is
+copy-initialization ("="-form); otherwise, it's
 direct-initialization ("()"-form).  See user_defined_conversion_possible
 for the meaning of orig_is_copy_initialization.  If is_reference_binding
 is TRUE, the result will be bound to a reference, so also consider
@@ -10676,6 +10710,7 @@ For processed_arg, see conversion_to_class_possible.
     possible = conversion_possible(source_operand, dest_type, is_transparent,
                                    orig_dest_type,
                                    need_lvalue_result,
+                                   initializing_return_value,
                                    is_copy_initialization,
                                    orig_is_copy_initialization,
                                    is_reference_binding,
@@ -10692,6 +10727,7 @@ static void prep_conversion_operand(
                                  a_type_ptr        dest_type,
                                  a_boolean         *is_transparent,
                                  a_conv_descr      *conversion,
+                                 a_boolean         initializing_return_value,
                                  a_boolean         is_copy_initialization,
                                  a_boolean         orig_is_copy_initialization,
                                  a_boolean         processed_arg,
@@ -10699,9 +10735,11 @@ static void prep_conversion_operand(
                                  an_error_code     incompatible_err,
                                  a_source_position *err_pos)
 /*
-Convert source_operand to dest_type if that is possible.  If not, issue
-incompatible_err at *err_pos.  If is_copy_initialization is TRUE, this
-is copy-initialization ("="-form); otherwise, it's direct-initialization
+Convert source_operand to dest_type if that is possible.  If not,
+issue incompatible_err at *err_pos.  initializing_return_value is TRUE
+if the initialization is being done to return a value in a return
+statement.  If is_copy_initialization is TRUE, this is
+copy-initialization ("="-form); otherwise, it's direct-initialization
 ("()"-form).  See user_defined_conversion_possible for the meaning
 of orig_is_copy_initialization.  If nontype_template_arg is TRUE, this
 is a nontype template argument.  source_operand may be an rvalue or an
@@ -10722,6 +10760,7 @@ processed_arg, see conversion_to_class_possible.
   /* See if the conversion is possible. */
   if (conversion_usable_or_possible(source_operand, dest_type, is_transparent,
                                     dest_type, /*need_lvalue_result=*/FALSE,
+                                    initializing_return_value,
                                     is_copy_initialization,
                                     orig_is_copy_initialization,
                                     /*is_reference_binding=*/FALSE,
@@ -11122,22 +11161,26 @@ happen only in C++ mode.
 }  /* determine_dynamic_init_for_class_init */
 
 
-void prep_elision_initializer_operand(an_operand         *source_operand,
-                                      a_type_ptr         dest_type,
-                                      a_boolean          fill_in_dtor,
-                                      an_error_code      err_code,
-                                      a_dynamic_init_ptr *dip)
+void prep_elision_initializer_operand(
+                                  an_operand         *source_operand,
+                                  a_type_ptr         dest_type,
+                                  a_boolean          initializing_return_value,
+                                  a_boolean          fill_in_dtor,
+                                  an_error_code      err_code,
+                                  a_dynamic_init_ptr *dip)
 /*
 An entity of (class) type dest_type is being initialized from source_operand.
 Convert it if necessary (issuing an error if the conversion cannot be done),
 and build a dynamic initialization entry to describe the initialization.
-The dynamic initialization entry will also indicate a destructor if
-appropriate and if fill_in_dtor is TRUE.  Return a pointer to the dynamic
-initialization entry in *dip (or NULL for an error).  err_code is the error
-code to be used in case of error.  source_operand may be changed by this
-routine.  This routine is used in both C and C++ mode, but it exists to
-do copy constructor elision in C++ mode.  This is an initialization with
-the "=" semantics (copy-initialization).
+initializing_return_value is TRUE if the initialization is being done
+to return a value in a return statement.  The dynamic initialization
+entry will also indicate a destructor if appropriate and if
+fill_in_dtor is TRUE.  Return a pointer to the dynamic initialization
+entry in *dip (or NULL for an error).  err_code is the error code to
+be used in case of error.  source_operand may be changed by this
+routine.  This routine is used in both C and C++ mode, but it exists
+to do copy constructor elision in C++ mode.  This is an initialization
+with the "=" semantics (copy-initialization).
 */
 {
   a_conv_descr conversion;
@@ -11147,13 +11190,16 @@ the "=" semantics (copy-initialization).
 
   orig_operand = *source_operand;
   *dip = NULL;
-  /* Microsoft VC++ treats copy-initialization as direct-initialization. */
+  /* Microsoft VC++ treats copy-initialization as direct-initialization
+     in some cases.  All the cases that come through here are treated
+     that way. */
   if (microsoft_bugs) is_copy_initialization = FALSE;
   /* Look for a constructor to convert the expression to the required
      class type. */
   if (conversion_possible(source_operand, dest_type, 
                           (a_boolean *)NULL, dest_type,
                           /*need_lvalue_result=*/FALSE,
+                          initializing_return_value,
                           is_copy_initialization,
                           orig_is_copy_initialization,
                           /*is_reference_binding=*/FALSE,
@@ -11276,6 +11322,7 @@ copy-initialization.
   if (conversion_usable_or_possible(source_operand, dest_type, 
                                     (a_boolean *)NULL, orig_dest_type,
                                     /*need_lvalue_result=*/FALSE,
+                                    /*initializing_return_value=*/FALSE,
                                     /*is_copy_initialization=*/TRUE,
                                     /*orig_is_copy_initialization=*/TRUE,
                                     /*is_reference_binding=*/FALSE, /* sic */
@@ -12174,7 +12221,8 @@ of is_transparent.  For processed_arg, see conversion_to_class_possible.
   } else if (is_reference_type(dest_type)) {
     /* Reference initialization. */
     prep_reference_initializer_operand(source_operand, dest_type,
-                                       conversion, initializing_return_value,
+                                       conversion,
+                                       initializing_return_value,
                                        initializing_variable,
                                        static_lifetime,
                                        /*bitwise_assignment_param=*/FALSE,
@@ -12183,6 +12231,7 @@ of is_transparent.  For processed_arg, see conversion_to_class_possible.
     /* Normal case (not initializing a reference). */
     prep_conversion_operand(source_operand, dest_type, is_transparent,
                             conversion,
+                            initializing_return_value,
                             is_copy_initialization,
                             orig_is_copy_initialization,
                             processed_arg,
@@ -12218,6 +12267,7 @@ see conversion_to_class_possible.
   if (conversion_usable_or_possible(source_operand, param_type,
                                     (a_boolean *)NULL, param_type,
                                     /*need_lvalue_result=*/FALSE,
+                                    /*initializing_return_value=*/FALSE,
                                     /*is_copy_initialization=*/TRUE,
                                     /*orig_is_copy_initialization=*/TRUE,
                                     /*is_reference_binding=*/FALSE,
@@ -12374,6 +12424,7 @@ cases where bitwise copying applies.
        source operand to the destination type. */
     prep_conversion_operand(source_operand, dest_type, 
                             (a_boolean *)NULL, (a_conv_descr_ptr)NULL,
+                            /*initializing_return_value=*/FALSE,
                             /*is_copy_initialization=*/TRUE,
                             /*orig_is_copy_initialization=*/TRUE,
                             /*processed_arg=*/FALSE,
@@ -12648,6 +12699,7 @@ used only in C++ mode.
         if (conversion_to_class_possible(op1,
                                          conv_dest_type,
                                          /*try_bitwise_copy=*/TRUE,
+                                         /*initializing_return_value=*/FALSE,
                                          /*is_copy_initialization=*/TRUE,
                                          /*orig_is_copy_initialization=*/TRUE,
                                          /*is_reference_binding=*/FALSE,

@@ -7919,6 +7919,7 @@ for non-class operands).  This routine is called only in C++ mode.
             (void)user_defined_conversion_possible(
                                          operand, eff_type_cast_to,
                                          /*need_lvalue_result=*/TRUE,
+                                         /*initializing_return_value=*/FALSE,
                                          /*is_copy_initialization=*/FALSE,
                                          /*orig_is_copy_initialization=*/FALSE,
                                          /*is_reference_binding=*/TRUE,
@@ -7944,6 +7945,7 @@ for non-class operands).  This routine is called only in C++ mode.
         if (user_defined_conversion_possible(
                                          operand, type_cast_to,
                                          /*need_lvalue_result=*/FALSE,
+                                         /*initializing_return_value=*/FALSE,
                                          /*is_copy_initialization=*/FALSE,
                                          /*orig_is_copy_initialization=*/FALSE,
                                          /*is_reference_binding=*/FALSE,
@@ -12535,6 +12537,7 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
            copies the value to an undesignated location. */
         throw_type = operand_type;
         prep_elision_initializer_operand(&operand, operand_type,
+                                         /*initializing_return_value=*/FALSE,
                                          /*fill_in_dtor=*/FALSE,
                                          ec_bad_initializer_type, &dip);
         if (dip == NULL) err = TRUE;
@@ -15212,6 +15215,7 @@ required_type will be void if the expression should have void type
     check_return_value_optimization(&result);
     /* Build a dynamic initialization entry for the return statement. */
     prep_elision_initializer_operand(&result, required_type,
+                                     /*initializing_return_value=*/TRUE,
                                      /*fill_in_dtor=*/FALSE, err_code, dip);
     wrap_up_dynamic_init_full_expression(*dip);
     /* Fix up destructor references in the overall expression. */
@@ -16088,6 +16092,7 @@ As indicated, this is initialization with the "=" semantics
   /* Find out whether or not the conversion is possible, and
      build a dynamic initialization entry to describe the initialization. */
   prep_elision_initializer_operand(&result, required_type,
+                                   /*initializing_return_value=*/FALSE,
                                    /*fill_in_dtor=*/TRUE,
                                    ec_bad_initializer_type, dip);
   wrap_up_dynamic_init_full_expression(*dip);
@@ -16189,6 +16194,7 @@ This routine is also called in C99 and GNU C modes.
             (conversion_to_class_possible(&result,
                                           required_type,
                                           /*try_bitwise_copy=*/TRUE,
+                                          /*initializing_return_value=*/FALSE,
                                           /*is_copy_initialization=*/TRUE,
                                           /*orig_is_copy_initialization=*/TRUE,
                                           /*is_reference_binding=*/FALSE,
@@ -16251,6 +16257,7 @@ required_type_determined:
       /* Build a dynamic initialization entry to describe the initialization.
          */
       prep_elision_initializer_operand(&result, required_type,
+                                       /*initializing_return_value=*/FALSE,
                                        /*fill_in_dtor=*/FALSE,
                                        ec_bad_initializer_type, dip);
       wrap_up_dynamic_init_full_expression(*dip);

@@ -628,6 +628,7 @@ extern a_boolean conversion_to_class_possible(
                           an_operand               *source_operand,
                           a_type_ptr               dest_type,
                           a_boolean                try_bitwise_copy,
+                          a_boolean                initializing_return_value,
                           a_boolean                is_copy_initialization,
                           a_boolean                orig_is_copy_initialization,
                           a_boolean                is_reference_binding,
@@ -645,6 +646,7 @@ extern a_boolean user_defined_conversion_possible(
                                       an_operand   *source_operand,
                                       a_type_ptr   dest_type,
                                       a_boolean    need_lvalue_result,
+                                      a_boolean    initializing_return_value,
                                       a_boolean    is_copy_initialization,
                                       a_boolean    orig_is_copy_initialization,
                                       a_boolean    is_reference_binding,
@@ -662,11 +664,12 @@ extern void user_convert_operand(
                            a_boolean    is_explicit_cast);
 
 extern void prep_elision_initializer_operand(
-                                            an_operand         *source_operand,
-                                            a_type_ptr         dest_type,
-                                            a_boolean          fill_in_dtor,
-                                            an_error_code      err_code,
-                                            a_dynamic_init_ptr *dip);
+                                  an_operand         *source_operand,
+                                  a_type_ptr         dest_type,
+                                  a_boolean          initializing_return_value,
+                                  a_boolean          fill_in_dtor,
+                                  an_error_code      err_code,
+                                  a_dynamic_init_ptr *dip);
 
 
 extern a_boolean direct_reference_binding_possible(
