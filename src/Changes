@@ -1,5 +1,26 @@
 Version 2.21
 
+12/20/93 Parsing a throw specification
+
+Some bugs have been fixed in parsing a throw specification.  For instance,
+we no longer abort on invalid code such as:
+
+  void f() throw(int(0)) { }
+
+12/20/93 Cross-reference information on implicitly called functions
+
+A cross-reference listing entry is now generated for functions that are
+called implicitly, such as constructors, destructors, and user-defined
+conversion functions.  They are not specially marked in the listing
+provided by default, but the symbol-reference-kind bit vector includes a
+new flag, SRK_IMPLICIT, to mark such calls.
+
+12/20/93 User-defined global operator new()
+
+A bug has been fixed whereby, under certain circumstances, a user
+definition of global operator new was not put out because its IL
+referenced flag had not been set properly.
+
 12/20/93 Division by zero warning using simulated integers
 
 Expressions such as 0/0 produced "divide by zero" warnings when using
@@ -19,7 +40,6 @@ formerly missed are now caught:
   void f() {
     &(i ? a.i : a.i);  // error caught now
   }
-
 
 12/18/93 Pointers to interchangeable types not interchangeable in strict mode
 
@@ -177,7 +197,6 @@ function type in a parameter list resulted in a truncated mangled name:
   extern void h(PF, const char *);
   main () { &f; &g; &h; return 0; }
 
-
 12/14/93  Vacuous destructor call combining typedef and type keyword
 
 A bug has been fixed that resulted in an internal error when a
@@ -189,7 +208,6 @@ vacuous destructor call contained a typedef name in the class qualifier.
     char* p;
     p->cc::~char();
   }
-
 
 12/14/93  Specific declaration of template function using a typedef name
 
