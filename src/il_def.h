@@ -1730,6 +1730,12 @@ typedef struct a_variable {
 			   that is referenced from outside of its function
 			   (i.e., from a member function of a local class
 			   or from destructor code).  TRUE only in C++. */
+  unsigned int	is_instantiation:1;
+			/* TRUE if this is a static data member whose
+			   definition was generated from a template
+			   definition.  FALSE for all other cases including
+			   a static data member of a template class that
+			   was initialized with a specific definition. */
 #endif /* ifdef CIL */
   an_init_kind	init_kind;
 			/* Kind of initialization, if any. */
@@ -2021,6 +2027,13 @@ typedef struct a_routine {
 			   was done in this function.  C++ member functions
 			   only. */
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
+  unsigned int  is_instantiation:1;
+			/* TRUE if this routine is an instantiation of a
+			   function template or a member function of a
+			   class template.  FALSE for all other functions
+			   including specific definitions of template
+			   functions and member functions of template
+			   classes. */
   a_class_list_entry_ptr
                 befriending_classes;
                         /* A linked list of entries identifying classes that

@@ -4346,6 +4346,7 @@ to it.
   vp->init_kind                   = (an_init_kind)initk_none;
 #ifdef CIL
   vp->referenced_non_locally      = FALSE;
+  vp->is_instantiation            = FALSE;
 #endif /* ifdef CIL */
 #ifdef FIL
   vp->by_address                  = FALSE;
@@ -4556,6 +4557,7 @@ to it.  The entry is allocated in the file scope memory region.
   rp->is_inline               = FALSE;
   rp->compiler_generated      = FALSE;
   rp->called                  = FALSE;
+  rp->is_instantiation	      = FALSE;
 #if ASSIGNMENT_TO_THIS_ALLOWED
   rp->assignment_to_this_done = FALSE;
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
