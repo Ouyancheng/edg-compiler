@@ -1193,6 +1193,8 @@ base class casts and virtual function calls.
   a_type_ptr            complete_object_type = NULL;
   an_expr_operator_kind op;
   an_expr_node_ptr      first_operand;
+  a_new_delete_supplement_ptr
+                        ndsp;
 
   switch (node->kind) {
     case enk_error:
@@ -1230,10 +1232,21 @@ base class casts and virtual function calls.
       }  /* if */
       break;
     case enk_temp_init:
-      complete_object_type = node->variant.init.dynamic_init->variable->type;
+      complete_object_type = node->type;
+      if (node->variant.init.result_is_addr) {
+        /* The result of the enk_temp_init is the address of the temporary,
+           so drop the pointer-to to get the type of the temporary. */
+        complete_object_type = type_pointed_to(complete_object_type);
+      }  /* if */
       break;
     case enk_new_delete:
-      /* Not easy to tell the type, and probably not worth it. */
+      ndsp = node->variant.new_delete;
+      if (ndsp->is_new) {
+        /* For new, the type is known. */
+        complete_object_type = ndsp->type;
+      } else {
+        /* Not easy to tell the type for delete, and probably not worth it. */
+      }  /* if */
       break;
 #if CHECKING
     default:
