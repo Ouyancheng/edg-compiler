@@ -8740,6 +8740,14 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
                                         /*suppress_abstract_test=*/TRUE,
                                         start_position);
           a_dynamic_init_ptr dip = temp_init_node->variant.init.dynamic_init;
+          /* Force generation of the trivial default constructor for a
+             non-POD class to detect any errors.  This is correct according
+             to the C++98 standard, but suspect after the TC1 changes
+             for value-initialization (because the definition is not
+             written in terms of calling the constructor, and therefore
+             doesn't force the generation of the constructor). */
+          (void)reference_to_trivial_default_constructor(type_cast_to,
+                                                         &lparen_pos);
           set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_zero);
           make_expression_operand(temp_init_node, temp_init_node->type,
                                   result);
