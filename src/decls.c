@@ -6820,16 +6820,16 @@ continue_with_declaration:
                                             class_of_which_a_member != NULL);
       /* Issue diagnostics on missing type specifiers, etc. */
       if (!is_main_function) {
-        if (decl_specifiers_omitted && !is_static_data_member) {
+        if (decl_specifiers_omitted &&
+            (C_dialect != C_dialect_cplusplus ||
+             (!is_static_data_member && !is_function))) {
           /* In ANSI C declaration specifiers can only be entirely omitted in
              a function definition.  This is possibly an undefined typedef
-             name at the start of a declaration, so enter an error
-             symbol instead of the name given.  In pcc mode the
-             declaration is taken as a declaration of an int variable.  In
-             C++ the decl specifiers may be omitted, but only on function
-             declarations and definitions. */
-          if (C_dialect == C_dialect_pcc ||
-              (C_dialect == C_dialect_cplusplus && is_function)) {
+             name at the start of a declaration, so enter an error symbol
+             instead of the name given.  In pcc mode the declaration is taken
+             as a declaration of an int variable.  (In C++ the decl specifiers
+             may be omitted on function declarations and definitions.) */
+          if (C_dialect == C_dialect_pcc) {
             pos_warning(ec_missing_decl_specifiers, &declarator_pos);
           } else {
             pos_error(ec_missing_decl_specifiers, &declarator_pos);
