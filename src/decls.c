@@ -1215,24 +1215,43 @@ operator kinds.  Issue a diagnostic if an error is found.
         opname == (an_opname_kind)onk_arrow) {
       /* Unary operator must have exactly one argument. */
       if (param_count > 1) {
-	error_code = ec_too_many_args_for_operator;
+        error_code = ec_too_many_args_for_operator;
       } else if (param_count < 1) {
-	error_code = ec_too_few_args_for_operator;
+        error_code = ec_too_few_args_for_operator;
       }  /* if */
     } else if (param_count == 1 &&
-	       (opname == (an_opname_kind)onk_plus ||
+               (opname == (an_opname_kind)onk_plus ||
                 opname == (an_opname_kind)onk_minus ||
-		opname == (an_opname_kind)onk_star ||
+                opname == (an_opname_kind)onk_star ||
                 opname == (an_opname_kind)onk_ampersand ||
-		opname == (an_opname_kind)onk_plus_plus ||
+                opname == (an_opname_kind)onk_plus_plus ||
                 opname == (an_opname_kind)onk_minus_minus)) {
        /* These operators can be either unary or binary.  It is legal for
-	  them to have exactly one argument. */
+          them to have exactly one argument. */
+    } else if (param_count == 2 &&
+               (opname == (an_opname_kind)onk_plus_plus ||
+                opname == (an_opname_kind)onk_minus_minus)) {
+      /* Extra argument on postfix operator must be of type "int"
+         (ARM 13.4.7). */
+      ptp = rout_type->variant.routine.extra_info->param_type_list;
+      if (!is_nonstatic_member_function) ptp = ptp->next;
+      tp = ptp->type;
+      if (!is_error_type(tp)) {
+        if (!is_integral_type(tp) ||
+            skip_typerefs(tp)->variant.integer.int_kind !=
+                                                  (an_integer_kind)ik_int) {
+          pos_st_error(ec_bad_extra_arg_for_postfix_operator,
+                       &locator->source_position,
+                       opname == (an_opname_kind)onk_plus_plus ? "++" : "--");
+          ptp->type = error_type();
+          err = TRUE;
+        }  /* if */
+      }  /* if */
     } else if (opname == (an_opname_kind)onk_function_call ||
                opname == (an_opname_kind)onk_new) {
       /* Function call and new must have one or more arguments. */
       if (param_count == 0) {
-	error_code = ec_too_few_args_for_operator;
+        error_code = ec_too_few_args_for_operator;
       } else if (opname == (an_opname_kind)onk_new) {
         ptp = rout_type->variant.routine.extra_info->param_type_list;
         tp = ptp->type;
@@ -1248,7 +1267,7 @@ operator kinds.  Issue a diagnostic if an error is found.
     } else if (opname == (an_opname_kind)onk_delete) {
       ptp = rout_type->variant.routine.extra_info->param_type_list;
       if (param_count == 0) {
-	error_code = ec_too_few_args_for_operator;
+        error_code = ec_too_few_args_for_operator;
       } else {
         tp = ptp->type;
         if (!is_error_type(tp)) {
@@ -1286,9 +1305,9 @@ operator kinds.  Issue a diagnostic if an error is found.
     } else {
       /* Binary operator must have exactly two arguments. */
       if (param_count > 2) {
-	error_code = ec_too_many_args_for_operator;
+        error_code = ec_too_many_args_for_operator;
       } else if (param_count < 2) {
-	error_code = ec_too_few_args_for_operator;
+        error_code = ec_too_few_args_for_operator;
       }  /* if */
     }  /* if */
     if (error_code != ec_no_error) {
