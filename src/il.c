@@ -143,7 +143,7 @@ Hash table containing shareable constants (i.e., constants that can be
 reused when necessary, representing simple literal constants, so that
 for example there would only be one constant for the literal "0").
 */
-#define SIZE_SHAREABLE_CONSTANTS_TABLE 293
+#define SIZE_SHAREABLE_CONSTANTS_TABLE 16381
 			/* Size of the table; should be about twice
 			   the expected number of entries for a big
 			   program, and must be prime. */
