@@ -9415,6 +9415,10 @@ or implicit) controlling the declaration.
                               GID_DTOR_RECOGNIZED | GID_TEMPLATE_ARGS_OPTIONAL,
                               ilm_using_declaration, &err);
   }  /* if */
+  if (!err && is_union_type(class_type)) {
+    pos_error(ec_no_access_or_using_decl_in_union, &using_pos);
+    err = TRUE;
+  }  /* if */
   if (!err) {
     decl_pos = locator_for_curr_id.source_position;
     /* The identifier should be a qualified name, with the qualifier a base

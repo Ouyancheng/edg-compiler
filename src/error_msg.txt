@@ -1068,6 +1068,7 @@ ec_op_arrow_loop;;"loop in sequence of \"operator->\" functions starting at clas
 ec_not_a_member_class;;"%n has no member class %sq"
 ec_name_not_class_in_file_scope;;"the global scope has no class named %sq"
 ec_recursive_inst_of_templ_default_arg;;"recursive instantiation of template default argument"
+ec_no_access_or_using_decl_in_union;;"access declarations and using-declarations cannot appear in unions"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
