@@ -4239,10 +4239,13 @@ instantiation.
        cache the tokens. */
   }  /* if */
   if (sym != NULL) {
-    /* Save the information needed to create an instantiation based
-       on the definition of the template. */
-    set_template_cache_info(&tssp->cache, definition_token_cache,
-                            template_decl_info);
+    if (is_definition || tssp->cache.decl_info == NULL) {
+      /* Save the information needed to create an instantiation based
+         on the definition of the template.  This information is saved
+         for the definition and also for the initial declaration. */
+     set_template_cache_info(&tssp->cache, definition_token_cache,
+                              template_decl_info);
+    }  /* if */
   }  /* if */
   *p_sym_ptr = sym;
   *new_type = prototype_type;
