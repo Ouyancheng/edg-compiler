@@ -211,6 +211,8 @@ Dump an access control specifier.
     case as_public:	  fputs("public", f_debug);	  break;
     case as_protected:	  fputs("protected", f_debug);	  break;
     case as_private:	  fputs("private", f_debug);	  break;
+    case as_inaccessible: fputs("inaccessible", f_debug); break;
+    default:              fputs("<bad access kind>", f_debug); break;
   }  /* switch */
 }  /* db_access_control */
 
@@ -440,11 +442,15 @@ static void db_access_adjustment(an_access_adjustment_ptr aap)
       sc = &aap->variant.constant->source_corresp;
       str = "member constant";
       break;
+    default:
+      fputs("<bad access adjustment kind>", f_debug);
+      goto end_of_routine;
   }  /* switch */
   fputs("    ", f_debug);
   db_access_control(aap->access);
   fprintf(f_debug, " \"%s\" = %s ", sc->name, str);
   db_name(sc);
+end_of_routine:
   fputc('\n', f_debug);
 }  /* db_access_adjustment */
 
