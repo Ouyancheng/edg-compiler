@@ -1,5 +1,17 @@
 Version 2.36
 
+4/5/97    Using type-compatibility routines in "middle ends"
+
+It's sometimes useful for middle ends to be able to use some of the
+type-compatibility routines in types.c, e.g., types_are_compatible.
+However, there is code in equiv_class_types that uses the assoc_info
+pointer to go to the associated symbol entry, and this refers to
+freed memory when run from a middle end.  There is code there
+to deal with this problem, but it has been controlled by the
+USING_KAI_INLINER configuration flag.  That has been changed so
+the guard code is always included, so that all middle ends can use
+these type-compatibility routines.
+
 4/4/97    Microsoft compatibility: old-style class specialization declarations
           are ignored
 
