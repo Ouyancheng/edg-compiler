@@ -1,5 +1,10 @@
 Version 2.40
 
+10/20/98  Microsoft compatibility: default Microsoft version changed
+
+The default Microsoft version number is now "1200".  This corresponds
+to the value of _MSC_VER used with Visual C++ 6.0.
+
 10/20/98  Efficiency improvement in name lookup in the presence of
           namespaces
 
