@@ -517,6 +517,8 @@ extern void bind_object_lifetime(an_object_lifetime_ptr  olp,
                                  an_il_entry_kind        entity_kind,
                                  char                    *entity_ptr);
 
+extern void unbind_object_lifetime(an_object_lifetime_ptr  olp);
+
 extern void push_object_lifetime(an_il_entry_kind         entity_kind,
                                  char                     *entity_ptr,
                                  an_object_lifetime_kind  kind);
