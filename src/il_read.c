@@ -847,7 +847,7 @@ static void init_flags_and_types(void)
 /*
 This routine initializes flags and types mostly based on the il_header.
 This ensures that "back end" components (including utilities like the IL
-display program) can query these entitities.
+display program) can query these entities.
 */
 {
 #ifdef CIL
