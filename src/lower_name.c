@@ -34,6 +34,7 @@ static sizeof_t mangled_function_name(a_routine_ptr routine,
                                       char          *store_at);
 static sizeof_t mangled_static_data_member_name(a_variable_ptr variable,
                                                 char           *store_at);
+static void do_scope_other_name_mangling(a_scope_ptr scope);
 
 
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
@@ -770,18 +771,17 @@ the name.
        similar form but it also includes the function mangling in the name
        and the number is probably different. */
     /* Don't do this for nested classes. */
-    if (type->source_corresp.class_of_which_a_member == NULL) {
+    if (type->source_corresp.is_local_to_function &&
+        type->source_corresp.class_of_which_a_member == NULL) {
+      /* This is a local name. */
       a_symbol_ptr assoc_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
-      if (assoc_sym->decl_scope != FILE_SCOPE_NUMBER) {
-        /* This is a local name. */
-        sizeof_t digits =
+      sizeof_t digits =
                      digits_to_represent((unsigned long)assoc_sym->decl_scope);
-        mangled_name_length += digits + 3;  /* "__L" */
-        if (store_at != NULL) {
-          (void)sprintf(store_at, "__L%lu",
-                        (unsigned long)assoc_sym->decl_scope);
-          store_at += digits + 3;
-        }  /* if */
+      mangled_name_length += digits + 3;  /* "__L" */
+      if (store_at != NULL) {
+        (void)sprintf(store_at, "__L%lu",
+                      (unsigned long)assoc_sym->decl_scope);
+        store_at += digits + 3;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -1714,91 +1714,120 @@ other name mangling that might use the name is done.
 }  /* mangle_nested_type_name */
 
 
-static void do_scope_class_name_mangling(a_scope_ptr scope)
+static void do_type_list_class_name_mangling(a_type_ptr type_list)
 /*
-Do name mangling for class names in scope and all its sub-scopes.  Note
-that this does not include special processing for nested class names.
+Do class name mangling for the types on the indicated type list and subscopes
+thereunder.  Note that this does not include special processing for
+nested class names.
 */
 {
   a_type_ptr  type;
-  a_scope_ptr class_scope, block_scope;
+  a_scope_ptr class_scope;
 
-  /* Visit all types to find all class types. */
-  /* Note that when processing a function or block scope we will be crossing
-     into the file scope here, but these class types are truly local types
-     and are not used in the file scope, so it's okay to change their names
-     now. */
-  for (type = scope->types; type != NULL; type = type->next) {
+  /* Visit all types on the list. */
+  for (type = type_list; type != NULL; type = type->next) {
+    /* If the type is a class, process it and its scope. */
     if (is_immediate_class_type(type)) {
       mangle_class_name(type);
       class_scope = type->variant.class_struct_union.extra_info->assoc_scope;
-      if (class_scope != NULL) do_scope_class_name_mangling(class_scope);
+      if (class_scope != NULL) {
+        do_type_list_class_name_mangling(class_scope->types);
+      }  /* if */
     }  /* if */
   }  /* for */
-  /* Visit all block scopes. */
-  for (block_scope = scope->scopes;
-       block_scope != NULL;
-       block_scope = block_scope->next) {
-    do_scope_class_name_mangling(block_scope);
-  }  /* for */
-}  /* do_scope_class_name_mangling */
+}  /* do_type_list_class_name_mangling */
 
 
-static void do_scope_other_name_mangling(a_scope_ptr scope)
+static void do_class_name_mangling(void)
 /*
-Do name mangling for things other than classes (e.g., functions, static
-data members) in scope and all its sub-scopes.
+Do name mangling for all class names.  Note that this does not include
+special processing for nested class names.
 */
 {
-  a_routine_ptr  routine;
-  a_variable_ptr variable;
-  a_type_ptr     type;
-  a_constant_ptr con;
-  a_scope_ptr    class_scope, block_scope;
+  a_scope_orphaned_list_header_ptr solhp;
 
-  /* Visit all types to find all class types. */
-  /* Note that when processing a function or block scope we will be crossing
-     into the file scope here, but these class types are truly local types
-     and are not used in the file scope, so it's okay to change their names
-     now. */
-  for (type = scope->types; type != NULL; type = type->next) {
+  /* Process the file-scope types and types inside of file-scope classes. */
+  do_type_list_class_name_mangling(il_header.primary_scope->types);
+  /* Process local types by visiting the types on orphan lists. */
+  for (solhp = il_header.scope_orphaned_list_headers;
+       solhp != NULL;
+       solhp = solhp->next) {
+    do_type_list_class_name_mangling(solhp->orphaned_types);
+  }  /* for */
+}  /* do_class_name_mangling */
+
+
+static void do_type_list_other_name_mangling(a_type_ptr type_list)
+/*
+Do name mangling for things other than classes (e.g., functions, static
+data members) for the types on the indicated type list and subscopes
+thereunder.
+*/
+{
+  a_type_ptr  type;
+  a_scope_ptr class_scope;
+
+  /* Visit all types on the list. */
+  for (type = type_list; type != NULL; type = type->next) {
+    /* If the type is a class, do its scope. */
     if (is_immediate_class_type(type)) {
       /* Make sure the type-as-subobject for a class gets the class name
          before it is changed, if it is a nested class name. */
       prelower_class_type(type);
       class_scope = type->variant.class_struct_union.extra_info->assoc_scope;
-      if (class_scope != NULL) do_scope_other_name_mangling(class_scope);
+      if (class_scope != NULL) {
+        do_scope_other_name_mangling(class_scope);
+      }  /* if */
+    } else if (is_immediate_enum_type(type) &&
+               type->source_corresp.class_of_which_a_member != NULL) {
+      /* Mangle the names of member enum constants. */
+      a_constant_ptr enum_con;
+      for (enum_con = type->variant.integer.enum_info.constant_list;
+           enum_con != NULL;
+           enum_con = enum_con->next) {
+        mangle_member_constant_name(enum_con);
+      }  /* for */
     }  /* if */
   }  /* for */
-  /* Visit all block scopes. */
-  for (block_scope = scope->scopes;
-       block_scope != NULL;
-       block_scope = block_scope->next) {
-    do_scope_other_name_mangling(block_scope);
-  }  /* for */
+}  /* do_type_list_other_name_mangling */
+
+
+static void do_scope_other_name_mangling(a_scope_ptr scope)
+/*
+Do name mangling for things other than classes (e.g., functions, static
+data members) in the indicated scope and its subscopes.  The scope is
+the file scope or a class scope.  If the scope is the file scope,
+the orphan lists for function-local entities are also processed.
+*/
+{
+  a_routine_ptr  routine;
+  a_variable_ptr variable;
+  a_constant_ptr con;
+
+  /* Visit all types. */
+  do_type_list_other_name_mangling(scope->types);
+  if (scope == il_header.primary_scope) {
+    /* When processing the file scope, also process function-local types
+       by processing the orphan lists. */
+    a_scope_orphaned_list_header_ptr solhp;
+    for (solhp = il_header.scope_orphaned_list_headers;
+         solhp != NULL;
+         solhp = solhp->next) {
+      do_type_list_other_name_mangling(solhp->orphaned_types);
+    }  /* for */
+  }  /* if */
   /* Visit all routines. */
   for (routine = scope->routines; routine != NULL; routine = routine->next) {
     mangle_function_name(routine);
   }  /* for */
-  /* If this is a class scope, visit the static data member variables,
-     enum constants, and class constants. */
+  /* If this is a class scope, visit the static data member variables
+     and class constants. */
   if (scope->kind == (a_scope_kind)sck_class_struct_union) {
     /* Look for static data members and mangle their names. */
     for (variable = scope->variables;
          variable != NULL;
          variable = variable->next) {
       mangle_static_data_member_name(variable);
-    }  /* for */
-    /* Look for enum types and mangle the names of their constants. */
-    for (type = scope->types; type != NULL; type = type->next) {
-      if (is_immediate_enum_type(type)) {
-        a_constant_ptr enum_con;
-        for (enum_con = type->variant.integer.enum_info.constant_list;
-             enum_con != NULL;
-             enum_con = enum_con->next) {
-          mangle_member_constant_name(enum_con);
-        }  /* for */
-      }  /* if */
     }  /* for */
     /* Look for member constants (an extension) and mangle their names. */
     for (con = scope->constants; con != NULL; con = con->next) {
@@ -1808,57 +1837,70 @@ data members) in scope and all its sub-scopes.
 }  /* do_scope_other_name_mangling */
 
 
-static void do_scope_nested_type_name_mangling(a_scope_ptr scope)
+static void do_type_list_nested_type_name_mangling(a_type_ptr type_list)
 /*
-Do name mangling for nested type names in scope and all its sub-scopes.
-This must be done separately from and later than normal type name mangling
-because the simple form of the name must remain available for use in
-mangled names (e.g., virtual function table variable names).
+Do nested type name mangling for the types on the indicated type list
+and subscopes thereunder.
 */
 {
   a_type_ptr  type;
-  a_scope_ptr class_scope, block_scope;
+  a_scope_ptr class_scope;
 
-  /* Visit all types to find all named types. */
-  /* Note that when processing a function or block scope we will be crossing
-     into the file scope here, but these class types are truly local types
-     and are not used in the file scope, so it's okay to change their names
-     now. */
-  for (type = scope->types; type != NULL; type = type->next) {
+  /* Visit all types on the list. */
+  for (type = type_list; type != NULL; type = type->next) {
+    /* If the type is a class, do its scope. */
     if (is_immediate_class_type(type)) {
       class_scope = type->variant.class_struct_union.extra_info->assoc_scope;
       if (class_scope != NULL) {
-        do_scope_nested_type_name_mangling(class_scope);
+        do_type_list_nested_type_name_mangling(class_scope->types);
       }  /* if */
     }  /* if */
+    /* Do name mangling on the type. */
     /* Note that the call here must be done after all subscopes have been
        visited; we don't want to change the name of a class until the
        classes nested within it have been processed. */
     mangle_nested_type_name(type);
   }  /* for */
-  /* Visit all block scopes. */
-  for (block_scope = scope->scopes;
-       block_scope != NULL;
-       block_scope = block_scope->next) {
-    do_scope_nested_type_name_mangling(block_scope);
-  }  /* for */
-}  /* do_scope_nested_type_name_mangling */
+}  /* do_type_list_nested_type_name_mangling */
 
 
-void do_memory_region_name_mangling(a_scope_ptr scope)
+static void do_nested_type_name_mangling(void)
 /*
-Do any required name mangling of members of the indicated scope and all
-sub-scopes in the same memory region.
+Do name mangling for all nested type names.  This must be done separately
+from and later than normal type name mangling because the simple form
+of the name must remain available for use in mangled names (e.g.,
+virtual function table variable names).
+*/
+{
+  a_scope_orphaned_list_header_ptr solhp;
+
+  /* Process the file-scope types and types inside of file-scope classes. */
+  do_type_list_nested_type_name_mangling(il_header.primary_scope->types);
+  /* Process local types by visiting the types on orphan lists. */
+  for (solhp = il_header.scope_orphaned_list_headers;
+       solhp != NULL;
+       solhp = solhp->next) {
+    do_type_list_nested_type_name_mangling(solhp->orphaned_types);
+  }  /* for */
+}  /* do_nested_type_name_mangling */
+
+
+void do_all_name_mangling(void)
+/*
+Do any required name mangling.  This is called at the beginning of lowering of
+the file scope.  It processes everything in the file scope and also
+function-local entities that require mangling (they are accessed through the
+orphan lists).
 */
 {
   /* Mangle class names, not including special processing for nested
      class names. */
-  do_scope_class_name_mangling(scope);
+  do_class_name_mangling();
   /* Do function and static data member name mangling. */
-  do_scope_other_name_mangling(scope);
+  do_scope_other_name_mangling(il_header.primary_scope);
   /* Mangle nested type names. */
-  do_scope_nested_type_name_mangling(scope);
-}  /* do_memory_region_name_mangling */
+  do_nested_type_name_mangling();
+}  /* do_all_name_mangling */
 
 
 static sizeof_t mangled_derivation_name(a_derivation_step_ptr dsp,
