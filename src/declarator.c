@@ -2405,12 +2405,12 @@ to FALSE if the entity being declared is not initializable.
     } else {
       add_stop_token(tok_lparen);
       add_stop_token(tok_lbracket);
+      set_to_error_locator(*locator);
       copy_source_position(pos_curr_token, locator->source_position);
       syntax_error(ec_exp_identifier);
       remove_stop_token(tok_lparen);
       remove_stop_token(tok_lbracket);
       *parenthesized_initializer_allowed = FALSE;
-      set_to_error_locator(*locator);
     }  /* if */
   }  /* if */
   if (!(input_flags & DI_OPERATOR_NAME_ALLOWED)) {
