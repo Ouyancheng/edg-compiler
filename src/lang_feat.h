@@ -711,7 +711,7 @@ not be recognized as such.)
 */
 #ifndef DEFAULT_OLD_SPECIALIZATIONS_ALLOWED
 #define DEFAULT_OLD_SPECIALIZATIONS_ALLOWED TRUE
-#endif /* if DEFAULT_GUIDING_DECLS_ALLOWED */
+#endif /* if DEFAULT_OLD_SPECIALIZATIONS_ALLOWED */
 
 /*
 Flag that is TRUE to support the extension to allow implicit conversions
