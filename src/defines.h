@@ -105,7 +105,9 @@ Flags to be set when using the KAI inliner.
 #define DESIGNATED_INITIALIZER_ENABLING_POSSIBLE 1
 #define COMPOUND_LITERAL_ENABLING_POSSIBLE 1
 #ifndef SUNOS
+#ifndef INSTANTIATE_EXTERN_INLINE
 #define INSTANTIATE_EXTERN_INLINE 1
+#endif /* INSTANTIATE_EXTERN_INLINE */
 #endif /* ifndef SUNOS */
 #ifdef SELFCOMP_VERSION
 /* Self-compiled version. */
