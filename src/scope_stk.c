@@ -1628,7 +1628,19 @@ are non-NULL when they should be used for the outermost instantiation scope.
     enclosing_instance_sym = NULL;
   } else {
     /* If this is not a template, use the decl_info value passed in as
-       the value passed to the recursive call below. */
+       the value passed to the recursive call below.  If no template
+       declaration information was supplied, use the information associated
+       with this class. */
+    if (decl_info == NULL) {
+      if (is_template_instance_class_symbol(class_sym) &&
+          !is_template_instance_specific_def_symbol(class_sym)) {
+        template_sym = template_symbol_for_class_symbol(class_sym);
+        /* Get the template declaration information associated with
+           the class. */
+        tssp = template_supplement_for_symbol(template_sym);
+        decl_info = cache_for_template(tssp)->decl_info;
+      }  /* if */
+    }  /* if */
     enclosing_tdip = decl_info;
     enclosing_instance_sym = instance_sym;
     enclosing_assoc_type = assoc_type;
