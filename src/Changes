@@ -114,7 +114,7 @@ The C++-generating back end now puts out a simple 0 for a default argument
 expression that is a null pointer, rather than 0 cast to the proper
 pointer type.  This optimization avoids a bug in MSVC++ 5.0.
 
-5/3/96    Constant part of nonconstant aggregate initialization dropped
+5/3/98    Constant part of nonconstant aggregate initialization dropped
           when exceptions enabled
 
 When exceptions are enabled, there were cases where a constant part
