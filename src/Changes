@@ -236,6 +236,9 @@ literals, VLAs, restrict, and long long have been integrated into
 the overall C99 changes.  They are still available in older C modes
 as they have been previously.
 
+The C99 standard is ISO/IEC 9899:1999.  The foreword contains a
+short summary of the features added.
+
 12/6/00  Abort in do_conversions_on_operands_of_copied_template_expr
 
 Some uses of "&&" and "||" operators in constant expressions in
