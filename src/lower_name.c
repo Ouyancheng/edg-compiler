@@ -2075,7 +2075,9 @@ has an explicit template argument list, given by template_arg_list.
 #endif /* !IA64_ABI */
 }  /* mangled_encoding_for_unknown_function */
 
-
+#if !IA64_ABI
+/*ARGSUSED*/  /* <-- in_dependent_expr is not used in that case. */
+#endif /* !IA64_ABI */
 static void literal_representation(a_constant_ptr           con,
                                    a_boolean                old_form,
                                    a_boolean                in_dependent_expr,
