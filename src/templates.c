@@ -3495,6 +3495,10 @@ and the class instantiation will detect the runaway case.
     internal_error("define_template_static_data_member: sym already def'd");
   }  /* if */
 #endif /* CHECKING */
+  /* The already instantiated flag is set even if certain error conditions
+     exist (such as runaway instantiation), to prevent the compiler from
+     attempting to instantiate this static data member again. */
+  tip->already_instantiated = TRUE;
   if (tssp->pending_instantiations >= max_pending_instantiations) {
     /* This instantiation occurs within the context of other instantiations
        of the same static data member.  When the number of such instantiations
@@ -3599,10 +3603,6 @@ and the class instantiation will detect the runaway case.
      data member definitions.  Microsoft does not allow this either. */
   var_ptr->assoc_template = tssp->il_template_entry;
 done:
-  /* The already instantiated flag is set even if certain error conditions
-     exist (such as runaway instantiation), to prevent the compiler from
-     attempting to instantiate this static data member again. */
-  tip->already_instantiated = TRUE;
   db_exit();
 }  /* define_template_static_data_member */
 

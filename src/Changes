@@ -1,5 +1,20 @@
 Version 2.46
 
+7/9/01   Internal error during instantiation of template static data member
+
+Under certain unusual circumstances, an internal error can occur in
+define_template_static_data_member when using automatic template
+instantiation.  The example below results in the internal error when
+compiled and then linked using the prelinker.  This has been fixed.
+
+  template <class T> struct A {
+    static int i;
+    static int j;
+  };
+  template <class T> int A<T>::i = j;
+  template <class T> int A<T>::j = i;
+  int x = A<int>::i;
+
 7/9/01   Conflicts between using-declarations and function declarations
 
 The front end used to issue an error when a function in namespace scope had
