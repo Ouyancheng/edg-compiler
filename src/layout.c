@@ -2496,6 +2496,11 @@ Lay out the nonvirtual direct base class bcp.
 #endif /* DEBUG */
   }  /* if */
 #if IA64_ABI
+  if (warn_about_tail_padding_use) {
+    /* Examine if this base class was allocated in the tail padding of
+       another base. */
+    warn_if_offset_in_tail_padding((a_field_ptr)NULL, bcp, lob);
+  }  /* if */
   /* Set the offsets for all of the non-virtual bases of this base. */
   set_base_class_offsets(bcp);
 #endif /* IA64_ABI */
