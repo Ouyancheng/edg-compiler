@@ -47,8 +47,8 @@ extern a_boolean is_pointer_type(a_type_ptr tp);
 extern a_boolean is_scalar_type(a_type_ptr tp);
 extern a_boolean is_array_type(a_type_ptr tp);
 extern a_boolean is_char_array_type(a_type_ptr tp);
-extern a_boolean is_struct_or_union_type(a_type_ptr tp);
-extern a_boolean is_complete_struct_or_union_type(a_type_ptr tp);
+extern a_boolean is_class_struct_union_type(a_type_ptr tp);
+extern a_boolean is_complete_class_struct_union_type(a_type_ptr tp);
 extern a_boolean is_aggregate_or_union_type(a_type_ptr tp);
 
 extern a_type_ptr array_element_type(a_type_ptr array_type);

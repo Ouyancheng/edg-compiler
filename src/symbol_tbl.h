@@ -747,7 +747,7 @@ extern an_extern_type_fixup_ptr alloc_etype_fixup(void);
   ((sym)->kind == (a_symbol_kind)sk_class_or_struct_tag ||            \
    (sym)->kind == (a_symbol_kind)sk_union_tag ||                      \
    ((sym)->kind == (a_symbol_kind)sk_type &&                          \
-                                 is_struct_or_union_type((sym)->variant.type)))
+                   is_class_struct_union_type((sym)->variant.type)))
 
 /* Return TRUE if a symbol is a tag symbol.   A tag symbol is
    one defined as a class, struct, union, or enum (but not as a typedef

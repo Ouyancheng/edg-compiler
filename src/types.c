@@ -70,14 +70,14 @@ predicates.
 #define is_array(tp) ((tp)->kind == (a_type_kind)tk_array)
 
 /* Struct types are simply struct types (or, in C++, class/struct types). */
-#define is_struct(tp)                                                 \
+#define is_class_or_struct(tp)                                        \
   ((tp)->kind == (a_type_kind)tk_struct || (tp)->kind == (a_type_kind)tk_class)
 
 /* Union types are simply union types. */
 #define is_union(tp) ((tp)->kind == (a_type_kind)tk_union)
 
 /* Aggregate types are array and class/struct (but not union) types. */
-#define is_aggregate(tp) (is_array(tp) || is_struct(tp))
+#define is_aggregate(tp) (is_array(tp) || is_class_or_struct(tp))
 
 /* Union or aggregate types are simply unions or aggregates. */
 #define is_aggregate_or_union(tp) (is_aggregate(tp) || is_union(tp))
@@ -328,25 +328,25 @@ unsigned char are all included.
 }  /* is_char_array_type */
 
 
-a_boolean is_struct_or_union_type(a_type_ptr tp)
+a_boolean is_class_struct_union_type(a_type_ptr tp)
 /*
-Return TRUE if the given type is a class/struct or union type.  Note that
-this includes incomplete class/struct or union types.
+Return TRUE if the given type is a class, struct, or union type.  Note that
+this includes incomplete class, struct, or union types.
 */
 {
   tp = skip_typerefs(tp);
-  return(is_struct(tp) || is_union(tp));
-}  /* is_struct_or_union_type */
+  return(is_class_or_struct(tp) || is_union(tp));
+}  /* is_class_struct_union_type */
 
 
-a_boolean is_complete_struct_or_union_type(a_type_ptr tp)
+a_boolean is_complete_class_struct_union_type(a_type_ptr tp)
 /*
-Return TRUE if the type is a complete class/struct or union type.
+Return TRUE if the type is a complete class, struct, or union type.
 */
 {
   tp = skip_typerefs(tp);
-  return(!is_incomplete(tp) && (is_struct(tp) || is_union(tp)));
-}  /* is_complete_struct_or_union_type */
+  return(!is_incomplete(tp) && (is_class_or_struct(tp) || is_union(tp)));
+}  /* is_complete_class_struct_union_type */
 
 
 a_boolean is_aggregate_or_union_type(a_type_ptr tp)
@@ -526,7 +526,7 @@ cannot be determined until the struct or union is completed.
       tp = skip_typerefs(tp->variant.array.element_type);
     } while (is_array(tp));
     /* Check for an incomplete struct or union type. */
-    if (is_incomplete(tp) && (is_struct(tp) || is_union(tp))) {
+    if (is_incomplete(tp) && (is_class_or_struct(tp) || is_union(tp))) {
       is_arr_of_incomp = TRUE;
     }  /* if */
   }  /* if */
