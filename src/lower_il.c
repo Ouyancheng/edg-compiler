@@ -575,7 +575,30 @@ scope, or the lifetime from the parent context, will be used.
 #if DO_FULL_PORTABLE_EH_LOWERING
   context->try_frame = NULL;
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
+  if (parent_context == NULL || parent_context->scope != curr_context->scope) {
+    /* New scope.  Start new list of local temporaries. */
+    curr_context->local_temporaries = NULL;
+  } else {
+    /* Same scope as parent.  Use same list of local temporaries. */
+    curr_context->local_temporaries = parent_context->local_temporaries;
+  }  /* if */
 }  /* push_context */
+
+
+static void free_temporary_list_entry_list(a_temporary_list_entry_ptr tlep)
+/*
+Free a list of temporary list entries by putting them on the available list.
+*/
+{
+  if (tlep != NULL) {
+    /* Find the last entry on the list. */
+    a_temporary_list_entry_ptr tlep_last = tlep;
+    while (tlep_last->next != NULL) tlep_last = tlep_last->next;
+    /* Put the whole list on the front of the available list. */
+    tlep_last->next = avail_temporary_list_entries;
+    avail_temporary_list_entries = tlep;
+  }  /* if */
+}  /* free_temporary_list_entry_list */
 
 
 void pop_context(void)
@@ -597,6 +620,14 @@ Pop an entry off the context stack.
       parent_context->latest_initialization = context->latest_initialization;
       parent_context->curr_cleanup_state = context->curr_cleanup_state;
     }  /* if */
+  }  /* if */
+  if (parent_context == NULL || parent_context->scope != curr_context->scope) {
+    /* Different scope than parent.  All local temporaries are no longer
+       reusable.  Free the list entries. */
+    free_temporary_list_entry_list(curr_context->local_temporaries);
+  } else {
+    /* Same scope as parent.  Update the parent list of local temporaries. */
+    parent_context->local_temporaries = curr_context->local_temporaries;
   }  /* if */
   /* Pop to the surrounding context. */
   curr_context = parent_context;
@@ -1281,6 +1312,51 @@ Return a pointer to the variable.
   return temp_var;
 }  /* make_file_scope_temporary */
 
+
+a_variable_ptr make_local_temporary(a_type_ptr temp_type)
+/*
+Make a temporary of type temp_type that is used only within the current
+full expression, and can be reused after that.
+*/
+{
+  a_variable_ptr             temp_var;
+  a_temporary_list_entry_ptr tlep;
+
+  if (curr_context->local_temporaries != NULL) {
+    /* Look for a previously-allocated temporary we can reuse. */
+    for (tlep = curr_context->local_temporaries;
+         tlep != NULL;
+         tlep = tlep->next) {
+      if (!tlep->in_use && tlep->var->type == temp_type) {
+        /* Found a temporary with the proper type that we can reuse. */
+        temp_var = tlep->var;
+        goto have_temp;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  /* Allocate a new temporary variable. */
+  temp_var = make_lowered_temporary(temp_type);
+  /* Put the variable on a list of reusable local temporaries. */
+  if (avail_temporary_list_entries != NULL) {
+    /* Reuse a freed entry. */
+    tlep = avail_temporary_list_entries;
+    avail_temporary_list_entries = tlep->next;
+  } else {
+    /* Allocate a new entry. */
+    tlep = (a_temporary_list_entry_ptr)
+                                      alloc_fe(sizeof(a_temporary_list_entry));
+#if DEBUG
+    num_temporary_list_entries_allocated++;
+#endif /* DEBUG */
+  }  /* if */
+  tlep->var = temp_var;
+  tlep->next = curr_context->local_temporaries;
+  curr_context->local_temporaries = tlep;
+have_temp:
+  tlep->in_use = TRUE;
+  return temp_var;
+}  /* make_local_temporary */
+  
 
 a_variable_ptr make_unnamed_local_static_variable(a_type_ptr type,
                                                   a_boolean  in_function_scope)
@@ -5780,7 +5856,7 @@ used as an lvalue if is_lvalue is TRUE.
          member functions) has been created. */
       (void)make_mptr_type();
       /* Create the temporary. */
-      temp_var = make_lowered_temporary(source_node->type);
+      temp_var = make_local_temporary(source_node->type);
       /* Make "temp.i != 0". */
       temp_node = var_lvalue_expr(temp_var);
       select_i_node = field_rvalue_selection_expr(temp_node, mptr_i_field);
@@ -6158,7 +6234,7 @@ have already been lowered.
   vtbl_entry_node = make_vtbl_entry_node(func_node, object_node);
   /* Make the vtbl_temp temporary and an lvalue for it, and assign the
      virtual function table entry address to it. */
-  vtbl_temp_var = make_lowered_temporary(vtbl_entry_node->type);
+  vtbl_temp_var = make_local_temporary(vtbl_entry_node->type);
   assign_node = make_var_assignment_expr(vtbl_temp_var,
                                          (an_expr_operator_kind)eok_passign,
                                          vtbl_entry_node);
@@ -6316,7 +6392,7 @@ the expression have already been lowered.
      functions) has been created. */
   (void)make_mptr_type();
   /* Make the temporary variable for the "this_temp". */
-  this_temp_var = make_lowered_temporary(object_type);
+  this_temp_var = make_local_temporary(object_type);
   /* Make "(char *)object + pmf.d". */
   select_d_node = node_to_select_field_from_rvalue(pmf_node, mptr_d_field);
   cast_object_node = add_cast_to_char_star(object_node);
@@ -6383,7 +6459,7 @@ the expression have already been lowered.
     padd_node = make_operator_node((an_expr_operator_kind)eok_padd,
                                    ptr_to_vtbl_entry_type, vtbl_addr_node);
     /* Make the temporary variable for the "vtbl_temp". */
-    vtbl_temp_var = make_lowered_temporary(ptr_to_vtbl_entry_type);
+    vtbl_temp_var = make_local_temporary(ptr_to_vtbl_entry_type);
     vtbl_temp_assign_node = make_var_assignment_expr(vtbl_temp_var,
                                             (an_expr_operator_kind)eok_passign,
                                                      padd_node);
@@ -6420,7 +6496,7 @@ the expression have already been lowered.
     func_addr_node = add_cast_if_necessary(question_mark_node,
                                            ptr_routine_type);
     /* Store it in func_temp. */
-    func_temp_var = make_lowered_temporary(ptr_routine_type);
+    func_temp_var = make_local_temporary(ptr_routine_type);
     func_temp_assign_node = make_var_assignment_expr(func_temp_var,
                                             (an_expr_operator_kind)eok_passign,
                                                      func_addr_node);
@@ -7400,6 +7476,18 @@ to the statement; otherwise, it is NULL.
       overwrite_node(expr, expr_to_lower);
     }  /* if */
   }  /* if */
+  /* Release any temporary variables that are no longer needed after the
+     end of the full expression. */
+  /* NULL test is needed when this code is used to lower expressions
+     in aggregate initializers in Microsoft C mode. */
+  if (curr_context != NULL) {
+    a_temporary_list_entry_ptr tlep;
+    for (tlep = curr_context->local_temporaries;
+         tlep != NULL;
+         tlep = tlep->next) {
+      tlep->in_use = FALSE;
+    }  /* for */
+  }
 }  /* lower_full_expr */
 
 
@@ -11404,6 +11492,9 @@ Display and return the amount of space used for various IL lowering tables.
   db_space_used_header("IL lowering table use:");
 
   db_space_used("Name strings", allocated_name_string_length, char);
+  db_space_used_lost("temp list entries", avail_temporary_list_entries,
+                     num_temporary_list_entries_allocated,
+                     a_temporary_list_entry);
   db_space_used_lost("init pos modifier", avail_init_pos_modifiers,
                      num_init_pos_modifiers_allocated, an_init_pos_modifier);
   db_space_used_lost("destr. entity descrs", avail_destructible_entity_descrs,
@@ -11465,6 +11556,7 @@ are handled in il_lower_init.)
       pch_saved_var_array_elem(dynamic_cast_routine),
 #endif /* ABI_CHANGES_FOR_RTTI */
 #if DEBUG
+      pch_saved_var_array_elem(num_temporary_list_entries_allocated),
       pch_saved_var_array_elem(num_init_pos_modifiers_allocated),
       pch_saved_var_array_elem(num_destructible_entity_descrs_allocated),
       pch_saved_var_array_elem(allocated_name_string_length),
@@ -11513,6 +11605,7 @@ of the front end.
   avail_init_pos_modifiers = NULL;
   avail_destructible_entity_descrs = NULL;
 #if DEBUG
+  num_temporary_list_entries_allocated = 0;
   num_init_pos_modifiers_allocated = 0;
   num_destructible_entity_descrs_allocated = 0;
 #endif /* DEBUG */

@@ -1,5 +1,11 @@
 Version 2.38
 
+12/30/97  IL lowering: reuse of some temporaries
+
+IL lowering now frees and reuses some of the temporaries it generates.
+This is helpful in reducing stack use, particularly in code that contains
+many uses of pointers-to-member-functions.
+
 12/29/97  Internal error on old-style specialization definition
 
 An internal error would occur if an old-style definition of a given

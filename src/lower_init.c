@@ -4439,7 +4439,7 @@ arrays with class elements.
                               (an_insert_location *)NULL);
     new_routine = NULL;  /* Allocation done outside of __vec_new. */
     /* Make "temp = (type *)new-call(...)". */
-    temp_var = make_lowered_temporary(ptr_elem_type);
+    temp_var = make_local_temporary(ptr_elem_type);
     assign_node = make_var_assignment_expr(temp_var,
                                            (an_expr_operator_kind)eok_passign,
                                            add_cast_if_necessary(new_node,
@@ -4848,7 +4848,7 @@ The subtree of the node has not yet been lowered.
       */
       /* Allocate the temporary. */
       ptr_base_type = make_pointer_type(base_type);
-      temp_var = make_lowered_temporary(ptr_base_type);
+      temp_var = make_local_temporary(ptr_base_type);
       /* Assign the entity address expression to the temporary. */
       assign_node = make_var_assignment_expr(temp_var,
                                             (an_expr_operator_kind)eok_passign,

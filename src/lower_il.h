@@ -264,6 +264,7 @@ EXTERN a_destructible_entity_descr_ptr
 Count of entries allocated, for debugging purposes.
 */
 EXTERN unsigned long
+		num_temporary_list_entries_allocated,
 		num_init_pos_modifiers_allocated,
 		num_destructible_entity_descrs_allocated;
 #endif /* DEBUG */
@@ -334,6 +335,28 @@ typedef struct an_insert_location {
 } an_insert_location;
 
 /*
+Entry used to keep track of a list of local temporary variables that are
+reusable.
+*/
+typedef struct a_temporary_list_entry *a_temporary_list_entry_ptr;
+typedef struct a_temporary_list_entry {
+  a_temporary_list_entry_ptr
+		next;
+			/* The next entry on the list, or NULL if this is the
+			   last entry. */
+  a_variable_ptr
+		var;	/* A temporary variable. */
+  a_byte_boolean
+		in_use;	/* TRUE if the temporary is currently in use and is
+			   not reusable at the moment. */
+} a_temporary_list_entry;
+
+EXTERN a_temporary_list_entry_ptr
+		avail_temporary_list_entries;
+			/* List of temporary list entries that have been
+			   freed and are available for reuse. */
+
+/*
 Entry used to keep track of the context during the lowering operation.
 A linked list of these runs from the current point back through the stack
 to the outermost invocations, giving a history of the IL parents of
@@ -399,6 +422,10 @@ typedef struct a_context {
 			   try. */
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
 #endif /* GENERATE_EH_TABLES */
+  a_temporary_list_entry_ptr
+		local_temporaries;
+			/* List of local temporary variables that are
+			   potentially reusable. */
 } a_context;
 
 EXTERN a_context_ptr
@@ -616,6 +643,8 @@ extern a_variable_ptr make_temporary_in_scope(a_type_ptr  temp_type,
 extern a_variable_ptr make_lowered_temporary(a_type_ptr temp_type);
 
 extern a_variable_ptr make_file_scope_temporary(a_type_ptr temp_type);
+
+extern a_variable_ptr make_local_temporary(a_type_ptr temp_type);
 
 extern void make_lowered_field(char          *field_name,
                                a_type_ptr    field_type,

@@ -3876,7 +3876,7 @@ Lower an enk_throw expression node.
        string indicating which of the base classes are accessible. */
 #endif /* !ABI_CHANGES_FOR_RTTI */
     ptr_throw_type = make_pointer_type(throw_type);
-    temp_var = make_lowered_temporary(ptr_throw_type);
+    temp_var = make_local_temporary(ptr_throw_type);
     /* Make the typeinfo variable for the throw type. */
     typeinfo_var = typeinfo_var_for_type(throw_type, &flags_value);
     /* Make the arguments for the __throw_setup call. */
