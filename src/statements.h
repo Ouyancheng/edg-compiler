@@ -171,6 +171,7 @@ typedef enum a_control_flow_descr_kind_tag {
   cfdk_init,		/* Refers to an stmk_init statement. */
   cfdk_goto,		/* Refers to an stmk_goto statement. */
   cfdk_label,		/* Refers to an stmk_label statement. */
+  cfdk_case_label,	/* Case label in switch statement. */
   cfdk_end_of_block	/* End of a block. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -193,6 +194,9 @@ typedef struct a_control_flow_descr {
 			   cfdk_block and cfdk_end_of_block entries associated
 			   the routine scope; all other entries on a list
 			   have parents. */
+  a_source_position
+		source_pos;
+			/* Source position of the goto statement. */
   a_control_flow_descr_kind
 		kind;
 			/* The kind of entry. */
@@ -201,6 +205,7 @@ typedef struct a_control_flow_descr {
 			/* Unique identifying number for this entry. */
 #endif /* DEBUG */
   union {
+    /* When kind == cfdk_case_label: no variant fields */
     /* When kind == cfdk_block: */
     struct {
       a_control_flow_descr_ptr
@@ -208,16 +213,48 @@ typedef struct a_control_flow_descr {
 			/* An entry representing the start of a block has a
 			   pointer to the entry representing the end of the
 			   same block. */
+      a_control_flow_descr_ptr
+		last_case_label;
+			/* When is_switch_block or is_switch_subblock is TRUE,
+			   a pointer to the last case label in the current
+			   block or a subblock of the current block.  NULL
+			   when the block is not contained within a switch
+			   statement or contains no case labels. */
       unsigned long
 		goto_count;
 			/* Number of goto statements in the current block and
 			   blocks contained within the current block.  This
 			   counter is decremented as goto entries are
 			   removed from the list. */
-      a_byte_boolean
-		any_labels;
+      unsigned int
+		any_labels:1;
 			/* TRUE if the current block contains any label
 			   statements or any blocks with label statements. */
+      unsigned int
+		is_switch_block:1;
+			/* TRUE if the current block represents the body
+			   of a switch statement. */
+      unsigned int
+		is_switch_subblock:1;
+			/* TRUE if is_switch is TRUE for a block in which the
+			   current block is enclosed. */
+      unsigned int
+		exposed_init_in_switch:1;
+			/* If is_switch is TRUE for this block or for a block
+			   in which the current block is enclosed, there
+			   has been at least one initializing declaration that
+			   is "exposed" -- that is, that may give rise to a
+			   jump-over-initialization diagnostic if it is
+			   followed by a case label before the current block is
+			   closed.  Once the block is closed or a case label
+			   appears, the flag is cleared. */
+#if CHECKING
+      unsigned int
+		dummy:2;
+			/* Extra field that can be initialized to prevent
+			   spurious reference to uninitialized data warnings
+			   from CodeCenter. */
+#endif /* CHECKING */
     } block;
     /* When kind == cfdk_init: */
     a_statement_ptr
@@ -236,9 +273,6 @@ typedef struct a_control_flow_descr {
 			   the program.  This pointer produces a chain that
 			   can be walked to visit all forward gotos referring
 			   to a given label. */
-      a_source_position
-		source_pos;
-			/* Source position of the goto statement. */
     } goto_statement;
     /* When kind == cfdk_label: */
       a_statement_ptr
