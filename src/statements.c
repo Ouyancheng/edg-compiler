@@ -912,7 +912,7 @@ the label are promoted to the lifetime of the function scope.
     } else {
       /* Try to promote the lifetime for an inner block only if it has
          no destructions associated with it. */
-      keep_block_object_lifetime = (block_olp->destructions != NULL);
+      keep_block_object_lifetime = !is_useless_object_lifetime(block_olp);
     }  /* if */
     /* Loop through any olk_block_after_label lifetimes that may belong to the
        block that is being terminated. */
@@ -920,7 +920,7 @@ the label are promoted to the lifetime of the function scope.
     while (promote_from != block_olp) {
       check_assertion(promote_from->kind ==
                             (an_object_lifetime_kind)olk_block_after_label);
-      if (promote_from->destructions != NULL) {
+      if (!is_useless_object_lifetime(promote_from)) {
         /* This subblock has destructions, so its lifetime will be retained
            in the IL.  This means its olk_block will be retained, too. */
         keep_block_object_lifetime = TRUE;
@@ -931,7 +931,8 @@ the label are promoted to the lifetime of the function scope.
            itself. */
         promote_to =
               innermost_block_object_lifetime(promote_from->parent_lifetime);
-        while (promote_to != block_olp && promote_to->destructions == NULL) {
+        while (promote_to != block_olp &&
+               !is_useless_object_lifetime(promote_to)) {
           promote_to =
                innermost_block_object_lifetime(promote_to->parent_lifetime);
         }  /* while */
