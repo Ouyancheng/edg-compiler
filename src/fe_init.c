@@ -238,16 +238,16 @@ Install the keywords in the symbol table.
   if (microsoft_mode) {
     /* If Microsoft extensions are allowed, enter the keywords that are to
        be recognized. */
-    enter_keyword((a_token_kind)tok_cdecl,  "__cdecl");
-    enter_keyword((a_token_kind)tok_declspec,  "__declspec");
+    enter_keyword((a_token_kind)tok_cdecl, "__cdecl");
+    enter_keyword((a_token_kind)tok_declspec, "__declspec");
     enter_keyword((a_token_kind)tok_fastcall, "__fastcall");
-    enter_keyword((a_token_kind)tok_microsoft_inline,  "__inline");
-    enter_keyword((a_token_kind)tok_stdcall,  "__stdcall");
-    enter_keyword((a_token_kind)tok_unaligned,  "__unaligned");
-    enter_keyword((a_token_kind)tok_microsoft_try,  "__try");
-    enter_keyword((a_token_kind)tok_finally,  "__finally");
-    enter_keyword((a_token_kind)tok_leave,  "__leave");
-    enter_keyword((a_token_kind)tok_except,  "__except");
+    enter_keyword((a_token_kind)tok_microsoft_inline, "__inline");
+    enter_keyword((a_token_kind)tok_stdcall, "__stdcall");
+    enter_keyword((a_token_kind)tok_unaligned, "__unaligned");
+    enter_keyword((a_token_kind)tok_microsoft_try, "__try");
+    enter_keyword((a_token_kind)tok_finally, "__finally");
+    enter_keyword((a_token_kind)tok_leave, "__leave");
+    enter_keyword((a_token_kind)tok_except, "__except");
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* "asm" is a C++ keyword that is treated as a keyword in C mode, too,
@@ -256,12 +256,19 @@ Install the keywords in the symbol table.
   if (C_dialect == C_dialect_ANSI && strict_ansi_mode) {
     /* Strict ANSI C -- do not enter "asm". */
   } else {
-    enter_keyword((a_token_kind)tok_asm,       "asm");
+    enter_keyword((a_token_kind)tok_asm, "asm");
   }  /* if */
 #if ASM_FUNCTION_ALLOWED
   /* Enter "__asm" as a synonym for "asm" -- it too maps to tok_asm.  Note
      that in strict ANSI C mode, "__asm" is recognized but "asm" is not. */
-  enter_keyword((a_token_kind)tok_asm,         "__asm");
+  enter_keyword((a_token_kind)tok_asm, "__asm");
+#else /* !ASM_FUNCTION_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode) {
+    /* "__asm" is also accepted in Microsoft mode. */
+    enter_keyword((a_token_kind)tok_asm, "__asm");
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* ASM_FUNCTION_ALLOWED */
   if (C_dialect == C_dialect_cplusplus) {
     /* Enter C++ keywords that are not also C keywords. */
