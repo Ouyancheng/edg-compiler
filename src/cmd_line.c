@@ -1176,7 +1176,7 @@ by a command line option.
     allow_copy_assignment_op_with_base_class_param = FALSE;
     if (!option_kind_used[(int)optk_old_for_init]) {
       /* As of MSVC++ 6.0, this feature is still not implemented. */
-      use_nonstandard_for_init_scope = FALSE;
+      use_nonstandard_for_init_scope = TRUE;
     }  /* if */
     ptr_to_unknown_bound_array_allowed_in_param_type = TRUE;
     /* Exception specifications should be ignored in Microsoft bugs mode. */
