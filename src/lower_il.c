@@ -8354,6 +8354,59 @@ handled).
 }  /* lower_condition */
 
 
+static void lower_for_statement(a_statement_ptr statement)
+/*
+Do IL lowering of the indicated "for" statement and everything under it.
+*/
+{
+  a_for_loop_ptr     extra_info = statement->variant.for_loop.extra_info;
+  a_statement_ptr    for_stmt = statement;
+  a_statement_ptr    init_stmt = extra_info->initialization;
+  a_scope_ptr        for_init_scope = extra_info->for_init_scope;
+  a_context          context;
+  an_insert_location insert_location;
+
+  if (for_init_scope != NULL) {
+    /* With the "new" version of the for-loop, the scope of the for-init
+       variable is its own block scope. */
+    a_statement_ptr block_stmt = for_stmt;
+    push_context(&context, for_init_scope, (an_object_lifetime_ptr)NULL);
+    /* Put a block statement around the for-loop and attach the scope
+       to that block. */
+    turn_statement_into_block(for_stmt, &insert_location, &for_stmt);
+    block_stmt->variant.block.extra_info->assoc_scope = for_init_scope;
+    extra_info->for_init_scope = NULL;
+    for_init_scope->assoc_block = block_stmt;
+    if (for_init_scope->lifetime != NULL) {
+      begin_object_lifetime(for_init_scope->lifetime, &insert_location);
+    }  /* if */
+  }  /* if */
+  if (init_stmt != NULL) {
+    /* There is an initialization statement. */
+    a_statement_ptr init_stmt_next;
+    lower_statement(init_stmt);
+    /* If the initialization was rewritten as a sequence of statements,
+       make it into a block, because the stmk_for can only point at a
+       single statement. */
+    init_stmt_next = init_stmt->next;
+    if (init_stmt_next != NULL) {
+      init_stmt->next = NULL;
+      turn_statement_into_block(init_stmt, &insert_location, &init_stmt);
+      init_stmt->next = init_stmt_next;
+    }  /* if */
+  }  /* if */
+  lower_condition(for_stmt);
+  if (for_init_scope != NULL) {
+    if (for_init_scope->lifetime != NULL) {
+      set_insert_location(for_stmt, &insert_location);
+      gen_cleanup_actions(for_init_scope->lifetime, &insert_location);
+    }  /* if */
+    /* Pop the context pushed for the for-init variable scope. */
+    pop_context();
+  }  /* if */
+}  /* lower_for_statement */
+
+
 void lower_statement(a_statement_ptr statement)
 /*
 Do IL lowering of the indicated statement and everything under it.
@@ -8415,24 +8468,7 @@ Do IL lowering of the indicated statement and everything under it.
         lower_statement(statement->variant.loop_statement);
         break;
       case stmk_for:
-        { a_for_loop_ptr  extra_info = statement->variant.for_loop.extra_info;
-          a_statement_ptr init_stmt = extra_info->initialization;
-          if (init_stmt != NULL) {
-            a_statement_ptr init_stmt_next;
-            lower_statement(init_stmt);
-            /* If the initialization was rewritten as a sequence of statements,
-               make it into a block, because the stmk_for can only point at a
-               single statement. */
-            init_stmt_next = init_stmt->next;
-            if (init_stmt_next != NULL) {
-              init_stmt->next = NULL;
-              turn_statement_into_block(init_stmt, &insert_location,
-                                        &init_stmt);
-              init_stmt->next = init_stmt_next;
-            }  /* if */
-          }  /* if */
-          lower_condition(statement);
-        }
+        lower_for_statement(statement);
         break;
       case stmk_block:
         /* Save the statement list pointer early in case code is inserted
