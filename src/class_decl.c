@@ -8896,6 +8896,7 @@ operator should be created.  No routine body is generated at this time.
   a_symbol_locator          locator;
   a_func_info_block         func_info;
   a_source_position         *class_decl_pos;
+  a_routine_ptr             routine;
 
   db_enter(3, "generate_special_function");
   /* Allocate and initialize the routine type entry for the function. */
@@ -8956,10 +8957,12 @@ operator should be created.  No routine body is generated at this time.
      be safe. */
   (symbol_supplement_for_class(class_type))->symbols =
             assoc_pointers_block_of(&scope_stack[depth_scope_stack])->symbols;
-  if (instantiate_extern_inline) {
+  check_assertion(decl_info->member_sym != NULL);
+  routine = decl_info->member_sym->variant.routine.ptr;
+  if (instantiate_extern_inline && !routine->is_prototype_instantiation) {
     /* When inline functions are instantiated like templates, add the function
-       to the list of inline functions if it is inline. */
-    check_assertion(decl_info->member_sym != NULL);
+       to the list of inline functions if it is inline.  (Members of prototype
+       instantiations don't need to be treated that way, of course.) */
     add_to_inline_function_list(decl_info->member_sym->variant.routine.ptr);
   }  /* if */
   db_exit();
