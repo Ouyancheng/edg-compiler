@@ -61,6 +61,18 @@ typedef int an_equiv_templ_arg_options_set;
 			   or constant pointers. */
 
 /*
+Flags used to specify options to copy_type_with_substitution.
+*/
+typedef int a_ctws_options_set;
+
+#define CTWS_NO_OPTIONS			0x0
+#define CTWS_IS_PARENT			0x1
+			/* TRUE if the type being processed is the parent
+			   type of a class member.  This affects the way
+			   in which names are looked up during the
+			   substitution process. */
+
+/*
 Structure used to keep track of the class template partial specializations
 or function templates that match a given instance.
 */
@@ -225,6 +237,7 @@ extern a_type_ptr copy_type_with_substitution(
 				a_template_arg_ptr		templ_arg_list,
 				a_template_nesting_depth	depth,
 				a_source_position		*source_pos,
+				a_ctws_options_set		options,
 				a_boolean			*copy_error);
 
 extern a_boolean equiv_template_arg_lists(

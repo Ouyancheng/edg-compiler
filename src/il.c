@@ -6464,6 +6464,7 @@ constant, return the original pointer.
                                                  ctpcws_template_arg_list,
                                                  ctpcws_depth,
                                                  &ctpcws_source_pos,
+                                                 CTWS_NO_OPTIONS,
                                                  ctpcws_copy_error);
         }  /* if */
         other_con = copy_template_param_constant(
@@ -6498,6 +6499,7 @@ constant, return the original pointer.
                                                ctpcws_template_arg_list,
                                                ctpcws_depth,
                                                &ctpcws_source_pos,
+                                               CTWS_NO_OPTIONS,
                                                ctpcws_copy_error);
         if (new_type == con->variant.template_param.variant.type) {
           /* No change in the type. */
