@@ -1344,22 +1344,30 @@ the current routine.
   rout = current_routine_entry();
   tp = rout->type->variant.routine.return_type;
   if (!is_void_type(tp) && !is_error_type(tp)) {
-    /* If a return with no expression appears in a function with a
-       non-void type, issue a warning.  Do not issue the warning for
-       the main program, or if the declaration of the function did not
-       have an explicit type specifier (omitting the specifier implies
-       "int", but may have been intended to mean "void" in old-style C). */
-    if (!struct_stmt_stack->rout_type_explicitly_specified) {
-      /* No warning if the routine's type was not explicitly specified. */
-    } else if (rout == il_header.main_routine) {
-      /* No warning for "main". */
-    } else if (rout->special_kind ==
-                        (a_special_function_kind)sfk_constructor) {
-      /* No warning -- constructors will not have a return expression since
-         at the source level they have no return type; however, in the IL
-         they are represented as returning the "this" parameter. */
-    }  else {
-      warning(ec_no_value_returned_in_non_void_function);
+    if (C_dialect != C_dialect_cplusplus) {
+      /* If a return with no expression appears in a function with a
+         non-void type, issue a warning.  Do not issue the warning for
+         the main program, or if the declaration of the function did not
+         have an explicit type specifier (omitting the specifier implies
+         "int", but may have been intended to mean "void" in old-style C). */
+      if (!struct_stmt_stack->rout_type_explicitly_specified) {
+        /* No warning if the routine's type was not explicitly specified. */
+      } else if (rout == il_header.main_routine) {
+        /* No warning for "main". */
+      } else {
+        warning(ec_no_value_returned_in_non_void_function);
+      }  /* if */
+    } else {
+      /* C++:  Issue a warning unless we are returning from a constructor
+         (ARM 6.6.3 -- no special case for "main" or for cases in which the
+         routine type is not explicit). */
+      if (rout->special_kind == (a_special_function_kind)sfk_constructor) {
+        /* Constructors will not have a return expression since at the source
+           level they have no return type; however, in the IL they are
+           represented as returning the "this" parameter. */
+      } else {
+        warning(ec_no_value_returned_in_non_void_function);
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* check_void_return_okay */
