@@ -7590,13 +7590,23 @@ has been used in an exception handling or RTTI construct.
   } else {
     a_type_ptr eff_type = type_ptr;
     type_ptr->used_in_exception_or_rtti = TRUE;
-    /* Force generation of the typeinfo for any underlying class. */
-    while (is_ptr_or_ref_type(eff_type)) {
-      eff_type = type_pointed_to(eff_type);
-    }  /* while */
-    if (is_class_struct_union_type(eff_type)) {
-      require_definitions_of_virtual_functions_in_class(eff_type);
-    }  /* if */
+    /* Force generation of the typeinfo for any underlying classes. */
+    for (;;) {
+      eff_type = skip_typerefs(eff_type);
+      if (is_immediate_class_type(eff_type)) {
+        require_definitions_of_virtual_functions_in_class(eff_type);
+        break;
+      } else if (is_ptr_or_ref_type(eff_type)) {
+        eff_type = type_pointed_to(eff_type);
+      } else if (is_ptr_to_member(eff_type)) {
+        require_definitions_of_virtual_functions_in_class(
+                                                      pm_class_type(eff_type));
+        eff_type = pm_member_type(eff_type);
+      } else {
+        /* Array types, function types, fundamental types, etc. */
+        break;
+      }  /* if */
+    }  /* for */
     /* Add the type to the nontag_types_used_in_exception_or_rtti list,
        unless it will be on another list. */
     if (!has_name(type_ptr) &&

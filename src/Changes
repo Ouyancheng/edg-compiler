@@ -1,5 +1,24 @@
 Version 3.2
 
+2/25/03  IA-64 ABI: missing typeinfo for class used only in pointer to member
+
+A class used only in a pointer-to-member type in an exception
+handling context in a version that uses the IA-64 ABI could result
+in a link error due to a missing typeinfo variable for that
+class type.  Now fixed.
+
+  template <class T> struct A {
+    A(int) {}
+    virtual ~A();
+  };
+  template <class T> A<T>::~A() {}
+  void f(A<int>) {}
+  void f(int) {}
+  int main() {
+    f(0);
+    throw (int A<int>::*)0;
+  }
+
 2/24/03  Bad C for function with covariant return and two return statements
 
 The C-generating back end generated bad C, specifically several
