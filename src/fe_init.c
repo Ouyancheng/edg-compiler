@@ -281,6 +281,8 @@ Install the keywords in the symbol table.
   if (microsoft_mode) {
     /* "__asm" is also accepted in Microsoft mode. */
     enter_keyword((a_token_kind)tok_asm, "__asm");
+    /* "_asm" is also accepted. */
+    enter_keyword((a_token_kind)tok_asm, "_asm");
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* ASM_FUNCTION_ALLOWED */

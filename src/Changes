@@ -1,5 +1,9 @@
 Version 2.30
 
+8/25/95  _asm in Microsoft mode
+
+In Microsoft mode, "_asm" is now accepted as a synonym for "asm" or "__asm".
+
 8/24/95  Redundant file inclusion suppression bug
 
 A bug has been fixed that could result in the suppression of the
