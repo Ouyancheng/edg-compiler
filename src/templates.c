@@ -6317,10 +6317,10 @@ as the current token; otherwise, it is consumed.
 			       &tag_resolution, &prototype_type,
 			       defines_something);
     is_class_template = TRUE;
+    tssp = sym != NULL ? template_supplement_for_symbol(sym) : NULL;
 #if RECORD_TEMPLATES_IN_IL
     if (*defines_something && sym != NULL) {
       /* Save a pointer to the token cache for class template body. */
-      tssp = template_supplement_for_symbol(sym);
       p_template_body_cache = &tssp->cache.tokens;
     }  /* if */
 #endif /* RECORD_TEMPLATES_IN_IL */
@@ -6440,8 +6440,6 @@ as the current token; otherwise, it is consumed.
   {
     a_boolean	saved_pragmas = FALSE;
     if (sym != NULL) {
-      a_template_symbol_supplement_ptr	tssp;
-      tssp = template_supplement_for_symbol(sym);
       if (tssp != NULL) {
         /* A null pointer could be returned if the symbol has an invalid
            kind because of an earlier error. */
@@ -6463,8 +6461,7 @@ as the current token; otherwise, it is consumed.
     prototype_type = NULL;
     if (!invalid_decl_scope_err && saved_prototype_type != NULL) {
 #if CHECKING
-      if (sym == NULL ||
-          (tssp = template_supplement_for_symbol(sym)) == NULL ||
+      if (sym == NULL || tssp == NULL ||
           tssp->variant.class_template.instantiations == NULL ||
           tssp->variant.class_template.instantiations->
                      variant.class_struct_union.type != saved_prototype_type) {

@@ -1,5 +1,11 @@
 Version 2.32
 
+3/29/96   Abort when not using checking code
+
+A bug has been fixed that would cause an abort to occur in
+template_declaration when the front end is built without checking
+code.
+
 3/28/96   Virtual function in an unnamed class
 
 An error is now issued if a virtual function is declared but not defined
