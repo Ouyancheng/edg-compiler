@@ -7427,11 +7427,20 @@ of local variables (and types, etc.) of functions and in blocks.
                             is_old_style_param_decl,
                             is_top_level_declaration, param_id_list);
       goto return_point;
-    } else if (curr_token == tok_template) {
+    } else if (curr_token == tok_template ||
+               (microsoft_mode && curr_token == tok_extern &&
+                next_token() == tok_template)) {
       /* Do the processing required for a template declaration.  If this is
          a top level declaration, the subroutine should not advance past the
          final token of the declaration. */
-      template_directive_or_declaration(&final_token, TDO_NO_OPTIONS);
+      a_template_decl_options_set td_flags = TDO_NO_OPTIONS;
+
+      if (curr_token == tok_extern) {
+        /* In Microsoft mode "extern template ..." is permitted. */
+        (void)get_token();
+        td_flags = TDO_EXTERN;
+      }  /* if */
+      template_directive_or_declaration(&final_token, td_flags);
       /* The terminating token will be either a semicolon or a right
          brace.  The latter has already been checked for, but the former
          has not. */
