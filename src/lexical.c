@@ -324,29 +324,29 @@ Initialize a token cache, presumably so tokens can be added to it.
 }  /* clear_token_cache */
 
 
-static a_cached_token_ptr alloc_cached_token(void)
-/*
-Allocate a cached token entry.  Reuse a freed entry if possible.
-*/
-{
-  a_cached_token_ptr ctp;
-
-  if (avail_cached_tokens != NULL) {
-    /* Reuse a freed entry. */
-    ctp = avail_cached_tokens;
-    avail_cached_tokens = avail_cached_tokens->next;
-  } else {
-    /* Allocate a new entry. */
-    ctp = (a_cached_token_ptr)alloc_fe(sizeof(a_cached_token));
 #if DEBUG
-    num_cached_tokens_allocated++;
+#define incr_num_cached_tokens_allocated() num_cached_tokens_allocated++;
+#else /* !DEBUG */
+#define incr_num_cached_tokens_allocated() /* Nothing */
 #endif /* DEBUG */
-  }  /* if */
-  ctp->next = NULL;
-  ctp->source_position = pos_curr_token;
-  ctp->token = (a_byte_token_kind)tok_error;
-  ctp->extra_info_kind = (a_token_extra_info_kind)teik_none;
-  return ctp;
+
+/*
+Macro to allocate a cached token entry or, if possible, to reuse a freed
+entry.  Note that some of the fields of the allocated entry are initialized
+by the caller (including token and extra_info_kind).
+*/
+#define alloc_cached_token(ctp)                                         \
+{ if (avail_cached_tokens != NULL) {                                    \
+    /* Reuse a freed entry. */                                          \
+    ctp = avail_cached_tokens;                                          \
+    avail_cached_tokens = avail_cached_tokens->next;                    \
+  } else {                                                              \
+    /* Allocate a new entry. */                                         \
+    ctp = (a_cached_token_ptr)alloc_fe(sizeof(a_cached_token));         \
+    incr_num_cached_tokens_allocated();                                 \
+  }  /* if */                                                           \
+  ctp->next = NULL;                                                     \
+  ctp->source_position = pos_curr_token;                                \
 }  /* alloc_cached_token */
 
 
@@ -442,9 +442,10 @@ current state as indicated by the global variables.
   cache->lint_and_pragma_state.lint_varargs_count = lint_varargs_count;
   cache->lint_and_pragma_state.lint_argsused_flag = lint_argsused_flag;
   cache->lint_and_pragma_state.lint_notreached_flag = lint_notreached_flag;
-  ctp = alloc_cached_token();
+  alloc_cached_token(ctp);
   ctp->extra_info_kind = (a_token_extra_info_kind)teik_lint_and_pragma;
   ctp->variant.lint_and_pragma_state = cache->lint_and_pragma_state;
+  ctp->token = (a_byte_token_kind)tok_error;
   add_cached_token_to_cache(ctp, cache);
 }  /* add_lint_and_pragma_entry */
 
@@ -474,7 +475,7 @@ Save an end-of-source token on the end of the list of tokens saved in *cache.
   a_cached_token_ptr ctp;
 
   /* Build an entry for the end-of-source token. */
-  ctp = alloc_cached_token();
+  alloc_cached_token(ctp);
   ctp->token = (a_byte_token_kind)tok_end_of_source;
   ctp->extra_info_kind = (a_token_extra_info_kind)teik_none;
   /* Add the end-of-source token to the end of the cache. */
@@ -501,7 +502,7 @@ for pp-tokens.
      an entry to reflect the change on the end of the cache list. */
   if_necessary_add_lint_and_pragma_entry(cache);
   /* Build an entry for the current token itself. */
-  ctp = alloc_cached_token();
+  alloc_cached_token(ctp);
   ctp->token = (a_byte_token_kind)curr_token;
   if (curr_token == tok_identifier || curr_token == tok_ptr_to_member) {
     /* Identifier -- save information about it. */
