@@ -4146,8 +4146,8 @@ See also 3.6.6.4.
      case the expression also has to have void type.  For these cases the
      return statement is allocated later so that the expression can be put
      out first as a freestanding expression statement. */
-  if (expr_present && (cfront_2_1_mode || (microsoft_mode && C_mode()) &&
-      is_void_type(return_type))) {
+  if (expr_present && is_void_type(return_type) &&
+      (cfront_2_1_mode || (microsoft_mode && C_mode()))) {
     warning(ec_value_returned_in_void_function);
     return_expr_in_void_function = TRUE;
     sp = add_statement((a_statement_kind)stmk_expr);
