@@ -41,7 +41,9 @@ itself preceded by a qualifier.  For example:
 
 The C++-generating back end has been modified to emit the extra qualifier
 when msvc_is_generated_code_target is TRUE and msvc_target_version_number
-is at least 1300.
+is at least 1300.  The macro MSVC_TARGET_VERSION (see entry of 5/23/02)
+has been renamed MSVC_TARGET_VERSION_NUMBER (we had two similar
+variables).
 
 10/16/02 Microsoft compatibility: instantiating the type of a static data
          member
@@ -2013,6 +2015,8 @@ static initialization routines invoked at program startup when
 MSVC_IS_GENERATED_CODE_TARGET is TRUE and MSVC_TARGET_VERSION is 1300 or
 higher.  The --msvc_target_version command-line option can be used to
 override the default version number.  [Patch sent out 7/23/02.]  
+[10/17/02:] The name of the macro has been changed to
+MSVC_TARGET_VERSION_NUMBER.
 
 5/23/02  Spurious error on destructor reference
 
