@@ -4254,15 +4254,16 @@ after_end_of_all_source -- i.e., TRUE if no current source line was read.
       ch = local_ch;
       loc_in_line = local_loc_in_line;
 #if IGNORE_CARRIAGE_RETURN_IN_SOURCE
-      /* Ignore carriage return right before newline. */
-      if (*(loc_in_line-1) == '\r') {
+      /* Ignore carriage return right before newline.  Ignore several if
+         they are present (there are Microsoft header files that have this). */
+      while (*(loc_in_line-1) == '\r') {
         loc_in_line--;
         /* Avoid the line splice test if the line is empty except for the
            carriage return. */
         if (loc_in_line == curr_source_line) {
           goto add_newline_and_line_end_and_return;
         }  /* if */
-      }  /* if */
+      }  /* while */
 #endif /* IGNORE_CARRIAGE_RETURN_IN_SOURCE */
       /* End of a line containing at least one character.  Check to see
          if the last character is a backslash.  If so, the current line

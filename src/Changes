@@ -4,9 +4,13 @@ Version 2.42
 
 When IGNORE_CARRIAGE_RETURN_IN_SOURCE is TRUE, all carriage returns that
 appear immediately before the end of line are ignored.  Formerly, only
-one such carriage return would be ignored.  There are Microsoft header
-files that have carriage-return/carriage-return/line-feed at the ends
-of some lines.
+one such carriage return would be ignored.
+
+This is important for Microsoft compatibility because the preprocessor
+in MSVC++ expands a backslash at the end of a line that is not part of
+a macro definition (and such a line appears in the atlcom.h header
+file) into a line with a line terminator of carriage-return/
+carriage-return/line-feed.
 
 7/1/99  Variadic macros
 
