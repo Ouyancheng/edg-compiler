@@ -3934,7 +3934,7 @@ is the one associated with the pragma.
       /* Just put out #ident, which is probably recognized more often than
          #pragma ident is. */
       write_str("#ident ");
-      dump_constant(pp->variant.ident_string);
+      gen_constant(pp->variant.ident_string, /*need_parens=*/FALSE);
     } else {
 #endif /* IDENT_DIRECTIVE_AND_PRAGMA */
       check_assertion_str(pp->pragma_text != NULL,
@@ -3944,7 +3944,6 @@ is the one associated with the pragma.
 #if IDENT_DIRECTIVE_AND_PRAGMA
     }  /* if */
 #endif /* IDENT_DIRECTIVE_AND_PRAGMA */
-    write_str(pp->pragma_text);
     enable_line_wrapping();
     end_output_line();
   }  /* if */
