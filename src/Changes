@@ -1,5 +1,18 @@
 Version 2.36
 
+6/12/97   Spurious error on local-class friend function declaration
+
+When a friend function declaration appears in a local class, a spurious
+error linkage-conflict error could occur in -A mode.  This bug, introduced
+in version 2.34, is now fixed.
+
+  static int f();
+  void g() {
+    struct X {
+      friend int f();      // Spurious error no longer issued
+    };
+  }
+
 6/11/97   IL lowering of loop conditions: block <--> scope wrong
 
 The lowering of a condition declaration in a loop, where the dependent
