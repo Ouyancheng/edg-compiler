@@ -4007,7 +4007,7 @@ nothing).
 static a_boolean identical_templates_given_symbol(a_symbol_ptr	sym1,
 				 	          a_symbol_ptr	sym2)
 /*
-Return TRUE if the templates specified symbol sym1 and sym2 are identical.
+Return TRUE if the templates specified by symbol sym1 and sym2 are identical.
 sym1 and sym2 must be class template symbols, or may be NULL.  Note that
 this is a more restrictive test that equiv_templates in that equivalent
 template template parameters compare unequal.
