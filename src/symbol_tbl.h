@@ -1517,7 +1517,7 @@ extern void reference_to_symbol(a_symbol_reference_kind kind,
 extern void set_source_corresp(a_source_correspondence *sc,
                                a_symbol_ptr            sp);
 extern a_boolean
-       current_instantiation_symbol_if_class_template(a_symbol_ptr *sym);
+       current_class_symbol_if_class_template(a_symbol_ptr *sym);
 extern void update_instantiation_required_flag
                                   (a_function_instantiation_entry_ptr fiep,
                                    a_boolean                          value);
