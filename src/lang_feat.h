@@ -749,7 +749,7 @@ EXTERN a_boolean
                 sun_mode
 #if VAR_INITIALIZERS
 #if !SUN_EXTENSIONS_ALLOWED
-                         = FALSE;
+                         = FALSE
 #else /* SUN_EXTENSIONS_ALLOWED */
                          = DEFAULT_SUN_COMPATIBILITY
 #endif /* !SUN_EXTENSIONS_ALLOWED */
