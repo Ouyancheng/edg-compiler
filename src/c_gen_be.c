@@ -215,6 +215,10 @@ static a_scope_ptr
 		curr_function_scope;
 			/* When processing a function, this points to the
 			   associated function scope.  NULL otherwise. */
+static a_scope_ptr
+		curr_scope;
+			/* Points to the scope being processed currently
+			   (file, function, or block). */
 #if CHECKING
 static a_boolean
 		processing_declaration_of_defined_function;
@@ -2225,6 +2229,69 @@ Output a reference to a type.  If add_pointer_to is TRUE, add an extra
 }  /* dump_type */
 
 
+static void dump_pragma(a_pragma_ptr pp)
+/*
+Dump a single #pragma from the IL entry.
+*/
+{
+  unsigned long saved_indent = indent;
+
+  end_output_line_if_begun();
+  indent = 0;
+  disable_line_wrapping();
+  write_str("#pragma ");
+  write_str(pp->pragma_text);
+  enable_line_wrapping();
+  end_output_line();
+  indent = saved_indent;
+}  /* dump_pragma */
+
+
+static void dump_scope_pragmas(a_scope_ptr scope,
+                               char        *entity_ptr)
+/*
+Dump any pragmas in the indicated scope that are associated with the entity
+at the indicated address, or that are associated with no entity if
+entity_ptr == NULL.  If entity_ptr != NULL, the caller is assumed to have
+checked that there are some pragmas associated with the entity.
+*/
+{
+  a_pragma_ptr pp;
+#if CHECKING
+  a_boolean    found_any = FALSE;
+#endif /* CHECKING */
+
+  for (pp = scope->pragma_list; pp != NULL; pp = pp->next) {
+    /* Process only pragmas that are bound to the right entity (or to no
+       entity, if entity_ptr == NULL). */
+    if (pp->entity.ptr == entity_ptr) {
+      dump_pragma(pp);
+#if CHECKING
+      found_any = TRUE;
+#endif /* CHECKING */
+    }  /* if */
+  }  /* for */
+#if CHECKING
+  if (!found_any) {
+    internal_error("dump_scope_pragmas: no pragmas found for entity");
+  }  /* if */
+#endif /* CHECKING */
+}  /* dump_scope_pragmas */
+
+
+static void dump_associated_pragmas(a_source_correspondence *scp)
+/*
+Dump out any pragmas associated with the entity whose source correspondence
+information is given by scp.
+*/
+{
+  if (scp->has_associated_pragma) {
+    /* The entity has one or more associated pragmas.  Dump them. */
+    dump_scope_pragmas(curr_scope, (char *)scp);
+  }  /* if */
+}  /* dump_associated_pragmas */
+
+
 static void dump_typedef_decl(a_type_ptr type)
 /*
 Print a typedef declaration.
@@ -2232,6 +2299,8 @@ Print a typedef declaration.
 {
   type->definition_put_out = TRUE;
   if (start_unreferenced_bracket(&type->source_corresp)) {
+    /* Dump any pragmas associated with the type. */
+    dump_associated_pragmas(&type->source_corresp);
     set_output_position(&type->source_corresp.decl_position);
     write_tok_str("typedef ");
     dump_declaration_using_type(type->variant.typeref.type,
@@ -2266,6 +2335,8 @@ Output the definition of the indicated enum type.
   /* As an annotation, put out the enum inside a #if 0. */
   write_if_0_directive();
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
+  /* Dump any pragmas associated with the type. */
+  dump_associated_pragmas(&type->source_corresp);
   set_output_position(&type->source_corresp.decl_position);
   /* Generate "enum <name>". */
   write_tok_str("enum ");
@@ -2313,6 +2384,8 @@ Output the definition of the indicated struct or union type.
 
   type->definition_put_out = TRUE;
   if (start_unreferenced_bracket(&type->source_corresp)) {
+    /* Dump any pragmas associated with the type. */
+    dump_associated_pragmas(&type->source_corresp);
     set_output_position(&type->source_corresp.decl_position);
     write_tok_str(tag_kind(type->kind));
     write_space();
@@ -2467,6 +2540,11 @@ pass), dump typedefs, and structs/unions as definitions (if they are defined).
          second pass (if the struct/union is defined). */
       if (pass == 1) {
         if (start_unreferenced_bracket(&type->source_corresp)) {
+          if (type->size == 0) {
+            /* Dump any pragmas associated with the type if no definition
+               will be output on the second pass. */
+            dump_associated_pragmas(&type->source_corresp);
+          }  /* if */
           set_output_position(&type->source_corresp.decl_position);
           dump_tag_reference(type);
           write_tok_ch(';');
@@ -4469,6 +4547,11 @@ parameters.
       if (dump_initializers && init_con != NULL) {
         prescan_for_addrs_of_wide_string_constants(init_con);
       }  /* if */
+      /* Dump any pragmas associated with the variable on the first
+         declaration of the variable. */
+      if (dump_vars_without_initializers) {
+        dump_associated_pragmas(&variable->source_corresp);
+      }  /* if */
       set_output_position(&variable->source_corresp.decl_position);
 #if !C_GEN_BE_GENERATES_ANSI_C
       if (init_con != NULL &&
@@ -4536,6 +4619,8 @@ static void dump_asm_entry(an_asm_entry_ptr aep)
 Generate C for an asm statement or declaration.
 */
 {
+  /* Dump any pragmas associated with the entry. */
+  dump_associated_pragmas(&aep->source_corresp);
   set_output_position(&aep->source_corresp.decl_position);
   write_tok_str("asm(");
   dump_constant(aep->asm_string);
@@ -4601,6 +4686,8 @@ Dump out one constant declaration as a #define.
 */
 {
   if (annotate) {
+    /* Dump any pragmas associated with the constant. */
+    dump_associated_pragmas(&constant->source_corresp);
     set_output_position(&constant->source_corresp.decl_position);
     end_output_line_if_begun();
     disable_line_wrapping();
@@ -4654,11 +4741,14 @@ Dump out the declarations (if any) for a block.
     scope = statement->variant.block.extra_info->assoc_scope;
   }  /* if */
   if (scope != NULL) {
+    /* Set the new current scope.  The caller restores the old value. */
+    curr_scope = scope;
     /* Constants and routines do not exist at this level and therefore
        need not be dumped. */
     /* Subscopes are processed when the associated block statement is
        encountered. */
     /* Local types are dumped out as part of the file scope. */
+    dump_scope_pragmas(scope, (char *)NULL);
     dump_scope_variables(scope,
                          /*interleave_asm_decls=*/FALSE,
                          /*dump_vars_without_initializers=*/TRUE,
@@ -4674,8 +4764,13 @@ static void dump_block(a_statement_ptr statement)
 Dump out the contents of a block (but not the surrounding { and }).
 */
 {
+  /* curr_scope is saved and restored by this routine.  It is set to the
+     new scope by dump_block_declararations, if appropriate. */
+  a_scope_ptr saved_curr_scope = curr_scope;
+
   dump_block_declarations(statement);
   dump_statement_list(statement->variant.block.statements);
+  curr_scope = saved_curr_scope;
 }  /* dump_block */
 
 
@@ -4788,6 +4883,11 @@ Generate C for a statement.
     goto routine_end;
   }  /* if */
   kind = statement->kind;
+  /* Dump out any pragmas associated with the statement. */
+  if (statement->has_associated_pragma) {
+    /* The statement has one or more associated pragmas.  Dump them. */
+    dump_scope_pragmas(curr_scope, (char *)statement);
+  }  /* if */
   /* Identify the line number except for lines that put out their own
      line info. */
   if (kind != (a_statement_kind)stmk_label
@@ -4943,6 +5043,9 @@ Generate C for a statement.
       } else {
         /* Dump the block body statement (usually empty), without surrounding
            braces. */
+        /* curr_scope is saved and restored here because
+           dump_block_declarations sets it. */
+        a_scope_ptr saved_curr_scope = curr_scope;
 	indent += 4;
         if (body_statement->variant.block.extra_info->assoc_scope != NULL) {
           /* Do the prescan for temporaries needed in the switch clauses,
@@ -4961,6 +5064,7 @@ Generate C for a statement.
           dump_statement_list(body_statement->variant.block.statements);
           write_tok_str("break;");
         }  /* if */
+        curr_scope = saved_curr_scope;
 	indent -= 4;
       }  /* if */
       for (switch_clause = statement->variant.switch_stmt.clause_list;
@@ -5276,7 +5380,7 @@ by dump_routine_decl.
 */
 {
   a_memory_region_number scope_region_number;
-  a_scope_ptr            scope;
+  a_scope_ptr            scope, saved_curr_scope = curr_scope;
 
   scope_region_number = rout->assoc_scope;
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
@@ -5287,12 +5391,13 @@ by dump_routine_decl.
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
   scope = il_header.region_scope_entry[scope_region_number];
   check_assertion_str(scope != NULL, "dump_routine_definition: scope is NULL");
-  curr_function_scope = scope;
+  curr_function_scope = curr_scope = scope;
   /* Generate the routine name and the parameter declarations. */
   dump_func_definition_type(rout, scope);
   /* Generate the body statement. */
   dump_statement(scope->assoc_block);
   curr_function_scope = NULL;
+  curr_scope = saved_curr_scope;
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
   /* Now that we're done with the function, free its IL information. */
   free_memory_region(scope_region_number);
@@ -5340,6 +5445,11 @@ if this routine has a body (dump nothing if it has no body).
       indent = saved_indent;
     }
 #endif /* SGIC */
+    /* Dump any pragmas associated with the routine on the definition
+       of the routine if it has one, otherwise on the declaration. */
+    if (is_definition || !has_defn) {
+      dump_associated_pragmas(&rout->source_corresp);
+    }  /* if */
     /* Dump the routine interface. */
     set_output_position(&rout->source_corresp.decl_position);
     /* Output the storage class. */
@@ -5479,7 +5589,6 @@ Generate C from the intermediate language.
   a_scope_ptr       scope;
   char              *C_output_file_name;
   a_boolean         cannot_open, bad_name;
-  char              *source_language_name;
   a_source_position pos;
 
   /* Open the output file. */
@@ -5504,16 +5613,6 @@ Generate C from the intermediate language.
   /* Remember the primary output file. */
   f_primary = f_C_output;
 
-  switch (il_header.source_language) {
-    case sl_Cplusplus:
-      source_language_name = "C++";
-      break;
-    case sl_C:
-      source_language_name = "C";
-      break;
-    default:
-      unexpected_condition_str("c_gen_be: bad source language code");
-  }  /* switch */
 #if !C_GEN_BE_GENERATES_ANSI_C
   /* Make a string based on the module name that is used to qualify
      static names to make them unique. */
@@ -5530,8 +5629,7 @@ Generate C from the intermediate language.
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
   /* Print an identifying heading in the output file. */
   (void)fprintf(f_C_output,
-     "/* Translated by the Edison Design Group %s front end (version %s) */\n",
-                source_language_name,
+  "/* Translated by the Edison Design Group C++/C front end (version %s) */\n",
                 il_header.compiler_version);
   (void)fprintf(f_C_output, "/* %.24s */\n", il_header.time_of_compilation);
   if (annotate) {
@@ -5549,7 +5647,8 @@ Generate C from the intermediate language.
   set_output_position(&pos);
 
   /* Dump all of the declarative information at the top-most (file) level. */
-  scope = il_header.primary_scope;
+  curr_scope = scope = il_header.primary_scope;
+  dump_scope_pragmas(scope, (char *)NULL);
   dump_scope_constants(scope);
   dump_scope_types(scope);
   dump_scope_routines(scope, /*dump_defn=*/FALSE);
@@ -5669,6 +5768,7 @@ Initialize for the C-generating back end.
   f_rout_dynamic_inits = NULL;
   output_initializer_code_directly = FALSE;
   curr_function_scope = NULL;
+  curr_scope = NULL;
 #if CHECKING
   processing_declaration_of_defined_function = FALSE;
 #endif /* CHECKING */
