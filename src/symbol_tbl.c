@@ -6526,15 +6526,6 @@ of the template.
        its official associated memory region. */
     ssep->il_memory_region = (ssep-1)->il_memory_region;
   }  /* if */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  if (kind == (a_scope_kind)sck_file ||
-      (!C_mode() && kind == (a_scope_kind)sck_class_struct_union)) {
-    depth_innermost_ss_list_scope = depth_scope_stack;
-    depth_innermost_file_scope_region_ss_list_scope = depth_scope_stack;
-  } else if (kind == (a_scope_kind)sck_function) {
-    depth_innermost_ss_list_scope = depth_scope_stack;
-  }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Fill in the fields of the scope entry. */
   ssep->kind                     = kind;
   ssep->current_access           = (an_access_specifier)as_public;
@@ -6695,6 +6686,28 @@ of the template.
       is_scope_kind_that_affects_access_control(kind)) {
     depth_of_innermost_scope_that_affects_access_control = depth_scope_stack;
   }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  if (kind == (a_scope_kind)sck_file ||
+      (!C_mode() && kind == (a_scope_kind)sck_class_struct_union)) {
+    ssep->depth_innermost_ss_list_scope =
+      depth_innermost_ss_list_scope = depth_scope_stack;
+    ssep->depth_innermost_file_scope_region_ss_list_scope =
+      depth_innermost_file_scope_region_ss_list_scope = depth_scope_stack;
+  } else if (kind == (a_scope_kind)sck_function) {
+    ssep->depth_innermost_ss_list_scope =
+      depth_innermost_ss_list_scope = depth_scope_stack;
+  } else if (kind == (a_scope_kind)sck_template_declaration) {
+    ssep->depth_template_declaration_scope =
+      depth_template_declaration_scope = depth_scope_stack;
+  } else if (kind == (a_scope_kind)sck_template_instantiation) {
+    ssep->depth_innermost_ss_list_scope =
+      depth_innermost_ss_list_scope = DEPTH_OF_FILE_SCOPE;
+    ssep->depth_innermost_file_scope_region_ss_list_scope =
+      depth_innermost_file_scope_region_ss_list_scope = DEPTH_OF_FILE_SCOPE;
+    ssep->depth_template_declaration_scope =
+      depth_template_declaration_scope = NO_SCOPE_DEPTH;
+  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if DEBUG
   if (debug_level >= 3) {
     db_scope_stack();
@@ -7519,10 +7532,12 @@ End a name scope by popping an entry off the scope stack.
                                             depth_innermost_function_scope;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     depth_innermost_ss_list_scope =
-                scope_stack[depth_scope_stack].depth_innermost_ss_list_scope;
+             scope_stack[depth_scope_stack].depth_innermost_ss_list_scope;
     depth_innermost_file_scope_region_ss_list_scope =
-                scope_stack[depth_scope_stack].
+             scope_stack[depth_scope_stack].
                              depth_innermost_file_scope_region_ss_list_scope;
+    depth_template_declaration_scope =
+             scope_stack[depth_scope_stack].depth_template_declaration_scope;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
   if (C_dialect == C_dialect_cplusplus) {
@@ -8521,6 +8536,7 @@ to avoid an 8-character external name clash with symbol_table.)
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   depth_innermost_ss_list_scope = NO_SCOPE_DEPTH;
   depth_innermost_file_scope_region_ss_list_scope = NO_SCOPE_DEPTH;
+  depth_template_declaration_scope = NO_SCOPE_DEPTH;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   inside_local_class = FALSE;
   next_scope_number = FILE_SCOPE_NUMBER;
