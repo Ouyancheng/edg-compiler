@@ -2937,14 +2937,14 @@ body.  Only called in C++ mode.
   if (scope->kind == (a_scope_kind)sck_class_struct_union) {
     /* Now go though each routine entry for the current class. */
     for (rp = scope->routines; rp != NULL; rp = rp->next) {
-      if (!routine_defined(rp) && !rp->compiler_generated) {
+      sym = (a_symbol_ptr)rp->source_corresp.assoc_info;
+      if (!(routine_defined(rp) || sym->defined) && !rp->compiler_generated) {
         /* An undefined member function. */
         is_inline_virtual =
                     (rp->is_inline && rp->is_virtual && !rp->pure_virtual);
         if (rp->source_corresp.referenced || is_inline_virtual) {
           /* Either the function was actually referenced or could be
              referenced using the virtual function call mechanism. */
-          sym = (a_symbol_ptr)rp->source_corresp.assoc_info;
           if (sym != NULL) {
             tip = sym->variant.routine.instance_ptr;
             if (tip != NULL &&

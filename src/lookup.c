@@ -4108,7 +4108,8 @@ be found.
        scope symbols start on the active list, but will be on the inactive
        list when the file scope is reactivated for the purpose of generating
        instantiations. */
-    sym = symhdr->symbol == NULL ? symhdr->inactive_symbols : symhdr->symbol;
+    sym = (scope_stack[DEPTH_OF_FILE_SCOPE].is_reactivation) ?
+                                    symhdr->inactive_symbols : symhdr->symbol;
     for (; sym != NULL; sym = sym->next) {
       /* The file_scope_number test excludes symbols from other translation
          units. */
