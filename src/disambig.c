@@ -417,7 +417,12 @@ part of a function declarator is found, may_be_decl is set to FALSE.
   cache_curr_token(token_cache_ptr);
   (void)get_token_and_coalesce_if_identifier(flags);
   /* Skip past any cv-qualifiers associated with this function declarator. */
-  while (is_type_qualifier_token(curr_token)) {
+  while (is_type_qualifier_token(curr_token)
+#if MICROSOFT_EXTENSIONS_ALLOWED
+         || (microsoft_16_mode &&
+             (curr_token == tok_near || curr_token == tok_far))
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                            ) {
     cache_curr_token(token_cache_ptr);
     (void)get_token_and_coalesce_if_identifier(flags);
   }  /* while */
@@ -470,7 +475,7 @@ part of a declarator is found, may_be_decl is set to FALSE.
          & cv-qualifier-list
          complete-class-name :: * cv-qualifier-list
          microsoft-qualifier-list
-     Note that neither pointer declarators nor qualifiers are allowed in
+     Note that neither pointer declarators nor qualifiers are allowed
      in expressions, so their presence means this is a declaration. */
   for (;;) {
     if (curr_token == tok_star || curr_token == tok_ampersand) {
@@ -696,7 +701,7 @@ evidence to the contrary.
     prescan_decl_specifiers(token_cache_ptr, flags, may_be_decl);
     if (!*may_be_decl) goto done;
     for (;;) {
-      /* Parenthesized initializers are only allowed in contexts that
+      /* Parenthesized initializers are only allowed in contexts
          in which only real declarators are allowed, but not in
          conditions. */
       a_boolean	paren_initializer_allowed;
@@ -816,7 +821,7 @@ types separated by commas (when single_type_required is FALSE).
       locator_for_curr_id.do_not_clear_specific_symbol = TRUE;
     }  /* if */
     /* Scan forward as far as required to determine whether this is a
-       declaration.  Each token that is encountered is cached away, so that
+       declaration.  Each token that is encountered is cached away, so
        that they can be restored for the actual scan. */
     prescan_declaration(&token_cache, flags, /*is_top_level=*/TRUE,
                         &may_be_decl, (a_type_ptr*)NULL);
