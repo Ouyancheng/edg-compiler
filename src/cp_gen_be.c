@@ -1973,6 +1973,44 @@ Return a string that describes the tag kind for the indicated type (i.e.,
 }  /* tag_keyword */
 
 
+static a_boolean is_typedef_invisible_in_cp_gen_be(a_type_ptr type)
+/*
+Called from the il_to_str routines.  Returns TRUE if the indicated typedef
+type should be considered to be invisible, i.e., the type under it should
+be put out instead of the typedef name.  Note that certain basic
+visibility tests are done in the il_to_str routines before this routine
+is called.
+*/
+{
+  a_boolean invisible = FALSE;
+
+  check_assertion(type->kind == (a_type_kind)tk_typeref &&
+                  typeref_is_typedef(type));
+  if (!type->typedef_definition_has_been_put_out) {
+    /* The typedef definition has not been put out yet, so the typedef
+       name cannot be referenced. */
+    invisible = TRUE;
+#if GCC_BUILTIN_VARARGS
+    /* The definition of the va_list type is never put out, but it's
+       visible even though the flag is not set (it's defined when the
+       <stdarg.h> header is included). */
+    if (type->is_builtin_va_list) invisible = FALSE;
+#endif /* GCC_BUILTIN_VARARGS */
+  } else if (type->source_corresp.is_class_member &&
+             type->source_corresp.access != (an_access_specifier)as_public &&
+             !class_is_in_name_context_stack(
+                                     type->source_corresp.parent.class_type)) {
+    /* The typedef is a non-public member of a class.  There might be
+       an access problem for this if we're not inside the class, so drop
+       the typedef in that case.  This comes up, from example, on template
+       arguments for non-member templates that are first established using
+       a member typedef. */
+    invisible = TRUE;
+  }  /* if */
+  return invisible;
+}  /* is_typedef_invisible_in_cp_gen_be */
+
+
 static a_boolean force_qualifier_for_msvc(a_source_correspondence *scp,
                                           an_il_entry_kind        entry_kind,
                                           a_gen_name_options_set  options)
@@ -2210,8 +2248,14 @@ put out nothing.
     gen_name_qualifier_list(nqp->previous_qualifier);
     if (nqp->is_class) {
       /* A class qualifier. */
-      gen_unqualified_name(&nqp->qualifier.class_type->source_corresp,
-                           iek_type);
+      a_type_ptr class_type = nqp->qualifier.class_type;
+      /* Drop invisible typedefs. */
+      while (class_type->kind == (a_type_kind)tk_typeref &&
+             typeref_is_typedef(class_type) &&
+             is_typedef_invisible_in_cp_gen_be(class_type)) {
+        class_type = class_type->variant.typeref.type;
+      }  /* while */
+      gen_unqualified_name(&class_type->source_corresp, iek_type);
     } else {
       /* A namespace qualifier. */
       gen_unqualified_name(&nqp->qualifier.namespace_ptr->source_corresp,
@@ -2276,44 +2320,6 @@ Generate the name of a routine from an enk_routine_address node.
     gen_routine_name(rout);
   }  /* if */
 }  /* gen_name_from_routine_address_node */
-
-
-static a_boolean is_typedef_invisible_in_cp_gen_be(a_type_ptr type)
-/*
-Called from the il_to_str routines.  Returns TRUE if the indicated typedef
-type should be considered to be invisible, i.e., the type under it should
-be put out instead of the typedef name.  Note that certain basic
-visibility tests are done in the il_to_str routines before this routine
-is called.
-*/
-{
-  a_boolean invisible = FALSE;
-
-  check_assertion(type->kind == (a_type_kind)tk_typeref &&
-                  typeref_is_typedef(type));
-  if (!type->typedef_definition_has_been_put_out) {
-    /* The typedef definition has not been put out yet, so the typedef
-       name cannot be referenced. */
-    invisible = TRUE;
-#if GCC_BUILTIN_VARARGS
-    /* The definition of the va_list type is never put out, but it's
-       visible even though the flag is not set (it's defined when the
-       <stdarg.h> header is included). */
-    if (type->is_builtin_va_list) invisible = FALSE;
-#endif /* GCC_BUILTIN_VARARGS */
-  } else if (type->source_corresp.is_class_member &&
-             type->source_corresp.access != (an_access_specifier)as_public &&
-             !class_is_in_name_context_stack(
-                                     type->source_corresp.parent.class_type)) {
-    /* The typedef is a non-public member of a class.  There might be
-       an access problem for this if we're not inside the class, so drop
-       the typedef in that case.  This comes up, from example, on template
-       arguments for non-member templates that are first established using
-       a member typedef. */
-    invisible = TRUE;
-  }  /* if */
-  return invisible;
-}  /* is_typedef_invisible_in_cp_gen_be */
 
 
 static void gen_compound_literal(a_constant_ptr     literal_con,
