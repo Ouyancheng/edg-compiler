@@ -3308,11 +3308,14 @@ of the function, and again overloading is a possibility.
              of a local class.  To avoid confusion down the road, clear
              is_inline. */
           func_info->is_inline = FALSE;
-        } else if (qualifier_namespace_ptr(*locator) != NULL) {
+        } else if (qualifier_namespace_ptr(*locator) != NULL ||
+                   locator->is_file_scope_qualified_name) {
           /* Disallowing a function definition in a friend declaration
              involving a namespace-qualified name in the declarator is not
              yet required by the WP, but it is necessary to avoid difficult
-             scoping and lookup issues. */
+             scoping and lookup issues.  Similarly, file-scope qualified
+             names are permitted (as an extension) in friend function
+             declarations, but only as references, not as definitions. */
           pos_sy_error(ec_bad_scope_for_definition,
                        &locator->source_position, sym);
           sym = NULL;
