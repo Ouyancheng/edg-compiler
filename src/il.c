@@ -4103,6 +4103,25 @@ an existing entry if possible.
 }  /* make_pointer_type */
 
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+a_type_ptr make_based_pointer_type(a_type_ptr     type_pointed_to,
+				   a_variable_ptr variable)
+/*
+Allocate a pointer type for a based pointer, and initialize it.
+*/
+{
+  register a_type_ptr ptr;
+
+  /* No allocated entry, need to allocate one. */
+  ptr = alloc_type((a_type_kind)tk_pointer);
+  ptr->variant.pointer.type = type_pointed_to;
+  ptr->variant.pointer.base_variable = variable;
+  set_type_size(ptr);
+  return ptr;
+}  /* make_pointer_type */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+
 a_type_ptr make_reference_type(a_type_ptr type_pointed_to)
 /*
 Allocate a reference type record and initialize it.  Attempt to find and reuse

@@ -171,6 +171,11 @@ extern a_type_ptr related_ptr_to_member_type(a_type_ptr member_type,
 
 extern a_type_ptr make_pointer_type(a_type_ptr type_pointed_to);
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+extern a_type_ptr make_based_pointer_type(a_type_ptr     type_pointed_to,
+	                                  a_variable_ptr variable);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 extern a_type_ptr make_reference_type(a_type_ptr type_pointed_to);
 
 extern a_type_ptr make_qualified_type(a_type_ptr            old_type,

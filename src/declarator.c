@@ -1758,18 +1758,18 @@ operator (*, &, or ptr-to-member).
    (!C_mode() && is_ptr_to_member_declarator_start()))
 
 
-static a_symbol_ptr scan_based_modifier(void)
+static a_variable_ptr scan_based_modifier(void)
 /*
 Scan the Microsoft __based modifier.  The syntax is
 
 	__based(identifier)
 
 The identifier must name a variable with pointer type.  Return a
-pointer to the variable symbol.  If the identifier is undefined, or
+pointer to the variable.  If the identifier is undefined, or
 is not a variable with pointer type, return NULL.
 */
 {
-  a_symbol_ptr	sym = NULL;
+  a_variable_ptr	var = NULL;
 
   check_assertion(curr_token == tok_based);
   /* Bypass the __based token. */
@@ -1781,36 +1781,15 @@ is not a variable with pointer type, return NULL.
       /* Flush tokens to the right paren. */
       flush_tokens();
     } else {
-      a_boolean	err;
-      sym = coalesce_and_lookup_generalized_identifier(GID_NO_OPTIONS,
-                                                       ilm_normal,
-                                                       &err);
-      if (err) {
-        sym = NULL;
-      } else if (sym == NULL) {
-        str_error(ec_undefined_identifier,
-                  locator_for_curr_id.symbol_header->identifier);
-        sym = NULL;
-      } else if (sym == NULL || sym->kind != (a_symbol_kind)sk_variable) {
-        sym_error(ec_based_requires_variable_name, sym);
-        sym = NULL;
-      } else {
-        /* sym is a variable.  Make sure it is a pointer type. */
-	a_type_ptr	tp;
-        tp = sym->variant.variable.ptr->type;
-        if (!is_pointer_type(tp)) {
-          error(ec_based_var_must_be_ptr);
-          sym = NULL;
-        }  /* if */
-      }  /* if */
-      /* Bypass the identifier. */
-      (void)get_token();
+      /* Call an expression routine to scan the identifier.  The routine
+         will return NULL if an error occurred while scanning the variable. */
+      var = based_variable();
     }  /* if */
     remove_stop_token(tok_rparen);
     /* Bypass the closing parenthesis. */
     (void)required_token(tok_rparen, ec_exp_rparen);
   }  /* if */
-  return sym;
+  return var;
 }  /* scan_based_modifier */
 
 
@@ -1828,8 +1807,8 @@ Macro that tests whether a based symbol is present and, if so, issues
 an error and resets the symbol.  This macro expands to nothing when
 Microsoft extensions are not allowed.
 */
-#define based_not_allowed_here(sym)					\
-  { if ((sym) != NULL) issue_invalid_based_error(&based_pos); sym = NULL; }
+#define based_not_allowed_here(var)					\
+  { if ((var) != NULL) issue_invalid_based_error(&based_pos); var = NULL; }
 
 #else  /* !MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -1839,6 +1818,29 @@ Expands to nothing when Microsoft extensions are not being used.
 #define based_not_allowed_here(sym)  /* Nothing */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+
+static a_type_ptr make_possibly_based_pointer_type(a_type_ptr     tp,
+                                                   a_variable_ptr *var)
+/*
+Given a type "tp", make a pointer to that type.  In Microsoft mode, if
+var is not NULL, create a based pointer using "var" as the base.
+Clear the pointer stored in "var" if it is used.
+*/
+{
+  a_type_ptr new_tp;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (*var != NULL) {
+    new_tp = make_based_pointer_type(tp, *var);
+    *var = NULL;
+  } else {
+    new_tp = make_pointer_type(tp);
+  }  /* if */
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+  new_tp = make_pointer_type(tp);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  return new_tp;
+}  /* make_possibly_based_pointer_type */
 
 
 #if !MICROSOFT_EXTENSIONS_ALLOWED
@@ -1906,12 +1908,12 @@ are NULL.
   a_boolean      		err;
   a_type_ptr     		class_type;
   a_type_ptr     		rout_type;
+  a_variable_ptr		based_var = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_call_conv_descr		unbound_call_conv;
   a_call_conv_descr		first_call_conv;
   a_boolean			first_loop = TRUE;
   a_boolean			is_call_conv = FALSE;
-  a_symbol_ptr			based_var_sym = NULL;
   a_source_position		based_pos;
 
   unbound_call_conv.call_conv = (a_calling_convention)cc_default;
@@ -1959,7 +1961,7 @@ are NULL.
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (curr_token == tok_ampersand) {
           /* Make sure this was not preceded by __based. */
-          based_not_allowed_here(based_var_sym);
+          based_not_allowed_here(based_var);
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         if (curr_token == tok_star) {
@@ -1973,8 +1975,9 @@ are NULL.
               error(ec_pointer_to_reference);
               err = TRUE;
             }  /* if */
-            complete_type = make_pointer_type(err ? error_type() :
-                                                    complete_type);
+            complete_type = make_possibly_based_pointer_type
+                                   (err ? error_type() : complete_type,
+                                    &based_var);
           }  /* if */
         } else {
           if (is_reference_type(temp_type)) {
@@ -2007,25 +2010,22 @@ are NULL.
           new_type_ptr->variant.pointer.is_reference = TRUE;
         }  /* if */
         complete_type = new_type_ptr;
-      }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (based_var_sym != NULL) {
-        /* If the pointer operator was preceded by a __based
-           modifier, update the pointer type with the variable
-           used in the __based modifier. */
-        check_assertion(complete_type != NULL &&
-                        complete_type->kind == (a_type_kind)tk_pointer);
-        complete_type->variant.pointer.base_variable =
-                                          based_var_sym->variant.variable.ptr;
-        based_var_sym = NULL;
-      }  /* if */
+        if (based_var != NULL) {
+          /* If the pointer operator was preceded by a __based
+             modifier, update the pointer type with the variable
+             used in the __based modifier. */
+          complete_type->variant.pointer.base_variable = based_var;
+          based_var = NULL;
+        }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      }  /* if */
     /* Check for C++ a pointer-to-member declarator. */
     } else if (C_dialect == C_dialect_cplusplus &&
                is_ptr_to_member_declarator_start()) {
       /* Qualified name followed by "*". */
       /* Make sure this was not preceded by __based. */
-      based_not_allowed_here(based_var_sym);
+      based_not_allowed_here(based_var);
       /* Upon return from is_ptr_to_member_declarator_start the current
          token is tok_ptr_to_member. */
       class_type = locator_for_curr_id.qualifier_class_type;
@@ -2046,7 +2046,7 @@ are NULL.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (curr_token == tok_based) {
       based_pos = pos_curr_token;
-      based_var_sym = scan_based_modifier();
+      based_var = scan_based_modifier();
       get_token_needed = FALSE;
     } else if (is_microsoft_calling_convention()) {
       /* A Microsoft calling convention specifier. */
@@ -2115,7 +2115,7 @@ are NULL.
       set_err_pos_to_curr_token();
       qualifiers = collect_type_qualifiers();
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (is_call_conv || based_var_sym != NULL) {
+      if (is_call_conv || based_var != NULL) {
         /* A misplaced qualifier such as
              int (__cdecl volatile * x);
              int __based(p) const *x;
@@ -2176,7 +2176,7 @@ are NULL.
     *p_unbound_calling_convention = unbound_call_conv;
     *p_calling_convention = first_call_conv;
   }  /* if */
-  if (based_var_sym != NULL) {
+  if (based_var != NULL) {
     /* A __based modifier was present that was not followed by a
        pointer operator.  Issue a warning that the modifier will
        be discarded. */
