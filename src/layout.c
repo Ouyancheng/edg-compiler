@@ -2011,12 +2011,22 @@ finding the appropriate "A in D" -- the one whose path is ==>B==A), and
 setting the offset field in the latter.
 */
 {
-  a_base_class_ptr ref_bcp, bcp, disambiguator;
+  a_base_class_ptr  ref_bcp;
+#if IA64_ABI
+  a_boolean         consider_indirect_bases = FALSE;
+#endif /* IA64_ABI */
 
   db_enter(4, "set_base_class_offsets");
-#if IA64_ABI
   /* Remember that the offset for this base has been set. */
+#if IA64_ABI
   proximate_derivation->offset_is_set = TRUE;
+  if (proximate_derivation->primary_base_class != NULL &&
+      !proximate_derivation->primary_base_class->direct &&
+      proximate_derivation->primary_base_class->is_virtual) {
+    /* An indirect nearly-empty virtual base might have been chosen as a
+       primary base.  We will therefore have to consider indirect bases. */
+    consider_indirect_bases = TRUE;
+  }  /* if */
 #endif /* IA64_ABI */
   /* Get the first "reference" base class of the root class, which is itself
      a base class of the most derived class.  It is called a reference base
@@ -2035,15 +2045,31 @@ setting the offset field in the latter.
   /* Loop through the reference base classes, the direct base classes of
      the proximate_derivation base class. */
   for (; ref_bcp != NULL; ref_bcp = ref_bcp->next) {
-    disambiguator = find_disambiguator(proximate_derivation, ref_bcp);
-    bcp = corresponding_base_class(ref_bcp,
-                                   proximate_derivation->derived_class,
-                                   disambiguator);
-    if (ref_bcp->direct
+    a_base_class_ptr  bcp = NULL;
+    if (ref_bcp->direct) {
+      /* The most common case of interest: ref_bcp is a direct base class
+         of proximate_derivation->type.  We can therefore find the
+         corresponding base by using proximate_derivation itself as a
+         disambiguator. */
+      bcp = corresponding_base_class(ref_bcp,
+                                     proximate_derivation->derived_class,
+                                     proximate_derivation);
 #if IA64_ABI
-        || proximate_derivation->primary_base_class == bcp
+    } else if (consider_indirect_bases && ref_bcp->is_virtual) {
+      /* In the IA64 ABI we must consider the possibility that an indirect
+         virtual (nearly empty) base is the primary base.  In that case,
+         we need to compute a disambiguator. */
+      a_base_class_ptr  disambiguator =
+                            find_disambiguator(proximate_derivation, ref_bcp);
+      bcp = corresponding_base_class(ref_bcp,
+                                     proximate_derivation->derived_class,
+                                     disambiguator);
+      if (proximate_derivation->primary_base_class != bcp) {
+        bcp = NULL;
+      }  /* if */
 #endif /* IA64_ABI */
-                                                          ) {
+    }  /* if */
+    if (bcp != NULL) {
       if (!bcp->is_virtual) {
         /* Nonvirtual base class. */
         bcp->offset = proximate_derivation->offset + ref_bcp->offset;
