@@ -2033,9 +2033,10 @@ code that makes it possible to suppress subsequent re-inclusions.
   } else if (ifhp->ifdef_guard || ifhp->ifndef_guard) {  
     /* See whether the controlling macro is currently defined. */
     locator = cleared_locator;
-    assoc_symbol = find_symbol(ifhp->controlling_macro_name,
-			       strlen(ifhp->controlling_macro_name),
-                               &locator);
+    assoc_symbol =
+                  find_symbol(ifhp->controlling_macro_name,
+			      size_t_arg(strlen(ifhp->controlling_macro_name)),
+                              &locator);
     assoc_symbol = find_defined_macro(assoc_symbol);
     /* If the macro is undefined, then an #ifdef NAME guard would cause the
        included file to be ignored, so we should return TRUE (meaning it is

@@ -574,7 +574,7 @@ FALSE, respectively).
          information about this @ifdef so that it can be used later to
          see if subsequent includes can be suppressed. */
       char *nm = alloc_fe(len_of_curr_token+2);
-      strncpy(nm, start_of_curr_token, len_of_curr_token);
+      strncpy(nm, start_of_curr_token, size_t_arg(len_of_curr_token));
       nm[len_of_curr_token] = 0;
       set_ifg_state(IFG_STATE_INTERMED);
       if (is_ifdef) {
