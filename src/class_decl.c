@@ -1862,6 +1862,72 @@ path and access.
 }  /* update_base_class_derivation */
 
 
+static void set_shares_virtual_function_info_flag(a_type_ptr       class_type,
+                                                   a_base_class_ptr base_class)
+/*
+Set the shares_virtual_function_info flag for certain base classes of
+class_type, if appropriate.  If base_class is NULL, then if class_type has
+virtual functions and a non-NULL virtual_function_info_base_class pointer,
+set the flag in the base class pointed to.  If base_class, which is a base
+class of class_type, is non-NULL, similar processing applies to the type of
+the base class.
+*/
+{
+  a_type_ptr             tp = NULL;
+  a_base_class_ptr       bcp;
+  a_derivation_step_ptr  step;
+
+  db_enter(4, "set_shares_virtual_function_info_flag");
+  if (base_class == NULL) {
+    /* Set the flag, if appropriate, based on the properties of the class. */
+    tp = class_type;
+  } else {
+    /* Set the flag, if appropriate, based on the properties of the base
+       class. */
+    tp = base_class->type;
+  }  /* if */
+  if (tp->variant.class_struct_union.any_virtual_functions) {
+    /* The type (class type or base class type) does have virtual functions. */
+    bcp = tp->variant.class_struct_union.extra_info->
+                                        virtual_function_info_base_class;
+    if (bcp != NULL) {
+      /* A base class has been designated with which to share the virtual
+         function info. */
+      if (base_class != NULL) {
+        /* Since this is a base class of the base class type, find the
+           corresponding base class of class_type. */
+        bcp = corresponding_base_class(bcp, class_type, base_class);
+      }  /* if */
+      /* Set the flag. */
+      bcp->shares_virtual_function_info = TRUE;
+      /* It may be that bcp is not a direct base class of the type (class type
+         or base class type), in which case it may be that flag has to be set
+         on an intervening base class as well. */
+      if (!bcp->direct) {
+        step = bcp->derivation->path;
+        if (base_class != NULL) {
+          /* Advance through the derivation path to the step immediately after
+             the step that points to base class. */
+          while (step->base_class != base_class) step = step->next;
+          step = step->next;
+        }  /* if */
+        /* Continue through the derivation path looking for the first base
+           class that has any virtual functions; stop at the first (if any),
+           since the flags for any others would already have been set. */
+        for (; step->base_class != bcp; step = step->next) {
+          if (step->base_class->type->
+                   variant.class_struct_union.any_virtual_functions) {
+            step->base_class->shares_virtual_function_info = TRUE;
+            break;
+          }  /* if */
+        }  /* while */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  db_exit();
+}  /* set_shares_virtual_function_info_flags */
+
+
 static void add_indirect_base_class(a_base_class_ptr      base_class_to_copy,
                                     a_base_class_ptr      directly_derived_bcp,
                                     a_derivation_step_ptr path,
@@ -1926,8 +1992,6 @@ duplicate paths.  The copy will be a base class of new_class.
   new_bcp->derived_class = new_class;
   new_bcp->decl_position = directly_derived_bcp->decl_position;
   new_bcp->direct = FALSE;
-  new_bcp->shares_virtual_function_info =
-                            base_class_to_copy->shares_virtual_function_info;
   if (base_class_to_copy->is_virtual) new_bcp->is_virtual = TRUE;
   path = update_base_class_derivation(new_bcp, path, access);
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
@@ -1970,6 +2034,9 @@ duplicate paths.  The copy will be a base class of new_class.
     (*p_end_of_add_list)->next = new_bcp;
   }  /* if */
   *p_end_of_add_list = new_bcp;
+  /* Set shares_virtual_function_info for a base class of new_bcp, if
+     appropriate. */
+  set_shares_virtual_function_info_flag(new_class, new_bcp);
   /* Branch here for duplicate virtual base class. */
 done:;
   db_exit();
@@ -2395,6 +2462,9 @@ or struct definition.  The syntax is
         end_of_base_classes_list->next = new_direct_bcp;
       }  /* if */
       end_of_base_classes_list = new_direct_bcp;
+      /* Set shares_virtual_function_info for a base class of new_direct_bcp,
+         if appropriate. */
+      set_shares_virtual_function_info_flag(type_ptr, new_direct_bcp);
       if (any_base_class_with_override_list) {
         for (bcp = base_classes_of(new_direct_bcp->type);
              bcp != NULL;
@@ -2454,14 +2524,9 @@ or struct definition.  The syntax is
             /* Refer to the same virtual_function_info_base_class as the
                direct base class does.  (In the above example, set the field
                to point to A.) */
-            bcp = corresponding_base_class(bcp, type_ptr,
-                                           (a_base_class_ptr)NULL);
-            check_assertion(bcp->shares_virtual_function_info);
-            ctsp->virtual_function_info_base_class = bcp;
-          }  /* if */
-          if (base_class_type->
-                           variant.class_struct_union.any_virtual_functions) {
-            new_direct_bcp->shares_virtual_function_info = TRUE;
+            ctsp->virtual_function_info_base_class =
+                              corresponding_base_class(bcp, type_ptr,
+                                                       (a_base_class_ptr)NULL);
           }  /* if */
           /* Advance the virtual function count so that any new virtual
              functions will be tacked on at the end of the shared virtual
@@ -6560,6 +6625,10 @@ next_declaration:
           cssp->is_class_aggregate = TRUE;
         }  /* if */
       }  /* if */
+      /* Set shares_virtual_function_info for a base class of class_type, if
+         appropriate. */
+      set_shares_virtual_function_info_flag(class_type,
+                                            (a_base_class_ptr)NULL);
     }  /* if */
     /* Wrap up field allocation. */
     finish_laying_out_class(&layout_block);
