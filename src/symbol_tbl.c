@@ -6403,8 +6403,9 @@ char *il_entry_for_symbol_null_okay(a_symbol_ptr      sym,
                                     an_il_entry_kind  *kind)
 /*
 Return a pointer to the IL entry to which the specified symbol refers.  Also
-return the kind of IL entry that is found.  If the symbol is not associated
-with an IL entry, return NULL, and return kind set to iek_none.
+return the kind of IL entry that is found (if kind is not NULL).  If the
+symbol is not associated with an IL entry, return NULL, and return kind
+set to iek_none.
 */
 {
   char             *entry_ptr = NULL;
@@ -6468,7 +6469,7 @@ with an IL entry, return NULL, and return kind set to iek_none.
       /* Other cases ignored. */
   }  /* switch */
   if (entry_ptr == NULL) lkind = iek_none;
-  *kind = lkind;
+  if (kind != NULL) *kind = lkind;
   return entry_ptr;
 }  /* il_entry_for_symbol_null_okay */
 

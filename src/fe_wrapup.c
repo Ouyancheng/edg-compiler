@@ -336,6 +336,9 @@ functions require definitions in this translation unit.
 {
   a_translation_unit_ptr	tup;
 
+  /* Do one-time processing (not per-translation unit) for instantiation
+     wrapup. */
+  instantiation_wrapup_setup();
   for (tup = translation_units; tup != NULL; tup = tup->next) {
     push_translation_unit_stack(tup);
     /* Do any template instantiation that may be required.  This is called

@@ -363,6 +363,8 @@ void set_instance_required(a_symbol_ptr				sym,
 
 extern void process_deferred_instantiation_requests(void);
 
+extern void instantiation_wrapup_setup(void);
+
 extern void instantiation_wrapup(void);
 
 extern void inline_function_wrapup(void);

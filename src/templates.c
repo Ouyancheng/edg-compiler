@@ -62,12 +62,6 @@ typedef struct an_instance_lookup_entry {
 			   the instantiation list file.  This will typically
 			   be the mangled name of the function or static
 			   data member. */
-  a_master_instance_ptr
-		master_instance;
-			/* Pointer to the master instance entry associated with
-			   this template.  This will be NULL for the lookup
-			   entries associated with templates themselves
-			   (and not instances of templates). */
   a_byte_boolean
 		in_request_file;
 			/* TRUE if the name is present in the request file. */
@@ -2271,7 +2265,6 @@ might not be able to if the template itself has not yet been defined.
                     (a_template_ptr)NULL,
                     (a_decl_pos_block_ptr)NULL);
       pending_class_definitions--;
-      set_instantiation_required_for_template_class_members(class_type);
       /* Process any pragmas that are to be bound to this instance. */
       process_curr_construct_pragmas(instance_sym, (a_statement_ptr)NULL);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -2304,6 +2297,7 @@ might not be able to if the template itself has not yet been defined.
          This causes the correspondence of the class members to be
          established. */
       establish_class_instantiation_corresp(class_type);
+      set_instantiation_required_for_template_class_members(class_type);
     }  /* if */
   }  /* if */
   db_exit();
@@ -14848,6 +14842,10 @@ previously computed value is returned.
 		: f_entity_can_be_instantiated(tip, implicit_inclusion_okay))
 
 
+/* Forward declaration. */
+static void set_master_instance_information(void);
+
+
 static void load_exported_template_file(an_exported_template_file_ptr	etfp)
 /*
 Compile the translation unit described by etfp for the purpose of defining
@@ -14858,6 +14856,11 @@ the exported templates in that file.
 
   /* Compile the specified translation unit. */
   process_translation_unit(etfp->source_file_name, /*is_primary=*/FALSE, etfp);
+  /* Consider the exported template file to be in instantiation wrapup at
+     this point. */
+  in_instantiation_wrapup = TRUE;
+  /* Check for the presence of a master instance established elsewhere. */
+  set_master_instance_information();
   /* Save the translation unit pointer associated with this exported template
      file. */
   etfp->translation_unit = curr_translation_unit;
@@ -15104,7 +15107,6 @@ to it.
                                 alloc_fe(sizeof(an_instance_lookup_entry));
   ilp->next = NULL;
   ilp->name = NULL;
-  ilp->master_instance = NULL;
   ilp->in_request_file = FALSE;
   ilp->in_definition_list_file = FALSE;
   ilp->instantiation_requested = FALSE;
@@ -15329,6 +15331,28 @@ by "sym".
 }  /* get_mangled_name_for_symbol */
 
 
+static char *f_get_mangled_name_of_instance(a_master_instance_ptr	mip)
+/*
+Mangle the name of the instance specified by "mip" and save a copy of the
+name.
+*/
+{
+  char	*name;
+
+  name = get_mangled_name_for_symbol(mip->instance->instance_sym);
+  mip->name = copy_string_to_region(FRONT_END_REGION_NUMBER, name);
+  return mip->name;
+}  /* f_get_mangled_name_of_instance */
+
+
+/*
+Macro that returns the mangled name of the specified instance.  It uses
+a previously created copy if available.
+*/
+#define get_mangled_name_of_instance(mip)				\
+  ((mip)->name == NULL ? f_get_mangled_name_of_instance((mip)) : (mip)->name)
+
+
 static void check_if_present_in_request_file(
 			a_template_instance_ptr		tip,
 			a_boolean			*instantiate,
@@ -15349,7 +15373,7 @@ object or library with which this file is being linked).
   *not_defined_elsewhere = FALSE;
   *instantiate = FALSE;
   check_assertion(tip->master_instance != NULL);
-  name = tip->master_instance->name;
+  name = get_mangled_name_of_instance(tip->master_instance);
   if (name != NULL) ilp = find_instance(name, /*add=*/FALSE);
   if (ilp != NULL && ilp->in_request_file) {
     if (!ilp->instantiation_requested) {
@@ -15908,33 +15932,32 @@ static void find_or_create_master_instance(a_template_instance_ptr	tip)
 Assign a master instance entry for the template instance "tip".
 */
 {
-  a_boolean			is_static = FALSE;
   a_symbol_ptr			sym = tip->instance_sym;
-  an_instance_lookup_entry_ptr	ilp = NULL;
-  a_master_instance_ptr		mip = NULL;
+  a_master_instance_ptr		mip;
+  a_symbol_ptr			canonical_sym;
+  char				*il_entry;
+  a_template_instance_ptr	canonical_tip;
 
-  /* If the entity has internal linkage, don't do the lookup by name. */
-  if (sym->kind != (a_symbol_kind)sk_static_data_member &&
-      (sym->variant.routine.ptr->storage_class ==
-                                                 (a_storage_class)sc_static)) {
-    is_static = TRUE;
+  /* Look for an existing master instance by going to the symbol associated
+     with the canonical entry. */
+  il_entry = il_entry_for_symbol(sym, (an_il_entry_kind*)NULL);
+  il_entry = canonical_il_entry_of(il_entry);
+  if (sym->kind == (a_symbol_kind)sk_static_data_member) {
+    a_variable_ptr	vp = (a_variable_ptr)il_entry;
+    canonical_sym = (a_symbol_ptr)vp->source_corresp.assoc_info;
+    check_assertion(canonical_sym != NULL);
+    canonical_tip = canonical_sym->variant.static_data_member.instance_ptr;
+  } else {
+    a_routine_ptr	rp = (a_routine_ptr)il_entry;
+    canonical_sym = (a_symbol_ptr)rp->source_corresp.assoc_info;
+    check_assertion(canonical_sym != NULL);
+    canonical_tip = canonical_sym->variant.routine.instance_ptr;
   }  /* if */
-  if (!is_static) {
-    /* For a non-static entity, look for an existing master entry. */
-    char	*name;
-    name = get_mangled_name_for_symbol(sym);
-    ilp = find_instance(name, /*add=*/TRUE);
-    mip = ilp->master_instance;
-  }  /* if */
+  mip = canonical_tip->master_instance;
   if (mip == NULL) {
+    check_assertion(canonical_sym == sym);
     /* There is no previous master instance.  Create one. */
     mip = alloc_master_instance();
-    if (ilp != NULL) {
-      /* For nonstatic entities, record the mangled name used.  This points to
-         the same copy of the string used by the instance lookup table. */
-      mip->name = ilp->name;
-      ilp->master_instance = mip;
-    }  /* if */
     /* The master instance points back to one of the translation unit
        instance (an arbitrary one). */
     mip->instance = tip;
@@ -15972,8 +15995,9 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
   a_template_symbol_supplement_ptr tssp;
   a_boolean			   add_to_list = TRUE;
   a_boolean			   added_to_list = FALSE;
-  a_master_instance_ptr		   mip;
+  a_master_instance_ptr		   mip = NULL;
   a_boolean			   defer_inline;
+  a_boolean			   use_master_instance;
 
   db_enter(5, "update_instantiation_required_flag");
   defer_inline = (options & SIR_DEFER_INLINE) != 0;
@@ -15982,12 +16006,6 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
   if (microsoft_bugs) defer_inline = TRUE;
   sym = tip->instance_sym;
   tssp = template_supplement_for_symbol(tip->template_sym);
-  if (tip->master_instance == NULL) {
-    /* This instance does not yet point to master instance.  Find
-       or create one now. */
-    find_or_create_master_instance(tip);
-  }  /* if */
-  mip = master_instance_of(tip);
 #if DEBUG
   if (debug_level >= 5 || db_flag_is_set("uirf")) {
     fprintf(f_debug, "Setting instantiation_required flag to %s for ",
@@ -16000,6 +16018,18 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
     }  /* if */
   }  /* if */
 #endif /* DEBUG */
+  /* Master instances are created immediately in the primary translation unit,
+     but in secondary translation units they are only established after
+     correspondence checking has been done. */
+  use_master_instance = is_primary_translation_unit || in_instantiation_wrapup;
+  if (use_master_instance) {
+    if (tip->master_instance == NULL) {
+      /* This instance does not yet point to master instance.  Find
+         or create one now. */
+      find_or_create_master_instance(tip);
+    }  /* if */
+    mip = master_instance_of(tip);
+  }  /* if */
   if (instantiation_mode == tim_can_instantiate) {
     /* Leave the instantiation_required flag unchanged in this mode. */
   } else if (instantiation_mode == tim_all && !value) {
@@ -16024,7 +16054,7 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
       /* If value is FALSE, only reset the flag if the SIR_CLEAR_VALUE
          option was specified. */
       tip->instantiation_required = FALSE;
-      mip->instantiation_required = FALSE;
+      if (use_master_instance) mip->instantiation_required = FALSE;
     }  /* if */
   } else if (pending_class_definitions != 0 ||
              defer_inline_function_fixup_and_instantiations != 0) {
@@ -16047,12 +16077,13 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
     a_boolean	flag_already_set;
     flag_already_set = tip->instantiation_required;
     tip->instantiation_required = TRUE;
-    mip->instantiation_required = TRUE;
+    if (use_master_instance) mip->instantiation_required = TRUE;
     if (!flag_already_set) {
       /* Record the namespace from which this instantiation is first used. */
       tip->referencing_namespace = determine_referencing_namespace();
     }  /* if */
-    if (!defer_inline && is_inline_template_function(tip)) {
+    if (use_master_instance &&
+        !defer_inline && is_inline_template_function(tip)) {
       if (!mip->already_instantiated &&
           should_be_instantiated(tip, /*implicit_inclusion_okay=*/FALSE)) {
         /* Inline (member or nonmember) functions are instantiated at the
@@ -16317,7 +16348,7 @@ for adding the entries to the actual instantiation request file.
     mip = master_instance_of(tip);
     if (mip->add_to_request_file && mip->already_instantiated) {
       char	*name;
-      name = mip->name;
+      name = get_mangled_name_of_instance(mip);
       check_assertion(name != NULL);
       fputs(name, f_definition_list);
       fputs("\n", f_definition_list);
@@ -16539,7 +16570,7 @@ be processed.
           generate_template_files()) {
         /* The flags are to be placed in the template information file. */
         char	*name;
-        name = mip->name;
+        name = get_mangled_name_of_instance(mip);
         check_assertion(name != NULL);
         write_instantiation_flags_to_template_info_file(
              name, instance_required, do_not_instantiate, can_be_instantiated,
@@ -16579,7 +16610,7 @@ be processed.
 #endif /* MAINTAIN_NEEDED_FLAGS */
       if (instantiation_file_generated) {
         char	*name;
-        name = mip->name;
+        name = get_mangled_name_of_instance(mip);
         check_assertion(name != NULL);
         write_instantiation_file_name_to_template_info_file(name);
       }  /* if */
@@ -16709,40 +16740,35 @@ that might be required.
 }  /* do_any_needed_instantiations */
 
 
-void instantiation_wrapup(void)
+static void set_master_instance_information(void)
 /*
-Performs end-of-compilation processing for template instantiation.  An
-instantiation will be done if an explicit instantiation has been
-requested (i.e., via a pragma) or if an instantiation is required because
-the function has been referenced and we are not in "instantiate none"
-mode.  Note that the pragma overrides the command line option.  Something
-can appear on the list with the instantiation required flag FALSE if, for
-instance, a reference that forced instantiation was followed by a
-specific definition that made it unnecessary.
+This routine is used to process the instantiation list for secondary
+translation units.  The instances for secondary translation units do
+not have master instances created earlier because we need to have the
+correspondence information established first.
 */
 {
-#if AUTOMATIC_TEMPLATE_INSTANTIATION
-  a_template_instance_ptr           tip;
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+  a_template_instance_ptr	tip;
 
-  db_enter(3, "instantiation_wrapup");
-  /* Now that all input has been processed including any instantiations that
-     may be done, process the classes that have been put on the can
-     instantiate list. */
-  delayed_processing_of_can_instantiate_class_pragmas();
+  for (tip = instantiations_required; tip != NULL;
+       tip = tip->next_in_instantiation_list) {
+    if (tip->master_instance != NULL) continue;
+    find_or_create_master_instance(tip);
+    /* If the instantiation required flag is set in this translation unit,
+       set it in the master instance too. */
+    if (tip->instantiation_required) {
+      tip->master_instance->instantiation_required = TRUE;
+    }  /* if */
+  }  /* for */
+}  /* set_master_instance_information */
 
-  /* The in_instantiation_wrapup flag indicates that we are generating
-     instantiations that were requested earlier in the compilation.  When
-     this flag is TRUE new instantiations are generated on the fly instead
-     of being added to the end of the list.  This makes it possible to
-     detect certain types of recursive instantiations that would otherwise
-     be difficult to detect.  The flag remains set even after this routine
-     has exited so that any additional instantiations that may be put on the
-     list will have their instantiations generated immediately.  This happens,
-     for example, for templates that may be called by virtual destructors
-     generated by generate_required_virtual_destructor_bodies, which is
-     called by fe_wrapup after instantiation_wrapup has completed. */
-  in_instantiation_wrapup = TRUE;
+
+void instantiation_wrapup_setup(void)
+/*
+Do the per-compilation (not per-translation unit) setup processing required
+before the per-translation unit processing can be done.
+*/
+{
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   /* Read the exported template files to determine the translation units
      that can be used to define the exported templates that are used. */
@@ -16761,6 +16787,51 @@ specific definition that made it unnecessary.
       request_file_check_needed = TRUE;
     }  /* if */
     if (read_definition_list_file()) request_file_check_needed = TRUE;
+  }  /* if */
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+}  /* instantiation_wrapup_setup */
+
+
+void instantiation_wrapup(void)
+/*
+Performs end-of-compilation processing for template instantiation.  An
+instantiation will be done if an explicit instantiation has been
+requested (i.e., via a pragma) or if an instantiation is required because
+the function has been referenced and we are not in "instantiate none"
+mode.  Note that the pragma overrides the command line option.  Something
+can appear on the list with the instantiation required flag FALSE if, for
+instance, a reference that forced instantiation was followed by a
+specific definition that made it unnecessary.
+*/
+{
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
+  a_template_instance_ptr           tip;
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+
+  db_enter(3, "instantiation_wrapup");
+  /* Check for the presence of a master instance established elsewhere. */
+  if (!is_primary_translation_unit) {
+    set_master_instance_information();
+  }  /* if */
+  /* Now that all input has been processed including any instantiations that
+     may be done, process the classes that have been put on the can
+     instantiate list. */
+  delayed_processing_of_can_instantiate_class_pragmas();
+
+  /* The in_instantiation_wrapup flag indicates that we are generating
+     instantiations that were requested earlier in the compilation.  When
+     this flag is TRUE new instantiations are generated on the fly instead
+     of being added to the end of the list.  This makes it possible to
+     detect certain types of recursive instantiations that would otherwise
+     be difficult to detect.  The flag remains set even after this routine
+     has exited so that any additional instantiations that may be put on the
+     list will have their instantiations generated immediately.  This happens,
+     for example, for templates that may be called by virtual destructors
+     generated by generate_required_virtual_destructor_bodies, which is
+     called by fe_wrapup after instantiation_wrapup has completed. */
+  in_instantiation_wrapup = TRUE;
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
+  if (automatic_instantiation_mode) {
     /* Go through the instantiations list and determine whether a given entity
        is flagged for automatic instantiation.  This must be done before
        instantiating things in -tused mode because a -tused function that
