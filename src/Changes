@@ -1,5 +1,18 @@
 Version 2.43
 
+11/10/99 Internal error in ensure_il_scope_exists
+
+Certain obscure and erroneous uses of elaborated type names appearing as part
+of a default template function parameters could lead to an internal error in
+function ensure_il_scope_exists (file il.c).  The following example used to
+trigger the problem:
+
+  template <class T> struct A { static int x; };
+  template <class T> void f(T, int = A<class {}>::x) {} 
+  void g() { f(42); }
+
+This is now fixed.
+
 11/10/99 Recursive instantiation of template default arguments
 
 The front end failed to detect the recursive instantiation of a template
