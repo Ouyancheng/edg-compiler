@@ -526,21 +526,6 @@ EXTERN a_boolean
 			/* If TRUE, all functions are rewritten to be
 			   unprototyped. */
 
-EXTERN a_targ_size_t
-		targ_sizeof_type_info
-#if VAR_INITIALIZERS
-                                      = TARG_SIZEOF_TYPE_INFO
-#endif /* VAR_INITIALIZERS */
-                                                             ;
-EXTERN a_targ_alignment
-		targ_alignof_type_info
-#if VAR_INITIALIZERS
-                                       = TARG_ALIGNOF_TYPE_INFO
-#endif /* VAR_INITIALIZERS */
-                                                               ;
-			/* The size and alignment of the type_info type
-			   defined in the <typeinfo> header. */
-
 #if DO_FULL_PORTABLE_EH_LOWERING
 
 EXTERN unsigned int
