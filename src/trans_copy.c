@@ -1007,7 +1007,7 @@ static void check_correspondences(a_source_correspondence *scp,
                                   an_il_entry_kind        kind)
 /*
 Check that the correspondences, if any, established for the entity whose
-source correspodence field is scp and whose kind is "kind" are consistent.
+source correspondence field is scp and whose kind is "kind" are consistent.
 */
 {
   a_trans_unit_corresp_ptr tucp = scp->trans_unit_corresp;

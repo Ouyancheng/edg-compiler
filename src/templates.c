@@ -14863,7 +14863,7 @@ differs between function and nonfunction declarations.
   decl_state->orig_decl_level = depth;
   if (!err && decl_state->is_template_friend &&
       !decl_state->in_prototype_instantiation) {
-    /* For friend declarations (that are not in a prototyep instantiation),
+    /* For friend declarations (that are not in a prototype instantiation),
        the effective declaration level is the nearest namespace scope. */
     depth = depth_innermost_namespace_scope;
   }  /* if */
@@ -17164,7 +17164,7 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
     flag_already_set = tip->instantiation_required;
     tip->instantiation_required = TRUE;
     if (use_master_instance && !flag_already_set) {
-      /* If the flag was not previously set, inccrement the count of
+      /* If the flag was not previously set, increment the count of
          translation units that require the instantiation. */
       mip->instance_required_count++;
 #if DEBUG

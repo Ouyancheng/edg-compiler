@@ -5707,7 +5707,7 @@ skip_overloading:;
   set_name_linkage(&idlb, sym, source_corresp_ptr, *ext_sym,
                    &locator->source_position);
   if (notify_correspondence_processing) {
-    /* This had to be delated until the name linkage was set. */
+    /* This had to be delayed until the name linkage was set. */
     establish_block_extern_function_correspondence(routine_ptr);
   }  /* if */
 #if BACK_END_IS_CP_GEN_BE

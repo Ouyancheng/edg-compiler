@@ -984,7 +984,7 @@ EXTERN a_boolean
                                            = DEFAULT_MICROSOFT_VERSION
 #endif /* VAR_INITIALIZERS */
                                                                       ;
-			/* The version of MSVC++ being targetted. */
+			/* The version of MSVC++ being targeted. */
 #endif /* BACK_END_IS_CP_GEN_BE */
 
 
