@@ -564,7 +564,11 @@ Print an argument match summary for debug purposes.
   }  /* if */
   if (amsp->match_level == aml_user_conversion &&
       amsp->conversion.std.nontrivial_conversion) {
-    fprintf(f_debug, " (plus nontrivial conversion)");
+    if (amsp->conversion.std.promotion) {
+      fprintf(f_debug, " (plus promotion)");
+    } else {
+      fprintf(f_debug, " (plus conversion)");
+    }  /* if */
   }  /* if */
   if (amsp->conversion.std.type_qualifiers_added) {
     fprintf(f_debug, " (type qualifiers added)");
@@ -6619,6 +6623,12 @@ This routine is only used in C++ mode.
         compatible = TRUE;
         std_conversion.nontrivial_conversion = TRUE;
         /* The result does not have to be forced to an rvalue. */
+      } else if ((builtin_types_allowed & BTK_INTEGRAL) != 0 &&
+                                  is_enum_type(return_type)) {
+        /* The conversion function returns an enum type, which can be
+           converted to the desired integral type. */
+        compatible = TRUE;
+        std_conversion.nontrivial_conversion = TRUE;
       } else if ((builtin_types_allowed & BTK_PTRDIFF_T) != 0 &&
                                   is_arithmetic_or_enum_type(return_type)) {
         /* The conversion function returns something that can be converted to
@@ -6982,7 +6992,7 @@ type_code.
   switch (type_code) {
     case INTEGRAL_TYPE_CODE:
     case PROMOTED_INTEGRAL_TYPE_CODE:
-      builtin_types_allowed = BTK_INTEGRAL | BTK_ENUM;
+      builtin_types_allowed = BTK_INTEGRAL;
       break;
     case PTRDIFF_T_TYPE_CODE:
       builtin_types_allowed = BTK_PTRDIFF_T;
@@ -6992,7 +7002,7 @@ type_code.
       break;
     case ARITH_TYPE_CODE:
     case PROMOTED_ARITH_TYPE_CODE:
-      builtin_types_allowed = BTK_INTEGRAL | BTK_ENUM | BTK_FLOATING;
+      builtin_types_allowed = BTK_INTEGRAL | BTK_FLOATING;
       break;
     case POINTER_TYPE_CODE:
       builtin_types_allowed = BTK_POINTER;

@@ -20,6 +20,9 @@ needed after the conversion function to get to ptrdiff_t.
    ret[len];  // was ambiguous, now selects B::operator[]
   }
 
+A similar issue with the cost of converting from an enum type returned
+by a conversion function to an integral type has also been addressed.
+
 7/17/01  Incorrect instantiation context when using nested namespaces
 
 A problem in the way in which the instantiation context is established
