@@ -3981,8 +3981,10 @@ static void gen_for_statement(a_statement_ptr statement)
 Generate code for the indicated "for" statement.
 */
 {
-  a_statement_ptr init_stmt;
-  a_boolean       decl_after_first;
+  a_statement_ptr              init_stmt;
+  a_type_ptr                   type;
+  a_src_seq_secondary_decl_ptr sec_decl;
+  a_boolean                    is_definition;
 
   /* Generate "for (init; test; incr) statement".
      "init" might be an expression or a declaration, or omitted;
@@ -4011,18 +4013,24 @@ Generate code for the indicated "for" statement.
     } else {
       /* Process the declaration/initialization.  If there are several, they
          must be put out as a comma-separated list. */
-      decl_after_first = FALSE;
+      a_boolean decl_after_first = FALSE;
+      a_boolean last_is_variable = FALSE;
       for (;;) {
-        check_assertion_str(curr_source_sequence_entry != NULL &&
-                            ss_entry_kind(curr_source_sequence_entry) ==
-                                                                  iek_variable,
-                            "gen_for_statement: bad decl in for-init");
-        gen_variable_decl(/*gen_final_semicolon=*/FALSE,
-                          /*suppress_specifiers=*/decl_after_first);
-        /* Stop on an end-of-construct entry for the stmk_decl. */
-        if (ss_entry_kind(curr_source_sequence_entry) ==
+        /* Process macros, etc. */
+        (void)process_preprocessing_directives();
+        if (ss_entry_kind(curr_source_sequence_entry) == iek_variable) {
+          /* A variable declaration. */
+          if (decl_after_first) {
+            write_tok_ch(',');
+            write_space();
+          }  /* if */
+          gen_variable_decl(/*gen_final_semicolon=*/FALSE,
+                            /*suppress_specifiers=*/decl_after_first);
+          decl_after_first = TRUE;
+          last_is_variable = TRUE;
+        } else if (ss_entry_kind(curr_source_sequence_entry) ==
                                                 iek_src_seq_end_of_construct) {
-          /* Found the end-of-construct entry. */
+          /* Stop on an end-of-construct entry for the stmk_decl. */
 #if CHECKING
           a_src_seq_end_of_construct_ptr ssecp =
                                   ss_entry_ptr(curr_source_sequence_entry,
@@ -4033,15 +4041,20 @@ Generate code for the indicated "for" statement.
 #endif /* CHECKING */
           adv_curr_source_sequence_entry();
           break;
+        } else if (curr_src_seq_entry_is_type_decl(&type, &sec_decl,
+                                                   &is_definition)) {
+          /* Embedded type declaration, e.g., a tag. */
+          gen_type_decl();
+          last_is_variable = FALSE;
+        } else {
+          unexpected_condition_str("bad src seq entry in for-init");
         }  /* if */
-        /* Loop for declarations of additional variables. */
-        write_tok_ch(',');
-        write_space();
-        decl_after_first = TRUE;
       }  /* for */
       /* Finish the declaration. */
-      write_tok_ch(';');
-      write_space();
+      if (last_is_variable) {
+        write_tok_ch(';');
+        write_space();
+      }  /* if */
     }  /* if */
   }  /* if */
   /* Generate the termination-test expression if there is one. */
