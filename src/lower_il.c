@@ -4236,6 +4236,13 @@ Do IL lowering of the indicated type and everything under it.
            lowered, one needs to be able to get the original class and
            member type. */
         type->variant.typeref.orig_type = copy_of_pm_type;
+#if MAINTAIN_NEEDED_FLAGS
+        /* Set the "needed" flag to match the "needed" flag of the
+           implementation type.  Without this, the typeref could be marked
+           as needed and that might prevent processing of the underlying
+           type. */
+        type->source_corresp.needed = new_type->source_corresp.needed;
+#endif /* MAINTAIN_NEEDED_FLAGS */
         break;
       case tk_routine:
         lower_type(type->variant.routine.return_type);
