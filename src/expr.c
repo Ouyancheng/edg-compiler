@@ -6116,14 +6116,12 @@ Syntax:
       underlying_cast_type = type_pointed_to(cast_type);
       reference_case = is_reference_type(cast_type);
       if (is_class_struct_union_type(underlying_cast_type)) {
-        /* Casting to a pointer to a complete class type is okay. */
+        /* Casting to a pointer to a complete class type is okay.  Note that
+           nonreal class types look complete here, so no special test
+           is mneeded for them. */
         complete_class_type_is_needed(underlying_cast_type);
         if (!is_incomplete_type(underlying_cast_type)) {
           cast_type_okay = TRUE;
-        } else if (f_skip_typerefs(underlying_cast_type)->
-                                 variant.class_struct_union.is_nonreal_class) {
-          /* Casting to a pointer or reference to a nonreal type is okay
-             in a prototype instantiation. */
         }  /* if */
       } else if (!reference_case && is_void_type(underlying_cast_type)) {
         /* Casting to void * is okay. */
