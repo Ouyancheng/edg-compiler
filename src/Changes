@@ -1,5 +1,14 @@
 Version 2.30
 
+9/6/95   Redeclaring a variable name as a function template
+
+An internal error has been fixed for cases like this, where a variable
+name is redeclared as the name of a function template:
+
+  int x;
+  template <class T> void x(T);   // Now a redeclaration error rather
+                                  //   than an internal error
+
 9/3/95   Omission of decl-specifiers in C++ function declaration
 
 In C++ (except in cfront mode) an error (discretionary) is now issued
