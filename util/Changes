@@ -1,5 +1,11 @@
 Version 2.35
 
+2/24/97  Name demangling: index in pointer-to-member-function
+
+decode.c did not understand a length on the index field of a pointer-to-
+member-function encoding when the length used the new form ("_nnn_").
+Now fixed.
+
 2/7/97   Memory allocation error in prelinker
 
 Under certain circumstances the prelinker would not allocate sufficient

@@ -545,7 +545,12 @@ position following what was demangled.
          this is an ambiguous situation: an underscore follows the index
          value, and there's no way to tell if it's the multi-digit
          indicator for the length or the separator between fields. */
-      p = get_single_digit_number(p, &nchars, dctl);
+      if (*p == '_') {
+        /* New-form encoding, no ambiguity. */
+        p = get_number_with_optional_underscore(p, &nchars, dctl);
+      } else {
+        p = get_single_digit_number(p, &nchars, dctl);
+      }  /* if */
       /* Remember the start of the index. */
       index = p;
       /* Skip the rest of the index. */
