@@ -2340,7 +2340,8 @@ the output.
          never displayed. */
       column_needed = FALSE;
 #else /* !STANDALONE_UTILITY_PROGRAM */
-      column_needed = brief_diagnostics && COLUMN_NUMBER_IN_BRIEF_DIAGNOSTICS;
+      column_needed = brief_diagnostics &&
+		      /*lint --e(506)*/COLUMN_NUMBER_IN_BRIEF_DIAGNOSTICS;
       /* If the line is the current one, print it and a caret indicating
          the position. */
       if (error_pos->seq >= curr_seq_number) {
