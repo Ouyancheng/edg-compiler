@@ -229,12 +229,22 @@ This is now fixed.
 
 9/11/00  Error recovery on invalid partial specialization
 
-An internal error could occur if a partial specialization was (incorrectly)
-declared within the definition of the primary template (although this
-example does not result in such an internal error).  This has been fixed.
+An internal error could occur if a partial specialization was
+(incorrectly) declared within the definition of the primary template.
+This has been fixed.  Note: This example aborts only in a version
+configured to include prototype instantiations in the IL, and then only
+when parsing non-class templates.
 
-  template <class T> struct A {
-    template <class T2> struct A<T2*> { };
+  struct A {};
+  struct B : A {};
+  template <class T, class U> struct C {
+    class A {};
+    template <class T2> struct C<T2, A*> {
+      static int f() {return 2;}
+      int g() {
+        if (C<int, B*>::f() != 1){}
+      }
+    };
   };
 
 9/8/00   Indication of deallocation point for variable-length arrays (VLAs)
