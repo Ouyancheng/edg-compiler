@@ -5603,15 +5603,15 @@ it is left alone.  expr is being used as an lvalue if is_lvalue is TRUE.
 */
 {
   if (is_operation_node(expr)) {
+    an_expr_operator_kind op = expr->variant.operation.kind, child_op;
+    an_expr_node_ptr      child1 = expr->variant.operation.operands;
     /* Look at the first operand of this operation to see if it is an
        lvalue-returning "?" or ",". */
-    an_expr_node_ptr child1 = expr->variant.operation.operands;
-    an_expr_operator_kind op;
     if (is_operation_node(child1) &&
         child1->variant.operation.returns_lvalue_instead_of_usual_rvalue &&
-        ((op = child1->variant.operation.kind) ==
+        ((child_op = child1->variant.operation.kind) ==
                                          (an_expr_operator_kind)eok_question ||
-         op == (an_expr_operator_kind)eok_comma)) {
+         child_op == (an_expr_operator_kind)eok_comma)) {
       /* The first operand of expr is an lvalue-returning "?" or ",".
          That is, expr is the node on top of a "?" or ",". */
       an_expr_node_ptr child2 = child1->next;
@@ -5619,7 +5619,8 @@ it is left alone.  expr is being used as an lvalue if is_lvalue is TRUE.
       an_expr_node_ptr gchild1 = child1->variant.operation.operands;
       an_expr_node_ptr gchild2 = gchild1->next;
       an_expr_node_ptr gchild3, newop1, newop2;
-      if (op == (an_expr_operator_kind)eok_question) {
+      a_type_ptr       expr_type = expr->type;
+      if (child_op == (an_expr_operator_kind)eok_question) {
         /* Lvalue "?" rewrite.  Change
              ((g1 ? g2 : g3) = c2)
                              S
@@ -5629,7 +5630,7 @@ it is left alone.  expr is being used as an lvalue if is_lvalue is TRUE.
            The operations marked "D" are lvalue operations iff the operation
            marked "S" is an lvalue operation.  The operation indicated as
            "=" can in fact be any operation (e.g., simple or complex
-           assignment, prefix ++/--, field selection).  c2 isn't present
+           assignment, prefix ++/--, field selection, cast).  c2 isn't present
            for unary operations. */
         gchild3 = gchild2->next;
         /* Build (g2 = c2). */
@@ -5683,9 +5684,11 @@ it is left alone.  expr is being used as an lvalue if is_lvalue is TRUE.
         lower_operations_returning_lvalue_instead_of_usual_rvalue(newop2,
                                                                   is_lvalue);
       }  /* if */
+      /* Restore the original expression type.  This matters when the
+         operation above the "?" or "," is a cast. */
+      expr->type = expr_type;
     } else if (expr->variant.operation.returns_lvalue_instead_of_usual_rvalue&&
-               ((op = expr->variant.operation.kind) !=
-                                         (an_expr_operator_kind)eok_question &&
+               (op != (an_expr_operator_kind)eok_question &&
                 op != (an_expr_operator_kind)eok_comma)) {
       an_expr_node_ptr child2 = child1->next;
       an_expr_node_ptr newop;
