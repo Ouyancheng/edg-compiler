@@ -4588,6 +4588,11 @@ Enter symbols for the predefined macros of GNU C and C++.
                              "__GNUG__",
                              /*cannot_be_redefined=*/FALSE,
                              /*ref_suppresses_pch_file=*/FALSE);
+    /* In GNU C++ mode (but not in GNU C mode), _GNU_SOURCE is predefined. */
+    (void)enter_predef_macro("1", "_GNU_SOURCE",
+                             /*cannot_be_redefined=*/FALSE,
+                             /*ref_suppresses_pch_file=*/FALSE);
+
   }  /* if */
   (void)enter_predef_macro(conv_unsigned_long_to_str
                                      ((unsigned long)GCC_MINOR_VERSION),
