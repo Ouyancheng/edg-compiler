@@ -225,8 +225,9 @@ a diagnostic (pcc allows comments at the ends of several kinds of lines).
 */
 {
   if (curr_token != tok_newline) {
-    if (strict_ansi_mode) {
-      pos_diagnostic(strict_ansi_discretionary_severity,
+    if (!pcc_preprocessing_mode) {
+      pos_diagnostic(strict_ansi_mode ? strict_ansi_discretionary_severity
+                                      : es_warning,
                      ec_extra_text_in_pp_directive, &pos_curr_token);
     }  /* if */
     flush_to_newline();

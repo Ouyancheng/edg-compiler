@@ -1,5 +1,15 @@
 Version 2.45
 
+9/22/00  Diagnostics on extra text after preprocessing directives
+
+Previously, extraneous text following preprocessing directives was only
+diagnosed in strict ANSI mode.  Now it is warned about in all other modes,
+except K&R/pcc mode.  For example:
+
+  #define A 7
+  #undef A+1  // Warning (or error) except in K&R/pcc mode
+  int i = A;  // Error: A is undefined (behavior unchanged)
+
 9/21/00  Microsoft compatibility: specialization allowed after use
 
 The Microsoft compiler allows a member function template or a member
