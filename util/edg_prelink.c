@@ -75,6 +75,10 @@ typedef struct a_pl_symbol {
   a_pl_symbol_ptr
 		next_in_info_file;
 			/* The next symbol in an instantiation info file. */
+  a_pl_symbol_ptr
+		next_in_specialization_list;
+			/* The next symbol on a linked list of specialization
+			   symbols. */
   a_pl_input_file_ptr
 		instantiation_file;
 			/* The input file responsible for instantiating this
@@ -107,6 +111,8 @@ typedef struct a_pl_symbol {
 			   entry and a TIR flag. */
   char		*name;
 			/* Name of the symbol. */
+  int		name_length;
+			/* Number of characters in the name. */
   a_byte_boolean
 		referenced;
 			/* The symbol has been referenced by an object file
@@ -157,6 +163,10 @@ typedef struct a_pl_symbol {
 			   an object file has provided the necessary
 			   instantiation and is also set when a symbol
 			   is assigned to an object file for instantiation. */
+  a_byte_boolean
+		is_specialization;
+			/* TRUE if this entry is for an explicit specialization
+			   of a template instance. */
   a_pl_input_file_ptr
 		defined_in;
 			/* The input file in which the symbol was defined. */
@@ -271,6 +281,10 @@ static a_pl_symbol_ptr
 		pl_symbol_table_head = NULL;
 			/* Pointer to the head of the global symbol list. */
 
+static a_pl_symbol_ptr
+		specialization_list = NULL;
+			/* Pointer to a list of specialization symbols. */
+
 #define FILE_NAME_BUFFER_SIZE 4096
 			/* Maximum size of a file name that can be
 			   manipulated. */
@@ -305,6 +319,13 @@ static a_boolean
 			   compilations) may only be done to
 			   local object files (i.e., those compiled in
 			   the current directory. */
+
+static a_boolean
+		check_specialization_errors
+				     = PL_DEFAULT_CHECK_SPECIALIZATION_ERRORS;
+			/* TRUE if the prelinker should ensure that there
+			   are not references to both the specialized and
+			   unspecialized versions of a name. */
 
 static char	**L_directories;
                         /* Pointer to an array of library directories
@@ -465,7 +486,9 @@ typedef enum /*a_pl_error_code*/ {
   pl_ec_cannot_open_info_file,
   pl_ec_cannot_chdir,
   pl_ec_no_nm_info,
-  pl_ec_popen_failed
+  pl_ec_popen_failed,
+  pl_ec_specialized_and_instantiated,
+  pl_ec_last 	/* must be last */
 } a_pl_error_code;
 
 
@@ -540,6 +563,9 @@ string.
   case pl_ec_popen_failed:
     m = "unable to create process for nm command";
     break;
+  case pl_ec_specialized_and_instantiated:
+    m = "\"%s\" has been referenced as both an explicit specialization and a generated instantiation";
+    break;
   default:
     pl_internal_error("invalid error code");
   }  /* switch */
@@ -547,20 +573,34 @@ string.
 }  /* pl_error_text */
 
 
-static void pl_error(a_pl_error_code	error_code,
-                     char		*insertion_string)
+static void pl_error_with_exit(a_pl_error_code	error_code,
+                               char		*insertion_string,
+                               a_boolean        exit_when_done)
 /*
 Prints an error message and exits with an error exit status.  A string
 may be inserted into the message by passing a pointer to the string
 to be inserted in inseration_string.  This will only be used if
 the error text contains a corresponding %s.  If the message contains such
-a %s, insertion_string must not be NULL.
+a %s, insertion_string must not be NULL.  If exit_when_done is TRUE,
+exit will be called after the message is issued.
 */
 {
   fprintf(stderr, pl_error_text(pl_ec_error), message_prefix);
   fprintf(stderr, pl_error_text(error_code), insertion_string);
   fprintf(stderr, "\n");
-  exit (RC_ERROR);
+  if (exit_when_done) exit (RC_ERROR);
+}  /* pl_error_with_exit */
+
+
+static void pl_error(a_pl_error_code	error_code,
+                     char		*insertion_string)
+/*
+Interface to pl_error_with_exit that passes that supplies an
+"exit_when_done" argument.
+*/
+{
+
+  pl_error_with_exit(error_code, insertion_string, /*exit_when_done=*/TRUE);
 }  /* pl_error */
 
 
@@ -670,9 +710,12 @@ Allocate a symbol, initialize it, and return a pointer to it.
   } else {
     psp = (a_pl_symbol_ptr)pl_malloc_with_check(sizeof(a_pl_symbol));
   }  /* if */
+  psp->name = NULL;
+  psp->name_length = 0;
   psp->next = NULL;
   psp->next_in_symbol_table = NULL;
   psp->next_in_info_file = NULL;
+  psp->next_in_specialization_list = NULL;
   psp->global_sym = NULL;
   psp->number_of_references = 0;
   psp->instantiation_file = NULL;
@@ -785,6 +828,51 @@ to the copy.
   strcpy(dest, source);
   return dest;
 }  /* pl_copy_string */
+
+
+static char *pl_copy_string_with_length(char 	*source,
+                                        int	length)
+/*
+Allocate space for a copy of the string and make a copy.  Return a pointer
+to the copy.  Use length as the length of the string to be copied.
+*/
+{
+  char	*dest;
+  dest = (char *)malloc(size_t_arg(length + 1));
+  strncpy(dest, source, length);
+  /* Add a null terminator. */
+  dest[length] = '\0';
+  return dest;
+}  /* pl_copy_string_with_length */
+
+
+static a_boolean pl_is_explicit_specialization(char	 *name,
+                                               int	 length)
+/*
+Return TRUE if name represents an explicit specialization of a template.
+*/
+{
+  /* Explicit specializations end with the string "__S". */
+  return strcmp(&name[length-3], "__S") == 0;
+}  /* pl_is_explicit_specialization */
+
+
+static void get_nonspecialized_name(char *name,
+				    int	 length,
+				    char **nonspec_name,
+				    int  *nonspec_length)
+/*
+Given a specialized name "name", return a pointer to the name of the
+nonspecialized version of the name, and the length of the nonspecialized
+version of the name.
+*/
+{
+  /* Explicit specializations end with the string "__S".  Simply return
+     the original name pointer and a length pointer that is adjusted to
+     omit the suffix. */
+  *nonspec_name = name;
+  *nonspec_length = length-3;
+}  /* get_nonspecialized_name */
 
 
 static void pl_invalid_input(void)
@@ -1489,6 +1577,7 @@ Add an input file to a list of files that can instantiate a given symbol.
 
 
 static a_pl_symbol_ptr pl_find_symbol(char		*name,
+				      int		length,
                                       a_pl_symbol_ptr	other_sym,
 				      a_boolean		add)
 /*
@@ -1501,7 +1590,6 @@ list if an entry does not already exist.
   a_pl_symbol_ptr	       prev_sym_ptr;
   a_pl_symbol_ptr              sym_ptr    = NULL;
   int                          bucket_number;
-  int			       length;
 
   /* If the symbol pointer passed from the caller already contains a pointer
      to the global symbol then simply return that value.  Otherwise,
@@ -1510,7 +1598,8 @@ list if an entry does not already exist.
     sym_ptr = other_sym->global_sym;
     goto symbol_found;
   }  /* if */
-  length = strlen(name);
+  /* Compute the string length if it was not passed in. */
+  if (length == 0) length = strlen(name);
   /* Hash the symbol's name.  This involves taking the name's
      first, last, and middle 3 characters.  Of course, if the name has
      fewer than 5 characters, take the entire name. */
@@ -1536,7 +1625,8 @@ list if an entry does not already exist.
   if ((sym_ptr = pl_symbol_table[bucket_number]) != NULL) {
     prev_sym_ptr = NULL;
     do {
-      if (strcmp(name, sym_ptr->name) == 0) {
+      if (length == sym_ptr->name_length &&
+          strncmp(name, sym_ptr->name, length) == 0) {
         /* We have a match. */
         /* Relink the symbol header at the front of the list of headers,
            so that frequently-used headers will be found quickly. */
@@ -1563,7 +1653,15 @@ list if an entry does not already exist.
        symbol table. */
     sym_ptr->next = pl_symbol_table[bucket_number];
     pl_symbol_table[bucket_number] = sym_ptr;
-    sym_ptr->name = pl_copy_string(name);
+    sym_ptr->name = pl_copy_string_with_length(name, length);
+    sym_ptr->name_length = length;
+    if (pl_is_explicit_specialization(sym_ptr->name, length)) {
+      /* This name is an explicit specialization.  Add it to a list
+         of specializations. */
+      sym_ptr->is_specialization = TRUE;
+      sym_ptr->next_in_specialization_list = specialization_list;
+      specialization_list = sym_ptr;
+    }  /* if */
   }  /* if */
 
 symbol_found:
@@ -1593,7 +1691,7 @@ to detect such conditions.
   for (;;) {
     name = pl_predefined_names[pos++]; 
     if (name == NULL) break;
-    sym = pl_find_symbol(name, (a_pl_symbol_ptr)NULL, /*add=*/TRUE);
+    sym = pl_find_symbol(name, 0, (a_pl_symbol_ptr)NULL, /*add=*/TRUE);
     sym->defined = TRUE;
   }  /* for */
 }  /* pl_add_predefined_names */
@@ -1629,7 +1727,7 @@ symbol.
            the prelinker that the symbol is referenced and that the
            symbol is one that can be defined by a generated instantiation. */
         is_special_symbol = TRUE;
-        sym = pl_find_symbol(&psp->name[PL_INSTANCE_REQUIRED_PREFIX_LEN],
+        sym = pl_find_symbol(&psp->name[PL_INSTANCE_REQUIRED_PREFIX_LEN], 0,
                              psp, /*add=*/TRUE);
         sym->is_template = TRUE;
         sym->referenced = TRUE;
@@ -1650,7 +1748,7 @@ symbol.
            or must ensure that it is instantiated using an instantiate
            pragma or an instantiation mode such as -tused. */
         is_special_symbol = TRUE;
-        sym = pl_find_symbol(&psp->name[PL_DO_NOT_INSTANTIATE_PREFIX_LEN],
+        sym = pl_find_symbol(&psp->name[PL_DO_NOT_INSTANTIATE_PREFIX_LEN], 0,
                              psp, /*add=*/TRUE);
         sym->do_not_instantiate = TRUE;
       } else if (!input_file->is_archive &&
@@ -1661,7 +1759,7 @@ symbol.
            Don't consider this to be a possible instantiation site if
            the input file is an archive. */
         is_special_symbol = TRUE;
-        sym = pl_find_symbol(&psp->name[PL_CAN_BE_INSTANTIATED_PREFIX_LEN],
+        sym = pl_find_symbol(&psp->name[PL_CAN_BE_INSTANTIATED_PREFIX_LEN], 0,
                              psp, /*add=*/TRUE);
         sym->is_template = TRUE;
         if (!input_file->is_archive) {
@@ -1675,7 +1773,7 @@ symbol.
     if (!is_special_symbol) {
       /* The symbol is not a special symbol.  Update the global symbol
          table to reflect the kind of reference or definition. */
-      sym = pl_find_symbol(psp->name, psp, /*add=*/TRUE);
+      sym = pl_find_symbol(psp->name, 0, psp, /*add=*/TRUE);
       if (psp->referenced) {
         sym->referenced = TRUE;
         if (sym->last_referenced_from != input_file) {
@@ -1716,7 +1814,7 @@ to resolve an undefined reference or a tentative definition.
     a_pl_symbol_ptr	sym;
     if (psp->defined || psp->tentative_definition) {
       /* Only look the symbol up if this is a definition. */
-      sym = pl_find_symbol(psp->name, psp, /*add=*/TRUE);
+      sym = pl_find_symbol(psp->name, 0, psp, /*add=*/TRUE);
       if (!sym->defined) {
         /* A previously undefined symbol may be resolved by a definition or
            a tentative definition.  A tentative definition may only be
@@ -1829,7 +1927,7 @@ Read the existing instantiation assignment information from the
         /* Read the instantiation list. */
         while (pl_read_input_line(f_info)) {
           a_pl_symbol_ptr	sym;
-          sym = pl_find_symbol(pl_input_line, (a_pl_symbol_ptr)NULL,
+          sym = pl_find_symbol(pl_input_line, 0, (a_pl_symbol_ptr)NULL,
 			       /*add=*/TRUE);
           if (sym->instantiation_file != NULL) {
             /* The symbol is in the instantiation list of more than one file.
@@ -2369,7 +2467,6 @@ flags will be removed.
        instantiation information files and that are also local. */
     if (!pifp->is_archive && pifp->info_file_name != NULL &&
          pifp->is_local_file) {
-      a_pl_symbol_ptr	psp;
       FILE		*f_info;
       /* Open the input file in read mode to read the header information. */
       f_info = fopen(pifp->info_file_name, "r");
@@ -2413,6 +2510,49 @@ flags will be removed.
   return max_return_status;
 #undef get_reserved_lines
 }  /* pl_remove_instantiation_flags */
+
+
+static a_boolean pl_check_for_specialization_errors(void)
+/*
+Go through the list of specializations and determine whether there
+have been any references to the unspecialized version.  Return TRUE
+if any errors were detected.
+*/
+{
+  a_pl_symbol_ptr	psp;
+  char			*name_buffer = NULL;
+  a_boolean		any_errors = FALSE;
+
+  for (psp = specialization_list; psp != NULL;
+       psp = psp->next_in_specialization_list) {
+    a_pl_symbol_ptr	nonspec_psp;
+    char		*nonspec_name;
+    int			nonspec_length;
+    /* Get the name of the nonspecialized symbol.  Normally, the string
+       returned is expected to point to a portion of the original name. */
+    get_nonspecialized_name(psp->name, psp->name_length, &nonspec_name,
+                            &nonspec_length);
+    /* Look up the nonspecialized symbol. */
+    nonspec_psp = pl_find_symbol(nonspec_name, nonspec_length,
+                                 (a_pl_symbol_ptr)NULL, /*add=*/FALSE);
+    if (nonspec_psp != NULL &&
+        (nonspec_psp->referenced || nonspec_psp->defined)) {
+      if (name_buffer == NULL) {
+        /* Allocate a buffer into which a copy of the unspecialized name can
+           be made.  This is needed because the decode routines expect a
+           null terminated string. */
+        name_buffer = pl_malloc_with_check(NAME_DECODE_BUFFER_SIZE);
+      }  /* if */
+      strncpy(name_buffer, nonspec_name, nonspec_length);
+      name_buffer[nonspec_length] = '\0';
+      pl_error_with_exit(pl_ec_specialized_and_instantiated,
+                         pl_decoded_name(name_buffer),
+                         /*exit_when_done=*/FALSE);
+      any_errors = TRUE;
+    }  /* if */
+  }  /* for */
+  return any_errors;
+}  /* pl_check_for_specialization_errors */
 
 
 #if DEBUG
@@ -2670,7 +2810,7 @@ int main(int argc, char *argv[])
   /* Process command-line options. */
   /* Suppress getopt's error on non-recognized option. */
   opterr = 0;
-#define OPTION_LIST "imnqrvuB:c:d:Df:l:L:N:R:SW:"
+#define OPTION_LIST "imnqrs:vuB:c:d:Df:l:L:N:R:SW:"
   while ((optchar = getopt(argc, argv, OPTION_LIST)) != EOF) {
     switch (optchar) {
       case 'c':
@@ -2768,6 +2908,11 @@ int main(int argc, char *argv[])
             reserved_info_file_lines > INSTANTIATION_INFO_LINES_RESERVED) {
           pl_error(pl_ec_invalid_reserved_info_lines_option, optarg);
         }  /* if */
+        break;
+      case 's':
+        /* Check (or do not check) for specialization errors.  If the
+           argument is zero, suppress the check, otherwise do the check. */
+        check_specialization_errors = atoi(optarg) != 0;
         break;
       case 'S':
         /* "Suppress" the instantiation flags in the object files.
@@ -2942,6 +3087,15 @@ end_of_options:
       return_status = pl_update_info_files();
       if (limit_recursion && ++number_of_iterations == PL_MAX_ITERATIONS) {
         pl_error(pl_ec_instantiation_loop, (char *)NULL);
+      }  /* if */
+      /* See if there are any functions for which both an instantiation
+         and a specialization exist. */
+      if (check_specialization_errors) {
+        if (pl_check_for_specialization_errors()) {
+          /* Cause the prelink process to stop if specialization errors
+             were reported. */
+          if (return_status == 0) return_status = 1;
+        }  /* if */
       }  /* if */
       if (return_status != 0 || suppress_compilation) done = TRUE;
       if (!done) pl_free_all();

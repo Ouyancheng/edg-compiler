@@ -48,6 +48,12 @@ Declarations for EDG template prelink utility.
 #define PL_DEFAULT_VERBOSE_MODE TRUE
 #endif /* ifndef PL_DEFAULT_VERBOSE_MODE */
 
+/* Indicates whether the prelinker should check for a specialization with
+   the same name as a generated instance by default. */
+#ifndef PL_DEFAULT_CHECK_SPECIALIZATION_ERRORS
+#define PL_DEFAULT_CHECK_SPECIALIZATION_ERRORS TRUE
+#endif /* ifndef PL_DEFAULT_CHECK_SPECIALIZATION_ERRORS */
+
 
 /* Command to be used to produce a namelist of an object file. */
 static char		default_nm_command[] = "/bin/nm -og";
