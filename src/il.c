@@ -13338,7 +13338,6 @@ in il_init.)
       pch_saved_var_array_elem(num_shareable_constants),
       pch_saved_var_array_elem(num_used_shareable_constant_buckets),
       pch_saved_var_array_elem(num_based_type_fixups_allocated),
-      pch_saved_var_array_elem(db_name_str_buffer),
 #endif /* DEBUG */
       pch_saved_var_array_terminating_elem()
     };
