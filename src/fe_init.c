@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -1017,7 +1017,10 @@ initialization (i.e., by fe_init_part_1).  For example, symbol_tbl_init
 calls symbol_tbl_trans_unit_init.
 */
 {
+  error_trans_unit_init();
+  lexical_trans_unit_init();
   symbol_tbl_trans_unit_init();
+  templates_trans_unit_init();
 }  /* fe_translation_unit_init */
 
 
@@ -1027,6 +1030,6 @@ calls symbol_tbl_trans_unit_init.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

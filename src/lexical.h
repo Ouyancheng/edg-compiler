@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1996 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -1854,6 +1854,7 @@ void check_all_stop_token_entries_are_reset(a_token_set_array stop_tokens);
 /* Initialize the lexical routines. */
 extern void lexical_reset(void);
 extern void lexical_one_time_init(void);
+extern void lexical_trans_unit_init(void);
 extern void lexical_init(void);
 /* Flush until the tok_end_of_source terminating a token cache is found. */
 #define flush_past_token_cache_terminator()			\
@@ -1996,6 +1997,6 @@ Convert a character hex digit to the associated hex digit value.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1996 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

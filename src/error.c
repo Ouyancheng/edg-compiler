@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -1393,42 +1393,7 @@ Clear the file index list.
 }  /* clear_file_index_list */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
-#if !STANDALONE_UTILITY_PROGRAM
 
-void error_one_time_init(void)
-/*
-Do one-time initialization of variables related to the error routines.
-(Variables that need to be reinitialized with each new translation unit
-are handled in error_init.)
-*/
-{
-  /* Save variables from error.h and error.c that are needed for
-     precompiled headers */
-  if (precompiled_header_processing_required) {
-    static a_pch_saved_variable saved_vars[] = {
-      pch_saved_var_array_elem(head_of_file_index_list),
-      pch_saved_var_array_elem(tail_of_file_index_list),
-      pch_saved_var_array_elem(error_position),
-      pch_saved_var_array_terminating_elem()
-    };
-    register_pch_saved_variables(saved_vars);
-  }  /* if */
-}  /* error_one_time_init */
-
-
-void error_init(void)
-/*
-Perform any initializations necessary for error.c functions at the beginning
-of each compilation.
-*/
-{
-  catastrophe_has_occurred = FALSE;
-  clear_file_index_list();
-  memzero((char *)recorded_diagnostic_table,
-          sizeof(recorded_diagnostic_table));
-}  /* error_init */
-
-#endif /* !STANDALONE_UTILITY_PROGRAM */
 #if !STANDALONE_UTILITY_PROGRAM
 
 a_line_number initialize_file_index(a_source_file_ptr src_file)
@@ -4384,6 +4349,51 @@ Complete the multiple command line error being processed.
 #endif /* __GNUC__ */
 }  /* end_command_line_error */
 
+#if !STANDALONE_UTILITY_PROGRAM
+
+void error_one_time_init(void)
+/*
+Do one-time initialization of variables related to the error routines.
+(Variables that need to be reinitialized with each new translation unit
+are handled in error_init.)
+*/
+{
+  /* Save variables from error.h and error.c that are needed for
+     precompiled headers */
+  if (precompiled_header_processing_required) {
+    static a_pch_saved_variable saved_vars[] = {
+      pch_saved_var_array_elem(head_of_file_index_list),
+      pch_saved_var_array_elem(tail_of_file_index_list),
+      pch_saved_var_array_elem(error_position),
+      pch_saved_var_array_terminating_elem()
+    };
+    register_pch_saved_variables(saved_vars);
+  }  /* if */
+}  /* error_one_time_init */
+
+
+void error_trans_unit_init(void)
+/*
+Initialize variables that are specific to a given translation unit.
+*/
+{
+  clear_file_index_list();
+}  /* error_trans_unit_init */
+
+
+void error_init(void)
+/*
+Perform any initializations necessary for error.c functions at the beginning
+of each compilation.
+*/
+{
+  error_trans_unit_init();
+  catastrophe_has_occurred = FALSE;
+  memzero((char *)recorded_diagnostic_table,
+          sizeof(recorded_diagnostic_table));
+}  /* error_init */
+
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 /******************************************************************************
 *                                                             \  ___  /       *
@@ -4391,6 +4401,6 @@ Complete the multiple command line error being processed.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

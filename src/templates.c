@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1996 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -16545,6 +16545,30 @@ One-time initialization for templates.c static variables.
 }  /* templates_one_time_init */
 
 
+void templates_trans_unit_init(void)
+/*
+Initialize variables related to template processing that are specific to a
+given translation unit.
+*/
+{
+  in_instantiation_wrapup = FALSE;
+  implicit_inclusion_done_during_instantiation_wrapup = FALSE;
+#if CHECKING
+  any_friend_state_changed = FALSE;
+  after_instantiation_wrapup = FALSE;
+#endif /* CHECKING */
+  /* Allocate a type to be used for template parameter constants whose
+     real types cannot be known.  This type will be used for all such
+     constants that are created. */
+  type_of_unknown_templ_param_nontype =
+                                    alloc_type((a_type_kind)tk_template_param);
+  set_type_size(type_of_unknown_templ_param_nontype);
+  type_of_unknown_templ_param_nontype->variant.template_param.kind = 
+                                      (a_template_param_type_kind)tptk_unknown;
+  request_file_check_needed = FALSE;
+}  /* templates_trans_unit_init */
+
+
 void templates_init(void)
 /*
 Initializations for template.
@@ -16553,10 +16577,8 @@ Initializations for template.
   curr_default_args = NULL;
   instantiations_required = NULL;
   instantiations_required_tail = NULL;
-  in_instantiation_wrapup = FALSE;
   inline_function_list = NULL;
   entries_updated_during_instantiation_wrapup = FALSE;
-  implicit_inclusion_done_during_instantiation_wrapup = FALSE;
   can_instantiate_list = NULL;
   defer_inline_function_fixup_and_instantiations = 0;
   deferred_instantiations = NULL;
@@ -16567,28 +16589,14 @@ Initializations for template.
 #if DEBUG
   num_partial_order_candidates_allocated = 0;
 #endif /* DEBUG */
-#if CHECKING
-  any_friend_state_changed = FALSE;
-  after_instantiation_wrapup = FALSE;
-#endif /* CHECKING */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   any_instantiations_required = FALSE;
   instantiation_request_file_name = NULL;
   f_instantiation_request = NULL;
   f_template_info = NULL;
-  memzero((char *)instance_lookup_table, sizeof(instance_lookup_table));
-  request_file_check_needed = FALSE;
-  any_instantiated_entities_added_to_request_file = FALSE;
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
-  /* Allocate a type to be used for template parameter constants whose
-     real types cannot be known.  This type will be used for all such
-     constants that are created. */
-  type_of_unknown_templ_param_nontype =
-                                    alloc_type((a_type_kind)tk_template_param);
-  set_type_size(type_of_unknown_templ_param_nontype);
-  type_of_unknown_templ_param_nontype->variant.template_param.kind = 
-                                      (a_template_param_type_kind)tptk_unknown;
-
+  memzero((char *)instance_lookup_table, sizeof(instance_lookup_table));
+  any_instantiated_entities_added_to_request_file = FALSE;
 }  /* templates_init */
 
 /******************************************************************************
@@ -16597,6 +16605,6 @@ Initializations for template.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1996 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

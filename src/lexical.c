@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1996 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -12369,6 +12369,15 @@ done to determine whether a precompiled header may be used.
 }  /* lexical_reset */
 
 
+void lexical_trans_unit_init(void)
+/*
+Initialize variables that are specific to a given translation unit.
+*/
+{
+  lexical_reset();
+}  /* lexical_trans_unit_init */
+
+
 void lexical_init(void)
 /*
 Initialize static variables related to the lexical routines.  This is done
@@ -12441,6 +12450,6 @@ of the front end.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1996 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

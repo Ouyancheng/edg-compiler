@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -351,6 +351,8 @@ a_type_ptr type_if_unknown_conversion_function_symbol(a_symbol_ptr	sym);
 
 extern void templates_one_time_init(void);
 
+extern void templates_trans_unit_init(void);
+
 extern void templates_init(void);
 
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
@@ -397,6 +399,6 @@ extern unsigned long db_show_template_space_used(unsigned long grand_total);
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -233,6 +233,7 @@ extern char *format_type_string(struct a_type *type,
 #if !STANDALONE_UTILITY_PROGRAM
 extern void clear_file_index_list(void);
 extern void error_one_time_init(void);
+extern void error_trans_unit_init(void);
 extern void error_init(void);
 extern a_line_number initialize_file_index(struct a_source_file *src_file);
 extern a_line_number update_file_index(struct a_source_file *src_file,
@@ -502,6 +503,6 @@ extern void syntax_error(an_error_code error_code);
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
