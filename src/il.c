@@ -926,7 +926,7 @@ class_struct_union:
       } else {
         if (tp->variant.template_param.kind ==
                    (a_template_param_type_kind)tptk_param) {
-          fprintf(f_debug, "#%0lu:%0lu ",
+          fprintf(f_debug, "#(%0lu,%0lu) ",
                   (unsigned long)tp->variant.
                                      template_param.coordinates.depth,
                   (unsigned long)tp->variant.
