@@ -93,6 +93,11 @@ typedef int a_signal_handler_return_value;
 EXTERN_C char *getenv(char *name);
 EXTERN_C int abort(void);
 EXTERN_C void exit(int status);
+#include <errno.h>
+#if __BSD__
+/* BSD errno.h doesn't define "errno". */
+EXTERN_C int errno;
+#endif /* __BSD__ */
 #endif /* __ANSIC__ */
 
 /*
@@ -871,6 +876,30 @@ place in file_name where the suffix begins.
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
 
 
+a_boolean is_regular_file(char *file_name)
+/*
+Return TRUE if the specified file is a regular file (i.e., not a
+directory or some other kind of special file).
+*/
+{
+  a_boolean	result = FALSE;
+  struct stat   buf;
+
+  /* Check the file type.  Use the stat call instead of fstat because some
+     implementations do not have the _file field in the structure. */
+  if (stat(file_name, &buf) == 0) {
+    /* Use the POSIX S_ISREG if it is defined.  Otherwise use the
+       non-POSIX test using S_IFREG. */
+#ifdef S_ISREG
+    result = S_ISREG(buf.st_mode);
+#else /* ifndef S_ISREG */
+    result = ((buf.st_mode & S_IFREG) != 0);
+#endif /* ifdef S_ISREG */
+  }  /* if */
+  return result;
+}  /* is_regular_file */
+
+
 FILE *open_source_file(char          *file_name,
                        a_boolean     *not_found,
                        a_boolean     *bad_format,
@@ -884,7 +913,6 @@ of the file name is bad.
 */
 {
   FILE        *temp_file;
-  struct stat buf;
 
 #if DEBUG
   if (debug_level >= 2) {
@@ -899,22 +927,12 @@ of the file name is bad.
     *not_found = TRUE;
   }  else {
     /* File opened okay. */
-    /* Check the file type.  Use the stat call instead of fstat because some
-       implementations do not have the _file field in the structure. */
-    if (stat(file_name, &buf) == 0) {
-      /* Use the POSIX S_ISREG if it is defined.  Otherwise use the
-         non-POSIX test using S_IFREG. */
-#ifdef S_ISREG
-      if (!S_ISREG(buf.st_mode))
-#else /* ifndef S_ISREG */
-      if ((buf.st_mode & S_IFREG) == 0)
-#endif /* ifdef S_ISREG */
-					{
-        /* Not a "regular" file. */
-        *bad_format = TRUE;
-        (void)fclose(temp_file);
-        temp_file = NULL;
-      }  /* if */
+    /* Check the file type. */
+    if (!is_regular_file(file_name)) {
+      /* Not a "regular" file. */
+      *bad_format = TRUE;
+      (void)fclose(temp_file);
+      temp_file = NULL;
     }  /* if */
   }  /* if */
   return(temp_file);
@@ -1716,6 +1734,52 @@ See comment above.
 }  /* get_file_name_from_curr_dir */
 #endif /* __MSDOS__ */
 #endif /* __WIN32__ */
+
+
+#if __MSDOS__
+#define USE_GETCWD 1
+#include <direct.h>
+#else /* !__MSDOS___ */
+#if __BSD__
+#include <sys/param.h>
+#define USE_GETCWD 0
+#else /* !__BSD__ */
+#include <unistd.h>
+#define USE_GETCWD 1
+#endif /* __BSD__ */
+#endif /* __MSDOS__ */
+
+
+char *get_curr_dir_name(void)
+/*
+Get the current directory name and return it in the temporary string
+buffer.
+*/
+{
+#if USE_GETCWD
+  for (;;) {
+    /* The temporary buffer may not be allocated yet.  Make sure there
+       is some space allocated. */
+    ensure_temp_text_buffer_space(256);
+    if (getcwd(temp_text_buffer, size_temp_text_buffer) == NULL) {
+      if (errno == ERANGE) {
+        /* We know the buffer is too small, but we don't know how much
+           more space we need.  Add a little space and try again. */
+        ensure_temp_text_buffer_space(size_temp_text_buffer + 256);
+        continue;
+      }  /* if */
+    }  /* if */
+    break;
+  }  /* for */
+  return temp_text_buffer;
+#else /* !USE_GETCWD */
+  /* Make sure there is enough space for the largest path name that can
+     be returned. */
+  ensure_temp_text_buffer_space(MAXPATHLEN);
+  (void)getwd(temp_text_buffer);
+  return temp_text_buffer;
+#endif /* USE_GETCWD */
+}  /* get_curr_dir_name */
 
 
 /******************************************************************************

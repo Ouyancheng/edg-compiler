@@ -415,10 +415,16 @@ is TRUE.
 Flag that is TRUE to cause source-sequence lists to be generated.  These
 lists are attached to scope entries and represent the sequence in which
 declarations, statements, comments, macros, and pragmas appear in the
-source program.
+source program.  The C++ generating back-end requires source sequence
+lists, so source sequence lists are enabled when the C++ generating
+back end is being used.
 */
 #ifndef GENERATE_SOURCE_SEQUENCE_LISTS
+#if BACK_END_IS_CP_GEN_BE
+#define GENERATE_SOURCE_SEQUENCE_LISTS TRUE  /* Do not change this. */
+#else /* !BACK_END_IS_CP_GEN_BE */
 #define GENERATE_SOURCE_SEQUENCE_LISTS FALSE
+#endif /* BACK_END_IS_CP_GEN_BE */
 #endif /* ifndef GENERATE_SOURCE_SEQUENCE_LISTS */
 /* The C++/C-generating back end requires this feature. */
 
@@ -860,6 +866,9 @@ extern char *replace_file_name_suffix(char  *suffix,
                                       int   buffer_size,
                                       char  **suffix_loc);
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
+/* Is the specified file a regular (e.g., not directory) file. */
+extern a_boolean is_regular_file(char *file_name);
+
 /* Open a source file. */
 extern FILE *open_source_file(char          *file_name,
                               a_boolean     *not_found,
@@ -1007,6 +1016,8 @@ Macro that compares two file identifiers.
 extern void get_file_identifier(char		      *file_name,
                                 a_file_identifier_ptr id);
 
+
+extern char *get_curr_dir_name(void);
 
 #if STANDALONE_UTILITY_PROGRAM
 extern DOES_NOT_RETURN normal_termination(void);
