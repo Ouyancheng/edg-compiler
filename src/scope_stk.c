@@ -713,6 +713,11 @@ template with no current instantiation or definition, we return FALSE.
   a_boolean      is_instantiation_scope;
   a_symbol_ptr   instance_sym;
 
+  if (is_injected_template_symbol(*sym)) {
+    /* The symbol is the injected name of a class template.  Substitute
+       the symbol of the associated class template. */
+    *sym = class_template_for_injected_template_symbol(*sym);
+  }  /* if */
   if ((*sym)->kind == (a_symbol_kind)sk_class_template) {
     found = FALSE;
     /* We can skip the lookup if there are no class scopes (including
