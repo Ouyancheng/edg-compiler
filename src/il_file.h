@@ -112,24 +112,18 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
 ;
 
 #if ALTERNATE_IL_FILE_FORMAT
+/*
+In the alternate file format, pointers in the IL entries are replaced by
+integers that encode the entry number.  This type is the container for
+the encoded form; it is converted to "char *" when stored in memory.
+*/
 typedef unsigned long
-		an_il_entry_number;
-			/* Type of entry numbers in alternate-form IL file. */
-/* Amount of space to allocate for the IL entry number that precedes
-   each entry in the alternate-form IL.  The size is the smallest
-   multiple of HOST_ALIGNMENT_REQUIRED that is at least as large as
-   the size of an_il_entry_number.  This preserves the necessary alignment
-   for the entry itself. */
-#define SPACE_FOR_IL_ENTRY_NUMBER                                     \
- ((((sizeof(an_il_entry_number)-1)/HOST_ALIGNMENT_REQUIRED)+1)*       \
-  HOST_ALIGNMENT_REQUIRED)
-/* Macro to allow reference to the IL entry number that precedes
-   each entry in the alternate-form IL. */
-#define il_entry_number_of(ptr)                                       \
-  (*(an_il_entry_number *)((char *)(ptr) - SPACE_FOR_IL_ENTRY_NUMBER))
-#define FUNC_ENTRY_NUMBER_TAG ((unsigned long)LONG_MAX+1)
-			/* Tag bit that indicates a function-scope entry
-			   number instead of a file-scope entry number. */
+		an_encoded_entry_number;
+/*
+Tag bit used to indicate a function-scope entry number instead of a
+file-scope entry number in an encoded IL entry number.
+*/
+#define FUNC_ENTRY_NUMBER_BIT ((unsigned long)LONG_MAX+1)
 #endif /* ALTERNATE_IL_FILE_FORMAT */
 
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
