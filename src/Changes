@@ -1,5 +1,18 @@
 Version 3.1
 
+5/14/02  Microsoft compatibility: spurious error on function-style cast
+
+Contrary to the standard, the Microsoft compiler accepts a function-style
+cast in which the type consists of more than one token.  Although this
+feature is accepted in Microsoft mode, the front end sometimes failed to
+disambiguate such cases properly, resulting in spurious errors.  This has
+been fixed.
+
+  int main() {
+    long a = 100;
+    (unsigned long(a)+1);
+  }
+
 5/13/02  C++-generating back end: explicit destructor call, Sun C++
 
 The Sun C++ compiler has a bug with explicit destructor calls that

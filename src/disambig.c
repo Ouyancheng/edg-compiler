@@ -1014,10 +1014,17 @@ types separated by commas (when single_type_required is FALSE).
      parenthesis.   Check for this case first to quickly discard most
      cases.  If the current token is "typename" we don't have enough
      information at this point to discard the easy cases, so we need to
-     do the full processing. */
+     do the full processing.
+     Note 1: Casts require special treatment in two cases.  When using
+     implicit typename we need to verify that this would be a valid cast
+     to make sure we didn't guess incorrectly about this being a type.
+     In Microsoft mode, function-style cases like (unsigned int(x)) are
+     allowed.  In normal mode, we assume this to be a cast when the
+     type start is not followed by a "(". */
   if (curr_token == tok_typename ||
       ((next_token() == tok_lparen ||
-       (is_cast(flags) && is_implicit_template_type)) &&
+       (is_cast(flags) && /* See note 1 above */
+        (is_implicit_template_type || microsoft_mode))) &&
        is_type_start(/*is_expr_context=*/TRUE))) {
     /* Initialize the token cache. */
     init_disambig_state(&state);
