@@ -7272,7 +7272,8 @@ Do IL lowering of the indicated variable and everything under it.
       variable->init_kind = (an_init_kind)initk_zero;
 #if IA64_ABI
     } else if (variable->init_kind == (an_init_kind)initk_none &&
-               variable->storage_class != (a_storage_class)sc_auto &&
+               (variable->storage_class == (a_storage_class)sc_unspecified ||
+                variable->storage_class == (a_storage_class)sc_static) &&
                contains_ptr_to_data_member(variable->type)) {
       /* The contained pointer to data member must be explicitly initialized
          since a NULL pointer to data member is represented by -1.  */
