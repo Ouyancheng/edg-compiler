@@ -1826,51 +1826,55 @@ Dump the definition ({...}) if body is TRUE.
   unsigned long temp;
   a_targ_size_t curr_offset = 0;
 
-  start_unreferenced_bracket(&type->source_corresp);
-  startline(type->source_corresp.decl_position.seq);
-  (void)fprintf(f_C_output, "struct %s", get_name(&type->source_corresp));
-  if (body) {
-    fputs(" {", f_C_output);
-    field = type->variant.class_struct_union.field_list;
-    indent += 2;
-    while (field != NULL) {
-      /* Output a field to do necessary alignment if this field is not
-         right after the previous field. */
-      dump_field_padding(curr_offset, field->type->alignment, field->bit_size,
-                         field->bit_offset);
-      startline(field->source_corresp.decl_position.seq);
-      simple_type_reference(field_name(field), field->type);
-      if (field->bit_size != 0) {
-        (void)fprintf(f_C_output, ": %d", field->bit_size);
-      }  /* if */
-      temp = field->bit_offset / TARG_CHAR_BIT;
-      (void)fprintf(f_C_output, ";  /* offset = %lu byte%s", temp, 
-							     temp-1? "s": "");
-      temp = field->bit_offset % TARG_CHAR_BIT;
-      if (temp) {
-        (void)fprintf(f_C_output, ", %lu bit%s", temp, temp!=1? "s": "");
-      }  /* if */
-      fputs(" */", f_C_output);
-      /* Keep track of the expected bit offset of the next field. */
-      curr_offset = field->bit_offset;
-      if (field->bit_size != 0) {
-        /* Bit-field. */
-        curr_offset += field->bit_size;
-      } else {
-        /* Non bit-field. */
-        curr_offset += skip_typerefs(field->type)->size * TARG_CHAR_BIT;
-      }  /* if */
-      field = field->next;
-    }  /* while */
-    /* Do any alignment required at the end. */
-    dump_field_padding(curr_offset, type->alignment, (a_byte)0,
-                       type->size*TARG_CHAR_BIT);
-    indent -= 2;
-    startline((a_seq_number)0);
-    fputc('}', f_C_output);
+  if (body && type->size == 0) {
+    /* The struct is not defined, so do not put out a "body" definition. */
+  } else {
+    start_unreferenced_bracket(&type->source_corresp);
+    startline(type->source_corresp.decl_position.seq);
+    (void)fprintf(f_C_output, "struct %s", get_name(&type->source_corresp));
+    if (body) {
+      fputs(" {", f_C_output);
+      field = type->variant.class_struct_union.field_list;
+      indent += 2;
+      while (field != NULL) {
+        /* Output a field to do necessary alignment if this field is not
+           right after the previous field. */
+        dump_field_padding(curr_offset, field->type->alignment,
+                           field->bit_size, field->bit_offset);
+        startline(field->source_corresp.decl_position.seq);
+        simple_type_reference(field_name(field), field->type);
+        if (field->bit_size != 0) {
+          (void)fprintf(f_C_output, ": %d", field->bit_size);
+        }  /* if */
+        temp = field->bit_offset / TARG_CHAR_BIT;
+        (void)fprintf(f_C_output, ";  /* offset = %lu byte%s", temp, 
+                                                              temp-1? "s": "");
+        temp = field->bit_offset % TARG_CHAR_BIT;
+        if (temp) {
+          (void)fprintf(f_C_output, ", %lu bit%s", temp, temp!=1? "s": "");
+        }  /* if */
+        fputs(" */", f_C_output);
+        /* Keep track of the expected bit offset of the next field. */
+        curr_offset = field->bit_offset;
+        if (field->bit_size != 0) {
+          /* Bit-field. */
+          curr_offset += field->bit_size;
+        } else {
+          /* Non bit-field. */
+          curr_offset += skip_typerefs(field->type)->size * TARG_CHAR_BIT;
+        }  /* if */
+        field = field->next;
+      }  /* while */
+      /* Do any alignment required at the end. */
+      dump_field_padding(curr_offset, type->alignment, (a_byte)0,
+                         type->size*TARG_CHAR_BIT);
+      indent -= 2;
+      startline((a_seq_number)0);
+      fputc('}', f_C_output);
+    }  /* if */
+    fputc(';', f_C_output);
+    end_unreferenced_bracket(&type->source_corresp);
   }  /* if */
-  fputc(';', f_C_output);
-  end_unreferenced_bracket(&type->source_corresp);
 }  /* dump_struct */
 
 #endif /* ifdef CFE */
@@ -1885,31 +1889,35 @@ Dump the definition ({...}) if body is TRUE.
 {
   register a_field_ptr field;
 
-  start_unreferenced_bracket(&type->source_corresp);
-  startline(type->source_corresp.decl_position.seq);
-  (void)fprintf(f_C_output, "union %s", get_name(&type->source_corresp));
-  if (body) {
-    fputs(" {", f_C_output);
-    field = type->variant.class_struct_union.field_list;
-    indent += 2;
-    if (field == NULL) {
-      /* In the bizarre case "union {int :0;}" the union has no component
-         fields. */
+  if (body && type->size == 0) {
+    /* The union is not defined, so do not put out a "body" definition. */
+  } else {
+    start_unreferenced_bracket(&type->source_corresp);
+    startline(type->source_corresp.decl_position.seq);
+    (void)fprintf(f_C_output, "union %s", get_name(&type->source_corresp));
+    if (body) {
+      fputs(" {", f_C_output);
+      field = type->variant.class_struct_union.field_list;
+      indent += 2;
+      if (field == NULL) {
+        /* In the bizarre case "union {int :0;}" the union has no component
+           fields. */
+        startline((a_seq_number)0);
+        fputs("char __dummy;", f_C_output);
+      }  /* if */
+      while (field != NULL) {
+        startline(field->source_corresp.decl_position.seq);
+        simple_type_reference(field_name(field), field->type);
+        fputc(';', f_C_output);
+        field = field->next;
+      }  /* while */
+      indent -= 2;
       startline((a_seq_number)0);
-      fputs("char __dummy;", f_C_output);
+      fputc('}', f_C_output);
     }  /* if */
-    while (field != NULL) {
-      startline(field->source_corresp.decl_position.seq);
-      simple_type_reference(field_name(field), field->type);
-      fputc(';', f_C_output);
-      field = field->next;
-    }  /* while */
-    indent -= 2;
-    startline((a_seq_number)0);
-    fputc('}', f_C_output);
+    fputc(';', f_C_output);
+    end_unreferenced_bracket(&type->source_corresp);
   }  /* if */
-  fputc(';', f_C_output);
-  end_unreferenced_bracket(&type->source_corresp);
 }  /* dump_union */
 
 #endif /* ifdef CFE */
