@@ -4734,21 +4734,26 @@ for handling virtual bases and functions.
     }  /* if */
 #endif /* !IA64_ABI */
   }  /* if */
-#if GNU_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   if (class_type->alignment_set_explicitly) {
-    /* GNU C allows the alignment to be increased.  If the class has the
+    /* GNU allows the alignment to be increased.  If the class has the
        "packed" attribute its alignment can also be decreased; otherwise,
-       a reduction in alignment is ignored. */
-    if (alignment < lob.alignment &&
+       a reduction in alignment is ignored.  Microsoft allows the alignment
+       to be increased or decreased. */
+#if GNU_EXTENSIONS_ALLOWED
+    if (gnu_mode && alignment < lob.alignment &&
         !class_type->variant.class_struct_union.is_packed) {
       pos_warning(ec_alignment_reduction_ignored,
                   &class_type->source_corresp.decl_position);
       alignment = lob.alignment;
-    } else {
+    } else
+#endif /* GNU_EXTENSIONS_ALLOWED */
+    /* Do not insert code here. */
+    {
       lob.alignment = alignment;
     }  /* if */
   }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 #if IA64_ABI
   if (C_dialect == C_dialect_cplusplus) {
     /* If there are empty bases "off the end" of the class, update the class
