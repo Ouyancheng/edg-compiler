@@ -1,5 +1,13 @@
 Version 2.33
 
+7/30/96 Incorrect linkage test for template declarations
+
+Template declarations were incorrectly required to have C++ linkage,
+or to be declared in an unnamed namespace.  This disallowed the
+use of other linkage kinds (in implementations that support them) and
+also disallowed internal linkage that results from use of the -tlocal
+option.  Now all linkage kinds, except for "C", are permitted.
+
 7/29/96 Making a member function template instance a friend
 
 Version 2.32 did not support friend declarations that refer to member

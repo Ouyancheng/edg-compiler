@@ -9611,11 +9611,9 @@ brace) is returned in *final_token.
        specialization syntax. */
     /* Save the current default linkage. */
     saved_linkage = def_external_linkage;
-    /* Issue an error if this is not C++ linkage. */
-    if (def_external_linkage.kind !=
-                        (a_name_linkage_kind)nlk_cplusplus_external &&
-        !scope_stack[depth_innermost_namespace_scope].
-                                            within_unnamed_namespace) {
+    /* Issue an error if this declaration has C linkage. */
+    if (def_external_linkage.kind ==
+                        (a_name_linkage_kind)nlk_external) {
       pos_error(ec_bad_linkage_for_decl, &pos_curr_token);
       def_external_linkage.kind = (a_name_linkage_kind)nlk_cplusplus_external;
       def_external_linkage.is_explicit = FALSE;
