@@ -207,7 +207,7 @@ looking up the destructor.  If static_lifetime is TRUE, the underlying entity
 has static storage duration.
 */
 {
-  a_routine_ptr  ctor_rp, dtor_rp;
+  a_routine_ptr  dtor_rp;
 
   if (dip->destructor == NULL) {
     class_type = skip_typerefs(class_type);
@@ -300,7 +300,7 @@ routine is called in C++ mode only.
           ptp = (skip_typerefs(ctor_rp->type))->
                                    variant.routine.extra_info->param_type_list;
           dip->variant.constructor.args = copy_default_arg_expr_list(ptp);
-          if (exceptions_enabled && fill_in_dtor) {
+          if (exceptions_enabled) {
             /* If appropriate, add a destructor pointer to the dynamic init
                entry.  This is for the case in which an exception is thrown by
                the constructor before the entire array has been initialized. */
@@ -371,7 +371,8 @@ any member of reference type is encountered.
           /* In C mode, the field's type is a struct with a const field. */
           *incomplete_init = TRUE;
           break;
-        } else if (cssp->constructor != NULL || cssp->destructor != NULL) {
+        } else if (cssp->constructor != NULL ||
+                   (exceptions_enabled && cssp->destructor != NULL)) {
           ctor_found = TRUE;
           break;
         }  /* if */
@@ -383,6 +384,7 @@ any member of reference type is encountered.
 
 
 static a_boolean init_remaining_fields(a_field_ptr    *curr_field,
+                                       a_boolean      static_lifetime,
                                        a_constant_ptr *con_list,
                                        a_constant_ptr *end_of_con_list,
                                        a_boolean      *incomplete_init)
@@ -428,11 +430,6 @@ initialized.  This routine is called in C++ mode only.
            a field later in the list for which the default constructor has to
            be called, but we can't leave this field uninitialized. */
         dip = alloc_dynamic_init((a_dynamic_init_kind)dik_zero);
-        /* Create the constant entry that will point to the new dynamic
-           init entry. */
-        cp = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
-        cp->variant.dynamic_init = dip;
-        cp->type = fp->type;
       } else {
         /* Default initialization is required -- this must be the field found
            by the call to any_constructible_fields_remaining. */
@@ -454,25 +451,35 @@ initialized.  This routine is called in C++ mode only.
           ptp = (skip_typerefs(ctor_rp->type))->
                                    variant.routine.extra_info->param_type_list;
           dip->variant.constructor.args = copy_default_arg_expr_list(ptp);
-          if (is_array_type(fp->type)) {
-            /* This field is an array, so each of its elements has to be
-               constructed. */
-            a_type_ptr          array_type = skip_typerefs(fp->type);
-            a_dynamic_init_ptr  orig_dip = dip;
-
-            dip = alloc_dynamic_init(
-                           (a_dynamic_init_kind)dik_nonconstant_aggregate);
-            /* Build the looping constant entry. */
-            repeat_nonconstant_init(orig_dip, array_type, tp, dip,
-                                    array_element_count(array_type, tp));
-          }  /* if */
         }  /* if */
-        /* Now create the constant entry that will point to the new dynamic
-           init entry. */
-        cp = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
-        cp->variant.dynamic_init = dip;
-        cp->type = tp;
       }  /* if */
+      if (cssp != NULL) {
+        if (exceptions_enabled && cssp->destructor != NULL) {
+          found_constructible_field = TRUE;
+          /* If appropriate, add a destructor pointer to the dynamic init
+             entry.  This is for the case in which an exception is thrown by
+             the constructor before the entire array has been initialized. */
+          add_destructor_to_dynamic_init(dip, tp, &pos_curr_token,
+                                         static_lifetime);
+        }  /* if */
+      }  /* if */
+      if (is_array_type(fp->type)) {
+        /* This field is an array, so each of its elements has to be
+           constructed. */
+        a_type_ptr          array_type = skip_typerefs(fp->type);
+        a_dynamic_init_ptr  orig_dip = dip;
+
+        dip = alloc_dynamic_init(
+                           (a_dynamic_init_kind)dik_nonconstant_aggregate);
+        /* Build the looping constant entry. */
+        repeat_nonconstant_init(orig_dip, array_type, tp, dip,
+                                array_element_count(array_type, tp));
+      }  /* if */
+      /* Now create the constant entry that will point to the new dynamic
+         init entry. */
+      cp = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
+      cp->variant.dynamic_init = dip;
+      cp->type = tp;
       /* Add the constant entry to the list of constants. */
       if (*con_list == NULL) {
         *con_list = cp;
@@ -709,7 +716,7 @@ field of a class object (or an array of same) remains uninitialized.
       init_con->type = local_type;
       init_con->variant.dynamic_init = dip;
       *any_dynamic_initialization = TRUE;
-      if (exceptions_enabled && is_array_element && !is_final_array_element) {
+      if (exceptions_enabled) {
         /* If appropriate, add a destructor pointer to the dynamic init entry.
            This is for the case in which an exception is thrown by the
            constructor before the entire array has been initialized. */
@@ -1057,7 +1064,8 @@ field of a class object (or an array of same) remains uninitialized.
             }  /* if */
           } else if (kind == (a_type_kind)tk_struct ||
                      kind == (a_type_kind)tk_class) {
-            if (init_remaining_fields(&curr_field, &con_list, &end_of_con_list,
+            if (init_remaining_fields(&curr_field, static_lifetime,
+                                      &con_list, &end_of_con_list,
                                       any_uninit_const_or_ref_member)) {
               if (curr_field == NULL) any_more_members = FALSE;
               *any_dynamic_initialization = TRUE;
@@ -1921,11 +1929,11 @@ arrays are treated as one-dimensional arrays.
   a_constant_ptr           aggr_con, repeat_con, dynamic_init_con;
 
   /* The IL structure is
-       dynamic init (ck_nonconstant_aggregate) ->
+       dynamic init (dik_nonconstant_aggregate) ->
          constant (ck_aggregate) ->
            constant (ck_init_repeat) ->
              constant (ck_dynamic_init) ->
-               original dynamic init (ck_constructor)
+               original dynamic init (dik_constructor)
   */
   /* Create a ck_aggregate constant. */
   aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
