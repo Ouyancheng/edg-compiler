@@ -1059,8 +1059,8 @@ If not, *failed is set.
 #if REPRESENT_EMPTY_STATEMENTS_IN_IL
       case stmk_empty:
         /* An empty statement has no side effects: copy it over as is if we
-           we are inserting a statement.  If we are inserting an expression,
-           just ignore this. */
+           are inserting a statement.  If we are inserting an expression, just
+           ignore this. */
         if (!is_expr_insert_location_kind(insert_location->kind)) {
           (void)copy_inlined_statement(statement, insert_location);
         }  /* if */
