@@ -307,7 +307,10 @@ typedef enum /*an_error_code*/ {
   ec_this_used_incorrectly,
   ec_constant_value_not_known,
   ec_missing_type_specifier,
-  ec_missing_access_specifier
+  ec_missing_access_specifier,
+  ec_not_a_class_or_struct_name,
+  ec_dupl_base_class_name,
+  ec_base_class_undefined
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 

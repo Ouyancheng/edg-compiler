@@ -851,6 +851,15 @@ error code.
     case ec_missing_access_specifier:
       m = "access control not specified (\"%s\" by default)";
       break;
+    case ec_not_a_class_or_struct_name:
+      m = "not a class or struct name";
+      break;
+    case ec_dupl_base_class_name:
+      m = "duplicate base class name";
+      break;
+    case ec_base_class_undefined:
+      m = "base class definition is incomplete";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
