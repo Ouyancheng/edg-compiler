@@ -2599,6 +2599,9 @@ Add the first of possibly two parts of a type reference.
                             skip_typerefs(local_type)->kind !=
                                        (a_type_kind)tk_ptr_to_member,
                          seg_ptr);
+    if (skip_typerefs(local_type)->kind == (a_type_kind)tk_ptr_to_member) {
+      add_string_to_segment(" ", seg_ptr);
+    }  /* if */
     /* Print out the star for this indirection. */
     if (unqualified_type->variant.pointer.is_reference) {
       /* This is a C++ reference type */
