@@ -3034,24 +3034,28 @@ diagnostics.
               /* This is an error.  A function with dllimport specified on its
                  definition has to be inline. */
               invalid_modifier = TRUE;
-              break;
-            }  /* if */
-            /*FALLTHROUGH*/
-          case dmt_dllexport:
-            if (is_redecl) {
-              if (!(routine->decl_modifiers & (DM_DLLIMPORT | DM_DLLEXPORT))) {
+            } else if (is_redecl) {
+              if (!(routine->decl_modifiers & DM_DLLIMPORT)) {
                 /* Any previous declaration should have been declared
-                   with either dllimport or dllexport.  Issue a warning. */
+                   with dllimport.  Issue a warning. */
                 invalid_redecl = TRUE;
-              } else if (new_modifiers->flags != 0 &&
-                         !((DM_DLLIMPORT | DM_DLLEXPORT) &
+              } else if (!(DM_DLLIMPORT &
                            routine->decl_modifiers &
                            new_modifiers->flags)) {
                 /* The current declaration is inconsistent with a previous
                    declaration.  Issue a warning and clear the previous
-                   dllimport/dllexport state. */
+                   dllimport state. */
                 invalid_redecl = TRUE;
-                routine->decl_modifiers &= ~(DM_DLLIMPORT | DM_DLLEXPORT);
+                routine->decl_modifiers &= ~DM_DLLIMPORT;
+              }  /* if */
+            }  /* if */
+            break;
+          case dmt_dllexport:
+            if (is_redecl) {
+              if (!(routine->decl_modifiers & DM_DLLEXPORT)) {
+                /* Any previous declaration should have been declared
+                   with either dllexport.  Issue a warning. */
+                invalid_redecl = TRUE;
               }  /* if */
             }  /* if */
             break;

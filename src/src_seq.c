@@ -2175,6 +2175,106 @@ the source sequence entry that follows the entry or entries removed.
 }  /* drop_from_fs_src_seq_list */
 
 
+void promote_src_seq_sublists_to_file_scope_list(a_scope_ptr  sp)
+/*
+The given (function) scope is about to be eliminated from the IL.  Traverse
+the source sequence entry sublists of the given scope and promote those
+entries that should be preserved to the file scope list of source sequence
+entries.
+*/
+{
+  a_routine_ptr                rp = sp->variant.routine.ptr;
+  a_src_seq_sublist_ptr        sublist = sp->src_seq_sublist_list;
+  a_source_sequence_entry_ptr  insert_ssep =
+                                     rp->source_corresp.source_sequence_entry;
+  a_source_sequence_entry_ptr  sublist_ssep, next_sublist_ssep;
+
+  for (; sublist != NULL; sublist = sublist->next) {
+    for (sublist_ssep = sublist->source_sequence_list;
+         sublist_ssep != NULL;
+         sublist_ssep = next_sublist_ssep) {
+      a_boolean                     promote = FALSE;
+      a_src_seq_secondary_decl_ptr  sssdp;
+      next_sublist_ssep = sublist_ssep->next;
+      if (ss_entry_kind(sublist_ssep) == (an_il_entry_kind)iek_pragma) {
+        /* Ignore entries representing pragmas. */
+        continue;
+#if RECORD_MACROS_IN_IL
+      } else if (ss_entry_kind(sublist_ssep) == (an_il_entry_kind)iek_macro) {
+        /* Macro definitions should be preserved since their effect may
+           extend beyond the given scope. */
+        promote = TRUE;
+        il_entry_prefix_of(sublist_ssep).keep_in_il = TRUE;
+#endif /* RECORD_MACROS_IN_IL */
+      } else if (C_mode() ||
+                 ss_entry_kind(sublist_ssep) !=
+                               (an_il_entry_kind)iek_src_seq_secondary_decl) {
+        /* Tags introduced in function prototype scope are not a problem
+           in C nor are other kinds of entities. */
+        continue;
+      } else {
+        sssdp = ss_entry_ptr(sublist_ssep,
+                             a_src_seq_secondary_decl_ptr);
+        if (!sssdp->declared_in_func_prototype) {
+          /* Only types introduced in function prototypes concern us at this
+             point. */
+          continue;
+        }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (microsoft_mode && (rp->decl_modifiers & DM_DLLIMPORT)) {
+          promote = TRUE;
+        }  /* if */
+#endif /* if MICROSOFT_EXTENSIONS_ALLOWED */
+#if MAINTAIN_NEEDED_FLAGS
+        if (il_entry_prefix_of(sssdp->entity.ptr).keep_in_il) {
+          /* Be sure the keep-in-IL flags are set on the source
+             sequence information that's being promoted to the file
+             scope list. */
+          il_entry_prefix_of(sublist_ssep).keep_in_il = TRUE;
+          il_entry_prefix_of(sssdp).keep_in_il = TRUE;
+          check_assertion(promote == FALSE);
+          promote = TRUE;
+        }  /* if */
+#endif /* MAINTAIN_NEEDED_FLAGS */
+      }  /* if */
+      if (promote) {
+        /* Remove the source sequence entry from the list in the
+           function scope. */
+        if (sublist_ssep->prev == NULL) {
+          sublist->source_sequence_list = next_sublist_ssep;
+        } else {
+          sublist_ssep->prev->next = next_sublist_ssep;
+        }  /* if */
+        if (next_sublist_ssep != NULL) {
+          next_sublist_ssep->prev = sublist_ssep->prev;
+        }  /* if */
+        /* Add it to the source sequence list of the file scope,
+           inserting it immediately following insert_ssep. */
+        sublist_ssep->next = insert_ssep->next;
+        if (insert_ssep->next != NULL) {
+          insert_ssep->next->prev = sublist_ssep;
+        } else {
+          a_scope_stack_entry_ptr  scope_stack_ptr;
+          scope_stack_ptr = &scope_stack[DEPTH_OF_FILE_SCOPE];
+          if (scope_stack_ptr->il_scope->source_sequence_list == NULL) {
+            scope_stack_ptr =
+                     &scope_stack[depth_innermost_namespace_scope];
+            check_assertion(scope_stack_ptr->
+                             end_of_source_sequence_list == insert_ssep);
+            scope_stack_ptr->end_of_source_sequence_list = sublist_ssep;
+          }  /* if */
+        }  /* if */
+        insert_ssep->next = sublist_ssep;
+        sublist_ssep->prev = insert_ssep;
+        /* Adjust insert_ssep to point to the entry just added, so
+           that the next one will be added right after it. */
+        insert_ssep = sublist_ssep;
+      }  /* if */
+    }  /* for */
+  }  /* for */
+}  /* promote_src_seq_sublists_to_file_scope_list */
+
+
 void eliminate_function_body_source_sequence_entries(a_scope_ptr  sp)
 /*
 Remove the source sequence entries that represent the body of the function
@@ -2248,98 +2348,27 @@ associated with the indicated sck_function scope.
       rp->declared_type = NULL;
       sssdp->friend_decl = rp->defined_in_friend_decl;
       rp->defined_in_friend_decl = FALSE;
-      if (!C_mode() && sp->src_seq_sublist_list != NULL) {
-        /* If any tags were introduced in the parameter declarations for
-           this function, the associated source-sequence entries need to
-           be promoted from the function-scope list (they'd be on a
-           sublist) to the file-scope list.  For example (assuming f's
-           definition is unneeded but that S must be kept in the IL):
-             void f(struct S *ps) { ... }
-           the secondary-decl entry for S must be inserted immediately
-           after the secondary-decl entry for f (i.e., the one just
-           created). */
-        a_src_seq_sublist_ptr        sublist = sp->src_seq_sublist_list;
-        a_source_sequence_entry_ptr  insert_ssep = ssep;
-        a_source_sequence_entry_ptr  sublist_ssep, next_sublist_ssep;
-        a_boolean                    remove_from_sublist;
+    }  /* if */
+    if (
+#if !RECORD_MACROS_IN_IL
+        !C_mode() &&
+#endif /* !RECORD_MACROS_IN_IL */
+        sp->src_seq_sublist_list != NULL) {
+      /* If any tags were introduced in the parameter declarations for
+         this function, the associated source-sequence entries need to
+         be promoted from the function-scope list (they'd be on a
+         sublist) to the file-scope list.  For example (assuming f's
+         definition is unneeded but that S must be kept in the IL):
+           void f(struct S *ps) { ... }
+         the secondary-decl entry for S must be inserted immediately
+         after the secondary-decl entry for f (i.e., the one just
+         created).  This is only an issue in C++ mode.
 
-        for (; sublist != NULL; sublist = sublist->next) {
-          for (sublist_ssep = sublist->source_sequence_list;
-               sublist_ssep != NULL;
-               sublist_ssep = next_sublist_ssep) {
-            next_sublist_ssep = sublist_ssep->next;
-            if (ss_entry_kind(sublist_ssep) ==
-                                   (an_il_entry_kind)iek_pragma
-#if RECORD_MACROS_IN_IL
-                || ss_entry_kind(sublist_ssep) == (an_il_entry_kind)iek_macro
-#endif /* RECORD_MACROS_IN_IL */
-                                                               ) {
-              /* Ignore entries representing macros and pragmas. */
-              continue;
-            }  /* if */
-            if (ss_entry_kind(sublist_ssep) !=
-                       (an_il_entry_kind)iek_src_seq_secondary_decl) {
-              goto done_with_func_prototype_decls;
-            }  /* if */
-            sssdp = ss_entry_ptr(sublist_ssep,
-                                 a_src_seq_secondary_decl_ptr);
-            if (!sssdp->declared_in_func_prototype) {
-              goto done_with_func_prototype_decls;
-            }  /* if */
-            remove_from_sublist = FALSE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-            if (microsoft_mode && (rp->decl_modifiers & DM_DLLIMPORT)) {
-              remove_from_sublist = TRUE;
-            }  /* if */
-#endif /* if MICROSOFT_EXTENSIONS_ALLOWED */
-#if MAINTAIN_NEEDED_FLAGS
-            if (il_entry_prefix_of(sssdp->entity.ptr).keep_in_il) {
-              /* Be sure the keep-in-IL flags are set on the source
-                 sequence information that's being promoted to the file
-                 scope list. */
-              il_entry_prefix_of(sublist_ssep).keep_in_il = TRUE;
-              il_entry_prefix_of(sssdp).keep_in_il = TRUE;
-              check_assertion(remove_from_sublist == FALSE);
-              remove_from_sublist = TRUE;
-            }  /* if */
-#endif /* MAINTAIN_NEEDED_FLAGS */
-            if (remove_from_sublist) {
-              /* Remove the source sequence entry from the list in the
-                 function scope. */
-              if (sublist_ssep->prev == NULL) {
-                sublist->source_sequence_list = next_sublist_ssep;
-              } else {
-                sublist_ssep->prev->next = next_sublist_ssep;
-              }  /* if */
-              if (next_sublist_ssep != NULL) {
-                next_sublist_ssep->prev = sublist_ssep->prev;
-              }  /* if */
-              /* Add it to the source sequence list of the file scope,
-                 inserting it immediately following insert_ssep. */
-              sublist_ssep->next = insert_ssep->next;
-              if (insert_ssep->next != NULL) {
-                insert_ssep->next->prev = sublist_ssep;
-              } else {
-                a_scope_stack_entry_ptr  scope_stack_ptr;
-                scope_stack_ptr = &scope_stack[DEPTH_OF_FILE_SCOPE];
-                if (scope_stack_ptr->il_scope->source_sequence_list == NULL) {
-                  scope_stack_ptr =
-                           &scope_stack[depth_innermost_namespace_scope];
-                  check_assertion(scope_stack_ptr->
-                                   end_of_source_sequence_list == insert_ssep);
-                  scope_stack_ptr->end_of_source_sequence_list = sublist_ssep;
-                }  /* if */
-              }  /* if */
-              insert_ssep->next = sublist_ssep;
-              sublist_ssep->prev = insert_ssep;
-              /* Adjust insert_ssep to point to the entry just added, so
-                 that the next one will be added right after it. */
-              insert_ssep = sublist_ssep;
-            }  /* if */
-          }  /* for */
-        }  /* for */
-done_with_func_prototype_decls:;
-      }  /* if */
+         A similar problem arises for macros (both in C and C++ mode).
+         Macros defined inside a function have their source sequence
+         entry put on a sublist.  When the function is eliminated, the
+         source sequence entry for the macro must be preserved. */
+      promote_src_seq_sublists_to_file_scope_list(sp);
     }  /* if */
     switch_back_to_original_region(region_to_switch_back_to);
   }  /* if */
