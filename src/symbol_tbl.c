@@ -10365,32 +10365,35 @@ unit.
         add_symbol_to_inactive_list(sym);
       }  /* if */
     }  /* for */
-    /* Remove any synthesized namespace projection symbols from the
-       others_symbols list of the symbol header. */
-    for (sym = pointers_block->synth_namespace_projection_symbols;
-         sym != NULL;
-         sym = sym->next_in_scope) {
-      a_symbol_ptr	prev_sym = NULL;
-      a_symbol_ptr	other_sym;
-      /* Symbols that are not reusable will not be on the other symbols
-         list. */
-      if (sym->do_not_reuse) continue;
-      for (other_sym = sym->header->other_symbols;
-           other_sym != NULL; other_sym = other_sym->next) {
-        if (other_sym == sym) break;
-        prev_sym = other_sym;
+    if (kind == (a_scope_kind)sck_namespace) {
+    } else {
+      /* Remove any synthesized namespace projection symbols from the
+         others_symbols list of the symbol header. */
+      for (sym = pointers_block->synth_namespace_projection_symbols;
+           sym != NULL;
+           sym = sym->next_in_scope) {
+        a_symbol_ptr	prev_sym = NULL;
+        a_symbol_ptr	other_sym;
+        /* Symbols that are not reusable will not be on the other symbols
+           list. */
+        if (sym->do_not_reuse) continue;
+        for (other_sym = sym->header->other_symbols;
+             other_sym != NULL; other_sym = other_sym->next) {
+          if (other_sym == sym) break;
+          prev_sym = other_sym;
+        }  /* for */
+        check_assertion_str2(other_sym != NULL, "wrapup_scope:",
+                             "synth sym not on other_symbols list");
+        if (prev_sym == NULL) {
+          /* The symbol is the first one on the list.  Remove it by setting
+             the list to its next pointer. */
+          sym->header->other_symbols = sym->next;
+        } else {
+          /* Remove the symbol from the linked list. */
+          prev_sym->next = sym->next;
+        }  /* if */
       }  /* for */
-      check_assertion_str2(other_sym != NULL, "wrapup_scope:",
-                           "synth sym not on other_symbols list");
-      if (prev_sym == NULL) {
-        /* The symbol is the first one on the list.  Remove it by setting
-           the list to its next pointer. */
-        sym->header->other_symbols = sym->next;
-      } else {
-        /* Remove the symbol from the linked list. */
-        prev_sym->next = sym->next;
-      }  /* if */
-    }  /* for */
+    }  /* if */
   }  /* if */
   db_exit();
 }  /* wrapup_scope */
