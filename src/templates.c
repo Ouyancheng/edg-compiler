@@ -7499,6 +7499,10 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
   /* All IL routines must be at the file scope level, so switch to that
      memory region if necessary to allocate the routine entry. */
   switch_to_file_scope_region(&region_to_switch_back_to);
+  /* Defer other instantiations while creating the routine for this
+     instance.  This is done to make sure a second reference to this routine
+     is not attempted before the routine is completed. */
+  defer_inline_function_fixup_and_instantiations++;
   rp = alloc_routine();
   {
     /* Create a routine type by rescanning the original declaration
@@ -7767,6 +7771,12 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
   set_instance_required(sym, /*value=*/FALSE, SIR_NONE);
   /* If the translation unit stack was pushed above, pop it now. */
   if (trans_unit_pushed) pop_translation_unit_stack();
+  /* Now that the instance has been added to the list, other instantiations
+     can be resumed. */
+  defer_inline_function_fixup_and_instantiations--;
+  /* Do any instantiations that were deferred while this routine was being
+     created. */
+  process_deferred_class_fixups_and_instantiations();
   db_exit();
   return sym;
 }  /* make_template_function */
