@@ -2127,6 +2127,8 @@ extern a_symbol_ptr full_enter_symbol(char          *identifier,
 				      a_symbol_kind sym_kind,
 				      a_scope_depth scope_depth);
 
+extern void make_symbol_for_type_of_type_info(void);
+
 extern void set_symbol_kind(a_symbol_ptr  sym_ptr,
 			    a_symbol_kind sym_kind);
 
