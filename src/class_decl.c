@@ -7330,15 +7330,15 @@ the change on the contained type.
     case tk_class:
     case tk_struct:
     case tk_union:
+      if (is_candidate_for_linkage_change(type)) {
+        /* Class, struct, or union type.  Change it (and its members, where
+           required) to have external linkage. */
+        make_class_externally_linked(type, count);
+      }  /* if */
       tp = type->source_corresp.class_of_which_a_member; 
       if (tp != NULL) {
-        /* Nested class -- changing the parent's linkage will have as a
-           side effect changing the linkage of its nested classes. */
+        /* Nested class -- be sure parent class is also externally linked. */
         check_type_for_linkage_change(tp, count);
-      } else if (is_candidate_for_linkage_change(type)) {
-        /* Top-level class, struct, or union type.  Change it (and its
-           members, where required) to have external linkage. */
-        make_class_externally_linked(type, count);
       }  /* if */
       break;
     case tk_routine:
