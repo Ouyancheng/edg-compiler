@@ -1,5 +1,10 @@
 Version 3.2
 
+3/19/03  dynamic_cast problem in IA-64 runtime
+
+A problem in the IA-64 version of find_base_class_at_addr could result
+in dynamic_cast producing an incorrect result.  This has been fixed.
+
 3/19/03  Incorrect test of base class flags in IA-64 runtime
 
 The IA-64 runtime included some incorrect tests of the base class
