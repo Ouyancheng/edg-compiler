@@ -11563,14 +11563,17 @@ specific definition that made it unnecessary.
     for (tip = instantiations_required;
          tip != NULL;
          tip = tip->next_in_instantiation_list) {
-      a_boolean	can_instantiate = FALSE;
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
       /* Call can_be_instantiated.  This is done to force any implicit
          inclusions that may be needed. */
-      can_instantiate = can_be_instantiated(tip);
+      (void)can_be_instantiated(tip);
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+      /* See if the entity should be instantiated.  Note that the result of
+         can_be_instantiated is ignored because the tests done by
+         should_be_instantiated can result the generation of diagnostics
+         that are required even if the entity can't be instantiated. */
       if ((instantiation_mode == tim_all || tip->instantiation_required) &&
-          !tip->already_instantiated && can_instantiate) {
+          !tip->already_instantiated) {
         if (should_be_instantiated(tip, /*implicit_inclusion_ok=*/TRUE)) {
           if (tip->instance_sym->kind ==
                                         (a_symbol_kind)sk_static_data_member) {
