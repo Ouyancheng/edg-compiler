@@ -1018,17 +1018,19 @@ current context must be the function context.
   */
   local_frame_next = field_lvalue_selection_expr(var_lvalue_expr(local_frame),
                                                  ehse_next_field);
-  insert_assignment_statement(local_frame_next,
+  (void)insert_assignment_statement(
+                              local_frame_next,
                               (an_expr_operator_kind)eok_passign,
                               var_rvalue_expr(make_curr_eh_stack_entry_var()),
                               insert_location);
-  insert_var_assignment_statement(curr_eh_stack_entry_var,
-                                  (an_expr_operator_kind)eok_passign,
-                                  var_lvalue_expr(local_frame),
-                                  insert_location);
+  (void)insert_var_assignment_statement(curr_eh_stack_entry_var,
+                                        (an_expr_operator_kind)eok_passign,
+                                        var_lvalue_expr(local_frame),
+                                        insert_location);
   local_frame_kind = field_lvalue_selection_expr(var_lvalue_expr(local_frame),
                                                  ehse_kind_field);
-  insert_assignment_statement(local_frame_kind,
+  (void)insert_assignment_statement(
+                              local_frame_kind,
                               (an_expr_operator_kind)eok_iassign,
                               node_for_integer_constant((long)kind,
                                             (an_integer_kind)ik_unsigned_char),
@@ -1052,10 +1054,10 @@ stack frame.  The code is inserted at *insert_location.
   local_frame_next = field_lvalue_selection_expr(
                                               var_lvalue_expr(stack_frame_var),
                                               ehse_next_field);
-  insert_var_assignment_statement(curr_eh_stack_entry_var,
-                                  (an_expr_operator_kind)eok_passign,
-                                  local_frame_next,
-                                  insert_location);
+  (void)insert_var_assignment_statement(curr_eh_stack_entry_var,
+                                        (an_expr_operator_kind)eok_passign,
+                                        local_frame_next,
+                                        insert_location);
 }  /* pop_eh_stack_frame */
 
 
@@ -1151,10 +1153,10 @@ is given by "scope".
                                                   ehse_variant_field),
                       ehse_throw_spec_field);
       /* Assign the array address to local_frame.variant.throw_spec */
-      insert_assignment_statement(local_frame_variant_throw_spec,
-                                  (an_expr_operator_kind)eok_passign,
-                                  spec_array_node,
-                                  &insert_location);
+      (void)insert_assignment_statement(local_frame_variant_throw_spec,
+                                        (an_expr_operator_kind)eok_passign,
+                                        spec_array_node,
+                                        &insert_location);
     }  /* if */
     if (need_throw_epilogue) {
       /* Need to add epilogue code at each return in the routine. */
@@ -1172,7 +1174,7 @@ is given by "scope".
 }  /* add_eh_function_prologue */
 
 
-void il_eh_lower_init(void)
+void eh_lower_init(void)
 /*
 Initialize static variables related to IL lowering of exceptions.
 This is done as a subroutine (rather than relying on static initialization)
@@ -1192,7 +1194,7 @@ invocation of the front end.
   eh_stack_entry_type = NULL;
   eh_curr_region_var = NULL;
   curr_eh_stack_entry_var = NULL;
-}  /* il_lower_init */
+}  /* eh_lower_init */
 
 #endif /* DO_IL_LOWERING */
 
