@@ -1621,8 +1621,11 @@ the names to the symbol table.
     a_boolean			file_used_from_archive = FALSE;
     pofp = pifp->objects;
     if (!pifp->is_archive) {
-      /* This is a .o file.  Add all of its symbols to the symbol table. */
-      pl_add_symbols_from_object(pofp, pifp);
+      if (pofp != NULL) {
+        /* This is a .o file.  Add all of its symbols to the symbol table.
+           pofp could be NULL if there was no nm output for this file. */
+        pl_add_symbols_from_object(pofp, pifp);
+      }  /* if */
     } else {
       while (pofp != NULL) {
         if (!pofp->included_in_output) {
