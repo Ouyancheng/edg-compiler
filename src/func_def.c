@@ -674,7 +674,6 @@ and for the instantiation of template functions.
   if (func_info->function_type_from_typedef) {
     /* An error was already issued on this.  Now, since no parameters were
        specified, skip the processing for parameter names. */
-    check_assertion(func_info->prototype_scope_symbols == NULL);
     check_assertion(func_info->param_id_list == NULL);
   } else {
     /* Correctly declared function type. */

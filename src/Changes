@@ -1,5 +1,16 @@
 Version 3.3
 
+6/10/03  C mode: Abort on unusual syntax error in function definition
+
+In C mode, the front end sometimes aborted during the processing what seems
+to be a function definition whose type is specified using a typedef name.
+For example:
+
+  typedef void F();
+  F (x) int x; {}    /* Used to trigger an internal error. */
+
+This is now fixed (normal errors are issued).
+
 6/10/03  Use of (int)0 as null pointer constant in Microsoft C++ mode
 
 MSVC++ versions up to 7.0 have a bug that considers zero cast to
