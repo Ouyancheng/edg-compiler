@@ -1,5 +1,17 @@
 Version 3.6
 
+11/12/04 GNU compatibility: __builtin_constant_p
+
+In GNU modes, version 3.5 of the front end introduced a bug in the evaluation
+of __builtin_constant_p that caused global variables to be treated as
+constants in some cases.  For example:
+
+  int i;
+  int a[__builtin_constant_p(i)];  // Should be equivalent to a[0], but
+                                   // treated as a[1] in version 3.5.
+
+This is now fixed.  (See also the Changes entry of 10/7/04.)
+
 11/12/04 Displaying column numbers when using brief diagnostics
 
 The configuration macro COLUMN_NUMBER_IN_BRIEF_DIAGNOSTICS has been added

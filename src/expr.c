@@ -1125,35 +1125,10 @@ given operand by a constant operand if appropriate.
       args = args->next;
       switch (rp->variant.builtin_function_kind) {
         case bfk_constant_p:
-          /* "1" if the argument is constant; "0" otherwise. */
-          if (args != NULL && args->next == NULL &&
-              is_integral_type(result_type)) {
-            a_boolean  val = (args->kind == (an_expr_node_kind)enk_constant);
-            clear_constant(&result, (a_constant_repr_kind)ck_integer);
-            result.type = call->type;
-            set_integer_constant(&result, (a_host_large_integer)val,
-                                 result_type->variant.integer.int_kind);
-            folded = TRUE;
-          }  /* if */
-          break;
         case bfk_classify_type:
-          /* Produce an integer representing the GNU type-class associated
-             with the argument. */
-          if (args != NULL && args->next == NULL &&
-              is_integral_type(result_type)) {
-            a_type_class_kind  tck = gnu_type_class_for_type(args->type);
-#if FIXED_POINT_ALLOWED
-            if (fixed_point_enabled && is_fixed_point_type(args->type)) {
-              pos_error(ec_no_classification_for_fixed_point_type,
-                        &op->position);
-            }  /* if */
-#endif /* FIXED_POINT_ALLOWED */
-            clear_constant(&result, (a_constant_repr_kind)ck_integer);
-            result.type = call->type;
-            set_integer_constant(&result, (a_host_large_integer)tck,
-                                 result_type->variant.integer.int_kind);
-            folded = TRUE;
-          }  /* if */
+          /* Pseudo-calls to these functions should have been scanned and
+             folded in scan_gnu_builtin_pseudo_call. */
+          unexpected_condition();
           break;
         case bfk_huge_valf:
         case bfk_huge_val:
@@ -1244,6 +1219,7 @@ __builtin_constant_p and __builtin_classify_type are processed here.
   check_assertion(is_integral_type(result_type));
   switch (rp->variant.builtin_function_kind) {
     case bfk_constant_p:
+      conv_lvalue_to_rvalue(&arg);
       set_integer_constant(&result,
                            (a_host_large_integer)is_constant_operand(&arg),
                            result_type->variant.integer.int_kind);
