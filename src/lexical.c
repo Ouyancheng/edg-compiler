@@ -2954,30 +2954,34 @@ most common case.
 }  /* macro_line_loc_to_source_pos */
 
 
-static void error_at_line_pos(an_error_code error_code,
-                              char          *loc_in_line)
+static void diagnostic_at_line_pos(an_error_severity  severity,
+                                   an_error_code      error_code,
+                                   char               *loc_in_line)
+/*
+Record the occurrence of the indicated diagnostic at the indicated character
+position of the current logical source line.
+*/
+{
+  /* Convert the character position into an error position. */
+  conv_line_loc_to_source_pos(loc_in_line, &error_position);
+  diagnostic(severity, error_code);
+}  /* error_at_line_pos */
+
+
 /*
 Record the occurrence of the indicated error at the indicated character
 position of the current logical source line.
 */
-{
-  /* Convert the character position into an error position. */
-  conv_line_loc_to_source_pos(loc_in_line, &error_position);
-  error(error_code);
-}  /* error_at_line_pos */
+#define error_at_line_pos(error_code, loc_in_line)                    \
+  diagnostic_at_line_pos(es_error, (error_code), (loc_in_line));
 
 
-static void warning_at_line_pos(an_error_code error_code,
-                                char          *loc_in_line)
 /*
 Record the occurrence of the indicated warning at the indicated character
 position of the current logical source line.
 */
-{
-  /* Convert the character position into an error position. */
-  conv_line_loc_to_source_pos(loc_in_line, &error_position);
-  warning(error_code);
-}  /* warning_at_line_pos */
+#define warning_at_line_pos(error_code, loc_in_line)                  \
+  diagnostic_at_line_pos(es_warning, (error_code), (loc_in_line));
 
 
 /*
@@ -3298,11 +3302,9 @@ partial_final_line:
      return. */
   eof_read_on_curr_input_stream = TRUE;
   finish_off_source_line_so_it_can_be_displayed_in_error();
-  if (strict_ansi_mode && strict_ansi_error_severity == es_error) {
-    error_at_line_pos(ec_last_line_incomplete, loc_in_line);
-  } else {
-    warning_at_line_pos(ec_last_line_incomplete, loc_in_line);
-  }  /* if */
+  diagnostic_at_line_pos(strict_ansi_mode ?
+                           strict_ansi_error_severity : es_warning,
+                         ec_last_line_incomplete, loc_in_line);
   goto add_newline_and_null_and_return;
 
 possible_trigraph:
@@ -4072,11 +4074,9 @@ token.
     }  /* for */
 #if LONG_LONG_ALLOWED
     if (strict_ansi_mode && !fetch_pp_tokens && l_seen == 2) {
-      if (strict_ansi_error_severity == es_error) {
-        error_at_line_pos(ec_nonstd_long_long, start_of_curr_token);
-      } else {
-        warning_at_line_pos(ec_nonstd_long_long, start_of_curr_token);
-      }  /* if */
+      an_error_severity  es = strict_ansi_error_severity;
+      if (es == es_error) es = es_discretionary_error;
+      diagnostic_at_line_pos(es, ec_nonstd_long_long, start_of_curr_token);
     }  /* if */
 #endif /* LONG_LONG_ALLOWED */
   }
