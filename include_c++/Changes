@@ -1,3 +1,13 @@
+Version 3.5
+
+6/7/04  ARM EABI Features
+
+The cxxabi.h file, which is used with the IA-64 ABI, now supports several
+variants of the ABI that are specified in the ARM EABI.  See the front end
+Changes file entry for more information.
+
+-------------------------------------------------------------------------------
+
 Version 3.4, May 8, 2004
 
 12/9/03  Missing exception specification on uncaught_exception
