@@ -17,7 +17,28 @@ symbol_ref.c - Routines to manage references to symbols.
 #include "symbol_ref.h"
 #include "cmd_line.h"
 #include "il.h"
+#include "il_to_str.h"
 #include "symbol_tbl.h"
+
+
+static an_il_to_str_output_control_block
+		octl;
+			/* Output control block used to interface to the
+			   il_to_str routines. */
+
+static a_boolean
+		output_control_block_has_been_set_up = FALSE;
+			/* Flag that indicates whether initialization has
+			   already been done on the output control block. */
+
+static void write_string_to_xref_file(char *str)
+/*
+Write str to the xref file.  The address of this routine is passed to
+the il_to_str routines for generating formatted names.
+*/
+{
+  (void)fputs(str, f_xref_info);
+}  /* write_string_to_xref_file */
 
 
 static void write_xref_entry(a_symbol_reference_kind srk_flags,
@@ -30,11 +51,18 @@ should only be called if cross-reference information is being generated
 (i.e., f_xref_info != NULL).
 */
 {
-  char          code;
-  char          *file_name, *full_name;
-  a_line_number line_number;
-  a_boolean     at_end_of_source;
+  char              code;
+  char              *file_name, *full_name;
+  a_line_number     line_number;
+  a_boolean         at_end_of_source;
 
+  if (!output_control_block_has_been_set_up) {
+    /* Set octl so that it can be passed into the il_to_str routines to tell
+       them how to output to write a string to the xref file. */
+    clear_il_to_str_output_control_block(&octl);
+    octl.output_str = write_string_to_xref_file;
+    output_control_block_has_been_set_up = TRUE;
+  }  /* if */
   if (sym_ptr->kind == (a_symbol_kind)sk_extern_variable ||
              sym_ptr->kind == (a_symbol_kind)sk_extern_routine) {
     /* Ignore extern variable and routine symbols.  They are really just
@@ -97,40 +125,15 @@ should only be called if cross-reference information is being generated
     /* Convert the source position to file name/line number. */
     conv_seq_to_file_and_line(source_position->seq, &file_name, &full_name,
                               &line_number, &at_end_of_source);
-#if 0 && DEBUG
     fprintf(f_xref_info, "%lu\t", (unsigned long)sym_ptr);
-    if (db_active) {
-      FILE* f_debug_save = f_debug;
-      f_debug = f_xref_info;
-      if (is_type_symbol(sym_ptr)) {
-        db_type_name(type_symbol_type(sym_ptr));
-      } else {
-        a_source_correspondence *scp; 
-        scp = source_corresp_entry_for_symbol(sym_ptr);
-        if (scp != NULL) {
-          db_name(scp);
-        } else {
-          fprintf(f_xref_info, "%s", sym_ptr->header->identifier);
-        }  /* if */
-      }  /* if */
-      f_debug = f_debug_save;
-    } else {
-      fprintf(f_xref_info, "%s", sym_ptr->header->identifier);
-    }  /* if */
+    /* Write the symbol name, complete with class qualifier, etc., to the
+       xref file. */
+    form_symbol_name(sym_ptr, &octl);
     fprintf(f_xref_info, "\t%c\t%s\t%lu\t%d\n",
                          code,
                          file_name,
                          line_number,
                          source_position->column);
-#else /* !0 && DEBUG */
-    fprintf(f_xref_info, "%lu\t%s\t%c\t%s\t%lu\t%d\n",
-                         (unsigned long)sym_ptr,
-                         sym_ptr->header->identifier,
-                         code,
-                         file_name,
-                         line_number,
-                         source_position->column);
-#endif /* if 0 && DEBUG */
   }  /* if */
 }  /* write_xref_entry */
 
