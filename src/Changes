@@ -1,5 +1,12 @@
 Version 2.31
 
+12/29/95  Parameter declarations for operator delete
+
+The restrictions on parameter declarations for operator delete and delete[]
+have been relaxed, in accord with recent Working Paper changes.  We now
+require only that there be at least one parameter and that the first
+parameter be of type void *.
+
 12/28/95  New predefined macro containing the name of the namespace
           containing the standard library
 
