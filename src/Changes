@@ -11,6 +11,11 @@ the following; they have now been eliminated.
   void *operator new(size_t) throw(std::bad_alloc);
   void operator delete(void *) throw();
 
+Suppressing the spurious errors was straightforward, but a full solution
+will be more complicated.  For example, we may have to invent a way to add
+an exception specification to the predeclared version of operator new that
+doesn't require predeclaring std and bad_alloc.
+
 8/14/96 Determining when a class is a aggregate class
 
 WP 8.5.1 [dcl.init.aggr] used to say a class was not considered an
