@@ -5932,6 +5932,14 @@ or implicit) controlling the declaration.
     if (!locator_for_curr_id.is_class_member) {
       error(ec_bad_name_in_using_decl);
       err = TRUE;
+    } else if (symbol_supplement_for_class(class_type)->
+                                               is_prototype_instantiation &&
+               is_or_contains_template_param(
+                                   locator_for_curr_id.parent.class_type)) {
+      /* This using declaration involves a template parameter.  Skip it, but
+         bypass the identifier first. */
+      (void)get_token();
+      goto done;
     } else {
       for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
         if (bcp->type == locator_for_curr_id.parent.class_type) {
