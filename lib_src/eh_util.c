@@ -13,12 +13,9 @@ C++ functions to support exception handling.
 
 */
 
+#include <stdlib.h>
 #include "basics.h"
 #include "eh.h"
-
-/* Declare the abort routine. */
-EXTERN_C void abort();
-
 
 void terminate()
 /*
