@@ -4482,7 +4482,6 @@ the error on the final identifier not being found on lookup.
   a_source_position    start_position;
   an_error_code        err_code;
   a_symbol_header_ptr  class_symbol_header;
-  a_token_cache        token_cache;
 
 #if CHECKING
   if (options & IDL_CONSTRAINTS) {
@@ -4498,26 +4497,10 @@ the error on the final identifier not being found on lookup.
       } else {
         /* See if there is a class qualifier (the "A::" part of "A::x"), and
            if so, get it and determine the class it represents. */
-        /* When a C++ pointer-to-member declarator is allowed, e.g., A::*,
-           this routine should return FALSE, no error should be issued, and
-           (since the class qualifier information is not encoded in a
-           symbol locator) the current token should be backed up to the start
-           of the class qualifier.  To accomplish the last we need to do token
-           caching. */
-        if (get_class_qualifier((options & IDL_PTR_TO_MEMBER_ALLOWED) ?
-                                      &token_cache : (a_token_cache *)NULL,
+        if (get_class_qualifier((a_token_cache *)NULL,
                                 &class_type, &is_file_scope_qualifier,
                                 &has_global_qualifier, &qualifier_err)) {
           /* A class qualifier is present. */
-          if ((options & IDL_PTR_TO_MEMBER_ALLOWED) &&
-              curr_token == tok_star && !qualifier_err &&
-              !is_file_scope_qualifier) {
-            /* This looks like a pointer-to-member declarator.  Back up to the
-               start of the class qualifier and return directly. */
-            rescan_cached_tokens(&token_cache);
-            goto done;
-          }  /* if */
-          /* This is a qualified name. */
           /* Save the start position of the qualified name (get_class_qualifier
              puts it in error_position). */
           start_position = error_position;

@@ -53,12 +53,6 @@ typedef int an_id_lookup_options_set;
 				   is a type name -- a typedef or tag symbol
 				   (class, struct, union, or enum) -- but
 				   return NULL instead. */
-#define IDL_PTR_TO_MEMBER_ALLOWED 0x10
-				/* When this bit is set a qualified name
-				   followed by a '*' is permitted, in which
-				   case do not issue an error but restore the
-				   current token to the start of the qualified
-				   name. */
 #define IDL_NO_OPTIONS 0	/* No special lookup options. */
 
 /*
