@@ -1995,7 +1995,7 @@ routine is returned.
                                   call_node->type, temp_node);
       }  /* if */
       /* Insert the call as a statement. */
-      insert_expr_statement(call_node, eff_insert_location);
+      (void)insert_expr_statement(call_node, eff_insert_location);
       /* Set up the expression to be used in the return statement (the value
          of the temporary). */
       if (void_return) {
