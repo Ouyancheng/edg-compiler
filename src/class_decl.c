@@ -10038,7 +10038,8 @@ to be returned to the caller.
         }  /* if */
         decl_info.is_constructor = 
                                  (decl_info.do_flags & DO_IS_CONSTRUCTOR) != 0;
-        decl_info.is_destructor = (decl_info.do_flags & DO_IS_DESTRUCTOR) != 0;
+        decl_info.is_destructor = locator.is_destructor_name ||
+                                  (decl_info.do_flags & DO_IS_DESTRUCTOR) != 0;
       }  /* if */
     }  /* if */
     remove_stop_token(tok_colon);

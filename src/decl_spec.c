@@ -3221,7 +3221,8 @@ is a that of a constructor.
          current class. */
       sym = normal_id_lookup(&locator_for_curr_id,
                              IDL_TENTATIVE_TYPE_LOOKUP |
-                             IDL_DO_NOT_ADD_TO_NONREAL_CLASS);
+                             IDL_DO_NOT_ADD_TO_NONREAL_CLASS |
+                             IDL_DO_NOT_CREATE_PROJ_SYM);
       if (sym != NULL && sym->kind == (a_symbol_kind)sk_type &&
           skip_typerefs(sym->variant.type.ptr) == class_type &&
           !sym->ambiguous) {

@@ -2926,7 +2926,7 @@ but not always an identifier).  input_flags is the set of flags passed in to
 declarator, and *output_flags is the set of flags that will be returned to
 declarator's caller.  *locator is returned with the locator for the name,
 *p_member_parent_type is the class type when this is a qualified name,
-*p_constructor or *p_destructor is returned TRUE when the name is a
+*is_constructor or *is_destructor is returned TRUE when the name is a
 constructor or destructor name, and *parenthesized_initializer_allowed is set
 to FALSE if the entity being declared is not initializable.
 */
@@ -3139,14 +3139,15 @@ to FALSE if the entity being declared is not initializable.
       }  /* if */
     } else {
       /* The declarator id is not qualified. */
-      if (scope_stack[depth_scope_stack].kind
-                                 == (a_scope_kind)sck_class_struct_union) {
+      if (!C_mode() && scope_stack[depth_scope_stack].kind
+                                    == (a_scope_kind)sck_class_struct_union) {
         /* Check if we have a constructor. Trying to find it out while
            scanning the specifiers might have failed because the scanning had
            to stop at an opening parenthesis. However, we might have
            "struct S { (S)(); }". Note that destructors aren't a problem
            because of the distinctive leading tilde. */
-        if (is_constructor_decl(scope_stack[depth_scope_stack].assoc_type)) {
+        if (!err && (input_flags & DI_NO_TYPE_SPECIFIERS) != 0 &&
+            is_constructor_decl(scope_stack[depth_scope_stack].assoc_type)) {
           *is_constructor = TRUE;
         }  /* if */
       }  /* if */

@@ -216,11 +216,13 @@ abstract or real declarator.
             It will certainly be set if the input flag corresponding to
             DI_IS_CONSTRUCTOR was set, but even when that is not the case
             --presumably because the declarator was parenthesized--this
-            bit may become set. */
+            bit may become set.  When handling nested declarators, this flag
+            may be set for nonconstructors in cases that are not legal in
+            strict mode; e.g., "struct X { int (*X)(); };". */
 #define DO_IS_DESTRUCTOR ((a_decl_flag_set)0x40)
          /* This bit is set if a destructor declarator was scanned.
             It will certainly be set if the input flag corresponding to
-            DI_IS_DESTRUCOTR was set, but even when that is not the case
+            DI_IS_DESTRUCTOR was set, but even when that is not the case
             --presumably because the declarator was parenthesized--this
             bit may become set. */
 #define DO_LAST DO_IS_DESTRUCTOR
