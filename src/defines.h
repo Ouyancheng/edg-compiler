@@ -60,6 +60,11 @@ Flags to be set when using the KAI inliner.
 #define __BSD__ 1
 #endif /* ifndef __ANSIC__ */
 
+#ifdef SOLARIS
+#define C_GEN_BE_GENERATES_ANSI_C 1
+#define TARG_SIZEOF_WCHAR_T TARG_SIZEOF_LONG
+#define TARG_WCHAR_T_INT_KIND ik_unsigned_long 
+#endif /* ifdef SOLARIS */
 
 #ifdef OPTIMIZED_VERSION
 
