@@ -948,16 +948,16 @@ If type is a local type, or a member of a local class, output the prefix
 indicating the routine containing the type, for the IA-64 ABI.
 */
 {
-  /* Typedefs and cv-qualified types should not get here. */
-  check_assertion(type->kind != (a_type_kind)tk_typeref);
-  while (type->source_corresp.is_class_member) {
-    type = type->source_corresp.parent.class_type;
-  }  /* while */
-  if (is_enum_type(type)) {
-    /* We do not have any way of getting the containing function at this
-       point.  */
-  } else if (type->source_corresp.is_local_to_function) {
-    add_prefix_for_local_class(type, mctl);
+  if (type->source_corresp.is_local_to_function) {
+    while (type->source_corresp.is_class_member) {
+      type = type->source_corresp.parent.class_type;
+    }  /* while */
+    if (is_enum_type(type)) {
+      /* We do not have any way of getting the containing function for
+         an enum at this point.  */
+    } else {
+      add_prefix_for_local_class(type, mctl);
+    }  /* if */
   }  /* if */
 }  /* add_prefix_for_local_class_if_necessary */
 
@@ -2999,7 +2999,8 @@ static void mangled_type_name(a_type_ptr               type,
                               a_mangling_control_block *mctl)
 /*
 Add to the mangled name the encoding for the name of the type "type".
-This routine is used for named types (classes, enums, but never typedefs)
+This routine is used for named types (classes, enums, and typedefs;
+typedefs come up when doing final name mangling for nested types)
 and for unnamed classes and enums.  Nested types are encoded as such.
 */
 {
@@ -3009,8 +3010,8 @@ and for unnamed classes and enums.  Nested types are encoded as such.
   a_class_type_supplement_ptr ctsp;
 #endif /* IA64_ABI */
 
-  /* Typedefs and cv-qualifiers are not allowed here. */
-  check_assertion(type->kind != (a_type_kind)tk_typeref);
+  /* cv-qualifiers are not allowed here. */
+  check_assertion(!is_qualified_type(type));
 #if IA64_ABI
   /* The caller has already checked to see if a substitution is available for
      this entire type.  Check here to see if the type is an instantiation of a
