@@ -2001,8 +2001,9 @@ The operand is constructed in *result, and the bound function selector
 object (usually, a copy of operand_1) is placed in *bound_function_selector.
 */
 {
-  if (routine_sym->kind == (a_symbol_kind)sk_overloaded_function) {
-    /* Overloaded function. */
+  if (routine_sym->kind == (a_symbol_kind)sk_overloaded_function ||
+      routine_sym->kind == (a_symbol_kind)sk_function_template) {
+    /* Overloaded function or member template. */
     make_indefinite_function_operand(locator->specific_symbol,
                                      (a_boolean)locator->is_qualified_name,
                                      result);
@@ -2448,7 +2449,8 @@ bound with the function in *bound_function_selector.
           routine_type = routine_symbol_type(member_sym);
           if (routine_type_is_nonstatic_member_function(routine_type)) {
             /* Nonstatic member function. */
-            /* Also continue here for an overloaded function. */
+            /* Also continue here for an overloaded function or a member
+               template. */
 nonstatic_member_function:
             /* Such a reference is not allowed in an initializer constant
                expression.  In truth, though, it's almost impossible to get
@@ -2512,6 +2514,9 @@ nonstatic_member_function:
                               (a_boolean)locator_for_curr_id.is_qualified_name,
                               result);
           break;
+        case sk_function_template:
+          /* Member function template. */
+          goto nonstatic_member_function;
         case sk_constant:
           /* Member constant (e.g., an enumerator). */
           discard_operand(operand_1);
