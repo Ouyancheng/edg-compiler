@@ -267,7 +267,7 @@ routine is called in C++ mode only.
                                             /*evaluated=*/TRUE,
                                             /*suppress_access_check=*/FALSE);
         /* Since the destructor may have been added to a dynamic init entry
-           that will not be "on top" when gen_dynamic_initalizer is called,
+           that will not be "on top" when gen_dynamic_initialization is called,
            record the destruction, if needed, with the appropriate
            object-lifetime entry. */
         record_end_of_lifetime_destruction(dip, static_lifetime,
@@ -495,7 +495,7 @@ ref field of a class object (or an array of same) remains uninitialized.
       init_con->variant.dynamic_init = dip;
       *any_dynamic_initialization = TRUE;
       /* Since the destructor may have been added to a dynamic init entry
-         that will not be "on top" when gen_dynamic_initalizer is called,
+         that will not be "on top" when gen_dynamic_initialization is called,
          record the destruction, if needed, with the appropriate
          object-lifetime entry. */
       record_end_of_lifetime_destruction(dip, static_lifetime,
@@ -878,7 +878,7 @@ ref field of a class object (or an array of same) remains uninitialized.
       init_con->type = local_type;
       *any_dynamic_initialization = TRUE;
       /* Since the destructor may have been added to a dynamic init entry
-         that will not be "on top" when gen_dynamic_initalizer is called,
+         that will not be "on top" when gen_dynamic_initialization is called,
          record the destruction, if needed, with the appropriate
          object-lifetime entry. */
       record_end_of_lifetime_destruction(dip, static_lifetime,
@@ -1705,8 +1705,8 @@ the default constructor (if one exists) is called.
           /* The object has an array type.  We need to build an aggregate
              initialization on top of the other dynamic init entry. */
           /* Since the destructor may have been added to a dynamic init entry
-             that will not be "on top" when gen_dynamic_initalizer is called,
-             record the destruction, if needed, with the appropriate
+             that will not be "on top" when gen_dynamic_initialization is
+             called, record the destruction, if needed, with the appropriate
              object-lifetime entry. */
           record_end_of_lifetime_destruction(init_dip,
                                              has_static_storage_duration(
