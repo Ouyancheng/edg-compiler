@@ -2888,22 +2888,24 @@ End a name scope by popping an entry off the scope stack.
       mark_as_needed((char *)curr_routine, (an_il_entry_kind)iek_routine);
     }  /* if */
   } else if (kind == (a_scope_kind)sck_file) {
-    /* Set the "needed" flag in defined variables with external linkage --
-       both in the file scope and in each of the namespace scopes. */
-    end_of_file_scope_needed_flags_phase = TRUE;
-    set_needed_flags_at_end_of_file_scope(il_scope);
-    /* Eliminate all function bodies for unneeded functions.  Note that the
-       function declarations are not removed at this point. */
-    eliminate_bodies_of_unneeded_functions();
-    /* Set the "keep_in_il" flag for all file-scope IL entries that must be
-       kept to maintain the integrity of the IL. */
-    il_entry_prefix_of(il_scope).keep_in_il = FALSE;
-    mark_to_keep_in_il((char *)il_scope, (an_il_entry_kind)iek_scope);
-    end_of_file_scope_needed_flags_phase = FALSE;
-    /* Now all IL entries that are really needed are so marked, and other
-       entries that they may depend on are also marked, with "keep_in_il" set
-       to TRUE.  Everything else can be eliminated from the IL. */
-    eliminate_unneeded_il_entries(il_scope);
+    if (total_errors == 0) {
+      /* Set the "needed" flag in defined variables with external linkage --
+         both in the file scope and in each of the namespace scopes. */
+      end_of_file_scope_needed_flags_phase = TRUE;
+      set_needed_flags_at_end_of_file_scope(il_scope);
+      /* Eliminate all function bodies for unneeded functions.  Note that
+         the function declarations are not removed at this point. */
+      eliminate_bodies_of_unneeded_functions();
+      /* Set the "keep_in_il" flag for all file-scope IL entries that must
+         be kept to maintain the integrity of the IL. */
+      il_entry_prefix_of(il_scope).keep_in_il = FALSE;
+      mark_to_keep_in_il((char *)il_scope, (an_il_entry_kind)iek_scope);
+      end_of_file_scope_needed_flags_phase = FALSE;
+      /* Now all IL entries that are really needed are so marked, and other
+         entries that they may depend on are also marked, with "keep_in_il"
+         set to TRUE.  Everything else can be eliminated from the IL. */
+      eliminate_unneeded_il_entries(il_scope);
+    }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS */
   }  /* if */
   /* The IL scope, if any, is no longer on the stack.  This must occur
