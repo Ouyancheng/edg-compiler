@@ -3045,7 +3045,30 @@ used for the unary "::" qualifier and may only be used in C++ mode.
   return sym;
 #undef is_acceptable_symbol
 }  /* file_scope_id_lookup */
-  
+
+
+a_symbol_ptr operator_member_function_symbol(an_opname_kind kind,
+                                             a_type_ptr     class_type)
+/*
+Return a pointer to the symbol entry for the operator function for the
+operator identified by kind in class class_type, or NULL if there is no such
+operator.
+*/
+{
+  a_symbol_ptr        sym = NULL;
+  a_symbol_header_ptr symhdr;
+  a_symbol_locator    locator;
+
+  /* See if there are any functions for this operator. */
+  symhdr = opname_symbol_table[kind];
+  if (symhdr != NULL) {
+    /* Yes.  Look for one in the desired class. */
+    clear_locator(&locator, &pos_curr_token);
+    locator.symbol_header = symhdr;
+    sym = class_qualified_id_lookup(&locator, class_type, IDL_NO_OPTIONS);
+  }  /* if */
+  return sym;
+}  /* operator_member_function_symbol */
   
 /*
 Return TRUE if the scope stack entry kind given by kind is for something
