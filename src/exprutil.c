@@ -8103,7 +8103,7 @@ prep_elision_initializer_operand.
             }  /* if */
             err = TRUE;
           }  /* if */
-          if (initializing_return_value && conversion_to_temp_done) {
+          if (initializing_return_value) {
             /* A temporary should not be created to return a value, since
                what would happen immediately is that the address of the
                (stack-based) temporary would be returned to the caller. */
