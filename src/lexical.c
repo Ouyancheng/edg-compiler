@@ -3168,7 +3168,7 @@ position of the current logical source line.
   /* Convert the character position into an error position. */
   conv_line_loc_to_source_pos(loc_in_line, &error_position);
   diagnostic(severity, error_code);
-}  /* error_at_line_pos */
+}  /* diagnostic_at_line_pos */
 
 
 /*
