@@ -1166,6 +1166,9 @@ error code.
     case ec_missing_base_class_or_member_name:
       m = "name of member or base class is missing";
       break;
+    case ec_assignment_to_this:
+      m = "assignment to \"this\" (anachronism)";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

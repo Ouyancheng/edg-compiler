@@ -409,7 +409,8 @@ typedef enum /*an_error_code*/ {
   ec_base_class_already_initialized,
   ec_base_class_init_anachronism,
   ec_member_already_initialized,
-  ec_missing_base_class_or_member_name
+  ec_missing_base_class_or_member_name,
+  ec_assignment_to_this
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
