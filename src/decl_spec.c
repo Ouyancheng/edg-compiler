@@ -1404,6 +1404,7 @@ typedef enum {
   bt_none,
   bt_void,
   bt_char,
+  bt_wchar_t,
   bt_int,
   bt_float,
   bt_double,
@@ -1572,6 +1573,14 @@ decl_specifiers.
 #endif /* CHECKING */
         }
         *type_ptr = integer_type((an_integer_kind)ikind);
+      }  /* if */
+      break;
+    case bt_wchar_t:
+      if (sign == sign_none && size == size_none) {
+        *type_ptr = integer_type(targ_wchar_t_int_kind);
+        (*type_ptr)->variant.integer.wchar_t_type = TRUE;
+      } else {
+        bad_combination = TRUE;
       }  /* if */
       break;
     case bt_none:
@@ -2250,6 +2259,7 @@ Returns TRUE if there is an error in the specifiers.
         }  /* if */
         /* Fall-through to next case. */
       case tok_char:
+      case tok_wchar_t:
       case tok_int:
       case tok_float:
       case tok_double:
@@ -2263,11 +2273,12 @@ Returns TRUE if there is an error in the specifiers.
           error(ec_bad_combination_of_type_specifiers);
         } else {
           switch (curr_token) {
-            case tok_void:     basic_type = bt_void;   break;
-            case tok_char:     basic_type = bt_char;   break;
-            case tok_int:      basic_type = bt_int;    break;
-            case tok_float:    basic_type = bt_float;  break;
-            case tok_double:   basic_type = bt_double; break;
+            case tok_void:     basic_type = bt_void;    break;
+            case tok_char:     basic_type = bt_char;    break;
+            case tok_wchar_t:  basic_type = bt_wchar_t; break;
+            case tok_int:      basic_type = bt_int;     break;
+            case tok_float:    basic_type = bt_float;   break;
+            case tok_double:   basic_type = bt_double;  break;
 #if CHECKING
             default:
               internal_error("decl_specifiers: bad type specifier");
