@@ -1,5 +1,11 @@
 Version 2.30
 
+6/2/95   Tracking class type uses that require a complete type
+
+record_complete_class_type_needed (currently a stub macro in templates.h)
+has been provided to enable an implementation to track uses that require
+a complete class type.
+
 5/31/95  Linkage name on tagless enum defined in a typedef declaration
 
 A tagless class defined in a typedef declaration receives a "name for
