@@ -4909,6 +4909,7 @@ of the front end.
         opname_names[opname_kind] = str;
       }  /* if */
     }  /* for */
+#if CHECKING
     /* Make sure all the slots were initialized. */
     for (opname_kind = (int)onk_none+1;
          opname_kind < (int)onk_last;
@@ -4917,6 +4918,7 @@ of the front end.
         internal_error("lexical_init: bad init of opname_names");
       }  /* if */
     }  /* for */
+#endif /* CHECKING */
   }
 }  /* lexical_init */
 
