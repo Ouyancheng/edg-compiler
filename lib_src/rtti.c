@@ -292,7 +292,7 @@ EXTERN_C void *__get_typeid(a_vtbl_entry_ptr	vtbl_ptr)
 /*
 Return the user type_info pointer from the specified virtual function
 table.  If the pointer to the vtable is NULL, throw a bad_typeid
-execption.
+exception.
 */
 {
   a_type_info_impl_ptr	tiip;
