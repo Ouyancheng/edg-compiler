@@ -1104,6 +1104,9 @@ Dump the contents of the indicated expression node for debug purposes.
     case enk_operation:
       fprintf(f_debug, "operator: %s",
               db_operator_names[(int)node->variant.operation.kind]);
+      if (node->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
+        fputs(" [lvalue]", f_debug);
+      }  /* if */
       fputs(", result type: ", f_debug);
       db_abbreviated_type(node->type);
       fputs("\n", f_debug);

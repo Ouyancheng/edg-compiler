@@ -1601,6 +1601,7 @@ its kind to the indicated kind.
 #endif /* ifdef FIL */
   node->is_initialization_guard = FALSE;
   node->generated_default_arg = FALSE;
+  node->void_expression_lvalue = FALSE;
 #if CHECKING
   node->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */

@@ -271,11 +271,22 @@ static void simplify_void_operand(an_operand *operand)
 /*
 Examine the operand given by *operand, which has been scanned as a void
 expression, and simplify it if possible by removing parts that do nothing.
-Issue a warning if the operand has no effect.
+Issue a warning if the operand has no effect.  Lvalue-to-rvalue
+transformations are done if appropriate (yes in C, no in C++).  Other
+transformations are done in all cases.
 */
 {
-  a_boolean suppress_warning;
+  a_boolean                    suppress_warning;
+  a_transformation_options_set options = TOPT_NO_OPTIONS;
 
+  if (!C_mode()) {
+    /* In C++, lvalue-to-rvalue transformations are not done on an expression
+       scanned as a void expression. */
+    options |= (TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
+                TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
+                TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION);
+  }  /* if */
+  do_operand_transformations(operand, options);
   if (!is_expression_operand(operand)) {
     /* An operand that is not an expression cannot have side effects.
        For error operands, assume that the original form might have had
@@ -3338,6 +3349,7 @@ operation is a pointer-to-member (see ARM 5.3).
                                    TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
                                    TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
                                  TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION |
+                                   TOPT_SUPPRESS_MEMBER_FUNC_TO_PM_CONVERSION |
                                   TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION);
         if (is_an_lvalue(&operand)) {
           if (C_dialect == C_dialect_pcc && is_array_type(operand.type)) {
@@ -3786,7 +3798,8 @@ Syntax:
     do_operand_transformations(&operand,
                                TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
                                TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
-                               TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION);
+                               TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION |
+                               TOPT_SUPPRESS_MEMBER_FUNC_TO_PM_CONVERSION);
     if (is_parenthesized) {
       /* When scanning the expression with a trapped left parenthesis, the
          position returned in the operand indicates the token following
@@ -3890,7 +3903,8 @@ be inappropriate, because the feature is probably used to implement
     do_operand_transformations(&operand,
                                TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
                                TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
-                               TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION);
+                               TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION |
+                               TOPT_SUPPRESS_MEMBER_FUNC_TO_PM_CONVERSION);
     alignof_type = operand.type;
   }  /* if */
   alignof_type = skip_typerefs(alignof_type);
@@ -5619,13 +5633,45 @@ source position of the type.
 }  /* cast_type_pre_check */
 
 
+static an_expr_node_ptr make_node_from_void_expression_operand(
+                                                           an_operand *operand)
+/*
+*operand is an expression scanned as a void expression, or cast to void.
+Determine an expression representation for the operand, and return a pointer
+to the expression.  If the expression is an lvalue (possible only in C++),
+set the void_expression_lvalue flag in the expression.
+*/
+{
+  an_expr_node_ptr node = make_node_from_operand(operand);
+
+  if (is_an_lvalue(operand)) {
+    check_assertion(!C_mode());
+    node->void_expression_lvalue = TRUE;
+  }  /* if */
+  return node;
+}  /* make_node_from_void_expression_operand */
+
+
 static void cast_operand_to_void(an_operand *operand,
                                  a_type_ptr type_cast_to)
 /*
 Cast the indicated operand to void.  This is used for explicit casts
-to void.  type_cast_to gives the (possibly qualified) void type.
+to void.  type_cast_to gives the (possibly cv-qualified) void type.
+Lvalue-to-rvalue transformations are done on the operand if appropriate
+(yes in C, no in C++).  Other transformations are done in all cases.
 */
 {
+  an_expr_node_ptr             node;
+  a_transformation_options_set options = TOPT_NO_OPTIONS;
+
+  if (!C_mode()) {
+    /* In C++, lvalue-to-rvalue transformations are not done on an expression
+       cast to void. */
+    options |= (TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
+                TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
+                TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION);
+  }  /* if */
+  do_operand_transformations(operand, options);
   /* For casts to void, we build an expression node that is a cast
      to void.  This special cast to void is only used for the
      case handled here, i.e., for an explicit cast to void.
@@ -5637,11 +5683,11 @@ to void.  type_cast_to gives the (possibly qualified) void type.
      about an expression with no effect, and (b) we want to keep
      a non-NULL expression pointer all the way up to avoid
      special-case checks. */
-  make_expression_operand(make_operator_node((an_expr_operator_kind)eok_cast,
-                                             type_cast_to,
-                                             make_node_from_operand(operand)),
-                          type_cast_to,
-                          operand);
+  node = make_node_from_void_expression_operand(operand);
+  node = make_operator_node((an_expr_operator_kind)eok_cast,
+                            type_cast_to,
+                            node);
+  make_expression_operand(node, type_cast_to, operand);
 }  /* cast_operand_to_void */
 
 
@@ -6045,7 +6091,7 @@ and C++ functional-notation type conversions.
 {
   a_type_ptr    source_type, orig_type_cast_to = type_cast_to;
   an_error_code warning_suggested;
-  a_boolean     cast_to_reference = FALSE, processed = FALSE;
+  a_boolean     cast_to_void, cast_to_reference = FALSE, processed = FALSE;
 
   if (err) {
     /* There was a previous error (e.g., the type to cast to is invalid
@@ -6053,6 +6099,7 @@ and C++ functional-notation type conversions.
   } else {
     /* Check for user-defined conversions and casts to reference type,
        but not in C. */
+    cast_to_void = is_void_type(type_cast_to);
     if (!C_mode()) {
       /* See if we're casting to a reference type. */
       cast_to_reference = is_reference_type(type_cast_to);
@@ -6061,8 +6108,8 @@ and C++ functional-notation type conversions.
     }  /* if */
     if (!processed) {
       /* No user-defined conversion applies. */
-      if (!cast_to_reference) {
-        /* Normal case (not a cast to reference). */
+      if (!cast_to_reference && !cast_to_void) {
+        /* Normal case (not a cast to reference or cast to void). */
         /* Do array --> pointer and function --> pointer conversions.
            They must be done now because they affect the type of the operand.
            Don't do lvalue --> rvalue yet because of the lvalue cast case. */
@@ -6152,6 +6199,9 @@ and C++ functional-notation type conversions.
           cast_operand(type_cast_to, operand, /*check_cast_access=*/FALSE,
                        /*is_implicit_cast=*/FALSE,
                        /*is_reinterpret_cast=*/FALSE);
+        } else if (cast_to_void) {
+          /* Cast to (possibly cv-qualified) void. */
+          cast_operand_to_void(operand, type_cast_to);
         } else if (expl_conversion_possible(source_type, operand_is_constant,
                                             operand_con, type_cast_to,
                                             ec_bad_cast, &warning_suggested)) {
@@ -6159,15 +6209,10 @@ and C++ functional-notation type conversions.
           if (warning_suggested != ec_no_error) {
             pos_warning(warning_suggested, start_position);
           }  /* if */
-          if (is_void_type(type_cast_to)) {
-            /* Cast to void. */
-            conv_lvalue_to_rvalue(operand);
-            /* Do the cast to void as an expression. */
-            cast_operand_to_void(operand, type_cast_to);
-          } else if ((C_dialect == C_dialect_pcc || SVR4_C_mode ||
-                     (microsoft_mode && (C_mode() || microsoft_bugs))) &&
-                     is_an_lvalue(operand) &&
-                     still_an_lvalue(source_type, type_cast_to)) {
+          if ((C_dialect == C_dialect_pcc || SVR4_C_mode ||
+              (microsoft_mode && (C_mode() || microsoft_bugs))) &&
+              is_an_lvalue(operand) &&
+              still_an_lvalue(source_type, type_cast_to)) {
             /* In pcc, SVR4 C, or Microsoft mode, some lvalues cast to
                other types remain lvalues (e.g., int to unsigned). */
             /* Use a special "lvalue cast" operator.  Always do the cast on
@@ -6186,7 +6231,7 @@ and C++ functional-notation type conversions.
               lvalue_cast(type_cast_to, operand);
             }  /* if */
           } else {
-            /* Not an lvalue cast or a cast to void. */
+            /* Not an lvalue cast. */
             /* Convert lvalue --> rvalue unless casting to a reference type
                (in that case, the operand has already been turned into a
                pointer; the conversion here wouldn't hurt, but it's not
@@ -6383,7 +6428,7 @@ Syntax:
 {
   a_source_position start_position, type_position;
   a_type_ptr        type_cast_to, orig_type_cast_to, source_type;
-  a_boolean         cast_to_reference = FALSE, err = FALSE, processed = FALSE;
+  a_boolean         err = FALSE, processed = FALSE;
   an_error_code     warning_suggested;
 
   db_enter(4, "scan_static_cast_operator");
@@ -6405,15 +6450,17 @@ Syntax:
   if (!scan_new_style_cast(&type_cast_to, &type_position, result)) {
     err = TRUE;
   } else {
+    a_boolean cast_to_reference = is_reference_type(type_cast_to);
+    a_boolean cast_to_void      = is_void_type(type_cast_to);
+
     orig_type_cast_to = type_cast_to;
     /* Check for user-defined conversions and casts to reference type. */
-    cast_to_reference = is_reference_type(type_cast_to);
     check_user_defined_conversions_for_cast(type_cast_to, result,
                                             &processed, &err);
     if (!processed) {
       /* No user-defined conversion applies. */
-      if (!cast_to_reference) {
-        /* Normal case (not a cast to reference). */
+      if (!cast_to_reference && !cast_to_void) {
+        /* Normal case (not a cast to reference or cast to void). */
         /* Do lvalue --> rvalue, array --> pointer, and function --> pointer
            conversions.  They must be done now because they affect the type
            of the operand. */
@@ -6455,6 +6502,9 @@ Syntax:
           /* An overloaded function may be cast to a pointer type that
              disambiguates, but is not valid in any other kind of cast. */
           cast_overloaded_function(type_cast_to, result);
+        } else if (cast_to_void) {
+          /* Cast to (possibly cv-qualified) void. */
+          cast_operand_to_void(result, type_cast_to);
         } else if (static_cast_conversion_possible(source_type,
                                                    operand_is_constant,
                                                    operand_con,
@@ -6471,19 +6521,13 @@ Syntax:
             /* Issue warning on oddball cases. */
             pos_warning(warning_suggested, &start_position);
           }  /* if */
-          if (is_void_type(type_cast_to)) {
-            /* Cast to void. */
-            /* Do the cast to void as an expression. */
-            cast_operand_to_void(result, type_cast_to);
-          } else {
-            /* Not a cast to void.  Do the actual cast. */
-            cast_operand(type_cast_to, result, /*check_cast_access=*/TRUE,
-                         /*is_implicit_cast=*/FALSE,
-                         /*is_reinterpret_cast=*/FALSE);
-            if (cast_to_reference) {
-              /* The result of a cast to reference is an lvalue. */
-              conv_object_pointer_to_lvalue(result);
-            }  /* if */
+          /* Do the actual cast. */
+          cast_operand(type_cast_to, result, /*check_cast_access=*/TRUE,
+                       /*is_implicit_cast=*/FALSE,
+                       /*is_reinterpret_cast=*/FALSE);
+          if (cast_to_reference) {
+            /* The result of a cast to reference is an lvalue. */
+            conv_object_pointer_to_lvalue(result);
           }  /* if */
         } else {
           /* Not a valid cast. */
@@ -9133,6 +9177,7 @@ EOPT_DISALLOW_COMMA_OPERATOR).
   a_type_ptr        result_type, operation_type;
   a_boolean         err = FALSE, processed = FALSE;
   a_boolean         result_is_an_lvalue = FALSE;
+  an_expr_node_ptr  node;
 
   db_enter(4, "scan_comma_operator");
 
@@ -9173,11 +9218,9 @@ EOPT_DISALLOW_COMMA_OPERATOR).
     }  /* if */
     if (!processed) {
       /* Non-operator-function cases. */
-      do_operand_transformations(operand_1, TOPT_NO_OPTIONS);
+      simplify_void_operand(operand_1);
       do_operand_transformations(&operand_2,
                                  TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
-      /* Simplify the void expression. */
-      simplify_void_operand(operand_1);
       /* In C++ mode, an lvalue in the second operand is preserved.  In C
          mode, an lvalue is converted to an rvalue. */
       if (C_dialect == C_dialect_cplusplus) {
@@ -9189,9 +9232,11 @@ EOPT_DISALLOW_COMMA_OPERATOR).
       operation_type = result_type = operand_2.type;
       if (result_is_an_lvalue) operation_type = make_pointer_type(result_type);
       /* Make a comma operator expression. */
-      build_binary_result_operand(operand_1, &operand_2,
-                                  (an_expr_operator_kind)eok_comma,
-                                  operation_type, result);
+      node = make_node_from_void_expression_operand(operand_1);
+      node->next = make_node_from_operand(&operand_2);
+      node = make_operator_node((an_expr_operator_kind)eok_comma,
+                                operation_type, node);
+      make_expression_operand(node, operation_type, result);
       /* In C++ mode, the result is an lvalue if the second operation
          is an lvalue. */
       if (result_is_an_lvalue) {
@@ -10451,9 +10496,8 @@ scan full expressions.
                   /*force_object_lifetime=*/repeated_in_loop);
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
-  do_operand_transformations(&result, TOPT_NO_OPTIONS);
   simplify_void_operand(&result);
-  expression = make_node_from_operand(&result);
+  expression = make_node_from_void_expression_operand(&result);
   expression = wrap_up_full_expression(expression);
   /* Indicate that the value of the node is not used. */
   set_expr_result_not_used(expression);
@@ -10693,8 +10737,8 @@ the appropriate dynamic initialization entry and return NULL.
          void type.  In Microsoft C mode it may have a return expression of
          any type; we treat it as a void expression (in part to get better
          diagnostics). */
-      do_operand_transformations(&result, TOPT_NO_OPTIONS);
       simplify_void_operand(&result);
+      expression = make_node_from_void_expression_operand(&result);
     } else {
       /* Convert to the required type. */
       prep_initializer_operand(&result, required_type,
@@ -10704,8 +10748,8 @@ the appropriate dynamic initialization entry and return NULL.
                                /*static_lifetime=*/FALSE,
                                /*is_copy_initialization=*/TRUE,
                                err_code);
+      expression = make_node_from_operand(&result);
     }  /* if */
-    expression = make_node_from_operand(&result);
     expression = wrap_up_full_expression(expression);
   }  /* if */
   pop_expr_stack();

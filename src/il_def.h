@@ -5230,6 +5230,12 @@ typedef struct an_expr_node {
 			   expression pointed to by a param-type entry; one
 			   such copy is associated with each call that uses
 			   the default argument. */
+  a_bit_field	void_expression_lvalue:1;
+			/* TRUE in C++ for an expression that (a) is an lvalue
+			   and (b) has its value discarded, either implicitly
+			   or by an explicit cast to void.  In spite of the
+			   name, the expression does not necessarily have
+			   void type.  Always FALSE in C. */
   bitfield_to_avoid_codecenter_warnings()
   union {
     /* When kind == enk_error or enk_address_of_ellipsis, no variant fields. */

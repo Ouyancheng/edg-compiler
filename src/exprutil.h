@@ -284,6 +284,9 @@ some of the transformations.
 			/* Suppress the check for indefinite functions. */
 #define TOPT_ADDR_OF_CTOR_ALLOWED 0x10
 			/* Taking the address of a constructor is allowed. */
+#define TOPT_SUPPRESS_MEMBER_FUNC_TO_PM_CONVERSION 0x20
+			/* Member functions should not be converted implicitly
+			   to pointer-to-member. */
 #define TOPT_NO_OPTIONS 0
 typedef int a_transformation_options_set;
 

@@ -1981,6 +1981,9 @@ Display the indicated expression node.
   if (ptr->generated_default_arg) {
     disp_boolean("generated_default_arg", TRUE);
   }  /* if */
+  if (ptr->void_expression_lvalue) {
+    disp_boolean("void_expression_lvalue", TRUE);
+  }  /* if */
   disp_name("kind");
   switch (ptr->kind) {
     case enk_error:

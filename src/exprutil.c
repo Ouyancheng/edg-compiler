@@ -286,11 +286,8 @@ address taken, and if not issue an error.
   a_symbol_ptr sym = rep->symbol;
 
   /* Note that this routine is not the right place to set the address_taken
-     flag in variables and routines, because not all references that
-     are address-taken initially stay that way.  In "a[1] = 1", for
-     example, an error should be issued (here), but the address_taken
-     flag on the variable "a" is not set because the address-taken reference
-     gets changed later to a simple modification. */
+     flag in routines, because not all references that are address-taken
+     initially stay that way.  See the comment for variables below. */
   /* The only possible error cases are variables, and only register variables
      at that.  Functions can always have their addresses taken.  Also
      static data members (they cannot be "register"). */
@@ -5448,10 +5445,16 @@ transformations.
       conv_lvalue_to_rvalue(operand);
     }  /* if */
   } else if (is_a_function_designator(operand)) {
-    if (!(options & TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION)) {
+    if (is_sym_for_member_operand(operand) ?
+                    (options & TOPT_SUPPRESS_MEMBER_FUNC_TO_PM_CONVERSION) :
+                    (options & TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION)) {
+      /* The applicable pointer-to-function conversion is suppressed. */
+    } else {
       /* In most contexts, an entity of type "function returning type"
          is changed to "pointer to function returning type".  
-         See section 3.2.2.1 in the ANSI C standard. */
+         See section 3.2.2.1 in the ANSI C standard.  Also, member function
+         to pointer to member (not a standard conversion, but allowed as
+         an accommodation to existing practice). */
       conv_function_designator_to_ptr_to_function(operand,
                     /*allow_ctor=*/(options & TOPT_ADDR_OF_CTOR_ALLOWED) != 0);
     }  /* if */

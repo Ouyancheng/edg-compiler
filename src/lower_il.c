@@ -2111,7 +2111,7 @@ The safe return value is FALSE.
       cannot_be = cannot_be_null(operand);
     }  /* if */
   } else if (expr->kind == (an_expr_node_kind)enk_variable) {
-    /* If the expression if the "this" variable for the current function,
+    /* If the expression is the "this" variable for the current function,
        it cannot be null. */
     if (innermost_function_scope != NULL &&
         innermost_function_scope->variant.routine.this_param_variable ==
@@ -6722,6 +6722,58 @@ other operand.
 }  /* wrap_throw */
 
 
+static void set_address_taken_for_lvalue_expr(an_expr_node_ptr expr)
+/*
+Walk through the indicated lvalue expression tree and set the address_taken
+flag on variables that are used as the underlying entity of the lvalue.
+*/
+{
+  if (is_variable_address_node(expr)) {
+    /* The expression is the address of a variable. */
+    set_lowering_variable_address_taken(expr->variant.variable);
+  } else if (is_constant_node(expr)) {
+    a_constant_ptr con = expr->variant.constant;
+    if (con->kind == (a_constant_repr_kind)ck_address &&
+        con->variant.address.kind == (an_address_base_kind)abk_variable) {
+      /* The constant is the address of a variable. */
+      set_lowering_variable_address_taken(
+                     expr->variant.constant->variant.address.variant.variable);
+    }  /* if */
+  } else if (expr->kind == (an_expr_node_kind)enk_temp_init) {
+    /* No variable. */
+  } else if (is_operation_node(expr)) {
+    an_expr_operator_kind op = expr->variant.operation.kind;
+    an_expr_node_ptr      operands = expr->variant.operation.operands;
+    an_expr_node_ptr      check_operand = NULL;
+
+    if (expr->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
+      /* Operations that return an lvalue. */
+      if (op == (an_expr_operator_kind)eok_comma) {
+        /* Continue with the second operand. */
+        check_operand = operands->next;
+      } else if (op == (an_expr_operator_kind)eok_question) {
+        /* Check both the second and third operands. */
+        set_address_taken_for_lvalue_expr(operands->next);
+        set_address_taken_for_lvalue_expr(operands->next->next);
+      } else {
+        /* Others, e.g., pre-increment, assignment.  Continue with the
+           first operand. */
+        check_operand = operands;
+      }  /* if */
+    } else if (((op == (an_expr_operator_kind)eok_cast ||
+                 op == (an_expr_operator_kind)eok_base_class_cast) &&
+                 expr->variant.operation.compiler_generated) ||
+               op == (an_expr_operator_kind)eok_field) {
+      /* Implicit cast or field selection.  Continue with first operand. */
+      check_operand = operands;
+    }  /* if */
+    if (check_operand != NULL) {
+      set_address_taken_for_lvalue_expr(check_operand);
+    }  /* if */
+  }  /* if */
+}  /* set_address_taken_for_lvalue_expr */
+
+
 void lower_expr(an_expr_node_ptr expr,
                 a_boolean        is_lvalue)
 /*
@@ -6734,6 +6786,27 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
   a_variable_ptr        var, temp_var;
   unsigned int          is_lvalue_mask, is_bool_controlling_expr_mask;
 
+  if (expr->void_expression_lvalue) {
+    /* A void expression left as an lvalue in C++ can be treated as
+       an rvalue that is the address of the lvalue, without any
+       rewriting. */
+    expr->void_expression_lvalue = FALSE;
+    /* Since we're actually going to use the lvalue address as an address,
+       set the address_taken flag on variables in it. */
+    set_address_taken_for_lvalue_expr(expr);
+    if (is_operation_node(expr) &&
+        expr->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
+      an_expr_operator_kind op = expr->variant.operation.kind;
+      expr->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
+      if (op != (an_expr_operator_kind)eok_question &&
+          op != (an_expr_operator_kind)eok_comma) {
+        /* For operations like assignments, changing the operation not to
+           return an lvalue changes the result type (it drops the
+           "pointer to"). */
+        expr->type = rvalue_type(type_pointed_to(expr->type));
+      }  /* if */
+    }  /* if */
+  }  /* if */
   lower_os_type(expr->type);
   if (is_qualified_type(expr->type)) {
     /* Remove cv-qualifiers from the types of class rvalues.  In C++, such
@@ -6983,6 +7056,12 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
                     /* The assignment returns an lvalue, i.e., the address
                        of the "this" parameter. */
                     new_expr = var_lvalue_expr(this_param_var);
+                    /* Add a cast to restore the const qualifier on the
+                       expression type.  The const on the "this" parameter
+                       variable type has been removed by IL lowering so that
+                       assignments can be done, but this expression -- built
+                       before the const was removed -- includes the const. */
+                    new_expr = add_cast_if_necessary(new_expr, expr->type);
                   } else {
                     /* The assignment returns an rvalue, i.e., the value
                        of the "this" parameter. */
