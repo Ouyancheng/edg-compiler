@@ -4,11 +4,11 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1996-1999 Edison Design Group Inc.                   [_]          *
+* Copyright 1996-2002 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
-Copyright (c) 1996-1999, Edison Design Group, Inc.
+Copyright (c) 1996-2002, Edison Design Group, Inc.
 
 Redistribution and use in source and binary forms are permitted
 provided that the above copyright notice and this paragraph are
@@ -4565,6 +4565,6 @@ length returned the second time will be correct).
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1996-1999 Edison Design Group Inc.                   [_]          *
+* Copyright 1996-2002 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
