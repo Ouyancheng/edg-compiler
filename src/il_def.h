@@ -852,7 +852,7 @@ typedef struct a_routine_type_supplement {
 			   parameter of C++ member functions; NULL for all
 			   other functions. */
   a_byte_boolean
-		caller_provides_place_to_put_return_value;
+		value_returned_by_cctor;
 			/* If TRUE, the caller provides a place for the return
 			   value (by passing its address as a parameter), and
 			   the called routine must place its result in that
@@ -3461,14 +3461,6 @@ typedef struct a_scope {
 			/* If the scope is for a C++ nonstatic member
 			   function, this field points to the implicit "this"
 			   parameter.  It is NULL in all other cases. */
-      a_variable_ptr
-		return_value_pointer_variable;
-			/* If non-NULL, this points to the implicit parameter
-			   that provides a pointer to the location to which
-			   the return value of this function must be copied
-			   on return.  This is only used when the return type
-			   is a C++ class type that is returned via a copy
-			   constructor. */
 #endif /* ifdef CIL */
 #ifdef FIL
       a_variable_ptr

@@ -6087,7 +6087,7 @@ Do IL lowering of the indicated type and everything under it.
              not otherwise possible. */
           rtsp->prototyped = FALSE;
 #endif /* MAKE_ALL_FUNCTIONS_UNPROTOTYPED */
-          if (rtsp->caller_provides_place_to_put_return_value) {
+          if (rtsp->value_returned_by_cctor) {
             /* Add an extra parameter in which the return address will be
                passed. */
             ptr_return_type = 
@@ -6689,7 +6689,7 @@ The routine must have a "this" parameter.
     /* The routine is not allowed to be one that returns its value via
        a pointer provided by the caller (the extra code for that case
        is not implemented). */
-    if (rtsp->caller_provides_place_to_put_return_value) {
+    if (rtsp->value_returned_by_cctor) {
       internal_error("default_version_of_routine: return value ptr");
     }  /* if */
 #endif /* CHECKING */
@@ -9082,7 +9082,7 @@ call should return its value.
   /* If the routine returns its result to a temporary supplied by the caller,
      add an argument for that temporary.  This only happens under a
      dik_call_returning_class_via_cctor dynamic initialization entry. */
-  if (rtsp->caller_provides_place_to_put_return_value) {
+  if (rtsp->value_returned_by_cctor) {
 #if CHECKING
     if (temp_var == NULL) {
       internal_error("lower_call: missing temp_var for result");
@@ -11937,15 +11937,6 @@ Do IL lowering of the indicated scope and everything under it.
       } /* if */
     }  /* if */
 #endif /* DEBUG */
-    if (scope->variant.routine.return_value_pointer_variable != NULL) {
-      /* If there is an implicit parameter for the return value address,
-         add it as an explicit first parameter.  Note that the variable is
-         then lowered as part of the parameters below. */
-      param_var = scope->variant.routine.return_value_pointer_variable;
-      param_var->next = scope->variant.routine.parameters;
-      scope->variant.routine.parameters = param_var;
-      scope->variant.routine.return_value_pointer_variable = NULL;
-    }  /* if */
     if (scope->variant.routine.this_param_variable != NULL) {
       /* If there is an implicit "this" parameter, add it as an explicit
          first parameter.  Note that the variable is then lowered as

@@ -1067,8 +1067,8 @@ Display a_routine_type_supplement.
     disp_ptr("implicit_this_param_type", (char *)ptr->implicit_this_param_type,
              iek_type);
   }  /* if */
-  disp_boolean("caller_provides_place_to_put_return_value",
-               (a_boolean)ptr->caller_provides_place_to_put_return_value);
+  disp_boolean("value_returned_by_cctor",
+               (a_boolean)ptr->value_returned_by_cctor);
 #endif /*ifdef CFE */
   disp_boolean("has_ellipsis", (a_boolean)ptr->has_ellipsis);
 #ifdef CFE
@@ -2200,11 +2200,6 @@ do_assoc_type:
       if (ptr->variant.routine.this_param_variable != NULL) {
         disp_ptr("this_param_variable",
                  (char *)ptr->variant.routine.this_param_variable,
-                 iek_variable);
-      }  /* if */
-      if (ptr->variant.routine.return_value_pointer_variable  != NULL) {
-        disp_ptr("return_value_pointer_variable",
-                 (char *)ptr->variant.routine.return_value_pointer_variable,
                  iek_variable);
       }  /* if */
 #endif /* ifdef CIL */

@@ -3084,8 +3084,7 @@ to default values.
 #endif /* DEBUG */
       rtsp->param_type_list          = NULL;
       rtsp->implicit_this_param_type = NULL;
-      rtsp->caller_provides_place_to_put_return_value
-                                     = NULL;
+      rtsp->value_returned_by_cctor  = NULL;
       rtsp->prototype_scope          = NULL;
       rtsp->assoc_routine            = NULL;
       rtsp->has_ellipsis             = FALSE;
@@ -5102,7 +5101,7 @@ declaration of the function and must be completed by the point of call.
       if (!is_incomplete_type(return_type) &&
           !symbol_supplement_for_class(return_type)->
                                         construction_by_bitwise_copy_allowed) {
-        rtsp->caller_provides_place_to_put_return_value = TRUE;
+        rtsp->value_returned_by_cctor = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -5182,7 +5181,7 @@ is invalid (i.e., incomplete); an error node is returned for that case.
        for the implied temporary on top of the call. */
     set_routine_calling_method_flag(function_type);
     rtsp = function_type->variant.routine.extra_info;
-    if (rtsp->caller_provides_place_to_put_return_value) {
+    if (rtsp->value_returned_by_cctor) {
       temp_init_node = create_expr_temporary(return_type,
                                              /*result_is_addr=*/FALSE,
                                              evaluated);
@@ -5483,7 +5482,6 @@ points to the associated routine if the kind is sck_function.
       sp->variant.routine.parameters          = NULL;
       sp->variant.routine.constructor_inits   = NULL;
       sp->variant.routine.this_param_variable = NULL;
-      sp->variant.routine.return_value_pointer_variable = NULL;
 #ifdef FIL
       sp->variant.routine.function_result_var = NULL;
 #endif /* ifdef FIL */
