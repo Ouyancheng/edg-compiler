@@ -3558,9 +3558,9 @@ to FALSE if the entity being declared is not initializable.
                provided it is for a redeclaration.  In general, we cannot
                verify that this is a redeclaration at this point; so it has to
                be checked later (e.g., in decl_variable or decl_routine). */
-             a_symbol_ptr  sym = curr_scope_id_lookup(&locator_for_curr_id,
-                                                      IDL_NO_OPTIONS);
-            if (sym != NULL && !is_tag_symbol(sym) &&
+             a_symbol_ptr  prev_sym =
+                    curr_scope_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
+            if (prev_sym != NULL && !is_tag_symbol(prev_sym) &&
                 ssep == &scope_stack[depth_scope_stack]) {
               severity = strict_ansi_mode ? es_discretionary_error : es_remark;
               keep_qualifier = TRUE;
