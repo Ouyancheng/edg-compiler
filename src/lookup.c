@@ -1411,7 +1411,9 @@ lookup processing.
      any symbols that are visible because of using directives. */
   if ((kind == (a_scope_kind)sck_file ||
       kind == (a_scope_kind)sck_namespace) &&
-      ssep->using_directives_apply) {
+      ssep->using_directives_apply &&
+      !lookup_state->is_linkage_lookup &&
+      !lookup_state->is_friend_lookup) {
     sym = do_using_directive_lookup(ssep, sym, locator, lookup_state);
   }  /* if */
   if (sym == NULL &&
@@ -1517,7 +1519,9 @@ that do normal id lookup processing.
          are visible because of using directives. */
       if ((kind == (a_scope_kind)sck_namespace_extension ||
            kind == (a_scope_kind)sck_namespace_reactivation) &&
-        ssep->using_directives_apply) {
+          ssep->using_directives_apply &&
+          !lookup_state->is_linkage_lookup &&
+          !lookup_state->is_friend_lookup) {
         sym = do_using_directive_lookup(ssep, sym, locator, lookup_state);
       }  /* if */
       if (sym == NULL && kind == (a_scope_kind)sck_class_reactivation) {

@@ -1,5 +1,22 @@
 Version 2.35
 
+2/20/97  Incorrect handling of block extern in the presence of using-directives
+
+When looking for a previous declaration that matches a block
+extern, the lookup incorrectly considered names that are visible as
+result of using-directives.  This caused cases such as the following
+to be handled incorrectly.  This has been fixed.
+
+  namespace N {
+    void f(short);
+  }
+  void f(int);
+  using namespace N;
+  void g() {
+    extern  void f(char);
+    f('c');  // should call f(char), was calling f(int)
+ }
+
 2/19/97  IL CHANGE: a_targ_size_t now has the same type as a_host_large_integer
 
 Formerly, a_targ_size_t, which is used to represent address offsets in the IL,
