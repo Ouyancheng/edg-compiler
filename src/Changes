@@ -1,5 +1,21 @@
 Version 2.23
 
+4/18/94  Overload resolution -- some exact matches versus templates
+
+The overload resolution algorithm has been modified slightly to allow
+non-template functions called with exact but less desirable matches
+to compete against template functions:
+
+  template <class T> void f(const T&) {}
+  void f(int) {}
+  void f(const int&) {}
+  main() {
+    int a;
+    f(a);  // Was ambiguous, now chooses f(int)
+    return 0;
+  }
+
+
 4/15/94  Tentative variable definitions vs. redeclarations
 
 A bug has been fixed (C mode only) to properly distinguish, at the point
