@@ -1796,6 +1796,12 @@ extern a_param_id_ptr param_id_on_list(a_symbol_locator *locator,
     (sym)->kind == (a_symbol_kind)sk_union_tag) &&		      \
    ((sym)->variant.class_struct_union.extra_info->class_template != NULL))
 
+/* Return TRUE if the symbol is a template class symbol for a class
+   generated from the template (i.e., not a specific definition). */
+#define is_template_class_and_not_specific_def_symbol(sym)		\
+  (is_template_class_symbol((sym)) &&					\
+   !(sym)->variant.class_struct_union.extra_info->is_specific_template_def)
+
 /* Return TRUE if the symbol is a class template symbol. */
 #define is_class_template_symbol(sym)					\
   ((sym)->kind == (a_symbol_kind)sk_class_template)

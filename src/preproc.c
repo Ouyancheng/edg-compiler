@@ -953,6 +953,7 @@ symbol, otherwise we return NULL.
 */
 {
   a_symbol_ptr	result_sym = NULL;
+  a_symbol_ptr	cowam_sym;
 
   if (is_member_function_symbol(sym)) {
     /* A member function (possibly overloaded) or non-overloaded
@@ -962,27 +963,35 @@ symbol, otherwise we return NULL.
        the user declared function is the one intended, otherwise issue
        an error. */
 
-    if (sym->kind == (a_symbol_kind)sk_member_function) {
-      result_sym = sym;
-    } else if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
-      /* It must be an overloaded member function -- we can't get here
-	 for an overloaded nonmember function. */
-      a_symbol_ptr	list_sym;
-      a_boolean		any_found = FALSE;
-      a_symbol_ptr	new_sym = NULL;
-      list_sym = sym->variant.overloaded_function.symbols;
-      for (; list_sym != NULL; list_sym = list_sym->next) {
-        if (!list_sym->variant.routine.ptr->compiler_generated) {
-	  if (any_found) {
-	    /* We have found a second match -- return a NULL. */
-	    new_sym = NULL;
-	    break;
-	  }  /* if */
-	  any_found = TRUE;
-	  new_sym = list_sym;
-	  }  /* if */
-      }  /* for */
-      result_sym = new_sym;
+    /* Make sure the resulting symbol is a member of a class that is
+       a template class and not a specific definition. */
+    cowam_sym = (a_symbol_ptr)sym->class_of_which_a_member->
+						source_corresp.assoc_info;
+    if (!is_template_class_and_not_specific_def_symbol(cowam_sym)) {
+      /* Can't be instantiated -- not a template function. */
+    } else {
+      if (sym->kind == (a_symbol_kind)sk_member_function) {
+        result_sym = sym;
+      } else if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+        /* It must be an overloaded member function -- we can't get here
+  	   for an overloaded nonmember function. */
+        a_symbol_ptr	list_sym;
+        a_boolean	any_found = FALSE;
+        a_symbol_ptr	new_sym = NULL;
+        list_sym = sym->variant.overloaded_function.symbols;
+        for (; list_sym != NULL; list_sym = list_sym->next) {
+          if (!list_sym->variant.routine.ptr->compiler_generated) {
+            if (any_found) {
+              /* We have found a second match -- return a NULL. */
+              new_sym = NULL;
+              break;
+            }  /* if */
+            any_found = TRUE;
+            new_sym = list_sym;
+            }  /* if */
+        }  /* for */
+        result_sym = new_sym;
+      }  /* if */
     }  /* if */
   }  /* if */
   return result_sym;
@@ -1062,7 +1071,7 @@ assumed if the return type is omitted.
       if (sym == NULL) {
         /* Not a currently defined symbol. */
         pos_error(ec_invalid_instantiation_pragma_argument, &start_pos);
-      } else if (is_template_class_symbol(sym)) {
+      } else if (is_template_class_and_not_specific_def_symbol(sym)) {
          /* Process all member functions and static data members. */
 	update_instantiation_flags_for_class(sym, instantiate, &start_pos);
       } else if ((new_sym = sym_if_template_class_member_function(sym))
