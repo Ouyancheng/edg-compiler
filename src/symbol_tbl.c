@@ -2701,7 +2701,7 @@ used for C++ constructs like "operator+".  Use pos as the source position.
     opname_length = OPERATOR_LEN + strlen(opstr) + blank_needed;
     hdr_ptr->identifier_length = opname_length;
     hdr_ptr->identifier = str = alloc_il((sizeof_t)(opname_length + 1));
-    (void)memcpy(str, "operator", size_t_arg(OPERATOR_LEN));
+    (void)memcpy(str, "operator", OPERATOR_LEN);
     if (blank_needed) str[OPERATOR_LEN] = ' ';
     (void)strcpy(str+OPERATOR_LEN+blank_needed, opstr);
 #if DEBUG
@@ -2765,7 +2765,7 @@ in the conversion header list; if there is none, a new one is created.
       type_name = format_type_string(type, &type_name_length);
       sym_hdr->identifier_length = (sizeof_t)OPERATOR_LEN + type_name_length;
       sym_hdr->identifier = alloc_il(sym_hdr->identifier_length + 1);
-      (void)memcpy(sym_hdr->identifier, "operator ", size_t_arg(OPERATOR_LEN));
+      (void)memcpy(sym_hdr->identifier, "operator ", OPERATOR_LEN);
       (void)strcpy((sym_hdr->identifier + OPERATOR_LEN), type_name);
 #if DEBUG
       symbol_name_string_space += sym_hdr->identifier_length;
