@@ -105,6 +105,9 @@ The code is inserted at *insert_location, and *insert_location is updated.
   an_expr_node_ptr arg;
   a_variable_remapping_for_inlining_ptr
                    vrip;
+#if DEBUG
+  a_boolean        first = TRUE;
+#endif /* DEBUG */
 
   /* Process the parameters. */
   for (param_var = scope->variant.routine.parameters, arg = arg_expr_list;
@@ -132,24 +135,58 @@ The code is inserted at *insert_location, and *insert_location is updated.
         temp_var = make_temporary_in_scope(param_var->type,
                                            (a_scope_ptr)NULL,
                                            /*force_static=*/FALSE);
+        temp_var->address_taken = param_var->address_taken;
         vrip->variant.variable = temp_var;
         /* Initialize the variable to the argument value. */
         (void)insert_var_assignment_statement(temp_var,
                                               (an_expr_operator_kind)eok_last,
                                               arg, insert_location);
       }  /* if */
+#if DEBUG
+      if (debug_level >= 4) {
+        if (first) {
+          fprintf(f_debug, "Parameter remappings established:\n");
+          first = FALSE;
+        }  /* if */
+        db_variable(vrip->orig_variable);
+        fprintf(f_debug, " --> ");
+        if (vrip->is_constant) {
+          db_constant(vrip->variant.constant);
+        } else {
+          db_name(&vrip->variant.variable->source_corresp);
+        }  /* if */
+        fprintf(f_debug, "\n");
+      }  /* if */
+#endif /* DEBUG */
     }  /* if */
   }  /* for */
   /* Process the local variables. */
+#if DEBUG
+  first = TRUE;
+#endif /* DEBUG */
   for (var = scope->nonstatic_variables;
        var != NULL;
        var = var->next) {
     /* We don't need the variable if it's not referenced. */
     if (var->source_corresp.referenced) {
       vrip = alloc_variable_remapping_for_inlining(var);
-      vrip->variant.variable = make_temporary_in_scope(var->type,
-                                                       (a_scope_ptr)NULL,
-                                                       /*force_static=*/FALSE);
+      temp_var = make_temporary_in_scope(var->type,
+                                         (a_scope_ptr)NULL,
+                                         /*force_static=*/FALSE);
+      vrip->variant.variable = temp_var;
+      temp_var->address_taken = var->address_taken;
+#if DEBUG
+      if (debug_level >= 4) {
+        if (first) {
+          fprintf(f_debug, "Variable remappings established:\n");
+          first = FALSE;
+        }  /* if */
+        db_variable(vrip->orig_variable);
+        fprintf(f_debug, " --> ");
+        db_name(&vrip->variant.variable->source_corresp);
+        fprintf(f_debug, "\n");
+      }  /* if */
+#endif /* DEBUG */
     }  /* if */        
   }  /* for */
 }  /* set_up_variable_remapping_for_inlining */
@@ -533,6 +570,7 @@ statement).
   a_routine_ptr    routine = NULL;
   a_statement_ptr  block_stmt;
 
+  db_enter(4, "do_inlining_of_call");
   check_assertion(is_operation_node(expr) &&
                   expr->variant.operation.kind ==
                                               (an_expr_operator_kind)eok_call);
@@ -622,6 +660,7 @@ statement).
       }  /* if */
     }  /* if */
   }  /* if */
+  db_exit();
 }  /* do_inlining_of_call */
 
 
