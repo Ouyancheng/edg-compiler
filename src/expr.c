@@ -6632,12 +6632,17 @@ These cases are handled here by coalescing two tokens.
   a_boolean         equals_first = FALSE;
   a_token_kind      token = curr_token, compound_token;
   a_source_position start_position;
+  char              ch;
 
   if (token == tok_assign) {
     /* "=" is first.  If the next token follows immediately (i.e.,
        there is no white space), enable the check for things like "=-". */
-    skip_white_space();
-    if (kind_of_white_space_skipped == 0) {
+    ch = *curr_char_loc;
+    /* Note the special test for "/": "=/" followed by "*" is really "="
+       followed by the start of a comment. */
+    if (ch ==  '+' || ch ==  '-' || ch ==  '*' || ch ==  '%' ||
+        (ch ==  '/' && *(curr_char_loc+1) != '*') ||
+        ch ==  '&' || ch ==  '^' || ch ==  '|' || ch ==  '>' || ch ==  '<') {
       equals_first = TRUE;
       token = next_token();
     }  /* if */
