@@ -6242,6 +6242,7 @@ FALSE if the bound function case is not one that undergoes the conversion.
                                         operand);
     restore_operand_details(operand, &orig_operand);
     operand->bound_function = FALSE;
+    operand->position = bound_function_selector->position;
     discard_operand(bound_function_selector);
     converted = TRUE;
   }  /* if */

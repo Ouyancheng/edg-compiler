@@ -1,5 +1,18 @@
 Version 2.43
 
+10/7/99  Source position on bound function converted to pointer to member
+
+In some modes (e.g., Microsoft), a bound function can be converted to
+a pointer to member.  When EXTRA_SOURCE_POSITIONS_IN_IL is TRUE, the
+beginning source position of the pointer to member in the IL was incorrect.
+Now fixed.
+
+  struct A { int f(); };
+  int main() {
+    A b;
+    if ( b.f == 0 ) return 0;
+  }
+
 10/6/99  Microsoft compatibility: extern "C" entities across namespaces
 
 Microsoft compilers do not treat extern "C" declarations of identical names in
