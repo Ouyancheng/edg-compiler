@@ -2493,7 +2493,7 @@ the latter will be NULL for variables.
              *src != '\0' && count < TARG_SIGNIF_CHARS_IN_EXTERNAL_NAME;
              count++) {
           ch = *src++;
-          if (islower(ch)) ch = toupper(ch);
+          if (islower((unsigned char)ch)) ch = toupper(ch);
           *dest++ = ch;
         }  /* for */
 #else /* TARG_SIGNIF_CHARS_IN_EXTERNAL_NAME == 0 */
@@ -2507,7 +2507,7 @@ the latter will be NULL for variables.
            (without copying the final null). */
         for (count = 0; *src != '\0'; count++) {
           ch = *src++;
-          if (islower(ch)) ch = toupper(ch);
+          if (islower((unsigned char)ch)) ch = toupper(ch);
           *dest++ = ch;
         }  /* for */
 #endif /* TARG_SIGNIF_CHARS_IN_EXTERNAL_NAME > 0 */
