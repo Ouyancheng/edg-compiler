@@ -1334,23 +1334,27 @@ which do the initial test for exact pointer equality.
         case tk_struct:
         case tk_union:
           /* In general, classes, structs, and unions that aren't the same
-             type aren't identical.  The exception is with template classes.
-             Two template classes are identical if they are based on the
-             same class template and have identical template arguments. */
+             type aren't identical.  The exception is with template classes
+             involving template parameters (i.e., nonreal template classes).
+             Two nonreal template classes are identical if they are based on
+             the same class template and have identical template arguments. */
           if (C_dialect == C_dialect_cplusplus) {
             a_class_symbol_supplement_ptr cssp_1, cssp_2;
             cssp_1 = symbol_supplement_for_class(type_1);
-            if (cssp_1->class_template != NULL) {
-              cssp_2 = symbol_supplement_for_class(type_2);
-              if (cssp_1->class_template == cssp_2->class_template) {
-                if (equiv_template_arg_lists(
+            cssp_2 = symbol_supplement_for_class(type_2);
+            if (cssp_1->class_template != NULL &&
+                cssp_2->class_template == cssp_1->class_template &&
+                cssp_1->is_nonreal_class && cssp_2->is_nonreal_class) {
+              /* Both types are nonreal template classes, and they are based
+                 on the same class template.  They are identical if their
+                 template arg lists are identical. */
+              if (equiv_template_arg_lists(
                              type_1->variant.class_struct_union.extra_info->
                                                             template_arg_list,
                              type_2->variant.class_struct_union.extra_info->
                                                             template_arg_list,
                              /*if_func_template=*/FALSE)) {
-                  identical = TRUE;
-                }  /* if */
+                identical = TRUE;
               }  /* if */
             }  /* if */
           }  /* if */
