@@ -3234,9 +3234,6 @@ Display the name of an expression operator.
 #ifdef CFE
     case eok_question:          s = "eok_question";               break;
 #endif /* ifdef CFE */
-#if GNU_EXTENSIONS_ALLOWED
-    case eok_binary_question:   s = "eok_binary_question";        break;
-#endif /* GNU_EXTENSIONS_ALLOWED */
 #ifdef FFE
     case eok_substring:         s = "eok_substring";              break;
     case eok_value_substring:   s = "eok_value_substring";        break;
@@ -3462,6 +3459,11 @@ Display the indicated expression node.
       if (ptr->variant.operation.call_uses_operator_syntax) {
         disp_boolean("call_uses_operator_syntax", TRUE);
       }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+      if (ptr->variant.operation.is_gnu_two_operand_question_mark) {
+        disp_boolean("is_gnu_two_operand_question_mark", TRUE);
+      }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
       disp_ptr("operands", (char *)ptr->variant.operation.operands,
                iek_expr_node);
       break;

@@ -2387,6 +2387,9 @@ fields to default values.
       node->variant.operation.keep_cast_for_cp_gen_be = FALSE;
 #endif /* BACK_END_IS_CP_GEN_BE */
       node->variant.operation.call_uses_operator_syntax = FALSE;
+#if GNU_EXTENSIONS_ALLOWED
+      node->variant.operation.is_gnu_two_operand_question_mark = FALSE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if CENTERLINE_CHECKING
       node->variant.operation.avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */

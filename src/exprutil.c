@@ -1034,9 +1034,6 @@ as part of looking for unordered temp inits.
       if (op == (an_expr_operator_kind)eok_land ||
           op == (an_expr_operator_kind)eok_lor ||
           op == (an_expr_operator_kind)eok_comma ||
-#if GNU_EXTENSIONS_ALLOWED
-          op == (an_expr_operator_kind)eok_binary_question ||
-#endif /* GNU_EXTENSIONS_ALLOWED */
           op == (an_expr_operator_kind)eok_question) {
         /* Operators with a sequence point after the first operand. */
         seq_point_after_first = TRUE;
@@ -3241,9 +3238,7 @@ void build_unary_result_operand(an_operand            *operand,
 	                        an_operand            *result)
 /*
 Build an operand for the expression that is the operator "kind" operating
-on "operand", with result type "type".  The operand is an rvalue.  Note that
-this is used also to begin building a node for the (three-operand) ?:
-operator.
+on "operand", with result type "type".  The operand is an rvalue.
 */
 {
   an_expr_node_ptr  node;
@@ -3283,39 +3278,35 @@ on "operand_1" and "operand_2", with result type "type".
 }  /* build_binary_result_operand */
 
 
+#if !GNU_EXTENSIONS_ALLOWED
+/*ARGSUSED*/  /* <-- is_gnu_two_operand_form is not used in that case. */
+#endif /* !GNU_EXTENSIONS_ALLOWED */
 static void build_question_result_operand(an_operand *operand_1,
                                           an_operand *operand_2,
                                           an_operand *operand_3,
                                           a_type_ptr result_type,
+                                          a_boolean  is_gnu_two_operand_form,
                                           an_operand *result)
 /*
 Build an operand for the expression that is the operator "?" operating on
 operand_1, operand_2, and operand_3, with result type result_type.
+is_gnu_two_operand_form is TRUE if this is a GNU two-operand "?"
+(a synthesized operand_2 is still provided).
 */
 {
-  an_expr_operator_kind  kind;
+  an_expr_node_ptr expr;
 
+  expr = make_node_from_operand(operand_1);
+  expr = make_operator_node((an_expr_operator_kind)eok_question,
+                            result_type, expr);
 #if GNU_EXTENSIONS_ALLOWED
-  if (operand_2 == NULL) {
-    kind = (an_expr_operator_kind)eok_binary_question;
-  } else
+  expr->variant.operation.is_gnu_two_operand_question_mark =
+                                                       is_gnu_two_operand_form;
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  /* Do not insert code here. */
-  {
-    kind = (an_expr_operator_kind)eok_question;
-  }  /* if */
-  /* Make an operator node with the first part of the expression. */
-  build_unary_result_operand(operand_1, kind, result_type, result);
-  /* Now link the other operands from this one. */
-  if (operand_2 != NULL) {
-    result->variant.expression->variant.operation.operands->next =
-                                             make_node_from_operand(operand_2);
-    result->variant.expression->variant.operation.operands->next->next =
-                                             make_node_from_operand(operand_3);
-  } else {
-    result->variant.expression->variant.operation.operands->next =
-                                             make_node_from_operand(operand_3);
-  }  /* if */
+  expr->variant.operation.operands->next = make_node_from_operand(operand_2);
+  expr->variant.operation.operands->next->next =
+                                           make_node_from_operand(operand_3);
+  make_expression_operand(expr, result_type, result);
 }  /* build_question_result_operand */
 
 
@@ -4447,7 +4438,7 @@ to a fixed-point operand).
                      /*is_implicit_cast=*/TRUE, /*is_reinterpret_cast=*/FALSE,
                      /*reinterpret_semantics=*/FALSE);
       }  /* if */
-      if (operand_2 != NULL && !same_entities(operand_2->type, type)) {
+      if (!same_entities(operand_2->type, type)) {
         /* Cast operand 2 to match the desired type. */
 #if FIXED_POINT_ALLOWED
         warn_on_fixed_point_to_floating_point_conversion(operand_2, type);
@@ -6550,13 +6541,15 @@ void do_question_operation(an_operand *operand_1,
                            an_operand *operand_3,
                            a_type_ptr result_type,
                            a_boolean  result_is_an_lvalue,
+                           a_boolean  is_gnu_two_operand_form,
                            an_operand *result)
 /*
 Build an operand for a "?" operation.  operand_1, operand_2, and operand_3
 are the operands.  result_type is the result type.  The result is an lvalue
 if result_is_an_lvalue is TRUE.  The operand is built in *result.
-Constant operations are folded if appropriate.  The binary conditional
-expression case (a GNU C extension) is characterized by operand_2 being NULL.
+Constant operations are folded if appropriate.  is_gnu_two_operand_form
+is TRUE if this is a GNU two-operand "?" (a synthesized operand_2 is
+still provided).
 */
 {
   a_boolean  operand_1_is_const, do_folding = FALSE;
@@ -6576,9 +6569,7 @@ expression case (a GNU C extension) is characterized by operand_2 being NULL.
     /* Cases that return a class rvalue have to be handled specially: an
        extra copy to a temporary is needed at the end. */
     if (!C_mode() &&
-        is_class_struct_union_type(result_type) &&
-        /* Avoid potential grief on GNU 2-operand "?" for now. */
-        operand_2 != NULL) {
+        is_class_struct_union_type(result_type)) {
       class_rvalue_case = TRUE;
     }  /* if */
   }  /* if */
@@ -6591,8 +6582,7 @@ expression case (a GNU C extension) is characterized by operand_2 being NULL.
     if (curr_expr_kind_is_const()) {
       /* In constant expressions we must always fold. */
       do_folding = TRUE;
-    } else if (operand_2 != NULL &&
-               !identical_types(operand_2->type, operand_3->type)) {
+    } else if (!identical_types(operand_2->type, operand_3->type)) {
       /* Can't fold cases where the operand types do not match (e.g.,
          because one is a throw and the other is not). */
       /* do_folding = FALSE; -- already set. */
@@ -6608,8 +6598,7 @@ expression case (a GNU C extension) is characterized by operand_2 being NULL.
       /* do_folding = FALSE; -- already set. */
 #if ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS
     } else if (gnu_mode &&
-               ((operand_2 != NULL && 
-                 is_expression_operand(operand_2) &&
+               ((is_expression_operand(operand_2) &&
                  has_statement_expression(operand_2->variant.expression)) ||
                 (is_expression_operand(operand_3) &&
                  has_statement_expression(operand_3->variant.expression)))) {
@@ -6617,12 +6606,11 @@ expression case (a GNU C extension) is characterized by operand_2 being NULL.
          which are too expensive to eliminate. */
       /* do_folding = FALSE; -- already set. */
 #endif /* ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS */
-    } else if ((operand_2 == NULL || is_constant_operand(operand_2)) &&
+    } else if (is_constant_operand(operand_2) &&
                is_constant_operand(operand_3)) {
       /* Fold if the second and third operands are constants. */
       do_folding = TRUE;
-    } else if ((operand_2 == NULL ||
-                !(operand_2->ruled_out_expr_kinds & ROEK_CONSTANT)) &&
+    } else if (!(operand_2->ruled_out_expr_kinds & ROEK_CONSTANT) &&
                !(operand_3->ruled_out_expr_kinds & ROEK_CONSTANT)) {
       /* Fold if all the operands have the form of a constant expression.
          This deals with cases like 0 ? 1 : 1/0, in which the last operand
@@ -6644,7 +6632,7 @@ expression case (a GNU C extension) is characterized by operand_2 being NULL.
       other_operand = operand_2;
     } else {
       /* The first operand is true; return the second operand as the result. */
-      copy_operand((operand_2 != NULL) ? operand_2 : operand_1, result);
+      copy_operand(operand_2, result);
       other_operand = operand_3;
     }  /* if */
     result->is_simple_string_literal = FALSE;
@@ -6664,7 +6652,8 @@ expression case (a GNU C extension) is characterized by operand_2 being NULL.
         /* Create an expression to be recorded in the constant. */
         an_operand result_expr;
         build_question_result_operand(operand_1, operand_2, operand_3,
-                                      operation_type, &result_expr);
+                                      operation_type, is_gnu_two_operand_form,
+                                      &result_expr);
         check_assertion(is_expression_operand(&result_expr));
         result->variant.constant.expr = result_expr.variant.expression;
       }  /* if */
@@ -6682,7 +6671,7 @@ expression case (a GNU C extension) is characterized by operand_2 being NULL.
 #endif /* BACK_END_IS_CP_GEN_BE */
     }  /* if */
   } else if (is_error_operand(operand_1) ||
-             (operand_2 != NULL && is_error_operand(operand_2)) ||
+             is_error_operand(operand_2) ||
              is_error_operand(operand_3)) {
     /* Some error. */
     make_error_operand(result);
@@ -6724,7 +6713,8 @@ expression case (a GNU C extension) is characterized by operand_2 being NULL.
     }  /* if */
     /* Build the expression tree for the operation. */
     build_question_result_operand(operand_1, operand_2, operand_3,
-                                  operation_type, result);
+                                  operation_type, is_gnu_two_operand_form,
+                                  result);
     if (!C_mode()) {
       if (class_rvalue_case) {
         /* Give the operand a position so it can be used as an error position
@@ -6781,22 +6771,24 @@ expression case (a GNU C extension) is characterized by operand_2 being NULL.
   }  /* if */
   result->ruled_out_expr_kinds = (operand_1->ruled_out_expr_kinds |
                                   operand_3->ruled_out_expr_kinds);
-  if (operand_2 != NULL) {
-    result->ruled_out_expr_kinds |= operand_2->ruled_out_expr_kinds;
-  }  /* if */
+  result->ruled_out_expr_kinds |= operand_2->ruled_out_expr_kinds;
 }  /* do_question_operation */
 
 
 void template_question_operation(an_operand *operand_1,
                                  an_operand *operand_2,
                                  an_operand *operand_3,
+                                 a_boolean  is_gnu_two_operand_form,
                                  an_operand *result)
 /*
 This routine is a wrapper for do_question_operation for the case where
 an expression is being built from operands whose types are based
 on template parameter types.  When the current expression kind is
 constant, this can happen in nontype template arguments.  Otherwise,
-it happens in prototype instantiations.
+it happens in prototype instantiations.  is_gnu_two_operand_form is
+TRUE if this is a GNU two-operand "?" (a synthesized operand_2 is
+still provided).
+
 */
 {
   if (curr_expr_kind_is_const()) {
@@ -6818,7 +6810,8 @@ it happens in prototype instantiations.
   }  /* if */
   do_question_operation(operand_1, operand_2, operand_3,
                         type_of_unknown_templ_param_nontype,
-                        /*result_is_an_lvalue=*/FALSE, result);
+                        /*result_is_an_lvalue=*/FALSE,
+                        is_gnu_two_operand_form, result);
 }  /* template_question_operation */
 
 
@@ -10404,8 +10397,7 @@ it, and return a pointer to the possibly-modified expression.
 }  /* normalize_boolean_controlling_expr */
 
 
-a_boolean validate_boolean_controlling_expr(an_operand *operand,
-                                            a_boolean  validate_only)
+a_boolean check_boolean_controlling_expr(an_operand *operand)
 /*
 Do some checks on a boolean controlling expression (e.g., "i != 0" in 
 "(i != 0) ? j : k").  Check that (if bool is enabled) it has bool type
@@ -10415,7 +10407,6 @@ Also (if bool is enabled) convert the expression to bool, or (if
 bool is disabled) normalize the expression to "!= 0" form if necessary.
 This routine does not attempt conversions from class types to built-in
 types to get a boolean expression (see process_boolean_controlling_expression).
-If validate_only is TRUE, no conversions or normalizations are performed.
 */
 {
   a_boolean             okay = FALSE;
@@ -10469,13 +10460,11 @@ If validate_only is TRUE, no conversions or normalizations are performed.
                                    ec_expr_not_bool,
                                    &std_conv)) {
         okay = TRUE;
-        if (!validate_only) {
-          /* Convert the expression to bool. */
-          cast_operand(bool_type(), operand, /*check_cast_access=*/TRUE,
-                       /*is_implicit_cast=*/TRUE,
-                       /*is_reinterpret_cast=*/FALSE,
-                       /*reinterpret_semantics=*/FALSE);
-        }  /* if */
+        /* Convert the expression to bool. */
+        cast_operand(bool_type(), operand, /*check_cast_access=*/TRUE,
+                     /*is_implicit_cast=*/TRUE,
+                     /*is_reinterpret_cast=*/FALSE,
+                     /*reinterpret_semantics=*/FALSE);
       } else {
         error_in_operand(ec_expr_not_bool, operand);
       }  /* if */
@@ -10493,7 +10482,7 @@ If validate_only is TRUE, no conversions or normalizations are performed.
       /* Check that the operand is a scalar. */
       okay = check_scalar_operand(operand);
     }  /* if */
-    if (okay && !validate_only) {
+    if (okay) {
       /* Standardize the operand. */
       switch (operand->kind) {
         case ok_error:
@@ -10546,7 +10535,7 @@ If validate_only is TRUE, no conversions or normalizations are performed.
           break;
         default:
           unexpected_condition_str(
-                       "validate_boolean_controlling_expr: bad operand kind");
+                       "check_boolean_controlling_expr: bad operand kind");
       }  /* switch */
     }  /* if */
   }  /* if */
@@ -10581,18 +10570,6 @@ If validate_only is TRUE, no conversions or normalizations are performed.
   /* Restore the original source position. */
   restore_operand_details(operand, &orig_operand);
   return okay;
-}  /* validate_boolean_controlling_expr */
-
-
-a_boolean check_boolean_controlling_expr(an_operand *operand)
-/*
-Do some checks on a boolean controlling expression and perform any necessary
-casts or other expression transformations.  Return TRUE if the expression
-is valid.  This is a convenience interface for
-validate_boolean_controlling_expr.
-*/
-{
-  return validate_boolean_controlling_expr(operand, /*validate_only=*/FALSE);
 }  /* check_boolean_controlling_expr */
 
 

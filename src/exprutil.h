@@ -1281,15 +1281,14 @@ extern void do_question_operation(an_operand *operand_1,
                                   an_operand *operand_3,
                                   a_type_ptr result_type,
                                   a_boolean  result_is_an_lvalue,
+                                  a_boolean  is_gnu_two_operand_form,
                                   an_operand *result);
 
 extern void template_question_operation(an_operand *operand_1,
                                         an_operand *operand_2,
                                         an_operand *operand_3,
+                                        a_boolean  is_gnu_two_operand_form,
                                         an_operand *result);
-
-extern a_boolean validate_boolean_controlling_expr(an_operand *operand,
-                                                   a_boolean  validate_only);
 
 extern a_boolean check_boolean_controlling_expr(an_operand *operand);
 

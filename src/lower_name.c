@@ -4684,9 +4684,6 @@ If the operator is unrecognized, return *bad_operator TRUE.
       opkind = (an_opname_kind)onk_or_or;
       break;
     case eok_question:
-#if GNU_EXTENSIONS_ALLOWED
-    case eok_binary_question:
-#endif /* GNU_EXTENSIONS_ALLOWED */
       opkind = (an_opname_kind)onk_question;
       num_operands = 3;
       break;

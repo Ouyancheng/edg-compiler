@@ -10076,12 +10076,6 @@ the value of the expression is discarded.
          are not used if the entire operation is not used. */
       set_expr_result_not_used(operand_1->next);
       set_expr_result_not_used(operand_1->next->next);
-#if GNU_EXTENSIONS_ALLOWED
-    } else if (op == (an_expr_operator_kind)eok_binary_question) {
-      /* Given a binary question mark operation (a GNU C extension), the
-         second operand is not used if the entire operation is not used. */
-      set_expr_result_not_used(operand_1->next);
-#endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
   } else if (node->kind == (an_expr_node_kind)enk_object_lifetime) {
     set_expr_result_not_used(node->variant.object_lifetime.expr);
@@ -10514,14 +10508,6 @@ to TRUE.  *source_pos gives the source position for errors.
         do_promotion = TRUE;
         assignment_case = TRUE;
         break;
-#if GNU_EXTENSIONS_ALLOWED
-      case eok_binary_question:
-        do_usual_arith_conversions = TRUE;
-        /* This is not an assignment, but suppress the type change on the
-           first operand by setting the assignment flag. */
-        assignment_case = TRUE;
-        break;
-#endif /* GNU_EXTENSIONS_ALLOWED */
 #if FIXED_POINT_ALLOWED
       /* These are currently used only in C modes. */
       case eok_fxnegate:

@@ -5869,6 +5869,13 @@ precedence confusion and need_parens is TRUE.
           if (need_parens) write_tok_ch('(');
           gen_boolean_controlling_expression(operand_1);
           write_tok_str(" ? ");
+#if GNU_EXTENSIONS_ALLOWED
+          if (node->variant.operation.is_gnu_two_operand_question_mark) {
+            /* The GNU two-operand case, e.g., x ?: y. */
+            operand_2 = operand_1;
+          } else
+#endif /* GNU_EXTENSIONS_ALLOWED */
+          /* Do not insert code here. */
           if (operand_2->kind == (an_expr_node_kind)enk_throw) {
             /* An lvalue created out of a class rvalue can have a throw
                in one of the arms.  Treat it as an rvalue. */
@@ -7576,18 +7583,19 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           /* Three operand operator. */
           gen_boolean_controlling_expression(operand_1);
           write_tok_str(" ? ");
-          gen_expr_with_parens(operand_2);
+#if GNU_EXTENSIONS_ALLOWED
+          if (expr->variant.operation.is_gnu_two_operand_question_mark) {
+            /* The GNU two-operand case, e.g., x ?: y. */
+            operand_2 = operand_1;
+          } else
+#endif /* GNU_EXTENSIONS_ALLOWED */
+          /* Do not insert code here. */
+          {
+            gen_expr_with_parens(operand_2);
+          }  /* if */
           write_tok_str(" : ");
           gen_expr_with_parens(operand_2->next);
           goto done_with_operation;
-#if GNU_EXTENSIONS_ALLOWED
-        case eok_binary_question:
-          /* Two operand operator. */
-          gen_boolean_controlling_expression(operand_1);
-          write_tok_str(" ?: ");
-          gen_expr_with_parens(operand_2);
-          goto done_with_operation;
-#endif /* GNU_EXTENSIONS_ALLOWED */
         case eok_call:
         case eok_generic_call:
         case eok_generic_member_call:

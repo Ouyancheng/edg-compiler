@@ -1869,31 +1869,6 @@ Lower the indicated fixed-point increment or decrement operation.
 }  /* lower_c99_fixed_point_incr_decr */
 
 #endif /* LOWER_FIXED_POINT */
-#if GNU_EXTENSIONS_ALLOWED
-
-static void lower_binary_conditional(an_expr_node_ptr  expr)
-/*
-The given expression is a GNU-style binary conditional expression of the form
-"op1 ?: op2".  Turn it into "(tmp = op1, tmp) ? tmp : op2".
-*/
-{
-  an_expr_node_ptr  op1 = expr->variant.operation.operands, op2 = op1->next;
-  an_expr_node_ptr  tmp;
-
-  tmp = make_reusable_copy(op1, /*vars_can_change=*/TRUE);
-  /* The first operand of a binary question operator has not been converted
-     to the result type nor has it been transformed into a boolean expression.
-     Those operations must therefore be applied here. */
-  tmp = add_cast_if_necessary(tmp, expr->type);
-  op1 = normalize_boolean_controlling_expr(op1);
-  op1->next = tmp;
-  tmp->next = op2;
-  expr->variant.operation.operands = op1;
-  expr->variant.operation.kind = (an_expr_operator_kind)eok_question;
-  if (expr->result_is_not_used) set_expr_result_not_used(expr);
-}  /* lower_binary_conditional */
-
-#endif /* GNU_EXTENSIONS_ALLOWED */
 
 #if !LOWER_FIXED_POINT
 /*ARGSUSED*/  /* <-- expr is not used in that case. */
@@ -2273,11 +2248,6 @@ _Bool type, and VLA types.
         lower_bool_incr_decr(expr);
       }  /* if */
       break;
-#if GNU_EXTENSIONS_ALLOWED
-    case eok_binary_question:
-      lower_binary_conditional(expr);
-      break;
-#endif /* GNU_EXTENSIONS_ALLOWED */
     case eok_call:
       lower_c99_call(expr);
       break;

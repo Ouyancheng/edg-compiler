@@ -8310,15 +8310,11 @@ enum an_expr_operator_kind_tag {
   /* The following have 3 operands: */
 #ifdef CIL
   eok_question,         /* Conditional expression ("?" operator).  Operand
-                           has been standardized to integer/logical. */
+                           has been standardized to integer/logical.  Also
+			   used for the GNU two-operand form, when
+			   is_gnu_two_operand_question_mark is TRUE (but
+			   three operands are still provided in that case). */
 #endif /* ifdef CIL */
-#if GNU_EXTENSIONS_ALLOWED
-  eok_binary_question,  /* Binary conditional expression ("? :" operator
-                           without an expression between the "?" and ":").
-                           This is a GNU C extension.  The first operand is
-                           not converted or compared to zero: a back end is
-                           responsible for that. */
-#endif /* GNU_EXTENSIONS_ALLOWED */
 #ifdef FIL
   eok_substring,        /* Fortran character substring.  The first operand
                            is the address of the character entity; the
@@ -8724,6 +8720,14 @@ typedef struct an_expr_node {
                            and the call occurs in a context in which a
                            member operator might be found by ordinary
                            lookup of the name and thus suppress ADL. */
+#if GNU_EXTENSIONS_ALLOWED
+      a_bit_field
+		is_gnu_two_operand_question_mark:1;
+			/* TRUE for an eok_question operator that came from
+			   the GNU two-operand form, e.g., x ?: y.  A
+			   synthesized second operand is present in the
+			   operand list. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
       bitfield_to_avoid_codecenter_warnings()
       an_expr_node_ptr  
                 operands;
@@ -11269,9 +11273,6 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
 #ifdef CIL
    "?",
 #endif /* ifdef CIL */
-#if GNU_EXTENSIONS_ALLOWED
-   "?:",
-#endif /* GNU_EXTENSIONS_ALLOWED */
 #ifdef FIL
    "(:)", "v(:)",
 #endif /* ifdef FIL */
