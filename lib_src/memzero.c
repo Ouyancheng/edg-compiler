@@ -20,6 +20,15 @@ do not have constructors.
 #include "basics.h"
 #include "config.h"
 
+#if __EDG_BSD
+/*
+Declare the bzero routine because some header files on BSD systems don't
+provide a declaration.  Also, the minimal headers provided in the
+release include directory don't declare bzero.
+*/
+EXTERN_C void bzero(void*, int);
+#endif /* __EDG_BSD */
+
 EXTERN_C void __memzero(void    *buffer,
                         size_t	size)
 /*
