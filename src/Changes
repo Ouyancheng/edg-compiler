@@ -1,5 +1,13 @@
 Version 2.37
 
+10/1/37   Microsoft compatibility: "__asm" is now put out in strings in the
+          IL for templates
+
+In Microsoft-compatibility mode, when strings are built to represent token
+sequences (see add_token_to_string in lexical.c), "__asm" is put out
+instead of "asm".  When RECORD_TEMPLATES_IN_IL is configured to TRUE such
+strings are pointed to by IL entries of type a_template.
+
 10/1/97   Spurious "invalid IL file" error in IL display program
 
 When MAINTAIN_NEEDED_FLAGS was configured to FALSE, a spurious catastrophic

@@ -9933,6 +9933,10 @@ of characters added.
     check_assertion(!ctp->variant.locator.has_been_coalesced);
     put_str_to_temp_text_buffer(ctp->variant.locator.symbol_header->
                                                                identifier);
+  } else if (microsoft_mode && token == tok_asm) {
+    /* In Microsoft mode always put out "__asm", since "asm" is not
+       necessarily accepted by the Microsoft compiler. */
+    put_str_to_temp_text_buffer("__asm");
   } else {
     /* A keyword or other token whose literal name can be put out. */
     put_str_to_temp_text_buffer(token_names[(int)token]);
