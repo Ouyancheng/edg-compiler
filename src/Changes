@@ -1,5 +1,26 @@
 Version 2.32
 
+5/10/96 Bug in handling token caches for parenthesized template static data
+        member initializations
+
+When a template static data member definition contained a parenthesized
+initializer that required disambiguation to determine whether the
+declaration declared a function or an object, a bug in the way in which
+the token caches were manipulated could cause either an internal
+error or incorrect interpretation of the initializer.  The former
+would only occur if template strings were being generated.  In the
+latter case, one or more qualified names in the initializer could lose their
+qualification information (e.g., X<int>::i would be initialized with
+f() instead of X<int>::f).  This has been fixed.
+
+  template <class T> struct X {
+    static int f();
+    static int i;
+  };
+  template <class T> int X<T>::i(X<T>::f());
+  X<int> xi;
+
+
 5/10/96 New name mangling for templates
 
 In the modern C++ language, instances of templates must be mangled in a way

@@ -1261,11 +1261,11 @@ extern void rescan_cached_tokens(a_token_cache *cache);
 extern void rescan_reusable_cache(a_token_cache *cache);
 /* Rescan a copy of a token cache. */
 extern void rescan_copy_of_cache(a_token_cache *cache);
-/* Remove overlapping tokens from a set of caches. */
+
 extern
-void adjust_overlapping_token_caches(a_token_cache *cache1,
-                                     a_token_cache *cache2,
-                                     a_boolean     move_preceding_token);
+void split_token_cache(a_token_cache	       *cache1,
+                       a_token_cache	       *cache2,
+                       a_token_sequence_number split_location);
 
 /* Move a list of tokens from one cache to another. */
 extern

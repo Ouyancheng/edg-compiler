@@ -896,83 +896,63 @@ Free an individual token from a reusable cache.
 }  /* free_cached_token_from_reusable_cache */
 
 
-void adjust_overlapping_token_caches(a_token_cache *cache1,
-                                     a_token_cache *cache2,
-                                     a_boolean     move_preceding_token)
+void split_token_cache(a_token_cache	       *cache1,
+                       a_token_cache	       *cache2,
+                       a_token_sequence_number split_location)
 /*
-Given two token caches, where the end of the first cache may include some
-tokens on the front of the second cache, remove the tokens from the first
-cache that are already present in the second one.  If move_preceding_token
-is TRUE, the token before the first one in cache2 is moved from cache1
-to cache2.  This routine may only be used for reusable token caches.
+Split cache1 into two pieces.  cache1 will contain all the tokens up
+to the one that precedes the token number specified by split location.
+cache2 will contain all the tokens that follow.
 */
 {
-  a_token_sequence_number	cache2_start_seq;
   a_cached_token_ptr		ctp;
-  a_cached_token_ptr		last_ctp = NULL;
   a_cached_token_ptr		first_ctp_to_move;
-  a_cached_token_ptr		last_ctp_to_move;
   a_cached_token_ptr		before_first_ctp_to_move;
 
   check_assertion_str2(cache1->is_reusable && cache2->is_reusable,
-                       "adjust_overlapping_token_caches:",
+                       "split_token_cache:",
                        "cache not reusable");
-  cache2_start_seq = cache2->first_token->token_sequence_number;
   for (ctp = cache1->first_token; ctp != NULL; ctp = ctp->next) {
-    if (ctp->token_sequence_number == cache2_start_seq) break;
+    if (ctp->token_sequence_number == split_location) break;
     if (ctp->extra_info_kind != (a_token_extra_info_kind)teik_pragma) {
-      /* Record the position of the last "real" (i.e., nonpragma) token
-         that precedes the token we are looking for.  Also save a pointer
-         to the token before that one. */
-      first_ctp_to_move = ctp;
-      before_first_ctp_to_move = last_ctp;
+      /* The token sequence looks something like:
+		 token-n1 pragma-n2 token-n3 token-n4
+         where token-n3 is the split location.  We also want to move any
+         pragma that precede token-n3 to cache 2.  When we break out of
+         the loop first_ctp_to_move will point to pragma-n2 and
+         before_first_ctp_to_move will point to token-n1. */
+      first_ctp_to_move = ctp->next;
+      before_first_ctp_to_move = ctp;
     }  /* if */
-    last_ctp = ctp;
   }  /* for */
-  check_assertion_str2(ctp != NULL, "adjust_overlapping_token_caches:",
-                       "caches don't overlap");
-  if (move_preceding_token) {
-    /* Move the token that precedes the first token of cache2 from cache
-       1 to cache 2.  This could potentially involve more than one cached
-       token entry because there could be pragma entries included that
-       need to be moved. */
-    a_cached_token_ptr	ctp_to_move = first_ctp_to_move;
-    for (; ctp_to_move != NULL; ctp_to_move = ctp_to_move->next) {
-      if (ctp_to_move->token_sequence_number == cache2_start_seq) break;
-      last_ctp_to_move = ctp_to_move;
+  check_assertion_str2(ctp != NULL, "split_token_cache:",
+                       "specified token not found");
 #if DEBUG
-      if (ctp_to_move->extra_info_kind ==
-                                       (a_token_extra_info_kind)teik_pragma) {
-        /* Adjust the pragma count for the two caches. */
-        a_pending_pragma_ptr	ppp = ctp_to_move->variant.pragmas;
-        while (ppp != NULL) {
-          cache1->pragma_count--;
-          cache2->pragma_count++;
-          ppp = ppp->next;
-        }  /* while */
-      }  /* if */
-      /* Adjust the token counts for the two caches. */
-      cache1->token_count--;
-      cache2->token_count++;
+  /* Adjust the token and pragma counts in the caches. */
+  for (ctp = first_ctp_to_move; ctp != NULL; ctp = ctp->next) {
+    if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_pragma) {
+      /* Adjust the pragma count for the two caches. */
+      a_pending_pragma_ptr	ppp = ctp->variant.pragmas;
+      while (ppp != NULL) {
+        cache1->pragma_count--;
+        cache2->pragma_count++;
+        ppp = ppp->next;
+      }  /* while */
+    }  /* if */
+    /* Adjust the token counts for the two caches. */
+    cache1->token_count--;
+    cache2->token_count++;
+  }  /* for */
 #endif /* DEBUG */
-    }  /* for */
-    /* Link the final tokens from cache1 to the start of cache2.
-       Adjust last_ctp (the new last token of cache1) to refer to the
-       token before the ones just moved. */
-    last_ctp_to_move->next = cache2->first_token;
-    cache2->first_token = first_ctp_to_move;
-    last_ctp = before_first_ctp_to_move;
-  }  /* if */
-  while (ctp != NULL) {
-    a_cached_token_ptr	next_ctp = ctp->next;
-    free_cached_token_from_reusable_cache(cache1, ctp);
-    ctp = next_ctp;
-  }  /* while */
-  /* Adjust the last token pointer in the cache to reflect the new ending
-     token.  Add a new terminator to the end of the cache. */
-  cache1->last_token = last_ctp;
+  /* Set the first and last tokens of cache2 to the appropriate values. */
+  cache2->first_token = first_ctp_to_move;
+  cache2->last_token = cache1->last_token;
+  /* Break the links in cache1. */
+  cache1->last_token = before_first_ctp_to_move;
+  cache1->last_token->next = NULL;
+  /* Add a new terminator to the end of the cache. */
   terminate_token_cache(cache1);
-}  /* adjust_overlapping_token_caches */
+}  /* split_token_cache */
 
 
 void move_cached_tokens(a_cached_token_ptr	first_token,

@@ -6127,28 +6127,27 @@ returned to the caller.
      Anything else will not get cached and an error will be generated
      on this declaration. */
   if (curr_token == tok_assign || has_parenthesized_initializer) {
-    add_stop_token(tok_semicolon);
+    a_token_sequence_number	split_location;
     p_token_cache = &local_token_cache;
     clear_token_cache(p_token_cache, /*reusable=*/TRUE);
-    cache_token_stream(p_token_cache, stop_token_array);
-    remove_stop_token(tok_semicolon);
-    terminate_token_cache(p_token_cache);
-    /* When the declaration token cache is built, it is difficult to
-       determine the start of the initializer.  Consequently, the
-       declaration sometimes includes tokens from the initializer.
-       Call a routine that will remove any of the initializer tokens
-       from the declaration cache.  In the case of a parenthesized
-       initializer, the first token of the initializer cache will
-       currently be the token after the parenthesis.  In this case,
-       the parenthesis is moved from the decl_token_cache to the
-       initializer cache. */
-    adjust_overlapping_token_caches(&decl_state->decl_token_cache,
-                                    p_token_cache,
-                                    has_parenthesized_initializer);
+    /* Then declaration token cache contains the declaration and the
+       initializer.  Split the cache so that the initialization is
+       removed from the declaration cache and placed in the initializer
+       cache.  When processing a parenthesized initializer, we've already
+       bypassed the opening parenthesis, so we need to decrement the
+       token sequence number to be used as the split location. */
+    split_location = curr_token_sequence_number;
+    if (has_parenthesized_initializer) split_location--;
+    split_token_cache(&decl_state->decl_token_cache,
+                      p_token_cache, split_location);
     if (err) {
       discard_token_cache(p_token_cache);
       p_token_cache = NULL;
     } /* if */
+    /* Skip to the end of the declaration. */
+    add_stop_token(tok_semicolon);
+    flush_tokens();
+    remove_stop_token(tok_semicolon);
   } /* if */
   if (tssp != NULL) {
     /* Save the information needed to create an instantiation based
