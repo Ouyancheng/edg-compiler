@@ -5125,10 +5125,7 @@ this routine is called.
   a_boolean  err = FALSE;
   a_type_ptr source_type = operand->type;
 
-  if (is_error_type(source_type) || is_error_type(dest_type)) {
-    /* There was a previous error.  Do no further checking. */
-    err = TRUE;
-  } else if (is_template_param_type(dest_type)) {
+  if (is_template_param_type(dest_type)) {
     /* Casting to a template parameter (unknown) type.  Assume okay,
        but produce an error operand. */
     err = TRUE;
@@ -5155,7 +5152,9 @@ this routine is called.
       } else {
         /* The destination type is integral, but the source type is not
            arithmetic. */
-        pos_error(ec_expr_not_arithmetic, &operand->position);
+        if (!is_error_type(source_type)) {
+          pos_error(ec_expr_not_arithmetic, &operand->position);
+        }  /* if */
         err = TRUE;
       }  /* if */
     } else if ((local_options & EOPT_OPERAND_OF_CAST) &&
@@ -5170,7 +5169,9 @@ this routine is called.
       }  /* if */
     } else {
       /* Casting to a non-integral type in an integral constant expression. */
-      pos_error(ec_cast_not_integral, type_position);
+      if (!is_error_type(dest_type)) {
+        pos_error(ec_cast_not_integral, type_position);
+      }  /* if */
       err = TRUE;
     }  /* if */
   } else if (curr_expr_kind_is(ek_init_constant)) {
@@ -5193,7 +5194,9 @@ this routine is called.
         }  /* if */
       } else {
         /* Non-arithmetic --> arithmetic. */
-        pos_error(ec_expr_not_arithmetic, &operand->position);
+        if (!is_error_type(source_type)) {
+          pos_error(ec_expr_not_arithmetic, &operand->position);
+        }  /* if */
         err = TRUE;
       }  /* if */
     } else if (is_pointer_type(dest_type)) {
@@ -5204,7 +5207,9 @@ this routine is called.
       }  /* if */
     } else {
       /* Casting to a non-scalar type in an initializer expression. */
-      pos_error(ec_cast_not_scalar, type_position);
+      if (!is_error_type(dest_type)) {
+        pos_error(ec_cast_not_scalar, type_position);
+      }  /* if */
       err = TRUE;
     }  /* if */
   } else if (curr_expr_kind_is(ek_template_arg)) {
@@ -5217,7 +5222,9 @@ this routine is called.
       } else {
         /* Cast from non-arithmetic to arithmetic in a nontype template
            argument. */
-        pos_error(ec_non_arith_operation_in_templ_arg, &operand->position);
+        if (!is_error_type(source_type)) {
+          pos_error(ec_non_arith_operation_in_templ_arg, &operand->position);
+        }  /* if */
         err = TRUE;
       }  /* if */
     } else if ((is_pointer_type(dest_type) ||
@@ -5228,7 +5235,9 @@ this routine is called.
          type.  Allowed as an extension. */
     } else {
       /* Cast to a non-arithmetic type in a nontype template argument. */
-      pos_error(ec_non_arith_operation_in_templ_arg, type_position);
+      if (!is_error_type(dest_type)) {
+        pos_error(ec_non_arith_operation_in_templ_arg, type_position);
+      }  /* if */
       err = TRUE;
     }  /* if */
   }  /* if */
