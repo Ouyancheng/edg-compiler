@@ -1,5 +1,38 @@
 Version 2.32
 
+4/18/96 Conversions for class operands of the "?" operator
+
+As of the Santa Cruz X3J16/WG21 meeting (3/96), conversions are allowed
+on class operands of the "?" operator to bring them to other class types.
+
+  struct A {
+    operator int();
+  } a;
+  struct B : public A { } b;
+  struct C {
+    C(int);
+    operator int();
+  } c(1);
+  struct E;
+  struct D {
+    D();
+    D(E);
+  } d;
+  struct E {
+    E();
+    E(D);
+  } e;
+  main () {
+    int x = 1;
+    x ? a : a;  // Okay (same type)
+    x ? a : b;  // Okay (inheritance-related classes)
+    x ? a : x;  // Okay (a.operator int() : int)
+    x ? c : x;  // Ambiguous, c.operator int() : int
+                //        or                 c : C(int)
+    x ? d : e;  // Ambiguous, E(d) : e
+                //        or     d : D(e)
+  }
+
 4/17/96 C-generating back end: definitions for template array static data
         members
 
