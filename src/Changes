@@ -1,5 +1,11 @@
 Version 2.44
 
+5/15/00  g++ compatibility: std as an alias for the global namespace
+
+By default, the g++ compiler treats the "std" namespace as an alias for
+the global namespace.  The --ignore_std option causes the front end
+to emulate this behavior.
+
 5/15/00  #include_next preprocessing directive
 
 The #include_next preprocessing directive of gcc is now supported.

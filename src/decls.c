@@ -8095,6 +8095,7 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
   a_symbol_reference_kind     srk_flags = SRK_DECLARATION;
   a_boolean                   bad_scope_for_namespace_def = FALSE;
   a_source_sequence_entry_ptr namespace_ssep = NULL;
+  a_boolean		      namespace_scope_pushed = FALSE;
 
   db_enter(3, "namespace_declaration");
   /* Save the source position of the declaration. */
@@ -8336,9 +8337,15 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
       /* Do processing required for any pragmas bound to the current
          declaration. */
       process_curr_construct_pragmas(ns_sym, (a_statement_ptr)NULL);
-      /* Push a scope for the scanning the namespace body. */
-      (void)push_namespace_scope((a_scope_kind)sck_namespace, nsp);
-      nsp->variant.assoc_scope->variant.assoc_namespace = nsp;
+      if (!ignore_std_namespace ||
+          ns_sym != symbol_for_namespace_std) {
+        /* Push a scope for the scanning the namespace body.  This is not done
+           when using the g++ compatibility feature that makes "std" a
+           synonym for the global namespace. */
+        (void)push_namespace_scope((a_scope_kind)sck_namespace, nsp);
+        nsp->variant.assoc_scope->variant.assoc_namespace = nsp;
+        namespace_scope_pushed = TRUE;
+      }  /* if */
       if (is_unnamed_namespace) {
         /* The model for the initial definition of an unnamed namespace
              namespace { ... }
@@ -8371,10 +8378,17 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
       /* An extension of the original definition of this namespace -- push
          a scope for scanning the namespace body. */
       nsp = ns_sym->variant.namespace_info.ptr;
-      (void)push_namespace_scope((a_scope_kind)sck_namespace_extension,
-                                 skip_namespace_aliases(nsp));
-      scope_stack[depth_scope_stack].
-                             explicitly_declared_namespace_extension = TRUE;
+      if (!ignore_std_namespace ||
+          ns_sym != symbol_for_namespace_std) {
+        /* Push a scope for the scanning the namespace body.  This is not done
+           when using the g++ compatibility feature that makes "std" a
+           synonym for the global namespace. */
+        (void)push_namespace_scope((a_scope_kind)sck_namespace_extension,
+                                   skip_namespace_aliases(nsp));
+        scope_stack[depth_scope_stack].
+                               explicitly_declared_namespace_extension = TRUE;
+        namespace_scope_pushed = TRUE;
+      }  /* if */
     }  /* if */
     record_symbol_declaration(srk_flags, ns_sym, &locator.source_position,
                               namespace_ssep);
@@ -8408,8 +8422,10 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
     } else {
       discard_curr_construct_pragmas();
     }  /* if */
-    /* Pop the namespace or namespace-extension scope. */
-    pop_namespace_scope();
+    if (namespace_scope_pushed) {
+      /* Pop the namespace or namespace-extension scope. */
+      pop_namespace_scope();
+    }  /* if */
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* If (because of an error) an empty source-sequence entry was left in the

@@ -3497,6 +3497,11 @@ namespace.  This routine is used only in C++ mode.
   db_enter(4, "namespace_qualified_id_lookup");
   if ((sym = locator->specific_symbol) != NULL) {
     /* There is an existing specific symbol. */
+  } else if (ignore_std_namespace &&
+             ns_ptr == symbol_for_namespace_std->variant.namespace_info.ptr) {
+    /* When using the g++ compatibility feature that treats "std" as
+       a synonym for the global namespace, do the lookup in the file scope. */
+    sym = file_scope_id_lookup(locator, options);
   } else {
     /* Search for a symbol in the right scope. */
     sym = lookup_in_namespace(locator, ns_ptr, options, ns_ptr, &synth_sym,

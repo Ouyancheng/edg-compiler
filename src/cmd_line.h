@@ -190,6 +190,7 @@ typedef enum /*an_option_kind*/ {
   optk_base_assign_op_is_default,
   optk_sun_mode,
   optk_dependent_name_processing,
+  optk_ignore_namespace_std,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -1298,6 +1299,16 @@ EXTERN char
 			   command-line macro definition option of the form
 			   -D<def>.  In that case it points to the null-
 			   terminated byte string <def>. */
+
+EXTERN a_boolean
+		ignore_std_namespace
+#if VAR_INITIALIZERS
+                                      = FALSE
+#endif /* VAR_INITIALIZERS */
+                                              ;
+			/* TRUE when the "std" namespace is treated as a
+			   synonym for the global namespace.  This is a
+			   g++ compatibility feature. */
 
 
 /* Process the command line arguments. */

@@ -809,6 +809,32 @@ by scan_tag_name.  is_tag_definition is TRUE if the tag is being defined.
 }  /* check_qualified_tag_access */
 
 
+static a_boolean is_namespace_for_type_info_definition(void)
+/*
+Returns TRUE if the current namespace is the one in which
+type_info may be defined.
+*/
+{
+  a_boolean	result = FALSE;
+
+  if (type_info_in_namespace_std && !ignore_std_namespace) {
+    /* When type_info is required to be defined in the std namespace,
+       make sure we are in that namespace now. */
+    a_namespace_ptr	nsp;
+    nsp = scope_stack[depth_innermost_namespace_scope].assoc_namespace;
+    if (nsp == symbol_for_namespace_std->variant.namespace_info.ptr) {
+      result = TRUE;
+    }  /* if */
+  } else {
+    /* When type_info is not in std, it must be in the global namespace.
+       This is also the case when using the g++ compatibility feature
+       where the std namespace is an alias for the global namespace. */
+    result = depth_scope_stack == DEPTH_OF_FILE_SCOPE;
+  }  /* if */
+  return result;
+}  /* is_namespace_for_type_info_definition */
+
+
 #if !EXTRA_SOURCE_POSITIONS_IN_IL
 /*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
                 information is being recorded in the IL. */
@@ -1030,11 +1056,7 @@ caution when modifying this routine.
           nsp = scope_stack[computed_decl_level].il_scope->
                                                   variant.assoc_namespace;
         }  /* if */
-        if (type_info_in_namespace_std ?
-            (nsp != NULL &&
-             nsp->source_corresp.assoc_info ==
-                                      (char *)symbol_for_namespace_std) :
-            (computed_decl_level == DEPTH_OF_FILE_SCOPE)) {
+        if (is_namespace_for_type_info_definition()) {
           /* The identifier is indeed "type_info".  Check for the pragma that
              specifically identifies it as the type_info that is returned by
              typeid (typically, the type_info defined in typeinfo.h). */

@@ -10519,18 +10519,29 @@ wrapup:
          symbol of kind sk_undefined. */
       make_specific_symbol_error_locator(&locator_for_curr_id);
     }  /* if */
+    if (qualifier_is_type) {
+      locator_for_curr_id.parent.class_type = qualifier_type;
+      locator_for_curr_id.is_class_member = qualifier_type != NULL;
+    } else {
+      if (ignore_std_namespace &&
+          qualifier_namespace ==
+                        symbol_for_namespace_std->variant.namespace_info.ptr) {
+        /* When using the g++ compatiblity mode where "std" is an alias for
+           the global namespace, ignore a qualifier that refers to "std"
+           namespace. */
+        locator_for_curr_id.parent.namespace_ptr = NULL;
+        is_file_scope_qualified_name = TRUE;
+        is_global_qualified_name = TRUE;
+      } else {
+        locator_for_curr_id.parent.namespace_ptr = qualifier_namespace;
+      }  /* if */
+    }  /* if */
     /* Update the locator with information about the qualifier (if any)
        that was discovered by is_generalized_identifier_start. */
     locator_for_curr_id.is_qualified_name = is_qualified_name;
     locator_for_curr_id.is_global_qualified_name = is_global_qualified_name;
     locator_for_curr_id.is_file_scope_qualified_name =
 						is_file_scope_qualified_name;
-    if (qualifier_is_type) {
-      locator_for_curr_id.parent.class_type = qualifier_type;
-      locator_for_curr_id.is_class_member = qualifier_type != NULL;
-    } else {
-      locator_for_curr_id.parent.namespace_ptr = qualifier_namespace;
-    }  /* if */
     locator_for_curr_id.has_been_coalesced = TRUE;
     locator_for_curr_id.is_vacuous_destructor_reference = is_vacuous_dtor;
     locator_for_curr_id.is_nonclass_destructor = is_nonclass_dtor;

@@ -864,6 +864,10 @@ Initialize the option information table.
                          "no_dep_name",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_ignore_namespace_std,
+                         "ignore_std",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -1582,6 +1586,9 @@ setting is used, and to set various unmentioned settings as needed.
   }  /* if */
   if (option_kind_used[(int)optk_dependent_name_processing]) {
     command_line_error(ec_cl_dep_name_option_only_in_cplusplus);
+  }  /* if */
+  if (option_kind_used[(int)optk_ignore_namespace_std]) {
+    command_line_error(ec_cl_ignore_std_option_only_in_cplusplus);
   }  /* if */
 #if ONE_INSTANTIATION_PER_OBJECT
   if (option_kind_used[(int)optk_one_instantiation_per_object]) {
@@ -2779,6 +2786,11 @@ enable_microsoft_mode:
       case optk_dependent_name_processing:
         /* Enable dependent name processing for templates. */
         do_dependent_name_processing = opt_value;
+        break;
+      case optk_ignore_namespace_std:
+        /* Enable the g++ compatibility option that treats "std" as an
+           alias for the global namespace. */
+        ignore_std_namespace = opt_value;
         break;
       default:
         /* It should not be possible to get here. */
