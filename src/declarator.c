@@ -2723,10 +2723,6 @@ to FALSE if the entity being declared is not initializable.
       }  /* if */
     }  /* if */
   } else if (locator->is_conversion_name) {
-    if (!is_unknown_type(*p_complete_type)) {
-      pos_error(ec_return_type_on_conversion_function, &declarator_pos);
-    }  /* if */
-    *p_complete_type = locator->variant.conversion_result_type;
     /* A conversion function must be a nonstatic member function. */
     if (*p_member_parent_type == NULL ||
         (locator->specific_symbol == NULL &&
@@ -3300,6 +3296,21 @@ function_lparen:
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  if (specifiers_type != NULL) {
+    /* This is a top-level call to declarator. */
+    if (locator != NULL && locator->is_conversion_name) {
+      /* Do error checking on the conversion function declaration. */
+      if (is_error_locator(*locator)) {
+        complete_type = error_type();
+      } else {
+        if (!is_unknown_type(specifiers_type) &&
+            !(input_flags & DI_NO_TYPE_SPECIFIERS)) {
+          pos_error(ec_return_type_on_conversion_function, &declarator_pos);
+        }  /* if */
+        complete_type = locator->variant.conversion_result_type;
+      }  /* if */
+    }  /* if */
+  }  /* if */
   /* Combine the derived type list with the earlier complete type
      (pointer derived type list plus specifiers_list), making
      the full type.  Note that this involves error checking. */
