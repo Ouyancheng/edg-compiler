@@ -11958,6 +11958,96 @@ eliminated, if appropriate.
 }  /* eliminate_unneeded_il_entries */
 
 #endif /* MAINTAIN_NEEDED_FLAGS */
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+
+a_boolean instantiation_needed_flag_is_set(a_source_correspondence *scp)
+/*
+Fetch and return the value of the per-instantiation "needed" flag
+associated with source correspondence entry *scp and with the bit
+number given by global variable needed_flag_bit_number.
+*/
+{
+  a_boolean     flag_value;
+  a_per_instantiation_needed_flags_entry_ptr
+                ptr;
+  unsigned long first_bit_this_segment;
+  unsigned long byte_number;
+  unsigned int  bit_number;
+#define BITS_PER_ENTRY (BYTES_PER_INSTANTIATION_NEEDED_FLAG_ENTRY*CHAR_BIT)
+
+  /* Loop through the list of entries to find the one containing the
+     bit we want to test. */
+  for (ptr = scp->per_instantiation_needed_flags,
+         first_bit_this_segment = 1;
+       ptr != NULL &&
+         (first_bit_this_segment + BITS_PER_ENTRY) <= needed_flag_bit_number;
+       ptr = ptr->next,
+         first_bit_this_segment += BITS_PER_ENTRY) {
+  }  /* for */
+  if (ptr == NULL) {
+    /* Ran off the end of the list.  All bits out here are presumed
+       to be zero. */
+    flag_value = FALSE;
+  } else {
+    bit_number = needed_flag_bit_number - first_bit_this_segment;
+    byte_number = bit_number / CHAR_BIT;
+    bit_number  = bit_number % CHAR_BIT;
+    flag_value = (ptr->bytes[byte_number] >> bit_number) & 1;
+  }  /* if */
+  return flag_value;
+#undef BITS_PER_ENTRY
+}  /* instantiation_needed_flag_is_set */
+
+#if !STANDALONE_UTILITY_PROGRAM
+
+a_boolean set_instantiation_needed_flag(a_source_correspondence *scp)
+/*
+Set to TRUE the per-instantiation "needed" flag associated with source
+correspondence entry *scp and with the bit number given by global variable
+needed_flag_bit_number.  Return the new setting (TRUE), since that is
+convenient for the macro that uses this function.
+*/
+{
+  a_per_instantiation_needed_flags_entry_ptr
+                ptr, prev_ptr;
+  unsigned long first_bit_this_segment;
+  unsigned long byte_number;
+  unsigned int  bit_number;
+#define BITS_PER_ENTRY (BYTES_PER_INSTANTIATION_NEEDED_FLAG_ENTRY*CHAR_BIT)
+
+  /* Loop through the list of entries to find the one containing the
+     bit we want to test. */
+  for (prev_ptr = NULL,
+         ptr = scp->per_instantiation_needed_flags,
+         first_bit_this_segment = 1;
+       ;
+       prev_ptr = ptr,
+         ptr = ptr->next,
+         first_bit_this_segment += BITS_PER_ENTRY) {
+    if (ptr == NULL) {
+      /* Ran off the end of the list, so allocate another entry. */
+      ptr = alloc_per_instantiation_needed_flags_entry(in_file_scope(scp));
+      if (prev_ptr == NULL) {
+        scp->per_instantiation_needed_flags = ptr;
+      } else {
+        prev_ptr->next = ptr;
+      }  /* if */
+    }  /* if */
+    if ((first_bit_this_segment + BITS_PER_ENTRY) > needed_flag_bit_number) {
+      /* This segment contains the bit we want. */
+      break;
+    }  /* if */
+  }  /* for */
+  bit_number = needed_flag_bit_number - first_bit_this_segment;
+  byte_number = bit_number / CHAR_BIT;
+  bit_number  = bit_number % CHAR_BIT;
+  ptr->bytes[byte_number] |= ((unsigned)1 << bit_number);
+  return TRUE;
+#undef BITS_PER_ENTRY
+}  /* set_instantiation_needed_flag */
+
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
 
 a_namespace_ptr f_skip_namespace_aliases(a_namespace_ptr nsp)
 /*

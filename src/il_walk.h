@@ -95,43 +95,6 @@ extern void walk_routine_scope_il(
 
 #endif /* IL_WALK_NEEDED */
 
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
-EXTERN unsigned long
-		needed_flag_bit_number /* = 0 */;
-			/* If non-zero, indicates that instead of the normal
-			   "needed" flag in the source correspondence entry,
-			   the so-numbered bit in the
-			   per_instantiation_needed_flags bit vector is to
-			   be tested and set by the "needed" flag
-			   processing. */
-
-extern void set_per_instantiation_needed_flag(char             *entry_ptr,
-                                              an_il_entry_kind entry_kind,
-                                              unsigned long    bit_number);
-
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
-
-/* Macro to fetch the value of the needed flag. */
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
-#define needed_flag_is_set(scp) \
-  (needed_flag_bit_number == 0 ? (scp)->needed : \
-                                 instantiation_needed_flag_is_set(scp))
-extern a_boolean instantiation_needed_flag_is_set(
-                                                 a_source_correspondence *scp);
-#else /* !MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
-#define needed_flag_is_set(scp) ((scp)->needed)
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
-/* Macro to set the value of the needed flag. */
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
-#define set_needed_flag(scp) \
-  (needed_flag_bit_number == 0 ? ((scp)->needed = TRUE) : \
-                                 set_instantiation_needed_flag(scp))
-extern a_boolean set_instantiation_needed_flag(a_source_correspondence *scp);
-#else /* !MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
-#define set_needed_flag(scp) ((scp)->needed = TRUE)
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
-
-
 #if MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM
 extern void mark_as_needed(char             *entry_ptr,
                            an_il_entry_kind entry_kind);
