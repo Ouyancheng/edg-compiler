@@ -2336,10 +2336,23 @@ added to the scope symbols list and is not linked into the symbol table.
     /* Restore the path to what it was originally. */
     tail->next = NULL;
 #endif /* if 0 */
+    a_base_class_ptr  ref_bcp = path->base_class;
+
+    if (ref_bcp->derived_class != class_ptr) {
+      ref_bcp = corresponding_base_class(ref_bcp, class_ptr,
+                                         (a_base_class_ptr)NULL);
+    }  /* if */
+    check_assertion(ref_bcp->direct || ref_bcp->is_virtual);
     for (; bcp != NULL; bcp = bcp->next) {
       if (bcp->type == pdp->fundamental_symbol->class_of_which_a_member) {
-        if (!bcp->ambiguous ||
-            congruent_paths(preferred_derivation_of(bcp)->path, path)) {
+        /* ref_bcp is the root of a path to the base class where the
+           inherited name was found.  Be sure ref_bcp is also on the path to
+           bcp before deciding the bcp is the base class of the fundamental
+           symbol.  Note since the inheritance is ambiguous there may be
+           several base classes that match the type in question, and there
+           may be more than one for which ref_bcp is on the path. */
+        if (!bcp->ambiguous || ref_bcp == bcp ||
+            is_on_any_derivation_of(ref_bcp, bcp)) {
           pdp->fundamental_base_class = bcp;
           break;
         }  /* if */
@@ -4701,10 +4714,16 @@ check_rout_type:
          projection. */
       if (sym1->kind == (a_symbol_kind)sk_projection) {
         temp_bcp = sym1->variant.projection.extra_info->fundamental_base_class;
+        temp_bcp = corresponding_base_class(temp_bcp,
+                                            path1->base_class->derived_class,
+                                            path1->base_class);
         path1 = preferred_derivation_of(temp_bcp)->path;
       }  /* if */
       if (sym2->kind == (a_symbol_kind)sk_projection) {
         temp_bcp = sym2->variant.projection.extra_info->fundamental_base_class;
+        temp_bcp = corresponding_base_class(temp_bcp,
+                                            path2->base_class->derived_class,
+                                            path2->base_class);
         path2 = preferred_derivation_of(temp_bcp)->path;
       }  /* if */
       /* Find the end of each path. */
