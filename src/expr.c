@@ -5197,6 +5197,11 @@ This is the C++ syntax.  C++ type-id is the same as C type-name.
                                 TOPT_SUPPRESS_MEMBER_FUNC_TO_PM_CONVERSION |
                                 TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION));
     typeid_type = operand.type;
+    if (is_sym_for_member_operand(&operand)) {
+      /* Can't take typeid of a member function.  Diagnose it as an
+         attempt to use a nonstandard pointer to member syntax. */
+      conv_sym_for_member_operand_to_ptr_to_member(&operand);
+    }  /* if */
     /* *p and p[expr] yielding polymorphic class objects are special cases
        that use runtime typeid determination. */
     if (is_an_lvalue(&operand) &&
