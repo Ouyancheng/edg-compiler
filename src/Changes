@@ -1,5 +1,16 @@
 Version 2.33
 
+9/17/96 Internal error on invalid pseudo-destructor call
+
+An internal error resulted from compiling the following invalid code.
+This has been fixed.
+
+  typedef int T;
+  void f()
+  {
+    T::~T();
+  }
+
 9/17/96 Overload resolution: reference to non-const cannot be bound to result
         of promotion or standard conversion
 

@@ -7420,7 +7420,7 @@ qualified name.
          following the "::" is a tilde, then the identifier we are looking
          up doesn't have to be a class name.  If the class lookup fails,
          do another lookup without the requirement that a class be found. */
-      might_be_vacuous_dtor = next_tok_2 == tok_compl;
+      might_be_vacuous_dtor = next_tok_2 == tok_compl && can_be_vacuous_dtor;
       /* The lookup of a class name in a qualified name is done as a
          "must be class (or namespace)" lookup.  If, however, the name
          being scanned is followed by a "<" we don't yet know whether this
@@ -7630,7 +7630,8 @@ qualified name.
            requirement that a class be found. */
         if (!err) {
 
-          a_boolean	might_be_vacuous_dtor = next_tok_2 == tok_compl;
+          a_boolean	might_be_vacuous_dtor = next_tok_2 == tok_compl &&
+                                                can_be_vacuous_dtor;
           if (qualifier_is_type && qualifier_type_is_class) {
             /* Make sure that this class has been instantiated. */
             complete_class_type_is_needed(qualifier_type);
