@@ -6386,9 +6386,9 @@ NULL.
       } else if (storage_class == (a_storage_class)sc_extern) {
         /* No warning for unused "extern" variables; this is a long-standing
            C convention. */
-      } else if (storage_class == (a_storage_class)sc_static &&
-                 is_const_qualified_type(var_ptr->type) &&
+      } else if (C_dialect == C_dialect_cplusplus &&
                  depth_scope_stack == DEPTH_OF_FILE_SCOPE &&
+                 is_const_qualified_type(var_ptr->type) &&
                  seq_is_in_include_file(sym->decl_position.seq)) {
         /* Since a const variable defined in a header is the C++ idiom
            corresponding to #define, issue no diagnostic on not using it. */
