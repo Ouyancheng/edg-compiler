@@ -2917,7 +2917,7 @@ of the function, and again overloading is a possibility.
       }  /* if */
       if (sym != NULL) {
         /* Do throw specification compatibility checking. */
-        add_throw_specification(func_info, sym->variant.routine.ptr);
+        check_throw_specification(func_info, sym->variant.routine.ptr);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -4165,7 +4165,7 @@ routine body is generated at this time.
     }  /* if */
   }  /* if */
   clear_func_info(&func_info);
-  set_to_throw_anything(&func_info, &pos_curr_token);
+  if (!exceptions_disabled) func_info.throw_position = pos_curr_token;
   func_info.is_inline = TRUE;
   /* Create a symbol and enter it in the symbol table, and create a routine
      entry and add it to the routines list for the current scope. */
