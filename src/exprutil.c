@@ -1536,7 +1536,7 @@ void discard_operand(an_operand *operand)
 /*
 Discard the indicated operand.  It has been scanned as a normal operand,
 but it's now known that it should have been a not-evaluated operand.
-This is only used in C++, for left operands of field selections.
+This is only used in C++, for some strange cases.
 */
 {
   /* The references in the operand aren't real references. */
