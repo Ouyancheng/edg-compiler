@@ -300,11 +300,12 @@ static void unimplemented_keyword_diagnostic(a_symbol_ptr  sym)
 Issue a diagnostic on unimplemented keywords.
 */
 {
-  if (!sym->variant.keyword.unimplemented_diagnostic_issued) {
+  if (sym->variant.keyword.diagnostic_issued_if_used != ec_no_error) {
     an_error_severity severity;
     severity = strict_ansi_mode ? strict_ansi_error_severity : es_remark;
-    sym_diagnostic(severity, ec_unimplemented_keyword, sym);
-    sym->variant.keyword.unimplemented_diagnostic_issued = TRUE;
+    sym_diagnostic(severity,
+		   sym->variant.keyword.diagnostic_issued_if_used, sym);
+    sym->variant.keyword.diagnostic_issued_if_used = ec_no_error;
   }  /* if */
 }  /* unimplemented_keyword_diagnostic */
 

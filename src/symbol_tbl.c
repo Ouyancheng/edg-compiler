@@ -1362,7 +1362,7 @@ state.
       break;
     case sk_keyword:
       sym_ptr->variant.keyword.token = tok_error;
-      sym_ptr->variant.keyword.unimplemented_diagnostic_issued = FALSE;
+      sym_ptr->variant.keyword.diagnostic_issued_if_used = ec_no_error;
       break;
     case sk_macro:
       sym_ptr->variant.macro_def = NULL;

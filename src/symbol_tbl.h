@@ -1283,11 +1283,12 @@ typedef struct a_symbol {
       a_token_kind
 		token;
 			/* For keywords, the token identifying the keyword. */
-      a_byte_boolean
-		unimplemented_diagnostic_issued;
-			/* TRUE if this is an unimplemented keyword and we
-			   have already issued a diagnostic indicating that
-			   this reserved word has been used. */
+      an_error_code
+		diagnostic_issued_if_used;
+			/* The error code of a diagnostic to be issued
+			   the first time that this keyword is used.
+			   The error code is replaced with ec_no_error
+			   after the diagnostic has been issued. */
     } keyword;
     /* When kind == sk_macro: */
     a_macro_def_ptr
