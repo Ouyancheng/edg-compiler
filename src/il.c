@@ -143,16 +143,19 @@ Hash table containing shareable constants (i.e., constants that can be
 reused when necessary, representing simple literal constants, so that
 for example there would only be one constant for the literal "0").
 */
-#define SIZE_SHAREABLE_CONSTANTS_TABLE 16381
+#define SIZE_SHAREABLE_CONSTANTS_TABLE 2039
 			/* Size of the table; should be about twice
 			   the expected number of entries for a big
 			   program, and must be prime. */
 static a_constant_ptr
-		shareable_constants_table[SIZE_SHAREABLE_CONSTANTS_TABLE];
+		*shareable_constants_table;
 			/* Each entry in the table points to a linear
 			   linked list of constant entries.  The function
 			   hash_constant is used to determine the table
-			   entry/list that corresponds to a given constant. */
+			   entry/list that corresponds to a given constant.
+			   The table is a trans-unit array that is dynamically
+			   allocated when the translation unit is
+			   initialized. */ 
 
 #if DEBUG
 static unsigned long
@@ -15765,7 +15768,7 @@ in il_init.)
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
       pch_array_saved_var_array_elem(string_types),
       pch_array_saved_var_array_elem(wide_string_types),
-      pch_array_saved_var_array_elem(shareable_constants_table),
+      pch_saved_var_array_elem(shareable_constants_table),
       pch_saved_var_array_elem(curr_object_lifetime),
 #if ORPHAN_PROCESSING_NEEDED
       pch_array_saved_var_array_elem(orphaned_file_scope_il_entries),
@@ -15817,7 +15820,7 @@ in il_init.)
   register_trans_unit_variable(il_void_type);
   register_trans_unit_variable(il_wchar_t_type);
   register_trans_unit_variable(il_bool_type);
-  register_trans_unit_array(shareable_constants_table);
+  register_trans_unit_variable(shareable_constants_table);
   register_trans_unit_variable(seq_cache);
   /* Global variables declared in il.h. */
   register_trans_unit_array_with_field(orphaned_file_scope_il_entries,
@@ -15899,8 +15902,10 @@ need initialization for every (primary and secondary) translation unit.
   il_wchar_t_type = NULL;
   il_bool_type = NULL;
   il_error_type = il_unknown_type = il_void_type = NULL;
-  memzero((char *)shareable_constants_table,
-          sizeof(shareable_constants_table));
+  { sizeof_t size = sizeof(a_constant_ptr) * SIZE_SHAREABLE_CONSTANTS_TABLE;
+    shareable_constants_table = (a_constant_ptr*)alloc_fe(size);
+    memzero((char *)shareable_constants_table, size_t_arg(size));
+  }
 #if ORPHAN_PROCESSING_NEEDED
   /* Initialize the orphaned_file_scope_il_entries array to NULL
      pointers. */
