@@ -8721,12 +8721,12 @@ position for any calls of copy_type_with_substitution.  If there is an
 error in the copying (specifically, if there is an error in doing
 substitution on a type), set *copy_error to TRUE.  If the expression
 after substitution is a constant, set *alloc_con to the address of the
-constant and return NULL.  If there no allocated copy of the constant,
+constant and return NULL.  If there is no allocated copy of the constant,
 set *alloc_con to NULL, set *constant to the constant value, and
 return NULL.  options is a set of name lookup options.
 */
 {
-  an_expr_node_ptr expr_copy = expr;
+  an_expr_node_ptr expr_copy = NULL;
 
   *alloc_con = NULL;
   switch (expr->kind) {
@@ -8818,20 +8818,16 @@ return NULL.  options is a set of name lookup options.
             folded_to_constant = TRUE;
             if (operand_2 != NULL) {
               if (operand_3 != NULL) {
-                if (op == (an_expr_operator_kind)eok_question) {
-                  /* Three-operand operation, "?". */
-                  if (is_false_constant(&constant_1)) {
-                    /* Operand 1 is false, so the result is operand 3. */
-                    *alloc_con = alloc_con_3;
-                    if (alloc_con_3 == NULL) *constant = constant_3;
-                  } else {
-                    /* Operand 1 is true, so the result is operand 2. */
-                    *alloc_con = alloc_con_2;
-                    if (alloc_con_2 == NULL) *constant = constant_2;
-                  }  /* if */
+                check_assertion(op == (an_expr_operator_kind)eok_question);
+                /* Three-operand operation, "?". */
+                if (is_false_constant(&constant_1)) {
+                  /* Operand 1 is false, so the result is operand 3. */
+                  *alloc_con = alloc_con_3;
+                  if (alloc_con_3 == NULL) *constant = constant_3;
                 } else {
-                  /* Things like calls.  Cannot be folded to constants. */
-                  folded_to_constant = FALSE;
+                  /* Operand 1 is true, so the result is operand 2. */
+                  *alloc_con = alloc_con_2;
+                  if (alloc_con_2 == NULL) *constant = constant_2;
                 }  /* if */
               } else {
                 /* Two-operand operation. */
