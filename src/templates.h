@@ -252,32 +252,36 @@ extern void check_for_uninstantiated_template_class(a_type_ptr  type);
 
 extern void f_instantiate_template_class(a_type_ptr  type);
 
+extern a_boolean is_template_param_from_list(
+		        a_template_param_coordinate_ptr	coordinates,
+			a_template_param_ptr		templ_param_list);
+
 extern a_template_arg_ptr copy_template_arg_list_with_substitution(
-			a_template_arg_ptr		template_arg_list,
-			a_template_param_ptr		template_param_list,
-			a_template_arg_ptr		subst_arg_list,
-			a_template_nesting_depth	depth,
+			a_template_arg_ptr		arg_list_to_copy,
+			a_template_param_ptr		param_list_for_copy,
+			a_template_arg_ptr		templ_arg_list,
+			a_template_param_ptr		templ_param_list,
 			a_source_position		*source_pos,
 			a_ctws_options_set		options,
 			a_boolean			*copy_error);
 
 extern a_symbol_ptr copy_parent_type_with_substitution(
-				a_symbol_ptr			sym,
-				a_type_ptr			parent_type,
-				a_template_arg_ptr		templ_arg_list,
-				a_template_nesting_depth	depth,
-				a_source_position		*source_pos,
-				a_boolean			is_type,
-				a_ctws_options_set		options,
-				a_boolean			*copy_error);
+			a_symbol_ptr			sym,
+			a_type_ptr			parent_type,
+			a_template_arg_ptr		templ_arg_list,
+			a_template_param_ptr		templ_param_list,
+			a_source_position		*source_pos,
+			a_boolean			is_type,
+			a_ctws_options_set		options,
+			a_boolean			*copy_error);
 
 extern a_type_ptr copy_type_with_substitution(
-				a_type_ptr			type,
-				a_template_arg_ptr		templ_arg_list,
-				a_template_nesting_depth	depth,
-				a_source_position		*source_pos,
-				a_ctws_options_set		options,
-				a_boolean			*copy_error);
+			a_type_ptr			type,
+			a_template_arg_ptr		templ_arg_list,
+			a_template_param_ptr		templ_param_list,
+			a_source_position		*source_pos,
+			a_ctws_options_set		options,
+			a_boolean			*copy_error);
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 extern a_type_ptr instantiate_type_for_template_function(

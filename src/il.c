@@ -7898,7 +7898,7 @@ to TRUE.  *source_pos gives the source position for errors.
 static a_constant_ptr copy_template_param_con(
                                   a_constant_ptr           con,
                                   a_template_arg_ptr       template_arg_list,
-                                  a_template_nesting_depth depth,
+                                  a_template_param_ptr     template_param_list,
                                   a_type_ptr               guide_type,
                                   a_source_position        *source_pos,
                                   a_ctws_options_set       options,
@@ -7933,7 +7933,7 @@ to an already-allocated constant; otherwise, constant points to the
 static an_expr_node_ptr copy_template_param_expr(
                                   an_expr_node_ptr         expr,
                                   a_template_arg_ptr       template_arg_list,
-                                  a_template_nesting_depth depth,
+                                  a_template_param_ptr     template_param_list,
                                   a_source_position        *source_pos,
                                   a_ctws_options_set       options,
                                   a_boolean                *copy_error,
@@ -7942,13 +7942,14 @@ static an_expr_node_ptr copy_template_param_expr(
 /*
 Copy the expression expr, and return a pointer to the copy.  The expression
 is a constant expression that is part of a template argument expression.
-In the process of copying, replace any template parameters at depth "depth"
+In the process of copying, replace any template parameters
 with the corresponding values from the template argument list
-template_arg_list.  source_pos provides the source position for any
-calls of copy_type_with_substitution.  If there is an error in the
-copying (specifically, if there is an error in doing substitution
-on a type), set *copy_error to TRUE.  If the expression after
-substitution is a constant, set *alloc_con to the address of the
+template_arg_list.  template_param_list is the parameter list for which
+template_arg_list is an argument list.  source_pos provides the source
+position for any calls of copy_type_with_substitution.  If there is an
+error in the copying (specifically, if there is an error in doing
+substitution on a type), set *copy_error to TRUE.  If the expression
+after substitution is a constant, set *alloc_con to the address of the
 constant and return NULL.  If there no allocated copy of the constant,
 set *alloc_con to NULL, set *constant to the constant value, and
 return NULL.  options is a set of name lookup options.
@@ -7963,7 +7964,7 @@ return NULL.  options is a set of name lookup options.
          the constant after substitution. */
       *alloc_con = copy_template_param_con(expr->variant.constant,
                                            template_arg_list,
-                                           depth,
+                                           template_param_list,
                                            (a_type_ptr)NULL,
                                            source_pos,
                                            options,
@@ -7987,7 +7988,7 @@ return NULL.  options is a set of name lookup options.
         /* Do substitution on the operands. */
         new_operand_1 = copy_template_param_expr(operand_1,
                                                  template_arg_list,
-                                                 depth,
+                                                 template_param_list,
                                                  source_pos,
                                                  options,
                                                  copy_error,
@@ -7996,7 +7997,7 @@ return NULL.  options is a set of name lookup options.
         if (operand_2 != NULL) {
           new_operand_2 = copy_template_param_expr(operand_2,
                                                    template_arg_list,
-                                                   depth,
+                                                   template_param_list,
                                                    source_pos,
                                                    options,
                                                    copy_error,
@@ -8006,7 +8007,7 @@ return NULL.  options is a set of name lookup options.
           if (operand_3 != NULL) {
             new_operand_3 = copy_template_param_expr(operand_3,
                                                      template_arg_list,
-                                                     depth,
+                                                     template_param_list,
                                                      source_pos,
                                                      options,
                                                      copy_error,
@@ -8116,7 +8117,7 @@ return NULL.  options is a set of name lookup options.
 static a_constant_ptr copy_template_param_unknown_entity_con(
                                   a_constant_ptr           con,
                                   a_template_arg_ptr       template_arg_list,
-                                  a_template_nesting_depth depth,
+                                  a_template_param_ptr     template_param_list,
                                   a_type_ptr               guide_type,
                                   a_boolean                is_address,
                                   a_boolean                is_template_ref,
@@ -8127,23 +8128,25 @@ static a_constant_ptr copy_template_param_unknown_entity_con(
                                   a_constant_ptr           constant)
 /*
 Copy the ck_template_param/tpck_member or .../tpck_unknown_function
-constant "con", replacing any occurrences of template parameters at depth
-"depth" with the corresponding values from the template argument list
+constant "con", replacing any occurrences of template parameters
+with the corresponding values from the template argument list
 template_arg_list, and return a pointer to the copy after
-substitution.  If there is no allocated instance of the constant, set
-*constant to the constant value and return NULL.  If guide_type is
-non-NULL, it is a "guide" type for the constant, either the type of
-the template parameter or the destination type of a cast above this
-constant.  is_address is TRUE if the constant produced should be for
-the address of the member rather than the value (e.g., there is a
-tpck_address constant over this constant).  is_template_ref is TRUE if
-the constant produced should be for a function template followed by
-explicit arguments (i.e., there is a tpck_template_ref over this
-constant); ref_arg_list provides the explicit argument list in that
-case.  source_pos provides the source position for any calls of
-copy_type_with_substitution.  If there is an error in the copying
-(specifically, if there is an error in doing substitution on a type),
-set *copy_error to TRUE.  options is a set of name lookup options.
+substitution.  template_param_list is the parameter list for which
+template_arg_list is an argument list.  If there is no allocated
+instance of the constant, set *constant to the constant value and
+return NULL.  If guide_type is non-NULL, it is a "guide" type for the
+constant, either the type of the template parameter or the destination
+type of a cast above this constant.  is_address is TRUE if the
+constant produced should be for the address of the member rather than
+the value (e.g., there is a tpck_address constant over this constant).
+is_template_ref is TRUE if the constant produced should be for a
+function template followed by explicit arguments (i.e., there is a
+tpck_template_ref over this constant); ref_arg_list provides the
+explicit argument list in that case.  source_pos provides the source
+position for any calls of copy_type_with_substitution.  If there is an
+error in the copying (specifically, if there is an error in doing
+substitution on a type), set *copy_error to TRUE.  options is a set of
+name lookup options.
 */
 {
   a_constant_ptr con_copy;
@@ -8174,7 +8177,8 @@ set *copy_error to TRUE.  options is a set of name lookup options.
     check_assertion(orig_sym != NULL && con->source_corresp.is_class_member);
     parent_type = con->source_corresp.parent.class_type;
     sym = copy_parent_type_with_substitution(orig_sym, parent_type,
-                                             template_arg_list, depth,
+                                             template_arg_list,
+                                             template_param_list,
                                              source_pos,
                                              /*is_type=*/FALSE,
                                              options,
@@ -8188,7 +8192,8 @@ set *copy_error to TRUE.  options is a set of name lookup options.
       if (conv_type != NULL) {
         /* Substitute the any template parameters in the conversion type. */
         conv_type = copy_type_with_substitution(conv_type, template_arg_list,
-                                                depth, source_pos,
+                                                template_param_list,
+                                                source_pos,
                                                 options, copy_error);
         /* Look for a conversion function that converts to the new type. */
         sym = look_up_conversion_function(parent_type, conv_type, source_pos);
@@ -8269,7 +8274,7 @@ set *copy_error to TRUE.  options is a set of name lookup options.
 static a_constant_ptr copy_template_param_con(
                                   a_constant_ptr           con,
                                   a_template_arg_ptr       template_arg_list,
-                                  a_template_nesting_depth depth,
+                                  a_template_param_ptr     template_param_list,
                                   a_type_ptr               guide_type,
                                   a_source_position        *source_pos,
                                   a_ctws_options_set       options,
@@ -8277,22 +8282,25 @@ static a_constant_ptr copy_template_param_con(
                                   a_constant_ptr           constant)
 /*
 Copy a ck_template_param constant, replacing any occurrences of
-template parameters at depth "depth" with the corresponding values from
-the template argument list template_arg_list, and return a pointer to
-the copy after substitution.  If there is no allocated instance of the
-constant, set *constant to the constant value and return NULL.
-If guide_type is non-NULL, it is a "guide" type for the constant,
-either the type of the template parameter or the destination type
-of a cast above this constant.  source_pos provides the source position
-for any calls of copy_type_with_substitution.  If there is an error in
-the copying (specifically, if there is an error in doing substitution
-on a type), set *copy_error to TRUE.  options is a set of name lookup
-options.
+template parameters with the corresponding values from the template
+argument list template_arg_list, and return a pointer to the copy
+after substitution.  template_param_list is the parameter list for
+which template_arg_list is an argument list.  If there is no allocated
+instance of the constant, set *constant to the constant value and
+return NULL.  If guide_type is non-NULL, it is a "guide" type for the
+constant, either the type of the template parameter or the destination
+type of a cast above this constant.  source_pos provides the source
+position for any calls of copy_type_with_substitution.  If there is an
+error in the copying (specifically, if there is an error in doing
+substitution on a type), set *copy_error to TRUE.  options is a set of
+name lookup options.
 */
 {
   a_constant_ptr con_copy, other_con;
   a_type_ptr     new_type;
   a_boolean      did_not_fold;
+  a_template_param_coordinate_ptr
+                 coordinates;
 
   con_copy = con;
   if (con->kind == (a_constant_repr_kind)ck_template_param) {
@@ -8300,7 +8308,9 @@ options.
       case tpck_param:
         /* The template param constant represents a simple non-type template
            parameter.  Replace it if it has the right depth. */
-        if (con->variant.template_param.variant.coordinates.depth == depth) {
+        coordinates = &con->variant.template_param.variant.coordinates;
+        if (is_template_param_from_list(coordinates,
+                                        template_param_list)) {
           a_template_arg_ptr tap = get_template_arg_by_list_pos(
                                             (a_template_param_ptr)NULL,
                                             &template_arg_list,
@@ -8318,7 +8328,8 @@ options.
         /* A member constant, e.g., for a case like A<T>::x. */
         con_copy = copy_template_param_unknown_entity_con(
                                                   con, template_arg_list,
-                                                  depth, guide_type,
+                                                  template_param_list,
+                                                  guide_type,
                                                   /*is_address=*/FALSE,
                                                   /*is_template_ref=*/FALSE,
                                                   (a_template_arg_ptr)NULL,
@@ -8329,7 +8340,8 @@ options.
         /* An unknown function. */
         con_copy = copy_template_param_unknown_entity_con(
                                                   con, template_arg_list,
-                                                  depth, guide_type,
+                                                  template_param_list,
+                                                  guide_type,
                                                   /*is_address=*/TRUE,
                                                   /*is_template_ref=*/FALSE,
                                                   (a_template_arg_ptr)NULL,
@@ -8341,14 +8353,14 @@ options.
            a template parameter type. */
         new_type = copy_type_with_substitution(con->type,
                                                template_arg_list,
-                                               depth,
+                                               template_param_list,
                                                source_pos,
                                                options,
                                                copy_error);
         other_con = copy_template_param_con(
                                  con->variant.template_param.variant.constant,
                                  template_arg_list,
-                                 depth,
+                                 template_param_list,
                                  new_type,
                                  source_pos,
                                  options,
@@ -8389,7 +8401,7 @@ options.
         con_copy = copy_template_param_unknown_entity_con(
                                  con->variant.template_param.variant.constant,
                                  template_arg_list,
-                                 depth, guide_type,
+                                 template_param_list, guide_type,
                                  /*is_address=*/TRUE,
                                  /*is_template_ref=*/FALSE,
                                  (a_template_arg_ptr)NULL,
@@ -8405,7 +8417,7 @@ options.
         new_type = copy_type_with_substitution(con->variant.template_param.
                                                                   variant.type,
                                                template_arg_list,
-                                               depth,
+                                               template_param_list,
                                                source_pos,
                                                options,
                                                copy_error);
@@ -8457,7 +8469,7 @@ options.
                                                     arg_list,
                                                     (a_template_param_ptr)NULL,
                                                     template_arg_list,
-                                                    depth,
+                                                    template_param_list,
                                                     source_pos,
                                                     options,
                                                     copy_error);
@@ -8465,7 +8477,7 @@ options.
           con_copy = copy_template_param_unknown_entity_con(
                                  templ_con,
                                  template_arg_list,
-                                 depth, guide_type,
+                                 template_param_list, guide_type,
                                  /*is_address=*/TRUE,
                                  /*is_template_ref=*/TRUE,
                                  arg_list,
@@ -8478,15 +8490,15 @@ options.
            template parameters.  Substitute the values of the template
            arguments and fold any constant operations that result. */
         { an_expr_node_ptr expr = con->variant.template_param.variant.expr;
-          an_expr_node_ptr expr_copy =
-                                    copy_template_param_expr(expr,
-                                                             template_arg_list,
-                                                             depth,
-                                                             source_pos,
-                                                             options,
-                                                             copy_error,
-                                                             constant,
-                                                             &con_copy);
+          an_expr_node_ptr expr_copy = copy_template_param_expr(
+                                                         expr,
+                                                         template_arg_list,
+                                                         template_param_list,
+                                                         source_pos,
+                                                         options,
+                                                         copy_error,
+                                                         constant,
+                                                         &con_copy);
           if (expr_copy == NULL) {
             /* The expression folds to a constant. */
             /* con_copy and constant are already set correctly. */
@@ -8510,22 +8522,24 @@ options.
 a_constant_ptr copy_template_param_con_with_substitution(
                                   a_constant_ptr           con,
                                   a_template_arg_ptr       template_arg_list,
-                                  a_template_nesting_depth depth,
+                                  a_template_param_ptr     template_param_list,
                                   a_type_ptr               template_param_type,
                                   a_source_position        *source_pos,
                                   a_ctws_options_set       options,
                                   a_boolean                *copy_error)
 /*
-Copy a ck_template_param constant, and return a pointer to the
-copy.  In the process of copying, replace any template parameters at
-depth "depth" with the corresponding values from the template argument list
-template_arg_list.  template_param_type, if non-NULL, is the type of the
-template parameter for which con is the actual argument.  source_pos
-provides the source position for any calls of copy_type_with_substitution.
-If there is an error in the copying (specifically, if there is an error
-in doing substitution on a type), set *copy_error to TRUE.  The copy of
-the constant is always placed in the file scope memory region.  options
-is a set of name lookup options.
+Copy a ck_template_param constant, and return a pointer to the copy.
+In the process of copying, replace any template parameters with the
+corresponding values from the template argument list
+template_arg_list.  template_param_list is the parameter list for
+which template_arg_list is an argument list.  template_param_type, if
+non-NULL, is the type of the template parameter for which con is the
+actual argument.  source_pos provides the source position for any
+calls of copy_type_with_substitution.  If there is an error in the
+copying (specifically, if there is an error in doing substitution on a
+type), set *copy_error to TRUE.  The copy of the constant is always
+placed in the file scope memory region.  options is a set of name
+lookup options.
 */
 {
   a_constant_ptr con_copy;
@@ -8536,7 +8550,7 @@ is a set of name lookup options.
   switch_to_file_scope_region(&region_to_switch_back_to);
   con_copy = copy_template_param_con(con,
                                      template_arg_list,
-                                     depth,
+                                     template_param_list,
                                      template_param_type,
                                      source_pos,
                                      options,

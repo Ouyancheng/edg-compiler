@@ -545,6 +545,8 @@ extern a_constant_ptr alloc_shareable_constant(a_constant *cp);
    "struct" form is used instead of the typedef name to avoid having to
    include symbol_tbl.h. */
 typedef struct a_scope_stack_entry a_scope_stack_entry_dummy_typedef;
+/* Likewise for a_template_param. */
+typedef struct a_template_param a_template_param_dummy_typedef;
 extern a_scope_ptr ensure_il_scope_exists(struct a_scope_stack_entry *ssep);
 
 extern void add_to_namespaces_list(a_namespace_ptr  nsp);
@@ -685,13 +687,13 @@ typedef int a_ctws_options_set;
 			   to the nonreal class of the same name. */
 
 extern a_constant_ptr copy_template_param_con_with_substitution(
-                                  a_constant_ptr           con,
-                                  a_template_arg_ptr       template_arg_list,
-                                  a_template_nesting_depth depth,
-                                  a_type_ptr               template_param_type,
-                                  a_source_position        *source_pos,
-                                  a_ctws_options_set       options,
-                                  a_boolean                *copy_error);
+                                 a_constant_ptr           con,
+                                 a_template_arg_ptr       template_arg_list,
+                                 struct a_template_param  *template_param_list,
+                                 a_type_ptr               template_param_type,
+                                 a_source_position        *source_pos,
+                                 a_ctws_options_set       options,
+                                 a_boolean                *copy_error);
 
 extern a_boolean is_operator_returning_bool(an_expr_operator_kind op);
 
