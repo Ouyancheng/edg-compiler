@@ -8612,13 +8612,21 @@ TRUE if a symbol that can only be a vacuous destructor is returned.
                     is_class_struct_union_type(class_type) &&
                     class_type->variant.class_struct_union.
                                          extra_info->assoc_scope != NULL;
+  /* Only get normal_sym from the locator if a fundamental symbol was
+     returned by the lookup.  The specific symbol in the locator could
+     be non-NULL in error cases. */ 
   normal_fund_sym = normal_id_lookup(&locator_for_curr_id, lookup_kind);
-  normal_sym = locator_for_curr_id.specific_symbol;
+  normal_sym = normal_fund_sym == NULL ? NULL
+                                       : locator_for_curr_id.specific_symbol;
   if (do_class_lookup) {
     clear_specific_symbol(locator_for_curr_id);
+    /* Only get class_sym from the locator if a fundamental symbol was
+       returned by the lookup.  The specific symbol in the locator could
+       be non-NULL in error cases. */
     class_fund_sym = class_qualified_id_lookup(&locator_for_curr_id,
                                                class_type, lookup_kind);
-    class_sym = locator_for_curr_id.specific_symbol;
+    class_sym = class_fund_sym == NULL ? NULL
+                                       : locator_for_curr_id.specific_symbol;
     sym = select_dual_lookup_symbol(normal_fund_sym, normal_sym, 
                                     class_fund_sym, class_sym,
                                     might_be_template);
