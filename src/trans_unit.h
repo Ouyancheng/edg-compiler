@@ -95,7 +95,7 @@ typedef struct a_translation_unit {
 			   the translation unit is being processed. */
 #if ORPHAN_PROCESSING_NEEDED
   an_orphaned_il_entry_list
-		**orphaned_file_scope_il_entries;
+		*orphaned_file_scope_il_entries;
 			/* Pointer to the orphaned file scope IL entry array
 			   for this translation unit. */
 #endif /* ORPHAN_PROCESSING_NEEDED */

@@ -541,8 +541,7 @@ a pointer to the entry created.
      or the copy in the variables block of the translation unit entry).
      These should be initialized with a pointer to the global variable. */
 #if ORPHAN_PROCESSING_NEEDED
-  tup->orphaned_file_scope_il_entries =
-                   (an_orphaned_il_entry_list**)orphaned_file_scope_il_entries;
+  tup->orphaned_file_scope_il_entries = orphaned_file_scope_il_entries;
 #endif /* ORPHAN_PROCESSING_NEEDED */
   return tup;
 }  /* alloc_translation_unit */
