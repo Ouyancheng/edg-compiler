@@ -1467,16 +1467,16 @@ do_set_proper_definition_needed_flag:
       break;
 #endif /* !NEEDED_FLAG_WALK */
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
-#if RECORD_TEMPLATE_STRINGS
     case iek_template:
       {
         a_template_ptr ptr = (a_template_ptr)entry_ptr;
         walk_source_corresp(ptr->source_corresp);
         remap_next_ptr(ptr->next, a_template_ptr, iek_template);
+#if RECORD_TEMPLATE_STRINGS
         walk_string_ptr(ptr->text, iek_other_text, 0);
+#endif /* RECORD_TEMPLATE_STRINGS */
       }
       break;
-#endif /* RECORD_TEMPLATE_STRINGS */
 #if RECORD_MACROS_IN_IL
     case iek_macro:
       {
@@ -1643,9 +1643,7 @@ do_set_proper_definition_needed_flag:
         walk_list(ptr->vla_dimensions, a_vla_dimension_ptr, iek_vla_dimension);
 #endif /* ifdef CFE */
         walk_list(ptr->pragmas, a_pragma_ptr, iek_pragma);
-#if RECORD_TEMPLATE_STRINGS
         walk_list(ptr->templates, a_template_ptr, iek_template);
-#endif /* RECORD_TEMPLATE_STRINGS */
 #ifdef FFE
         walk_list(ptr->entries, an_entry_description_ptr,
                   iek_entry_description);
