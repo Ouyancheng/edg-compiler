@@ -10765,6 +10765,7 @@ the IL, the template header is passed via template_decl.
             set_routine_declared_type(rout_ptr, func_info.declared_type);
             rout_ptr->template_decl = template_decl;
           }  /* if */
+          check_assertion(nonclass_prototype_instantiations);
         } else {
           a_routine_ptr  rout_ptr = rout_sym->variant.template_info
                                             ->variant.function.routine;

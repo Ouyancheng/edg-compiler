@@ -5868,6 +5868,7 @@ recorded in the IL, the template header is passed via template_decl.
 #if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
   if (prototype_instantiations_in_il) {
     a_source_sequence_entry_ptr  ssep;
+    check_assertion(nonclass_prototype_instantiations);
     if (sym->kind == (a_symbol_kind)sk_function_template) {
       /* We have already recorded (mark_defined/mark_declared) the template in
          the code above, but not the prototype instantiation. */

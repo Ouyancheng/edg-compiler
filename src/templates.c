@@ -11182,6 +11182,7 @@ returned to the caller.
       source_sequence_entries_disallowed = saved_sses_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     } else {
+      check_assertion(nonclass_prototype_instantiations);
       sym->variant.static_data_member.variable->template_decl =
                                                     decl_state->template_decl;
     }  /* if */
@@ -11926,9 +11927,9 @@ also for template template parameters (when is_template_param is TRUE).
   a_template_decl_info_ptr	    prev_template_decl_info = NULL;
   a_template_decl_info_ptr	    template_decl_info = NULL;
   a_boolean			    param_list_seen = FALSE;
-#if PROTOTYPE_INSTANTIATIONS_IN_IL && EXTRA_SOURCE_POSITIONS_IN_IL
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
   a_source_position                 template_pos;
-#endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL && EXTRA_SOURCE_POSITIONS_IN_IL */
+#endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 
   /* Loop until there are no more template parameter clauses.  Note that
      this routine is not called for explicit instantiations, in which
@@ -11941,9 +11942,9 @@ also for template template parameters (when is_template_param is TRUE).
     /* Bypass "template".  The next token should be "<".  This is done
        before the scope is pushed so that any pragma associated with the
        tok_template token will be processed in the current scope. */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL && EXTRA_SOURCE_POSITIONS_IN_IL
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
     template_pos = pos_curr_token;
-#endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL && EXTRA_SOURCE_POSITIONS_IN_IL */
+#endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
     (void)get_token();
     if (curr_token == tok_lt) {
       /* Bypass the "<". */
@@ -12333,6 +12334,7 @@ any non-empty template parameter lists that were scanned.
       remove_from_src_seq_list(scp->source_sequence_entry);
       scp->source_sequence_entry = NULL;
     }  /* if */
+    check_assertion(nonclass_prototype_instantiations);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL */
   }  /* if */
   if (class_templ_cache_segments != NULL) {
