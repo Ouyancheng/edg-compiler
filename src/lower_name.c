@@ -4586,7 +4586,15 @@ name in the routine entry.
                 routine_should_be_externalized_for_exported_templates(routine);
 #endif /* DO_IL_LOWERING */
 #if IA64_ABI
-  force_primary_name = TRUE;
+  if (routine->special_kind == (a_special_function_kind)sfk_constructor ||
+      routine->special_kind == (a_special_function_kind)sfk_destructor) {
+    /* Use the primary entry point name for constructor and destructors.
+       Alternate entry points for non-inline template constructors and
+       destructors are instantiated when the primary entry point is
+       instantiated (there's only one entry on the instantiation list
+       representing all the entry points). */
+    force_primary_name = TRUE;
+  } /* if */
 #endif /* IA64_ABI */
   if ((routine->source_corresp.name_has_been_mangled &&
        !routine->source_corresp.final_name_mangling_pending &&
@@ -4598,12 +4606,14 @@ name in the routine entry.
     /* The routine should not be unnamed. */
     check_assertion(mangled_name != NULL);
 #if IA64_ABI
-    if (force_primary_name &&
-        (routine->special_kind == (a_special_function_kind)sfk_constructor ||
-         routine->special_kind == (a_special_function_kind)sfk_destructor)) {
+    if (force_primary_name) {
       /* Change the mangled name of a constructor or destructor to the
          complete-object version instead of the internal name (e.g.,
          "C1" in the mangled name instead of "C9"). */
+      check_assertion(routine->special_kind ==
+                                    (a_special_function_kind)sfk_constructor ||
+                      routine->special_kind ==
+                                      (a_special_function_kind)sfk_destructor);
       /* Copy the name to the mangling buffer so we can change it. */
       reset_text_buffer(mangling_text_buffer);
       add_to_text_buffer(mangling_text_buffer, mangled_name,
