@@ -1,5 +1,15 @@
 Version 2.30
 
+9/11/95  C++-generating back end: C mode definition of struct in cast
+
+The C++-generating back end now handles correctly a definition of a
+struct in a cast in an initialization in C mode.
+
+  main() {
+    int a = ((long)((char *)&((struct{char c; int d;}*)0)->d - (char *)0));
+    return a;
+  }
+
 9/10/95  C++-generating back end: output of unnamed enums
 
 The C++-generating back end now puts out unnamed enums without names.
