@@ -839,6 +839,15 @@ value of which may be modified using command line options.
 #define DEFAULT_C99_MODE FALSE
 #endif /* ifndef DEFAULT_C99_MODE */
 
+EXTERN a_boolean
+		c99_mode
+#if VAR_INITIALIZERS
+                         = DEFAULT_C99_MODE
+#endif /* VAR_INITIALIZERS */
+                                           ;
+			/* When TRUE accept language features defined by the
+			   C99 standard. */
+
 /*
 Flag that is TRUE if the C99 predefined macro __STDC_HOSTED__ should be
 set to 1 to indicate a hosted implementation.  If it is FALSE, the macro
