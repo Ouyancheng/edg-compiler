@@ -27,12 +27,12 @@ Note that if the buffer size given is smaller than the size of the
 uncompressed mangled name, the size returned will be enough to uncompress
 the name but not enough to produce the demangled form.  The caller must
 be prepared in that case to loop a second time (the length returned
-the second time will be correct).
+the second time will be correct).  [Patch sent out 5/27/99.]
 
 3/16/99  Demangling of compressed names
 
 In some cases, the demangler failed to demangle compressed mangled names.
-Now fixed.
+Now fixed.  [Patch sent out 3/19/99.]
 
 3/12/99  Prelinker problem in copy-if-nonlocal mode
 
