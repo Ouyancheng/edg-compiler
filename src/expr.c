@@ -14412,7 +14412,9 @@ handle_trapped_left_paren:
 
         if (curr_token == tok_typename) {
           /* "typename X::Y" is an allowed form of type. */
-          typename_specifier(&cast_type, /*within_using_decl=*/FALSE,
+          a_symbol_ptr	type_sym;
+          typename_specifier(&cast_type, &type_sym,
+                             /*within_using_decl=*/FALSE,
                              (a_decl_pos_block_ptr)NULL);
 #if GNU_EXTENSIONS_ALLOWED
         } else if (curr_token == tok_typeof) {

@@ -77,6 +77,7 @@ extern void apply_microsoft_w64_specifier(a_type_ptr         *type_ptr,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern void typename_specifier(a_type_ptr            *type_ptr,
+			       a_symbol_ptr	     *type_sym,
                                a_boolean             within_using_decl,
                                a_decl_pos_block_ptr  decl_pos_block);
 

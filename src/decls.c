@@ -10167,13 +10167,26 @@ current scope.
   /* Bypass "using". */
   (void)get_token();
   add_stop_token(tok_semicolon);
-  if (!is_decl_qualified_name_start()) {
+  if (!is_decl_qualified_name_start() && curr_token != tok_typename) {
     syntax_error(ec_exp_identifier);
     /* Ignore pragma declarations. */
     discard_curr_construct_pragmas();
   } else {
-    sym = coalesce_and_lookup_generalized_identifier(
+    if (curr_token == tok_typename) {
+      /* A "using typename ..." declaration.  Process the typename
+         specifier. */
+      a_type_ptr  tp;
+      typename_specifier(&tp, &sym, /*within_using_decl=*/TRUE,
+                         (a_decl_pos_block_ptr)NULL);
+      /* An error type will be returned if an error was detected by
+         typename_specifier. */
+      if (is_error_type(tp)) {
+        err = TRUE;
+      }  /* if */
+    } else {
+      sym = coalesce_and_lookup_generalized_identifier(
                 GID_NO_OPTIONS | GID_TEMPLATE_ARGS_OPTIONAL, ilm_normal, &err);
+    }  /* if */
     if (err) {
       /* Diagnostic has already been issued. */
     } else if (sym == NULL) {

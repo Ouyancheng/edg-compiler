@@ -10828,9 +10828,10 @@ or implicit) controlling the declaration.
     /* If typename appears in the using declaration, the lookup is a bit
        different, and there are some additional error checks.  If an error
        type is returned, an error was reported in the subroutine. */
-    a_type_ptr  tp;
+    a_type_ptr   tp;
+    a_symbol_ptr type_sym;
 
-    typename_specifier(&tp, /*within_using_decl=*/TRUE,
+    typename_specifier(&tp, &type_sym, /*within_using_decl=*/TRUE,
                        (a_decl_pos_block_ptr)NULL);
     if (is_error_type(tp)) {
       err = TRUE;

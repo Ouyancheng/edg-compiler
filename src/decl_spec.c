@@ -3904,6 +3904,7 @@ return_point:;
                 information is being recorded in the IL. */
 #endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 void typename_specifier(a_type_ptr            *type_ptr,
+                        a_symbol_ptr	      *type_sym,
                         a_boolean             within_using_decl,
                         a_decl_pos_block_ptr  decl_pos_block)
 /*
@@ -3915,14 +3916,17 @@ The syntax is
 
 The identifier that follows the typename keyword must be a type name,
 otherwise a diagnostic is issued.  The type is returned in *type_ptr.
-On return, the current token is the one following the final identifier
-above.  within_using_decl is TRUE in a class member using declaration that
-starts with "using typename".  decl_pos_block is a possibly NULL pointer to
-a block of source position information when the context is a declaration.
+The type symbol is returned in *type_sym.  On return, the current
+token is the one following the final identifier above.
+within_using_decl is TRUE in a class member using declaration that
+starts with "using typename".  decl_pos_block is a possibly NULL
+pointer to a block of source position information when the context is
+a declaration.
 */
 {
   a_type_ptr	tp = NULL;
 
+  *type_sym = NULL;
   /* Skip over "typename". */
   check_assertion(curr_token == tok_typename);
   /* The typename keyword may only be used within a template, including the
@@ -3980,6 +3984,7 @@ a block of source position information when the context is a declaration.
       } else {
         mark_referenced(fund_sym, &locator_for_curr_id.source_position);
         tp = type_symbol_type(fund_sym);
+        *type_sym = sym;
       }  /* if */
     }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -6273,8 +6278,10 @@ process_class_specifier:
           /* typename is ignored in Sun mode.  Simply discard the token
              unless the user has disabled implicit typename mode. */
         } else {
+          a_symbol_ptr	type_sym;
           if (basic_type == bt_none) {
-            typename_specifier(type_ptr, /*within_using_decl=*/FALSE,
+            typename_specifier(type_ptr, &type_sym,
+                               /*within_using_decl=*/FALSE,
                                decl_pos_block);
             if (*type_ptr == NULL) {
               /* In Microsoft mode a NULL type is returned for a
@@ -6292,7 +6299,8 @@ process_class_specifier:
             bad_combination_of_type_specifiers = TRUE;
             error(ec_bad_combination_of_type_specifiers);
             /* Scan the specifier anyway, but throw it away. */
-            typename_specifier(&dummy_type, /*within_using_decl=*/FALSE,
+            typename_specifier(&dummy_type, &type_sym,
+                               /*within_using_decl=*/FALSE,
                                decl_pos_block);
           }  /* if */
           decl_specifiers_seen |= DS_TYPE;
