@@ -12159,12 +12159,11 @@ number given by global variable needed_flag_bit_number.
 
 #if !STANDALONE_UTILITY_PROGRAM
 
-a_boolean set_instantiation_needed_flag(a_source_correspondence *scp)
+void set_instantiation_needed_flag(a_source_correspondence *scp)
 /*
 Set to TRUE the per-instantiation "needed" flag associated with source
 correspondence entry *scp and with the bit number given by global variable
-needed_flag_bit_number.  Return the new setting (TRUE), since that is
-convenient for the macro that uses this function.
+needed_flag_bit_number.
 */
 {
   a_per_instantiation_needed_flags_entry_ptr
@@ -12201,7 +12200,6 @@ convenient for the macro that uses this function.
   byte_number = bit_number / CHAR_BIT;
   bit_number  = bit_number % CHAR_BIT;
   ptr->bytes[byte_number] |= ((unsigned)1 << bit_number);
-  return TRUE;
 #undef BITS_PER_ENTRY
 }  /* set_instantiation_needed_flag */
 

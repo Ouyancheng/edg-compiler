@@ -139,8 +139,8 @@ extern a_boolean instantiation_needed_flag_is_set(
 #if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
 #define set_needed_flag(scp) \
   (needed_flag_bit_number == 0 ? ((scp)->needed = TRUE) : \
-                                 set_instantiation_needed_flag(scp))
-extern a_boolean set_instantiation_needed_flag(a_source_correspondence *scp);
+                                 (set_instantiation_needed_flag(scp), 0))
+extern void set_instantiation_needed_flag(a_source_correspondence *scp);
 #else /* !MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
 #define set_needed_flag(scp) ((scp)->needed = TRUE)
 #endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
