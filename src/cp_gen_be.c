@@ -2895,6 +2895,50 @@ a member type, nonmember type, or friend.
 }  /* gen_type_decl */
 
 
+static an_expr_node_ptr optimized_expr_for_selection(
+                                                  an_expr_node_ptr object_expr)
+/*
+object_expr is an expression that gives the address of a class object.
+It is being used as the address for a member selection.  Examine the
+base-class casts on the object, if there are any, and determine which
+of those can be folded into the member name.  Return the expression to
+be used to address the object (the part not including the casts that
+can be elided).
+*/
+{
+  an_expr_node_ptr node = object_expr;
+
+  /* An example will help:
+
+       struct A { int i; };
+       struct B : public A {};
+       struct C : public B {} c;
+       {  .... c.B::i ... }
+
+           eok_field
+             /   \___________________________ field A::i
+            /
+        Cast to A * (implicit_in_member_naming == TRUE)    (1)
+            |
+            V
+        Cast to B *                                        (2)
+            |
+            V
+        Addr of c
+
+     Expression (1) is given to this routine.  Node (1) is passed over
+     because it is implicit in the naming.  Node (2) is returned, and
+     the reference will be to B::i. */
+  while (is_operation_node(node) &&
+         node->variant.operation.kind ==
+                                  (an_expr_operator_kind)eok_base_class_cast &&
+         node->variant.operation.implicit_in_member_naming) {
+    node = node->variant.operation.operands;
+  }  /* while */
+  return node;
+}  /* optimized_expr_for_selection */
+
+
 static void gen_field_reference(an_expr_node_ptr node)
 /*
 Generate the name of the field from the indicated node (an enk_field node).
@@ -2905,6 +2949,8 @@ Generate the name of the field from the indicated node (an enk_field node).
   check_assertion_str(node->kind == (an_expr_node_kind)enk_field,
                       "gen_field_reference: not enk_field");
   field = node->variant.field;
+  /* Use an unqualified name because the selector expression will
+     provide the class context. */
   gen_field_name(field);
 }  /* gen_field_reference */
 
@@ -2912,9 +2958,12 @@ Generate the name of the field from the indicated node (an enk_field node).
 static void gen_simple_field_selection(an_expr_node_ptr operand_1,
                                        an_expr_node_ptr operand_2)
 /*
-Generate "operand_1 . operand_2".
+Generate "operand_1 . operand_2".  operand_1 is an address (or lvalue),
+and operand_2 is an enk_field node.
 */
 {
+  /* Remove unnecessary base class casts. */
+  operand_1 = optimized_expr_for_selection(operand_1);
   if (operand_1->kind == (an_expr_node_kind)enk_variable) {
     /* Optimize "(*p).i" as "p->i". */
     gen_expression(operand_1);
@@ -3362,6 +3411,8 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
     write_tok_str(".");
   } else {
     /* Normal case.  Use a pointer and "->". */
+    /* Remove unnecessary base class casts. */
+    object_expr = optimized_expr_for_selection(object_expr);
     gen_expr_with_parens(object_expr);
     write_tok_str("->");
   }  /* if */
@@ -3370,8 +3421,8 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
        to suppress its virtual-ness in this call, so use a qualified name. */
     gen_qualified_name(&rout->source_corresp, NO_TYPE);
   } else {
-    /* Otherwise, use an unqualified name (the selector pointer indicates
-       the class). */
+    /* Normal case.  Use an unqualified name because the class of the
+       object selects the proper class. */
     gen_unqualified_name(&rout->source_corresp, NO_TYPE);
   }  /* if */
 }  /* gen_bound_function */
@@ -3626,13 +3677,13 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           goto done_with_operation;
         case eok_field:
           write_tok_str("&(");
-          gen_lvalue(operand_1);
-          write_tok_ch('.');
-          gen_field_reference(operand_2);
+          gen_simple_field_selection(operand_1, operand_2);
           write_tok_ch(')');
           goto done_with_operation;
         case eok_value_field:
         case eok_value_bit_field:
+          /* Selection of a field or bit field from an rvalue.  Not used
+             in C++ except for simple aggregate classes. */
           gen_expr_with_parens(operand_1);
           write_tok_ch('.');
           gen_field_reference(operand_2);
@@ -3641,9 +3692,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           /* This operator shouldn't get past gen_lvalue. */
           unexpected_condition_str("gen_expr: eok_bit_field as rvalue");
         case eok_extract_bit_field:
-          gen_lvalue(operand_1);
-          write_tok_ch('.');
-          gen_field_reference(operand_2);
+          gen_simple_field_selection(operand_1, operand_2);
           goto done_with_operation;
         case eok_pm_field:
           /* C++ "->*" operator. */
@@ -4388,6 +4437,7 @@ Generate code for the indicated statement.
 {
   a_statement_kind    kind;
   a_switch_clause_ptr scp;
+  a_boolean           optimized_away = FALSE;
 
   if (statement == NULL) {
     /* Empty statement. */
@@ -4494,6 +4544,7 @@ Generate code for the indicated statement.
            inline routines, so it's desirable that it be omitted. */
         if (simple_return && is_return_at_end_of_function(statement)) {
           /* Simple return omitted. */
+          optimized_away = TRUE;
         } else {
           /* Put out the return statement. */
           write_tok_str("return");
@@ -4573,7 +4624,7 @@ Generate code for the indicated statement.
       unexpected_condition_str("gen_statement: bad statement kind");
   }  /* switch */
 done:;
-  write_space();
+  if (!optimized_away) write_space();
 }  /* gen_statement */
 
 
