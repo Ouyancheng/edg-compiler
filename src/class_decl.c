@@ -3943,11 +3943,9 @@ a_boolean is_assignment_operator_for_copy(a_symbol_ptr  sym,
 Return TRUE if sym qualifies as an assignment operator that can copy a
 class object (ARM 12.8).  It qualifies if its first parameter has a type of
 "A", "A&", or "const A&", where "A" is the class of which it is a member.
-(The logic also supports a more relaxed (and dubious) reading of the ARM
-whereby a first parameter involving type B also qualifies if B is a base
-class of A; this interpretation is supported to provide compatibility with
-other C++ compilers, which work this way.)  Set *is_ref_arg to TRUE if the
-first parameter is a reference type.  Set *accepts_const and
+(In cfront compatibility mode, sym also qualifies if the first parameter
+involves type B where B is a base class of A.)  Set *is_ref_arg to TRUE if
+the first parameter is a reference type.  Set *accepts_const and
 *accepts_volatile based on how the first parameter is qualified.
 */
 {
@@ -3961,19 +3959,25 @@ first parameter is a reference type.  Set *accepts_const and
   if (is_reference_type(tp)) {
     /* Reference argument. */
     tp = type_pointed_to(tp);
+    /* Don't do a skip_typerefs on what's returned from type_pointed_to,
+       since we need to distinguish between "A&" and "const A&". */
     *is_ref_arg = TRUE;
   } else {
     /* Not a reference argument. */
     *is_ref_arg = FALSE;
   }  /* if */
-  if (is_class_struct_union_type(tp) &&
-      is_same_class_or_base_class_thereof(sym->class_of_which_a_member, tp)) {
-    /* Found it. */
-    found = TRUE;
-    /* Check the qualifiers. */
-    if (tp->kind == (a_type_kind)tk_typeref) {
-      *accepts_const = f_is_const_qualified_type(tp, /*top_level=*/TRUE);
-      *accepts_volatile = f_is_volatile_qualified_type(tp, /*top_level=*/TRUE);
+  if (is_class_struct_union_type(tp)) {
+    if (skip_typerefs(tp) == sym->class_of_which_a_member ||
+        (any_cfront_mode() &&
+         find_base_class_of(sym->class_of_which_a_member, tp) != NULL)) {
+      /* Found it. */
+      found = TRUE;
+      /* Check the qualifiers. */
+      if (tp->kind == (a_type_kind)tk_typeref) {
+        *accepts_const = f_is_const_qualified_type(tp, /*top_level=*/TRUE);
+        *accepts_volatile =
+                         f_is_volatile_qualified_type(tp, /*top_level=*/TRUE);
+      }  /* if */
     }  /* if */
   }  /* if */
   return found;
