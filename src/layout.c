@@ -2815,7 +2815,6 @@ of the front end.
                               (targ_bit_field_container_size < 0),
                        "layout_init: inconsistent configuration",
                        "for bit field allocation");
-  layout_trans_unit_init();
 }  /* layout_init */
 
 /******************************************************************************

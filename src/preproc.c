@@ -2147,7 +2147,6 @@ for each compilation.  (Predefined macros are established by
 init_predefined_macros.)
 */
 {
-  preproc_trans_unit_init();
 }  /* preproc_init */
 
 

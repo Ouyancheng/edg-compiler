@@ -6354,7 +6354,6 @@ of the front end.
 #if DEBUG
   num_control_flow_descrs_allocated = 0;
 #endif /* DEBUG */
-  statements_trans_unit_init();
 }  /* statements_init */
 
 

@@ -12419,7 +12419,6 @@ of the front end.
   num_based_type_fixups_allocated        = 0;
 #endif /* DEBUG */
   any_function_scope_lifetime_entries = FALSE;
-  il_trans_unit_init();
   il_alloc_init();
 }  /* il_init */
 

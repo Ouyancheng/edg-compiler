@@ -12932,7 +12932,6 @@ Initializations for class declaration processing.
   num_routine_fixups_allocated = 0;
   num_class_fixups_allocated = 0;
 #endif /* DEBUG */
-  class_decl_trans_unit_init();
   return;
 }  /* class_decl_init */
 
