@@ -855,6 +855,9 @@ Convert an integer constant to a pointer constant of type as specified by
 }  /* conv_integer_to_pointer */
 
 
+#if !CHECKING
+/*ARGSUSED*/ /* <-- old_constant is not used if CHECKING is FALSE. */
+#endif /* !CHECKING */
 static void conv_integer_to_ptr_to_member(a_constant *old_constant,
                                           a_constant *new_constant)
 /*
