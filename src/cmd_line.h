@@ -98,6 +98,7 @@ typedef enum /*an_option_kind*/ {
 #if !USE_MMAP_FOR_MEMORY_REGIONS
   optk_pch_mem,
 #endif /* !USE_MMAP_FOR_MEMORY_REGIONS */
+  optk_pch_dir,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -409,6 +410,10 @@ EXTERN a_boolean
 
 EXTERN sizeof_t	pch_mem_size;
 			/* Size of the preallocated PCH memory area. */
+
+EXTERN char	*pch_dir_name /* = NULL*/;
+			/* Directory in which PCH files are to be stored.
+			   NULL if no directory has been specified. */
 
 
 /* Process the command line arguments. */

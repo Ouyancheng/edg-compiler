@@ -1689,8 +1689,22 @@ used as an initial test before comparing the strings.
 #endif /* STAT_INFORMATION_INCLUDES_INODE */
 }  /* get_file_identifier */
 
+#if __WIN32__ || __MSDOS__
+static void chdir_with_check(char	*dir_name)
+/*
+Change to the specified directory, make sure the operation
+succeeded.
+*/
+{
+  if (chdir(dir_name) != 0) {
+    str_catastrophe(ec_cannot_chdir, dir_name);
+  }  /* if */
+}  /* chdir_with_check */
+#endif /* __WIN32__ || __MSDOS__ */
 
-/* Header comment for get_file_name_from_curr_dir. */
+
+
+/* Header comment for get_file_name_from_dir. */
 /*
 Get the name of the next file in the current directory.  If first
 is TRUE, then this is the first call.  Returns a pointer to the file
@@ -1705,18 +1719,29 @@ WIN32 (e.g., Windows-NT) version.
 
 #include <io.h>
 
-char *get_file_name_from_curr_dir(a_boolean first)
+char *get_file_name_from_dir(a_boolean	first,
+			     char	*dir_name,
+			     char	*suffix,
+			     char	*curr_dir_name)
 {
   static long			handle;
   static struct _finddata_t	fileinfo;
   char				*result;
+  static char			pattern[10];
 
+  if (dir_name != NULL) {
+    chdir_with_check(dir_name);
+  }  /* if */
   if (first) {
+    /* Convert the suffix (e.g., ".xxx" into a pattern for use by the
+       Windows-NT routine (e.g., "*.xxx"). */
+    check_assertion(strlen(suffix) <= 8);
+    sprintf(pattern, "*%s", suffix);
     /* On the first call, use the _findfirst call that specifies which
        files are to be returned.  "handle" is saved in a static variable
        that is used on subsequent calls to get the remaining directory
        entries. */
-    handle = _findfirst("*.*", &fileinfo);
+    handle = _findfirst(pattern, &fileinfo);
     if (handle < 0) {
       /* Directory could not be opened, or is empty. */
       result = NULL;
@@ -1733,8 +1758,11 @@ char *get_file_name_from_curr_dir(a_boolean first)
       result = fileinfo.name;
     }  /* if */
   }  /* if */
+  if (dir_name != NULL) {
+    chdir_with_check(curr_dir_name);
+  }  /* if */
   return result;
-}  /* get_file_name_from_curr_dir */
+}  /* get_file_name_from_dir */
 #else /* !__WIN32__ */
 #if __MSDOS__
 /*
@@ -1743,16 +1771,27 @@ DOS version.
 
 #include <dos.h>
 
-char *get_file_name_from_curr_dir(a_boolean first)
+char *get_file_name_from_dir(a_boolean	first,
+			     char	*dir_name,
+			     char	*suffix,
+			     char	*curr_dir_name)
 {
   static struct _find_t	fileinfo;
   char			*result;
+  static char		pattern[10];
 
+  if (dir_name != NULL) {
+    chdir_with_check(dir_name);
+  }  /* if */
   if (first) {
+    /* Convert the suffix (e.g., ".xxx" into a pattern for use by the
+       Windows-NT routine (e.g., "*.xxx"). */
+    check_assertion(strlen(suffix) <= 8);
+    sprintf(pattern, "*%s", suffix);
     /* On the first call, use the _dos_findfirst call that specifies which
        files are to be returned.  The _A_RDONLY attribute causes
        both normal and read-only files to be returned. */
-    if (_dos_findfirst("*.*", _A_RDONLY, &fileinfo) != 0) {
+    if (_dos_findfirst(pattern, _A_RDONLY, &fileinfo) != 0) {
       /* Directory could not be opened, or is empty. */
       result = NULL;
     } else {
@@ -1768,8 +1807,11 @@ char *get_file_name_from_curr_dir(a_boolean first)
       result = fileinfo.name;
     }  /* if */
   }  /* if */
+  if (dir_name != NULL) {
+    chdir_with_check(curr_dir_name);
+  }  /* if */
   return result;
-}  /* get_file_name_from_curr_dir */
+}  /* get_file_name_from_dir */
 #else /* !__MSDOS__ */
 
 /*
@@ -1782,7 +1824,11 @@ UNIX Version.
 #include <sys/dirent.h>
 #endif
 
-char *get_file_name_from_curr_dir(a_boolean first)
+/*ARGSUSED*/ /* <-- Because "curr_dir_name" is not used. */
+char *get_file_name_from_dir(a_boolean	first,
+			     char	*dir_name,
+			     char	*suffix,
+			     char	*curr_dir_name)
 /*
 See comment above.
 */
@@ -1794,19 +1840,25 @@ See comment above.
   if (first) {
     /* Open the directory and save the directory pointer in a static
        variable that can be used on subsequent calls. */
-    dir = opendir(".");
+    dir = opendir(dir_name);
     check_assertion(dir != NULL);
   }  /* if */
-  dir_entry = readdir(dir);
-  if (dir_entry == NULL) {
-    /* The last entry was read. */
-    (void)closedir(dir);
-    result = NULL;
-  } else {
+  for (;;) {
+    char	*ptr;
+    dir_entry = readdir(dir);
+    if (dir_entry == NULL) {
+      /* The last entry was read. */
+      (void)closedir(dir);
+      result = NULL;
+      break;
+    }  /* if */
     result = dir_entry->d_name;
-  }  /* if */
+    /* Make sure the suffix matches the value passed by the caller. */
+    ptr = strchr(result, '.');
+    if (ptr != NULL && strcmp(ptr, suffix) == 0) break;
+  }  /* for */
   return result;
-}  /* get_file_name_from_curr_dir */
+}  /* get_file_name_from_dir */
 #endif /* __MSDOS__ */
 #endif /* __WIN32__ */
 

@@ -111,7 +111,7 @@ static a_mem_alloc_history_ptr
 			/* The memory allocation history information
 			   read from the precompiled header file. */
 
-a_mem_alloc_history_number
+static a_mem_alloc_history_number
 		new_alloc_history_entries = 0;
 			/* Number of entries in new_alloc_history. */
 
@@ -271,18 +271,22 @@ If not, expand pch_buffer by reallocating it.
 			   accepted (so that the realloc is hardly ever
 			   needed). */
 
-/*
-Dynamically allocated buffer used to contain string that are used
-during precompiled header prefix comparisions.
-*/
-static char	*file_name_buffer = NULL;
-			/* Not allocated on a per-file basis. */
+typedef struct a_file_name_buffer *a_file_name_buffer_ptr;
+typedef struct a_file_name_buffer {
+  char		*name;
+			/* Pointer to a buffer containing the file name. */
+  sizeof_t	size;
+			/* Allocated size of the buffer pointed to by
+			   file_name. */
+} a_file_name_buffer;
 
-static sizeof_t	size_file_name_buffer;
-			/* Current size of file_name_buffer. */
+static a_file_name_buffer
+		file_name_buffer;
+			/* Buffer use to temporarily record file names. */
 
 
-static void expand_file_name_buffer(sizeof_t size_needed)
+static void expand_file_name_buffer(a_file_name_buffer_ptr fnbp,
+                                    sizeof_t		   size_needed)
 /*
 Expand the file_name_buffer by reallocating it, so that its total
 size is at least size_needed.  Called by ensure_file_name_buffer_space.
@@ -290,12 +294,10 @@ size is at least size_needed.  Called by ensure_file_name_buffer_space.
 {
   sizeof_t new_size;
 
-  new_size = size_file_name_buffer +
-             FILE_NAME_BUFFER_INCREMENTAL_ALLOCATION;
+  new_size = fnbp->size + FILE_NAME_BUFFER_INCREMENTAL_ALLOCATION;
   if (new_size < size_needed) new_size  = size_needed;
-  file_name_buffer = realloc_general(file_name_buffer, size_file_name_buffer,
-                                     new_size);
-  size_file_name_buffer = new_size;
+  fnbp->name = realloc_general(fnbp->name, fnbp->size, new_size);
+  fnbp->size = new_size;
 }  /* expand_file_name_buffer */
 
 
@@ -303,11 +305,37 @@ size is at least size_needed.  Called by ensure_file_name_buffer_space.
 Ensure that file_name_buffer has at least size_needed bytes in it.
 If not, expand file_name_buffer by reallocating it.
 */
-#define ensure_file_name_buffer_space(size_needed)                 \
-{ if (size_file_name_buffer < size_needed) {                       \
-    expand_file_name_buffer((sizeof_t)(size_needed));              \
+#define ensure_file_name_buffer_space(fnb, size_needed)                 \
+{ if ((fnb).size < size_needed) {                     			  \
+    expand_file_name_buffer(&(fnb), (sizeof_t)(size_needed));              \
   }  /* if */                                                          \
 }  /* ensure_file_name_buffer_space */
+
+
+static char *build_pch_file_name(char	*file_name)
+/*
+Concatenate the PCH directory with the specified file name.  Uses a
+local file name buffer for storage.  Return a pointer to the name.  If no
+directory name is being used, a pointer to the original name is returned.
+*/
+{
+  char				*result;
+  static a_file_name_buffer	buffer;  /* Staticly initialized. */
+
+  if (pch_dir_name == NULL) {
+    result = file_name;
+  } else {
+    int		name_size;
+    /* Make sure the file name is big enough for the file name,
+       directory, and any added slashes, etc. */
+    name_size = strlen(file_name) + strlen(pch_dir_name) + 10;
+    ensure_file_name_buffer_space(buffer, name_size);
+    result = combine_dir_and_file_name(pch_dir_name, file_name,
+                                       buffer.name,
+                                       buffer.size);
+  }  /* if */
+  return result;
+}  /* build_pch_file_name */
 
 
 static void initialize_pch_id_string(void)
@@ -540,6 +568,11 @@ Do an initial scan of the primary source file to build the file prefix
 information.
 */
 {
+  a_source_position	saved_pos_curr_token;
+  a_source_position	saved_error_position;
+
+  saved_pos_curr_token = pos_curr_token;
+  saved_error_position = error_position;
   /* Set the flag that indicate that we are build the file prefix
      information.  This affects the way in which preprocessing directives
      are handled and the way end-of-file is processed. */
@@ -566,6 +599,8 @@ information.
   /* Update curr_char_loc to point to the end of the current line.  This
      will force the next token to begin on a new line. */
   building_pch_prefix = FALSE;
+  pos_curr_token = saved_pos_curr_token;
+  error_position = saved_error_position;
 }  /* build_prefix_information */
 
 
@@ -587,7 +622,8 @@ Create or truncate the precompiled header file.
   a_boolean	cannot_open;
   a_boolean	bad_name;
 
-  pch_file_name = derived_name(primary_source_file_name, PCH_FILE_SUFFIX);
+  pch_file_name = build_pch_file_name(derived_name(primary_source_file_name,
+                                                   PCH_FILE_SUFFIX));
   if (is_regular_file(pch_file_name)) {
     /* Delete the file before writing it.  This way, if someone already
        has the file open for reading, we won't be overwriting the
@@ -604,6 +640,78 @@ Create or truncate the precompiled header file.
                            pch_file_name);
   }  /* if */
 }  /* open_pch_output_file */
+
+
+static a_boolean open_pch_input_file(char *file_name)
+/*
+Open the PCH input file.  Return TRUE if the file could be opened.
+If the file cannot be opened, and the name was explicitly specified by the
+user, then issue an error.
+*/
+{
+  f_pch_input = open_input_file(file_name, /*binary_file=*/TRUE);
+  if (f_pch_input == NULL && !automatic_pch_processing) {
+    /* Only issue an error if the input file was explicitly specified. */
+    str_command_line_error(ec_cl_cannot_open_pch_input_file,
+                           file_name);
+  }  /* if */
+  return f_pch_input != NULL;
+}  /* open_pch_input_file */
+
+
+static void remove_pch_input_file(void)
+/*
+The current input file is not usable for some reason, so remove it.
+This may be done because the include files used by the PCH have
+changed.
+*/
+{
+  db_enter(3, "remove_pch_input_file");
+#if DEBUG
+  if (debug_level >= 3) {
+    fprintf(f_debug, "Removing PCH file: %s\n", pch_input_file_name);
+  }  /* if */
+#endif /* DEBUG */
+  delete_file(pch_input_file_name);
+  db_exit();
+}  /* remove_pch_input_file */
+
+
+static void remove_assoc_pch_file_if_not_being_used(void)
+/*
+See if the PCH file being used (if any) is associated with the
+file currently being compiled.  If not, remove the associated file.
+*/
+{
+  char		*assoc_pch_file_name;
+  a_boolean	remove = FALSE;
+
+  db_enter(3, "remove_assoc_pch_file_if_not_being_used");
+  /* Append the PCH file prefix to the primary source file base name. */
+  assoc_pch_file_name = derived_name(primary_source_file_name,
+                                     PCH_FILE_SUFFIX);
+  /* Add the PCH directory name. */
+  assoc_pch_file_name = build_pch_file_name(assoc_pch_file_name);
+  if (!is_regular_file(assoc_pch_file_name)) {
+    /* The file does not exist -- nothing to do. */
+  } else if (!using_a_pch_file) {
+     /* We're not using a PCH file, remove the old one. */
+     remove = TRUE;
+  } else if (strcmp(assoc_pch_file_name, pch_input_file_name) != 0) {
+    /* The PCH file in use is not associated with this file -- remove the
+       associated file. */
+    remove = TRUE;
+  }  /* if */
+  if (remove) {
+#if DEBUG
+    if (debug_level >= 3) {
+      fprintf(f_debug, "Removing PCH file: %s\n", assoc_pch_file_name);
+    }  /* if */
+#endif /* DEBUG */
+    delete_file(assoc_pch_file_name);
+  }  /* if */
+  db_exit();
+}  /* remove_assoc_pch_file_if_not_being_used */
 
 
 static void pch_write_string(char	*str)
@@ -1480,6 +1588,10 @@ and make the modification times match the current values for the files.
       break;
     }  /* if */
   }  /* for */
+  if (!match && automatic_pch_processing) {
+    /* The include files are obsolete.  Remove the file. */
+    remove_pch_input_file();
+  }  /* if */
   return match;
 }  /* include_files_have_not_changed */
 
@@ -1697,19 +1809,17 @@ directory.  Return TRUE if an applicable PCH was found.
   }  /* if */
 #endif /* DEBUG */
   best_result_so_far = null_source_position;
-  for (first = TRUE;
-       (file_name = get_file_name_from_curr_dir(first)) != NULL;
-       first = FALSE) {
-    char		*ptr = file_name;
+  for (first = TRUE;;first = FALSE) {
     a_pch_event_ptr	last_matching_event;
-    /* Make sure this is a regular file with a PCH suffix. */
-    ptr = strrchr(file_name, '.');
-    if (ptr == NULL || strcmp(ptr, PCH_FILE_SUFFIX) != 0) continue;
-    /* Make sure that the file name refers to a regular file that can
-       be read. */
-    if (!is_regular_file(file_name)) continue;
-    f_pch_input = fopen(file_name, "rb");
-    if (f_pch_input == NULL) continue;
+    file_name = get_file_name_from_dir(first, pch_dir_name, PCH_FILE_SUFFIX,
+                                       curr_dir_name);
+    /* A NULL pointer indicates there are no more matching file names. */
+    if (file_name == NULL) break;
+    /* Append the PCH directory name to the file name. */
+    file_name = build_pch_file_name(file_name);
+    /* The open routine will also make sure that it is a regular file. */
+    if (open_pch_input_file(file_name) == NULL) continue;
+    pch_input_file_name = file_name;
 #if DEBUG
   if (debug_level >= 4) {
     fprintf(f_debug, "Checking %s for applicability\n", file_name);
@@ -1744,38 +1854,21 @@ directory.  Return TRUE if an applicable PCH was found.
         best_result_so_far = last_matching_event->position;
         /* Make sure that the file name buffer is large enough to hold
            the new file name. */
-        ensure_file_name_buffer_space(file_name_length+1);
-        (void)strcpy(file_name_buffer, file_name);
+        ensure_file_name_buffer_space(file_name_buffer, file_name_length+1);
+        (void)strcpy(file_name_buffer.name, file_name);
       }  /* if */
     }  /* if */
     (void)fclose(f_pch_input);
   }  /* for */
   if (result) {
     /* Save a copy of the precompiled header file name to be used. */
-    pch_input_file_name = (char *)alloc_general
-                                     ((sizeof_t)strlen(file_name_buffer) + 1);
-    (void)strcpy(pch_input_file_name, file_name_buffer);
+    pch_input_file_name = 
+           (char *)alloc_general((sizeof_t)strlen(file_name_buffer.name) + 1);
+    (void)strcpy(pch_input_file_name, file_name_buffer.name);
   }  /* if */
   db_exit();
   return result;
 }  /* find_applicable_pch */
-
-
-static a_boolean open_pch_input_file(void)
-/*
-Open the PCH input file.  Return TRUE if the file could be opened.
-If the file cannot be opened, and the name was explicitly specified by the
-user, then issue an error.
-*/
-{
-  f_pch_input = open_input_file(pch_input_file_name, /*binary_file=*/TRUE);
-  if (f_pch_input == NULL && !automatic_pch_processing) {
-    /* Only issue an error if the input file was explicitly specified. */
-    str_command_line_error(ec_cl_cannot_open_pch_input_file,
-                           pch_input_file_name);
-  }  /* if */
-  return f_pch_input != NULL;
-}  /* open_pch_input_file */
 
 
 static void pch_fixup_part_1(void)
@@ -1852,7 +1945,16 @@ may be used.
   a_pch_event_ptr		last_event_from_pch;
 
   db_enter(2, "restore_precompiled_header_information");
-  if (open_pch_input_file()) {
+  if (!automatic_pch_processing) {
+    /* In non-automatic mode, the input file name will not yet have
+       had the PCH directory name added.  Do it now. */
+    pch_input_file_name = build_pch_file_name(pch_input_file_name);
+    /* Make a copy of the name in general memory. */
+    pch_input_file_name =
+               strcpy((char *)alloc_general(strlen(pch_input_file_name) + 1),
+                                            pch_input_file_name);
+  }  /* if */
+  if (open_pch_input_file(pch_input_file_name)) {
     /* Make sure the the PCH can still be used.  Also make sure that
        the memory configuration needed by the PCH is compatible with
        what we can allocate. */
@@ -1935,6 +2037,12 @@ be used as part of the applicability check in subsequent compilations.
     if (use_precompiled_header ||
         (automatic_pch_processing && applicable_pch_found)) {
       restore_precompiled_header_information();
+    }  /* if */
+    if (automatic_pch_processing) {
+      /* If we are not using the PCH file associated with this source file
+         (if one exists), then remove it.  It must be obsolete for some
+         reason. */
+      remove_assoc_pch_file_if_not_being_used();
     }  /* if */
     /* See if we can create a precompiled header file. */
     if (automatic_pch_processing || create_precompiled_header) {
@@ -2019,9 +2127,8 @@ void pch_one_time_init(void)
   char	*ptr;
   pch_buffer = (char *)alloc_general(PCH_BUFFER_INITIAL_ALLOCATION);
   size_pch_buffer = PCH_BUFFER_INITIAL_ALLOCATION;
-  file_name_buffer =
-                    (char *)alloc_general(FILE_NAME_BUFFER_INITIAL_ALLOCATION);
-  size_file_name_buffer = PCH_BUFFER_INITIAL_ALLOCATION;
+  /* Do initial allocation of the file name buffer. */
+  ensure_file_name_buffer_space(file_name_buffer, 1);
   /* Get the current directory name. */
   ptr = get_curr_dir_name();
   curr_dir_name = (char *)alloc_general((sizeof_t)strlen(ptr) + 1);

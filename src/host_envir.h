@@ -1097,7 +1097,11 @@ extern DOES_NOT_RETURN exit_compilation(an_error_severity severity);
 #endif /* !defined(COMPILING_MK_ERRINFO) */
 
 /* Get the next file name from the current directory. */
-extern char *get_file_name_from_curr_dir(a_boolean first);
+extern
+char *get_file_name_from_dir(a_boolean	first,
+			     char	*dir_name,
+			     char	*suffix,
+			     char	*curr_dir_name);
 
 #if USE_MMAP_FOR_MEMORY_REGIONS
 extern sizeof_t do_page_alignment(sizeof_t size);

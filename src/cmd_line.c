@@ -353,6 +353,9 @@ Initialize the option information table.
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_none);
 #endif /* !USE_MMAP_FOR_MEMORY_REGIONS */
+  add_option_description(optk_pch_dir, "pch_dir",
+                         '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -389,10 +392,10 @@ to is the option letter.
 }  /* look_up_option_description */
 
 
-static char	*optarg;
+static char	*opt_arg;
 			/* Returned from get_option -- Pointer to the current
 			   option argument. */
-static int	optind = 1;
+static int	opt_ind = 1;
 			/* Index of the current option in argv. */
 
 static void invalid_argument_error(int	argc,
@@ -401,12 +404,12 @@ static void invalid_argument_error(int	argc,
 Issue a invalid command line argument diagnostic.
 */
 {
-  /* Reset optind in the case of an option requiring
+  /* Reset opt_ind in the case of an option requiring
      an argument where the argument is missing. */
-  if (optind >= argc) optind = argc-1;
-  optarg = argv[optind];
+  if (opt_ind >= argc) opt_ind = argc-1;
+  opt_arg = argv[opt_ind];
   /* This call terminates the program. */
-  str_command_line_error(ec_cl_invalid_option, optarg);
+  str_command_line_error(ec_cl_invalid_option, opt_arg);
 }  /* invalid_argument_error */
 
 
@@ -419,7 +422,7 @@ argument strings.  This routine accepts both single character options
 and keyword options.  One option is returned on each call.  The option
 is looked up in the options_descriptions list and a pointer to the
 option description structure is returned to the caller.  A NULL
-pointer is returned when the end of the option list is found.  optind
+pointer is returned when the end of the option list is found.  opt_ind
 at that point indicates the argv index of the non-option argument.  If
 an invalid option is used, a command line error will be issued (and
 the compilation will be terminated).
@@ -456,13 +459,13 @@ The following option formats are supported:
        current option letter list has been exhausted. */
     if (optchar != NULL && *optchar == '\0') {
       /* Start the next argument. */
-      optind++;
+      opt_ind++;
     } /* if */
-    if (optind >= argc) {
+    if (opt_ind >= argc) {
       /* No more arguments. */
       goto end_of_routine;
     } else {
-      optchar = argv[optind];
+      optchar = argv[opt_ind];
       if (*optchar != '-') {
         /* The argument string does not begin with a "-". */
         goto end_of_routine;
@@ -472,7 +475,7 @@ The following option formats are supported:
         if (*(optchar+2) == '\0') {
           /* The argument is "--", which marks the end of the options.
              Swallow this argument. */
-          optind++;
+          opt_ind++;
           goto end_of_routine;
         } else {
           /* The beginning of a keyword option (e.g., --exceptions).
@@ -514,14 +517,14 @@ The following option formats are supported:
       */
       if (*after_keyword == '=') {
         /* Set the option pointer to the character after the "=". */
-        optarg = after_keyword + 1;
-        if (*optarg == '\0') invalid_argument_error(argc, argv);
+        opt_arg = after_keyword + 1;
+        if (*opt_arg == '\0') invalid_argument_error(argc, argv);
       } else {
         /* Use the next argument as the option value, as in "--output xxx". */
-        optind++;
+        opt_ind++;
         /* If there are no more arguments, the option is missing. */
-        if (optind >= argc) invalid_argument_error(argc, argv);
-        optarg = argv[optind];
+        if (opt_ind >= argc) invalid_argument_error(argc, argv);
+        opt_arg = argv[opt_ind];
       }  /* if */
     } else {
       /* Not a keyword option, the argument may immediately following the
@@ -529,26 +532,26 @@ The following option formats are supported:
       if (*(optchar+1) == '\0') {
         /* The option letter is the last thing in the argument, so use the
            next argument as the option value, as in "-I xxx". */
-        optind++;
+        opt_ind++;
         /* If there are no more arguments, the option is missing. */
-        if (optind >= argc) invalid_argument_error(argc, argv);
-        optarg = argv[optind];
+        if (opt_ind >= argc) invalid_argument_error(argc, argv);
+        opt_arg = argv[opt_ind];
       } else {
         /* The option argument is the remainder of the current argument,
            as in "-Ixxx". */
-        optarg = optchar+1;
+        opt_arg = optchar+1;
       }  /* if */
     }  /* if */
     /* In any case, take no more characters of the current argument. */
     optchar = NULL;
-    optind++;
+    opt_ind++;
   } else {
     /* The option does not take an argument. */
-    optarg = NULL;
+    opt_arg = NULL;
     if (is_keyword_option) {
       /* Skip to the next element of argv. */
       optchar = NULL;
-      optind++;
+      opt_ind++;
     } else {
       /* Skip to the next character of the current element of argv. */
       optchar++;
@@ -580,7 +583,7 @@ pointed to by *du_list.
 }  /* add_to_def_undef_list */
 
 
-static long scan_optarg_number(char *optstr)
+static long scan_opt_arg_number(char *optstr)
 /*
 Scan an argument option as a decimal number, and return its value.
 */
@@ -602,17 +605,17 @@ number_error:
   str_command_line_error(ec_cl_invalid_number, optstr);
 return_point:
   return result;
-}  /* scan_optarg_number */
+}  /* scan_opt_arg_number */
 
 
 static void process_diag_override_option(an_option_kind kind,
-					 char		*optarg)
+					 char		*opt_arg)
 /*
 Go through a comma separated list of error tags and call an error
 processing routine to update the severity.
 */
 {
-  char			*local_optarg;
+  char			*local_opt_arg;
   int			number_of_arguments = 0;
   int			i;
   an_error_severity	severity;
@@ -621,10 +624,10 @@ processing routine to update the severity.
   /* Make a local copy of the option string.  Remove any blanks and replace
      commas with null characters.  Note that this copy is simply discarded
      after it is used. */
-  local_optarg = (char *)alloc_general((sizeof_t)(strlen(optarg) + 1));
+  local_opt_arg = (char *)alloc_general((sizeof_t)(strlen(opt_arg) + 1));
   {
-    char	*src = optarg;
-    char	*dest = local_optarg;
+    char	*src = opt_arg;
+    char	*dest = local_opt_arg;
     char	ch;
     do {
       ch = *src;
@@ -647,7 +650,7 @@ processing routine to update the severity.
   }  /* switch */
   /* Loop through the arguments and call a routine to update the
      error severity for the specified tag. */
-  ptr = local_optarg;
+  ptr = local_opt_arg;
   for (i = 0; i < number_of_arguments; ++i) {
     char	*opt_start = ptr;
     char	*opt_end = strchr(ptr, '\0');
@@ -658,7 +661,7 @@ processing routine to update the severity.
     }  /* if */
 #endif /* DEBUG */
     if (isdigit(*opt_start)) {
-      int error_number = scan_optarg_number(opt_start);
+      int error_number = scan_opt_arg_number(opt_start);
       error = set_severity_for_error_number(error_number, severity);
       if (error) {
         str_command_line_error(ec_cl_invalid_error_number, opt_start);
@@ -737,7 +740,7 @@ Process the arguments on the command line that invoked the compiler.
        processing. */
     if (odp->pch_event_kind != pchek_none) {
       add_command_line_pch_event(odp->pch_event_kind, kind, opt_value,
-                                 optarg);
+                                 opt_arg);
     }  /* if */
 #if !USE_MMAP_FOR_MEMORY_REGIONS
     {
@@ -749,6 +752,7 @@ Process the arguments on the command line that invoked the compiler.
         case optk_pch:
         case optk_pch_messages:
         case optk_pch_mem:
+        case optk_pch_dir:
           is_pch_option = TRUE;
           break;
         default:
@@ -891,7 +895,7 @@ Process the arguments on the command line that invoked the compiler.
         break;
       case optk_template_instantiation_mode:
         /* Template instantiation mode. */
-        instantiation_mode_string = optarg;
+        instantiation_mode_string = opt_arg;
         /* Determine the template instantiation mode to be used. */
         if (instantiation_mode_string != NULL) {
           if (strcmp(instantiation_mode_string, "none") == 0) {
@@ -981,7 +985,7 @@ Process the arguments on the command line that invoked the compiler.
         break;
       case optk_include_directory:
         /* Include file directory, add to list. */
-        if (*optarg == '-') {
+        if (*opt_arg == '-') {
           /* -I- marks the dividing line between directories for "..."
              includes and those for <...> includes.  It also suppresses
              pushing the directory of each source file onto the search
@@ -990,25 +994,25 @@ Process the arguments on the command line that invoked the compiler.
           put_dir_of_each_opened_source_file_on_incl_search_path = FALSE;
         } else {
           /* Normal -I directive. */
-          add_to_include_search_path(optarg);
+          add_to_include_search_path(opt_arg);
         }  /* if */
         break;
       case optk_define_macro:
         /* Define a macro symbol.  Just save the string for later
            processing. */
-        add_to_def_undef_list(optarg, &defs_from_cmd_line);
+        add_to_def_undef_list(opt_arg, &defs_from_cmd_line);
         break;
       case optk_undefine_macro:
         /* Undefine a macro symbol.  Just save the string for later
            processing. */
-        add_to_def_undef_list(optarg, &undefs_from_cmd_line);
+        add_to_def_undef_list(opt_arg, &undefs_from_cmd_line);
         break;
       case optk_set_error_limit:
         /* Set error limit (numbers of errors at which to give up on
            compilation). */
-        error_limit = scan_optarg_number(optarg);
+        error_limit = scan_opt_arg_number(opt_arg);
         if (error_limit <= 0) {
-          str_command_line_error(ec_cl_invalid_error_limit, optarg);
+          str_command_line_error(ec_cl_invalid_error_limit, opt_arg);
         }  /* if */
         break;
       case optk_generate_raw_listing:
@@ -1016,46 +1020,46 @@ Process the arguments on the command line that invoked the compiler.
            file/line information, and indications of which lines are which,
            to be read later by a program that will generate an
            interspersed listing). */
-        f_raw_listing = open_output_file(optarg, /*binary_file=*/FALSE,
+        f_raw_listing = open_output_file(opt_arg, /*binary_file=*/FALSE,
                                          /*update_mode=*/FALSE,
                                          &cannot_open, &bad_name);
         if (bad_name) {
           str_command_line_error(ec_cl_invalid_raw_listing_output_file,
-                                 optarg);
+                                 opt_arg);
         } else if (cannot_open) {
           str_command_line_error(ec_cl_cannot_open_raw_listing_output_file,
-                                 optarg);
+                                 opt_arg);
         }  /* if */
         break;
       case optk_generate_cross_reference:
         /* Generate a file of cross-reference information (locations and
 	   kinds of references to symbols) */
-        f_xref_info = open_output_file(optarg, /*binary_file=*/FALSE,
+        f_xref_info = open_output_file(opt_arg, /*binary_file=*/FALSE,
                                        /*update_mode=*/FALSE,
                                        &cannot_open, &bad_name);
         if (bad_name) {
           str_command_line_error(ec_cl_invalid_xref_output_file,
-                                 optarg);
+                                 opt_arg);
         } else if (cannot_open) {
           str_command_line_error(ec_cl_cannot_open_xref_output_file,
-                                 optarg);
+                                 opt_arg);
         }  /* if */
         break;
       case optk_stderr_file_name:
         /* Redirect stderr to a file.  This is useful on systems where
            redirection is not well supported. */
-        reopen_error_output_file(optarg, &cannot_open, &bad_name);
+        reopen_error_output_file(opt_arg, &cannot_open, &bad_name);
         if (bad_name) {
           str_command_line_error(ec_cl_invalid_error_output_file,
-                                 optarg);
+                                 opt_arg);
         } else if (cannot_open) {
           str_command_line_error(ec_cl_cannot_open_error_output_file,
-                                 optarg);
+                                 opt_arg);
         }  /* if */
         break;
       case optk_output_file_name:
         /* Specify output file for preprocessing output or IL. */
-        ofile_name = optarg;
+        ofile_name = opt_arg;
         break;
 #if BACK_END_IS_C_GEN_BE
       case optk_module_list_for_union_init:
@@ -1064,13 +1068,13 @@ Process the arguments on the command line that invoked the compiler.
            to file-scope initialization routines that handle union
            initialization.  This option is only needed if c_gen_be is being
            used to generate C output for testing. */
-        module_list_for_union_init = optarg;
+        module_list_for_union_init = opt_arg;
         break;
 #endif /* BACK_END_IS_C_GEN_BE */
 #if DEBUG
       case optk_debug:
         /* Set debug level. */
-        if (proc_debug_option(optarg)) {
+        if (proc_debug_option(opt_arg)) {
 	  command_line_error(ec_cl_error_in_debug_option_argument);
 	}  /* if */
         init_debug_level = debug_level;
@@ -1082,7 +1086,7 @@ Process the arguments on the command line that invoked the compiler.
       case optk_diag_error:
         /* Options that override the severity of a given diagnostic.  The
            option argument contains a comma separated list of error tags. */
-        process_diag_override_option(kind, optarg);
+        process_diag_override_option(kind, opt_arg);
         break;
       case optk_display_error_number:
         /* Display the error number in diagnostic messages. */
@@ -1092,7 +1096,7 @@ Process the arguments on the command line that invoked the compiler.
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
       case optk_gen_c_file_name:
         /* The name to be used for the generated C file. */
-        gen_c_file_name = optarg;
+        gen_c_file_name = opt_arg;
         break;
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
       case optk_create_pch:
@@ -1105,7 +1109,7 @@ Process the arguments on the command line that invoked the compiler.
         /* Use a precompiled header file as part of this compilation. */
         check_assertion(opt_value == TRUE);
         use_precompiled_header = TRUE;
-        pch_input_file_name = optarg;
+        pch_input_file_name = opt_arg;
         precompiled_header_processing_required = TRUE;
         break;
       case optk_pch:
@@ -1124,14 +1128,18 @@ Process the arguments on the command line that invoked the compiler.
         /* Specify the size of the preallocated memory to be used for
            PCH processing.  The value specified on the command line is
            size in 1k (1024) units to be allocated. */
-        pch_mem_size = scan_optarg_number(optarg) * 1024;
+        pch_mem_size = scan_opt_arg_number(opt_arg) * 1024;
         if (pch_mem_size <= 0 ||
             pch_mem_size > (SIZE_OF_MEM_ALLOC_HISTORY *
                                                  HOST_ALLOCATION_INCREMENT)) {
-          str_command_line_error(ec_cl_invalid_pch_size, optarg);
+          str_command_line_error(ec_cl_invalid_pch_size, opt_arg);
         }  /* if */
         break;
 #endif /* !USE_MMAP_FOR_MEMORY_REGIONS */
+      case optk_pch_dir:
+        /* Directory to be used for PCH files. */
+        pch_dir_name = opt_arg;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -1239,13 +1247,13 @@ Process the arguments on the command line that invoked the compiler.
   }  /* if */
 
   /* Pick up the source file name. */
-  if (optind >= argc) {
+  if (opt_ind >= argc) {
     command_line_error(ec_cl_missing_source_file_name);
   }  /* if */
-  optarg = argv[optind++];
+  opt_arg = argv[opt_ind++];
   /* If the name is "-", use stdin for input. */
-  if (strcmp(optarg, "-") == 0) optarg = FILE_NAME_FOR_STDIN;
-  primary_source_file_name = optarg;
+  if (strcmp(opt_arg, "-") == 0) opt_arg = FILE_NAME_FOR_STDIN;
+  primary_source_file_name = opt_arg;
   if (put_dir_of_each_opened_source_file_on_incl_search_path) {
     /* Add the directory of the source file to the front of the include file
        search path.  gs_directory_of returns the directory part of the
@@ -1265,10 +1273,10 @@ Process the arguments on the command line that invoked the compiler.
 #if COMPILE_MULTIPLE_SOURCE_FILES
   /* Multiple source files can be compiled.  Save the count and argv
      position of remaining files, if any. */
-  argc_file_list = argc - optind;
+  argc_file_list = argc - opt_ind;
   more_than_one_source_file = (argc_file_list > 0);
   if (more_than_one_source_file) {
-    argv_file_list = &argv[optind];
+    argv_file_list = &argv[opt_ind];
     /* There are at least two files.  The -o, -L, and -X options (those
        that specify output files) cannot be used, because they only specify
        one file. */
@@ -1282,7 +1290,7 @@ Process the arguments on the command line that invoked the compiler.
 #else /* !COMPILE_MULTIPLE_SOURCE_FILES */
   /* Multiple source files cannot be compiled. */
   /* Check that all command-line arguments were taken. */
-  if (optind < argc) {
+  if (opt_ind < argc) {
     command_line_error(ec_cl_too_many_arguments);
   }  /* if */
 #endif /* COMPILE_MULTIPLE_SOURCE_FILES */
