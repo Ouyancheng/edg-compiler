@@ -110,6 +110,7 @@ extern an_expr_node_ptr prep_rvalue_arg_expr(an_expr_node_ptr  expr,
 
 extern a_boolean scan_class_initializer_expression(
                                               a_type_ptr         required_type,
+                                              a_boolean          fill_in_dtor,
                                               a_dynamic_init_ptr *dip);
 
 extern void scan_class_parenthesized_initializer(

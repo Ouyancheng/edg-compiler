@@ -10467,6 +10467,7 @@ err_pos as the error position.
 
 
 a_boolean scan_class_initializer_expression(a_type_ptr         required_type,
+                                            a_boolean          fill_in_dtor,
                                             a_dynamic_init_ptr *dip)
 /*
 Scan an expression that is the initial value of an entity of class type.
@@ -10483,8 +10484,8 @@ cases:
   A z = x;            // A::A(const A&)
 
 As indicated, this is initialization with the "=" semantics
-(copy-initialization). The dynamic initialization entry will also
-indicate a destructor if appropriate.
+(copy-initialization).   If fill_in_dtor is TRUE, any required destruction
+will be indicated in the dynamic initialization.
 */
 {
   an_operand          result;
@@ -10499,8 +10500,7 @@ indicate a destructor if appropriate.
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   /* Find out whether or not the conversion is possible, and
      build a dynamic initialization entry to describe the initialization. */
-  prep_elision_initializer_operand(&result, required_type,
-                                   /*fill_in_dtor=*/TRUE,
+  prep_elision_initializer_operand(&result, required_type, fill_in_dtor,
                                    ec_bad_initializer_type, dip);
   wrap_up_dynamic_init_full_expression(*dip);
   /* *dip == NULL means there was an error. */
