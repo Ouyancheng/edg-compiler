@@ -1,5 +1,11 @@
 Version 2.21
 
+12/4/93  Dynamic initialization of pointer-to-member-function in aggregate
+
+IL lowering no longer generates an error constant in an aggregate
+constant after lowering a constant that is a pointer-to-member-function
+dynamic initialization (ck_dynamic_init).
+
 12/1/93  C-generating back end outputs extern void variable as char
 
 The C-generating back end now outputs a void variable as type char.

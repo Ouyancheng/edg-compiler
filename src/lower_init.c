@@ -1740,11 +1740,17 @@ to the constructor-init entry.
        (From the ARM, 12.6.1).  Fortunately, if there's one of these
        cases in a ck_aggregate, there can be no "normal" constants
        in the aggregate, and the whole aggregate will be thrown
-       away.   Therefore we just leave the ck_dynamic_init constant
-       as it is. */
-#if CHECKING
-    con_ptr->kind = (a_constant_repr_kind)ck_error;
-#endif /* CHECKING */
+       away.   For such a case, we could just leave the ck_dynamic_init
+       constant as it is.  There is another case, however: a pointer-to-
+       member-function is lowered into an aggregate, and that case
+       will come here too.  To handle that, we change the
+       ck_dynamic_init into an empty aggregate constant.  Note that
+       if we wanted a fully general solution for the earlier case
+       we would have to build a multi-level empty aggregate constant
+       with a structure that matches the aggregate, but since the constant
+       here is only used in the pointer-to-member-function case, we
+       need do no more than the simplest change. */
+    set_constant_kind(con_ptr, (a_constant_repr_kind)ck_aggregate);
   } else {
     /* Not an aggregate: a zero of the right type will be fine. */
     next_con = con_ptr->next;
