@@ -284,7 +284,7 @@ static void gen_declaration_using_type(a_type_ptr                   type,
                                        an_il_entry_kind             entry_kind,
                                        a_src_seq_secondary_decl_ptr sec_decl);
 static void gen_type_decl(void);
-static void gen_variable_decl(void);
+static void gen_variable_decl(a_boolean gen_final_semicolon);
 static void gen_routine_decl(void);
 static void gen_secondary_decl(void);
 static void gen_statement_list(a_statement_ptr stmt_list,
@@ -2307,7 +2307,7 @@ is the one associated with the definition of the class.
         break;
       case iek_variable:
         /* Static data member. */
-        gen_variable_decl();
+        gen_variable_decl(/*gen_final_semicolon=*/TRUE);
         break;
       case iek_routine:
         /* Member function */
@@ -3607,7 +3607,7 @@ This can be a condition declaration or simply an expression.
     }  /* if */
   } else {
     /* Condition declaration. */
-    gen_variable_decl();
+    gen_variable_decl(/*gen_final_semicolon=*/FALSE);
   }  /* if */
 }  /* gen_condition */  
 
@@ -4462,6 +4462,23 @@ Generate code for the indicated statement.
           /* Process the declaration entry and its source sequence entry. */
           gen_declaration();
         }  /* while */
+        /* If an end-of-construct entry for the stmk_decl appears, advance
+           past it.  This is used for the initialization declaration of
+          "for" statements. */
+        if (ss_entry_kind(curr_source_sequence_entry) ==
+                                                iek_src_seq_end_of_construct) {
+          /* Found an end-of-construct entry.  See if it's the right one. */
+          a_src_seq_end_of_construct_ptr ssecp =
+                                  ss_entry_ptr(curr_source_sequence_entry,
+                                               a_src_seq_end_of_construct_ptr);
+          if (ss_entry_kind(ssecp) == iek_statement) {
+            if (ss_entry_ptr(ssecp, a_statement_ptr) == statement) {
+              /* Found the end-of-construct entry for the statement.  Advance
+                 past it. */
+              adv_curr_source_sequence_entry();
+            }  /* if */
+          }  /* if */
+        }  /* if */
       }  /* if */
       suppress_trailing_space = TRUE;
       break;
@@ -4717,10 +4734,11 @@ Output the initializer, if any, for the indicated variable.
 }  /* gen_initializer */
 
 
-static void gen_variable_decl(void)
+static void gen_variable_decl(a_boolean gen_final_semicolon)
 /*
 Generate a declaration of the variable indicated by the current source
-sequence entry.
+sequence entry.  If gen_final_semicolon is TRUE, a semicolon is put out
+at the end of the declaration.
 */
 {
   a_variable_ptr               var;
@@ -4832,9 +4850,11 @@ sequence entry.
   consider_initialization = is_definition;
   if (var->is_member_constant) consider_initialization = !is_definition;
   if (consider_initialization) gen_initializer(var);
-  /* Finish the declaration. */
-  write_tok_ch(';');
-  write_space();
+  if (gen_final_semicolon) {
+    /* Finish the declaration. */
+    write_tok_ch(';');
+    write_space();
+  }  /* if */
 }  /* gen_variable_decl */
 
 
@@ -5254,7 +5274,7 @@ source sequence entry identifies the entity.
       gen_type_decl();
       break;
     case iek_variable:
-      gen_variable_decl();
+      gen_variable_decl(/*gen_final_semicolon=*/TRUE);
       break;
     case iek_routine:
       gen_routine_decl();
@@ -5276,7 +5296,7 @@ sequence entry.
       gen_type_decl();
       break;
     case iek_variable:
-      gen_variable_decl();
+      gen_variable_decl(/*gen_final_semicolon=*/TRUE);
       break;
     case iek_routine:
       gen_routine_decl();
