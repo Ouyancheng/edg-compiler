@@ -2196,22 +2196,17 @@ See conversion_possible.
              anachronism.  Only allow this if anachronisms are being
              allowed.  Cfront also allows floats to be assigned to enums.
              But this is not really part of the anachronism and is not
-             supported even in cfront mode.  In C, it's valid but we issue
+             supported in any mode.  In C, it's valid but we issue
              a warning anyway. */
-          if (source_is_integral) {
-            if (C_dialect != C_dialect_cplusplus) {
-              /* Mixed integral types allowed in C with a warning. */
-              *warning_suggested = ec_mixed_enum_type;
-            } else if (anachronism_error_severity == (int)es_warning) {
-              /* Anachronism warning in C++ mode with anachronisms allowed. */
-              *warning_suggested = ec_mixed_enum_type_anachronism;
-            } else {
-              /* C++ mode and anachronisms not allowed. */
-              okay = FALSE;
-            }  /* if */
-          } else {  /* !source_is_integral */
-            /* Conversion from non-integral (i.e., float) to enum is
-               not allowed. */
+          if (C_dialect != C_dialect_cplusplus) {
+            /* Mixed integral types allowed in C with a warning. */
+            *warning_suggested = ec_mixed_enum_type;
+          } else if ((anachronism_error_severity == (int)es_warning) &&
+                      source_is_integral) {
+            /* Anachronism warning in C++ mode with anachronisms allowed. */
+            *warning_suggested = ec_mixed_enum_type_anachronism;
+          } else {
+            /* C++ mode and anachronisms not allowed. */
             okay = FALSE;
           }  /* if */
         }  /* if */
