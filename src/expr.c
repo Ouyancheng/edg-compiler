@@ -15579,7 +15579,8 @@ nonstandard class member constants.  Assumes copy-initialization
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   if (is_array_type(required_type) && is_array_type(result.type)) {
     /* If the initializer is a string literal we will need access to the
-       string constant. */
+       string constant.  In GNU modes, this could also be an initialization
+       through a compound literal of array type. */
     a_boolean  string_literal_case = is_string_type(result.type) &&
                                   result.kind == (an_operand_kind)ok_constant;
     a_constant_ptr  string_con = NULL;
@@ -15596,7 +15597,8 @@ nonstandard class member constants.  Assumes copy-initialization
     }  /* if */
     check_assertion(gnu_mode || is_string_type(result.type));
     if ((string_literal_case &&
-         !check_string_constant_initializer(&required_type, string_con)) ||
+         ((gnu_mode && !is_string_type(required_type)) ||
+          !check_string_constant_initializer(&required_type, string_con))) ||
         (!string_literal_case &&
          !types_are_compatible(result.type, required_type))) {
       pos_ty2_error(ec_bad_initializer_type, &result.position,
