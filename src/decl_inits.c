@@ -1004,9 +1004,9 @@ class.
           if (is_incomplete_type(member_type)) {
             /* Members of unions or aggregates cannot be incomplete. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-            if (microsoft_mode && C_mode() && top_level &&
-                is_array_type(member_type) && curr_field->next == NULL) {
-              /* ... except that in Microsoft C mode it's okay to initialize
+            if (microsoft_mode && top_level && is_array_type(member_type) &&
+                curr_field->next == NULL) {
+              /* ... except that in Microsoft mode it's okay to initialize
                  a field of incomplete array type when it's the last field in
                  the struct (but only when the struct is the top-level object
                  type). */
