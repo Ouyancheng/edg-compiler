@@ -1310,6 +1310,9 @@ error code.
     case ec_class_and_member_function_name_conflict:
       m = "member function is named \"%s\" but is not a constructor";
       break;
+    case ec_nested_class_anachronism:
+      m = "using nested class \"%s\" (anachronism)";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

@@ -455,7 +455,8 @@ typedef enum /*an_error_code*/ {
   ec_nonstd_member_function_redeclaration,
   ec_static_main,
   ec_inline_main,
-  ec_class_and_member_function_name_conflict
+  ec_class_and_member_function_name_conflict,
+  ec_nested_class_anachronism
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
