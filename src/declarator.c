@@ -2107,8 +2107,12 @@ declaration.
   }  /* if */
   size_pos = pos_curr_token;
   if (curr_token == tok_rbracket && !static_seen) {
-    /* Empty brackets, indicating an incomplete array type. */
+    /* Empty brackets, indicating an incomplete array type, except in GNU
+       C mode where it is equivalent to "[0]". */
     num_of_elements = 0;
+    if (gcc_mode) {
+      is_constant_bound = TRUE;
+    }  /* if */
   } else if (vla_enabled && curr_token == tok_star &&
              next_token() == tok_rbracket) {
     /* [*] syntax for a VLA in a prototype. */
