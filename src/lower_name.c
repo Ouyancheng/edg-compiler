@@ -3311,6 +3311,7 @@ returned.
 
 
 void mangle_promoted_entity_name(a_source_correspondence *scp,
+                                 a_boolean               is_type,
                                  a_routine_ptr           routine,
                                  a_scope_ptr             scope)
 /*
@@ -3318,8 +3319,7 @@ scp points to the source correspondence field of an entity that is being
 promoted out of the routine "routine" (or one of its block scopes) to
 the file scope.  scope indicates the scope out of which the entity is
 being promoted (a function or block scope).  Give the entity a mangled
-name if necessary.  This routine is called only once for each entity,
-and that is after normal name mangling has been done.
+name if necessary.  If is_type is TRUE, the entity is a type.
 */
 {
   a_mangling_control_block mctl;
@@ -3355,7 +3355,7 @@ and that is after normal name mangling has been done.
     if (routine->source_corresp.name != NULL) {
       mangled_function_name(routine, /*suppress_param_encoding=*/FALSE, &mctl);
     }  /* if */
-    (void)end_mangling(scp, /*final=*/TRUE, &mctl);
+    (void)end_mangling(scp, /*final=*/!is_type, &mctl);
   }  /* if */
 }  /* mangle_promoted_entity_name */
 

@@ -1,5 +1,11 @@
 Version 2.44
 
+5/30/00  Abort in final_type_name_mangling on mangling of local type name
+
+An abort in final_type_name_mangling has been corrected, on mangling
+of a type name that is local to a member function and requires
+compression.
+
 5/24/00  Complete diagnostics when main() is declared as a friend function
 
 The front end now diagnoses violations of constraints on main() when it is

@@ -11373,7 +11373,8 @@ with the outermost enclosing class, for later promotion out of the class
 #endif /* DEBUG */
       /* Mangle the name if necessary (e.g., if it is part of a template
          function). */
-      mangle_promoted_entity_name(&type->source_corresp, routine, scope);
+      mangle_promoted_entity_name(&type->source_corresp, /*is_type=*/TRUE,
+                                  routine, scope);
       /* The is_local_to_function flag in the type is not cleared yet.  That
          happens at the end of lowering. */
       if (routine_class == NULL) {
@@ -11403,8 +11404,8 @@ with the outermost enclosing class, for later promotion out of the class
         for (enum_con = type->variant.integer.enum_info.constant_list;
              enum_con != NULL;
              enum_con = enum_con->next) {
-          mangle_promoted_entity_name(&enum_con->source_corresp, routine,
-                                      scope);
+          mangle_promoted_entity_name(&enum_con->source_corresp,
+                                      /*is_type=*/FALSE, routine, scope);
           enum_con->source_corresp.is_local_to_function = FALSE;
         }  /* for */
       }  /* if */
@@ -11448,7 +11449,8 @@ scope that is part of the indicated routine) to the file scope.
       scope->variables = variable->next;
       /* Mangle the name if necessary (e.g., if it is part of a template
          function). */
-      mangle_promoted_entity_name(&variable->source_corresp, routine, scope);
+      mangle_promoted_entity_name(&variable->source_corresp, /*is_type=*/FALSE,
+                                  routine, scope);
       variable->source_corresp.is_local_to_function = FALSE;
 #if LOWER_EXTERN_INLINE
       if (routine->is_inline &&
