@@ -1056,14 +1056,18 @@ Determine whether the current scope is the class scope of the given class
 type.  For templates, use the class template scope.
 */
 {
-  a_boolean result;
+  a_boolean                result, instance;
   a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
 
-  if (ssep->kind == (a_scope_kind)sck_template_declaration ||
-      ssep->kind == (a_scope_kind)sck_template_instantiation) {
+  instance = (ssep->kind == (a_scope_kind)sck_template_instantiation);
+  if (ssep->kind == (a_scope_kind)sck_template_declaration || instance) {
     --ssep;
   }  /* if */
-  if (ssep->kind == (a_scope_kind)sck_class_struct_union &&
+  /* If an instantiation scope (for a function declaration) sits on top of
+     a class reactivation scope, we are presumably rescanning a function
+     member declared inside a class. */
+  if ((ssep->kind == (a_scope_kind)sck_class_struct_union ||
+       (instance && ssep->kind == (a_scope_kind)sck_class_reactivation)) &&
       ssep->assoc_type == type) {
     result = TRUE;
   } else {
