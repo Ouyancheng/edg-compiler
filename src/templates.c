@@ -3139,6 +3139,71 @@ It is FALSE if the instantiation scope was pushed by the caller.
 }  /* delayed_scan_for_function_template_default_args */
 
 
+static a_type_ptr create_error_routine_type(a_routine_ptr	templ_rout)
+/*
+Given a routine pointer (templ_rout) create a new routine type entry
+with the same number of parameters as templ_rout, but all of whose
+parameter types are error types, and whose return type is also an error
+type.
+*/
+{
+  a_type_ptr			rout_type;
+  a_routine_type_supplement_ptr	rtsp;
+  a_type_ptr			templ_rout_type;
+  a_routine_type_supplement_ptr	templ_rtsp;
+  a_param_type_ptr		ptp;
+  a_param_type_ptr		last_ptp = NULL;
+  a_param_type_ptr		templ_ptp;
+  a_type_ptr			error_type_ptr;
+
+  error_type_ptr = error_type();
+  templ_rout_type = templ_rout->type;
+  templ_rtsp = templ_rout_type->variant.routine.extra_info;
+  rout_type = alloc_type((a_type_kind)tk_routine);
+  rtsp = rout_type->variant.routine.extra_info;
+  rtsp->prototyped = TRUE;
+  rout_type->variant.routine.return_type = error_type_ptr;
+  /* Create a list of parameters of error type.  The number of parameters
+     should match the parameter list of the original template. */
+  for (templ_ptp = templ_rtsp->param_type_list; templ_ptp != NULL;
+       templ_ptp = templ_ptp->next) {
+    ptp = alloc_param_type(error_type_ptr);
+    if (last_ptp == NULL) {
+      rtsp->param_type_list = ptp;
+    } else {
+      last_ptp->next = ptp;
+    }  /* if */
+    last_ptp = ptp;
+  }  /* for */
+  return rout_type;
+}  /* create_error_routine_type */
+
+
+static
+void check_for_invalid_instantiation(a_type_ptr		*type,
+				     a_routine_ptr	templ_rout)
+/*
+This routine is called after a declaration of a function has been rescanned
+to create a partial instantiation.  It determines whether all of the tokens
+of the declaration have been scanned, and whether the type created is
+a function type.  Errors are issued if either of these conditions is
+not satisfied.
+*/
+{
+  /* The rescan of the declaration should have produced a routine
+     type.  If not all of the tokens were used, or if the type created
+     is not a function type, issue a diagnostic. */
+  if (curr_token != tok_end_of_source || *type == NULL ||
+      !is_function_type(*type)) {
+    pos_error(ec_invalid_declaration, &pos_curr_token);
+    /* The scanning of the declaration must produce a suitable function
+       type.  Create a function type with a suitable number of parameters
+       whose types are error types. */
+    *type = create_error_routine_type(templ_rout);
+  }  /* if */
+}  /* check_for_invalid_instantiation */
+
+
 static void scan_template_declaration(a_boolean         is_initial_decl,
                                       a_boolean         is_member_decl,
                                       a_type_ptr	parent_class,
@@ -3150,13 +3215,16 @@ static void scan_template_declaration(a_boolean         is_initial_decl,
                                       a_type_ptr        *type,
                                       a_func_info_block *func_info,
                                       a_storage_class   *storage_class,
-                                      a_decl_modifier	*decl_modifiers)
+                                      a_decl_modifier	*decl_modifiers,
+                                      a_routine_ptr     templ_rout)
 /*
 Calls decl_specifiers and declarator to scan a template declaration of
 a function or static data member.  is_initial_decl is TRUE if this
 is being called to scan the original declaration and is FALSE when
 rescanning the tokens to generate a type for a specific instance
-of a function template.
+of a function template.  templ_rout points to the routine associated
+with the original declaration of a template and is only present
+(non-NULL) when is_initial_decl is FALSE.
 */
 {
   a_decl_flag_set              dsi_flags;
@@ -3164,6 +3232,7 @@ of a function template.
   a_source_sequence_entry_ptr  declarator_ssep = NULL;
   a_type_qualifier_set         qualifiers;
   a_source_position            decl_start_pos;
+  a_boolean		       type_is_function = FALSE;
 
   dsi_flags = DSI_INLINE_ALLOWED |
               DSI_TYPE_SPECIFIER_ALLOWED |
@@ -3237,8 +3306,8 @@ of a function template.
     /* Note whether this is a function type that comes from a typedef.  The
        setting is checked later if this turns out to be a function template
        definition. */
-    if (is_function_type(*type) &&
-        (*type)->kind == (a_type_kind)tk_typeref) {
+    type_is_function = is_function_type(*type);
+    if (type_is_function && (*type)->kind == (a_type_kind)tk_typeref) {
       func_info->function_type_from_typedef = TRUE;
     }  /* if */
     if (is_function_type(*type) && parent_class == NULL &&
@@ -3269,23 +3338,35 @@ of a function template.
     /* In the normal case the current token should be end_of_source,
        which was inserted to mark the end of the cached token stream.
        If necessary, keep flushing until end-of-source is found. */
+    if (!is_error_locator(*locator)) {
+      /* The rescan of the declaration should have produced a routine
+         type.  If not all of the tokens were used, or if the type created
+         is not a function type, issue a diagnostic. */
+      check_for_invalid_instantiation(type, templ_rout);
+    }  /* if */
     flush_past_token_cache_terminator();
   }  /* if */
 }  /* scan_template_declaration */
 
 
-static a_type_ptr scan_member_declaration(a_type_ptr	parent_class)
+static a_type_ptr scan_member_declaration(a_type_ptr	parent_class,
+                                          a_routine_ptr templ_rout)
 /*
 Calls rescan_member_template_declaration to rescan the tokens of a
 member function template to produce the type for the instance and to
-detect any errors that should be diagnosed.
+detect any errors that should be diagnosed.  templ_rout points to the
+routine associated with the original declaration of a template.
 */
 {
-  a_type_ptr	instance_type;
+  a_type_ptr		instance_type;
 
   add_stop_token(tok_end_of_source);
   instance_type = rescan_member_template_declaration(parent_class);
   remove_stop_token(tok_end_of_source);
+  /* The rescan of the declaration should have produced a routine
+     type.  If not all of the tokens were used, or if the type created
+     is not a function type, issue a diagnostic. */
+  check_for_invalid_instantiation(&instance_type, templ_rout);
   /* In the normal case the current token should be end_of_source,
      which was inserted to mark the end of the cached token stream.
      If necessary, keep flushing until end-of-source is found. */
@@ -3414,7 +3495,7 @@ type based on the template argument list and the template parameter list
 #if MICROSOFT_EXTENSIONS_ALLOWED
       locator_position = pos_curr_token;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      rout_type = scan_member_declaration(parent_class);
+      rout_type = scan_member_declaration(parent_class, templ_rout);
 #if 0
       /* We should get the locator position returned. */
 #endif
@@ -3432,7 +3513,7 @@ type based on the template argument list and the template parameter list
 				/*is_specialization=*/FALSE,
                                 &dso_flags, &do_flags, &locator,
                                 &rout_type, &func_info, &storage_class,
-                                &decl_modifiers);
+                                &decl_modifiers, templ_rout);
       done_with_func_info(func_info);
 #if MICROSOFT_EXTENSIONS_ALLOWED
       locator_position = locator.source_position;
@@ -7025,7 +7106,8 @@ any non-empty template parameter lists that were scanned.
                                 decl_state->decl_scope_err,
                                 decl_state->is_specialization,
                                 &dso_flags, &do_flags, &locator, &type,
-                                &func_info, &storage_class, &decl_modifiers);
+                                &func_info, &storage_class, &decl_modifiers,
+                                (a_routine_ptr)NULL);
       /* If an error occurred scanning the declarator, set the flag to
          suppress subsequent errors. */
       if (is_error_locator(locator)) decl_state->decl_scope_err = TRUE;

@@ -1,5 +1,20 @@
 Version 2.33
 
+9/13/96 Template instantiations that do not produce valid function types
+
+If the names used in a template declaration change meaning between the
+time at which a template is declared and the time at which an instantiation
+is generated, an abort or internal error could occur.  A diagnostic
+is now issued if an instantiation does not result in a valid function
+declaration.  Eventually, the new template name binding rules will be
+implemented, which will result in the original name being used even if
+the name is redeclared after the template has been declared.
+
+  struct x {};
+  template <class T> x f (T); 
+  int x;
+  int i = f(1);
+
 9/13/96 Microsoft compatibility: __STDC__ not defined
 
 The Microsoft Visual C++ compiler does not define the preprocessor
