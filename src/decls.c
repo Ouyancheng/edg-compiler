@@ -3892,6 +3892,14 @@ skip_overloading:;
   }  /* if */
   set_name_linkage(linkage, sym, source_corresp_ptr, *ext_sym,
                    overload_symbol, &locator->source_position);
+  if (overload_symbol != NULL) {
+    /* If a using-declaration has introduced a function name into this
+       scope that has the same type as the current function, it is an error.
+       We also remove the projection symbol from the overload set, to
+       avoid overload ambiguity errors later. */
+    check_for_conflicts_with_using_decls(overload_symbol,
+                                         &locator->source_position);
+  }  /* if */
   /* If cross-reference information is being issued, update the output.  If
      source sequence entries are being generated, update the declarator_ssep
      entry. */
@@ -6183,11 +6191,6 @@ current scope.
       }  /* if */
       /* Create the new sk_namespace_projection symbol(s). */
       for (; sym != NULL; sym = is_list ? sym->next : NULL) {
-        /* Don't try to add a symbol that is already pointed to by
-           overload_sym. */
-        if (overload_sym != NULL && already_in_lookup_set(overload_sym, sym)) {
-          continue;
-        }  /* if */
         locator = locator_for_curr_id;
         clear_specific_symbol(locator);
         if (overload_sym == NULL) {
@@ -6198,6 +6201,19 @@ current scope.
           /* If is_list is TRUE, there will be overloading on the next
              iteration of this loop. */
           if (is_list) overload_sym = new_sym;
+        } else if (already_in_lookup_set(overload_sym, sym)) {
+          /* Don't try to add a symbol that is already pointed to by
+             overload_sym. */
+          continue;
+        } else if (conflicts_with_previous_function_decl(
+                                     fundamental_symbol_of(sym),
+                                     overload_sym,
+                                     &locator_for_curr_id.source_position)) {
+          /* A function introduced by a using declaration cannot have the
+             same type as a function already declared in the scope (WP 7.3.3
+             [namespace.udecl] paragraph 12).  The diagnostic will have been
+             issued by the subroutine; don't create a projection symbol. */
+          continue;
         } else {
           /* Add a new symbol to the overload set. */
           new_sym = make_namespace_projection_symbol(sym, &locator,

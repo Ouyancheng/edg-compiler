@@ -3640,18 +3640,171 @@ the first two need be checked.)
                                (a_symbol_kind)sk_overloaded_function,
                       "set_mixed_static_nonstatic_flag:",
                       "sk_overloaded_function expected");
+  sym = overload_sym->variant.overloaded_function.symbols;
   /* Set a flag in overload_sym if the instances of an overloaded function
      are a mixture of static and nonstatic member functions. */
   if (!overload_sym->variant.overloaded_function.mixed_static_nonstatic) {
-    sym = overload_sym->variant.overloaded_function.symbols;
-    tp1 = routine_symbol_type(fundamental_symbol_of(sym));
-    tp2 = routine_symbol_type(fundamental_symbol_of(sym->next));
-    if (routine_type_is_nonstatic_member_function(tp1) !=
+    if (sym->next != NULL) {
+      tp1 = routine_symbol_type(fundamental_symbol_of(sym));
+      tp2 = routine_symbol_type(fundamental_symbol_of(sym->next));
+      if (routine_type_is_nonstatic_member_function(tp1) !=
                 routine_type_is_nonstatic_member_function(tp2)) {
-      overload_sym->variant.overloaded_function.mixed_static_nonstatic = TRUE;
+        overload_sym->
+           variant.overloaded_function.mixed_static_nonstatic = TRUE;
+      }  /* if */
     }  /* if */
+  } else if (sym->next == NULL) {
+    overload_sym->variant.overloaded_function.mixed_static_nonstatic = FALSE;
   }  /* if */
 }  /* set_mixed_static_nonstatic_flag */
+
+
+static a_boolean types_of_decl_and_using_decl_conflict(a_symbol_ptr  decl_sym,
+                                                       a_symbol_ptr  using_sym,
+                                                       a_boolean     *err)
+/*
+decl_sym and using_sym represent routines in the same overload set, the
+former by direct declaration, the latter by a using declaration; compare
+their types and return TRUE if they conflict -- i.e., if they are too
+compatible to coexist in the same overload set.  There is special handling
+when using_sym refers to a virtual member function.  Return *err TRUE when
+a diagnostic should be issued by the caller.
+*/
+{
+  a_boolean   compat = FALSE;
+  a_boolean   is_class_member = decl_sym->is_class_member;
+  a_type_ptr  tp1 = routine_symbol_type(decl_sym);
+  a_type_ptr  tp2 = routine_symbol_type(using_sym);
+
+  *err = FALSE;
+  /* First compare param types and, if appropriate, implicit-this-param
+     types. */
+  if (param_types_are_compatible(tp1, tp2, TCF_NO_FLAGS) &&
+      (!is_class_member ||
+       this_param_types_correspond(tp1, tp2, /*check_as_conversion=*/FALSE,
+                                   /*check_as_operands=*/FALSE))) {
+    /* They are compatible so far. */
+    if (is_class_member && using_sym->variant.routine.ptr->is_virtual) {
+      /* This is a case of virtual function overriding.  Don't issue a
+         diagnostic. */
+      compat = TRUE;
+    } else if (types_are_strictly_compatible(
+                                         tp1->variant.routine.return_type,
+                                         tp2->variant.routine.return_type)) {
+      /* Not a virtual function case.  The return types are also compatible.
+         A diagnostic will be issued by the caller. */
+      *err = compat = TRUE;
+    }  /* if */
+  }  /* if */
+  return compat;
+}  /* types_of_decl_and_using_decl_conflict */
+
+
+void check_for_conflicts_with_using_decls(a_symbol_ptr       overload_sym,
+                                          a_source_position  *pos)
+/*
+A function (either a member or nonmember function) has been declared and
+added to an overload list pointed to by overload_sym.  Check for conflicts
+between the newly declared function (which will head the overload list) and
+any other members of the overload set that have been introduced as a result
+of a using declaration.  For each case in which there's a conflict (there
+may be more than one), remove the using symbol from the overload list (so
+it won't cause ambiguity errors later), and if appropriate, issue an error,
+using *pos as the error position.
+*/
+{
+  a_symbol_ptr   decl_sym, sym, prev_in_overload_set, using_sym;
+  a_boolean      err;
+  a_symbol_kind  using_sym_kind;
+
+  /* The first symbol on the overload list is the current declaration. */
+  decl_sym = overload_sym->variant.overloaded_function.symbols;
+  if (decl_sym->is_class_member) {
+    /* It's a member function; we're looking for sk_projection symbols. */
+    check_assertion(decl_sym->kind == (a_symbol_kind)sk_member_function);
+    using_sym_kind = (a_symbol_kind)sk_projection;
+  } else {
+    /* It's a nonmember function; we're looking for sk_namespace_projection
+       symbols. */
+    check_assertion(decl_sym->kind == (a_symbol_kind)sk_routine);
+    using_sym_kind = (a_symbol_kind)sk_namespace_projection;
+  }  /* if */
+  /* Keep track of the previous symbol in the overload list, to enable
+     removing a symbol from the list. */
+  prev_in_overload_set = decl_sym;
+  for (sym = decl_sym->next; sym != NULL; sym = prev_in_overload_set->next) {
+    if (sym->kind == using_sym_kind) {
+      /* Found a projection symbol.  Get the fundamental symbol so the types
+         can be compared. */
+      using_sym = fundamental_symbol_of(sym);
+      /* Check for a conflict between the type of the newly declared function
+         symbol (decl_sym) and the type of the symbol previously introduced
+         by a using declaration (using_sym). */
+      if (types_of_decl_and_using_decl_conflict(decl_sym, using_sym, &err)) {
+        /* Unless using_sym is a virtual function being overridden by
+           decl_sym, an error is issued. */
+        if (err) {
+          pos_sy2_error(ec_conflicts_with_using_decl, pos, decl_sym,
+                        using_sym);
+        }  /* if */
+        /* Remove the symbol from the overload list by skipping around it. */
+        prev_in_overload_set->next = sym->next;
+        /* Continue through the overload list -- there may be more than
+           one projection symbol with which decl_sym conflicts. */
+        continue;
+      }  /* if */
+    }  /* if */
+    prev_in_overload_set = sym;
+  }  /* for */
+}  /* check_for_conflicts_with_using_decls */
+
+
+a_boolean conflicts_with_previous_function_decl(a_symbol_ptr       using_sym,
+                                                a_symbol_ptr       sym,
+                                                a_source_position  *pos)
+/*
+using_sym is a function symbol referred to by a using-declaration, either a
+member of base class or a member of a namespace.  Unless it conflicts with a
+function previously declared in the current scope, a projection symbol will
+be created for it and it will be added to an overload list involving sym
+(which may be an overload symbol).  Look for such a conflict, returning TRUE
+if one if found.  In some cases a diagnostic should be issued; use *pos
+as the error position.
+*/
+{
+  a_boolean      conflicts = FALSE;
+  a_boolean      is_list = FALSE;
+  a_boolean      err;
+  
+  if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+    /* We need to search an overload set. */
+    is_list = TRUE;
+    sym = sym->variant.overloaded_function.symbols;
+  }  /* if */
+  check_assertion(using_sym->is_class_member ?
+                    using_sym->kind == (a_symbol_kind)sk_member_function :
+                    using_sym->kind == (a_symbol_kind)sk_routine);
+  /* Go through all function declarations in the current scope with the
+     same name.  Ignore projection symbols. */
+  for (; sym != NULL; sym = is_list ? sym->next : NULL) {
+    if (sym->kind == using_sym->kind) {
+      /* Check for a conflict between the type of the previously declared
+         function (sym) and the type for which a projection symbol is about
+         to be created (using_sym). */
+      if (types_of_decl_and_using_decl_conflict(sym, using_sym, &err)) {
+        /* Unless using_sym is a virtual function being overridden by
+           the previous declaration, an error is issued. */
+        if (err) {
+          pos_sy2_error(ec_using_decl_conflicts_with_prev_decl, pos,
+                        using_sym, sym);
+        }  /* if */
+        conflicts = TRUE;
+        break;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  return conflicts;
+}  /* conflicts_with_previous_function_decl */
 
 
 #if !DECL_MODIFIERS_IN_USE
@@ -3729,9 +3882,6 @@ special function kind (e.g., constructor, destructor), if any.
   set_source_corresp(&rtn->source_corresp, sym);
   set_class_membership(sym, &rtn->source_corresp, class_type);
   rtn->source_corresp.access = access;
-  if (overload_sym != NULL) {
-    set_mixed_static_nonstatic_flag(overload_sym);
-  }  /* if */
   /* Member functions should have the same name linkage as the class of
      which they are members.  (In cfront mode that may mean internal
      linkage -- if and when its linkage is promoted to C++, the linkage of
@@ -3795,6 +3945,11 @@ special function kind (e.g., constructor, destructor), if any.
     process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
   }  /* if */
   add_exception_specification(func_info, rtn);
+  if (overload_sym != NULL) {
+    check_for_conflicts_with_using_decls(overload_sym,
+                                         &locator->source_position);
+    set_mixed_static_nonstatic_flag(overload_sym);
+  }  /* if */
   if (cssp->is_nonreal_class) {
     /* This symbol represents a member function of a prototype instantiation
        of a class template.  As such it is a quasi function template itself.
@@ -5824,13 +5979,14 @@ declaration appears, and access is the current access (explicitly specified
 or implicit) controlling the declaration.
 */
 {
-  a_symbol_ptr              sym, declared_sym, new_sym, other_sym, fund_sym;
-  a_base_class_ptr          bcp;
-  a_boolean                 err = FALSE;
-  a_boolean                 is_overloaded;
-  a_symbol_locator          locator;
-  a_class_member_using_decl_ptr
-                            cmudp;
+  a_symbol_ptr                   sym, declared_sym;
+  a_symbol_ptr                   new_sym, other_sym, fund_sym;
+  a_base_class_ptr               bcp;
+  a_boolean                      err = FALSE;
+  a_boolean                      is_overloaded;
+  a_symbol_locator               locator;
+  a_class_member_using_decl_ptr  cmudp;
+  a_source_position              decl_pos;
 
   db_enter(3, "member_using_declaration");
   add_stop_token(tok_semicolon);
@@ -5853,6 +6009,7 @@ or implicit) controlling the declaration.
   (void)coalesce_and_lookup_generalized_identifier(GID_DTOR_RECOGNIZED,
                                                    ilm_normal, &err);
   if (!err) {
+    decl_pos = locator_for_curr_id.source_position;
     /* The identifier should be a qualified name, with the qualifier a base
        class of the current class. */
     if (!locator_for_curr_id.is_class_member) {
@@ -5882,7 +6039,7 @@ or implicit) controlling the declaration.
       } else {
         declared_sym = locator_for_curr_id.specific_symbol;
         /* Look up the name in the scope of the current class. */
-        clear_locator(&locator, &locator_for_curr_id.source_position);
+        clear_locator(&locator, &decl_pos);
         locator.symbol_header = locator_for_curr_id.symbol_header;
         (void)curr_scope_id_lookup(&locator, IDL_PROJ_SYMBOL_ALLOWED);
         if (locator.specific_symbol != NULL) {
@@ -5893,8 +6050,7 @@ or implicit) controlling the declaration.
               !is_function_symbol(
                            fundamental_symbol_of(locator.specific_symbol))) {
             /* Name has already been declared. */
-            pos_st_error(ec_id_already_declared,
-                         &locator_for_curr_id.source_position,
+            pos_st_error(ec_id_already_declared, &decl_pos,
                          locator_for_curr_id.symbol_header->identifier);
             err = TRUE;
           } else {
@@ -5910,8 +6066,7 @@ or implicit) controlling the declaration.
             }  /* if */
             for (; sym != NULL; sym = sym->next) {
               if (sym->parent.class_type == bcp->type) {
-                pos_sy_error(ec_member_function_redeclaration,
-                             &locator_for_curr_id.source_position,
+                pos_sy_error(ec_member_function_redeclaration, &decl_pos,
                              declared_sym);
                 err = TRUE;
                 break;
@@ -5961,8 +6116,12 @@ or implicit) controlling the declaration.
         /* The specified symbol (either the explicitly declared symbol or
            a member of the overload set the symbol refers to) is inaccessible.
            Issue an error instead of creating the projection symbol. */
-        pos_sy_error(ec_no_access_to_name,
-                     &locator_for_curr_id.source_position, sym);
+        pos_sy_error(ec_no_access_to_name, &decl_pos, sym);
+      } else if (other_sym != NULL &&
+                 conflicts_with_previous_function_decl(fund_sym, other_sym,
+                                                       &decl_pos)) {
+        /* Error (if one was required) was issued by subroutine.  Don't
+           enter a projection symbol. */
       } else {
         /* Find the base class of class_type to which fund_sym belongs.  bcp
            points to the base class to which declared_sym belongs. */

@@ -28,6 +28,14 @@ class_decl.h -- Declarations related to class_decl.c (having to do with
 #include "symbol_tbl.h"
 #endif /* ifndef SYMBOL_TBL_H */
 
+extern a_boolean conflicts_with_previous_function_decl(
+                                                a_symbol_ptr       fund_sym,
+                                                a_symbol_ptr       sym,
+                                                a_source_position  *pos);
+
+extern void check_for_conflicts_with_using_decls(
+                                             a_symbol_ptr       overload_sym,
+                                             a_source_position  *pos);
 
 extern void prescan_member_function_default_arg_expr(a_param_type_ptr  ptp);
 
