@@ -51,6 +51,10 @@ extern int saber_untype (void *, unsigned int);
 static FILE	*f_il_input;
 			/* Intermediate language file. */
 
+static a_boolean
+		reading_file_scope_il;
+			/* TRUE if reading IL for the file scope, FALSE if
+			   reading IL for a function scope. */
 #if ALTERNATE_IL_FILE_FORMAT
 static an_il_entry_number
 		entry_count_array[(int)iek_last],
@@ -60,11 +64,6 @@ static an_il_entry_number
 			   number is the total size of strings of that kind.
 			   The "fs_" array is for the file scope, the other is
 			   for a function scope. */
-static a_boolean
-		reading_file_scope_il;
-			/* TRUE if reading IL for the file scope, FALSE if
-			   reading IL for a function scope. */
-
 #if CHECKING && DEBUG
 static a_byte_boolean *
 		entry_read_array[(int)iek_last];
@@ -645,6 +644,11 @@ necessary to make it directly accessible in memory.
   /* Walk the IL tree for the region and update all pointers,
      changing their old addresses to new addresses. */
   if (reading_file_scope_il) {
+#if ORPHAN_PROCESSING_NEEDED
+    /* The memory region is the file scope region, first remap the pointers
+       in the orphaned file scope IL entry table. */
+    remap_orphaned_file_scope_entry_array_ptrs(ptr_remap_function);
+#endif /* ORPHAN_PROCESSING_NEEDED */
     /* The memory region is the file scope region, so start at il_header. */
     walk_file_scope_il((an_entry_process_function_ptr)NULL,
                        (a_string_entry_process_function_ptr)NULL,
