@@ -1541,14 +1541,6 @@ scope.  The process is repeated in nested class and namespace scopes.
     }  /* for */
   }
 
-  /* Visit all templates. */
-  {
-    a_template_ptr  templ;
-    for (templ = scope->templates; templ != NULL; templ = templ->next) {
-      find_template_correspondence(templ);
-    }  /* for */
-  }
-
   /* Visit all types. */
   {
     a_type_ptr  type;
@@ -1581,6 +1573,16 @@ scope.  The process is repeated in nested class and namespace scopes.
       find_variable_correspondence(var);
     }  /* for */
   }
+
+  /* Visit all templates.  This will also examine instantiations and must
+     therefore occur after the other entities since they can appear in
+     template arguments. */
+  {
+    a_template_ptr  templ;
+    for (templ = scope->templates; templ != NULL; templ = templ->next) {
+      find_template_correspondence(templ);
+    }  /* for */
+  }
 }  /* establish_trans_unit_correspondences_for_scope */
 
 
@@ -1594,7 +1596,7 @@ scope.  The process is repeated in nested scopes.
   verify_type_correspondences_for_scope(scope);
   verify_routine_correspondences_for_scope(scope);
   verify_variable_correspondences_for_scope(scope);
-}  /* establish_trans_unit_correspondences_for_scope */
+}  /* verify_trans_unit_correspondences_for_scope */
 
 
 /******************************************************************************
