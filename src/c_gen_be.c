@@ -314,6 +314,7 @@ an lvalue.
 static a_boolean is_aggregate_or_union_type(a_type_ptr tp)
 /*
 Return TRUE if the indicated type is an aggregate or union.
+(This version is used in standalone programs that don't have types.c.)
 */
 {
   a_boolean is_aggr_or_union = FALSE;
@@ -332,14 +333,18 @@ Return TRUE if the indicated type is an aggregate or union.
 
 /* Declarations needed because of forward references: */
 static void dump_cast(a_type_ptr type);
-static void dump_expression(an_expr_node_ptr expr);
 static void dump_declaration_using_type(a_type_ptr              type,
                                         a_source_correspondence *scp);
 static void dump_general_declaration_using_type(a_type_ptr              type,
                                                 a_source_correspondence *scp,
                                                 a_variable_ptr          var,
                                                 char                    *temp);
-static void dump_expr_with_parens(an_expr_node_ptr expr);
+static void dump_expr(an_expr_node_ptr expr,
+                      a_boolean        need_parens);
+
+/* Interfaces to dump_expr for the usual cases. */
+#define dump_expr_with_parens(expr) dump_expr(expr, /*need_parens=*/TRUE)
+#define dump_expression(expr)       dump_expr(expr, /*need_parens=*/FALSE)
 
 
 static void clear_output_file_position(an_output_file_position *ofp)
@@ -939,40 +944,11 @@ Print the name of the indicated variable.
 }  /* dump_variable_name */
 
 
-static void dump_routine_name(a_routine_ptr routine)
-/*
-Print the name of the indicated routine.
-*/
-{
-  dump_name(&routine->source_corresp);
-}  /* dump_routine_name */
-
-
-static void dump_constant_name(a_constant_ptr constant)
-/*
-Print the name of the indicated constant.
-*/
-{
-  dump_name(&constant->source_corresp);
-}  /* dump_constant_name */
-
-
-static void dump_type_name(a_type_ptr type)
-/*
-Print the name of the indicated type.
-*/
-{
-  dump_name(&type->source_corresp);
-}  /* dump_type_name */
-
-
-static void dump_field_name(a_field_ptr field)
-/*
-Print the name of the indicated field.
-*/
-{
-  dump_name(&field->source_corresp);
-}  /* dump_field_name */
+/* Interface routines to dump_name. */
+#define dump_routine_name(routine) dump_name(&(routine)->source_corresp)
+#define dump_constant_name(constant) dump_name(&(constant)->source_corresp)
+#define dump_type_name(type) dump_name(&(type)->source_corresp)
+#define dump_field_name(field) dump_name(&(field)->source_corresp)
 
 
 static void dump_label_name(a_label_ptr label)
@@ -2269,8 +2245,6 @@ Dump all types declared within one scope.
 
 
 /* Forward declaration. */
-static void dump_expr(an_expr_node_ptr expr,
-		      a_boolean        need_parens);
 static void dump_lvalue(an_expr_node_ptr node);
 
 
@@ -3259,26 +3233,6 @@ there's some possibility of precedence confusion and need_parens is TRUE.
       unexpected_condition_str("dump_expr: bad expr node kind");
   }  /* switch */
 }  /* dump_expr */
-
-
-static void dump_expr_with_parens(an_expr_node_ptr expr)
-/*
-Generate code for the indicated expression (with surrounding parentheses
-if needed).
-*/
-{
-  dump_expr(expr, /*need_parens=*/TRUE);
-}  /* dump_expr_with_parens */
-
-
-static void dump_expression(an_expr_node_ptr expr)
-/*
-Generate code for the indicated expression (without forced surrounding
-parentheses).
-*/
-{
-  dump_expr(expr, /*need_parens=*/FALSE);
-}  /* dump_expression */
 
 
 /*
