@@ -3149,6 +3149,7 @@ indicated position.
   diag_message(error_code, error_pos, es_warning, dck_standalone);
 }  /* pos_ty_warning */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 
 void pos_ty2_warning(an_error_code     error_code,
                      a_source_position *error_pos,
@@ -3165,6 +3166,7 @@ indicated position.
   diag_message(error_code, error_pos, es_warning, dck_standalone);
 }  /* pos_ty2_warning */
 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 void pos_opt_ty2_warning(an_error_code     error_code,
                          a_source_position *error_pos,
