@@ -4904,13 +4904,19 @@ parameters.
                  !forced_static &&
                  (!dump_vars_without_initializers || !dump_initializers)) {
         /* For initialized file-scope static variables, suppress the
-           storage class on both declarations of the variable.  This
-           is because pcc will not allow two declarations of a static
-           variable.  Since the variable will be put out as an external
-           variable, dump_variable_name must modify the names of static
-           non-external variables so that they will not conflict with
-           like-named static variables in separately-compiled modules. */
-        storage_class = (a_storage_class)sc_unspecified;
+           storage class on the second declaration of the variable,
+           and use "extern" on the first.  This is because pcc will
+           not allow two declarations of a static variable.  Since the
+           variable will be put out as an external variable,
+           dump_variable_name must modify the names of static non-external
+           variables so that they will not conflict with like-named static
+           variables in separately-compiled modules. */
+        if (dump_vars_without_initializers && !dump_initializers) {
+          /* Put out "extern" on the first declaration. */
+          storage_class = (a_storage_class)sc_extern;
+        } else {
+          storage_class = (a_storage_class)sc_unspecified;
+        }  /* if */
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
       }  /* if */
       if (storage_class != variable->storage_class) {
