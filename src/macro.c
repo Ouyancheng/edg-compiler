@@ -2360,9 +2360,15 @@ end_scan_for_macro_modifs:;
            Call a routine to translate the string into a pending pragma
            entry. */
         is_macro_call = FALSE;
-        delete_source_from_loc = NULL;
-        scan_pragma_operator(&got_proper_closing_token); 
-        rescan_loc = curr_char_loc;
+        if (fetch_pp_tokens) {
+          /* Don't recognize the pragma operator when scanning pp-tokens. */
+          ctoken = tok_identifier;
+          *rescan = FALSE;
+        } else {
+          delete_source_from_loc = NULL;
+          scan_pragma_operator(&got_proper_closing_token); 
+          rescan_loc = curr_char_loc;
+        }  /* if */
         goto return_point;
       } else if (macro_symbol == microsoft_pragma_macro_symbol) {
         /* The Microsoft __pragma operator.  This is invoked as
@@ -2370,9 +2376,15 @@ end_scan_for_macro_modifs:;
            Call a routine to translate the string into a pending pragma
            entry. */
         is_macro_call = FALSE;
-        delete_source_from_loc = NULL;
-        scan_microsoft_pragma_operator(&got_proper_closing_token);
-        rescan_loc = curr_char_loc;
+        if (fetch_pp_tokens) {
+          /* Don't recognize the pragma operator when scanning pp-tokens. */
+          ctoken = tok_identifier;
+          *rescan = FALSE;
+        } else {
+          delete_source_from_loc = NULL;
+          scan_microsoft_pragma_operator(&got_proper_closing_token);
+          rescan_loc = curr_char_loc;
+        }  /* if */
         goto return_point;
       } else if (macro_symbol == counter_macro_symbol) {
         /* The Microsoft __COUNTER__ macro.  This returns a different
