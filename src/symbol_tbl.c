@@ -4397,6 +4397,10 @@ progenitor_sym is a member) if ambiguous is TRUE.
           break;
         }  /* if */
       }  /* for */
+#if CHECKING
+    } else if (path == NULL) {
+      unexpected_condition();
+#endif /* CHECKING */
     } else {
       /* When there is an ambiguity, we must check the paths as well as the
          type. */
