@@ -2464,6 +2464,9 @@ and return a pointer to it.
   sssdp->declared_in_func_prototype  = FALSE;
   sssdp->specialized_with_new_syntax = FALSE;
   sssdp->first_declaration           = FALSE;
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  sssdp->is_partial_instantiation    = FALSE;
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #if CHECKING
   sssdp->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */

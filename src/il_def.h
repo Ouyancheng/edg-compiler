@@ -746,6 +746,11 @@ typedef struct a_src_seq_secondary_decl {
 			   of an entity in the translation unit; defined only
 			   for entries referring to class or enum types or
 			   to routines. */
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  a_bit_field	is_partial_instantiation;
+			/* This entry represents the partial instantiation of
+			   a template. */
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   bitfield_to_avoid_codecenter_warnings()
 } a_src_seq_secondary_decl;
 

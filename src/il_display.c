@@ -3743,6 +3743,11 @@ Display the indicated source sequence secondary declaration entry.
     disp_boolean("specialized_with_new_syntax", TRUE);
   }  /* if */
   if (sssdp->first_declaration) disp_boolean("first_declaration", TRUE);
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  if (sssdp->is_partial_instantiation) {
+    disp_boolean("is_partial_instantiation", TRUE);
+  }  /* if */
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 }  /* disp_src_seq_secondary_decl */
 
 
