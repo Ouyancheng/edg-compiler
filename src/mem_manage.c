@@ -702,58 +702,47 @@ Save it if necessary, free the space if possible.
 
 #if DO_IL_LOWERING || IL_SHOULD_BE_WRITTEN_TO_FILE
 
-static void preserve_local_scope (a_scope_ptr scope)
+void preserve_local_scope_entities_allocated_in_file_scope(a_scope_ptr scope)
 /*
-Look at a single scope.  If it is a function or block scope, preserve any
-pointers to static variables or local types.  Walk through any list of
-local scopes.
+Look at a single (function or block) scope.  Preserve pointers to any static
+variables or local types.  Do the same processing for the sub-scopes.
+The pointers are from a scope in a function scope memory region and point
+into the file scope.  They need to be preserved so that the entries can
+be found later when walking the file scope.
 */
 {
   a_scope_ptr local_scope;
 
-  if (scope != NULL) {
-    /* Static variables list and type list are only expected for function
-       or block scope. */
-    if (scope->kind == (a_scope_kind)sck_block ||
-        scope->kind == (a_scope_kind)sck_function) {
-      if (scope->types != NULL || scope->variables != NULL) {
-        /* Create a_group_of_local_scope_entities_allocated_in_file_scope
-	   entry with the variables and type pointers from the scope.  Add
-	   this to the front of any existing list. */
-        a_group_of_local_scope_entities_allocated_in_file_scope_ptr
+#if CHECKING
+  /* Static variables list and type list are only expected for function
+     or block scope. */
+  if (scope->kind != (a_scope_kind)sck_block &&
+      scope->kind != (a_scope_kind)sck_function) {
+    internal_error("preserve_local_scope: not a function or block scope");
+  }  /* if */
+#endif /* CHECKING */
+  if (scope->types != NULL || scope->variables != NULL) {
+    /* Create a_group_of_local_scope_entities_allocated_in_file_scope
+       entry with the variables and type pointers from the scope.  Add
+       this to the front of any existing list. */
+    a_group_of_local_scope_entities_allocated_in_file_scope_ptr
 		list_ptr;
 
-        list_ptr =
-	   (a_group_of_local_scope_entities_allocated_in_file_scope_ptr)
+    list_ptr = (a_group_of_local_scope_entities_allocated_in_file_scope_ptr)
            alloc_fe(
-            sizeof(a_group_of_local_scope_entities_allocated_in_file_scope));
-        list_ptr->next = local_scope_entities_allocated_in_file_scope;
-        list_ptr->static_variables = scope->variables;
-        list_ptr->local_types = scope->types;
-        local_scope_entities_allocated_in_file_scope = list_ptr;
-      }  /* if */
-    }  /* if */
-    /* Walk through any local scopes. */
-    for (local_scope = scope->scopes;
-         local_scope != NULL;
-         local_scope = local_scope->next) {
-      preserve_local_scope(local_scope);
-    }  /* for */
+              sizeof(a_group_of_local_scope_entities_allocated_in_file_scope));
+    list_ptr->next = local_scope_entities_allocated_in_file_scope;
+    list_ptr->static_variables = scope->variables;
+    list_ptr->local_types = scope->types;
+    local_scope_entities_allocated_in_file_scope = list_ptr;
   }  /* if */
-}  /* preserve_local_scope */
-
-
-void preserve_local_scope_entities_allocated_in_file_scope(
-	                      a_memory_region_number region_number)
-/*
-Walking through the list of scope entries for the specified memory
-region, add any pointers to static variables or local types onto a linked
-list of pointers.  The global variable block_file_scope_list points to the 
-list of pointers, which is built on a "first in, last out" basis.
-*/
-{
-  preserve_local_scope(il_header.region_scope_entry[region_number]);
-}  /* preserve_scope_local_type_and_static_variable_pointers */
+  /* Walk through any local scopes. */
+  for (local_scope = scope->scopes;
+       local_scope != NULL;
+       local_scope = local_scope->next) {
+    preserve_local_scope_entities_allocated_in_file_scope(local_scope);
+  }  /* for */
+}  /* preserve_local_scope_entities_allocated_in_file_scope */
 
 #endif /* DO_IL_LOWERING || IL_SHOULD_BE_WRITTEN_TO_FILE */
 

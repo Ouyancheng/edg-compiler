@@ -91,7 +91,7 @@ extern void show_mem_manage_space_used(unsigned long total_accounted_for);
 #endif /* DEBUG */
 #if DO_IL_LOWERING || IL_SHOULD_BE_WRITTEN_TO_FILE
 extern void preserve_local_scope_entities_allocated_in_file_scope(
-	                      		a_memory_region_number region_number);
+                                                            a_scope_ptr scope);
 #endif /* DO_IL_LOWERING || IL_SHOULD_BE_WRITTEN_TO_FILE */
 /* Initialize memory management. */
 extern void mem_manage_init(void);
