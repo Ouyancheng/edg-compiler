@@ -14819,6 +14819,9 @@ data member specified by tip.
   if (orig_tip->exported_template_file != NULL) {
     /* Restore the previously active translation unit. */
     pop_translation_unit_stack();
+    /* If the instantiation was successful, copy the already_instantiated
+       flag to the template instance entry of the primary translation unit. */
+    if (tip->already_instantiated) orig_tip->already_instantiated = TRUE;
   }  /* if */
   error_position = saved_error_position;
   pos_curr_token = saved_pos_curr_token;
