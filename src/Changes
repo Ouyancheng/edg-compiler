@@ -1,5 +1,16 @@
 Version 2.16
 
+4/7/93  Invalid parameter for copy constructor
+
+It used to be that an error was always issued when a constructor had a
+parameter whose type was that of the class being constructed.  Now the
+error is issued only for copy constructors -- not only for cases like
+A::A(A), but also for less likely cases like A::A(A,int=0), A::A(A&,A=0),
+and A::A(A&,int=0,A=0).  The first is mentioned explicitly in the ARM
+(12.1), but the reasons for disallowing it apply equally well to the
+others.  On the other hand, we no longer issue an error for A::A(A,int) or
+A::A(A&,A).
+
 4/7/93  Unnamed types as function template arguments
 
 Errors are now diagnosed for template function references when
