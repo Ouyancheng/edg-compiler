@@ -3650,22 +3650,25 @@ typedef struct a_routine {
 
 typedef struct an_asm_entry *an_asm_entry_ptr;
 typedef struct an_asm_entry {
-  /* Description of an asm declaration. */
+  /* Description of an asm declaration or (if ASM_FUNCTION_ALLOWED is TRUE)
+     the body of an asm function. */
   /* The source_corresp field must be first. */
   a_source_correspondence
-                source_corresp;
-                        /* Information on any source entity that corresponds
-                           to this entity. */
+		source_corresp;
+			/* Information on any source entity that corresponds
+			   to this entity. */
   an_asm_entry_ptr
 		next;
-                        /* Pointer to the next asm entry declared in the same
-                           scope, NULL if this asm entry is the last in the
-                           scope. */
+			/* Pointer to the next asm entry declared in the same
+			   scope, NULL if this asm entry is the last in the
+			   scope. */
   a_constant_ptr
-                asm_string;
-                        /* Constant giving the string that is the argument
-                           of the "asm" statement, i.e., an assembly-language
-                           line. */
+		asm_string;
+			/* Constant containing a string representing either
+			   an asm statement argument (an uninterpreted
+			   assembly-language line) or the uninterpreted body
+			   of an asm function (only if ASM_FUNCTION_ALLOWED
+			   is TRUE). */
 } an_asm_entry;
 
 
@@ -4328,42 +4331,43 @@ Data structures related to statements:
 */
 enum a_statement_kind_tag {
   /* Kinds of statements. */
-  stmk_expr,            /* Evaluate expression, throw away its value. */
-  stmk_if,              /* if-then-else. */
-  stmk_while,           /* Loop, test at top. */
+  stmk_expr,		/* Evaluate expression, throw away its value. */
+  stmk_if,		/* if-then-else. */
+  stmk_while,		/* Loop, test at top. */
 #ifdef FIL
-                        /* Fortran DO WHILE. */
+			/* Fortran DO WHILE. */
 #endif /* ifdef FIL */
-  stmk_goto,            /* Goto. */
-  stmk_label,           /* Code label. */
-  stmk_return,          /* Return. */
-  stmk_block,           /* A list of statements, possibly one with its
-                           own declarations and scope. */
+  stmk_goto,		/* Goto. */
+  stmk_label,		/* Code label. */
+  stmk_return,		/* Return. */
+  stmk_block,		/* A list of statements, possibly one with its
+			   own declarations and scope. */
 #ifdef CIL
-  stmk_end_test_while,  /* Loop, test at bottom. */
-  stmk_for,             /* For loop. */
-  stmk_switch,          /* Switch. */
-  stmk_init,            /* Do a dynamic initialization. */
-  stmk_asm,             /* "asm" statement (or declaration). */
-  stmk_try_block,       /* Try block (C++ only). */
+  stmk_end_test_while,	/* Loop, test at bottom. */
+  stmk_for,		/* For loop. */
+  stmk_switch,		/* Switch. */
+  stmk_init,		/* Do a dynamic initialization. */
+  stmk_asm,		/* "asm" statement (or declaration) or the body of
+			   an asm function. */
+  stmk_try_block,	/* Try block (C++ only). */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   stmk_decl,		/* One or more consecutive declarations within a
 			   given function or block scope. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #endif /* ifdef CIL */
 #ifdef FIL
-  stmk_fentry,          /* Code label for an ENTRY. */
-  stmk_ido,             /* Integer DO. */
-  stmk_fdo,             /* Floating-point DO. */
-  stmk_iarith_if,       /* Integer arithmetic IF (three-way branch). */
-  stmk_farith_if,       /* Floating-point arithmetic IF (three-way branch). */
-  stmk_computed_goto,   /* Computed GOTO. */
-  stmk_assigned_goto,   /* Assigned GOTO. */
-  stmk_alt_return,      /* Alternate RETURN. */
-  stmk_stop,            /* STOP. */
-  stmk_pause,           /* PAUSE. */
+  stmk_fentry,		/* Code label for an ENTRY. */
+  stmk_ido,		/* Integer DO. */
+  stmk_fdo,		/* Floating-point DO. */
+  stmk_iarith_if,	/* Integer arithmetic IF (three-way branch). */
+  stmk_farith_if,	/* Floating-point arithmetic IF (three-way branch). */
+  stmk_computed_goto,	/* Computed GOTO. */
+  stmk_assigned_goto,	/* Assigned GOTO. */
+  stmk_alt_return,	/* Alternate RETURN. */
+  stmk_stop,		/* STOP. */
+  stmk_pause,		/* PAUSE. */
   stmk_set_array_shape, /* Set adjustable array shape. */
-  stmk_input_output,    /* Fortran input/output. */
+  stmk_input_output,	/* Fortran input/output. */
 #endif /* ifdef FIL */
   stmk_last
 };
@@ -4945,6 +4949,13 @@ typedef struct a_statement {
                         /* Constant giving the string that is the argument
                            of the "asm" statement, i.e., an assembly-language
                            line. */
+#if ASM_FUNCTION_ALLOWED
+			/* Also used to represent the uninterpreted body of an
+			   asm function, in which case the current statement
+			   is pointed to by the assoc_block field of an
+			   sck_function scope entry associated with a routine
+			   of storage class sc_asm. */
+#endif /* ASM_FUNCTION_ALLOWED */
     /* When kind == stmk_try_block: */
     a_try_supplement_ptr
 		try_block;
@@ -5524,6 +5535,13 @@ typedef struct a_scope {
 			/* Non-NULL if this scope has an associated block
 			   of statements.  NULL if none.  Used only when
 			   kind == sck_function or sck_block. */
+#if ASM_FUNCTION_ALLOWED
+			/* Also used to point to the stmk_asm statement that
+			   represents the uninterpreted body of an asm
+			   function.  Used in this way only when kind ==
+			   sck_function and the associated routine has a
+			   storage class of sc_asm. */
+#endif /* ASM_FUNCTION_ALLOWED */
   an_object_lifetime_ptr
 		lifetime;
 			/* Object lifetime that is equivalent to the full
