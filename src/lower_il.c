@@ -9371,16 +9371,62 @@ Generate any cleanup actions required preceding the indicated goto statement.
       /* No lifetimes are being exited. */
       if (long_lifetime_temps) {
         /* Destroy any long lifetime temporaries.  This is needed for
-           gotos that implement a fallthrough in a switch, but it is not
-           wanted for gotos to break and continue labels.  A real label
-           would start a new lifetime if the current lifetime has any
-           temporaries, so this code is not reached for real labels.
-           If the statement is turned into a block, statement will be
-           updated to point to the original statement. */
-        if (!statement->variant.label.ptr->break_label &&
-            !statement->variant.label.ptr->continue_label) {
+           user gotos, for gotos that implement a fallthrough in a switch,
+           but not for gotos to break and continue labels. */
+        a_boolean destroy_temps = TRUE;
+        if (has_name(statement->variant.label.ptr)) {
+          /* Destroy temporaries on a user goto.  This would be a goto
+             forward at the same level. */
+        } else if (statement->variant.label.ptr->break_label ||
+                   statement->variant.label.ptr->continue_label) {
+          /* Don't destroy temporaries on a break or continue. */
+          destroy_temps = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        } else if (statement->variant.label.ptr->leave_label) {
+          /* Destroy temporaries on a __leave. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        } else {
+          /* A switch clause fallthrough label. */
+          /* Don't destroy temporaries if the overall switch statement does
+             not have an associated lifetime, because temporaries from
+             outside the switch are allowed to survive over the switch in
+             that case, and we do not want to destroy them here. */
+          destroy_temps = FALSE;
+          if (curr_object_lifetime->kind ==
+                              (an_object_lifetime_kind)olk_block_after_label &&
+              curr_object_lifetime->entity.kind ==
+                                     (a_byte_il_entry_kind)iek_switch_clause) {
+            /* The current lifetime is associated with a switch clause.
+               Make sure it is the current switch clause, however. */
+            an_object_lifetime_ptr next_lifetime =
+                                          curr_object_lifetime->child_lifetime;
+            if (next_lifetime != NULL &&
+                next_lifetime->kind ==
+                              (an_object_lifetime_kind)olk_block_after_label) {
+              a_statement_ptr stmt;
+              /* Note that a "Duff's Device" case will not have a goto for
+                 a fallthrough (it's not needed), so it won't get here. */
+              check_assertion(next_lifetime->entity.kind ==
+                                      (a_byte_il_entry_kind)iek_switch_clause);
+              stmt =
+                  ((a_switch_clause_ptr)next_lifetime->entity.ptr)->statements;
+              if (stmt != NULL &&
+                  stmt->kind == (a_statement_kind)stmk_label &&
+                  stmt->variant.label.ptr == statement->variant.label.ptr) {
+                /* Yes, the goto is to the beginning of the next switch
+                   clause, and there's a lifetime associated with that
+                   next switch clause, so destroy temporaries now. */
+                destroy_temps = TRUE;
+              }  /* if */
+            }  /* if */
+          }  /* if */
+        }  /* if */
+        if (destroy_temps) {
+          /* Destroy temporaries. */
           a_boolean          any_temps_destroyed;
           an_insert_location insert_location;
+          /* If the statement is turned into a block, statement will be
+             updated to point to the original statement. */
           destroy_curr_lifetime_temporaries(&statement, &any_temps_destroyed,
                                             &insert_location);
         }  /* if */

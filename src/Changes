@@ -1,5 +1,34 @@
 Version 2.41
 
+12/11/98  Long-lifetime temporaries mode, destruction of temporary
+          on switch clause fallthrough
+
+In long-lifetime temporaries mode, a switch statement that does not
+construct any destructible objects does not force destruction of
+temporaries; they survive across it.  However, on a fallthrough from
+one switch clause to another within such a switch statement, any
+active temporaries were incorrectly destroyed (they would then
+be destroyed again later at the proper end of lifetime).  This has
+been fixed.
+
+  struct A {
+    A();
+    ~A();
+    operator int();
+  };
+  void f() {
+    int i = 1;
+    int j = A();
+    switch (i) {
+      case 1:
+        i = 2;
+        // Temporary from A() above was destroyed here
+      default:
+        i = 3;
+        break;
+    }  /* switch */
+  }
+
 12/11/98  Partially lowered exception handling: cleanup state after final
           return in destructor
 
