@@ -80,12 +80,12 @@ ovl_sym is the symbol from an indefinite function operand representing the
 address of an overloaded function.  It is being converted to a destination type
 dest_type.  If dest_type is a pointer or pointer-to-member type that could be
 a pointer to one of the overloaded functions, return a pointer to that
-function's symbol; otherwise, return NULL.  Also set *match_level to indicate
-whether or not any conversion is needed after the coercion to a specific
-function pointer, and set *std_conv to indicate any such conversion.
-If more than one function matches, return NULL and *ambiguous TRUE.
-source_pos is the source position of the reference.  See ARM 13.3,
-"Address of Overloaded Function".
+function's symbol (possibly a projection symbol); otherwise, return NULL.
+Also set *match_level to indicate whether or not any conversion is needed
+after the coercion to a specific function pointer, and set *std_conv to
+indicate any such conversion.  If more than one function matches, return
+NULL and *ambiguous TRUE.  source_pos is the source position of the
+reference.  See ARM 13.3, "Address of Overloaded Function".
 */
 {
   a_boolean        is_ptr = FALSE, is_ptr_to_member = FALSE;
@@ -93,7 +93,7 @@ source_pos is the source position of the reference.  See ARM 13.3,
   a_boolean        dest_type_has_type_qualifiers = FALSE;
   a_type_ptr       routine_type, dest_class, ptr_routine_type;
   a_type_ptr       dest_underlying_type;
-  a_symbol_ptr     sym, match_sym = NULL, instance_sym;
+  a_symbol_ptr     sym, proj_sym, match_sym = NULL, instance_sym;
   unsigned long    number_of_matches = 0;
   a_std_conv_descr std_conversion;
 
@@ -144,9 +144,11 @@ source_pos is the source position of the reference.  See ARM 13.3,
        are involved. */
     /* Check first for an exact match. */
     any_function_templates = FALSE;
-    for (sym = ovl_sym;
-         sym != NULL;
-         sym = (sym_is_list ? sym->next : NULL)) {
+    for (proj_sym = ovl_sym;
+         proj_sym != NULL;
+         proj_sym = (sym_is_list ? proj_sym->next : NULL)) {
+      /* Remove projections added for namespaces, if any. */
+      sym = fundamental_symbol_of(proj_sym);
       if (sym->kind == (a_symbol_kind)sk_function_template) {
         /* Function template.  Ignore on this pass, but enable a second pass
            to try matching it. */
@@ -160,7 +162,7 @@ source_pos is the source position of the reference.  See ARM 13.3,
           if (dest_class ==
                  (sym->is_class_member ? sym->parent.class_type : NULL)) {
             /* Exact match. */
-            match_sym = sym;
+            match_sym = proj_sym;
             *match_level = aml_exact;
             number_of_matches++;
           }  /* if */
@@ -171,15 +173,22 @@ source_pos is the source position of the reference.  See ARM 13.3,
         is_function_type(dest_underlying_type)) {
       /* Try matching function templates.  Do not try if the underlying type
          is not a function type. */
-      for (sym = ovl_sym;
-           sym != NULL;
-           sym = (sym_is_list ? sym->next : NULL)) {
+      for (proj_sym = ovl_sym;
+           proj_sym != NULL;
+           proj_sym = (sym_is_list ? proj_sym->next : NULL)) {
+        /* Remove projections added for namespaces, if any. */
+        sym = fundamental_symbol_of(proj_sym);
         if (sym->kind == (a_symbol_kind)sk_function_template) {
           /* Function template. */
           instance_sym = matching_template_function(sym, dest_underlying_type,
                                                     source_pos);
           if (instance_sym != NULL) {
             /* Template match. */
+#if 0
+            /* When member templates are allowed, we're going to want to
+               have some kind of projection symbol for the template instance
+               so access checking can be done. */
+#endif /* 0 */
             match_sym = instance_sym;
             *match_level = aml_exact;
             number_of_matches++;
@@ -193,9 +202,11 @@ source_pos is the source position of the reference.  See ARM 13.3,
          handle the normal pointer case too in case the implicit conversion
          rules change (also, it makes the error message clearer in the
          case where dest_type is "void *"). */
-      for (sym = ovl_sym;
-           sym != NULL;
-           sym = (sym_is_list ? sym->next : NULL)) {
+      for (proj_sym = ovl_sym;
+           proj_sym != NULL;
+           proj_sym = (sym_is_list ? proj_sym->next : NULL)) {
+        /* Remove projections added for namespaces, if any. */
+        sym = fundamental_symbol_of(proj_sym);
         if (sym->kind != (a_symbol_kind)sk_function_template) {
           /* Not a function template (i.e., a normal function). */
           routine_type = routine_symbol_type(sym);
@@ -212,7 +223,7 @@ source_pos is the source position of the reference.  See ARM 13.3,
                                        ec_no_error,
                                        &std_conversion)) {
             /* A match. */
-            match_sym = sym;
+            match_sym = proj_sym;
             *match_level = aml_std_conversion;
             *std_conv = std_conversion;
             number_of_matches++;
@@ -686,9 +697,10 @@ Return a printable string describing a type code.
 
 
 /*
-Return TRUE if the given symbol is ambiguous by inheritance. */
-#define is_ambiguous_by_inheritance(symbol)                           \
-  ((symbol)->kind == (a_symbol_kind)sk_projection && (symbol)->ambiguous)
+Return TRUE if the given symbol is ambiguous by inheritance.
+This applies to projection and namespace projection symbols.
+*/
+#define is_ambiguous_by_inheritance(symbol) ((symbol)->ambiguous)
 
 
 static void diagnose_overload_ambiguity(
@@ -3081,41 +3093,41 @@ void overloaded_function_catch_up(a_symbol_ptr      function_symbol,
 /*
 We've just determined which specific function within a set of overloaded
 functions is being referenced, i.e., function_symbol is being called
-within the set given by overloaded_function_symbol.  (function_symbol
-may not be an overloaded function or a projection symbol.)  Do whatever
-would have been done with the function along the way if we had known all
-along which specific function was intended.  That is, "catch up" with the
-processing that would have been done up to this point for a non-overloaded
-function.  While this is usually used for overloaded functions, it is
-also used for a few cases where the function is not overloaded but it
-is not convenient to note that fact before scanning the arguments (e.g.,
-operator overloading).  Therefore, while overloaded_function_symbol is
-typically an sk_overloaded_function containing function_symbol, it may
-be the same as function_symbol, or it may be a projection symbol
-for one of those.  Generate an operand for a pointer to the specific
-function in *operand.  call_position is used as the source position for
-that operand.  is_qualified_name is TRUE if a qualified name was used to
-name the function (that suppresses the virtual-ness of the function).
-Access control and ambiguity checking are always done, even if the
-overloaded_function_symbol is a non-overloaded function.  operand can be
-NULL if it is not necessary to generate the function designator operand.
-elided_reference is TRUE if the routine was referenced in the program
-but the reference is being elided in the intermediate language (operand
-should be NULL in that case).  address_taken is TRUE if the address of
-the function is being taken (as opposed to the function being called);
-it controls the type of reference recorded.  On return,
-*access_error_reported is TRUE if an access control checking error
-was detected and reported.
+within the set given by overloaded_function_symbol.  (function_symbol is
+not an overloaded function, but it might be a projection symbol.)  Do
+whatever would have been done with the function along the way if we had
+known all along which specific function was intended.  That is, "catch
+up" with the processing that would have been done up to this point for a
+non-overloaded function.  While this is usually used for overloaded
+functions, it is also used for a few cases where the function is not
+overloaded but it is not convenient to note that fact before scanning the
+arguments (e.g., operator overloading).  Therefore, while
+overloaded_function_symbol is typically an sk_overloaded_function
+containing function_symbol, it may be the same as function_symbol, or it
+may be a projection symbol for one of those.  Generate an operand for a
+pointer to the specific function in *operand.  call_position is used as
+the source position for that operand.  is_qualified_name is TRUE if a
+qualified name was used to name the function (that suppresses the
+virtual-ness of the function).  Access control and ambiguity checking are
+always done, even if the overloaded_function_symbol is a non-overloaded
+function.  operand can be NULL if it is not necessary to generate the
+function designator operand.  elided_reference is TRUE if the routine was
+referenced in the program but the reference is being elided in the
+intermediate language (operand should be NULL in that case).
+address_taken is TRUE if the address of the function is being taken (as
+opposed to the function being called); it controls the type of reference
+recorded.  On return, *access_error_reported is TRUE if an access control
+checking error was detected and reported.
 */
 {
+  a_symbol_ptr     base_function_symbol =
+                                        fundamental_symbol_of(function_symbol);
   a_symbol_locator function_symbol_locator;
   a_ref_entry_ptr  rep;
 
 #if CHECKING
-  /* Overloaded functions and projection symbols are not allowed for
-     function_symbol. */
-  if (function_symbol->kind != (a_symbol_kind)sk_routine &&
-      function_symbol->kind != (a_symbol_kind)sk_member_function) {
+  if (base_function_symbol->kind != (a_symbol_kind)sk_routine &&
+      base_function_symbol->kind != (a_symbol_kind)sk_member_function) {
     internal_error("overloaded_function_catch_up: bad function_symbol");
   }  /* if */
 #endif /* CHECKING */
@@ -3159,8 +3171,8 @@ was detected and reported.
       check_assertion(operand == NULL);
       /* Note that address_taken does not affect the kind of reference.
          That's intentional, since this is not a "real" reference. */
-      record_symbol_reference(SRK_REFERENCE, function_symbol, call_position,
-                              /*update_il_entry=*/FALSE);
+      record_symbol_reference(SRK_REFERENCE, base_function_symbol,
+                              call_position, /*update_il_entry=*/FALSE);
     } else {
       /* The reference is not elided. */
       if (operand == NULL) {
@@ -3171,16 +3183,17 @@ was detected and reported.
            that the reference is to exactly that function. */
         record_symbol_reference(SRK_REFERENCE |
                                   (address_taken ? SRK_ADDRESS_TAKEN : 0),
-                                function_symbol, call_position,
+                                base_function_symbol, call_position,
                                 /*update_il_entry=*/FALSE);
-        if_evaluating_mark_routine_referenced(function_symbol->
+        if_evaluating_mark_routine_referenced(base_function_symbol->
                                                          variant.routine.ptr);
       } else {
         /* Normal case: build an operand for the function. */
         /* Record that the function was referenced, for cross-reference (etc.)
            purposes. */
-        rep = ref_entry(function_symbol, call_position);
-        make_function_designator_operand(function_symbol, is_qualified_name,
+        rep = ref_entry(base_function_symbol, call_position);
+        make_function_designator_operand(base_function_symbol,
+                                         is_qualified_name,
                                          call_position, rep, operand);
         /* Convert the operand to a function pointer. */
         conv_function_designator_to_ptr_to_function(operand);
@@ -5288,18 +5301,6 @@ functions could still apply).
 }  /* check_for_operator_overloading */
 
 
-/*
-If symbol points to a projection symbol that is ambiguous by inheritance,
-set *ambiguous to TRUE.  Always set symbol to its fundamental symbol.
-*/
-#define check_symbol_ambiguous_by_inheritance(symbol, ambiguous)      \
-{ if ((symbol)->kind == (a_symbol_kind)sk_projection) {               \
-    if ((symbol)->ambiguous) *(ambiguous) = TRUE;  \
-    symbol = (symbol)->variant.projection.extra_info->fundamental_symbol; \
-  }  /* if */                                                         \
-}  /* check_symbol_ambiguous_by_inheritance */
-
-
 static a_boolean conversion_to_class_possible(
                                  an_operand               *source_operand,
                                  a_type_ptr               dest_type,
@@ -5448,7 +5449,9 @@ because of an error.  This routine is only used in C++ mode.
         conversion_symbol = candidate_functions->function_symbol;
         /* If the function is a conversion function that is inherited from a
            base class, check to see if it's ambiguous by inheritance. */
-        check_symbol_ambiguous_by_inheritance(conversion_symbol, ambiguous);
+        if (is_ambiguous_by_inheritance(conversion_symbol)) {
+          *ambiguous = TRUE;
+        }  /* if */
         if (!*ambiguous) {
           okay = TRUE;
           /* Return information on how the conversion is to be done. */
@@ -5563,7 +5566,9 @@ conversion_to_class_possible).  This routine is only used in C++ mode.
     conversion_symbol = candidate_functions->function_symbol;
     /* If the function is a conversion function that is inherited from a base
        class, check to see if it's ambiguous by inheritance. */
-    check_symbol_ambiguous_by_inheritance(conversion_symbol, ambiguous);
+    if (is_ambiguous_by_inheritance(conversion_symbol)) {
+      *ambiguous = TRUE;
+    }  /* if */
     if (!*ambiguous) {
       okay = TRUE;
       /* Return information on how the conversion is to be done. */

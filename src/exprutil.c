@@ -2022,7 +2022,8 @@ ambiguous or inaccessible base classes.
                                          /*address_taken=*/TRUE,
                                          (an_operand *)NULL,
                                          &access_error_reported);
-            make_ptr_to_member_constant_operand(function_symbol,
+            make_ptr_to_member_constant_operand(fundamental_symbol_of(
+                                                              function_symbol),
                                                 overloaded_function_symbol,
                                                 &orig_operand.position,
                                                 !access_error_reported,
