@@ -4389,7 +4389,8 @@ macro_line_loc_to_source_pos should be used when speed is critical.
            line as the error position.  This is useful when the last line
            of a file ends with a backslash. */
         if (*adj_loc_in_line   == LE_ESCAPE &&
-            adj_loc_in_line[1] == LE_NEWLINE) break;
+            adj_loc_in_line[1] == LE_NEWLINE &&
+            olmp->next == NULL) break;
         /* Keep track of the current physical line. */
         start_of_curr_phys_line = olmp->line_loc;
         if (olmp->kind == olm_multiline_string_splice) {
@@ -5145,11 +5146,11 @@ entry_for_line_splice:
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
       if (ignored_trailing_white_space_chars != 0) {
         /* Some white-space characters occurred between "\" and the newline.
-           Adjust loc_in_line and curr_column appropriately, fix the line
-           so it will display properly, and issue a warning. */
+           Fix the line so it will display properly, adjust loc_in_line and
+           curr_column appropriately, and issue a warning. */
+        finish_off_source_line_so_it_can_be_displayed_in_error();
         loc_in_line -= ignored_trailing_white_space_chars;
         curr_column -= ignored_trailing_white_space_chars;
-        finish_off_source_line_so_it_can_be_displayed_in_error();
         warning_at_line_pos(ec_white_space_inside_splice, loc_in_line);
       }  /* if */
       /* Remove the backslash in the buffer. */
