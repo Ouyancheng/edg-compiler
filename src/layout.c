@@ -1382,12 +1382,16 @@ bugs).
     for (; bcp != NULL; bcp = bcp->next) {
       a_base_class_ptr  eff_bcp;
       a_boolean         consider_fields_in_bcp = consider_fields;
-#if IA64_ABI
       /* Skip indirect bases -- unless they are virtual and virtual bases are
          under consideration. */
-      if (!bcp->direct && !(bcp->is_virtual && consider_virtual_bases)) {
+      if (!bcp->direct
+#if IA64_ABI
+          && !(bcp->is_virtual && consider_virtual_bases)
+#endif /* IA64_ABI */
+                                                         ) {
         continue;
       }  /* if */
+#if IA64_ABI
       if (emulate_gnu_abi_bugs && bcp->is_virtual) {
         /* Early GNU implementations of the IA-64 ABI ignore fields of
            virtual base classes when looking for conflicts. */

@@ -1,5 +1,21 @@
 Version 3.5
-  
+
+8/6/04  Cfront-like ABI: Performance of empty base class optimization
+
+In Cfront-like ABI configurations with TARG_OPTIMIZE_EMPTY_BASE_CLASS_LAYOUT
+set to TRUE, the front end sometimes spent an unreasonable amount of time to
+allocate empty bases classes in certain deep class hierarchies.  For example:
+
+  template<int I> struct P;
+  template<int I, typename T> struct E {};
+  template<int L> struct D: D<L-1>, E<L, P<L> > {}; // Recursive template.
+  template<> struct D<0> {};  // Recursion guard.
+  int main() {
+    D<100> d;  // Previously required a very long time to compile.
+  }
+
+This is now fixed.
+
 8/6/04   Unneeded template constructors put out in IA-64 ABI with -tused
 
 In the IA-64 ABI, in -tused mode, in some cases constructors of class
