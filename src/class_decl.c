@@ -8403,17 +8403,21 @@ defined inline, or if has a nested class with such members, return TRUE.
 
 void check_class_linkage(void)
 /*
+
 This routine makes a pass over all the classes defined in this translation
 unit to determine which ones need to be changed from internal to external
-linkage and to make the change when appropriate.
+linkage and to make the change when appropriate.  This processing is
+required by the C++ language as described in the ARM, but it is no longer
+part of current C++ specification; consequently, this routine is called in
+cfront-compatiblity mode only.
 
-Classes are internally linked (i.e., local to a translation unit) by
-default, but they become externally linked for one of two reasons: either
-they have members that are external by default, or they are used in a way
-that requires external linkage.  To be more specific, if a class has any
+In cfront mode classes are internally linked (i.e., local to a translation
+unit) by default, but they become externally linked for one of two reasons:
+either they have members that are external by default, or they are used in a
+way that requires external linkage.  To be more specific, if a class has any
 noninline member functions or any nonstatic data members it is externally
-linked; or, it is used in the declaration of any externally linked
-class, variable, or routine it is externally linked (ARM 3.3).
+linked; or, it is used in the declaration of any externally linked class,
+variable, or routine it is externally linked (ARM 3.3).
 
 Note that local classes have no linkage.  They are not changed to external
 linkage.
