@@ -4415,8 +4415,10 @@ typedef struct an_expr_node {
       a_lowered_eh_construct_kind
 		kind;	/* Kind of construct. */
       union {
-        /* When kind == leck_caught_object_address or
-           leck_thrown_object_address, no variant fields. */
+        /* When kind == leck_caught_object_address: */
+        a_handler_ptr
+		caught_object_handler;
+        /* When kind == leck_thrown_object_address, no variant fields. */
         /* When kind == leck_cleanup_state: */
 #if GENERATE_EH_TABLES
         a_cleanup_region_number

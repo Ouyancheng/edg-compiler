@@ -134,7 +134,7 @@ Process the source correspondence field pointed to by ptr.
 #if CHECKING
 #define report_bad_init_kind()                                        \
   internal_error("walk_entry_and_subtree: bad init kind")
-#else
+#else /* !CHECKING */
 #define report_bad_init_kind()  /* Nothing */
 #endif /* CHECKING */
 
@@ -630,6 +630,10 @@ the file scope, do not process it (but record an orphan in the latter case).
           case enk_lowered_eh_construct:
             switch (ptr->variant.lowered_eh.kind) {
               case leck_caught_object_address:
+                remap_ptr(ptr->variant.lowered_eh.variant.
+                                                         caught_object_handler,
+                          a_handler_ptr, iek_handler);
+                break;
               case leck_thrown_object_address:
                 /* No pointers. */
                 break;

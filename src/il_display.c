@@ -1919,6 +1919,10 @@ do_variable:
       switch (node->variant.lowered_eh.kind) {
         case leck_caught_object_address:
           (void)printf("leck_caught_object_address\n");
+          disp_ptr("caught_object_handler",
+                   (char *)node->variant.lowered_eh.variant.
+                                                         caught_object_handler,
+                   iek_handler);
           break;
         case leck_thrown_object_address:
           (void)printf("leck_thrown_object_address\n");
