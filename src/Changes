@@ -1,5 +1,28 @@
 Version 2.44
 
+2/16/00  Bug in IL lowering promotion of members of local classes
+
+IL lowering did not correctly promote members out of local classes
+in some cases involving templates that are first instantiated inside
+a class.  For example, in the following the constructor of the local
+class L remained on the scope list of L, when it should have been
+promoted to the file scope.  Now fixed.
+
+  template <class T> struct A {
+     void f(T) {
+       struct L {
+         L() {}
+       } l;
+    }
+  };
+  struct B {
+    A<int> x;
+  } b;
+  int main() {
+    b.x.f(1);
+  }
+
+
 2/16/00  Compilation problem with C++-generating back end,
          MAINTAIN_NEEDED_FLAGS set to FALSE
 

@@ -10850,8 +10850,9 @@ end_local_types for later processing.
       /* If some local types of member functions were promoted into the
          class on their way to the file scope, add them to the local_types
          list for later promotion.  They go out at the end of the scope. 
-         There will only be types on this list for nested classes that are
-         defined outside of their parent classes. */
+         There will be types on this list for nested classes that are
+         defined outside of their parent classes, and for template classes
+         that were first instantiated inside another class. */
       move_class_promoted_local_types(type, local_types, end_local_types);
     }  /* if */
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
@@ -10869,23 +10870,18 @@ or a namespace scope).  *insert_pointer indicates the insertion position,
 and is updated after the insertion.
 */
 {
-  a_type_ptr local_types = NULL, end_local_types = NULL;
+  a_type_ptr type_list, local_types, end_local_types;
 
   check_assertion(scope->kind == (a_scope_kind)sck_class_struct_union);
   /* Promote the types to the end of the proper types list.  Also promote
-     members out of any classes encountered on the types list. */
-  promote_type_list(scope->types, promotion_scope, insert_pointer,
-                    &local_types, &end_local_types);
-  /* If there are any promoted local types, move them to the insert point. */
-  if (local_types != NULL) {
-    if (insert_pointer == NULL) {
-      promotion_scope->types = local_types;
-    } else {
-      end_local_types->next = (*insert_pointer)->next;
-      (*insert_pointer)->next = local_types;
-    }  /* if */
-    *insert_pointer = end_local_types;
-  }  /* if */
+     members out of any classes encountered on the types list.  Loop if
+     necessary to process promoted local types. */
+  for (type_list = scope->types; type_list != NULL; type_list = local_types) {
+    local_types = NULL;
+    end_local_types = NULL;
+    promote_type_list(type_list, promotion_scope, insert_pointer,
+                      &local_types, &end_local_types);
+  }  /* for */
   /* Clear the list of promoted types.  Since the scope is for a class,
      we know it cannot be on the scope stack now, and therefore we do
      not need to update a corresponding last pointer. */
