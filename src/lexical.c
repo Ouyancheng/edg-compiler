@@ -4784,6 +4784,7 @@ will be TRUE.  This routine may only be called in C++ mode.
        used because the next token may have changed while scanning a
        template argument list. */
     if (next_token() == tok_colon_colon) {
+      a_boolean    first_class = TRUE;
       /* This is a qualifier. */
       is_qualifier = TRUE;
       *is_file_scope_qualifier = FALSE;
@@ -4808,14 +4809,22 @@ will be TRUE.  This routine may only be called in C++ mode.
         }  /* if */
         /* Skip over the class-name, and the "::". */
         (void)get_token();
-        if (get_token() != tok_identifier || next_token() != tok_colon_colon) {
+        if (get_token() == tok_identifier && first_class) {
+          /* We have an identifier after the part of the qualifier that has
+             been scanned so far.  Since this identifier will have to be
+             looked up, make sure that the current class is instantiated.
+             This only needs to be done for the first class in a qualified
+             name because only the first class can be a template class. */
+          if (!*err) check_for_uninstantiated_template_class(*class_type);
+          first_class = FALSE;
+        }  /* if */
+        if (curr_token != tok_identifier || next_token() != tok_colon_colon) {
           /* Not an identifier followed by "::", so end the loop. */
           break;
         }  /* if */
         /* There is another level of qualification.  Search for the identifier
            in the given scope. */
         if (!*err) {
-          check_for_uninstantiated_template_class(*class_type);
           class_symbol = class_qualified_id_lookup(&locator_for_curr_id,
                                                    *class_type,
                                                    IDL_MUST_BE_CLASS);
@@ -4851,7 +4860,7 @@ exit:
     fprintf(f_debug, "is_file_scope_qualifier=%0d\n",
             *is_file_scope_qualifier);
     fprintf(f_debug, "type = %s", *class_type == NULL ? NULL : "");
-    if (*class_type != NULL) db_type(*class_type);
+    if (*class_type != NULL) db_abbreviated_type(*class_type);
     fprintf(f_debug, "\n");
   }  /* if */
 #endif /* DEBUG */
