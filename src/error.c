@@ -4728,6 +4728,20 @@ are handled in error_init.)
   error_source_line = NULL;
   after_end_of_error_source_line = NULL;
   cs_saved_severity = (an_error_severity)es_default;
+  error_limit = 100;
+  context_limit = DEFAULT_CONTEXT_LIMIT;
+  strict_ansi_error_severity = es_warning;
+  strict_ansi_discretionary_severity = es_warning;
+  anachronism_error_severity
+#if DEFAULT_ALLOW_ANACHRONISMS
+                             = es_warning;
+#else /* DEFAULT_ALLOW_ANACHRONISMS */
+                            = es_error;
+#endif /* DEFAULT_ALLOW_ANACHRONISMS */
+  brief_diagnostics = DEFAULT_BRIEF_DIAGNOSTICS;
+  do_not_wrap_diagnostics = FALSE;
+  display_error_context_on_catastrophe =
+                                  DEFAULT_DISPLAY_ERROR_CONTEXT_ON_CATASTROPHE;
   /* Zeroing this array causes it to be set to es_default. */
   memzero(default_severity_for_error_code,
            sizeof(default_severity_for_error_code));

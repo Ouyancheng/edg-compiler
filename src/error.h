@@ -71,38 +71,23 @@ EXTERN an_error_severity
 			/* Messages at or above this severity level should
 			   be displayed; those below are suppressed. */
 EXTERN unsigned long
-		error_limit
-#if VAR_INITIALIZERS
-			    = 100
-#endif /* VAR_INITIALIZERS */
-				 ;
+		error_limit;
 			/* Compilation is abandoned when this many errors
 			   are detected. */
 
-EXTERN int	context_limit
-#if VAR_INITIALIZERS
-			    = DEFAULT_CONTEXT_LIMIT
-#endif /* VAR_INITIALIZERS */
-						    ;
+EXTERN int	context_limit;
+
 			/* The maximum number of context lines to be
 			   emitted as part of an error message. */
 
 EXTERN an_error_severity
-                strict_ansi_error_severity
-#if VAR_INITIALIZERS
-			                   = es_warning
-#endif /* VAR_INITIALIZERS */
-                                                     ;
+                strict_ansi_error_severity;
                         /* Strict ANSI mode violations are reported at this
                            error severity.  This must either be es_error
                            or es_warning. */
 
 EXTERN an_error_severity
-                strict_ansi_discretionary_severity
-#if VAR_INITIALIZERS
-			                   = es_warning
-#endif /* VAR_INITIALIZERS */
-                                                     ;
+                strict_ansi_discretionary_severity;
                         /* Strict ANSI mode violations that may be
                            discretionary errors are reported at this
                            error severity.  This must either be
@@ -110,45 +95,25 @@ EXTERN an_error_severity
 
 
 EXTERN an_error_severity
-                anachronism_error_severity
-#if VAR_INITIALIZERS
-#if DEFAULT_ALLOW_ANACHRONISMS
-                                           = es_warning
-#else /* DEFAULT_ALLOW_ANACHRONISMS */
-			                   = es_error
-#endif /* DEFAULT_ALLOW_ANACHRONISMS */
-#endif /* VAR_INITIALIZERS */
-                                                     ;
+                anachronism_error_severity;
                         /* Use of anachronisms are reported at this
                            error severity.  It is expected that this will
                            either be es_error or es_warning.  This can be
                            modified by a command line option. */
 
 EXTERN a_boolean
-                brief_diagnostics
-#if VAR_INITIALIZERS
-                                  = DEFAULT_BRIEF_DIAGNOSTICS
-#endif /* VAR_INITIALIZERS */
-                                                             ;
+                brief_diagnostics;
                         /* TRUE if diagnostic output should omit the
 			   source line information and suppress wrapping
 			   of the error message text. */
 
 EXTERN a_boolean
-                do_not_wrap_diagnostics
-#if VAR_INITIALIZERS
-                                        = FALSE
-#endif /* VAR_INITIALIZERS */
-                                               ;
+                do_not_wrap_diagnostics;
                         /* TRUE if diagnostic output should suppress
 			   wrapping of the error message text. */
 
 EXTERN a_boolean
-                display_error_context_on_catastrophe
-#if VAR_INITIALIZERS
-                                = DEFAULT_DISPLAY_ERROR_CONTEXT_ON_CATASTROPHE
-#endif /* VAR_INITIALIZERS */
-                                                                              ;
+                display_error_context_on_catastrophe;
                         /* TRUE if error context information should be
 			   displayed following a catastrophic error. */
 
