@@ -394,13 +394,6 @@ These extensions were added in System V release 4.
 #endif /* ifndef ATT_PREPROCESSING_EXTENSIONS_ALLOWED */
 
 /*
-Flag that is TRUE to include the "asm" statement in the language.
-*/
-#ifndef ASM_STATEMENT_ALLOWED
-#define ASM_STATEMENT_ALLOWED FALSE
-#endif /* ifndef ASM_STATEMENT_ALLOWED */
-
-/*
 Flag that is TRUE to include asm function definitions in the language.
 Note that in the standard version the code to implement this is not
 included, so this flag cannot be set to TRUE.
