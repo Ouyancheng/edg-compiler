@@ -1982,36 +1982,37 @@ The caller is responsible to ensure that the current token is a brace, and the
 function get_initializer does all the hard work.
 */
 {
-  a_constant_ptr         initializer;
+  a_constant_ptr         compound_constant;
   an_aggregate_init_info info;
   a_boolean              no_token_consumed, any_dynamic_init;
 
   check_assertion(C_mode() && (curr_token == tok_lbrace));
   initialize_init_info(&info, is_static);
-  initializer = get_initializer(type, &info,
-                                (an_aggregate_init_context_ptr)NULL,
-                                &no_token_consumed,
-                                &any_dynamic_init);
+  compound_constant = get_initializer(type, &info,
+                                      (an_aggregate_init_context_ptr)NULL,
+                                      &no_token_consumed,
+                                      &any_dynamic_init);
   if (!any_dynamic_init) {
     /* A truly constant value (scalar or aggregate). */
     *dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
-    (*dip)->variant.constant = initializer;
+    (*dip)->variant.constant = compound_constant;
   } else {
     /* There is a dynamic component to this literal, so create a dynamic init
        entry of kind dik_expression (for nonaggregates) or
        dik_nonconstant_aggregate depending on the type of the literal. */
     if (is_aggregate_or_union_type(*type)) {
-      check_assertion(initializer->kind == (a_constant_repr_kind)ck_aggregate);
+      check_assertion(compound_constant->kind ==
+                                          (a_constant_repr_kind)ck_aggregate);
       *dip =
-          alloc_dynamic_init((a_dynamic_init_kind)dik_nonconstant_aggregate);
-      (*dip)->variant.constant = initializer;
+           alloc_dynamic_init((a_dynamic_init_kind)dik_nonconstant_aggregate);
+      (*dip)->variant.constant = compound_constant;
     } else {
       /* get_initializer (through get_single_value_for_aggregate_initializer
          and its helpers) created a constant on top of a dynamic init entry.
          Extract it back out of the constant. */
-      check_assertion(initializer->kind ==
-                                        (a_constant_repr_kind)ck_dynamic_init);
-      *dip = initializer->variant.dynamic_init;
+      check_assertion(compound_constant->kind ==
+                                       (a_constant_repr_kind)ck_dynamic_init);
+      *dip = compound_constant->variant.dynamic_init;
     }  /* if */
   }  /* if */
 }  /* scan_compound_literal_initializer */
