@@ -6062,7 +6062,8 @@ node is returned for that case.
      function returning a class/struct/enum type that is incomplete
      at the point of declaration of the function so long as it is completed
      by the time the function is defined or called (if it is). */
-  if (!check_function_return_type(function_type, err_pos, /*is_call=*/TRUE)) {
+  if (!check_function_return_type(function_type, err_pos,
+                                  /*is_expr_use=*/TRUE)) {
     /* There was some error in the return type, and a diagnostic was issued. */
     call_node = error_node();
   } else {
@@ -6901,8 +6902,8 @@ this entity.
       check_assertion(!in_file_scope(old_ssep));
       old_ssep = ss_assoc_with_proxy(old_ssep);
     } else if (ss_is_proxy(old_ssep)) {
-      remove_from_source_sequence_list(&(ss_assoc_with_proxy(old_ssep)),
-                                       (a_type_ptr)NULL);
+      a_source_sequence_entry_ptr  tmp_ssep = ss_assoc_with_proxy(old_ssep);
+      remove_from_source_sequence_list(&tmp_ssep, (a_type_ptr)NULL);
       old_ssep->entity.ptr = NULL;
       old_ssep->entity.kind = (a_byte_il_entry_kind)iek_none;
     }  /* if */
@@ -7048,9 +7049,11 @@ placed but whose scope has since been popped from the scope stack.
   db_enter(4, "remove_from_source_sequence_list");
   if (ss_is_proxy(ssep)) {
     /* ssep refers to another source sequence entry.  Remove it as well. */
-    remove_from_source_sequence_list(
-                           &(ss_entry_ptr(ssep, a_source_sequence_entry_ptr)),
-                           class_type);
+    a_source_sequence_entry_ptr  tmp_ssep = ss_assoc_with_proxy(ssep);
+
+    remove_from_source_sequence_list(&tmp_ssep, class_type);
+    ssep->entity.ptr = NULL;
+    ssep->entity.kind = (a_byte_il_entry_kind)iek_none;
   } else {
     /* The entity ptr should not yet have been supplied -- this should still
        be an "empty" source sequence entry. */
