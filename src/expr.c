@@ -256,6 +256,7 @@ should be suppressed.  If suppress_warning == NULL, it is not set.
     case enk_routine_address:
     case enk_field:
     case enk_address_of_ellipsis:
+    case enk_runtime_sizeof:
       /* No side effects. */
       break;
     case enk_operation:
@@ -310,13 +311,6 @@ should be suppressed.  If suppress_warning == NULL, it is not set.
         if (is_polymorphic_class_type(node->variant.typeid_info.type)) {
           has_side_effects = TRUE;
         }  /* if */
-      }  /* if */
-      break;
-    case enk_runtime_sizeof:
-      if (!node->variant.runtime_sizeof.is_type) {
-        has_side_effects = node_has_side_effects(
-                                     node->variant.runtime_sizeof.variant.expr,
-                                     &suppress);
       }  /* if */
       break;
 #if GNU_EXTENSIONS_ALLOWED
@@ -4535,22 +4529,23 @@ Syntax:
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
         /* Make a sizeof expression that sits behind the constant and
            gives the original expression. */
-        if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded() &&
-            !is_type &&
-            curr_il_region_number == file_scope_region_number &&
-            innermost_function_scope != NULL) {
-          /* An expression in a function scope might point to a local variable,
-             which is in the function scope memory region.  Therefore it
-             cannot be attached to a file-scope constant.  This comes up when
-             a sizeof in an array bound uses a local variable in its
-             expression.  We have no good way of checking whether the
-             expression contains a local variable, so we suppress the
-             recording of the expression in all cases, and just record
-             the type. */
-          is_type = TRUE;
+        if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
+          if (!is_type &&
+              curr_il_region_number == file_scope_region_number &&
+              innermost_function_scope != NULL) {
+            /* An expression in a function scope might point to a local
+               variable, which is in the function scope memory region.
+               Therefore it cannot be attached to a file-scope constant.
+               This comes up when a sizeof in an array bound uses a local
+               variable in its expression.  We have no good way of
+               checking whether the expression contains a local variable,
+               so we suppress the recording of the expression in all
+               cases, and just record the type. */
+            is_type = TRUE;
+          }  /* if */
+          constant.expr = make_runtime_sizeof_expr(is_type, orig_sizeof_type,
+                                                   &operand);
         }  /* if */
-        constant.expr = make_runtime_sizeof_expr(is_type, orig_sizeof_type,
-                                                 &operand);
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
       }  /* if */
     }  /* if */
@@ -15329,16 +15324,14 @@ parameter type is not known.
     }  /* if */
     extract_constant_from_operand(&result, constant);
   }  /* if */
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+  check_assertion(constant->expr == NULL ||
+                  curr_expr_kind_is_one_in_which_const_exprs_are_recorded());
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   pop_expr_stack();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = result.end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
-  /* There is no point in recording the constant expression for a nontype
-     template argument, because it can differ from one instantiation point to
-     another, and we can record only one expression. */
-  constant->expr = NULL;
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
 
   switch_back_to_original_region(region_to_switch_back_to);
 #if DEBUG

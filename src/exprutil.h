@@ -584,15 +584,39 @@ kinds are at the beginning of the list.
 
 /*
 Macro that returns TRUE if the current expression kind is one in which
-expressions are recorded for constants.  They are not recorded for
-preprocessing expressions (because the constants are never saved) or
-for template argument expressions (because a template can be specified
-many times with a different argument expression each time).
+expressions are recorded for constants.  They are never recorded for
+preprocessing expressions (because the constants are never saved).
+With RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL, they are recorded in
+general but not for template argument expressions (because a template
+can be specified many times with a different argument expression each
+time).  With RECORD_TEMPLATE_DECL_CONSTANT_EXPRESSIONS_IN_IL, they
+are recorded for expressions in template declarations, including
+template arguments.
 */
+#if RECORD_TEMPLATE_DECL_CONSTANT_EXPRESSIONS_IN_IL && \
+    RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL
+#define curr_expr_kind_is_one_in_which_const_exprs_are_recorded() \
+  (!curr_expr_kind_is(ek_pp) && \
+   (!curr_expr_kind_is(ek_template_arg) || \
+    depth_template_declaration_scope != NO_SCOPE_DEPTH))
+#else /* !(RECORD_TEMPLATE_DECL_CONSTANT_EXPRESSIONS_IN_IL && ... ) */
+#if RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL
 #define curr_expr_kind_is_one_in_which_const_exprs_are_recorded() \
   (!curr_expr_kind_is(ek_pp) && !curr_expr_kind_is(ek_template_arg))
+#else /* !RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL */
+#if RECORD_TEMPLATE_DECL_CONSTANT_EXPRESSIONS_IN_IL
+#define curr_expr_kind_is_one_in_which_const_exprs_are_recorded() \
+  (!curr_expr_kind_is(ek_pp) && \
+   depth_template_declaration_scope != NO_SCOPE_DEPTH)
+#else /* !RECORD_TEMPLATE_DECL_CONSTANT_EXPRESSIONS_IN_IL */
+ #error -- RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL or \
+           RECORD_TEMPLATE_DECL_CONSTANT_EXPRESSIONS_IN_IL must be set
+#endif /* RECORD_TEMPLATE_DECL_CONSTANT_EXPRESSIONS_IN_IL */
+#endif /* RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL */
+#endif /* RECORD_TEMPLATE_DECL_CONSTANT_EXPRESSIONS_IN_IL && ... */
 
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+
 /*
 Macro that returns TRUE if the current expression is evaluated, i.e.,
 it's not inside a sizeof or alignof, and it's not in a "dead" piece of

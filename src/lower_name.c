@@ -299,14 +299,18 @@ static void mangled_function_name_externalized_if_necessary(
 static void mangled_member_variable_name(a_variable_ptr           variable,
                                          a_mangling_control_block *mctl);
 static char *mangled_expr_operator_name(an_expr_operator_kind op);
-static void mangled_encoding_for_expression(an_expr_node_ptr         expr,
-                                            a_mangling_control_block *mctl);
+static void mangled_encoding_for_expression(
+                                    an_expr_node_ptr         expr,
+                                    a_boolean                in_dependent_expr,
+                                    a_mangling_control_block *mctl);
 static void mangled_member_name(a_source_correspondence  *scp,
                                 an_il_entry_kind         kind,
                                 a_mangling_control_block *mctl);
-static void mangled_encoding_for_constant(a_constant_ptr           con,
-                                          a_boolean                old_form,
-                                          a_mangling_control_block *mctl);
+static void mangled_encoding_for_constant(
+                                    a_constant_ptr           con,
+                                    a_boolean                old_form,
+                                    a_boolean                in_dependent_expr,
+                                    a_mangling_control_block *mctl);
 #if !IA64_ABI
 static char *compress_mangled_name(char                     *mangled_name,
                                    a_source_correspondence  *scp,
@@ -1353,7 +1357,7 @@ static void mangled_encoding_for_constant_cast(a_type_ptr               type,
                                                a_mangling_control_block *mctl)
 /*
 Add to the mangled name the mangled encoding for the constant "con" cast
-to the type "type".
+to the type "type".  This is used for template-dependent casts.
 */
 {
 #if !IA64_ABI
@@ -1393,7 +1397,10 @@ to the type "type".
   }  /* if */
 #endif /* IA64_ABI */
   /* Put out the operand. */
-  mangled_encoding_for_constant(con, /*old_form=*/FALSE, mctl);
+  /* in_dependent_expr is TRUE because this routine is used only for
+     dependent casts. */
+  mangled_encoding_for_constant(con, /*old_form=*/FALSE,
+                                /*in_dependent_expr=*/TRUE, mctl);
 #if !IA64_ABI
   if (!cast_to_unknown) {
     /* Put out the final "O". */
@@ -1410,7 +1417,8 @@ static void mangled_encoding_for_sizeof(a_type_ptr                     type,
 /*
 Add to the mangled name the encoding of sizeof(type), __ALIGNOF__(type),
 or __uuidof(type); kind indicates which.  If expr is non-NULL, the
-original form used an expression, which expr points to.
+original form used an expression, which expr points to.  "type" is
+ignored if expr != NULL.
 */
 {
 #if !IA64_ABI
@@ -1434,6 +1442,10 @@ original form used an expression, which expr points to.
   */
   /* Put out the initial "O". */
   add_to_mangled_name('O', mctl);
+#else /* IA64_ABI */
+  /* The IA-64 ABI form uses "sz" for sizeof(expr) and "st" for
+     sizeof(type).  The "sz" form has the normal encoding for an expression.
+     The "st" form is followed by a type. */
 #endif /* !IA64_ABI */
   /* Put out the operator name. */
   switch (kind) {
@@ -1474,7 +1486,9 @@ original form used an expression, which expr points to.
     /* The expression form.  Put out "e" instead of the type. */
     add_to_mangled_name('e', mctl);
 #else /* IA64_ABI */
-    mangled_encoding_for_expression(expr, mctl);
+    /* in_dependent_expr is TRUE because this routine is used only for
+       dependent sizeofs. */
+    mangled_encoding_for_expression(expr, /*in_dependent_expr=*/TRUE, mctl);
 #endif /* IA64_ABI */
   } else {
     /* No expression, so put out the type. */
@@ -2064,12 +2078,15 @@ has an explicit template argument list, given by template_arg_list.
 
 static void literal_representation(a_constant_ptr           con,
                                    a_boolean                old_form,
+                                   a_boolean                in_dependent_expr,
                                    a_mangling_control_block *mctl)
 /*
 Add to the mangled name the encoding for the constant con.
 This is used to encode constants as part of the mangled names of
 template classes.  If old_form is TRUE, use the old form of length
-specification in the mangling for lengths of literals.
+specification in the mangling for lengths of literals.  For the IA-64
+ABI, if in_dependent_expr is TRUE this constant is part of a
+template-dependent expression.
 */
 {
 #if !IA64_ABI
@@ -2080,12 +2097,43 @@ specification in the mangling for lengths of literals.
   a_template_arg_ptr  template_arg_list;
   a_constant_ptr      unk_func_con;
 
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL && IA64_ABI
+  /* If an expression was recorded for the constant, and we're in
+     a template-dependent expression, use the pointer to get
+     the unfolded version of the expression as required by the IA-64
+     ABI spec.  For constant variables, use the constant not the
+     variable name (except when emulating a bug in g++ 3.2).  Enum
+     constants also have a non-NULL expression pointer if they were
+     given an explicit value in their definitions, but that
+     expression shouldn't be put out. */
+  if (con->kind == (a_constant_repr_kind)ck_template_param) {
+    in_dependent_expr = TRUE;
+  }  /* if */
+  if (in_dependent_expr && con->expr != NULL &&
+      !is_enum_constant(con) &&
+      (con->expr->kind != (an_expr_node_kind)enk_variable ||
+       emulate_gnu_abi_bugs)) {
+    mangled_encoding_for_expression(con->expr, in_dependent_expr, mctl);
+    goto end_of_routine;
+  }  /* if */
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL && IA64_ABI */
   switch (con->kind) {
     case ck_error:
       /* This might come up in mangling names for template instantiations. */
       add_to_mangled_name('?', mctl);
       break;
     case ck_integer:
+#if IA64_ABI
+      if (emulate_gnu_abi_bugs && has_name(con)) {
+        /* g++ 3.2 puts out the names of enum constants instead of their
+           values. */
+        mangled_entity_reference(&con->source_corresp,
+                                 iek_constant,
+                                 (a_routine_info_block *)NULL,
+                                 mctl);
+        break;
+      }  /* if */
+#endif /* IA64_ABI */
       str = str_for_integer_constant(con);
       /* Use "n" to represent a minus sign. */
       if (str[0] == '-') str[0] = 'n';
@@ -2139,6 +2187,7 @@ specification in the mangling for lengths of literals.
           /* An expression involving template parameters. */
           mangled_encoding_for_expression(
                                       con->variant.template_param.variant.expr,
+                                      /*in_dependent_expr=*/TRUE,
                                       mctl);
           break;
         case tpck_template_ref:
@@ -2201,7 +2250,9 @@ do_unknown_function:
 #if !IA64_ABI
           /* For an address, just mangle the member name. */
           literal_representation(con->variant.template_param.variant.constant,
-                                 old_form, mctl);
+                                 old_form,
+                                 /*in_dependent_expr=*/TRUE,
+                                 mctl);
 #else /* IA64_ABI */
           con = con->variant.template_param.variant.constant;
           check_assertion(con->kind == 
@@ -2233,16 +2284,22 @@ do_unknown_function:
       internal_error("literal_representation: bad constant kind");
 #endif /* CHECKING */
   }  /* switch */
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL && IA64_ABI
+end_of_routine:;
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL && IA64_ABI */
 }  /* literal_representation */
 
 
-static void mangled_encoding_for_constant(a_constant_ptr           con,
-                                          a_boolean                old_form,
-                                          a_mangling_control_block *mctl)
+static void mangled_encoding_for_constant(
+                                    a_constant_ptr           con,
+                                    a_boolean                old_form,
+                                    a_boolean                in_dependent_expr,
+                                    a_mangling_control_block *mctl)
 /*
 Add to the mangled name the encoding for the constant con.
 If old_form is TRUE, use the old form of length specification in the
-mangling for lengths of literals.
+mangling for lengths of literals.  For the IA-64 ABI, if in_dependent_expr
+is TRUE this constant is part of a template-dependent expression.
 */
 {
 #if !IA64_ABI
@@ -2263,16 +2320,20 @@ mangling for lengths of literals.
   }  /* if */
 #endif /* !IA64_ABI */
   /* Put out the literal representation for the constant. */
-  literal_representation(con, old_form, mctl);
+  literal_representation(con, old_form, in_dependent_expr, mctl);
 }  /* mangled_encoding_for_constant */
 
 
-static void mangled_encoding_for_expression(an_expr_node_ptr         expr,
-                                            a_mangling_control_block *mctl)
+static void mangled_encoding_for_expression(
+                                    an_expr_node_ptr         expr,
+                                    a_boolean                in_dependent_expr,
+                                    a_mangling_control_block *mctl)
 /*
 Add to the mangled name the encoding for the expression pointed to by expr.
 These expressions come up in ck_template_param expressions as template
 arguments, and as dimensions of arrays in template signatures.
+In the IA-64 ABI, in_dependent_expr is TRUE if this expression is
+part of a template-dependent expression.
 */
 {
   char             *operation_name;
@@ -2298,6 +2359,7 @@ arguments, and as dimensions of arrays in template signatures.
     case enk_constant:
       mangled_encoding_for_constant(expr->variant.constant,
                                     /*old_form=*/FALSE,
+                                    in_dependent_expr,
                                     mctl);
       break;
     case enk_operation:
@@ -2347,13 +2409,47 @@ arguments, and as dimensions of arrays in template signatures.
       for (operand = expr->variant.operation.operands;
            operand != NULL;
            operand = operand->next) {
-        mangled_encoding_for_expression(operand, mctl);
+        mangled_encoding_for_expression(operand, in_dependent_expr, mctl);
       }  /* for */
 #if !IA64_ABI
       /* Put out the final "O". */
       add_to_mangled_name('O', mctl);
 #endif /* !IA64_ABI */
       break;
+#if IA64_ABI
+    case enk_runtime_sizeof:
+      if (expr->variant.runtime_sizeof.is_type) {
+        mangled_encoding_for_sizeof(expr->variant.runtime_sizeof.variant.type,
+                                    (an_expr_node_ptr)NULL,
+                                   (a_template_param_constant_kind)tpck_sizeof,
+                                    mctl);
+      } else {
+        check_assertion(!expr->variant.runtime_sizeof.is_lvalue);
+        mangled_encoding_for_sizeof((a_type_ptr)NULL,
+                                    expr->variant.runtime_sizeof.variant.expr,
+                                   (a_template_param_constant_kind)tpck_sizeof,
+                                    mctl);
+      }  /* if */
+      break;
+    case enk_variable:
+      mangled_entity_reference(&expr->variant.variable->source_corresp,
+                               (an_il_entry_kind)iek_variable,
+                               (a_routine_info_block *)NULL,
+                               mctl);
+      break;
+    case enk_variable_address:
+      mangled_address_of_entity(&expr->variant.variable->source_corresp,
+                                (an_il_entry_kind)iek_variable,
+                                (a_routine_info_block *)NULL,
+                                mctl);
+      break;
+    case enk_routine_address:
+      mangled_address_of_entity(&expr->variant.routine->source_corresp,
+                                (an_il_entry_kind)iek_routine,
+                                (a_routine_info_block *)NULL,
+                                mctl);
+      break;
+#endif /* IA64_ABI */
     default:
       unexpected_condition_str("mangled_encoding_for_expression: bad kind");
   }  /* switch */
@@ -2667,6 +2763,7 @@ literals.
 #endif /* IA64_ABI */
       mangled_encoding_for_constant(tap->variant.constant,
                                     old_form,
+                                    /*in_dependent_expr=*/FALSE,
                                     mctl);
 #if IA64_ABI
       if (is_expression) {
@@ -3774,6 +3871,7 @@ Add to the mangled name the encoding for the type "type".
           mangled_encoding_for_constant(
                             type->variant.array.variant.element_count_constant,
                             /*old_form=*/FALSE,
+                            /*in_dependent_expr=*/FALSE,
                             mctl);
 #if IA64_ABI
         } else if (!type->variant.array.bound_is_zero && 
