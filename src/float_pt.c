@@ -72,6 +72,7 @@ static void init_strtod(void)
 }  /* init_strtod */
 #endif /* ifdef SUNOS_STRTOD_BUG */
 
+#if !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
 
 static double strtod_interface(char *str)
 /*
@@ -95,7 +96,7 @@ value for any error.
   return temp;
 }  /* strtod_interface */
 
-
+#endif /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
 #if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
 
 #if DEBUG
@@ -108,7 +109,7 @@ Display a long double, for debugging purposes.
 }  /* db_long_double */
 #endif /* DEBUG */
 
-long double str_to_long_double(char * str)
+static long double str_to_long_double(char * str)
 /*
 Convert a string to a long double.
 */
@@ -149,6 +150,7 @@ Convert a string to a long double.
   errno = err ? ERANGE : 0;
   return temp;
 }  /* str_to_long_double */
+
 #endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
 
 static void conv_host_fp_to_float(a_host_fp_value	temp,
