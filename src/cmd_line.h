@@ -1378,6 +1378,9 @@ extern void proc_command_line(int argc, char *argv[]);
 /* Fetch the next source file name from the command line. */
 extern a_boolean get_next_source_file(void);
 #endif /* COMPILE_MULTIPLE_SOURCE_FILES */
+#if COMPILE_MULTIPLE_TRANSLATION_UNITS
+extern void proc_secondary_translation_units(void);
+#endif /* COMPILE_MULTIPLE_TRANSLATION_UNITS */
 
 #endif /* ifndef CMD_LINE_H */
 

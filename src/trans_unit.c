@@ -231,6 +231,10 @@ translation unit per compilation when making use of exported templates.
 When using exported templates, the translation units containing the
 definitions of the exported templates are processed as secondary
 translation units.
+
+When COMPILE_MULTIPLE_TRANSLATION_UNITS is TRUE, multiple source files
+can be specified on the command-line and the source files are each
+treated as separate translation units of a single compilation.
 */
 {
   a_translation_unit_ptr	trans_unit;
@@ -270,14 +274,10 @@ translation units.
     translation_unit();
     translation_unit_wrapup();
   }  /* if */
-#if 0
-#else /* 0 */
-  /* Temporary code to process secondary translation units. */
-  {
-    extern void proc_secondary_translation_units(void);
-    proc_secondary_translation_units();
-  }
-#endif /* 0 */
+#if COMPILE_MULTIPLE_TRANSLATION_UNITS
+  /* Process any secondary translation units specified on the command line. */
+  proc_secondary_translation_units();
+#endif /* COMPILE_MULTIPLE_TRANSLATION_UNITS */
 }  /* process_translation_unit */
 
 

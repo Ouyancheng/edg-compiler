@@ -1463,7 +1463,7 @@ If it is not acceptable, issue an error.
 }  /* check_pch_file_name */
 
 
-#if COMPILE_MULTIPLE_SOURCE_FILES
+#if COMPILE_MULTIPLE_SOURCE_FILES || COMPILE_MULTIPLE_TRANSLATION_UNITS
 static char	**argv_file_list;
 static int	argc_file_list;
 			/* When multiple source input files are accepted,
@@ -1471,7 +1471,8 @@ static int	argc_file_list;
 			   after the current one, and argv_file_list
 			   points to the argv entry for the first
 			   remaining file. */
-#endif /* COMPILE_MULTIPLE_SOURCE_FILES */
+#endif /* COMPILE_MULTIPLE_SOURCE_FILES ||
+          COMPILE_MULTIPLE_TRANSLATION_UNITS */
 
 
 static void set_c99_mode_flags(void)
@@ -3310,13 +3311,14 @@ enable_microsoft_mode:
     dir_name_of_primary_source_file = dir_name;
     add_to_front_of_include_search_path(dir_name);
   }  /* if */
-#if COMPILE_MULTIPLE_SOURCE_FILES
+#if COMPILE_MULTIPLE_SOURCE_FILES || COMPILE_MULTIPLE_TRANSLATION_UNITS
   /* Multiple source files can be compiled.  Save the count and argv
      position of remaining files, if any. */
   argc_file_list = argc - opt_ind;
+  argv_file_list = &argv[opt_ind];
+#if COMPILE_MULTIPLE_SOURCE_FILES
   more_than_one_source_file = (argc_file_list > 0);
   if (more_than_one_source_file) {
-    argv_file_list = &argv[opt_ind];
     /* There are at least two files.  The -o, -L, and -X options (those
        that specify output files) cannot be used, because they only specify
        one file. */
@@ -3338,13 +3340,16 @@ enable_microsoft_mode:
     }  /* if */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   }  /* if */
-#else /* !COMPILE_MULTIPLE_SOURCE_FILES */
+#endif /* COMPILE_MULTIPLE_SOURCE_FILES */
+#else /* !(COMPILE_MULTIPLE_SOURCE_FILES ||
+         COMPILE_MULTIPLE_TRANSLATION_UNITS) */
   /* Multiple source files cannot be compiled. */
   /* Check that all command-line arguments were taken. */
   if (opt_ind < argc) {
     command_line_error(ec_cl_too_many_arguments);
   }  /* if */
-#endif /* COMPILE_MULTIPLE_SOURCE_FILES */
+#endif /* COMPILE_MULTIPLE_SOURCE_FILES ||
+          COMPILE_MULTIPLE_TRANSLATION_UNITS */
 
   /* The -o option controls either the name of the preprocessing output
      file or the name of the IL file, depending on the kind of compilation. */
@@ -3397,8 +3402,8 @@ enable_microsoft_mode:
   }  /* if */
 }  /* proc_command_line */
 
-#if 0
-#else /* 0 */
+#if COMPILE_MULTIPLE_TRANSLATION_UNITS
+
 void proc_secondary_translation_units(void)
 /*
 This is a temporary routine for testing of the routines that handle
@@ -3422,10 +3427,11 @@ Call the translation unit routine for the secondary translation units.
     process_translation_unit(/*is_primary=*/FALSE);
   }  /* while */
 }  /* proc_secondary_translation_units */
-#endif /* 0 */
 
+#endif /* COMPILE_MULTIPLE_TRANSLATION_UNITS */
 
 #if COMPILE_MULTIPLE_SOURCE_FILES
+
 a_boolean get_next_source_file(void)
 /*
 Check to see if there is another source input file on the command line.
@@ -3458,6 +3464,7 @@ proc_command_line handles the first file directly.
   }  /* if */
   return another_file;
 }  /* get_next_source_file */
+
 #endif /* COMPILE_MULTIPLE_SOURCE_FILES */
 
 

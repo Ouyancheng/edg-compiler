@@ -99,7 +99,7 @@ Flags to be set when using the KAI inliner.
 
 /* Options common to Sun-hosted versions. */
 
-#define COMPILE_MULTIPLE_SOURCE_FILES 1
+#define COMPILE_MULTIPLE_TRANSLATION_UNITS 1
 #define MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED 1
 #define USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING 1
 #define C99_IL_EXTENSIONS_SUPPORTED 1

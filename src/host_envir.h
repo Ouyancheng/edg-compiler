@@ -183,11 +183,30 @@ to use this flag to test that a pointer lies in a certain range.
 /*
 Flag that is TRUE if multiple input files can be compiled in a single
 invocation of the front end.  This is useful on systems where the cost
-of forking a process is high (e.g., VMS).
+of forking a process is high (e.g., VMS).  Each compilation is processed
+completely separately from the others (e.g., a separate IL structure is
+generated for each input file).
 */
 #ifndef COMPILE_MULTIPLE_SOURCE_FILES
 #define COMPILE_MULTIPLE_SOURCE_FILES FALSE
 #endif /* ifndef COMPILE_MULTIPLE_SOURCE_FILES */
+
+/*
+Flag that is TRUE if multiple input files can be compiled as separate
+translation units of a single compilation.  This differs from
+COMPILE_MULTIPLE_SOURCE_FILES in that the IL for the various translation
+units is merged together to form a single IL that represents all of the
+input files.
+*/
+#ifndef COMPILE_MULTIPLE_TRANSLATION_UNITS
+#define COMPILE_MULTIPLE_TRANSLATION_UNITS FALSE
+#endif /* ifndef COMPILE_MULTIPLE_TRANSLATION_UNITS */
+
+#if COMPILE_MULTIPLE_SOURCE_FILES && COMPILE_MULTIPLE_TRANSLATION_UNITS
+ #error -- COMPILE_MULTIPLE_SOURCE_FILES and \
+           COMPILE_MULTIPLE_TRANSLATION_UNITS cannot both be TRUE.
+#endif /* COMPILE_MULTIPLE_SOURCE_FILES &&
+          COMPILE_MULTIPLE_TRANSLATION_UNITS */
 
 /*
 Flag that is TRUE if the front end is being run from a driver program.

@@ -86,9 +86,10 @@ Included from basic_hdrs.h in every compilation.
 #ifndef HOSTID
 /*lint -esym(769,ec_cl_incorrect_host_id)*/
 #endif /* ifndef HOSTID */
-#if COMPILE_MULTIPLE_SOURCE_FILES
+#if COMPILE_MULTIPLE_SOURCE_FILES || COMPILE_MULTIPLE_TRANSLATION_UNITS
 /*lint -esym(769,ec_cl_too_many_arguments)*/
-#endif /* COMPILE_MULTIPLE_SOURCE_FILES */
+#endif /* COMPILE_MULTIPLE_SOURCE_FILES ||
+          COMPILE_MULTIPLE_TRANSLATION_UNITS */
 #if USE_MMAP_FOR_MEMORY_REGIONS
 /*lint -esym(769,ec_cl_invalid_pch_size)*/
 /*lint -esym(769,ec_cl_pch_must_be_first)*/
