@@ -12135,6 +12135,7 @@ because they were used in declaring an external function or variable.
   a_symbol_ptr    sym;             
 
   db_enter(3, "check_class_linkage");
+  check_assertion(any_cfront_mode());
   /* Search for classes by making a pass over all the types associated with
      the file scope. */
   scope = il_header.primary_scope;
