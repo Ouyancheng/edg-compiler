@@ -6338,6 +6338,11 @@ typedef struct a_routine {
 			   friend.  In that case, Microsoft compilers will
 			   not treat this as a specialization of any
 			   template. */
+  a_bit_field	explicit_extern_inline:1;
+			/* TRUE if the routine was explicitly declared with
+			   both the "extern" and "inline" specifiers.  In
+			   Microsoft C++ mode, this forces the definition to
+			   be spilled. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED

@@ -1875,6 +1875,7 @@ to it.  The entry is allocated in the file scope memory region.
   rp->is_prototype_instantiation  = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   rp->declared_only_as_friend     = FALSE;
+  rp->explicit_extern_inline      = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED

@@ -2514,6 +2514,14 @@ Display the indicated routine.
   if (ptr->specialized_with_old_syntax) {
     disp_boolean("specialized_with_old_syntax", TRUE);
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (ptr->declared_only_as_friend) {
+    disp_boolean("declared_only_as_friend", TRUE);
+  }  /* if */
+  if (ptr->explicit_extern_inline) {
+    disp_boolean("explicit_extern_inline", TRUE);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   if (ptr->ELF_visibility != (an_ELF_visibility_kind)evk_unspecified) {
     disp_ELF_visibility_kind(ptr->ELF_visibility);

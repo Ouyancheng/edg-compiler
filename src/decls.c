@@ -4771,6 +4771,9 @@ declaration.
   an_id_linkage_block      idlb;
   a_boolean                suppress_inline_body = FALSE;
   a_boolean                notify_correspondence_processing = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_storage_class          declared_storage_class = storage_class;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_enter(3, "decl_routine");
   *old_type = NULL;
@@ -5769,6 +5772,10 @@ skip_overloading:;
       }  /* if */
     } else {
       routine_ptr->declared_only_as_friend = FALSE;
+    }  /* if */
+    if (func_info->is_inline &&
+        declared_storage_class == (a_storage_class)sc_extern) {
+      routine_ptr->explicit_extern_inline = TRUE;
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

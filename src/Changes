@@ -1,5 +1,22 @@
 Version 3.1
 
+8/15/02   Microsoft C++ compatibility: extern inline declarations
+
+In Microsoft C++ mode, inline functions have external linkage by default.
+However, if the extern keyword is explicitly specified on an inline function
+declaration, Microsoft compilers will always generate code for the function
+(even if it is not used in that translation unit).  This behavior is now
+emulated when INSTANTIATE_EXTERN_INLINE is TRUE.
+
+  inline void f() {}         // Not emitted by Microsoft compilers unless
+                             // really needed.
+  extern inline void g() {}  // Always emitted by Microsoft compilers. 
+
+The IL also records whether "extern inline" was explicitly specified on a
+function declaration and the C++-generating back end uses that flag to avoid
+the rendering of an unnecessary extern keyword when generating code for a
+Microsoft compiler (flag msvc_is_generated_code_target is TRUE).
+
 8/13/02  -0.0 versus 0.0 in constant sharing, fp_same_representation
 
 The use of fp_compare in the search for a shareable constant
@@ -98,22 +115,6 @@ The Microsoft bug that caused long+int to be seen as int (see
 Changes entries of 4/22/97, 5/2/98) has been fixed in VC 7 (aka
 VC .NET).  When --microsoft_version=1300, emulation of
 that bug is now turned off.
-
-8/7/02   Microsoft C++ compatibility: extern inline declarations
-
-In Microsoft C++ mode, inline functions have external linkage by default.
-However, if the extern keyword is explicitly specified on an inline function
-declaration, Microsoft compilers will always generate code for the function
-(even if it is not used in that translation unit).  To emulate this behavior,
-the front end now forces the "suppress_inline_body" flag in the routine entry
-to be FALSE for inline functions declared with the extern keyword and the
-C++-generating back end avoids emitting the extern specifier unless the flag
-is FALSE (when generating code for Microsoft compilers).  This behavior is
-suppressed when INSTANTIATE_EXTERN_INLINE is TRUE.
-
-  inline void f() {}         // Not emitted by Microsoft compilers unless
-                             // really needed.
-  extern inline void g() {}  // Always emitted by Microsoft compilers. 
 
 8/7/02   Inlining in GNU C statement expressions
 

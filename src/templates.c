@@ -1,4 +1,4 @@
-/*****************************************************************************
+/******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
@@ -18432,6 +18432,12 @@ emitted in this translation unit.
   }  /* if */
   if (!body_can_be_generated) {
     /* We can't emit the body if one can't be generated. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (microsoft_mode && rout_ptr->explicit_extern_inline) {
+    /* In Microsoft mode "extern inline" in the source indicates that the
+       function definition should be spilled (even if unused). */
+    result = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if (instantiation_mode == tim_used ||
              instantiation_mode == tim_all) {
     /* In -tused mode, emit the function if it was referenced.  Note that

@@ -9777,6 +9777,18 @@ TRUE if the declaration following this one is such a continuation.
   } else {
     /* A declaration or definition outside of a class (at file scope or
        inside a function). */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (msvc_is_generated_code_target && rout->is_inline &&
+        !rout->explicit_extern_inline &&
+        (storage_class == (a_storage_class)sc_unspecified ||
+         storage_class == (a_storage_class)sc_extern)) {
+      /* "extern inline" forces a Microsoft compiler to spill the definition
+         of an inline function even if it was not called.  Avoid the "extern"
+         specifier therefore (unless it appeared in the source). */
+      storage_class = (a_storage_class)sc_unspecified;
+    } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not insert code here. */
     if (is_definition) {
       /* This is the definition of the function, so by and large the
          storage class from the IL entry applies. */
