@@ -1720,16 +1720,16 @@ Return TRUE if placing bcp at offset would result in a subobject conflict.
 }  /* base_subobject_conflict */
 
 
-static a_boolean gnu_conflict_found(a_type_ptr  subobject_type,
-                                    a_type_ptr  eb_type,
-                                    a_boolean   in_field)
+static a_boolean gnu_conflict_found(a_type_ptr        subobject_type,
+                                    a_base_class_ptr  ebcp,
+                                    a_boolean         in_field)
 /*
-This is a helper routine to identify the "GNU first field conflict" (see
-gnu_first_field_conflict below).  It may call itself recursively if needed.
-eb_type is the type of an empty base class (of the complete type being
-laid out) for which conflicts are considered.  subobject_type is the type of
-a subobject of the first field (and initially, that first field itself) in
-which a conflict is looked for.
+This is a helper routine to identify certain spurious GNU empty base
+conflicts (see e.g.  gnu_first_field_conflict, gnu_base_conflict, and
+gnu_leading_empty_base_conflict below).  It may call itself recursively
+if needed.  ebcp is the empty base class (of the complete type being
+laid out) for which conflicts are considered.  subobject_type is the
+type of an already allocated subobject in which a conflict is looked for.
 
 See gnu_first_field_conflict for a description of this GNU C++ layout bug.
 See also gnu_base_conflict for a similar problem with preceding empty
@@ -1741,6 +1741,7 @@ base class of the complete object).
 {
   a_boolean  result = FALSE;
   a_field_ptr  field;
+  a_type_ptr   eb_type;
 
   if (!is_immediate_class_type(subobject_type) ||
       (subobject_type->source_corresp.assoc_info != NULL &&
@@ -1748,6 +1749,7 @@ base class of the complete object).
                                                ->has_empty_class_subobject)) {
     goto done;
   }  /* if */
+  eb_type = skip_typerefs(ebcp->type);
   field = subobject_type->variant.class_struct_union.field_list;
   for (; field != NULL; field = field->next) {
     a_type_ptr  field_type = skip_typerefs(field->type);
@@ -1756,10 +1758,11 @@ base class of the complete object).
     if (field->compiler_generated || is_array_type(field_type)) {
       continue;
     }  /* if */
-    /* The "GNU first field conflict" only occurs with fields that start in
-       the first N bytes of their enclosing class, where N depends on the
-       platform (but not necessarily within the first N bytes of the complete
-       object they belong too). */
+    /* Spurious conflicts occur with fields that start in the first N bytes
+       of their enclosing class, where N depends on the platform (but not
+       necessarily within the first N bytes of the complete object they
+       belong too).  Within those N bytes, the fields are treated as if
+       they appeared at offset zero. */
 #if (defined(__sun) || defined(sun)) && (defined(sparc) || defined(__sparc))
 /* N is 8 on SPARC Solaris. */
 #define offset_limit 8
@@ -1770,7 +1773,7 @@ base class of the complete object).
           (defined(sparc) || defined(__sparc)) */
     if (field->offset < offset_limit && is_immediate_class_type(field_type)) {
       if (identical_types(field_type, eb_type) ||
-          gnu_conflict_found(field_type, eb_type, /*in_field*/FALSE)) {
+          gnu_conflict_found(field_type, ebcp, /*in_field*/FALSE)) {
         result = TRUE;
         break;
       }  /* if */
@@ -1780,14 +1783,16 @@ base class of the complete object).
   if (!result) {
     a_base_class_ptr  bcp = base_classes_of(subobject_type);
     for (; bcp != NULL; bcp = bcp->next) {
-      if (bcp->offset == 0 &&
-          !bcp->is_virtual && !is_base_of_virtual_base(bcp)) {
+      if (bcp->offset == 0 && bcp->offset_is_set &&
+          ((bcp->direct && ebcp->is_virtual) ||
+           !is_base_of_virtual_base(bcp))) {
         /* Unlike field subobjects, only base class subobjects at offset
            zero are considered for this kind of conflicts.  Virtual bases and
            bases of virtual bases aren't considered (since their offset
-           changes from type to type). */
+           changes from type to type), unless we're considering a direct
+           base's conflict with an empty virtual base. */
         if ((!in_field && identical_types(bcp->type, eb_type)) ||
-            gnu_conflict_found(bcp->type, eb_type, in_field)) {
+            gnu_conflict_found(bcp->type, ebcp, in_field)) {
           result = TRUE;
           break;
         }  /* if */
@@ -1846,7 +1851,7 @@ offset is zero.
           bcp->type->variant.class_struct_union.is_empty_class &&
           base_classes_of(bcp->type) == NULL &&
           gnu_conflict_found(type_for_gnu_conflicts(field->type),
-                             bcp->type, /*in_field=*/FALSE)) {
+                             bcp, /*in_field=*/FALSE)) {
         result = TRUE;
         break;
       }  /* if */
@@ -1883,8 +1888,7 @@ base if it has a subobject of the same type as the previous base.
       sub_ebcp = base_classes_of(ebcp->type);
       /* Only examine conflicts with bottom-most base classes. */
       if (sub_ebcp == NULL) {
-        if (gnu_conflict_found(skip_typerefs(bcp->type),
-                               skip_typerefs(ebcp->type),
+        if (gnu_conflict_found(skip_typerefs(bcp->type), ebcp,
                                /*in_field=*/FALSE)) {
           result = TRUE;
           goto done;
@@ -1892,8 +1896,7 @@ base if it has a subobject of the same type as the previous base.
       } else {
         for (; sub_ebcp != NULL; sub_ebcp = sub_ebcp->next) {
           if (base_classes_of(sub_ebcp->type) == NULL &&
-              gnu_conflict_found(skip_typerefs(bcp->type),
-                                 skip_typerefs(sub_ebcp->type),
+              gnu_conflict_found(skip_typerefs(bcp->type), sub_ebcp,
                                  /*in_field=*/FALSE)) {
             result = TRUE;
             goto done;
@@ -1925,15 +1928,14 @@ allocated at that offset.  This function returns TRUE in that case.
       a_base_class_ptr  sub_ebcp = base_classes_of(ebcp->type);
       /* Only examine conflicts with bottom-most base classes. */
       if (sub_ebcp == NULL &&
-          gnu_conflict_found(skip_typerefs(bcp->type),
-                             skip_typerefs(ebcp->type), /*in_field=*/TRUE)) {
+          gnu_conflict_found(skip_typerefs(bcp->type), ebcp,
+                             /*in_field=*/TRUE)) {
         result = TRUE;
         break;
       } else {
         for (; sub_ebcp != NULL; sub_ebcp = sub_ebcp->next) {
           if (base_classes_of(sub_ebcp->type) == NULL &&
-              gnu_conflict_found(skip_typerefs(bcp->type),
-                                 skip_typerefs(sub_ebcp->type),
+              gnu_conflict_found(skip_typerefs(bcp->type), sub_ebcp,
                                  /*in_field=*/TRUE)) {
             result = TRUE;
             break;
