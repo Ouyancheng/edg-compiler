@@ -1,5 +1,15 @@
 Version 2.22
 
+1/10/94  Operator functions with erroneous operators
+
+Handling has been improved when the operator in an operator function is
+erroneous or missing.  For example, an internal error is no longer
+produced when this program is compiled:
+
+  struct A {
+    operator?(int);
+  };
+
 1/10/94  Ellipsis in parameter list of an operator function
 
 An error is now issued when the parameter list of an operator function
