@@ -6990,35 +6990,37 @@ typedef, we must make sure to propagate that to its members.
 
   check_assertion(!C_mode() && is_immediate_class_type(tp));
   scope = tp->variant.class_struct_union.extra_info->assoc_scope;
-  for (routine = scope->routines; routine != NULL; routine = routine->next) {
-    routine->source_corresp.name_linkage = name_linkage;
-    if (name_linkage == (a_name_linkage_kind)nlk_cplusplus_external ||
-        name_linkage == (a_name_linkage_kind)nlk_external) {
-      routine->storage_class = (a_storage_class)
+  if (scope != NULL) {
+    for (routine = scope->routines; routine != NULL; routine = routine->next) {
+      routine->source_corresp.name_linkage = name_linkage;
+      if (name_linkage == (a_name_linkage_kind)nlk_cplusplus_external ||
+          name_linkage == (a_name_linkage_kind)nlk_external) {
+        routine->storage_class = (a_storage_class)
                                   (routine->assoc_scope != NULL_region_number ?
                                                    sc_unspecified : sc_extern);
-      if (instantiate_extern_inline && routine->is_inline &&
-          !routine->on_inline_function_list) {
-        add_to_inline_function_list(routine);
+        if (instantiate_extern_inline && routine->is_inline &&
+            !routine->on_inline_function_list) {
+          add_to_inline_function_list(routine);
+        }  /* if */
       }  /* if */
-    }  /* if */
-  }  /* for */
-  for (var = scope->variables; var != NULL; var = var->next) {
-    var->source_corresp.name_linkage = name_linkage;
-    if (name_linkage == (a_name_linkage_kind)nlk_cplusplus_external ||
-        name_linkage == (a_name_linkage_kind)nlk_external) {
-      var->storage_class = (a_storage_class)sc_extern;
-    }  /* if */
-  }  /* for */
-  for (type = scope->types; type != NULL; type = type->next) {
-    if (is_immediate_class_type(type)) {
-      set_name_linkage_for_type(type);
-      set_linkage_for_class_members(type);
-    } else if (is_immediate_enum_type(type)) {
-      set_name_linkage_for_type(type);
-      set_name_linkage_for_enumerators(type);
-    }  /* if */
-  }  /* for */
+    }  /* for */
+    for (var = scope->variables; var != NULL; var = var->next) {
+      var->source_corresp.name_linkage = name_linkage;
+      if (name_linkage == (a_name_linkage_kind)nlk_cplusplus_external ||
+          name_linkage == (a_name_linkage_kind)nlk_external) {
+        var->storage_class = (a_storage_class)sc_extern;
+      }  /* if */
+    }  /* for */
+    for (type = scope->types; type != NULL; type = type->next) {
+      if (is_immediate_class_type(type)) {
+        set_name_linkage_for_type(type);
+        set_linkage_for_class_members(type);
+      } else if (is_immediate_enum_type(type)) {
+        set_name_linkage_for_type(type);
+        set_name_linkage_for_enumerators(type);
+      }  /* if */
+    }  /* for */
+  }  /* if */
 }  /* set_linkage_for_class_members */
 
 

@@ -1,5 +1,17 @@
 Version 3.1
 
+11/1/02  Abort on undefined nested class in unnamed class
+
+The front end used to abort when processing a typedef of an unnamed class
+containing an undefined nested class, such that the unnamed class acquires
+the typedef name for linkage purposes.  For example:
+
+  typedef struct {
+    struct N;
+  } S;
+
+This is now fixed.
+
 10/31/02 Incorrect end-of-specifiers position when defining classes
 
 The end-of-specifier position recorded for a class definition (available
