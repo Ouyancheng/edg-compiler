@@ -452,6 +452,7 @@ check_abbreviation()
 --command
 --comments
 --compile
+--compound_literals
 --const_string_literals
 --cpfe_only
 --create_pch
@@ -520,6 +521,7 @@ check_abbreviation()
 --no_brief_diagnostics
 --no_class_name_injection
 --no_code_gen
+--no_compound_literals
 --no_const_string_literals
 --no_definition_list_file
 --no_designators
@@ -1012,6 +1014,8 @@ process_option()
          --no_variadic_macros | \
          --extended_variadic_macros | \
          --no_extended_variadic_macros | \
+         --compound_literals \
+         --no_compound_literals \
          --force_vtbl)
       feoptions=$feoptions" $curr_arg"
 #     Options that require additional processing
