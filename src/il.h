@@ -777,9 +777,6 @@ extern a_source_sequence_entry_ptr last_matching_source_sequence_entry(
 extern void set_autonomous_tag_decl_flag(a_type_ptr  type,
                                          a_boolean   is_definition);
 
-extern a_source_sequence_entry_ptr find_end_of_tag_construct(
-                                           a_source_sequence_entry_ptr  ssep);
-
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 #if ORPHAN_PROCESSING_NEEDED
