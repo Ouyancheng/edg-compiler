@@ -6920,6 +6920,16 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
                            il_entry_kind_names[(int)sseocp->entity.kind]);
           
       }  /* switch */
+    } else if (kind == (an_il_entry_kind)iek_access_adjustment) {
+      an_access_adjustment_ptr  aap;
+      aap = (an_access_adjustment_ptr)ssep->entity.ptr;
+      fputs(": \"", f_debug);
+      if (aap->kind == (an_access_adjustment_kind)aak_type) {
+        db_type_name(aap->variant.type);
+      } else {
+        db_name(&aap->variant.field->source_corresp);
+      }  /* if */
+      fputc('"', f_debug);
     } else {
       a_source_position       *pos;
       a_source_correspondence *scp;
