@@ -1337,12 +1337,11 @@ is after the closing parenthesis of the argument list.
        can be checked as the argument list is scanned. */
     routine_type = routine_symbol_type(constructor_sym);
   } else {
-#if CHECKING
-    if (constructor_sym->kind != (a_symbol_kind)sk_overloaded_function) {
-      internal_error("scan_ctor_arguments: sym not function");
-    }  /* if */
-#endif  /* CHECKING */
-    /* Constructor is overloaded. */
+    check_assertion_str(
+              constructor_sym->kind == (a_symbol_kind)sk_overloaded_function ||
+              constructor_sym->kind == (a_symbol_kind)sk_function_template,
+              "scan_ctor_arguments: sym not function");
+    /* Constructor is overloaded or a template. */
     overloaded_function_case = TRUE;
     routine_type = NULL;
   }  /* if */
