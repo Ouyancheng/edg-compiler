@@ -763,8 +763,9 @@ If need_trailing_space is TRUE, put a space at the end of the specifiers
 part (needed if the declarator part is not empty, because it contains a
 name or a derived type).  added_qualifiers contains a set of type qualifiers
 to be added on top of the type.  options contains options as bits in a set:
-If FTO_SUPPRESS_CONST is TRUE, suppress generation of top-level "const".
-Do the output in the way described by octl.
+If FTO_SUPPRESS_CONST is TRUE, suppress generation of top-level "const";
+if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
+(put out only the declarator).  Do the output in the way described by octl.
 */
 {
   a_type_kind kind;
@@ -904,21 +905,24 @@ Do the output in the way described by octl.
   } else {
 handle_specifiers_type:
     /* No declarator part to process.  Handle the specifier type. */
-    if (octl->c_generating_back_end && !octl->gen_pcc_code) {
-      /* Some compilers have trouble with "const void".  Drop the const
-         in that case. */
-      if ((qualifiers & TQ_CONST) &&
-          /* skip_typerefs needed because there might be a typedef of void. */
-          skip_typerefs(type)->kind == (a_type_kind)tk_void) {
-        qualifiers &= ~TQ_CONST;
+    if ((options & FTO_SUPPRESS_SPECIFIERS) == 0) {
+      if (octl->c_generating_back_end && !octl->gen_pcc_code) {
+        /* Some compilers have trouble with "const void".  Drop the const
+           in that case. */
+        if ((qualifiers & TQ_CONST) &&
+            /* skip_typerefs needed because there might be a typedef of
+               void. */
+            skip_typerefs(type)->kind == (a_type_kind)tk_void) {
+          qualifiers &= ~TQ_CONST;
+        }  /* if */
       }  /* if */
+      if (qualifiers != TQ_NONE) {
+        form_type_qualifier(qualifiers, /*need_trailing_space=*/TRUE, octl);
+      }  /* if */
+      form_type_specifier(type, octl);
+      /* Put out a trailing space if required. */
+      if (need_trailing_space) octl->output_str(" ");
     }  /* if */
-    if (qualifiers != TQ_NONE) {
-      form_type_qualifier(qualifiers, /*need_trailing_space=*/TRUE, octl);
-    }  /* if */
-    form_type_specifier(type, octl);
-    /* Put out a trailing space if required. */
-    if (need_trailing_space) octl->output_str(" ");
   }  /* if */
 }  /* form_type_first_part */
 

@@ -99,6 +99,9 @@ typedef int a_form_type_options_set;
 #define FTO_NO_OPTIONS 0
 #define FTO_SUPPRESS_CONST 0x1
 			/* Suppress top-level "const" on the type. */
+#define FTO_SUPPRESS_SPECIFIERS 0x2
+			/* Suppress the type specifiers of the type (put out
+			   only the declarator). */
 
 
 extern void clear_il_to_str_output_control_block(
