@@ -4454,6 +4454,18 @@ This is done before command line processing.
      ILP64 porting diagnostics should be remarks. */
   (void)set_severity_for_error_number((int)ec_ilp64_will_narrow, es_remark,
                                       /*make_default=*/TRUE);
+  /* Certain warnings related to 64-bit porting should be disabled
+     by default. */
+  (void)set_severity_for_error_number((int)ec_impl_narrowing_64_bit_int,
+                                      es_none,
+                                      /*make_default=*/TRUE);
+  (void)set_severity_for_error_number((int)ec_expl_narrowing_64_bit_int,
+                                      es_none,
+                                      /*make_default=*/TRUE);
+  (void)set_severity_for_error_number(
+                                   (int)ec_pointer_conversion_to_same_size_int,
+                                      es_none,
+                                      /*make_default=*/TRUE);
   memzero((char*)predef_macro_mode_values, sizeof(predef_macro_mode_values));
 }  /* cmd_line_early_init */
 

@@ -5099,6 +5099,26 @@ Microsoft keyword __w64.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+static a_boolean is_conv_from_64_bit_integral_to_smaller(
+                                                        a_type_ptr source_type,
+                                                        a_type_ptr dest_type)
+/*
+Return TRUE if source_type is a 64-bit integral type and dest_type is
+an integral type smaller than that.
+*/
+{
+  a_boolean result;
+
+  source_type = skip_typerefs(source_type);
+  dest_type = skip_typerefs(dest_type);
+  result = (is_integral(source_type) &&
+            is_integral(dest_type) &&
+            source_type->size*targ_char_bit == 64 &&
+            dest_type->size*targ_char_bit < 64);
+  return result;
+}  /* is_conv_from_64_bit_integral_to_smaller */
+      
+
 a_boolean impl_conversion_possible(
                           a_type_ptr           source_type,
                           a_boolean            source_is_constant,
@@ -5318,6 +5338,13 @@ See conversion_possible.
     /* Check for potential problems when porting to an ILP64 environment. */
     std_conv->warning_suggested = ec_ilp64_will_narrow;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  } else if (okay && !source_is_constant &&
+             std_conv->warning_suggested == ec_no_error &&
+             is_conv_from_64_bit_integral_to_smaller(source_type, dest_type)) {
+    /* Conversion from a 64-bit integral type to a smaller integral type.
+       Warn because this is a 64-bit porting issue.  This diagnostic is
+       suppressed by default (see cmd_line.c). */
+    std_conv->warning_suggested = ec_impl_narrowing_64_bit_int;
   }  /* if */
 #if DEBUG
   if (debug_level >= 5) {
@@ -5533,9 +5560,11 @@ C++ mode.  See [expr.static.cast].
                                          default_warning_code,
                                          &impl_std_conv) != FALSE;
     if (impl_okay &&
-        impl_std_conv.warning_suggested == ec_no_error) {
+        (impl_std_conv.warning_suggested == ec_no_error ||
+         impl_std_conv.warning_suggested == ec_impl_narrowing_64_bit_int)) {
       /* There is an implicit conversion, and it's not questionable. */
       okay = TRUE;
+      *warning_suggested = impl_std_conv.warning_suggested;
     } else if (!C_mode()) {
       inv_impl_okay = inverse_impl_conversion_possible(
                                                source_type, dest_type,
@@ -5656,6 +5685,11 @@ well as C++ mode.
       /* The destination is not large enough to hold all of the bits
          of the pointer.  Issue a warning. */
       *warning_suggested = ec_pointer_conversion_loses_bits;
+    } else if (dest_of_ptr_cast_big_enough(dest_type, source_type)) {
+      /* The conversion is to a same-sized integral type.  Warn about
+         this as a 64-bit porting issue (but the diagnostic is turned
+         off by default). */
+      *warning_suggested = ec_pointer_conversion_to_same_size_int;
     }  /* if */
   } else if (is_integral_or_enum(source_type) && is_pointer(dest_type)
 #if UPC_EXTENSIONS_ALLOWED
@@ -5817,10 +5851,18 @@ set to TRUE (otherwise it is set to FALSE).
                                       /*allow_qualifier_or_eh_mismatch=*/TRUE,
                                       default_warning_code,
                                       &static_cast_warning_suggested) != FALSE;
+
+    if (static_cast_warning_suggested == ec_impl_narrowing_64_bit_int) {
+      /* Change a message that refers to an implicit conversion to one
+         referring to an explicit conversion. */
+      static_cast_warning_suggested = ec_expl_narrowing_64_bit_int;
+    }  /* if */
     if (static_cast_okay &&
-        static_cast_warning_suggested == ec_no_error) {
+        (static_cast_warning_suggested == ec_no_error ||
+         static_cast_warning_suggested == ec_expl_narrowing_64_bit_int)) {
       /* The conversion can be done as a static_cast, without a warning. */
       okay = TRUE;
+      *warning_suggested = static_cast_warning_suggested;
     } else if (!C_mode() &&
                same_type_with_added_qualifiers(source_type, dest_type,
                                                /*ignore_qualifiers=*/TRUE,

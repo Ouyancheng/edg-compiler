@@ -1420,6 +1420,9 @@ ec_link_scope_requires_external_linkage;;"link scope specifiers can only appear 
 ec_link_scope_relaxation;;"a redeclaration cannot weaken a link scope"
 ec_invalid_link_scope;;"link scope specifier not allowed on this declaration"
 ec_nonstd_qualifier_in_global_scope_decl;;"nonstandard qualified name in global scope declaration"
+ec_impl_narrowing_64_bit_int;;"implicit conversion of a 64-bit integral type to a smaller integral type (potential portability problem)"
+ec_expl_narrowing_64_bit_int;;"explicit conversion of a 64-bit integral type to a smaller integral type (potential portability problem)"
+ec_pointer_conversion_to_same_size_int;;"conversion from pointer to same-sized integral type (potential portability problem)"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
