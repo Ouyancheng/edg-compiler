@@ -4845,8 +4845,6 @@ Initialize a dynamic_init entry of the kind specified.
   dip->lifetime   = NULL;
   dip->prev_in_lifetime = NULL;
   dip->dynamic_inits_unordered_with_respect_to_this_one = NULL;
-  dip->entity.kind = (a_byte_il_entry_kind)iek_none;
-  dip->entity.ptr = NULL;
   dip->init_expr_lifetime = NULL;
   dip->follows_an_exec_statement = FALSE;
   dip->inside_conditional_expression = FALSE;
@@ -7201,11 +7199,11 @@ subscope region.
 
 */
 {
-  an_object_lifetime_ptr   olp;
+  an_object_lifetime_ptr   olp, parent;
 
   olp = alloc_object_lifetime();
   /* Link the new entry into the object lifetime tree. */
-  olp->parent_lifetime = curr_object_lifetime;
+  olp->parent_lifetime = parent = curr_object_lifetime;
   if (olp->entity.kind == (a_byte_il_entry_kind)iek_scope &&
       ((a_scope_ptr)olp->entity.ptr)->kind == (a_scope_kind)sck_function) {
     /* This is an object lifetime for a function scope; its parent pointer
@@ -7213,15 +7211,17 @@ subscope region.
        latter -- because of a memory region incompatibility, olp doesn't
        appear explicitly on the child_lifetime list of its parent . */
     check_assertion(scope_stack[DEPTH_OF_FILE_SCOPE].il_scope ==
-                           (a_scope_ptr)olp->parent_lifetime->entity.ptr);
+                           (a_scope_ptr)parent->entity.ptr);
     /* Don't add the current entry to the parent's list of children, and
        don't update the sibling pointer. */
   } else {
-    check_assertion(in_file_scope(olp) == in_file_scope(olp->parent_lifetime));
+    check_assertion(in_file_scope(olp) == in_file_scope(parent));
     /* If the parent already has a list of children, add the new entry to
        the front of the list. */
-    olp->next = olp->parent_lifetime->child_lifetime;
-    olp->parent_lifetime->child_lifetime = olp;
+    olp->next = parent->child_lifetime;
+    parent->child_lifetime = olp;
+    /* Record the current position in the dynamic inits list of the parent. */
+    olp->parent_dynamic_init = parent->dynamic_inits;
   }  /* if */
   /* Bind the object lifetime and the entity with which it is associated. */
   if (entity_ptr != NULL) {
@@ -7233,6 +7233,12 @@ subscope region.
 
 
 static a_boolean is_useless_object_lifetime(an_object_lifetime_ptr  olp)
+/*
+Return TRUE if the object lifetime entry pointed to by olp is "useless" --
+that is, there is no justification for its remaining in the IL.  For
+the most part, it is useless if it has no dynamic initializations associated
+with it.  Entries associated with scopes must also have no child entries.
+*/
 {
   a_boolean    is_useless = FALSE;
 
@@ -7312,6 +7318,7 @@ void pop_object_lifetime(void)
     child = olp->child_lifetime;
     for (child = olp->child_lifetime; child != NULL; child = child->next) {
       child->parent_lifetime = parent;
+      child->parent_dynamic_init = olp->parent_dynamic_init;
       end_of_child_list = child;
     }  /* for */
     if (!is_implicit_child) {
