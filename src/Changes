@@ -1,5 +1,18 @@
 Version 3.4
 
+1/5/04   Spurious error on reinterpret_cast in template
+
+A spurious error was issued on a reinterpret_cast involving a
+pointer to a template parameter type in modes that parse
+the bodies of template functions, e.g., strict mode.  Now
+fixed.
+
+  void (*call)();
+  template<typename FType>
+  void attempt(FType * p) {
+    reinterpret_cast<FType *>(call);  // Formerly got an error
+  }
+
 1/5/04   Incorrect side effect analysis on dynamic_cast
 
 The determination of whether an expression has side effects was

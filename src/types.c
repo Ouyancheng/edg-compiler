@@ -5497,8 +5497,13 @@ well as C++ mode.
     source_type_pointed_to = skip_typerefs(source_type_pointed_to);
     dest_type_pointed_to = type_pointed_to(dest_type);
     dest_type_pointed_to = skip_typerefs(dest_type_pointed_to);
-    if (is_function(source_type_pointed_to) ==
-        is_function(dest_type_pointed_to)) {
+    if (is_template_param(source_type_pointed_to) ||
+        is_template_param(dest_type_pointed_to)) {
+      /* Cast involving template parameter types, in a prototype
+         instantiation. */
+      okay = TRUE;
+    } else if (is_function(source_type_pointed_to) ==
+               is_function(dest_type_pointed_to)) {
       /* Pointer to function --> pointer to function, or pointer to
          object/incomplete --> pointer to object/incomplete.  Allowed in both
          C and C++. */
