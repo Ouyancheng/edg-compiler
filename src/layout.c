@@ -2339,7 +2339,7 @@ otherwise, the last nonvirtual base should be considered.
       (void)do_alignment(&next_byte, &dummy, lob->alignment);
       if (bcp->offset + bsize == next_byte) {
         a_field_ptr  fp = last_user_field_of(btp);
-        if (fp != NULL && fp->is_bit_field &&
+        if (fp != NULL && fp->is_bit_field && fp->bit_size != 0 &&
             (bsize - fp->offset)*targ_char_bit
                    - fp->offset_bit_remainder - fp->bit_size < targ_char_bit) {
           /* The last base is a bit field, and the last bit of that field is
