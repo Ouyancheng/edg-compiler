@@ -316,6 +316,12 @@ static a_variable_ptr find_existing_id_object_var(char *name)
 If there is an existing id object variable with the given name, return a
 pointer to it.  Otherwise, return NULL.
 */
+#if !ABI_CHANGES_FOR_RTTI
+/*
+Also used, with old versions of the ABI, to find typeinfo variables with
+a given name.
+*/
+#endif /* !ABI_CHANGES_FOR_RTTI */
 {
   a_variable_ptr var;
 
@@ -948,6 +954,28 @@ if and only if the associated virtual function table is defined).
 }  /* define_scope_class_typeinfo_vars */
 
 
+static char *alloc_mangled_typeinfo_name(a_type_ptr type)
+/*
+Allocate a string for the mangled name of the typeinfo variable for the
+indicated type, and return a pointer to the string.  The string is
+allocated in the file-scope IL memory region.
+*/
+{
+  char     *mangled_name;
+  sizeof_t mangled_name_length, alloc_length;
+
+  /* Determine the length of the mangled name. */
+  mangled_name_length = mangled_typeinfo_name(type, (char *)NULL);
+  /* Allocate space for the mangled name, including the final null. */
+  alloc_length = mangled_name_length + 1;
+  mangled_name = alloc_lowered_name_string(alloc_length);
+  /* Build the mangled name. */
+  (void)mangled_typeinfo_name(type, mangled_name);
+  mangled_name[mangled_name_length] = '\0';
+  return mangled_name;
+}  /* alloc_mangled_typeinfo_name */
+
+
 a_variable_ptr make_typeinfo_var(a_type_ptr type)
 /*
 Make a typeinfo variable for the indicated type (if it does not exist
@@ -959,7 +987,6 @@ via the typeid operator (but it contains it).
 {
   a_variable_ptr  typeinfo_var;
   char            *mangled_name;
-  sizeof_t        mangled_name_length, alloc_length;
   a_storage_class storage_class;
   a_boolean       define_now;
 
@@ -1000,32 +1027,41 @@ via the typeid operator (but it contains it).
          cannot handle out-of-order initialization of unnamed static variables,
          and we cannot be sure that the typeinfo variables for base classes
          will be put out before those for derived classes). */
-      /* Determine the length of the mangled name. */
-      mangled_name_length = mangled_typeinfo_name(type, (char *)NULL);
-      /* Allocate space for the mangled name, including the final null. */
-      alloc_length = mangled_name_length + 1;
-      mangled_name = alloc_lowered_name_string(alloc_length);
-      /* Build the mangled name. */
-      (void)mangled_typeinfo_name(type, mangled_name);
-      mangled_name[mangled_name_length] = '\0';
+      mangled_name = alloc_mangled_typeinfo_name(type);
     } else {
       /* Non-class type. */
 #if ABI_CHANGES_FOR_RTTI
       /* typeinfo variables for non-classes are always static. */
       storage_class = (a_storage_class)sc_static;
       define_now = TRUE;
+      /* Static variables need not have names, and in fact we would have
+         problems with duplicate names if typeinfo variables are generated
+         for two copies of the same type within one compilation (e.g., two
+         pointer-to-member-function types). */
+      mangled_name = NULL;
 #else /* !ABI_CHANGES_FOR_RTTI */
       /* Old implementation: */
       /* typeinfo variables for non-classes are always external tentative
          definitions (initialized to NULL/zero by default). */
       storage_class = (a_storage_class)sc_unspecified;
       define_now = FALSE;
+      /* Determine the name for the typeinfo variable.  A name is required
+         because the variable is external. */
+      mangled_name = alloc_mangled_typeinfo_name(type);
+      /* Look for an existing typeinfo variable with this name.  This can
+         happen if typeinfo variables are generated for two copies of the
+         same type within one compilation (e.g., two pointer-to-member
+         function types), and it's important to generate only one variable
+         in those cases. */
+      typeinfo_var = find_existing_id_object_var(mangled_name);
+      if (typeinfo_var != NULL) {
+        /* Remember the variable in the type.  Note that it's okay to
+           have two types pointing to a single typeinfo variable in this
+           case, because the variable is never defined. */
+        type->typeinfo_var = typeinfo_var;
+        goto end_of_routine;
+      }  /* if */
 #endif /* ABI_CHANGES_FOR_RTTI */
-      /* Static variables need not have names, and in fact we would have
-         problems with duplicate names if typeinfo variables are generated
-         for two copies of the same type within one compilation (e.g., two
-         pointer-to-member-function types). */
-      mangled_name = NULL;
     }  /* if */
     typeinfo_var = make_lowered_variable(mangled_name,
                                          /*already_il_name=*/TRUE,
@@ -1047,6 +1083,9 @@ via the typeid operator (but it contains it).
                           /*force_static=*/FALSE);
     }  /* if */
   }  /* if */
+#if !ABI_CHANGES_FOR_RTTI
+end_of_routine:
+#endif /* !ABI_CHANGES_FOR_RTTI */
   return typeinfo_var;
 }  /* make_typeinfo_var */
 
