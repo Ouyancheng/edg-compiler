@@ -673,7 +673,6 @@ might not be able to if the template itself has not yet been defined.
   if (cssp->class_template == NULL) {
     /* If the class_template pointer is NULL, this is expected to be a class
        nested within a class template. */
-    check_assertion(is_class_member);
     template_sym = cssp->corresp_prototype_sym;
   } else {
     template_sym = cssp->class_template;
