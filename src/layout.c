@@ -1210,18 +1210,13 @@ bcp.
 #endif /* CHECKING */
   bcp->pointer_offset_is_set = TRUE;
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
-#if TARG_ALL_POINTERS_SAME_SIZE
-  /* All pointers are the same size. */
-  alignment = (a_targ_alignment)targ_alignof_pointer;
+  size = (a_targ_size_t)targ_sizeof_ptr_to_virtual_base_class;
+  alignment = (a_targ_alignment)targ_alignof_ptr_to_virtual_base_class;
 #if USER_CONTROL_OF_STRUCT_PACKING
   /* Adjust the virtual base class pointer's alignment for packing, if
      required. */
   adjust_alignment_for_packing(&alignment, lob->class_type);
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
-  size = (a_targ_size_t)targ_sizeof_pointer;
-#else /* !TARG_ALL_POINTERS_SAME_SIZE */
- #error pointer_offset_for_virtual_base_class: different sized pointers
-#endif /* TARG_ALL_POINTERS_SAME_SIZE */
   bcp->pointer_offset = set_offset_and_alignment(lob, size, alignment);
 #if DEBUG
   if (debug_level >= 4) {
