@@ -854,7 +854,6 @@ Display the indicated source correspondence entry.
   }  /* if */
 #endif /* ifdef CFE */
   disp_boolean("  referenced", (a_boolean)scp->referenced);
-  disp_unsigned_long("  il_walk_flag", (unsigned long)scp->il_walk_flag);
   if (scp->name != NULL) {
     disp_name("  name_linkage");
     switch ((a_name_linkage_kind)scp->name_linkage) {
@@ -1024,7 +1023,6 @@ Display a_param_type entry.
 {
   disp_ptr("next", (char *)ptr->next, iek_param_type);
   disp_ptr("type", (char *)ptr->type, iek_type);
-  disp_unsigned_long("il_walk_flag", (unsigned long)ptr->il_walk_flag);
 }  /* disp_param_type */
 
 #ifdef CFE
