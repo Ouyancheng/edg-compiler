@@ -5960,13 +5960,10 @@ after_precision:;
           required_type = integer_type((an_integer_kind)ik_unsigned_int);
         }  /* if */
         break;
-      case 'F':
-        /* "F" was added in C99. */
-        if (!c99_mode) goto default_case;
-        /* FALLTHRU */
-      case 'a':
-      case 'A':
+      case 'a':  /* Added in C99. */
+      case 'A':  /* Added in C99. */
       case 'f':
+      case 'F':  /* Added in C99. */
       case 'e':
       case 'E':
       case 'g':
