@@ -33,15 +33,15 @@ extern "C" {
 					   operator new(). */
         void	__dl__FPv(void *);	/* Mangled name for operator delete. */
 
-	char	*_vec_new(char *, int, size_t, a_ptr_to_a_constructor);
-	void 	_vec_delete(char *, int, size_t, a_ptr_to_destructor,
+	char	*__vec_new(char *, int, size_t, a_ptr_to_a_constructor);
+	void 	__vec_delete(char *, int, size_t, a_ptr_to_destructor,
                             int, int);
 }
 
-char *_vec_new(char                         *array_ptr,
-               int                          number_of_elements,
-               size_t                       element_size,
-               a_ptr_to_a_constructor       ctor)
+char *__vec_new(char                         *array_ptr,
+                int                          number_of_elements,
+                size_t                       element_size,
+                a_ptr_to_a_constructor       ctor)
 
 /*
 Allocate storage for an array, then call a constructor for each
@@ -49,7 +49,7 @@ element of the array.  If array_ptr is NULL, allocate the space for an
 array of class objects (with number_of_elements elements each of size
 element_size).  Also remember the size of the array in a
 behind-the-scenes data structure so that it can be recalled at the
-time of the corresponding _vec_delete call.  If array_ptr is non-NULL,
+time of the corresponding vec_delete call.  If array_ptr is non-NULL,
 it points to an already-allocated array.  If ctor is non-NULL, it
 points to a constructor function to be called for each element of the
 array (whether the array is allocated here or pre-allocated).  Return
@@ -105,10 +105,10 @@ elements should be used in a production runtime system.
   }  /* if */
   /* Return the pointer to the array. */
   return array_ptr;
-}  /* _vec_new */
+}  /* __vec_new */
 
 
-void _vec_delete(char                *array_ptr,
+void __vec_delete(char                *array_ptr,
                  int                 number_of_elements,
                  size_t              element_size,
                  a_ptr_to_destructor dtor,
@@ -118,7 +118,7 @@ void _vec_delete(char                *array_ptr,
 Call a destructor for each element of an array, then delete the storage
 for the array.  array_ptr points to the array, which has number_of_elements
 elements each of size element_size.  If number_of_elements is -1, use the
-size stored by _vec_new at the time of allocation of this array.
+size stored by vec_new at the time of allocation of this array.
 If array_ptr is NULL, this routine does nothing and returns.
 If dtor is non-NULL, it points to a destructor function to be called
 for each element of the array.  If delete_flag is TRUE, the storage
@@ -142,7 +142,7 @@ must be -1 for that case.
            prev_ptr = info_ptr, info_ptr = info_ptr->next) {
       }  /* for */
       if (info_ptr == NULL) {
-        /* This array was not allocated by _vec_new, so we do not know the
+        /* This array was not allocated by vec_new, so we do not know the
            size.  Call a function that will abort.  The name should
            be sufficient to identify the nature of the problem to the user. */
 
@@ -181,7 +181,7 @@ must be -1 for that case.
       }  /* if */
     }  /* if */
   }  /* if */
-}  /* _vec_delete */
+}  /* __vec_delete */
 
 
 void _array_pointer_not_from_vec_new()
