@@ -10093,10 +10093,29 @@ that follows.
                the function type to come from a typedef, so too is that an
                error when a function template is being defined. */
             error(ec_function_type_must_come_from_declarator);
-            /* Copy the type entry, since the typedef type may not be
-               shared. */
-            type = copy_routine_type_with_param_types(skip_typerefs(type));
-            sym->variant.routine.ptr->type = type;
+            type = skip_typerefs(type);
+          }  /* if */
+          if (remove_qualifiers_from_param_types) {
+            /* The parameter type top-level cv-qualifiers that appeared on
+               the specialization declaration should be preserved (in
+               preference to those from on the template declaration), since
+               they belong to the definition -- i.e., are used to form the
+               the parameter variable types.  For instance:
+                 template <class T> int f(T);
+                 template<> int f<const int>(int x) {
+                   return ++x;        // no error
+                 }
+               Go through the param-type lists of the two routine types and
+               update the type generated from the template with qualifiers
+               from the type as actually declared. */
+            a_param_type_ptr  ptp, decl_ptp;
+
+            for (ptp = rp->type->variant.routine.extra_info->param_type_list,
+                 decl_ptp = type->variant.routine.extra_info->param_type_list;
+                 ptp != NULL && decl_ptp != NULL;
+                 ptp = ptp->next, decl_ptp = decl_ptp->next) {
+              ptp->qualifiers = decl_ptp->qualifiers;
+            }  /* if */
           }  /* if */
           /* Scan the function body. */
           if (decl_state->is_member_decl) {

@@ -580,9 +580,13 @@ a new symbol is created and entered in the symbol table.
     /* For template functions being instantiated the type pointed to by the
        param-id may include a template parameter, so use the type in
        param-type entry, which will be the result of the template arg
-       substitution.  But copy top-level type qualifiers from the param-id
-       type, since they will have been removed from the param-type type. */
-    tp = make_identically_qualified_type(ptp->type, param_id->type);
+       substitution. */
+    tp = ptp->type;
+    if (remove_qualifiers_from_param_types) {
+      /* If top-level qualifiers were stripped off the param-type type,
+         restore them in the parameter variable's type. */
+      tp = make_qualified_type(tp, ptp->qualifiers);
+    }  /* if */
   } else {
     /* In cases other than template instantiations, use the param-id type,
        since it will be the one actually used in the function definition,
@@ -593,6 +597,12 @@ a new symbol is created and entered in the symbol table.
        In the second declaration the param-id type is int[], but the composite
        type produced for the routine's interface is int[3]. */
     tp = param_id->type;
+    if (remove_qualifiers_from_param_types) {
+      /* A top-level type qualifier may have been stripped off.  The type
+         qualifier has been recorded in the param type entry; it should
+         correspond to the parameter variable's type qualifier. */
+      check_assertion(ptp->qualifiers == get_type_qualifiers(param_id->type));
+    }  /* if */
   }  /* if */
   complete_type_is_needed(tp);
   if (is_incomplete_type(tp)) {
@@ -656,16 +666,6 @@ a new symbol is created and entered in the symbol table.
     }  /* if */
 #endif /* DEBUG */
   }  /* if */
-#if CHECKING
-  if (remove_qualifiers_from_param_types) {
-    /* A top-level type qualifier may have been stripped off.  The type
-       qualifier has been recorded in the param type entry; make sure it
-       corresponds to the parameter variable's type qualifier. */
-    if (!function_instantiation) {
-      check_assertion(ptp->qualifiers == get_type_qualifiers(param_id->type));
-    }  /* if */
-  }  /* if */
-#endif /* CHECKING */
   db_exit();
 }  /* decl_parameter */
 
