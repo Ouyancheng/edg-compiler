@@ -1,5 +1,13 @@
 Version 2.42
 
+8/2/99   Host FLT_MAX with form ((float)3.40282347e+38)
+
+One some systems, FLT_MAX is defined with a cast to float.  The code
+in float_pt.c that converts FLT_MAX is now capable of dealing with that
+form.  Note that this relates to the host definition of FLT_MAX as seen
+while compiling the C source of the front end itself, which might be
+different than the definition used when compiling user source code.
+
 8/2/99   Abort on pointer-to-member constant when operator& is declared
 
 An abort on a pointer-to-member constant of a type that has a user-declared

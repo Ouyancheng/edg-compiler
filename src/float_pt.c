@@ -183,20 +183,33 @@ conversion can be done, return the result in "result".
      FLT_MAX will yield, so it's the right value to use for the overflow
      comparison.  float_flt_max is that value converted to float. */
   if (!init_done) {
-    init_done = TRUE;
     /* Macros to turn FLT_MAX into a string: */
 #define str2_flt_max(x) #x
 #define str1_flt_max(x) str2_flt_max(x)
-#if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
-    host_fp_flt_max = str_to_long_double(str1_flt_max(FLT_MAX));
-#else /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
-    host_fp_flt_max = strtod_interface(str1_flt_max(FLT_MAX));
-#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+    char buf_flt_max[] = str1_flt_max(FLT_MAX);
+    char *str_flt_max = buf_flt_max;
 #undef str2_flt_max
 #undef str1_flt_max
+    if (strncmp(str_flt_max, "((float)", 8) == 0) {
+      /* Some systems, e.g., HP-UX, define FLT_MAX with a cast, e.g.,
+         "((float)3.40282347e+38)".  strtod cannot deal with the
+         parentheses or the cast, so skip past them. */
+      char *tmp;
+      str_flt_max += 8;
+      tmp = strchr(str_flt_max, ')');
+      check_assertion_str(tmp != NULL && tmp[1] == '\0' &&
+                          isdigit((unsigned char)str_flt_max[0]),
+                          "conv_host_fp_to_float: bad FLT_MAX definition");
+    }  /* if */
+#if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+    host_fp_flt_max = str_to_long_double(str_flt_max);
+#else /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+    host_fp_flt_max = strtod_interface(str_flt_max);
+#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
     check_assertion_str2(errno == 0, "conv_host_fp_to_float:",
                          "error on conversion of FLT_MAX");
     float_flt_max = (float)host_fp_flt_max;
+    init_done = TRUE;
   }  /* if */
   if ((temp >= 0.0) ? temp > host_fp_flt_max : temp < -host_fp_flt_max) {
     float float_temp = (float)temp;
