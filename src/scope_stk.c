@@ -1392,13 +1392,16 @@ specified after the point of definition of the template.
       if (set_value &&
           ssep->kind != (a_scope_kind)sck_block &&
           ssep->kind != (a_scope_kind)sck_function &&
-          effective_decl_seq != NO_DECL_SEQUENCE_NUMBER &&
-          (audp->effective_decl_seq > effective_decl_seq)) {
+          (!gpp_dependent_name_lookup &&
+           (effective_decl_seq != NO_DECL_SEQUENCE_NUMBER &&
+           (audp->effective_decl_seq > effective_decl_seq)))) {
         /* This using-directive became effective after the point that the
            using-directive appeared.  Ignore this using-directive.  This
            test is ignored for block scope using directives, because any
            ones that are on the list are visible, and the declaration sequence
-           number test will fail for these declarations. */
+           number test will fail for these declarations.  In
+           gpp_dependent_name_lookup mode, the using-directive is made active,
+           but certain symbols are ignored later. */
         continue;
       }  /* if */
       new_depth = set_value 
@@ -1409,11 +1412,12 @@ specified after the point of definition of the template.
 #if DEBUG
       if (db_flag_is_set("using_dir")) {
         fprintf(f_debug,
-                "%s using-dir at depth %d for namespace %s applies at %d\n",
+                "%s using-dir at depth %d for namespace %s applies at %d",
                 set_value ? "setting" : "clearing",
                 (int)scope_depth_of(ssep),
                 nssp->namespace_list_entry->ptr->source_corresp.name,
                 (int)new_depth);
+        fprintf(f_debug, ", decl_seq %ld\n", effective_decl_seq);
       }  /* if */
 #endif /* DEBUG */
       /* Record the scope depth of the innermost active using directive for
@@ -1422,6 +1426,13 @@ specified after the point of definition of the template.
       if (set_value) {
         if (curr_depth > nssp->depth_innermost_active_using_directive) {
           nssp->depth_innermost_active_using_directive = curr_depth;
+        }  /* if */
+        /* Record the lowest declaration sequence number associated with
+           this using-directive.  This is used to emulate the instantiation
+           lookup used by g++. */
+        if (nssp->using_dir_decl_seq == NO_DECL_SEQUENCE_NUMBER ||
+            audp->effective_decl_seq < nssp->using_dir_decl_seq) {
+          nssp->using_dir_decl_seq = audp->effective_decl_seq;
         }  /* if */
         /* Set the flag in the scope entry for which this using directive
            applies. */
@@ -3304,7 +3315,7 @@ is pushed here, and popped when the instantiation scope is popped.
     { a_decl_sequence_number	decl_seq;
       /* Set the active using flags for the newly created context. */
       decl_seq = decl_info->decl_seq;
-      if (!do_dependent_name_processing &&
+      if (!do_dependent_name_processing && !gpp_dependent_name_lookup &&
           (assoc_routine != NULL || assoc_type != NULL)) {
         /* When not doing dependent name lookup, all using-directives are
            considered (not just the ones that should be visible), except

@@ -2159,6 +2159,11 @@ typedef struct a_namespace_symbol_supplement {
 			   class symbol supplement can point to a common
 			   entry for all of the leaf classes (i.e., most
 			   base classes) in a given namespace. */
+  a_decl_sequence_number
+		using_dir_decl_seq;
+			/* The lowest declaration sequence number of any active
+			   using-directives that name this namespace.  This is
+			   used by g++ instantiation lookup emulation. */
 #if GNU_EXTENSIONS_ALLOWED
   a_namespace_list_entry_ptr
 		strong_using_directives;

@@ -1698,6 +1698,13 @@ typedef struct a_lookup_state {
 			   lookup position.  Symbols declared after this
 			   position are ignored.  Zero if the declaration
 			   sequence number should not be checked. */
+  a_decl_sequence_number
+		using_dir_decl_seq;
+			/* The declaration sequence number of the effective
+			   lookup position to be used when doing a
+			   using-directive lookup.  Symbols declared after this
+			   position are ignored.  This used used when doing
+			   g++ lookup emulation. */
    a_boolean	check_decl_seq;
 			/* Flag that is TRUE if the decl_seq field should be
 			   compared with the corresponding value for each
@@ -1750,6 +1757,7 @@ value.
   cleared_lookup_state.options                       = IDL_NO_OPTIONS;
   cleared_lookup_state.required_name_space_kind      = nsk_other;
   cleared_lookup_state.decl_seq                      = 0;
+  cleared_lookup_state.using_dir_decl_seq            = NO_DECL_SEQUENCE_NUMBER;
   cleared_lookup_state.check_decl_seq                = 0;
 }  /* init_cleared_lookup_state */
 
@@ -1854,6 +1862,8 @@ of the lookup is returned to the caller.
     a_symbol_ptr		fund_sym;
     a_scope_depth		ns_depth;
     a_boolean			any_errors = FALSE;
+    a_namespace_symbol_supplement_ptr
+				nssp;
     /* Ignore symbols that are not namespace members. */
     if (new_sym->is_class_member) continue;
     nsp = new_sym->parent.namespace_ptr;
@@ -1869,9 +1879,18 @@ of the lookup is returned to the caller.
        depth for this namespace matches the scope pointed to by ssep. */
     nsp = skip_namespace_aliases(nsp);
     ns_sym = (a_symbol_ptr)nsp->source_corresp.assoc_info;
-    ns_depth = ns_sym->variant.namespace_info.extra_info->
-                                 scope_depth_at_which_using_directive_applies;
-    if (&scope_stack[ns_depth] == ssep) {
+    nssp = ns_sym->variant.namespace_info.extra_info;
+    ns_depth = nssp->scope_depth_at_which_using_directive_applies;
+    /* In normal mode, only the scope stack test is needed.  When doing g++
+       dependent name lookup, all function symbols are visible (regardless of
+       declaration sequence number) but non-function symbols are visible only
+       if the using-directive was visible at the point of definition of the
+       template. */
+    if (&scope_stack[ns_depth] == ssep &&
+        (!gpp_dependent_name_lookup ||
+         (is_function_or_template_symbol(new_sym) ||
+          (nssp->using_dir_decl_seq <= lookup_state->using_dir_decl_seq ||
+           lookup_state->using_dir_decl_seq == NO_DECL_SEQUENCE_NUMBER)))) {
       if (synth_sym == NULL) {
         /* Look for a previous synthesized namespace projection symbol
            for this scope. */
@@ -2770,6 +2789,11 @@ that do normal id lookup processing.
     fprintf(f_debug, "common=%d\n", common_depth);
   }  /* if */
 #endif /* DEBUG */
+  if (gpp_dependent_name_lookup) {
+    /* f_get_effective_decl_seq is used to force the declaration sequence
+       to be fetched even when not doing dependent name processing. */
+    lookup_state->using_dir_decl_seq = f_get_effective_decl_seq();
+  }  /* if */
   if (do_dependent_name_processing) {
     /* Only consider names visible at the point at which the template was
        defined. */
