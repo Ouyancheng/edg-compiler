@@ -2096,6 +2096,8 @@ calls this routine after it has discarded the troublesome lvalue cases).
   }  /* if */
   if (!need_temp) {
     /* A straight copy will work. */
+    /* Note that this expression will not have temporaries or object lifetimes
+       in it since it has no side effects. */
     expr_copy = copy_expr_tree(expr);
   } else {
     /* Change the original expression to assign the value to a temporary. */
@@ -6081,7 +6083,14 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
       lower_throw(expr);
       break;
     case enk_object_lifetime:
-      lower_expr(expr->variant.object_lifetime.expr, is_lvalue);
+      /* Set curr_object_lifetime for the lowering of the subexpression, then
+         restore it later. */
+      { an_object_lifetime_ptr saved_curr_object_lifetime =
+                                                          curr_object_lifetime;
+        curr_object_lifetime = expr->variant.object_lifetime.ptr;
+        lower_expr(expr->variant.object_lifetime.expr, is_lvalue);
+        curr_object_lifetime = saved_curr_object_lifetime;
+      }
       if (!keep_object_lifetime_info_in_lowered_il) {
         /* Not keeping object lifetime information, so eliminate this node. */
         unbind_object_lifetime(expr->variant.object_lifetime.ptr);
@@ -6770,6 +6779,9 @@ Do IL lowering of the indicated statement and everything under it.
   a_cleanup_action_ptr cap;
   a_dynamic_init_ptr   dip;
   a_source_position    saved_error_position, saved_code_pos;
+  a_block_ptr          block;
+  an_object_lifetime_ptr
+                       saved_curr_object_lifetime, lifetime;
 
   if (statement != NULL) {
     /* Track the source position. */
@@ -6822,6 +6834,8 @@ Do IL lowering of the indicated statement and everything under it.
           set_insert_location(statement, &insert_location);
           set_eh_curr_region(curr_context, &insert_location);
         }  /* if */
+        lifetime = statement->variant.label.ptr->lifetime_following_label;
+        if (lifetime != NULL) curr_object_lifetime = lifetime;
         break;
       case stmk_return:
         return_expr = statement->expr;
@@ -6951,10 +6965,19 @@ Do IL lowering of the indicated statement and everything under it.
            Note that the same test ensures that no push is done here for the
            topmost block in a function (it has a NULL assoc_scope); the
            push_context has already been done in lower_scope for that case. */
-        scope = statement->variant.block.extra_info->assoc_scope;
+        block = statement->variant.block.extra_info;
+        scope = block->assoc_scope;
         /* Save the statement list pointer early in case code is inserted
            to initialize the catch handler parameter. */
         statement_list = statement->variant.block.statements;
+        /* If the block has an associated object lifetime, make it the
+           current one. */
+        lifetime = block->lifetime;
+        if (lifetime == NULL && scope != NULL) lifetime = scope->lifetime;
+        if (lifetime != NULL) {
+          saved_curr_object_lifetime = curr_object_lifetime;
+          curr_object_lifetime = lifetime;
+        }  /* if */
         if (scope != NULL) {
           push_context(&context, scope, /*subscope_region=*/FALSE);
           if (scope->variant.assoc_handler != NULL) {
@@ -6975,6 +6998,10 @@ Do IL lowering of the indicated statement and everything under it.
         }  /* if */
         /* Generate any cleanup actions and pop the context. */
         if (scope != NULL) pop_block_scope_context(last_statement);
+        /* Restore the previous object lifetime context if one was pushed. */
+        if (lifetime != NULL) {
+          curr_object_lifetime = saved_curr_object_lifetime;
+        }  /* if */
         break;
       case stmk_switch:
         lower_full_expr(statement->expr, /*is_condition_expr=*/TRUE,
@@ -6982,11 +7009,21 @@ Do IL lowering of the indicated statement and everything under it.
         /* If there is a body statement and it has a scope, push it as
            context around the processing of the switch clauses. */
         scope = NULL;
+        lifetime = NULL;
         body_statement = statement->variant.switch_stmt.body_statement;
         if (body_statement != NULL &&
             body_statement->kind == (a_statement_kind)stmk_block) {
-          /* The body statement is a block with an associated scope. */
-          scope = body_statement->variant.block.extra_info->assoc_scope;
+          /* The body statement is a block. */
+          block = body_statement->variant.block.extra_info;
+          scope = block->assoc_scope;
+          /* If the block has an associated object lifetime, make it the
+             current one. */
+          lifetime = block->lifetime;
+          if (lifetime == NULL && scope != NULL) lifetime = scope->lifetime;
+          if (lifetime != NULL) {
+            saved_curr_object_lifetime = curr_object_lifetime;
+            curr_object_lifetime = lifetime;
+          }  /* if */
         }  /* if */
         if (scope != NULL) {
           push_context(&context, scope, /*subscope_region=*/FALSE);
@@ -7002,6 +7039,10 @@ Do IL lowering of the indicated statement and everything under it.
           lower_statement(body_statement);
           lower_switch_clause_list(statement->variant.switch_stmt.clause_list,
                                    (a_context_ptr)NULL);
+        }  /* if */
+        /* Restore the previous object lifetime context if one was pushed. */
+        if (lifetime != NULL) {
+          curr_object_lifetime = saved_curr_object_lifetime;
         }  /* if */
         break;
       case stmk_init:
@@ -7817,8 +7858,13 @@ Do IL lowering of the indicated scope and everything under it.
   a_routine_type_supplement_ptr
                    rtsp;
   a_scope_kind     scope_kind = scope->kind;
+  an_object_lifetime_ptr
+                   lifetime, saved_curr_object_lifetime = curr_object_lifetime;
 
   db_enter(2, "lower_scope");
+  /* If the scope has an associated lifetime, make it the current one. */
+  lifetime = scope->lifetime;
+  if (lifetime != NULL) curr_object_lifetime = lifetime;
   /* Add a context entry for the scope, but not for the file scope (the caller
      has done that already). */
   if (scope_kind != (a_scope_kind)sck_file) {
@@ -8015,6 +8061,7 @@ Do IL lowering of the indicated scope and everything under it.
     return_value_pointer_variable = NULL;
   }  /* if */
   if (scope_kind != (a_scope_kind)sck_file) pop_context();
+  if (lifetime != NULL) curr_object_lifetime = saved_curr_object_lifetime;
   db_exit();
 }  /* lower_scope */
 
@@ -8137,6 +8184,9 @@ C++ to C, so that a C back end can handle it without change.
 {
   a_scope_ptr scope;
   a_context   context;
+  /* Save/restore curr_object_lifetime in this routine. */
+  an_object_lifetime_ptr
+              saved_curr_object_lifetime = curr_object_lifetime;
 
   db_enter(1, "lower_il_memory_region");
   /* The lowering is only needed if the source language is C++, if the
@@ -8151,6 +8201,7 @@ C++ to C, so that a C back end can handle it without change.
     curr_context = nearest_function_context = file_scope_context = NULL;
     nearest_function_scope = NULL;
     nearest_this_param_variable = NULL;
+    curr_object_lifetime = il_header.primary_scope->lifetime;
     switch_il_region(region_number);
     /* Mark entries created during this traversal as having already been
        visited by IL lowering. */
@@ -8208,6 +8259,7 @@ C++ to C, so that a C back end can handle it without change.
     pop_context();
     initial_value_for_il_lowering_flag = !initial_value_for_il_lowering_flag;
   }  /* if */
+  curr_object_lifetime = saved_curr_object_lifetime;
   db_exit();
 }  /* lower_il_memory_region */
 

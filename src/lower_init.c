@@ -1487,6 +1487,41 @@ A pointer to the expression created is returned.
 }  /* make_vec_cctor_call */
 
 
+/*
+IL lowering is fabricating a routine that didn't exist in the source program.
+Push appropriate context for the generation.  scope is the function scope
+for the routine; region number is the memory region number for the routine.
+The calling routine must also provide local variables
+  context
+  region_to_switch_back_to
+  saved_curr_object_lifetime
+  saved_depth_innermost_function_scope
+*/
+#define push_generated_routine_context(scope, region_number)          \
+{ region_to_switch_back_to = curr_il_region_number;                   \
+  switch_il_region(region_number);                                    \
+  saved_depth_innermost_function_scope = depth_innermost_function_scope; \
+  depth_innermost_function_scope = NO_SCOPE_DEPTH;                    \
+  saved_curr_object_lifetime = curr_object_lifetime;                  \
+  curr_object_lifetime = il_header.primary_scope->lifetime;           \
+  push_object_lifetime(iek_scope, (char *)(scope), olk_local);        \
+  push_context(&context, (scope), /*subscope_region=*/FALSE);         \
+}  /* push_generated_routine_context */
+
+
+/*
+Pop macro corresponding to push_generated_routine_context.
+*/
+#define pop_generated_routine_context(region_number)                  \
+{ pop_context();                                                      \
+  pop_object_lifetime();                                              \
+  curr_object_lifetime = saved_curr_object_lifetime;                  \
+  depth_innermost_function_scope = saved_depth_innermost_function_scope; \
+  done_with_memory_region(region_number);                             \
+  switch_il_region(region_to_switch_back_to);                         \
+}  /* pop_generated_routine_context */
+
+
 static a_routine_ptr default_version_of_routine(
                                              a_routine_ptr    routine,
                                              an_expr_node_ptr default_arg_list)
@@ -1505,7 +1540,7 @@ The routine must have a "this" parameter.
 */
 {
   a_memory_region_number
-                   region_to_switch_back_to = curr_il_region_number;
+                   region_to_switch_back_to;
   an_expr_node_ptr implied_arg_list = NULL, end_implied_arg_list = NULL;
   an_expr_node_ptr call_node;
   a_routine_ptr    new_routine;
@@ -1523,6 +1558,9 @@ The routine must have a "this" parameter.
   an_expr_node_ptr this_arg, pass_through_arg;
   a_statement_ptr  call_stmt, return_stmt;
   a_context        context;
+  an_object_lifetime_ptr
+                   saved_curr_object_lifetime;
+  a_scope_depth    saved_depth_innermost_function_scope;
 
   /* Determine any implicit arguments required for a constructor or
      destructor. */
@@ -1567,8 +1605,7 @@ The routine must have a "this" parameter.
     new_routine_scope = make_routine_definition(new_routine,
                                                 /*make_return=*/FALSE,
                                                 &new_routine_il_region);
-    switch_il_region(new_routine_il_region);
-    push_context(&context, new_routine_scope, /*subscope_region=*/FALSE);
+    push_generated_routine_context(new_routine_scope, new_routine_il_region);
     /* Make a parameter variable for the "this" parameter (again, in lowered
        form as a normal parameter). */
     new_routine_scope->variant.routine.parameters = this_param_var =
@@ -1653,9 +1690,7 @@ The routine must have a "this" parameter.
     return_stmt = alloc_statement((a_statement_kind)stmk_return);
     return_stmt->expr = call_node;
     insert_statement(return_stmt, &insert_location);
-    pop_context();
-    done_with_memory_region(new_routine_il_region);
-    switch_il_region(region_to_switch_back_to);
+    pop_generated_routine_context(new_routine_il_region);
     routine = new_routine;
   }  /* if */
   return routine;
@@ -2628,28 +2663,25 @@ in *cap (a destruction).
   a_scope_ptr            scope;
   an_insert_location     insert_location;
   a_memory_region_number region_number;
-  a_memory_region_number region_to_switch_back_to = curr_il_region_number;
+  a_memory_region_number region_to_switch_back_to;
   a_context              context;
-  a_routine_ptr          routine;
   /* The return_memo_list is saved and restored because we may be inside
      a routine. */
   a_return_memo_ptr      saved_return_memo_list = return_memo_list;
+  an_object_lifetime_ptr saved_curr_object_lifetime;
+  a_scope_depth          saved_depth_innermost_function_scope;
 
   /* Create a routine. */
   scope = file_scope_term_insert_location(&insert_location, &region_number);
-  routine = scope->variant.routine.ptr;
-  switch_il_region(region_number);
-  push_context(&context, scope, /*subscope_region=*/FALSE);
+  push_generated_routine_context(scope, region_number);
   /* Generate the code for the destruction. */
   gen_one_cleanup_action(cap, &insert_location);
   /* Mark the variable as referenced from another function. */
   cap->variant.object.init_pos_descr.variable->referenced_non_locally = TRUE;
   free_return_memo_list(return_memo_list);
   return_memo_list = saved_return_memo_list;
-  pop_context();
-  done_with_memory_region(region_number);
-  switch_il_region(region_to_switch_back_to);
-  return routine;
+  pop_generated_routine_context(region_number);
+  return scope->variant.routine.ptr;
 }  /* make_destruction_routine */
 
 
@@ -2830,6 +2862,9 @@ be kept, FALSE if it should be deleted.
                      lsvip = NULL;
   an_insert_location insert_location2;
   an_insert_location *eff_insert_location = insert_location;
+  an_object_lifetime_ptr
+                     lifetime = dip->init_expr_lifetime,
+                     saved_curr_object_lifetime = curr_object_lifetime;
 
   *keep_dynamic_init = FALSE;
   saved_code_pos = code_pos_for_lowering;
@@ -2861,9 +2896,11 @@ be kept, FALSE if it should be deleted.
   /* Initializations of static variables (whether global or function-local)
      require some special processing. */
   static_var_init = init_pos_is_static(ipdp);
-  if (keep_object_lifetime_info_in_lowered_il) {
-    an_object_lifetime_ptr lifetime = dip->init_expr_lifetime;
-    if (lifetime != NULL) {
+  if (lifetime != NULL) {
+    /* The dynamic init defines a lifetime that surrounds the initialization.
+       Make it the current object lifetime (and restore the old one later). */
+    curr_object_lifetime = lifetime;
+    if (keep_object_lifetime_info_in_lowered_il) {
       a_statement_ptr block_stmt;
       /* This dynamic initialization entry defines an object lifetime that
          surrounds the initialization.  The dynamic init entry will be
@@ -3184,6 +3221,9 @@ do_assignment:;
       }  /* if */
     }  /* if */
   }  /* if */
+  /* If the dynamic init defines a lifetime that surrounds the initialization,
+     pop that lifetime off the object lifetime stack. */
+  if (lifetime != NULL) curr_object_lifetime = saved_curr_object_lifetime;
   if (!*keep_dynamic_init) {
     /* Clear the initialization part of the dynamic init now that it has
        been rewritten.  This is important because the dynamic init may
@@ -5198,14 +5238,18 @@ Do lowering on the file-scope dynamic initializations list.
   a_context          context;
   a_memory_region_number
                      region_number;
+  an_object_lifetime_ptr
+                     saved_curr_object_lifetime;
+  a_memory_region_number
+                     region_to_switch_back_to;
+  a_scope_depth      saved_depth_innermost_function_scope;
 
   dip = file_scope->dynamic_inits;
   if (dip != NULL) {
     /* There are some file-scope dynamic initializations.  Generate a routine
        containing them. */
     scope = file_scope_init_insert_location(&insert_location, &region_number);
-    switch_il_region(region_number);
-    push_context(&context, scope, /*subscope_region=*/FALSE);
+    push_generated_routine_context(scope, region_number);
     if (exceptions_enabled) {
       /* Initialize for exception handling lowering. */
       eh_function_lower_init();
@@ -5261,15 +5305,13 @@ Do lowering on the file-scope dynamic initializations list.
     }  /* if */
     /* Free any return memos that were not used. */
     free_return_memo_list(return_memo_list);
-    processing_file_scope_init_routine = FALSE;
-    pop_context();
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
     /* Make orphan lists for any local types or static variables in the
-       routine or any of its blocks. */
+       routine. */
     add_scope_orphaned_il_lists(scope);
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
-    done_with_memory_region(region_number);
-    switch_il_region(FILE_SCOPE_REGION_NUMBER);
+    processing_file_scope_init_routine = FALSE;
+    pop_generated_routine_context(region_number);
     file_scope->dynamic_inits = NULL;
   }  /* if */
 }  /* lower_file_scope_dynamic_inits */
