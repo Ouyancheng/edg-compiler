@@ -939,7 +939,7 @@ processed further.
     while (*pos == ' ') pos++;
     /* Get the type code. */
     *type = *pos++;
-    if (!isalpha(*type)) pl_invalid_input();
+    if (!isalpha((unsigned char)(*type))) pl_invalid_input();
     /* Look for blank after type. */
     if (*pos++ != ' ') pl_invalid_input();
     /* Skip passed extra underscore at the start of every symbol if an
