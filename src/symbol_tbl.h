@@ -2514,6 +2514,16 @@ extern void determine_operator_lookup_namespaces(a_type_ptr	class_type);
   (is_template_class_symbol((sym)) &&					\
    !(sym)->variant.class_struct_union.extra_info->is_specific_template_def)
 
+/* Return TRUE if the symbol is a template class symbol for a class template
+   instance or a class nested within a class template. */
+#define is_template_instance_class_symbol(sym)				\
+  ((sym)->variant.class_struct_union.extra_info->is_instance)
+
+/* Return TRUE if the symbol is a specific definition of a class template
+   instance or a class nested within a class template. */
+#define is_template_instance_specific_def_symbol(sym)			\
+  ((sym)->variant.class_struct_union.extra_info->is_specific_template_def)
+
 /* Return TRUE if the symbol is a class template symbol. */
 #define is_class_template_symbol(sym)					\
   ((sym)->kind == (a_symbol_kind)sk_class_template)

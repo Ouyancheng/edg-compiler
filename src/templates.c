@@ -7229,10 +7229,12 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
   } else if (curr_token == end_of_statement_token &&
              (dso_flags & DSO_ELABORATED_TYPE_SPECIFIER)) {
     /* The argument is something like class A<int> -- instantiate all the
-       members of the class. */
+       members of the class.  Note that this also permits the class to
+       be a nested class within a template class. */
     sym = (a_symbol_ptr)type->source_corresp.assoc_info;
     check_assertion(sym != NULL);
-    if (is_template_class_and_not_specific_def_symbol(sym)) {
+    if (is_template_instance_class_symbol(sym) &&
+        !is_template_instance_specific_def_symbol(sym)) {
       /* Process all member functions and static data members. */
       update_instantiation_flags_for_class(sym, kind, start_pos, is_pragma,
                                            /*top_level=*/TRUE);
@@ -7439,8 +7441,11 @@ assumed if the return type is omitted.
         /* Not a currently defined symbol. */
         pos_error(ec_invalid_instantiation_argument, &start_pos);
         err = TRUE;
-      } else if (is_template_class_and_not_specific_def_symbol(sym)) {
-         /* Process all member functions and static data members. */
+      } else if (is_template_instance_class_symbol(sym) &&
+                 !is_template_instance_specific_def_symbol(sym)) {
+        /* Process all member functions and static data members.  This
+           kind of directive accepts a template class instance or a
+           class nested within a template class. */
 	update_instantiation_flags_for_class(sym, pragma_kind, &start_pos,
                                              /*is_pragma=*/TRUE,
                                              /*top_level=*/TRUE);

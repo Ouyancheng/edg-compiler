@@ -1,6 +1,20 @@
 Version 2.31
 
-1/9/95    Support for #pragma pack() fixed
+1/9/96    Nested class names in instantiation directives
+
+The name of a class nested within a class template may now be used as the
+argument of an explicit instantiation directive or an instantiation
+pragma.  This causes all of the members of the class to be instantiated.
+Formerly, only the name of the outermost class could be used.
+
+  template <class T> struct A {
+    class B { void f(); };
+  };
+  template <class T> void A<T>::B::f(){int i;}
+  template class A<int>::B;  // Now permitted
+  #pragma instantiate A<int>::B  // Now permitted
+
+1/9/96    Support for #pragma pack() fixed
 
 When USER_CONTROL_OF_STRUCT_PACKING is TRUE, the use of the pack pragma
 with no arguments once again causes the packing alignment to revert to the
