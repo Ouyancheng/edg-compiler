@@ -476,12 +476,8 @@ typedef struct a_source_sequence_entry {
 
 /*
 A "source sequence secondary declaration entry" is pointed to from the
-source sequence list when there is more than one declaration of a given
-entity.  This entry identifies a declaration that is not the "primary"
-declaration of an entity.  For example, a forward declaration of a function
-or a class is a "secondary declaration" when it is followed by a definition.
-Also, a declaration of a member within the class definition is "primary",
-whereas a subsequent definition outside the class definition is "secondary".
+source sequence list to identify a declaration that is not a "primary"
+declaration -- e.g., a function declaration that is not a definition.
 */
 typedef struct a_src_seq_secondary_decl *a_src_seq_secondary_decl_ptr;
 typedef struct a_src_seq_secondary_decl {
@@ -495,6 +491,12 @@ typedef struct a_src_seq_secondary_decl {
 			/* Entry identifying the kind of entity (type,
 			   function, static data member, etc.) for which this
 			   is the secondary declaration. */
+  a_type_ptr	entity_type;
+			/* The type of the entity, as specified in the
+			   declaration referred to by this entry; typically,
+			   it is the same as the type of the variable or
+			   routine to which this entry corresponds, but it
+			   needn't be. */
   a_byte_boolean
 		autonomous_tag_decl;
 			/* If entity refers to a type entry representing a
