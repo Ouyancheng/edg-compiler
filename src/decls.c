@@ -985,7 +985,7 @@ type is legal.
              routine type pointed to by "T".  What we need is not to add
              something to *bottom_derived_type (as in other cases) but rather
              to change it from a "pointer-to-???" type to a "ptr-to-member"
-             type pointing the the class and routine type. */
+             type pointing the class and routine type. */
           tp = ptr_to_member_type(rout_type, class_type);
           copy_type(tp, *bottom_derived_type);
           /* Change new_type_ptr and tkind to make it seem as if this were
@@ -1884,11 +1884,13 @@ scope is that of a class definition.
      is mainly useful for managing param_id entries properly. */
   if (func_info == NULL) func_info = &local_func_info_block;
   clear_func_info(func_info);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
   if (locator != NULL && !is_error_locator(*locator) &&
       func_info != &local_func_info_block) {
-    (void)set_decl_sequence_info(&func_info->decl_seq_info,
-                                 (an_il_entry_kind)iek_routine);
+    func_info->decl_seq_info.source_sequence_entry =
+                                     add_source_sequence_entry_for_routine();
   }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   last_param_id = NULL;
   *new_type_ptr = alloc_type((a_type_kind)tk_routine);
   extra_info = (*new_type_ptr)->variant.routine.extra_info;
@@ -8379,10 +8381,10 @@ and for the instantiation of template functions.
     }  /* for */
     if (!is_instantiation) {
       /* Parameter symbols that were created in the prototype scope (and then
-         removed in pop_scope) have to be reentered in the function scope; they
-         will be transformed into variable symbols.  Also, in C mode, types
-         that were defined in the prototype scope need to reactivated now so
-         that they will be available in the current scope. */
+         removed in pop_scope) have to be reentered in the function scope;
+         they will be transformed into variable symbols.  Also, in C mode,
+         types that were defined in the prototype scope are reactivated now
+         so that they will be available in the current scope. */
       if (func_info->prototype_scope_symbols != NULL) {
         a_symbol_ptr  sym = func_info->prototype_scope_symbols;
         for (; sym != NULL; sym = sym->next_in_scope) {
@@ -8513,7 +8515,7 @@ function symbol; rout_type is the type for the function (which, in C++,
 can be qualified -- hence the use of local variable unqualified_rout_type
 where appropriate in this routine); *func_info contains information about
 parameters, as well as field function_type_from_typedef (when it is FALSE,
-the the function type came from the declarator; when it is TRUE an error is
+the function type came from the declarator; when it is TRUE an error is
 reported); storage_class is the storage class from the specifiers list; and
 has_explicit_type_specifier is TRUE if the type of the function was explicitly
 specified (rather than defaulted to "int").
