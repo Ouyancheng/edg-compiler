@@ -1,5 +1,17 @@
 Version 3.4
 
+8/20/03  Lowering of conversion of pointer-to-member to bool
+
+An internal error was issued on an attempt to lower a conversion of a
+pointer-to-member-function to bool when the conversion appeared in an
+initializer for a static-lifetime object.  The internal error was
+in type_change_constant ("integer to bad type").  Now fixed.
+
+  struct S {};
+  typedef void (S::*pmf)();
+  pmf p = 0;
+  bool b = p;  // Formerly got internal error
+
 8/20/03  Abort on address of lvalue cast in constant expression in gcc mode
 
 A use in gcc mode of the "&" operator to take the address of an expression

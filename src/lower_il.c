@@ -9089,19 +9089,25 @@ Lower an eok_dynamic_cast expression.  The subtree has already been lowered.
 void transform_bool_cast(an_expr_node_ptr expr)
 /*
 Transform an eok_bool_cast operation into a comparison with zero.
+Note that this just generates the comparison; it does not lower it if
+that is necessary.  See lower_bool_cast.
 */
 {
   an_expr_node_ptr      operand = expr->variant.operation.operands;
   an_expr_node_ptr      zero_node;
   a_constant            zero_constant;
   an_expr_operator_kind op;
+  a_type_ptr            operand_type;
 
   /* A cast to bool in C++ or C99 is rewritten as a "!= 0" test in C99. */
   operand = integral_promote_node(operand);
-  make_zero_of_proper_type(operand->type, &zero_constant);
+  /* underlying_type is needed here for the pointer-to-member case
+     if the type is already lowered. */
+  operand_type = underlying_type(operand->type);
+  make_zero_of_proper_type(operand_type, &zero_constant);
   zero_node = alloc_node_for_constant(&zero_constant);
   operand->next = zero_node;
-  op = which_binary_operator(tok_ne, operand->type);
+  op = which_binary_operator(tok_ne, operand_type);
   set_node_operator(expr, op, expr->type, operand);
 }  /* transform_bool_cast */
 
