@@ -5000,8 +5000,8 @@ the latter will be NULL for variables.
           scp = &sym->variant.extern_symbol_descr->
                                     variant.routine.ptr->source_corresp;
         } else {
-          /* Skip synthesized namespace projection symbols. */
-          check_assertion(sym->kind == (a_symbol_kind)sk_namespace_projection);
+          /* Ignore other symbols on the list.  These include synthesized
+             namespace projection symbols, and unknown function symbols. */
           continue;
         }  /* if */
         if (scp->name_linkage == (a_name_linkage_kind)nlk_external) {
