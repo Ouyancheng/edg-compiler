@@ -44,6 +44,7 @@ extern a_boolean is_character_type(a_type_ptr tp);
 extern a_boolean is_floating_type(a_type_ptr tp);
 extern a_boolean is_arithmetic_type(a_type_ptr tp);
 extern a_boolean is_pointer_type(a_type_ptr tp);
+extern a_boolean is_reference_type(a_type_ptr tp);
 extern a_boolean is_scalar_type(a_type_ptr tp);
 extern a_boolean is_array_type(a_type_ptr tp);
 extern a_boolean is_char_array_type(a_type_ptr tp);
