@@ -5814,23 +5814,27 @@ Generate code for an instantiation directive.
   an_instantiation_directive_ptr idp =
                                   ss_entry_ptr(curr_source_sequence_entry,
                                                an_instantiation_directive_ptr);
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  a_boolean                      put_out = TRUE;
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 
   /* Advance past the source sequence entry for the instantiation directive. */
   adv_curr_source_sequence_entry();
   kind = (an_il_entry_kind)idp->entity.kind;
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  /* Suppress instantiation directives when specializations are put out
+     for instantiations. */
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-  if (kind == iek_routine || kind == iek_variable) {
-    /* Suppress instantiation directives when specializations are put out
-       for instantiations. */
-  } else
+  if (kind == iek_routine || kind == iek_variable) put_out = FALSE;
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-  if (kind == iek_type) {
-    /* Suppress instantiation directives when specializations are put out
-       for instantiations. */
-  } else
+  if (kind == iek_type) put_out = FALSE;
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-  /* Do not insert code here; this is the "else" of an "if". */
+  /* Always keep Microsoft "extern template" directives. */
+  if (idp->do_not_instantiate) put_out = TRUE;
+  if (put_out)
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+  /* Do not insert code here; this is the body of an "if". */
   {
     /* Position the output file to the directive position. */
     set_output_position(&idp->position);
