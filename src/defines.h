@@ -49,7 +49,7 @@ the release should contain no defines.
 #ifndef BACK_END_IS_CP_GEN_BE
 #define RECORD_MACROS_IN_IL 1
 #endif /* ifndef BACK_END_IS_CP_GEN_BE */
-#define ALLOW_NONSTANDARD_ANONYMOUS_UNIONS 1
+#define MICROSOFT_EXTENSIONS_ALLOWED 1
 /* Use 1 for mmap PCH, 0 for non-mmap PCH. */
 #if 1
 #define USE_FIXED_ADDRESS_FOR_MMAP 1

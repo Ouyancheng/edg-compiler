@@ -243,6 +243,15 @@ Borland).
 #endif /* !defined(ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS) */
 
 /*
+Flag that is TRUE if a set of Microsoft C/C++ compatibility features
+should be allowed.  This flag in turn changes the default value of
+a set of configuration flags.
+*/
+#ifndef MICROSOFT_EXTENSIONS_ALLOWED
+#define MICROSOFT_EXTENSIONS_ALLOWED FALSE
+#endif /* ifndef MICROSOFT_EXTENSIONS_ALLOWED */
+
+/*
 Flag that is TRUE if a stack model is used to manage the include search
 list and FALSE if some other model (by default, a replace-restore model) is
 to be used instead.  The stack model says that when an include file is
@@ -258,7 +267,7 @@ UNIX systems.  Note that behavior in this area is left "implementation
 defined" by the ANSI C standard.
 */
 #ifndef STACK_REFERENCED_INCLUDE_DIRECTORIES
-#define STACK_REFERENCED_INCLUDE_DIRECTORIES FALSE
+#define STACK_REFERENCED_INCLUDE_DIRECTORIES MICROSOFT_EXTENSIONS_ALLOWED	
 #endif /* ifndef STACK_REFERENCED_INCLUDE_DIRECTORIES */
 
 /*
@@ -268,8 +277,19 @@ C and C++) and classes (in C++) as well.  This functionality emulates an
 extension provided by Microsoft C and C++ compilers.
 */
 #ifndef ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
-#define ALLOW_NONSTANDARD_ANONYMOUS_UNIONS FALSE
+#define ALLOW_NONSTANDARD_ANONYMOUS_UNIONS MICROSOFT_EXTENSIONS_ALLOWED
 #endif /* ifndef ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
+
+/*
+Flag that is TRUE if a set of keywords accepted by the 32-bit
+Microsoft C/C++ compilers should be accepted.  This enables recognition
+of __cdecl, __stdcall, __fastcall, __inline, and __declspec.
+__declspec in turn takes arguments used to implement dllexport, dllimport,
+thread, and naked.
+*/
+#ifndef MICROSOFT_KEYWORDS_ALLOWED
+#define MICROSOFT_KEYWORDS_ALLOWED MICROSOFT_EXTENSIONS_ALLOWED
+#endif /* ifndef MICROSOFT_KEYWORDS_ALLOWED */
 
 /*
 Flag that is TRUE if the "restrict" keyword is allowed (in both C and C++).
