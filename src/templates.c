@@ -1971,6 +1971,13 @@ of a function template.
     declarator(di_flags, do_flags, *type, (a_type_ptr)NULL, locator, type,
                &bottom_derived_type, &declarator_ssep, func_info);
     func_info->is_inline = ((*dso_flags & DSO_INLINE) != 0);
+    /* Note whether this is a function type that comes from a typedef.  The
+       setting is checked later if this turns out to be a function template
+       definition. */
+    if (is_function_type(*type) &&
+        (*type)->kind == (a_type_kind)tk_typeref) {
+      func_info->function_type_from_typedef = TRUE;
+    }  /* if */
     if (nonglobal_decl_err) {
       /* An error has already been issued on a template declaration that
          is not at file scope. */
