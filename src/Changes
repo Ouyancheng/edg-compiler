@@ -1,5 +1,11 @@
 Version 2.29
 
+3/18/95  Putting out ellipsis-only param list in generated C
+
+A new configuration flag, ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C, may be
+set to TRUE to cause "(...)" to be put out as the parameter list for a
+routine with no parameters but with has_ellipsis set to TRUE.
+
 3/17/95  Builtin operators in overloading: subtleties of pointer types
 
 The signatures provided in [over.built] of the WP use pointers to
