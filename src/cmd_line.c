@@ -770,6 +770,14 @@ Initialize the option information table.
                          "no_friend_injection",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_nonstandard_using_decl,
+                         "nonstd_using_decl",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_nonstandard_using_decl,
+                         "no_nonstd_using_decl",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -1994,6 +2002,11 @@ enable_microsoft_mode:
            should or should not be visible to normal lookups. */
         friend_injection_enabled = opt_value;
         break;
+      case optk_nonstandard_using_decl:
+        /* A nonmember using-declaration that specifies an unqualified name
+           should or should not be accepted. */
+        nonstandard_using_decl_allowed = opt_value;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -2095,6 +2108,10 @@ enable_microsoft_mode:
     if (option_kind_used[(int)optk_nonstandard_qualifier_deduction]) {
       command_line_error(
               ec_cl_nonstandard_qualifier_deduction_option_only_in_cplusplus);
+    }  /* if */
+    if (option_kind_used[(int)optk_nonstandard_using_decl]) {
+      command_line_error(
+              ec_cl_nonstd_using_decl_option_only_in_cplusplus);
     }  /* if */
     if (option_kind_used[(int)optk_class_name_injection]) {
       command_line_error(ec_cl_class_name_injection_option_only_in_cplusplus);
@@ -2380,6 +2397,11 @@ enable_microsoft_mode:
         /* If friend injection was not explicitly set by a command line
            option, set it now. */
         friend_injection_enabled = FALSE;
+      }  /* if */
+      if (!(option_kind_used[(int)optk_nonstandard_using_decl])) {
+        /* If nonstandard using-decl was not explicitly set by a command line
+           option, set it now. */
+        nonstandard_using_decl_allowed = FALSE;
       }  /* if */
       if (!(option_kind_used[(int)optk_nonstandard_qualifier_deduction])) {
         /* If nonstandard_qualifier_deduction was not set on the command line,

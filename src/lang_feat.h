@@ -1036,6 +1036,15 @@ that were either explicitly specified or deduced elsewhere.
 #endif /* ifndef DEFAULT_NONSTANDARD_QUALIFIER_DEDUCTION */
 
 /*
+Flag that is TRUE if a nonstandard nonmember using-declaration that
+uses an unqualified name should be accepted.  It is the initial
+value of the global variable nonstandard_using_decl_allowed.
+*/
+#ifndef DEFAULT_NONSTANDARD_USING_DECL_ALLOWED
+#define DEFAULT_NONSTANDARD_USING_DECL_ALLOWED FALSE
+#endif /* DEFAULT_NONSTANDARD_USING_DECL_ALLOWED */
+
+/*
 Flag that is TRUE if the tiebreaker processing in overload resolution
 (e.g., to decide between "void f(int &)" and "void f(const int &)")
 should be done late by default.  It is the initial value of the

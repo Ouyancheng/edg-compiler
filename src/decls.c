@@ -8098,8 +8098,11 @@ current scope.
       str_error(ec_undefined_identifier,
                 locator_for_curr_id.symbol_header->identifier);
       err = TRUE;
-    } else if (!locator_for_curr_id.is_qualified_name) {
-      /* An unqualified name is not allowed here. */
+    } else if (!locator_for_curr_id.is_qualified_name &&
+               !nonstandard_using_decl_allowed) {
+      /* An unqualified name is not allowed here.  This is optionally
+         permitted because the Sun 5.0 compiler accepts an unqualified
+         name in a using-declaration. */
       error(ec_namespace_qualified_name_required);
       err = TRUE;
     } else if (locator_for_curr_id.is_class_member) {
@@ -8141,7 +8144,8 @@ current scope.
         warning(ec_useless_using_declaration);
       } else {
         check_assertion(qualifier_namespace_ptr(locator_for_curr_id) != NULL ||
-                        locator_for_curr_id.is_global_qualified_name);
+                        locator_for_curr_id.is_global_qualified_name ||
+                        nonstandard_using_decl_allowed);
         locator = locator_for_curr_id;
         clear_specific_symbol(locator);
         /* Look for a declaration of the same name in the current scope. */

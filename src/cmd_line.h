@@ -177,6 +177,7 @@ typedef enum /*an_option_kind*/ {
   optk_class_name_injection,
   optk_arg_dependent_lookup,
   optk_friend_injection,
+  optk_nonstandard_using_decl,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -491,6 +492,15 @@ EXTERN a_boolean
                                                                        ;
 			/* TRUE if names first declared in friend declarations
 			   are visible. */
+
+EXTERN a_boolean
+		nonstandard_using_decl_allowed
+#if VAR_INITIALIZERS
+                                      = DEFAULT_NONSTANDARD_USING_DECL_ALLOWED
+#endif /* VAR_INITIALIZERS */
+                                                                              ;
+			/* TRUE if a nonstandard nonmember using-declaration
+                           that uses an unqualified name should be accepted. */
 
 EXTERN a_boolean
 		pointer_to_member_call_optimization_allowed

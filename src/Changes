@@ -1,5 +1,17 @@
 Version 2.42
 
+3/23/99  Unqualified name in nonmember using-declaration
+
+An option has been added to permit an unqualified name to be accepted
+in a nonmember using-declaration.  This feature is controlled by
+DEFAULT_NONSTANDARD_USING_DECL_ALLOWED (FALSE in the release) and by
+the --[no_]nonstd_using_decl command-line option.
+
+  typedef int TYPE;
+  namespace N {
+    using TYPE; // should be ::TYPE
+  }
+
 3/22/99  C-generating back end: source position for generated code at the
          beginning of a block
 
