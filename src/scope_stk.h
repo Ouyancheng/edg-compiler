@@ -118,6 +118,16 @@ typedef struct a_scope_pointers_block {
 		last_template;
 			/* End of the list of template entries entered on
 			   the corresponding IL scope entry; NULL if none. */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_source_sequence_entry_ptr
+		last_source_sequence_entry;
+			/* End of the list of source sequence entries entered
+			   on the corresponding IL scope entry; NULL if none.
+			   Used only for the file scope, and updated only as
+			   the file scope is popped from the scope stack;
+			   the scope stack end_of_source_sequence_list field
+			   should be used at other times. */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   a_symbol_ptr	unnamed_namespace_sym;
 			/* For sck_file and sck_namespace scopes only, pointer
 			   to the symbol representing the unnamed namespace

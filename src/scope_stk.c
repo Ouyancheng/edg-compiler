@@ -1053,6 +1053,9 @@ Initialize the fields in a scope-pointers-block substructure.
 #if CHECKING 
   spbp->avoid_codecenter_warnings    = FALSE;
 #endif /* CHECKING */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  spbp->last_source_sequence_entry   = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 }  /* clear_scope_pointers_block */
 
 
@@ -1315,6 +1318,15 @@ the scope being pushed.
                                  = NULL;
   ssep->source_sequence_list     = NULL;
   ssep->end_of_source_sequence_list = NULL;
+  if (kind == (a_scope_kind)sck_file && ssep->is_reactivation) {
+    /* For a reactivation of the file scope, restore the source sequence list
+       that was built up on the previous push/pop. */
+    ssep->source_sequence_list = il_header.primary_scope->source_sequence_list;
+    ssep->end_of_source_sequence_list = curr_translation_unit->
+                          file_scope_pointers_block.last_source_sequence_entry;
+    curr_translation_unit->
+                   file_scope_pointers_block.last_source_sequence_entry = NULL;
+  }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   ssep->depth_template_declaration_scope = depth_template_declaration_scope;
   ssep->depth_innermost_instantiation_scope =
@@ -4702,6 +4714,13 @@ End a name scope by popping an entry off the scope stack.
       ssep->kind == (a_scope_kind)sck_function) {
     if (il_scope != NULL && ssep->source_sequence_list != NULL) {
       il_scope->source_sequence_list = ssep->source_sequence_list;
+      if (ssep->kind == (a_scope_kind)sck_file) {
+        /* Save the "last" pointer for the file scope for use on a
+           later file scope reactivation. */
+        curr_translation_unit->
+                         file_scope_pointers_block.last_source_sequence_entry =
+                                             ssep->end_of_source_sequence_list;
+      }  /* if */
       ssep->source_sequence_list = NULL;
       ssep->end_of_source_sequence_list = NULL;
       if (ssep->kind == (a_scope_kind)sck_function) {
