@@ -11116,19 +11116,18 @@ visibility as indicated.
 }  /* set_keyword_visibility */
 
 
-void ldscope_pragma(a_pending_pragma_ptr  ppp)
+void ldscope_pragma(a_pragma_kind  kind)
 /*
-This routine is called when a Sun CC pragma with one of the following
-forms
+This routine is called when a Sun CC pragma with one of the following forms
 	#pragma enable_ldscope
 	#pragma disable_ldscope
-is called.  It controls whether __global, __symbolic, and __hidden are
-treated as keywords.
+is called.  kind indicates which particular form was encountered.  It controls
+whether __global, __symbolic, and __hidden are treated as keywords.
 */
 {
   a_boolean  keywords_visible;
 
-  switch (ppp->descr_ptr->kind) {
+  switch (kind) {
     case pk_enable_ldscope:  keywords_visible = TRUE;  break;
     case pk_disable_ldscope: keywords_visible = FALSE; break;
     default:                 unexpected_condition();
@@ -11136,6 +11135,8 @@ treated as keywords.
   set_keyword_visibility("__global", keywords_visible);
   set_keyword_visibility("__symbolic", keywords_visible);
   set_keyword_visibility("__hidden", keywords_visible);
+  /* Skip the "enabled_ldscope" or "disable_ldscope" token. */
+  (void)get_token();
 }  /* ldscope_pragma */
 
 #endif /* SUN_EXTENSIONS_ALLOWED */

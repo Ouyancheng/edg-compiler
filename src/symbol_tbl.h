@@ -4209,7 +4209,7 @@ extern a_boolean symbol_is_from_trans_unit(a_symbol_ptr			sym,
 extern a_translation_unit_ptr trans_unit_for_symbol(a_symbol_ptr	sym);
 
 #if SUN_EXTENSIONS_ALLOWED
-extern void ldscope_pragma(a_pending_pragma_ptr  ppp);
+extern void ldscope_pragma(a_pragma_kind  kind);
 #endif /* SUN_EXTENSIONS_ALLOWED */
 
 extern void symbol_tbl_one_time_init(void);

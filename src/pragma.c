@@ -1695,32 +1695,12 @@ Initialize the pragma description table.
 #endif /* REDEFINE_EXTNAME_PRAGMA_ENABLED */
 #if SUN_EXTENSIONS_ALLOWED
   if (sun_linker_scope_allowed) {
-    (void)add_immediate_pragma_kind_description(
-                                         (a_pragma_kind)pk_enable_ldscope,
-                                         ldscope_pragma,
-                                         /*is_pseudo_pragma=*/FALSE,
-                                         /*global=*/TRUE,
-                                         /*automatically_include_in_il=*/FALSE,
-                                         /*make_text_not_tokens=*/FALSE,
-                                         /*expand_macros=*/FALSE,
-                                         /*processing_C_code=*/FALSE,
-                                         /*fetch_pp_tokens=*/FALSE,
-                                         /*ignore_in_back_end=*/FALSE,
-                                         /*il_info_is_complete=*/TRUE,
-                                         es_error);
-    (void)add_immediate_pragma_kind_description(
-                                         (a_pragma_kind)pk_disable_ldscope,
-                                         ldscope_pragma,
-                                         /*is_pseudo_pragma=*/FALSE,
-                                         /*global=*/TRUE,
-                                         /*automatically_include_in_il=*/FALSE,
-                                         /*make_text_not_tokens=*/FALSE,
-                                         /*expand_macros=*/FALSE,
-                                         /*processing_C_code=*/FALSE,
-                                         /*fetch_pp_tokens=*/FALSE,
-                                         /*ignore_in_back_end=*/FALSE,
-                                         /*il_info_is_complete=*/TRUE,
-                                         es_error);
+    (void)add_preproc_immediate_pragma_kind_description(
+                                             (a_pragma_kind)pk_enable_ldscope,
+                                             ldscope_pragma);
+    (void)add_preproc_immediate_pragma_kind_description(
+                                             (a_pragma_kind)pk_disable_ldscope,
+                                             ldscope_pragma);
   }  /* if */
 #endif /* SUN_EXTENSIONS_ALLOWED */
   (void)add_immediate_pragma_kind_description
