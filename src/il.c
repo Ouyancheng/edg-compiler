@@ -7574,7 +7574,7 @@ set *copy_error to TRUE.
   a_constant_ptr con_copy;
   a_symbol_ptr   sym, orig_sym;
   a_type_ptr     parent_type;
-  a_boolean      err = FALSE;
+  a_boolean      err = FALSE, type_check_needed = (guide_type != NULL);
 
   check_assertion(con->kind == (a_constant_repr_kind)ck_template_param &&
                   (con->variant.template_param.kind ==
@@ -7625,14 +7625,30 @@ set *copy_error to TRUE.
        Choose a function from the overload set based on the guide type. */
     choose_function_and_make_address_constant(sym, guide_type, constant, &err);
     con_copy = NULL;
+    type_check_needed = FALSE;
   } else {
     err = TRUE;
   }  /* if */
-  if (!err && guide_type != NULL) {
+  if (!err && type_check_needed) {
     /* The type of the entity must match the guide type.  If it doesn't,
-       deduction fails. */
-    a_type_ptr type = (con_copy != NULL) ? con_copy->type : constant->type;
-    if (!identical_types(guide_type, type)) err = TRUE;
+       deduction fails.  Some kinds of conversions are allowed. */
+    a_constant_ptr source_con = (con_copy != NULL) ? con_copy : constant;
+    a_type_ptr     source_type = source_con->type;
+    if (!identical_types(guide_type, source_type)) {
+      a_std_conv_descr std_conv;
+      if (!impl_conversion_possible(source_type,
+                                    /*source_is_constant=*/TRUE,
+                                    /*source_is_string_literal=*/FALSE,
+                                    source_con,
+                                    guide_type,
+                                    /*allow_qualifier_or_eh_mismatch=*/FALSE,
+                                    /*suppress_extensions=*/TRUE,
+                                    ec_no_error,
+                                    &std_conv) ||
+          !conversion_allowed_for_nontype_template_argument(&std_conv)) {
+        err = TRUE;
+      }  /* if */
+    }  /* if */
   }  /* if */    
   if (err) {
     /* The constant was specified as something like A<T>::B, but the

@@ -553,6 +553,8 @@ extern a_boolean impl_conversion_possible(
                           a_boolean            suppress_extensions,
                           an_error_code        default_warning_code,
                           a_std_conv_descr_ptr std_conv);
+extern a_boolean conversion_allowed_for_nontype_template_argument(
+                                                 a_std_conv_descr *conversion);
 extern a_boolean static_cast_conversion_possible(
                                  a_type_ptr    source_type,
                                  a_boolean     source_is_constant,

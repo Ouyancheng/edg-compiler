@@ -368,8 +368,7 @@ function in *constant.  Otherwise, return *err TRUE.
                                                    &unknown_dependent_function,
                                                    &ambiguous);
   if (func_sym == NULL ||
-      /* Conversions are not allowed. */
-      match_level != aml_exact) {
+      !conversion_allowed_for_nontype_template_argument(&std_conversion)) {
     *err = TRUE;
   } else {
     /* Build a pointer-to-function or pointer-to-member constant. */
@@ -9320,30 +9319,6 @@ type before any rewriting, for use in error messages.
 }  /* conversion_usable_or_possible */
 
 
-static a_boolean conversion_allowed_for_nontype_template_argument(
-                                                      a_conv_descr *conversion)
-/*
-Return TRUE unless the indicated conversion contains something that
-is not allowed in a conversion for a nontype template argument, e.g.,
-a conversion of 0 to a pointer type.
-*/
-{
-  a_boolean allowed = TRUE;
-
-  if (conversion->std.pointer_normalization_needed && !microsoft_mode) {
-    /* Conversion of 0 to a pointer type, or of a pointer to object type
-       to void *, is not allowed on a nontype template argument. */
-    allowed = FALSE;
-  } else if (conversion->std.cast_base_class != NULL) {
-    /* Derived-to-base pointer conversions and base-to-derived
-       pointer-to-member conversions are not allowed on a nontype
-       template argument. */
-    allowed = FALSE;
-  }  /* if */
-  return allowed;
-}  /* conversion_allowed_for_nontype_template_argument */
-
-
 static void prep_conversion_operand(an_operand        *source_operand,
                                     a_type_ptr        dest_type,
                                     a_conv_descr      *conversion,
@@ -9379,7 +9354,7 @@ dest_type must not be a reference type.
                                     &local_conversion)) {
     /* Some conversions are not allowed on a nontype template argument. */
     if (nontype_template_arg &&
-        !conversion_allowed_for_nontype_template_argument(conversion)) {
+        !conversion_allowed_for_nontype_template_argument(&conversion->std)) {
       pos_ty2_diagnostic(es_discretionary_error, incompatible_err, err_pos,
                          source_operand->type, dest_type);
     }  /* if */
@@ -10908,7 +10883,7 @@ if so.
   if (compatible) {
     /* Some conversions are not allowed on a nontype template argument. */
     if (!conversion_allowed_for_nontype_template_argument(
-                                                    &arg_summary.conversion)) {
+                                                &arg_summary.conversion.std)) {
       compatible = FALSE;
     }  /* if */
   }  /* if */

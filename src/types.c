@@ -4346,6 +4346,30 @@ See conversion_possible.
 }  /* impl_conversion_possible */
 
 
+a_boolean conversion_allowed_for_nontype_template_argument(
+                                                  a_std_conv_descr *conversion)
+/*
+Return TRUE unless the indicated conversion contains something that
+is not allowed in a conversion for a nontype template argument, e.g.,
+a conversion of 0 to a pointer type.
+*/
+{
+  a_boolean allowed = TRUE;
+
+  if (conversion->pointer_normalization_needed && !microsoft_mode) {
+    /* Conversion of 0 to a pointer type, or of a pointer to object type
+       to void *, is not allowed on a nontype template argument. */
+    allowed = FALSE;
+  } else if (conversion->cast_base_class != NULL) {
+    /* Derived-to-base pointer conversions and base-to-derived
+       pointer-to-member conversions are not allowed on a nontype
+       template argument. */
+    allowed = FALSE;
+  }  /* if */
+  return allowed;
+}  /* conversion_allowed_for_nontype_template_argument */
+
+
 static a_boolean inverse_impl_conversion_possible(
                           a_type_ptr           source_type,
                           a_type_ptr           dest_type,
