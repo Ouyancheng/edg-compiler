@@ -1,6 +1,6 @@
 Version 3.5
 
-4/5/00   GNU C++ compatibility: friend class lookup
+11/02/04 GNU C++ compatibility: friend class lookup
 
 When looking up an unqualified name in a friend class declaration, g++
 does not stop at the nearest enclosing namespace scope as required by
