@@ -1326,10 +1326,13 @@ nested class.
           discard_token_cache(&rfp->function_body_token_cache);
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else if (microsoft_mode &&
-                   is_real_template_instantiation && is_friend) {
+                   is_real_template_instantiation &&
+                   (is_friend || rfp->is_specialization)) {
           /* The Microsoft compiler treats friend functions defined in a
              class template much like a member function of such a class.
-             The body is only processed if needed. */
+             The body is only processed if needed.  This special treatment
+             is also extended to Microsoft mode specializations that are
+             defined within the class. */
           defer_routine_fixup_until_use(rfp);
           /* Set rfp to NULL to prevent it from being freed below. */
           rfp = NULL;

@@ -8151,7 +8151,9 @@ of compiler-generated function (e.g., a constructor).
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* In Microsoft mode, friend functions defined in class templates are
      only analyzed if they are used.  A non-NULL routine_fixup pointer
-     indicates that the definition has not yet been processed. */
+     indicates that the definition has not yet been processed.  This special
+     treatment is also extended to Microsoft mode specializations that are
+     defined within a class. */
   if (routine->routine_fixup != NULL) {
     microsoft_friend_function_fixup(routine->routine_fixup);
   }  /* if */

@@ -1,5 +1,24 @@
 Version 2.42
 
+6/19/99  Microsoft compatibility: in-class specializations only evaluated
+         if the function is used
+
+The front end supports the Microsoft compatibility feature of allowing
+a member function template to be specialized within the class in which
+the member is declared.  Formerly, the semantic analysis of the specialization
+was done when the enclosing class definition was processed.  The Microsoft
+compiler, however, does the semantic analysis when the specialization is
+first used.  We now emulate the Microsoft behavior.
+
+  template <class T> struct A {
+    A(){}
+    template <class X> A(X) {}
+    template <> A(int) {
+      B b;  // B undefined -- Microsoft only complains if this function is used
+    }
+  };
+  A<int> ai;
+
 6/18/99  Inappropriate diagnostics on parenthesized constructor and
          destructor declarators
 
