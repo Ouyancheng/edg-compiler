@@ -3703,7 +3703,7 @@ C and C++.
        only two ways -- they belong to a base class of a class that is
        currently in scope or they belong to a class that has been reactivated
        (e.g., for the definition of a member or friend function or the
-       initializatiion of a static data member).  Note that the slow algorithm
+       initialization of a static data member).  Note that the slow algorithm
        is not required for member symbols on the active list because they
        are found properly on the search of the active list in the fast
        algorithm. */
