@@ -1179,9 +1179,9 @@ the current function scope.
       /* If the previous statement was a decl-statement, deactivate it. */
       wrapup_decl_statement();
     }  /* if */
-    update_source_sequence_list((char *)sp, iek_statement,
-                                (a_source_position *)NULL,
-                                (a_source_sequence_entry_ptr)NULL);
+    f_update_source_sequence_list((char *)sp, iek_statement,
+                                  (a_source_position *)NULL,
+                                  (a_source_sequence_entry_ptr)NULL);
   }  /* if */
 }  /* stmt_update_source_sequence_list */
 

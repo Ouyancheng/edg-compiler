@@ -615,10 +615,18 @@ extern a_source_sequence_entry_ptr find_sublist_parent(
 
 extern void add_to_source_sequence_list(a_source_sequence_entry  *new_ssep);
 
-extern void update_source_sequence_list(char                 *entity_ptr,
-                                        an_il_entry_kind     kind,
-                                        a_source_position    *pos,
-                                        a_source_sequence_entry_ptr old_ssep);
+extern void f_update_source_sequence_list(char                    *entity_ptr,
+                                          an_il_entry_kind        kind,
+                                          a_source_position       *pos,
+                                          a_source_sequence_entry *old_ssep);
+
+#define update_source_sequence_list(entity_ptr, kind, pos, old_ssep)     \
+{ if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH &&           \
+      depth_template_declaration_scope == NO_SCOPE_DEPTH) {              \
+    f_update_source_sequence_list((entity_ptr), (kind), (pos),           \
+                                  (old_ssep));                           \
+  }  /* if */                                                            \
+}  /* update_source_sequence_list */
 
 extern a_src_seq_sublist_ptr sublist_header_of(
                                             a_source_sequence_entry_ptr ssep);

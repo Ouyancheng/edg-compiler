@@ -7056,10 +7056,10 @@ will go on a sublist if it was allocated in the file-scope memory region.
 }  /* add_to_source_sequence_list */
 
 
-void update_source_sequence_list(char                        *entity_ptr,
-                                 an_il_entry_kind            kind,
-                                 a_source_position           *pos,
-                                 a_source_sequence_entry_ptr  old_ssep)
+void f_update_source_sequence_list(char                        *entity_ptr,
+                                   an_il_entry_kind            kind,
+                                   a_source_position           *pos,
+                                   a_source_sequence_entry_ptr  old_ssep)
 /*
 Allocate a source sequence entry for the entity and add it to the list for
 the current scope.  pos is the source position, for use in cases where this
@@ -7075,7 +7075,7 @@ this entity.
   a_boolean                     force_alloc_in_filescope;
   a_memory_region_number        region_to_switch_back_to;
 
-  db_enter(4, "update_source_sequence_list");
+  db_enter(4, "f_update_source_sequence_list");
   if (curr_il_region_number != FILE_SCOPE_REGION_NUMBER &&
       kind != iek_statement && kind != iek_switch_clause &&
 #if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
@@ -7280,7 +7280,7 @@ this entity.
 #endif /* DEBUG */
   } /* if */
   db_exit();
-}  /* update_source_sequence_list */
+}  /* f_update_source_sequence_list */
 
 
 a_src_seq_sublist_ptr sublist_header_of(a_source_sequence_entry_ptr  ssep)

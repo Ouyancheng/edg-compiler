@@ -7888,7 +7888,7 @@ secondary status.
             scp->source_sequence_entry = NULL;
           }  /* if */
         }  /* if */
-        update_source_sequence_list(il_entry_ptr, kind, pos, old_ssep);
+        f_update_source_sequence_list(il_entry_ptr, kind, pos, old_ssep);
       }  /* if */
     }  /* if */
   }  /* if */

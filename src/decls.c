@@ -5226,13 +5226,15 @@ a new symbol is created and entered in the symbol table.
     /* This param_id entry represents an unnamed parameter (which is legal
        in function definitions in C++). */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
+#if CHECKING
     if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH &&
         depth_template_declaration_scope == NO_SCOPE_DEPTH) {
       check_assertion(param_id->source_sequence_entry != NULL);
-      update_source_sequence_list((char *)vp, (an_il_entry_kind)iek_variable,
-                                  &param_id->type_pos,
-                                  param_id->source_sequence_entry);
     }  /* if */
+#endif /* CHECKING */
+    update_source_sequence_list((char *)vp, (an_il_entry_kind)iek_variable,
+                                &param_id->type_pos,
+                                param_id->source_sequence_entry);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   } else {
     make_locator_for_symbol(sym, &locator);
@@ -6797,13 +6799,10 @@ to indicate whether an enumeration is actually defined.
       /* An unnamed enum type.  mark_defined can't be called to put out a
          source sequence entry for it, but we need one anyway, so call
          the subroutine directly. */
-      if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH &&
-          depth_template_declaration_scope == NO_SCOPE_DEPTH) {
-        update_source_sequence_list((char *)enum_type,
-                                    (an_il_entry_kind)iek_type,
-                                    &pos_curr_token,
-                                    (a_source_sequence_entry_ptr)NULL);
-      }  /* if */
+      update_source_sequence_list((char *)enum_type,
+                                  (an_il_entry_kind)iek_type,
+                                  &pos_curr_token,
+                                  (a_source_sequence_entry_ptr)NULL);
 #endif  /* GENERATE_SOURCE_SEQUENCE_LISTS */
       /* set_source_corresp and mark_defined are not called, so copy in
          the decl position manually. */
