@@ -29,7 +29,6 @@ in lower_name.c.
   void h(typeof(f) g) {}
 
 9/25/04 C++-generating back end: unneeded qualification of base class names
-        and invisibility of typedef names
 
 The C++-generating back end formerly generated qualified names to refer to
 members of base classes whether the qualification was needed or not.  It now
@@ -44,24 +43,6 @@ example:
       Inner1 f() { return Inner1(); } // Previously generated "Outer1::Inner1"
                                       // for both names, now just "Inner1"
     };
-  };
-
-Also, the C++-generating back end treats a typedef name as "invisible" (i.e.,
-the generated code uses the underlying type of the typedef rather than the
-typedef name) when the name is inaccessible in the context in which it
-would appear.  However, the determination of the accessibility of typedef
-names was flawed, sometimes resulting in incorrect code.  Now fixed.  For
-example:
-
-  class B {
-    struct S { };
-  protected:
-    typedef S S_prot;
-  };
-  class D: public B {
-    void f() {
-      S_prot s;    // Previously generated "B::S", now "S_prot"
-    }
   };
 
 9/23/04  Microsoft compatibility: friend virtual

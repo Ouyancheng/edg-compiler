@@ -4126,7 +4126,6 @@ Display the indicated hidden-name entry.
   disp_boolean("partially_hidden_by_microsoft_injected_class_name",
                ptr->partially_hidden_by_microsoft_injected_class_name);
   disp_boolean("is_class_member", ptr->is_class_member);
-  disp_boolean("inaccessible", ptr->inaccessible);
 }  /* disp_hidden_name */
 
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
