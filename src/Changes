@@ -1,5 +1,29 @@
 Version 2.16
 
+3/29/93  Improved support for operator declarations
+
+We no longer permit operator-name declarators in certain contexts -- e.g.,
+
+  void f(int operator+);
+
+Moreover, an internal error is no longer produced on the following:
+
+  extern void * operator new[](size_t);
+
+3/29/93  Cfront compatibility in disambiguation
+
+Contrary to the requirements of the ARM cfront treats the declaration of
+x in following:
+
+  class A { A(int); };
+  double d;
+  A x(int(d));          // variable or function declaration?
+
+as the declaration of a variable initialized by a constructor call rather
+than as that of a function taking an integer argument and returning an A.
+We still follow the ARM by default in such cases, but now we handle it the
+way cfront does in cfront-compatibility mode.
+
 3/29/93  Local variables and class templates with the same name
 
 The lookup for a name followed by a "<" has been changed from
