@@ -2841,7 +2841,7 @@ pointer points into the lookup array.
        the source file have the same ending sequence number.  When the
        condition above is TRUE, we have found one of those two (or more)
        files.  The test below determines whether we've found the entry
-       for the primary source file.  Note also, that when the primary
+       for the primary source file.  Note also that when the primary
        source file ends in an include, the lookup entry will actually
        have a starting sequence number one greater than the ending
        sequence number.  That is why the test above checks for equality
