@@ -1,5 +1,15 @@
 Version 3.6
 
+3/21/05  C++-generating back end: unneeded casts in reference initialization
+
+The C++-generating back end sometimes added unneeded casts, for example,
+when initializing a reference to an array type with an lvalue of that type.
+These extra casts caused errors when the generated code was compiled with
+g++.  The superfluous casts are now omitted.  For example:
+
+  int a[4];
+  int (&r)[4] = a;  // Formerly generated as ((int (&)[4])a)
+
 3/21/05  C++-generating back end: types defined in variable initialization
 
 In g++ mode, the front end accepts definitions of types within variable
