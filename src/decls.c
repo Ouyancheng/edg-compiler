@@ -1619,23 +1619,25 @@ issued a similar error).  Return FALSE if there is some error.
                            C_mode() ? TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING :
                                       TCF_NO_FLAGS) :
                      !types_are_redecl_compatible(old_type, type_ptr)) {
+      okay = FALSE;
       /* The old and new types are incompatible.  Allow certain cases
          in SVR4 C compatibility mode. */
       if (SVR4_C_mode &&
           (!is_routine || interchangeable_types(old_type, type_ptr))) {
         severity = es_warning;
+        /* Record the most recent type as the external symbol's type. */
+        esdp->type = type_ptr;
       } else {
         severity = es_error;
+        /* Record an error type as the external symbol's type, to avoid
+           future errors. */
+        esdp->type = error_type();
       }  /* if */
       /* The old and new types are incompatible.  Error. */
       if (!suppress_incompatible_error) {
         pos_sy_diagnostic(severity, ec_decl_incompatible_with_previous_use,
 			  position, ext_sym);
       }  /* if */
-      /* Record an error type as the external symbol's type, to avoid
-	 future errors. */
-      esdp->type = error_type();
-      okay = FALSE;
     } else {
       /* The old and new types are compatible.  Form the composite of
          those types, and save that as the type of the external symbol. */
