@@ -4826,6 +4826,14 @@ the symbol and its linkage (which is always "none").
 }  /* define_static_data_member */
 
 
+/* Return TRUE if the namespace entry indicated by nsp is namespace "std". */
+#define is_namespace_std(nsp)                                           \
+  ((nsp) != NULL && !nsp->is_namespace_alias &&                         \
+   nsp->source_corresp.parent.namespace_ptr == NULL &&                  \
+   strcmp(((a_symbol_ptr)(nsp)->source_corresp.assoc_info)->            \
+                                    header->identifier, "std") == 0)
+
+
 void decl_typedef(a_symbol_locator             *locator,
                   a_type_ptr                   type_ptr,
                   a_type_ptr                   class_type,
@@ -4844,6 +4852,7 @@ return a pointer to it in *symbol_ptr.
   a_boolean                suppress_redecl_error = FALSE;
   a_boolean                saved_referenced_flag;
   a_scope_stack_entry_ptr  ssep = &scope_stack[decl_scope_level];
+  a_namespace_ptr          nsp;
 
   db_enter(3, "decl_typedef");
   if (curr_scope_id_lookup(locator, IDL_NO_OPTIONS) != NULL) {
@@ -4992,6 +5001,7 @@ return a pointer to it in *symbol_ptr.
   sym->variant.type = tp = alloc_type((a_type_kind)tk_typeref);
   tp->variant.typeref.type = type_ptr;
   set_source_corresp(&(tp->source_corresp), sym);
+  nsp = NULL;
   if (!C_mode()) {
     if (class_type != NULL) {
       set_class_membership(sym, &tp->source_corresp, class_type);
@@ -4999,11 +5009,26 @@ return a pointer to it in *symbol_ptr.
     } else {
       set_namespace_membership(sym, &tp->source_corresp,
                                (a_namespace_ptr)NULL);
+      nsp = tp->source_corresp.parent.namespace_ptr;
     }  /* if */
   }  /* if */
   record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, sym,
                             &locator->source_position, declarator_ssep);
   add_to_types_list(tp, decl_scope_level);
+  /* Issue a diagnostic if size_t is declared in a way inconsistent with
+     the target configuration. */
+  if (!is_error_type(type_ptr) &&
+      strcmp(sym->header->identifier, "size_t") == 0 &&
+      (decl_scope_level == DEPTH_OF_FILE_SCOPE ||
+       (nsp != NULL && is_namespace_std(nsp)))) {
+    /* "size_t" declared at file scope or in namespace "std". */
+    if (!is_integral_type(type_ptr) ||
+        skip_typerefs(type_ptr)->variant.integer.int_kind !=
+                                                targ_size_t_int_kind) {
+      pos_ty_warning(ec_unexpected_type_for_size_t, &locator->source_position,
+                     integer_type(targ_size_t_int_kind));
+    }  /* if */
+  }  /* if */
 
 return_point:
   /* Do processing required for any pragmas that are bound to the current

@@ -1,5 +1,12 @@
 Version 2.35
 
+2/10/97 Warning on unexpected declaration of size_t
+
+A warning is now issued if typedef name size_t or std::size_t is declared
+with a type that does not match the type expected by the implementation --
+e.g., "unsigned int".  (See TARG_SIZE_T_INT_KIND, defined in targ_def.h,
+and global variable targ_size_t_integer_kind.)
+
 2/10/97 Microsoft compatiblilty: exception specifications are ignored
 
 In Microsoft-compatibility mode exception specifications on function
