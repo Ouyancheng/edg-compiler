@@ -791,7 +791,8 @@ arrays, give the total number of elements.
   for (;;) {
     check_assertion(!has_unknown_specified_bound(array_type));
     elems_this_level = array_type->variant.array.variant.number_of_elements;
-    check_assertion(elems_this_level > 0);
+    check_assertion(elems_this_level > 0 ||
+                    array_type->variant.array.bound_is_zero);
     num_elements *= elems_this_level;
     array_type = array_type->variant.array.element_type;
     array_type = skip_typerefs(array_type);
