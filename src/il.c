@@ -2306,6 +2306,30 @@ Display the sequence number information associated with a source file.
 }  /* db_source_file_seq_info */
 #endif /* DEBUG */
 
+
+a_source_file_ptr primary_source_file_for_seq(a_seq_number	seq_number)
+/*
+Find the primary source file within which the sequence number seq_number
+falls and return a pointer to it.
+*/
+{
+  a_source_file_ptr	curr_file;
+
+  curr_file = il_header.primary_source_file;
+  if (seq_number == 0 || curr_file == NULL) {
+    /* Unknown position or no files. */
+    curr_file = NULL;
+  } else {
+    /* Find the top-level file for this sequence number. */
+    check_assertion(seq_number >= curr_file->first_seq_number);
+    while (seq_number-1 > curr_file->last_seq_number) {
+      curr_file = curr_file->next;
+    }  /* while */
+  }  /* if */
+  return curr_file;
+}  /* primary_source_file_for_seq */
+
+
 a_source_file_ptr source_file_for_seq(a_seq_number   seq_number,
                                       a_line_number  *line_number,
                                       a_boolean      *at_end_of_source,
