@@ -540,6 +540,11 @@ extern void lower_virtual_function_call(an_expr_node_ptr expr);
 extern void lower_call(an_expr_node_ptr      expr,
                        an_init_pos_descr_ptr ipdp);
 
+extern void begin_object_lifetime(
+                              an_object_lifetime_ptr lifetime,
+                              a_boolean              follows_an_exec_statement,
+                              an_insert_location     *insert_location);
+
 extern void begin_block_object_lifetime(
                                        an_object_lifetime_ptr lifetime,
                                        an_insert_location_ptr insert_location);

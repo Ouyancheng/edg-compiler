@@ -5953,9 +5953,7 @@ This is needed, for example, inside a conditional operand of a "?", "&&",
 or "||" operation, to make the corresponding destruction dependent on
 whether the construction was done.  We add a temporary variable and
 initialize it to 0; if code must be inserted to do the initialization,
-it is inserted at *insert_location.  If after_label_lifetime is TRUE,
-we are currently processing the beginning of a lifetime caused by a
-label in a block, instead of a lifetime caused by a block.
+it is inserted at *insert_location.
 */
 {
   a_variable_ptr cond_var;
@@ -5965,16 +5963,15 @@ label in a block, instead of a lifetime caused by a block.
 }  /* add_conditional_flag */
 
 
-static void begin_object_lifetime(an_object_lifetime_ptr lifetime,
-                                  a_boolean              after_label_lifetime,
-                                  an_insert_location     *insert_location)
+void begin_object_lifetime(an_object_lifetime_ptr lifetime,
+                           a_boolean              follows_an_exec_statement,
+                           an_insert_location     *insert_location)
 /*
 Do processing required at the beginning of the indicated object lifetime
 (a block, block-after-label, or expression temporary lifetime).
-If after_label_lifetime is TRUE, we are currently processing the
-beginning of a lifetime caused by a label in a block, instead of a
-lifetime caused by a block.  If any code needs to be inserted, it
-is inserted at *insert_location, and *insert_location is updated.
+If any code needs to be inserted, it is inserted at *insert_location,
+and *insert_location is updated.  That location follows an executable
+statement in its block if follows_an_exec_statement is TRUE.
 */
 {
   a_dynamic_init_ptr     dip;
@@ -5995,6 +5992,8 @@ is inserted at *insert_location, and *insert_location is updated.
     } else {
       /* Allocate a destructible entity description entry pointed to by
          the dynamic init entry. */
+      check_assertion_str(dip->destructible_entity_descr == NULL,
+           "begin_object_lifetime: destructible entity descr already present");
       dip->destructible_entity_descr = alloc_destructible_entity_descr();
       if (dip->inside_conditional_expression ||
           (exceptions_enabled && dip->unordered)) {
@@ -6007,7 +6006,7 @@ is inserted at *insert_location, and *insert_location is updated.
         add_conditional_flag(dip);
         init_conditional_flag_var(dip->destructible_entity_descr->
                                                           conditional_flag_var,
-                                  after_label_lifetime, insert_location);
+                                  follows_an_exec_statement, insert_location);
       }  /* if */
     }  /* if */
   }  /* for */
@@ -6017,7 +6016,7 @@ is inserted at *insert_location, and *insert_location is updated.
   for (olp = lifetime->child_lifetime; olp != NULL; olp = olp->next) {
     if (olp->kind != (an_object_lifetime_kind)olk_block &&
         olp->kind != (an_object_lifetime_kind)olk_block_after_label) {
-      begin_object_lifetime(olp, after_label_lifetime, insert_location);
+      begin_object_lifetime(olp, follows_an_exec_statement, insert_location);
     }  /* if */
   }  /* for */
 }  /* begin_object_lifetime */
@@ -6097,7 +6096,7 @@ if lifetime is NULL.
     check_assertion(lifetime->kind == (an_object_lifetime_kind)olk_block);
     /* Visit all object lifetimes in this lifetime, and all destructions
        within those lifetimes. */
-    begin_object_lifetime(lifetime, /*after_label_lifetime=*/FALSE,
+    begin_object_lifetime(lifetime, /*follows_an_exec_statement=*/FALSE,
                           insert_location);
     start_label_region_of_lifetime(lifetime, /*switch_clause=*/FALSE);
   }  /* if */
@@ -6123,7 +6122,7 @@ associated with a label in a block.
                                          stmt->position);
   /* Visit all object lifetimes in this lifetime, and all destructions
      within those lifetimes. */
-  begin_object_lifetime(lifetime, /*after_label_lifetime=*/TRUE,
+  begin_object_lifetime(lifetime, /*follows_an_exec_statement=*/TRUE,
                         &insert_location);
   start_label_region_of_lifetime(lifetime, /*switch_clause=*/FALSE);
   code_pos_for_lowering = saved_code_pos;
@@ -6155,7 +6154,7 @@ associated with a switch clause.
   }  /* if */
   /* Visit all object lifetimes in this lifetime, and all destructions
      within those lifetimes. */
-  begin_object_lifetime(lifetime, /*after_label_lifetime=*/TRUE,
+  begin_object_lifetime(lifetime, /*follows_an_exec_statement=*/TRUE,
                         &insert_location);
   start_label_region_of_lifetime(lifetime, /*switch_clause=*/TRUE);
   code_pos_for_lowering = saved_code_pos;
