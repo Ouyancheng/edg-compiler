@@ -157,8 +157,8 @@ source_pos is the source position of the reference.  See ARM 13.3,
         /* Note that the type qualifiers on both types have already been
            dropped. */
         if (identical_types(routine_type, dest_underlying_type)) {
-          if ((dest_class == NULL && !sym->is_class_member) ||
-              (dest_class == sym->parent.class_type)) {
+          if (dest_class ==
+                 (sym->is_class_member ? sym->parent.class_type : NULL)) {
             /* Exact match. */
             match_sym = sym;
             *match_level = aml_exact;
