@@ -3086,9 +3086,9 @@ the current class (class_type).
   a_class_type_supplement_ptr ctsp;
 
   if (any_cfront_mode()) {
-    /* In cfront mode is permitted to use a typedef name in the elaborated
-       type specifier of a friend class declaration as long as it refers to
-       a class. */
+    /* In cfront mode it is sometimes permitted to use a typedef name in the
+       elaborated type specifier of a friend class declaration as long as it
+       refers to a class. */
     friend_class_type = skip_typerefs(friend_class_type);
   }  /* if */
   check_assertion(is_immediate_class_type(friend_class_type));
