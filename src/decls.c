@@ -10183,6 +10183,23 @@ continue_with_declaration:
         reset_ss_list_instantiation_insert_point();
       }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if GNU_EXTENSIONS_ALLOWED
+      /* Look for optional attributes, which are added to the prefix
+         attributes.  Note that the draft GCC manual for version 3.1
+         says that in the future, these attributes may apply only to
+         the next declarator, but that they presently apply to all
+         declarators. */
+      if (gcc_mode) {
+        /* Scan the attributes. */
+        attributes = scan_attributes();
+        /* Add these to the prefix_attributes. */
+        *last_prefix_attribute = attributes;
+        /* And compute what's now the end of the prefix attributes. */
+        while (*last_prefix_attribute != NULL) {
+          last_prefix_attribute = &(*last_prefix_attribute)->next;
+        }  /* while */
+      }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
       /* Save the source position of the first token of the declarator. */
       declarator_start_pos = pos_curr_token;
       declarator(di_flags, &do_flags, type_ptr, 
