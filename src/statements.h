@@ -248,6 +248,10 @@ typedef struct a_control_flow_descr {
 			   followed by a case label before the current block is
 			   closed.  Once the block is closed or a case label
 			   appears, the flag is cleared. */
+      unsigned int
+		is_handler_block:1;
+			/* TRUE if this is the top level block of a handler
+			   (i.e., the body of a catch clause). */
 #if CHECKING
       unsigned int
 		dummy:2;
