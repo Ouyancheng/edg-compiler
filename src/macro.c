@@ -117,7 +117,7 @@ typedef struct a_macro_arg {
   sizeof_t	raw_len;
 			/* Length of the raw version of the argument, in
 			   raw_text, not counting the final LE_END_OF_INSERTION
-			   lexical escape. */
+			   or LE_END_OF_BUFFER lexical escape. */
   a_source_line_modif_ptr
 		modif_list;
 			/* List of modifications to the raw_text to produce
@@ -735,8 +735,6 @@ print the replacement text and expansions of macros.
           ch = '$';
           n_printed++;
           slmp = assoc_source_line_modif(p);
-          /* If this is the end of a macro argument, stop. */
-          if (slmp->is_isolated_text) break;
           level--;
           leave_insertion(slmp, p);
         }  /* if */
@@ -755,6 +753,9 @@ print the replacement text and expansions of macros.
         ch = '0';
         n_printed++;
         p += LE_ESCAPE_LEN;
+      } else if (ch == LE_END_OF_BUFFER) {
+        /* End of buffer.  Stop. */
+        break;
       } else {
         (void)fprintf(f_debug, "**BAD LEXICAL ESCAPE**");
         break;
@@ -1082,9 +1083,9 @@ with \.  Return the macro argument created.
     /* Append an end-of-insertion escape. */
     *dest++ = LE_ESCAPE;
     /* Compute the length of the string, including the LE_ESCAPE but not
-       the LE_END_OF_INSERTION. */
+       the LE_END_OF_BUFFER. */
     map->raw_len = dest - map->raw_text;
-    *dest++ = LE_END_OF_INSERTION;
+    *dest++ = LE_END_OF_BUFFER;
   }
   return map;
 }  /* copy_pragma_string */
@@ -1123,7 +1124,6 @@ is the source position of the _Pragma token.
                                len_of_curr_token,
                                &map->raw_text[0],
                                &map->raw_text[map->raw_len - 1]);
-  slmp->is_isolated_text = TRUE;
   curr_char_loc = map->raw_text;
   /* Actually scan the tokens that make up the pragma. */
   { a_pragma_kind_description_ptr	pkdp = NULL;
@@ -1358,7 +1358,8 @@ In such cases, charize is TRUE.
         within_char_literal = FALSE;
         start_of_token = TRUE;
         p += LE_ESCAPE_LEN-1;
-      } else if (p[1] == LE_END_OF_INSERTION) {
+      } else if (p[1] == LE_END_OF_INSERTION ||
+                 p[1] == LE_END_OF_BUFFER) {
         /* End of argument. */
         break;
       } else if (p[1] == LE_NULL) {
@@ -1477,7 +1478,6 @@ in Microsoft mode; in that case, token pasting off the end is not allowed.
   /* Turn on some special processing at the end of the macro insertion
      to decide whether we need to continue into the primary line. */
   main_slmp->being_rescanned_for_token_pasting = TRUE;
-  main_slmp->is_isolated_text = TRUE;
   /* Make sure we don't run off the current line if we do need to run
      off the end of the macro. */
   treat_newline_as_token = TRUE;
@@ -1629,7 +1629,6 @@ end_loop:
   *pos_in_aux_buffer++ = LE_END_OF_INSERTION;
   /* Restore the flags that were changed before the scan. */
   main_slmp->being_rescanned_for_token_pasting = FALSE;
-  main_slmp->is_isolated_text = FALSE;
   fetch_pp_tokens = save_fetch_pp_tokens;
   curr_char_loc = save_curr_char_loc;
   treat_newline_as_token = save_treat_newline_as_token;
@@ -1820,7 +1819,8 @@ hence its name should not be changed.  *length is the value to be adjusted.
     if (arg_number == n_params &&
         (map->raw_len == 0 ||
          (map->raw_text[0] == LE_ESCAPE &&
-          map->raw_text[1] == LE_END_OF_INSERTION))) {
+          (map->raw_text[1] == LE_END_OF_INSERTION ||
+           map->raw_text[1] == LE_END_OF_BUFFER)))) {
       /* The last macro parameter (presumably variadic) is empty or missing.
          So we adjust the section length to not include the last chunk of
          white space characters preceded by a comma: */
@@ -2443,10 +2443,10 @@ do_argument_again:
           /* On the expansion, the scanning is limited to the raw text just
              inserted.  This implements the requirement of 3.8.3.1 that
              arguments be "macro replaced as if they formed the rest of
-             the source file".  Because of the is_isolated_text flag in
-             the source_modification, we will get a tok_end_of_source
+             the source file".  The LE_END_OF_BUFFER forces a tok_end_of_source
              back from get_token when the end of the text is reached. */
-          slmp->is_isolated_text = TRUE;
+          check_assertion(map->raw_text[map->raw_len+1]== LE_END_OF_INSERTION);
+          map->raw_text[map->raw_len+1] = LE_END_OF_BUFFER;
           slmp->source_position = start_pos;
           curr_char_loc = map->raw_text;
           expand_macros = TRUE;
@@ -2485,6 +2485,8 @@ do_argument_again:
             fputs("\"\n", f_debug);
           }  /* if */
 #endif /* DEBUG */
+          check_assertion(map->raw_text[map->raw_len+1] == LE_END_OF_BUFFER);
+          map->raw_text[map->raw_len+1] = LE_END_OF_INSERTION;
           /* Remove the temporary source line modification that put the raw
              argument text back into the source line. */
           sequence_id = slmp->sequence_id;

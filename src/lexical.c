@@ -2049,7 +2049,6 @@ invocations.
   slmp->line_loc            = line_loc;
   slmp->parent_modif        = NULL;
   slmp->num_chars_to_delete = num_chars_to_delete;
-  slmp->is_isolated_text    = FALSE;
   slmp->is_for_comment      = FALSE;
   slmp->parent_modif_determined
                             = FALSE;
@@ -2556,6 +2555,12 @@ is TRUE.
             putc('\0', f_pp_output);
             prev_ch = '\0';
             loc_in_line += LE_ESCAPE_LEN;
+#if CHECKING
+          } else if (ch == LE_END_OF_BUFFER) {
+            /* This shouldn't come up in the input line structure. */
+            unexpected_condition_str(
+                   "gen_pp_output_for_curr_line: unexpected LE_END_OF_BUFFER");
+#endif /* CHECKING */
           } else {
             unexpected_condition_str(
                             "gen_pp_output_for_curr_line: bad lexical escape");
@@ -2854,6 +2859,12 @@ the calls to this routine.
           add_char_to_raw_listing_buffer(' ');
           prev_ch = ' ';
           loc_in_line += LE_ESCAPE_LEN;
+#if CHECKING
+        } else if (ch == LE_END_OF_BUFFER) {
+          /* This shouldn't come up in the input line structure. */
+          unexpected_condition_str(
+                  "gen_expanded_raw_listing_...: unexpected LE_END_OF_BUFFER");
+#endif /* CHECKING */
         } else {
           unexpected_condition_str(
                            "gen_expanded_raw_listing_...: bad lexical escape");
@@ -5205,8 +5216,9 @@ white_space_loop:
         /* The newline character is white space, and is being thrown away. */
         kind_skipped |= WHITE_SPACE_OTHER;
         curr_char_loc += LE_ESCAPE_LEN;
-      } else if (ch == LE_END_OF_LINE || ch == LE_END_OF_INSERTION) {
-        /* End of source line or end of macro insertion. */
+      } else if (ch == LE_END_OF_LINE || ch == LE_END_OF_INSERTION ||
+                 ch == LE_END_OF_BUFFER) {
+        /* End of source line or end of macro insertion or buffer. */
         /* Check to see if the hanging deletion flag is set. */
         if ((delete_from = delete_source_from_loc) != NULL) {
           /* Source from the indicated position to the end of the line or
@@ -5239,6 +5251,11 @@ white_space_loop:
             goto end_skip;
           } /* if */
           /* Not end of file, keep checking for white space in the new line. */
+        } else if (ch == LE_END_OF_BUFFER) {
+          /* End of a buffer unattached to the rest of the line.  Return
+             to the caller.  This is used for the macro expansion of a macro
+             argument in isolation from the rest of the source. */
+          goto end_skip;
         } else {
           /* End of the expansion text for a macro.  Find the character
              location of the character following the macro invocation, and
@@ -5258,13 +5275,6 @@ white_space_loop:
             /* Continue into the primary source line.  Clear the flag to
                indicate that we went off the end. */
             slmp->being_rescanned_for_token_pasting = FALSE;
-            slmp->is_isolated_text = FALSE;
-          } else {
-            /* See if the current position is part of the text of a macro
-               argument being macro-expanded; such text is expanded in
-               isolation from the rest of the source file (see 3.8.3.1).
-               In that case, the end-of-insertion is returned to the caller. */
-            if (slmp->is_isolated_text) goto end_skip;
           }  /* if */
           /* Normal case; continue with the text following the macro
              invocation. */
@@ -5374,7 +5384,14 @@ white_space_loop:
                  This is disallowed partly because you get in trouble with
                  copy_modif_list later if you allow it (the modification
                  entries are in the wrong order). */
-              if (slmp->is_isolated_text) goto end_skip;
+              check_assertion(slmp->end_inserted_text != NULL &&
+                              *slmp->end_inserted_text == LE_ESCAPE);
+              if (slmp->end_inserted_text[1] == LE_END_OF_BUFFER) {
+                /* Note that we do not back up curr_char_loc, because
+                   if we set it to comment_start_loc get_token would
+                   just come right back here again. */
+                goto end_skip;
+              }  /* if */
               leave_insertion(slmp, curr_char_loc);
             } while (!within_curr_source_line(curr_char_loc));
             if (need_to_delete_comment()) {
@@ -5383,8 +5400,9 @@ white_space_loop:
               do {
                 slmp = assoc_source_line_modif(curr_char_loc);
                 /* Find the end of the insertion. */
-                while (*curr_char_loc   != LE_ESCAPE ||
-                       curr_char_loc[1] != LE_END_OF_INSERTION) {
+                while (*curr_char_loc    != LE_ESCAPE ||
+                       (curr_char_loc[1] != LE_END_OF_INSERTION &&
+                        curr_char_loc[1] != LE_END_OF_BUFFER)) {
                   curr_char_loc++;
                 }  /* while */
 #if INCLUDE_COMMENTS_IN_ASM_FUNC_BODY
@@ -6834,6 +6852,11 @@ non-NULL, also append the characters in the comment, through but not including
           /* Newline character. */
           ends_with_newline = TRUE;
           next_char = curr_char + LE_ESCAPE_LEN;
+#if CHECKING
+        } else if (ch == LE_END_OF_BUFFER) {
+          unexpected_condition_str(
+                      "copy_from_source_to_asm_func_buffer: LE_END_OF_BUFFER");
+#endif /* CHECKING */
         } else {
           unexpected_condition_str(
                     "copy_from_source_to_asm_func_buffer: bad lexical escape");
@@ -7519,7 +7542,8 @@ start_of_token_scan:  /* Restart here after scanning white space. */
     case LE_ESCAPE:
       /* Lexical escape.  Second character indicates which. */
       ch = curr_char_loc[1];
-      if (ch == LE_END_OF_LINE || ch == LE_END_OF_INSERTION) {
+      if (ch == LE_END_OF_LINE || ch == LE_END_OF_INSERTION ||
+          ch == LE_END_OF_BUFFER) {
         /* End of line or end of macro insertion.  Let the white-space
            routine figure it out. */
         skip_white_space();
@@ -7527,7 +7551,8 @@ start_of_token_scan:  /* Restart here after scanning white space. */
            the next token. */
         if (*curr_char_loc != LE_ESCAPE ||
             (curr_char_loc[1] != LE_END_OF_LINE &&
-             curr_char_loc[1] != LE_END_OF_INSERTION)) {
+             curr_char_loc[1] != LE_END_OF_INSERTION &&
+             curr_char_loc[1] != LE_END_OF_BUFFER)) {
           goto start_of_token_scan;
         }  /* if */
         /* This is the ultimate end of file, or the end of a macro argument

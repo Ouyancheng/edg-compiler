@@ -1097,6 +1097,11 @@ escape.
 #define LE_NULL 6	/* In modes that allow a null (zero) character in
 			   an input line (e.g., gcc mode), indicates such
 			   a character. */
+#define LE_END_OF_BUFFER 7
+			/* Marks the end of a string of text in a buffer
+			   that is separate from the input buffer as a
+			   whole.  Scanning stops at this escape, rather than
+			   continuing out to any enclosing context. */
 
 /*
 Modifications made to the current source line.  orig_line_modif holds
@@ -1191,11 +1196,6 @@ typedef struct a_source_line_modif {
 			   (beginning at line_loc).  Greater than zero
 			   (except that when line_loc == NULL, this is
 			   zero). */
-  a_bit_field	is_isolated_text:1;
-			/* TRUE if this modification is a temporary one
-			   that inserts the text so that it can be
-			   macro-expanded.  Such an entry is not truly
-			   part of the logical source line. */
   a_bit_field	is_for_comment:1;
 			/* TRUE if this modification is due to a comment
 			   in the source (as opposed to a macro expansion). */
