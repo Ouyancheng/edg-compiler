@@ -9550,7 +9550,7 @@ done here.
   if (distinct_template_signatures) {
     /* When distinct template signatures are used there is no requirement
        for template parameters to be used in the function signature.  We
-       still perform the test to set template_param_not_in_functino_type
+       still perform the test to set template_param_not_in_function_type
        appropriately.  This is used in determining how to display diagnostics
        involving the template.  A remark is issued because, in most cases,
        this will indicate the use of the wrong name in the function template
