@@ -234,7 +234,7 @@ a_boolean node_has_side_effects(an_expr_node_ptr node,
 /*
 Return TRUE if the expression node has side effects.  Return
 *suppress_warning TRUE if a warning about the expression doing nothing
-should be suppressed.
+should be suppressed.  If suppress_warning == NULL, it is not set.
 */
 {
   a_boolean has_side_effects = FALSE, suppress = FALSE;
@@ -292,7 +292,7 @@ should be suppressed.
 #endif /* CHECKING */
   }  /* switch */
 
-  *suppress_warning = suppress;
+  if (suppress_warning != NULL) *suppress_warning = suppress;
   return has_side_effects;
 }  /* node_has_side_effects */
 
