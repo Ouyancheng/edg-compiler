@@ -4,7 +4,7 @@ Version 2.20
 
 An enk_throw expression node, which represents a throw expression, now
 points to an object of type a_throw_supplement, which contains pointers
-a type and a dynamic-init entry.
+to a type and to a dynamic-init entry.
 
 9/3/93   Branching into a handler
 
