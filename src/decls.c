@@ -3531,7 +3531,7 @@ not be TRUE.
         rout_type->variant.routine.return_type =
                             comp_type->variant.routine.return_type;
 #if GNU_EXTENSIONS_ALLOWED
-        copy_gnu_type_attributes(rout_type, comp_type);
+        (void)copy_gnu_type_attributes(rout_type, comp_type);
 #endif /* GNU_EXTENSIONS_ALLOWED */
         rtsp->prototyped = comp_rtsp->prototyped;
         rtsp->has_ellipsis = comp_rtsp->has_ellipsis;
