@@ -5145,10 +5145,11 @@ a routine to lookup the appropriate instance (or generate one if needed).
        If the symbol is not a type symbol simply return without
        doing anything because the "<" may be a less than sign.  This
        test is also suppressed when processing the type name in a new
-       expression because it may legitimately be followed by a less
-       than sign. */
+       expression and the operand of a field selection operation
+       because they may legitimately be followed by a less than sign. */
     if (is_type_symbol(template_sym) && next_tok == tok_lt &&
-        !(options & GID_IS_NEW_TYPE_NAME)) {
+        !(options & GID_IS_NEW_TYPE_NAME) &&
+        !(options & GID_IS_FIELD_SELECTION_OPERAND)) {
       pos_sy_error(ec_unexpected_template_arg_list, &start_position,
                    template_sym);
       add_stop_token(tok_gt);
