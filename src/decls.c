@@ -7115,7 +7115,7 @@ Returns TRUE if there is an error in the specifiers.
           if (C_dialect != C_dialect_pcc && !err) {
             if (num_specifiers > ((*output_flags & DSO_FRIEND) ? 1 : 0) +
                                  (is_inline ? 1 : 0)) {
-              /* Issue a warning if the storage class is not the first
+              /* Issue a diagnostic if the storage class is not the first
                  specifier (except for "inline" or "friend"). */
               remark(ec_storage_class_not_first);
             }  /* if */
