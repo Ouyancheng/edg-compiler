@@ -742,22 +742,22 @@ have been called on it at some previous point.
       /* Give the type the name "type_info" briefly so the name can be used
          in generating the virtual function table name. */
       char *saved_name = user_type_info_type->source_corresp.name;
-#if RUNTIME_USES_NAMESPACES
-      /* Add a parent pointer for the "std" namespace temporarily to get
-         the mangled name right. */
-      check_assertion(symbol_for_namespace_std != NULL);
-      user_type_info_type->source_corresp.parent.namespace_ptr =
+      if (type_info_in_namespace_std) {
+        /* Add a parent pointer for the "std" namespace temporarily to get
+           the mangled name right. */
+        check_assertion(symbol_for_namespace_std != NULL);
+        user_type_info_type->source_corresp.parent.namespace_ptr =
                           symbol_for_namespace_std->variant.namespace_info.ptr;
-#endif /* RUNTIME_USES_NAMESPACES */
+      }  /* if */
       user_type_info_type->source_corresp.name = "type_info";
       vtbl_for_type_info =
                    make_var_for_virtual_function_table(user_type_info_type,
                                                        (a_base_class_ptr)NULL,
                                                        (a_base_class_ptr)NULL);
       user_type_info_type->source_corresp.name = saved_name;
-#if RUNTIME_USES_NAMESPACES
-      user_type_info_type->source_corresp.parent.namespace_ptr = NULL;
-#endif /* RUNTIME_USES_NAMESPACES */
+      if (type_info_in_namespace_std) {
+        user_type_info_type->source_corresp.parent.namespace_ptr = NULL;
+      }  /* if */
     }  /* if */
     set_variable_address_constant(vtbl_for_type_info, vptr_con,
                                   /*set_address_taken_flag=*/TRUE);
