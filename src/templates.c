@@ -16046,7 +16046,7 @@ and "do not instantiate" flags are set here.
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   /* Output information about exported templates defined in this
      translation unit. */
-  if (export_template_allowed) {
+  if (export_template_allowed && generate_template_files()) {
     generate_exported_template_file();
   }  /* if */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
