@@ -815,6 +815,7 @@ state.
         cssp->has_copy_constructor = FALSE;
         cssp->has_copy_constructor_for_const_object = FALSE;
         cssp->assignment_by_bitwise_copy_allowed = FALSE;
+        cssp->construction_by_bitwise_copy_allowed = FALSE;
         cssp->target_of_conversion_function = FALSE;
         cssp->any_ref_member = FALSE;
         cssp->any_nested_classes = FALSE;

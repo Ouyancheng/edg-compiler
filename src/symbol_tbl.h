@@ -431,6 +431,10 @@ typedef struct a_class_symbol_supplement {
 			   not user-defined and when the current class has no
 			   virtual base classes and no subobjects for which
 			   bitwise copy is not allowed). */
+  unsigned int	construction_by_bitwise_copy_allowed:1;
+			/* TRUE if copy construction can be performed by a
+			   bitwise copy rather than by calling a copy
+			   constructor function. */
   unsigned int  target_of_conversion_function:1;
 			/* TRUE if this class is the target of a user-defined
 			   conversion function (for conversion from another
