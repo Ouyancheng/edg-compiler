@@ -242,6 +242,18 @@ static a_boolean
 			   added entities should be generated at the end of
 			   the compilation. */
 
+static FILE	*f_definition_list;
+			/* File variable associated with the definition list
+			   file being used, if any. */
+
+static FILE	*f_exported_template_input;
+			/* The current exported template file (.et) being
+			   processed, if any. */
+
+static FILE	*f_export_info;
+			/* File variable associated with the export information
+			   file being processed, if any. */
+
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
 typedef struct a_can_instantiate_entry *a_can_instantiate_entry_ptr;
@@ -964,6 +976,7 @@ already exists.
   if (f_template_info != NULL) {
     /* Close the file if it is open. */
     if (fclose(f_template_info)) {
+      f_template_info = NULL;
       str_catastrophe(ec_file_write_error, "template information file");
     }  /* if */
   }  /* if */
@@ -1056,6 +1069,7 @@ have already existed.
     write_to_exported_template_file(etlt_end, "");
     /* Close the file if it is open. */
     if (fclose(f_exported_template)) {
+      f_exported_template = NULL;
       str_catastrophe(ec_file_write_error, "exported template file");
     }  /* if */
   }  /* if */
@@ -17608,6 +17622,7 @@ were entered in the hash table; otherwise returns FALSE.
       result = TRUE;
     }  /* while */
     (void)fclose(f_instantiation_request);
+    f_instantiation_request = NULL;
   }  /* if */
   return result;
 }  /* read_instantiation_request_file */
@@ -17620,7 +17635,6 @@ definition list file and enter them into the instance table.
 Return TRUE if any entries were read.
 */
 {
-  FILE		*f_definition_list;
   char		*line;
   a_boolean	result = FALSE;
 
@@ -17641,6 +17655,7 @@ Return TRUE if any entries were read.
       result = TRUE;
     }  /* while */
     (void)fclose(f_definition_list);
+    f_definition_list = NULL;
   }  /* if */
   return result;
 }  /* read_definition_list_file */
@@ -18025,7 +18040,6 @@ source files.  For example:
 This routine reads all of the entries from a given exported template file.
 */
 {
-  FILE				*f_file;
   char				*line;
   an_exported_template_file_ptr	etfp = NULL;
   a_def_undef_string_ptr	def_list = NULL;
@@ -18033,8 +18047,9 @@ This routine reads all of the entries from a given exported template file.
   a_def_undef_string_ptr	undef_list = NULL;
   a_def_undef_string_ptr	undef_end = NULL;
 
-  f_file = open_exported_template_file_for_input(file_name, dnep);
-  while ((line = read_line_from_file(f_file)) != NULL) {
+  f_exported_template_input =
+                        open_exported_template_file_for_input(file_name, dnep);
+  while ((line = read_line_from_file(f_exported_template_input)) != NULL) {
     an_exported_template_line_type	line_type;
     /* Identify the line type. */
     line_type = get_exported_line_type(line);
@@ -18096,7 +18111,8 @@ This routine reads all of the entries from a given exported template file.
     }  /* if */
   }  /* while */
   /* Close the file. */
-  (void)fclose(f_file);
+  (void)fclose(f_exported_template_input);
+  f_exported_template_input = NULL;
 }  /* read_exported_template_file */
 
 
@@ -18201,7 +18217,6 @@ to look for the file.  "eifp" is the entry into which the information from
 the file should be placed.
 */
 {
-  FILE				*f_file;
   char				*line;
   int				line_number = 0;
   a_directory_name_entry_ptr	search_path = NULL;
@@ -18210,8 +18225,8 @@ the file should be placed.
   a_directory_name_entry_ptr	sys_include_boundary = NULL;
 
   /* Attempt to open the export information file in the specified directory. */
-  f_file = open_export_info_file(eifp);
-  if (f_file == NULL) {
+  f_export_info = open_export_info_file(eifp);
+  if (f_export_info == NULL) {
     /* There is no export information file.  Use the search path for
        the primary file. */
     search_path = incl_search_path;
@@ -18225,7 +18240,7 @@ the file should be placed.
                                            &search_path, &end_search_path);
     }  /* if */
     /* Read the file contents. */
-    while ((line = read_line_from_file(f_file)) != NULL) {
+    while ((line = read_line_from_file(f_export_info)) != NULL) {
       char	*param_name;
       char	*value;
       char	*ptr = line;
@@ -18256,7 +18271,8 @@ the file should be placed.
       }  /* if */
     }  /* while */
     /* Close the export information file. */
-    (void)fclose(f_file);
+    (void)fclose(f_export_info);
+    f_export_info = NULL;
     /* Add the default include directory to the end of the list. */
     add_default_include_search_path(&search_path, &end_search_path);
     if (sys_include_boundary != NULL) {
@@ -18926,7 +18942,6 @@ for adding the entries to the actual instantiation request file.
 */
 {
   a_master_instance_ptr		mip;
-  FILE				*f_definition_list;
 #if MAINTAIN_NEEDED_FLAGS
   a_boolean			needed = FALSE;
 #endif /* MAINTAIN_NEEDED_FLAGS */
@@ -18985,8 +19000,10 @@ for adding the entries to the actual instantiation request file.
 #endif /* DEBUG */
   }  /* for */
   if (fclose(f_definition_list)) {
+    f_definition_list = NULL;
     str_catastrophe(ec_file_write_error, "definition list file");
   }  /* if */
+  f_definition_list = NULL;
 }  /* add_entities_to_request_file */
 
 #if ONE_INSTANTIATION_PER_OBJECT
@@ -21439,11 +21456,34 @@ Initializations for template.
   f_instantiation_request = NULL;
   f_template_info = NULL;
   f_exported_template = NULL;
+  f_definition_list = NULL;
   remove_exported_template_file = FALSE;
   memzero((char *)instance_lookup_table, sizeof(instance_lookup_table));
   memzero((char *)template_lookup_table, sizeof(template_lookup_table));
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 }  /* templates_init */
+
+#if MAKE_FRONT_END_CALLABLE
+
+void templates_cleanup(void)
+/*
+This routine is called at the end of compilation, or if compilation is
+terminated prematurely for some reason.  It performs any cleanup operations
+required.  In particular, it closes any files that may have been open at
+the point at which the compilation was terminated.
+*/
+{
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
+  close_file_if_open(&f_instantiation_request);
+  close_file_if_open(&f_definition_list);
+  close_file_if_open(&f_template_info);
+  close_file_if_open(&f_exported_template);
+  close_file_if_open(&f_exported_template_input);
+  close_file_if_open(&f_export_info);
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+}  /* templates_cleanup */
+
+#endif /* MAKE_FRONT_END_CALLABLE */
 
 /******************************************************************************
 *                                                             \  ___  /       *

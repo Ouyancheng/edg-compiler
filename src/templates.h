@@ -478,6 +478,10 @@ extern void templates_trans_unit_init(void);
 
 extern void templates_init(void);
 
+#if MAKE_FRONT_END_CALLABLE
+extern void templates_cleanup(void);
+#endif /* MAKE_FRONT_END_CALLABLE */
+
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
 extern void wrapup_auto_instantiation_information(void);
 extern void update_auto_instantiation_flags(void);

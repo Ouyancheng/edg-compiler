@@ -195,12 +195,11 @@ status is returned to the caller.
   cfe_main(argc, argv);
   /*NOTREACHED*/
 #else /* MAKE_FRONT_END_CALLABLE */
-
   if (setjmp(edg_main_setjmp_buffer) == 0) {
     cfe_main(argc, argv);
   }  /* if */
-  /* Free all memory used by the compilation. */
-  mem_manage_wrapup();
+  /* Free all resources used by the compilation. */
+  fe_cleanup();
   return exit_status;
 #endif /* !MAKE_FRONT_END_CALLABLE */
 }  /* EDG_MAIN */

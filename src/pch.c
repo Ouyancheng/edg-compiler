@@ -1443,6 +1443,7 @@ current point.
   is_complete = TRUE;
   pch_write_value(is_complete);
   (void)fclose(f_pch_output);
+  f_pch_output = NULL;
 }  /* write_precompiled_header_file */
 
 
@@ -1898,7 +1899,10 @@ directory.  Return TRUE if an applicable PCH was found.
 #endif /* DEBUG */
     /* See if this PCH file can be used. */
     last_matching_event = pch_is_applicable();
-    if (f_pch_input != NULL) (void)fclose(f_pch_input);
+    if (f_pch_input != NULL) {
+      (void)fclose(f_pch_input);
+      f_pch_input = NULL;
+    }  /* if */
     is_applicable = last_matching_event != NULL;
     if (is_applicable) result = TRUE;
 #if DEBUG
@@ -2105,7 +2109,10 @@ may be used.
     /* Update the IL header to reflect the information in the PCH file. */
     pch_fixup_part_1();
   }  /* if */
-  if (f_pch_input != NULL) (void)fclose(f_pch_input);
+  if (f_pch_input != NULL) {
+    (void)fclose(f_pch_input);
+    f_pch_input = NULL;
+  }  /* if */
   db_exit();
 }  /* restore_precompiled_header_information */
 
@@ -2276,6 +2283,21 @@ This is done before command line processing.
   num_of_saved_variable_lists = 0;
 }  /* pch_early_init */
 
+#if MAKE_FRONT_END_CALLABLE
+
+void pch_cleanup(void)
+/*
+This routine is called at the end of compilation, or if compilation is
+terminated prematurely for some reason.  It performs any cleanup operations
+required.  In particular, it closes any files that may have been open at
+the point at which the compilation was terminated.
+*/
+{
+  close_file_if_open(&f_pch_input);
+  close_file_if_open(&f_pch_output);
+}  /* pch_cleanup */
+
+#endif /* MAKE_FRONT_END_CALLABLE */
 
 /******************************************************************************
 *                                                             \  ___  /       *

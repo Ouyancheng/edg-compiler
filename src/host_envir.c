@@ -1428,6 +1428,18 @@ have_file:;
 }  /* open_temp_file */
 
 
+void close_file_if_open(FILE	**f_file)
+/*
+Close the file specified by *f_file and set the file pointer to NULL.
+*/
+{
+  if (*f_file != NULL) {
+    (void)fclose(*f_file);
+    *f_file = NULL;
+  }  /* if */
+}  /* close_file_if_open */
+
+
 void close_temp_file(FILE *temp_file)
 /*
 Close and delete the indicated temporary file.
@@ -1540,6 +1552,14 @@ Only write the signoff if there ARE errors, and if we are supposed to.
 #endif /* WRITE_SIGNOFF_MESSAGE && !STANDALONE_UTILITY_PROGRAM */
 }  /* write_signoff */
 
+#if MAKE_FRONT_END_CALLABLE
+
+static a_boolean
+		signal_caught = FALSE;
+			/* Set to TRUE if a signal has been caught.  We
+			   should really exit the compilation in such cases. */
+
+#endif /* MAKE_FRONT_END_CALLABLE */
 
 static DOES_NOT_RETURN cfe_exit(int status)
 /*
@@ -1553,8 +1573,13 @@ routine of the front end, so that it can return to the caller.
   exit(status);
   /*NOTREACHED*/
 #else /* MAKE_FRONT_END_CALLABLE */
-  exit_status = status;
-  longjmp(edg_main_setjmp_buffer, 1);
+  /* If a signal was caught, actually exit the compilation. */
+  if (signal_caught) {
+    exit(status);
+  } else {
+    exit_status = status;
+    longjmp(edg_main_setjmp_buffer, 1);
+  }  /* if */
 #endif /* !MAKE_FRONT_END_CALLABLE */
 }  /* cfe_exit */
 
@@ -1565,8 +1590,6 @@ Exit the compilation.  severity indicates the severity of the most
 severe diagnostic issued in this compilation.  This routine does not return.
 */
 {
-  /* Free all memory used by the compilation. */
-  mem_manage_wrapup();
 #if !USING_DRIVER && !STANDALONE_UTILITY_PROGRAM
   /* For the more serious severities, write a message about the abrupt
       termination. */
@@ -1638,6 +1661,9 @@ receipt of a signal.
   /* Print newline to make console output clean. */
   fprintf(stderr, "\n");
 #endif /* !USING_DRIVER */
+#if MAKE_FRONT_END_CALLABLE
+  signal_caught = TRUE;
+#endif /* MAKE_FRONT_END_CALLABLE */
   term_compilation(es_catastrophe);
   /*NOTREACHED*/
 }  /* term_on_signal */
@@ -2505,7 +2531,7 @@ void close_mapped_il_temp_file(void)
 Close the file used for allocation of file mapped memory for IL memory blocks.
 */
 {
-  (void)CloseHandle(f_mmap_file);
+  if (f_mmap_file != NULL) (void)CloseHandle(f_mmap_file);
 }  /* close_mapped_il_temp_file */
 
 
@@ -2850,7 +2876,8 @@ void close_mapped_il_temp_file(void)
 Close the file used for allocation of file mapped memory for IL memory blocks.
 */
 {
-  (void)fclose(f_mmap_file);
+  if (f_mmap_file) (void)fclose(f_mmap_file);
+  f_mmap_file = NULL;
 }  /* close_mapped_il_temp_file */
 
 #endif /* EDG_WIN32 */
@@ -2939,10 +2966,23 @@ Used for debugging purposes.
 */
 {
   struct rlimit	limit;
+  (void)getrlimit(RLIMIT_CPU, &limit);
   limit.rlim_cur = seconds;
-  limit.rlim_max = seconds;
   (void)setrlimit(RLIMIT_CPU, &limit);
 }  /* set_cpu_time_limit */
+
+
+static void reset_cpu_time_limit(void)
+/*
+Reset the maximum amount of CPU time that can be used by the compilation
+in case it had been previously changed by set_cpu_time_limit.
+*/
+{
+  struct rlimit	limit;
+  (void)getrlimit(RLIMIT_CPU, &limit);
+  limit.rlim_cur = RLIM_INFINITY;
+  (void)setrlimit(RLIMIT_CPU, &limit);
+}  /* reset_cpu_time_limit */
 
 #endif /* !EDG_WIN32 */
 #endif /* DEBUG */
@@ -3308,12 +3348,18 @@ One time initialization that must take place early on in the front end.
 This is done before command line processing.
 */
 {
-  char  *ptr;
-  /* Set handlers for unusual abort signals. */
-  set_signal_handlers();
+  char			*ptr;
+  static a_boolean	first_time = TRUE;
+
+  if (first_time) {
+    /* Set handlers for unusual abort signals.  This is only done on the
+       first call, even if the front end can be restarted. */
+    set_signal_handlers();
 #if SVR4_TRAP_NULL_POINTER_REFERENCES
-  svr4_trap_null_pointer_references();
+    svr4_trap_null_pointer_references();
 #endif /* SVR4_TRAP_NULL_POINTER_REFERENCES */
+    first_time = FALSE;
+  }  /* if */
   /* The temp_text_buffer is initialized here because it is used by
      get_curr_dir_name on some systems. */
   temp_text_buffer = NULL;
@@ -3379,6 +3425,21 @@ This is done before command line processing.
 #if MAKE_FRONT_END_CALLABLE
   exit_status = 0;
 #endif /* MAKE_FRONT_END_CALLABLE */
+#if USE_MMAP_FOR_MEMORY_REGIONS
+#if EDG_WIN32
+  f_mmap_file = NULL;
+  f_mapped_input = NULL;
+  f_map_object = NULL;
+#else /* !EDG_WIN32 */
+  f_mmap_file = NULL;
+  mmap_file_number = 0;
+#endif /* EDG_WIN32 */
+#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
+#if DEBUG
+#if !EDG_WIN32
+  reset_cpu_time_limit();
+#endif /* !EDG_WIN32 */
+#endif /* DEBUG */
   /* Make sure the predefined macro mode enumeration and the array of
      mode names match. */
   check_assertion_str2(predef_macro_mode_names[(int)pmm_last] != NULL &&

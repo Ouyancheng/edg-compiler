@@ -215,6 +215,10 @@ extern void error_early_init(void);
 extern void error_one_time_init(void);
 extern void error_trans_unit_init(void);
 extern void error_init(void);
+#if MAKE_FRONT_END_CALLABLE
+extern void error_cleanup(void);
+#endif /* MAKE_FRONT_END_CALLABLE */
+
 extern a_line_number initialize_file_index(struct a_source_file *src_file);
 extern a_line_number update_file_index(struct a_source_file *src_file,
                                        a_line_number        physical_line,

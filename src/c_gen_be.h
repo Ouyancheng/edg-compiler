@@ -38,6 +38,10 @@ EXTERN char	*module_list_for_union_init /* = NULL */;
 extern void back_end(void);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
+#if MAKE_FRONT_END_CALLABLE
+extern void c_gen_be_cleanup(void);
+#endif /* MAKE_FRONT_END_CALLABLE */
+
 #endif /* BACK_END_IS_C_GEN_BE */
 
 #endif /* ifndef C_GEN_BE_H */

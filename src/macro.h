@@ -140,6 +140,10 @@ extern void macro_trans_unit_init(void);
 
 extern void macro_init(void);
 
+#if MAKE_FRONT_END_CALLABLE
+extern void macro_cleanup(void);
+#endif /* MAKE_FRONT_END_CALLABLE */
+
 /* When variadic macros are enabled, the identifier __VA_ARGS__ can only
    appear in the replacement lists of variadic macros.  The following check
    appears in a few places, including lexical analysis of identifiers. */

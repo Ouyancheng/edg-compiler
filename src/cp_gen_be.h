@@ -27,6 +27,10 @@ cp_gen_be.h - Declarations related to cp_gen_be.c (C++/C-generating back end).
 extern void back_end(void);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
+#if MAKE_FRONT_END_CALLABLE
+extern void cp_gen_be_cleanup(void);
+#endif /* MAKE_FRONT_END_CALLABLE */
+
 #endif /* BACK_END_IS_CP_GEN_BE */
 
 #endif /* ifndef CP_GEN_BE_H */

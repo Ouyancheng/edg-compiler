@@ -4878,6 +4878,22 @@ This is done before command line processing.
   memzero((char*)predef_macro_mode_values, sizeof(predef_macro_mode_values));
 }  /* cmd_line_early_init */
 
+#if MAKE_FRONT_END_CALLABLE
+
+void cmd_line_cleanup(void)
+/*
+This routine is called at the end of compilation, or if compilation is
+terminated prematurely for some reason.  It performs any cleanup operations
+required.  In particular, it closes any files that may have been open at
+the point at which the compilation was terminated.
+*/
+{
+  close_file_if_open(&f_pp_output);
+  close_file_if_open(&f_raw_listing);
+  close_file_if_open(&f_xref_info);
+}  /* cmd_line_cleanup */
+
+#endif /* MAKE_FRONT_END_CALLABLE */
 
 /******************************************************************************
 *                                                             \  ___  /       *

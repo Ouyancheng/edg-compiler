@@ -8980,6 +8980,25 @@ subroutine called in the same program as the front end.
 }  /* back_end */
 #endif /* STANDALONE_C_GEN_BE */
 
+#if MAKE_FRONT_END_CALLABLE
+
+void c_gen_be_cleanup(void)
+/*
+This routine is called at the end of compilation, or if compilation is
+terminated prematurely for some reason.  It performs any cleanup operations
+required.  In particular, it closes any files that may have been open at
+the point at which the compilation was terminated.
+*/
+{
+  close_file_if_open(&f_primary);
+#if !C_GEN_BE_GENERATES_ANSI_C
+  close_file_if_open(&f_file_scope_inits);
+#endif /* !C_GEN_BE_GENERATES_ANSI_C */
+  close_file_if_open(&f_rout_dynamic_inits);
+}  /* c_gen_be_cleanup */
+
+#endif /* MAKE_FRONT_END_CALLABLE */
+
 #else /* !BACK_END_IS_C_GEN_BE */
 
 #ifdef USING_QUANTIFY
@@ -8991,7 +9010,6 @@ char quantify_dummy_in_c_gen_be;
 #endif /* ifndef USING_QUANTIFY */
 
 #endif /* BACK_END_IS_C_GEN_BE */
-
 
 /******************************************************************************
 *                                                             \  ___  /       *

@@ -557,6 +557,7 @@ a temporary_file.
 #if BACK_END_SHOULD_BE_CALLED
     }  /* if */
 #endif /* BACK_END_SHOULD_BE_CALLED */
+    f_il_output = NULL;
   }  /* if */
 }  /* close_il_output_file */
 

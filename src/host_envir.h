@@ -55,6 +55,22 @@ information file cannot be used with driver versions prior to 2.37.
 #endif /* ifndef DRIVER_COMPATIBILITY_VERSION */
 
 /*
+TRUE if the front end is to be called as a subroutine of another
+program, or as a library.  When this is TRUE, the front end has
+no main program of its own and exits via a return to the caller.
+This defaults to TRUE if an alternate name of the main routine has
+been specified (via the EDG_MAIN macro).
+*/
+#ifndef MAKE_FRONT_END_CALLABLE
+#ifdef EDG_MAIN
+#define MAKE_FRONT_END_CALLABLE TRUE
+#else /* ifndef EDG_MAIN */
+#define MAKE_FRONT_END_CALLABLE FALSE
+#endif /* ifdef EDG_MAIN */
+#endif /* MAKE_FRONT_END_CALLABLE */
+
+
+/*
 Return codes to be used when the highest error severity is as given:
 */
 #if __VMS__
@@ -71,10 +87,15 @@ Return codes to be used when the highest error severity is as given:
 
 /*
 If this switch is set, an internal error causes an exit instead of
-an abort.
+an abort.  When the front end is callable, this should be TRUE so that
+an internal error will result in a return to the caller.
 */
 #ifndef EXIT_ON_INTERNAL_ERROR
+#if MAKE_FRONT_END_CALLABLE
+#define EXIT_ON_INTERNAL_ERROR TRUE
+#else /* !MAKE_FRONT_END_CALLABLE */
 #define EXIT_ON_INTERNAL_ERROR FALSE
+#endif /* MAKE_FRONT_END_CALLABLE */
 #endif /* ifndef EXIT_ON_INTERNAL_ERROR */
 
 /*
@@ -190,22 +211,6 @@ to use this flag to test that a pointer lies in a certain range.
   ((unsigned long)(start) <= (unsigned long)(ptr) && \
    (unsigned long)(ptr) < (unsigned long)(after_end))
 #endif /* ADDRS_NOT_IN_SAME_ARRAY_CAN_BE_COMPARED */
-
-/*
-TRUE if the front end is to be called as a subroutine of another
-program, or as a library.  When this is TRUE, the front end has
-no main program of its own and exits via a return to the caller.
-This defaults to TRUE if an alternate name of the main routine has
-been specified (via the EDG_MAIN macro).
-*/
-#ifndef MAKE_FRONT_END_CALLABLE
-#ifdef EDG_MAIN
-#define MAKE_FRONT_END_CALLABLE TRUE
-#else /* ifndef EDG_MAIN */
-#define MAKE_FRONT_END_CALLABLE FALSE
-#endif /* ifdef EDG_MAIN */
-#endif /* MAKE_FRONT_END_CALLABLE */
-
 
 /*
 If the front end is to be called as a function, the EDG_MAIN macro provides
@@ -2098,6 +2103,8 @@ extern void delete_file(char *file_name);
 extern FILE *open_temp_file(a_boolean binary_file);
 /* Close a temporary file. */
 extern void close_temp_file(FILE *temp_file);
+/* If not NULL, close *f_file. */
+extern void close_file_if_open(FILE	**f_file);
 
 /*
 Types used to determine the execution time of the compiler.

@@ -11777,6 +11777,21 @@ as the front end.
 }  /* back_end */
 #endif /* (else of) STANDALONE_CP_GEN_BE */
 
+#if MAKE_FRONT_END_CALLABLE
+
+void cp_gen_be_cleanup(void)
+/*
+This routine is called at the end of compilation, or if compilation is
+terminated prematurely for some reason.  It performs any cleanup operations
+required.  In particular, it closes any files that may have been open at
+the point at which the compilation was terminated.
+*/
+{
+  close_file_if_open(&f_C_output);
+}  /* cp_gen_be_cleanup */
+
+#endif /* MAKE_FRONT_END_CALLABLE */
+
 #else /* !BACK_END_IS_CP_GEN_BE */
 
 #ifdef USING_QUANTIFY

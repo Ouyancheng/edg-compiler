@@ -1349,6 +1349,10 @@ extern void add_to_def_undef_list(char                   *str,
                                   a_def_undef_string_ptr *du_list,
                                   a_def_undef_string_ptr *du_list_end);
 
+#if MAKE_FRONT_END_CALLABLE
+extern void cmd_line_cleanup(void);
+#endif /* MAKE_FRONT_END_CALLABLE */
+
 #endif /* ifndef CMD_LINE_H */
 
 /******************************************************************************

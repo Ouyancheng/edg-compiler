@@ -4075,6 +4075,7 @@ at the next level down.
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
   /* Close the current input file. */
   (void)fclose(curr_input_stream);
+  curr_ise->file = NULL;
   eof_read_on_curr_input_stream = FALSE;
   at_end_of_source_file = FALSE;
   /* If preprocessing output is being generated, force out the previous
@@ -14426,6 +14427,25 @@ of the front end.
 #endif /* CHECKING */
 }  /* lexical_init */
 
+#if MAKE_FRONT_END_CALLABLE
+
+void lexical_cleanup(void)
+/*
+This routine is called at the end of compilation, or if compilation is
+terminated prematurely for some reason.  It performs any cleanup operations
+required.  In particular, it closes any files that may have been open at
+the point at which the compilation was terminated.
+*/
+{
+  int	depth;
+
+  /* Close any files on the input stack that are currently open. */
+  for (depth = depth_input_stack; depth >= 0; --depth) {
+    close_file_if_open(&input_stack[depth].file);
+  }  /* for */
+}  /* lexical_cleanup */
+
+#endif /* MAKE_FRONT_END_CALLABLE */
 
 /******************************************************************************
 *                                                             \  ___  /       *

@@ -292,7 +292,7 @@ Add an entry to the memory allocation history array.
     old_size = size_of_mem_alloc_history;
     new_size = old_size + MEM_ALLOC_HISTORY_INCREMENTAL_ALLOCATION;
     size_of_mem_alloc_history = new_size;
-    mem_alloc_history = (a_mem_alloc_history_ptr)realloc_with_check
+    mem_alloc_history = (a_mem_alloc_history_ptr)realloc_buffer
                           ((char *)mem_alloc_history,
 	                   (sizeof_t)(old_size * sizeof(a_mem_alloc_history)),
 		           (sizeof_t)(new_size * sizeof(a_mem_alloc_history)));

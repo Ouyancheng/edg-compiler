@@ -47,6 +47,9 @@ fe_wrapup.c - End of front end processing.
 #include "preproc.h"
 #include "statements.h"
 #endif /* DEBUG */
+#if MAKE_FRONT_END_CALLABLE
+#include "pch.h"
+#endif /* MAKE_FRONT_END_CALLABLE */
 #if MAINTAIN_NEEDED_FLAGS || DO_IL_LOWERING
 #include "il_walk.h"
 #endif /* MAINTAIN_NEEDED_FLAGS || DO_IL_LOWERING */
@@ -775,6 +778,7 @@ and before the back end (if any) is executed.
       str_catastrophe(ec_file_write_error, "raw listing");
     }  /* if */
   }  /* if */
+  f_raw_listing = NULL;
 
   /* Close the cross-reference file if one is being generated. */
   if (f_xref_info != NULL) {
@@ -782,6 +786,7 @@ and before the back end (if any) is executed.
       str_catastrophe(ec_file_write_error, "cross-reference");
     }  /* if */
   }  /* if */
+  f_xref_info = NULL;
 
 #if DEBUG
   if (display_space_used || debug_level > 0 || db_flag_is_set("space_used")) {
@@ -833,6 +838,35 @@ and after the back end (if any) is executed.
   write_signoff();
 }  /* fe_wrapup_part_2 */
 
+#if MAKE_FRONT_END_CALLABLE
+
+void fe_cleanup(void)
+/*
+Clean up any resources used by this compilation.  This routine may be called
+at the end of a normal compilation, or may be called at any point during
+a compilation that was abnormally terminated for some reason.  This routine
+calls routines to close any files that may be open, and frees all of the
+memory used by the compilation.
+*/
+{
+  cmd_line_cleanup();
+  macro_cleanup();
+  templates_cleanup();
+#if BACK_END_IS_C_GEN_BE
+#endif /* BACK_END_IS_C_GEN_BE */
+#if BACK_END_IS_CP_GEN_BE
+  cp_gen_be_cleanup();
+#endif /* BACK_END_IS_CP_GEN_BE */
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+  close_il_output_file();
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+  error_cleanup();
+  pch_cleanup();
+  lexical_cleanup();
+  mem_manage_wrapup();
+}  /* fe_cleanup */
+
+#endif /* MAKE_FRONT_END_CALLABLE */
 
 /******************************************************************************
 *                                                             \  ___  /       *

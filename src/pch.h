@@ -284,6 +284,10 @@ extern void pch_init(void);
 
 extern void pch_early_init(void);
 
+#if MAKE_FRONT_END_CALLABLE
+extern void pch_cleanup(void);
+#endif /* MAKE_FRONT_END_CALLABLE */
+
 #if DEBUG
 extern unsigned long db_show_pch_space_used(unsigned long grand_total);
 #endif /* DEBUG */

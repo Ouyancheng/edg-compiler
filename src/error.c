@@ -1673,6 +1673,10 @@ file which is closer to the desired line.
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 #if !STANDALONE_UTILITY_PROGRAM
 
+static FILE	*f_err_src_file;
+			/* File variable used to fetch the source line from
+			   the source file. */
+
 static a_boolean can_locate_source_line(a_seq_number seq_number)
 /*
 Determine the actual file which contains the specified sequence number.  If
@@ -1685,7 +1689,6 @@ error_source_line for later use by diagnostic output functions.
   long              seek_position;
   a_boolean         at_end_of_source;
   a_boolean         src_line_found = FALSE;
-  FILE              *f_err_src_file;
   int               ch;
   register char     *loc_in_line;
   char              *after_end_of_error_source_line_minus_2;
@@ -1779,6 +1782,7 @@ error_source_line for later use by diagnostic output functions.
 
 close_file:
       (void)fclose(f_err_src_file);
+      f_err_src_file = NULL;
     }  /* if */
   }  /* if */
     
@@ -4732,11 +4736,12 @@ line processing is done.
   context_limit = DEFAULT_CONTEXT_LIMIT;
   strict_ansi_error_severity = es_warning;
   strict_ansi_discretionary_severity = es_warning;
+  f_err_src_file = NULL;
   anachronism_error_severity
 #if DEFAULT_ALLOW_ANACHRONISMS
                              = es_warning;
 #else /* DEFAULT_ALLOW_ANACHRONISMS */
-                            = es_error;
+                             = es_error;
 #endif /* DEFAULT_ALLOW_ANACHRONISMS */
   brief_diagnostics = DEFAULT_BRIEF_DIAGNOSTICS;
   do_not_wrap_diagnostics = FALSE;
@@ -4791,6 +4796,21 @@ of each compilation.
   memzero((char *)recorded_diagnostic_table,
           sizeof(recorded_diagnostic_table));
 }  /* error_init */
+
+#if MAKE_FRONT_END_CALLABLE
+
+void error_cleanup(void)
+/*
+This routine is called at the end of compilation, or if compilation is
+terminated prematurely for some reason.  It performs any cleanup operations
+required.  In particular, it closes any files that may have been open at
+the point at which the compilation was terminated.
+*/
+{
+  close_file_if_open(&f_err_src_file);
+}  /* error_cleanup */
+
+#endif /* MAKE_FRONT_END_CALLABLE */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 

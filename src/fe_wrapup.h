@@ -23,6 +23,10 @@ extern void fe_wrapup(void);
 
 extern void fe_wrapup_part_2(void);
 
+#if MAKE_FRONT_END_CALLABLE
+extern void fe_cleanup(void);
+#endif /* MAKE_FRONT_END_CALLABLE */
+
 #endif /* ifndef FE_WRAPUP_H */
 
 /******************************************************************************

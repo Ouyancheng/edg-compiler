@@ -5500,6 +5500,9 @@ Return the file descriptor.
   return f_file;
 }  /* open_predefined_macro_file */
 
+static FILE	*f_predef_macros;
+			/* The file descriptor for the predefined macros
+			   file. */
 
 static void process_predefined_macro_file(void)
 /*
@@ -5511,7 +5514,6 @@ PREDEFINED_MACRO_FILE_NAME is a macro whose value is used to create the
 file name.
 */
 {
-  FILE		*f_predef_macros;
   char		*line;
   unsigned long	line_number = 0;
   char		*error_string;
@@ -5527,6 +5529,7 @@ file name.
     }  /* if */
   }  /* while */
   (void)fclose(f_predef_macros);
+  f_predef_macros = NULL;
 }  /* process_predefined_macro_file */
 
 
@@ -5985,6 +5988,7 @@ Do one-time initialization of variables related to macro processing.
 #endif /* DEBUG */
   registered_pointers = NULL;
   macro_buffer_region_in_progress = NULL;
+  f_predef_macros = NULL;
   /* Save variables from macro.h and macro.c that are needed for
      precompiled headers */
   if (precompiled_header_processing_required) {
@@ -6087,6 +6091,20 @@ initialized for each compilation.
 #endif /* DEBUG */
 }  /* macro_init */
 
+#if MAKE_FRONT_END_CALLABLE
+
+void macro_cleanup(void)
+/*
+This routine is called at the end of compilation, or if compilation is
+terminated prematurely for some reason.  It performs any cleanup operations
+required.  In particular, it closes any files that may have been open at
+the point at which the compilation was terminated.
+*/
+{
+  close_file_if_open(&f_predef_macros);
+}  /* macro_cleanup */
+
+#endif /* MAKE_FRONT_END_CALLABLE */
 
 /******************************************************************************
 *                                                             \  ___  /       *
