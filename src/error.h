@@ -555,7 +555,8 @@ typedef enum /*an_error_code*/ {
   ec_enum_type_not_allowed,
   ec_qualified_reference_type,
   ec_incompatible_assignment_operands,
-  ec_unsigned_compare_with_negative
+  ec_unsigned_compare_with_negative,
+  ec_calling_function_with_incomplete_return_type
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
