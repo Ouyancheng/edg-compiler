@@ -7390,6 +7390,11 @@ curr_token is already set in that case.
          cases where they appear after a string are handled by
          calling here. */
       set_curr_token_to_function_name_string(/*do_concat=*/FALSE);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (curr_token == tok_microsoft_lprefix) {
+      /* Similar handling for the Microsoft __LPREFIX operator. */
+      (void)set_curr_token_to_microsoft_lprefix_operator_string();
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
     /* End the loop if the new token is not a string literal. */
     if (curr_token != tok_string_literal) break;

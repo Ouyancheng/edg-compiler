@@ -14460,6 +14460,81 @@ end_of_routine:
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
+a_boolean set_curr_token_to_microsoft_lprefix_operator_string(void)
+/*
+Scan the Microsoft __LPREFIX operator.  __LPREFIX("string") is treated
+as L"string".  This is used when token pasting is done on L##__FUNCTION__
+and the other function-name tokens.  Set the current token to the
+string literal that results and return TRUE.  If there is an error in
+scanning, return FALSE; in that case the current token is the next
+token following the operator, and should not be discarded.
+*/
+{
+  a_boolean         err = FALSE;
+  a_source_position start_position;
+
+  start_position = pos_curr_token;
+  /* Get past the opening __LPREFIX token. */
+  check_assertion(curr_token == tok_microsoft_lprefix);
+  (void)get_token();
+  /* Check for the opening "(". */
+  (void)required_token(tok_lparen, ec_exp_lparen);
+  add_stop_token(tok_rparen);
+  if (token_is_function_name_string_literal(curr_token)) {
+    set_curr_token_to_function_name_string(/*do_concat=*/FALSE);
+  }  /* if */
+  if (curr_token != tok_string_literal) {
+    syntax_error(ec_exp_string_literal);
+    err = TRUE;
+  } else {
+    if (is_error_constant(&const_for_curr_token)) {
+      /* The string constant is invalid (e.g., invalid closing quote). */
+      (void)get_token();
+      err = TRUE;
+    } else {
+      check_assertion(const_for_curr_token.kind ==
+                                              (a_constant_repr_kind)ck_string);
+      /* Widen the string unless it's already wide. */
+      if (!is_wchar_t_array_type(const_for_curr_token.type)) {
+        widen_string_literal(&const_for_curr_token);
+      }  /* if */
+      if (next_token() == tok_rparen) {
+        /* Everything looks good. */
+        /* Save the string literal token so we can restore it below. */
+        a_token_cache cache;
+        clear_token_cache(&cache, /*reusable=*/FALSE);
+        cache_curr_token(&cache);
+        /* Advance past the string literal token, getting the closing paren. */
+        (void)get_token();
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        curr_construct_end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+        /* Discard the closing parenthesis. */
+        (void)get_token();
+        rescan_cached_tokens(&cache);
+        /* Restore the string literal token as the result. */
+        rescan_cached_tokens(&cache);
+        pos_curr_token = start_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        end_pos_curr_token = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      } else {
+        /* Missing closing parenthesis. */
+        (void)get_token();
+        err = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (err) {
+    /* Check for the closing ")", but only for the error cases.  For the
+       normal case the closing parenthesis has already been consumed. */
+    (void)required_token(tok_rparen, ec_exp_rparen);
+  }  /* if */
+  remove_stop_token(tok_rparen);
+  return !err;
+}  /* set_curr_token_to_microsoft_lprefix_operator_string */
+
+
 static void scan_microsoft_lprefix_operator(an_operand *result)
 /*
 Scan the Microsoft __LPREFIX operator.  __LPREFIX("string") is treated
@@ -14482,44 +14557,27 @@ and the other function-name tokens.
     /* __LPREFIX not allowed in integral constant expression. */
     pos_error(ec_bad_integral_operator, &start_position);
     err = TRUE;
-  } else if (curr_expr_kind_is(ek_template_arg)) {
-    /* __LPREFIX not allowed in a template argument expression. */
-    pos_error(ec_bad_templ_arg_expr_operator, &start_position);
-    err = TRUE;
   }  /* if */
-  /* Get past the opening __LPREFIX token. */
-  (void)get_token();
-  /* Check for the opening "(". */
-  (void)required_token(tok_lparen, ec_exp_lparen);
-  add_matching_stop_token(tok_rparen);
-  if (token_is_function_name_string_literal(curr_token)) {
-    set_curr_token_to_function_name_string(/*do_concat=*/FALSE);
-  }  /* if */
-  if (curr_token != tok_string_literal) {
-    syntax_error(ec_exp_string_literal);
-    make_error_operand(result);
-  } else {
-    if (err || is_error_constant(&const_for_curr_token)) {
-      /* There was a previous error. */
-      make_error_operand(result);
-    } else {
-      check_assertion(const_for_curr_token.kind ==
-                                              (a_constant_repr_kind)ck_string);
-      /* Widen the string unless it's already wide. */
-      if (!is_wchar_t_array_type(const_for_curr_token.type)) {
-        widen_string_literal(&const_for_curr_token);
-      }  /* if */
-      make_string_constant_operand(&const_for_curr_token, result);
-    }  /* if */
+  /* Scan the operator and operand, and set the current token to
+     a constant string literal for the result. */
+  if (set_curr_token_to_microsoft_lprefix_operator_string()) {
+    make_string_constant_operand(&const_for_curr_token, result);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_position = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* Advance past the string literal token. */
     (void)get_token();
-  }  /* if */
+  } else {
+    /* Some error in the scan. */
+    err = TRUE;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  end_position = end_pos_curr_token;
+    end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  /* Check for the closing ")". */
-  (void)required_token(tok_rparen, ec_exp_rparen);
-  remove_matching_stop_token(tok_rparen);
+  }  /* if */
+  if (err) {
+    /* There was a previous error. */
+    make_error_operand(result);
+  }  /* if */
   set_operand_position(result, &start_position, &end_position,
                        &start_position);
 }  /* scan_microsoft_lprefix_operator */

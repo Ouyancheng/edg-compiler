@@ -85,6 +85,10 @@ extern a_boolean token_is_function_name_string_literal(a_token_kind token);
 
 extern void set_curr_token_to_function_name_string(a_boolean do_concat);
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+a_boolean set_curr_token_to_microsoft_lprefix_operator_string(void);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 #if MICROSOFT_EXTENSIONS_ALLOWED || BACK_END_IS_CP_GEN_BE
 extern char *spelling_for_function_name_token(a_token_kind token);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || BACK_END_IS_CP_GEN_BE */
