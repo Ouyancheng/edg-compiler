@@ -1125,7 +1125,7 @@ pointer to its work area which is larger than a normal integer value.
     work = value[i];
     value[i] = ((a_host_large_unsigned)value[i] + borrow) /
                                                 (a_host_large_unsigned)divisor;
-    borrow = (work % divisor) * INT_VALUE_PART_BASE;
+    borrow = ((work + borrow) % divisor) * INT_VALUE_PART_BASE;
   }  /* for */
 }  /* divide_by_int_value_part */
 

@@ -1,5 +1,13 @@
 Version 2.30
 
+9/22/95  Remainder operation bug when using simulated integers
+
+When INTEGER_VALUE_REPR_IS_A_HOST_INTEGER is FALSE (e.g., when
+long long operations are being emulated on a host that does not
+support long long) the remainder operation may produce incorrect
+results when the result value is itself a long long.  This has
+been corrected.
+
 9/20/95  Specifying the .ii file name on the command line
 
 The name of the instantiation information (.ii) file to be created/used
