@@ -115,7 +115,7 @@ error code.
       m = "quoted string should contain at least one character";
       break;
     case ec_too_many_characters:
-      m = "too many characters to fit in an \"int\"";
+      m = "too many characters in character constant";
       break;
     case ec_bad_character_value:
       m = "character value is out of range";
