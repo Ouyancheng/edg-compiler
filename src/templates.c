@@ -4004,6 +4004,30 @@ nothing).
 }  /* equiv_templates */
 
 
+static a_boolean identical_templates_given_symbol(a_symbol_ptr	sym1,
+				 	          a_symbol_ptr	sym2)
+/*
+Return TRUE if the templates specified symbol sym1 and sym2 are identical.
+sym1 and sym2 must be class template symbols, or may be NULL.  Note that
+this is a more restrictive test that equiv_templates in that equivalent
+template template parameters compare unequal.
+*/
+{
+  a_template_ptr	templ1;
+  a_template_ptr	templ2;
+  a_boolean		result = FALSE;
+
+  if (sym1 == sym2) {
+    result = TRUE;
+  } else if (sym1 != NULL && sym2 != NULL) {
+    templ1 = sym1->variant.template_info->il_template_entry;
+    templ2 = sym2->variant.template_info->il_template_entry;
+    result = same_entities(templ1, templ2);
+  }  /* if */
+  return result;
+}  /* identical_templates_given_symbol */
+
+
 static a_boolean equiv_nontype_template_param_names(
 						a_constant_ptr	con1,
 						a_constant_ptr	con2)
@@ -5213,7 +5237,8 @@ matches a class type from the parameter list of a template function.
   primary_template = primary_template_of(cssp->class_template);
   templ_primary_template = primary_template_of(templ_cssp->class_template);
   if (templ_cssp->class_template != NULL &&
-      primary_template == templ_primary_template &&
+      identical_templates_given_symbol(primary_template,
+                                       templ_primary_template) &&
       templ_type->variant.class_struct_union.is_nonreal_class) {
     /* The two classes refer to the same template, but templ_type
        is a nonreal instantiation -- i.e., one based on template
