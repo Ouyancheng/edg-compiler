@@ -9596,8 +9596,6 @@ The caller must guarantee that is_generalized_identifier_start is TRUE
         *err = TRUE;
         okay = FALSE;
       } else {
-        a_boolean			is_vacuous_dtor =
-			 locator_for_curr_id.is_vacuous_destructor_reference;
 	a_boolean			is_nonclass_dtor =
 			 locator_for_curr_id.is_nonclass_destructor;
         an_id_lookup_options_set	idl_options;
