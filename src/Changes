@@ -1,5 +1,18 @@
 Version 2.28
 
+2/16/95  Binding reference to nonconst to class rvalue no longer accepted
+
+We have had an extension that allows binding a reference to nonconst to
+an rvalue of a class type.  This was there with the expectation that
+something of that sort would be approved by the standards committee.
+That didn't happen, so the extension has been removed.  Some cases are
+still allowed in cfront mode, with a warning.
+
+2/16/95  A reference to const volatile cannot be bound to an rvalue
+
+A recent committee decision makes it illegal to bind a reference to
+const volatile to an rvalue.  Now implemented.
+
 2/15/95  Missing ambiguity error
 
 An ambiguity error was not being issued when the first component of a
