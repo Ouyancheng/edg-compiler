@@ -2535,6 +2535,44 @@ that are marked "explicit" are ignored.
   }  /* for */
 }  /* try_overloaded_function_match */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+a_boolean overloaded_function_match_possible(
+                                a_symbol_ptr       overloaded_function_symbol,
+                                a_boolean          is_template_id,
+                                a_template_arg_ptr template_arg_list,
+                                an_arg_operand_ptr arg_operand_list,
+                                a_boolean          have_selector,
+                                an_operand         *bound_function_selector,
+                                a_boolean          selector_is_object_pointer,
+                                a_boolean          ctor_conversion_case,
+                                a_boolean          effects_copy_initialization)
+/*
+Similar to try_overloaded_function_match, but just returns TRUE if there
+are viable functions, FALSE if not.  Issues no errors.
+*/
+{
+  a_boolean                possible;
+  a_candidate_function_ptr candidate_functions = NULL;
+  a_boolean                matched_except_for_missing_selector;
+
+  try_overloaded_function_match(overloaded_function_symbol,
+                                is_template_id,
+                                template_arg_list,
+                                arg_operand_list,
+                                have_selector,
+                                bound_function_selector,
+                                selector_is_object_pointer,
+                                ctor_conversion_case,
+                                effects_copy_initialization,
+                                &candidate_functions,
+                                &matched_except_for_missing_selector);
+  possible = (candidate_functions != NULL);
+  free_candidate_function_list(candidate_functions);
+  return possible;
+}  /* overloaded_function_match_possible */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void try_surrogate_function_match(
                              an_operand               *ptr_class_object,

@@ -442,6 +442,19 @@ extern a_symbol_ptr select_overloaded_function(
                          a_symbol_ptr             *surrogate_function_conv_sym,
                          an_arg_match_summary_ptr *arg_match_list);
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+extern a_boolean overloaded_function_match_possible(
+                               a_symbol_ptr       overloaded_function_symbol,
+                               a_boolean          is_template_id,
+                               a_template_arg_ptr template_arg_list,
+                               an_arg_operand_ptr arg_operand_list,
+                               a_boolean          have_selector,
+                               an_operand         *bound_function_selector,
+                               a_boolean          selector_is_object_pointer,
+                               a_boolean          ctor_conversion_case,
+                               a_boolean          effects_copy_initialization);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 extern void make_constructor_dynamic_init(a_routine_ptr     ctor_routine,
                                           an_expr_node_ptr  arg_expr_list,
                                           a_type_ptr        temp_type,

@@ -5124,15 +5124,41 @@ specification allow a variable-sized array as the top type.
       /* Use the global "operator new" or "operator new[]". */
       operator_new_symbol = opname_function_symbol(opname_kind);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (microsoft_mode && operator_new_symbol == NULL) {
+      if (microsoft_mode &&
+          microsoft_version <= 1200 &&
+          operator_new_symbol == NULL) {
         /* In Microsoft mode, if no array new is found, search for a
            non-array operator new.  Note that there is no predeclared
-           operator new[] in Microsoft mode. */
+           operator new[] in Microsoft mode.  This behavior applies only
+           up to MSVC++ 6.0. */
         opname_kind = (an_opname_kind)onk_new;
         operator_new_symbol = opname_function_symbol(opname_kind);
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (microsoft_mode &&
+        microsoft_version > 1200 &&
+        opname_kind == (an_opname_kind)onk_array_new) {
+      /* As of MSVC++ 7.0, if no array operator new[] is found, try
+         looking for a non-array operator new.  Do a tentative match
+         on the array new, and if that fails fall back to the non-array
+         new.*/
+      if (!overloaded_function_match_possible(
+                                      operator_new_symbol,
+                                      /*is_template_id=*/FALSE,
+                                      (a_template_arg_ptr)NULL,
+                                      arg_operand_list,
+                                      /*have_selector=*/FALSE,
+                                      (an_operand *)NULL,
+                                      /*selector_is_object_pointer=*/TRUE,
+                                      /*ctor_conversion_case=*/FALSE,
+                                      /*effects_copy_initialization=*/FALSE)) {
+        opname_kind = (an_opname_kind)onk_new;
+        operator_new_symbol = opname_function_symbol(opname_kind);
+      }  /* if */
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Select the proper "new" function if there are several.  Note that
        this call does not adjust the argument types or build the function
        call, since we may yet fold the call into a constructor call. */
