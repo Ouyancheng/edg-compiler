@@ -9,10 +9,11 @@ The appropriate error is now put out.  Here's an example:
   class A {
     void f();
   };
-  class B : public A {
+  class B : public A { };
+  void B::f() { }          // Appropriate error is now issued
+  class C {
     friend void B::f();    // Appropriate error is now issued
   };
-  void B::f() { }          // Appropriate error is now issued
 
 5/27/93 Pointless friend declaration
 
