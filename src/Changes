@@ -1,5 +1,27 @@
 Version 2.45
 
+12/8/00  Old-style casts misclassified as reinterpret_casts
+
+Some old-style casts, those that correspond to a const_cast or to
+a combination of a static_cast and a const_cast, were misclassified
+as reinterpret_casts.  In cases where there is a base-derived
+multiple-inheritance relationship between the pointers, the resulting
+code may have been incorrect.
+
+  class A {
+    int a_;
+  };
+  class B {
+    int b_;
+  };
+  class AB : public A, public B {
+  };
+  int main () {
+    B b;
+    const B *p = &b;
+    AB *q = (AB*)p;  // Cast was incorrectly treated as reinterpret_cast
+  }
+
 12/7/00  Internal error while lowering designated initializers in structures
          with unnamed fields
 

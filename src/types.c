@@ -4697,6 +4697,34 @@ C++ mode.  See [expr.static.cast].
 }  /* static_cast_conversion_possible */
 
 
+static a_boolean compound_conversion_possible(a_type_ptr source_type,
+                                              a_type_ptr dest_type)
+/*
+Some conversions that are allowed in an explicit C++ cast are allowed
+because they are a combination of other casts, e.g., a static_cast
+plus a const_cast, or two static_casts.  Test for such conversions
+between the given source and destination types, and return TRUE if
+one is allowed.
+*/
+{
+  a_boolean        okay = FALSE;
+  a_boolean        baseward_cast;
+  a_base_class_ptr bcp;
+
+  if (is_enum_type(source_type) && is_enum_type(dest_type)) {
+    /* In C++, enum --> enum is not a static_cast or a reinterpret_cast,
+       but it can be done by enum --> integral --> enum (two static_casts). */
+    okay = TRUE;
+  } else if (related_class_pointers(source_type, dest_type, &baseward_cast,
+                                    &bcp)) {
+    /* A cast from const Derived * to Base * is allowed as a combination
+       of a static_cast and a const_cast. */
+    okay = TRUE;
+  }  /* if */
+  return okay;
+}  /* compound_conversion_possible */
+
+
 a_boolean reinterpret_cast_conversion_possible(
                                               a_type_ptr    source_type,
                                               a_type_ptr    dest_type,
@@ -4885,10 +4913,16 @@ set to TRUE (otherwise it is set to FALSE).
         static_cast_warning_suggested == ec_no_error) {
       /* The conversion can be done as a static_cast, without a warning. */
       okay = TRUE;
-    } else if (!C_mode() && is_enum(source_type) && is_enum(dest_type)) {
-      /* In C++, enum --> enum is not a static_cast or a reinterpret_cast,
-         but it can be done by enum --> integral --> enum (two static_casts),
-         so it's okay in an old-style cast. */
+    } else if (!C_mode() &&
+               same_type_with_added_qualifiers(source_type, dest_type,
+                                               /*ignore_qualifiers=*/TRUE,
+                                               (a_boolean *)NULL)) {
+      /* A const_cast can be done. */
+      okay = TRUE;
+    } else if (!C_mode() &&
+               compound_conversion_possible(source_type, dest_type)) {
+      /* Some cases can be done as the combination of a static_cast and
+         a const_cast, or of two static_casts. */
       okay = TRUE;
     } else {
       reinterpret_cast_okay =
