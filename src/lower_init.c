@@ -6709,9 +6709,11 @@ are handled in il_lower_init.)
       pch_saved_var_array_elem(needed_destruction_type),
       pch_saved_var_array_elem(needed_destruction_object_field),
       pch_saved_var_array_elem(array_new_prefix_size_var),
+#if MICROSOFT_EXTENSIONS_ALLOWED
       pch_saved_var_array_elem(guid_type),
       pch_saved_var_array_elem(guid_array_type),
       pch_saved_var_array_elem(null_guid_variable),
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
