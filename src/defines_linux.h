@@ -41,6 +41,9 @@ This is the version for Linux.
 #define IGNORE_CARRIAGE_RETURN_IN_SOURCE 1
 #define GNU_EXTENSIONS_ALLOWED 1
 #define DEFAULT_GNU_COMPATIBILITY 0
+#ifndef IA64_ABI
+#define IA64_ABI 1
+#endif /* IA64_ABI */
 
 /* Settings needed in order for bit-field allocation to match gcc. */
 #define TARG_BIT_FIELD_CONTAINER_SIZE (-1)

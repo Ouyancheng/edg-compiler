@@ -222,6 +222,11 @@ Flags to be set when using the KAI inliner.
 
 /* Linux version. */
 
+/* defines_linux.h sets this to TRUE if not already set. */
+#ifndef IA64_ABI
+#define IA64_ABI 0
+#endif /* IA64_ABI */
+
 #include "defines_linux.h"
 
 #ifndef LINUX_TEST_VERSION
