@@ -2922,6 +2922,28 @@ on "operand_1" and "operand_2", with result type "type".
 }  /* build_binary_result_operand */
 
 
+static void build_question_result_operand(an_operand *operand_1,
+                                          an_operand *operand_2,
+                                          an_operand *operand_3,
+                                          a_type_ptr result_type,
+                                          an_operand *result)
+/*
+Build an operand for the expression that is the operator "?" operating on
+operand_1, operand_2, and operand_3, with result type result_type.
+*/
+{
+  /* Make an operator node with the first part of the expression. */
+  build_unary_result_operand(operand_1,
+                             (an_expr_operator_kind)eok_question,
+                             result_type, result);
+  /* Now link the other two operands from this one. */
+  result->variant.expression->variant.operation.operands->next =
+                                             make_node_from_operand(operand_2);
+  result->variant.expression->variant.operation.operands->next->next =
+                                             make_node_from_operand(operand_3);
+}  /* build_question_result_operand */
+
+
 /* Type predicates used by determine_arithmetic_conversions_full. */
 
 #define is_long_double(fkind)                                         \
@@ -4596,21 +4618,80 @@ are the operands.  result_type is the result type.  The operand is built
 in *result.  Constant operations are not folded.
 */
 {
-  /* Make an operator node with the first part of the expression. */
-  build_unary_result_operand(operand_1,
-                             (an_expr_operator_kind)eok_question,
-                             result_type, result);
-  /* Now link the other two operands from this one. */
-  result->variant.expression->variant.operation.operands->next =
-                                             make_node_from_operand(operand_2);
-  result->variant.expression->variant.operation.operands->next->next =
-                                             make_node_from_operand(operand_3);
-  if (is_template_param_constant_operand(operand_1)) {
-    /* For an expression based on a template parameter, scanned
-       during the prototype instantiation, make a ck_template_param
-       constant for the result. */
-    make_template_param_expr_constant_operand(make_node_from_operand(result),
-                                              result);
+  a_boolean operand_1_is_const, do_folding = FALSE;
+
+  /* If the first operand is a known constant, the operation can be
+     folded. */
+  operand_1_is_const = is_constant_operand(operand_1) &&
+                       constant_bool_value_known_at_compile_time(
+                                                 &operand_1->variant.constant);
+  if (operand_1_is_const) {
+    if (curr_expr_kind_is_const()) {
+      /* In constant expressions we must always fold. */
+      do_folding = TRUE;
+#if ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS
+    } else if (curr_object_lifetime == NULL ||
+               curr_object_lifetime->destructions == NULL) {
+      /* We are supposed to remove dead code under conditional operators.
+         However, if the second or third operands might contain destructions
+         in this case, don't remove the dead code, because we don't
+         want to run through the expression to find the destruction to
+         unlink it. */
+      do_folding = TRUE;
+#else /* !ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS */
+    } else if (is_constant_operand(operand_2) &&
+               is_constant_operand(operand_3)) {
+      /* Fold if the second and third operands are constants. */
+      do_folding = TRUE;
+#endif /* ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS */
+    }  /* if */
+  }  /* if */
+  if (do_folding) {
+    /* The first operand is a constant.  Fold the operation to the
+       second or third operand. */
+    an_operand *other_operand;
+    if (op_is_false_constant(operand_1)) {
+      /* The first operand is false; return the third operand as the result. */
+      copy_operand(operand_3, result);
+      other_operand = operand_2;
+    } else {
+      /* The first operand is true; return the second operand as the result. */
+      copy_operand(operand_2, result);
+      other_operand = operand_3;
+    }  /* if */
+    result->is_simple_string_literal = FALSE;
+    result->is_cfront_null_pointer_constant = FALSE;
+    if (is_constant_operand(result)) {
+      if (!is_constant_operand(other_operand) ||
+          other_operand->variant.constant.null_pointer_constant_ruled_out ||
+          operand_1->variant.constant.null_pointer_constant_ruled_out) {
+        /* The result is not a null pointer constant. */
+        result->variant.constant.null_pointer_constant_ruled_out = TRUE;
+      }  /* if */
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+      if (!(curr_expr_kind_is(ek_pp) ||
+            curr_expr_kind_is(ek_template_arg))) {
+        /* Create an expression to be recorded in the constant. */
+        an_operand result_expr;
+        build_question_result_operand(operand_1, operand_2, operand_3,
+                                      result_type, &result_expr);
+        result->variant.constant.expr = result_expr.variant.expression;
+      }  /* if */
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+    }  /* if */
+  } else {
+    /* Build the expression tree for the operation. */
+    build_question_result_operand(operand_1, operand_2, operand_3,
+                                  result_type, result);
+    if (is_template_param_constant_operand(operand_1) ||
+        is_template_param_constant_operand(operand_2) ||
+        is_template_param_constant_operand(operand_3)) {
+      /* For an expression based on a template parameter, scanned
+         during the prototype instantiation, make a ck_template_param
+         constant for the result. */
+      make_template_param_expr_constant_operand(make_node_from_operand(result),
+                                                result);
+    }  /* if */
   }  /* if */
 }  /* do_question_operation */
 

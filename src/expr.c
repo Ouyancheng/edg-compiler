@@ -9705,55 +9705,6 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
     make_error_operand(result);
   } else if (processed) {
     /* Already processed. */
-  } else if (operand_1_is_const &&
-             /* In constant expressions we must always fold. */
-             (curr_expr_kind_is_const() ||
-#if ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS
-              /* Don't remove dead code that might contain destructions,
-                 because we don't want to run through the expression to
-                 find the destruction to unlink it. */
-              curr_object_lifetime == NULL ||
-              curr_object_lifetime->destructions == NULL
-#else /* !ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS */
-              /* When the first operand is constant and determines the result,
-                 but the second operand or third operand is not constant,
-                 retain the dead expression. */
-              (is_constant_operand(&operand_2) &&
-               is_constant_operand(&operand_3))
-#endif /* ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS */
-                                               )) {
-    /* The first operand is a constant.  Fold the operation to the
-       second or third operand. */
-    an_operand *other_operand;
-    if (operand_1_is_false) {
-      /* The first operand is false; return the third operand as the result. */
-      copy_operand(&operand_3, result);
-      other_operand = &operand_2;
-    } else {
-      /* The first operand is true; return the second operand as the result. */
-      copy_operand(&operand_2, result);
-      other_operand = &operand_3;
-    }  /* if */
-    result->is_simple_string_literal = FALSE;
-    result->is_cfront_null_pointer_constant = FALSE;
-    if (is_constant_operand(result)) {
-      if (!is_constant_operand(other_operand) ||
-          other_operand->variant.constant.null_pointer_constant_ruled_out ||
-          operand_1->variant.constant.null_pointer_constant_ruled_out) {
-        /* The result is not a null pointer constant. */
-        result->variant.constant.null_pointer_constant_ruled_out = TRUE;
-      }  /* if */
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
-      if (!(curr_expr_kind_is(ek_pp) ||
-            curr_expr_kind_is(ek_template_arg))) {
-        /* Create an expression to be recorded in the constant. */
-        an_operand  result_expr;
-        do_question_operation(operand_1, &operand_2, &operand_3,
-                              result_type, &result_expr);
-        result->variant.constant.expr = result_expr.variant.expression;
-      }  /* if */
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
-    }  /* if */
   } else {
     /* Build the expression. */
     if (result_is_an_lvalue) {
