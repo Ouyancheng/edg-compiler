@@ -274,7 +274,8 @@ gives the name to be used for the display, or is NULL if no name should
 be written.
 */
 {
-  char        *name;
+  char        *name = NULL;
+  a_type_ptr  type_name_type = NULL;
   a_type_ptr  tp;
 
   disp_name(ptr_name);
@@ -283,7 +284,6 @@ be written.
     /* If the entry is named, print the name. */
     switch (entry_kind) {
       case iek_constant:
-      case iek_type:
       case iek_variable:
 #ifdef CFE
       case iek_field:
@@ -297,43 +297,47 @@ be written.
         /* Entry has a source correspondence field. */
         name = ((a_constant_ptr)entry_ptr)->source_corresp.name;
         break;
-      case iek_base_class:
-        tp = ((a_base_class_ptr)entry_ptr)->type;
-        if (tp != NULL) {
-          name = tp->source_corresp.name;
-          break;
+      case iek_type:
+#ifdef CFE
+        if (((a_type_ptr)entry_ptr)->source_corresp.name != NULL) {
+          type_name_type = (a_type_ptr)entry_ptr;
         }  /* if */
-      default:
-        name = NULL;
+        break;
+      case iek_base_class:
+        type_name_type = ((a_base_class_ptr)entry_ptr)->type;
+        break;
+#endif /* ifdef CFE */
+      default:;
     }  /* switch */
-    if (name != NULL) {
+    if (name != NULL || type_name_type != NULL) {
       /* Entry has a name.  If this is a tag, put "tag" in front of the
          name.  If a label, put "label". */
       (void)printf(": ");
-      if (entry_kind == iek_label) {
-        (void)printf("label ");
-#ifdef CFE
-      } else if (entry_kind == iek_type) {
-        a_type_ptr type_ptr = (a_type_ptr)entry_ptr;
-        a_type_kind tkind = type_ptr->kind;
-        if (tkind == (a_type_kind)tk_struct ) {
-          (void)printf("struct ");
-        } else if (tkind == (a_type_kind)tk_union) {
-          (void)printf("union ");
-        } else if (tkind == (a_type_kind)tk_integer &&
-                   type_ptr->variant.integer.enum_type) {
-          (void)printf("enum ");
-        } else if (tkind == (a_type_kind)tk_class) {
-          (void)printf("class ");
+      if (type_name_type != NULL) {
+        if (entry_kind == iek_type) {
+          a_type_kind tkind = type_name_type->kind;
+          if (tkind == (a_type_kind)tk_struct ) {
+            (void)printf("struct ");
+          } else if (tkind == (a_type_kind)tk_union) {
+            (void)printf("union ");
+          } else if (tkind == (a_type_kind)tk_integer &&
+                     type_name_type->variant.integer.enum_type) {
+            (void)printf("enum ");
+          } else if (tkind == (a_type_kind)tk_class) {
+            (void)printf("class ");
+          }  /* if */
         }  /* if */
-#endif /* ifdef CFE */
-      }  /* if */
-      (void)printf("%s", name);
-      if (entry_kind == iek_base_class) {
-        tp = ((a_base_class_ptr)entry_ptr)->derived_class;
-        if (tp != NULL && tp->source_corresp.name != NULL) {
-          (void)printf(" (in %s)", tp->source_corresp.name);
+        summarize_type(type_name_type);
+        if (entry_kind == iek_base_class) {
+          (void)printf(" (in ");
+          summarize_type(((a_base_class_ptr)entry_ptr)->derived_class);
+          (void)printf(")");
         }  /* if */
+      } else {
+        if (entry_kind == iek_label) {
+          (void)printf("label ");
+        }  /* if */
+        (void)printf("%s", name);
       }  /* if */
     } else {
       /* Entry is unnamed.  Give short description for some entries. */
