@@ -2330,6 +2330,7 @@ routines (specifically, remap_il_header_pointers and walk_file_scope_il).
 */
 typedef enum /* a_source_language */ {
   /* Code for source language. */
+  sl_Cplusplus,
   sl_C,
   sl_Fortran
 } a_source_language;
