@@ -1475,9 +1475,14 @@ processed further.
 
   /* Clear the pointers to the returned values. */
   *name1 = *name2 = *symbol_name = NULL;
+  pos = pl_input_line;
+#if __MICROSOFT_OS__
+  /* Skip over the ":" that marks end of drive name, if any. */
+  if (*(pos+1) == ':') pos += 2;
+#endif /* __MICROSOFT_OS__ */
   /* Find the first colon which terminates either the archive or the
      file name. */
-  pos = strchr(pl_input_line, ':');
+  pos = strchr(pos, ':');
   if (pos == NULL) {
     /* Ignore blank lines.  A nonblank line that doesn't contain
        a colon is an error. */

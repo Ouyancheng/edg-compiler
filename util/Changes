@@ -1,3 +1,13 @@
+Version 2.38
+
+12/18/97 Prelinker gets internal error when file name contains a drive
+         specification
+
+On Windows 95 or Windows NT, the prelinker would get an internal error
+if an object file name or library name included a drive specification.
+This has been fixed.
+
+-------------------------------------------------------------------------------
 Version 2.37, October 18, 1997
 
 11/25/97 Prelinker problem when not using .ti files
