@@ -4050,7 +4050,16 @@ done_with_access_control_setting:;
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
     }  /* if */
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+    /* Note that the call of add_shareable_constants_to_constants_list below
+       must follow IL lowering. */
 #endif /* DO_IL_LOWERING */
+    if (old_memory_region_number == FILE_SCOPE_REGION_NUMBER) {
+      /* End of the file scope memory region. */
+      /* Move the constants in the shareable constants table onto the
+         file-scope constants list so that all file-scope items are found in
+         a traversal of the file-scope IL tree. */
+      add_shareable_constants_to_constants_list();
+    }  /* if */
     done_with_memory_region(old_memory_region_number);
   }  /* if */
   /* Pop the stack. */

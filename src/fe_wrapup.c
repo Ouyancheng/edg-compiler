@@ -53,11 +53,6 @@ Do any processing required at the end of execution of the front end.
 {
   db_enter(1, "fe_wrapup");
 
-  /* Move the constants in the shareable constants table onto the file-scope
-     constants list so that all file-scope items are found in a traversal
-     of the file-scope IL tree. */
-  add_shareable_constants_to_constants_list();
-
 #if CHECKING
   /* Check that the stop_token_array elements all made it back to zero.
      (Every add_stop_token is supposed to have a corresponding
