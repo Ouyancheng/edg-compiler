@@ -1,5 +1,19 @@
 Version 2.25
 
+8/16/94  const as a tie-breaker in overload resolution, a tweak
+
+The change for const as a tie-breaker in overload resolution was a little
+too broad.  It assumed a conversion that added a type qualifier under a
+pointer or reference is always worse that an otherwise equally-weighted
+conversion.  Common practice is that that is the case only if one
+conversion is a subsequence of the other.
+
+8/16/94  Initialization of variable created to hold pointer-to-member constant
+
+The fix of this problem (7/5/94), related to cases when IL lowering creates
+a variable that is initialized to an aggregate value for a pointer-to-
+member, had another bug.  Now *really* fixed.
+
 8/15/94  Applying type qualifier to a typedef
 
 A change has been made to make_qualified_type to preserve typedef

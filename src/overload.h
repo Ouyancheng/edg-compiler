@@ -137,6 +137,11 @@ typedef struct an_arg_match_summary {
 		is_match_for_this_param;
 			/* TRUE if this entry describes the match for the
 			   "this" parameter. */
+  a_type_ptr	param_type;
+			/* The type of the parameter.  Used in looking
+			   for conversion subsequences involving addition
+			   of type qualifiers at the end of a conversion.
+			   NULL if not applicable (e.g., for an ellipsis). */
   a_conv_descr	conversion;
 			/* Description of the conversion to be done (really,
 			   information we wanted to remember about the

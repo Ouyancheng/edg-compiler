@@ -246,6 +246,7 @@ values.
   amsp->match_level                = aml_none;
   amsp->const_anachronism          = FALSE;
   amsp->is_match_for_this_param    = FALSE;
+  amsp->param_type                 = NULL;
   clear_conv_descr(&amsp->conversion);
 }  /* clear_arg_match_summary */
 
@@ -796,6 +797,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
 
   db_enter(4, "determine_arg_match_level");
   clear_arg_match_summary(arg_summary);
+  arg_summary->param_type = param_type;
   if (arg_type == NULL) {
     /* Get the actual argument type from arg_operand. */
     arg_type = arg_operand->type;
@@ -1814,6 +1816,8 @@ evaluated (but not checked to see if the match is good enough).
          overload_distinguishable. */
       /* An indefinite function cannot be made to match anything. */
       if (is_indefinite_function_operand(&arg_operand->operand)) goto done;
+      /* arg_match->param_type is left NULL because subsequence checking does
+         not apply for template cases. */
       param_type = ptp->type;
       arg_type = arg_operand->operand.type;
       /* An incomplete type operand cannot be made to match anything.
@@ -1978,6 +1982,7 @@ This checks for the const/volatile tie-breaker of rule [1] in ARM 13.2.
 {
   int                      cmp = 0;
   an_arg_match_summary_ptr arg1, arg2;
+  a_type_ptr               param_type1, param_type2, under_type1, under_type2;
 
   /* We're looking for cases like
        void f(const int *);
@@ -1995,23 +2000,52 @@ This checks for the const/volatile tie-breaker of rule [1] in ARM 13.2.
     check_assertion(arg2 != NULL);
     if (arg1->conversion.std.type_qualifiers_added !=
         arg2->conversion.std.type_qualifiers_added) {
-      int prev_cmp = cmp;
-      if (arg1->conversion.std.type_qualifiers_added) {
-        /* Argument 1 has added type qualifiers and argument 2 does not,
-           so arg_match2 is the better match. */
-        cmp = -1;
-      } else {
-        /* Argument 2 has added type qualifiers and argument 1 does not,
-           so arg_match1 is the better match. */
-        cmp = 1;
-      }  /* if */
-      /* This tie-breaker applies only if no other arguments contradict it,
-         so keep going and look at the rest of the arguments. */
-      if (prev_cmp != 0 && prev_cmp != cmp) {
-        /* This contradicts a previous argument, so the tie-breaker does not
-           apply. */
-        cmp = 0;
-        break;
+      /* There is the possibility that a tie-breaker applies on this pair
+         of arguments.  An additional test is needed: the tie-breaker
+         really has to do with one sequence being a subsequence of the
+         other, so make sure that the destination types are compatible. */
+      /* Get the corresponding parameter types. */
+      param_type1 = arg1->param_type;
+      param_type2 = arg2->param_type;
+      /* Some arguments have no parameter type (e.g., an ellipsis match). */
+      if (param_type1 != NULL && param_type2 != NULL) {
+        /* Note that the test allows one to be a pointer, the other a reference
+           when matching a "this" parameter, for some cases that compare a
+           "this" parameter pointer match with a reference match. */
+        if ((arg1->is_match_for_this_param || arg2->is_match_for_this_param) ?
+                           (is_ptr_or_ref_type(param_type1) &&
+                                            is_ptr_or_ref_type(param_type2)) :
+                           ((is_pointer_type(param_type1) &&
+                                            is_pointer_type(param_type2)) ||
+                            (is_reference_type(param_type1) &&
+                                            is_reference_type(param_type2)))) {
+          /* Both parameters are pointers or references, as appropriate. */
+          under_type1 = type_pointed_to(param_type1);
+          under_type2 = type_pointed_to(param_type2);
+          if (types_are_compatible_ignoring_qualifiers(under_type1,
+                                                       under_type2)) {
+            /* The underlying types are the same, so tie-breaker differences
+               are subsequence differences. */
+            int prev_cmp = cmp;
+            if (arg1->conversion.std.type_qualifiers_added) {
+              /* Argument 1 has added type qualifiers and argument 2 does not,
+                 so arg_match2 is the better match. */
+              cmp = -1;
+            } else {
+              /* Argument 2 has added type qualifiers and argument 1 does not,
+                 so arg_match1 is the better match. */
+              cmp = 1;
+            }  /* if */
+            /* This tie-breaker applies only if no other arguments contradict
+               it, so keep going and look at the rest of the arguments. */
+            if (prev_cmp != 0 && prev_cmp != cmp) {
+              /* This contradicts a previous argument, so the tie-breaker does
+                 not apply. */
+              cmp = 0;
+              break;
+            }  /* if */
+          }  /* if */
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* for */
