@@ -24,11 +24,18 @@ lower_c99.h -- Declarations related to lower_c99.c.
 #if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
 #define or_vla_lowering_needed() || vla_enabled
 #else /* !(VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS) */
-#define or_vla_lowering_needed()
+#define or_vla_lowering_needed() /* Nothing */
 #endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
+
+#if FIXED_POINT_ALLOWED
+#define or_fixed_point_lowering_needed() || fixed_point_enabled
+#else /* !FIXED_POINT_ALLOWED */
+#define or_fixed_point_lowering_needed() /* Nothing */
+#endif /* FIXED_POINT_ALLOWED */
 
 #define c99_il_lowering_needed()                                             \
   ((c99_mode || gcc_mode || compound_literals_allowed                        \
+    or_fixed_point_lowering_needed()                                         \
     or_vla_lowering_needed()) &&                                             \
    !suppress_il_lowering && total_errors == 0)
 
