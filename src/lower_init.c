@@ -2850,6 +2850,7 @@ destructors in the IA-64 ABI.
     set_routine_special_kind(new_routine, routine->special_kind);
     new_routine->ctor_dtor_kind = kind;
     new_routine->compiler_generated = TRUE;
+    new_routine->pure_virtual = routine->pure_virtual;
 #if ONE_INSTANTIATION_PER_OBJECT
     new_routine->instantiation_needed_bit_number =
                                       routine->instantiation_needed_bit_number;
