@@ -13044,7 +13044,7 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
         template" directive.  In Microsoft bugs mode we issue a warning
         for an explicit instantiation and a remark for an "extern template". */
   if (microsoft_bugs && !is_pragma) {
-    severity_if_not_found = kind == pk_do_not_instantiate
+    severity_if_not_found = kind == (a_pragma_kind)pk_do_not_instantiate
                                                ? (an_error_severity)es_remark
                                                : (an_error_severity)es_warning;
   }  /* if */
@@ -13119,7 +13119,7 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
          instantiation and a remark for an "extern template". */
       an_error_severity	severity_if_not_found = es_error;
       if (microsoft_bugs && !is_pragma) {
-        severity_if_not_found = kind == pk_do_not_instantiate
+        severity_if_not_found = kind == (a_pragma_kind)pk_do_not_instantiate
                                               ? (an_error_severity)es_remark
                                               : (an_error_severity)es_warning;
       }  /* if */
