@@ -40,6 +40,7 @@ Declarations for EDG template prelink utility.
 
 /* Command to be used to produce a namelist of an object file. */
 static char		default_nm_command[] = "/bin/nm -og";
+static char		gnu_nm_command[] = "nm -og --no-cplus";
 static char		solaris_nm_command[] = "/bin/nm -pxR";
 static char		SGI_nm_command[] = "/bin/nm -Bopg";
 static char		CLIX_nm_command[] = "/bin/nm -pxre";

@@ -2516,6 +2516,8 @@ int main(int argc, char *argv[])
   } else if (nm_format == nmfk_SVR4 ||
              nm_format == nmfk_HPUX) {
     nm_command = alternate_nm_command;
+  } else if (nm_format == nmfk_gnu) {
+    nm_command = gnu_nm_command;
   } else {
     /* Use the default command. */
     nm_command = default_nm_command;
