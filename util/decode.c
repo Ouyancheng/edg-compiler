@@ -4455,6 +4455,7 @@ length returned the second time will be correct).
   } else {
     /* A non-mangled name.  Just copy. */
     write_id_str(id, dctl);
+    end_ptr = NULL;
   }  /* if */
   if (dctl->output_overflow_err) {
     dctl->err_in_id = TRUE;
@@ -4463,7 +4464,9 @@ length returned the second time will be correct).
     dctl->output_id[dctl->output_id_len] = 0;
   }  /* if */
   /* Make sure the whole identifier was taken. */
-  if (!dctl->err_in_id && *end_ptr != '\0') bad_mangled_name(dctl);
+  if (!dctl->err_in_id && end_ptr != NULL && *end_ptr != '\0') {
+    bad_mangled_name(dctl);
+  }  /* if */
   *err = dctl->err_in_id;
   *buffer_overflow_err = dctl->output_overflow_err;
   *required_buffer_size = dctl->output_id_len + 1; /* +1 for final null. */
