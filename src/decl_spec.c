@@ -344,10 +344,12 @@ caution when modifying this routine.
     /* Look for a tag symbol in the current scope.  If the tag kind does
        not match the tag being processed, issue an error. */
     tag_sym = curr_scope_id_lookup(&locator_for_curr_id, IDL_MUST_BE_TAG);
-    if (tag_sym != NULL && tag_sym->kind != tag_kind) {
+    /* A projection symbol may have been returned, so be sure we're working
+       with the fundamental symbol. */
+    if (tag_sym != NULL && fundamental_symbol_of(tag_sym)->kind != tag_kind) {
       an_error_severity  severity = (an_error_severity)es_error;
       if (any_cfront_mode() &&
-          tag_sym->kind != (a_symbol_kind)sk_enum_tag &&
+          fundamental_symbol_of(tag_sym)->kind != (a_symbol_kind)sk_enum_tag &&
           tag_kind != (a_symbol_kind)sk_enum_tag) {
         /* Allow mixing of struct/class and union in cfront mode. */
         severity = (an_error_severity)es_warning;
@@ -365,6 +367,14 @@ caution when modifying this routine.
     /* Save the symbol locator for this identifier before doing the
        get_token. */
     *locator = locator_for_curr_id;
+    if (tag_sym != NULL && !is_tag_symbol(tag_sym)) {
+      /* The lookup must have returned a projection symbol, presumably the
+         result of a using declaration.  Exit now, since such a reference
+         (in an elaborate type specifier, say) can not be a definition or
+         a vacuous declaration. */
+      tag_sym = fundamental_symbol_of(tag_sym);
+      goto done;
+    }  /* if */
     next_tok = next_token();
     if (next_tok == tok_lbrace ||
         (next_tok == tok_colon && C_dialect == C_dialect_cplusplus &&
