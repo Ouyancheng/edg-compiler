@@ -832,7 +832,8 @@ extern void add_reference_indirection(an_operand *result);
 
 extern void make_lvalue_variable_operand(a_variable_ptr  variable,
                                          an_operand      *result,
-                                         a_ref_entry_ptr rep);
+                                         a_ref_entry_ptr rep,
+                                         a_boolean       record_expr);
 
 extern void make_ptr_to_member_constant_operand(
                                     a_symbol_ptr      member_sym,

@@ -1,5 +1,17 @@
 Version 2.46
 
+12/19/01 Funny IL for compound literal in local static initializer, with
+         RECORD_CONSTANT_EXPRESSIONS_IN_IL
+
+When RECORD_CONSTANT_EXPRESSIONS_IN_IL is TRUE (e.g., with the
+C++-generating back end), the IL for a compound literal in the
+initializer of a local static variable had a constant in the function
+scope memory region that pointed to an expression that was (partly)
+in the file scope memory region.  This was not wrong, strictly
+speaking, but it was surprising and unintentional, and has been
+corrected (by eliminating the expression for the constant, which
+doesn't make sense in this case).
+
 12/19/01 Improper setting of is_local_to_function flag
 
 Under certain very unusual circumstances the is_local_to_function flag

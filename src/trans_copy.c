@@ -2502,7 +2502,7 @@ therefore will not be copied.
   { a_boolean okay = !BACK_END_IS_CP_GEN_BE;
     check_assertion(okay);
   }
-  check_assertion(initial_value_for_il_lowering_flag == FALSE);
+  check_assertion(initial_value_for_il_lowering_flag == FALSE);/*lint !e527*/
   in_trans_copy_setup = TRUE;
   /* Loop over each translation unit, preparing for the copy.  This
      decides which entities should be copied, which should be merged,
@@ -2517,8 +2517,7 @@ therefore will not be copied.
     }  /* if */
 #endif /* DEBUG */
     top_scope = il_header.primary_scope;
-    check_assertion(!il_entry_prefix_of(top_scope).
-                    il_lowering_flag);/*lint !e527*/
+    check_assertion(!il_entry_prefix_of(top_scope).il_lowering_flag);
     (void)prepare_for_trans_unit_copy(top_scope, &any_removed_function_bodies);
 #if DEBUG
     if (debug_level >= 1) {

@@ -5942,13 +5942,20 @@ if is_lvalue is TRUE.  Return NULL if the expression cannot be generated.
 
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
 
+#if !RECORD_CONSTANT_EXPRESSIONS_IN_IL
+/*ARGSUSED*/  /* <-- record_expr is not used in that case. */
+#endif /* !RECORD_CONSTANT_EXPRESSIONS_IN_IL */
 void make_lvalue_variable_operand(a_variable_ptr  variable,
                                   an_operand      *result,
-                                  a_ref_entry_ptr rep)
+                                  a_ref_entry_ptr rep,
+                                  a_boolean       record_expr)
 /*
 Make an operand for the address of a variable.  The source position of
 the operand is set to pos_curr_token.  rep points to an associated
-reference entry, or is NULL if none is needed.
+reference entry, or is NULL if none is needed.  If record_expr is
+TRUE, in constant-address cases an expression will be recorded under the
+constant if RECORD_CONSTANT_EXPRESSIONS_IN_IL is TRUE (to some extent,
+FALSE means the reference is compiler-generated).
 */
 {
   an_expr_node_ptr node;
@@ -5984,10 +5991,12 @@ reference entry, or is NULL if none is needed.
                                     /*set_address_taken_flag=*/FALSE);
       result->type = variable_type;
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
-      /* Record the lvalue variable expression as IL in the constant. */
-      result->variant.constant.expr =
+      if (record_expr) {
+        /* Record the lvalue variable expression as IL in the constant. */
+        result->variant.constant.expr =
                                expr_to_record_for_variable(variable,
                                                            /*is_lvalue=*/TRUE);
+      }  /* if */
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
     }  /* if */
     result->state = (an_operand_state)os_lvalue;

@@ -2615,7 +2615,8 @@ qualified_name_check:
           /* Static data member reference. */
           make_lvalue_variable_operand(
                               member_sym->variant.static_data_member.variable,
-                              result, rep);
+                              result, rep,
+                               /*record_expr=*/TRUE);
           combine_unneeded_selector_with_operand(operand_1, is_arrow_operator,
                                                  result);
           break;
@@ -8880,7 +8881,8 @@ to the compound literal.
       temp_var->init_kind = (an_init_kind)initk_static;
       temp_var->initializer.constant = literal_con;
       /* The operand is an lvalue for the temporary. */
-      make_lvalue_variable_operand(temp_var, result, (a_ref_entry_ptr)NULL);
+      make_lvalue_variable_operand(temp_var, result, (a_ref_entry_ptr)NULL,
+                                   /*record_expr=*/FALSE);
     }  /* if */
   } else {
     /* Allocate an enk_temp_int node. */
@@ -11206,7 +11208,8 @@ This is used for checking/allowing assignment to "this" -- an anachronism.
                                               anachronism_error_severity,
                          ec_assignment_to_this, &operand->position);
           make_lvalue_variable_operand(this_var, operand,
-                                       operand->ref_entries_list);
+                                       operand->ref_entries_list,
+                                       /*record_expr=*/TRUE);
           current_routine_entry()->assignment_to_this_done = TRUE;
           this_var->param_value_has_been_changed = TRUE;
           if (exceptions_enabled &&
@@ -12059,7 +12062,8 @@ is built in *operand.  It's an lvalue for the field.
                   union_sym->kind == (a_symbol_kind)sk_variable);
   /* Start with an operand for the base anonymous union variable. */
   union_var = union_sym->variant.variable.ptr;
-  make_lvalue_variable_operand(union_var, &operand_1, (a_ref_entry_ptr)NULL);
+  make_lvalue_variable_operand(union_var, &operand_1, (a_ref_entry_ptr)NULL,
+                               /*record_expr=*/FALSE);
   /* Add a field selection to get to the field. */
   do_field_selection_operation(&operand_1, union_var->type,
                                /*is_arrow_operator=*/FALSE,
@@ -12406,7 +12410,8 @@ variable:
                    expressions, because of the extra indirection. */
                 !is_reference_type(var_ptr->type)) {
               /* Make an lvalue operand for the variable. */
-              make_lvalue_variable_operand(var_ptr, result, rep);
+              make_lvalue_variable_operand(var_ptr, result, rep,
+                                           /*record_expr=*/TRUE);
             } else if ((any_cfront_mode() || (microsoft_mode && !C_mode())) &&
                        (curr_expr_kind_is(ek_integral_constant) ||
                         curr_expr_kind_is(ek_template_arg)) &&
@@ -12423,7 +12428,8 @@ variable:
                  where e is something like an enumerator constant, as part
                  of a constant expression. */
               /* Make an lvalue operand for the variable. */
-              make_lvalue_variable_operand(var_ptr, result, rep);
+              make_lvalue_variable_operand(var_ptr, result, rep,
+                                           /*record_expr=*/TRUE);
             } else if (!C_mode() && is_const_variable(var_ptr)) {
               /* In C++, integral const identifiers can be used in constant
                  expressions.  */
@@ -12463,7 +12469,8 @@ variable:
               /* Make a variable operand that is a variable address node.
                  The type of the operand is a pointer to the type of the
                  variable. */
-              make_lvalue_variable_operand(var_ptr, result, rep);
+              make_lvalue_variable_operand(var_ptr, result, rep,
+                                           /*record_expr=*/TRUE);
             }  /* if */
           }  /* if */
           break;
@@ -12718,7 +12725,8 @@ overloaded_function:
               sym_ptr->variant.param_id->dummy_vla_variable = var_ptr;
             }  /* if */
             /* Generate an expression node referring to the dummy variable. */
-            make_lvalue_variable_operand(var_ptr, result, rep);
+            make_lvalue_variable_operand(var_ptr, result, rep,
+                                         /*record_expr=*/FALSE);
             check_assertion(is_expression_operand(result));
             /* Create a_vla_fixup for the parameter, initialize its
                members, and link it into the list of vla fixups for the
@@ -12968,7 +12976,8 @@ returned instead of the unqualified function name.
       }  /* if */
     }  /* if */
     /* Create an operand that refers to the implicit static variable. */
-    make_lvalue_variable_operand(name_var, result, (a_ref_entry_ptr)NULL);
+    make_lvalue_variable_operand(name_var, result, (a_ref_entry_ptr)NULL,
+                                 /*record_expr=*/FALSE);
   }  /* if */
 }  /* make_function_name_operand */
 
@@ -15395,7 +15404,7 @@ to the expression created.  The variable var must have an associated symbol.
   check_assertion(var->source_corresp.assoc_info != NULL);
   ref = ref_entry((a_symbol_ptr)var->source_corresp.assoc_info,
                   &var->source_corresp.decl_position);
-  make_lvalue_variable_operand(var, &operand, ref);
+  make_lvalue_variable_operand(var, &operand, ref, /*record_expr=*/TRUE);
   set_operand_position(&operand, &var->source_corresp.decl_position,
                       &var->source_corresp.decl_pos_info->identifier_range.end,
                        (a_source_position *)NULL);
