@@ -2555,8 +2555,9 @@ Make a file-scope copy of a parameter type list, and return a pointer
 to it.
 */
 {
-  a_param_type_ptr new_param, new_param_list, end_new_param_list;
-  a_type_ptr       new_param_type;
+  a_param_type_ptr       new_param, new_param_list, end_new_param_list;
+  a_type_ptr             new_param_type;
+  a_memory_region_number region_to_switch_back_to;
 
   new_param_list = end_new_param_list = NULL;
   for (; old_param != NULL; old_param = old_param->next) {
@@ -2564,6 +2565,11 @@ to it.
     new_param = alloc_param_type(new_param_type, /*at_file_scope=*/TRUE);
     *new_param = *old_param;
     new_param->type = new_param_type;
+    if (new_param->default_arg_expr != NULL) {
+      switch_to_file_scope_region(&region_to_switch_back_to);
+      new_param->default_arg_expr =copy_expr_tree(new_param->default_arg_expr);
+      switch_back_to_original_region(region_to_switch_back_to);
+    }  /* if */
     new_param->next = NULL;
     if (new_param_list == NULL) {
       new_param_list = new_param;
@@ -2573,7 +2579,7 @@ to it.
     end_new_param_list = new_param;
   }  /* for */
 
-  return(new_param_list);
+  return new_param_list;
 }  /* file_scope_param_list */
 
 
