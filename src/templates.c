@@ -524,9 +524,12 @@ Instantiate the body of the template function associated with tip.
      a reference, we should set the referenced flag anyway, so that
      the back-end will be sure to generate the function. */ 
   tip->instance_sym->variant.routine.ptr->source_corresp.referenced = TRUE;
-  tip->already_instantiated = TRUE;
 
-  done:;
+done:;
+  /* The already instantiated flag is set even if certain error conditions
+     (such as runaway instantiation) to prevent the compiler from attempting
+     to instantiate this function again. */
+  tip->already_instantiated = TRUE;
   db_exit();
 }  /* instantiate_template_function */
 
@@ -4153,25 +4156,15 @@ specific definition that made it unnecessary.
   for (tip = instantiations_required;
        tip != NULL;
        tip = tip->next_in_instantiation_list) {
-    if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
-      /* Static data member definition. */
+    if (tip->instantiation_required && !tip->already_instantiated) {
       if (should_be_instantiated(tip)) {
-        define_template_static_data_member(tip);
-#if 0
-        /* Note that there are recursion possibilities that we need to
-           guard against -- e.g., template <int I> A<I>::s = A<I+1>::s;
-           Also indirect recursion. */
-#endif /* if 0 */
-      }  /* if */
-    } else {
-      /* Function instantiation. */
-      if (should_be_instantiated(tip)) {
-#if DEBUG
-        if (debug_level >= 4) {
-          db_symbol(tip->instance_sym, "Instantiating:", 2);
+        if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
+          /* Static data member definition. */
+          define_template_static_data_member(tip);
+        } else {
+          /* Function instantiation. */
+          instantiate_template_function(tip);
         }  /* if */
-#endif /* DEBUG */
-        instantiate_template_function(tip);
       }  /* if */
     }  /* if */
   }  /* for */
