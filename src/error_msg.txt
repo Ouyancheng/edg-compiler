@@ -1401,6 +1401,7 @@ ec_bad_float_or_fixed_suffix;;"invalid suffix on fixed-point or floating-point c
 ec_register_in_address_space;;"a register variable cannot be allocated in a named address space"
 ec_bad_stdc_fx_overflow_pragma_arg;;"expected \"SAT\" or \"DEFAULT\""
 ec_no_corresponding_member_delete;;"%n has no corresponding member operator delete%s (to be called if an exception is thrown during initialization of an allocated object)"
+ec_dll_thread_conflict;;"a thread-local variable cannot be declared with \"dllimport\" or \"dllexport\""
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
