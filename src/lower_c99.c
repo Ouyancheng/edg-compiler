@@ -16,6 +16,13 @@ lower_c99.c -- Routines to transform C99 IL constructs into constructs
 */
 
 #include "basic_hdrs.h"
+
+#ifdef PCH_PRAGMA_GUARD
+/* Mark the end of the sequence of headers subject to precompiled header
+   processing. */
+#pragma hdrstop
+#endif /* ifdef PCH_PRAGMA_GUARD */
+
 /* Only include this code if it is needed: */
 #if C99_IL_EXTENSIONS_SUPPORTED && DO_C99_IL_LOWERING
 /* Header files common to all files. */
@@ -27,12 +34,6 @@ lower_c99.c -- Routines to transform C99 IL constructs into constructs
 #if MAINTAIN_NEEDED_FLAGS
 #include "il_walk.h"
 #endif /* MAINTAIN_NEEDED_FLAGS */
-
-#ifdef PCH_PRAGMA_GUARD
-/* Mark the end of the sequence of headers subject to precompiled header
-   processing. */
-#pragma hdrstop
-#endif /* ifdef PCH_PRAGMA_GUARD */
 
 /* Complex arithmetic and comparison routines. */
 a_routine_ptr  xnegate_routine = NULL;
