@@ -1452,7 +1452,7 @@ error code.
       m = "assignment to \"this\" (anachronism)";
       break;
     case ec_overload_anachronism:
-      m = "\"overload\" no longer allowed (anachronism)";
+      m = "\"overload\" ignored (anachronism)";
       break;
     case ec_anon_union_member_access:
       m = "invalid anonymous union -- nonpublic member is not allowed";
@@ -2054,6 +2054,9 @@ error code.
       break;
     case ec_bad_member_type_in_ptr_to_member:
       m = "pointer to member of type %t is not allowed";
+      break;
+    case ec_ellipsis_on_operator_function:
+      m = "ellipsis is not allowed in operator function parameter list";
       break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
