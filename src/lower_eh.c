@@ -13,7 +13,7 @@ lower_eh.c -- IL lowering for exception handling constructs.
 
 Note that the processing here comes in three levels:
 
-- with DO_FULL_PORTABLE_EH_LOWERING set, all EH constructs are lowered to
+- With DO_FULL_PORTABLE_EH_LOWERING set, all EH constructs are lowered to
   C.  That means code is generated to maintain an EH stack, try/catch are
   fully lowered (using setjmp), throw is fully lowered, cleanup tables
   and typeinfo entries are generated, and __eh_curr_region is maintained.
@@ -26,10 +26,12 @@ Note that the processing here comes in three levels:
   enk_lowered_eh_construct expression nodes.  Also, the object address
   table is not maintained, and the handle numbers for entities in the
   cleanup tables use stack offsets represented as ck_stack_offset
-  constants.
+  constants.  If you use this mode, you'll have to make modifications
+  to the EDG-supplied runtime.
 - With neither flag set, no tables are generated (but the object lifetime
   information is preserved), throw/try/catch are retained, and all other
   executable constructs are represented as enk_lowered_eh_construct nodes.
+  If you use this mode, you'll have to write your own runtime routines.
 
 The statements and expressions attached under exception handling
 constructs (e.g., try/catch, throw) are lowered in all modes (as long as
