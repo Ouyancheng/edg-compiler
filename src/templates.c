@@ -7409,8 +7409,10 @@ function a friend and update the friend information.
 }  /* update_befriending_classes_for_function */
 
 
-static a_symbol_ptr make_template_function(a_symbol_ptr        templ_sym,
-                                           a_template_arg_ptr  templ_arg_list)
+static a_symbol_ptr make_template_function(
+			a_symbol_ptr		templ_sym,
+			a_template_arg_ptr	templ_arg_list,
+			a_boolean		in_class_specialization)
 /*
 Allocate the symbol and routine entry for a template function, based on
 the function template (represented by templ_sym), and allocate and enter
@@ -7418,6 +7420,8 @@ the associated function instantiation entry, where the template arg list
 for the instantiation (templ_arg_list) is also recorded.  Create a routine
 type based on the template argument list and the template parameter list
 (reached through templ_sym).
+
+in_class_specialization is TRUE for a Microsoft mode in-class specialization.
 */
 {
   a_symbol_ptr                      sym = NULL;
@@ -7454,8 +7458,9 @@ type based on the template argument list and the template parameter list
        template arguments.  This is done even if a type already exists
        because additional error checking is done during the declaration
        processing. */
-    a_source_position    saved_pos_curr_token;
-    a_source_position    saved_error_position;
+    a_source_position		saved_pos_curr_token;
+    a_source_position		saved_error_position;
+    a_push_scope_options_set	ps_options = PS_NO_OPTIONS;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position           saved_curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -7471,13 +7476,19 @@ type based on the template argument list and the template parameter list
     tcp = &tssp->variant.function.decl_cache;
     /* Increment the count of pending instantiations of this template. */
     ++(tssp->variant.function.pending_partial_instantiations);
+    /* If this is an in-class specialization and the enclosing class is
+       a prototype instantiation, treat this as a prototype instantiation
+       too. */
+    if (in_class_specialization && is_prototype_instantiation_context()) {
+      ps_options |= PS_PROTOTYPE_INSTANTIATION;
+    }  /* if */
     push_template_instantiation_scope(tcp->decl_info,
 				      (a_type_ptr)NULL,
 				      (a_routine_ptr)NULL,
 				      (a_symbol_ptr)NULL, templ_sym,
 				      templ_arg_list,
                                       /*push_stop_tokens=*/TRUE,
-				      PS_NO_OPTIONS);
+				      ps_options);
     /* Reactivate any pragmas that should be bound to the generated
        instance. */
     reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
@@ -7752,13 +7763,13 @@ is present.
 
 
 a_boolean is_match_for_function_template(
-				a_symbol_ptr		templ_sym,
-				a_type_ptr		curr_type,
-				a_template_arg_ptr	*templ_arg_list,
-				a_symbol_ptr		*instance_sym,
-				a_template_param_ptr	templ_param_list,
-				a_template_arg_ptr	explicit_arg_list,
-				a_boolean		is_decl_context)
+			a_symbol_ptr		templ_sym,
+			a_type_ptr		curr_type,
+			a_template_arg_ptr	*templ_arg_list,
+			a_symbol_ptr		*instance_sym,
+			a_template_param_ptr	templ_param_list,
+			a_template_arg_ptr	explicit_arg_list,
+			a_boolean		is_decl_context)
 /*
 Search for a template function based on the function template represented
 by templ_sym and the type pointed to by curr_type.  If such a template
@@ -7915,6 +7926,7 @@ a_symbol_ptr matching_template_function(
 				a_template_arg_ptr  explicit_arg_list,
 				a_boolean	    explicit_arg_list_present,
 				a_boolean	    is_decl_context,
+				a_boolean	    in_class_specialization,
 				a_boolean	    *is_new_template_instance)
 /*
 Search for a template function based on the function template represented
@@ -7954,7 +7966,8 @@ returned TRUE if a new template instance is created with this call.
       /* A match has been found -- just return a pointer to it. */
     } else {
       /* Use the template arg list to create a new symbol. */
-      sym = make_template_function(templ_sym, templ_arg_list);
+      sym = make_template_function(templ_sym, templ_arg_list,
+				   in_class_specialization);
       *is_new_template_instance = TRUE;
     }  /* if */
   }  /* if */
@@ -8516,7 +8529,8 @@ structure.
        function instantiation entry, and linking all these appropriately.
        Note that the symbol will not be added to the symbol table, since it
        is accessed through the list of function instantiation entries. */
-    sym = make_template_function(templ_sym, *new_list);
+    sym = make_template_function(templ_sym, *new_list,
+                                 /*in_class_specialization=*/FALSE);
 #if DEBUG
     if (debug_level >= 3) {
       db_symbol(sym, "created: ", 2);
@@ -13939,6 +13953,7 @@ a_symbol_ptr find_matching_template_instance(
 			a_type_ptr		type,
 			a_template_arg_ptr	explicit_arg_list,
 			a_boolean		explicit_arg_list_present,
+			a_boolean		in_class_specialization,
 			an_error_severity	severity_if_not_found)
 /*
 sym is some kind of function symbol.  type is the type declared for a
@@ -14015,6 +14030,7 @@ found.
         new_sym = matching_template_function(sym, type, explicit_arg_list,
 					     explicit_arg_list_present,
                                              /*is_decl_context=*/TRUE,
+					     in_class_specialization,
                                              &is_new_template_instance);
       }  /* if */
     }  /* for */
@@ -14313,9 +14329,10 @@ that follows.
       }  /* if */
       if (is_function_type(type) && is_function_or_template_symbol(sym)) {
         sym = find_matching_template_instance(
-                                        sym, type, locator.template_arg_list,
-                                        (a_boolean)locator.is_template_id,
-					es_error);
+                        sym, type, locator.template_arg_list,
+                        (a_boolean)locator.is_template_id,
+		        /*in_class_specialization=*/decl_state->is_member_decl,
+			es_error);
         if (sym == NULL) {
           /* No match was found and an error was issued. */
         } else if (sym->variant.routine.instance_ptr == NULL) {
@@ -18742,6 +18759,7 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
       new_sym = find_matching_template_instance(
                                           sym, type, locator.template_arg_list,
                                           (a_boolean)locator.is_template_id,
+					  /*in_class_specialization=*/FALSE,
                                           severity_if_not_found);
       if (new_sym != NULL) {
         /* Update the flags for the symbol found. */

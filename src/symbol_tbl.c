@@ -5975,6 +5975,7 @@ next_delete_symbol:;
                                            (a_template_arg_ptr)NULL,
 				           /*explicit_arg_list_present=*/FALSE,
                                            /*is_decl_context=*/TRUE,
+                                           /*in_class_specialization=*/FALSE,
                                            &is_new_template_instance);
               }  /* if */
             }  /* if */

@@ -1957,6 +1957,7 @@ called by id_linkage.
                                            locator->template_arg_list,
 					   (a_boolean)locator->is_template_id,
                                            /*is_decl_context=*/TRUE,
+					   /*in_class_specialization=*/FALSE,
                                            &is_new_template_instance);
           other_decl = best_sym;
           match = sym;

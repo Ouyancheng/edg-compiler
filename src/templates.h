@@ -225,6 +225,7 @@ extern a_symbol_ptr matching_template_function(
 				a_template_arg_ptr  explicit_arg_list,
 				a_boolean	    explicit_arg_list_present,
 				a_boolean	    is_decl_context,
+				a_boolean	    in_class_specialization,
 				a_boolean	    *is_new_template_instance);
 
 extern
@@ -244,6 +245,7 @@ extern a_symbol_ptr find_matching_template_instance(
 			a_type_ptr		type,
 			a_template_arg_ptr	explicit_arg_list,
 			a_boolean		explicit_arg_list_present,
+			a_boolean		in_class_specialization,
 			an_error_severity	severity_if_not_found);
 
 extern int compare_function_templates(

@@ -248,11 +248,13 @@ cast.
         } else {
           /* Generate a partial instantiation of the matching instance. */
           a_boolean  is_new_template_instance;
-          match_sym = matching_template_function(sym, dest_underlying_type,
-                                                 template_arg_list,
-                                                 is_template_id,
-                                                 /*is_decl_context=*/FALSE,
-                                                 &is_new_template_instance);
+          match_sym = matching_template_function(
+                                            sym, dest_underlying_type,
+                                            template_arg_list,
+                                            is_template_id,
+                                            /*is_decl_context=*/FALSE,
+                                            /*in_class_specialization=*/FALSE,
+                                            &is_new_template_instance);
           *match_level = aml_exact;
           number_of_matches = 1;
         }  /* if */
