@@ -4120,12 +4120,12 @@ Display the indicated hidden-name entry.
   disp_ptr("entity", (char *)ptr->entity.ptr,
            (an_il_entry_kind)ptr->entity.kind);
   disp_boolean("qualification_needed",
-               ptr->qualification_needed);
+               (a_boolean)ptr->qualification_needed);
   disp_boolean("elaborated_type_specifier_needed",
-               ptr->elaborated_type_specifier_needed);
+               (a_boolean)ptr->elaborated_type_specifier_needed);
   disp_boolean("partially_hidden_by_microsoft_injected_class_name",
-               ptr->partially_hidden_by_microsoft_injected_class_name);
-  disp_boolean("is_class_member", ptr->is_class_member);
+            (a_boolean)ptr->partially_hidden_by_microsoft_injected_class_name);
+  disp_boolean("is_class_member", (a_boolean)ptr->is_class_member);
 }  /* disp_hidden_name */
 
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
