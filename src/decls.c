@@ -3154,15 +3154,26 @@ on a prior declaration.
          declared. */
       pos_error(ec_definition_of_implicitly_declared_function,
                 &locator->source_position);
-      sym = NULL;
-    } else if (sym->defined) {
-      /* Type was okay, but this member function has a body. */
-      pos_error(ec_function_redefinition, &locator->source_position);
-      /* Force a new symbol to be created. */
-      sym = NULL;
+      /* Unless a definition has already been generated, reset some flags
+         so that that this routine will be treated as user-declared from
+         now on. */
+      if (!sym->defined) {
+        sym->variant.routine->compiler_generated = FALSE;
+        sym->variant.routine->is_inline = FALSE;
+      }  /* if */
     }  /* if */
   }  /* if */
-  if (sym == NULL) {
+  if (sym == NULL || sym->defined) {
+    /* Error case. */
+    a_routine_ptr  other_rp = NULL;
+
+    if (sym->defined) {
+      /* Type was okay, but this member function has a body. */
+      pos_error(ec_function_redefinition, &locator->source_position);
+      other_rp = sym->variant.routine;
+      type_ptr->variant.routine.extra_info->implicit_this_param_type =
+          other_rp->type->variant.routine.extra_info->implicit_this_param_type;
+    }  /* if */
     /* An error has been detected.  Make a "fake" symbol and routine entry so
        that the routine definition can proceed. */
     set_to_error_locator(*locator);
@@ -3170,9 +3181,15 @@ on a prior declaration.
                              DEPTH_OF_FILE_SCOPE,
                              /*suppress_redecl_error=*/TRUE);
     sym->class_of_which_a_member = class_type;
-    sym->variant.routine = make_routine(type_ptr, (a_storage_class)sc_static,
-                                        /*at_file_scope=*/TRUE);
-    sym->variant.routine->source_corresp.class_of_which_a_member = class_type;
+    rp = make_routine(type_ptr, (a_storage_class)sc_static,
+                      /*at_file_scope=*/TRUE);
+    sym->variant.routine = rp;
+    set_source_corresp(&(rp->source_corresp), sym);
+    rp->source_corresp.class_of_which_a_member = class_type;
+    if (other_rp != NULL) {
+      rp->special_kind = other_rp->special_kind;
+      rp->opname_kind = other_rp->opname_kind;
+    }  /* if */
     *old_type = type_ptr;
   } else {
     /* A member function symbol with a compatible type was found. */
@@ -3196,7 +3213,8 @@ on a prior declaration.
       }  /* if */
       if (!cssp->has_copy_constructor_for_const_object) {
         a_boolean  const_okay, volatile_okay;
-        if (is_copy_constructor(rp, class_type, &const_okay, &volatile_okay)) {
+        if (is_copy_constructor(rp, class_type, &const_okay,
+                                &volatile_okay)) {
           cssp->has_copy_constructor = TRUE;
           cssp->has_copy_constructor_for_const_object = const_okay;
         }  /* if */
@@ -3204,6 +3222,7 @@ on a prior declaration.
     }  /* if */
   }  /* if */
   if (inline_specified) sym->variant.routine->is_inline = TRUE;
+  sym->defined = TRUE;
   *symbol_ptr = sym;
   *ext_sym = NULL;
   *linkage_ptr = idl_external;
