@@ -6148,6 +6148,21 @@ to indicate whether an enumeration is actually defined.
         class_of_which_a_member = NULL;
         access = (an_access_specifier)as_public;
       }  /* if */
+    } else if (tag_sym != NULL && curr_token == tok_lbrace) {
+      /* This is a definition of an enumeration that has previously been
+         declared. */
+      if (tag_sym->class_of_which_a_member != NULL &&
+          tag_sym->class_of_which_a_member != class_of_which_a_member) {
+        /* This is an attempt to define a member enum outside the class of
+           which it is a member. */
+        pos_error(ec_qualified_name_not_allowed, &locator.source_position);
+        tag_sym = NULL;
+        set_to_error_locator(locator);
+      } else if (tag_sym->defined) {
+        pos_sy_error(ec_already_defined, &locator.source_position, tag_sym);
+        tag_sym = NULL;
+        set_to_error_locator(locator);
+      }  /* if */
     }  /* if */
   } else {
     /* No tag identifier present. */
