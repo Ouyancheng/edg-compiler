@@ -2901,6 +2901,23 @@ indicated position.
   diag_message(error_code, error_pos, error_severity, dck_standalone);
 }  /* pos_syty_diagnostic */
 
+
+void pos_stsy_diagnostic(an_error_severity  error_severity,
+                         an_error_code      error_code,
+                         a_source_position  *error_pos,
+                         char               *error_string,
+                         a_symbol_ptr       symbol)
+/*
+Report the indicated diagnostic (with the indicated fill-in string and symbol)
+at the indicated position.
+*/
+{
+  init_error_params();
+  error_msg_strings[1] = error_string;
+  error_msg_syms[1] = symbol;
+  diag_message(error_code, error_pos, error_severity, dck_standalone);
+}  /* pos_stsy_diagnostic */
+
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 void pos_st_remark(an_error_code     error_code,
@@ -3019,7 +3036,7 @@ at the indicated position.
   error_msg_strings[1] = error_string;
   error_msg_syms[1] = symbol;
   diag_message(error_code, error_pos, es_remark, dck_standalone);
-}  /* sym_remark */
+}  /* pos_stsy_remark */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
