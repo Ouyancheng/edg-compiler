@@ -2230,14 +2230,13 @@ base class ends with a bit field.
 */
 {
   a_base_class_ptr  bcp = lob->trailing_nonempty_base;
-  a_type_ptr        btp = bcp->type;
 
   if (bcp != NULL && bcp->is_virtual && bcp->offset_is_set &&
-      bcp->offset + btp->size >= *end_of_object &&
-      !(btp->source_corresp.assoc_info != NULL &&
-        symbol_supplement_for_class(btp)->is_POD)) {
+      bcp->offset + bcp->type->size >= *end_of_object &&
+      !(bcp->type->source_corresp.assoc_info != NULL &&
+        symbol_supplement_for_class(bcp->type)->is_POD)) {
     a_targ_size_t  offset;
-    a_field_ptr    last_field = trailing_nonclass_field(btp, &offset);
+    a_field_ptr    last_field = trailing_nonclass_field(bcp->type, &offset);
     if (last_field != NULL && last_field->is_bit_field &&
         (last_field->offset_bit_remainder + last_field->bit_size) %
                                                          targ_char_bit != 0) {
