@@ -14,25 +14,24 @@ statements.c -- Scanning of statements.
 */
 
 
-#include "basics.h"
-#include "host_envir.h"
-#include "statements.h"
-#include "debug.h"
+/* Header files common to all files. */
+#include "fe_common.h"
+
+#if HDRSTOP_RECOGNIZED
+/* Mark the end of the sequence of headers subject to precompiled header
+   processing. */
+#pragma hdrstop
+#endif /* HDRSTOP_RECOGNIZED */
+
+/* Additional header files. */
 #include "decls.h"
 #include "disambig.h"
-#include "lexical.h"
-#include "error.h"
 #include "expr.h"
 #include "exprutil.h"
-#include "types.h"
-#include "il.h"
-#include "cmd_line.h"
 #include "folding.h"
-#include "const_ints.h"
-#include "symbol_tbl.h"
-#include "mem_manage.h"
 #include "pch.h"
 #include "pragma.h"
+#include "statements.h"
 
 
 static a_struct_stmt_stack_entry_ptr

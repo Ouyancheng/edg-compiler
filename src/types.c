@@ -13,17 +13,18 @@ types.c -- Utility routines that check types.
 
 */
 
-#include "basics.h"
-#include "types.h"
-#include "il.h"
-#include "error.h"
-#include "target.h"
+/* Header files common to all files. */
+#include "fe_common.h"
+
+#if HDRSTOP_RECOGNIZED
+/* Mark the end of the sequence of headers subject to precompiled header
+   processing. */
+#pragma hdrstop
+#endif /* HDRSTOP_RECOGNIZED */
+
+/* Additional header files. */
 #if !STANDALONE_UTILITY_PROGRAM
-#include "symbol_tbl.h"
-#include "cmd_line.h"
-#include "mem_manage.h"
 #include "folding.h"
-#include "const_ints.h"
 #include "templates.h"
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
