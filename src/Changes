@@ -1,5 +1,31 @@
 Version 3.4
 
+1/30/04  GNU IA-64 ABI: Effect of #pragma pack on bit fields
+
+The effect of #pragma pack directives on bit fields changed substantially
+between versions 3.2 and 3.3 of GNU C and C++ compilers.  The GNU C/C++ 3.2
+behavior was previously emulated by the EDG front end in GNU C and C++ modes.
+Now this emulation is controlled by the variable emulate_gnu_abi_bugs (which
+is normally configured with the macro DEFAULT_EMULATE_GNU_ABI_BUGS).
+Furthermore, the GNU 3.3 behavior is mimicked when the global variable
+gnu_abi_bugs_version (configured with the macro DEFAULT_GNU_ABI_BUGS_VERSION)
+is set to 30300 or higher.  For example:
+
+  #pragma pack(1)
+  union U {
+    int f1: 2;
+    char f2[2];
+  };
+  struct S {  // Size 12 with GNU C++ 3.2.  Size 8 with GNU C++ 3.3.
+    U u;
+    int a: 1;
+    int  : 0;
+    int c: 31;
+  };
+
+(We anticipate the GNU 3.3 behavior will be carried over to version 3.4 of
+the GNU compiler suite.  See also the Changes entry of 10/20/03.)
+
 1/30/04  GNU mode: Spurious error on format attribute
 
 When the last argument of the GNU attribute "format" (which specifies the

@@ -784,14 +784,14 @@ if necessary.
 {
   a_targ_alignment  pack_alignment;
 
-#if GNU_EXTENSIONS_ALLOWED
-  if (gnu_mode && targ_bit_field_container_size < 0 &&
-      is_union_type(class_type)) {
-    /* Versions of GNU C that follow a Microsoft-like bit field allocation
+#if IA64_ABI
+  if (emulate_gnu_abi_bugs && gnu_abi_bugs_version < 30300 &&
+      targ_bit_field_container_size < 0 && is_union_type(class_type)) {
+    /* Some versions of GNU C that follow a Microsoft-like bit field allocation
        strategy (negative targ_bit_field_container_size) do not honor the
        pack alignment for unions. */
   } else
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* IA64_ABI */
   /* Do not insert code here. */
   {
     pack_alignment =
@@ -1177,15 +1177,23 @@ targ_microsoft_bit_field_allocation is FALSE.)
      directive.  (I.e., the bit field is aligned independently from the
      directive wrt. the origin of the containing object, but in absolute
      terms the field may end up being unaligned.)  For such environments, the
-     adjustment is made later on. */
-  if (targ_user_control_of_struct_packing_affects_bit_fields) {
+     adjustment is made later on.  Also, later versions of the GNU ABI do
+     not apply packing directives to zero-length bit fields. */
+  if (targ_user_control_of_struct_packing_affects_bit_fields
+#if IA64_ABI
+      && !(emulate_gnu_abi_bugs && gnu_abi_bugs_version >= 30300 &&
+           field->bit_size == 0)
+#endif /* IA64_ABI */
+                             ) {
     adjust_alignment_for_packing(&container_alignment, lob->class_type);
   }  /* if */
-  /* In GNU mode, when #pragma pack(n) is in effect (with a nonzero n) a bit
-     field is not aligned, but the overall alignment of the enclosing class
+#if IA64_ABI
+  /* In GNU compilers, when #pragma pack(n) is in effect (with a nonzero n) a
+     bit field is not aligned, but the overall alignment of the enclosing class
      is updated if needed. */ 
-  if (gnu_mode && !targ_microsoft_bit_field_allocation &&
-      curr_max_member_alignment > 0 && !is_union_type(lob->class_type)) {
+  if (emulate_gnu_abi_bugs && !targ_microsoft_bit_field_allocation &&
+      curr_max_member_alignment > 0 && field->bit_size != 0 &&
+      !(gnu_abi_bugs_version < 30300 && is_union_type(lob->class_type))) {
     a_targ_alignment declared_alignment = field_alignment_for(field->type);
     if (container_alignment <= declared_alignment) {
       /* Determine the effect of the container alignment on the alignment of
@@ -1202,6 +1210,7 @@ targ_microsoft_bit_field_allocation is FALSE.)
       goto done;
     }  /* if */
   }  /* if */
+#endif /* IA64_ABI */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
   /* We want to make sure that the bit field can be grabbed using one
      load of the size of the container aligned the way the container
