@@ -252,8 +252,8 @@ process_alias_fixup_list.
     /*lint --e(668)*/(void)memcpy(ppp->pragma_text+prefix_len, src_name,
                                   src_name_len);
     ppp->pragma_text[prefix_len+src_name_len] = ' ';
-    (void)memcpy(ppp->pragma_text+prefix_len+src_name_len+1, asm_name,
-                 asm_name_len+1);
+    /*lint --e(668)*/(void)memcpy(ppp->pragma_text+prefix_len+src_name_len+1,
+                                  asm_name, asm_name_len+1);
     /* Record the pragma in the IL. */
     create_il_entry_for_pragma(ppp, (a_symbol_ptr)NULL, (a_statement_ptr)NULL);
   }  /* if */
