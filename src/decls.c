@@ -2790,54 +2790,16 @@ created; the caller must set it.
     }  /* if */
   }  /* if */
   if (ext_sym != NULL) {
-    if (!redeclaration) {
-      /* Check if the old entity has a different name than the new entity,
-         which would indicate an error (two different names ended up mapping
-         to the same external name).  Even when the names are identical, a
-         conflict can arise if the two entities are different in nature (e.g.,
-         a C linkage declaration in a namespace can conflict with a C++
-         variable declaration in global namespace because the latter variable's
-         name is not mangled). */
-      a_source_correspondence  *scp;
-      if (ext_sym->kind == (a_symbol_kind)sk_extern_variable) {
-        scp = &esdp->variant.variable->source_corresp;
-      } else {
-        scp = &esdp->variant.routine.ptr->source_corresp;
-      }  /* if */
-      old_name = scp->name;
-      new_name = locator->symbol_header->identifier;
-      check_assertion(old_name != NULL);
-      if ((!C_mode() &&
-           (a_name_linkage_kind)scp->name_linkage != name_linkage &&
-           ((a_name_linkage_kind)scp->name_linkage ==
-                                           (a_name_linkage_kind)nlk_external ||
-            name_linkage == (a_name_linkage_kind)nlk_external)) ||
-          (old_name != new_name && strcmp(old_name, new_name) != 0)) {
-        /* Two distinct entities ended up mapping to the same external name.
-           One case occurs when an extern "C" declaration in a namespace
-           conflicts with a variable declaration in global scope.  The other
-           case can result from two different names in the source being mapped
-           onto the same external name (e.g., when external names are case-
-           insensitive). */
-        if (!suppress_incompatible_error) {
-          pos_sy_error(ec_external_name_clash, &locator->source_position,
-                       ext_sym);
-        }  /* if */
-        err = TRUE;
-        /* Force creation of a new external symbol. */
-        ext_sym = NULL;
-      }  /* if */
+    a_source_correspondence  *scp;
+    if (ext_sym->kind == (a_symbol_kind)sk_extern_variable) {
+      scp = &esdp->variant.variable->source_corresp;
+    } else {
+      scp = &esdp->variant.routine.ptr->source_corresp;
     }  /* if */
     if (C_dialect == C_dialect_pcc && ext_sym != NULL &&
         depth_innermost_function_scope != NO_SCOPE_DEPTH) {
       /* In pcc mode, block-external declarations declared in other function
          scopes need not be compatible with the current declaration. */
-      a_source_correspondence  *scp;
-      if (ext_sym->kind == (a_symbol_kind)sk_extern_variable) {
-        scp = &esdp->variant.variable->source_corresp;
-      } else {
-        scp = &esdp->variant.routine.ptr->source_corresp;
-      }  /* if */
       if (scp->assoc_info != NULL) {
         a_symbol_ptr  prev_sym = (a_symbol_ptr)scp->assoc_info;
         a_boolean     is_local_to_function;
@@ -2878,6 +2840,38 @@ created; the caller must set it.
             esdp->variant.routine.is_implicit_declaration = FALSE;
           }  /* if */
         }  /* if */
+      }  /* if */
+    }  /* if */
+    if (!redeclaration && !err) {
+      /* Check if the old entity has a different name than the new entity,
+         which would indicate an error (two different names ended up mapping
+         to the same external name).  Even when the names are identical, a
+         conflict can arise if the two entities are different in nature (e.g.,
+         a C linkage declaration in a namespace can conflict with a C++
+         variable declaration in global namespace because the latter variable's
+         name is not mangled). */
+      old_name = scp->name;
+      new_name = locator->symbol_header->identifier;
+      check_assertion(old_name != NULL);
+      if ((!C_mode() &&
+           (a_name_linkage_kind)scp->name_linkage != name_linkage &&
+           ((a_name_linkage_kind)scp->name_linkage ==
+                                           (a_name_linkage_kind)nlk_external ||
+            name_linkage == (a_name_linkage_kind)nlk_external)) ||
+          (old_name != new_name && strcmp(old_name, new_name) != 0)) {
+        /* Two distinct entities ended up mapping to the same external name.
+           One case occurs when an extern "C" declaration in a namespace
+           conflicts with a variable declaration in global scope.  The other
+           case can result from two different names in the source being mapped
+           onto the same external name (e.g., when external names are case-
+           insensitive). */
+        if (!suppress_incompatible_error) {
+          pos_sy_error(ec_external_name_clash, &locator->source_position,
+                       ext_sym);
+        }  /* if */
+        err = TRUE;
+        /* Force creation of a new external symbol. */
+        ext_sym = NULL;
       }  /* if */
     }  /* if */
   } else if (is_function && !err) {
@@ -5245,7 +5239,6 @@ static a_symbol_ptr create_external_symbol_for_routine(
                          a_symbol_locator       *locator,
                          a_type_ptr             type_ptr,
                          an_id_linkage_block    *idlbp,
-                         a_func_info_block_ptr  func_info,
                          a_boolean              microsoft_specialization_redef,
                          a_boolean              suppress_incompatible_error,
                          a_boolean              suppress_ext_sym_lookup,
@@ -5253,10 +5246,10 @@ static a_symbol_ptr create_external_symbol_for_routine(
 /*
 Find or create an external symbol entry for a routine being declared.
 This is a wrapper for create_external_symbol_for_linked_entity that returns
-NULL for some template-related cases.  locator, type_ptr, idlbp, and func_info
-describe the routine being declared.  microsoft_specialization_redef is TRUE
-for the relatively rare case of a specialization being redefined (only allowed
-in some Microsoft bugs modes).  suppress_incompatible_error is TRUE if no
+NULL for some template-related cases.  locator, type_ptr, and idlbp describe
+the routine being declared.  microsoft_specialization_redef is TRUE for the
+relatively rare case of a specialization being redefined (only allowed in
+some Microsoft bugs modes).  suppress_incompatible_error is TRUE if no
 incompatibility diagnostic should be emitted.  If suppress_ext_sym_lookup is
 TRUE, an existing compatible external symbol is ignored.  *routine_ptr is set
 to point to a routine entry attached to an existing compatible external symbol
@@ -6064,9 +6057,9 @@ skip_overloading:;
   if (linkage != idl_none && !redeclaration) {
     /* Create an external symbol for the present linkable declaration. */
     *ext_sym = create_external_symbol_for_routine(
-                   locator, type_ptr, &idlb, func_info,
-                   microsoft_specialization_redef, redecl_error_already_issued,
-                   suppress_ext_sym_lookup, &routine_ptr);
+                   locator, type_ptr, &idlb, microsoft_specialization_redef,
+                   redecl_error_already_issued, suppress_ext_sym_lookup,
+                   &routine_ptr);
   }  /* if */
   if (template_function_specific_decl && sym != linked_symbol) {
     /* This is a declaration of a template function at the local scope.
