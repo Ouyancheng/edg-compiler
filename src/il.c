@@ -11835,9 +11835,7 @@ eliminated, if appropriate.
             tip = sym->variant.routine.instance_ptr;
             check_assertion(tip != NULL);
             tip->instantiation_required = FALSE;
-#if DO_IL_LOWERING
           }  /* if */
-#endif /* DO_IL_LOWERING */
         }  /* if */
       }  /* if */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
