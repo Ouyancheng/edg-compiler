@@ -1,5 +1,11 @@
 Version 2.36
 
+4/22/97  Building the prelinker on Windows
+
+edg_prelink.c was including unistd.h, which is not necessarily available
+under Windows.  Also, on Windows the popen() and pclose() functions must
+be called using the names _popen() and _pclose(). 
+
 4/11/97  Name demangling: cfront-style local names
 
 decode.c now recognizes and demangles cfront-style local names, e.g.,

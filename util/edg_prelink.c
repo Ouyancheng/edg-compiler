@@ -25,9 +25,19 @@ Prelink utility for template instantiation.
 #else /* !__ANSIC__ */
 #include <malloc.h>
 #endif /* __ANSI__ */
+#include <errno.h>
+
+#if __MICROSOFT_OS__
+/* Used to get a prototype for chdir. */
+#include <direct.h>
+/* Microsoft requires that popen and pclose be called as _popen and _pclose */
+#define popen _popen
+#define pclose _pclose
+#else /* !__MICROSOFT_OS__ */
 /* Used to get a prototype for chdir. */
 #include <unistd.h>
-#include <errno.h>
+#endif /* __MICROSOFT_OS__ */
+
 
 #if defined(__SUNPRO_CC) && __BSD__
 /* The SunOS 4.1.3 Sun CC header files do not define the system function. */
