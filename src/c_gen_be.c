@@ -749,12 +749,21 @@ to be a complete token.
     ensure_enough_room_on_line(4);
     goto digit4;
   }  /* if */
+  if (num <= 99999) {
+    ensure_enough_room_on_line(5);
+    goto digit5;
+  }  /* if */
   /* General case: */
   { char buffer[50];
     (void)sprintf(buffer, "%lu", num);
     m_write_tok_str(buffer);
   }
   goto done;
+digit5:
+  digit = num/10000;
+  digitch = digit + '0';
+  m_write_ch(digitch);
+  num = num - digit*10000;
 digit4:
   digit = num/1000;
   digitch = digit + '0';
