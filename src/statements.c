@@ -3424,8 +3424,11 @@ branching into it is disallowed).
          statements, statement() handles declarations, too. */
       (void)statement();
     } else {
-      /* In C mode the declarations are expected to appear first. */
-      if (is_decl_start(/*expr_context=*/TRUE,
+      /* In C mode the declarations are expected to appear first.  Note that
+         label statements may look like the start of a declaration, so we
+         have to check for ident followed by ":". */
+      if ((curr_token != tok_identifier || next_token() != tok_colon) &&
+          is_decl_start(/*expr_context=*/TRUE,
                         /*real_declarator_allowed=*/TRUE)) {
         /* Scan any declarations.  In C, these must all be at the beginning
            of the block. */
