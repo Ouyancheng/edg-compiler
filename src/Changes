@@ -1,5 +1,12 @@
 Version 3.1
 
+12/16/02 gcc compatibility: void * argument passed to transparent union
+         pointer
+
+The transparent_union feature in gcc compatibility mode now allows
+a void * argument to be passed to a pointer member of the union,
+and a pointer argument to be passed to a void * member of the union.
+
 12/16/02 C-mode inlining (C99, gcc) sometimes loops on recursive calls
 
 In some cases, minimal inlining in C99 or gcc mode could loop while
