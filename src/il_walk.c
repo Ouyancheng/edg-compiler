@@ -765,7 +765,9 @@ of the front end.
 {
   /* Variables in il_walk.h: */
   walk_remap_func = NULL;
+#if MAINTAIN_NEEDED_FLAGS
   end_of_file_scope_needed_flags_phase = FALSE;
+#endif /* MAINTAIN_NEEDED_FLAGS */
   /* Variables in il_walk.c: */
   entry_process_func = NULL;
   string_entry_process_func = NULL;
