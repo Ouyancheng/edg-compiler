@@ -418,6 +418,10 @@ functions) simply return NULL.
   vp->declared_type = type_ptr;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   vp->is_parameter = TRUE;
+  /* Set the is_local_to_function flag even though it is also done in
+     set_source_correspondence -- this assures that it is done for unnamed
+     parameters, too. */
+  vp->source_corresp.is_local_to_function = TRUE;
   return(vp);
 }  /* make_param_variable */
 
