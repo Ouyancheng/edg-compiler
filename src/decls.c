@@ -709,6 +709,13 @@ operator kinds.  Issue a diagnostic if an error is found.
     opname = rout->opname_kind;
     is_nonstatic_member_function =
                 routine_type_is_nonstatic_member_function(rout->type);
+#if CHECKING
+    if (is_nonstatic_member_function &&
+        (opname == onk_new || opname == onk_delete)) {
+      internal_error(
+               "check_operator_function_params: new or delete is nonstatic");
+    }  /* if */
+#endif /* CHECKING */
     /* Make a pass over the param types list to count the number of
        arguments to see if there are any parameters that are of class type
        or reference-to-class type.  Note that param_count is initialized to
@@ -723,7 +730,9 @@ operator kinds.  Issue a diagnostic if an error is found.
       if (is_reference_type(tp)) tp = type_pointed_to(tp);
       if (is_class_struct_union_type(tp)) any_class_type_params = TRUE;
     }  /* if */
-    if (opname == onk_compl || opname == onk_not || opname == onk_arrow) {
+    if (opname == (an_opname_kind)onk_compl ||
+        opname == (an_opname_kind)onk_not ||
+        opname == (an_opname_kind)onk_arrow) {
       /* Unary operator must have exactly one argument. */
       if (param_count > 1) {
 	error_code = ec_too_many_args_for_operator;
@@ -731,15 +740,26 @@ operator kinds.  Issue a diagnostic if an error is found.
 	error_code = ec_too_few_args_for_operator;
       }  /* if */
     } else if (param_count == 1 &&
-	       (opname == onk_plus || opname == onk_minus ||
-		opname == onk_star || opname == onk_ampersand ||
-		opname == onk_plus_plus || opname == onk_minus_minus)) {
+	       (opname == (an_opname_kind)onk_plus ||
+                opname == (an_opname_kind)onk_minus ||
+		opname == (an_opname_kind)onk_star ||
+                opname == (an_opname_kind)onk_ampersand ||
+		opname == (an_opname_kind)onk_plus_plus ||
+                opname == (an_opname_kind)onk_minus_minus)) {
        /* These operators can be either unary or binary.  It is legal for
 	  them to have exactly one argument. */
-    } else if (opname == onk_function_call) {
-      /* Function call must have one or more arguments. */
+    } else if (opname == (an_opname_kind)onk_function_call ||
+               opname == (an_opname_kind)onk_new) {
+      /* Function call and new must have one or more arguments. */
       if (param_count == 0) {
 	error_code = ec_too_few_args_for_operator;
+      } else if (opname == (an_opname_kind)onk_new) {
+        tp = rout->type->variant.routine.extra_info->param_type_list->type;
+        if (!is_integral_type(tp) ||
+            skip_typerefs(tp)->variant.integer.int_kind !=
+                                (an_integer_kind)TARG_SIZE_T_INT_KIND) {
+          error_code = ec_bad_arg_type_for_operator_new;
+        }  /* if */
       }  /* if */
     } else {
       /* Binary operator must have exactly two arguments. */
@@ -754,7 +774,8 @@ operator kinds.  Issue a diagnostic if an error is found.
        operands of class type or reference-to-class type, issue an error.
        This restriction does not apply to new and delete, however. */
     if (!is_nonstatic_member_function && !any_class_type_params &&
-	opname != onk_new && opname != onk_delete) {
+	opname != (an_opname_kind)onk_new &&
+        opname != (an_opname_kind)onk_delete) {
       pos_error(ec_no_args_with_class_type, pos);
     }  /* if */
   }  /* if */
@@ -3149,7 +3170,7 @@ Only the first form is accepted in C.
     if (complete_type != specifiers_type) {
       fputs("pointer/reference type: ", f_debug);
       db_type(complete_type);
-      fputc('\n', f_debug);
+      (void)fputc('\n', f_debug);
     }  /* if */
   }  /* if */
 #endif /* DEBUG */
@@ -3419,6 +3440,8 @@ otherwise it is NULL.  The syntax is:
       if (locator->is_operator_name) {
         /* Enforce some restrictions on the declarations of overloaded
            operator functions. */
+#if 0
+/*
         if (locator->variant.opname == (an_opname_kind)onk_new ||
             locator->variant.opname == (an_opname_kind)onk_delete) {
           if (member_parent_type != NULL &&
@@ -3430,6 +3453,9 @@ otherwise it is NULL.  The syntax is:
             set_to_error_locator(*locator);
           }  /* if */
         } else if (member_parent_type == NULL) {
+*/
+#endif /* if 0 */
+        if (member_parent_type == NULL) {
           char *s = NULL;
           switch (locator->variant.opname) {
             case onk_assign:         s = "=";       break;
@@ -3633,7 +3659,7 @@ function_lparen:
     } else {
       db_type(complete_type);
     }  /* if */
-    fputc('\n', f_debug);
+    (void)fputc('\n', f_debug);
   }  /* if */
 #endif /* DEBUG */
   db_exit();
@@ -4680,6 +4706,18 @@ operator_or_conversion_name:
           }  /* if */
           basic_type = bt_typedef;
           *type_ptr = locator_for_curr_id.variant.conversion_result_type;
+        } else if (locator_for_curr_id.is_operator_name) {
+          an_opname_kind  opname = locator_for_curr_id.variant.opname;
+          if (opname == (an_opname_kind)onk_new ||
+              opname == (an_opname_kind)onk_delete) {
+            /* If we are inside a class definition, an operator new or
+               operator delete function is automatically treated as a
+               static member function, even if "static" is not explicitly
+               specified. */
+            if (*storage_class == (a_storage_class)sc_unspecified) {
+              *storage_class = (a_storage_class)sc_static;
+            }  /* if */
+          }  /* if */
         }  /* if */
         goto exit_loop;
       case tok_compl:
@@ -5061,7 +5099,7 @@ exit_loop:
     } else {
       db_type(*type_ptr);
     }  /* if */
-    fputc('\n', f_debug);
+    (void)fputc('\n', f_debug);
   }  /* if */
 #endif /* DEBUG */
   db_exit();
