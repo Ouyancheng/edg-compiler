@@ -73,6 +73,13 @@ requirements.
 #endif /* ifndef TYPE_WITH_MOST_STRICT_ALIGNMENT */
 
 
+/*
+The mangled name of the typeinfo record for a void * type.
+*/
+#ifndef MANGLED_NAME_OF_PTR_TO_VOID
+#define MANGLED_NAME_OF_PTR_TO_VOID __T_v
+#endif /* ifndef MANGLED_NAME_OF_PTR_TO_VOID */
+
 #endif /* CONFIG_H */
 
 

@@ -90,6 +90,10 @@ typedef struct a_mem_allocation {
 		           record. */
 } a_mem_allocation;
 
+a_typeinfo	MANGLED_NAME_OF_PTR_TO_VOID;
+			/* This is used to get the address of the
+			   typeinfo for the void * type. */
+
 
 static a_throw_stack_entry_ptr
 		curr_throw_stack_entry = NULL;
@@ -609,66 +613,23 @@ The current region number within ehsep is designated by region.
 }  /* cleanup */
 
 
-
-static a_boolean violates_throw_spec(an_eh_stack_entry_ptr	ehsep,
-                	             a_typeinfo_ptr		typeinfo,
-			    	     a_boolean			is_pointer)
+static int check_exception_type_specifications
+                        (an_exception_type_specification_ptr	etsp,
+                         a_typeinfo_ptr				typeinfo,
+			 a_boolean				is_pointer,
+			 void**					object_ptr)
 /*
-Determine whether the exception being thrown is on the list of
-throws allowed by a given throw specification.  Returns FALSE if the
-the thrown type is permitted by the throw specification.  Returns TRUE
-if the thrown type violates the throw specification.
+Examine the exception type information associated with a given try block or
+throw specification and determine whether any of the entries match the
+object being thrown.  Returns 0 if no matching catch was found.  If a match
+is found the position in the catch array is returned (actually, the array
+index plus 1).
 */
 {
-  an_exception_type_specification_ptr	etsp;
-  a_boolean				result = TRUE;
-  a_boolean				done = FALSE;
-
-  etsp = ehsep->variant.throw_specification;
-  while (etsp != NULL && !done) {
-    a_boolean	match = FALSE;
-    if (etsp->flags & ETS_IS_ELLIPSIS) {
-      match = TRUE;
-    } else if (matching_types(etsp, typeinfo, is_pointer)) {
-      match = TRUE;
-    } else if (etsp->typeinfo->unique_id == NULL) {
-      /* No unique ID -- don't check any further.  No match. */
-    } else if (*(etsp->typeinfo->unique_id) == BCS_AMBIGUOUS) {
-      /* An ambiguous base class -- no match. */
-    } else if (((etsp->flags & ETS_IS_POINTER) != 0) == is_pointer &&
-               *(etsp->typeinfo->unique_id) != BCS_NO_FLAGS) {
-      /* A base class of the class that was thrown. */
-      match = TRUE;
-    }  /* if */
-    if (match) {
-      result = FALSE;
-      break;
-    }  /* if */
-    done = etsp->flags & ETS_LAST;
-    etsp++;
-  }  /* while */
-  return result;
-}  /* violates_throw_spec */
-
-
-static int check_catches(an_eh_stack_entry_ptr	ehsep,
-                         a_typeinfo_ptr		typeinfo,
-			 a_boolean		is_pointer,
-			 void**			object_ptr)
-/*
-Examine the catch information associated with a given try block and
-determine whether any of the clauses match the object being thrown.
-Returns 0 if no matching catch was found.  If a match is found
-the position in the catch array is returned (actually, the array index
-plus 1).
-*/
-{
-  an_exception_type_specification_ptr	etsp;
   int					result = 0;
   int					index = 0;
   a_boolean				done = FALSE;
 
-  etsp = ehsep->variant.try_block.catch_entries;
   do {
     a_boolean	match = FALSE;
     index++;
@@ -679,6 +640,11 @@ plus 1).
       match = TRUE;
     } else if (matching_types(etsp, typeinfo, is_pointer)) {
       match = TRUE;
+    } else if (etsp->typeinfo == &MANGLED_NAME_OF_PTR_TO_VOID &&
+               ((etsp->flags & ETS_IS_POINTER) != 0) == is_pointer) {
+      /* The exception type specification is a void * and the object
+         being thrown is some kind of pointer.  This is a match. */
+      match = TRUE;
     } else if (etsp->typeinfo->unique_id == NULL) {
       /* No unique ID -- don't check any further.  No match. */
     } else if (*(etsp->typeinfo->unique_id) == BCS_AMBIGUOUS) {
@@ -687,19 +653,21 @@ plus 1).
                *(etsp->typeinfo->unique_id) != BCS_NO_FLAGS) {
       /* A base class of the class that was thrown. */
       match = TRUE;
-      /* Convert the pointer from a pointer to the derived class to a pointer
-         to the base class. */
-#if 0
-#else /* 0 */
-      void* orig_ptr = *object_ptr;
-#endif /* 0 */
-      derived_to_base_conversion(object_ptr, typeinfo, etsp->typeinfo);
-#if 0
-#else /* 0 */
-      if (orig_ptr != *object_ptr) {
-        fprintf(__f_debug, "Orig ptr=%p, new ptr=%p\n", orig_ptr, *object_ptr);
+      if (object_ptr != NULL) {
+        /* Convert the pointer from a pointer to the derived class to a pointer
+           to the base class.  Object_ptr will be NULL when this routine is
+           call to check throw specifications and no object is involved. */
+        void* orig_ptr = *object_ptr;
+        derived_to_base_conversion(object_ptr, typeinfo, etsp->typeinfo);
+#if DEBUG
+        if (__debug_level >= 3) {
+          if (orig_ptr != *object_ptr) {
+            fprintf(__f_debug, "Orig ptr=%p, new ptr=%p\n", orig_ptr,
+                    *object_ptr);
+          }  /* if */
+        }  /* if */
+#endif /* DEBUG */
       }  /* if */
-#endif /* 0 */
     }  /* if */
     if (match) {
       result = index;
@@ -709,7 +677,7 @@ plus 1).
     etsp++;
   } while (!done);
   return result;
-}  /* check_catches */
+}  /* check_exception_type_specifications */
 
 
 EXTERN_C int __throw(void)
@@ -746,8 +714,9 @@ a try block with a catch that matches the type of the object thrown.
     } else if (kind == (an_eh_stack_entry_kind)ehsek_try_block) {
       if (ehsep->variant.try_block.catch_info == NULL) {
         /* Skip over try blocks for which a catch is active. */
-        int result = check_catches(ehsep, thrown_typeinfo, is_pointer,
-                                   &object_ptr);
+        int result = check_exception_type_specifications
+				(ehsep->variant.try_block.catch_entries,
+				 thrown_typeinfo, is_pointer, &object_ptr);
         if (result != 0) {
           destination_ehsep = ehsep;
           destination_catch_value = result;
@@ -757,8 +726,12 @@ a try block with a catch that matches the type of the object thrown.
     } else if (kind == (an_eh_stack_entry_kind)ehsek_throw_spec) {
       /* Check for violations of throw specifications.  If a throw
          specification is violated we cleanup until we reach the
-         violated throw specification and then call unexpected. */
-      if (violates_throw_spec(ehsep, thrown_typeinfo, is_pointer)) {
+         violated throw specification and then call unexpected.
+         If result is zero, no match was found. */
+      int result = check_exception_type_specifications
+				(ehsep->variant.throw_specification,
+				 thrown_typeinfo, is_pointer, (void**)NULL);
+      if (result == 0) {
         destination_ehsep = ehsep;
         break;
       }  /* if */
