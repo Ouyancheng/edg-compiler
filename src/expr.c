@@ -11716,6 +11716,15 @@ this routine is called only when microsoft_mode is TRUE.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+a_boolean in_expression_context(void)
+/*
+Return TRUE if we are currently inside an expression context.
+*/
+{
+  return (expr_stack != NULL);
+}  /* in_expression_context */
+
+
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *

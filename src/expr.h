@@ -154,6 +154,7 @@ extern an_expr_node_ptr make_condition_value_expression(
 extern a_variable_ptr based_variable(void);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+extern a_boolean in_expression_context(void);
 
 /*
 Macro that is TRUE if the node is an operation node.
