@@ -253,6 +253,11 @@ used to encode constants as part of the mangled names of template classes.
   char           buffer[50];
 
   switch (con->kind) {
+    case ck_error:
+      /* This might come up in mangling names for template instantiations. */
+      literal_length = 1;
+      if (store_at != NULL) *store_at++ = '?';
+      break;
     case ck_integer:
       /* Integer: the encoding is like
            L3n12  <-- encoding for "-12"
@@ -943,6 +948,10 @@ See ARM 7.2.1c for name encoding.
   } else {
     /* The type is not named, so develop a description string. */
     switch (type->kind) {
+      case tk_error:
+        /* This might come up in mangling names for template instantiation. */
+        s = "?";
+        break;
       case tk_void:
         s = "v";
         break;
