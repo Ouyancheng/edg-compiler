@@ -403,6 +403,8 @@ this function is called; it is set to TRUE If the base class is found.
   a_boolean		done;
 #endif /* ifndef __EDG_IA64_ABI */
 
+  ptr = obj_ptr;
+#ifdef __EDG_IA64_ABI
 #if DEBUG
   if (__debug_level >= 4) {
     fprintf(__f_debug, "find_base_class_at_addr:\n");
@@ -412,8 +414,6 @@ this function is called; it is set to TRUE If the base class is found.
     __db_type_info(*base_info);
   }  /* if */
 #endif /* DEBUG */
-  ptr = obj_ptr;
-#ifdef __EDG_IA64_ABI
   if (typeid(*obj_info) == typeid(abi::__si_class_type_info)) {
     abi::__si_class_type_info *si_obj_info = 
                                       (abi::__si_class_type_info *)obj_info;
