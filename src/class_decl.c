@@ -9442,7 +9442,7 @@ respectively.
       check_assertion(skip_typerefs(field_type)->variant.template_param.kind ==
                                    (a_template_param_type_kind)tptk_member);
       /* Okay. */
-    } else if ((microsoft_mode || gpp_mode) &&
+    } else if ((microsoft_mode || (gpp_mode && gnu_version < 30400)) &&
                class_state->is_nonreal_instantiation &&
                is_class_struct_union_type(field_type)) {
       /* In Microsoft and g++ mode, a field type can be incomplete in a
