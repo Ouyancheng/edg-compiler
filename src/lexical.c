@@ -4704,15 +4704,16 @@ scope.   If no errors occur while scanning the argument list, we call
 a routine to lookup the appropriate instance (or generate one if needed).
 */
 {
-  a_source_position      start_position;
-  a_template_param_ptr   param_ptr;
-  a_template_param_ptr   first_param_ptr;
-  a_template_arg_ptr     arg_list = NULL;
-  a_template_arg_ptr     last_arg = NULL;
-  a_symbol_ptr           new_sym = NULL;
-  a_symbol_locator       orig_locator;
-  a_boolean              any_errors = FALSE;
-  a_memory_region_number region_to_switch_back_to;
+  a_source_position               start_position;
+  a_template_param_ptr            param_ptr;
+  a_template_param_ptr            first_param_ptr;
+  a_template_arg_ptr              arg_list = NULL;
+  a_template_arg_ptr              last_arg = NULL;
+  a_symbol_ptr                    new_sym = NULL;
+  a_symbol_locator                orig_locator;
+  a_boolean                       any_errors = FALSE;
+  a_memory_region_number          region_to_switch_back_to;
+  a_type_tree_traversal_flag_set  ttt_flags;
 
   db_enter(3, "coalesce_template_class_reference");
 
@@ -4762,6 +4763,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
      selection. */
   param_ptr = template_symbol->variant.template_info->parameters;
   first_param_ptr = param_ptr;
+  ttt_flags = (TTT_RETURN_TYPE | TTT_THIS_PARAM_TYPE | TTT_PARAM_TYPES);
   do {
     a_symbol_ptr        sym;
     a_boolean           is_type_param;
@@ -4775,7 +4777,17 @@ a routine to lookup the appropriate instance (or generate one if needed).
     is_type_param = (sym->kind == (a_symbol_kind)sk_type);
     arg_ptr = alloc_template_arg(is_type_param);
     if (is_type_param) {
+      a_source_position  arg_pos;
+
+      arg_pos = pos_curr_token;
       type_name(&argument_type);
+      /* Be sure the type does not involve any local classes -- only externally
+         visible types are allowed, since template classes are themselves
+         externally linked. */
+      if (traverse_type_tree(argument_type, ttt_is_local_class, ttt_flags)) {
+        pos_error(ec_local_type_in_template_arg, &arg_pos);
+        argument_type = error_type();
+      }  /* if */
       arg_ptr->variant.type = argument_type;
     } else {  /* else executed when !is_type_param */
       a_type_ptr  constant_type = sym->variant.constant->type;
