@@ -1,5 +1,16 @@
 Version 2.43
 
+10/12/99 Abort in Microsoft mode with calling conventions applied to a
+         nonfunction abstract declarator
+
+The front end used to abort in Microsoft mode if a calling convention was
+specified on an abstract (i.e., unnamed) declarator for a nonfunction type.
+
+  bool (__cdecl *p)[4] = (bool (__cdecl*)[4])1;  // Aborted while parsing the
+                                                 // cast declarator.
+
+This is now fixed.
+
 10/12/99 Source positions on generated code at start/end of functions
 
 The source positions on code generated at the start and end of functions,

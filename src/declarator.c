@@ -3910,7 +3910,8 @@ function_lparen:
          declarator scan and goes on top of the function type. */
       if (inner_left_call_conv.call_conv != (a_calling_convention)cc_default) {
         update_calling_convention(&new_type_ptr, &inner_left_call_conv,
-                                  &locator->source_position);
+                                  locator != NULL ? &locator->source_position
+                                                  : &declarator_pos);
       }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
