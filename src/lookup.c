@@ -2396,13 +2396,20 @@ in a friend declaration.
   /* Look up the current token.  Note that a qualified name is not allowed. */
   if (is_friend_decl) options |= IDL_FRIEND_LOOKUP;
   assoc_symbol = normal_id_lookup(locator, options);
-  if (assoc_symbol != NULL &&
-      assoc_symbol->kind == (a_symbol_kind)sk_class_template &&
-      depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
-    /* If the symbol found is a class template symbol and we are inside an
-       instantiation of the class, use the template class symbol associated
-       with the current instantiation. */
-    (void)current_class_symbol_if_class_template(&assoc_symbol);
+  if (assoc_symbol != NULL) {
+    if (assoc_symbol->kind == (a_symbol_kind)sk_class_template &&
+        depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
+      /* If the symbol found is a class template symbol and we are inside an
+         instantiation of the class, use the template class symbol associated
+         with the current instantiation. */
+      (void)current_class_symbol_if_class_template(&assoc_symbol);
+    } else if (is_friend_decl && locator->specific_symbol != NULL &&
+               locator->specific_symbol->kind ==
+                                     (a_symbol_kind)sk_namespace_projection) {
+      /* Friend lookups should not find using declarations. */
+      assoc_symbol = NULL;
+      clear_specific_symbol(*locator);
+    }  /* if */
   }  /* if */
   if (assoc_symbol == NULL && !is_friend_decl) {
     /* If the symbol was not found using a normal lookup above, look again
