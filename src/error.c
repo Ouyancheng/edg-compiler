@@ -2013,11 +2013,11 @@ error code.
     case ec_non_arith_operation_in_templ_arg:
       m = "non-arithmetic operation not allowed in nontype template argument";
       break;
-    case ec_function_returning_local_type:
-      m = "function return type may not be a local type";
+    case ec_local_type_in_nonlocal_var:
+      m = "use of a local type to declare a nonlocal variable";
       break;
-    case ec_local_type_not_allowed:
-      m = "use of a local type is not allowed";
+    case ec_local_type_in_function:
+      m = "use of a local type to declare a function";
       break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
