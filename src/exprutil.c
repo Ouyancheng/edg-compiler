@@ -10349,7 +10349,8 @@ C, and false or true in C++).
 }  /* boolean_result_type */
 
 
-an_expr_node_ptr normalize_boolean_controlling_expr(an_expr_node_ptr expr)
+static an_expr_node_ptr normalize_boolean_controlling_expr(
+                                                         an_expr_node_ptr expr)
 /*
 expr is a boolean controlling expression, and the keyword bool is disabled.
 Add a "!= 0" test on top of the given expression if necessary to normalize

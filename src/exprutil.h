@@ -933,9 +933,6 @@ extern void do_operand_transformations(an_operand                   *operand,
 
 extern a_type_ptr boolean_result_type(void);
 
-extern an_expr_node_ptr normalize_boolean_controlling_expr(
-                                                       an_expr_node_ptr expr); 
-
 extern a_boolean op_is_zero_constant(an_operand *operand);
 
 extern a_boolean op_is_false_constant(an_operand *operand);
