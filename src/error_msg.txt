@@ -1030,6 +1030,7 @@ ec_ambiguous_question_operator;;"ambiguous \"?\" operation: second operand of ty
 ec_bad_call_of_class_object;;"call of an object of a class type without appropriate operator() or conversion functions to pointer-to-function type"
 ec_surrogate_func_add_on;INTERNAL;"surrogate function from conversion %np"
 ec_ambiguous_class_call;;"there is more than one way an object of type %t can be called for the argument list:"
+ec_similar_typedef;;"typedef name has already been declared (with similar type)"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
