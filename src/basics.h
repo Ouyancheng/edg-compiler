@@ -609,6 +609,18 @@ Returns TRUE in C mode (ANSI or pcc) and returns FALSE in C++ mode.
 */
 #define C_mode() (C_dialect != C_dialect_cplusplus)
 
+#ifndef offsetof
+/*
+Define a version of the offsetof macro if the host system does not provide
+one.
+*/
+#ifdef __EDG__
+#define offsetof(t, memb) ((size_t)__INTADDR__(&(((t *)0)->memb)))
+#else /* ifndef __EDG__ */
+#define offsetof(t, memb) ((size_t)&(((t *)0)->memb))
+#endif /* ifdef __EDG__ */
+#endif /* ifndef offsetof */
+
 
 /******************************************************************************
 *                                                             \  ___  /       *
