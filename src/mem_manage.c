@@ -1002,6 +1002,23 @@ needed (e.g., it has been written out to the IL file).
 }  /* free_memory_region */
 
 
+void free_all_memory_regions(void)
+/*
+Free all of the memory regions that have been used, including the front
+end memory region.
+*/
+{
+  a_memory_region_number region_number;
+  for (region_number = highest_used_region_number;
+       region_number != NULL_region_number;
+       region_number--) {
+    free_memory_region(region_number);
+  }  /* for */
+  /* Free the front end memory region. */
+  free_memory_region(NULL_region_number);
+}  /* free_all_memory_regions */
+
+
 void trim_memory_region(a_memory_region_number region_number)
 /*
 Trim the current (last) block of the indicated memory region to free

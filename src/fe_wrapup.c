@@ -152,8 +152,14 @@ and before the back end (if any) is executed.
   }  /* if */
 #endif /* DEBUG */
 
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+  /* Free all memory regions.  Anything left in any of the IL memory
+     regions should be discarded as it will be reread by the back end. */
+  free_all_memory_regions();
+#else /* IL_SHOULD_BE_WRITTEN_TO_FILE */
   /* Free front-end-only storage. */
   free_memory_region(NULL_region_number);
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 
   /* Clear the file index list maintained by the error routines (it was
      allocated in front-end storage). */
@@ -173,16 +179,12 @@ and after the back end (if any) is executed.
   /* Close the IL output file, be it a temporary or actual file. */
   close_il_output_file();
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
-  /* Free the file-scope IL and all function scope IL.  This is necessary
-     if an IL file is not written, or if some regions were kept because
-     of inlining, but it's a good idea in all cases. */
-  { a_memory_region_number region_number;
-    for (region_number = highest_used_region_number;
-         region_number != NULL_region_number;
-         region_number--) {
-      free_memory_region(region_number);
-    }  /* for */
-  }
+  /* Free the front end memory region, file-scope IL and all function scope
+     IL.  This is necessary if an IL file is not written, or if some regions
+     were kept because of inlining, but it's a good idea in all cases.
+     Some of the regions may have already been freed.  That is okay because
+     freeing a region a second time does nothing. */
+  free_all_memory_regions();
   /* Write a signoff message (with count of errors) if necessary. */
   write_signoff();
 }  /* fe_wrapup_part_2 */
