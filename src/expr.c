@@ -8717,6 +8717,7 @@ If p_sym_ptr is not NULL, set *p_sym_ptr to point to the symbol scanned
     if (is_error_locator(locator_for_curr_id)) {
       /* Some kind of error in the ambiguity and access control checking. */
       make_error_operand(result);
+      if (rep != NULL) change_ref_kinds(rep, SRK_ERROR);
     } else {
       projection_sym_ptr = locator_for_curr_id.specific_symbol;
       /* What kind of symbol is it? */
