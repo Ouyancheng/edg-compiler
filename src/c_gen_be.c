@@ -1957,6 +1957,7 @@ final semicolon if output_final_semi is TRUE.
          field != NULL;
          field = field->next) {
       set_output_position(&field->source_corresp.decl_position);
+      dump_decl_associated_pragmas(&field->source_corresp);
       if (!field->is_bit_field) {
         /* Not a bit field. */
         /* Note that a name will be generated for an anonymous union in C++. */
