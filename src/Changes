@@ -1,5 +1,20 @@
 Version 2.31
 
+12/19/95  C++-generating back end: Leading "::" on friend function declaration
+
+In version 2.30 the C++-generating back end was changed to allow a leading
+"::" on a friend declaration, because that's now allowed in C++ and it
+is needed for some obscure cases involving namespaces.  However, the change
+broke the following:
+
+  struct A {
+    int f;
+    friend void f();  // Came out with leading "::"
+  };
+  void f() {}
+
+Now fixed.
+
 12/19/95  C++-generating back end: cv-qualifiers on parameter types in
           function declarations
 
