@@ -8020,7 +8020,9 @@ containing a function template symbol.
   } else if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
     for (sym = sym->variant.overloaded_function.symbols;
          sym != NULL && !result; sym = sym->next) {
-      if (sym->kind == (a_symbol_kind)sk_function_template) result = TRUE;
+      a_symbol_ptr	fund_sym;
+      fund_sym = fundamental_symbol_of(sym);
+      if (fund_sym->kind == (a_symbol_kind)sk_function_template) result = TRUE;
     }  /* for */
   }  /* if */
   return result;

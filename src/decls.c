@@ -1338,7 +1338,8 @@ called by id_linkage.
   db_enter(4, "find_linked_symbol");
   if (locator->specific_symbol != NULL &&
       (qualifier_namespace_ptr(*locator) != NULL ||
-       locator->is_file_scope_qualified_name)) {
+       locator->is_file_scope_qualified_name ||
+       locator->is_template_id)) {
     /* The declarator is a namespace-qualified or a global-scope-qualified
        name.  If it's not a friend declaration, it is supposed to be a
        definition. */
@@ -1688,6 +1689,8 @@ determine_linkage:
     is_template_instance = (is_function && other_decl != NULL &&
                             is_function_symbol(other_decl) &&
                             other_decl->variant.routine.instance_ptr != NULL);
+    /* A name specified with a template-id should not get here. */
+    check_assertion(!locator->is_template_id);
     if (is_template_instance && !func_info->is_definition &&
         !other_decl->variant.routine.ptr->defined) {
       /* A specific declaration of function template instance for which
@@ -3143,8 +3146,9 @@ namespace-extension scope.
       }  /* if */
       *namespace_reactivated = TRUE;
     } else {
-      /* Must be a file scope qualified name. */
-      check_assertion(locator->is_file_scope_qualified_name);
+      /* Must be a file scope qualified name or a template-id. */
+      check_assertion(locator->is_file_scope_qualified_name ||
+                      locator->is_template_id);
     }  /* if */
     /* Look up the name. */
     linked_symbol = find_linked_symbol(locator, depth_scope_stack, type_ptr,
@@ -3784,7 +3788,8 @@ on for use in generating cross-reference output describing this declaration.
     sym = *symbol_ptr;
   } else if (!C_mode() && locator->specific_symbol != NULL &&
              (qualifier_namespace_ptr(*locator) != NULL ||
-              locator->is_file_scope_qualified_name)) {
+              locator->is_file_scope_qualified_name ||
+              locator->is_template_id)) {
     /* This identifier is a namespace-qualified name that was previously
        declared, or else a file-scope qualified name (friend declarations
        only).  Do the appropriate checking, including overload resolution.
