@@ -2102,7 +2102,7 @@ address of the uncompressed name.
 
   /* Advance past "__CPR". */
   id += 5;
-  /* Acumulate the length of the uncompressed name.  Cannot use get_number
+  /* Accumulate the length of the uncompressed name.  Cannot use get_number
      here because the number's value can be bigger than the input id
      length. */
   length = 0;
