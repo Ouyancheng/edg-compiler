@@ -12128,7 +12128,7 @@ returned instead of the unqualified function name.
                  size_t_arg(length));
     /* Create the local static const array and initialize it with the
        string constant. */
-    name_var = make_variable(name_string->type, (a_storage_class)sc_static,
+    name_var = make_variable(str_type, (a_storage_class)sc_static,
                              depth_innermost_function_scope);
     name_var->source_corresp.name =
                                 locator_for_curr_id.symbol_header->identifier;
