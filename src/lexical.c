@@ -4753,7 +4753,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
      is not necessary to distinguish between the type and constant case
      because we can use the type of the formal parameter to make this
      selection. */
-  param_ptr = template_symbol->variant.templ.extra_info->parameters;
+  param_ptr = template_symbol->variant.template_info->parameters;
   first_param_ptr = param_ptr;
   do {
     a_symbol_ptr        sym;
