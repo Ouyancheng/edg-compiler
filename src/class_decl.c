@@ -3533,7 +3533,7 @@ special function kind (e.g., constructor, destructor), if any.
       cssp->destructor = sym;
     }  /* if */
     /* Do checking associated with function overloading. */
-    if (overload_sym != NULL && !is_func_template) {
+    if (overload_sym != NULL && !cssp->is_nonreal_class) {
       a_symbol_ptr  other_sym = sym->next;
 #if CHECKING
       if (sym != overload_sym->variant.overloaded_function.symbols ||
