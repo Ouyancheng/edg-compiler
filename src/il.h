@@ -615,9 +615,6 @@ Return TRUE if a constant is an error constant.
 /* Macro that returns TRUE if a variable's storage class has static storage
    duration.  See 3.1.2.4.  Note that storage classes have been 
    standardized during declaration processing. */
-/* There is a copy of this macro, under the name static_storage_class,
-   in c_gen_be.c.  If you change this, you should probably change that
-   definition as well. */
 #define has_static_storage_duration(storage_class)                    \
   ((storage_class) == (a_storage_class)sc_static ||                   \
    (storage_class) == (a_storage_class)sc_extern ||                   \
