@@ -6479,7 +6479,7 @@ accept_function:
     candidate->conversion.class_object_adjustment_required =
                                               class_object_adjustment_required;
     candidate->conversion.std = std_conversion;
-    candidate->conversion.result_is_an_lvalue = result_is_an_lvalue;
+    candidate->conversion.result_is_an_lvalue = need_lvalue_result;
     goto next_function;
 reject_function:
     /* Function was rejected.  Free anything allocated for it. */

@@ -1,5 +1,20 @@
 Version 2.45
 
+9/1/00   Conversion to non-reference type that uses conversion function
+         to reference type is not lvalue
+
+The result of casting to a non-reference type by way of a conversion
+function that returns a reference type was mistakenly taken to be
+an lvalue.  It is now an rvalue.
+
+  struct A {
+    operator int&();
+  };
+  int main() {
+    A a;
+    ((int)a) = 1;  // Now gets an error
+  }
+
 9/1/00   Abort on array rvalue selected from base class of class rvalue
 
 The front end no longers aborts on passing an array rvalue as
