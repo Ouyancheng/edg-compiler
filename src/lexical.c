@@ -8489,6 +8489,8 @@ a routine to lookup the appropriate instance (or generate one if needed).
   a_boolean			  is_constructor_reference = FALSE;
   a_type_ptr			  orig_ctor_type;
   a_symbol_ptr			  orig_ctor_symbol;
+  a_boolean                       is_expr_context =
+                                         (options & GID_IS_EXPR_CONTEXT) != 0;
 
   db_enter(3, "coalesce_template_class_reference");
 
@@ -8532,11 +8534,9 @@ a routine to lookup the appropriate instance (or generate one if needed).
        return without further processing.  Otherwise, a diagnostic is
        issued and the template argument list is processed. */
     a_boolean	lt_permitted_context;
-    a_boolean	is_expr_context;
     a_boolean	is_error_symbol;
     lt_permitted_context = (options & GID_IS_NEW_TYPE_NAME) != 0 ||
                            (options & GID_IS_FIELD_SELECTION_OPERAND) != 0;
-    is_expr_context = (options & GID_IS_EXPR_CONTEXT) != 0;
     is_error_symbol = template_sym == NULL || template_sym->is_error ||
                       template_sym->ambiguous ||
                       template_sym->kind == (a_symbol_kind)sk_undefined;
@@ -8554,7 +8554,6 @@ a routine to lookup the appropriate instance (or generate one if needed).
       /* A nontype symbol (probably from a nonreal base) during a prototype
          instantiation in Sun mode.  Ignore this error. */
       template_sym = NULL;
-      set_to_error_locator(locator_for_curr_id);
     } else if (!is_error_symbol &&
                !lt_permitted_context && !is_expr_context) {
       /* A nontype symbol followed by a template argument list in a
@@ -8787,6 +8786,11 @@ a routine to lookup the appropriate instance (or generate one if needed).
         new_sym = orig_ctor_symbol;
       }  /* if */  
     }  /* if */
+  } else if (sun_mode && !any_errors && !is_expr_context &&
+             scope_stack[depth_scope_stack].in_prototype_instantiation) {
+    /* In Sun mode it is possible to refer to undeclared templates.  We get
+       here for example with 
+             template<class T> struct S { friend void f<>(); };  */
   } else {
     /* Free any allocated template arguments. */
     if (arg_list != NULL) free_template_arg_list(arg_list);
@@ -8830,9 +8834,11 @@ normal_exit:
   } else {
     locator_for_curr_id = orig_locator;
   }  /* if */
-  locator_for_curr_id.specific_symbol = new_sym;
-  locator_for_curr_id.do_not_clear_specific_symbol = arg_list_coalesced;
-  locator_for_curr_id.symbol_header = new_sym->header;
+  if (new_sym != NULL) {
+    locator_for_curr_id.specific_symbol = new_sym;
+    locator_for_curr_id.do_not_clear_specific_symbol = arg_list_coalesced;
+    locator_for_curr_id.symbol_header = new_sym->header;
+  }  /* if */
   /* Don't set the is_template_id field after processing a constructor
      reference followed by a template argument list in Microsoft mode. */
   locator_for_curr_id.is_template_id = !is_constructor_reference;
