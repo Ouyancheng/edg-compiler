@@ -3305,10 +3305,14 @@ This is done before command line processing.
 #endif /* __MICROSOFT_OS__ */
   temp_dir = NULL;
   temp_seed = 0;
+#if MODULE_ID_NEEDED
   module_id = NULL;
+#endif /* MODULE_ID_NEEDED */
+#if !STANDALONE_UTILITY_PROGRAM
   page_size = 0;
   dir_buffer1 = NULL;
   dir_buffer2 = NULL;
+#endif /* !STANDALONE_UTILITY_PROGRAM */
   primary_source_file_name = NULL;
   dir_name_of_primary_source_file = NULL;
 #if COMPILE_MULTIPLE_SOURCE_FILES
