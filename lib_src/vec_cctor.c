@@ -19,12 +19,12 @@ C++ runtime routine to execute a copy constructor for each element of an array.
 typedef void (*a_ptr_to_func_returning_void) (void *, void *);
 
 extern "C" {
-	void _vec_cctor(void *, size_t, size_t, a_ptr_to_func_returning_void,
+	void __vec_cctor(void *, size_t, size_t, a_ptr_to_func_returning_void,
                         void *);
 }
 
 
-void _vec_cctor(void                         *array_ptr,
+void __vec_cctor(void                         *array_ptr,
                 size_t                       number_of_elements,
                 size_t                       element_size,
                 a_ptr_to_func_returning_void ctor,
@@ -48,7 +48,7 @@ of member arrays, the number_of_elements can never be zero.
       (*ctor)((void *)arr_ptr, (void *)src_arr);
     }  /* for */
   }  /* if */
-}  /* _vec_ctor */
+}  /* __vec_ctor */
 
 
 /******************************************************************************
