@@ -4712,6 +4712,8 @@ a pointer to it in *symbol_ptr.
      scope. */
   sym->variant.type = tp = alloc_type((a_type_kind)tk_typeref);
   tp->variant.typeref.type = type_ptr;
+  sym->defined = TRUE;
+  set_decl_sequence_number(sym);
   set_source_corresp(&(tp->source_corresp), sym);
   add_to_types_list(tp, decl_scope_level);
 
@@ -6193,7 +6195,10 @@ to indicate whether an enumeration is actually defined.
        the definition and switch back when we reach the right brace. */
     switch_to_file_scope_region(&region_to_switch_back_to);
     *defines_something = TRUE;
-    if (tag_sym != NULL) tag_sym->defined = TRUE;
+    if (tag_sym != NULL) {
+      tag_sym->defined = TRUE;
+      set_decl_sequence_number(tag_sym);
+    }  /* if */
     (void)get_token();
     if (C_dialect == C_dialect_cplusplus) {
       /* In C++ (see ARM 7.2) the type of an enumerator is the same as that
