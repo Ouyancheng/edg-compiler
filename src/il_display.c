@@ -1667,7 +1667,7 @@ do_exec_stmt:
 }  /* disp_label */
 
 
-static disp_expr_operator_name(an_expr_operator_kind okind)
+static void disp_expr_operator_name(an_expr_operator_kind okind)
 /*
 Display the name of an expression operator.
 */
@@ -2791,7 +2791,7 @@ This routine is called during IL walking.
 }  /* disp_entry */
 
 
-static disp_source_language_name(a_source_language source_language)
+static void disp_source_language_name(a_source_language source_language)
 /*
 Display the name for the indicated source language name.
 */
