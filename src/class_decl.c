@@ -13041,6 +13041,60 @@ static void check_type_for_linkage_change(a_type_ptr type,
                                           int        *count);
 
 
+static void make_routine_externally_linked(a_routine_ptr rp,
+                                           int           *count)
+/*
+Change the linkage of the indicated routine to external.  Count is
+a counter of types processed, used in deciding when all types
+have been processed.
+*/
+{
+  if (rp->is_inline) {
+    /* An inline member function remains internally linked even
+       when it is a member of an externally linked class. */
+  } else {
+    /* All other functions must be externally linked.  The storage
+       class (extern or unspecified) depends on whether the function
+       was defined in the current translation unit. */
+    rp->source_corresp.name_linkage =
+                 (a_name_linkage_kind)nlk_cplusplus_external;
+    if (rp->assoc_scope == NULL_region_number) {
+      /* Not defined. */
+      rp->storage_class = (a_storage_class)sc_extern;
+    } else {
+      /* Routine is defined in this file.  Mark it referenced in
+         case it's referenced in another file. */
+      rp->storage_class = (a_storage_class)sc_unspecified;
+      rp->source_corresp.referenced = TRUE;
+#if MAINTAIN_NEEDED_FLAGS
+      mark_as_needed((char *)rp, (an_il_entry_kind)iek_routine);
+#endif /* MAINTAIN_NEEDED_FLAGS */
+    }  /* if */
+#if DEBUG
+    if (debug_level >= 3) {
+      fputs("external linkage given to member function \"", f_debug);
+      db_name(&rp->source_corresp);
+      fputs("\"\n", f_debug);
+    }  /* if */
+#endif /* DEBUG */
+  }  /* if */
+  check_type_for_linkage_change(rp->type, count);
+#if IA64_ABI
+  /* If this is a constructor or destructor with alternate entry points,
+     change the linkage on those as well. */
+  if (rp->special_kind == (a_special_function_kind)sfk_constructor ||
+      rp->special_kind == (a_special_function_kind)sfk_destructor) {
+    a_routine_list_entry_ptr rlep;
+    for (rlep = rp->variant.ctor_dtor.alternate_entry_points;
+         rlep != NULL;
+         rlep = rlep->next) {
+      make_routine_externally_linked(rlep->routine, count);
+    }  /* for */
+  }  /* if */
+#endif /* IA64_ABI */
+}  /* make_routine_externally_linked */
+
+
 static void make_enum_type_externally_linked(a_type_ptr  type,
                                              int         *count)
 /*
@@ -13120,36 +13174,7 @@ definition and marks them external as well.
        storage class set properly. */
     rp = ctsp->assoc_scope->routines;
     for (; rp != NULL; rp = rp->next) {
-      if (rp->is_inline) {
-        /* An inline member function remains internally linked even
-           when it is a member of an externally linked class. */
-      } else {
-        /* All other functions must be externally linked.  The storage
-           class (extern or unspecified) depends on whether the function
-           was defined in the current translation unit. */
-        rp->source_corresp.name_linkage =
-                 (a_name_linkage_kind)nlk_cplusplus_external;
-        if (rp->assoc_scope == NULL_region_number) {
-          /* Not defined. */
-          rp->storage_class = (a_storage_class)sc_extern;
-        } else {
-          /* Routine is defined in this file.  Mark it referenced in
-             case it's referenced in another file. */
-          rp->storage_class = (a_storage_class)sc_unspecified;
-          rp->source_corresp.referenced = TRUE;
-#if MAINTAIN_NEEDED_FLAGS
-          mark_as_needed((char *)rp, (an_il_entry_kind)iek_routine);
-#endif /* MAINTAIN_NEEDED_FLAGS */
-        }  /* if */
-#if DEBUG
-        if (debug_level >= 3) {
-          fputs("external linkage given to member function \"", f_debug);
-          db_name(&rp->source_corresp);
-          fputs("\"\n", f_debug);
-        }  /* if */
-#endif /* DEBUG */
-      }  /* if */
-      check_type_for_linkage_change(rp->type, count);
+      make_routine_externally_linked(rp, count);
     }  /* for */
     /* A variable entry for a static data member will need to have its
        storage class and linkage reset.  In addition, its type
