@@ -1,5 +1,13 @@
 Version 2.42
 
+7/28/99  Displaying runtime abort messages
+
+There are several conditions that cause the runtime to abort execution.
+Formerly, the runtime would simply call abort; typically from a routine
+whose name suggests the cause of the abort.  The runtime can now be
+configured to display a message describing the cause of the abort by
+setting the DISPLAY_ABORT_DESCRIPTION flag when building the runtime.
+
 6/17/99  Dynamic case access checking problem
 
 The 2.41 change to do the standard-mandated access checking of dynamic
