@@ -7584,13 +7584,13 @@ expression copy will be inside a conditional part of an expression.
   an_expr_copy_options_set options = CE_NO_OPTIONS;
   an_expr_node_ptr	   expr;
 
-  if (ptp->has_unevaluated_template_default) {
+  if (ptp->has_unevaluated_template_default &&
+      /* Avoid an error recovery problem. */
+      rout != NULL) {
     /* This is a parameter of a function template, or a member function of a
        template class, and the default value has not yet been instantiated.
        Instantiate it now. */
-    a_symbol_ptr	rout_sym;
-    check_assertion_str2(rout != NULL, "copy_default_arg_expr:",
-                         "NULL routine pointer");
+    a_symbol_ptr rout_sym;
     rout_sym = (a_symbol_ptr)rout->source_corresp.assoc_info;
     instantiate_default_argument(rout_sym, ptp);
   }  /* if */
