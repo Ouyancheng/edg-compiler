@@ -7179,7 +7179,10 @@ that follows.
                          DSI_STORAGE_CLASS_SPECIFIER_ALLOWED |
                          DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER |
                          DSI_TYPE_SPECIFIER_ALLOWED |
-                         DSI_INLINE_ALLOWED),
+                         DSI_INLINE_ALLOWED |
+                         (decl_state->is_member_decl
+                                  ? DSI_IS_MEMBER_DECLARATION
+                                  : DSI_NO_INPUT_FLAGS)),
                         &dso_flags, &storage_class, &type, &qualifiers,
                         &decl_modifiers);
   if (is_error_type(type) && !is_declarator_start()) {
