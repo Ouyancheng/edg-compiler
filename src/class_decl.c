@@ -8657,6 +8657,7 @@ following the member declaration.
         check_completed_member_type(&local_type, &locator, class_state,
                                     &decl_info);
       }  /* if */
+      if (locator.is_destructor_name) decl_info.is_destructor = TRUE;
     }  /* if */
     remove_stop_token(tok_colon);
     if (!C_mode() && is_function_type(local_type) &&

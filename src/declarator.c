@@ -2379,7 +2379,6 @@ static void scan_real_declarator_id(
                           a_boolean         *is_constructor,
                           a_boolean         *is_destructor,
                           a_boolean         *parenthesized_initializer_allowed,
-                          a_type_ptr        *p_complete_type,
                           a_type_ptr        *p_member_parent_type)
 /*
 This routine is called by declarator for real declarators; it scans the name
@@ -2387,7 +2386,6 @@ that is specified.  The current token is the beginning of the name (usually
 but not always an identifier).  input_flags is the set of flags passed in to
 declarator, and *output_flags is the set of flags that will be returned to
 declarator's caller.  *locator is returned with the locator for the name,
-*p_complete_type is its type (it is updated in special cases),
 *p_member_parent_type is the class type when this is a qualified name,
 *p_constructor or *p_destructor is returned TRUE when the name is a
 constructor or destructor name, and *parenthesized_initializer_allowed is set
@@ -2534,8 +2532,8 @@ to FALSE if the entity being declared is not initializable.
       /* See if the name is a qualified name, like "A::x" or "::j". */
       if (locator_for_curr_id.is_qualified_name) {
         *p_member_parent_type = qualifier_class_type(locator_for_curr_id);
-        if (*p_member_parent_type  != NULL) {
-          a_boolean     reactivate_scope = FALSE;
+        if (*p_member_parent_type != NULL) {
+          a_boolean  reactivate_scope = FALSE;
 
           sym = locator_for_curr_id.specific_symbol;
           /* See if the name is the name of a member function. */
@@ -2548,16 +2546,8 @@ to FALSE if the entity being declared is not initializable.
             *parenthesized_initializer_allowed = FALSE;
             if (is_constructor_symbol(sym)) {
               *is_constructor = TRUE;
-              if (!is_unknown_type(*p_complete_type)) {
-                error(ec_return_type_not_allowed);
-                *p_complete_type = unknown_type();
-              }  /* if */
             } else if (is_destructor_symbol(sym)) {
               *is_destructor = TRUE;
-              if (!is_unknown_type(*p_complete_type)) {
-                error(ec_return_type_not_allowed);
-                *p_complete_type = unknown_type();
-              }  /* if */
             }  /* if */
           } else if (sym->kind == (a_symbol_kind)sk_static_data_member) {
             /* The dimensions of static data members (if any) are scanned
@@ -2611,59 +2601,36 @@ to FALSE if the entity being declared is not initializable.
       /* A destructor name, like "~A".  It must have the same name as
          the class currently being defined, it must be followed by a
          left paren, and the specifiers must include no type. */
+      *is_destructor = TRUE;
+      *parenthesized_initializer_allowed = FALSE;
       if (is_error_locator(locator_for_curr_id)) {
         /* There is some error in the destructor name. */
+        set_to_error_locator(*locator);
       } else {
         a_scope_stack_entry_ptr ssep = &scope_stack[decl_scope_level];
 
         if (ssep->kind != (a_scope_kind)sck_class_struct_union) {
           /* Not inside a class; destructor is not allowed. */
           error(ec_bad_destructor_decl);
+          set_to_error_locator(*locator);
         } else {
           sym = (a_symbol_ptr)ssep->assoc_type->source_corresp.assoc_info;
-          if (!destructor_name_matches_class_name(sym)) {
-            /* The name on the destructor is not the name of the class. */
+          if (!destructor_name_matches_class_name(sym) ||
+              !(input_flags & DI_DESTRUCTOR_SPECIFIERS)) {
+            /* Either the name on the destructor is not the name of the
+               class or the specifiers are not consistent with a destructor
+               declaration (e.g., a destructor cannot be specified "static"
+               or "void"). */
             error(ec_bad_destructor_decl);
+            set_to_error_locator(*locator);
           } else {
-            if (!is_unknown_type(*p_complete_type)) {
-              error(ec_return_type_not_allowed);
-              *p_complete_type = unknown_type();
-            } else if (!(input_flags & DI_DESTRUCTOR_SPECIFIERS)) {
-              /* The specifiers, including possibly the type specifier,
-                 are not consistent with a destructor declaration (e.g., a
-                 destructor cannot be specified "static" or "void"). */
-              error(ec_bad_destructor_decl);
-            } else {
-              /* Valid destructor declaration. */
-              *p_member_parent_type = ssep->il_scope->variant.assoc_type;
-            }  /* if */
-            *is_destructor = TRUE;
-            *parenthesized_initializer_allowed = FALSE;
             *locator = locator_for_curr_id;
+            *p_member_parent_type = ssep->il_scope->variant.assoc_type;
           }  /* if */
         }  /* if */
       }  /* if */
       /* Advance past the destructor. */
       (void)get_token();
-      if (!(*is_destructor)) {
-        /* Invalid destructor name. */
-        set_to_error_locator(*locator);
-        /* Avoid spurious errors later. */
-        if (is_unknown_type(*p_complete_type)) *p_complete_type = void_type();
-      } else if (curr_token != tok_lparen) {
-        /* A valid destructor name is not followed by a left
-           parenthesis. */
-        error(ec_exp_lparen);
-        if (curr_token != tok_rparen) {
-          error(ec_exp_rparen);
-        } else {
-          (void)get_token();
-        }  /* if */
-        *is_destructor = FALSE;
-        *p_complete_type = error_type();
-        set_to_error_locator(*locator);
-      }  /* if */
-      *parenthesized_initializer_allowed = FALSE;
     } else {
       add_stop_token(tok_lparen);
       add_stop_token(tok_lbracket);
@@ -2680,13 +2647,6 @@ to FALSE if the entity being declared is not initializable.
     /* A namespace name cannot be a declarator. */
     pos_error(ec_namespace_name_not_allowed, &declarator_pos);
     set_to_error_locator(*locator);
-  }  /* if */
-  if (!(input_flags & DI_OPERATOR_NAME_ALLOWED)) {
-    if (locator->is_operator_name || locator->is_conversion_name) {
-      pos_error(ec_operator_name_not_allowed, &locator->source_position);
-      set_to_error_locator(*locator);
-      *p_complete_type = error_type();
-    }  /* if */
   }  /* if */
   if (locator->is_operator_name) {
     /* Enforce some restrictions on the declarations of overloaded
@@ -2733,17 +2693,6 @@ to FALSE if the entity being declared is not initializable.
       /* Avoid error recovery problems later. */
       locator->is_conversion_name = TRUE;
     }  /* if */
-  } else if (*is_constructor) {
-    /* Return type should be "unknown" at this point.  Change it to
-       the constructed type (a front end convention that deviates from
-       what is explicitly in the source for a constructor declaration. */
-    check_assertion(is_unknown_type(*p_complete_type));
-    *p_complete_type = make_reference_type(*p_member_parent_type);
-  } else if (*is_destructor) {
-    /* Return type should be "unknown" at this point.  Change it to void
-       (again, a front end convention). */
-    check_assertion(is_unknown_type(*p_complete_type));
-    *p_complete_type = void_type();
   }  /* if */
   db_exit();
 }  /* scan_real_declarator_id */
@@ -2761,6 +2710,8 @@ static void r_declarator(
                   a_symbol_locator            *locator,
                   a_type_ptr                  *p_complete_type,
                   a_type_ptr                  *p_bottom_derived_type,
+                  a_boolean                   *is_constructor,
+                  a_boolean                   *is_destructor,
                   a_call_conv_descr_ptr       p_left_call_conv,
                   a_call_conv_descr_ptr       p_unbound_call_conv,
                   a_type_qualifier_set        *p_left_qualifiers,
@@ -2843,7 +2794,6 @@ The syntax is:
   a_boolean       real_declarator_allowed;
   a_boolean       abstract_declarator_allowed;
   a_boolean       is_name_start;
-  a_boolean       is_constructor = FALSE, is_destructor = FALSE;
   a_boolean       is_nonstatic_member_function = FALSE;
   a_boolean       nonconstant_dimension_allowed;
   a_boolean       parenthesized_initializer_allowed;
@@ -2861,11 +2811,6 @@ The syntax is:
   *output_flags = DO_NO_OUTPUT_FLAGS;
   real_declarator_allowed = input_flags & DI_REAL_DECLARATOR_ALLOWED;
   abstract_declarator_allowed = input_flags & DI_ABSTRACT_DECLARATOR_ALLOWED;
-  is_constructor = (input_flags & DI_IS_CONSTRUCTOR) != 0;
-  /* If DI_IS_CONSTRUCTOR is set, the parent class should be provided. */
-  check_assertion_str(!is_constructor || member_parent_type != NULL ||
-                      (input_flags & DI_IS_FRIEND_DECL),
-                      "r_declarator: parent class is NULL for ctor");
   parenthesized_initializer_allowed =
                        (input_flags & DI_PARENTHESIZED_INITIALIZER_ALLOWED);
   nonconstant_dimension_allowed =
@@ -2945,6 +2890,7 @@ The syntax is:
                  &local_do_flags, /*specifiers_type=*/(a_type_ptr)NULL,
                  member_parent_type, locator,
                  &derived_type, &bottom_derived_type,
+                 is_constructor, is_destructor,
                  &inner_left_call_conv, &unbound_call_conv,
                  &inner_left_qualifiers, &unbound_qualifiers,
                  declarator_ssep, func_info);
@@ -3009,9 +2955,9 @@ The syntax is:
       *output_flags |= DO_REAL_DECLARATOR_SCANNED;
       /* Process the name declared here. */
       scan_real_declarator_id(input_flags, output_flags, locator,
-                              &is_constructor, &is_destructor,
+                              is_constructor, is_destructor,
                               &parenthesized_initializer_allowed,
-                              &complete_type, &member_parent_type);
+                              &member_parent_type);
     }  /* if */
   }  /* if */
   /* The declarator can end at this point, or an array or function
@@ -3108,16 +3054,16 @@ function_lparen:
             member_parent_type = NULL;
           }  /* if */
           func_info = NULL;
-          is_constructor = is_destructor = FALSE;
+          *is_constructor = *is_destructor = FALSE;
         } else if (*output_flags & DO_CFRONT_MEMBER_FUNCTION_TYPEDEF) {
           check_assertion(func_info == NULL);
           is_nonstatic_member_function = TRUE;
-          is_constructor = is_destructor = FALSE;
+          *is_constructor = *is_destructor = FALSE;
         } else if (func_info == NULL) {
-          is_constructor = is_destructor = FALSE;
+          *is_constructor = *is_destructor = FALSE;
           is_nonstatic_member_function = FALSE;
           member_parent_type = NULL;
-        } else if (is_constructor || is_destructor) {
+        } else if (*is_constructor || *is_destructor) {
           is_nonstatic_member_function = TRUE;
         } else {
           if (input_flags & DI_NONSTATIC_MEMBER) {
@@ -3150,7 +3096,7 @@ function_lparen:
                                                DI_IS_EXPLICIT_INSTANTIATION)));
       function_declarator(&new_type_ptr, func_info, locator,
                           member_parent_type, is_nonstatic_member_function,
-                          is_constructor, is_destructor,
+                          *is_constructor, *is_destructor,
                           disallow_default_args);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       if (func_info != NULL) {
@@ -3297,8 +3243,15 @@ function_lparen:
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (specifiers_type != NULL) {
-    /* This is a top-level call to declarator. */
-    if (locator != NULL && locator->is_conversion_name) {
+    /* This is a top-level call to declarator.  Do some checks for special
+       member functions and set complete_type appropriately, so that it can
+       be added as return type to the associated routine type. */
+    if (!(input_flags & DI_OPERATOR_NAME_ALLOWED) && locator != NULL &&
+        (locator->is_operator_name || locator->is_conversion_name)) {
+      pos_error(ec_operator_name_not_allowed, &locator->source_position);
+      set_to_error_locator(*locator);
+      complete_type = error_type();
+    } else if (locator != NULL && locator->is_conversion_name) {
       /* Do error checking on the conversion function declaration. */
       if (is_error_locator(*locator)) {
         complete_type = error_type();
@@ -3308,6 +3261,27 @@ function_lparen:
           pos_error(ec_return_type_on_conversion_function, &declarator_pos);
         }  /* if */
         complete_type = locator->variant.conversion_result_type;
+      }  /* if */
+    } else if (*is_constructor) {
+      /* Return type should be "unknown" at this point.  Change it to
+         the constructed type (a front end convention that deviates from
+         what is explicitly in the source for a constructor declaration. */
+      if (!is_unknown_type(specifiers_type)) {
+        pos_error(ec_return_type_not_allowed, &declarator_pos);
+      }  /* if */
+      complete_type = make_reference_type(member_parent_type);
+    } else if (*is_destructor) {
+      /* Make the destructor return "void". */
+      if (is_error_locator(*locator)) {
+        complete_type = error_type();
+      } else {
+        if (!is_unknown_type(specifiers_type) &&
+            !(input_flags & DI_NO_TYPE_SPECIFIERS)) {
+          pos_error(ec_return_type_not_allowed, &declarator_pos);
+        } else if (derived_type == NULL || !is_function_type(derived_type)) {
+          pos_error(ec_bad_destructor_decl, &declarator_pos);
+        }  /* if */
+        complete_type = void_type();
       }  /* if */
     }  /* if */
   }  /* if */
@@ -3416,11 +3390,17 @@ need not be supplied on other calls.  See r_declarator for the meaning of
 the parameters.
 */
 {
-  a_type_ptr bottom_derived_type = NULL;
+  a_type_ptr  bottom_derived_type = NULL;
+  a_boolean   is_constructor = FALSE, is_destructor = FALSE;
 
+  is_constructor = (input_flags & DI_IS_CONSTRUCTOR) != 0;
+  /* If DI_IS_CONSTRUCTOR is set, the parent class should be provided. */
+  check_assertion_str(!is_constructor || member_parent_type != NULL ||
+                      (input_flags & DI_IS_FRIEND_DECL),
+                      "r_declarator: parent class is NULL for ctor");
   r_declarator(input_flags, output_flags, specifiers_type,
                member_parent_type, locator, p_complete_type,
-               &bottom_derived_type,
+               &bottom_derived_type, &is_constructor, &is_destructor,
                (a_call_conv_descr_ptr)NULL, (a_call_conv_descr_ptr)NULL,
                (a_type_qualifier_set *)NULL, (a_type_qualifier_set *)NULL,
                declarator_ssep, func_info);
