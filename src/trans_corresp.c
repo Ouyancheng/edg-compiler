@@ -2031,8 +2031,8 @@ other entities.  (Not significant in C mode: C enumerators have no linkage.)
                 seek_type_corresp(type, sym->variant.constant->type) &&
                 same_entities(enumerator, sym->variant.constant)) {
               /* We found a corresponding enumerator in another TU. */
-            } else if (C_mode() && is_tag_symbol(sym)) {
-              /* In C mode, tag names have their own name space. */
+            } else if (is_tag_symbol(sym)) {
+              /* Tag names have their own name space. */
             } else {
               f_report_bad_trans_unit_corresp((char*)enumerator,
                                               &sym->decl_position);
@@ -3495,8 +3495,8 @@ entities.
         } else if (type_sym->is_class_member) {
           /* A conflict, but errors are reported elsewhere for class
              members. */
-        } else if (C_mode() && is_tag_symbol(type_sym)) {
-          /* In C mode, tag names have their own name space. */
+        } else if (is_tag_symbol(type_sym)) {
+          /* Tag names have their own name space. */
         } else {
           f_report_bad_trans_unit_corresp((char*)type, &sym->decl_position);
         }  /* if */
