@@ -1336,6 +1336,7 @@ ec_nonstd_qualifier_in_namespace_member_decl;;"nonstandard qualified name in nam
 ec_declspec_align_reduction_ignored;;"reduction in alignment ignored"
 ec_const_ignored;;"const qualifier ignored"
 ec_return_in_function_marked_with_noreturn;;"return statement in function marked with \"noreturn\""
+ec_invalid_asm_qualifiers;;"invalid GNU asm qualifiers"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

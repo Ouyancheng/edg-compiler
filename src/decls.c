@@ -9265,7 +9265,10 @@ instruction's operands.
       cv_pos = pos_curr_token;
       qualifiers = collect_type_qualifiers(&ext_cv_pos, &block_size);
       check_assertion(block_size == 0);
-      if (qualifiers & TQ_CONST) {
+      if (qualifiers & ~(TQ_CONST | TQ_VOLATILE)) {
+        /* Other qualifiers (e.g., "restrict") should be rejected. */
+        pos_error(ec_invalid_asm_qualifiers, &cv_pos);
+      } else if (qualifiers & TQ_CONST) {
         pos_warning(ec_const_ignored, &cv_pos);
       }  /* if */
       if (qualifiers & TQ_VOLATILE) {
