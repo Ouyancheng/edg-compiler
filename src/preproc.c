@@ -1914,7 +1914,7 @@ pragma appears.
 }  /* check_for_upc_pragmas */
 
 
-void upc_pragma(a_pending_pragma_ptr   ppp)
+void upc_pragma(a_pending_pragma_ptr  ppp)
 /*
 Process a predefined UPC pragma.  This is the routine that is
 registered with the pragma processing routines.  It calls process_upc_pragma

@@ -3017,6 +3017,10 @@ enum a_pragma_kind_tag {
   pk_upc,               /* UPC-specific pragma, controlling the default
                            access method for shared data. */
 #endif /* UPC_EXTENSIONS_ALLOWED */
+#if REDEFINE_EXTNAME_PRAGMA_ENABLED
+  pk_redefine_extname,	/* Solaris-specific pragma that allows external
+			   (mangled) names to be remapped. */
+#endif /* REDEFINE_EXTNAME_PRAGMA_ENABLED */
 #if INCLUDE_EDG_TEST_PRAGMAS
   /* For testing purposes. */
   pk_test_next_statement,
@@ -3088,6 +3092,9 @@ EXTERN char *pragma_ids[(int)pk_last + 1]
 #if UPC_EXTENSIONS_ALLOWED
 /* pk_upc */                    "upc",
 #endif /* UPC_EXTENSIONS_ALLOWED */
+#if REDEFINE_EXTNAME_PRAGMA_ENABLED
+/* pk_redefine_extname */       "redefine_extname",
+#endif /* REDEFINE_EXTNAME_PRAGMA_ENABLED */
 #if INCLUDE_EDG_TEST_PRAGMAS
 /* For testing purposes. */
 /* pk_test_next_statement */	"test_next_statement",
@@ -5563,17 +5570,21 @@ typedef struct a_variable {
 			   Microsoft storage-class-like __declspec
 			   modifiers. */
 #endif /* DECL_MODIFIERS_IN_USE */
-#if GNU_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
   union {
     char	*name;
 			/* If non-NULL, and asm_name_is_valid is TRUE
 			   this is the name to be used as an assembly
 			   language level symbol for this variable. */
+#if GNU_EXTENSIONS_ALLOWED
     a_named_register
 		reg;
 			/* If asm_name_is_valid is FALSE, the register
 			   to which this variable should be assigned. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   } asm_name_or_reg;
+#endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
+#if GNU_EXTENSIONS_ALLOWED
   a_targ_alignment
   		alignment;
 			/* The explicit alignment specified for the
@@ -5594,10 +5605,12 @@ typedef struct a_variable {
 			/* TRUE if this variable should not be placed in
 			   COMMON (or an equivalent) even if it is
 			   zero-initialized. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
   a_bit_field   asm_name_is_valid:1;
 			/* TRUE if the name field of asm_name_or_reg
 			   is valid; FALSE if the reg field is valid. */
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
   a_bit_field	address_taken:1;
                         /* TRUE if the address of this variable has been
                            taken somewhere. */
@@ -6796,10 +6809,12 @@ typedef struct a_routine {
   a_routine_ptr	aliased_routine; 
 			/* If non-NULL, the routine for which this routine
 			   is an alias. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
   char		*asm_name;
 			/* If non-NULL, the name to be used as an assembly
 			   language level symbol for this routine. */
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_type_ptr	declared_type;
 			/* The type as it actually appears in the declaration

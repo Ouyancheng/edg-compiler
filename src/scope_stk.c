@@ -3983,15 +3983,15 @@ unit.
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
     }  /* if */
   }  /* if */
-#if GNU_EXTENSIONS_ALLOWED
-  if (gnu_mode && kind == (a_scope_kind)sck_file && is_namespace_wrapup) {
+#if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
+  if (kind == (a_scope_kind)sck_file && is_namespace_wrapup) {
     /* The GNU alias attribute can refer to names of entities before those
        entities are declared.  The actual IL connection is therefore set up
        when all the entities in a translation unit have been seen.  This must
        occur before unneeded entities are determined. */
     process_alias_fixup_list();
   }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
 #if RECORD_HIDDEN_NAMES_IN_IL
   if (!C_mode() && total_errors == 0 && is_primary_translation_unit) {
     if (kind == (a_scope_kind)sck_function ||

@@ -1,5 +1,17 @@
 Version 3.1
 
+9/9/02   Pragma redefine_extname
+
+The front end now recognizes the redefine_extname pragma when the new
+configuration macro REDEFINE_EXTNAME_PRAGMA_ENABLED is TRUE.  This pragma
+must be followed by two identifiers and causes entities named with the first
+of these identifiers to be have the second name as their external (asm) name.
+The entity whose external name is changed in this way must have external C
+linkage.
+
+  #pragma redefine_extname f g
+  extern "C" void f() {}  // Seen as function "g" by the linker
+
 9/6/02   Instantiation incorrectly removed from the IL in -tall mode
 
 Version 3.0 introduced a problem that would cause unused function

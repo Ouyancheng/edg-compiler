@@ -23,16 +23,19 @@ attribute.c -- Processing of attributes, a GCC extension.
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
 #if GNU_EXTENSIONS_ALLOWED
-
 /* Header files used by files involved in declaration processing. */
 #include "decl_hdrs.h"
 #include "layout.h"
 
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
+#if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
 /*
 The "alias" attribute can refer to entities that are declared later in a
 translation unit.  Therefore, we record such attributes in a fixup list and
-process the list at the end of the translation unit.
+process the list at the end of the translation unit.  This is also used to
+implement the "redefine_extname" pragma used by the Sun Solaris operating
+system.
 */
 
 typedef struct an_alias_fixup *an_alias_fixup_ptr;
@@ -40,7 +43,13 @@ typedef struct an_alias_fixup {
   an_alias_fixup_ptr
 		next;	/* Pointer to the next fixup to process. */
   a_symbol_ptr	alias;
-			/* The symbol that is an alias for another entity. */
+			/* The symbol that is an alias for another entity.
+			   NULL if this is an entry created by a
+			   redefine_extname pragma directive. */
+  char*		alias_name;
+			/* If this is an entry created by a redefine_extname
+			   pragma directive, the name to substitute by the
+			   name indicated by aliased_name.  NULL otherwise. */
   char*		aliased_name;
 			/* The name of the entity being aliased. */
   a_source_position
@@ -59,6 +68,7 @@ static an_alias_fixup_ptr
 
 
 static void add_alias_fixup(a_symbol_ptr        alias,
+                            char*               alias_name,
                             char*               aliased_name,
                             a_source_position*  alias_position)
 /*
@@ -76,6 +86,7 @@ Allocate a fixup entry for a new alias described by the given parameters.
   entry->next = alias_fixup_list;
   alias_fixup_list = entry;
   entry->alias = alias;
+  entry->alias_name = alias_name;
   entry->aliased_name = aliased_name;
   entry->alias_position = *alias_position;
 }  /* add_alias_fixup */
@@ -99,20 +110,61 @@ Traverse the list of alias fixups and set the alias fields as needed.
   an_alias_fixup_ptr  entries = alias_fixup_list, entry;
   a_symbol_ptr        aliased_sym;
   a_symbol_locator    locator;
+  a_source_position   *pos;
 
   while (entries != NULL) {
     entry = entries;
     entries = entries->next;
-    if (entry->alias->defined) {
-      /* An entity cannot have a definition and simultaneously be an alias for
-         another entity. */
-      pos_error(ec_alias_cannot_have_definition, &entry->alias->decl_position);
+    if (entry->alias == NULL) {
+      /* This entry is the result of a redefine_extname pragma directive. */
+      pos = &entry->alias_position;
+    } else {
+      pos = &entry->alias->decl_position;
+      if (entry->alias->defined) {
+        /* An entity cannot have a definition and simultaneously be an alias
+           for another entity. */
+        pos_error(ec_alias_cannot_have_definition, pos);
+      }  /* if */
     }  /* if */
-    clear_locator(&locator, &entry->alias->decl_position);
+    clear_locator(&locator, pos);
     (void)find_symbol(entry->aliased_name,
                       (sizeof_t)strlen(entry->aliased_name), &locator);
     aliased_sym = normal_id_lookup(&locator, IDL_LINKAGE_LOOKUP);
-    if (aliased_sym == NULL) {
+    if (entry->alias == NULL) {
+#if REDEFINE_EXTNAME_PRAGMA_ENABLED
+      /* This entry corresponds to a redefine_extname pragma directive. */
+      check_assertion(entry->alias_name != NULL);
+      if (aliased_sym == NULL) {
+        /* There is no declaration on which the pragma has an effect. */
+      } else {
+        a_source_correspondence_ptr  scp = NULL;
+        switch (aliased_sym->kind) {
+          case sk_routine:
+            aliased_sym->variant.routine.ptr->asm_name = entry->alias_name;
+            scp = &aliased_sym->variant.routine.ptr->source_corresp;
+            break;
+          case sk_variable:
+            aliased_sym->variant.variable.ptr->asm_name_or_reg.name =
+                                                          entry->alias_name;
+            scp = &aliased_sym->variant.variable.ptr->source_corresp;
+            break;
+          case sk_overloaded_function:
+            pos_sy_error(ec_bad_linkage_for_redefine_extname, pos,
+                         aliased_sym);
+            break;
+          default:
+            break;
+        }  /* switch */
+        if (scp != NULL &&
+            scp->name_linkage != (a_name_linkage_kind)nlk_external) {
+          pos_sy_error(ec_bad_linkage_for_redefine_extname, pos, aliased_sym);
+        }  /* if */
+      }  /* if */
+#else /* REDEFINE_EXTNAME_PRAGMA_ENABLED */
+      unexpected_condition();
+#endif /* REDEFINE_EXTNAME_PRAGMA_ENABLED */
+#if GNU_EXTENSIONS_ALLOWED
+    } else if (aliased_sym == NULL) {
       /* The aliased entity was not declared in this translation unit.
          Just change the asm name of the alias (which is how GNU C behaves
          on Intel-based platforms) and issue a warning (because on some
@@ -149,11 +201,51 @@ Traverse the list of alias fixups and set the alias fields as needed.
       /* The aliased entity is referenced in the alias specification; only
          now, however, do we know the symbol to mark it as referenced. */
       mark_referenced(aliased_sym, &entry->alias->decl_position);
+#endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
     free_alias_fixup(entry);
   }  /* while */
 }  /* process_alias_fixup_list */
 
+#if REDEFINE_EXTNAME_PRAGMA_ENABLED
+
+void redefine_extname_pragma(a_pending_pragma_ptr  ppp)
+/*
+Process the Solaris redefine_extname pragma by recording an appropriate
+alias fixup entry.  Such fixup entries are applied at a later time by
+process_alias_fixup_list.
+*/
+{
+  char       *src_name = NULL, *asm_name = NULL;
+  a_boolean  err = FALSE;
+
+  begin_rescan_of_pragma_tokens(ppp);
+  if (curr_token == tok_identifier) {
+    src_name = locator_for_curr_id.symbol_header->identifier;
+    (void)get_token();
+    if (curr_token == tok_identifier) {
+      asm_name = locator_for_curr_id.symbol_header->identifier;
+      (void)get_token();
+    } else {
+      err = TRUE;
+      error(ec_exp_identifier);
+    }  /* if */
+  } else {
+    err = TRUE;
+    error(ec_exp_identifier);
+  }  /* if */
+  wrapup_rescan_of_pragma_tokens(err);
+  if (src_name != NULL && asm_name != NULL) {
+    add_alias_fixup((a_symbol_ptr)NULL, asm_name, src_name,
+                    &ppp->pragma_position);
+  }  /* if */
+}  /* redefine_extname_pragma */
+
+#endif /* REDEFINE_EXTNAME_PRAGMA_ENABLED */
+
+#endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
+
+#if GNU_EXTENSIONS_ALLOWED
 
 /* Needed because of forward references: */
 static a_type_ptr copy_type_and_apply_attributes(an_attribute_ptr attributes,
@@ -1122,7 +1214,8 @@ invalid attributes.
       case ak_alias:
         if (check_variable_not_local(vp, ap, /*allow_local_static=*/FALSE)) {
           add_alias_fixup((a_symbol_ptr)vp->source_corresp.assoc_info,
-                            ap->variant.alias, &ap->position);
+                          /*alias_name=*/NULL,
+                          ap->variant.alias, &ap->position);
         }  /* if */
         break;
       case ak_nocommon:
@@ -1284,7 +1377,7 @@ messages about any invalid attributes.
           rp->is_inline = FALSE;
         }  /* if */
         add_alias_fixup((a_symbol_ptr)rp->source_corresp.assoc_info,
-                        ap->variant.alias, &ap->position);
+                        /*alias_name=*/NULL, ap->variant.alias, &ap->position);
         break;
       case ak_malloc:
         /* GCC does not issue any diagnostics if the routine does not
@@ -1838,6 +1931,9 @@ attributes.
   }  /* if */
 }  /* attribute_one_time_init */
 
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
+#if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
 
 void attribute_init(void)
 /*
@@ -1845,12 +1941,14 @@ Initialize static variables related to attribute processing that must
 be initialized for each compilation.
 */
 {
+#if GNU_EXTENSIONS_ALLOWED
   avail_attributes = NULL;
+#endif /* GNU_EXTENSIONS_ALLOWED */
   avail_alias_fixups = NULL;
   alias_fixup_list = NULL;
 }  /* attribute_init */
 
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
 
 /******************************************************************************
 *                                                             \  ___  /       *

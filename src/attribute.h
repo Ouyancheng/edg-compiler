@@ -24,6 +24,10 @@ attribute.h -- Declarations related to attribute.c (having to do with
    independent of the configuration of the front end. */
 typedef struct an_attribute *an_attribute_ptr;
 
+#if REDEFINE_EXTNAME_PRAGMA_ENABLED
+extern void redefine_extname_pragma(a_pending_pragma_ptr  ppp);
+#endif /* REDEFINE_EXTNAME_PRAGMA_ENABLED */
+
 #if GNU_EXTENSIONS_ALLOWED
 
 /*

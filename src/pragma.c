@@ -378,6 +378,9 @@ possible.
 #if UPC_EXTENSIONS_ALLOWED
     case pk_upc:
 #endif /* UPC_EXTENSIONS_ALLOWED */
+#if REDEFINE_EXTNAME_PRAGMA_ENABLED
+    case pk_redefine_extname:
+#endif /* REDEFINE_EXTNAME_PRAGMA_ENABLED */
       break;
     default:
       unexpected_condition_str2("alloc_pending_pragma:", "bad pragma kind");
@@ -1622,6 +1625,20 @@ Initialize the pragma description table.
                                          es_error);
   }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
+#if REDEFINE_EXTNAME_PRAGMA_ENABLED
+  (void)add_immediate_pragma_kind_description(
+                                         (a_pragma_kind)pk_redefine_extname,
+                                         redefine_extname_pragma,
+                                         /*is_pseudo_pragma=*/FALSE,
+                                         /*global=*/TRUE,
+                                         /*automatically_include_in_il=*/FALSE,
+                                         /*make_text_not_tokens=*/FALSE,
+                                         /*expand_macros=*/FALSE,
+                                         /*processing_C_code=*/FALSE,
+                                         /*ignore_in_back_end=*/FALSE,
+                                         /*il_info_is_complete=*/TRUE,
+                                         es_error);
+#endif /* REDEFINE_EXTNAME_PRAGMA_ENABLED */
 #if INCLUDE_EDG_TEST_PRAGMAS
   (void)add_next_construct_pragma_kind_description
 		((a_pragma_kind)pk_test_next_decl,
