@@ -29,7 +29,7 @@ is a class type that has a destructor.
 
 3/7/97   Setting "referenced" on static data member specialization
 
-The "referenced" flag was not be set properly on a template static data
+The "referenced" flag was not being set properly on a template static data
 member that was explicitly specialized with an initializer and using the
 template<> syntax.  (It is a convention in the IL to set the flag on
 definitions of externally visible variables whether or not there is
