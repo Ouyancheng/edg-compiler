@@ -191,6 +191,7 @@ has not yet been examined for a matching entry in another translation unit.
   set_trans_unit_corresp((char*)(ptr), (char*)(ptr))
 
 #define clear_trans_unit_corresp(ptr, visited)                          \
+  /*lint --e(506)*/                                                     \
   ((visited) ? set_no_trans_unit_corresp(ptr)                           \
              : set_trans_unit_corresp(ptr, NULL))
 
