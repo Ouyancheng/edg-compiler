@@ -676,10 +676,21 @@ projection symbol.
              appropriate. */
           a_boolean                suppress_warning = FALSE;
 
+          if (!suppress_warning && !C_mode()) {
+            /* In C++ don't put out a warning if the variable of of class
+               type (or array of class type) and the class has no fields. */
+            a_type_ptr  tp = vp->type;
+            if (is_array_type(tp)) tp = underlying_array_element_type(tp);
+            if (is_class_struct_union_type(tp) &&
+                !symbol_supplement_for_class(tp)->any_nonstatic_data_members) {
+              /* Variable is of empty-class type. */
+              suppress_warning = TRUE;
+            }  /* if */
+          }  /* if */
           if (depth_scope_stack == depth_innermost_namespace_scope) {
             /* An unset variable with internal linkage (e.g., one declared
                extern inside an unnamed namespace). */
-          } else {
+          } else if (!suppress_warning) {
             /* To determine whether to suppress the warning, examine the scope
                stack for labels and uncompleted loops that might enable the
                program to set the variable in code that has not yet been seen
