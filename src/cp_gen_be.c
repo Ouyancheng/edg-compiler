@@ -817,14 +817,6 @@ expression, e.g.,
 }  /* skip_embedded_declarations */
 
 
-/*
-Processing to be done at the end of a full expression.  Specifically,
-ignore any type declarations or implicit function declarations in the
-expression.
-*/
-#define end_of_full_expression() skip_embedded_declarations()
-
-
 static void end_output_line(void)
 /*
 End the current line of output.
@@ -4340,8 +4332,10 @@ Generate code for the indicated expression, which is a full expression
 (it's not part of another expression).
 */
 {
+  /* For C, process any tags declared within the expression (e.g., in
+     casts). */
+  skip_embedded_declarations();
   gen_expression(expr);
-  end_of_full_expression();
 }  /* gen_full_expression */
 
 
@@ -4366,8 +4360,10 @@ of a statement or short-circuit operator, and also a full expression
 by parentheses.
 */
 {
+  /* For C, process any tags declared within the expression (e.g., in
+     casts). */
+  skip_embedded_declarations();
   gen_boolean_controlling_expression(expr);
-  end_of_full_expression();
 }  /* gen_full_boolean_controlling_expression */
 
 
@@ -5035,9 +5031,11 @@ Generate code for the indicated statement.
             a_type_ptr return_type =
                                curr_routine->type->variant.routine.return_type;
             write_space();
+            /* For C, process any tags declared within the expression
+               (e.g., in casts). */
+            skip_embedded_declarations();
             gen_initializer_expr(statement->expr, return_type,
                                  /*need_parens=*/FALSE);
-            end_of_full_expression();
           } else {
             /* The return value is passed via a copy constructor call. */
             check_assertion(statement->variant.return_dynamic_init != NULL);
