@@ -8885,7 +8885,7 @@ to the compound literal.
                                    /*record_expr=*/FALSE);
     }  /* if */
   } else {
-    /* Allocate an enk_temp_int node. */
+    /* Allocate an enk_temp_init node. */
     an_expr_node_ptr expr =
              alloc_temp_init_node(literal_type, dip, /*result_is_addr=*/TRUE,
                                   /*is_explicit_cast=*/FALSE);
