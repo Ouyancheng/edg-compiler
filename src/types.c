@@ -3295,7 +3295,12 @@ specifications match.  For other types, just return TRUE.
 
   type_1 = skip_typerefs(type_1);
   type_2 = skip_typerefs(type_2);
-  if (is_ptr_or_ref_type(type_1)) {
+  if (is_or_contains_error_type(type_1) ||
+      is_or_contains_error_type(type_2)) {
+    /* Something went wrong during the processing of this function type
+       already; to avoid unreliable diagnostics, ignore differences in
+       exception specifications. */
+  } else if (is_ptr_or_ref_type(type_1)) {
     type_1 = type_pointed_to(type_1);
     type_2 = type_pointed_to(type_2);
     type_1 = skip_typerefs(type_1);
