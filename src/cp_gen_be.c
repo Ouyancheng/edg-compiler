@@ -7610,7 +7610,13 @@ TRUE if the declaration following this one is such a continuation.
   /* An unqualified name is used in the declarator if this is a declaration
      rather than a definition.  Specializations are an exception, and
      get the full normal handling. */
-  force_unqualified_name = !is_definition && !is_specialization;
+  /* Also force an unqualified name on a declaration in the scope of the
+     routine.  This is necessary sometimes in the presence of
+     using-directives. */
+  force_unqualified_name = C_mode() ||
+                           (!is_definition && !is_specialization) ||
+                           (decl_scope_of(&rout->source_corresp) ==
+                                               curr_name_context->assoc_scope);
   /* Generate a declaration for the routine name with the right type. */
   gen_routine_specifiers_and_declaration(rout, rout_type,
                                          is_definition,

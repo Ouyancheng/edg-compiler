@@ -1,5 +1,24 @@
 Version 2.43
 
+12/7/99  C++-generating back end: qualified name on function definition in
+         the presence of using-directive
+
+In some cases, the C++-generating back end put out a qualified name
+on the definition of a namespace member function within the namespace,
+which is invalid.  This happened when a using-directive in the file
+scope made it necessary to use a qualified name for the function in
+some cases.  Now fixed.
+
+  namespace N1 {
+    void f(int) {}  // Was put out as N1::f
+  }
+  using N1::f;
+  namespace N2 {
+    void f(float) {}
+    float v;
+  }
+  using namespace N2;
+
 12/6/99  Overload resolution gave incorrect ambiguity error
 
 In certain cases involving three or more viable functions, at least one
