@@ -2751,7 +2751,7 @@ End a name scope by popping an entry off the scope stack.
   if (db_active) {
     /* Display source sequence lists for debug purposes. */
     if (il_scope != NULL && il_scope->source_sequence_list != NULL) {
-      dump_ss(il_scope);
+      dump_ss(il_scope, (char *)NULL);
     }  /* if */
   }  /* if */
 #endif /* DEBUG */
@@ -2870,6 +2870,9 @@ End a name scope by popping an entry off the scope stack.
     end_of_file_scope_needed_flags_phase = TRUE;
     set_needed_flags_at_end_of_file_scope(il_scope);
     end_of_file_scope_needed_flags_phase = FALSE;
+    /* Now all IL entries that are "really needed" are so marked.  The rest
+       can be eliminated from the IL. */
+    eliminate_unneeded_il_entries(il_scope);
 #endif /* MAINTAIN_NEEDED_FLAGS */
   }  /* if */
   /* The IL scope, if any, is no longer on the stack.  This must occur
