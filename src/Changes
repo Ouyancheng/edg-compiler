@@ -13,6 +13,11 @@ lifetime destruction lists.  Now fixed (the destructions are
 unlinked once it has been determined that the expression is
 not needed).
 
+A related fix was made for other situations where expressions are
+discarded.  That comes up mostly for errors, but there are
+some odd cases with nonstandard pointers to members where the
+selector object is discarded.
+
 4/17/03  Abort in IL lowering on aggregate-initialized array of array
 
 IL lowering aborted in lower_eh.c (in cleanup_region_number) on lowering

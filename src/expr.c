@@ -5320,7 +5320,6 @@ This is the C++ syntax.  C++ type-id is the same as C type-name.
       typeid_type = type_pointed_to(typeid_type);
     }  /* if */
   } else {
-    a_boolean discard_expression = FALSE;
     /* Scan an expression. */
     scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
     /* Rule out indefinite functions. */
@@ -5345,9 +5344,8 @@ This is the C++ syntax.  C++ type-id is the same as C type-name.
           /* The complete object type can be determined, so runtime processing
              is not needed. */
           expr = NULL;
-          discard_expression = TRUE;
         } else {
-          /* The type must be determined dynamically. */
+          /* The type must be determined dynamically at runtime. */
           expr = operand.variant.expression;
         }  /* if */
       } else if (is_constant_operand(&operand) &&
@@ -5358,14 +5356,11 @@ This is the C++ syntax.  C++ type-id is the same as C type-name.
         /* Special case for (*(T *)0), which should throw an exception. */
         expr = make_node_from_operand(&operand);
       }  /* if */
-    } else if (is_expression_operand(&operand)) {
-      discard_expression = TRUE;
     }  /* if */
-    if (discard_expression) {
+    if (expr == NULL) {
       /* We're not keeping the expression in the IL (the typeid is
-         not evaluated at runtime), so unlink any destructions in
-         the expression. */
-      unlink_expr_destructions(operand.variant.expression);
+         not evaluated at runtime). */
+      discard_operand(&operand);
     }  /* if */
   }  /* if */
   /* Type qualifiers on the type are ignored [expr.typeid]. */

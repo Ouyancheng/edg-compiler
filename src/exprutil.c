@@ -1662,6 +1662,11 @@ This is only used in C++, for some strange cases.
 {
   /* The references in the operand aren't real references. */
   change_ref_kinds(operand->ref_entries_list, SRK_REFERENCE);
+  if (is_expression_operand(operand)) {
+    /* If the operand contains destructible entities, remove the
+       destructions from the object lifetime lists. */
+    unlink_expr_destructions(operand->variant.expression);
+  }  /* if */
 }  /* discard_operand */
 
 
