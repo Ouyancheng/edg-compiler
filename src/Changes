@@ -1,5 +1,17 @@
 Version 2.31
 
+11/13/95  Spurious error using elaborated type specifiers in class template
+
+A spurious "invalid redeclaration of B" error was issued on the following
+example.  This error occurred when a class template contained more than
+one use of an elaborated type specifier referring to a given name.  This
+has been fixed.
+
+  template <class T> struct A { 
+    friend class B;  
+    class B * b;
+  };
+
 11/10/95  Internal error with using-declarations
 
 The check for virtual function overriding had a bug introduced by the
