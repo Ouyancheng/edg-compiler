@@ -9882,8 +9882,11 @@ defer_inline is TRUE.
     /* When value is FALSE we still add the entry to the instantiations
        required list. */
     tip->instantiation_required = FALSE;
-  } else if (pending_class_definitions != 0) {
-    /* A class definition is in progress.  Any nonclass instantiations
+  } else if (pending_class_definitions != 0 ||
+             defer_inline_function_fixup_and_instantiations != 0) {
+    /* A class definition is in progress, or if only
+       defer_inline_function_fixup_and_instantiations is set, the default
+       argument fixup after a class definition.  Any nonclass instantiations
        must be deferred until all class definitions are complete.
        Add this instantiation request to the list of deferred
        instantiations. */
@@ -11343,6 +11346,7 @@ Initializations for template.
   in_instantiation_wrapup = FALSE;
   entries_updated_during_instantiation_wrapup = FALSE;
   can_instantiate_list = NULL;
+  defer_inline_function_fixup_and_instantiations = 0;
   deferred_instantiations = NULL;
   deferred_instantiations_tail = NULL;
   avail_partial_order_candidates = NULL;

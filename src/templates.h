@@ -259,6 +259,16 @@ EXTERN a_type_ptr
 			/* A type used for template parameter constants whose
 			   real type cannot be known. */
 
+EXTERN unsigned long
+		defer_inline_function_fixup_and_instantiations;
+			/* Nonzero if the fixup of inline function bodies and
+                           nonclass instantiations should be deferred.
+			   This causes instantiations to be placed on the
+			   deferred_instantiations list instead of being
+			   processed immediately.  Instantiations are also
+			   deferred when pending_class_definitions is
+			   nonzero. */
+
 /* tp is a class type.  If it is incomplete, see if it is a template class in
    need of instantiation and, if so, instantiate it. */
 #define instantiate_template_class(tp)                                  \

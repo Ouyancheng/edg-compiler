@@ -1,5 +1,15 @@
 Version 2.36
 
+6/17/97   Default arguments and nested instantiations
+
+Because of the way in which default arguments and inline function bodies
+of functions declared within a class are handled, a spurious error could
+occur if an instantiation caused by the delayed scanning of default
+arguments resulted in the definition of an inline function or an
+instantiation of a function that depends on the existence of a default
+argument for which the delayed scanning has not yet been done.  This
+has been fixed.
+
 6/17/97   Incorrect cleanup state information in ctor-initializers
 
 When a constructor definition contains a ctor-initializer whose evaluation

@@ -85,12 +85,17 @@ typedef struct a_class_fixup *a_class_fixup_ptr;
 typedef struct a_class_fixup {
   a_class_fixup_ptr
 		next;
-			/* Next in a linked list of class fixup blocks,
-			   each of which is associated with a particular
-			   class definition.  Note that only the outermost
-			   class is included on this list.  Nested classes
+			/* Next in a linked list of class fixup blocks for
+			   classes for which default argument fixup must be
+			   done. Note that only the outermost class
+			   is included on this list.  Nested classes
 			   defined within another class definition are not
 			   included on the list. */
+  a_class_fixup_ptr
+		next_in_inline_function_list;
+			/* Next in a linked list of class fixup blocks for
+			   classes for which inline function fixup must be
+			   done. */
   a_type_ptr	class_type;
 			/* Pointer to the class type to be fixed-up. */
   a_boolean	is_template_instantiation;
@@ -99,14 +104,24 @@ typedef struct a_class_fixup {
 } a_class_fixup;
 
 static a_class_fixup_ptr
-		class_fixup_list;
+		def_arg_class_fixup_list;
 			/* Pointer to a list of class fixup entries for
-			   class definitions for which delayed scan
+			   class definitions for which default argument
 			   fixup must be done. */
 
 static a_class_fixup_ptr
-		class_fixup_list_tail;
-			/* End of the class_fixup_list. */
+		def_arg_class_fixup_list_tail;
+			/* End of the def_arg_class_fixup_list. */
+
+static a_class_fixup_ptr
+		inline_function_class_fixup_list;
+			/* Pointer to a list of class fixup entries for
+			   class definitions for which default argument
+			   fixup must be done. */
+
+static a_class_fixup_ptr
+		inline_function_class_fixup_list_tail;
+			/* End of the inline_function_class_fixup_list. */
 
 /* The routine fixup entry for the current class member declaration. */
 static a_routine_fixup_ptr curr_routine_fixup;
@@ -283,6 +298,7 @@ initialize it.
   }  /* if */
   /* Clear the entity. */
   cfp->next = NULL;
+  cfp->next_in_inline_function_list = NULL;
   cfp->class_type = NULL;
   cfp->is_template_instantiation = FALSE;
   return cfp;
@@ -311,11 +327,20 @@ Add a class fixup entry for class_type to the class fixup list.
   cfp = alloc_class_fixup();
   cfp->class_type = class_type;
   cfp->is_template_instantiation = is_template_instantiation;
-  if (class_fixup_list == NULL) class_fixup_list = cfp;
-  if (class_fixup_list_tail != NULL) {
-    class_fixup_list_tail->next = cfp;
+  if (def_arg_class_fixup_list == NULL) def_arg_class_fixup_list = cfp;
+  /* Add to the end of the default argument fixup list. */
+  if (def_arg_class_fixup_list_tail != NULL) {
+    def_arg_class_fixup_list_tail->next = cfp;
   }  /* if */
-  class_fixup_list_tail = cfp;
+  def_arg_class_fixup_list_tail = cfp;
+  /* Add to the end of the inline function fixup list. */
+  if (inline_function_class_fixup_list == NULL) {
+    inline_function_class_fixup_list = cfp;
+  }  /* if */
+  if (inline_function_class_fixup_list_tail != NULL) {
+    inline_function_class_fixup_list_tail->next_in_inline_function_list = cfp;
+  }  /* if */
+  inline_function_class_fixup_list_tail = cfp;
 }  /* add_to_class_fixup_list */
 
 
@@ -690,15 +715,13 @@ entry onto a list in the current routine fixup entry.
 }  /* prescan_member_function_default_arg_expr */
 
 
-static void delayed_scan_fixup_for_class(a_type_ptr  class_type,
-                                         a_boolean   is_template_based)
+static void default_argument_fixup_for_class(a_type_ptr  class_type,
+                                             a_boolean   is_template_based)
 /*
-Process the default argument expressions and inline function definitions
-for the indicated class.  If the class contains nested classes, call this
-routine recursively for each nested class.
+Process the default argument expressions for the indicated class.
 */
 {
-  a_routine_fixup_ptr               rfp, next_rfp;
+  a_routine_fixup_ptr               rfp;
   a_def_arg_expr_fixup_ptr          daefp;
   a_type_ptr                        curr_scope_class_type = NULL;
   a_class_symbol_supplement_ptr     cssp;
@@ -708,7 +731,7 @@ routine recursively for each nested class.
   a_boolean                         is_nonreal_template_instantiation = FALSE;
   a_boolean                         is_friend;
 
-  db_enter(3, "delayed_scan_fixup_for_class");
+  db_enter(3, "default_argument_fixup_for_class");
   /* Go through all the routine fixup entries created for the class twice,
      once for the default arguments, then for the function bodies.  This
      is desirable to control dependencies, e.g.:
@@ -886,8 +909,50 @@ routine recursively for each nested class.
         }  /* if */
       }  /* if */
     }  /* for */
-    /* Now go through the routine fixup entries a second time to scan inline
-       function bodies. */
+    if (curr_scope_class_type != NULL) {
+      /* Pop the reactivated class scope from the scope stack. */
+      pop_class_reactivation_scope();
+    }  /* if  */
+  }  /* if */
+  db_exit();
+}  /* default_argument_fixup_for_class */
+
+
+static void inline_function_fixup_for_class(a_type_ptr  class_type,
+                                            a_boolean   is_template_based)
+/*
+Process the inline function definitions for the indicated class.  If the
+class contains nested classes, call this routine recursively for each
+nested class.
+*/
+{
+  a_routine_fixup_ptr               rfp, next_rfp;
+  a_type_ptr                        curr_scope_class_type = NULL;
+  a_class_symbol_supplement_ptr     cssp;
+  a_symbol_ptr                      sym;
+  a_template_symbol_supplement_ptr  tssp;
+  a_boolean                         is_real_template_instantiation = FALSE;
+  a_boolean                         is_nonreal_template_instantiation = FALSE;
+  a_boolean                         is_friend;
+
+  db_enter(3, "inline_function_fixup_for_class");
+  /* First go though the routine fixup entries and scan the default
+     argument expressions. */
+  cssp = symbol_supplement_for_class(class_type);
+  if ((rfp = cssp->routine_fixup_list) != NULL) {
+#if DEBUG
+    if (debug_level >= 3) {
+      fputs("delayed scan fixup for class \"", f_debug);
+      db_type_name(class_type);
+      fputs("\"\n", f_debug);
+    }  /* if */
+#endif /* DEBUG */
+    if (cssp->is_nonreal_class) {
+      is_nonreal_template_instantiation = TRUE;
+    } else if (is_template_based) {
+      is_real_template_instantiation = TRUE;
+    }  /* if */
+    /* Go through the routine fixup entries to scan inline function bodies. */
     for (rfp = cssp->routine_fixup_list; rfp != NULL; rfp = next_rfp) {
       next_rfp = rfp->next;
       if (rfp->function_body_token_cache.first_token != NULL) {
@@ -984,13 +1049,20 @@ routine recursively for each nested class.
     cssp->routine_fixup_list = NULL;
   }  /* if */
   db_exit();
-}  /* delayed_scan_fixup_for_class */
+}  /* inline_function_fixup_for_class */
 
 
 static void process_deferred_class_fixups(void)
 /*
-Call delayed_scan_fixup_for_class for any classes defined while another
-class definition was already pending.
+Do the delayed scanning of default arguments and inline function bodies.
+Note that this routine can be called recursively if, during the fixup
+of a default argument or inline function, a local class is defined or
+a template class is instantiated.  When this routine is invoked recursively,
+only the default argument processing is done.  The inline function body
+processing is only done by the outermost call.  This is done to permit an
+inline function body of an instantiation or local class to make use of
+a default argument of a class being fixed up at an outer level, for which
+the fixups have not yet been done.
 */
 {
   a_class_fixup_ptr  cfp;
@@ -1000,15 +1072,27 @@ class definition was already pending.
      created by the fixup process can be fixed up by a recursive call to
      this routine.  This could happen if a function body contains a
      nested class, for example. */
-  cfp = class_fixup_list;
-  class_fixup_list = NULL;
-  class_fixup_list_tail = NULL;
+  cfp = def_arg_class_fixup_list;
+  def_arg_class_fixup_list = NULL;
+  def_arg_class_fixup_list_tail = NULL;
+  defer_inline_function_fixup_and_instantiations++;
   for (; cfp != NULL; cfp = next_cfp) {
-    delayed_scan_fixup_for_class(cfp->class_type,
-                                 cfp->is_template_instantiation);
+    default_argument_fixup_for_class(cfp->class_type,
+                                     cfp->is_template_instantiation);
     next_cfp = cfp->next;
-    free_class_fixup(cfp);
   }  /* for */
+  defer_inline_function_fixup_and_instantiations--;
+  if (defer_inline_function_fixup_and_instantiations == 0) {
+    cfp = inline_function_class_fixup_list;
+    inline_function_class_fixup_list = NULL;
+    inline_function_class_fixup_list_tail = NULL;
+    for (; cfp != NULL; cfp = next_cfp) {
+      inline_function_fixup_for_class(cfp->class_type,
+                                      cfp->is_template_instantiation);
+      next_cfp = cfp->next_in_inline_function_list;
+      free_class_fixup(cfp);
+    }  /* for */
+  }  /* if */
 }  /* process_deferred_class_fixups */
 
 
@@ -1023,7 +1107,9 @@ completed and any deferred class fixups and instantiations may now be done.
 {
   if (pending_class_definitions == 0) {
     process_deferred_class_fixups();
-    process_deferred_instantiation_requests();
+    if (defer_inline_function_fixup_and_instantiations == 0) {
+      process_deferred_instantiation_requests();
+    }  /* if */
   }  /* if */
 }  /* process_deferred_class_fixups_and_instantiations */
 
@@ -10642,8 +10728,10 @@ Initializations for class declaration processing.
   curr_routine_fixup = NULL;
   avail_derivation_steps = NULL;
   avail_override_registry_entries = NULL;
-  class_fixup_list = NULL;
-  class_fixup_list_tail = NULL;
+  def_arg_class_fixup_list = NULL;
+  def_arg_class_fixup_list_tail = NULL;
+  inline_function_class_fixup_list = NULL;
+  inline_function_class_fixup_list_tail = NULL;
 #if DEBUG
   num_routine_fixups_allocated = 0;
   num_class_fixups_allocated = 0;
