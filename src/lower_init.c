@@ -554,7 +554,7 @@ routine later in order to ensure that the "defined" flag is set.
 }  /* make_routine_definition */
 
 
-void set_lowering_variable_address_taken(a_variable_ptr variable)
+static void set_lowering_variable_address_taken(a_variable_ptr variable)
 /*
 Set the address_taken flag in the indicated variable.
 */

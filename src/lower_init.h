@@ -53,8 +53,6 @@ extern an_expr_node_ptr make_runtime_rout_call(char             *name,
 
 extern an_expr_node_ptr zero_cast_to_void(void);
 
-extern void set_lowering_variable_address_taken(a_variable_ptr variable);
-
 extern void set_var_init_pos_descr(a_variable_ptr        var,
                                    an_init_pos_descr_ptr ipdp);
 
