@@ -349,7 +349,7 @@ error code.
       m = "nested comment not allowed";
       break;
     case ec_bad_use_of_sharp:
-      m = "\"#\" not allowed here";
+      m = "\"#\" not expected here";
       break;
     case ec_bad_pp_directive_keyword:
       m = "unrecognized preprocessing directive";
