@@ -9513,11 +9513,12 @@ functions have been removed from the IL.
 
   /* Get the scope associated with this class. */
   sp = class_type->variant.class_struct_union.extra_info->assoc_scope;
-  check_assertion(sp != NULL);
-  /* Traverse its member function list. */
-  for (rp = sp->routines; rp != NULL; rp = rp->next) {
-    eliminate_default_arg_object_lifetimes(rp);
-  }  /* for */
+  if (sp != NULL) {
+    /* Traverse its member function list. */
+    for (rp = sp->routines; rp != NULL; rp = rp->next) {
+      eliminate_default_arg_object_lifetimes(rp);
+    }  /* for */
+  }  /* if */
 }  /* eliminate_member_function_default_arg_object_lifetimes */
 
 
