@@ -4769,7 +4769,6 @@ a routine to lookup the appropriate instance (or generate one if needed).
       }  /* if */
       constant = fs_constant((a_constant_repr_kind)ck_error);
       scan_template_argument_constant_expression(constant_type, constant);
-      add_to_constants_list(constant);
       arg_ptr->variant.constant = constant;
     }  /* if */
     /* Link this entry on to the argument list. */
