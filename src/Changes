@@ -1,5 +1,22 @@
 Version 2.31
 
+10/13/95  Internal error instantiating template friend in namespace
+
+An internal error occurred when a template initially declared in
+a template friend declaration within a namespace was instantiated.
+This has been fixed.
+
+namespace N {
+  template <class T> struct A {
+    template <class T2> friend void f(T2) { }
+  };
+  A<int> a;
+  void g()
+  {
+    f(1);
+  }
+}
+
 10/13/95  IL CHANGE: "needed" flags
 
 When MAINTAIN_NEEDED_FLAGS is configured to TRUE, the "needed" flag in

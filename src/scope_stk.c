@@ -1584,22 +1584,28 @@ Interface to pop_scope that is used for template instantiation scopes.
   a_namespace_ptr		common_nsp;
   a_namespace_ptr		parent_nsp;
   a_boolean			referencing_namespace_pushed;
+  a_scope_depth			common_depth;
+  a_boolean			nested_instantiation;
 
   check_assertion_str2(ssep->kind == (a_scope_kind)sck_template_instantiation,
                        "pop_template_instantiation_scope:",
                        "current scope is not instantiation scope");
   template_sym = ssep->template_sym;
-  common_nsp = scope_stack[ssep->instantiation_common_scope].assoc_namespace;
+  common_depth = ssep->instantiation_common_scope;
+  nested_instantiation = ssep->nested_instantiation;
   referencing_namespace_pushed = ssep->namespace_pushed;
   /* Pop the actual template instantiation scope. */
   pop_scope();
-  /* If the template was defined in a namespace, pop any namespace
-     extension scopes that were pushed when the template instantiation
-     scope was added. */
-  parent_nsp = parent_namespace_for_symbol(template_sym);
-  if (parent_nsp != NULL) {
-    if (common_nsp != parent_nsp) {
-      pop_namespace_extension_for_instantiation(common_nsp);
+  if (!nested_instantiation) {
+    /* If the template was defined in a namespace, pop any namespace
+       extension scopes that were pushed when the template instantiation
+       scope was added. */
+    parent_nsp = parent_namespace_for_symbol(template_sym);
+    common_nsp = scope_stack[common_depth].assoc_namespace;
+    if (parent_nsp != NULL) {
+      if (common_nsp != parent_nsp) {
+        pop_namespace_extension_for_instantiation(common_nsp);
+      }  /* if */
     }  /* if */
   }  /* if */
   if (referencing_namespace_pushed) {
