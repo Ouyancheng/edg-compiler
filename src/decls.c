@@ -1299,6 +1299,68 @@ static a_symbol_ptr find_linked_symbol(a_symbol_locator  *locator,
                                        a_symbol_ptr      *prior_decl,
                                        a_symbol_ptr      *overload_symbol)
 /*
+Find and return a symbol representing the potential prior declaration of the
+variable or routine named by the specified symbol locator.  This deals with
+two kinds of cases:
+  -- redeclaration in the same scope:
+        void f();
+        void f() { }        // the other "f" is returned as linked symbol
+        static int i;
+        extern int i;       // the other "i" is returned as linked symbol
+  -- friend declaration (C++ only):
+        void g();
+        class A {
+          friend g();       // the other "g" is returned as linked symbol
+        };
+
+It also returns two other sorts of symbols.  (1) *prior_decl is the same as
+the linked symbol in the cases listed above, but a symbol may also be returned
+as *prior_decl even when the linked symbol is NULL, e.g.,
+  -- block extern declaration
+        int j;
+        void f() {
+          extern int j;     // linked_symbol is NULL but the other "j" is
+        }                   //   returned as *prior_decl
+(Note, however, that the file-scope symbol is returned as *prior_decl only
+when it is "visible", e.g.,
+        static int k;
+        void f() {
+          int k;            // ::k is no longer visible
+          { extern int k; } // both linked_symbol and *prior_decl are NULL
+        }
+This behavior affects how id_linkage determines the linkage of block-extern
+declared k; the latter gets external linkage, which results in a linkage
+conflict that is reported in strict mode.)
+
+And (2), in C++ only, when type is a routine type, *overload_symbol is
+returned when a name match was found with another function declaration,
+whether or not a type match was also found.  (In C++ mode the types must
+match for either linked_symbol or *prior_decl to be set for a routine.)  For
+instance,
+  -- redeclaration in the same scope:
+       void f(int);
+       void f(int,int);     // both linked_symbol and *prior_decl are NULL,
+                            //   but f(int) is returned as *overload_symbol
+  -- friend declaration
+       void f(int);
+       class A {
+         friend f(int,int);  // both linked_symbol and *prior_decl are NULL,
+       };                    //   but f(int) is returned as *overload_symbol
+  -- block extern
+       void f(int);
+       void g() {
+         extern f(int,int);  // Both linked_symbol and *prior_decl are NULL,
+       }                     //   but f(int) is returned as *overload_symbol
+The logic described here is also extended to take function templates
+into account, since they also participate in overload sets.
+
+Besides the type, required for function matching in C++, and the locator, the
+input parameters include effective_decl_level, the scope at which the entity
+is to be entered into the symbol table; is_main, TRUE when the current
+declaration is global "main"; is_friend_decl, TRUE when the the declaration
+is a friend declaration within a class; and is_function_template, TRUE when
+the declaration is a function template declaration.  This function is only
+called by id_linkage.
 */
 {
   a_boolean          decls_at_same_scope;
@@ -1307,6 +1369,7 @@ static a_symbol_ptr find_linked_symbol(a_symbol_locator  *locator,
   a_symbol_ptr       linked_symbol = NULL;
   a_boolean          function_template_seen = FALSE;
 
+  db_enter(4, "find_linked_symbol");
   if (depth_innermost_function_scope != NO_SCOPE_DEPTH ||
       (is_friend_decl &&
        effective_decl_level != depth_innermost_namespace_scope)) {
@@ -1319,28 +1382,36 @@ static a_symbol_ptr find_linked_symbol(a_symbol_locator  *locator,
       if (other_decl->decl_scope >=
             scope_stack[depth_innermost_namespace_scope].il_scope->number) {
         /* other_decl represents an declaration at the innermost namespace
-           scope or intervening between the current scope ant the innermost
+           scope or intervening between the current scope and the innermost
            namespace scope. */
       } else {
-        /* The symbol that was found is does intervene between the current
-           scope and the innermost namespace scope.  Ignore it. */
+        /* The symbol that was found intervenes between the current scope
+           and the innermost namespace scope.  Ignore it. */
         other_decl = NULL;
       }  /* if */
     }  /* if */
   } else {
+    /* Not a context in which lookup in enclosing scopes is meaningful.
+       Just check for a prior declaration in the current scope. */
     check_assertion(effective_decl_level == depth_innermost_namespace_scope);
     if (depth_innermost_namespace_scope == DEPTH_OF_FILE_SCOPE) {
+      /* Do the lookup in the file scope. */
       other_decl = file_scope_id_lookup(locator, IDL_NO_OPTIONS);
     } else {
+      /* Do the lookup in the innermost namespace scope. */
       a_namespace_ptr  nsp;
       nsp = scope_stack[depth_innermost_namespace_scope].il_scope->
-                                                 variant.assoc_namespace;
+                                                     variant.assoc_namespace;
       other_decl = namespace_qualified_id_lookup(locator, nsp,
                                                  IDL_NO_OPTIONS);
     }  /* if */      
   }  /* if */
+  /* Clear out the specific symbol pointer of the locator.  It was set by the
+     lookup routine, but it is may not be valid. */
   locator->specific_symbol = NULL;
   if (other_decl != NULL) {
+    /* We are only interested in variable and function declarations.  If
+       something else was found, we're not interested. */
     if (other_decl->kind != (a_symbol_kind)sk_variable &&
         other_decl->kind != (a_symbol_kind)sk_routine &&
         other_decl->kind != (a_symbol_kind)sk_function_template &&
@@ -1443,24 +1514,13 @@ static a_symbol_ptr find_linked_symbol(a_symbol_locator  *locator,
          otherwise, this is a redeclaration, and if other_decl has
          linkage we can return in linked_symbol a pointer to the function
          or variable it represents. */
-      if (other_decl != NULL) {
-        if (is_function_symbol(other_decl)) {
-          /* Functions always have linkage. */
-          linked_symbol = other_decl;
-        } else if (other_decl->decl_scope == FILE_SCOPE_NUMBER ||
-                   other_decl->variant.variable.ptr->storage_class ==
-                                       (a_storage_class)sc_extern ||
-                   other_decl->variant.variable.ptr->storage_class ==
-                                       (a_storage_class)sc_unspecified) {
-          /* Variables at file scope always have linkage.  Automatic,
-             register, and static variables in local scopes do not. */
-          linked_symbol = other_decl;
-        }  /* if */
-      }  /* if */
+      linked_symbol = other_decl;
     }  /* if */
   }  /* if */
 done:
   *prior_decl = other_decl;
+  db_exit();
+
   return linked_symbol;
 }  /* find_linked_symbol */
 
