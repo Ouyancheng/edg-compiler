@@ -9437,16 +9437,22 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
                is_pointer_type(operand_2.type) &&
                is_integral_or_enum_type(operand_1->type)) {
       /* Integral/enum + pointer. */
-      /* The second operand must be a pointer to an object. */
+      /* The second operand must be a pointer to an object.  GNU C allows
+         arithmetic on pointers to void and pointers to functions. */
+      if (gcc_mode && (is_void_type(type_pointed_to(operand_2.type)) ||
+                       is_function_type(type_pointed_to(operand_2.type)))) {
+        /* Fine. */
+      } else {
 #if PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED
-      /* Pointer to incomplete array is also allowed. */
-      (void)check_object_or_incomp_array_pointer_operand(&operand_2,
+        /* Pointer to incomplete array is also allowed. */
+        (void)check_object_or_incomp_array_pointer_operand(&operand_2,
                                                  ec_expr_not_pointer_to_object,
                                                          operand_1);
 #else /* !PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED */
-      (void)check_object_pointer_operand(&operand_2,
+       (void)check_object_pointer_operand(&operand_2,
                                          ec_expr_not_pointer_to_object);
 #endif /* PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED */
+      }  /* if */
       /* The result type is the same as the pointer type in operand 2. */
       result_type = operation_type = operand_2.type;
       /* Reverse the operands so that the pointer is always first. */
