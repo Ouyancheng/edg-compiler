@@ -1,5 +1,13 @@
 Version 2.30
 
+6/21/95  Template strings for template static data members
+
+A bug has been fixed that caused template static data members with
+brace enclosed initializers to omit the initializer when generating
+the template string for the template static data member.  Template
+strings are only generated when RECORD_TEMPLATES_IN_IL is TRUE
+(usually only when using the C++ generating back end).
+
 6/21/95  C++-generating back end: lvalue casts
 
 Lvalue casts (as in pcc mode) are now output correctly.
