@@ -1,5 +1,22 @@
 Version 3.5
 
+9/1/04  C++-generating back end: qualified references to injected class
+        names that are class template specializations
+
+Under some circumstances, the C++-generating back end used an unqualified
+name when referring to an injected class name that is a specialization of
+a class template that is a member of a namespace.  Many compilers do not
+accept this form of reference.  Now fixed.  For example:
+
+  namespace N {
+    template <typename T> struct S { }
+  }
+  struct X: public N::S<int> {
+    X(): N::S<int>() { }    /* Formerly dropped "N::", now uses qualified
+                               name */
+  };
+  using namespace N;
+
 9/1/04  GNU/Microsoft compatibility: Flexible array member initializers
 
 In Microsoft modes and in GNU C mode, the front end now accepts aggregate
