@@ -2072,6 +2072,7 @@ at *store_at if store_at != NULL, and (always) return the length of the name.
   return mangled_name_length;
 }  /* mangled_prefixed_type_encoding */
 
+#if GENERATE_EH_TABLES
 
 sizeof_t mangled_typeinfo_name(a_type_ptr type,
                                char       *store_at)
@@ -2105,6 +2106,7 @@ information.
   return mangled_prefixed_type_encoding("__TID_", type, store_at);
 }  /* mangled_id_object_name */
 
+#endif /* GENERATE_EH_TABLES */
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
 
 void mangle_promoted_entity_name(a_source_correspondence *scp,

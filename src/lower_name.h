@@ -39,12 +39,13 @@ extern sizeof_t mangled_vtbl_name(a_type_ptr       class_type,
                                   a_base_class_ptr bcp,
                                   char             *store_at);
 
+#if GENERATE_EH_TABLES
 extern sizeof_t mangled_typeinfo_name(a_type_ptr type,
                                       char       *store_at);
 
 extern sizeof_t mangled_id_object_name(a_type_ptr type,
                                        char       *store_at);
-
+#endif /* GENERATE_EH_TABLES */
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
 extern void mangle_promoted_entity_name(a_source_correspondence *scp,
                                         a_routine_ptr           routine,
