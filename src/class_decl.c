@@ -3540,8 +3540,8 @@ and it is legal for virtual member functions only.
     if (pure_specifier_allowed) {
       /* Update the routine and class type enties. */
       rout_sym->variant.routine.ptr->pure_virtual = TRUE;
-      class_type->variant.class_struct_union.abstract = TRUE;
       class_type->variant.class_struct_union.any_pure_virtual_functions = TRUE;
+      class_type->variant.class_struct_union.abstract = TRUE;
     }  /* if */
     /* Advance past the "0". */
     (void)get_token();
@@ -4224,7 +4224,9 @@ routine body is generated at this time.
   /* Check whether the routine needs special support for returning a class
      object by value.  This call should be superfluous; it is included just
      to be safe, in case the rules change on when the flag needs to be set. */
-  set_routine_calling_method_flag(rout_type);
+  pos.seq = 0;
+  pos.column = SP_COL_UNKNOWN;
+  set_routine_calling_method_flag(rout_type, &pos);
   /* Create a locator for the symbol that will be created. */
   pos = class_type->source_corresp.decl_position;
   if (sfkind == (a_special_function_kind)sfk_operator) {
