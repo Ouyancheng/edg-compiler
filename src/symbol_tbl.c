@@ -8694,6 +8694,89 @@ NULL.
 }  /* end_of_scope_symbol_check */
 
 
+static void nested_class_anachronism_processing(a_symbol_ptr symbol_list)
+/*
+This routine is called to process the symbols of a class scope to
+determine whether any nested types should be visible for
+nested class anachronism processing.  It is also used in
+cfront 2.1 object compatibility mode to determine whether any of
+the symbols should receive special treatment when generating
+the mangled named for the nested type.
+*/
+{
+  a_symbol_ptr	sym;
+  for (sym = symbol_list; sym != NULL; sym = sym->next_in_scope) {
+    /* Check for nested class/struct/unions on the inactive list.  If
+       there are any, set the flag in the symbol header.  This is
+       used to support the nonnested class anachronism.  We do not
+       apply the anachronism to template classes. */
+    if ((is_tag_symbol(sym) || sym->kind == (a_symbol_kind)sk_type)) {
+      sym->header->any_nested_types_on_inactive_list = TRUE;
+#if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
+      /* Cfront 2.1 implements a special "transitional model" for nested
+         types.  Under this model cfront promotes nested types to the file
+         scope unless a file scope type of the same name is already
+         defined.  Subsequent definition of additional nested types with
+         the same name is an error.  This code, which simulates the
+         cfront behavior, sets a flag for the first nested type with
+         a given name and issues errors on subsequent definitions. */
+      if (cfront_2_1_mode) {
+        /* Only do this if the name is not a type name at file
+           scope. */
+        if (!check_for_file_scope_type_with_same_name(sym)) {
+          if (!sym->header->has_cfront_transitional_nested_type_mangled_name) {
+            a_type_ptr   sym_type;
+            sym_type = type_symbol_type(sym);
+            sym->header->
+                       has_cfront_transitional_nested_type_mangled_name = TRUE;
+            sym_type->use_cfront_transitional_nested_type_name_mangling = TRUE;
+          } else {
+            a_symbol_ptr other_sym;
+            other_sym = find_cfront_transitional_nested_type_symbol(sym);
+            pos_sy2_error(ec_cfront_multiple_nested_types,
+                          &sym->decl_position, sym, other_sym);
+          }  /* if */
+        }  /* if */
+      }  /* if */
+#endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
+    }  /* if */
+  }  /* for */
+}  /* nested_class_anachronism_processing */
+
+
+#if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
+static
+void file_scope_transitional_nested_type_processing(a_symbol_ptr symbol_list)
+/*
+Look for file scope symbols that have the "cfront transitional" nested
+type flag set.  This indicates that a file scope symbol with the same
+name was defined after the nested class was seen.  This is an error
+in cfront compatibility mode.
+*/
+{
+  a_symbol_ptr	sym;
+  for (sym = symbol_list; sym != NULL; sym = sym->next_in_scope) {
+    if (sym->header->has_cfront_transitional_nested_type_mangled_name) {
+      if (is_type_symbol(sym)) {
+        a_type_ptr	sym_type = type_symbol_type(sym);
+        if (sym_type->use_cfront_transitional_nested_type_name_mangling) {
+          /* The symbol being popped is already designated as the
+             transitional nested type, don't issue an error.  This can
+             occur when the type is promoted out of an anonymous union and
+             reentered on the active list at file scope. */
+        } else {
+          a_symbol_ptr other_sym;
+          other_sym = find_cfront_transitional_nested_type_symbol(sym);
+          pos_sy2_error(ec_cfront_global_defined_after_nested_type,
+                        &sym->decl_position, sym, other_sym);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* for */
+}  /* file_scope_transitional_nested_type_processing */
+#endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
+
+
 void pop_scope(void)
 /*
 End a name scope by popping an entry off the scope stack.
@@ -8708,7 +8791,6 @@ End a name scope by popping an entry off the scope stack.
   an_extern_type_fixup_ptr etfp;
   a_scope_depth            scope_depth;
   a_boolean                old_region_still_needed;
-  a_boolean		   do_semivisible_type_processing = TRUE;
   a_boolean                is_prototype_instantiation = FALSE;
   a_scope_ptr              il_scope;
 
@@ -8746,7 +8828,8 @@ End a name scope by popping an entry off the scope stack.
   /* Determine whether types defined in this scope should be handled
      as semivisible types.  Template classes and classes nested within
      template classes do not have this processing done. */
-  {
+  if (allow_anachronisms) {
+    a_boolean do_semivisible_type_processing = TRUE;
     /* Loop back through the scope stack until we find a scope that is
        not a class_struct_union scope or until we find a class_struct_union
        scope that is a template class_struct_union. */
@@ -8759,7 +8842,19 @@ End a name scope by popping an entry off the scope stack.
         break;
       }  /* if */
     }  /* for */
-  }
+    if (kind == (a_scope_kind)sck_class_struct_union &&
+        do_semivisible_type_processing) {
+      /* Determine whether any of the symbols from this class scope should
+         be treated as semivisible types. */
+      nested_class_anachronism_processing(pointers_block->symbols);
+#if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
+    } else if (kind == (a_scope_kind)sck_file && cfront_2_1_mode) {
+      /* See if any of the file scope symbols conflict with semivisible
+         nested types. */
+      file_scope_transitional_nested_type_processing(pointers_block->symbols);
+#endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
+    }  /* if */
+  }  /* if */
   /* Check for prototype instantiation of a class template. */
   if (kind == (a_scope_kind)sck_class_struct_union &&
       (symbol_supplement_for_class(ssep->assoc_type))->is_nonreal_class) {
@@ -8805,72 +8900,7 @@ End a name scope by popping an entry off the scope stack.
         kind == (a_scope_kind)sck_namespace ||
         kind == (a_scope_kind)sck_template_declaration) {
       add_symbol_to_inactive_list(sym);
-      /* Check for nested class/struct/unions on the inactive list.  If
-         there are any, set the flag in the symbol header.  This is
-         used to support the nonnested class anachronism.  We do not
-         apply the anachronism to template classes. */
-      if (kind == (a_scope_kind)sck_class_struct_union && allow_anachronisms) {
-        if ((is_tag_symbol(sym) || sym->kind == (a_symbol_kind)sk_type) &&
-            do_semivisible_type_processing) {
-          sym->header->any_nested_types_on_inactive_list = TRUE;
-#if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
-          /* Cfront 2.1 implements a special "transitional model" for nested
-             types.  Under this model cfront promotes nested types to the file
-             scope unless a file scope type of the same name is already
-             defined.  Subsequent definition of additional nested types with
-             the same name is an error.  This code, which simulates the
-             cfront behavior, sets a flag for the first nested type with
-             a given name and issues errors on subsequent definitions. */
-          {
-            if (cfront_2_1_mode) {
-              /* Only do this if the name is not a type name at file
-                 scope. */
-              if (!check_for_file_scope_type_with_same_name(sym)) {
-                if (!sym->header->
-                    has_cfront_transitional_nested_type_mangled_name) {
-                  a_type_ptr   sym_type;
-                  sym_type = type_symbol_type(sym);
-                  sym->header->
-                    has_cfront_transitional_nested_type_mangled_name = TRUE;
-                  sym_type->
-                    use_cfront_transitional_nested_type_name_mangling = TRUE;
-                } else {
-                  a_symbol_ptr other_sym;
-                  other_sym = find_cfront_transitional_nested_type_symbol(sym);
-                  pos_sy2_error(ec_cfront_multiple_nested_types,
-                                &sym->decl_position, sym, other_sym);
-                }  /* if */
-              }  /* if */
-            }  /* if */
-          }
-#endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
-        }  /* if */
-      }  /* if */
     }  /* if */
-#if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
-    /* Look for file scope symbols that have the "cfront transitional" nested
-       type flag set.  This indicates that a file scope symbol with the same
-       name was defined after the nested class was seen.  This is an error
-       in cfront compatibility mode. */
-    if (kind == (a_scope_kind)sck_file && cfront_2_1_mode) {
-      if (sym->header->has_cfront_transitional_nested_type_mangled_name) {
-        if (is_type_symbol(sym)) {
-          a_type_ptr	sym_type = type_symbol_type(sym);
-          if (sym_type->use_cfront_transitional_nested_type_name_mangling) {
-            /* The symbol being popped is already designated as the
-               transitional nested type, don't issue an error.  This can
-               occur when the type is promoted out of an anonymous union and
-               reentered on the active list at file scope. */
-          } else {
-            a_symbol_ptr other_sym;
-            other_sym = find_cfront_transitional_nested_type_symbol(sym);
-            pos_sy2_error(ec_cfront_global_defined_after_nested_type,
-                          &sym->decl_position, sym, other_sym);
-          }  /* if */
-        }  /* if */
-      }  /* if */
-    }  /* if */
-#endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
   }  /* for */
   il_scope = ssep->il_scope;
   if (C_dialect == C_dialect_cplusplus && il_scope != NULL) {
