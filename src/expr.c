@@ -2036,22 +2036,16 @@ member.
     /* Not a pointer type.  Be sure the type is a class type for which
        operator-> is defined. */
     if (is_reference_type(return_type)) {
-      return_type = skip_typerefs(type_pointed_to(return_type));
+      return_type = type_pointed_to(return_type);
     }  /* if */
+    return_type = skip_typerefs(return_type);
     if (!is_immediate_class_type(return_type)) {
       /* Not a class type. */
       err = TRUE;
-    } else if (return_type == class_type) {
+    } else if (identical_types(return_type, class_type)) {
       /* X& X::operator->() would involve unbounded recursion at runtime,
          so we issue an error on such cases. */
       err = TRUE;
-    } else {
-      check_assertion(!is_incomplete_type(return_type));
-      if (opname_member_function_symbol((an_opname_kind)onk_arrow,
-                                        return_type) == NULL) {
-        /* return_type is a class for which no operator-> has been defined. */
-        err = TRUE;
-      }  /* if */
     }  /* if */
   }  /* if */
   return !err;
@@ -2157,7 +2151,7 @@ bound with the function in *bound_function_selector.
          deliberate: doing so could cause infinite loops. */
       if (is_class_struct_union_type(operand_1->type)) {
         do {
-          a_type_ptr  tp, class_type = skip_typerefs(operand_1->type);
+          a_type_ptr class_type = skip_typerefs(operand_1->type);
 
           check_for_operator_overloading((an_opname_kind)onk_arrow,
                                          /*unary_operator=*/TRUE,  /* sic */
@@ -2168,15 +2162,15 @@ bound with the function in *bound_function_selector.
                                          &operand_1->position,
                                          result, &processed);
           if (!processed) break;
+          /* An operator-> function was found and applied. */
           copy_operand(result, operand_1);
-          if (!is_error_operand(operand_1)) {
-            if (!is_valid_op_arrow_return_type(result->type, class_type)) {
-              pos_ty2_error(ec_bad_return_type_for_op_arrow,
-                            &operand_1->position, class_type, result->type);
-              make_error_operand(operand_1);
-              change_operand_refs_to_error(operand_1);
-              break;
-            }  /* if */
+          /* Check that the return type of the operator-> function is
+             valid. */
+          if (!is_valid_op_arrow_return_type(result->type, class_type)) {
+            pos_ty2_error(ec_bad_return_type_for_op_arrow,
+                          &operand_1->position, class_type, result->type);
+            conv_to_error_operand(operand_1);
+            break;
           }  /* if */
         } while (is_class_struct_union_type(operand_1->type));
       }  /* while */
