@@ -642,9 +642,11 @@ should be used to satisfy the lookup.
   a_symbol_ptr           ext_sym;
   a_func_info_block      func_info;
   a_symbol_ptr           sym;
+  a_decl_modifiers_block decl_modifiers;
 
   /* This routine must only be called in ANSI C mode. */
   check_assertion(C_dialect == C_dialect_ANSI);
+  clear_decl_modifiers_block(&decl_modifiers);
   /* Enter the symbol in the symbol table.  decl_routine expects
      this to be done by the caller for implicitly declared routines. */
   sym = enter_symbol((a_symbol_kind)sk_routine, locator, depth_scope_stack,
@@ -658,7 +660,7 @@ should be used to satisfy the lookup.
   if (exceptions_enabled) func_info.throw_position = locator->source_position;
   decl_routine(locator, (a_storage_class)sc_extern, rout_type,
                       &func_info, (a_source_sequence_entry_ptr)NULL,
-                      (SRK_DECLARATION | SRK_IMPLICIT), DM_NONE,
+                      (SRK_DECLARATION | SRK_IMPLICIT), &decl_modifiers,
                       &sym, &linkage, &old_type, &ext_sym);
   done_with_func_info(func_info);
   /* Set the referenced flag on the routine entry.  The implicit declaration
@@ -689,15 +691,17 @@ should be used to satisfy the lookup.
   a_type_ptr             var_type, old_type;
   a_symbol_ptr           ext_sym;
   a_symbol_ptr           sym;
+  a_decl_modifiers_block decl_modifiers;
 
   /* This routine must only be called in ANSI C mode. */
   check_assertion(C_dialect == C_dialect_ANSI);
+  clear_decl_modifiers_block(&decl_modifiers);
   /* Create a local declaration of the external variable.  Use the type
      from the sk_extern_variable symbol. */
   var_type = extern_sym->variant.extern_symbol_descr->type;
   decl_variable(locator, (a_storage_class)sc_extern, var_type,
                 (a_source_sequence_entry_ptr)NULL,
-                (SRK_DECLARATION | SRK_IMPLICIT), DM_NONE,
+                (SRK_DECLARATION | SRK_IMPLICIT), &decl_modifiers,
                 &sym, &linkage, &old_type, &ext_sym);
   /* Set the referenced flag on the variable entry.  The implicit declaration
      is also an immediate reference. */
