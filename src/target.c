@@ -70,7 +70,7 @@ TARG_ALL_POINTERS_SAME_SIZE may not always be TRUE.
 
 #if CHECKING
 
-void check_target_configuration(void)
+static void check_target_configuration(void)
 /*
 Perform consistency check on target configuration variables.
 */

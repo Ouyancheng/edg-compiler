@@ -23,8 +23,8 @@ Forward declarations needed:
 */
 typedef struct an_active_using_directive *an_active_using_directive_ptr;
 typedef struct an_expr_stack_entry an_expr_stack_entry_dummy_typedef;
-typedef struct a_class_def_state a_class_def_state_typedef;
-typedef struct a_tmpl_decl_state a_tmpl_decl_state_typedef;
+typedef struct a_class_def_state a_class_def_state_dummy_typedef;
+typedef struct a_tmpl_decl_state a_tmpl_decl_state_dummy_typedef;
 
 /*
 Structure that is logically (and historically) part of a_scope_stack_entry,

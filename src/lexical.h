@@ -1290,7 +1290,6 @@ extracted from the enclosing cache.  This is used when creating template
 strings so that the nested template body can be put out as part of the
 template string for the enclosing template.
 */
-typedef struct an_extracted_template_descr *an_extracted_template_descr_ptr;
 typedef struct an_extracted_template_descr {
   a_symbol_ptr	symbol;
 			/* The symbol associated with the extracted body. */

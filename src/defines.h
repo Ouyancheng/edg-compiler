@@ -332,6 +332,7 @@ switches before this point.
 
 /* Options for FlexeLint. */
 /*lint -esym(767,fread_with_check)*/
+/*lint -esym(756,a*_dummy_typedef)*/
 
 /******************************************************************************
 *                                                             \  ___  /       *

@@ -978,10 +978,6 @@ EXTERN a_boolean
 a_targ_size_t size_of_pointer_to(a_type_ptr        type_pointed_to,
                                  a_targ_alignment  *alignment);
 
-#if CHECKING
-extern void check_target_configuration(void);
-#endif /* CHECKING */
-
 extern void target_one_time_init(void);
 
 #endif /* ifndef TARGET_H */
