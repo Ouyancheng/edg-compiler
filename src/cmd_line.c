@@ -2753,12 +2753,7 @@ enable_microsoft_mode:
   }  /* if */
   /* Do nonclass prototype instantiations when dependent name processing
      is being done. */
-#ifdef DO_NONCLASS_PROTOTYPE_INSTANTIATIONS
   nonclass_prototype_instantiations = do_dependent_name_processing;
-#else
-  /* FIXME -- temporarily disable nonclass prototype instantiations. */
-  nonclass_prototype_instantiations = FALSE;
-#endif
   /* Do argument dependent lookup when doing dependent name processing. */
   if (do_dependent_name_processing) {
     arg_dependent_lookup_enabled = TRUE;
