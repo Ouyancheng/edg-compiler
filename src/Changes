@@ -1,5 +1,22 @@
 Version 3.4
 
+8/18/03  C++-generating back end: Abort on Microsoft in-class specialization
+
+The C++-generating back end sometimes triggered an internal error caused
+by a spurious source sequence entry generated for a Microsoft in-class
+specialization appearing in a class template.  For example:
+
+  template<typename T> struct S {
+    template<int K> struct N {
+      N<K-1> m;
+    };
+    template<> struct N<0> {};  // Spurious source sequence entry for
+    N<3> h;                     // S<void>::N<0> in some configurations.
+  };
+  struct X { S<void> s; };
+
+This is now fixed.
+
 8/18/03  Compilation speed improvement with multibyte characters
 
 In versions configured to allow multibyte characters in source code,

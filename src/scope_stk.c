@@ -1547,7 +1547,9 @@ the scope being pushed.
 {
   a_scope_stack_entry_ptr ssep;
   a_scope_ptr             sp = NULL;
-  a_boolean		  reactivate_template_params = FALSE;
+  a_boolean               reactivate_template_params = FALSE;
+  a_boolean               already_in_nonspecialized_instantiation_context =
+                                    is_nonspecialized_instantiation_context();
 
   db_enter(3, "push_scope_full");
   if (depth_scope_stack+1 == (int)size_scope_stack) {
@@ -2158,14 +2160,17 @@ the scope being pushed.
         /* We are pushing the scope for a class template instantiation.
            Source sequence entries are normally disallowed for instantiations,
            but should not be disallowed for the instantiation scope pushed
-           around a template class specialization in Microsoft mode.
+           around a template class specialization in Microsoft mode (unless,
+           of course, this specialization occurs during a normal instantiation,
+           which is only possible with Microsoft in-class specializations).
            The "!is_incomplete_type" test is done to detect the reactivation of
            a class scope.  Source sequence entries should also not be
            disallowed for the instantiation scope pushed for the reactivation
            of a template class. */
         source_sequence_entries_disallowed =
         !(use_microsoft_specialization_scope &&
-          (assoc_type->variant.class_struct_union.is_specialized ||
+          ((assoc_type->variant.class_struct_union.is_specialized &&
+            !already_in_nonspecialized_instantiation_context)||
            !is_incomplete_type(assoc_type))) &&
         !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS; /*lint !e506*/
       } else {
