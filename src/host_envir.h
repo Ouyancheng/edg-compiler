@@ -591,10 +591,14 @@ extern void add_to_include_search_path(char *dir_name);
 /* Add a directory to the front of the include file search path. */
 extern void add_to_front_of_include_search_path(char *dir_name);
 
+
 #ifdef CFE
-/* Routine is used in pcc mode to make #includes be relative to the
-   directory containing the source file in which the #include appears. */
+#if !STACK_REFERENCED_INCLUDE_DIRECTORIES
+/* Routine is used in to make the search for nested include files begin
+   relative to the directory containing the source file in which the #include
+   appears but to ignore previous primary include search directories. */
 #define NEED_CHANGE_PRIMARY_INCLUDE_SEARCH_DIR TRUE
+#endif !STACK_REFERENCED_INCLUDE_DIRECTORIES
 #else /* !defined(CFE) */
 #if COMPILE_MULTIPLE_SOURCE_FILES
 /* Routine is used when compiling multiple source files to change the
@@ -609,6 +613,9 @@ extern void add_to_front_of_include_search_path(char *dir_name);
 /* Change the directory name in the primary include file search path entry. */
 extern void change_primary_include_search_dir(char *dir_name);
 #endif /* NEED_CHANGE_PRIMARY_INCLUDE_SEARCH_DIR */
+/* Manage include search path when source input file is pushed or popped. */
+extern void push_primary_include_search_dir(char *dir_name);
+extern void pop_primary_include_search_dir(char *dir_name);
 /* Extract the directory name from a file name. */
 extern char *directory_of(char *file_name);
 extern char *gs_directory_of(char *file_name);
