@@ -926,6 +926,15 @@ error code.
     case ec_brace_initialization_not_allowed:
       m = "initialization with \"{...}\" is not allowed for this object";
       break;
+    case ec_ambiguous_base_class:
+      m = "base class is ambiguous";
+      break;
+    case ec_ambiguous_derived_class:
+      m = "derived class contains more than one instance of this class";
+      break;
+    case ec_derived_class_from_virtual_base:
+      m = "derived class has this class as a virtual base class";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

@@ -330,7 +330,10 @@ typedef enum /*an_error_code*/ {
   ec_name_not_found_in_file_scope,
   ec_qualified_name_not_allowed,
   ec_paren_initialization_not_allowed,
-  ec_brace_initialization_not_allowed
+  ec_brace_initialization_not_allowed,
+  ec_ambiguous_base_class,
+  ec_ambiguous_derived_class,
+  ec_derived_class_from_virtual_base
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
