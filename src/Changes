@@ -1,5 +1,11 @@
 Version 2.39
 
+6/4/98    --ii_file_name option should not affect PCH usage
+
+The --ii_file_name option affected whether a given PCH file could be
+used by a given compilation, but should not have done so.  This has
+been fixed.
+
 6/3/98    Microsoft compatibility: subobject types can be dynamic
 
 MSVC++ allows a placement new call on a member of a class to change the

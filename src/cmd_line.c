@@ -252,7 +252,7 @@ Initialize the option information table.
   add_option_description(optk_ii_file_name,
                          "ii_file", '\0',
                          /*value=*/FALSE, /*arg_required=*/TRUE,
-                         pchek_command_line);
+                         pchek_none);
   add_option_description(optk_suppress_instantiation_flags,
                          "suppress_instantiation_flags", '\0',
                          /*value=*/TRUE, /*arg_required=*/FALSE,
