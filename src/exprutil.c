@@ -3596,7 +3596,9 @@ void make_constructor_dynamic_init(a_routine_ptr    ctor_routine,
 Create an enk_temp_init node that calls the constructor ctor_routine with
 the argument list arg_expr_list.  Return an operand for the value (if
 result_is_addr == FALSE) or address (if result_is_addr == TRUE) of the
-temporary in *result.
+temporary in *result.  The argument list has already been prepared for
+the call (default arguments have been added, the argument types have
+been adjusted, etc.).
 */
 {
   a_type_ptr         class_type;
@@ -3850,14 +3852,14 @@ address of the temporary is returned.  This routine is only used in C++ mode.
         /* The expression has been rewritten as an object pointer. */
         make_expression_operand(node, node->type, operand);
       } else {
-        /* Couldn't find the variable value.  The rvalue will have to be
+        /* Couldn't convert to an object pointer.  The rvalue will have to be
            copied to a temporary, and the temporary address used. */
 #if CHECKING
         /* Avoid recursion loops if the class does not allow bitwise copy.
-           The search for the variable really must succeed (i.e., it's not
-           merely an optimization) if a "real" copy constructor would have
-           to be used, since in that case we would need the address of
-           this rvalue to be able to call the copy constructor. */
+           The conversion to an object pointer really must succeed (i.e.,
+           it's not merely an optimization) if a "real" copy constructor
+           would have to be used, since in that case we would need the
+           address of this rvalue to be able to call the copy constructor. */
         { a_class_symbol_supplement_ptr cssp =
                                     symbol_supplement_for_class(operand->type);
           if (!cssp->construction_by_bitwise_copy_allowed) {
@@ -3865,7 +3867,7 @@ address of the temporary is returned.  This routine is only used in C++ mode.
             db_expression(node);
 #endif /* DEBUG */
             internal_error(
-                    "conv_class_operand_to_object_pointer: couldn't find var");
+              "conv_class_operand_to_object_pointer: couldn't convert to ptr");
           }  /* if */
         }
 #endif /* CHECKING */
