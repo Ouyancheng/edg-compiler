@@ -46,6 +46,7 @@ Flags to be set when using the KAI inliner.
 #define USING_KAI_INLINER 1
 #define ADD_BRACES_TO_AVOID_DANGLING_ELSE_IN_GENERATED_C 1
 #define IL_SHOULD_BE_WRITTEN_TO_FILE 0
+#define SVR4_TRAP_NULL_POINTER_REFERENCES 0
 #endif /* ifdef INLINER_VERSION */
 
 #ifdef sun
