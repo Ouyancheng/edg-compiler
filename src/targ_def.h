@@ -415,11 +415,13 @@ match the target machine behavior on integer operations in C.
 #if TARG_MICROSOFT_BIT_FIELD_ALLOCATION
 #define TARG_BIT_FIELD_CONTAINER_SIZE -1
 #else /* !TARG_MICROSOFT_BIT_FIELD_ALLOCATION */
-#if CFRONT_OBJECT_CODE_COMPATIBILITY
+#if CFRONT_OBJECT_CODE_COMPATIBILITY && ABI_COMPATIBILITY_VERSION >= 232
+/* In the C code it generates, cfront changes the underlying types of all
+   bit-fields to int. */
 #define TARG_BIT_FIELD_CONTAINER_SIZE TARG_SIZEOF_INT
-#else /* !CFRONT_OBJECT_CODE_COMPATIBILITY */
+#else /* !CFRONT_OBJECT_CODE_COMPATIBILITY... */
 #define TARG_BIT_FIELD_CONTAINER_SIZE 0
-#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY... */
 #endif /* TARG_MICROSOFT_BIT_FIELD_ALLOCATION */
 			/* Default value, used to initialize global variable
 			   targ_bit_field_container_size. */
@@ -473,11 +475,15 @@ match the target machine behavior on integer operations in C.
    as a whole is determined.  Should be TRUE for cfront and Microsoft ABI
    compatibility. */
 #ifndef TARG_ZERO_WIDTH_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT
-#if CFRONT_OBJECT_CODE_COMPATIBILITY || TARG_MICROSOFT_BIT_FIELD_ALLOCATION
+#if TARG_MICROSOFT_BIT_FIELD_ALLOCATION
+#define TARG_ZERO_WIDTH_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT TRUE
+#else /* !TARG_MICROSOFT_BIT_FIELD_ALLOCATION */
+#if CFRONT_OBJECT_CODE_COMPATIBILITY && ABI_COMPATIBILITY_VERSION >= 232
 #define TARG_ZERO_WIDTH_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT TRUE
 #else /* !CFRONT_OBJECT_CODE_COMPATIBILITY... */
 #define TARG_ZERO_WIDTH_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT FALSE
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY... */
+#endif /* TARG_MICROSOFT_BIT_FIELD_ALLOCATION */
 			/* Default value, used to initialize global variable
 			 targ_zero_width_bit_field_affects_struct_alignment. */
 #endif /* ifndef TARG_ZERO_WIDTH_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT */
