@@ -2424,6 +2424,10 @@ to FALSE if the entity being declared is not initializable.
        with the model of friend/namespace interaction the EDG front end has
        implemented (as of version 2.30), pending clarification of the language
        definition.  A diagnostic is issued (later) in strict ANSI mode. */
+  } else if (input_flags & (DI_IS_SPECIALIZATION |
+                            DI_IS_EXPLICIT_INSTANTIATION)) {
+    /* Global qualifier is permitted on a template reference in an explicit
+       specialization or an instantiation directive. */
   } else {
     options |= GID_DISALLOW_GLOBAL_QUALIFIER;
   }  /* if */
