@@ -3900,18 +3900,16 @@ not be TRUE.
 }  /* reconcile_routine_types */
 
 
-void decl_var_or_routine(a_symbol_locator      *locator,
-                         a_storage_class       storage_class,
-                         a_type_ptr            type_ptr,
-                         a_func_info_block_ptr func_info,
-                         a_source_sequence_entry_ptr
-                                               declarator_ssep,
-                         a_boolean             is_variable_def,
-                         a_boolean             is_tentative_def,
-                         a_symbol_ptr          *symbol_ptr,
-                         an_id_linkage_kind    *linkage_ptr,
-                         a_type_ptr            *old_type,
-                         a_symbol_ptr          *ext_sym)
+void decl_var_or_routine(a_symbol_locator             *locator,
+                         a_storage_class              storage_class,
+                         a_type_ptr                   type_ptr,
+                         a_func_info_block_ptr        func_info,
+                         a_source_sequence_entry_ptr  declarator_ssep,
+                         a_symbol_reference_kind      srk_flags,
+                         a_symbol_ptr                 *symbol_ptr,
+                         an_id_linkage_kind           *linkage_ptr,
+                         a_type_ptr                   *old_type,
+                         a_symbol_ptr                 *ext_sym)
 /*
 Enter the declaration of an identifier for a variable or routine.
 *locator gives the symbol locator (and thus its name and its declaration
@@ -3938,26 +3936,27 @@ created for the declarator and added to the appropriate list; its kind
 and entity pointer are updated.
 */
 {
-  a_symbol_ptr      sym = NULL;
-  a_boolean         is_function;
-  a_boolean         at_file_scope;
-  a_symbol_ptr      linked_symbol, homonym_symbol, overload_symbol = NULL;
-  a_boolean         redecl_error_already_issued = FALSE;
-  a_boolean         linked_redecl_error = FALSE;
-  a_boolean         old_decl_has_body = FALSE;
-  a_boolean         redeclaration = FALSE;
-  a_variable_ptr    variable_ptr = NULL;
-  a_routine_ptr     routine_ptr = NULL;
-  an_id_linkage_kind
-                    linkage;
-  a_source_correspondence
-                    *source_corresp_ptr;
-  a_scope_depth     effective_decl_level = decl_scope_level;
-  a_boolean         template_function_specific_decl = FALSE;
-  a_boolean         suppress_ext_sym_lookup = FALSE;
-  a_boolean         is_main_function = FALSE;
-  a_boolean         is_function_def = FALSE;
-  a_boolean         changed_to_inline = FALSE;
+  a_symbol_ptr             sym = NULL;
+  a_boolean                is_function;
+  a_boolean                at_file_scope;
+  a_symbol_ptr             linked_symbol, homonym_symbol;
+  a_symbol_ptr             overload_symbol = NULL;
+  a_boolean                redecl_error_already_issued = FALSE;
+  a_boolean                linked_redecl_error = FALSE;
+  a_boolean                old_decl_has_body = FALSE;
+  a_boolean                redeclaration = FALSE;
+  a_variable_ptr           variable_ptr = NULL;
+  a_routine_ptr            routine_ptr = NULL;
+  an_id_linkage_kind       linkage;
+  a_source_correspondence  *source_corresp_ptr;
+  a_scope_depth            effective_decl_level = decl_scope_level;
+  a_boolean                template_function_specific_decl = FALSE;
+  a_boolean                suppress_ext_sym_lookup = FALSE;
+  a_boolean                is_main_function = FALSE;
+  a_boolean                is_function_def = FALSE;
+  a_boolean                changed_to_inline = FALSE;
+  a_boolean                is_variable_def = FALSE;
+  a_boolean                is_tentative_def = FALSE;
 
   db_enter(3, "decl_var_or_routine");
   *old_type = NULL;
@@ -3978,6 +3977,8 @@ and entity pointer are updated.
       check_operator_function_params(type_ptr, /*class_type=*/(a_type_ptr)NULL,
                                      locator);
     }  /* if */
+  } else {
+    if (srk_flags & SRK_DEFINITION) is_variable_def = TRUE;
   }  /* if */
   if (is_function && func_info->is_implicit_declaration) {
     if (C_dialect != C_dialect_cplusplus) {
@@ -4051,11 +4052,14 @@ and entity pointer are updated.
              types. */
           variable_ptr->type = type_ptr = composite_type(type_ptr, *old_type);
         }  /* if */
-        /* If is_tentative_def is TRUE this looked like a tentative variable
-           declaration (C only); but now that that we know it to be a
-           redeclaration of a previously defined variable, the flag should be
-           set to FALSE. */
-        if (sym->defined) is_tentative_def = FALSE;
+        if (sym->defined &&
+            (srk_flags & SRK_TENTATIVE_DEF)) {
+          /* The srk_flags includes SRK_TENTATIVE_DEF, so this looked like a
+             tentative variable declaration (C only); but now that that we know
+             it to be a redeclaration of a previously defined variable, the
+             flag should be set to FALSE. */
+          srk_flags &= ~SRK_TENTATIVE_DEF;
+        }  /* if */
       }  /* if */
     } else if (linked_symbol->kind == (a_symbol_kind)sk_routine &&
                is_function) {
@@ -4518,6 +4522,7 @@ skip_overloading:;
   /* If cross-reference information is being issued, update the output.  If
      source sequence entries are being generated, update the declarator_ssep
      entry. */
+#if 0
   if (is_variable_def || is_function_def || is_tentative_def) {
     /* Also set the the defined flag in the symbol and update the source
        position in the IL entity. */
@@ -4527,6 +4532,9 @@ skip_overloading:;
     record_symbol_declaration(SRK_DECLARATION, sym, &locator->source_position,
                               declarator_ssep);
   }  /* if */
+#endif /* if 0 */
+  record_symbol_declaration(srk_flags, sym, &locator->source_position,
+                            declarator_ssep);
   if (!is_function && is_volatile_qualified_type(type_ptr)) {
     /* A variable with a volatile type is considered to be used and modified
        from "elsewhere".  Note that this must be done after set_source_corresp
@@ -5336,7 +5344,7 @@ symbol has already been entered as an undefined symbol.
   if (exceptions_enabled) func_info.throw_position = locator.source_position;
   decl_var_or_routine(&locator, (a_storage_class)sc_extern, rout_type,
                       &func_info, (a_source_sequence_entry_ptr)NULL,
-                      /*is_variable_def=*/FALSE, /*is_tentative_def=*/FALSE,
+                      (SRK_DECLARATION | SRK_IMPLICIT),
                       &symbol_ptr, &linkage, &old_type, &ext_sym);
   /* Set the referenced flag on the routine entry.  The implicit declaration
      is also an immediate reference. */
@@ -9268,8 +9276,8 @@ specified (rather than defaulted to "int").
     declarator_ssep = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     decl_var_or_routine(locator, storage_class, rout_type, func_info,
-                        declarator_ssep, /*is_variable_def=*/FALSE,
-                        /*is_tentative_def=*/FALSE, &symbol_ptr, &linkage,
+                        declarator_ssep, (SRK_DECLARATION | SRK_DEFINITION),
+                        &symbol_ptr, &linkage,
                         &old_type, &ext_sym);
   }  /* if */
   routine_ptr = symbol_ptr->variant.routine.ptr;
@@ -10567,10 +10575,8 @@ continue_with_declaration:
       } else if (is_function) {
         /* A function declaration with no body. */
         decl_var_or_routine(&locator, local_storage_class, local_type_ptr,
-                            &func_info, declarator_ssep,
-                            /*is_variable_def=*/FALSE,
-                            /*is_tentative_def=*/FALSE, &symbol_ptr,
-                            &linkage, &old_type, &ext_sym);
+                            &func_info, declarator_ssep, SRK_DECLARATION,
+                            &symbol_ptr, &linkage, &old_type, &ext_sym);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         /* The source sequence entry marking the end of the function prototype
            scope was set in function_declarator before the routine pointer was
@@ -10580,6 +10586,8 @@ continue_with_declaration:
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       } else {
         /* A variable declaration. */
+        a_symbol_reference_kind  srk_flags = SRK_DECLARATION;
+
         /* Set a flag marking this as a defining declaration, if that's
            appropriate. */
         if (is_old_style_param_decl) {
@@ -10614,10 +10622,12 @@ continue_with_declaration:
             }  /* if */
           }  /* if */
         }  /* if */
+        if (is_variable_def) srk_flags |= SRK_DEFINITION;
+        if (is_tentative_definition) srk_flags |= SRK_TENTATIVE_DEF;
         decl_var_or_routine(&locator, local_storage_class, local_type_ptr,
                             (a_func_info_block *)NULL, declarator_ssep,
-                            is_variable_def, is_tentative_definition,
-                            &symbol_ptr, &linkage, &old_type, &ext_sym);
+                            srk_flags, &symbol_ptr, &linkage, &old_type,
+                            &ext_sym);
         var_ptr = symbol_ptr->variant.variable.ptr;
         /* Fetch the type of the symbol again, since it might have been
            changed when reconciled with the original declaration. */

@@ -196,18 +196,16 @@ extern void check_throw_specification(a_func_info_block_ptr  func_info,
                                       a_routine_ptr          rp);
 
 
-extern void decl_var_or_routine(a_symbol_locator    *locator,
-                                a_storage_class     storage_class,
-                                a_type_ptr          type_ptr,
-                                a_func_info_block   *func_info,
-                                a_source_sequence_entry_ptr
-                                                    declarator_ssep,
-                                a_boolean           is_variable_def,
-                                a_boolean           is_tentative_def,
-                                a_symbol_ptr        *symbol_ptr,
-                                an_id_linkage_kind  *linkage_ptr,
-                                a_type_ptr          *old_type,
-                                a_symbol_ptr        *ext_sym);
+extern void decl_var_or_routine(a_symbol_locator             *locator,
+                                a_storage_class              storage_class,
+                                a_type_ptr                   type_ptr,
+                                a_func_info_block_ptr        func_info,
+                                a_source_sequence_entry_ptr  declarator_ssep,
+                                a_symbol_reference_kind      srk_flags,
+                                a_symbol_ptr                 *symbol_ptr,
+                                an_id_linkage_kind           *linkage_ptr,
+                                a_type_ptr                   *old_type,
+                                a_symbol_ptr                 *ext_sym);
 
 extern void decl_function_template(a_symbol_locator    *locator,
                                    a_type_ptr          type_ptr,
