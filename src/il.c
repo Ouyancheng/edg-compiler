@@ -9217,6 +9217,7 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
 {
   an_il_entry_kind  kind = (an_il_entry_kind)ssep->entity.kind;
   a_statement_ptr   sp;
+  a_seq_number      seq;
 
   fputs(il_entry_kind_names[(int)kind], f_debug);
   if (kind == (an_il_entry_kind)iek_src_seq_sublist) {
@@ -9229,8 +9230,9 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
   } else {
     if (kind == (an_il_entry_kind)iek_statement) {
       sp = (a_statement_ptr)ssep->entity.ptr;
-      fprintf(f_debug, " (at %lu): ",
-             seq_number_from_stmt_source_position(sp->position));
+      seq = seq_number_from_stmt_source_position(sp->position);
+      if (seq != 0) fprintf(f_debug, " (at %lu)", seq);
+      fputs(": ", f_debug);
       if (sp->kind == (a_statement_kind)stmk_init) {
         fputs("**BAD STMT KIND**", f_debug);
       } else {
@@ -9250,13 +9252,18 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
     } else if (kind == (an_il_entry_kind)iek_src_seq_end_of_construct) {
       a_src_seq_end_of_construct_ptr  sseocp;
       sseocp = (a_src_seq_end_of_construct_ptr)ssep->entity.ptr;
-      fprintf(f_debug, " (at %lu): ", sseocp->position.seq);
+      seq = sseocp->position.seq;
+      if (seq != 0) fprintf(f_debug, " (at %lu)", seq);
+      fputs(": ", f_debug);
       switch (sseocp->entity.kind) {
         case iek_statement:
           sp = (a_statement_ptr)sseocp->entity.ptr;
           db_statement_kind(sp->kind);
-          fprintf(f_debug, " statement (at %lu)",
-                  seq_number_from_stmt_source_position(sp->position));
+          fputs(" statement", f_debug);
+          seq = seq_number_from_stmt_source_position(sp->position);
+          if (seq != 0) {
+            fprintf(f_debug, " (at %lu)", seq);
+          }  /* if */
           break;
         case iek_type:
           fputc('"', f_debug);
@@ -10111,6 +10118,7 @@ sequence list.
   a_source_sequence_entry_ptr     ssep;
   a_boolean                       force_alloc_in_filescope;
   a_memory_region_number          region_to_switch_back_to;
+  a_source_position               pos;
 
   if (!source_sequence_entries_disallowed) {
     /* We are in a context in which source sequence entries are being
@@ -10127,6 +10135,16 @@ sequence list.
     /* Allocate and fill in the src-seq end of construct entry. */
     sseocp = alloc_src_seq_end_of_construct();
     sseocp->position = pos_curr_token;
+    if (kind == (a_byte_il_entry_kind)iek_statement) {
+      a_statement_ptr  sp = (a_statement_ptr)ptr;
+      if (sp->kind == (a_statement_kind)stmk_block &&
+          seq_number_from_stmt_source_position(sp->position) == 0) {
+        /* This construct is a compiler-generated block surrounding a
+           dependent statement.  Since no source position is put out on the
+           original entity, suppress it on the end-of-construct entry, too. */
+        sseocp->position = null_source_position;
+      }  /* if */
+    }  /* if */
     sseocp->entity.kind = kind;
     sseocp->entity.ptr = ptr;
     /* Allocate and fill in the source sequence entry. */
