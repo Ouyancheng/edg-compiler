@@ -97,7 +97,6 @@ Flags to be set when using the KAI inliner.
 #define USE_LONG_DOUBLE_FOR_HOST_FP_VALUE 0
 #define TARG_SIZEOF_LONG_DOUBLE 8
 #else /* !SUNOS, i.e. SOLARIS */
-#define GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED 1
 #endif /* SUNOS */
 
 /* Assume we are generating code for gcc when being compiled by gcc or
