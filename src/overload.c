@@ -4889,6 +4889,9 @@ Bind the operand for a function to an associated selector object.
 }  /* bind_member_function_operand_to_selector */
 
 
+#if !EXTRA_SOURCE_POSITIONS_IN_IL
+/*ARGSUSED*/ /* <--- function_end_position is not used in that case. */
+#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 void overloaded_function_catch_up(a_symbol_ptr      function_symbol,
                                   a_symbol_ptr      overloaded_function_symbol,
                                   a_boolean         is_qualified_name,
