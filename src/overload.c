@@ -7394,6 +7394,12 @@ happen only in C++ mode.
     /* Some error. */
     dip = NULL;
   }  /* if */
+  if (dip != NULL && dip->kind == (a_dynamic_init_kind)dik_constructor) {
+    /* Indicate whether this is an unelided copy constructor call. */
+    if (!elision_done) {
+      dip->variant.constructor.is_implicit_copy_for_copy_initialization = TRUE;
+    }  /* if */
+  }  /* if */
   /* Build an enk_temp_init node if one is needed and one did not exist
      already. */
   if (p_temp_init_node != NULL) {

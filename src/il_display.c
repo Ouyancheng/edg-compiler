@@ -2089,6 +2089,9 @@ do_variable:
         case leck_exception_caught:
           (void)printf("leck_exception_caught\n");
           break;
+        case leck_exception_started:
+          (void)printf("leck_exception_started\n");
+          break;
         default:
           (void)printf("**BAD LOWERED EH CONSTRUCT KIND**\n");
       }  /* switch */
@@ -3103,6 +3106,9 @@ Display the indicated dynamic_init structure.
       disp_boolean("is_copy_constructor_with_implied_source",
                    (a_boolean)ptr->variant.constructor.
                                     is_copy_constructor_with_implied_source);
+      disp_boolean("is_implicit_copy_for_copy_initialization",
+                   (a_boolean)ptr->variant.constructor.
+                                    is_implicit_copy_for_copy_initialization);
       break;
     case dik_nonconstant_aggregate:
       (void)printf("dik_nonconstant_aggregate\n");

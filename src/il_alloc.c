@@ -1046,6 +1046,10 @@ the associated variant fields to default values.
       dip->variant.constructor.ptr = NULL;
       dip->variant.constructor.args = NULL;
       dip->variant.constructor.is_copy_constructor_with_implied_source = FALSE;
+      dip->variant.constructor.is_implicit_copy_for_copy_initialization= FALSE;
+#if CHECKING
+      dip->variant.constructor.avoid_codecenter_warnings = 0;
+#endif /* CHECKING */
       break;
 #if CHECKING
     default:
@@ -1646,6 +1650,7 @@ to kind, and set dependent variant fields to default values.
       node->variant.lowered_eh.variant.epilogue_try_block = NULL;
       break;
     case leck_exception_caught:
+    case leck_exception_started:
       /* No variant fields. */
       break;
     default:

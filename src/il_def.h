@@ -1229,8 +1229,8 @@ typedef struct a_dynamic_init {
 			   not including the argument for the source.
 			   NULL if there are no arguments other than the
 			   implicit one(s). */
-      a_byte_boolean
-		is_copy_constructor_with_implied_source;
+      a_bit_field
+		is_copy_constructor_with_implied_source:1;
 			/* The constructor is a copy constructor in which the
 			   source object to be copied is implied (i.e., its
 			   address is computed based on the context).  This
@@ -1244,6 +1244,12 @@ typedef struct a_dynamic_init {
 			   class objects copied from a throw expression to the
 			   handler parameter, where the address of the
 			   source object is known only at runtime. */
+      a_bit_field
+		is_implicit_copy_for_copy_initialization:1;
+			/* TRUE if this call is the copy constructor call
+			   for the implicit (unelided) copy of a
+			   copy-initialization. */
+      bitfield_to_avoid_codecenter_warnings()
     } constructor;
   } variant;
 #if DO_IL_LOWERING
@@ -4482,8 +4488,15 @@ enum a_lowered_eh_construct_kind_tag {
 			/* Epilogue for function. */
   leck_catch_epilogue,	/* Epilogue for catch clause. */
   leck_try_epilogue,	/* Epilogue for try block. */
-  leck_exception_caught	/* Point after entry/copy of catch, where exception
+  leck_exception_caught,
+			/* Point after entry/copy of catch, where exception
 			   has actually been caught. */
+  leck_exception_started
+			/* Point before throw where the throw expression is
+			   considered fully evaluated, but the copy constructor
+			   to copy the object has not yet been called.  Marks
+			   the point after which the exception is considered
+			   started. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_lowered_eh_construct_kind;
@@ -5131,6 +5144,7 @@ typedef struct an_expr_node {
         a_try_supplement_ptr
 		epilogue_try_block;
         /* When kind == leck_exception_caught, no variant fields. */
+        /* When kind == leck_exception_started, no variant fields. */
       } variant;
     } lowered_eh;
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */

@@ -534,6 +534,12 @@ extern an_expr_node_ptr make_vbase_class_lvalue_from_var(
 extern an_expr_node_ptr add_cast_if_necessary(an_expr_node_ptr node,
                                               a_type_ptr       new_type);
 
+extern a_boolean is_invariant_expr(an_expr_node_ptr expr,
+                                   a_boolean        vars_can_change);
+
+extern an_expr_node_ptr assign_expr_to_temp_and_make_expr_for_reuse(
+                                                        an_expr_node_ptr expr);
+
 extern an_expr_node_ptr make_reusable_copy(an_expr_node_ptr expr,
                                            a_boolean        vars_can_change);
 

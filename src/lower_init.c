@@ -2311,6 +2311,7 @@ of partial_aggr_cond_var.
     lower_dynamic_init(con_ptr->variant.dynamic_init, ipdp,
                        (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                        ctor_init, /*is_full_expr=*/TRUE,
+                       /*is_throw_expr=*/FALSE,
                        partial_aggr_cond_var,
                        insert_location, (a_boolean *)NULL);
   }  /* if */
@@ -3277,6 +3278,7 @@ void lower_dynamic_init(a_dynamic_init_ptr     dip,
                         an_expr_node_ptr       end_implied_arg_list,
                         a_constructor_init_ptr ctor_init,
                         a_boolean              is_full_expr,
+                        a_boolean              is_throw_expr,
                         a_variable_ptr         *partial_aggr_cond_var,
                         an_insert_location_ptr insert_location,
                         a_boolean              *keep_dynamic_init)
@@ -3297,6 +3299,9 @@ ctor_init points to the constructor-init entry.
 
 If the dynamic initialization is a full expression (e.g., in an
 stmk_init), is_full_expr is TRUE.
+
+If the dynamic initialization is the top-level one for a throw,
+is_throw_expr is TRUE.
 
 *partial_aggr_cond_var will be set to point to the conditional flag variable
 that controls cleanup for a partially-initialized aggregate, when one is
@@ -3648,6 +3653,24 @@ do_assignment:;
         /* Lower any added arguments. */
         lower_arg_expr_list(dip->variant.constructor.args, ctor_routine_type,
                             param);
+        if (exceptions_enabled && is_throw_expr &&
+            dip->variant.constructor.is_implicit_copy_for_copy_initialization){
+          /* This is the top-level copy of a throw, and it does the implied
+             copy constructor call to copy the object to the runtime.  This is
+             considered "inside" the throw, so we need to add code to tell the
+             runtime that. */
+          an_expr_node_ptr arg_node = dip->variant.constructor.args;
+          check_assertion(arg_node != NULL && arg_node->next == NULL);
+          if (!is_invariant_expr(arg_node, /*vars_can_change=*/FALSE)) {
+            /* The source node can have side effects, so evaluate it before
+               the exception is considered started and use a temporary with
+               its value in the actual copy constructor call. */
+            insert_expr_statement(arg_node, eff_insert_location);
+            arg_node = assign_expr_to_temp_and_make_expr_for_reuse(arg_node);
+            dip->variant.constructor.args = arg_node;
+          }  /* if */
+          record_exception_started(eff_insert_location);
+        }  /* if */
         /* Generate the constructor call. */
         add_constructor_call(dip, entity_node, source_node,
                              implied_arg_list, end_implied_arg_list,
@@ -4295,7 +4318,7 @@ The subtree of the node has not yet been lowered.
       lower_dynamic_init(dip, &ipd,
                          (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                          (a_constructor_init_ptr)NULL, /*is_full_expr=*/FALSE,
-                         (a_variable_ptr *)NULL,
+                         /*is_throw_expr=*/FALSE, (a_variable_ptr *)NULL,
                          &insert_location, (a_boolean *)NULL);
       /* Now that the entity is initialized, turn off the freeing on
          exception. */
@@ -4547,7 +4570,7 @@ Do IL lowering of an enk_temp_init expression node.
   lower_dynamic_init(dip, &ipd,
                      (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                      (a_constructor_init_ptr)NULL, /*is_full_expr=*/FALSE,
-                     (a_variable_ptr *)NULL,
+                     /*is_throw_expr=*/FALSE, (a_variable_ptr *)NULL,
                      &insert_location, (a_boolean *)NULL);
   /* Optimization -- if the initialization is done by a constructor,
      and the enk_temp_init returns the address of the temporary,
@@ -4751,7 +4774,7 @@ Generate code for a stmk_init (dynamic initialization) statement.
     lower_dynamic_init(dip, &ipd,
                        (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                        (a_constructor_init_ptr)NULL, /*is_full_expr=*/TRUE,
-                       &partial_aggr_cond_var,
+                       /*is_throw_expr=*/FALSE, &partial_aggr_cond_var,
                        &insert_location, &keep_dynamic_init);
     if (!keep_dynamic_init) {
       /* Delete the stmk_init statement. */
@@ -4801,7 +4824,7 @@ init_stmt is the stmk_init statement.
     lower_dynamic_init(vp->initializer.dynamic, &ipd,
                        (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                        (a_constructor_init_ptr)NULL, /*is_full_expr=*/TRUE,
-                       (a_variable_ptr *)NULL,
+                       /*is_throw_expr=*/FALSE, (a_variable_ptr *)NULL,
                        &insert_location, &keep_dynamic_init);
     if (!keep_dynamic_init) {
       /* Delete the stmk_init statement. */
@@ -4943,7 +4966,8 @@ created are inserted at *insert_location, and *insert_location is updated.
   /* Generate the code to do the initialization. */
   lower_dynamic_init(dip, &ipd,
                      implied_arg_list, end_implied_arg_list, ctor_init,
-                     /*is_full_expr=*/TRUE, (a_variable_ptr *)NULL,
+                     /*is_full_expr=*/TRUE, /*is_throw_expr=*/FALSE,
+                     (a_variable_ptr *)NULL,
                      insert_location, (a_boolean *)NULL);
 }  /* lower_ctor_init */
 
@@ -6012,7 +6036,7 @@ Do lowering on the file-scope dynamic initializations list.
       lower_dynamic_init(dip, &ipd,
                          (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                          (a_constructor_init_ptr)NULL, /*is_full_expr=*/TRUE,
-                         &partial_aggr_cond_var,
+                         /*is_throw_expr=*/FALSE, &partial_aggr_cond_var,
                          eff_insert_location, (a_boolean *)NULL);
     }  /* for */
     if (exceptions_enabled) {

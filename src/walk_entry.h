@@ -1040,6 +1040,7 @@ do_set_proper_definition_needed_flag:
                           a_try_supplement_ptr, iek_try_supplement);
                 break;
               case leck_exception_caught:
+              case leck_exception_started:
                 /* No pointers. */
                 break;
               default:

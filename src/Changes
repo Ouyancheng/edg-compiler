@@ -1,6 +1,27 @@
 Version 2.33
 
-9/30/96  Microsoft mode disables language features not support by
+9/30/96 Indication of point in throw where exception has been started
+        (IL CHANGE if EH partially lowered)
+
+In a throw, the evaluation of the throw expression is considered
+to be outside of the throw, but the copy constructor call that copies
+the object to the runtime is considered to be inside the throw.
+(This is not altogether clear in the WP; the evidence we're going
+on is 15.5.1 [except.terminate].  We've also decided that if copy
+constructor elision is done, the (non-copy) constructor call that
+builds the object is not inside the throw).  The issue of being
+"inside" or "outside" the throw is significant because terminate
+is called if an exception is thrown while inside another throw.
+For cases with non-elided copy constructor calls, with full lowering
+of EH features, the point where the exception is considered started
+is now marked by a call to the new runtime routine __exception_started.
+With partial lowering, the point is marked by a new
+enk_lowered_eh_construct/leck_exception_started expression node.
+Note that the new marker appears only when necessary, and the throw
+itself is considered the start of the exception if the marker is not
+present (e.g., for non-class cases).
+
+9/30/96  Microsoft mode disables language features not supported by
          the Microsoft compiler
 
 Use of Microsoft mode now, by default, disables language features

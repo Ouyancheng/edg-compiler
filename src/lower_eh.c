@@ -3085,7 +3085,7 @@ for the scope of the handler.
     lower_dynamic_init(handler->dynamic_init, &ipd,
                        (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                        (a_constructor_init_ptr)NULL, /*is_full_expr=*/TRUE,
-                       (a_variable_ptr *)NULL,
+                       /*is_throw_expr=*/FALSE, (a_variable_ptr *)NULL,
                        &insert_location, (a_boolean *)NULL);
     /* Mark the parameter as referenced. */
     handler->parameter->source_corresp.referenced = TRUE;
@@ -3094,9 +3094,7 @@ for the scope of the handler.
      exception can be considered caught. */
 #if DO_FULL_PORTABLE_EH_LOWERING
   /* Portable scheme: */
-  /* Make a call of the runtime routine __exception_caught.  This tells
-     the runtime it can now destroy the caught object and free the space
-     for it. */
+  /* Make a call of the runtime routine __exception_caught. */
   make_call_statement(make_runtime_routine("__exception_caught",
                                            &exception_caught_routine,
                                            void_type()),
@@ -3765,7 +3763,7 @@ Lower an enk_throw expression node.
     lower_dynamic_init(dip, &ipd,
                        (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                        (a_constructor_init_ptr)NULL, /*is_full_expr=*/FALSE,
-                       (a_variable_ptr *)NULL,
+                       /*is_throw_expr=*/TRUE, (a_variable_ptr *)NULL,
                        &insert_location, (a_boolean *)NULL);
 #if !DO_FULL_PORTABLE_EH_LOWERING
     /* Put the lowered node pointer into the throw supplement. */
@@ -3774,6 +3772,45 @@ Lower an enk_throw expression node.
 #endif /* !DO_FULL_PORTABLE_EH_LOWERING */
   }  /* if */
 }  /* lower_throw */
+
+
+#if DO_FULL_PORTABLE_EH_LOWERING
+/*
+Pointer to the routine entry for the runtime routine __exception_started.
+NULL until created.
+*/
+static a_routine_ptr
+		exception_started_routine;
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
+
+
+void record_exception_started(an_insert_location *insert_location)
+/*
+Insert code at the indicated insert point, as part of the code for
+a throw, to indicate the point at which the exception is considered
+started.  This is used when throwing a class that has a copy constructor.
+In some cases, the final copy constructor call is considered "inside"
+the throw, whereas the rest of the throw expression evaluation is
+"outside" the throw.
+*/
+{
+#if DO_FULL_PORTABLE_EH_LOWERING
+  /* Portable scheme: */
+  /* Make a call of the runtime routine __exception_started. */
+  make_call_statement(make_runtime_routine("__exception_started",
+                                           &exception_started_routine,
+                                           void_type()),
+                      (an_expr_node_ptr)NULL,
+                      insert_location);
+#else /* !DO_FULL_PORTABLE_EH_LOWERING */
+  /* In other schemes, insert an enk_lowered_eh_construct/
+     leck_exception_started expression node. */
+  { an_expr_node_ptr node = alloc_lowered_eh_construct_node(
+                          (a_lowered_eh_construct_kind)leck_exception_started);
+    (void)insert_expr_statement(node, insert_location);
+  }
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
+}  /* record_exception_started */
 
 
 void set_curr_cleanup_state(a_dynamic_init_ptr cleanup_state,
@@ -3934,6 +3971,7 @@ with each new translation unit are handled in eh_lower_init.)
       pch_saved_var_array_elem(suppress_optim_on_vars_in_try_routine),
       pch_saved_var_array_elem(free_thrown_object_routine),
       pch_saved_var_array_elem(exception_caught_routine),
+      pch_saved_var_array_elem(exception_started_routine),
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
       pch_saved_var_array_terminating_elem()
     };
@@ -3981,6 +4019,7 @@ invocation of the front end.
   suppress_optim_on_vars_in_try_routine = NULL;
   free_thrown_object_routine = NULL;
   exception_caught_routine = NULL;
+  exception_started_routine = NULL;
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
   /* Variables in lower_eh.h: */
 #if ABI_CHANGES_FOR_RTTI

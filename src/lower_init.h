@@ -83,6 +83,7 @@ extern void lower_dynamic_init(a_dynamic_init_ptr     dip,
                                an_expr_node_ptr       end_implied_arg_list,
                                a_constructor_init_ptr ctor_init,
                                a_boolean              is_full_expr,
+                               a_boolean              is_throw_expr,
                                a_variable_ptr         *partial_aggr_cond_var,
                                an_insert_location_ptr insert_location,
                                a_boolean              *keep_dynamic_init);
