@@ -305,7 +305,7 @@ extern a_symbol_ptr select_overloaded_function(
                             a_boolean               have_selector,
                             an_operand              *bound_function_selector,
                             an_argument_summary_ptr arg_list,
-                            a_boolean               error_if_no_match,
+                            a_boolean               operator_case,
                             an_expression_kind      expression_kind,
                             an_error_code           err_none_applies,
                             an_error_code           err_ambiguous,
