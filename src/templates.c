@@ -7253,6 +7253,15 @@ that follows.
         }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         vp->is_specialized = TRUE;
+        if (storage_class != (a_storage_class)sc_unspecified) {
+          /* Storage class may not be specified on a member template
+             specialization. */
+          pos_error(ec_storage_class_not_allowed, &decl_start_pos);
+          storage_class = (a_storage_class)sc_unspecified;
+        } else if (dso_flags & DSO_INLINE) {
+          /* Inline may not be specified. */
+          pos_error(ec_inline_and_nonfunction, &decl_start_pos);
+        }  /* if */
         /* Deal with initializer. */
         if (is_definition) {
           a_boolean  incomplete_type_error_reported = FALSE;
@@ -7282,6 +7291,13 @@ that follows.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         rp->is_specialized = TRUE;
         rp->is_inline = func_info.is_inline;
+        if (rp->source_corresp.is_class_member &&
+            storage_class != (a_storage_class)sc_unspecified) {
+          /* Storage class may not be specified on a member template
+             specialization. */
+          pos_error(ec_storage_class_not_allowed, &decl_start_pos);
+          storage_class = (a_storage_class)sc_unspecified;
+        }  /* if */
         if (func_info.is_inline ||
             storage_class == (a_storage_class)sc_static ||
             (scp->is_class_member ?
