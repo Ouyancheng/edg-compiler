@@ -1,5 +1,12 @@
 Version 2.30
 
+6/19/95  C++-generating back end -- multiple variables declared in for-init
+
+The C++-generating back end now correctly handles multiple declarations
+of variables in a for-init, e.g.,
+
+  for (int i = 4, j = 5; i < 10; i++) ...
+
 6/17/95  Bug in dynamic_cast when virtual base class has non-zero offset
 
 It is possible to create a class that does not itself have a virtual

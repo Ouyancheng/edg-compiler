@@ -279,12 +279,15 @@ static void gen_dynamic_init(a_dynamic_init_ptr dip,
                              a_boolean          force_parens);
 static void gen_statement(a_statement_ptr statement);
 static void gen_declaration(void);
-static void gen_declaration_using_type(a_type_ptr                   type,
-                                       a_source_correspondence      *scp,
-                                       an_il_entry_kind             entry_kind,
-                                       a_src_seq_secondary_decl_ptr sec_decl);
+static void gen_declaration_using_type(
+                             a_type_ptr                   type,
+                             a_source_correspondence      *scp,
+                             an_il_entry_kind             entry_kind,
+                             a_src_seq_secondary_decl_ptr sec_decl,
+                             a_boolean                    suppress_specifiers);
 static void gen_type_decl(void);
-static void gen_variable_decl(a_boolean gen_final_semicolon);
+static void gen_variable_decl(a_boolean gen_final_semicolon,
+                              a_boolean suppress_specifiers);
 static void gen_routine_decl(void);
 static void gen_secondary_decl(void);
 static void gen_statement_list(a_statement_ptr stmt_list,
@@ -1808,12 +1811,14 @@ is non-NULL, in which case that is the function scope.
                                      has_name(param_var) ?
                                              &param_var->source_corresp : NULL,
                                      iek_variable,
-                                     (a_src_seq_secondary_decl_ptr)NULL);
+                                     (a_src_seq_secondary_decl_ptr)NULL,
+                                     /*suppress_specifiers=*/FALSE);
           param_var = param_var->next;
         } else {
           /* This is just a declaration, so put out the type and no name. */
           gen_declaration_using_type(param->type, NO_NAME, iek_none,
-                                     (a_src_seq_secondary_decl_ptr)NULL);
+                                     (a_src_seq_secondary_decl_ptr)NULL,
+                                     /*suppress_specifiers=*/FALSE);
         }  /* if */
         /* Put out a default argument expression if there is one. */
         gen_default_arg_expr(param);
@@ -1884,23 +1889,30 @@ entry if sec_decl is non-NULL.
 }  /* set_decl_position */
 
 
-static void gen_declaration_using_type(a_type_ptr                   type,
-                                       a_source_correspondence      *scp,
-                                       an_il_entry_kind             entry_kind,
-                                       a_src_seq_secondary_decl_ptr sec_decl)
+static void gen_declaration_using_type(
+                              a_type_ptr                   type,
+                              a_source_correspondence      *scp,
+                              an_il_entry_kind             entry_kind,
+                              a_src_seq_secondary_decl_ptr sec_decl,
+                              a_boolean                    suppress_specifiers)
 /*
 Output a declaration built around a type.  The argument scp is the source
 correspondence entry for the entity being declared, or NULL if there is
 no name.  entry_kind indicate the IL entry kind (it is ignored if
 scp is NULL).  If sec_decl is non-NULL, this declaration is a secondary
 declaration of the entity, and sec_decl points to information about the
-secondary declaration.
+secondary declaration.  If suppress_specifiers is TRUE, the type specifiers
+of the declaration are suppressed; this is used for comma-separated
+declarations (e.g., in a for-init statement).
 */
 {
   /* Write the specifiers and the first part of the declarator. */
-  form_type_first_part_simple(type, /*under_lhs_declarator=*/FALSE,
-                              /*need_trailing_space=*/(scp != NULL),
-                              &octl);
+  form_type_first_part(type, /*under_lhs_declarator=*/FALSE,
+                       /*need_trailing_space=*/(scp != NULL),
+                       TQ_NONE,
+                       suppress_specifiers ? FTO_SUPPRESS_SPECIFIERS :
+                                             FTO_NO_OPTIONS,
+                       &octl);
   /* Write the name if there is one. */
   if (scp != NULL) {
     /* Set the source position for the name. */
@@ -2097,7 +2109,8 @@ source sequence entry is the one associated with the field.
   gen_declaration_using_type(field->type,
                              has_name(field) ? &field->source_corresp : NULL,
                              iek_field,
-                             (a_src_seq_secondary_decl_ptr)NULL);
+                             (a_src_seq_secondary_decl_ptr)NULL,
+                             /*suppress_specifiers=*/FALSE);
   if (field->is_bit_field) {
     /* A bit field.  Put out the size. */
     write_tok_ch(':');
@@ -2306,7 +2319,8 @@ is the one associated with the definition of the class.
         break;
       case iek_variable:
         /* Static data member. */
-        gen_variable_decl(/*gen_final_semicolon=*/TRUE);
+        gen_variable_decl(/*gen_final_semicolon=*/TRUE,
+                          /*suppress_specifiers=*/FALSE);
         break;
       case iek_routine:
         /* Member function */
@@ -2391,7 +2405,8 @@ is non-NULL and points to the secondary declaration entry.
   } else {
     /* Normal typedef. */
     gen_declaration_using_type(under_type, &type->source_corresp,
-                               iek_type, sec_decl);
+                               iek_type, sec_decl,
+                               /*suppress_specifiers=*/FALSE);
   }  /* if */
 }  /* gen_typedef_definition */
 
@@ -3605,7 +3620,8 @@ This can be a condition declaration or simply an expression.
     }  /* if */
   } else {
     /* Condition declaration. */
-    gen_variable_decl(/*gen_final_semicolon=*/FALSE);
+    gen_variable_decl(/*gen_final_semicolon=*/FALSE,
+                      /*suppress_specifiers=*/FALSE);
   }  /* if */
 }  /* gen_condition */  
 
@@ -3628,6 +3644,7 @@ Generate code for the indicated "for" statement.
 */
 {
   a_statement_ptr init_stmt;
+  a_boolean       decl_after_first;
 
   /* Generate "for (init; test; incr) statement".
      "init" might be an expression or a declaration, or omitted;
@@ -3650,7 +3667,40 @@ Generate code for the indicated "for" statement.
                           init_stmt->next->kind == (a_statement_kind)stmk_init,
                           "gen_for_statement: unexpected init block");
     }  /* if */
-    gen_statement(init_stmt);
+    check_assertion(init_stmt->kind == (a_statement_kind)stmk_decl);
+    /* Process the declaration/initialization.  If there are several, they
+       must be put out as a comma-separated list. */
+    decl_after_first = FALSE;
+    for (;;) {
+      check_assertion_str(curr_source_sequence_entry != NULL &&
+                          ss_entry_kind(curr_source_sequence_entry) ==
+                                                                  iek_variable,
+                          "gen_for_statement: bad decl in for-init");
+      gen_variable_decl(/*gen_final_semicolon=*/FALSE,
+                        /*suppress_specifiers=*/decl_after_first);
+      /* Stop on an end-of-construct entry for the stmk_decl. */
+      if (ss_entry_kind(curr_source_sequence_entry) ==
+                                                iek_src_seq_end_of_construct) {
+        /* Found the end-of-construct entry. */
+#if CHECKING
+        a_src_seq_end_of_construct_ptr ssecp =
+                                  ss_entry_ptr(curr_source_sequence_entry,
+                                               a_src_seq_end_of_construct_ptr);
+        check_assertion_str(ss_entry_kind(ssecp) == iek_statement &&
+                            ss_entry_ptr(ssecp, a_statement_ptr) == init_stmt,
+                            "gen_for_statement: bad end-of-construct");
+#endif /* CHECKING */
+        adv_curr_source_sequence_entry();
+        break;
+      }  /* if */
+      /* Loop for declarations of additional variables. */
+      write_tok_ch(',');
+      write_space();
+      decl_after_first = TRUE;
+    }  /* for */
+    /* Finish the declaration. */
+    write_tok_ch(';');
+    write_space();
   }  /* if */
   /* Generate the termination-test expression if there is one. */
   if (statement->expr != NULL) {
@@ -3908,7 +3958,8 @@ exception-handling "try" block.
         check_for_and_take_source_seq_entry(scp->source_sequence_entry);
       }  /* if */
       gen_declaration_using_type(handler_var->type, scp, iek_variable,
-                                 (a_src_seq_secondary_decl_ptr)NULL);
+                                 (a_src_seq_secondary_decl_ptr)NULL,
+                                 /*suppress_specifiers=*/FALSE);
     }  /* if */
     write_tok_ch(')');
     write_space();
@@ -4460,23 +4511,6 @@ Generate code for the indicated statement.
           /* Process the declaration entry and its source sequence entry. */
           gen_declaration();
         }  /* while */
-        /* If an end-of-construct entry for the stmk_decl appears, advance
-           past it.  This is used for the initialization declaration of
-          "for" statements. */
-        if (ss_entry_kind(curr_source_sequence_entry) ==
-                                                iek_src_seq_end_of_construct) {
-          /* Found an end-of-construct entry.  See if it's the right one. */
-          a_src_seq_end_of_construct_ptr ssecp =
-                                  ss_entry_ptr(curr_source_sequence_entry,
-                                               a_src_seq_end_of_construct_ptr);
-          if (ss_entry_kind(ssecp) == iek_statement) {
-            if (ss_entry_ptr(ssecp, a_statement_ptr) == statement) {
-              /* Found the end-of-construct entry for the statement.  Advance
-                 past it. */
-              adv_curr_source_sequence_entry();
-            }  /* if */
-          }  /* if */
-        }  /* if */
       }  /* if */
       suppress_trailing_space = TRUE;
       break;
@@ -4732,11 +4766,14 @@ Output the initializer, if any, for the indicated variable.
 }  /* gen_initializer */
 
 
-static void gen_variable_decl(a_boolean gen_final_semicolon)
+static void gen_variable_decl(a_boolean gen_final_semicolon,
+                              a_boolean suppress_specifiers)
 /*
 Generate a declaration of the variable indicated by the current source
 sequence entry.  If gen_final_semicolon is TRUE, a semicolon is put out
-at the end of the declaration.
+at the end of the declaration.  If suppress_specifiers is TRUE, the type
+specifiers are suppressed in the type; this is used for comma-separated
+lists of declarations, as in for-init statements.
 */
 {
   a_variable_ptr               var;
@@ -4766,7 +4803,9 @@ at the end of the declaration.
   set_decl_position(&var->source_corresp, sec_decl);
   /* If generating a member of a class within the class, set the right access
      mode for the member. */
-  gen_member_access_specifier_for_decl_of(&var->source_corresp);
+  if (!suppress_specifiers) {
+    gen_member_access_specifier_for_decl_of(&var->source_corresp);
+  }  /* if */
   /* Determine the proper storage class to display. */
   storage_class = var->storage_class;
   if (curr_name_context_is_a_class()) {
@@ -4812,36 +4851,39 @@ at the end of the declaration.
       }  /* if */
     }  /* if */
   }  /* if */
-  /* Check for `extern "C"'.  This applies even on a definition. */
-  if (il_header.source_language == sl_Cplusplus &&
-      var->source_corresp.name_linkage == (a_name_linkage_kind)nlk_external) {
-    write_tok_str("extern \"C\" ");
-  } else {
-    /* Put out the storage class determined above. */
-    gen_storage_class(storage_class);
-  }  /* if */
+  if (!suppress_specifiers) {
+    /* Check for `extern "C"'.  This applies even on a definition. */
+    if (il_header.source_language == sl_Cplusplus &&
+        var->source_corresp.name_linkage ==(a_name_linkage_kind)nlk_external) {
+      write_tok_str("extern \"C\" ");
+    } else {
+      /* Put out the storage class determined above. */
+      gen_storage_class(storage_class);
+    }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
-  /* Microsoft-specific keywords. */
-  if (var->decl_modifiers & DM_DLLIMPORT) {
-    write_tok_str("__declspec(dllimport) ");
-  }  /* if */
-  if (is_definition) {
-    if (var->decl_modifiers & DM_DLLEXPORT) {
-      write_tok_str("__declspec(dllexport) ");
+    /* Microsoft-specific keywords. */
+    if (var->decl_modifiers & DM_DLLIMPORT) {
+      write_tok_str("__declspec(dllimport) ");
     }  /* if */
-  }  /* if */
-  if (var->decl_modifiers & DM_THREAD) {
-    write_tok_str("__declspec(thread) ");
-  }  /* if */
+    if (is_definition) {
+      if (var->decl_modifiers & DM_DLLEXPORT) {
+        write_tok_str("__declspec(dllexport) ");
+      }  /* if */
+    }  /* if */
+    if (var->decl_modifiers & DM_THREAD) {
+      write_tok_str("__declspec(thread) ");
+    }  /* if */
 #endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  }  /* if */
   /* Output the variable name and its type.  Do not put out a name for
      anonymous union variables. */
   gen_declaration_using_type(var_type,
                              has_name(var) ? &var->source_corresp : NULL,
                              iek_variable,
-                             sec_decl);
+                             sec_decl,
+                             suppress_specifiers);
   /* Output the initializer, if any, but only if this is a definition.
      For member constants (static data members initialized within the
      class), the initializer gets put out on the declaration rather than
@@ -4875,7 +4917,8 @@ function.
       set_output_position(&var->source_corresp.decl_position);
       gen_declaration_using_type(var->type, &var->source_corresp,
                                  iek_variable,
-                                 (a_src_seq_secondary_decl_ptr)NULL);
+                                 (a_src_seq_secondary_decl_ptr)NULL,
+                                 /*suppress_specifiers=*/FALSE);
       write_tok_ch(';');
     } else if (ss_entry_kind(curr_source_sequence_entry) == iek_statement) {
       /* Stop on the opening brace of the routine. */
@@ -5151,7 +5194,7 @@ declaration or definition.
     /* If the function type comes from a typedef, handle the declaration
        in the conventional way.  This can only occur for declarations. */
     gen_declaration_using_type(rout_type, &rout->source_corresp, iek_routine,
-                               sec_decl);
+                               sec_decl, /*suppress_specifiers=*/FALSE);
   } else {
     /* Normal routine case.  Do the declaration in a special way because
        (a) function definitions use information from the function parameter
@@ -5278,7 +5321,8 @@ source sequence entry identifies the entity.
       gen_type_decl();
       break;
     case iek_variable:
-      gen_variable_decl(/*gen_final_semicolon=*/TRUE);
+      gen_variable_decl(/*gen_final_semicolon=*/TRUE,
+                        /*suppress_specifiers=*/FALSE);
       break;
     case iek_routine:
       gen_routine_decl();
@@ -5300,7 +5344,8 @@ sequence entry.
       gen_type_decl();
       break;
     case iek_variable:
-      gen_variable_decl(/*gen_final_semicolon=*/TRUE);
+      gen_variable_decl(/*gen_final_semicolon=*/TRUE,
+                        /*suppress_specifiers=*/FALSE);
       break;
     case iek_routine:
       gen_routine_decl();
