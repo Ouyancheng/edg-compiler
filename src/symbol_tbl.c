@@ -3868,8 +3868,10 @@ check_routine:
   }  /* switch */
   if (warning_code != ec_no_error) {
     /* Issue a warning for an unreferenced entity.  However, demote the
-       warning to a remark if the entity is declared in an include file. */
-    if (seq_is_in_include_file(sym->decl_position.seq)) {
+       warning to a remark if the entity is a file-scope entity declared
+       in an include file. */
+    if (depth_scope_stack == DEPTH_OF_FILE_SCOPE &&
+        seq_is_in_include_file(sym->decl_position.seq)) {
       pos_st_remark(warning_code, &sym->decl_position,
                     sym->header->identifier);
     } else {
