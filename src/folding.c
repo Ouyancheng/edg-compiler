@@ -1676,13 +1676,29 @@ to the constant is maintained, by adding a cast if necessary.
 
 #if FIXED_POINT_ALLOWED
     case tk_fixed_point:
+<<<<<<< folding.c
       switch (new_type->kind) {
         case tk_integer:
-          /* Fixed-point to integer.  Not folded at compile time. */
+        case tk_imaginary:
+        case tk_complex:
+        case tk_fixed_point:
+          convert_to_or_from_fixed_point_constant(constant, &new_constant,
+                                                  did_not_fold);
         case tk_float:
           /* Converting fixed-point to floating-point. */
           conv_fixed_point_to_float(constant, &new_constant,
                                     &err_code, &err_severity);
+          break;
+        default:
+          unexpected_condition_str(
+                                  "type_change_constant: fixed to bad type");
+      }  /* switch */
+=======
+      switch (new_type->kind) {
+        case tk_integer:
+          /* Fixed-point to integer.  Not folded at compile time. */
+        case tk_float:
+          /* Fixed-point to float.  Not folded at compile time. */
         case tk_imaginary:
           /* Fixed-point to imaginary.  Not folded at compile time. */
         case tk_complex:
@@ -1695,6 +1711,7 @@ to the constant is maintained, by adding a cast if necessary.
           unexpected_condition_str(
                               "type_change_constant: fixed-point to bad type");
       }  /* switch */
+>>>>>>> 1.217
       break;
 #endif /* FIXED_POINT_ALLOWED */
 
