@@ -6069,7 +6069,7 @@ return a pointer to it.
     case sk_enum_tag:
     case sk_type:
       kind = iek_type;
-      entity = (char *)sym->variant.type;
+      entity = (char *)type_symbol_type(sym);
       break;
     case sk_member_function:
       kind = iek_routine;
