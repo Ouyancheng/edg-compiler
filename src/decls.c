@@ -4052,14 +4052,6 @@ generating cross-reference output describing this declaration.
              types. */
           variable_ptr->type = type_ptr = composite_type(type_ptr, *old_type);
         }  /* if */
-        if (sym->defined &&
-            (srk_flags & SRK_TENTATIVE_DEF)) {
-          /* The srk_flags includes SRK_TENTATIVE_DEF, so this looked like a
-             tentative variable declaration (C only); but now that that we know
-             it to be a redeclaration of a previously defined variable, the
-             flag should be set to FALSE. */
-          srk_flags &= ~SRK_TENTATIVE_DEF;
-        }  /* if */
       }  /* if */
     } else if (linked_symbol->kind == (a_symbol_kind)sk_routine &&
                is_function) {
@@ -4313,7 +4305,7 @@ skip_overloading:;
       /* If this looked like a tentative definition to the caller (C-mode
          only), see if the variable was initialized at the previous
          declaration.  If so, this is not a tentative definition. */
-      if (srk_flags & SRK_TENTATIVE_DEF) {
+      if (sym->defined && (srk_flags & SRK_TENTATIVE_DEF)) {
         if (variable_ptr->init_kind != (an_init_kind)initk_none) {
           srk_flags &= ~(SRK_TENTATIVE_DEF | SRK_DEFINITION);
           check_assertion(srk_flags & SRK_DECLARATION);
