@@ -1287,6 +1287,14 @@ such an instantiation (i.e., allocate the type entry and create the
 symbol, adding the latter to the instantiation list for the template).
 Return the symbol that is found or newly created.
 
+*new_list points to the template argument list of the template class
+to be found or created.  If a new template instance is created, the
+template argument list is attached to that new instance.  If an
+existing instance is found, the template argument list passed by
+the caller is discarded.  In either case, the pointer provided by
+the caller is set to NULL to prevent subsequent use of the argument
+list in case it has been freed.
+
 Note that this function does not fully instantiate a class template;
 rather, when it creates a class type entry, it is for an incomplete type.
 The full instantiation is done later, when it is clearly needed.  This
