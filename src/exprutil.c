@@ -4266,6 +4266,7 @@ lvalue.  If there is an error, change the operand to an error operand.
       /* This is a discretionary error in gcc mode. */
       pos_diagnostic(es_discretionary_error, ec_expr_not_a_modifiable_lvalue,
                      &operand->position);
+      okay = TRUE;
     } else {
       error_in_operand(ec_expr_not_a_modifiable_lvalue, operand);
     }  /* if */
