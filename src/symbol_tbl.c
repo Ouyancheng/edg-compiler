@@ -7280,6 +7280,8 @@ for space tracking purposes.
                 a_conversion_list_entry);
   db_space_used("projection symbol descr", num_projection_descrs_allocated,
                 a_projection_descr);
+  grand_total = db_show_routine_fixups_used(grand_total);
+  grand_total = db_show_def_arg_expr_fixups_used(grand_total);
 
   db_space_used_total();
 
