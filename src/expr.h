@@ -140,6 +140,12 @@ Macro that is TRUE if the node is a variable address node.
 	((node)->kind == (an_expr_node_kind)enk_variable_address)
 
 /*
+Macro that is TRUE if the node is a routine address node.
+*/
+#define is_routine_address_node(node)					\
+	((node)->kind == (an_expr_node_kind)enk_routine_address)
+
+/*
 Macro that is TRUE if the node is a field node.
 */
 #define is_field_node(node)						\
