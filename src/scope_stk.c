@@ -2672,7 +2672,8 @@ is pushed here, and popped when the instantiation scope is popped.
   /* Determine whether this instantiation is a prototype instantiation of
      something within another prototype instantiation.  This affects the
      way that the scope stack is manipulated. */
-  if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
+  if (scope_stack[depth_scope_stack].in_prototype_instantiation &&
+      (options & PS_PROTOTYPE_INSTANTIATION) != 0) {
     nested_in_prototype_instantiation = is_nested_in_prototype_instantiation(
                                                                  template_sym);
   }  /* if */
