@@ -1,5 +1,15 @@
 Version 2.31
 
+12/18/95  C++-generating back end: function-local anonymous union
+
+A function-local anonymous union is no longer put out as static.
+
+  void foo() {
+    union {  // was put out as static
+      int k;
+    };
+  }
+
 12/18/95  Instantiation of template class before checking for operator()
 
 When the left operand of a call has a class type, and the type is a template
