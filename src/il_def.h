@@ -5234,7 +5234,7 @@ typedef struct a_new_delete_supplement {
 			   that describes the delete call to be done to free
 			   the storage if an exception is thrown before the
 			   storage is initialized.  NULL if no deletion is
-			   needed, as on a placement new. */
+			   needed. */
 } a_new_delete_supplement;
 
 
