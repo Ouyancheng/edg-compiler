@@ -8424,7 +8424,7 @@ respectively.
     pos_error(ec_function_type_not_allowed, &locator->source_position);
     field_type = error_type();
   } else if (vla_enabled && is_variably_modified_type(field_type)) {
-    pos_error(ec_vla_not_allowed, &locator->source_position);
+    pos_error(ec_field_cannot_involve_vla_type, &locator->source_position);
     field_type = error_type();
   } else if (is_incomplete_type(field_type)) {
     /* The member type is incomplete.  This is not necessarily an error:
