@@ -9294,6 +9294,43 @@ This is used for checking/allowing assignment to "this" -- an anachronism.
 }  /* check_assignment_to_this_pointer */
 
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void process_microsoft_null_pointer_constant_bug(an_operand *operand,
+                                                        a_type_ptr dest_type)
+/*
+Check for a Microsoft C mode bug that allows the expression (void)0 (sic;
+not (void *)0) to be used as a null pointer constant in some contexts.
+operand is the source operand, and dest_type is the destination type of
+an initialization or assignment.  If source_operand is (void)0 and dest_type
+is a pointer type, change source_operand to a simple 0 so it will be
+accepted as a null pointer constant.
+*/
+{
+  if (microsoft_bugs && C_mode() &&
+      is_void_type(operand->type) &&
+      is_pointer_type(dest_type)) {
+    if (is_expression_operand(operand)) {
+      an_expr_node_ptr expr = operand->variant.expression;
+      if (is_operation_node(expr) &&
+          expr->variant.operation.kind == (an_expr_operator_kind)eok_cast) {
+        expr = expr->variant.operation.operands;
+        if (is_constant_node(expr) &&
+            is_null_pointer_constant(expr->variant.constant)) {
+          /* The expression is (void)0.  Replace it by 0. */
+          an_operand orig_operand;
+          orig_operand = *operand;
+          make_constant_operand(expr->variant.constant, operand);
+          restore_operand_details(operand, &orig_operand);
+          pos_ty2_warning(ec_bad_initializer_type, &operand->position,
+                          orig_operand.type, dest_type);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* process_microsoft_null_pointer_constant_bug */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void scan_simple_assignment_operator(an_operand *operand_1,
                                             an_operand *result)
@@ -9378,10 +9415,13 @@ Scan the simple assignment operator ("=").  See section 3.3.16 of the standard.
          dropped as appropriate. */
       orig_result_type = operand_1->type;
       result_type = rvalue_type(orig_result_type);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      /* Check for a bug related to null pointer constants in Microsoft C
+         mode. */
+      process_microsoft_null_pointer_constant_bug(&operand_2, result_type);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* do_operand_transformations is not done in the second operand, because
-         the processing for that is done in the conversion stuff.
-         In C++, an lvalue, or an array, or an indefinite function might
-         be an acceptable argument to a conversion function. */
+         the processing for that is done in the conversion stuff. */
       prep_assignment_operand(&operand_2, result_type,
                               ec_incompatible_assignment_operands,
                               &operator_position);
@@ -12247,29 +12287,8 @@ and scan_aggregate_class_initializer_expression.
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_bugs && C_mode() &&
-      is_void_type(result.type) &&
-      is_pointer_type(required_type)) {
-    /* In Microsoft C mode, allow (void)0 to be treated as a null
-       pointer constant. */
-    if (is_expression_operand(&result)) {
-      an_expr_node_ptr expr = result.variant.expression;
-      if (is_operation_node(expr) &&
-          expr->variant.operation.kind == (an_expr_operator_kind)eok_cast) {
-        expr = expr->variant.operation.operands;
-        if (is_constant_node(expr) &&
-            is_null_pointer_constant(expr->variant.constant)) {
-          /* The expression is (void)0.  Replace it by 0. */
-          an_operand orig_result;
-          orig_result = result;
-          make_constant_operand(expr->variant.constant, &result);
-          restore_operand_details(&result, &orig_result);
-          pos_ty2_warning(ec_bad_initializer_type, &result.position,
-                          orig_result.type, required_type);
-        }  /* if */
-      }  /* if */
-    }  /* if */
-  }  /* if */
+  /* Check for a bug related to null pointer constants in Microsoft C mode. */
+  process_microsoft_null_pointer_constant_bug(&result, required_type);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Convert to the required type. */
   prep_initializer_operand(&result, required_type, (a_conv_descr_ptr)NULL,
