@@ -390,8 +390,10 @@ declaration of a class member.
                                const_for_curr_token.variant.string.value;
               a_targ_size_t length = /* Without null. */
                             const_for_curr_token.variant.string.length-1;
-
-              if (*str == '{') {
+              if (str == NULL) {
+                check_assertion(total_errors != 0);
+                goto end_of_uuid_string;
+              } else if (*str == '{') {
                 /* Has surrounding braces. */
                 /* Check for matching closing brace. */
                 if (str[length-1] != '}') {

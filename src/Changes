@@ -1,5 +1,15 @@
 Version 2.45
 
+10/31/00 Abort on invalid string literal in Microsoft uuid construct
+
+The front end used to abort when processing a string literal with a missing
+quote inside a Microsoft uuid declaration specifier.  For example:
+
+  struct __declspec(uuid("11111111-2222-33
+  33-4444-555555555555")) S { };  // Abort on bad string literal
+
+This is now fixed.
+
 10/31/00 Microsoft compatibility: injected class names marked as needing
          qualification
 
