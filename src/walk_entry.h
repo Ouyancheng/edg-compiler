@@ -1332,8 +1332,10 @@ the file scope, do not process it (but record an orphan in the latter case).
         remap_ptr(ptr->assoc_routine, a_routine_ptr, iek_routine);
         walk_list(ptr->orphaned_types, a_type_ptr, iek_type);
         walk_list(ptr->orphaned_variables, a_variable_ptr, iek_variable);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
         walk_list(ptr->orphaned_src_seq_sublists, a_src_seq_sublist_ptr,
                   iek_src_seq_sublist);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       }
       break;
 #if CHECKING
