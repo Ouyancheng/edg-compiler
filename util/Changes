@@ -1,5 +1,16 @@
 Version 3.3
 
+7/16/03  IA-64 ABI demangling, predefined substitutions as types
+
+The IA-64 ABI demangler did not correctly demangle predefined
+substitutions (e.g., "So") when they appeared as types; the
+corresponding string was output twice.  The demangling was
+correct when the predefined substitutions appear as members
+of qualified names, which is usually where they appear.
+Now fixed.  An example that gave incorrect output previously:
+
+   _ZTVSo
+
 7/15/03  Demangling fixes, Cfront-like ABI: not falling off end of items
          with lengths
 

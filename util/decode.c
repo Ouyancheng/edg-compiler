@@ -2943,31 +2943,33 @@ of constructors and destructors.
   if (last_component_name != NULL) *last_component_name = NULL;
   if (islower((unsigned char)ch2)) {
     /* Predefined substitution. */
+    char *str = "";
     char *last_name = "";
     if (ch2 == 't') {
-      write_id_str("std", dctl);
+      str = "std";
       last_name = "3std";
     } else if (ch2 == 'a') {
-      write_id_str("std::allocator", dctl);
+      str = "std::allocator";
       last_name = "9allocator";
     } else if (ch2 == 'b') {
-      write_id_str("std::basic_string", dctl);
+      str = "std::basic_string";
       last_name = "12basic_string";
     } else if (ch2 == 's') {
-      write_id_str(
-      "std::basic_string<char, std::char_traits<char>, std::allocator<char>>",
-      dctl);
+      str = 
+       "std::basic_string<char, std::char_traits<char>, std::allocator<char>>";
       last_name = "12basic_string";
     } else if (ch2 == 'i') {
-      write_id_str("std::basic_istream<char, std::char_traits<char>>", dctl);
+      str = "std::basic_istream<char, std::char_traits<char>>";
       last_name = "13basic_istream";
     } else if (ch2 == 'o') {
-      write_id_str("std::basic_ostream<char, std::char_traits<char>>", dctl);
+      str = "std::basic_ostream<char, std::char_traits<char>>";
       last_name = "13basic_ostream";
     } else if (ch2 == 'd') {
-      write_id_str("std::basic_iostream<char, std::char_traits<char>>", dctl);
+      str = "std::basic_iostream<char, std::char_traits<char>>";
       last_name = "13basic_iostream";
     }  /* if */
+    /* Output nothing if we want only the second-pass output. */
+    if (type_pass_num != 2) write_id_str(str, dctl);
     ptr += 2;
     if (last_component_name != NULL) *last_component_name = last_name;
   } else {
