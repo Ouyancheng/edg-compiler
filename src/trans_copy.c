@@ -1363,7 +1363,14 @@ end_of_type_list_add:;
           if (primary_variable->init_kind != (an_init_kind)initk_none) {
             /* Eliminate the body of the primary variable (this happens when
                the secondary has a specialization and the primary does not). */
-            clear_variable_initialization(primary_variable);
+            if (corresp_variable->is_specialized &&
+                !primary_variable->is_specialized) {
+              /* This variable is both specialized and used in the
+                 non-specialized version.  That's an error. */
+              report_bad_trans_unit_corresp(corresp_variable);
+            } else {
+              clear_variable_initialization(primary_variable);
+            }  /* if */
           }  /* if */
           if (!is_class_scope) {
             remove_from_primary_file_variables_list(primary_variable);
@@ -1455,7 +1462,14 @@ end_of_variable_list_add:;
           if (primary_routine->assoc_scope != NULL_region_number) {
             /* Eliminate the body of the primary routine (this happens when
                the secondary has a specialization and the primary does not). */
-            clear_body_for_routine(primary_routine);
+            if (corresp_routine->is_specialized &&
+                !primary_routine->is_specialized) {
+              /* This routine is both specialized and used in the
+                 non-specialized version.  That's an error. */
+              report_bad_trans_unit_corresp(corresp_routine);
+            } else {
+              clear_body_for_routine(primary_routine);
+            }  /* if */
           }  /* if */
           if (!is_class_scope) {
             remove_from_primary_file_routines_list(primary_routine);
