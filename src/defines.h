@@ -268,8 +268,14 @@ switches before this point.
 #endif /* ifndef ABI_COMPATIBILITY_VERSION */
 
 #if ABI_COMPATIBILITY_VERSION == 228
-/* When doing 2.28 ABI testing, also use the non-alternate IL file format. */
+#ifdef IL_SHOULD_BE_WRITTEN_TO_FILE
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+/* When doing 2.28 ABI testing, also use the non-alternate IL file format.
+   Only set this here if IL_SHOULD_BE_WRITTEN_TO_FILE has previously been
+   defined to TRUE. */
 #define ALTERNATE_IL_FILE_FORMAT 0
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+#endif /* ifdef IL_SHOULD_BE_WRITTEN_TO_FILE */
 #endif /* ABI_COMPATIBILITY_VERSION */
 
 
