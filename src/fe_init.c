@@ -287,13 +287,16 @@ a symbol entry for the identifier, if there is already one, and return
 a symbol locator in *locator.
 */
 {
-  a_boolean        return_value = FALSE;
-  int              i;
+  a_boolean         return_value = FALSE;
+  int               i;
+  a_source_position position;
 
   *assoc_symbol = NULL;
+
   /* Identifier "position" is in the command line. */
-  locator->source_position.seq = 0;
-  locator->source_position.column = SP_COL_CMD_LINE;
+  position.seq = 0;
+  position.column = SP_COL_CMD_LINE;
+  clear_locator(locator, &position);
   if (id_len < 1) {
     /* Zero-length identifier is invalid. */
   } else if (isdigit((unsigned char)*id_start)) {
