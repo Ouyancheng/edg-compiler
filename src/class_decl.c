@@ -13389,9 +13389,11 @@ classes.
             a_token_kind                 final_token = tok_semicolon;
             a_template_decl_options_set  td_flags = TDO_NO_OPTIONS;
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
             if (ms_attributes != NULL) {
               pos_error(ec_ms_attr_not_allowed, &pos_ms_attributes);
             }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             if (curr_token == tok_extern) {
               /* In Microsoft and GNU modes "extern template ..." is
                  permitted. */
