@@ -8511,8 +8511,10 @@ the expression have already been lowered.
   an_expr_node_ptr select_f_for_cast_node, cast_node, vtbl_addr_node;
   an_expr_node_ptr offset_node, vtbl_temp_node, vtbl_d_value, vtbl_f_value;
   an_expr_node_ptr this_increment_node, comma_node, question_mark_node;
+  an_expr_node_ptr func_addr_node;
   a_variable_ptr   this_temp_var, vtbl_temp_var;
   a_type_ptr       ptr_to_vtbl_entry_type, routine_type, object_type;
+  a_type_ptr       class_type, ptr_routine_type;
 
   /* The original tree has an eok_pm_call node with operands as follows:
        (1) a node giving the value (not address) of the pointer-to-member.
@@ -8523,6 +8525,8 @@ the expression have already been lowered.
   */
   pmf_node = expr->variant.operation.operands;
   routine_type = pm_member_type_possibly_lowered(pmf_node->type);
+  ptr_routine_type = make_pointer_type(routine_type);
+  class_type = pm_class_type_possibly_lowered(pmf_node->type);
   object_node = pmf_node->next;
   additional_args = object_node->next;
   pmf_node->next = NULL;
@@ -8558,7 +8562,17 @@ the expression have already been lowered.
      If "pmf" is not a reusable expression, the first occurrence of
      "pmf" above is replaced by "(pmf_temp = pmf)", and the rest by
      "pmf_temp".  See ARM 8.1.2.c for some insight into the pointer-to-
-     member-function data structure. */
+      member-function data structure. */
+  /* If the class and its base classes have no virtual functions,
+     the following simpler version is used:
+       ((this_temp = (object_type *)((char *)object + pmf.d)),
+        eok_call((function_type *)pmf.f,
+                 this_temp,
+                 additional_args ...))
+     This seems slightly more complicated than is needed, but it makes
+     sure that if a reusable copy of pmf is needed, the temp for it
+     is initialized before the call is begun.
+  */
   /* Make sure __mptr (the struct that represents lowered pointers to member
      functions) has been created. */
   (void)make_mptr_type();
@@ -8578,100 +8592,116 @@ the expression have already been lowered.
   this_temp_assign_node = make_operator_node(
                                             (an_expr_operator_kind)eok_passign,
                                             object_type, this_temp_node);
-  /* Make "pmf.i < 0". */
-  pmf_node = make_reusable_copy(pmf_node);
-  select_i_node = node_to_select_field_from_rvalue(pmf_node, mptr_i_field);
-  select_i_node->next = node_for_integer_constant(0L,
+  if (!class_type->variant.class_struct_union.
+                             any_virtual_functions_including_in_base_classes) {
+    /* No virtual functions, so use the simpler form. */
+    /* Make "pmf.f". */
+    pmf_node = make_reusable_copy(pmf_node);
+    select_f_node = node_to_select_field_from_rvalue(pmf_node, mptr_f_field);
+    /* Add the cast to the right pointer to routine type. */
+    func_addr_node = add_cast_if_necessary(select_f_node, ptr_routine_type);
+  } else {
+    /* Virtual functions, so use the more general form. */
+    /* Make "pmf.i < 0". */
+    pmf_node = make_reusable_copy(pmf_node);
+    select_i_node = node_to_select_field_from_rvalue(pmf_node, mptr_i_field);
+    select_i_node->next = node_for_integer_constant(0L,
                                          TARG_VIRTUAL_FUNCTION_INDEX_INT_KIND);
-  compare_node = make_operator_node((an_expr_operator_kind)eok_ilt,
-                                    integer_type((an_integer_kind)ik_int),
-                                    select_i_node);
-  /* Make "pmf.f". */
-  pmf_node = make_reusable_copy(pmf_node);
-  select_f_node = node_to_select_field_from_rvalue(pmf_node, mptr_f_field);
-  /* Make "*(__vtbl_entry **)((char *)this_temp + (short)(pmf.f))", which
-     is the address of the virtual function table. */
-  pmf_node = make_reusable_copy(pmf_node);
-  select_f_for_cast_node = node_to_select_field_from_rvalue(pmf_node,
-                                                            mptr_f_field);
-  /* We're using the "f" field of __mptr as an offset to the virtual table
-     pointer in the object, so it must be cast from pointer-to-function
-     to an integral type. */
-  cast_node = add_cast(select_f_for_cast_node,
-                       integer_type(TARG_DELTA_INT_KIND));
-  /* Add a cast to "char *" to avoid scaling on the pointer addition. */
-  this_temp_node = add_cast_to_char_star(var_rvalue_expr(this_temp_var));
-  this_temp_node->next = cast_node;
-  padd_node = make_operator_node((an_expr_operator_kind)eok_padd,
-                                 this_temp_node->type, this_temp_node);
-  /* We now have a pointer to the virtual table pointer in the object.
-     Cast it to a pointer to a pointer and indirect to get the value of 
-     the pointer to the virtual function table. */
-  ptr_to_vtbl_entry_type = make_pointer_type(make_mptr_type());
-  cast_node = add_cast(padd_node, make_pointer_type(ptr_to_vtbl_entry_type));
-  vtbl_addr_node = add_indirection_to_node(cast_node);
-  /* Make "pmf.i", the offset into the virtual function table. */
-  pmf_node = make_reusable_copy(pmf_node);
-  offset_node = node_to_select_field_from_rvalue(pmf_node, mptr_i_field);
-  /* Add the virtual function table address and the offset, giving the
-     address of the virtual function table entry, and store that in
-     "vtbl_temp". */
-  vtbl_addr_node->next = offset_node;
-  padd_node = make_operator_node((an_expr_operator_kind)eok_padd,
-                                 ptr_to_vtbl_entry_type, vtbl_addr_node);
-  /* Make the temporary variable for the "vtbl_temp". */
-  vtbl_temp_var = make_temporary(ptr_to_vtbl_entry_type);
-  vtbl_temp_node = var_lvalue_expr(vtbl_temp_var);
-  vtbl_temp_node->next = padd_node;
-  vtbl_temp_assign_node = make_operator_node(
+    compare_node = make_operator_node((an_expr_operator_kind)eok_ilt,
+                                      integer_type((an_integer_kind)ik_int),
+                                      select_i_node);
+    /* Make "pmf.f". */
+    pmf_node = make_reusable_copy(pmf_node);
+    select_f_node = node_to_select_field_from_rvalue(pmf_node, mptr_f_field);
+    /* Make "*(__vtbl_entry **)((char *)this_temp + (short)(pmf.f))", which
+       is the address of the virtual function table. */
+    pmf_node = make_reusable_copy(pmf_node);
+    select_f_for_cast_node = node_to_select_field_from_rvalue(pmf_node,
+                                                              mptr_f_field);
+    /* We're using the "f" field of __mptr as an offset to the virtual table
+       pointer in the object, so it must be cast from pointer-to-function
+       to an integral type. */
+    cast_node = add_cast(select_f_for_cast_node,
+                         integer_type(TARG_DELTA_INT_KIND));
+    /* Add a cast to "char *" to avoid scaling on the pointer addition. */
+    this_temp_node = add_cast_to_char_star(var_rvalue_expr(this_temp_var));
+    this_temp_node->next = cast_node;
+    padd_node = make_operator_node((an_expr_operator_kind)eok_padd,
+                                   this_temp_node->type, this_temp_node);
+    /* We now have a pointer to the virtual table pointer in the object.
+       Cast it to a pointer to a pointer and indirect to get the value of 
+       the pointer to the virtual function table. */
+    ptr_to_vtbl_entry_type = make_pointer_type(make_mptr_type());
+    cast_node = add_cast(padd_node, make_pointer_type(ptr_to_vtbl_entry_type));
+    vtbl_addr_node = add_indirection_to_node(cast_node);
+    /* Make "pmf.i", the offset into the virtual function table. */
+    pmf_node = make_reusable_copy(pmf_node);
+    offset_node = node_to_select_field_from_rvalue(pmf_node, mptr_i_field);
+    /* Add the virtual function table address and the offset, giving the
+       address of the virtual function table entry, and store that in
+       "vtbl_temp". */
+    vtbl_addr_node->next = offset_node;
+    padd_node = make_operator_node((an_expr_operator_kind)eok_padd,
+                                   ptr_to_vtbl_entry_type, vtbl_addr_node);
+    /* Make the temporary variable for the "vtbl_temp". */
+    vtbl_temp_var = make_temporary(ptr_to_vtbl_entry_type);
+    vtbl_temp_node = var_lvalue_expr(vtbl_temp_var);
+    vtbl_temp_node->next = padd_node;
+    vtbl_temp_assign_node = make_operator_node(
                                             (an_expr_operator_kind)eok_passign,
                                             ptr_to_vtbl_entry_type,
                                             vtbl_temp_node);
-  /* Make "this_temp = (object_type *)((char *)this_temp + vtbl_temp->d)",
-     which adjusts the "this" pointer to be passed to the virtual function. */
-  vtbl_d_value = field_rvalue_selection_expr(var_rvalue_expr(vtbl_temp_var),
-                                             mptr_d_field);
+    /* Make "this_temp = (object_type *)((char *)this_temp + vtbl_temp->d)",
+       which adjusts the "this" pointer to be passed to the virtual
+       function. */
+    vtbl_d_value = field_rvalue_selection_expr(var_rvalue_expr(vtbl_temp_var),
+                                               mptr_d_field);
+    this_temp_node = var_rvalue_expr(this_temp_var);
+    this_temp_node = add_cast_to_char_star(this_temp_node);
+    this_temp_node->next = vtbl_d_value;
+    padd_node = make_operator_node((an_expr_operator_kind)eok_padd,
+                                   this_temp_node->type,
+                                   this_temp_node);
+    cast_node = add_cast(padd_node, object_type);
+    this_temp_node = var_lvalue_expr(this_temp_var);
+    this_temp_node->next = cast_node;
+    this_increment_node = make_operator_node(
+                                            (an_expr_operator_kind)eok_passign,
+                                            object_type, this_temp_node);
+    /* Make "vtbl_temp->f", the address of the virtual function to call. */
+    vtbl_f_value = field_rvalue_selection_expr(var_rvalue_expr(vtbl_temp_var),
+                                               mptr_f_field);
+    /* Combine the three expressions that make up the virtual function
+       processing code. */
+    vtbl_temp_assign_node->next = this_increment_node;
+    comma_node = make_operator_node((an_expr_operator_kind)eok_comma,
+                                    this_increment_node->type,
+                                    vtbl_temp_assign_node);
+    comma_node->next = vtbl_f_value;
+    comma_node = make_operator_node((an_expr_operator_kind)eok_comma,
+                                    vtbl_f_value->type,
+                                    comma_node);
+    /* Assemble the "?:" operator. */
+    compare_node->next = select_f_node;
+    select_f_node->next = comma_node;
+    question_mark_node = make_operator_node(
+                                           (an_expr_operator_kind)eok_question,
+                                           make_vptp_type(), compare_node);
+    /* Cast the generic function pointer returned from the question mark
+       operator to the proper type (so that we know what the return type,
+       etc. is). */
+    func_addr_node = add_cast_if_necessary(question_mark_node,
+                                           ptr_routine_type);
+  }  /* if */
+  /* Make the call operands: func_addr_node (giving the function pointer),
+     the this_temp (giving the object address), and any additional
+     arguments. */
   this_temp_node = var_rvalue_expr(this_temp_var);
-  this_temp_node = add_cast_to_char_star(this_temp_node);
-  this_temp_node->next = vtbl_d_value;
-  padd_node = make_operator_node((an_expr_operator_kind)eok_padd,
-                                 this_temp_node->type,
-                                 this_temp_node);
-  cast_node = add_cast(padd_node, object_type);
-  this_temp_node = var_lvalue_expr(this_temp_var);
-  this_temp_node->next = cast_node;
-  this_increment_node = make_operator_node((an_expr_operator_kind)eok_passign,
-                                           object_type, this_temp_node);
-  /* Make "vtbl_temp->f", the address of the virtual function to call. */
-  vtbl_f_value = field_rvalue_selection_expr(var_rvalue_expr(vtbl_temp_var),
-                                             mptr_f_field);
-  /* Combine the three expressions that make up the virtual function
-     processing code. */
-  vtbl_temp_assign_node->next = this_increment_node;
-  comma_node = make_operator_node((an_expr_operator_kind)eok_comma,
-                                  this_increment_node->type,
-                                  vtbl_temp_assign_node);
-  comma_node->next = vtbl_f_value;
-  comma_node = make_operator_node((an_expr_operator_kind)eok_comma,
-                                  vtbl_f_value->type,
-                                  comma_node);
-  /* Assemble the "?:" operator. */
-  compare_node->next = select_f_node;
-  select_f_node->next = comma_node;
-  question_mark_node = make_operator_node((an_expr_operator_kind)eok_question,
-                                          make_vptp_type(), compare_node);
-  /* Cast the generic function pointer returned from the question mark operator
-     to the proper type (so that we know what the return type, etc. is). */
-  cast_node = add_cast_if_necessary(question_mark_node,
-                                    make_pointer_type(routine_type));
-  /* Make the call node.  Its operands are the cast question mark node
-     (giving the function pointer), the this_temp (giving the object
-     address), and any additional arguments. */
-  this_temp_node = var_rvalue_expr(this_temp_var);
-  cast_node->next = this_temp_node;
+  func_addr_node->next = this_temp_node;
   this_temp_node->next = additional_args;
+  /* Assemble the call node. */
   call_node = make_operator_node((an_expr_operator_kind)eok_call,
-                                 expr->type, cast_node);
+                                 expr->type, func_addr_node);
   /* Replace the original node by a comma node with the assignment to
      this_temp and the call under it. */
   this_temp_assign_node->next = call_node;
