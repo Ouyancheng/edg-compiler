@@ -6615,7 +6615,9 @@ be dependent).  This routine is called only in C++ mode.
     start_call_argument_processing(routine_symbol_type(function_symbol),
                                    function_symbol->variant.routine.ptr,
                                    &arg_block);
-    arg_block.closing_paren_position = *closing_paren_position;
+    if (closing_paren_position != NULL) {
+      arg_block.closing_paren_position = *closing_paren_position;
+    }  /* if */
     for (arg_operand = arg_operand_list;
          arg_operand != NULL;
          arg_operand = arg_operand->next) {
