@@ -1553,7 +1553,7 @@ to indicate whether the class/struct/union is actually defined.
 is_explicit_instantiation is TRUE if the declaration being scanned
 is part of an explicit instantiation.  This causes a class specifier
 of the form "class A<int>" to not be considered a specific declaration of
-the template.
+the template.  is_typedef is TRUE if the class specifier is being typedefed.
 */
 {
   a_symbol_kind           tag_kind;
@@ -2316,13 +2316,16 @@ the template.
        the intended construct; in that case a diagnostic has been or will be
        issued elsewhere. */
     if (depth_template_declaration_scope == NO_SCOPE_DEPTH &&
-        !(microsoft_mode && is_typedef)) {
-      /* In Microsoft mode, the typedef is processed before member function
-         bodies etc. are rescanned.  This makes e.g. the following legal:
+        !(microsoft_bugs && is_typedef)) {
+      /* In Microsoft bugs mode, the typedef is processed before member
+         function bodies etc. are rescanned.  This makes e.g. the following
+         legal:
             typedef struct {
               enum { e };
               void f() { S::e; }
             } S;
+         Hence, in that mode the following call will be made after the call
+         to decl_typedef.
       */
       process_deferred_class_fixups_and_instantiations();
     }  /* if */

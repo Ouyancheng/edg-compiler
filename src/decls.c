@@ -10539,8 +10539,8 @@ continue_with_declaration:
       /* Keep scanning the list of declarators. */
     } while (loop_token(tok_comma));
   }  /* if */
-  if (microsoft_mode) {
-    /* In Microsoft mode, the typedef is processed before member function
+  if (microsoft_bugs) {
+    /* In Microsoft bugs mode, the typedef is processed before member function
        bodies etc. are rescanned.  This makes e.g. the following legal:
           typedef struct {
             enum { e };

@@ -59,18 +59,17 @@ folding in such initializers.  The folding has been restored.
 8/8/00   Microsoft compatibility: typedef name of a class visible to in-class
          member definitions
 
-In Microsoft mode, when a class definition appears as part of a typedef
+In Microsoft bugs mode, when a class definition appears as part of a typedef
 declaration, the body of a member function defined inside that class
 definition is not rescanned until the typedef has been processed.  This
 makes the following example valid:
 
   typedef struct {
     enum { e };
-    void f() { S::e; }  // In Microsoft mode "S" and hence "S::e" is known;
-  } S;                  // in other modes, the typedef is processed after
-                        // the body of "f" and an error is issued since "S"
-                        // is not yet known.
-
+    void f() { S::e; }  // In Microsoft bugs mode "S" and hence "S::e" is
+  } S;                  // known; in other modes, the typedef is processed
+                        // after the body of "f" and an error is issued since
+                        // "S" is not yet known.
 
 8/4/00   Microsoft compatibility: inherited members can be named as friends
 

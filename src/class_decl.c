@@ -11153,9 +11153,10 @@ the IL, the template header is passed via template_decl.
            scanned). */
         curr_routine_fixup->symbol = decl_info.member_sym;
       }  /* if */
-      if (microsoft_mode) {
-        /* In Microsoft mode, the typedef is processed before member function
-           bodies etc. are rescanned.  This makes e.g. the following legal:
+      if (microsoft_bugs) {
+        /* In Microsoft bugs mode, the typedef is processed before member
+           function bodies etc. are rescanned.  This makes e.g. the following
+           legal:
               typedef struct {
                 enum { e };
                 void f() { S::e; }
