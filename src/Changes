@@ -1,5 +1,17 @@
 Version 3.1
 
+12/3/02  Microsoft compatibility: duplicate inline function list entry
+
+If INSTANTIATE_EXTERN_INLINE is used, a class given external linkage
+though a typedef declaration could result in a duplicate inline
+function list entry being created when compiled in Microsoft mode.
+Note that the class must be initially unnamed for the problem to occur.
+This is now fixed.
+
+  typedef struct {
+    void f() { }
+  } S;
+
 12/3/02  GNU C compatibility: Implicitly declared exit() function
 
 In GNU C mode, implicitly declaring the exit() function (by calling it)
