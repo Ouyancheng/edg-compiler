@@ -4458,14 +4458,14 @@ is inserted only for the unexpected case.
     if (!lvalue_expected) {
       expr = make_node_from_operand(operand);
       expr = make_operator_node((an_expr_operator_kind)eok_lvalue,
-                                operand->type, expr);
+                                expr->type, expr);
       make_expression_operand(expr, operand->type, operand);
     }  /* if */
   } else if (is_an_rvalue(operand)) {
     if (lvalue_expected) {
       expr = make_node_from_operand(operand);
       expr = make_operator_node((an_expr_operator_kind)eok_rvalue,
-                                operand->type, expr);
+                                expr->type, expr);
       make_expression_operand(expr, operand->type, operand);
     }  /* if */
   }  /* if */
