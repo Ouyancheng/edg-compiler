@@ -10488,10 +10488,12 @@ continue_with_declaration:
       top_declarator_type_is_function = (is_function &&
 				         skip_typerefs(local_type_ptr) !=
                                                       skip_typerefs(type_ptr));
-      if (C_dialect == C_dialect_cplusplus && defines_something) {
+      if (C_dialect == C_dialect_cplusplus &&
+          !microsoft_mode && defines_something) {
         /* The ARM (8.2.5) explicitly prohibits defining a type in a
            function return type.  This is taken to apply to pointer-to-function
-           type declarations as well to the function declarations. */
+           type declarations as well to the function declarations.  Microsoft
+           compilers accept this however. */
         a_boolean  is_function_type_decl = is_function;
         if (!is_function_type_decl) {
           a_type_ptr  tp = local_type_ptr;

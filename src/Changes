@@ -1,5 +1,12 @@
 Version 2.46
 
+1/14/02  Microsoft compatibility: type definitions in function return types
+
+In Microsoft C++ mode, the front end now accepts type definitions in function
+return types.  For example:
+
+  struct S { enum T { yes, no, maybe } answer(); };
+
 1/10/02  Abort on ambiguous conversion template reference
 
 An abort could occur on an explicit call of an ambiguous conversion template

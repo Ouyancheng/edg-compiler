@@ -10498,11 +10498,12 @@ tracks information about the current declaration.
       *type = error_type();
     }  /* if */
   }  /* if */
-  if (decl_info->dso_flags & DSO_DEFINES_SOMETHING) {
+  if ((decl_info->dso_flags & DSO_DEFINES_SOMETHING) && !microsoft_mode) {
     /* A class or enum definition was scanned as part of this declaration.
        However, it is explicitly prohibited to define a type in a function
        return type.  This is taken to apply to pointer-to-function type
-       declarations as well to the function declarations. */
+       declarations as well to the function declarations.  Microsoft
+       compilers accept this however. */
     if (decl_info->return_type_def_err) {
       /* Error has already been issued. */
     } else {
