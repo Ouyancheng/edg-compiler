@@ -1918,11 +1918,11 @@ end_sizeof:;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       }
       break;
-#if FFE || C99_IL_EXTENSIONS_SUPPORTED
+#if defined(FFE) || C99_IL_EXTENSIONS_SUPPORTED
     case iek_internal_complex_value:
       /* No pointers. */
       break;
-#endif /* FFE || C99_IL_EXTENSIONS_SUPPORTED */
+#endif /* defined(FFE) || C99_IL_EXTENSIONS_SUPPORTED */
 #ifdef FFE
     case iek_bound_info_entry:
       {

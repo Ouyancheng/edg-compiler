@@ -290,16 +290,16 @@ in *new_constant, with type as indicated therein.  Return *err_code and
   a_host_large_integer    old_value;
   a_host_large_unsigned   unsigned_old_value;
   a_boolean               err, accum_err = FALSE;
-  a_type_ptr              float_type = skip_typerefs(new_constant->type);
+  a_type_ptr              float_tp = skip_typerefs(new_constant->type);
   a_constant_repr_kind    constant_kind = (a_constant_repr_kind)ck_float;
-  a_float_kind            float_kind = float_type->variant.float_kind;
+  a_float_kind            float_kind = float_tp->variant.float_kind;
   an_internal_float_value *float_value;
 
 #if C99_IL_EXTENSIONS_SUPPORTED
   /* We may be converting to a nonreal floating type. */
-  if (float_type->kind == (a_type_kind)tk_complex) {
+  if (float_tp->kind == (a_type_kind)tk_complex) {
     constant_kind = (a_constant_repr_kind)ck_complex;
-  } else if (float_type->kind == (a_type_kind)tk_imaginary) {
+  } else if (float_tp->kind == (a_type_kind)tk_imaginary) {
     constant_kind = (a_constant_repr_kind)ck_imaginary;
   }
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
@@ -310,12 +310,12 @@ in *new_constant, with type as indicated therein.  Return *err_code and
   set_constant_kind(new_constant, constant_kind);
 
 #if C99_IL_EXTENSIONS_SUPPORTED
-  if (float_type->kind == (a_type_kind)tk_complex) {
+  if (float_tp->kind == (a_type_kind)tk_complex) {
     float_value = &new_constant->variant.complex_value->real;
     fp_string_to_float(float_kind, "+0.0",
                        &new_constant->variant.complex_value->imag, &err);
     accum_err |= err;
-  } else if (float_type->kind == (a_type_kind)tk_imaginary) {
+  } else if (float_tp->kind == (a_type_kind)tk_imaginary) {
     fp_string_to_float(float_kind, "+0.0", &new_constant->variant.float_value,
                        &err);
     accum_err |= err;
@@ -379,18 +379,17 @@ depending on the rounding mode.
 {
   a_host_large_integer    int_value;
   a_host_large_unsigned   unsigned_int_value;
-  an_integer_value	  result_value;
-  a_boolean        	  err, is_signed;
-  a_type_ptr              float_type = skip_typerefs(old_constant->type);
-  a_float_kind     	  float_kind = float_type->variant.float_kind;
+  an_integer_value        result_value;
+  a_boolean               err, is_signed;
+  a_type_ptr              float_tp = skip_typerefs(old_constant->type);
+  a_float_kind            float_kind = float_tp->variant.float_kind;
   an_internal_float_value *float_value;
 #if C99_IL_EXTENSIONS_SUPPORTED
   an_internal_float_value zero;
 
-  if (float_type->kind == (a_type_kind)tk_complex) {
+  if (float_tp->kind == (a_type_kind)tk_complex) {
     float_value = &old_constant->variant.complex_value->real;
-  } else if (float_type->kind == (a_type_kind)tk_imaginary) {
-    a_boolean  err = FALSE;
+  } else if (float_tp->kind == (a_type_kind)tk_imaginary) {
     fp_string_to_float(float_kind, "+0.0", &zero, &err);
     float_value = &zero;
   }
@@ -481,6 +480,10 @@ depending on the rounding mode.
                                &new_constant->variant.complex_value->imag,
                                &err);
             break;
+#if CHECKING
+          default:
+            internal_error("conv_float_ot_float: bad floating-point type");
+#endif /* CHECKING */
         }  /* switch */
         break;
       case tk_imaginary:
@@ -498,6 +501,10 @@ depending on the rounding mode.
                            &new_constant->variant.complex_value->imag, new_kind,
                            &err, depends_on_rounding_mode);
             break;
+#if CHECKING
+          default:
+            internal_error("conv_float_ot_float: bad floating-point type");
+#endif /* CHECKING */
         }  /* switch */
         break;
       case tk_complex:
@@ -524,6 +531,10 @@ depending on the rounding mode.
                            &new_constant->variant.complex_value->imag, new_kind,
                            &err, depends_on_rounding_mode);
             break;
+#if CHECKING
+          default:
+            internal_error("conv_float_ot_float: bad floating-point type");
+#endif /* CHECKING */
         }  /* switch */
         break;
 #if CHECKING
@@ -1442,20 +1453,23 @@ to the constant is maintained, by adding a cast if necessary.
           break;
         case tk_float:
           /* Converting float to float. */
-          conv_float_to_float(constant, &new_constant, ck_float,
+          conv_float_to_float(constant, &new_constant,
+                              (a_constant_repr_kind)ck_float,
                               &err_code, &err_severity,
                               &depends_on_rounding_mode);
           break;
 #if C99_IL_EXTENSIONS_SUPPORTED
         case tk_imaginary:
           /* Converting float to imaginary (results in zero). */
-          conv_float_to_float(constant, &new_constant, ck_imaginary,
+          conv_float_to_float(constant, &new_constant,
+                              (a_constant_repr_kind)ck_imaginary,
                               &err_code, &err_severity,
                               &depends_on_rounding_mode);
           break;
         case tk_complex:
           /* Converting float to complex. */
-          conv_float_to_float(constant, &new_constant, ck_complex,
+          conv_float_to_float(constant, &new_constant,
+                              (a_constant_repr_kind)ck_complex,
                               &err_code, &err_severity,
                               &depends_on_rounding_mode);
           break;
@@ -1478,17 +1492,20 @@ to the constant is maintained, by adding a cast if necessary.
           break;
         case tk_float:
           /* Converting float to float. */
-          conv_float_to_float(constant, &new_constant, ck_float,
+          conv_float_to_float(constant, &new_constant,
+                              (a_constant_repr_kind)ck_float,
                               &err_code, &err_severity,
                               &depends_on_rounding_mode);
           break;
         case tk_imaginary:
-          conv_float_to_float(constant, &new_constant, ck_imaginary,
+          conv_float_to_float(constant, &new_constant,
+                              (a_constant_repr_kind)ck_imaginary,
                               &err_code, &err_severity,
                               &depends_on_rounding_mode);
           break;
         case tk_complex:
-          conv_float_to_float(constant, &new_constant, ck_complex,
+          conv_float_to_float(constant, &new_constant,
+                              (a_constant_repr_kind)ck_complex,
                               &err_code, &err_severity,
                               &depends_on_rounding_mode);
           break;
@@ -1509,17 +1526,20 @@ to the constant is maintained, by adding a cast if necessary.
           break;
         case tk_float:
           /* Converting complex to float. */
-          conv_float_to_float(constant, &new_constant, ck_float,
+          conv_float_to_float(constant, &new_constant,
+                              (a_constant_repr_kind)ck_float,
                               &err_code, &err_severity,
                               &depends_on_rounding_mode);
           break;
         case tk_imaginary:
-          conv_float_to_float(constant, &new_constant, ck_imaginary,
+          conv_float_to_float(constant, &new_constant,
+                              (a_constant_repr_kind)ck_imaginary,
                               &err_code, &err_severity,
                               &depends_on_rounding_mode);
           break;
         case tk_complex:
-          conv_float_to_float(constant, &new_constant, ck_complex,
+          conv_float_to_float(constant, &new_constant,
+                              (a_constant_repr_kind)ck_complex,
                               &err_code, &err_severity,
                               &depends_on_rounding_mode);
           break;

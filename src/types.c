@@ -334,16 +334,6 @@ Return TRUE if the given type is a floating type.
 }  /* is_floating_type */
 
 
-a_boolean is_real_floating_type(a_type_ptr tp)
-/*
-Return TRUE if the given type is a real floating type.
-*/
-{
-  tp = skip_typerefs(tp);
-  return(is_real_floating(tp));
-}  /* is_real_floating_type */
-
-
 a_boolean is_nonreal_floating_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is a nonreal (imaginary or complex) floating

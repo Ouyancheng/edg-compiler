@@ -3247,7 +3247,7 @@ Likewise for operand_2/operand_2_type.
     fkind_2 = is_floating_type(type_2) ? type_2->variant.float_kind :
                                          (a_float_kind)fk_last;
     result_fkind = promoted_float_kind(fkind_1, fkind_2);
-    if (result_fkind != fk_last) {
+    if (result_fkind != (a_float_kind)fk_last) {
       /* One of the operands had a (possibly complex) floating-point type. */
 #if C99_IL_EXTENSIONS_SUPPORTED
       if (type_1->kind == (a_type_kind)tk_complex ||
@@ -3454,12 +3454,12 @@ should be preserved.
   a_float_kind  fkind = is_floating_type(type) ? type->variant.float_kind :
                                                  (a_float_kind)fk_last;
 
-  check_assertion(type->kind != tk_complex);
+  check_assertion(type->kind != (a_type_kind)tk_complex);
   if (new_fkind != fkind || complex_domain) {
     a_type_ptr  promoted_type;
     if (complex_domain) {
       promoted_type = complex_type(new_fkind);
-    } else if (type->kind == tk_imaginary) {
+    } else if (type->kind == (a_type_kind)tk_imaginary) {
       promoted_type = imaginary_type(new_fkind);
     } else {
       promoted_type = float_type(new_fkind);
