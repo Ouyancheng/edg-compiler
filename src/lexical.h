@@ -411,7 +411,6 @@ typedef enum /* an_identifier_lookup_mode */ {
   ilm_namespace,	/* Find only namespace names. */
   ilm_typename,		/* Uses IDL_TYPENAME_LOOKUP to do the lookup. */
   ilm_class,		/* Find only class names. */
-  ilm_linkage,		/* Uses IDL_LINKAGE_LOOKUP to do the lookup. */
   ilm_template_linkage,	/* Uses IDL_LINKAGE_LOOKUP to do the lookup, create
 			   nonreal members as templates. */
   ilm_using_declaration,
