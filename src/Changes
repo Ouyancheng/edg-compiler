@@ -1,5 +1,10 @@
 Version 2.08
 
+8/5/82  Friend declarations of new and delete
+
+A bug has been fixed that caused a spurious error on a friend
+declaration of an operator new() or operator delete() function.
+
 8/4/92  const anachronism restricted to cfront compatibility mode
 
 The anachronism that allows a non-const function to be called with a
