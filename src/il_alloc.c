@@ -1086,7 +1086,7 @@ variant fields to default values.
   pte->based_types = NULL;
   pte->size = 0;
   pte->alignment = 1;
-  pte->used_in_exception = FALSE;
+  pte->used_in_exception_or_rtti = FALSE;
   pte->declared_in_function_prototype = FALSE;
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
   pte->use_cfront_transitional_nested_type_name_mangling = FALSE;

@@ -6592,7 +6592,8 @@ class or enum type contained in type_ptr.
 */
 {
   /* This processing is needed only in cfront mode.  In other modes,
-     the linkage of a class is unaffected by how the class is used. */
+     the linkage of a class or enum is unaffected by how the class or
+     enum is used. */
   if (any_cfront_mode()) {
     a_type_tree_traversal_flag_set  ttt_flags = (TTT_SKIP_TYPEDEFS |
                                                  TTT_RETURN_TYPE |
@@ -6605,19 +6606,27 @@ class or enum type contained in type_ptr.
 }  /* set_force_external_linkage_flag */
 
 
-void set_used_in_exception_flag(a_type_ptr  type_ptr)
+void set_used_in_exception_or_rtti_flag(a_type_ptr  type_ptr)
 /*
-Set the used_in_exception flag in type_ptr and traverse its type tree to
-set the force_external_linkage flag for each class and enum type in the tree.
+Set the used_in_exception_or_rtti flag in type_ptr to indicate that it
+has been used in an exception handling or RTTI construct.
 */
 {
-  if (type_ptr->used_in_exception) {
+  if (type_ptr->used_in_exception_or_rtti) {
     /* Already set.  No further action is required. */
   } else {
-    type_ptr->used_in_exception = TRUE;
+    type_ptr->used_in_exception_or_rtti = TRUE;
+    /* Add the type to the nontag_types_used_in_exception_or_rtti list,
+       unless it will be on another list. */
+    if (!has_name(type_ptr) &&
+        !is_immediate_class_type(type_ptr)) {
+      check_assertion(type_ptr->next == NULL);
+      type_ptr->next = il_header.nontag_types_used_in_exception_or_rtti;
+      il_header.nontag_types_used_in_exception_or_rtti = type_ptr;
+    }  /* if */
     set_force_external_linkage_flag(type_ptr);
   }  /* if */
-}  /* set_used_in_exception_flag */
+}  /* set_used_in_exception_or_rtti_flag */
 
 
 a_boolean is_or_contains_ptr_or_ref_to_unknown_bound_array(a_type_ptr tp,

@@ -30,9 +30,11 @@ lower_eh.h -- Declarations related to lower_eh.c (having to do with IL
 
 extern a_type_ptr make_typeinfo_type(void);
 
-extern void define_scope_class_typeinfo_vars(a_scope_ptr scope);
+extern void generate_typeinfo_vars(void);
 
 extern a_variable_ptr make_typeinfo_var(a_type_ptr type);
+
+extern a_variable_ptr get_typeinfo_var(a_type_ptr type);
 
 #if ABI_CHANGES_FOR_RTTI
 EXTERN a_variable_ptr
@@ -51,8 +53,6 @@ It's all one bits, truncated to fit in a TARG_REGION_NUMBER_INT_KIND integer.
 EXTERN a_cleanup_region_number
 		null_eh_region_number;
 
-
-extern void type_is_used_in_exception(a_type_ptr type);
 
 #if DO_FULL_PORTABLE_EH_LOWERING
 extern a_handle_number object_addr_table_index(void);

@@ -7572,7 +7572,7 @@ clause is to be attached.  catch_pos is the source position of "catch".
             /* Mark the type as having been used in an exception.  (Also,
                if it "contains" any classes, they are marked as requiring
                external linkage.) */
-            set_used_in_exception_flag(type_ptr);
+            set_used_in_exception_or_rtti_flag(type_ptr);
             if (is_or_contains_local_type(type_ptr)) {
               /* Exception types, if they have linkage at all, must have
                  external linkage; however, it is possible to write a useful

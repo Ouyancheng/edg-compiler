@@ -5376,13 +5376,6 @@ Do IL lowering of the indicated type and everything under it.
     mark_as_visited(type);
     lower_source_correspondence(&type->source_corresp);
     /* The based types list is not lowered on purpose. */
-#if GENERATE_EH_TABLES
-    if (type->used_in_exception) {
-      /* If the type was used in an exception context, generate typeinfo
-         information for it. */
-      type_is_used_in_exception(type);
-    }  /* if */
-#endif /* GENERATE_EH_TABLES */
     switch (type->kind) {
       case tk_void:
       case tk_float:
@@ -6700,8 +6693,8 @@ Lower an eok_dynamic_cast expression.  The subtree has already been lowered.
     make_zero_of_proper_type(make_pointer_type(make_typeinfo_type()),
                              &constant);
   } else {
-    /* Create the typeinfo variable for the desired type. */
-    a_variable_ptr var = make_typeinfo_var(underlying_cast_type);
+    /* Get the typeinfo variable for the desired type. */
+    a_variable_ptr var = get_typeinfo_var(underlying_cast_type);
     /* Pass its address as the desired_type argument. */
     set_variable_address_constant(var, &constant,
                                   /*set_address_taken_flag=*/TRUE);
@@ -6711,7 +6704,7 @@ Lower an eok_dynamic_cast expression.  The subtree has already been lowered.
   /* Make the pointer to the original source. */
   orig_src_copy = make_reusable_copy(src, /*vars_can_change=*/FALSE);
   /* Make the static_type argument. */
-  set_variable_address_constant(make_typeinfo_var(
+  set_variable_address_constant(get_typeinfo_var(
                                   f_skip_typerefs(type_pointed_to(src->type))),
                                 &constant,
                                 /*set_address_taken_flag=*/TRUE);
@@ -12597,6 +12590,9 @@ C++ to C, so that a C back end can handle it without change.
          information is available (for example, references are still
          references and not yet pointers). */
       do_all_name_mangling();
+      /* Create any needed typeinfo variables.  This must be done after
+         virtual function table definition but before most lowering. */
+      generate_typeinfo_vars();
     }  /* if */
     /* Lower the scope and its subscopes in the same memory region. */
     lower_scope(scope);
@@ -12623,10 +12619,6 @@ C++ to C, so that a C back end can handle it without change.
       }  /* if */
 #endif /* MINIMAL_INLINING */
     }  /* if */
-    /* Add definitions for any typeinfo variables generated for classes.
-       This must be done late so that all the required typeinfo variables
-       will have been created already. */
-    define_scope_class_typeinfo_vars(scope);
     /* Do any processing on classes that has to wait until the very end. */
     do_class_lowering_wrapup(scope);
     if (lowering_file_scope) {

@@ -2607,6 +2607,8 @@ The subtree is not processed.
 #if ONE_INSTANTIATION_PER_OBJECT
   remap_ptr(il_header.instantiation_dir_name, a_char_ptr, iek_other_text);
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+  remap_ptr(il_header.nontag_types_used_in_exception_or_rtti, a_type_ptr,
+            iek_type);
   /* region_scope_entry should not be changed; it's not a pointer into
      IL memory in the usual way.  It's changed explicitly as needed. */
 }  /* remap_il_header_pointers. */

@@ -3913,6 +3913,7 @@ This is the C++ syntax.  C++ type-id is the same as C type-name.
     typeid_node->type = make_pointer_type(const_type_info);
     make_expression_operand(typeid_node, const_type_info, result);
     result->state = (an_operand_state)os_lvalue;
+    set_used_in_exception_or_rtti_flag(typeid_type);
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
                        &start_position);
@@ -4530,6 +4531,8 @@ Syntax:
                                 make_node_from_operand(&operand));
       if (reference_case) expr->implicit_reference_indirection = TRUE;
       make_expression_operand(expr, expr->type, result);
+      set_used_in_exception_or_rtti_flag(operand_type);
+      set_used_in_exception_or_rtti_flag(operation_type);
     }  /* if */
   }  /* if */
   if (err) {
@@ -10117,7 +10120,7 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
       /* Mark the type as having been used in an exception.  (Also, if it
          "contains" any classes, they are marked as requiring external
          linkage.) */
-      set_used_in_exception_flag(throw_type);
+      set_used_in_exception_or_rtti_flag(throw_type);
     } else {
       /* There is no throw expression (i.e., this is a rethrow). */
       /* Discard the throw supplement. */

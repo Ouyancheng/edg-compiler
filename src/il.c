@@ -10973,6 +10973,26 @@ eliminated, if appropriate.
     eliminate_unneeded_source_sequence_entries(scope);
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  /* Relink the il_header.nontag_types_used_in_exception_or_rtti list to
+     eliminate removed entities. */
+  prev_tp = NULL;
+  for (tp = il_header.nontag_types_used_in_exception_or_rtti;
+       tp != NULL;
+       tp = next_tp) {
+    next_tp = tp->next;
+    if (!il_entry_prefix_of(tp).keep_in_il) {
+      /* Remove the entry from the list by linking around it. */
+      if (prev_tp == NULL) {
+        il_header.nontag_types_used_in_exception_or_rtti = tp->next;
+      } else {
+        prev_tp->next = tp->next;
+      }  /* if */
+      tp->next = NULL;
+    } else {
+      /* Keep the entry. */
+      prev_tp = tp;
+    }  /* if */
+  }  /* for */
   db_exit();
 }  /* eliminate_unneeded_il_entries */
 

@@ -99,6 +99,12 @@ has been corrected.  It involves use of the address of a __uuidof
 as a nontype template argument of a template class for which IL
 lowering needs to generate a typeinfo variable.
 
+This problem was solved via a fairly large reworking of the processing
+for typeinfo variables in IL lowering.  IL CHANGE: This included renaming
+the type entry flag used_in_exception to used_in_exception_or_rtti
+and adding a new list pointer nontag_types_used_in_exception_or_rtti to
+il_header.
+
 3/3/00   Fix in insert_if_statement in lower_init.c
 
 The logic in insert_if_statement was wrong when the caller passes

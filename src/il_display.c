@@ -999,8 +999,8 @@ Display the indicated type entry.
   disp_based_type_list(ptr->based_types);
   disp_host_large_unsigned("size", (a_host_large_unsigned)ptr->size);
   disp_unsigned_long("alignment", (unsigned long)ptr->alignment);
-  if (ptr->used_in_exception) {
-    disp_boolean("used_in_exception", TRUE);
+  if (ptr->used_in_exception_or_rtti) {
+    disp_boolean("used_in_exception_or_rtti", TRUE);
   }  /* if */
   if (ptr->declared_in_function_prototype) {
     disp_boolean("declared_in_function_prototype", TRUE);
@@ -4284,6 +4284,9 @@ Display the IL for the file scope in human-readable form.
                       il_header.number_of_external_nonclass_template_entities);
   }  /* if */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+  disp_ptr("nontag_types_used_in_exception_or_rtti",
+           (char *)il_header.nontag_types_used_in_exception_or_rtti,
+           iek_type);
   walk_file_scope_il(disp_entry, (a_string_entry_process_function_ptr)NULL,
                      (a_remap_function_ptr)NULL);
 }  /* disp_file_scope_il */

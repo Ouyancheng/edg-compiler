@@ -3651,11 +3651,13 @@ typedef struct a_type {
                            divisible.  1 if not applicable. */
   a_type_kind   kind;
                         /* The kind of type. */
-  a_bit_field	used_in_exception:1;
+  a_bit_field	used_in_exception_or_rtti:1;
 			/* TRUE if this type appeared as (1) the type of an
 			   exception-declaration of a handler, (2) the type
-			   of a throw expression, or (3) an
-			   exception-specification. */
+			   of a throw expression, (3) an
+			   exception-specification, (4) the type of a typeid
+			   operand, or (5) the source expression type or
+			   destination type in a runtime dynamic_cast. */
   a_bit_field	declared_in_function_prototype:1;
 			/* TRUE if this is a local type declared or defined
 			   within a function prototype scope (C mode only). */
@@ -7956,6 +7958,10 @@ EXTERN struct il_header_tag {
 			   translation unit.  This value is only maintained
 			   when one instantiation per object mode is used. */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+  a_type_ptr	nontag_types_used_in_exception_or_rtti;
+			/* Pointer to a list of types that were used in an
+			   exception handling or RTTI construct and aren't
+			   otherwise on a types list. */
 } il_header;
 
 

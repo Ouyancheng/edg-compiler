@@ -664,8 +664,6 @@ static void define_typeinfo_var(a_type_ptr type,
 Generate a definition for the typeinfo variable (used to provide runtime
 type information) associated with type "type", if definition_needed
 is TRUE.  If force_static is TRUE, change the typeinfo variable to static.
-Note that this cannot be called for class types before the final linkage
-of the class has been determined, i.e., at the end of the compilation.
 If the type is a class, prepare_for_defining_class_typeinfo_variable should
 have been called on it at some previous point.
 */
@@ -687,6 +685,8 @@ have been called on it at some previous point.
   a_routine_ptr  dtor_routine;
 #endif /* !PASS_DTOR_POINTER_TO_THROW */
 
+  /* typedefs and cv-qualified types are not allowed at this level. */
+  check_assertion(type->kind != (a_type_kind)tk_typeref);
   saved_error_position = error_position;
   error_position = type->source_corresp.decl_position;
   /* Set the linkage on the typeinfo variable. */
@@ -887,139 +887,58 @@ have been called on it at some previous point.
 }  /* define_typeinfo_var */
 
 
-static void prepare_for_defining_class_typeinfo_variable(a_type_ptr class_type)
+static void generate_class_typeinfo_var_definition(a_type_ptr type)
 /*
-The indicated type (a class type) has an associated typeinfo variable that
-will be defined in the current compilation.  Do any necessary preparation
-for that definition.  In particular, this creates typeinfo variables for
-any base classes so that they will be present when the pass that defines
-typeinfo variables looks for them.
+Generate the definition of the typeinfo variable for the indicated class
+type, if necessary.  A definition of the typeinfo variable is needed
+somewhere in the program, but not necessarily in the current compilation
+unit.
 */
 {
-  a_base_class_ptr bcp;
+  a_variable_ptr typeinfo_var = type->typeinfo_var;
 
-  for (bcp = class_type->variant.class_struct_union.extra_info->base_classes;
-       bcp != NULL;
-       bcp = bcp->next) {
-    (void)make_typeinfo_var(bcp->type);
-  }  /* for */
-}  /* prepare_for_defining_class_typeinfo_variable */
-
-
-static unsigned long
-		num_of_pending_class_typeinfo_vars;
-			/* Count of typeinfo variables generated for classes
-			   that have not been revisited to determine whether
-			   they need definitions.  Used to cut short the
-			   final pass that finds and defines the variables. */
-
-
-static void r_define_scope_class_typeinfo_vars(a_scope_ptr scope,
-                                               a_boolean   preparation_pass)
-/*
-Visit all the class types of the indicated scope and look for typeinfo
-variables (generated earlier).  For each typeinfo variable, generate
-the appropriate definition if one is needed.  This routine is called
-twice, with preparation_pass == FALSE and then TRUE; the definition
-is generated on the second pass.  Note that all the typeinfo variables
-are in the file scope, but the classes that refer to them can be in
-a function or block scope.
-*/
-{
-  a_type_ptr  type;
-  a_scope_ptr block_scope;
-  a_boolean   definition_needed, force_static;
-
-  /* Once all of the typeinfo variables have been found, quit.  In the second
-     pass, this happens once all of the typeinfo variables have been processed.
-     In the first pass, the count of pending entries doesn't get decremented
-     (because the entries remain pending), but the test is still useful for
-     the case where there are no typeinfo variables at all. */
-  /* Visit all types to find all class types.  Note that this routine is
-     called at the end of lowering a memory region, so the IL is flattened
-     here; there are no nested classes and no namespaces. */
-  /* Note that when processing a function or block scope we will be crossing
-     into the file scope here, but these class types are truly local types
-     and are not used in the file scope, so it's okay to define their
-     typeinfo variables now. */
-  for (type = scope->types;
-       type != NULL && num_of_pending_class_typeinfo_vars != 0;
-       type = type->next) {
-    if (is_immediate_class_type(type)) {
-      /* Found a class type. */
-      /* See if the class has an associated typeinfo variable.  If so, the
-	 decision about defining the typeinfo variable has been put off to 
-	 this point. */
-      if (type->typeinfo_var != NULL) {
-        a_variable_ptr vtbl_var = type->variant.class_struct_union.extra_info->
+  check_assertion(typeinfo_var != NULL);
+  /* If the variable has been defined already, no further processing
+     is necessary. */
+  if (typeinfo_var->storage_class == (a_storage_class)sc_extern) {
+    /* Determine whether the typeinfo variable should be defined. */
+    a_boolean      definition_needed = FALSE, force_static = FALSE;
+    a_variable_ptr vtbl_var = type->variant.class_struct_union.extra_info->
                                                     virtual_function_table_var;
-        if (vtbl_var != NULL) {
-	  /* Polymorphic class. */
-          /* The typeinfo variable is defined if and only if the virtual
-             function table is defined, and it is static if and only if the
-             virtual function table is static. */
-          force_static =
-                       (vtbl_var->storage_class == (a_storage_class)sc_static);
-          definition_needed= (vtbl_var->init_kind != (an_init_kind)initk_none);
-          /* If the typeinfo is static, it has to be defined; no one else
-             is going to do it.  Virtual function tables are sometimes not
-             defined if they're not used, but typeinfo variables are created
-             only if they're needed, so if one exists, it must be defined,
-             even if the virtual function table is not defined. */
-          if (force_static) definition_needed = TRUE;
-        } else {
-          /* The class has no virtual function table (i.e., it's not
-             polymorphic), so its typeinfo variable must be defined and must
-             be static. */
-          definition_needed = force_static = TRUE;
-        }  /* if */
-        if (preparation_pass) {
-          /* This is the preparation pass, so just prepare for the definition
-             on the second pass. */
-          if (definition_needed) {
-            prepare_for_defining_class_typeinfo_variable(type);
-          }  /* if */
-        } else {
-          /* This is the second pass; do the definition. */
-          define_typeinfo_var(type, definition_needed, force_static);
-          num_of_pending_class_typeinfo_vars--;
-        }  /* if */
-      }  /* if */
+    if (vtbl_var != NULL) {
+      /* Polymorphic class. */
+      /* The typeinfo variable is defined if and only if the virtual
+         function table is defined, and it is static if and only if the
+         virtual function table is static. */
+      force_static = (vtbl_var->storage_class == (a_storage_class)sc_static);
+      definition_needed = (vtbl_var->init_kind != (an_init_kind)initk_none);
+      /* If the typeinfo is static, it has to be defined; no one else
+         is going to do it.  Virtual function tables are sometimes not
+         defined if they're not used, but typeinfo variables are created
+         only if they're needed, so if one exists, it must be defined,
+         even if the virtual function table is not defined. */
+      if (force_static) definition_needed = TRUE;
+    } else {
+      /* The class has no virtual function table (i.e., it's not
+         polymorphic), so its typeinfo variable must be defined and must
+         be static. */
+      definition_needed = force_static = TRUE;
     }  /* if */
-  }  /* for */
-  /* Visit all block scopes. */
-  /* Once all of the typeinfo variables have been found, quit. */
-  for (block_scope = scope->scopes;
-       block_scope != NULL && num_of_pending_class_typeinfo_vars != 0;
-       block_scope = block_scope->next) {
-    r_define_scope_class_typeinfo_vars(block_scope, preparation_pass);
-  }  /* for */
-}  /* r_define_scope_class_typeinfo_vars */
-
-
-void define_scope_class_typeinfo_vars(a_scope_ptr scope)
-/*
-Visit all the class types of the indicated scope and look for typeinfo
-variables (generated earlier).  For each typeinfo variable, generate
-the appropriate definition if one is needed.  This must be done late
-in the lowering process, so that all necessary typeinfo variables have
-been created already, and so that all virtual function tables have been
-defined if they will be (because some typeinfo entries are defined
-if and only if the associated virtual function table is defined).
-*/
-{
-  /* Call the subroutine twice.  The first call does preparation, and the
-     second the actual definitions. */
-  r_define_scope_class_typeinfo_vars(scope, /*preparation_pass=*/TRUE);
-  r_define_scope_class_typeinfo_vars(scope, /*preparation_pass=*/FALSE);
-#if CHECKING
-  /* Make sure all typeinfo entries were processed. */
-  if (scope == il_header.primary_scope) {
-    check_assertion_str(num_of_pending_class_typeinfo_vars == 0,
-    "define_scope_class_typeinfo_vars: not all typeinfo variables were found");
+    if (definition_needed) {
+      /* The definition is needed, so force definitions on the typeinfo
+         variables for the base classes of this class, because they
+         will be referenced from the definition. */
+      a_base_class_ptr bcp;
+      for (bcp = type->variant.class_struct_union.extra_info->base_classes;
+           bcp != NULL;
+           bcp = bcp->next) {
+        (void)make_typeinfo_var(bcp->type);
+        generate_class_typeinfo_var_definition(bcp->type);
+      }  /* for */
+      define_typeinfo_var(type, definition_needed, force_static);
+    }  /* if */
   }  /* if */
-#endif /* CHECKING */
-}  /* define_scope_class_typeinfo_vars */
+}  /* generate_class_typeinfo_var_definition */
 
 
 static char *alloc_mangled_typeinfo_name(a_type_ptr type)
@@ -1049,7 +968,11 @@ Make a typeinfo variable for the indicated type (if it does not exist
 already) and return a pointer to it.  The variable points to runtime
 type information.  It is always allocated in the file scope memory region.
 This is not the type_info structure that is visible to the programmer
-via the typeid operator (but it contains it).
+via the typeid operator (but it contains it).  Note that this routine
+must be called early in the lowering of the file scope, because
+it needs to generate a mangled name and a type-name string, and those 
+cannot be generated after certain lowering has been done (e.g., of
+pointers-to-members).
 */
 {
   a_variable_ptr  typeinfo_var;
@@ -1057,6 +980,8 @@ via the typeid operator (but it contains it).
   a_storage_class storage_class;
   a_boolean       define_now;
 
+  /* typedefs and cv-qualified types are not allowed at this level. */
+  check_assertion(type->kind != (a_type_kind)tk_typeref);
   /* No need to create the variable if it exists already. */
   typeinfo_var = type->typeinfo_var;
   if (typeinfo_var == NULL) {
@@ -1074,10 +999,6 @@ via the typeid operator (but it contains it).
          is polymorphic. */
       /* Assume an extern typeinfo variable, adjust later if necessary. */
       storage_class = (a_storage_class)sc_extern;
-      /* Keep a count of the number of class typeinfo variables so that the
-         final pass to add definitions for these can be stopped when all
-         of them have been found. */
-      num_of_pending_class_typeinfo_vars++;
       define_now = FALSE;
       /* Determine the name for the typeinfo variable.  A name is required for
          typeinfo variables that end up being externally linked.  A name is
@@ -1149,6 +1070,27 @@ end_of_routine:
   return typeinfo_var;
 }  /* make_typeinfo_var */
 
+
+a_variable_ptr get_typeinfo_var(a_type_ptr type)
+/*
+Return a pointer to the previously-created typeinfo variable for the
+indicated type.  When lowering a function scope, generate the variable
+if necessary.
+*/
+{
+  a_variable_ptr typeinfo_var = type->typeinfo_var;
+
+  /* typedefs and cv-qualified types are not allowed at this level. */
+  check_assertion(type->kind != (a_type_kind)tk_typeref ||
+                  is_or_was_ptr_to_member_function_type(type) ||
+                  is_or_was_ptr_to_data_member_type(type));
+  if (typeinfo_var == NULL) {
+    check_assertion_str(!lowering_file_scope, "missing typeinfo variable");
+    typeinfo_var = make_typeinfo_var(type);
+  }  /* if */
+  return typeinfo_var;
+} /* get_typeinfo_var */
+
 #if ABI_CHANGES_FOR_RTTI
 
 /*
@@ -1174,7 +1116,7 @@ Do lowering of an enk_typeid expression node, i.e., a C++ typeid operation.
   if (typeid_expr == NULL) {
     /* No expression; the type is known statically. */
     /* Make the runtime typeinfo variable. */
-    typeinfo_var = make_typeinfo_var(typeid_type);
+    typeinfo_var = get_typeinfo_var(typeid_type);
     /* Make an expression that refers to the user type_info member within
        the implementation typeinfo variable. */
     new_expr = var_lvalue_expr(typeinfo_var);
@@ -1305,26 +1247,24 @@ Return a pointer to the variable.
 
 #endif /* ABI_COMPATIBILITY_VERSION >= 241 */
 
-static a_variable_ptr typeinfo_var_for_type(
-                                           a_type_ptr           type,
-                                           an_eh_type_flags_set *flags_value,
-                                           a_variable_ptr       *ptr_flags_var)
+static a_type_ptr eff_type_for_typeinfo(a_type_ptr           type,
+                                        an_eh_type_flags_set *flags_value,
+                                        a_variable_ptr       *ptr_flags_var)
 /*
-Create the typeinfo variable for the indicated type, and return a pointer
-to it.  This is used to create the representation for a type used in
-exception handling: the typeinfo returned is the "interesting" part
-of the type, and the relationship of the original type to the typeinfo
-type is indicated in the returned value of *flags_value and
-*ptr_flags_var.  For example, for a pointer to a class, the typeinfo
-for the underlying class is returned, and *flags_value is set to indicate
-a pointer.  *ptr_flags_var is used for multi-level pointers.  It is
-returned pointing to an array of qualifier flag sets that describes the
-cv-qualifiers at each level of the multi-level pointer.  For cases other
-than multi-level pointers, it is returned NULL.  If ptr_flags_var is
-NULL, the array is not built because the caller does not need it.
+Type information is required for the indicated type, because it is
+used in an exception handling or RTTI construct.  Determine the underlying
+effective type for the typeinfo, and return it.  The relationship of the
+original type to the effective typeinfo type is indicated in the returned
+value of *flags_value and *ptr_flags_var.  For example, for a pointer to
+a class, the typeinfo for the underlying class is returned, and
+*flags_value is set to indicate a pointer.  *ptr_flags_var is used for
+multi-level pointers.  It is returned pointing to an array of qualifier
+flag sets that describes the cv-qualifiers at each level of the
+multi-level pointer.  For cases other than multi-level pointers, it
+is returned NULL.  If ptr_flags_var is NULL, the array is not built
+because the caller does not need it.
 */
 {
-  a_variable_ptr        typeinfo_var;
   a_type_ptr            eff_type;
   a_type_qualifier_set  qualifiers;
 
@@ -1367,24 +1307,135 @@ NULL, the array is not built because the caller does not need it.
   }  /* if */
   /* Strip typerefs but watch out for rewritten pointers-to-members. */
   eff_type = underlying_type(eff_type);
-  /* Create the typeinfo variable. */
-  typeinfo_var = make_typeinfo_var(eff_type);
+  return eff_type;
+}  /* eff_type_for_typeinfo */
+
+
+static a_variable_ptr typeinfo_var_for_type(
+                                           a_type_ptr           type,
+                                           an_eh_type_flags_set *flags_value,
+                                           a_variable_ptr       *ptr_flags_var)
+/*
+Create the typeinfo variable for the indicated type, and return a pointer
+to it.  This is used to create the representation for a type used in
+exception handling: the typeinfo returned is the "interesting" part
+of the type, and the relationship of the original type to the typeinfo
+type is indicated in the returned value of *flags_value and
+*ptr_flags_var.  See eff_type_for_typeinfo for details.
+*/
+{
+  a_variable_ptr typeinfo_var;
+  a_type_ptr     eff_type;
+
+  eff_type = eff_type_for_typeinfo(type, flags_value, ptr_flags_var);
+  /* Get the typeinfo variable. */
+  typeinfo_var = get_typeinfo_var(eff_type);
   return typeinfo_var;
 }  /* typeinfo_var_for_type */
 
 
-void type_is_used_in_exception(a_type_ptr type)
+static void generate_type_typeinfo_var_if_needed(a_type_ptr type)
 /*
-The indicated type is used in an exception context.  Put out any necessary
-information on it.
+Generate a typeinfo variable for the indicated type, if necessary.
+Also define it if necessary.
 */
 {
-  an_eh_type_flags_set flags_value;
+  if (type->used_in_exception_or_rtti) {
+    /* This type was used in an exception handling or RTTI construct,
+       so a typeinfo variable is needed. */
+    /* Switch to the effective underlying type for typeinfo purposes. */
+    an_eh_type_flags_set flags_value;
+    type = eff_type_for_typeinfo(type, &flags_value, (a_variable_ptr *)NULL);
+    (void)make_typeinfo_var(type);
+  }  /* if */
+  /* A typeinfo variable might also have been previously generated for
+     some reason (e.g., it's pointed to from a virtual function table). */
+  if (type->typeinfo_var != NULL) {
+    /* For non-class types, the typeinfo variable definition was
+       put out immediately.  For class types, we have to decide whether
+       to put out the definition now. */
+    if (is_immediate_class_type(type)) {
+      generate_class_typeinfo_var_definition(type);
+    }  /* if */
+  }  /* if */
+}  /* generate_type_typeinfo_var_if_needed */
 
-  /* We need a typeinfo variable for the underlying type.  Make it if it
-     does not exist already. */
-  (void)typeinfo_var_for_type(type, &flags_value, (a_variable **)NULL);
-}  /* type_is_used_in_exception */
+
+/* Forward declaration needed because of mutual recursion: */
+static void generate_scope_typeinfo_vars(a_scope_ptr scope);
+
+
+static void generate_type_list_typeinfo_vars(a_type_ptr type_list)
+/*
+Visit all the types on the indicated list and its subtree and
+generate/define typeinfo variables for any types that need them.
+*/
+{
+  a_type_ptr type;
+
+  for (type = type_list; type != NULL; type = type->next) {
+    generate_type_typeinfo_var_if_needed(type);
+    if (is_immediate_class_type(type)) {
+      a_class_type_supplement_ptr ctsp =
+                                   type->variant.class_struct_union.extra_info;
+      if (ctsp->assoc_scope != NULL) {
+        generate_scope_typeinfo_vars(ctsp->assoc_scope);
+      }  /* if */
+    }  /* if */
+  }  /* for */
+}  /* generate_type_list_typeinfo_vars */
+
+
+static void generate_scope_typeinfo_vars(a_scope_ptr scope)
+/*
+Visit all the types of the indicated scope and its subtree and generate/
+define typeinfo variables for any types that need them.
+*/
+{
+  a_scope_ptr     block_scope;
+  a_namespace_ptr nsp;
+
+  /* Visit all types on the types list. */
+  generate_type_list_typeinfo_vars(scope->types);
+  /* Visit all namespace scopes. */
+  for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
+    if (!nsp->is_namespace_alias) {
+      generate_scope_typeinfo_vars(nsp->variant.assoc_scope);
+    }  /* if */
+  }  /* for */
+  /* Visit all block scopes. */
+  for (block_scope = scope->scopes;
+       block_scope != NULL;
+       block_scope = block_scope->next) {
+    generate_scope_typeinfo_vars(block_scope);
+  }  /* for */
+}  /* generate_scope_typeinfo_vars */
+
+
+void generate_typeinfo_vars(void)
+/*
+Generate declarations and/or definitions for all typeinfo variables needed.
+This is called near the beginning of lowering of the file scope, but
+after generation of definitions for virtual function tables (because
+some typeinfo entries are defined if and only if the associated virtual
+function table is defined).  Declarations (but not definitions) will
+have already been generated for some typeinfo variables, e.g., those
+pointed to from virtual function tables.
+*/
+{
+  a_scope_orphaned_list_header_ptr solhp;
+
+  generate_scope_typeinfo_vars(il_header.primary_scope);
+  /* Process function-local types by visiting the types on orphan lists. */
+  for (solhp = il_header.scope_orphaned_list_headers;
+       solhp != NULL;
+       solhp = solhp->next) {
+    generate_type_list_typeinfo_vars(solhp->orphaned_types);
+  }  /* for */
+  /* Also visit types on the list of nontag exception handling/RTTI types. */
+  generate_type_list_typeinfo_vars(
+                             il_header.nontag_types_used_in_exception_or_rtti);
+}  /* generate_typeinfo_vars */
 
 #if DO_FULL_PORTABLE_EH_LOWERING
 
@@ -4356,7 +4407,6 @@ with each new translation unit are handled in eh_lower_init.)
   if (exceptions_enabled && precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(typeinfo_type),
-      pch_saved_var_array_elem(num_of_pending_class_typeinfo_vars),
       pch_saved_var_array_elem(base_class_spec_type),
 #if ABI_CHANGES_FOR_RTTI
       pch_saved_var_array_elem(typeinfo_tinfo_field),
@@ -4421,7 +4471,6 @@ invocation of the front end.
 {
   /* Static variables in lower_eh.c: */
   typeinfo_type = NULL;
-  num_of_pending_class_typeinfo_vars = 0;
   base_class_spec_type = NULL;
 #if ABI_CHANGES_FOR_RTTI
   typeinfo_tinfo_field = NULL;

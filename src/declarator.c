@@ -933,7 +933,7 @@ specification is handled later (see check_exception_specification).
         /* Mark the type as having been used in an exception.  (Also, if it
            "contains" any classes, they are marked as requiring external
            linkage.) */
-        set_used_in_exception_flag(estp->type);
+        set_used_in_exception_or_rtti_flag(estp->type);
       }  /* if */
     }  /* if */
     remove_stop_token(tok_comma);
