@@ -752,6 +752,13 @@ do_variable:
             fprintf(f_debug, "(routine ptr is NULL)");
           }  /* if */
           fprintf(f_debug, "\n");
+          fprintf(f_debug, "%*sclass_declared_in: ", indentation, "");
+          if (routine != NULL) {
+            db_type(tssp->variant.function.class_declared_in);
+          } else {
+            fprintf(f_debug, "(NULL)");
+          }  /* if */
+          fprintf(f_debug, "\n");
           tip = tssp->variant.function.instantiations;
           while (tip != NULL) {
             fprintf(f_debug, "%*sinstantiation", indentation, "");
@@ -1322,6 +1329,7 @@ and return a pointer to it.
                         /*reusable=*/TRUE);
       tssp->variant.function.cannot_be_called = FALSE;
       tssp->variant.function.unused_instantiations = 0;
+      tssp->variant.function.class_declared_in = NULL;
 #if CHECKING
       tssp->variant.function.dummy = FALSE;
 #endif /* CHECKING */

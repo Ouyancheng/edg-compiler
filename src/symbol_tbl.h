@@ -1105,7 +1105,7 @@ typedef struct a_template_symbol_supplement {
 			   spurious reference to uninitialized data warnings
 			   from CodeCenter. */
 #endif /* CHECKING */
-    an_unused_instantiation_count
+      an_unused_instantiation_count
 		unused_instantiations;
 			/* When a function is added to the instantiations
 			   required list in tim_all mode but is not actually
@@ -1121,6 +1121,15 @@ typedef struct a_template_symbol_supplement {
 			   instantiations that can be generated for a given
 			   function.  This field records the number of unused
 			   instantiations that have been performed so far. */
+      a_type_ptr
+	        class_declared_in;
+                        /* This field is used for template friend declarations
+			   that appear inside class definitions.  It points
+			   to the class in which the template declaration was
+			   found.  When instantiating the function the
+			   class scope must be reactivated.  If the class is
+			   a template instance, the template parameters must
+			   also be reactivated. */
     } function;
     /* When symbol kind = sk_static_data_member: */
     struct {
