@@ -6057,9 +6057,8 @@ user-defined conversion part (if any) of any required conversion.
           /* A temporary should not be created to return a value, since
              what would happen immediately is that the address of the
              (stack-based) temporary would be returned to the caller. */
-          pos_error(ec_return_ref_init_requires_temp,
-                    &source_operand->position);
-          err = TRUE;
+          pos_warning(ec_return_ref_init_requires_temp,
+                      &source_operand->position);
         }  /* if */
         if (!err && !warn && conversion_to_temp_done) {
           /* Let the user know a temp was used. */
