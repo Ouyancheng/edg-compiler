@@ -4884,7 +4884,7 @@ constructor scope, and also lower the user code.
   a_variable_ptr     this_param_var = scope->variant.routine.parameters;
   an_expr_node_ptr   if_node;
   a_destructible_entity_descr_ptr
-                     dedp;
+                     dedp = NULL;
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
 
   saved_code_pos = code_pos_for_lowering;
@@ -4938,7 +4938,10 @@ constructor scope, and also lower the user code.
       this_param_node->next = call_node;
       assign_node = make_operator_node((an_expr_operator_kind)eok_passign,
                                        call_node->type, this_param_node);
-      if (exceptions_enabled) {
+      if (exceptions_enabled &&
+          /* The delete routine pointer can be null if the operator delete for
+             the class is ambiguous. */
+          ctsp->assoc_operator_delete_routine != NULL) {
         an_insert_location expr_insert_location;
         a_dynamic_init_ptr dyn_init_to_free_storage;
 
@@ -5038,7 +5041,9 @@ constructor scope, and also lower the user code.
          lowered. */
       enclose_routine_in_if(scope, if_node, this_param_var);
 #if GENERATE_EH_TABLES
-      if (exceptions_enabled && dedp->conditional_flag_var != NULL) {
+      if (exceptions_enabled &&
+          /* dedp is NULL if the operator delete is ambiguous. */
+          dedp != NULL && dedp->conditional_flag_var != NULL) {
         /* Initialize the conditional flag to zero.  This must be done after
            enclose_routine_in_if is called so that the initialization is
            done at the right place (i.e., outside the "if"). */
@@ -5228,6 +5233,7 @@ destructor scope, and also lower the user code.
   an_expr_node_ptr       vtbl_addr_node, vptr_node;
   a_variable_ptr         primary_vtbl_var, vtbl_var;
   a_routine_ptr          dtor_routine = scope->variant.routine.ptr;
+  a_routine_ptr          delete_routine;
   a_return_memo_ptr      rmp, rmp_next;
   a_label_ptr            epilogue_label;
   a_source_position      saved_error_position, saved_code_pos;
@@ -5534,10 +5540,14 @@ destructor scope, and also lower the user code.
   /* Add code to free the storage if the "free" bit (0x1) is on in the
      added parameter:
        if ((param & 0x1) != 0) delete-routine((void *)this);
+     Watch out for the case where the delete routine pointer is NULL; this
+     happens if a derived class inherits more than one delete routine, and
+     therefore they're ambiguous.
   */
-  { an_expr_node_ptr this_param_node;
+  delete_routine = ctsp->assoc_operator_delete_routine;
+  if (delete_routine != NULL) {
+    an_expr_node_ptr this_param_node;
     an_expr_node_ptr and_node, two_constant_node, if_node;
-    a_routine_ptr    delete_routine;
     a_param_type_ptr param1;
 
     /* Make "param & 0x1". */
@@ -5580,8 +5590,6 @@ destructor scope, and also lower the user code.
     this_param_node = add_cast_if_necessary(this_param_node, void_star_type());
     /* If the delete routine takes two arguments, add a second argument
        of type size_t that gives the size of the class. */
-    delete_routine = ctsp->assoc_operator_delete_routine;
-    check_assertion(delete_routine != NULL);
     param1 = unlowered_param_type_list(delete_routine->type);
 #if CHECKING
     if (param1 == NULL) {
@@ -5597,7 +5605,7 @@ destructor scope, and also lower the user code.
     }  /* if */
     delete_routine->source_corresp.referenced = TRUE;
     make_call_statement(delete_routine, this_param_node, &insert_location2);
-  }
+  }  /* if */
   { an_expr_node_ptr this_param_node, null_constant_node, if_node;
     a_constant       null_constant;
 
