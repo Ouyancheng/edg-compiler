@@ -2110,10 +2110,11 @@ for the class to which they belong.
 }  /* insert_in_virtual_function_override_list */
 
 
-static void copy_virtual_function_override_list(a_base_class_ptr  old_bcp,
-                                                a_base_class_ptr  new_bcp,
-                                                a_base_class_ptr  new_direct_bcp,
-                                                a_type_ptr        new_class)
+static void copy_virtual_function_override_list(
+                                              a_base_class_ptr  old_bcp,
+                                              a_base_class_ptr  new_bcp,
+                                              a_base_class_ptr  new_direct_bcp,
+                                              a_type_ptr        new_class)
 /*
 Copy the list of overriding virtual functions associated with old_bcp and add
 each of the copies to the list belonging to new_bcp.  The entries are
