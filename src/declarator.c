@@ -1723,6 +1723,15 @@ nonstatic data member of a class.
   (void)get_token();
   add_stop_token(tok_rbracket);
 #if RESTRICT_ALLOWED
+  /* In some modes, "restrict" is allowed inside the brackets:
+       int x[restrict 5]
+     or
+       int y[restrict]
+     This is allowed only for formal parameter declarations, and
+     indicates that the pointer type to which the array type decays
+     is restrict-qualified (e.g., "restrict pointer to int" in
+     the first example above.
+  */
   if (is_type_qualifier_token(curr_token)) {
     a_source_position     qualifier_pos;
     a_type_qualifier_set  qualifiers;
