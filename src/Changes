@@ -894,7 +894,7 @@ declaration appeared in a local class.  For example:
   namespace N { void g(); }
   void f() {
     struct L {
-      friend void A::g() {}  // Used to abort
+      friend void N::g() {}  // Used to abort
     };
   }
 
