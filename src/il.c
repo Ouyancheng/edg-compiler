@@ -3732,6 +3732,9 @@ a pointer to it.
 #if DO_IL_LOWERING
   ctsp->virtual_function_table_var        = NULL;
   ctsp->type_as_subobject                 = NULL;
+#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
+  ctsp->promoted_local_types              = NULL;
+#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
 #endif /* DO_IL_LOWERING */
 
   return ctsp;

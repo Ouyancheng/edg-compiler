@@ -2754,6 +2754,9 @@ Display the indicated class type supplement entry.
 #if DO_IL_LOWERING
   /* Do not print out ptr->virtual_function_table_var and
      ptr->type_as_subobject, which are used only during IL lowering. */
+#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
+  /* Likewise ptr->promoted_local_types. */
+#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
 #endif /* DO_IL_LOWERING */
 }  /* disp_class_type_supplement */
 

@@ -2172,6 +2172,14 @@ typedef struct a_class_type_supplement {
 			   virtual base classes.  NULL until set; in fact,
 			   non-NULL is used as an indication that certain
 			   lowering steps have already been done. */
+#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
+  a_type_ptr	promoted_local_types;
+			/* List of types local to member functions promoted
+			   out of those member functions.  Eventually, these
+			   will be promoted into the file scope, but they're
+			   moved here first to keep them grouped with the
+			   other types from this class. */
+#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
 #endif /* DO_IL_LOWERING */
 } a_class_type_supplement;
 

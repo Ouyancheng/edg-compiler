@@ -1241,6 +1241,9 @@ the file scope, do not process it (but record an orphan in the latter case).
 #if DO_IL_LOWERING
         /* ptr->virtual_function_table_var not processed. */
         /* ptr->type_as_subobject not processed. */
+#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
+        /* ptr->promoted_local_types not processed. */
+#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
 #endif /* DO_IL_LOWERING */
       }
       break;
