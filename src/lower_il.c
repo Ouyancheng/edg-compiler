@@ -7137,6 +7137,27 @@ by things that will be in the file scope.
 }  /* local_entities_should_be_promoted */
 
 
+static void clear_is_local_to_function_flag_in_type(a_type_ptr type)
+/*
+The indicated type is (part of something) being promoted to file scope.
+Clear its is_local_to_function flag and the flags of any subtypes.
+*/
+{
+  type->source_corresp.is_local_to_function = FALSE;
+  /* If the type is a class, process its type list. */
+  if (is_immediate_class_type(type)) {
+    a_scope_ptr scope =
+                      type->variant.class_struct_union.extra_info->assoc_scope;
+    if (scope != NULL) {
+      a_type_ptr subtype;
+      for (subtype = scope->types; subtype != NULL; subtype = subtype->next) {
+        clear_is_local_to_function_flag_in_type(subtype);
+      }  /* for */
+    }  /* if */
+  }  /* if */
+}  /* clear_is_local_to_function_flag_in_type */
+
+
 static void promote_local_entities_to_file_scope(a_scope_ptr   scope,
                                                  a_routine_ptr routine)
 /*
@@ -7164,6 +7185,8 @@ lowering of the file scope memory region.
       /* Mangle the name if necessary (e.g., if it is part of a template
          function). */
       mangle_promoted_entity_name(&type->source_corresp, routine);
+      /* Clear the is_local_function flag in the type and any subtypes. */
+      clear_is_local_to_function_flag_in_type(type);
       add_to_types_list(type, DEPTH_OF_FILE_SCOPE);
       /* If the type is an enum, mangle the names of its constants. */
       if (is_immediate_enum_type(type)) {
@@ -7184,6 +7207,7 @@ lowering of the file scope memory region.
       /* Mangle the name if necessary (e.g., if it is part of a template
          function). */
       mangle_promoted_entity_name(&variable->source_corresp, routine);
+      variable->source_corresp.is_local_to_function = FALSE;
       add_to_variables_list(variable, /*at_file_scope=*/TRUE);
     }  /* for */
     /* Clear the variables list now that all variables have been promoted. */
