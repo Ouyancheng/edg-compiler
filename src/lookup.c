@@ -987,14 +987,6 @@ typedef struct a_lookup_state {
   a_scope_depth	last_scope_used;
 			/* Last scope used to find the symbol. */
 #endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
-  a_symbol_ptr	curr_active_sym;
-			/* Points to the current location in the active
-			   list for the symbol header involved in the
-                           lookup. */
-  a_symbol_ptr	prev_active_sym;
-			/* Points to the previous location in the active
-			   list for the symbol header involved in the
-                           lookup. */
   a_type_ptr	class_with_nonreal_base;
 			/* When any_nonreal_bases is TRUE, this points to
 			   the class type of the nonreal base class that
@@ -1276,8 +1268,8 @@ that do normal id lookup processing.
 */
 {
   a_symbol_ptr		sym = NULL;
-  a_symbol_ptr		active_sym = lookup_state->curr_active_sym;
-  a_symbol_ptr		prev_active_sym = lookup_state->prev_active_sym;
+  a_symbol_ptr		active_sym;
+  a_symbol_ptr		prev_active_sym;
   a_boolean		first_scope =
                                     scope_depth_of(ssep) == depth_scope_stack;
 
@@ -1288,6 +1280,13 @@ that do normal id lookup processing.
                                    lookup_state->required_name_space_kind && \
    is_acceptable_symbol(sym, fund_sym, *lookup_state))
 
+  prev_active_sym = NULL;
+  active_sym = symbol_list_from_locator(*locator);
+  /* Find the first symbol on the active list for this scope. */
+  while (active_sym != NULL && active_sym->decl_scope != ssep->number) {
+    prev_active_sym = active_sym;
+    active_sym = active_sym->next;
+  }  /* while */
   for (; active_sym != NULL && active_sym->decl_scope == ssep->number;
        prev_active_sym = active_sym, active_sym = active_sym->next) {
     a_symbol_ptr	fund_sym = fundamental_symbol_of(active_sym);
@@ -1321,8 +1320,6 @@ that do normal id lookup processing.
     lookup_state->add_to_active_list = TRUE;
     lookup_state->insert_sym = prev_active_sym;
   }  /* if */
-  lookup_state->curr_active_sym = active_sym;
-  lookup_state->prev_active_sym = prev_active_sym;
   return sym;
 #undef is_acceptable_active_symbol
 }  /* active_scope_lookup */
@@ -1410,44 +1407,22 @@ that do normal id lookup processing.
 */
 {
   a_symbol_ptr		sym = NULL;
-  a_symbol_ptr		active_symbol_list;
   a_scope_depth		curr_depth;
 
-/* Local macro that skips over any symbols on the active list that are
-   associated with the current scope. */
-#define skip_symbols_from_this_scope(depth)			\
-  {									\
-    a_symbol_ptr	active_sym = lookup_state->curr_active_sym;	\
-    a_symbol_ptr	prev_active_sym = lookup_state->prev_active_sym;\
-    a_scope_number	scope_number = scope_stack[(depth)].number;	\
-    while (active_sym != NULL &&					\
-           active_sym->decl_scope == scope_number) {			\
-      prev_active_sym = active_sym;					\
-      active_sym = active_sym->next;					\
-    }  /* while */							\
-    lookup_state->curr_active_sym = active_sym;				\
-    lookup_state->prev_active_sym = prev_active_sym;			\
-  }
-
-  active_symbol_list = symbol_list_from_locator(*locator);
   /* Work out from the innermost scope on the stack, and look at each
      scope.  If the scope is a class reactivation or a template
      instantiation, look on the inactive list for a symbol from that
      scope.  Otherwise, search part of the active list to look for an
-     active symbol.  We maintain a pointer to the point in the active
-     list up to which we've searched.  This works because the symbols
-     on the active list are in order according to the scope they're in,
-     from innermost scope to outermost. */
-  lookup_state->prev_active_sym = NULL;
-  lookup_state->curr_active_sym = active_symbol_list;
-  for (curr_depth = depth_scope_stack;
-       curr_depth > start_depth; --curr_depth) {
-    skip_symbols_from_this_scope(curr_depth);
-  }  /* for */
-  check_assertion(curr_depth == start_depth);
+     active symbol. */
+#if DEBUG
+  if (debug_level >= 5 || db_flag_is_set("scope_stack_lookup")) {
+    fprintf(f_debug, "Scope stack lookup of %s, initial lookup scope=%0d\n",
+            locator->symbol_header->identifier, depth_of_initial_lookup_scope);
+  }  /* if */
+#endif /* DEBUG */
   /* Loop through the scope stack until we reach the scope indicated by
      end_depth. */
-  for (;curr_depth > end_depth;) {
+  for (curr_depth = start_depth ;curr_depth > end_depth;) {
     a_scope_stack_entry_ptr	ssep = &scope_stack[curr_depth];
     a_scope_kind		kind = ssep->kind;
 #if DEBUG
@@ -1483,11 +1458,9 @@ that do normal id lookup processing.
       sym = inactive_scope_lookup(kind, ssep, locator, lookup_state);
     } else if (kind == (a_scope_kind)sck_pragma) {
       /* We have found a pragma scope -- ignore symbols in this scope. */
-      skip_symbols_from_this_scope(curr_depth);
     } else if (kind == (a_scope_kind)sck_class_struct_union &&
                lookup_state->skip_class_scopes) {
       /* This is a class scope and we are skipping class scopes. */
-      skip_symbols_from_this_scope(curr_depth);
     } else {
       /* Not a class reactivation or a template instantiation,
          i.e., normal scope.  Search through any symbols on the front
@@ -1536,26 +1509,16 @@ that do normal id lookup processing.
         break;
       }  /* if */
     }  /* if */
-    if (ssep->previous_scope != curr_depth-1) {
-      /* Typically, the lookup starts in the innermost scope and proceeds
-         outward one scope at a time.  The sequence of processing is
-         different when there are template instantiation scopes on the
-         stack.  Skip over the scopes from the next scope to the one
-         just before the scope indicated to be the previous scope.
-         If the ending scope for this particular lookup is found
-         during this process, exit the loop. */
-      for (--curr_depth; curr_depth > ssep->previous_scope; --curr_depth) {
-        if (curr_depth == end_depth) break;
-        skip_symbols_from_this_scope(curr_depth);
-      }  /* for */
-      check_assertion(curr_depth == ssep->previous_scope);
-    } else {
-      /* The previous scope is the next on on the scope stack. */
-      curr_depth = ssep->previous_scope;
-    }  /* if */
+    /* Typically, the lookup starts in the innermost scope and proceeds
+       outward one scope at a time.  The sequence of processing is
+       different when there are template instantiation scopes on the
+       stack.  Skip over the scopes from the next scope to the one
+       just before the scope indicated to be the previous scope.
+       If the ending scope for this particular lookup is found
+       during this process, exit the loop. */
+    curr_depth = ssep->previous_scope;
   }  /* for */
   return sym;
-#undef skip_symbols_from_this_scope
 }  /* scope_stack_lookup */
 
 
@@ -1834,8 +1797,8 @@ C and C++.
 #if DEBUG
       num_slow_id_lookups++;
 #endif /* DEBUG */
-      sym = scope_stack_lookup(locator, &lookup_state, depth_scope_stack,
-                               NO_SCOPE_DEPTH);
+      sym = scope_stack_lookup(locator, &lookup_state,
+                               depth_of_initial_lookup_scope, NO_SCOPE_DEPTH);
     }  /* if */
     /* If this is a linkage lookup, don't do the nested class anachronism
        lookup, or SVR4 mode lookup. */

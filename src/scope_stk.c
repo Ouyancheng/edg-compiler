@@ -933,8 +933,11 @@ specific version of the template.
   if (depth_scope_stack != DEPTH_OF_FILE_SCOPE) {
     /* By default, the previous scope is the one that precedes this one
        on the scope stack.  This may be adjusted for instantiation scopes. */
-    ssep->previous_scope = depth_scope_stack - 1;
+    ssep->previous_scope = depth_of_initial_lookup_scope;
   }  /* if */
+  /* Set the point at which name lookups should start to the newly
+     created scope. */
+  depth_of_initial_lookup_scope = depth_scope_stack;
   /* Put the associated type (if any) into the IL scope (if any). */
   /* Note that the corresponding routine case was handled by the
      new_il_region call. */
@@ -2827,6 +2830,9 @@ End a name scope by popping an entry off the scope stack.
     }
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
+  /* Set the initial name lookup scope to the previous scope pointed
+     to by the scope being popped. */
+  depth_of_initial_lookup_scope = ssep->previous_scope;
   /* Determine the memory region to restore for the outer scope. */
   new_memory_region_number = ssep->prev_il_memory_region;
   /* Pop the stack. */
@@ -2972,6 +2978,57 @@ This routine is called only in C++.
 }  /* pop_namespace_extension_scope */
 
 
+static
+void set_template_decl_lookup_sequence(a_scope_depth initial_depth)
+/*
+If a namespace reactivation scope is pushed on top of a template
+declaration scope some special processing needs to be done so that
+name lookup works properly.  The namespace reactivation scopes must be
+considered after the template declaration scope (which contains the
+template parameters).  This is done by altering the previous_scope
+links to reflect the desired name lookup sequence.  The following
+table illustrates how the scope stack is updated as each scope is
+pushed for this example:
+
+  namespace A { namespace B { template <class T> void f(); } }
+  template <class T> void A::B::f(){}
+ 
+Each entry contains "N xxx (P)", where N is the scope depth, xxx is
+the scope kind, and P is the previous scope for name lookup purposes.
+
+  Initial                 After namespace A      After namespace B
+  state                   is reactivated         is reactivated
+  -----------------       -----------------      -----------------
+                                                 3 ns react B (2)
+                          2 ns react A (0)       2 ns react A (0)
+  1 templ. decl. (0)      1 templ. decl. (2)     1 templ. decl. (3)
+  0 file (none)           0 file (none)          0 file (none)
+
+initial_depth is the depth of the template declaration scope.
+*/
+{
+  a_scope_stack_entry_ptr	initial_ssep = &scope_stack[initial_depth];
+  a_scope_stack_entry_ptr	curr_ssep = &scope_stack[depth_scope_stack];
+  a_scope_stack_entry_ptr	prev_ssep = curr_ssep-1;
+
+  if (initial_ssep == prev_ssep) {
+    /* Make the previous scope for the first namespace reactivation
+       point to the previous scope of the template declaration scope. */
+    curr_ssep->previous_scope = initial_ssep->previous_scope;
+  } else {
+    /* Subsequence reactivation scopes will have their previous scope entry
+       set to point to the template declaration scope.  Reset the previous
+       pointer to point to the previous namespace reactivation. */
+    curr_ssep->previous_scope = depth_scope_stack-1;
+  }  /* if */
+  /* Make the previous scope of the template declaration scope the innermost
+     namespace reactivation scope. */
+  initial_ssep->previous_scope = depth_scope_stack;
+  /* Name lookups should begin at the template declaration scope. */
+  depth_of_initial_lookup_scope = scope_depth_of(initial_ssep);
+}  /* set_template_decl_lookup_sequence */
+
+
 void push_namespace_reactivation_scope(a_namespace_ptr nsp)
 /*
 Push one or more scopes that will reactivate the indicated namespace.
@@ -2982,19 +3039,22 @@ This routine is called only in C++.
 {
   a_namespace_ptr		parent_nsp;
   a_namespace_ptr		curr_nsp = NULL;
+  a_scope_depth			initial_depth = depth_scope_stack;
   a_scope_stack_entry_ptr	ssep = &scope_stack[depth_scope_stack];
+  a_boolean			initial_scope_is_template_decl;
 
 #if CHECKING
   /* A namespace extension should not be pushed inside of a template
      instantiation scope unless we are in the process of pushing yet
      another template instantiation scope. */
-  if (scope_stack[depth_scope_stack].kind ==
-                                   (a_scope_kind)sck_template_instantiation) {
+  if (ssep->kind == (a_scope_kind)sck_template_instantiation) {
     check_assertion_str2(pushing_template_instantiation_scope,
                          "push_namespace_extension_scope:",
                          "namespace extension within template instantiation");
   }  /* if */
 #endif /* CHECKING */
+  initial_scope_is_template_decl = ssep->kind ==
+                                        (a_scope_kind)sck_template_declaration;
   /* If the current scope is a namespace (or namespace extension) scope,
      see if it matches the one that we are pushing.  If so, don't actually
      push the scope, just increment the count of the number of excess
@@ -3017,6 +3077,15 @@ This routine is called only in C++.
     }  /* if */
     /* Push an entry for the scope. */
     (void)push_namespace_scope((a_scope_kind)sck_namespace_reactivation, nsp);
+    if (initial_scope_is_template_decl) {
+      set_template_decl_lookup_sequence(initial_depth);
+    }  /* if */
+#if DEBUG
+    if (db_flag_is_set("ns_react_on_templ_decl")) {
+      fprintf(f_debug, "Scope stack after namespace reactivation:\n");
+      db_scope_stack();
+    }  /* if */
+#endif /* DEBUG */
   }  /* if */
 }  /* push_namespace_reactivation_scope */
 
@@ -3050,6 +3119,14 @@ This routine is called only in C++.
       /* A nested namespace.  Pop the enclosing namespaces too. */
       pop_namespace_reactivation_scope();
     }  /* if */
+  }  /* if */
+  ssep = &scope_stack[depth_scope_stack];
+  if (ssep->kind == (a_scope_kind)sck_template_declaration) {
+    /* When a namespace reactivation is placed on top of a template
+       declaration scope, the template declaration scope will have had
+       its previous pointer updated.  Restore it to the original value. */
+    ssep->previous_scope = depth_scope_stack-1;
+    depth_of_initial_lookup_scope = depth_scope_stack;
   }  /* if */
 }  /* pop_namespace_reactivation_scope */
 
@@ -3174,6 +3251,7 @@ of the front end.
 */
 {
   depth_of_innermost_scope_that_affects_access_control = NO_SCOPE_DEPTH;
+  depth_of_initial_lookup_scope = NO_SCOPE_DEPTH;
   num_classes_on_scope_stack = 0;
 #if CHECKING
   pushing_template_instantiation_scope = FALSE;

@@ -552,6 +552,14 @@ EXTERN a_scope_depth
 			/* Current depth of the scope stack.  NO_SCOPE_DEPTH
 			   (i.e., -1) indicates that the stack is empty. */
 EXTERN a_scope_depth
+		depth_of_initial_lookup_scope;
+			/* Scope depth of the scope at which name lookup
+			   operations should begin.  This is usually the
+			   same as depth_scope_stack but is different
+			   under certain conditions (for example, when
+			   a namespace reactivation is pushed on top of
+			   a template declaration scope). */
+EXTERN a_scope_depth
 		decl_scope_level;
 			/* Level in the scope stack that contains the
 			   current declaration level.  In C, differs from
