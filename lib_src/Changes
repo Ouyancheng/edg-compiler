@@ -1,3 +1,13 @@
+Version 2.36
+
+3/3/97   Check to ensure that a needed destruction is not registered twice
+
+A check has been added to __record_needed_destruction() to guard against
+an entry being added to the list more than once (which could result
+in an infinite loop during the destruction of static objects).  If such
+a condition is detected, __already_marked_for_destruction() is called,
+which in turn calls abort().
+-------------------------------------------------------------------------------
 Version 2.35, February 28, 1997
 
 2/21/97  Type of an_object_handle configured automatically

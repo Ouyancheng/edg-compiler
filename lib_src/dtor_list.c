@@ -60,6 +60,17 @@ destructions.
 }  /* __process_needed_destructions */
 
 
+EXTERN_C void __already_marked_for_destruction()
+/*
+This routine is called when a needed destruction is recorded more than
+once.  It simply calls abort.  The name is intended to describe the nature
+of the problem to the user.
+*/
+{
+  abort();
+}
+
+
 EXTERN_C void __record_needed_destruction(a_needed_destruction_ptr ndp)
 /*
 Called when a static object has been constructed to register a
@@ -68,6 +79,8 @@ a needed destruction entry that is to be added to the front of the
 list of needed destructions.
 */
 {
+  /* If the entry has already been put on the list, terminate the execution. */
+  if (ndp->next != NULL) __already_marked_for_destruction();
   ndp->next = needed_destruction_head;
   needed_destruction_head = ndp;
 }  /* __record_needed_destruction */
