@@ -10795,7 +10795,8 @@ symbols according to the rules for the dual lookup, issue any
 diagnostics that might be needed, and return the symbol to be used.
 Set the specific symbol to the associated nonfundamental symbol.
 If prefer_class_member is TRUE, the class member is preferred over
-the normal lookup symbol.*/
+the normal lookup symbol.
+*/
 {
   a_symbol_ptr	result_sym;
   a_symbol_ptr	specific_symbol;

@@ -8214,7 +8214,7 @@ operator function reference.
      lookup of conversion operator names. */
   if (field_sel_type != NULL) {
     a_scope_stack_entry_ptr	ssep = &scope_stack[depth_scope_stack];
-    scope_stack[depth_scope_stack].conversion_parent_type = field_sel_type;
+    ssep->conversion_parent_type = field_sel_type;
     ssep->qualified_conversion_operator = is_class_member && parent != NULL;
   }  /* if */
   /* Bypass the "operator" keyword. */
