@@ -1,5 +1,12 @@
 Version 3.1
 
+6/14/02  GNU C compatibility: Duplicate type specifiers
+
+In GNU C mode, the front end now accepts duplicate type specifiers (with a
+warning).  For example:
+
+  unsigned short unsigned short x;  // Accepted in GNU C mode
+
 6/13/02  TARG_HAS_IEEE_FLOATING_POINT on non-Linux X86 Unix Systems
 
 TARG_HAS_IEEE_FLOATING point now defaults to TRUE on Unix systems

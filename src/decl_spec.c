@@ -4600,7 +4600,7 @@ Returns TRUE if there is an error in the specifiers.
   a_boolean                  dangling_type_specifier = FALSE;
   a_boolean                  is_elaborated_type_specifier = FALSE;
   an_error_severity          es;
-  a_basic_type               basic_type = bt_none;
+  a_basic_type               basic_type = bt_none, prev_basic_type;
   a_type_sign                sign = sign_none;
   a_type_size                size = size_none;
   a_complex_attribute        complex_attr = cxa_none;
@@ -5425,10 +5425,13 @@ Returns TRUE if there is an error in the specifiers.
       case tok_float:
       case tok_double:
         /* A type specifier (3.5.2) that indicates a basic type. */
+#if GNU_EXTENSIONS_ALLOWED
+        prev_basic_type = basic_type;
+#endif /* GNU_EXTENSIONS_ALLOWED */
         if (!type_specifier_allowed) {
           error(ec_type_specifier_not_allowed);
           err = TRUE;
-        } else if (basic_type != bt_none) {
+        } else if (basic_type != bt_none && !gcc_mode) {
           /* Basic type has already been specified in some way. */
           bad_combination_of_type_specifiers = TRUE;
           error(ec_bad_combination_of_type_specifiers);
@@ -5447,6 +5450,20 @@ Returns TRUE if there is an error in the specifiers.
               internal_error("decl_specifiers: bad type specifier");
 #endif /* CHECKING */
           }  /* switch */
+#if GNU_EXTENSIONS_ALLOWED
+          if (gcc_mode && prev_basic_type != bt_none) {
+            /* GNU C allows duplicate basic type specifiers, but they must be
+               identical. */
+            if (basic_type == prev_basic_type) {
+              warning(ec_dupl_decl_specifier);
+            } else {
+              bad_combination_of_type_specifiers = TRUE;
+              error(ec_bad_combination_of_type_specifiers);
+              basic_type = prev_basic_type;
+            }  /* if */
+          } else
+#endif /* GNU_EXTENSIONS_ALLOWED */
+          /* Do not insert code here. */
           if (curr_token == tok_void && !any_decl_specifiers_seen) {
             decl_specifiers_seen = DS_VOID;
           } else {
@@ -5516,7 +5533,7 @@ Returns TRUE if there is an error in the specifiers.
           } else if (size == size_short && curr_token == tok_short) {
             /* "short short".  Issue an error, except in cfront mode,
                which is silent about "short short". */
-            diagnostic((any_cfront_mode() ? es_warning : es_error),
+            diagnostic((any_cfront_mode() || gcc_mode) ? es_warning : es_error,
                        ec_dupl_decl_specifier);
           } else {
             /* Some other bad combination. */
@@ -5577,7 +5594,7 @@ Returns TRUE if there is an error in the specifiers.
           if ((sign == sign_signed) == (curr_token == tok_signed)) {
             /* Either "signed signed" or "unsigned unsigned".  Issue an error,
                except in cfront mode. */
-            diagnostic((any_cfront_mode() ? es_warning : es_error),
+            diagnostic((any_cfront_mode() || gcc_mode) ? es_warning : es_error,
                        ec_dupl_decl_specifier);
           } else {
             /* Mixing signs. */
