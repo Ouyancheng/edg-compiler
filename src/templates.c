@@ -812,6 +812,31 @@ static char *get_mangled_name_for_symbol(a_symbol_ptr	sym);
 
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
 
+static char *get_mangled_name_of_template(a_symbol_ptr	template_sym,
+					  a_boolean	okay_to_create)
+/*
+If not already done, mangle the name of the template specified by
+"template_sym" and save a copy of the name.  If it has previously been
+mangled, use the previously created name.  Return a pointer to the
+mangled name.  "okay_to_create" is TRUE if a new name should be generated.
+When this is FALSE, NULL will be returned if the name does not already
+exist.
+*/
+{
+  a_template_symbol_supplement_ptr	tssp;
+
+  /* Use the prototype template if this is a subordinate template. */
+  template_sym = prototype_template_if_template_symbol(template_sym);
+  tssp = template_supplement_for_symbol(template_sym);
+  if (tssp->name == NULL && okay_to_create) {
+    char	*name;
+    name = get_mangled_name_for_symbol(template_sym);
+    tssp->name = copy_string_to_region(FRONT_END_REGION_NUMBER, name);
+  }  /* if */
+  return tssp->name;
+}  /* get_mangled_name_of_template */
+
+
 static void generate_template_file_names(void)
 /*
 Generate a name for the template information file and instantiation
@@ -923,9 +948,9 @@ NULL or is symbol of the template from which the instance was generated.
   }  /* if */
   if (is_exported) {
     char	*template_name;
-    template_name = get_mangled_name_for_symbol(
-                          prototype_template_if_template_symbol(template_sym));
-
+    template_name = get_mangled_name_of_template(template_sym,
+                                                 /*okay_to_create=*/FALSE);
+    check_assertion(template_name != NULL);
     fprintf(f_template_info, ":%s", template_name);
   }  /* if */
   fputs("\n", f_template_info);
@@ -11689,31 +11714,35 @@ of exported templates for this translation unit.
   }  /* if */
   exported_templates_tail = slep;
 #if TEMPLATE_LOOKUP_NEEDED
-  if (more_than_one_non_export_translation_unit &&
-      curr_translation_unit->specified_on_command_line) {
-    /* If this translation unit does not have an exported template file
-       entry associated with it yet, create one now.  When a file is loaded
-       to define an exported template, the exported template file entry is
-       created first (when the exported template files are read).  But for a
-       translation unit specified on the command line, the exported template
-       file entry is created (here) when the translation unit is processed. */
-    char			*name;
-    a_template_lookup_entry_ptr	tlp;
-    if (curr_translation_unit->exported_template_file == NULL) {
-      an_exported_template_file_ptr	etfp;
-      etfp = alloc_exported_template_file();
-      curr_translation_unit->exported_template_file = etfp;
-      etfp->translation_unit = curr_translation_unit;
-    }  /* if */
-    /* Look up the mangled name of the template to see if a definition was
-       found. */
-    name = get_mangled_name_for_symbol(
-                                   prototype_template_if_template_symbol(sym));
-    tlp = find_exported_template(name, /*add=*/TRUE);
-    /* Record information about the file where it can be found. */
-    tlp->exported_template_file = curr_translation_unit->
+  /* For exported templates, make sure that the mangled name
+     of the template has been generated.  This must be done before
+     update_auto_instantiation_flags is called. */
+  { char	*name;
+    name = get_mangled_name_of_template(sym, /*okay_to_create=*/TRUE);
+    if (more_than_one_non_export_translation_unit &&
+        curr_translation_unit->specified_on_command_line) {
+      /* If this translation unit does not have an exported template file
+         entry associated with it yet, create one now.  When a file is loaded
+         to define an exported template, the exported template file entry is
+         created first (when the exported template files are read).  But for a
+         translation unit specified on the command line, the exported template
+         file entry is created (here) when the translation unit is
+         processed. */
+      a_template_lookup_entry_ptr	tlp;
+      if (curr_translation_unit->exported_template_file == NULL) {
+        an_exported_template_file_ptr	etfp;
+        etfp = alloc_exported_template_file();
+        curr_translation_unit->exported_template_file = etfp;
+        etfp->translation_unit = curr_translation_unit;
+      }  /* if */
+      /* Look up the mangled name of the template to see if a definition was
+         found. */
+      tlp = find_exported_template(name, /*add=*/TRUE);
+      /* Record information about the file where it can be found. */
+      tlp->exported_template_file = curr_translation_unit->
                                                         exported_template_file;
-  }  /* if */  
+    }  /* if */  
+  }
 #endif /* TEMPLATE_LOOKUP_NEEDED */
 }  /* add_to_exported_templates_list */
 
@@ -14614,6 +14643,15 @@ added, FALSE if it was already on the list.
                                       trans_unit_for_symbol(tip->instance_sym),
                          "add_to_instantiations_required_list:",
                          "symbol for wrong translation unit");
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
+    /* If this is an exported template, make sure that the mangled name
+       of the template has been generated.  This must be done before
+       update_auto_instantiation_flags is called. */
+    if (template_is_exported(tip->template_sym)) {
+      (void)get_mangled_name_of_template(tip->template_sym,
+                                         /*okay_to_create=*/TRUE);
+    }  /* if */
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 #if EXPENSIVE_CHECKING
     /* Make sure none of the template arguments depend on template
        parameters. */
@@ -16034,8 +16072,8 @@ a specialized instance.
     a_template_lookup_entry_ptr	tlp;
     /* Look up the mangled name of the template to see if a definition was
        found. */
-    name = get_mangled_name_for_symbol(
-                     prototype_template_if_template_symbol(tip->template_sym));
+    name = get_mangled_name_of_template(tip->template_sym,
+                                        /*okay_to_create=*/TRUE);
     tlp = find_exported_template(name, /*add=*/FALSE);
     if (tlp != NULL) {
       /* An exported definition was found.  Record information about the file
@@ -16566,7 +16604,8 @@ are being used).
     char		*mangled_name;
     sym = slep->symbol;
     /* Get the signature for the template that is defined. */
-    mangled_name = get_mangled_name_for_symbol(sym);
+    mangled_name = get_mangled_name_of_template(sym, /*okay_to_create=*/FALSE);
+    check_assertion(mangled_name != NULL);
     /* Write an entry to the exported template file. */
     write_to_exported_template_file(etlt_template_name, mangled_name);
     if (use_template_info_file) {

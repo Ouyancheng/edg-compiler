@@ -2300,6 +2300,7 @@ and return a pointer to it.
   tssp->subordinate_templates = NULL;
   tssp->il_template_entry = NULL;
   tssp->all_instantiations = NULL;
+  tssp->name = NULL;
   tssp->is_specific_definition = FALSE;
   tssp->is_nonreal_member = FALSE;
   tssp->is_error = FALSE;

@@ -1679,6 +1679,9 @@ typedef struct a_template_symbol_supplement {
 			   this points to a list of all the instantiations of
 			   this template (across all translation units).
                            Only set for the canonical entry. */
+  char		*name;
+			/* The mangled name of the entity.  Used for exported
+			   templates. */
   a_bit_field
 		is_specific_definition:1;
 			/* TRUE if the template is a specific definition of
