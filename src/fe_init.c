@@ -85,6 +85,8 @@ in the include files will become external definitions for the symbols.
 
 #if DO_IL_LOWERING
 #include "lower_il.h"
+#include "lower_name.h"
+#include "lower_init.h"
 #endif /* DO_IL_LOWERING */
 
 static void host_init(void)
