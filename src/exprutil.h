@@ -520,6 +520,19 @@ kinds are at the beginning of the list.
 #define curr_expr_kind_is_const()                                     \
   ((int)(curr_expr_kind()) <= (int)ek_init_constant)
 
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+
+/*
+Macro that returns TRUE if the current expression kind is one in which
+expressions are recorded for constants.  They are not recorded for
+preprocessing expressions (because the constants are never saved) or
+for template argument expressions (because a template can be specified
+many times with a different argument expression each time).
+*/
+#define curr_expr_kind_is_one_in_which_const_exprs_are_recorded() \
+  (!curr_expr_kind_is(ek_pp) && !curr_expr_kind_is(ek_template_arg))
+
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
 /*
 Macro that returns TRUE if the current expression is evaluated, i.e.,
 it's not inside a sizeof or alignof, and it's not in a "dead" piece of
@@ -695,7 +708,9 @@ extern void conv_object_pointer_to_lvalue(an_operand *operand);
 
 extern void conv_class_operand_to_object_pointer(an_operand *operand);
 
-extern a_constant_ptr value_of_constant_var_lvalue_expr(an_expr_node_ptr node);
+extern a_constant_ptr value_of_constant_var_lvalue_expr(
+                                                      an_expr_node_ptr node,
+                                                      a_variable_ptr   *p_var);
 
 extern void conv_lvalue_to_rvalue(an_operand *operand);
 

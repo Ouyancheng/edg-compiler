@@ -2036,7 +2036,7 @@ nonstatic data member of a class.
                                             &dim_expr, &constant);
       check_assertion(is_constant == (dim_expr == NULL));
     } else {
-      scan_integral_constant_expression(&constant);
+      scan_fs_integral_constant_expression(&constant);
     }  /* if */
     if (dim_expr == NULL) {
       switch (constant.kind) {

@@ -1662,7 +1662,7 @@ The result is placed in *result.
         }  /* if */
       }  /* if */
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
-    } else {
+    } else if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
       /* The field-selection operation was constant-folded; reconstruct the
          original expression and record it in the constant: */
       an_operand  result_op;
@@ -12563,7 +12563,8 @@ Scan a pre-processor expression.  See sections 3.4 and 3.8.1 in the standard.
 
 void scan_integral_constant_expression(a_constant *constant)
 /*
-Scan an integral constant expression.  See section 3.4 in the C standard.
+Scan an integral constant expression.  See section 6.4 in the ISO C89 standard,
+and [expr.const] in the ISO C++98 standard.
 */
 {
   an_operand          result;
@@ -12591,6 +12592,25 @@ Scan an integral constant expression.  See section 3.4 in the C standard.
 #endif /* DEBUG */
   db_exit();
 }  /* scan_integral_constant_expression */
+
+
+void scan_fs_integral_constant_expression(a_constant *constant)
+/*
+Scan an integral constant expression.  The constant will be allocated
+(by the caller) in the file scope memory region, so switch to the file
+scope while scanning the constant, so that anything allocated during
+the scan will be allocated in the file scope memory region.  (This is
+significant when RECORD_CONSTANT_EXPRESSIONS_IN_IL is TRUE; we want the
+expression for the constant to be in the file scope memory region so
+that the constant can point to it).
+*/
+{
+  a_memory_region_number  region_to_switch_back_to;
+
+  switch_to_file_scope_region(&region_to_switch_back_to);
+  scan_integral_constant_expression(constant);
+  switch_back_to_original_region(region_to_switch_back_to);
+}  /* scan_fs_integral_constant_expression */
 
 
 void scan_nonconstant_dimension_expression(a_boolean        is_vla_decl,
@@ -12765,6 +12785,7 @@ parameter type is not known.
 {
   an_operand          result;
   an_expr_stack_entry expr_stack_entry;
+  a_memory_region_number region_to_switch_back_to;
 
   db_enter(3, "scan_template_argument_constant_expression");
 
@@ -12772,6 +12793,7 @@ parameter type is not known.
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
   expr_stack_entry.is_template_arg_expression = TRUE;
+  switch_to_file_scope_region(&region_to_switch_back_to);
   /* Scan the constant expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   /* Convert to the required type if necessary.  Do not use user-defined
@@ -12798,6 +12820,7 @@ parameter type is not known.
   constant->expr = NULL;
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
 
+  switch_back_to_original_region(region_to_switch_back_to);
 #if DEBUG
   if (debug_level >= 3) {
     db_constant(constant);
@@ -12816,8 +12839,9 @@ argument, and return a pointer to it to the caller.  The caller must
 at some later point call free_arg_operand_list to free the entry.
 */
 {
-  an_arg_operand_ptr  arg_operand;
-  an_expr_stack_entry expr_stack_entry;
+  an_arg_operand_ptr     arg_operand;
+  an_expr_stack_entry    expr_stack_entry;
+  a_memory_region_number region_to_switch_back_to;
 
   db_enter(3, "scan_nontype_template_argument");
 
@@ -12825,6 +12849,7 @@ at some later point call free_arg_operand_list to free the entry.
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
   expr_stack_entry.is_template_arg_expression = TRUE;
+  switch_to_file_scope_region(&region_to_switch_back_to);
   /* Scan the constant expression. */
   arg_operand = alloc_arg_operand();
   scan_expr(&arg_operand->operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
@@ -12841,6 +12866,7 @@ at some later point call free_arg_operand_list to free the entry.
     db_operand(&arg_operand->operand);
   }  /* if */
 #endif /* DEBUG */
+  switch_back_to_original_region(region_to_switch_back_to);
   db_exit();
   return arg_operand;
 }  /* scan_nontype_template_argument */

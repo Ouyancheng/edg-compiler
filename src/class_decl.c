@@ -8002,7 +8002,7 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
   /* Advance past the colon. */
   (void)get_token();
   /* Scan the integral size in bits of the bit-field. */
-  scan_integral_constant_expression(&constant);
+  scan_fs_integral_constant_expression(&constant);
 #if PROTOTYPE_INSTANTIATIONS_IN_IL || RECORD_CONSTANT_EXPRESSIONS_IN_IL
   field->bit_size_constant = alloc_shareable_constant(&constant);
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL || RECORD_CONSTANT_... */

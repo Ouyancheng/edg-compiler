@@ -1429,7 +1429,8 @@ only if try_user_conversions is TRUE; it must be FALSE if arg_type is non-NULL.
         }  /* if */
       } else if (is_expression_operand(arg_operand)) {
         con_var_value =
-            value_of_constant_var_lvalue_expr(arg_operand->variant.expression);
+             value_of_constant_var_lvalue_expr(arg_operand->variant.expression,
+                                               (a_variable **)NULL);
       }  /* if */
       if (con_var_value != NULL) {
         /* The operand is an lvalue for a constant-valued variable.

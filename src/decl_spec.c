@@ -2774,15 +2774,7 @@ to indicate whether an enumeration is actually defined.
           enum_value_range.start = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
           /* Scan the constant expression. */
-          scan_integral_constant_expression(&constant);
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
-          /* Enumerator constants are stored in file scope memory, and can
-             therefore not point to constants built from local scope
-             entities. */
-          if (constant.expr != NULL && !in_file_scope(constant.expr)) {
-            constant.expr = NULL;
-          }  /* if */
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+          scan_fs_integral_constant_expression(&constant);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
           enum_value_range.end = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -4018,7 +4010,7 @@ Returns NULL in case of error.
 
   if (ssep->kind == (a_scope_kind)sck_template_instantiation ||
       (input_flags & DSI_IS_TEMPLATE_DECLARATION)) {
-    /* Either this is a member template declaration or a rescan of of a member
+    /* Either this is a member template declaration or a rescan of a member
        template declaration to instantiate it. */
     --ssep;
   }  /* if */
