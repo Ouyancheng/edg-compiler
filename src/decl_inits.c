@@ -2177,17 +2177,24 @@ the default constructor (if one exists) is called.
                                           /*evaluated=*/TRUE);
         if (is_const && ctor != NULL && ctor->compiler_generated) {
           /* A default constructor was found, but it isn't a user-declared
-             constructor, which is required for a const-qualified variable.
-             Leave def_init_performed FALSE, to assure that an error will be
-             issued later. */
-        } else {
-          /* Set def_init_performed, which is returned to the caller. */
-          /* Even if ctor is NULL (as a result of failing to find a default
-             constructor) we still set def_init_performed as though default
-             initialization were done even though it wasn't -- this will
-             prevent a redundant diagnostic from being issued. */
-          def_init_performed = TRUE;
+             constructor, which is required for a const-qualified variable. */
+          if (any_cfront_mode()) {
+            /* In cfront mode silently use the generated constructor. */
+          } else {
+            /* Except in -A mode just issue a warning. */
+            pos_syty_diagnostic(strict_ansi_mode ?
+                                  strict_ansi_discretionary_severity :
+                                  es_warning,
+                                ec_missing_default_constructor_on_const,
+                                err_pos, sym, tp);
+          }  /* if */
         }  /* if */
+        /* Set def_init_performed, which is returned to the caller. */
+        /* Even if ctor is NULL (as a result of failing to find a default
+           constructor) we still set def_init_performed as though default
+           initialization were done even though it wasn't -- this will
+           prevent a redundant diagnostic from being issued. */
+        def_init_performed = TRUE;
       } else {
         /* The class has no non-trivial constructors. */
         if (is_const) {
@@ -3572,43 +3579,43 @@ are created by a new expression (in which case sym is NULL).  In both cases
          externally linked variables.  In ordinary C we issue a warning for
          local variables (both static and automatic) here, but the warning
          for static file scope variables is given later. */
-       name_linkage = (a_name_linkage_kind)vp->source_corresp.name_linkage;
-       if (C_dialect == C_dialect_cplusplus) {
-         if (name_linkage == (a_name_linkage_kind)nlk_none ||
-             (name_linkage == (a_name_linkage_kind)nlk_internal &&
-              decl_scope_level <= depth_innermost_namespace_scope)) {
-           /* In C++ const qualified variables that are internally linked
-              must be initialized (ARM 7.1.6). */
-           if (is_empty_POD_class && !strict_ansi_mode &&
-               !is_incomplete_array) {
-             /* Except in strict mode, don't bother issuing a diagnostic on
-                something like "const struct S { } s;". */
-           } else {
-             if (is_empty_POD_class && !is_incomplete_array) {
-               severity = strict_ansi_error_severity;
-             } else {
-               severity = es_error;
-             }  /* if */
-             if (is_class_struct_union_type(type) && !is_incomplete_array) {
-                /* Even if the class has an implicitly declared default
-                   constructor, a user-declared default constructor must be
-                   present (WP 7.1.5.1 [dcl.cv]). */
-               check_assertion(
-                       !type_has_user_declared_default_constructor(type));
-               pos_syty_diagnostic(severity,
-                                   ec_missing_default_constructor_on_const,
-                                   &error_position, sym, skip_typerefs(type));
-             } else {
-               /* Issue an error (or, for an empty class in -a mode, a warning)
-                  on omitting the initializer. */
-               sym_diagnostic(severity, ec_missing_initializer_on_const, sym);
-             }  /* if */
-           }  /* if */
-         }  /* if */
-       } else {
-         /* Ordinary C -- a warning, and only on local variables. */
-         if (name_linkage == (a_name_linkage_kind)nlk_none) {
-           sym_warning(ec_missing_initializer_on_const, sym);
+      name_linkage = (a_name_linkage_kind)vp->source_corresp.name_linkage;
+      if (C_dialect == C_dialect_cplusplus) {
+        if (name_linkage == (a_name_linkage_kind)nlk_none ||
+            (name_linkage == (a_name_linkage_kind)nlk_internal &&
+             decl_scope_level <= depth_innermost_namespace_scope)) {
+          /* In C++ const qualified variables that are internally linked
+             must be initialized (ARM 7.1.6). */
+          if (is_empty_POD_class && !strict_ansi_mode &&
+              !is_incomplete_array) {
+            /* Except in strict mode, don't bother issuing a diagnostic on
+               something like "const struct S { } s;". */
+          } else {
+            if (is_empty_POD_class && !is_incomplete_array) {
+              severity = strict_ansi_error_severity;
+            } else {
+              severity = es_error;
+            }  /* if */
+            if (is_class_struct_union_type(type) && !is_incomplete_array) {
+               /* Even if the class has an implicitly declared default
+                  constructor, a user-declared default constructor must be
+                  present (WP 7.1.5.1 [dcl.cv]). */
+              check_assertion(
+                      !type_has_user_declared_default_constructor(type));
+              pos_syty_diagnostic(severity,
+                                  ec_missing_default_constructor_on_const,
+                                  &error_position, sym, skip_typerefs(type));
+            } else {
+              /* Issue an error (or, for an empty class in -a mode, a warning)
+                 on omitting the initializer. */
+              sym_diagnostic(severity, ec_missing_initializer_on_const, sym);
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      } else {
+        /* Ordinary C -- a warning, and only on local variables. */
+        if (name_linkage == (a_name_linkage_kind)nlk_none) {
+          sym_warning(ec_missing_initializer_on_const, sym);
         }  /* if */
       }  /* if */
     } else {
