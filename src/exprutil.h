@@ -84,10 +84,6 @@ typedef a_byte a_local_expr_options_set;
 			   an expression.  scan_expr pretends that there is
 			   a left parenthesis preceding the current token. */
 
-/* Define the values of left and right associativity. */
-#define LEFT_ASSOC  TRUE
-#define RIGHT_ASSOC FALSE
-
 /*
 Information used when creating cross-reference information.  This is
 done only when f_xref_info != NULL.
