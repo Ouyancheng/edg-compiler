@@ -622,12 +622,6 @@ and for the instantiation of template functions.
   is_real_instantiation = is_instantiation &&
                    !scope_stack[depth_scope_stack].in_prototype_instantiation;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  if (instantiate_extern_inline && rout_ptr->is_inline &&
-      rout_ptr->storage_class == (a_storage_class)sc_unspecified) {
-    /* When inline functions are instantiated like templates, add the function
-       to the list of inline functions if it is inline. */
-    add_to_inline_function_list(rout_ptr);
-  }  /* if */
   if (!C_mode() && !is_instantiation) {
     /* Reactivate the class and/or namespace of which the function body is
        a member.  For template instantiations this is done when the
@@ -1053,6 +1047,12 @@ and for the instantiation of template functions.
     if (curr_token != tok_rbrace) {
       pos_error(ec_exp_rbrace, &pos_curr_token);
     }  /* if */
+  }  /* if */
+  if (instantiate_extern_inline && rout_ptr->is_inline &&
+      rout_ptr->storage_class == (a_storage_class)sc_unspecified) {
+    /* When inline functions are instantiated like templates, add the function
+       to the list of inline functions if it is inline. */
+    add_to_inline_function_list(rout_ptr);
   }  /* if */
 #if DEBUG
   if (debug_level >= 4) {

@@ -16884,6 +16884,13 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
 }  /* update_instantiation_required_flag */
 
 
+#if INSTANTIATE_EXTERN_INLINE
+/* Forward declaration. */
+static void set_body_needed_flag_for_inline_function(
+					a_routine_ptr	rout_ptr);
+#endif /* INSTANTIATE_EXTERN_INLINE */
+
+
 void set_instance_required(a_symbol_ptr				sym,
 			   a_boolean				value,
 			   a_set_instance_required_options_set	options)
@@ -16932,6 +16939,11 @@ Does nothing if called in C mode.
         /* If value is FALSE, only reset the flag if the SIR_CLEAR_VALUE
            option was specified. */
         rp->inline_instance_required = value;
+        if (after_inline_function_wrapup) {
+          /* If inline_function_wrapup has already been called, call the
+             routine to set the body needed flag now. */
+          set_body_needed_flag_for_inline_function(rp);
+        }  /* if */
       }  /* if */
     }  /* if */
 #endif /* INSTANTIATE_EXTERN_INLINE */
@@ -19037,6 +19049,13 @@ Add the routine to an "instantiation list" of inline functions.
     rlep->next = inline_function_list;
     inline_function_list = rlep;
     rout_ptr->on_inline_function_list = TRUE;
+#if DEBUG
+    if (db_trace("instantiations", rout_ptr, iek_routine)) {
+      fprintf(f_debug, "Adding to inline function list: \n");
+      db_entity_info((char *)rout_ptr, iek_routine);
+      fprintf(f_debug, "\n");
+    }  /* if */
+#endif /* DEBUG */
 #if INSTANTIATE_EXTERN_INLINE 
     if (after_inline_function_wrapup) {
       /* If inline_function_wrapup has already been called, call the routine
@@ -19044,13 +19063,6 @@ Add the routine to an "instantiation list" of inline functions.
       set_body_needed_flag_for_inline_function(rout_ptr);
     }  /* if */
 #endif /* INSTANTIATE_EXTERN_INLINE */
-#if DEBUG
-  if (db_trace("instantiations", rout_ptr, iek_routine)) {
-    fprintf(f_debug, "Adding to inline function list: \n");
-    db_entity_info((char *)rout_ptr, iek_routine);
-    fprintf(f_debug, "\n");
-  }  /* if */
-#endif /* DEBUG */
   }  /* if */
 }  /* add_to_inline_function_list */
 
