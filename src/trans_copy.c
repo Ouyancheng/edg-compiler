@@ -571,6 +571,9 @@ to the primary translation unit IL.  *any_removed_function_bodies is
 set to TRUE if the body of a routine is eliminated.  Returns TRUE if the
 entity associated with the scope should be kept on the caller's list
 (because something in it needs to be copied or merged later).
+The entity lists of the scope are pruned so that only entities
+that must be copied to or merged into the primary IL are left on
+the lists.
 */
 {
   a_boolean          keep_on_parent_list = FALSE;
@@ -819,6 +822,7 @@ entity associated with the scope should be kept on the caller's list
         keep_on_list = TRUE;
       }  /* if */
       /* Update some information regarding inline functions. */
+      check_assertion(routine->is_inline == corresp_routine->is_inline);
 #if INSTANTIATE_EXTERN_INLINE
       corresp_routine->inline_instance_required |=
                                              routine->inline_instance_required;
@@ -1128,10 +1132,16 @@ IL is copied on top of an existing entry in the primary IL.
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 #define do_saves_for_overwrite(primary_entry, entry_ptr_type) \
   entry_ptr_type saved_next = (primary_entry)->next; \
+  char *saved_assoc_info = (primary_entry)->source_corresp.assoc_info; \
   save_needed_flag_for_overwrite(primary_entry) \
   save_per_instantiation_needed_flags_for_overwrite(primary_entry)
-#define do_restores_for_overwrite(primary_entry) \
+/* Note that the assoc_info pointer in the source of the copy is
+   set to the pointer from the destination, as a way to preserve a
+   pointer to the original associated symbol after the copy has
+   been done. */
+#define do_restores_for_overwrite(primary_entry, entry) \
   (primary_entry)->next = saved_next; \
+  (entry)->source_corresp.assoc_info = saved_assoc_info; \
   restore_needed_flag_for_overwrite(primary_entry) \
   restore_per_instantiation_needed_flags_for_overwrite(primary_entry)
 
@@ -1145,7 +1155,7 @@ the secondary translation unit IL).
 {
   do_saves_for_overwrite(primary_type, a_type_ptr);
   *primary_type = *type;
-  do_restores_for_overwrite(primary_type);
+  do_restores_for_overwrite(primary_type, type);
 }  /* overwrite_primary_type */
 
 
@@ -1158,7 +1168,7 @@ the secondary translation unit IL).
 {
   do_saves_for_overwrite(primary_var, a_variable_ptr);
   *primary_var = *var;
-  do_restores_for_overwrite(primary_var);
+  do_restores_for_overwrite(primary_var, var);
 }  /* overwrite_primary_variable */
 
 
@@ -1176,7 +1186,7 @@ the secondary translation unit IL).
   a_boolean saved_suppress_inline_body = primary_rout->suppress_inline_body;
   do_saves_for_overwrite(primary_rout, a_routine_ptr);
   *primary_rout = *rout;
-  do_restores_for_overwrite(primary_rout);
+  do_restores_for_overwrite(primary_rout, rout);
   /* Note that inline_instance_required etc. were previously updated in
      the primary routine, so we just save the value determined. */
 #if INSTANTIATE_EXTERN_INLINE
@@ -1184,71 +1194,6 @@ the secondary translation unit IL).
 #endif /* INSTANTIATE_EXTERN_INLINE */
   primary_rout->suppress_inline_body = saved_suppress_inline_body;
 }  /* overwrite_primary_routine */
-
-
-static void copy_instantiation_info_for_routine(a_routine_ptr routine,
-                                                a_routine_ptr copy_routine,
-                                                a_boolean     overwrite)
-/*
-The indicated routine will be copied from routine (in the secondary
-translation unit IL) to copy_routine (in the primary IL).  If overwrite
-is TRUE, routine will overwrite copy_routine.  Update any instantiation
-list information associated with the routine.  Also handle the
-"instantiation" lists for extern inline functions, if appropriate.
-*/
-{
- a_symbol_ptr sym = (a_symbol_ptr)(routine->source_corresp.assoc_info);
- a_symbol_ptr copy_sym =
-                    (a_symbol_ptr)(copy_routine->source_corresp.assoc_info);
-
-  if (instantiate_extern_inline && routine->is_inline &&
-      routine->storage_class == (a_storage_class)sc_unspecified) {
-    /* extern inline functions are put on a list so they can be
-       "instantiated".  If a function is both a template instance and
-       extern inline, it goes on both lists. */
-    check_assertion(copy_routine->is_inline &&
-                    copy_routine->storage_class != (a_storage_class)sc_static);
-    if (overwrite && copy_routine->assoc_scope != NULL_region_number) {
-      /* The corresponding routine already has a definition, so there is
-         already a list entry for the routine in the primary IL. */
-    } else {
-      /* Add an entry for the routine. */
-      add_to_inline_function_list(copy_routine);
-    }  /* if */
-  }  /* if */
-  if (sym != NULL) {
-    a_template_instance_ptr instance = sym->variant.routine.instance_ptr;
-    if (instance != NULL) {
-      a_template_instance_ptr copy_instance;
-      a_template_instance_ptr saved_next, saved_next_in_instantiation_list;
-      /* The routine is a template instance. */
-      if (overwrite) {
-        /* There is already a copy of this instance in the primary IL,
-           which must have an associated template instance entry.  We
-           will overwrite that instance entry. */
-        check_assertion(copy_sym != NULL);
-        copy_instance = copy_sym->variant.routine.instance_ptr;
-        check_assertion(copy_instance != NULL);
-        saved_next = copy_instance->next;
-        saved_next_in_instantiation_list =
-                     copy_instance->next_in_instantiation_list;
-      } else {
-        /* This is a new instance, for which there is no copy in the primary
-           IL.  Create a new instantiation list entry by making a copy of the
-           one from the secondary translation unit. */
-        copy_instance = alloc_template_instance();
-        saved_next = NULL;
-        saved_next_in_instantiation_list = NULL;
-      }  /* if */
-      *copy_instance = *instance;
-      copy_instance->next = saved_next;
-      copy_instance->next_in_instantiation_list =
-                            saved_next_in_instantiation_list;
-      copy_instance->referencing_namespace = NULL;
-      if (!overwrite) add_to_instantiations_required_list(copy_instance);
-    }  /* if */
-  }  /* if */
-}  /* copy_instantiation_info_for_routine */
 
 
 static void finish_trans_unit_copy(a_scope_ptr scope)
@@ -1439,12 +1384,7 @@ end_of_variable_list_add:;
            routine = routine->next) {
         a_routine_ptr corresp_routine =
                  (a_routine_ptr)checked_trans_unit_corresp_pointer_of(routine);
-        a_boolean     overwrite = entry_to_be_merged(routine);
-        /* If the routine is a template (or an extern inline function),
-           copy instantiation information. */
-        copy_instantiation_info_for_routine(routine, corresp_routine,
-                                            overwrite);
-        if (overwrite) {
+        if (entry_to_be_merged(routine)) {
           /* Merge the information from this routine into the primary IL
              routine (the secondary translation unit instance has a
              definition and the primary translation unit instance does not).
@@ -1603,21 +1543,100 @@ into the primary translation unit il_header.
 }  /* merge_il_headers */
 
 
-static void wrap_up_moved_function(a_routine_ptr rout)
+static void copy_instantiation_info_for_routine(a_routine_ptr routine)
 /*
-rout identifies a function whose body has been moved from a secondary
-translation unit to the primary translation unit IL.  Do final processing,
-which includes IL lowering if appropriate.
+The indicated routine has been copied from the secondary translation
+unit IL to the primary IL.  routine points to the copy in the
+secondary translation unit.  Update any instantiation list information
+associated with the routine.  Also handle the "instantiation" lists for
+extern inline functions, if appropriate.
 */
 {
-  a_scope_ptr scope;
+  a_boolean     overwrite = entry_to_be_merged(routine);
+  a_routine_ptr corresp_routine =
+                 (a_routine_ptr)checked_trans_unit_corresp_pointer_of(routine);
+  a_routine_ptr primary_routine =
+                                 (a_routine_ptr)canonical_il_entry_of(routine);
+  a_symbol_ptr  sym = (a_symbol_ptr)(routine->source_corresp.assoc_info);
+  /* Note that if the routine was copied on top of an original routine
+     in the primary IL the symbol pointer from the original entry was
+     saved in the assoc_info field of the intermediate copy. */
+  a_symbol_ptr  orig_sym = overwrite ?
+                   (a_symbol_ptr)(corresp_routine->source_corresp.assoc_info) :
+                   (a_symbol_ptr)NULL;
 
-  check_assertion(!in_secondary_trans_unit(rout) &&
-                  rout->assoc_scope != NULL_region_number);
-  scope = il_header.region_scope_entry[rout->assoc_scope];
-  check_assertion_str(scope != NULL, "wrap_up_moved_function: body missing");
-  finish_function_body_processing(scope, /*after_copy=*/TRUE,
-                                  /*discard_function_body=*/FALSE);
+  /* This routine runs while switched to the primary translation unit. */
+  check_assertion(is_primary_translation_unit);
+  if (instantiate_extern_inline && routine->is_inline &&
+      routine->storage_class == (a_storage_class)sc_unspecified) {
+    /* extern inline functions are put on a list so they can be
+       "instantiated".  If a function is both a template instance and
+       extern inline, it goes on both lists. */
+    if (overwrite && orig_sym->defined) {
+      /* The corresponding routine already had a definition, so there is
+         already a list entry for the routine in the primary IL. */
+    } else {
+      /* Add an entry for the routine. */
+      add_to_inline_function_list(primary_routine);
+    }  /* if */
+  }  /* if */
+  if (sym != NULL) {
+    a_template_instance_ptr instance = sym->variant.routine.instance_ptr;
+    if (instance != NULL) {
+      a_template_instance_ptr copy_instance;
+      a_template_instance_ptr saved_next = NULL;
+      a_template_instance_ptr saved_next_in_instantiation_list = NULL;
+      /* The routine is a template instance. */
+      if (overwrite) {
+        /* There is already a copy of this instance in the primary IL,
+           which must have an associated template instance entry.  We
+           will overwrite that instance entry. */
+        check_assertion(orig_sym != NULL);
+        copy_instance = orig_sym->variant.routine.instance_ptr;
+        check_assertion(copy_instance != NULL);
+        saved_next = copy_instance->next;
+        saved_next_in_instantiation_list =
+                     copy_instance->next_in_instantiation_list;
+      } else {
+        /* This is a new instance, for which there is no copy in the primary
+           IL.  Create a new instantiation list entry by making a copy of the
+           one from the secondary translation unit. */
+        copy_instance = alloc_template_instance();
+      }  /* if */
+      *copy_instance = *instance;
+      copy_instance->next = saved_next;
+      copy_instance->next_in_instantiation_list =
+                            saved_next_in_instantiation_list;
+      copy_instance->referencing_namespace = NULL;
+      if (!overwrite) add_to_instantiations_required_list(copy_instance);
+    }  /* if */
+  }  /* if */
+}  /* copy_instantiation_info_for_routine */
+
+
+static void wrap_up_moved_function(a_routine_ptr rout)
+/*
+rout identifies a function which has been moved from a secondary
+translation unit to the primary translation unit IL.  Do final processing,
+which includes IL lowering if appropriate.  rout points to the instance
+of the routine in the secondary translation unit.
+*/
+{
+  a_routine_ptr primary_rout = (a_routine_ptr)canonical_il_entry_of(rout);
+
+  check_assertion(!in_secondary_trans_unit(primary_rout) &&
+                  primary_rout->source_corresp.
+                                             copied_from_secondary_trans_unit);
+  /* If the routine is a template (or an extern inline function),
+     copy instantiation information. */
+  copy_instantiation_info_for_routine(rout);
+  if (primary_rout->assoc_scope != NULL_region_number) {
+    /* The routine body was moved. */
+    a_scope_ptr scope= il_header.region_scope_entry[primary_rout->assoc_scope];
+    check_assertion_str(scope != NULL, "wrap_up_moved_function: body missing");
+    finish_function_body_processing(scope, /*after_copy=*/TRUE,
+                                    /*discard_function_body=*/FALSE);
+  }  /* if */
 }  /* wrap_up_moved_function */
 
 
@@ -1625,7 +1644,8 @@ static void finish_moved_function_processing(a_scope_ptr scope)
 /*
 Finish processing in the indicated scope and its subscopes for any
 functions whose bodies were moved from the secondary translation unit IL
-to the primary IL.  This includes lowering if necessary.
+to the primary IL.  This includes lowering if necessary.  The scope
+passed in is from the secondary translation unit.
 */
 {
   a_routine_ptr   routine;
@@ -1650,13 +1670,7 @@ to the primary IL.  This includes lowering if necessary.
     }  /* for */
   }  /* if */
   for (routine = scope->routines; routine != NULL; routine = routine->next) {
-    a_routine_ptr primary_routine =
-                                 (a_routine_ptr)canonical_il_entry_of(routine);
-    if (primary_routine->assoc_scope != NULL_region_number &&
-        primary_routine->source_corresp.copied_from_secondary_trans_unit) {
-      /* This routine definition was moved. */
-      wrap_up_moved_function(primary_routine);
-    }  /* if */
+    wrap_up_moved_function(routine);
   }  /* for */
 }  /* finish_moved_function_processing */
 
