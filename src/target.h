@@ -790,8 +790,8 @@ EXTERN an_integer_kind
 #define TARG_VAR_HANDLE_INT_KIND targ_var_handle_int_kind
 #endif /* MAKE_TARG_NAMES_REFER_TO_VARIABLES */
 
-a_targ_size_t get_pointer_size_and_alignment(a_type_ptr        type_pointed_to,
-                                             a_targ_alignment  *alignment);
+a_targ_size_t size_of_pointer_to(a_type_ptr        type_pointed_to,
+                                 a_targ_alignment  *alignment);
 
 #if CHECKING
 void check_target_configuration(void);

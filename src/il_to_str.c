@@ -1545,9 +1545,8 @@ in the way described by octl.
        cast to unsigned long. */
     if (is_ptr_or_ref_type(con_type) ||
         (is_integral_type(con_type) &&
-         con_type->size >=
-                get_pointer_size_and_alignment(underlying_object_type,
-                                               &alignment))) {
+         con_type->size >= size_of_pointer_to(underlying_object_type,
+                                              &alignment))) {
       /* Okay. */
     } else {
       need_second_ptr_close_paren = TRUE;

@@ -1332,8 +1332,7 @@ set, leave it alone.  Also compute and set the alignment requirement.
         }  /* switch */
         break;
       case tk_pointer:
-        size = get_pointer_size_and_alignment(type_pointed_to(type_ptr),
-                                              &alignment);
+        size = size_of_pointer_to(type_pointed_to(type_ptr), &alignment);
         break;
       case tk_array:
         set_array_type_size(type_ptr);

@@ -27,8 +27,8 @@ target.c -- Target configuration support
 #if TARG_ALL_POINTERS_SAME_SIZE
 /*ARGSUSED*/ /* Because type_pointed_to is not used. */
 #endif /* TARG_ALL_POINTERS_SAME_SIZE */
-a_targ_size_t get_pointer_size_and_alignment(a_type_ptr        tp,
-                                             a_targ_alignment  *alignment)
+a_targ_size_t size_of_pointer_to(a_type_ptr        tp,
+                                 a_targ_alignment  *alignment)
 /*
 Set the size and alignment for a pointer type that points to the indicated
 type.  This routine should be rewritten for implementations in which
@@ -53,7 +53,7 @@ TARG_ALL_POINTERS_SAME_SIZE may not always be TRUE.
   }  /* switch */
 #endif /* TARG_ALL_POINTERS_SAME_SIZE */
   return size;
-}  /* get_pointer_size_and_alignment */
+}  /* size_of_pointer_to */
 
 
 #if CHECKING
