@@ -541,40 +541,54 @@ only the entries marked as "needed" are marked to keep in the IL.
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 
-static void set_keep_in_il_on_sslist(
-                                    a_source_sequence_entry_ptr sslist,
-                                    a_boolean                   function_local)
+static void r_set_keep_in_il_on_sslist(
+                                a_source_sequence_entry_ptr sslist,
+                                a_boolean                   function_local,
+                                a_boolean                   *need_another_pass)
 /*
 Walk the indicated source sequence list, and set the keep_in_il
 flags in the source sequence entries thereon.  A source sequence entry
 must be kept in the IL if and only if its associated entry must be
 kept.  If function_local is TRUE, this list is local to a function that
-is being kept, and all entries should be marked to be kept.
+is being kept, and all entries should be marked to be kept.  If this
+routine modifies some entry that might be earlier on the list, set
+*need_another_pass to TRUE so the caller can do the sweep again.
 */
 {
   a_source_sequence_entry_ptr ssep;
-  a_boolean                   need_another_pass;
 
-  /* The whole process can get repeated if some processing in the loop ends up
-     marking something that might be earlier on the list. */
-  do {
-    need_another_pass = FALSE;
-    for (ssep = sslist; ssep != NULL; ssep = ssep->next) {
+  for (ssep = sslist; ssep != NULL; ssep = ssep->next) {
+    if (ss_entry_kind(ssep) == iek_src_seq_sublist) {
+      /* Where a file-scope sublist appears, do a recursive call to walk the
+         entries on that list. */
+      a_src_seq_sublist_ptr ssslp = ss_entry_ptr(ssep, a_src_seq_sublist_ptr);
+      r_set_keep_in_il_on_sslist(ssslp->source_sequence_list,
+                                 function_local,
+                                 need_another_pass);
+    } else {
+      /* Not a sublist (normal source sequence entry). */
       char                         *entry_ptr;
+      an_il_entry_kind             entry_kind;
       a_src_seq_secondary_decl_ptr sec_decl;
       a_boolean                    keep_in_il;
+
       if (ss_entry_kind(ssep) == iek_src_seq_secondary_decl) {
         /* This is a secondary declaration. */
         sec_decl = ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
         entry_ptr = sec_decl->entity.ptr;
+        entry_kind = sec_decl->entity.kind;
       } else {
         /* This is a primary declaration. */
         sec_decl = NULL;
         entry_ptr = ssep->entity.ptr;
+        entry_kind = ssep->entity.kind;
       }  /* if */
       if (function_local) {
         /* Keep all function-local source sequence entries. */
         keep_in_il = TRUE;
+        /* Mark the associated entity to be kept in the IL.  This is generally
+           unnecessary, but it is needed for block extern declarations. */
+        walk_ptr(entry_ptr, a_char_ptr, entry_kind);
       } else {
         /* See if the associated IL entity is marked with keep_in_il. */
         keep_in_il = il_entry_prefix_of(entry_ptr).keep_in_il;
@@ -597,12 +611,33 @@ is being kept, and all entries should be marked to be kept.
                  the type is in the function list because we mark all entities
                  as needed, and if it is in the file scope we haven't yet
                  walked that list. */
-              if (!function_local) need_another_pass = TRUE;
+              if (!function_local) *need_another_pass = TRUE;
             }  /* if */
           }  /* if */
         }  /* if */
       }  /* if */
-    }  /* for */
+    }  /* if */
+  }  /* for */
+}  /* r_set_keep_in_il_on_sslist */
+
+
+static void set_keep_in_il_on_sslist(
+                                    a_source_sequence_entry_ptr sslist,
+                                    a_boolean                   function_local)
+/*
+Walk the indicated source sequence list, and set the keep_in_il
+flags in the source sequence entries thereon.  A source sequence entry
+must be kept in the IL if and only if its associated entry must be
+kept.  If function_local is TRUE, this list is local to a function that
+is being kept, and all entries should be marked to be kept.
+*/
+{
+  a_boolean need_another_pass;
+
+  /* Scan the list, and again if something was changed that forces a rescan. */
+  do {
+    need_another_pass = FALSE;
+    r_set_keep_in_il_on_sslist(sslist, function_local, &need_another_pass);
   } while (need_another_pass);
 }  /* set_keep_in_il_on_sslist */
 
