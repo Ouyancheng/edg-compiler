@@ -1661,6 +1661,9 @@ only if try_user_conversions is TRUE; it must be FALSE if arg_type is non-NULL.
                (conversion_to_class_possible(orig_arg_operand, param_type,
                                              /*try_bitwise_copy=*/FALSE,
                                              /*is_copy_initialization=*/TRUE,
+                                             /* Following FALSE is correct:
+                                                reference binding here is to
+                                                a temp, not direct. */
                                              /*is_reference_binding=*/FALSE,
                                              &conversion, (a_conv_descr *)NULL,
                                              &ambiguous,
@@ -1683,8 +1686,8 @@ only if try_user_conversions is TRUE; it must be FALSE if arg_type is non-NULL.
                                                          !source_can_be_rvalue,
                                                /*is_copy_initialization=*/TRUE,
                                                /* Following FALSE is correct:
-                                                  reference binding here is not
-                                                  direct. */
+                                                  reference binding here is to
+                                                  a temp, not direct. */
                                                /*is_reference_binding=*/FALSE,
                                                &conversion,
                                                &ambiguous,
@@ -8381,6 +8384,8 @@ because of an error.  This routine is used only in C++ mode.
   a_boolean                     source_is_class, type_is_same;
   a_boolean                     type_is_same_or_derived;
   a_boolean                     copy_initialization_done_as_direct = FALSE;
+  a_boolean                     try_conversion_functions;
+  a_boolean                     try_as_arg_of_bitwise_cctor;
   a_symbol_ptr                  class_symbol, constructor_symbol;
   a_class_symbol_supplement_ptr cssp;
   an_arg_operand_ptr            arg_operand_list;
@@ -8469,9 +8474,44 @@ because of an error.  This routine is used only in C++ mode.
                                     &candidate_functions,
                                     &matched_except_for_missing_selector);
     }  /* if */
-    if (source_is_class && !type_is_same_or_derived) {
-      /* The source type is a class, so conversion functions might be
-         applicable. */
+    /* Determine whether conversion functions should be tried. */
+    try_conversion_functions = FALSE;
+    try_as_arg_of_bitwise_cctor = FALSE;
+    if (!source_is_class) {
+      /* Do not try conversion functions when the source is not a class. */
+    } else if (type_is_same_or_derived) {
+      /* Do not try conversion functions for a derived-to-base conversion. */
+    } else if (is_copy_initialization) {
+      /* Try conversion functions for copy-initialization. */
+      try_conversion_functions = TRUE;
+    } else if (is_reference_binding) {
+      /* Try conversion functions when converting to bind to a reference. */
+      try_conversion_functions = TRUE;
+    } else {
+      /* Direct-initialization. */
+      if (constructor_symbol == NULL && cctor_is_bitwise_copy) {
+        /* Direct-initialization really only tries constructors, but if
+           the only constructor is an implicit bitwise copy constructor
+           check conversion functions also (conceptually, the result of
+           calling the conversion function is the argument to the
+           copy constructor). */
+        try_conversion_functions = TRUE;
+        if (any_cfront_mode() || sun_mode) {
+          /* Cfront and the Sun 5.0 compiler do this in a nonstandard way. */
+        } else {
+          try_as_arg_of_bitwise_cctor = TRUE;
+        }  /* if */
+      } else {
+        /* In a departure from the standard, look for a conversion function
+           that converts to exactly the required type.  That makes sense
+           because in that case the copy constructor call can be elided
+           and we call just one user-defined conversion rather than two. */
+        try_conversion_functions = TRUE;
+      }  /* if */
+    }  /* if */
+    if (try_conversion_functions) {
+      /* Try to convert to the destination type by using conversion
+         functions. */
       /* If the source type is a template class, instantiate it to make its
          conversion functions visible. */
       instantiate_template_class(source_type);
@@ -8483,23 +8523,22 @@ because of an error.  This routine is used only in C++ mode.
            conversion functions.  See if there is a conversion function that
            does the job. */
         a_type_ptr eff_dest_type = dest_type;
+        a_boolean  eff_is_copy_initialization = is_copy_initialization;
         a_boolean  eff_is_reference_binding = is_reference_binding;
-        if (cctor_is_bitwise_copy &&
-            !eff_is_reference_binding &&
-            !is_copy_initialization &&
-            (!any_cfront_mode() && !sun_mode)) {
+        if (try_as_arg_of_bitwise_cctor) {
           /* On an initialization of a class type whose "copy constructor"
              is a bitwise copy, the operand being examined is really the
              argument for the copy constructor, so allow conversions that
              produce something that can be bound to reference to const
              class_type. */
-          eff_dest_type = make_qualified_type(class_type, TQ_CONST); 
+          eff_dest_type = make_qualified_type(class_type, TQ_CONST);
+          eff_is_copy_initialization = FALSE;
           eff_is_reference_binding = TRUE;
         }  /* if */
         try_conversion_function_match(source_operand, eff_dest_type,
                                       (a_builtin_type_kind_set)BTK_NONE,
                                       /*need_lvalue_result=*/FALSE,
-                                      is_copy_initialization,
+                                      eff_is_copy_initialization,
                                       eff_is_reference_binding,
                                       &candidate_functions);
       }  /* if */
