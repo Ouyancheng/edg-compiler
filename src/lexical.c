@@ -2867,43 +2867,47 @@ no effect.
 
 #if DEBUG
 static void db_include_guard_info(void)
+/*
+Display the include guard information associated with the current input
+stack entry, for debugging purposes.
+*/
 {
   char *idemp_name;
   char *idemp_text;
   db_enter(5, "db_include_guard_info");
   switch (curr_ise->ifg_state) {
-  case IFG_STATE_START:
-    fprintf(f_debug, "Pop: File %s is (essentially) empty\n",
-            curr_ise->file_name);
-    break;
-  case IFG_STATE_FAIL:
-    fprintf(f_debug, "Pop: File %s is not guarded\n", curr_ise->file_name);
-    break;
-  case IFG_STATE_ACCEPT:
-    if (curr_ise->include_history->ifdef_guard) {
-      idemp_name = "#ifdef";
-      idemp_text = curr_ise->include_history->controlling_macro_name;
-    } else if (curr_ise->include_history->ifndef_guard) {
-      idemp_name = "#ifndef";
-      idemp_text = curr_ise->include_history->controlling_macro_name;
-    } else {
-      unexpected_condition();
-    }  /* if */
-    fprintf(f_debug,
-	    "Pop: File %s is guarded (kind = %s, macro name = \"%s\")\n",
-	    curr_ise->file_name, idemp_name, idemp_text);
-    break;
-  case IFG_STATE_ONCE:
-    if (curr_ise->include_history->pragma_once) {
+    case IFG_STATE_START:
+      fprintf(f_debug, "Pop: File %s is (essentially) empty\n",
+              curr_ise->file_name);
+      break;
+    case IFG_STATE_FAIL:
+      fprintf(f_debug, "Pop: File %s is not guarded\n", curr_ise->file_name);
+      break;
+    case IFG_STATE_ACCEPT:
+      if (curr_ise->include_history->ifdef_guard) {
+        idemp_name = "#ifdef";
+        idemp_text = curr_ise->include_history->controlling_macro_name;
+      } else if (curr_ise->include_history->ifndef_guard) {
+        idemp_name = "#ifndef";
+        idemp_text = curr_ise->include_history->controlling_macro_name;
+      } else {
+        unexpected_condition();
+      }  /* if */
       fprintf(f_debug,
-	      "Pop: File %s is guarded (kind = #pragma once).\n",
-	      curr_ise->file_name);
-    } else {
+              "Pop: File %s is guarded (kind = %s, macro name = \"%s\")\n",
+              curr_ise->file_name, idemp_name, idemp_text);
+      break;
+    case IFG_STATE_ONCE:
+      if (curr_ise->include_history->pragma_once) {
+        fprintf(f_debug,
+                "Pop: File %s is guarded (kind = #pragma once).\n",
+                curr_ise->file_name);
+      } else {
+        unexpected_condition();
+      }
+      break;
+    default:
       unexpected_condition();
-    }
-    break;
-  default:
-    unexpected_condition();
   }  /* switch */
   db_exit();
 }  /* db_include_guard_info */
