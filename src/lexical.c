@@ -3499,10 +3499,17 @@ See standard, 3.8.1.
   an_integer_kind ik;
 
   ik = const_for_curr_token.type->variant.integer.int_kind;
-  if (!(ik == (an_integer_kind)ik_long ||
-        ik == (an_integer_kind)ik_unsigned_long)) {
-    /* The type is not long, so change it.  It's changed to unsigned long
-       if the current type is unsigned, otherwise to long. */
+  if (ik == (an_integer_kind)ik_long ||
+      ik == (an_integer_kind)ik_unsigned_long) {
+    /* The type is long, so leave it alone. */
+#if LONG_LONG_ALLOWED
+  } else if (ik == (an_integer_kind)ik_long_long ||
+             ik == (an_integer_kind)ik_unsigned_long_long) {
+    /* The type is long long, so leave it alone. */
+#endif /* LONG_LONG_ALLOWED */
+  } else {
+    /* The type is smaller than long, so change it.  It's changed to
+       unsigned long if the current type is unsigned, otherwise to long. */
     if (!int_kind_is_signed[(int)ik]) {
       ik = (an_integer_kind)ik_unsigned_long;
     } else {
