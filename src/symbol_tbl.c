@@ -4245,8 +4245,8 @@ in the source program.
 }  /* have_access_to_symbol */
 
 
-void issue_access_error(a_symbol_ptr       sym,
-                        a_source_position  *err_pos)
+static void issue_access_error(a_symbol_ptr       sym,
+                               a_source_position  *err_pos)
 /*
 Issue the appropriate error on the inaccessibility of sym.
 */
@@ -7969,7 +7969,7 @@ should act like a stack if the same entity has several fixups).
 }  /* alloc_etype_fixup */
 
 
-a_param_id_ptr alloc_param_id(void)
+static a_param_id_ptr alloc_param_id(void)
 /*
 Allocate a parameter id block, set its fields to default values, and
 return a pointer to it.  The locator field of the entry is set to

@@ -2063,9 +2063,6 @@ extern a_boolean have_protected_member_access_privilege(a_type_ptr class_type);
 
 extern a_boolean have_access_to_symbol(a_symbol_ptr symbol);
 
-extern void issue_access_error(a_symbol_ptr       sym,
-                               a_source_position  *err_pos);
-
 extern void issue_qualifier_access_errors(an_access_error_descr_ptr *adep);
 
 extern void do_not_issue_qualifier_access_errors
@@ -2257,7 +2254,6 @@ extern an_extern_type_fixup_ptr alloc_etype_fixup(void);
 extern a_symbol_list_entry_ptr alloc_symbol_list_entry(void);
 extern a_template_param_ptr alloc_template_param(a_symbol_ptr sym);
 extern a_template_instance_ptr alloc_template_instance(void);
-extern a_param_id_ptr alloc_param_id(void);
 extern void free_param_id(a_param_id_ptr *ppip);
 extern void free_param_id_list(a_param_id_ptr *pidlist);
 extern void clear_func_info(a_func_info_block *func_info);
