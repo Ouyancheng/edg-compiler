@@ -14,7 +14,7 @@ std namespace.  This has been fixed.
 
 6/17/01  Extra source positions on operands of "?" operator
 
-The extra source positions recorded when EXTRA_SOURCE_POSITIONS_IL_IL
+The extra source positions recorded when EXTRA_SOURCE_POSITIONS_IN_IL
 is TRUE were missing in some cases for "?" operators (and other
 operators that may return lvalues but turn out to return rvalues
 in the problem cases).  The source positions were not transferred
