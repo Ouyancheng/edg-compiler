@@ -352,6 +352,8 @@ Process the indicated type entry.
       break;
 #endif /* ifdef FFE */
 #if CHECKING
+    case tk_template_param:
+      /* Front end only. */
     default:
       internal_error("walk_type: bad type kind");
 #endif /* CHECKING */
@@ -401,6 +403,9 @@ Process the indicated scope.
 #endif /* ifdef FFE */
       break;
 #if CHECKING
+    case sck_template_declaration:
+    case sck_template_instantiation:
+      /* Front end only. */
     default:
       internal_error("walk_scope: bad scope kind");
 #endif  /* CHECKING */
@@ -560,6 +565,7 @@ and the entry pointer is to an entry in the file scope, just return
         case iek_class_list_entry:
         case iek_class_type_supplement:
         case iek_constructor_init:
+        case iek_template_arg:
         case iek_orphaned_il_list:
 #endif /* ifdef CFE */
           /* These entries do not have an il_walk_flag. */
@@ -635,6 +641,7 @@ and the entry pointer is to an entry in the file scope, just return
         case iek_constructor_init:
                                 s = "constructor init";        break;
         case iek_asm_entry:     s = "asm entry";               break;
+        case iek_template_arg:  s = "template arg";            break;
 #endif /* ifdef CFE */
         default:                s = "<bad kind>";              break;
       }  /* switch */
@@ -1269,6 +1276,8 @@ and the entry pointer is to an entry in the file scope, just return
           walk_list(ptr->befriending_classes, a_class_list_entry_ptr,
                     iek_class_list_entry);
           walk_ptr(ptr->assoc_scope, a_scope_ptr, iek_scope);
+          walk_list(ptr->template_arg_list, a_template_arg_ptr,
+                    iek_template_arg);
 #if ASSIGNMENT_TO_THIS_ALLOWED
           remap_ptr(ptr->assoc_operator_new_routine, a_routine_ptr,
                     iek_routine);
@@ -1310,6 +1319,17 @@ and the entry pointer is to an entry in the file scope, just return
           an_asm_entry_ptr ptr = (an_asm_entry_ptr)entry_ptr;
           remap_next_ptr(ptr->next, an_asm_entry_ptr, iek_asm_entry);
           walk_ptr(ptr->asm_string, a_constant_ptr, iek_constant);
+        }
+        break;
+      case iek_template_arg:
+        {
+          a_template_arg_ptr ptr = (a_template_arg_ptr)entry_ptr;
+          remap_next_ptr(ptr->next, a_template_arg_ptr, iek_template_arg);
+          if (ptr->is_type) {
+            walk_ptr(ptr->variant.type, a_type_ptr, iek_type);
+          } else {
+            walk_ptr(ptr->variant.constant, a_constant_ptr, iek_constant);
+          }  /* if */
         }
         break;
 #endif /* ifdef CIL */
@@ -1463,6 +1483,7 @@ of each kind.
                                iek_class_type_supplement);
   walk_orphan_entry_list_first(a_constructor_init_ptr, iek_constructor_init);
   walk_orphan_entry_list_first(an_asm_entry_ptr, iek_asm_entry);
+  walk_orphan_entry_list_first(a_template_arg_ptr, iek_template_arg);
 #endif /* ifdef CFE */
 
   db_exit();
@@ -1714,6 +1735,7 @@ them through remap_function.
   remap_orphan_entry_first(iek_class_type_supplement);
   remap_orphan_entry_first(iek_constructor_init);
   remap_orphan_entry_first(iek_asm_entry);
+  remap_orphan_entry_first(iek_template_arg);
 #endif /* ifdef CFE */
 #endif /* ALTERNATE_IL_FILE_FORMAT */
 
@@ -1763,6 +1785,7 @@ them through remap_function.
   remap_orphan_entry_last(iek_class_type_supplement);
   remap_orphan_entry_last(iek_constructor_init);
   remap_orphan_entry_last(iek_asm_entry);
+  remap_orphan_entry_last(iek_template_arg);
 #endif /* ifdef CFE */
 
   /* Restore the previous value of the remap function pointer. */
@@ -1887,6 +1910,7 @@ entry kind passed as an argument.
     case iek_constructor_init:
                             s = "constructor-init";        break;
     case iek_asm_entry:     s = "asm-entry";               break;
+    case iek_template_arg:  s = "template-arg";            break;
 #endif /* ifdef CFE */
 #if ORPHAN_PROCESSING_NEEDED
     case iek_orphaned_il_list:
