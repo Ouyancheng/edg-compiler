@@ -378,6 +378,7 @@ this routine will create such a correspondence entry.
 #if CHECKING
       ++(*tcp2)->count;
 #endif /* CHECKING */
+      update_canonical_entry(kind, entity2);
     } else {
       *tcp2 = alloc_trans_unit_corresp();
       (*tcp2)->kind = kind;
