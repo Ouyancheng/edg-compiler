@@ -8926,7 +8926,7 @@ have already been lowered.
 */
 {
   an_expr_node_ptr func_node, object_node, additional_args;
-  an_expr_node_ptr func_select_node, assign_node;
+  an_expr_node_ptr func_select_node, assign_node = NULL;
 #if !IA64_ABI
   an_expr_node_ptr d_value_node;
   an_expr_node_ptr vtbl_temp_node, padd_node;
@@ -8947,9 +8947,38 @@ have already been lowered.
   additional_args = object_node->next;
   func_node->next = NULL;
   object_node->next = NULL;
-  /* The rewritten form is as follows:
+#if IA64_ABI
+  /* IA-64 ABI: The rewritten form is
+       (object->__vptr[index])(object, additional_args ...)
+     or, if the object is not simple,
+       (temp = object,
+        (temp->__vptr[index])(temp, additional_args ...))
+  */
+  { a_boolean args_have_side_effects =
+                                 expr_list_has_side_effects(additional_args,
+                                                            (a_boolean *)NULL);
+    if (!is_invariant_expr(object_node,
+                           /*vars_can_change=*/args_have_side_effects)) {
+      /* The object node is not invariant, so assign it to a temporary. */
+      assign_node = object_node;
+      object_node = assign_expr_to_temp_and_make_expr_for_reuse(object_node);
+    }  /* if */
+    /* Make a node for the address of the virtual table entry for the
+       function. */
+    vtbl_entry_node = make_vtbl_entry_node(func_node, object_node);
+    /* Get the function pointer stored in the virtual function table. */
+    func_select_node = add_indirection_to_node(vtbl_entry_node);
+    func_select_node = add_cast_if_necessary(func_select_node,
+                                             func_node->type);
+    /* Make a copy of the object node for use as the "this" argument of
+       the call. */
+    object_node = make_reusable_copy(object_node,
+                                   /*vars_can_change=*/args_have_side_effects);
+  }
+#else /* !IA64_ABI */
+  /* Cfront-like ABI: The rewritten form is as follows:
        ((vtbl_temp = (object->__vptr)+index),
-        eok_call(vtbl_temp->f, object+vtbl_temp->d, additional_args ...))
+        vtbl_temp->f(object+vtbl_temp->d, additional_args ...))
      index is the virtual function table index for the virtual function.
      If "object" is not a reusable expression, the first occurrence of
      "object" above is replaced by "(object_temp = object)", and the
@@ -8957,15 +8986,6 @@ have already been lowered.
   /* Make a node for the address of the virtual table entry for the
      function. */
   vtbl_entry_node = make_vtbl_entry_node(func_node, object_node);
-#if IA64_ABI
-  /* Get the function pointer stored in the virtual function table. */
-  assign_node = add_indirection_to_node(vtbl_entry_node);
-  assign_node = add_cast_if_necessary(assign_node, func_node->type);
-  /* Make a reusable copy of the object address. */
-  object_node = make_reusable_copy(object_node, /*vars_can_change=*/FALSE);
-  func_select_node = make_reusable_copy(assign_node, 
-                                        /*vars_can_change=*/FALSE);
-#else /* !IA64_ABI */
   /* Make the vtbl_temp temporary and an lvalue for it, and assign the
      virtual function table entry address to it. */
   vtbl_temp_var = make_local_temporary(vtbl_entry_node->type);
@@ -9000,12 +9020,18 @@ have already been lowered.
      the additional arguments to the call node as arguments. */
   change_node_to_operation(func_node, (an_expr_operator_kind)eok_call,
                            expr->type, func_select_node);
-  /* Reuse the original eok_virtual_call node as a comma operator node and
-     attach the vtbl_temp assignment and the eok_call nodes under it as
-     operands. */
-  assign_node->next = func_node;
-  set_node_operator(expr, (an_expr_operator_kind)eok_comma, expr->type,
-                    assign_node);
+  if (assign_node != NULL) {
+    /* Reuse the original eok_virtual_call node as a comma operator node and
+       attach the vtbl_temp assignment and the eok_call nodes under it as
+       operands. */
+    assign_node->next = func_node;
+    set_node_operator(expr, (an_expr_operator_kind)eok_comma, expr->type,
+                      assign_node);
+  } else {
+    /* No assign_node, so just overwrite the original expression with
+       the call node. */
+    overwrite_node(expr, func_node);
+  }  /* if */
 }  /* lower_virtual_function_call */
 
 
@@ -9118,9 +9144,9 @@ the expression have already been lowered.
                                           to subobject expected by the virtual
                                           function.
                     vtbl_temp->f)),    -- Address of virtual function to call.
-         eok_call(func_temp,           -- Call the function.
-                  this_temp,           -- "this" pointer for call.
-                  additional_args ...))
+         func_temp(                    -- Call the function.
+                   this_temp,          -- "this" pointer for call.
+                   additional_args ...))
      If "pmf" is not a reusable expression, the first occurrence of
      "pmf" above is replaced by "(pmf_temp = pmf)", and the rest by
      "pmf_temp".  See ARM 8.1.2.c for some insight into the pointer-to-
@@ -9132,9 +9158,7 @@ the expression have already been lowered.
      paper WG21/N0644.  Now, the optimized code sequence is generated
      only when a compatibility option is enabled.  The simpler code is:
        ((this_temp = (object_type *)((char *)object + pmf.d)),
-        eok_call((function_type *)pmf.f,
-                 this_temp,
-                 additional_args ...))
+        ((function_type *)pmf.f)(this_temp, additional_args ...))
      This seems slightly more complicated than is needed, but it makes
      sure that if a reusable copy of pmf is needed, the temp for it
      is initialized before the call is begun.
