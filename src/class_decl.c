@@ -5960,8 +5960,8 @@ scope.  The scope to which the symbols are promoted is decl_scope_level.
 If ALLOW_NONSTANDARD_ANONYMOUS_UNIONS, then, when assoc_object_sym refers
 to a field, its type may also be an unnamed struct or class, or a typedef
 referring to an unnamed class, struct, or union.  If the type is a typedef,
-the symbols are not promoted, but rather new ones are allocated in scope
-specified by decl_scope_level.
+or a named struct or class, the symbols are not promoted, but rather new
+ones are allocated in the scope specified by decl_scope_level.
 */
 {
   a_symbol_ptr                   sym, next_sym, mf_sym, apo_sym;
@@ -5990,7 +5990,8 @@ specified by decl_scope_level.
                               variant.field.ptr->source_corresp.access;
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
       check_assertion(is_class_struct_union_type(assoc_object_type));
-      if (assoc_object_type->kind == (a_type_kind)tk_typeref) {
+      if (assoc_object_type->kind == (a_type_kind)tk_typeref ||
+          has_name(assoc_object_type)) {
         reuse_symbol = FALSE;
       }  /* if */
 #else /* !ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */

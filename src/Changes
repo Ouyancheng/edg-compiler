@@ -1,5 +1,24 @@
 Version 2.33
 
+7/3/96  Nonstandard anonymous unions/structs: use of named struct
+
+The code for nonstandard anonymous unions/structs (enabled by
+ALLOW_NONSTANDARD_ANONYMOUS_UNIONS, e.g., in Microsoft mode) dealt
+incorrectly with cases that used a named struct in C mode:
+
+  struct S {
+    int i;
+  };
+  struct S2 {
+    struct S;  /* Nonstandard anonymous struct referenced by name. */
+  };
+  void f(void) {
+    struct S s;
+    struct S2 s2;
+    s.i = 0;
+    s2.i = 0;
+ }
+
 7/3/96  Microsoft compatibility: size of struct containing just empty array
 
 In Microsoft C mode, the size of a struct containing only an empty array
