@@ -8637,8 +8637,7 @@ void eliminate_unneeded_il_entries(a_scope_ptr scope)
   }
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  if (scope->kind == (a_scope_kind)sck_file &&
-      !source_sequence_entries_disallowed) {
+  if (scope->kind == (a_scope_kind)sck_file) {
     /* Remove unneeded source-sequence entries. */
     a_source_sequence_entry_ptr   ssep, next_ssep;
 
