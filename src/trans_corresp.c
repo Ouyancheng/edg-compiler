@@ -3632,15 +3632,16 @@ supplement for an instantiation that matches inst.
 }  /* find_function_template_instantiation */
 
 
-static void record_function_template_instantiation(
-                                                a_template_instance_ptr  inst)
+static void record_function_template_instantiation(a_symbol_ptr  instance_sym)
 /*
-Search for an instantiation that corresponds to inst in a prior translation
-unit.  If there is one, record a correspondence pointer; otherwise, add
-the instantiation to the list of instantiations in the associated template
-symbol supplement.
+Search for an instantiation that corresponds to instance_sym in a prior
+translation unit.  If there is one, record a correspondence pointer;
+otherwise, add the instantiation to the list of instantiations in the
+associated template symbol supplement.
 */
 {
+  a_template_instance_ptr
+                  inst = instance_sym->variant.routine.instance_ptr;
   a_template_symbol_supplement_ptr
                   tssp = inst->template_sym->variant.template_info;
   a_template_ptr  templ = tssp->il_template_entry,
@@ -3650,7 +3651,7 @@ symbol supplement.
                   corresp_tssp =
                        ((a_symbol_ptr)corresp_templ->source_corresp.assoc_info)
                          ->variant.template_info;
-  a_routine_ptr   routine = inst->instance_sym->variant.routine.ptr;
+  a_routine_ptr   routine = instance_sym->variant.routine.ptr;
   a_symbol_list_entry_ptr
                   sym_entry;
 
@@ -3749,8 +3750,7 @@ template.
     if (is_class_struct_union_symbol(inst)) {
       record_class_template_instantiation(inst);
     } else if (is_function_symbol(inst)) {
-      record_function_template_instantiation(
-                                          inst->variant.routine.instance_ptr);
+      record_function_template_instantiation(inst);
     }  /* if */
   }  /* if */
 done:
@@ -3769,7 +3769,12 @@ for those.
     a_symbol_list_entry_ptr  entries = instantiations_to_process, entry;
     instantiations_to_process = NULL;
     for (entry = entries; entry != NULL; entry = entry->next) {
-      record_class_template_instantiation(entry->symbol);
+      a_symbol_ptr  inst = entry->symbol;
+      if (is_class_struct_union_symbol(inst)) {
+        record_class_template_instantiation(inst);
+      } else if (is_function_symbol(inst)) {
+        record_function_template_instantiation(inst);
+      }  /* if */
     }  /* if */
     free_list_of_symbol_list_entries(entries);
   }  /* while */
@@ -3832,7 +3837,12 @@ be templ itself and therefore unusable).
   } else if (templ_sym->kind == (a_symbol_kind)sk_function_template) {
     a_template_instance_ptr  inst = tssp->variant.function.instantiations;
     for (; inst != NULL; inst = inst->next) {
-      record_function_template_instantiation(inst);
+      /* Record the instantiations for later processing to avoid infinite
+         recursion. */
+      a_symbol_list_entry_ptr slep = alloc_symbol_list_entry();
+      slep->next = instantiations_to_process;
+      instantiations_to_process = slep;
+      slep->symbol = inst->instance_sym;
     }  /* for */
     /* Also process prototype instantiation. */
     if (corresp_templ->canonical_template != templ->canonical_template) {
@@ -4292,7 +4302,7 @@ way, determine to which other IL entry this might correspond.
             a_routine_ptr  routine = (a_routine_ptr)scp;
             if (routine->is_template_function) {
               record_function_template_instantiation(
-               ((a_symbol_ptr)scp->assoc_info)->variant.routine.instance_ptr);
+                                                (a_symbol_ptr)scp->assoc_info);
             } else {
               find_routine_correspondence((a_routine_ptr)scp);
             }  /* if */
