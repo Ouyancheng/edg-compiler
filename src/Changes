@@ -1,5 +1,14 @@
 Version 2.45
 
+8/10/00  Microsoft compatibility: ignore nondefining class declaration first
+         declared as a class template
+
+In Microsoft bugs mode a class declaration (that is not a definition) that
+attempts to redeclare a class template declaration is ignored.
+
+  template<class T> struct S;
+  struct S;  // Ignored (with a warning) in Microsoft bugs mode
+
 8/9/00   Nonstandard anonymous unions mistakenly represented as standard C++
          anonymous unions
 

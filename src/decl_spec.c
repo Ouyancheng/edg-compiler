@@ -1009,8 +1009,29 @@ caution when modifying this routine.
          been scanned and we should simply use the symbol returned by
          normal_id_lookup. */
       if (templ_sym->kind == (a_symbol_kind)sk_class_template) {
-        tag_sym = coalesce_template_class_reference(templ_sym, GID_NO_OPTIONS,
-                                                    &err);
+        tag_sym = coalesce_template_class_reference(
+                                   templ_sym,
+                                   microsoft_bugs ? GID_TEMPLATE_ARGS_OPTIONAL
+                                                  : GID_NO_OPTIONS,
+                                   &err);
+        if (tag_sym->kind == (a_symbol_kind)sk_class_template) {
+          if (microsoft_bugs) {
+            /* In Microsoft bugs mode, the following is accepted:
+                  template<class T> struct S;
+                  struct S; // ignored
+            */
+            if (next_token() == tok_semicolon) {
+              tag_sym = tag_sym->variant.template_info
+                             ->variant.class_template.prototype_instantiation;
+              warning(ec_not_a_class_or_struct_name);
+            } else {
+              error(ec_not_a_class_or_struct_name);
+              err = TRUE;
+            }  /* if */
+          } else {
+            check_assertion(err);
+          }  /* if */
+        }  /* if */
         /* If an error occurred while scanning the template arguments, set
            tag_sym to NULL.  The caller is not prepared for it to point to
            an error symbol. */
@@ -2202,10 +2223,24 @@ the template.
       }  /* if */
     }  /* if */
     /* Record cross-reference information. */
-    if (is_class_definition || is_predeclared_type_decl ||
-        (curr_token == tok_semicolon &&
-         (vacuous_decl_allowed ||
-          is_friend_decl || is_template_specific_decl))) {
+    if (!is_friend_decl &&
+        class_type->variant.class_struct_union.is_prototype_instantiation &&
+        class_type->variant.class_struct_union.extra_info->template_arg_list
+                                                                    != NULL) {
+      /* A prototype instantiation of a class template (as opposed of that of
+         a class nested in a class template).
+         This can only happen in the emulation of a peculiar Microsoft bug
+         that causes the following to be accepted:
+           template<class T> struct S;
+           struct S; // ignored (scan_tag_name returns the prototype
+                     //          instantiation)
+         Such "redeclarations" are ignored (i.e., not recorded).
+      */
+      check_assertion(microsoft_bugs);
+    } else if (is_class_definition || is_predeclared_type_decl ||
+               (curr_token == tok_semicolon &&
+                (vacuous_decl_allowed ||
+                 is_friend_decl || is_template_specific_decl))) {
       /* Vacuous declarations are not typically permitted to use qualified
          names.  Exceptions are made for friend declarations and for
          template specialization declarations. */
