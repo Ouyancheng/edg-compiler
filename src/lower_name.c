@@ -642,6 +642,37 @@ If the indicated enum type is unnamed, give it a name.
 }  /* give_unnamed_enum_a_name */
 
 
+/*
+Seed number for unnamed member variable names.
+*/
+static unsigned long
+		unnamed_member_variable_name_seed;
+
+
+static void give_unnamed_member_variable_a_name(a_variable_ptr nsp)
+/*
+If the indicated member variable is unnamed, give it a name.
+*/
+{
+  char     *name;
+  sizeof_t name_len;
+
+  if (nsp->source_corresp.name == NULL) {
+    /* The member variable is unnamed, so make up a name. */
+    /* The name is __Vnn, where nn is a unique number for the
+       member variable.  This is not from the ARM or cfront. */
+    unnamed_member_variable_name_seed++;
+    name_len = digits_to_represent(unnamed_member_variable_name_seed) + 4;
+                                                                 /*"__V"+null*/
+    name = alloc_lowered_name_string(name_len);
+    (void)sprintf(name, "__V%lu",
+                  (unsigned long)unnamed_member_variable_name_seed);
+    nsp->source_corresp.name = name;
+    nsp->source_corresp.name_has_been_mangled = TRUE;
+  }  /* if */
+}  /* give_unnamed_member_variable_a_name */
+
+
 static sizeof_t mangled_template_arguments(a_type_ptr type,
                                            char       *store_at)
 /*
@@ -1612,6 +1643,16 @@ at *store_at if store_at != NULL, and (always) return the length of the name.
 See ARM 7.2.1c for name encoding.
 */
 {
+  if (!has_name(variable)) {
+    /* An anonymous union can cause an unnamed member of a namespace:
+         namespace {
+           static union {float bf;};
+         }
+    */
+    check_assertion_str(!variable->source_corresp.is_class_member,
+                        "mangled_member_variable_name: unnamed member");
+    give_unnamed_member_variable_a_name(variable);
+  }  /* if */
   return mangled_member_name(&variable->source_corresp, store_at);
 }  /* mangled_member_variable_name */
 
@@ -2379,6 +2420,7 @@ name_lower_init.)
       pch_saved_var_array_elem(unnamed_class_name_seed),
       pch_saved_var_array_elem(unnamed_namespace_name_seed),
       pch_saved_var_array_elem(unnamed_enum_name_seed),
+      pch_saved_var_array_elem(unnamed_member_variable_name_seed),
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
@@ -2398,6 +2440,7 @@ of the front end.
   unnamed_class_name_seed = 0;
   unnamed_namespace_name_seed = 0;
   unnamed_enum_name_seed = 0;
+  unnamed_member_variable_name_seed = 0;
 }  /* name_lower_init */
 
 #endif /* NEED_NAME_MANGLING */
