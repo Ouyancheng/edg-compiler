@@ -7948,17 +7948,22 @@ process_class_specifier:
                                  ((*storage_class ==
                                      (a_storage_class)sc_static) ? 1 : 0) +
                                  (is_inline ? 1 : 0))) {
-            a_type_ptr  class_type = scope_stack[decl_scope_level].assoc_type;
-            check_assertion(class_type != NULL &&
-                            is_class_struct_union_type(class_type)); 
-            if (is_constructor_decl(class_type)) {
-              basic_type = bt_no_type;
-              *output_flags |= DSO_CONSTRUCTOR | DSO_NO_DECL_SPECIFIERS;
-              /* Note that with a branch to exit_loop the get_token call
-                 is bypassed.  This means curr_token will still represent
-                 the constructor name (= class name) upon return to the
-                 caller. */
-              goto exit_loop;
+            if (scope_stack[decl_scope_level].kind !=
+                                     (a_scope_kind)sck_class_struct_union) {
+              /* Error case of some sort. */
+            } else {
+              a_type_ptr class_type = scope_stack[decl_scope_level].assoc_type;
+              check_assertion(class_type != NULL &&
+                              is_class_struct_union_type(class_type)); 
+              if (is_constructor_decl(class_type)) {
+                basic_type = bt_no_type;
+                *output_flags |= DSO_CONSTRUCTOR | DSO_NO_DECL_SPECIFIERS;
+                /* Note that with a branch to exit_loop the get_token call
+                   is bypassed.  This means curr_token will still represent
+                   the constructor name (= class name) upon return to the
+                   caller. */
+                goto exit_loop;
+              }  /* if */              
             }  /* if */              
           }  /* if */
         }  /* if */
