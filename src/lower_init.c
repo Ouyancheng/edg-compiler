@@ -48,11 +48,13 @@ static void lower_destructor_dynamic_init(
                                    an_insert_location_ptr insert_location);
 static void reset_conditional_flag_var(a_variable_ptr     conditional_flag_var,
                                        an_insert_location *insert_location);
+#if IA64_ABI
 static a_routine_ptr helper_routine_to_zero_entity(
                                             a_type_ptr    type,
                                             a_boolean     have_complete_object,
                                             a_boolean     need_array_count,
                                             a_routine_ptr ctor_routine);
+#endif /* IA64_ABI */
 static void insert_call_to_zero_entity(a_type_ptr         entity_type,
                                        a_boolean          have_complete_object,
                                        an_expr_node_ptr   entity_node,
