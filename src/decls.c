@@ -7243,7 +7243,7 @@ NULL.
   db_enter(3, "decl_typedef");
 #if GNU_EXTENSIONS_ALLOWED
   if (attributes != NULL) {
-    /* Some attributes must be apply early on because they affect type
+    /* Some attributes must be applied early on because they affect type
        compatibility in case of a redeclaration.  We cannot modify the
        given list of attributes because it may need to be applied to
        other (typedef) declarators: Make a copy. */
