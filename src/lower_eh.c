@@ -865,8 +865,8 @@ static unsigned long
 			   final pass that finds and defines the variables. */
 
 
-void r_define_scope_class_typeinfo_vars(a_scope_ptr scope,
-                                        a_boolean   preparation_pass)
+static void r_define_scope_class_typeinfo_vars(a_scope_ptr scope,
+                                               a_boolean   preparation_pass)
 /*
 Visit all the class types of the indicated scope and look for typeinfo
 variables (generated earlier).  For each typeinfo variable, generate
