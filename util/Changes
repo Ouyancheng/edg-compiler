@@ -1,5 +1,10 @@
 Version 2.26
 
+10/5/94 Generated C file suffix
+
+The environment variable EDG_GEN_C_SUFFIX may now be used to select
+an alternate suffix for the generated C file.
+
 9/14/94 Prelinker loop when libraries are specified in the wrong order
 
 A bug has been fixed that could cause the prelinker to loop when
