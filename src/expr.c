@@ -1392,7 +1392,7 @@ static void cast_pointer_for_field_selection(
 Adjust the left operand of a "->" or "." operation, if necessary, to make
 it point to a class/struct/union of the type containing the indicated member.
 This is significant in C++, where the member may be in a base class of the
-left-operand class, and downward casts are needed.  operand_1 is the left
+left-operand class, and baseward casts are needed.  operand_1 is the left
 operand; class_struct_union_type is its type; *is_arrow_operator is TRUE
 for "->", FALSE for "." (it will be set to TRUE on return if the operation
 is normalized into "->" form); member_locator is a locator for the member
@@ -1742,7 +1742,7 @@ static void do_field_selection_operation(
 /*
 Construct the result operand for a field selection operation.  The left
 operand (the class/struct/union) is given by operand_1.  The type
-of the class/struct/union (before C++ downward casts, if any) is given
+of the class/struct/union (before C++ baseward casts, if any) is given
 by class_struct_union_type; it provides the type qualifiers that should
 be attached to the result expression.  The operator is "->" if
 *is_arrow_operator is TRUE, "." otherwise.  field_sym points to the symbol

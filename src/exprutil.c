@@ -1293,7 +1293,7 @@ invalid casts of that kind (e.g., ambiguous).
 */
 {
   a_type_ptr       old_type = (*p_node)->type, new_type_pointed_to;
-  a_boolean        downward_cast;
+  a_boolean        baseward_cast;
   a_base_class_ptr bcp;
 
   /* Make sure the next field of the node is cleared.  The caller must 
@@ -1301,11 +1301,11 @@ invalid casts of that kind (e.g., ambiguous).
      because we can't link a previous expression in a list to this
      new expression). */
   (*p_node)->next = NULL;
-  if (related_class_pointers(old_type, new_type, &downward_cast, &bcp)) {
+  if (related_class_pointers(old_type, new_type, &baseward_cast, &bcp)) {
     /* C++ cast from a pointer to a class to a pointer to a related
        (base or derived) class. */
     new_type_pointed_to = type_pointed_to(new_type);
-    if (downward_cast) {
+    if (baseward_cast) {
       /* Derived --> base.  Valid unless the cast is ambiguous or
          the base class is inaccessible. */
       add_base_class_casts(bcp, new_type_pointed_to,
@@ -1316,11 +1316,11 @@ invalid casts of that kind (e.g., ambiguous).
          class is a virtual base of the derived class. */
       add_derived_class_casts(new_type_pointed_to, bcp, p_node, err_pos);
     }  /* if */
-  } else if (related_member_pointers(old_type, new_type, &downward_cast,
+  } else if (related_member_pointers(old_type, new_type, &baseward_cast,
                                      &bcp)) {
     /* C++ cast from pointer-to-member to
        pointer-to-member-of-related-class. */
-    if (downward_cast) {
+    if (baseward_cast) {
       /* Derived --> base (allowed only as an explicit cast).  Valid unless
          the cast is ambiguous. */
       add_pm_base_class_casts(bcp, p_node, err_pos);

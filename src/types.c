@@ -991,12 +991,12 @@ a base class of class_1.  Only called in C++ mode.
 
 a_boolean f_related_class_pointers(a_type_ptr       type_1,
                                    a_type_ptr       type_2,
-                                   a_boolean        *downward_cast,
+                                   a_boolean        *baseward_cast,
                                    a_base_class_ptr *bcp)
 /*
 type_1 and type_2 are pointer types.  Check to see if they are pointers to
 related class types, and return TRUE if so.  If they are, set *downcard_cast
-if type_1 --> type_2 is a downward cast, and set *bcp to point to the base
+if type_1 --> type_2 is a baseward cast, and set *bcp to point to the base
 class entry that shows the relationship.  Called from the macro
 related_class_pointers.
 */
@@ -1004,7 +1004,7 @@ related_class_pointers.
   a_boolean  related_classes = FALSE;
   a_type_ptr type_1_pointed_to, type_2_pointed_to;
 
-  *downward_cast = FALSE;
+  *baseward_cast = FALSE;
   *bcp = NULL;
   type_1_pointed_to = type_pointed_to(type_1);
   type_2_pointed_to = type_pointed_to(type_2);
@@ -1015,7 +1015,7 @@ related_class_pointers.
     if ((*bcp = find_base_class_of(type_1_pointed_to,
                                    type_2_pointed_to)) != NULL) {
       related_classes = TRUE;
-      *downward_cast = TRUE;
+      *baseward_cast = TRUE;
     } else if ((*bcp = find_base_class_of(type_2_pointed_to,
                                           type_1_pointed_to)) != NULL) {
       related_classes = TRUE;
@@ -1027,12 +1027,12 @@ related_class_pointers.
 
 a_boolean f_rel_member_pointers(a_type_ptr       type_1,
                                 a_type_ptr       type_2,
-                                a_boolean        *downward_cast,
+                                a_boolean        *baseward_cast,
                                 a_base_class_ptr *bcp)
 /*
 type_1 and type_2 are pointer to member types.  Check to see if they are
 pointers to related class types, and return TRUE if so.  If they are,
-set *downcard_cast if type_1 --> type_2 is a downward cast, and set *bcp
+set *downcard_cast if type_1 --> type_2 is a baseward cast, and set *bcp
 to point to the base class entry that shows the relationship.  Note that
 the member types are not compared.  Called from the macro
 related_member_pointers.
@@ -1041,14 +1041,14 @@ related_member_pointers.
   a_boolean  related_pointers = FALSE;
   a_type_ptr class_1, class_2;
 
-  *downward_cast = FALSE;
+  *baseward_cast = FALSE;
   *bcp = NULL;
   /* See if the classes are related. */
   class_1 = pm_class_type(type_1);
   class_2 = pm_class_type(type_2);
   if ((*bcp = find_base_class_of(class_1, class_2)) != NULL) {
     related_pointers = TRUE;
-    *downward_cast = TRUE;
+    *baseward_cast = TRUE;
   } else if ((*bcp = find_base_class_of(class_2, class_1)) != NULL) {
     related_pointers = TRUE;
   }  /* if */

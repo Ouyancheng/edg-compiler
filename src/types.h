@@ -134,30 +134,30 @@ extern a_boolean is_same_class_or_base_class_thereof(a_type_ptr class_1,
                                                      a_type_ptr class_2);
 extern a_boolean f_related_class_pointers(a_type_ptr       type_1,
                                           a_type_ptr       type_2,
-                                          a_boolean        *downward_cast,
+                                          a_boolean        *baseward_cast,
                                           a_base_class_ptr *bcp);
 /*
 Return TRUE if type_1 and type_2 are related class pointers.  If they
-are, set *downward_cast if type_1 --> type_2 is a downward cast, and
+are, set *baseward_cast if type_1 --> type_2 is a baseward cast, and
 set *bcp to point to the base class entry that shows the relationship.
 */
-#define related_class_pointers(type_1, type_2, downward_cast, bcp)    \
+#define related_class_pointers(type_1, type_2, baseward_cast, bcp)    \
   (C_dialect == C_dialect_cplusplus &&                                \
    is_pointer_type(type_1) && is_pointer_type(type_2) &&              \
-   f_related_class_pointers(type_1, type_2, downward_cast, bcp))
+   f_related_class_pointers(type_1, type_2, baseward_cast, bcp))
 
 extern a_boolean f_rel_member_pointers(a_type_ptr       type_1,
                                        a_type_ptr       type_2,
-                                       a_boolean        *downward_cast,
+                                       a_boolean        *baseward_cast,
                                        a_base_class_ptr *bcp);
 /*
 Return TRUE if type_1 and type_2 are related pointers to members.  If they
-are, set *downward_cast if type_1 --> type_2 is a downward cast, and
+are, set *baseward_cast if type_1 --> type_2 is a baseward cast, and
 set *bcp to point to the base class entry that shows the relationship.
 */
-#define related_member_pointers(type_1, type_2, downward_cast, bcp)   \
+#define related_member_pointers(type_1, type_2, baseward_cast, bcp)   \
   (is_ptr_to_member_type(type_1) && is_ptr_to_member_type(type_2) &&  \
-   f_rel_member_pointers(type_1, type_2, downward_cast, bcp))
+   f_rel_member_pointers(type_1, type_2, baseward_cast, bcp))
 
 extern a_boolean type_masks_handler_param_type(a_type_ptr  type_1,
                                                a_type_ptr  type_2);
