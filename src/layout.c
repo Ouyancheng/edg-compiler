@@ -2267,10 +2267,10 @@ base class ends with a bit field.
                                                          targ_char_bit != 0) {
       /* The trailing base ends with a bit field that leaves some unused
          bits in its last byte. */
-      if (offset +
-              (last_field->offset_bit_remainder+last_field->bit_size)
-                                                               % targ_char_bit
-            < *end_of_object) {
+      a_targ_size_t  last_field_byte = offset + 1;
+      last_field_byte +=
+       (last_field->offset_bit_remainder+last_field->bit_size) / targ_char_bit;
+      if (last_field_byte + btp->alignment <= *end_of_object) {
         /* The trailing bit field actually triggered the GNU bit field
            overpadding bug.  In that case, more bytes are trimmed, but one
            byte of overpadding remains nonetheless. */
