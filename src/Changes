@@ -1,5 +1,21 @@
 Version 3.6
 
+
+1/25/05  GNU C++ compatibility: Extraneous qualifier on member declarations
+
+In most nonstrict modes (including GNU C++ mode), the front end accepts
+class member declarations with an extra class qualifier representing the
+enclosing class.  For example:
+
+  struct S { void S::f() {} };  // Accepted in most nonstrict modes.
+
+Now, the extra qualifier is also accepted (with a warning) for member
+template declarations in GNU C++ mode.  For example:
+
+  struct X {
+    template<typename T> void S::f() {}  // Accepted in GNU C++ mode.
+  };
+
 1/25/05  Temporary destroyed wrong in generated operator= function
 
 The code generated for an operator= function in a class

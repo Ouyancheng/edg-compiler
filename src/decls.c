@@ -8536,7 +8536,8 @@ This routine is called in C++ only.
 This functionality is provided to deal with declarations of class members
 where a qualified name is used instead of a simple name, e.g., when a
 constructor for class A is declared A::A() rather than A().  This is
-nonstandard, but it is allowed by cfront.
+nonstandard, but it is allowed by cfront and other compilers.  GNU C++
+also allows this for member templates.
 */
 {
   a_boolean                is_member_id = FALSE;
@@ -8544,6 +8545,11 @@ nonstandard, but it is allowed by cfront.
 
   db_enter(3, "simplify_curr_class_qualified_name");
 
+  if (gpp_mode && ssep->kind == (a_scope_kind)sck_template_declaration) {
+    /* In GNU mode, the simplification is also performed for the declarators
+       of member templates. */
+    --ssep;
+  }  /* if */
   if (ssep->kind == (a_scope_kind)sck_class_struct_union &&
       is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL) &&
       locator_for_curr_id.is_qualified_name) {
