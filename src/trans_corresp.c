@@ -81,12 +81,6 @@ Return TRUE if type has a definition.
 }  /* type_has_definition */
 
 
-#define has_correspondence(ptr)                                        \
-  (in_secondary_trans_unit(ptr ) &&                                    \
-   trans_unit_corresp_pointer_of(ptr) != NULL &&                       \
-   trans_unit_corresp_pointer_of(ptr) != (char*)(ptr))
-
-
 char* f_canonical_il_entry_of(char *il_entry)
 /*
 Return the canonical IL entry for the given entry.  This is the entry itself

@@ -31,8 +31,18 @@ EXTERN a_boolean
 
 extern char* f_canonical_il_entry_of(char *il_entry);
 
+/* Return the canonical entry associated with the indicated IL entry. */
 #define canonical_il_entry_of(ptr)                                     \
   (f_canonical_il_entry_of((char*)(ptr)))
+
+
+/* Return TRUE if the indicated entry has a correspondence set (it
+   has a correspondence pointer, the pointer is set, and it doesn't
+   point to itself). */
+#define has_correspondence(ptr)                                        \
+  (in_secondary_trans_unit(ptr) &&                                     \
+   trans_unit_corresp_pointer_of(ptr) != NULL &&                       \
+   trans_unit_corresp_pointer_of(ptr) != (char*)(ptr))
 
 
 extern void f_report_bad_trans_unit_corresp(char                   *entity1,

@@ -1119,8 +1119,7 @@ ptr points to an entity of kind "kind" that has a source correspondence field.
 Check that if the member has a correspondence its parents do too.
 */
 {
-  if (trans_unit_corresp_pointer_of(ptr) != NULL &&
-      trans_unit_corresp_pointer_of(ptr) != ptr &&
+  if (has_correspondence(ptr) &&
       /* Ignore extern "C" functions because when they are in
          namespaces the parent information is weird. */
       (kind != (an_il_entry_kind)iek_routine || C_mode() ||
@@ -1138,8 +1137,7 @@ Check that if the member has a correspondence its parents do too.
       } else {
         break;
       }  /* if */
-      if (!(trans_unit_corresp_pointer_of(scp) != NULL &&
-            trans_unit_corresp_pointer_of(scp) != (char *)scp)) {
+      if (!has_correspondence(scp)) {
 #if DEBUG
         db_entity_info(ptr, kind);
         db_entity_info((char *)scp, parent_kind);
@@ -1415,9 +1413,9 @@ the lists.
       /* If we need the type of this variable, the type of the corresponding
          variable can be used. */
       if (in_secondary_trans_unit(variable->type) &&
-          !has_corresp(variable->type)) {
+          !has_correspondence(variable->type)) {
         checked_trans_unit_corresp_pointer_of(variable->type) =
-                                                (char *)corresp_variable->type;
+                                 canonical_il_entry_of(corresp_variable->type);
       }  /* if */
     }  /* if */
   }  /* for */
@@ -1510,11 +1508,11 @@ the lists.
         prev_routine->next = routine->next;
       }  /* if */
       /* If we need the type of this routine, the type of the corresponding
-         variable can be used. */
+         routine can be used. */
       if (in_secondary_trans_unit(routine->type) &&
-          !has_corresp(routine->type)) {
+          !has_correspondence(routine->type)) {
         checked_trans_unit_corresp_pointer_of(routine->type) =
-                                                 (char *)corresp_routine->type;
+                                  canonical_il_entry_of(corresp_routine->type);
       }  /* if */
 #if MAINTAIN_NEEDED_FLAGS
       /* The routine will not be copied over, so eliminate any
