@@ -446,23 +446,18 @@ a new symbol is created and entered in the symbol table.
   db_enter(3, "decl_parameter");
   /* Choose the type to use, the one in the param-type entry or the one in
      the param-id entry.  Usually, they will be the same. */
-#if !GENERATE_SOURCE_SEQUENCE_LISTS
   if (function_instantiation) {
     /* For template functions being instantiated the type pointed to by the
        param-id may include a template parameter, so use the type in
        param-type entry, which will be the result of the template arg
-       substitution.  (If source sequence lists are generated, the param-id
-       will already be substituted and no special processing is needed.) */
+       substitution. */
     tp = ptp->type;
     if (remove_qualifiers_from_param_types) {
       /* If top-level qualifiers were stripped off the param-type type,
          restore them in the parameter variable's type. */
       tp = make_qualified_type(tp, ptp->qualifiers);
     }  /* if */
-  } else
-#endif /* !GENERATE_SOURCE_SEQUENCE_LISTS */
-  /* Do not insert code here. */
-  {
+  } else {
     /* In cases other than template instantiations, use the param-id type,
        since it will be the one actually used in the function definition,
        whereas the type in the param-type entry may be a composite type, as
@@ -490,9 +485,34 @@ a new symbol is created and entered in the symbol table.
   /* Create the parameter variable. */
   vp = make_param_variable(tp, param_id->storage_class);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
+  if (!function_instantiation) {
     /* Record the type exactly as it was declared (before array-to-pointer
-       decay, etc.). */
+       decay, etc.).  This is done only for parameters of functions that
+       are declared explicitly; template functions are handled specially
+       because the param_id entry is the one associated with the template
+       declaration and may involve template parameter types. */
     vp->declared_type = param_id->declared_type;
+  } else {
+    /* The declared type of a template instance can be inferred from the
+       declared type in the param-id entry (from the template declaration)
+       and from the param-type entry (now recorded in tp). */
+    if (is_error_type(tp)) {
+      /* Avoid problems on error cases. */
+    } else if (is_function_type(param_id->declared_type)) {
+      /* Undo the change of a function type to pointer-to-function type. */
+      check_assertion(is_pointer_type(tp) &&
+                      is_function_type(type_pointed_to(tp)));
+      vp->declared_type = type_pointed_to(tp);
+    } else if (is_array_type(param_id->declared_type)) {
+      /* Undo array-to-pointer decay. */
+      check_assertion(is_pointer_type(tp));
+      vp->declared_type = alloc_type((a_type_kind)tk_array);
+      vp->declared_type->variant.array.element_type = type_pointed_to(tp);
+    } else {
+      /* No change required. */
+      vp->declared_type = tp;
+    }  /* if */
+  }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   add_to_parameters_list(vp);
   sym = param_id->symbol;
@@ -800,23 +820,7 @@ and for the instantiation of template functions.
         }  /* for */
       }  /* if */
     }  /* if */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-    if (is_instantiation) {
-      /* When source sequence list generation is enabled, we save the param-id
-         list of the instantiation.  This allows a meaningful record of the
-         declared_type information later on.  If that record is unneeded, the
-         param-id list of the template suffices. */
-      a_symbol_ptr  rout_sym =
-                            (a_symbol_ptr)rout_ptr->source_corresp.assoc_info;
-      a_template_instance_ptr  tip = rout_sym->variant.routine.instance_ptr;
-      param_id = tip->param_id_list != NULL ? tip->param_id_list
-                                            : func_info->param_id_list;
-    } else
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    /* Do not insert code here. */
-    {
-      param_id = func_info->param_id_list;
-    }
+    param_id = func_info->param_id_list;
     ptp = rtsp->param_type_list;
     /* Be sure param-id and param-type lists are in sync. */
     check_assertion((param_id == NULL) == (ptp == NULL));

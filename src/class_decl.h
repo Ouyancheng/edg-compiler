@@ -52,9 +52,7 @@ extern a_symbol_ptr class_member_template_declaration(
                                      a_template_param_ptr  templ_param_list,
                                      a_decl_pos_block_ptr  decl_pos_block_ptr);
 
-extern a_type_ptr rescan_member_template_declaration(
-                                           a_type_ptr               class_type,
-                                           a_template_instance_ptr  instance);
+extern a_type_ptr rescan_member_template_declaration(a_type_ptr  class_type);
 
 extern a_boolean scan_class_definition(
                                    a_type_ptr       class_type,

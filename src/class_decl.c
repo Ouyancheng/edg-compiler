@@ -10024,14 +10024,13 @@ member.  Determine whether a diagnostic is actually required and put it out.
 
 
 static a_symbol_ptr class_member_declaration(
-                      a_type_ptr               class_type,
-                      a_class_def_state_ptr    class_state,
-                      a_boolean                is_member_template,
-                      a_template_param_ptr     templ_param_list,
-                      a_boolean                *skip_semicolon_check,
-                      a_type_ptr               *member_template_instance_type,
-                      a_template_instance_ptr  instance,
-                      a_decl_pos_block_ptr     decl_pos_block_ptr)
+                        a_type_ptr             class_type,
+                        a_class_def_state_ptr  class_state,
+                        a_boolean              is_member_template,
+			a_template_param_ptr   templ_param_list,
+                        a_boolean              *skip_semicolon_check,
+                        a_type_ptr             *member_template_instance_type,
+                        a_decl_pos_block_ptr   decl_pos_block_ptr)
 /*
 Scan a member declaration appearing inside a class definition.  class_type
 is the type of the class.  class_state points to a block of information
@@ -10442,16 +10441,6 @@ to be returned to the caller.
       } else if (is_member_template_rescan) {
         *member_template_instance_type = local_type;
         remove_stop_token(tok_comma);
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-        /* Set the declared type immediately, before the func_info block is
-           discarded. */
-        instance->declared_type = func_info.declared_type;
-        /* Also save the parameter-id list to later reconstruct the declared
-           types of parameters for the associated parameter variables. */
-        instance->param_id_list = func_info.param_id_list;
-        /* Clear the func_info field to prevent deallocation: */
-        func_info.param_id_list = NULL;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         goto next_declaration;
       } else if (is_member_template) {
         /* Process the member function template. */
@@ -10809,8 +10798,7 @@ is the template parameter list for the function template.
   sym = class_member_declaration(class_type, class_state_ptr,
                                  /*is_member_template=*/TRUE,
                                  templ_param_list, &skip_semicolon_check,
-                                 &dummy_type, /*instance=*/NULL,
-                                 decl_pos_block_ptr);
+                                 &dummy_type, decl_pos_block_ptr);
   if (curr_routine_fixup != NULL) dispose_of_curr_routine_fixup();
   if (sym == NULL) {
     /* An error has already been issued. */
@@ -10827,9 +10815,7 @@ is the template parameter list for the function template.
 }  /* class_member_template_declaration */
 
 
-a_type_ptr rescan_member_template_declaration(
-                                          a_type_ptr               class_type,
-                                          a_template_instance_ptr  instance)
+a_type_ptr rescan_member_template_declaration(a_type_ptr  class_type)
 /*
 The current token is the start of a member template function declaration
 which is being rescanned as part of its instantiation.  class_type is the
@@ -10852,7 +10838,7 @@ decl_specifiers and declarator) is returned.
                                  /*is_member_template=*/FALSE,
                                  (a_template_param_ptr)NULL,
                                  &skip_semicolon_check,
-                                 &member_template_instance_type, instance,
+                                 &member_template_instance_type,
                                  (a_decl_pos_block *)NULL);
   curr_routine_fixup = saved_routine_fixup;
   db_exit();
@@ -11484,8 +11470,7 @@ nested classes when their definition appears outside of the class template.
         (void)class_member_declaration(class_type, &class_state,
                                        /*is_template_member=*/FALSE,
                                        (a_template_param_ptr)NULL,
-                                       &skip_semicolon_check,
-                                       &dummy_type, /*instance=*/NULL,
+                                       &skip_semicolon_check, &dummy_type,
                                        (a_decl_pos_block *)NULL);
         if (!skip_semicolon_check) {
           /* Check for and ignore the semicolon following the member

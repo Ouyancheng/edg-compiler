@@ -6205,7 +6205,7 @@ is the template instance record associated with the instance.
   a_type_ptr		instance_type;
 
   add_stop_token(tok_end_of_source);
-  instance_type = rescan_member_template_declaration(parent_class, tip);
+  instance_type = rescan_member_template_declaration(parent_class);
   remove_stop_token(tok_end_of_source);
   /* The rescan of the declaration should have produced a routine
      type.  If not all of the tokens were used, or if the type created
@@ -6360,6 +6360,10 @@ type based on the template argument list and the template parameter list
       (void)get_token();
     } else if (parent_class != NULL) {
       rout_type = scan_member_declaration(parent_class, templ_rout, tip);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      tip->declared_type =
+            form_declared_type(rout_type, &tssp->variant.function.func_info);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if 0
       /* We should get the locator position returned. */
 #endif /* 0 */
@@ -6387,11 +6391,6 @@ type based on the template argument list and the template parameter list
       /* Set the declared type immediately, before the func_info block is
          discarded. */
       tip->declared_type = form_declared_type(rout_type, &func_info);
-      /* Also save the parameter-id list to later reconstruct the declared
-         types of parameters for the associated parameter variables. */
-      tip->param_id_list = func_info.param_id_list;
-      /* Clear the func_info field to prevent deallocation: */
-      func_info.param_id_list = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       done_with_func_info(func_info);
 #if DECL_MODIFIERS_IN_USE
