@@ -4200,7 +4200,8 @@ specification allow a variable-sized array as the top type.
       dyn_init_to_free_storage =
                         alloc_expr_dynamic_init((a_dynamic_init_kind)dik_none);
       dyn_init_to_free_storage->destructor = delete_routine;
-      dyn_init_to_free_storage->is_freeing_of_storage_on_exception=TRUE;
+      dyn_init_to_free_storage->has_temporary_lifetime = TRUE;
+      dyn_init_to_free_storage->is_freeing_of_storage_on_exception = TRUE;
       record_end_of_lifetime_destruction(dyn_init_to_free_storage,
                                          /*static_lifetime=*/FALSE);
     }  /* if */
