@@ -2299,7 +2299,7 @@ exclude the GNU C mode already.  Hence those are not checked again here.)
   alternative_tokens_allowed = TRUE;
   /* Treat "long long" as a standard feature. */
   long_long_is_standard = TRUE;
-  long_long_promotion_allowed = TRUE;
+  long_long_promotion_allowed = FALSE;
   /* Hexadecimal floating point constants are permitted. */
   hex_floating_point_constants_allowed = TRUE;
 }  /* check_and_set_gcc_mode_options */
