@@ -353,6 +353,12 @@ pch_test_mode=0
 #
 trans_unit_test_mode=0
 #
+# Another special mode for translation unit testing.  This one compiles
+# the file as a secondary file then renames the output file to the
+# expected name.
+compile_as_secondary=0
+dummy_primary_file_name=
+#
 # Indicates that multiple files should be compiled as translation units
 # of a single compilation
 #
@@ -477,6 +483,7 @@ check_abbreviation()
 --command
 --comments
 --compile
+--compile_as_secondary_trans_unit
 --compound_literals
 --const_string_literals
 --cpfe_only
@@ -911,6 +918,10 @@ process_option()
 #     Special option for testing multiple translation unit processing
       trans_unit_test_mode=1
       feoptions=$feoptions" $curr_arg"
+      ;;
+    --compile_as_secondary_trans_unit)
+#     Special mode that compiles the specified file as a secondary file
+      compile_as_secondary=1
       ;;
     --old_ii_format)
 #     Use the old .ii file format that does not include the current directory
@@ -1539,6 +1550,18 @@ if [ $multi_trans_unit -ne 0 ] ; then
   more_than_one_c_file=0
 fi
 #
+# If we are compiling the primary file as a secondary one, generate a
+# dummy file to be used as the primary file.
+#
+if [ $compile_as_secondary -ne 0 ] ; then
+  dummy_primary_file_name=$TMPDIR/dp$$
+  echo "int dummy_primary_filexxx=1;" >$dummy_primary_file_name
+  if [ $? -ne 0 ] ; then
+    echo $driver_name: could not create dummy primary file $dummy_primary_file_name.
+    exit 1
+  fi
+fi
+#
 # Run through the list of .c files and compile.
 #
 any_errors=0
@@ -1635,7 +1658,13 @@ do
       fi
     fi
   fi
-  command=${CPFE}" "$feoptions" "$gen_c_option" "$ii_file_option" "$ti_file_option" "$instantiation_dir_option" "$EDG_CPFE_DEFAULT_OPTIONS" "$cfile
+  command=${CPFE}" "$feoptions" "$gen_c_option" "$ii_file_option" "$ti_file_option" "$instantiation_dir_option" "$EDG_CPFE_DEFAULT_OPTIONS
+  if [ $compile_as_secondary -ne 0 ] ; then
+    # Append the dummy primary file name.
+    command=$command" "$dummy_primary_file_name
+  fi
+  command=$command" "$cfile
+  # Append the name of the file to be compiled
   # Normally we just append the file to be compiled, but in multi_trans_unit
   # mode we append the list of files.
   if [ $multi_trans_unit -ne 0 ] ; then
@@ -1674,6 +1703,12 @@ do
     if [ ${EDG_SHOW_TRACEBACK-0} -gt 0 ] ; then
       show_traceback $CPFE
     fi
+  fi
+  #
+  # Remove the dummy primary file, if any.
+  #
+  if [ $compile_as_secondary -ne 0 ] ; then
+    rm -f $dummy_primary_file_name
   fi
   #
   # If we are doing automatic instantiation and if the program involves
