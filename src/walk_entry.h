@@ -819,6 +819,7 @@ the file scope, do not process it (but record an orphan in the latter case).
         /* "assoc_block" is done after the declarations. */
         walk_list(ptr->constants, a_constant_ptr, iek_constant);
 #ifdef CFE
+#if DO_SUBTREE_WALK
         if (walking_file_scope) {
           walk_list(ptr->types, a_type_ptr, iek_type);
           walk_list(ptr->variables, a_variable_ptr, iek_variable);
@@ -831,6 +832,12 @@ the file scope, do not process it (but record an orphan in the latter case).
           remap_ptr(ptr->types, a_type_ptr, iek_type);
           remap_ptr(ptr->variables, a_variable_ptr, iek_variable);
         }  /* if */
+#else /* !DO_SUBTREE_WALK */
+        /* Not walking subtrees.  Just remap the pointers.  Do not test
+           walking_file_scope, because it's not necessarily set correctly. */
+        remap_ptr(ptr->types, a_type_ptr, iek_type);
+        remap_ptr(ptr->variables, a_variable_ptr, iek_variable);
+#endif /* DO_SUBTREE_WALK */
         walk_list(ptr->nonstatic_variables, a_variable_ptr, iek_variable);
 #else /* ifndef CFE */
         walk_list(ptr->types, a_type_ptr, iek_type);
@@ -858,13 +865,11 @@ the file scope, do not process it (but record an orphan in the latter case).
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         walk_list(ptr->source_sequence_list, a_source_sequence_entry_ptr,
                   iek_source_sequence_entry);
-        if (!walking_file_scope) {
-          /* The src_seq_sublist_list, which appears only on function scopes,
-             is not walked at this time: it is handled during orphan list
-             processing. */
-          remap_ptr(ptr->src_seq_sublist_list, a_src_seq_sublist_ptr,
-                    iek_src_seq_sublist);
-        }  /* if */
+        /* The src_seq_sublist_list, which appears only on function scopes,
+           is not walked at this time: it is handled during orphan list
+           processing. */
+        remap_ptr(ptr->src_seq_sublist_list, a_src_seq_sublist_ptr,
+                  iek_src_seq_sublist);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       }
       break;
