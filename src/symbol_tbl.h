@@ -1215,7 +1215,7 @@ typedef struct a_template_param {
 			   as the actual argument of an instantiation when
 			   the actual argument corresponding to this parameter
 			   is omitted. */
-    /* When param_symbol->kind = sk_constant. */
+    /* When param_symbol->kind = sk_class_template. */
     a_template_ptr
 		templ;
 			/* Template that is the default value to be used
