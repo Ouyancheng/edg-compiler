@@ -398,6 +398,16 @@ Return TRUE if the type is a complete class, struct, or union type.
 }  /* is_complete_class_struct_union_type */
 
 
+a_boolean is_union_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is a union type.
+*/
+{
+  tp = skip_typerefs(tp);
+  return is_union(tp);
+}  /* is_class_struct_union_type */
+
+
 a_boolean is_illegal_abstract_class_type(a_type_ptr  tp)
 /*
 There are certain restrictions on the use of an abstract class type.
