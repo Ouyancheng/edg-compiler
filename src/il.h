@@ -62,6 +62,7 @@ typedef enum /*an_il_entry_kind*/ {
   iek_field,		/* a_field */
   iek_throw_specification,
 			/* a_throw_specification */
+  iek_throw_spec_type,	/* a_throw_spec_type */
 #endif /* ifdef CIL */
   iek_routine,		/* a_routine */
   iek_label,		/* a_label */
@@ -134,7 +135,8 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 /* iek_variable */			"variable",
 #ifdef CIL
 /* iek_field */				"field",
-/* iek_throw_specification */           "throw_specification",
+/* iek_throw_specification */		"throw-specification",
+/* iek_throw_spec_type */		"throw-spec-type",
 #endif /* ifdef CIL */
 /* iek_routine */			"routine",
 /* iek_label */				"label",
@@ -401,8 +403,9 @@ extern a_variable_ptr alloc_temporary_variable(a_type_ptr temp_type);
 
 extern a_field_ptr alloc_field(void);
 
-extern a_throw_specification_ptr alloc_throw_specification(
-                                                     a_throw_spec_kind kind);
+extern a_throw_specification_ptr alloc_throw_specification(void);
+
+extern a_throw_spec_type_ptr alloc_throw_spec_type(void);
 
 extern a_routine_ptr alloc_routine(void);
 
