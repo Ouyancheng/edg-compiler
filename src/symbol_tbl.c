@@ -5125,7 +5125,8 @@ End a name scope by popping an entry off the scope stack.
     } else {
       /* Restore the values from the previous instantiation. */
       /* Restore the parameters. */
-      update_template_param_symbols(template_sym, ssep->template_arg_list);
+      update_template_param_symbols(template_sym,
+                                    scope_stack[prev_depth].template_arg_list);
     }  /* if */
     /* Update the depth of the innermost instantiation in the template
        symbol supplement. */
