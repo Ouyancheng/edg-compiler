@@ -5231,69 +5231,143 @@ Return a pointer to the variable that is declared.
 
 void namespace_declaration(a_boolean  extern_implied)
 /*
+Scan a namespace declaration, which may be an original namespace definition,
+an extension namespace definition, an unnamed namespace definition, or a
+namespace alias definition.  The syntax is:
+
+  original-namespace-definition:
+    namespace identifier { namespace-body }
+
+  extension-namespace-definition:
+    namespace original-namespace-name { namespace-body }
+
+  unnamed-namespace:
+    namespace { namespace-body }
+
+  namespace-alias-definition:
+    namespace identifier = qualified-namespace-specifier;
+
+extern_implied is TRUE when this declaration is inside a linkage specification
+block.
 */
 {
   a_source_position           namespace_pos;
   a_namespace_ptr             nsp;
-  a_symbol_ptr                sym;
+  a_symbol_ptr                ns_sym = NULL, sym;
   a_symbol_locator            locator;
   a_boolean                   is_unnamed_namespace = FALSE;
   a_boolean                   is_namespace_alias = FALSE;
   a_scope_pointers_block_ptr  pointers_block;
+  a_boolean                   err = FALSE;
 
+  /* Save the source position of the declaration. */
   namespace_pos = pos_curr_token;
+  /* Bypass "namespace". */
   (void)get_token();
-  if (curr_token == tok_identifier) {
-    locator = locator_for_curr_id;
-    if (next_token() == tok_assign) is_namespace_alias = TRUE;
-  } else {
+  if (curr_token == tok_lbrace) {
+    /* This must be an unnamed namespace definition. */
     is_unnamed_namespace = TRUE;
-  }  /* if */
-  if (!is_namespace_alias) {
-    if (depth_scope_stack != DEPTH_OF_FILE_SCOPE &&
-        scope_stack[depth_scope_stack].kind != (a_scope_kind)sck_namespace) {
-      pos_error(ec_namespace_decl_not_allowed, &namespace_pos);
+  } else {
+    if (curr_token != tok_identifier) {
+      add_stop_token(tok_semicolon);
+      add_stop_token(tok_lbrace);
+      (void)required_token(tok_identifier, ec_exp_identifier);
       set_to_error_locator(locator);
+      remove_stop_token(tok_semicolon);
+      remove_stop_token(tok_lbrace);
+    } else {
+      /* Save the identifier's locator before bypassing it. */
+      locator = locator_for_curr_id;
+      if (get_token() == tok_assign) {
+        /* This must be a namespace alias definition. */
+        is_namespace_alias = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (depth_scope_stack != depth_innermost_namespace_scope) {
+    /* The current scope is not the file scope or a namespace scope. */
+    if (!is_namespace_alias) {
+      /* This is a namespace definition of some sort, which can only occur
+         in a file or namespace scope. */
+      pos_error(ec_namespace_def_not_allowed, &namespace_pos);
+      set_to_error_locator(locator);
+      err = TRUE;
+    } else {
+      /* This is a namespace alias definition, which can also occur in
+         function and block scopes. */
+      if (scope_stack[depth_scope_stack].kind != (a_scope_kind)sck_function &&
+          scope_stack[depth_scope_stack].kind != (a_scope_kind)sck_block) {
+        pos_error(ec_namespace_alias_def_not_allowed, &namespace_pos);
+        set_to_error_locator(locator);
+        err = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (is_unnamed_namespace) {
-    pointers_block = assoc_pointers_block_of(&scope_stack[depth_scope_stack]);
-    sym = pointers_block->unnamed_namespace_sym;
-    if (sym == NULL) {
-      sym = make_unnamed_namespace_symbol(&pos_curr_token);
-      pointers_block->unnamed_namespace_sym = sym;
-    }  /* if */
-  } else {
-    sym = curr_scope_id_lookup(&locator, IDL_NO_OPTIONS);
-    if (sym != NULL) {
-      if (sym->kind != (a_symbol_kind)sk_namespace) {
-        str_error(ec_id_already_declared, locator.symbol_header->identifier);
-        sym = NULL;
+    /* No identifier -- this is an unnamed namespace definition. */
+    if (!err) {
+      /* See if this is its first definition in the current scope or if this
+         is an extension. */
+      pointers_block =
+                  assoc_pointers_block_of(&scope_stack[depth_scope_stack]);
+      ns_sym = pointers_block->unnamed_namespace_sym;
+      if (ns_sym == NULL) {
+        /* This is the first definition.  Create the symbol. */
+        ns_sym = make_unnamed_namespace_symbol(&pos_curr_token);
+        pointers_block->unnamed_namespace_sym = ns_sym;
+      } else {
+        /* A definition for the unnamed namespace has already appeared.  This
+           definition will extend it, so reuse the symbol that was found. */
       }  /* if */
     }  /* if */
-    if (sym == NULL) {
-      sym = enter_symbol((a_symbol_kind)sk_namespace, &locator,
-                         depth_scope_stack, /*suppress_redecl_error=*/FALSE);
+  } else {
+    /* A named namespace definition or a namespace alias.  Lookup the
+       identifier (which should be the current token) and see if it is
+       already a namespace name in the current scope. */
+    if (!err) {
+      ns_sym = curr_scope_id_lookup(&locator, IDL_NO_OPTIONS);
+      if (ns_sym != NULL) {
+        /* A name was found in the current scope. */
+        if (ns_sym->kind != (a_symbol_kind)sk_namespace) {
+          str_error(ec_id_already_declared, locator.symbol_header->identifier);
+        }  /* if */
+        ns_sym = NULL;
+      }  /* if */
     }  /* if */
-    /* Bypass the identifier. */
-    (void)get_token();
+    if (ns_sym == NULL) {
+      /* Create a namespace symbol. */
+      ns_sym = enter_symbol((a_symbol_kind)sk_namespace, &locator,
+                            depth_scope_stack, /*suppress_redecl_error=*/TRUE);
+    }  /* if */
   }  /* if */
   if (is_namespace_alias) {
     /* Bypass the "=". */
     (void)get_token();
     add_stop_token(tok_semicolon);
     if (!is_qualified_name_start()) {
+      /* A namespace alias definition requires a (possibly qualified)
+         namespace or class name to the right of the "=". */
       syntax_error(ec_exp_identifier);
     } else {
-      a_boolean     err;
-      a_symbol_ptr  ns_sym;
-
-      ns_sym = coalesce_and_lookup_generalized_identifier(GID_NO_OPTIONS,
-                                                          ilm_normal, &err);
+      /* Look up the namespace specifier. */
+      sym = coalesce_and_lookup_generalized_identifier(GID_NO_OPTIONS,
+                                                        ilm_normal, &err);
       if (!err) {
-        if (ns_sym == NULL || ns_sym->kind != (a_symbol_kind)sk_namespace) {
+        if (sym == NULL || sym->kind != (a_symbol_kind)sk_namespace) {
+          /* Either nothing was found or what was found was not a namespace. */
           error(ec_missing_namespace_name);
-        } else if (sym != NULL) {
+        } else {
+          /* Create a namespace entry to represent the alias.  It will point
+             to the namespace entry that was just looked up. */
+          nsp = alloc_namespace(/*is_alias=*/TRUE);
+          nsp->variant.assoc_namespace = sym->variant.namespace_info.ptr;
+          set_source_corresp(&nsp->source_corresp, ns_sym);
+          set_namespace_membership(ns_sym, &nsp->source_corresp,
+                                   (a_namespace_ptr)NULL);
+          ns_sym->variant.namespace_info.ptr = nsp;
+          ns_sym->variant.namespace_info.extra_info =
+                                       alloc_namespace_symbol_supplement();
+          add_to_namespaces_list(nsp);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -5302,24 +5376,27 @@ void namespace_declaration(a_boolean  extern_implied)
   } else {
     /* Namespace definition. */
     if (required_token(tok_lbrace, ec_exp_lbrace)) {
-      if (sym->variant.namespace_info.ptr == NULL) {
+      if (ns_sym->variant.namespace_info.ptr == NULL) {
         /* Original definition. */
         nsp = alloc_namespace(/*is_alias=*/FALSE);
-        set_source_corresp(&nsp->source_corresp, sym);
+        set_source_corresp(&nsp->source_corresp, ns_sym);
         if (is_unnamed_namespace) nsp->source_corresp.name = NULL;
-        set_namespace_membership(sym, &nsp->source_corresp,
+        set_namespace_membership(ns_sym, &nsp->source_corresp,
                                  (a_namespace_ptr)NULL);
-        sym->variant.namespace_info.ptr = nsp;
-        sym->variant.namespace_info.extra_info =
+        ns_sym->variant.namespace_info.ptr = nsp;
+        ns_sym->variant.namespace_info.extra_info =
                                        alloc_namespace_symbol_supplement();
         add_to_namespaces_list(nsp);
+        /* Push a scope for the scanning the namespace body. */
         (void)push_namespace_scope((a_scope_kind)sck_namespace, nsp);
         nsp->variant.assoc_scope->variant.assoc_namespace = nsp;
       } else {
-        /* Supplementary defintion. */
-        nsp = sym->variant.namespace_info.ptr;
+        /* An extension of the original defintion of this namespace -- push
+           a scope for the scanning the namespace body. */
+        nsp = ns_sym->variant.namespace_info.ptr;
         (void)push_namespace_scope((a_scope_kind)sck_namespace_extension, nsp);
       }  /* if */
+      /* Scan the namespace body. */
       add_stop_token(tok_rbrace);
       while (curr_token != tok_rbrace && curr_token != tok_end_of_source) {
         declaration(/*function_definition_allowed=*/TRUE, extern_implied,
@@ -5328,6 +5405,7 @@ void namespace_declaration(a_boolean  extern_implied)
       }  /* while */
       remove_stop_token(tok_rbrace);
       (void)required_token(tok_rbrace, ec_exp_rbrace);
+      /* Pop the namespace or namespace-extension scope. */
       pop_scope();
     }  /* if */
   }  /* if */
@@ -5389,12 +5467,12 @@ void using_declaration()
   if (!is_qualified_name_start()) {
     syntax_error(ec_exp_identifier);
   } else {
-    a_symbol_ptr               sym;
     a_boolean                  err = FALSE;
 
-    sym = coalesce_and_lookup_generalized_identifier(GID_NO_OPTIONS,
+    (void)coalesce_and_lookup_generalized_identifier(GID_NO_OPTIONS,
                                                      ilm_normal, &err);
     (void)get_token();
+    
   }  /* if */
   remove_stop_token(tok_semicolon);
   required_token(tok_semicolon, ec_exp_semicolon);
