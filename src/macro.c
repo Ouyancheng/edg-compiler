@@ -3597,7 +3597,7 @@ command line -D options.
                                             /*ref_suppresses_pch_file=*/FALSE);
   file_macro_symbol    = enter_predef_macro((char *)NULL, "__FILE__",
                                             /*cannot_be_redefined=*/TRUE,
-                                            /*ref_suppresses_pch_file=*/FALSE);
+                                            /*ref_suppresses_pch_file=*/TRUE);
   defined_macro_symbol = enter_predef_macro((char *)NULL, "defined",
                                             /*cannot_be_redefined=*/TRUE,
                                             /*ref_suppresses_pch_file=*/FALSE);
