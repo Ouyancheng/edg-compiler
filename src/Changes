@@ -1,6 +1,10 @@
 Version 2.31
 
-10/24/94  Recursive inclusion with -M and --implicit_include options
+10/25/95  C++-generating back end: mutable
+
+The C++-generating back end now outputs the "mutable" specifier.
+
+10/24/95  Recursive inclusion with -M and --implicit_include options
 
 When using implicit inclusion with source code that was not structured
 with implicit inclusion in mind, it was possible to create an
