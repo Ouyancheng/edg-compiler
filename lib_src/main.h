@@ -16,9 +16,6 @@ Declarations relating to main.c -- program startup and termination.
 #ifndef MAIN_H
 #define MAIN_H 1
 
-//#include <stddef.h>
-
-	
 /*
 The __linkl structure for each source module that has file scope initialization
 or termination routines.
