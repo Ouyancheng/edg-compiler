@@ -1,5 +1,27 @@
 Version 2.32
 
+3/23/96   IL CHANGE: new field for stmk_for statement
+
+The supplement for an stmk_for statement now contains a scope pointer.
+When (in C++ mode) the for-init-statement is a declaration, for_init_scope
+may non-null to point to an implicitly generated sck_block scope that
+surrounds the entire for-statement.  This enables support for the "new"
+scoping rules for for-init declarations (WP 6.5.3 [stmt.for]) -- e.g.,
+
+  int f(int j) {
+    int i = 0;
+    {
+      for (int i = 0; i < j; ++i) { }
+      return i;                 // In cfront mode, f returns the value of j,
+    }                           //   but the standard says to return 0.
+  }
+
+Global variable default_use_nonstandard_for_init_scope determines whether
+the standard-conforming or cfront-compatible rules are observed; its
+default value is DEFAULT_USE_NONSTANDARD_FOR_INIT_SCOPE, and it may be
+controlled on the command line by --old_for_variable_scope and
+--new_for_variable_scope.
+
 3/22/96   Bug in setting source-sequence entry for stmk_decl statement
 
 When GENERATE_SOURCE_SEQUENCE_LISTS and RECORD_MACROS_IN_IL were TRUE,
