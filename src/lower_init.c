@@ -4913,6 +4913,14 @@ it is called as a virtual function, which involves some special tricks.
   long             bit_mask;
 
   check_assertion(dtor_routine != NULL);
+  /* Cast the expression to the type of the destructor parameter, if
+     necessary.  This is needed for the case where a pointer to an array
+     is deleted without the "delete []" syntax.  That's undefined
+     behavior, and only the first element will be destroyed, but we
+     want to avoid generating incorrect code. */
+  ptr_node = add_cast_if_necessary(ptr_node,
+                                   dtor_routine->type->variant.routine.
+                                         extra_info->implicit_this_param_type);
   /* Add an implicit parameter to the destructor call with bits
      0x2 (whole object) + 0x1 (free storage, if deallocate is TRUE). */
   bit_mask = 2L;
