@@ -3230,9 +3230,7 @@ the entire array.
   aggr_con->variant.aggregate.first_constant = init_repeat_con;
   aggr_con->variant.aggregate.last_constant = init_repeat_con;
   dip = alloc_dynamic_init((a_dynamic_init_kind)dik_nonconstant_aggregate);
-  dip->variant.aggregate.aggr_const = aggr_con;
-  dip->variant.aggregate.dynamic_init_list =
-                                            dyn_init_con->variant.dynamic_init;
+  dip->variant.constant = aggr_con;
   return dip;
 }  /* add_array_nonconstant_aggregate_init */
 
