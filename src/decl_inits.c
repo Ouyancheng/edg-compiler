@@ -739,7 +739,7 @@ The syntax is:
         check_constant_initializer(&constant, &vp_type, &err);
 #if CHECKING
         if (!err) {
-          internal_error("get_initializer: expected error on conversion");
+          internal_error("initializer: expected error on conversion");
         }  /* if */
 #endif /* CHECKING */
       } else {
@@ -864,6 +864,87 @@ The syntax is:
   }  /* if */
   db_exit();
 }  /* initializer */
+
+
+a_boolean def_initializer(a_symbol_ptr       sym,
+                          a_source_position  *err_pos)
+{
+  a_boolean                      def_init_performed = FALSE;
+  a_variable_ptr                 var;
+  a_type_ptr                     var_type, tp;
+  a_class_symbol_supplement_ptr  cssp;
+  a_dynamic_init                 local_di, *dip;
+  a_constant_ptr                 cp1, cp2;
+
+  db_enter(3, "def_initializer");
+  if (C_dialect == C_dialect_cplusplus &&
+      (sym->kind == (a_symbol_kind)sk_variable ||
+      sym->kind == (a_symbol_kind)sk_static_data_member)) {
+    var = sym->variant.variable;
+    tp = var_type = skip_typerefs(var->type);
+    while (is_array_type(tp)) {
+      tp = skip_typerefs(tp->variant.array.element_type);
+    }  /* while */
+    if (is_class_struct_union_type(tp)) {
+      cssp = ((a_symbol_ptr)tp->source_corresp.assoc_info)->
+                                 variant.class_struct_union.extra_info;
+      if (cssp->constructor != NULL) {
+        if (is_incomplete_type(var_type)) {
+#if 0
+          /* Don't quite know what to do on this yet.  What's done in
+             end_of_scope_symbol_check is nontrivial.  And I'm not sure it
+             works for multi-dimensional array. */
+          pos_warning(ec_default_size_for_incomplete_array, err_pos);
+#else
+          internal_error("def_initializer: incomplete types not yet supported");
+#endif /* if 0 */
+        }  /* if */
+        clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_constructor);
+        local_di.variant.constructor.routine =
+                              select_constructor(cssp->constructor,
+                                                 /*arg_list=*/NULL);
+        local_di.variant.constructor.args = NULL;
+        if (cssp->destructor != NULL) {
+          local_di.variant.constructor.corresp_destructor =
+                                cssp->destructor->variant.routine;
+        }  /* if */
+        if (var_type != tp) {
+          dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
+          *dip = local_di;
+          clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_aggregate);
+          cp1 = alloc_constant((a_constant_repr_kind)ck_aggregate);
+          local_di.variant.aggregate.aggr_const = cp1;
+          /* Set the ck_aggregate constant. */
+          cp1->variant.aggregate.first_constant =
+            cp1->variant.aggregate.last_constant =
+            cp2 = alloc_constant((a_constant_repr_kind)ck_init_repeat);
+          /* Set the ck_init_repeat constant. */
+          if (var_type->size == 0) {
+            cp2->variant.init_repeat.count = 1;
+          } else {
+            cp2->variant.init_repeat.count = var_type->size / tp->size;
+          }  /* if */
+          cp2->variant.init_repeat.constant = cp1 =
+            alloc_constant((a_constant_repr_kind)ck_dynamic_init);
+          /* Set the ck_dynamic_init_constant. */
+          cp1->variant.dynamic_init = dip;
+          local_di.variant.aggregate.dynamic_init = dip;
+        }  /* if */
+        gen_dynamic_initialization(var, &local_di);
+        def_init_performed = TRUE;
+#if DEBUG
+        if (debug_level >= 3) {
+          db_variable(var);
+          fputs(",\n", f_debug);
+          db_initializer(var, 2);
+        }  /* if */
+#endif /* DEBUG */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  db_exit();
+  return def_init_performed;
+}  /* def_initializer */
 
 
 /******************************************************************************

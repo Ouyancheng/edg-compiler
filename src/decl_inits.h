@@ -30,6 +30,8 @@ extern void initializer(a_symbol_ptr       symbol_ptr,
                         a_boolean          paren_flag,
                         a_boolean          is_parameter);
 
+extern a_boolean def_initializer(a_symbol_ptr       sym,
+                                 a_source_position  *err_pos);
 
 #endif /* ifndef DECL_INITS_H */
 
