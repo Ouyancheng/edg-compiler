@@ -161,7 +161,7 @@ typedef enum /*an_error_code*/ {
   ec_break_must_be_in_loop_or_switch,
   ec_no_value_returned_in_non_void_function,
   ec_value_returned_in_void_function,
-  ec_cast_not_scalar_or_void,
+  ec_cast_to_bad_type,
   ec_bad_return_value_type,
   ec_case_label_must_be_in_switch,
   ec_default_label_must_be_in_switch,

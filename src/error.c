@@ -711,8 +711,8 @@ error code.
     case ec_value_returned_in_void_function:
       m = "a void function may not return a value";
       break;
-    case ec_cast_not_scalar_or_void:
-      m = "type of cast must be arithmetic, pointer, or void";
+    case ec_cast_to_bad_type:
+      m = "cast to type %t is not allowed";
       break;
     case ec_bad_return_value_type:
       m = "return value type does not match the function type";
