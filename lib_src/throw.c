@@ -136,10 +136,18 @@ typedef struct a_mem_allocation {
 		           record. */
 } a_mem_allocation;
 
-a_type_info_impl
-                MANGLED_NAME_OF_PTR_TO_VOID;
+#if ABI_CHANGES_FOR_RTTI
+extern a_byte	MANGLED_NAME_OF_UNIQUE_ID_OF_VOID;
 			/* This is used to get the address of the
-			   type_info for the void * type. */
+			   unique ID for the void type for pointer to
+			   void* conversions. */
+#else /* !ABI_CHANGES_FOR_RTTI */
+extern a_type_info_impl
+                MANGLED_NAME_OF_VOID;
+			/* This is used to get the address of the
+			   type_info for the void type for pointer to
+			   void* conversions. */
+#endif /* !ABI_CHANGES_FOR_RTTI */
 
 
 static a_throw_stack_entry_ptr
@@ -642,11 +650,21 @@ entry is returned in etsp_found.
          This is not a match. */
     } else if (matching_types(etsp, type_info, flags)) {
       match = TRUE;
-    } else if (etsp->type_info == &MANGLED_NAME_OF_PTR_TO_VOID &&
+#if ABI_CHANGES_FOR_RTTI
+    } else if (etsp->type_info->unique_id != NULL &&
+               etsp->type_info->unique_id ==
+                                         &MANGLED_NAME_OF_UNIQUE_ID_OF_VOID &&
                (is_pointer(etsp->flags) == is_pointer(flags))) {
       /* The exception type specification is a void * and the object
          being thrown is some kind of pointer.  This is a match. */
       match = TRUE;
+#else /* !ABI_CHANGES_FOR_RTTI */
+    } else if (etsp->type_info == &MANGLED_NAME_OF_VOID &&
+               (is_pointer(etsp->flags) == is_pointer(flags))) {
+      /* The exception type specification is a void * and the object
+         being thrown is some kind of pointer.  This is a match. */
+      match = TRUE;
+#endif /* !ABI_CHANGES_FOR_RTTI */
     } else if ((is_pointer(etsp->flags) == is_pointer(flags)) &&
 	       type_info->base_class_entries != NULL &&
 	       derived_to_base_conversion(object_ptr, &new_ptr, type_info,
@@ -993,7 +1011,7 @@ the type being thrown.
 }  /* __throw_alloc */
 
 
-#if EH_ABI_VERSION_2
+#if ABI_CHANGES_FOR_RTTI
 EXTERN_C void* __throw_setup(a_type_info_impl_ptr  type_info,
   			     a_sizeof_t	           size,
 			     an_ETS_flag_set	   flags)
@@ -1011,7 +1029,7 @@ are provided.
 		   /*is_rethrow=*/FALSE);
   return object_address;
 }  /* __throw_setup */
-#endif /* EH_ABI_VERSION_2 */
+#endif /* ABI_CHANGES_FOR_RTTI */
 
 
 EXTERN_C void __free_thrown_object(void)

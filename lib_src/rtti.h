@@ -95,12 +95,12 @@ typedef struct a_type_info_impl {
 		*base_class_entries;
 			/* Pointer to an array of type_info entries for
 			   direct base classes of a class. */
-#if RTTI
+#if ABI_CHANGES_FOR_RTTI
   char
                 *name;
                        /* Pointer to a null-terminated character string
 			  containing the name of the type. */
-#endif /* RTTI */
+#endif /* ABI_CHANGES_FOR_RTTI */
 } a_type_info_impl;
 
 
@@ -108,8 +108,8 @@ typedef struct a_type_info_impl {
    match if their pointers are the same or if the unique ID pointed to
    by the entries is the same (and nonzero). */
 #define matching_type_info(type1, type2)				\
-  ((type1) == (type2) || ((type1)->unique_id == (type2)->unique_id) &&  \
-                          (type1)->unique_id != 0)
+  ((type1) == (type2) || (((type1)->unique_id == (type2)->unique_id) &&  \
+                          (type1)->unique_id != 0))
 
 typedef char*	an_access_flag_string;
 			/* Type of the string used to specify the access

@@ -76,6 +76,26 @@ exception handling be included.
 #endif /* ifndef EXCEPTION_HANDLING */
 
 
+/*
+Should the components of the runtime system that implement run-time
+type identification be included.  Note that enabling ABI_CHANGES_FOR_RTTI
+alters the structure of the a_type_info_impl that is shared by
+ABI_CHANGES_FOR_RTTI and exception handling, consequently
+ABI_CHANGES_FOR_RTTI cannot be enabled when preserving ABI compatibility
+with versions up to 2.28.
+*/
+#ifndef ABI_CHANGES_FOR_RTTI
+#if ABI_COMPATIBILITY_VERSION <= 228
+#define ABI_CHANGES_FOR_RTTI FALSE /* Versions up to 2.28. */
+#else /* ABI_COMPATIBILITY_VERSION > 228 */
+#define ABI_CHANGES_FOR_RTTI TRUE  /* Versions after 2.28. */
+#endif /* ABI_COMPATIBILITY_VERSION <= 228 */
+#endif /* ifndef ABI_CHANGES_FOR_RTTI */
+#if ABI_CHANGES_FOR_RTTI && (ABI_COMPATIBILITY_VERSION <= 228)
+ #error -- ABI_CHANGES_FOR_RTTI TRUE is incompatible with \
+           ABI_COMPATIBILITY_VERSION <= 228
+#endif /* ABI_CHANGES_FOR_RTTI && (ABI_COMPATIBILITY_VERSION <= 228) */
+
 #if EXCEPTION_HANDLING
 /*
 The EH runtime allocates a static block of memory to be used for purposes
@@ -103,53 +123,24 @@ requirements.
 #define TYPE_WITH_MOST_STRICT_ALIGNMENT double
 #endif /* ifndef TYPE_WITH_MOST_STRICT_ALIGNMENT */
 
-
+#if ABI_CHANGES_FOR_RTTI
 /*
-The mangled name of the typeinfo record for a void * type.
+The mangled name of the unique ID for a void type.
 */
-#ifndef MANGLED_NAME_OF_PTR_TO_VOID
-#define MANGLED_NAME_OF_PTR_TO_VOID __T_v
-#endif /* ifndef MANGLED_NAME_OF_PTR_TO_VOID */
+#ifndef MANGLED_NAME_OF_UNIQUE_ID_OF_VOID
+#define MANGLED_NAME_OF_UNIQUE_ID_OF_VOID __TID_v
+#endif /* ifndef MANGLED_NAME_OF_UNIQUE_ID_OF_VOID */
+#else /* ! ABI_CHANGES_FOR_RTTI */
+/*
+The mangled name of the typeinfo record for a void type.
+*/
+#ifndef MANGLED_NAME_OF_VOID
+#define MANGLED_NAME_OF_VOID __T_v
+#endif /* ifndef MANGLED_NAME_OF_VOID */
+#endif /* ! ABI_CHANGES_FOR_RTTI */
+
 #endif /* EXCEPTION_HANDLING */
 
-/*
-Should the components of the runtime system that implement run-time
-type identification be included.  Note that enabling RTTI alters
-the structure of the a_type_info_impl that is shared by RTTI and
-exception handling, consequently RTTI cannot be enabled when
-preserving ABI compatibility with versions up to 2.28.
-*/
-#ifndef RTTI
-#if ABI_COMPATIBILITY_VERSION <= 228
-#define RTTI FALSE /* Versions up to 2.28. */
-#else /* ABI_COMPATIBILITY_VERSION > 228 */
-#define RTTI TRUE  /* Versions after 2.28. */
-#endif /* ABI_COMPATIBILITY_VERSION <= 228 */
-#endif /* ifndef RTTI */
-#if RTTI && (ABI_COMPATIBILITY_VERSION <= 228)
- #error -- RTTI TRUE is incompatible with \
-           ABI_COMPATIBILITY_VERSION <= 228
-#endif /* RTTI && (ABI_COMPATIBILITY_VERSION <= 228) */
-
-/*
-Should the EH runtime include the throw interface that uses the "public"
-and "ambiguous" information in the type_info structure to determine
-accessibility be provided.  This interface is only available in versions
-later than 2.28.  The newer interface implemented the revised language
-rules that specify that when an object is thrown, it can only be caught
-by public, unambiguous base classes.
-*/
-#ifndef EH_ABI_VERSION_2
-#if ABI_COMPATIBILITY_VERSION <= 228
-#define EH_ABI_VERSION_2 FALSE /* Versions up to 2.28. */
-#else /* ABI_COMPATIBILITY_VERSION > 228 */
-#define EH_ABI_VERSION_2 TRUE  /* Versions after 2.28. */
-#endif /* ABI_COMPATIBILITY_VERSION <= 228 */
-#endif /* ifndef EH_ABI_VERSION_2 */
-#if EH_ABI_VERSION_2 && (ABI_COMPATIBILITY_VERSION <= 228)
- #error -- EH_ABI_VERSION_2 TRUE is incompatible with \
-           ABI_COMPATIBILITY_VERSION <= 228
-#endif /* EH_ABI_VERSION_2 && (ABI_COMPATIBILITY_VERSION <= 228) */
 
 #endif /* CONFIG_H */
 

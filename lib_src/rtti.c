@@ -18,10 +18,10 @@ Run-time type identification.
 #include "runtime.h"
 #include "rtti.h"
 
-#if RTTI
+#if ABI_CHANGES_FOR_RTTI
 #include "typeinfo.h"
 #include "vtbl.h"
-#endif /* RTTI */
+#endif /* ABI_CHANGES_FOR_RTTI */
 
 a_boolean derived_to_base_conversion(void**		   p_ptr,
 				     void**                p_new_ptr,
@@ -157,7 +157,7 @@ The access_flags string was retained for backward compatibility.
   return result;
 }  /* derived_to_base_conversion */
 
-#if RTTI
+#if ABI_CHANGES_FOR_RTTI
 
 EXTERN_C void *__dynamic_cast(void                  *class_ptr,
 			      size_t                vptr_offset,
@@ -266,7 +266,7 @@ __dynamic_cast and throws an exception if the cast failed.
 }  /* __dynamic_cast_ref */
 
 
-#endif /* RTTI */
+#endif /* ABI_CHANGES_FOR_RTTI */
 
 
 /******************************************************************************
