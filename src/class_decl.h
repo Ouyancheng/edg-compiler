@@ -47,7 +47,7 @@ extern a_boolean class_specifier(a_boolean  first_specifier,
                                  a_boolean  *declares_something,
                                  a_boolean  *defines_something);
 
-extern void reference_to_special_member_function(a_routine_ptr  rout_ptr);
+extern void reference_to_special_member_function(a_symbol_ptr  sym);
 
 extern a_symbol_ptr member_function_redecl_sym(a_symbol_ptr  sym,
                                                a_type_ptr    type);
@@ -73,6 +73,11 @@ extern a_boolean equivalent_paths(a_derivation_step_ptr  path1,
                                   a_derivation_step_ptr  path2);
 
 extern void check_class_linkage(void);
+
+#if DEBUG
+extern void db_base_class(a_base_class_ptr  bcp,
+                          a_boolean         show_offset);
+#endif /* DEBUG */
 
 #endif /* CLASS_DECL_H */
 
