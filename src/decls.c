@@ -5673,7 +5673,7 @@ continue_with_declaration:
            the identifier. */
         if (C_dialect == C_dialect_cplusplus) {
           if (locator.specific_symbol == NULL ||
-              locator.specific_symbol->is_class_member) {
+              !locator.specific_symbol->is_class_member) {
             /* Not a member function named "main". */
             func_info.is_main_function = is_main_function = TRUE;
             /* Perform some error checking that is specific to C++. */
