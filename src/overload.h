@@ -234,7 +234,14 @@ typedef struct a_candidate_function {
 			/* If is_function_template is TRUE, the list of
 			   argument operands for the call.  NULL otherwise.
 			   Note that when present this list is shared with
-			   all the other candidate function entries. */
+			   all the other (template) candidate function
+			   entries.  If there was a selector object (for
+			   member templates), it does not appear on this
+			   list. */
+  a_type_ptr	dest_type;
+			/* If is_function_template is TRUE, and the function
+			   is a member template conversion function, this
+			   points to the desired type.  NULL otherwise. */
   /* Fields used by select_best_candidate_functions: */
   an_arg_match_summary_ptr
 		current_arg_match;

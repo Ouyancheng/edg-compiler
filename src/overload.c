@@ -456,6 +456,7 @@ are used in resolving calls to overloaded functions.
   cfp->pointer_type = NULL;
   cfp->arg_matches = NULL;
   cfp->arg_operand_list = NULL;
+  cfp->dest_type = NULL;
   cfp->current_arg_match = NULL;
   cfp->prev_func_arg_match_with_same_match_level = NULL;
   cfp->in_best_match_set = FALSE;
@@ -601,16 +602,18 @@ the operands we have match the operator's required operand types.
 
 
 static void add_function_template_to_candidate_functions_list(
-                                 a_symbol_ptr             function_symbol,
-                                 an_arg_match_summary_ptr arg_matches,
-                                 an_arg_operand_ptr       arg_operand_list,
-                                 a_candidate_function_ptr *candidate_functions)
+                             a_symbol_ptr             function_symbol,
+                             an_arg_match_summary_ptr arg_matches,
+                             an_arg_operand_ptr       arg_operand_list,
+                             a_type_ptr               dest_type,
+                             a_candidate_function_ptr *candidate_functions)
 /*
 Add the function template identified by function_symbol to the front of the
 candidate_functions list.  arg_matches gives information about how well
 the actual arguments we have match the function's formal parameters (but
 the entries are sometimes just place-holders).  arg_operand_list gives the
-operand list.
+operand list.  dest_type, if non-NULL, gives the destination type for
+a member template conversion function.
 */
 {
   a_candidate_function_ptr candidate;
@@ -620,6 +623,7 @@ operand list.
   candidate->is_function_template = TRUE;
   candidate->arg_matches = arg_matches;
   candidate->arg_operand_list = arg_operand_list;
+  candidate->dest_type = dest_type;
   candidate->next = *candidate_functions;
   *candidate_functions = candidate;
 #if DEBUG
@@ -1922,10 +1926,12 @@ that are marked "explicit" are ignored.
        list. */
     if (function_template_case) {
       /* The symbol is a function template. */
-      add_function_template_to_candidate_functions_list(proj_function_symbol,
-                                                        arg_match_list,
-                                                        arg_operand_list,
-                                                        candidate_functions);
+      add_function_template_to_candidate_functions_list(
+                                                       proj_function_symbol,
+                                                       arg_match_list,
+                                                       arg_operand_list,
+                                                       (a_type_ptr)NULL,
+                                                       candidate_functions);
     } else {
       /* The symbol is a normal function. */
       add_function_to_candidate_functions_list(proj_function_symbol,
@@ -2275,10 +2281,21 @@ evaluated (but not checked to see if the match is good enough).
   routine = templ_sym->variant.template_info->variant.function.routine;
   routine_type = skip_typerefs(routine->type);
   rtsp = routine_type->variant.routine.extra_info;
-  /* Compare the types of the arguments to the parameter types. */
   ptp = rtsp->param_type_list;
   arg_operand = cfp->arg_operand_list;
   arg_match = cfp->arg_matches;
+  if (routine->source_corresp.is_class_member) {
+    /* A member template.  It has a "this" parameter, which never involves
+       a template parameter type (because by the time the member template is
+       used, it's a member of an instantiated class).  The "this" parameter
+       is represented in the arg_match list, but not in the ptp and
+       arg_operand lists. */
+    check_assertion_str(
+                       routine_type_is_nonstatic_member_function(routine_type),
+             "function_template_matches_operand_list: static member template");
+    arg_match = arg_match->next;
+  }  /* if */
+  /* Compare the types of the arguments to the parameter types. */
   for (; ptp != NULL && arg_operand != NULL;
        ptp = ptp->next, arg_operand = arg_operand->next,
                                                  arg_match = arg_match->next) {
@@ -2433,6 +2450,29 @@ evaluated (but not checked to see if the match is good enough).
       }  /* if */
     }  /* if */
   }  /* for */
+  if (routine->special_kind == (a_special_function_kind)sfk_conversion) {
+    /* For a conversion function (a member template), also do deduction on
+       the return type. */
+    a_type_ptr return_type = routine_type->variant.routine.return_type;
+    /* Drop type qualifiers for the normal case, when the return value
+       is an rvalue. */
+    return_type = skip_typerefs(return_type);
+    /* If the conversion function returns a reference type, drop the 
+       reference. */
+    if (is_reference_type(return_type)) {
+      return_type = type_pointed_to(return_type);
+      /* In this case, the return value is an lvalue, and type qualifiers
+         are not dropped. */
+    }  /* if */
+    if (!matches_template_type(cfp->dest_type, return_type, &templ_arg_list,
+                               tssp->variant.function.decl_cache.
+                                                         decl_info->parameters,
+                               /*allow_conversion=*/FALSE,
+                               (a_base_class_ptr *)NULL)) {
+      /* Mismatch. */
+      goto done;
+    }  /* if */
+  }  /* if */
   /* Make sure that the types of nontype template parameters that depend
      on other template parameters agree with the types of the deduced
      values. */
@@ -4089,11 +4129,11 @@ is only used in C++ mode.
     conv_routine_type = routine_symbol_type(base_conversion_symbol);
     /* Is the type returned by this routine a type we want? */
     compatible = FALSE;
+    clear_std_conv_descr(&std_conversion);
     return_type = conv_routine_type->variant.routine.return_type;
     /* Drop type qualifiers for the normal case, when the return value
        is an rvalue. */
     return_type = skip_typerefs(return_type);
-    clear_std_conv_descr(&std_conversion);
     result_is_an_lvalue = FALSE;
     /* If the conversion function returns a reference type, drop the 
        reference. */
@@ -4206,23 +4246,85 @@ is only used in C++ mode.
                                 implicit_this_param_type_of(conv_routine_type),
                                      &this_match);
       /* Ignore this function if it cannot be called for this argument. */
-      if (this_match.match_level == aml_none) goto next_function;
-      /* The routine is viable. */
-      /* Add the conversion function to the candidate functions list. */
-      this_match_ptr = alloc_arg_match_summary();
-      *this_match_ptr = this_match;
-      add_function_to_candidate_functions_list(conversion_symbol,
-                                               this_match_ptr,
-                                               candidate_functions);
-      candidate = *candidate_functions;
-      candidate->is_user_conversion = TRUE;
-      candidate->conversion.routine = conversion_routine;
-      candidate->conversion.routine_symbol = conversion_symbol;
-      candidate->conversion.std = std_conversion;
-      candidate->conversion.result_is_an_lvalue = result_is_an_lvalue;
+      if (this_match.match_level != aml_none) {
+        /* The routine is viable. */
+        /* Add the conversion function to the candidate functions list. */
+        this_match_ptr = alloc_arg_match_summary();
+        *this_match_ptr = this_match;
+        add_function_to_candidate_functions_list(conversion_symbol,
+                                                 this_match_ptr,
+                                                 candidate_functions);
+        candidate = *candidate_functions;
+        candidate->is_user_conversion = TRUE;
+        candidate->conversion.routine = conversion_routine;
+        candidate->conversion.routine_symbol = conversion_symbol;
+        candidate->conversion.std = std_conversion;
+        candidate->conversion.result_is_an_lvalue = result_is_an_lvalue;
+      }  /* if */
     }  /* if */
-next_function:;
   }  /* for */
+  /* Look at template conversion functions only if we have a specific type. */
+  if (dest_type != NULL) {
+    /* Look at all the template conversion functions for the source class. */
+    for (slep = symbol_supplement_for_class(source_type)->
+                                                      conversion_template_list;
+         slep != NULL;
+         slep = slep->next) {
+      conversion_symbol = slep->symbol;
+#if DEBUG
+      if (debug_level >= 4) {
+        db_symbol(conversion_symbol,
+                  "try_conversion_function_match: considering ", 2); 
+      }  /* if */
+#endif /* DEBUG */
+      base_conversion_symbol = fundamental_symbol_of(conversion_symbol);
+      conversion_routine = base_conversion_symbol->variant.template_info->
+                                                      variant.function.routine;
+      conv_routine_type = skip_typerefs(conversion_routine->type);
+      /* We don't do any checking that the return type of the conversion
+         can be made to match.  That's done as part of type deduction
+         in function_template_matches_operand_list.  However, we do
+         check that the conversion function returns a reference if an
+         lvalue is required. */
+      return_type = conv_routine_type->variant.routine.return_type;
+      result_is_an_lvalue = FALSE;
+      if (is_reference_type(return_type)) {
+        result_is_an_lvalue = TRUE;
+      }  /* if */
+      if (need_lvalue_result && !result_is_an_lvalue) {
+        /* We need an lvalue result but the conversion function does
+           not return one. */
+      } else {
+        /* See whether or not this conversion function can be called for this
+           argument (i.e., are the type qualifiers okay), and how good the
+           match is. */
+        selector_match_with_this_param(source_operand,
+                                       /*selector_is_object_pointer=*/FALSE,
+                                       /*conversion_function_case=*/TRUE,
+                                       conversion_routine,
+                                implicit_this_param_type_of(conv_routine_type),
+                                       &this_match);
+        /* Ignore this function if it cannot be called for this argument. */
+        if (this_match.match_level != aml_none) {
+          /* The routine is viable. */
+          /* Add the conversion function to the candidate functions list. */
+          this_match_ptr = alloc_arg_match_summary();
+          *this_match_ptr = this_match;
+          add_function_template_to_candidate_functions_list(
+                                                      conversion_symbol,
+                                                      this_match_ptr,
+                                                      (an_arg_operand_ptr)NULL,
+                                                      dest_type,
+                                                      candidate_functions);
+          candidate = *candidate_functions;
+          candidate->is_user_conversion = TRUE;
+          candidate->conversion.routine = conversion_routine;
+          candidate->conversion.routine_symbol = conversion_symbol;
+          candidate->conversion.result_is_an_lvalue = result_is_an_lvalue;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
   db_exit();
 }  /* try_conversion_function_match */
 
@@ -5838,7 +5940,7 @@ to either
     a derived class of dest_type), and an lvalue of that type if
     need_lvalue_result is TRUE, or
 (b) a built-in type in the set given by builtin_types_allowed, if
-    dest_type is NULL.
+    dest_type is NULL,
 
 then set *conversion to describe the conversion, and return TRUE.
 Otherwise return FALSE.  If more than one function matches, set
