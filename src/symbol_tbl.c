@@ -3321,7 +3321,9 @@ This routine is only used in C++ mode.
 static char *il_entry_for_symbol(a_symbol_ptr      sym,
                                  an_il_entry_kind  *kind)
 /*
-
+Return a pointer to the IL entry to which the specified symbol refers.  Also
+return the kind of il entry that is found.  If the symbol is not associated
+with an IL entry, return NULL, and leave kind set to iek_none.
 */
 {
   char  *entry_ptr = NULL;
@@ -3335,7 +3337,7 @@ static char *il_entry_for_symbol(a_symbol_ptr      sym,
 #if 0
         *kind = iek_macro;
 #else
-        check_assertion(entry_ptr != NULL);
+        *kind = iek_constant;
 #endif /* if 0 */
       }  /* if */
       break;
@@ -7158,7 +7160,7 @@ the appropriate scope.
   }  /* if */                                                           \
 }
 #else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
-#define stmt_update_source_sequence_list(sym, pos) /* Nothing */
+#define sym_update_source_sequence_list(sym, pos) /* Nothing */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 
