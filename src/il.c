@@ -325,7 +325,7 @@ is TRUE, include type information for function parameters.
     /* Add function parameter types. */
     a_routine_ptr rout = (a_routine_ptr)scp;
     form_function_declarator(f_skip_typerefs(rout->type), &octl);
-#if IA64_ABI
+#if DO_IL_LOWERING && IA64_ABI
     switch (rout->ctor_dtor_kind) {
       case cdk_complete:
         add_string_to_text_buffer(db_name_str_buffer, " [complete]");
@@ -341,7 +341,7 @@ is TRUE, include type information for function parameters.
       default:
         unexpected_condition_str("bad ctor_dtor_kind");
     }  /* switch */
-#endif /* IA64_ABI */
+#endif /* DO_IL_LOWERING && IA64_ABI */
   }  /* if */
   add_char_to_text_buffer(db_name_str_buffer, '\0');
   return db_name_str_buffer->buffer;
