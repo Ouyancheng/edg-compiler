@@ -1367,14 +1367,14 @@ returned, else FALSE.
       *field = NULL;
       pos_stsy_error(ec_not_a_field, &error_position,
                      locator_for_curr_id.symbol_header->identifier,
-                     (a_symbol_ptr)dest_type->source_corresp.assoc_info);
-    } else
-    if (member_sym->kind != (a_symbol_kind)sk_field) {
-      found_field_designator = FALSE;
-      *field = NULL;
+                     (a_symbol_ptr)skip_typerefs(dest_type)
+                                                 ->source_corresp.assoc_info);
+    } else if (member_sym->kind != (a_symbol_kind)sk_field) {
+      /* We found a member, but it's not a field.  (This should not happen.) */
       unexpected_condition_str(
                          "field initialization designator: non-field member");
-    } else { /* We seem to have a valid field designator. */
+    } else {
+      /* We seem to have a valid field designator. */
       *field = member_sym->variant.field.ptr;
     }  /* if */
     /* eat the identifier */
