@@ -216,7 +216,7 @@ is left unqualified in the generated C++ source).
 
 11/16/99 Microsoft compatibility: use and replacement of inherited typename
 
-In Microsoft bugs mode, an inherited typename can be used with an unqualified
+In Microsoft C++ mode, an inherited typename can be used with an unqualified
 name in a class definition, and later that same name can be declared as a new
 typedef synonym.
 
