@@ -303,6 +303,9 @@ typedef struct a_symbol {
   unsigned int	referenced:1;
 			/* TRUE if the symbol is actually referenced, not just
 			   declared. */
+  unsigned int	defined:1;
+			/* TRUE if the symbol is actually defined, not just
+			   declared. */
   unsigned int	provisional_member:1;
 			/* TRUE if the symbol is a class member by inheritance
 			   and may still be overridden by a local symbol of
