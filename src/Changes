@@ -1,5 +1,25 @@
 Version 3.5
 
+7/24/04  Warning on call of pure virtual function in derived class constructor
+         or destructor
+
+The front end now issues a warning on a call of a virtual function
+that is known to resolve to a pure virtual function in a constructor
+or destructor of a class derived from the one containing the
+pure virtual function declaration.  Formerly, the front end
+detected this case only in the class where the function is
+declared.
+
+  struct B {
+    virtual void foo() = 0;
+    B() { foo(); }           // Warning formerly/still issued
+    virtual ~B() { foo(); }  // Warning formerly/still issued
+  };
+  struct D : public B {
+    D() { foo(); }           // Warning now issued
+    ~D() { foo(); }          // Warning now issued
+  };
+
 7/24/04  Cast to reference type can use conversion to non-reference
 
 A cast of a class object to a reference to const type can use a conversion

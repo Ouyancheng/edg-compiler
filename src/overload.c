@@ -5249,49 +5249,103 @@ void bind_member_function_operand_to_selector(
                                            an_operand *function_operand,
                                            an_operand *bound_function_selector)
 /*
-Bind the operand for a function to an associated selector object.
+Bind the operand for a function to an associated selector object.  If the
+complete object type can be determined, convert a virtual function call
+into a direct call if possible.
 */
 {
   a_routine_ptr function;
 
   function_operand->bound_function = TRUE;
   if (function_operand->virtual_function) {
-    /* Virtual function call. */
-    /* If the left operand is a complete object, we know the routine to
-       call without going through the virtual function mechanism.
-       We do a simple test, that the left operand type matches the
-       complete object type.  Fancier schemes run into trouble when
-       an overload set contains both virtual and nonvirtual functions:
-         struct A {
-           virtual int f();
-                   int f(int);
-         };
-         struct B : public A {
-                   int f();
-                   int f(int);
-         };
-         B b;
-         ((A *)&b)->f();  // B::f()
-         ((A *)&b)->f(1); // A::f(int);
-       One would have to have a way to adjust the "this" pointer back
-       to the derived class to optimize the first case.
-    */
-    /* Suppress the optimization if the name came from a using-declaration,
-       because in that case the name that was found might not be the
-       final overrider. */
-    if (!function_operand->is_using_decl_name &&
-        f_same_entities(operand_complete_object_type(bound_function_selector,
-                                     /*call_case=*/TRUE),
-                        type_pointed_to(bound_function_selector->type))) {
-      function_operand->virtual_function = FALSE;
-      /* Set the IL referenced flag for the function.  It wasn't set
-         when the call was thought to be virtual, since a virtual call
-         does not necessarily end up at the indicated routine. */
+    /* Virtual function call */
+    a_type_ptr complete_object_type =
+                          operand_complete_object_type(bound_function_selector,
+                                                       /*call_case=*/TRUE);
+    if (complete_object_type != NULL) {
+      /* We know the type of the complete object: we may be able to
+         determine the specific function to call and suppress the
+         virtual function mechanism. */
       /* Extract the routine being called.  For virtual function calls, the
          operand identifying the function is always just a simple address
          of a function. */
+      a_type_ptr class_of_orig_function;
+
+      complete_object_type = skip_typerefs(complete_object_type);
       function = function_from_virtual_function_operand(function_operand);
-      if_evaluating_mark_routine_referenced(function);
+      class_of_orig_function = function->source_corresp.parent.class_type;
+
+      if (identical_types(complete_object_type, class_of_orig_function)) {
+        /* The function is a direct member of the class of the complete
+           object.  Everything is already set up to call it directly, so
+           we just need to flag it as a non-virtual call. */
+        function_operand->virtual_function = FALSE;
+      } else {
+        /* The routine is not a direct member of the class of the complete
+           object, so we have to check if it is overridden there.  (This
+           case can come up because of casts in the function selector,
+           e.g., ((base*) derived_p)->f().) */
+        an_expr_node_ptr implicit_this_arg;
+        a_routine_ptr    overrider;
+
+        /* The routine is a member of a base class of the complete object,
+           and the implicit "this" argument should already have been
+           adjusted to the corresponding type before we get here -- which
+           means that the bound_function_selector should be sitting on top
+           of at least one eok_base_class_cast expression node. */
+        check_assertion(is_expression_operand(bound_function_selector));
+        implicit_this_arg = bound_function_selector->variant.expression;
+        overrider = final_overrider(function, implicit_this_arg,
+                                    complete_object_type);
+        if (same_entities(function, overrider)) {
+          /* Again, everything is already set up for a direct call. */
+          function_operand->virtual_function = FALSE;
+        } else {
+          /* The function is overridden in the complete type.  We need to
+             make a cast to the appropriate class type for the "this"
+             argument and to update the function operand to refer to the
+             actual function being called. */
+          an_expr_node_ptr new_top_of_tree;
+          a_type_ptr       class_of_overrider =
+                                   overrider->source_corresp.parent.class_type;
+          an_expr_node_ptr new_parent =
+                      retrace_base_casts(implicit_this_arg, class_of_overrider,
+                                         &new_top_of_tree);
+          if (new_parent != NULL) {
+            /* The cast to the derived class was successful (i.e., the
+               chain of base class casts was in the correct form to be
+               inverted and there were no virtual base classes).  Mark the
+               call as nonvirtual and splice the new chain of derived
+               class casts between the selector operand and the previous
+               implicit "this" argument expression. */
+            function_operand->virtual_function = FALSE;
+            new_parent->variant.operation.operands = implicit_this_arg;
+            bound_function_selector->variant.expression = new_top_of_tree;
+            bound_function_selector->type = new_top_of_tree->type;
+            /* Change the function operand to refer to the actual function to
+               be called.  Most of the information in function_operand is
+               still correct.  What needs to change is the routine address
+               constant, the type (in case of covariant return types), and
+               the symbol in the ref_entry, if any. */
+            set_routine_address_constant(overrider,
+                                         &function_operand->variant.constant,
+                                         /*set_address_taken_flag=*/FALSE);
+            function_operand->type = overrider->type;
+            if (function_operand->ref_entries_list != NULL) {
+              function_operand->ref_entries_list->symbol =
+                            (a_symbol_ptr)overrider->source_corresp.assoc_info;
+            }
+            function = overrider;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      if (!function_operand->virtual_function) {
+        /* We optimized away the virtual function call: set the IL
+           referenced flag for the function.  It wasn't set when the call
+           was thought to be virtual, since a virtual call does not
+           necessarily end up at the indicated routine. */
+        if_evaluating_mark_routine_referenced(function);
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* bind_member_function_operand_to_selector */

@@ -7285,6 +7285,284 @@ a pointer to its routine entry.  Otherwise, return NULL.
 }  /* routine_from_function_operand */
 
 
+an_expr_node_ptr retrace_base_casts(an_expr_node_ptr base_cast_node,
+                                    a_type_ptr       target_class,
+                                    an_expr_node_ptr *new_top_of_tree)
+/*
+Recursively traverse a tree of base class cast expression nodes, creating and
+linking a tree of derived class cast expression nodes that is its inverse.
+That is, given an expression tree representing the casts
+
+    (T1*)(T2*)...(TN*)
+
+where T[n] is a base class of T[n+1], this routine recursively traverses
+the expression nodes starting with the cast to T1* and produces the tree
+corresponding to
+
+    (TN*)...(T2*)
+
+base_cast_node is the current node in the traversal; it must be either an
+eok_base_class_cast node or one or more eok_cast nodes whose operand and
+target types are the same except for qualification, followed by an
+eok_base_class_cast node.  target_class is the type at which the scan is
+to terminate ("TN").  new_top_of_tree points to an expression node pointer
+that will be set to point to the new eok_derived_class_cast node that
+produces the ultimate type (the cast to "TN").
+
+If the tree of derived class cast nodes is successfully created, the
+return value is the newly-created derived class cast node for this level;
+it will have the compiler_generated flag set to TRUE, and will have no
+operand (it is the caller's responsibility to set the operand to point
+to the caller's node or to the original top of the tree).  If the original
+tree of cast nodes does not satisfy the requirements described above, no
+derived class cast nodes will be created and the return value will be NULL.
+*/
+{
+  an_expr_node_ptr new_derived_cast_node = NULL;
+  a_type_ptr       this_node_class;
+  a_type_ptr       operand_class;
+
+  while (is_operation_node(base_cast_node) &&
+         base_cast_node->variant.operation.kind ==
+                                             (an_expr_operator_kind)eok_cast &&
+         is_pointer_type(base_cast_node->type) &&
+         is_pointer_type(base_cast_node->variant.operation.operands->type)) {
+    a_type_ptr target_type = type_pointed_to(base_cast_node->type);
+    a_type_ptr source_type =
+             type_pointed_to(base_cast_node->variant.operation.operands->type);
+    target_type = skip_typerefs(target_type);
+    source_type = skip_typerefs(target_type);
+    if (identical_types(target_type, source_type)) {
+      /* Scan over any eok_cast nodes preceding the eok_base_class_cast node
+         for this level.  Such eok_cast nodes must have the same target and
+         operand types, except for qualification.  (E.g., base_cast_node
+         might point to "(const T*)(T*)", where "(T*)" is the base class
+         cast, and we need to skip over "(const T*)".) */
+      base_cast_node = base_cast_node->variant.operation.operands;
+    } else {
+      /* Not a skippable eok_cast node. */
+      break;
+    }  /* if */
+  }  /* while */
+  if (is_operation_node(base_cast_node) &&
+      base_cast_node->variant.operation.kind ==
+                                  (an_expr_operator_kind)eok_base_class_cast) {
+    /* This is an eok_base_class_cast node, so processing can continue.
+       Any other kind of node renders the tree impossible to invert and
+       will result in terminating the traversal and returning NULL
+       instead of a new derived class cast node. */
+    a_base_class_ptr base_class;
+
+    this_node_class = f_skip_typerefs(type_pointed_to(base_cast_node->type));
+    operand_class =
+            f_skip_typerefs(type_pointed_to(base_cast_node->
+                                            variant.operation.operands->type));
+    base_class = find_base_class_of(operand_class, this_node_class);
+    if (!base_class->is_virtual) {
+      /* Not virtual.  (We cannot cast to a virtual derived class, so
+         failing this test will terminate the traversal and return NULL
+         instead of a new derived class cast node.) */
+      if (identical_types(operand_class, target_class)) {
+        /* We've reached the end of the traversal successfully.  Create a
+           derived class cast node targeting the operand class type and
+           set *new_top_of_tree to point to it. */
+        new_derived_cast_node =
+              make_operator_node((an_expr_operator_kind)eok_derived_class_cast,
+                                 make_pointer_type(operand_class), NULL);
+        new_derived_cast_node->variant.operation.compiler_generated = TRUE;
+        *new_top_of_tree = new_derived_cast_node;
+      } else {
+        /* We're not done with the traversal.  Call this routine recursively
+           to complete it */
+        an_expr_node_ptr new_parent =
+                 retrace_base_casts(base_cast_node->variant.operation.operands,
+                                    target_class, new_top_of_tree);
+        if (new_parent != NULL) {
+          /* The rest of the traversal succeeded, so create the derived
+             class cast node for this level and link it to the bottom of
+             the tree resulting from the recursive invocations. */
+          new_derived_cast_node =
+             make_operator_node((an_expr_operator_kind)eok_derived_class_cast,
+                                make_pointer_type(operand_class), NULL);
+          new_derived_cast_node->variant.operation.compiler_generated = TRUE;
+          new_parent->variant.operation.operands = new_derived_cast_node;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return new_derived_cast_node;
+}  /* retrace_base_casts */
+
+
+a_routine_ptr final_overrider(a_routine_ptr    base_class_function,
+                              an_expr_node_ptr implicit_this_arg,
+                              a_type_ptr       complete_object_type)
+/*
+Return the final overrider of base_class_function in the class
+complete_object_type.  base_class_function is a virtual function, and
+complete_object_type is either the class of base_class_function or a
+class derived from it.  implicit_this_arg is an expression containing
+eok_base_class_cast nodes leading from complete_object_type to the
+class of base_class_function.  If the derivation is ambiguous, this
+chain of casts is used to disambiguate the derivation path.
+*/
+{
+  a_routine_ptr target_function = base_class_function;
+  a_type_ptr    class_of_function =
+                         base_class_function->source_corresp.parent.class_type;
+
+  if (!identical_types(complete_object_type, class_of_function)) {
+    /* The complete object type is a derived class, so there might be an
+       overriding function in it or an intermediate base class. */
+    an_overriding_virtual_function_ptr virt_func;
+    a_base_class_ptr                   base_class =
+                   find_base_class_of(complete_object_type, class_of_function);
+
+    check_assertion(base_class != NULL);
+    if (base_class->ambiguous) {
+      /* There is more than one derivation path from the class of the
+         function to the complete object type.  There might be different
+         overriders on the various paths, some pure and some not, so we
+         can't rely on the override information in base_class (which only
+         reflects one of the paths).  We must traverse backward through
+         the implicit_this_arg base-class casts to find the correct
+         final overrider. */
+      an_expr_node_ptr this_node;
+      a_type_ptr       this_base = class_of_function;
+
+      for (this_node = implicit_this_arg;
+           is_operation_node(this_node) &&
+                               !same_entities(this_base, complete_object_type);
+           this_node = this_node->variant.operation.operands) {
+        if (this_node->variant.operation.kind ==
+                                  (an_expr_operator_kind)eok_base_class_cast) {
+          /* The expression tree might have nodes other than
+             eok_base_class_cast operations (e.g., cv-qualification
+             casts), but we can ignore those. */
+          a_type_ptr this_derived =
+            f_skip_typerefs(type_pointed_to(this_node->
+                                            variant.operation.operands->type));
+          base_class = find_base_class_of(this_derived, class_of_function);
+          for (virt_func = base_class->overriding_virtual_functions;
+               virt_func != NULL; virt_func = virt_func->next) {
+            if (same_entities(virt_func->primary_function, target_function)) {
+              /* Found an override. */
+              target_function = virt_func->overriding_function;
+	      class_of_function = this_derived;
+              break;
+            }  /* if */
+          }  /* for */
+          this_base = this_derived;
+        }  /* if */
+      }  /* for */
+    } else {
+      /* The derivation is unambiguous and we can rely on the list of
+         virtual functions in base_class. */
+      for (virt_func = base_class->overriding_virtual_functions;
+           virt_func != NULL; virt_func = virt_func->next) {
+        if (same_entities(virt_func->primary_function, base_class_function)) {
+          /* Found an override. */
+          target_function = virt_func->overriding_function;
+          break;
+        }  /* if */
+      }  /* for */
+    }  /* if */
+  }  /* if */
+  return target_function;
+}  /* final_overrider */
+
+
+static a_boolean ctor_or_dtor_calling_own_pure_virtual(
+                                             a_routine_ptr    member_func,
+                                             an_expr_node_ptr function_node)
+/*
+Return TRUE iff:
+1) we are currently in the constructor or destructor of the class of
+   member_func or one derived from it, and
+2) the object expression of the call is either "this" or "this" modified
+   only by casts ("((B*)this)->f()"), and
+3) member_func (or its final overrider in the class of the
+   constructor/destructor) is a pure virtual.
+
+member_func points to a virtual function, and function_node points to
+a function expression to which the argument list (including the implicit
+"this" argument) has already been appended.
+*/
+{
+  a_boolean bad_pure_virt_call = FALSE;
+
+  if (innermost_function_scope != NULL) {
+    /* The call is in the context of a function body (as opposed to an
+       initialization in namespace scope). */
+    a_routine_ptr rp = current_routine_entry();
+    if (rp->special_kind == (a_special_function_kind)sfk_constructor ||
+        rp->special_kind == (a_special_function_kind)sfk_destructor) {
+      /* We are in a constructor or destructor, but we don't know yet
+         whether it's in a class of which member_func is a member. */
+      a_type_ptr class_of_mf;
+      a_type_ptr class_of_ctor_dtor;
+
+      class_of_mf = member_func->source_corresp.parent.class_type;
+      class_of_ctor_dtor = rp->source_corresp.parent.class_type;
+      if (is_same_class_or_base_class_thereof(class_of_ctor_dtor,
+                                              class_of_mf)) {
+        /* The class of the constructor/destructor has member_func as a
+           member.  Now check if the object expression in the call is "this"
+           or "this" cast to something ("(base*)this", "(const C*)this",
+           etc.) -- it's not an error to invoke a pure virtual from a
+           constructor/destructor if the object isn't the one under
+           construction/destruction.  The argument list, including the
+           implicit "this" argument, has already been appended to the
+           function_node, with the implicit "this" as the first successor. */
+        an_expr_node_ptr implicit_this_arg = function_node->next;
+        an_expr_node_ptr node;
+
+        /* We scan down through any eok_cast, eok_base_class_cast, or
+           eok_derived_class_cast operators so we can compare against the
+           constructor/destructor's "this" parameter.  (Note: the eok_cast
+           case is primarily to handle qualification conversions, like
+           ((const C*)this)->f().  Casts through unrelated types, such as
+           ((C*)(unrelated*)this)->f(), are also acceptable, because they
+           don't affect whether the ultimate result would be an attempt to
+           invoke a pure virtual function.  eok_derived_class_casts are
+           added by bind_member_function_operand_to_selector to adjust the
+           type of the implicit "this" argument to an overriding virtual
+           function.) */
+        /* This scan is similar to the "call_case" processing of
+           node_complete_object_type, except that it only applies to
+           constructors and destructors and it accepts a wider variety
+           of expression nodes -- we just have to establish the use of the
+           ctor/dtor "this" parameter and identify the final overrider, so
+           we don't need to restrict the implicit "this" argument expression
+           to one that lets us actually call the final overrider. */
+        for (node = implicit_this_arg;
+             is_operation_node(node) &&
+             (node->variant.operation.kind ==
+                                (an_expr_operator_kind)eok_cast ||
+              node->variant.operation.kind ==
+                                (an_expr_operator_kind)eok_base_class_cast ||
+              node->variant.operation.kind ==
+                                (an_expr_operator_kind)eok_derived_class_cast);
+             node = node->variant.operation.operands) {}
+
+        if (is_variable_node(node) && node->variant.variable ==
+              innermost_function_scope->variant.routine.this_param_variable) {
+          /* The call's object expression uses the constructor/destructor's
+             "this" pointer.  The final check is whether the final overrider
+             of the function being called is a pure virtual function. */
+          a_routine_ptr overrider = final_overrider(member_func,
+                                                    implicit_this_arg,
+                                                    class_of_ctor_dtor);
+          bad_pure_virt_call = overrider->pure_virtual;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+
+  return bad_pure_virt_call;
+}  /* ctor_or_dtor_calling_own_pure_virt */
+
+
 static an_expr_node_ptr func_call_expr(
                                    an_expr_node_ptr  function_node,
                                    a_type_ptr        function_type,
@@ -7343,9 +7621,9 @@ was suppressed on the call.
     if (curr_expr_is_potentially_evaluated()) {
       /* It is being called. */
       rp->called = TRUE;
-      if (rp->pure_virtual && !is_virtual && !virtual_suppressed) {
-        /* Non-virtual call of a pure virtual function, and not written
-           explicitly to suppress virtualness. */
+      if (rp->is_virtual && !virtual_suppressed &&
+          ctor_or_dtor_calling_own_pure_virtual(rp, function_node)) {
+        /* Call to pure virtual from a constructor or destructor. */
         pos_warning(ec_call_of_pure_virtual, err_pos);
       }  /* if */
     }  /* if */

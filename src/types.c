@@ -2473,6 +2473,26 @@ base class casts and virtual function calls.
            to find the complete object. */
         complete_object_type = node_complete_object_type(first_operand,
                                                          call_case);
+      } else if (op == (an_expr_operator_kind)eok_cast &&
+                 is_pointer_type(node->type) &&
+                 is_pointer_type(first_operand->type)) {
+        a_type_ptr target_type = f_skip_typerefs(type_pointed_to(node->type));
+        a_type_ptr source_type =
+                                f_skip_typerefs(type_pointed_to(first_operand->
+                                                                type));
+        if (identical_types(target_type, source_type)) {
+          /* Qualification conversion.  Do a recursive call on the first
+             operand to find the complete object.  (Note: this test for
+             eok_cast nodes is more restrictive than the one in
+             ctor_or_dtor_calling_own_pure_virtual.  The reason is that the
+             code there is simply concerned with determining whether a
+             ctor/dtor "this" parameter is used as the implicit "this"
+             argument in a call, while expressions accepted by this code may
+             need to be used actually to construct an implicit "this"
+             argument, and arbitrary casts can prevent that.) */
+          complete_object_type = node_complete_object_type(first_operand,
+                                                           call_case);
+        }  /* if */
       } else if (op == (an_expr_operator_kind)eok_padd ||
                  op == (an_expr_operator_kind)eok_padd_subsc ||
                  op == (an_expr_operator_kind)eok_psubtract) {
@@ -2495,6 +2515,10 @@ base class casts and virtual function calls.
       if (ndsp->is_new) {
         /* For new, the type is known. */
         complete_object_type = ndsp->type;
+        if (is_array_type(complete_object_type)) {
+          complete_object_type =
+                           underlying_array_element_type(complete_object_type);
+        }  /* if */
       } else {
         /* Not easy to tell the type for delete, and probably not worth it. */
       }  /* if */
