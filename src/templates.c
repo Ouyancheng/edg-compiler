@@ -30,6 +30,9 @@ templates.c -- Support for C++ templates.
 #if NEED_NAME_MANGLING
 #include "lower_name.h"
 #endif /* NEED_NAME_MANGLING */
+#if USER_CONTROL_OF_STRUCT_PACKING
+#include "layout.h"
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
 
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
@@ -2169,7 +2172,8 @@ Instantiate the body of the template function associated with tip.
   rescan_reusable_cache(&tcp->tokens);
   scan_function_body(rout_ptr, func_info_ptr,
                      (SFB_NEW_STRUCT_STMT_STACK_REQUIRED |
-                      SFB_IS_INSTANTIATION));
+                      SFB_IS_INSTANTIATION |
+                      SFB_PRAGMA_PACK_IS_LOCAL));
   /* scan_function_body does not scan past the right brace. */
   if (curr_token == tok_rbrace) (void)get_token();
   /* Process any pragmas that are to be bound to this instance. */
@@ -7575,6 +7579,12 @@ caller.
     /* A function template definition -- leave it to the caller to advance
        past the closing right brace. */
     *(decl_state->final_token_ptr) = tok_rbrace;
+#if USER_CONTROL_OF_STRUCT_PACKING
+    /* Recored the current setting of the maximum alignment for local class
+       members (an adjustment may be required for packing). */
+    tssp->variant.function.func_info.max_member_alignment =
+                             current_max_alignment_for_class_members();
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
   }  /* if */
   if (err) {
     /* Avoid spurious errors -- skip the check for template params, since

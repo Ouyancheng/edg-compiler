@@ -29,6 +29,9 @@ decls.c -- Scanning of declarations.
 #if MAINTAIN_NEEDED_FLAGS
 #include "il_walk.h"
 #endif /* MAINTAIN_NEEDED_FLAGS */
+#if USER_CONTROL_OF_STRUCT_PACKING
+#include "layout.h"
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
 /*
 Macro that is TRUE if the current token is a Microsoft storage class
@@ -7857,6 +7860,12 @@ continue_with_declaration:
 #if GENERATE_SOURCE_SEQUENCE_LISTS
           func_info.declarator_ssep = declarator_ssep;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if USER_CONTROL_OF_STRUCT_PACKING
+          /* Recored the current setting of the maximum alignment for local
+             class members (an adjustment may be required for packing). */
+          func_info.max_member_alignment =
+                             current_max_alignment_for_class_members();
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
           /* Do processing required for a function definition, including
              scanning the function body.  Note that the closing '}' will not
              been consumed -- that will be done by the caller. */
