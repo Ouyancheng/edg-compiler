@@ -1874,7 +1874,7 @@ the base class.
 */
 {
   a_type_ptr             tp = NULL;
-  a_base_class_ptr       bcp;
+  a_base_class_ptr       bcp, disambiguator;
   a_derivation_step_ptr  step;
 
   db_enter(4, "set_shares_virtual_function_info_flag");
@@ -1896,7 +1896,28 @@ the base class.
       if (base_class != NULL) {
         /* Since this is a base class of the base class type, find the
            corresponding base class of class_type. */
-        bcp = corresponding_base_class(bcp, class_type, base_class);
+        if (!bcp->ambiguous) {
+          /* bcp is not an ambiguous base class of tp, so base_class will
+             serve as a disambiguator. */
+          disambiguator = base_class;
+        } else {
+          /* bcp is an ambiguous base class of tp, so examine its list for
+             an unambiguous intermediate step that will provide a
+             disambiguator; choose the one furthest along the path (closest
+             to bcp itself). */
+          step = bcp->derivation->path;
+          check_assertion(!step->base_class->ambiguous);
+          while (!step->next->base_class->ambiguous) step = step->next;
+          if (step->base_class->type == base_class->type) {
+            disambiguator = base_class;
+          } else {
+            disambiguator = corresponding_base_class(step->base_class,
+                                                     class_type, base_class);
+          }  /* if */
+        }  /* if */
+        /* bcp now points to a base class of tp; change it to point to the
+           corresponding base class of class_type. */
+        bcp = corresponding_base_class(bcp, class_type, disambiguator);
       }  /* if */
       /* Set the flag. */
       bcp->shares_virtual_function_info = TRUE;
