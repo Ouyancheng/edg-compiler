@@ -1,5 +1,10 @@
 Version 3.4
 
+4/7/04   GNU C++ compatibility: floating-point template parameters disallowed
+
+Floating-point template parameters (which are not permitted by the standard)
+are now disallowed in g++ mode.
+
 3/31/04  UPC mode: Treatment of THREADS constants
 
 In UPC mode, constant multiples of THREADS are represented using a singled

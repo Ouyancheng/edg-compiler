@@ -2574,6 +2574,7 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
   }  /* if */
   c_and_cpp_function_types_are_distinct = FALSE;
   allow_default_arg_on_template_member_definition = TRUE;
+  floating_point_template_parameters_allowed = FALSE;
 }  /* check_and_set_gpp_mode_options */
 
 
