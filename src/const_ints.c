@@ -117,7 +117,7 @@ large unsigned if is_signed is FALSE) otherwise set err to FALSE.
   } else {
     empty_bits = 0;
   }  /* if */
-  for (i = 0; i < INT_VALUE_PARTS_PER_INTEGER_VALUE; ++i) {
+  for (i = 0; i < (int)INT_VALUE_PARTS_PER_INTEGER_VALUE; ++i) {
     this_part = intval->part[i];
     if (bits_so_far < bits_discarded) {
       if (this_part != empty_bits) {
@@ -240,7 +240,7 @@ signed1 and signed2 give the signedness of the two values.
       result = 0;
     }  /* if */
 #else /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
-    for (i = 0; i < INT_VALUE_PARTS_PER_INTEGER_VALUE; ++i) {
+    for (i = 0; i < (int)INT_VALUE_PARTS_PER_INTEGER_VALUE; ++i) {
       if (op_1->part[i] > op_2->part[i]) {
         result = 1;
         break;
@@ -679,7 +679,8 @@ operand (op_1 = op_1 ^ op_2).
    fill_value is a local variable of the functions that call this macro. */
 #define get_part(value, part_gp)					\
   ((a_host_large_unsigned)						\
-  ((part_gp < 0 || part_gp >= INT_VALUE_PARTS_PER_INTEGER_VALUE) ?	\
+  (((part_gp) < 0 ||							\
+    (int)(part_gp) >= (int)INT_VALUE_PARTS_PER_INTEGER_VALUE) ?		\
                                       fill_value : (value).part[part_gp])) 
 #endif /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
 
@@ -722,10 +723,10 @@ shift count is a legal value.
      are ORed together.  For each part of the original value we determine
      whether some or all of the bits will be shifted out.  If any of the
      bits to be shifted are non-zero we set the overflow flag. */
-  part_offset = op_2 / BITS_IN_INT_VALUE_PART;
-  first_part_shift = op_2 % BITS_IN_INT_VALUE_PART;
+  part_offset = op_2 / (int)BITS_IN_INT_VALUE_PART;
+  first_part_shift = op_2 % (int)BITS_IN_INT_VALUE_PART;
   second_part_shift = BITS_IN_INT_VALUE_PART - first_part_shift;
-  for (i = 0; i < INT_VALUE_PARTS_PER_INTEGER_VALUE; ++i) {
+  for (i = 0; i < (int)INT_VALUE_PARTS_PER_INTEGER_VALUE; ++i) {
     register a_host_large_unsigned	work;
     an_int_value_part			fill_value = 0;
     work = op_1->part[i];
@@ -775,8 +776,8 @@ shift count is a legal value.
      high order bits are shifted right by first_part_shift, the low
      order bits are shifted left by second_part_shift, and the two values
      are ORed together. */
-  part_offset = op_2 / BITS_IN_INT_VALUE_PART;
-  first_part_shift = op_2 % BITS_IN_INT_VALUE_PART;
+  part_offset = op_2 / (int)BITS_IN_INT_VALUE_PART;
+  first_part_shift = op_2 % (int)BITS_IN_INT_VALUE_PART;
   second_part_shift = BITS_IN_INT_VALUE_PART - first_part_shift;
   /* fill_value contains the bits to be shifted in from the left.  It is
      zero for positive numbers and -1 (0xffff...) for negative numbers. */
@@ -893,7 +894,7 @@ Clear an array of integer value parts.
   {									\
     register int i_cp;							\
     register an_int_value_part	*to_cp = to_arg;			\
-    for (i_cp = 0; i_cp < parts_cp; ++i_cp) to_cp[i_cp] = 0;		\
+    for (i_cp = 0; i_cp < (int)(parts_cp); ++i_cp) to_cp[i_cp] = 0;	\
   }
 
 
@@ -906,7 +907,9 @@ of elements in an array of parts.
     register int i_cp;							\
     register an_int_value_part	*from_cp = from_arg;			\
     register an_int_value_part	*to_cp = to_arg;			\
-    for (i_cp = 0; i_cp < (int)parts_cp; ++i_cp) to_cp[i_cp] = from_cp[i_cp];\
+    for (i_cp = 0; i_cp < (int)(parts_cp); ++i_cp) {			\
+      to_cp[i_cp] = from_cp[i_cp];					\
+    }  /* for */							\
   }
 #endif /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
 
@@ -1274,7 +1277,7 @@ are done with op_1.
      normalization later. */
   copy_parts(&op_1->part[0], &work_area[1], INT_VALUE_PARTS_PER_INTEGER_VALUE);
   /* Compute the number of parts actually used in op_2. */
-  for (j = 0; j < INT_VALUE_PARTS_PER_INTEGER_VALUE; ++j) {
+  for (j = 0; j < (int)INT_VALUE_PARTS_PER_INTEGER_VALUE; ++j) {
     if (op_2.part[j] != 0) {
       op_2_first_part = j;
       op_2_parts = INT_VALUE_PARTS_PER_INTEGER_VALUE - op_2_first_part;
@@ -1282,7 +1285,7 @@ are done with op_1.
     }  /* if */
   }  /* for */
   /* Compute the number parts actually used in the work area. */
-  for (i = 0; i <= INT_VALUE_PARTS_PER_INTEGER_VALUE; ++i) {
+  for (i = 0; i <= (int)INT_VALUE_PARTS_PER_INTEGER_VALUE; ++i) {
     if (work_area[i] != 0) {
       wa_first_part = i;
       wa_parts = INT_VALUE_PARTS_PER_INTEGER_VALUE - wa_first_part + 1;
@@ -1312,7 +1315,8 @@ are done with op_1.
   quotient_pos = INT_VALUE_PARTS_PER_INTEGER_VALUE -
                                                 (wa_parts - op_2_parts) - 1;
   for (j = wa_first_part - 1;
-       quotient_pos < INT_VALUE_PARTS_PER_INTEGER_VALUE; ++j, quotient_pos++) {
+       quotient_pos < (int)INT_VALUE_PARTS_PER_INTEGER_VALUE;
+       ++j, quotient_pos++) {
     /* D3. Compute a trial value of the first part of the quotient. 
        The following subscripts are always legal because the work area
        contains extra elements that have been set to zero. */
@@ -1345,7 +1349,7 @@ are done with op_1.
          somewhat slower but much simpler and avoids some potential
          overflow problems. */
       done = TRUE;
-      for (i = 0; i < INT_VALUE_PARTS_PER_INTEGER_VALUE; ++i) {
+      for (i = 0; i < (int)INT_VALUE_PARTS_PER_INTEGER_VALUE; ++i) {
         register int diff = work_area[i + j] - temp_product[i];
         if (diff == 0) continue;
         if (diff < 0 ) {
@@ -1570,7 +1574,7 @@ preceded by a "-".
   /* Print the first part. The first part includes the sign and is
      not padded with zeros. */
   sprintf(buffer, "%s%ld", sign_string, parts[i]);
-  for (++i ; i < INT_VALUE_PARTS_PER_INTEGER_VALUE; ++i) {
+  for (++i ; i < (int)INT_VALUE_PARTS_PER_INTEGER_VALUE; ++i) {
     /* Print subsequent parts.  These do not include the sign and
        are padded on the right with zeros. */
     sprintf(&buffer[strlen(buffer)], "%0*ld", digits_in_max_power_of_10,
@@ -1699,7 +1703,7 @@ so no checking is done.
 
 
 #if DEBUG
-char* db_format_integer_value(an_integer_value  *value)
+char* db_format_integer_value(an_integer_value  *value) /*lint !e528*/
 /*
 Formats an integer value.  Returns a pointer to a local static
 buffer containing the formatted string.  The local buffer has 5
@@ -1717,7 +1721,7 @@ a single printf command in the caller.
 #else /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
   int			i;
   sprintf(&buffer[bufpos][0], "0x");
-  for (i = 0; i < INT_VALUE_PARTS_PER_INTEGER_VALUE; ++i) {
+  for (i = 0; i < (int)INT_VALUE_PARTS_PER_INTEGER_VALUE; ++i) {
     sprintf(&buffer[bufpos][strlen(&buffer[bufpos][0])], "%04x",
             (unsigned int)(value->part[i]));
   }  /* for */
@@ -1725,18 +1729,6 @@ a single printf command in the caller.
   if (++bufpos == 5) bufpos = 0;
   return &buffer[old_bufpos][0];
 }  /* db_format_integer_value */
-
-
-static void db_call_unused_functions(void)
-/*
-Call functions that are present for debugging purposes.  Suppresses
-lint warnings about functions not being called.
-*/
-{
-  an_integer_value	iv;
-  (void)db_format_integer_value(&iv);
-  db_call_unused_functions();
-}  /* db_call_unused_functions */
 #endif /* DEBUG */
 
 
