@@ -3760,6 +3760,23 @@ result_is_addr flag is set correctly; this routine cannot deal with that.
 }  /* gen_temp_init */
 
 
+static unsigned long array_level_count(a_type_ptr type)
+/*
+Return the count of array levels in the indicated type, i.e., the
+number of levels of tk_array type entries before one gets to a non-array
+type.
+*/
+{
+  unsigned long count = 0;
+
+  while (is_array_type(type)) {
+    count++;
+    type = array_element_type(type);
+  }  /* while */
+  return count;
+}  /* array_level_count */
+
+
 static a_boolean is_array_decay_cast(an_expr_node_ptr expr)
 /*
 expr is a compiler-generated cast.  Return TRUE if it is a cast that
@@ -3773,11 +3790,15 @@ implements an array-to-pointer decay; return FALSE otherwise.
   if (is_pointer_type(dest_type) && is_pointer_type(source_type)) {
     a_type_ptr source_type_pointed_to = type_pointed_to(source_type);
     if (is_array_type(source_type_pointed_to)) {
-      a_type_ptr source_element_type =
-                                    array_element_type(source_type_pointed_to);
+      /* A cast from a pointer to array type to a pointer type. */
       a_type_ptr dest_type_pointed_to = type_pointed_to(dest_type);
-      if (skip_typerefs(source_element_type) ==
-          skip_typerefs(dest_type_pointed_to)) {
+      /* Since we know we are dealing with an implicit conversion,
+         any mismatch in the count of array levels must be due to
+         an array type decay. */
+      /* Note that we avoid using types_are_compatible here because
+         it's not available in a standalone back end. */
+      if (array_level_count(source_type_pointed_to) !=
+          array_level_count(dest_type_pointed_to)) {
         is_array_decay = TRUE;
       }  /* if */
     }  /* if */
