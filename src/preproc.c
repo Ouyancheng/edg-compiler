@@ -922,7 +922,7 @@ string is copied there.
   /* The current token is the identifier that indicate the pragma kind.
      This should be included in the generated string. */
   do {
-    ensure_pragma_string_buffer_space(len_of_curr_token +
+    ensure_pragma_string_buffer_space(pos_in_buffer + len_of_curr_token +
                                       any_white_space_skipped);
     if (any_white_space_skipped) pragma_string_buffer[pos_in_buffer++] = ' ';
     (void)memcpy(&pragma_string_buffer[pos_in_buffer], start_of_curr_token,
