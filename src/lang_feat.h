@@ -180,13 +180,13 @@ to be compiled.
 #define AUTOMATIC_TEMPLATE_INSTANTIATION TRUE
 #endif /* ifndef AUTOMATIC_TEMPLATE_INSTANTIATION */
 
+#ifdef AUTOMATIC_TEMPLATE_INSTANTIATION
 /*
 Flag that is TRUE if automatic instantiation processing is to be performed
 by default.  This flag does not affect whether code is compiled but
 rather determines whether the automatic instantiation processing is
 to be performed when the compiler is executed.
 */
-#ifdef AUTOMATIC_TEMPLATE_INSTANTIATION
 #ifndef DEFAULT_AUTOMATIC_INSTANTIATION_MODE
 #define DEFAULT_AUTOMATIC_INSTANTIATION_MODE TRUE
 #endif /* !defined(DEFAULT_AUTOMATIC_INSTANTIATION_MODE) */
@@ -204,6 +204,18 @@ inclusion is not performed.
 */
 #ifndef INSTANTIATION_BY_IMPLICIT_INCLUSION
 #define INSTANTIATION_BY_IMPLICIT_INCLUSION TRUE
+#endif /* ifndef INSTANTIATION_BY_IMPLICIT_INCLUSION */
+
+#if INSTANTIATION_BY_IMPLICIT_INCLUSION
+/*
+Flag that is TRUE if implicit inclusion of template definition files
+is to be performed by default.  This flag does not affect whether code is
+compiled but rather determines whether the implicit inclusion processing is
+to be performed when the compiler is executed.
+*/
+#ifndef DEFAULT_IMPLICIT_TEMPLATE_INCLUSION_MODE
+#define DEFAULT_IMPLICIT_TEMPLATE_INCLUSION_MODE FALSE
+#endif /* !defined(DEFAULT_IMPLICIT_TEMPLATE_INCLUSION_MODE) */
 #endif /* ifndef INSTANTIATION_BY_IMPLICIT_INCLUSION */
 
 #endif /* ifndef LANG_FEAT_H */
