@@ -2494,31 +2494,70 @@ pointed to by scope_ptr.
 
 #if MAINTAIN_NEEDED_FLAGS
 
-void mark_variables_as_needed(a_scope_ptr  scope)
+static void set_needed_flags_at_end_of_file_scope(a_scope_ptr  scope)
 /*
-scope is a pointer to the file scope or a namespace scope.  Set the 
+scope is a pointer to the file scope, a namespace scope, or a class scope.
+Set the "needed" flags on classes, variables, and static data members now
+that processing for the file scope (including IL lowering, if applicable) has
+been completed.
 */
 {
-  a_namespace_ptr  nsp;
-  a_variable_ptr   vp;
+  a_type_ptr                   tp;
+  a_class_type_supplement_ptr  ctsp;
+  a_namespace_ptr              nsp;
+  a_variable_ptr               vp;
 
+  check_assertion_str2(scope->kind == (a_scope_kind)sck_file ||
+                         scope->kind == (a_scope_kind)sck_namespace ||
+                         scope->kind == (a_scope_kind)sck_class_struct_union,
+                       "set_needed_flags_at_end_of_file_scope:",
+                       "bad scope kind");
+  /* Apply this check to namespaces defined in the current scope, if there
+     are any. */
   for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
     if (!nsp->is_namespace_alias) {
-      mark_variables_as_needed(nsp->variant.assoc_scope);
+      /* Nested namespace scope. */
+      set_needed_flags_at_end_of_file_scope(nsp->variant.assoc_scope);
     }  /* if */
   }  /* for */
+  /* Check for classes defined in the current scope. */
+  for (tp = scope->types; tp != NULL; tp = tp->next) {
+    if (is_immediate_class_type(tp)) {
+      /* If the has been marked to indicate that a definition is needed, then
+         we need to walk the subtree of the class; if not, we can ignore it. */
+      if (tp->source_corresp.needed) {
+        if (tp->variant.class_struct_union.definition_needed) {
+          /* Walk the class subtree.  Clear the needed flag first, else the
+             subtree walk will not be done. */
+          tp->source_corresp.needed = FALSE;
+          mark_as_needed((char *)tp, (an_il_entry_kind)iek_type);
+        }  /* if */
+      }  /* if */
+      ctsp = tp->variant.class_struct_union.extra_info;
+      if (ctsp != NULL && ctsp->assoc_scope != NULL) {
+        /* Check nested classes and static data members, too.  Note that this
+           may be done even if the class definition itself is not needed. */
+        set_needed_flags_at_end_of_file_scope(ctsp->assoc_scope);
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  /* Do processing on variables (or, if this a class scope, static data
+     members). */
   for (vp = scope->variables; vp != NULL; vp = vp->next) {
-    if (vp->storage_class == (a_storage_class)sc_unspecified &&
-        !vp->source_corresp.needed) {
-      /* This is a variable that has been defined but not yet marked as
-         "needed" (presumably because it has not been referenced in a
-         function that is needed).  But it may be referenced from another
-         translation unit, so mark it needed now (along with the type with
-         which it was declared and its initializer, if appropriate). */
+    if (vp->storage_class == (a_storage_class)sc_unspecified ||
+        vp->source_corresp.needed) {
+      /* This is an externally linked variable that has been defined or
+         (whatever its linkage) has been marked as "needed" (typically
+         because it has not been referenced in a function that is needed).
+         Mark it as needed now, along with the type with which it was
+         declared and its initializer, if appropriate.  (Even if it was
+         already marked as needed, the initializer is not scanned till this
+         end-of-file-scope phase, so we have to do it again.) */
+      vp->source_corresp.needed = FALSE;
       mark_as_needed((char *)vp, (an_il_entry_kind)iek_variable);
     }  /* if */
   }  /* for */
-}  /* mark_variables_as_needed */
+}  /* set_needed_flags_at_end_of_file_scope */
 
 #endif /* MAINTAIN_NEEDED_FLAGS */
 
@@ -2828,7 +2867,9 @@ End a name scope by popping an entry off the scope stack.
   } else if (kind == (a_scope_kind)sck_file) {
     /* Set the "needed" flag in defined variables with external linkage --
        both in the file scope and in each of the namespace scopes. */
-    mark_variables_as_needed(il_scope);
+    end_of_file_scope_needed_flags_phase = TRUE;
+    set_needed_flags_at_end_of_file_scope(il_scope);
+    end_of_file_scope_needed_flags_phase = FALSE;
 #endif /* MAINTAIN_NEEDED_FLAGS */
   }  /* if */
   /* The IL scope, if any, is no longer on the stack.  This must occur
