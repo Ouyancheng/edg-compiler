@@ -1,5 +1,12 @@
 Version 3.2
 
+3/26/03  C99: spurious error on hex floating-point constant
+
+In C99 mode, a spurious error was issued if a hexadecimal floating-point
+constant had a exponent that was too large but a mantissa of zero.  Now fixed.
+
+  double d = 0x0.0p100000000;
+
 3/26/03  GNU C mode: Declarations can appear anywhere in a block
 
 In GNU C mode, the front end now no longer requires that all the declaration

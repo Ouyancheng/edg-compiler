@@ -1029,6 +1029,7 @@ before setting it if there are unused bits.
   a_boolean			too_many_digits = FALSE;
   a_boolean			bits_discarded = FALSE;
   a_boolean			any_digits = FALSE;
+  a_boolean			exponent_overflow = FALSE;
 
   *err = FALSE;
   *inexact = FALSE;
@@ -1106,7 +1107,7 @@ before setting it if there are unused bits.
            size of a long, which should be safe given that even an
 	   IEEE 128 bit floating-point value has only a 15 bit
            exponent. */
-        *err = TRUE;
+        exponent_overflow = TRUE;
       } else {
         value = value * 10 + (*str - '0');
       }  /* if */
@@ -1138,7 +1139,10 @@ before setting it if there are unused bits.
   } else {
     /* There were no digits specified.  Reset the exponent. */
     exponent = 0;
+    exponent_overflow = FALSE;
   }  /* if */
+  /* Set the error flag if the exponent was too large. */
+  if (exponent_overflow) *err = TRUE;
 #if DEBUG
   if (db_flag_is_set("fp_hex_string_to_float")) {
     fprintf(f_debug, "fp hex value: ");
