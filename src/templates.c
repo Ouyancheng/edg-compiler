@@ -800,8 +800,6 @@ static char *get_mangled_name_for_symbol(a_symbol_ptr	sym);
 #endif /* TEMPLATE_LOOKUP_NEEDED */
 
 
-#if AUTOMATIC_TEMPLATE_INSTANTIATION
-
 static char *get_mangled_name_of_template(a_symbol_ptr	template_sym,
 					  a_boolean	okay_to_create)
 /*
@@ -826,6 +824,7 @@ exist.
   return tssp->name;
 }  /* get_mangled_name_of_template */
 
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
 
 static void generate_template_file_names(void)
 /*
