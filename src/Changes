@@ -1,5 +1,15 @@
 Version 2.19
 
+8/4/93   new of array of incomplete type
+
+An error is now detected on the following:
+
+  struct A;
+  void m() {
+    int i = 1;
+    new A[i];  // Error
+  }
+
 8/4/93   const variable with value 0 allowed as null pointer constant
 
 A const-valued int variable with value 0 should, in our opinion, be

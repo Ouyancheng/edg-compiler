@@ -3662,12 +3662,12 @@ specification allow a variable-sized array as the top type.
   /* The operand of a new must be an object type. */
   if (err) {
     /* Error already issued (operator not valid in this kind of expression). */
-  } else if (!is_object_type(new_type) &&
-             (!is_array_type(new_type) || new_array_dimension == NULL)) {
-    /* Invalid type. */
-    if (is_error_type(new_type)) {
+  } else if (!is_object_type(base_new_type)) {
+    /* Invalid type.  Note that base_new_type is tested instead of
+       new_type, so the first-level element type of arrays is tested. */
+    if (is_error_type(base_new_type)) {
       /* Error already issued. */
-    } else if (is_incomplete_type(new_type)) {
+    } else if (is_incomplete_type(base_new_type)) {
       pos_error(ec_incomplete_type_not_allowed, &type_position);
     } else {
       pos_error(ec_type_must_be_object_type, &type_position);
