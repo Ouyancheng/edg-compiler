@@ -1,5 +1,17 @@
 Version 2.07
 
+6/4/92  Routine referenced flag for virtual functions.
+
+The referenced flag in the routine entry for a virtual function is
+now not set on a call unless the virtual-ness of the routine is
+suppressed by using a qualified name.  The referenced flag is still
+set in IL lowering when the virtual function table is generated.
+
+6/4/92  Error on call of pure virtual function.
+
+An error is now issued for an explicitly non-virtual call to a pure
+virtual function.
+
 6/4/92  Errors on implicit calls of functions with incomplete return types.
 
 Routines in expr.c, exprutil.c, il.c, and class_decl.c were changed
