@@ -4227,25 +4227,26 @@ namespace and type are ignored, so that the modified function may not in
 fact be a Microsoft Windows entry point).
 */
 {
-  a_routine_type_supplement_ptr  rtsp = type->variant.routine.extra_info;
-
-  if (rtsp->calling_convention == (a_calling_convention)cc_default) {
-    if (func_info->is_main_function) {
-      /* main() is a __cdecl function by default. */
-      rtsp->calling_convention = (a_calling_convention)cc_cdecl;
-    } else if (locator->symbol_header != NULL) {
-      char  *name = locator->symbol_header->identifier;
-      if (name[0] == 'w') {
-        /* Treat "wWinMain" as "WinMain". */
-        ++name;
-      }  /* if */
-      if (strcmp(name, "WinMain") == 0) {
-        /* WinMain() is a __stdcall function by default. */
-        rtsp->calling_convention = (a_calling_convention)cc_stdcall;
+  if (type->kind == (a_type_kind)tk_routine) {
+    a_routine_type_supplement_ptr  rtsp = type->variant.routine.extra_info;
+    if (rtsp->calling_convention == (a_calling_convention)cc_default) {
+      if (func_info->is_main_function) {
+        /* main() is a __cdecl function by default. */
+        rtsp->calling_convention = (a_calling_convention)cc_cdecl;
+      } else if (locator->symbol_header != NULL) {
+        char  *name = locator->symbol_header->identifier;
+        if (name[0] == 'w') {
+          /* Treat "wWinMain" as "WinMain". */
+          ++name;
+        }  /* if */
+        if (strcmp(name, "WinMain") == 0) {
+          /* WinMain() is a __stdcall function by default. */
+          rtsp->calling_convention = (a_calling_convention)cc_stdcall;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
-}  /* if */
+}  /* adjust_calling_convention_if_entry_point */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
