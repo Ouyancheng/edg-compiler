@@ -3985,6 +3985,7 @@ class, struct, or union.
   a_field_ptr		         field;
   a_symbol_ptr		         member_sym = NULL;
   a_class_symbol_supplement_ptr  cssp;
+  a_boolean                      bit_field_is_signed = FALSE;
 
   db_enter(3, "decl_nonstatic_data_member");
   if (class_type->kind == (a_type_kind)tk_union) {
@@ -4005,14 +4006,15 @@ class, struct, or union.
   /* A colon next indicates a bit-field. */
   if (curr_token == tok_colon) {
     /* Scan the bit-field size and determine the bit-field type. */
-    scan_bit_field_size(unnamed_field, member_type, &bit_field_size);
-    
+    scan_bit_field_size(unnamed_field, member_type, &bit_field_size,
+                        &bit_field_is_signed);
   }  /* if */
   /* Create the field entry.  For unnamed fields it will not actually become
      part of the IL. */
   field = alloc_field();
   field->type = *member_type;
   field->bit_size = bit_field_size;
+  field->bit_field_is_signed = bit_field_is_signed;
   /* For an unnamed field, do not create the field symbol. */
   if (!unnamed_field) {
     if (!is_anonymous_union) {
