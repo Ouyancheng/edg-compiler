@@ -3165,6 +3165,8 @@ must be stored out when modified.
   if (var->modified_within_try_block) {
     set_variable_address_constant(var, &constant,
                                   /*set_address_taken_flag=*/TRUE);
+    check_assertion_str(var->source_corresp.referenced,
+    "add_var_addr_to_list_if_modified_in_try_block: referenced flag is FALSE");
     arg = alloc_node_for_constant(&constant);
     arg->next = *arg_list;
     *arg_list = arg;

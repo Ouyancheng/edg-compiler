@@ -4569,6 +4569,7 @@ Do IL lowering of the indicated variable and everything under it.
          processed. */
       variable->source_corresp.referenced = FALSE;
       variable->init_kind = (an_init_kind)initk_none;
+      variable->modified_within_try_block = FALSE;
     }  /* if */
     /* Lower the initializer if any. */
     lower_initializer(variable->init_kind, &variable->initializer);

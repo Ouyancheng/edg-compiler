@@ -1,5 +1,15 @@
 Version 2.33
 
+7/16/96 IL lowering should clear modified_within_try_block on return
+        optimization variable
+
+When IL lowering performs the return variable optimization, it should
+clear modified_within_try_block on the return variable when it clears
+the referenced flag.  Without that clearing, when exceptions are
+enabled the return variable might be passed as an argument to
+__suppress_optim_on_vars_in_try, but the referenced flag is FALSE.
+The modified_within_try_block flag is now cleared when appropriate.
+
 7/16/96 Failure to instantiate template for parameter type early enough
 
 The front end failed to instantiate a parameter of template type
