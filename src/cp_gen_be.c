@@ -2451,6 +2451,22 @@ entry is the one associated with the access adjustment.
   /* Write the access declaration, which is just a qualified name. */
   gen_qualified_name(scp);
   write_tok_str("; ");
+  /* For overloaded functions, there is an access adjustment and a source
+     sequence entry for each function in the set.  If that is the case here,
+     advance over the other entries. */
+  if (adj->kind == (an_access_adjustment_kind)aak_routine) {
+    while (curr_source_sequence_entry != NULL &&
+           ss_entry_kind(curr_source_sequence_entry) == iek_access_adjustment){
+      an_access_adjustment_ptr adjb = ss_entry_ptr(curr_source_sequence_entry,
+                                                   an_access_adjustment_ptr);
+      /* Keep going on access adjustments for routines with the same name. */
+      if (adjb->kind != (an_access_adjustment_kind)aak_routine ||
+          adjb->variant.routine->source_corresp.name !=
+                              adj->variant.routine->source_corresp.name) break;
+      /* Advance past the source sequence entry for the adjustment. */
+      adv_curr_source_sequence_entry();
+    }  /* while */  
+  }  /* if */
 }  /* gen_access_adjustment */
 
 
