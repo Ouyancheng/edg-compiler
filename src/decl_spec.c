@@ -2953,14 +2953,25 @@ is a that of a constructor.
   a_boolean          name_match = FALSE;
 
   db_enter(4, "is_constructor_decl");
+  /* See whether the name of the current identifier token is the same as
+     that of a class being defined.  If so, this declaration is treated
+     as a constructor declaration if the next two tokens are a left paren
+     and declaration start token.  Use token caching in the look-ahead,
+     since the tokens will have to be rescanned no matter what. */
   tag_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
-  if (locator_for_curr_id.specific_symbol == NULL ?
-        locator_for_curr_id.symbol_header == tag_sym->header :
-        locator_for_curr_id.specific_symbol == tag_sym) {
-    /* The name is the same as that of a class being defined.  This is treated
-       as a constructor declaration if the next two tokens are a left paren
-       and declaration start token.  Use token caching in the look-ahead,
-       since the tokens will have to be rescanned no matter what. */
+  sym = locator_for_curr_id.specific_symbol;
+  if (sym == NULL) {
+    if (locator_for_curr_id.symbol_header == tag_sym->header) {
+      name_match = TRUE;
+    }  /* if */
+  } else {
+    if (sym == tag_sym) {
+      name_match = TRUE;
+    } else if (sym->kind == (a_symbol_kind)sk_type &&
+               sym->variant.type.is_injected_class_name &&
+               sym->variant.type.ptr == class_type) {
+      name_match = TRUE;
+    }  /* if */
     name_match = TRUE;
   }  /* if */
   if (name_match || microsoft_mode) {
