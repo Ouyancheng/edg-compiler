@@ -1424,7 +1424,7 @@ ec_impl_narrowing_64_bit_int;;"implicit conversion of a 64-bit integral type to 
 ec_expl_narrowing_64_bit_int;;"explicit conversion of a 64-bit integral type to a smaller integral type (potential portability problem)"
 ec_pointer_conversion_to_same_size_int;;"conversion from pointer to same-sized integral type (potential portability problem)"
 ec_cl_sun_linker_scope_requires_sun_mode;;"the \"sun_linker_scope\" option is only valid in Sun mode"
-ec_friend_specifier_ignored;;"the friend specifier is ignored"
+ec_friend_specifier_ignored;;"friend specifier is not allowed in a class definition; friend specifier is ignored"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
