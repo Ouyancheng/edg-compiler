@@ -580,8 +580,8 @@ hidden name checking on its own members, too.
     }  /* if */
     if (!bcp->direct && !bcp->type->source_corresp.is_local_to_function) {
       /* The base class may be inaccessible or ambiguous by inheritance, but
-         it may be able to refer to it through qualified access (if it is not
-         a local class). */
+         it may be possible to refer to it through qualified access (if it is
+         not a local class). */
       check_defeatable_base_inaccessibility(class_type, bcp);
     }  /* if */
   }  /* for */
