@@ -164,7 +164,7 @@ size_t	__array_new_prefix_size =
 		  ((sizeof(an_alloc_prefix) + MOST_STRICT_ALIGNMENT - 1) /
                                MOST_STRICT_ALIGNMENT) * MOST_STRICT_ALIGNMENT;
 #else /* defined(__EDG_IA64_ABI) */
-#ifdef __EDG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES
+#if __EDG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES
 /*
 Define the type used for the array cookie.  The ARM EABI uses a variant
 version of the mechanism in the IA-64 ABI.
@@ -175,9 +175,9 @@ typedef struct an_alloc_prefix {
   size_t	element_count;
 			/* The number of elements in the array. */
 } an_alloc_prefix;
-#else /* ifndef __EDG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES */
+#else /* !__EDG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES */
 typedef size_t an_alloc_prefix;
-#endif /* ifdef __EDG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES */
+#endif /* __EDG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES */
 typedef an_alloc_prefix *an_alloc_prefix_ptr;
 #endif /* defined(__EDG_IA64_ABI) */
 #else /* !USE_PREFIX_FOR_ARRAY_ALLOC_INFO */
@@ -265,10 +265,12 @@ prefix_size.
 #else /* USE_PREFIX_FOR_ARRAY_ALLOC_INFO */
 #ifdef __EDG_IA64_ABI
 /*ARGSUSED*/ /* <-- "size" is not used in that case. */
-#endif /* ifdef __EDG_IA64_ABI */
-#ifndef __EDG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES
+#if !__EDG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES
 /*ARGSUSED*/ /* <-- "element_size" is not used in that case. */
-#endif /* ifndef __EDG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES */
+#endif /* !__EDG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES */
+#else /* ifndef __EDG_IA64_ABI */
+/*ARGSUSED*/ /* <-- "element_size" is not used in that case. */
+#endif /* ifdef __EDG_IA64_ABI */
 #endif /* USE_PREFIX_FOR_ARRAY_ALLOC_INFO */
 
 static inline a_boolean record_array_alloc_info(void*	array_ptr,
@@ -293,12 +295,12 @@ could not be recorded.
   app->encoded_number_of_elements = ~number_of_elements;
 #else /* defined(__EDG_IA64_ABI) */
   app = ((an_alloc_prefix_ptr)array_ptr) - 1;
-#ifndef __EDG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES
+#if !__EDG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES
   *app = (an_alloc_prefix)number_of_elements;
-#else /* ifdef __EDG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES */
+#else /* __EDG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES */
   app->element_size = element_size;
   app->element_count = number_of_elements;
-#endif /* ifndef __EDG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES */
+#endif /* !__EDG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES */
 #endif /* defined(__EDG_IA64_ABI) */
   return FALSE;
 #else /* !USE_PREFIX_FOR_ARRAY_ALLOC_INFO */
@@ -360,11 +362,11 @@ The number of elements in the array is returned in *number_of_elements.
   if (size != size_to_check) _array_pointer_not_from_vec_new();
 #else /* defined(__EDG_IA64_ABI) */
   app = ((an_alloc_prefix_ptr)array_ptr) - 1;
-#ifdef __EDG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES
+#if __EDG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES
   *number_of_elements = app->element_count;
-#else /* ifndef __EDG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES */
+#else /* !__EDG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES */
   *number_of_elements = *app;
-#endif /* ifdef __EDG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES */
+#endif /* __EDG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES */
   size = *number_of_elements * element_size;
 #endif /* defined(__EDG_IA64_ABI) */
   return size;
