@@ -3204,19 +3204,10 @@ function, return TRUE if at least one of the functions qualifies.  Set
         /* The argument is not the class object by reference but rather
            the class object by value.  We accept this, but it presents a
            special set of problems. */
-        a_class_symbol_supplement_ptr cssp = symbol_supplement_for_class(tp);
         found_assignment_operator_for_copy = TRUE;
-        /* Since passing a class object by value involves a copy constructor
-           call if a copy constructor exists, the logic for setting *const_okay
-           is more complicated. */
-        if (cssp->constructor == NULL) {
-          /* No constructor exists. */
-          *const_okay = TRUE;
-        } else if (cssp->has_copy_constructor_for_const_object) {
-          /* A copy constructor exists that can copy an object without
-             modifying it. */
-          *const_okay = TRUE;
-        }  /* if */
+        /* An argument passed by value is not modified, so the assignment
+           function can accept a const source operand. */
+        *const_okay = TRUE;
       }  /* if */
     }  /* if */
   }  /* for */
@@ -4365,9 +4356,9 @@ assignment operator.
   }  /* for */
   opass_routine = NULL;
   if (opass_sym == NULL) {
-    /* No applicable copy constructor. */
+    /* No applicable assignment operator function. */
     if (const_object_required && !volatile_object_required) {
-      /* The common case:  missing const copy constructor. */
+      /* The common case:  missing const assignment operator function. */
       pos_st_error(ec_missing_const_assignment_operator, err_pos,
                    class_type->source_corresp.name);
     } else {
@@ -4376,12 +4367,12 @@ assignment operator.
                    class_type->source_corresp.name);
     }  /* if */
   } else if (ambiguous) {
-    /* More than one applicable copy constructor. */
+    /* More than one applicable assignment operator function. */
     pos_st_error(ec_ambiguous_assignment_operator, err_pos,
                  class_type->source_corresp.name);
   } else {
-    /* Exactly one copy constructor is best. */
-    /* Check that the constructor is accessible and mark it referenced. */
+    /* Exactly one assignment operator function is best. */
+    /* Check that the fucntion is accessible and mark it referenced. */
     reference_to_implicitly_invoked_function(opass_sym);
     opass_routine = opass_sym->variant.routine;
   }  /* if */
@@ -4483,6 +4474,12 @@ operator routine or do bitwise assignment.
                                           &error_position, &pass_by_value);
           if (pass_by_value) {
             source_expr = add_indirection_to_node(source_expr);
+            /* Make sure a copy constructor call is added if one is needed. */
+            ptp = skip_typerefs(rp->type)->variant.routine.extra_info->
+                                                               param_type_list;
+            source_expr = prep_rvalue_arg_expr(source_expr,
+                                               ptp,
+                                               &error_position);
           }  /* if */
           sp = sp->next = make_call_assignment_statement(rp, dest_expr,
                                                          source_expr);
@@ -4546,6 +4543,13 @@ operator routine or do bitwise assignment.
             source_expr = field_lvalue_selection_expr(source_expr, fp);
             if (pass_by_value) {
               source_expr = add_indirection_to_node(source_expr);
+              /* Make sure a copy constructor call is added if one is
+                 needed. */
+              ptp = skip_typerefs(rp->type)->variant.routine.extra_info->
+                                                               param_type_list;
+              source_expr = prep_rvalue_arg_expr(source_expr,
+                                                 ptp,
+                                                 &error_position);
             }  /* if */
             sp = sp->next = make_call_assignment_statement(rp, dest_expr,
                                                            source_expr);
@@ -4555,7 +4559,7 @@ operator routine or do bitwise assignment.
 #else
 #if CHECKING
             internal_error(
-    "make_default_assignment_body: operator=() calls on array not implmented");
+   "make_default_assignment_body: operator=() calls on array not implemented");
 #endif /* CHECKING */
 #endif /* if 0 */
           }  /* if */

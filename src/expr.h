@@ -63,6 +63,10 @@ extern a_routine_ptr select_default_constructor(a_type_ptr        class_type,
 
 extern a_routine_ptr select_destructor(a_type_ptr class_type);
 
+extern an_expr_node_ptr prep_rvalue_arg_expr(an_expr_node_ptr  expr,
+                                             a_param_type_ptr  param,
+                                             a_source_position *err_pos);
+
 extern a_symbol_ptr find_copy_constructor(a_type_ptr class_type,
                                           a_boolean  const_object_required,
                                           a_boolean  volatile_object_required,
