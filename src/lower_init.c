@@ -1013,6 +1013,7 @@ pointed to by dip is lowered.
   an_expr_node_ptr      init_val_node;
   a_statement_ptr       assign_stmt;
   an_expr_operator_kind op;
+  a_boolean             string_literal_case = FALSE;
 
   switch (dip->kind) {
     case dik_zero:
@@ -1032,7 +1033,20 @@ pointed to by dip is lowered.
     case dik_constant:
       /* Assign a constant to the entity to be initialized. */
       /* The constant has already been lowered. */
-      init_val_node = make_node_for_il_constant(dip->variant.constant);
+      { a_constant_ptr con = dip->variant.constant;
+        if (con->kind == (a_constant_repr_kind)ck_string &&
+            !con->implicit_cast) {
+          /* An character array initialized by a string literal, e.g., in
+             a ctor-initializer. */
+          a_constant addr_con;
+          set_constant_address_constant(con, &addr_con);
+          init_val_node = alloc_node_for_constant(&addr_con);
+          string_literal_case = TRUE;
+        } else {
+          /* Normal case, not a string literal. */
+          init_val_node = make_node_for_il_constant(con);
+        }  /* if */
+      }
       break;
     case dik_expression:
       /* Assign an expression to the entity to be initialized. */
@@ -1046,9 +1060,12 @@ pointed to by dip is lowered.
   }  /* switch */
   /* Make an assignment statement.  Note that we know that no constructor
      (copy or other) is involved because we have this kind of dynamic
-     initialization.  We also know the thing being initialized is not an
-     array. */
-  op = lowered_assignment_operator(init_val_node->type);
+     initialization. */
+  if (string_literal_case) {
+    op = (an_expr_operator_kind)eok_bassign;
+  } else {
+    op = lowered_assignment_operator(init_val_node->type);
+  }  /* if */
   assign_stmt = insert_assignment_statement(entity_node, op, init_val_node,
                                             insert_location);
   set_stmt_pos_to_code_pos_for_lowering(assign_stmt);
