@@ -42,7 +42,7 @@ const_ints.h -- Declarations related to manipulation of target integer
 
 /* Logical AND two integer values.  The result is returned in the first
    operand (op_1 = op_1 & op_2). */
-#define or_integer_values(op_1, op_2)					\
+#define and_integer_values(op_1, op_2)					\
   *(op_1) = *(op_1) & *(op_2);
 
 
@@ -61,12 +61,11 @@ const_ints.h -- Declarations related to manipulation of target integer
 /* Sign extend an integer value.  The current value consists of "bits"
    bits.  The high order bit of the field is the sign bit. */
 #define sign_extend_integer_value(value, bits)				\
-{
-  int			 se_shift_bits = (BITS_IN_AN_INTEGER_VALUE - (bits));
-  a_signed_integer_value se_work;
-
-  se_work = *(value) << se_shift_bits;
-  *(value) = signed_shift_right(se_work, se_shift_bits);
+{									\
+  int			 se_shift_bits = (BITS_IN_AN_INTEGER_VALUE - (bits));\
+  a_signed_integer_value se_work;					\
+  se_work = *(value) << se_shift_bits;					\
+  *(value) = signed_shift_right(se_work, se_shift_bits);		\
 }
 
 
