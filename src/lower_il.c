@@ -7161,7 +7161,7 @@ This is used as part of the typeinfo information.
   bc_var = make_lowered_variable((char *)NULL, /*already_il_name=*/TRUE,
                                  array_type, (a_storage_class)sc_static);
   /* Attach the aggregate constant as the initial value of the variable. */
-  bc_var->init_kind = initk_static;
+  bc_var->init_kind = (an_init_kind)initk_static;
   bc_var->initializer.constant = aggr_con;
   return bc_var;
 }  /* make_base_class_array_var */
@@ -7262,7 +7262,7 @@ is TRUE, change the typeinfo variable to static.
   aggr_con->variant.aggregate.last_constant = bc_con;
   id_con->next = dtor_con;
   dtor_con->next = bc_con;
-  typeinfo_var->init_kind = initk_static;
+  typeinfo_var->init_kind = (an_init_kind)initk_static;
   typeinfo_var->initializer.constant = aggr_con;
   /* Return to the memory region that was current when this routine was
      entered. */
