@@ -2577,6 +2577,9 @@ fields, and return a pointer to it.
   tp->next = NULL;
   tp->kind = (a_template_kind)templk_none;
   tp->text = NULL;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  tp->initializer_range = null_source_range;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   return tp;
 }  /* alloc_template */

@@ -6857,6 +6857,16 @@ typedef struct a_template {
 			/* A null-terminated string representing the text of
 			   the template declaration, starting with the
 			   keyword "template". */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_range
+		initializer_range;
+			/* When the template is a static data member template
+			   and an initializer appears explicitly in the
+			   source, the source positions corresponding to the
+			   start and end of the top-level initializer
+			   construct (i.e, including "=" or "(" and ")").
+			   May be null_source_range. */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 } a_template;
 
 #endif /* RECORD_TEMPLATES_IN_IL */

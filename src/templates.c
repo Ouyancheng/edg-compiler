@@ -9130,6 +9130,10 @@ its source correspondence entry, if any, has been put out.)
         il_template_entry->source_corresp.decl_pos_info =
                               make_decl_pos_supplement(/*at_file_scope=*/TRUE,
                                                        decl_pos_block);
+        if (sym->kind == (a_symbol_kind)sk_static_data_member) {
+          il_template_entry->initializer_range =
+                                      decl_pos_block->var_init_range;
+        }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       }  /* if */
     }  /* if */
