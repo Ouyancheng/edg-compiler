@@ -1268,6 +1268,7 @@ ec_unrecognized_format_function_type;;"unrecognized format function type %sq ign
 ec_base_uses_tail_padding;;"base class %no1 uses tail padding of base class %no2"
 ec_bad_variable_for_init_priority;;"the \"init_priority\" attribute can only be used for namespace scope variables of class types"
 ec_init_priority_reserved;;"requested initialization priority is reserved for internal use"
+ec_hidden_anonymous_union_field;;"%nd hides anonymous union field"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
