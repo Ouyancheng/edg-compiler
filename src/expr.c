@@ -35,6 +35,11 @@ expr.c -- Expression scanning routines.
 static void fix_up_dynamic_init_dtors(void);
 static a_boolean cast_type_pre_check(a_type_ptr *type_cast_to,
                                      a_boolean  *cast_to_func_ptr);
+static a_boolean cast_is_valid_in_current_expression_kind(
+                                     an_operand               *operand,
+                                     a_type_ptr               dest_type,
+                                     a_local_expr_options_set local_options,
+                                     a_source_position        *type_position);
 
 
 static a_boolean operation_has_side_effects(an_expr_node_ptr node,
@@ -4025,6 +4030,149 @@ Syntax:
   result->position = start_position;
   db_exit();
 }  /* scan_dynamic_cast_operator */
+
+
+static void scan_const_cast_operator(an_operand *result)
+/*
+Scan the C++ const_cast operator.  See [expr.const.cast].
+
+Syntax:
+	const_cast < type-id > ( expression )
+
+*/
+{
+  a_source_position start_position, type_position;
+  an_operand        operand;
+  a_type_ptr        cast_type, underlying_cast_type, operand_type;
+  a_type_ptr        operation_type;
+  a_boolean         cast_type_okay;
+  a_boolean         reference_case = FALSE, err = FALSE;
+
+  db_enter(4, "scan_const_cast_operator");
+  /* Save the position of the const_cast keyword. */
+  start_position = pos_curr_token;
+#if CHECKING
+  if (curr_expr_kind_is(ek_pp)) {
+    /* const_cast not possible for preprocessing expressions. */
+    internal_error("scan_const_cast_operator: in preprocessing expr");
+  }  /* if */
+#endif /* CHECKING */
+  /* Advance past const_cast. */
+  (void)get_token();
+  /* Scan "< type-id > ( expression )". */
+  if (!scan_new_style_cast(&cast_type, &type_position, &operand)) {
+    err = TRUE;
+  }  /* if */
+  /* Except when casting to a reference type, do operand transformations
+     on the source operand. */
+  reference_case = is_reference_type(cast_type);
+  if (!reference_case) {
+    do_operand_transformations(&operand, TOPT_NO_OPTIONS);
+  }  /* if */
+  /* Check for casts that aren't valid in this kind of expression.
+     Note that this check is done after the operand transformations
+     (e.g., turning arrays into pointers), but before the reference
+     rewriting or anything else that changes cast_type. */
+  if (!cast_is_valid_in_current_expression_kind(&operand, cast_type,
+                                                (a_local_expr_options_set)
+                                                               EOPT_NO_OPTIONS,
+                                                &type_position)) {
+    /* This cast is not valid in this kind of expression. */
+    err = TRUE;
+  }  /* if */
+  if (!err) {
+    /* The type cast to must be a pointer or reference to an object type, or
+       a pointer to data member. */
+    cast_type_okay = FALSE;
+    if (is_ptr_or_ref_type(cast_type)) {
+      underlying_cast_type = type_pointed_to(cast_type);
+      if (!is_function_type(underlying_cast_type)) {
+        /* Casting to a pointer or reference to an object type. */
+        cast_type_okay = TRUE;
+      }  /* if */
+    } else if (is_ptr_to_member_type(cast_type)) {
+      underlying_cast_type = pm_member_type(cast_type);
+      if (!is_function_type(underlying_cast_type)) {
+        /* Casting to a pointer or reference to an object type. */
+        cast_type_okay = TRUE;
+      }  /* if */
+    } else {
+      /* cast_type is not a pointer, reference, or pointer to member type;
+         error. */
+      cast_type_okay = FALSE;
+    }  /* if */
+    if (!cast_type_okay) {
+      if (is_or_contains_template_param(cast_type)) {
+        /* With template parameter types we can't really tell.  Assume okay. */
+        cast_type_okay = TRUE;
+      }  /* if */
+    }  /* if */
+    if (!cast_type_okay) {
+      /* Bad const_cast type. */
+      err = TRUE;
+      if (!is_error_type(cast_type)) {
+        pos_error(ec_bad_const_cast_type, &type_position);
+      }  /* if */
+    } else {
+      /* The type cast to is okay. */
+      /* Check at the operand has the same underlying type (i.e., only
+         qualifiers are being changed). */
+      operand_type = operand.type;
+      operation_type = cast_type;
+      if (reference_case) {
+        /* Cast to reference type. */
+        /* The source operand must be an lvalue. */
+        if (!is_an_lvalue(&operand)) {
+          err = TRUE;
+          if (!is_error_operand(&operand)) {
+            pos_error(ec_expr_not_an_lvalue, &operand.position);
+          }  /* if */
+        } else {
+          /* Turn the lvalue into an address so we can deal with it as a
+             pointer. */
+          take_address_of_lvalue(&operand);
+          operand_type = operand.type;
+          operation_type = make_pointer_type(underlying_cast_type);
+        }  /* if */
+      }  /* if */
+      if (!err) {
+        /* Check that the cast just removes qualifiers (or makes no change). */
+        /* Note that this comparison considers error types equal to any
+           other types. */
+        if (!cast_removes_qualifiers(operand_type, operation_type,
+                                     /*is_const_cast=*/TRUE)) {
+          if (is_or_contains_template_param(operand_type) ||
+              is_or_contains_template_param(operation_type)) {
+            /* With template parameters, we can't tell whether these would
+               have matched.  Assume okay. */
+          } else {
+            err = TRUE;
+            pos_error(ec_bad_const_cast, &operand.position);
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (err) {
+    /* Some error, previously issued. */
+    make_error_operand(result);
+  } else {
+    /* The types are already the same except for qualifiers.  The result
+       is just the source cast to the destination type. */
+    /* Note that the cast has been turned into pointer form if it was a
+       reference cast. */
+    cast_operand(operation_type, &operand, /*is_implicit_cast=*/FALSE);
+    copy_operand(&operand, result);
+    /* For a cast to a reference type, the result is an lvalue. */
+    if (reference_case) {
+      conv_object_pointer_to_lvalue(result);
+    }  /* if */
+  }  /* if */
+  /* Set the error position to the starting position. */
+  error_position = start_position;
+  result->position = start_position;
+  db_exit();
+}  /* scan_const_cast_operator */
 
 
 static void scan_extended_integral_constant_expression(a_boolean  allow_comma,
@@ -8850,6 +8998,11 @@ see expr.h).
     case tok_dynamic_cast:
       /* dynamic_cast operation. */
       scan_dynamic_cast_operator(&local_result);
+      break;
+
+    case tok_const_cast:
+      /* const_cast operation. */
+      scan_const_cast_operator(&local_result);
       break;
 
     case tok_intaddr:
