@@ -4597,10 +4597,8 @@ declaration indicates that the function as a whole was qualified (e.g.,
 int f(int) const), then the type compatibility check must take the
 const qualification into account when seeking a match.  In other words,
 if one of the functions was so qualified, both must be for them to have
-compatible types.  The qualification is indicated on the type pointed to
-by the implicit "this" param type:  without a const qualifier, say, it would
-be "const pointer to class-type", but with one it would be "const pointer
-to const class-type".
+compatible types.  The qualification is indicated by a separate field
+"qualifiers" in a_routine_type_supplement_ptr.
 
 Otherwise, the type compatibility check is done based only on the return
 type and parameters; the type of the implicit "this" parameter, if any, is
@@ -5816,6 +5814,19 @@ declared member functions.
   a_routine_type_supplement_ptr rtsp;
 
   db_enter(3, "decl_member_function");
+  /* Check if we are attempting to declare a static member function through a
+     qualified function type typedef. E.g.,
+       typedef void f() const; struct S { static F f(); }           */
+  if (decl_info->storage_class == (a_storage_class)sc_static) {
+    a_routine_type_supplement_ptr  rtsp =
+                       skip_typerefs(member_type)->variant.routine.extra_info;
+    if (member_type->kind == (a_type_kind)tk_typeref &&
+        typeref_is_typedef(member_type) &&
+        rtsp->qualifiers != TQ_NONE) {
+      pos_error(ec_bad_qualified_function_type, &locator->source_position);
+    }  /* if */
+  }  /* if */
+
   /* If this is a user-defined conversion or an overloaded operator,
      check for errors in the argument list.  Note that this is done before
      creating the symbol, since an invalid conversion or operator should not

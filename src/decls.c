@@ -441,6 +441,14 @@ error checking and type adjustments as required.
        to use it anywhere but in a pointer-to-member declaration. */
     *type_ptr = error_type();
   } else {
+    /* Verify that the parameter type is not a qualified function type. */
+    if ((*type_ptr)->kind == (a_type_kind)tk_typeref &&
+        typeref_is_typedef(*type_ptr) &&
+        is_function_type(*type_ptr) &&
+        skip_typerefs(*type_ptr)->variant.routine.extra_info->qualifiers
+                                                                 != TQ_NONE) {
+      pos_error(ec_bad_qualified_function_type_parameter, error_pos);
+    }  /* if */
     /* Adjust the type if necessary (for example, "array of x" becomes
        "pointer to x"). */
     adjust_parameter_type(type_ptr, restrict_qualified);
@@ -4278,6 +4286,14 @@ on for use in generating cross-reference output describing this declaration.
       check_assertion_str(storage_class == (a_storage_class)sc_unspecified ||
                           storage_class == (a_storage_class)sc_static,
                           "decl_routine: bad storage class for inline");
+    }  /* if */
+    /* Verify that we are not declaring a const or volatile function through
+       a typedef (other cases are caught while parsing). */
+    if (type_ptr->kind == (a_type_kind)tk_typeref &&
+        typeref_is_typedef(type_ptr) &&
+        skip_typerefs(type_ptr)->variant.routine.extra_info->qualifiers
+                                                                 != TQ_NONE) {
+      pos_error(ec_bad_qualified_function_type, &locator->source_position);
     }  /* if */
     /* If this is an overloaded operator, check for errors in the
        argument list. */

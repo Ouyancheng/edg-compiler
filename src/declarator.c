@@ -1851,10 +1851,10 @@ declaration.
                   is_delete_operator(locator->variant.opname))) {
         /* Operator new and delete can never be qualified. */
         qualifier_err = TRUE;
-      } else if (member_function_parent_type == NULL) {
+      } else if (member_function_parent_type == NULL && !is_typedef_decl) {
         /* Cv-qualifier is allowed on a member function only. */
         qualifier_err = TRUE;
-      } else if (!is_nonstatic_member_function &&
+      } else if (!is_nonstatic_member_function && !is_typedef_decl &&
                  current_scope_is_class(member_function_parent_type)) {
         /* This must be the declaration of a static member function inside
            its class definition.  "const" and "volatile" are not allowed,
@@ -1896,13 +1896,15 @@ declaration.
          of the class indicated, but without significant qualifiers. */
       this_class = member_function_parent_type;
     }  /* if */
-    if (this_class != NULL) {
-      /* The implicit "this" param type will be either "pointer to
-         class-type" or, if there was a const qualifier on the function,
-         "pointer to const class-type". */
-      extra_info->this_class = this_class;
-      extra_info->qualifiers = qualifiers;
-    }  /* if */
+    /* The implicit "this" param type will be either "pointer to class-type"
+       or, if there was a const qualifier on the function, "pointer to const
+       class-type".  However, it is possible to have a cv-qualified function
+       type in a typedef declaration.  So the qualifiers and the class type
+       are encoded separately.  E.g. in
+          typedef void CF() const;
+       this_class == NULL but qualifiers != TQ_NONE. */
+    extra_info->this_class = this_class;
+    extra_info->qualifiers = qualifiers;
 #if 0
     /* Should a diagnostic be issued if a throw specification appears other
        than on a top-level declaration? */
@@ -2725,12 +2727,25 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
         a_boolean     is_member_function_typedef = FALSE;
 
         temp_type = skip_typerefs(complete_type);
-        if (any_cfront_mode() && temp_type != complete_type) {
-          /* Check for a special form of member function typedef that is
-             an extension in cfront mode. */
-          is_member_function_typedef =
+        if (temp_type != complete_type) {
+          if (any_cfront_mode()) {
+            /* Check for a special form of member function typedef that is
+               an extension in cfront mode. */
+            is_member_function_typedef =
                   is_cfront_member_function_typedef(complete_type, &rout_type,
                                                     &class_type, &sym);
+          } else if (typeref_is_typedef(complete_type) &&
+                     is_function_type(temp_type)) {
+            a_routine_type_supplement_ptr  rtsp =
+                                        temp_type->variant.routine.extra_info;
+            if (rtsp->this_class == NULL && rtsp->qualifiers != TQ_NONE) {
+              /* Catch the following:
+                    typedef void f() const;  typedef F *PF;
+                 Qualified function types are only allowed to declare members,
+                 pointer-to-members and synonym typedefs. */
+              error(ec_ptr_or_ref_to_qualified_function_type);
+            }  /* if */
+          }  /* if */
         }  /* if */
         if (curr_token == tok_star) {
           /* "*" for pointer. */
@@ -3918,6 +3933,21 @@ function_lparen:
       }  /* if */
     }  /* if */
 #endif  /* NEAR_AND_FAR_ALLOWED */
+    /* Check that we do not create a typedef for a pointer or reference to a
+       qualified function type. */
+    if (new_type_ptr->kind == (a_type_kind)tk_routine &&
+        derived_type != NULL && is_ptr_or_ref_type(derived_type)) {
+      a_routine_type_supplement_ptr  rtsp =
+                                     new_type_ptr->variant.routine.extra_info;
+      if (rtsp->this_class == NULL && rtsp->qualifiers != TQ_NONE) {
+        /* Catch the following:
+              typedef void (*PF)() const;
+           Qualified function types are only allowed to declare members,
+           pointer-to-members and synonym typedefs. */
+        pos_error(ec_ptr_or_ref_to_qualified_function_type,
+                  &locator->source_position);
+      }  /* if */
+    }  /* if */
     /* Add the new type to the bottom of the existing derived type list.
        Note that this involves error checking. */
     add_to_derived_type_list(new_type_ptr, &derived_type, &bottom_derived_type,

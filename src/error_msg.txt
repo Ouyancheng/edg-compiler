@@ -1035,6 +1035,9 @@ ec_no_internal_linkage_for_new_or_delete;;"operator new and operator delete cann
 ec_no_mutable_allowed_on_anonymous_union;;"storage class \"mutable\" is not allowed for anonymous unions"
 ec_bad_pch_file;;"invalid precompiled header file"
 ec_abstract_class_catch_type;;"abstract class type %t is not allowed as catch type:"
+ec_bad_qualified_function_type;;"a qualified function type cannot be used to declare a nonmember function or a static member function"
+ec_bad_qualified_function_type_parameter;;"a qualified function type cannot be used to declare a parameter"
+ec_ptr_or_ref_to_qualified_function_type;;"cannot create a pointer or reference to qualified function type"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
