@@ -1,5 +1,14 @@
 Version 2.42
 
+7/17/99  Folding of constant but unevaluated parts of "?" operations
+
+Constant but unevaluated parts of "?" expressions were not correctly folded
+to constant values.  As a consequence, something like
+
+  const int i = (1?1:(1?1:0));
+
+was not recognized as a constant expression.  Now fixed.
+
 7/16/99  Ambiguity of conversion functions
 
 The front end used to fail selecting a user defined conversion function when

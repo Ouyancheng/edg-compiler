@@ -8604,24 +8604,22 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
   potential_sequence_point_after_operand(operand_1);
 
   expr2_evaluated = expr3_evaluated = saved_evaluated;
-  if (saved_evaluated) {
-    /* If the first operand is a constant and if the constant is zero, evaluate
-       the third operand only.  If the first operand is constant and is not a
-       constant zero, evaluate the second operand only. */
-    operand_1_is_const = is_constant_operand(operand_1) &&
-                         constant_bool_value_known_at_compile_time(
+  /* If the first operand is a constant and if the constant is zero, evaluate
+     the third operand only.  If the first operand is constant and is not a
+     constant zero, evaluate the second operand only. */
+  operand_1_is_const = is_constant_operand(operand_1) &&
+                       constant_bool_value_known_at_compile_time(
                                                  &operand_1->variant.constant);
-    if (operand_1_is_const) {
-      operand_1_is_false = op_is_false_constant(operand_1);
-      if (operand_1_is_false) {
-	/* The first operand is a constant zero, so do not evaluate the second
-	   operand. */
-        expr2_evaluated = FALSE;
-      } else {
-	/* The first operand is a constant non-zero, so do not evaluate the
-           third operand. */
-        expr3_evaluated = FALSE;
-      }  /* if */
+  if (operand_1_is_const) {
+    operand_1_is_false = op_is_false_constant(operand_1);
+    if (operand_1_is_false) {
+      /* The first operand is a constant zero, so do not evaluate the second
+         operand. */
+      expr2_evaluated = FALSE;
+    } else {
+      /* The first operand is a constant non-zero, so do not evaluate the
+         third operand. */
+      expr3_evaluated = FALSE;
     }  /* if */
   }  /* if */
 
