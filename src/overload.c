@@ -7144,6 +7144,7 @@ void adjust_overloaded_function_call_arguments(
                            a_type_ptr               routine_type,
                            a_boolean                have_selector,
                            an_operand               *bound_function_selector,
+                           a_boolean                class_bitwise_copy,
                            an_arg_operand_ptr       arg_operand_list,
                            an_arg_match_summary_ptr arg_match_list,
                            an_expr_node_ptr         *arg_expr_list)
@@ -7165,9 +7166,11 @@ those arguments during the overload resolution process, and return a
 list of argument expressions in *arg_expr_list.  arg_match_list gives
 the argument match summaries for the selector object and the
 arguments.  arg_operand_list and arg_match_list are freed.
-This routine is used for cases that look like calls (i.e., they have
-argument lists in parentheses) or casts; it is not used for
-overloaded operator cases.
+class_bitwise_copy is TRUE when the function being called is
+a generated bitwise copy constructor; the argument is processed
+for a C-style bitwise copy in that case.  This routine is used for
+cases that look like calls (i.e., they have argument lists in
+parentheses) or casts; it is not used for overloaded operator cases.
 */
 {
   an_arg_match_summary_ptr arg_match;
@@ -7188,13 +7191,11 @@ overloaded operator cases.
     if (have_selector) {
       if (arg_match == NULL || !arg_match->is_match_for_this_param) {
         /* An implied selector was added after overload resolution. */
-      } else {
+      } else if (bound_function_selector != NULL) {
         /* Issue any warning about the "this" parameter detected while
            evaluating the alternatives. */
-        if (bound_function_selector != NULL) {
-          issue_warning_from_arg_match_summary(arg_match,
+        issue_warning_from_arg_match_summary(arg_match,
                                            &bound_function_selector->position);
-        }  /* if */
         /* Note that no cast is done here.  It was done when the "." or "->"
            operator was processed (that still may leave a difference here
            involving type qualifiers, but it's not meaningful). */
@@ -7214,9 +7215,26 @@ overloaded operator cases.
     for (arg_operand = arg_operand_list,
              param = routine_type->variant.routine.extra_info->param_type_list;
          arg_operand != NULL || param != NULL;) {
-      arg = node_for_arg_of_overloaded_function_call(
-                                         arg_operand, arg_match, param,
-                                         routine);
+      if (class_bitwise_copy) {
+        /* Turn the argument for a generated bitwise copy constructor into
+           an rvalue of the right class type. */
+        a_type_ptr dest_type = f_skip_typerefs(type_pointed_to(param->type));
+        if (is_null_user_conv_descr(&arg_match->conversion)) {
+          arg_match->conversion.class_identity_or_bitwise_copy = TRUE;
+        }  /* if */
+        arg_match->conversion.result_is_an_lvalue = FALSE;
+        user_convert_operand(&arg_operand->operand,
+                             dest_type,
+                             &arg_match->conversion,
+                             (a_conv_descr *)NULL,
+                             /*force_temp_for_class_bitwise_copy=*/FALSE);
+        arg = make_node_from_operand(&arg_operand->operand);
+      } else {
+        /* Normal case, not a bitwise copy. */
+        arg = node_for_arg_of_overloaded_function_call(
+                                           arg_operand, arg_match, param,
+                                           routine);
+      }  /* if */
       /* Add this argument to the end of the expression-form argument list
          being built up. */
       if (prev_arg == NULL) {
@@ -7410,6 +7428,7 @@ routine is called only in C++ mode.
                                               routine_type,
                                               have_selector,
                                               bound_function_selector,
+                                              /*class_bitwise_copy=*/FALSE,
                                               arg_operand_list,
                                               arg_match_list,
                                               arg_expr_list);

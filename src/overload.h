@@ -592,6 +592,7 @@ extern void adjust_overloaded_function_call_arguments(
                            a_type_ptr               routine_type,
                            a_boolean                have_selector,
                            an_operand               *bound_function_selector,
+                           a_boolean                class_bitwise_copy,
                            an_arg_operand_ptr       arg_operand_list,
                            an_arg_match_summary_ptr arg_match_list,
                            an_expr_node_ptr         *arg_expr_list);

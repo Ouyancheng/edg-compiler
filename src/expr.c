@@ -852,6 +852,7 @@ is after the closing parenthesis of the argument list.
 */
 {
   a_boolean           overloaded_function_case = FALSE;
+  a_boolean           is_bitwise_copy = FALSE;
   a_routine_ptr       routine;
   a_type_ptr          routine_type;
   a_source_position   start_position;
@@ -908,20 +909,6 @@ is after the closing parenthesis of the argument list.
                                                  (a_boolean *)NULL,
                                                  (a_symbol_ptr *)NULL,
                                                  &arg_match_list);
-    /* Build an expression-form argument list.  Convert the arguments on
-       the argument list to the right types.  The call is done even
-       when constructor_sym is NULL because it also frees arg_operand_list
-       and arg_match_list. */
-    /* Again, note that a special case allows passing have_selector == TRUE and
-       NULL for the selector operand when dealing with constructors. */
-    adjust_overloaded_function_call_arguments(constructor_sym,
-                                              *unknown_dependent_function,
-                                              (a_type_ptr)NULL,
-                                              /*have_selector=*/TRUE,
-                                              (an_operand *)NULL,
-                                              arg_operand_list,
-                                              arg_match_list,
-                                              arg_expr_list);
   }  /* if */
   if (constructor_sym != NULL) {
     a_routine_ptr rout = constructor_sym->variant.routine.ptr;
@@ -935,7 +922,10 @@ is after the closing parenthesis of the argument list.
       /* The constructor selected is a bitwise copy constructor.  The
          routine is not marked as called.  No access checking is needed
          because a generated copy constructor is always public. */
-      *class_bitwise_copy = TRUE;
+      *class_bitwise_copy = is_bitwise_copy = TRUE;
+      record_symbol_reference((SRK_REFERENCE | SRK_IMPLICIT),
+                              constructor_sym, source_pos,
+                              /*update_il_entry=*/FALSE);
     } else {
       /* Check that the constructor is accessible and mark it referenced. */
       expr_reference_to_implicitly_invoked_function(constructor_sym,
@@ -944,6 +934,23 @@ is after the closing parenthesis of the argument list.
                                                     /*honor_virtual=*/FALSE);
     }  /* if */
     *conversion_routine = rout;
+  }  /* if */
+  if (overloaded_function_case) {
+    /* Build an expression-form argument list.  Convert the arguments on
+       the argument list to the right types.  The call is done even
+       when constructor_sym is NULL because it also frees arg_operand_list
+       and arg_match_list. */
+    /* Again, note that a special case allows passing have_selector == TRUE and
+       NULL for the selector operand when dealing with constructors. */
+    adjust_overloaded_function_call_arguments(constructor_sym,
+                                              *unknown_dependent_function,
+                                              (a_type_ptr)NULL,
+                                              /*have_selector=*/TRUE,
+                                              (an_operand *)NULL,
+                                              is_bitwise_copy,
+                                              arg_operand_list,
+                                              arg_match_list,
+                                              arg_expr_list);
   }  /* if */
   db_exit();
 }  /* scan_ctor_arguments */
@@ -7025,52 +7032,6 @@ because the feature is used to implement offsetof, a standard feature.
 }  /* scan_intaddr_operator */
 
 
-static an_expr_node_ptr normalize_class_bitwise_copy_source(
-                                                  a_type_ptr        class_type,
-                                                  an_expr_node_ptr  source,
-                                                  a_source_position *err_pos)
-/*
-source is the source expression for a bitwise copy into an object of type
-class_type.  It's the argument list returned by scan_ctor_arguments,
-so it's been adjusted to match the reference-to-const parameter of
-the bitwise copy constructor.  Remove the const and add an indirection
-to get an rvalue appropriate for the copy.  err_pos is a source position
-for errors.
-*/
-{
-  cast_node(&source,
-            make_pointer_type(class_type),
-            /*check_cast_access=*/FALSE,
-            /*is_implicit_cast=*/TRUE,
-            /*is_reinterpret_cast=*/FALSE,
-            /*reinterpret_semantics=*/FALSE,
-            err_pos);
-  source = add_indirection_to_node(source);
-  return source;
-}  /* normalize_class_bitwise_copy_source */
-
-
-static a_dynamic_init_ptr alloc_dyn_init_for_class_bitwise_copy(
-                                                  a_type_ptr        class_type,
-                                                  an_expr_node_ptr  source,
-                                                  a_source_position *err_pos)
-/*
-Allocate a dynamic initialization entry and return a pointer to it.
-The initialization is of an entity of the (possibly cv-qualified)
-class type class_type using a bitwise copy from the expression "source".
-err_pos is a source position for errors.
-*/
-{
-  a_dynamic_init_ptr dip;
-
-  dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_expression);
-  dip->variant.expression = normalize_class_bitwise_copy_source(class_type,
-                                                                source,
-                                                                err_pos);
-  return dip;
-}  /* alloc_dyn_init_for_class_bitwise_copy */
-
-
 static a_dynamic_init_ptr add_array_nonconstant_aggregate_init(
                                          a_dynamic_init_ptr element_dip,
                                          a_type_ptr         array_type,
@@ -7733,6 +7694,7 @@ specification allow a variable-sized array as the top type.
                                               (a_type_ptr)NULL,
                                               /*have_selector=*/FALSE,
                                               (an_operand *)NULL,
+                                              /*class_bitwise_copy=*/FALSE,
                                               arg_operand_list,
                                               arg_match_list,
                                               &arg_expr_list);
@@ -7936,9 +7898,8 @@ specification allow a variable-sized array as the top type.
          used. */
       if (class_bitwise_copy) {
         /* Bitwise copy construction of a class. */
-        dip = alloc_dyn_init_for_class_bitwise_copy(new_type,
-                                                    init_arg_expr_list,
-                                                    &init_position);
+        dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_expression);
+        dip->variant.expression = init_arg_expr_list;
       } else if (ctor_routine != NULL || unknown_dependent_ctor) {
         /* Constructor call. */
         dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constructor);
@@ -10715,10 +10676,7 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
                                                                 dik_expression,
                                              start_position,
                                              &dip);
-      dip->variant.expression = normalize_class_bitwise_copy_source(
-                                                               type_cast_to,
-                                                               arg_expr_list,
-                                                               start_position);
+      dip->variant.expression = arg_expr_list;
       make_expression_operand(temp_init_node, temp_init_node->type,
                               result);
     } else {
@@ -18203,8 +18161,8 @@ overall errors.
     a_dynamic_init_ptr dip;
     if (class_bitwise_copy) {
       /* Set the dynamic init entry to represent a bitwise copy. */
-      dip = alloc_dyn_init_for_class_bitwise_copy(class_type, arg_list,
-                                                  source_pos);
+      dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_expression);
+      dip->variant.expression = arg_list;
     } else {
       /* Set the dynamic init entry to represent constructor initialization. */
       dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constructor);
