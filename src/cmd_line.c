@@ -309,8 +309,8 @@ Process the arguments on the command line that invoked the compiler.
 	/* Suppress IL-lowering */
 	suppress_il_lowering = TRUE;
 	break;
-#else
-	optarg = "N";
+#else /* !DO_IL_LOWERING */
+	optarg = "-N";
         goto unknown_option;
 #define DID_GOTO_UNKNOWN_OPTION
 #endif /* DO_IL_LOWERING */
@@ -441,7 +441,7 @@ Process the arguments on the command line that invoked the compiler.
         module_list_for_union_init = optarg;
         break;
 #else /* !BACK_END_IS_C_GEN_BE */
-	optarg = "i";
+	optarg = "-i";
         goto unknown_option;
 #define DID_GOTO_UNKNOWN_OPTION
 #endif /* BACK_END_IS_C_GEN_BE */
@@ -454,7 +454,7 @@ Process the arguments on the command line that invoked the compiler.
         init_debug_level = debug_level;
         break;
 #else /* !DEBUG */
-	optarg = "d";
+	optarg = "-d";
         goto unknown_option;
 #define DID_GOTO_UNKNOWN_OPTION
 #endif /* DEBUG */
