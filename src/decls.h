@@ -111,7 +111,7 @@ specifier (except for the typedef and friend cases).  (3.5.2)
    curr_token == tok_double   || curr_token == tok_signed   ||        \
    curr_token == tok_unsigned || curr_token == tok_struct   ||        \
    curr_token == tok_union    || curr_token == tok_enum     ||        \
-   curr_token == tok_class)
+   curr_token == tok_class    || curr_token == tok_wchar_t)
 
 /*
 Macro that is TRUE if the current token is the start of a type qualifier
