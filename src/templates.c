@@ -384,7 +384,7 @@ might not be able to if the template itself has not yet been defined.
          of local classes or types that are local class members. */
       if (scope_stack[decl_scope_level].kind ==
                                  (a_scope_kind)sck_class_struct_union &&
-          depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+          depth_innermost_function_scope == NO_SCOPE_DEPTH) {
         a_type_ptr  tp;
 
         /* Allocate the placeholder type, set its fields, and add it to the
