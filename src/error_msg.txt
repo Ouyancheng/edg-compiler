@@ -807,6 +807,7 @@ ec_qualifier_in_namespace_member_decl;;"qualified name is not allowed in namespa
 ec_sym_not_a_type_name;;"%n is not a type name"
 ec_explicit_instantiation_not_in_namespace_scope;;"explicit instantiation is not allowed in the current scope"
 ec_bad_scope_for_explicit_instantiation;;"%n cannot be explicitly instantiated in the current scope"
+ec_multiple_explicit_instantiations;;"%n explicitly instantiated more than once"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
