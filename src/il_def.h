@@ -3375,11 +3375,11 @@ EXTERN char *pragma_ids[(int)pk_last + 1]
 #endif /* UPC_EXTENSIONS_ALLOWED */
 #if REDEFINE_EXTNAME_PRAGMA_ENABLED
 /* pk_redefine_extname */       "redefine_extname",
+#endif /* REDEFINE_EXTNAME_PRAGMA_ENABLED */
 #if SUN_EXTENSIONS_ALLOWED
 /* pk_enable_ldscope */         "enable_ldscope",
 /* pk_disable_ldscope */        "disable_ldscope",
 #endif /* SUN_EXTENSIONS_ALLOWED */
-#endif /* REDEFINE_EXTNAME_PRAGMA_ENABLED */
 /* pk_diag_suppress */		"diag_suppress",
 /* pk_diag_remark */		"diag_remark",
 /* pk_diag_warning */		"diag_warning",
