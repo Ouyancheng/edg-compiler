@@ -363,6 +363,101 @@ error checking and type adjustments as required.
 }  /* check_and_adjust_parameter_type */
 
 
+a_boolean check_operator_arrow_return_type(a_routine_ptr      rout_ptr,
+                                           a_boolean          is_expr_use,
+                                           a_source_position  *error_pos)
+/*
+rout_ptr points to the routine entry for an operator-> member function.
+is_expr_use is TRUE if this is a call of the function (possible only if
+it is a member of template class) and FALSE otherwise (i.e., if it is a
+declaration or a fixup of a previous declaration).  *error_pos is the
+source position for a diagnostic.
+*/
+{
+  a_boolean                      err = FALSE;
+  a_type_ptr                     rout_type, class_type, tp;
+  a_class_symbol_supplement_ptr  cssp;
+
+  rout_type = rout_ptr->type;
+  class_type = rout_ptr->source_corresp.class_of_which_a_member;
+  cssp = symbol_supplement_for_class(class_type);
+  tp = skip_typerefs(rout_type->variant.routine.return_type);
+  if (is_error_type(tp) || tp->kind == (a_type_kind)tk_template_param) {
+    /* No action. */
+  } else if (!is_expr_use && cssp->class_template != NULL &&
+             !cssp->is_nonreal_class && !cssp->is_specific_template_def) {
+    /* The operator-> function is being declared for a class that is a real
+       instantiation of a template.  We can't issue a diagnostic on the
+       return type, since it may be dependent on a template argument -- we
+       wait till the call (if there is one). */
+  } else if (is_pointer_type(tp)) {
+    /* It's a pointer type -- be sure it's a pointer to a class. */
+    tp = skip_typerefs(type_pointed_to(tp));
+    if (is_class_struct_union_type(tp) ||
+        tp->kind == (a_type_kind)tk_template_param) {
+      /* Okay. */
+    } else {
+      /* Not a pointer to a class. */
+      err = TRUE;
+    }  /* if */
+  } else {
+    /* Not a pointer type.  Be sure the type is a class type for which
+       operator-> is defined (unless the operator falls into one of the
+       special categories). */
+    if (is_reference_type(tp)) tp = skip_typerefs(type_pointed_to(tp));
+    if (tp->kind == (a_type_kind)tk_template_param) {
+      /* Okay.  We'll check again at the point of instantiation. */
+    } else if (!is_class_struct_union_type(tp)) {
+      /* Not a class type. */
+      err = TRUE;
+    } else if (tp == class_type) {
+      /* X& X::operator->() would involve unbounded recursion at runtime,
+         so we issued an error on such cases. */
+      err = TRUE;
+    } else if (symbol_supplement_for_class(tp)->is_nonreal_class) {
+      /* The operator returns a (ref-to?) nonreal-class.  Ignore it for
+         now, since any problems will be be handled whenever the class is
+         instantiated. */
+    } else if (is_incomplete_type(tp)) {
+      if (cssp->is_prototype_instantiation) {
+        /* Ignore an incomplete class return type during prototype
+           instantiation. */
+      } else {
+        /* Postpone the check until the type is complete -- add the type to
+           the class's dependent-type-fixup-list. */
+        add_to_dependent_type_fixup_list(tp,
+                                         (a_dependent_type_fixup_kind)
+                                              dtfk_check_op_arrow_return_type,
+                                         (char *)rout_ptr,
+                                         (a_byte_il_entry_kind)iek_routine,
+                                         error_pos);
+      }  /* if */
+    } else if (opname_member_function_symbol((an_opname_kind)onk_arrow,
+                                             tp) == NULL) {
+      /* tp is a class for which no operator-> has been defined. */
+      err = TRUE;
+    }  /* if */
+  }  /* if */
+  if (err) {
+    if (cssp->is_prototype_instantiation) {
+      /* Issue a warning instead of an error. */
+      err = FALSE;
+    }  /* if */
+    pos_syty_diagnostic(err ? es_error : es_warning,
+                        ec_bad_return_type_for_op_arrow, error_pos, 
+                        (a_symbol_ptr)rout_ptr->source_corresp.assoc_info,
+                        rout_type->variant.routine.return_type);
+    if (err) {
+      /* Change the return type to an error type.  In case the flag is
+         set to cause the return to use a copy constructor, clear it. */
+      rout_type->variant.routine.return_type = error_type();
+      rout_type->variant.routine.extra_info->value_returned_by_cctor = FALSE;
+    }  /* if */
+  }  /* if */
+  return !err;
+}  /* check_operator_arrow_return_type */
+
+
 void check_operator_function_params(a_type_ptr        rout_type,
                                     a_type_ptr        class_type,
                                     a_symbol_locator  *locator)
@@ -562,39 +657,9 @@ new fields are set properly.
       pos_error(error_code, &locator->source_position);
       err = TRUE;
     }  /* if */
-    /* Check return type. */
-    if (opname == (an_opname_kind)onk_arrow) {
-      /* For operator->() do a special check on the return type.  It must
-         be something that can be used as a pointer -- either a pointer
-         to a class or an object of or reference to a class for which
-         operator->() is defined (ARM 13.4.6). */
-      tp = rout_type->variant.routine.return_type;
-      if (!is_error_type(tp) && !is_or_contains_template_param(tp)) {
-        a_boolean  local_err;
-        if (is_pointer_type(tp)) {
-          tp = type_pointed_to(tp);
-          local_err = !is_class_struct_union_type(tp) &&
-                      !is_or_contains_template_param(tp);
-        } else {
-          if (is_reference_type(tp)) tp = type_pointed_to(tp);
-          if (is_or_contains_template_param(tp)) {
-            local_err = FALSE;
-          } else {
-            local_err = (!is_class_struct_union_type(tp) ||
-                         tp == class_type ||
-                         opname_member_function_symbol(opname, tp) == NULL);
-          }  /* if */
-        }  /* if */
-        if (local_err) {
-          pos_error(ec_bad_return_type_for_op_arrow,
-                    &locator->source_position);
-          rout_type->variant.routine.return_type = error_type();
-          err = TRUE;
-        }  /* if */
-      }  /* if */
-    }  /* if */
     if (opname == (an_opname_kind)onk_new ||
         opname == (an_opname_kind)onk_delete) {
+      /* Check return type. */
       tp = rout_type->variant.routine.return_type;
       if (!is_error_type(tp) && !is_or_contains_template_param(tp)) {
         if (opname == (an_opname_kind)onk_new) {
