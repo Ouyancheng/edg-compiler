@@ -1926,8 +1926,10 @@ UNIX Version.
 #include <dirent.h>
 #ifndef __AIX__
 #ifndef __osf__
-/* This file should not be included on IBM AIX or Digital UNIX. */
+#ifndef __linux__
+/* This file should not be included on IBM AIX, Digital UNIX, or Linux. */
 #include <sys/dirent.h>
+#endif /* ifndef __linux__ */
 #endif /* ifndef __osf__ */
 #endif /* ifndef __AIX__ */
 
