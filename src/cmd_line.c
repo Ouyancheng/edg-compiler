@@ -1707,17 +1707,30 @@ common_cfront_mode_settings:
     }  /* if */
     /* Strict ANSI mode is incompatible with cfront compatibility mode. */
     if (any_cfront_mode()) {
-      command_line_error(ec_cl_strict_ansi_incompatible_with_cfront);
+      if (option_kind_used[(int)optk_cfront_2_1_mode] ||
+          option_kind_used[(int)optk_cfront_2_1_mode]) {
+        /* cfront mode was enabled by a command line option. */
+        command_line_error(ec_cl_strict_ansi_incompatible_with_cfront);
+      } else {
+        /* cfront mode enabled by default.  Silently disable it. */
+        cfront_2_1_mode = FALSE;
+        cfront_3_0_mode = FALSE;
+      }  /* if */
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* Strict ANSI mode is incompatible with Microsoft mode. */
     if (microsoft_mode) {
-      command_line_error(ec_cl_strict_ansi_incompatible_with_microsoft);
+      if (option_kind_used[(int)optk_microsoft_mode]) {
+        /* Microsoft mode was enabled by a command line option. */
+        command_line_error(ec_cl_strict_ansi_incompatible_with_microsoft);
+      } else {
+        /* Microsoft mode enabled by default.  Silently disable it in
+           strict mode. */
+        microsoft_mode = FALSE;
+      }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    /* Strict ANSI mode is incompatible with allowing anachronisms.  Don't
-       give an error if allow anachronisms is the default -- quietly
-       set the flag to not allow anachronisms. */
+    /* Strict ANSI mode is incompatible with allowing anachronisms. */
     if (allow_anachronisms) {
       if (option_kind_used[(int)optk_cplusplus_anachronisms]) {
         /* Anachronisms were enabled by a command line option. */
