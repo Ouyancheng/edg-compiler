@@ -739,20 +739,12 @@ extern an_extern_type_fixup_ptr alloc_etype_fixup(void);
 
 /* Return TRUE if a symbol is a class symbol.   A class symbol is
    one defined as a class, struct, or union, or a typedef of one of
-   those. */
+   those.  This macro should only be used in C++ mode. */
 #define is_class_symbol(sym)                                          \
   ((sym)->kind == (a_symbol_kind)sk_class_or_struct_tag ||            \
    (sym)->kind == (a_symbol_kind)sk_union_tag ||                      \
    ((sym)->kind == (a_symbol_kind)sk_type &&                          \
                                  is_struct_or_union_type((sym)->variant.type)))
-
-/* Return TRUE if a symbol is a type symbol.   A type symbol is
-   one defined as a class, struct, union, enum, or typedef. */
-#define is_type_symbol(sym)                                           \
-  ((sym)->kind == (a_symbol_kind)sk_class_or_struct_tag ||            \
-   (sym)->kind == (a_symbol_kind)sk_union_tag ||                      \
-   (sym)->kind == (a_symbol_kind)sk_enum_tag ||                       \
-   (sym)->kind == (a_symbol_kind)sk_type)
 
 /* Return TRUE if a symbol is a tag symbol.   A tag symbol is
    one defined as a class, struct, union, or enum (but not as a typedef
@@ -761,6 +753,13 @@ extern an_extern_type_fixup_ptr alloc_etype_fixup(void);
   ((sym)->kind == (a_symbol_kind)sk_class_or_struct_tag ||            \
    (sym)->kind == (a_symbol_kind)sk_union_tag ||                      \
    (sym)->kind == (a_symbol_kind)sk_enum_tag)
+
+/* Return TRUE if a symbol is a type symbol.   A type symbol is
+   one defined as a typedef, or, in C++, as a class, struct, union,
+   or enum. */
+#define is_type_symbol(sym)                                           \
+   ((sym)->kind == (a_symbol_kind)sk_type ||                          \
+    (C_dialect == C_dialect_cplusplus && is_tag_symbol(sym)))
 
 /* Return a pointer to the current routine entry (only usable when within
    a routine definition). */
