@@ -820,7 +820,7 @@ caution when modifying this routine.
          argument list (e.g., A<T>) it will have been coalesced by the
          call to coalesce_and_lookup_qualified_name.  If it just a simple
          identifier (e.g., "A") we need look it up and coalesce it here. */
-      templ_sym = normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
+      templ_sym = normal_id_lookup(&locator_for_curr_id, IDL_LINKAGE_LOOKUP);
     }  /* if */
     if (templ_sym != NULL) {
       /* Check for an identifier that is a class template name.  A class
@@ -1870,6 +1870,12 @@ the template.
       tag_sym = enter_local_symbol(tag_kind, &locator, effective_decl_level,
                                    /*suppress_redecl_error=*/FALSE);
       set_source_corresp(&(class_type->source_corresp), tag_sym);
+      if (!friend_injection_enabled && is_friend_decl) {
+        /* The name of a class first declared in a friend declaration is
+           entered into the innermost non-class scope, but it's not visible
+           to lookup. */
+        tag_sym->is_invisible = TRUE;
+      }  /* if */
     } else {
       /* Tagless class, struct, or union.  Create a symbol to represent it;
          though not entered in the symbol table, it is needed to carry
@@ -1958,6 +1964,11 @@ the template.
     /* Using an existing type.  Fetch the type pointer from it. */
     class_type = tag_sym->variant.class_struct_union.type;
     is_redeclaration = TRUE;
+    if (!friend_injection_enabled && !is_friend_decl) {
+      /* In case the previous declaration was a friend declaration, ensure
+         that the symbol is henceforth visible for lookup. */
+      tag_sym->is_invisible = FALSE;
+    }  /* if */
     /* Record cross-reference information. */
     if (is_class_definition ||
         (curr_token == tok_semicolon &&
