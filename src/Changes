@@ -1,5 +1,12 @@
 Version 2.31
 
+10/19/95  IL lowering vs. source-sequence lists
+
+In general, you should not configure both DO_IL_LOWERING and
+GENERATE_SOURCE_SEQUENCE_LISTS to TRUE, in part because the processing
+in IL lowering can invalidate the source sequence information.  A check
+has been added to host_envir.h to enforce this policy.
+
 10/19/95  Version number variable in generated C
 
 The C-generating back end now puts out a tentative definition of a
