@@ -459,8 +459,6 @@ and for the instantiation of template functions.
      on this token. */
   if (curr_token != tok_rbrace) {
     pos_error(ec_exp_rbrace, &pos_curr_token);
-  } else {
-    (void)get_token();
   }  /* if */
   db_exit();
 }  /* scan_function_body */
