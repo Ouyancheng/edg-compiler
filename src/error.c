@@ -1693,6 +1693,9 @@ error code.
     case ec_nonstd_long_long:
       m = "the type \"long long\" is nonstandard";
       break;
+    case ec_nonstd_friend_decl:
+      m = "omission of \"%s\" is nonstandard";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

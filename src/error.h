@@ -490,7 +490,8 @@ typedef enum /*an_error_code*/ {
   ec_cfront_global_defined_after_nested_type,
   ec_template_param_declared_but_not_referenced,
   ec_ambiguous_ptr_to_overloaded_function,
-  ec_nonstd_long_long
+  ec_nonstd_long_long,
+  ec_nonstd_friend_decl
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
