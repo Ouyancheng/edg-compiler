@@ -1026,7 +1026,7 @@ Flag that is TRUE to indicate that carriage return characters at the ends
 of input lines should be ignored.
 */
 #ifndef IGNORE_CARRIAGE_RETURN_IN_SOURCE
-#define IGNORE_CARRIAGE_RETURN_IN_SOURCE FALSE
+#define IGNORE_CARRIAGE_RETURN_IN_SOURCE TRUE
 #endif /* ifndef IGNORE_CARRIAGE_RETURN_IN_SOURCE */
 
 /*
