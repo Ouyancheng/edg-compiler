@@ -1,5 +1,18 @@
 Version 2.43
 
+11/8/99  Visibility of declarations designated by member using-declarations
+
+The front end now verifies that declarations designated by member using-
+declarations are visible in the scope of at least one direct base class of
+the class containing the using declaration.
+
+  struct A { void f(int); };
+  struct B: virtual public A { void f(long); };
+  struct C: virtual public A { void f(short); };
+  struct D: public B, public C {
+    using A::f;  // Error: A::f not visible in the scope of B or C
+  };
+
 11/8/99  is_reinterpret_cast flag in IL a_constant entry
 
 The IL a_constant entry now has an is_reinterpret_cast flag that supplements

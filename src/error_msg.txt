@@ -1048,6 +1048,7 @@ ec_virtual_function_decl_hidden;;"%np2 is hidden by %no1 -- virtual function ove
 ec_no_qualified_friend_definition;;"a qualified name is not allowed for a friend declaration that is a function definition"
 ec_not_compatible_with_templ_templ_param;;"%n1 is not compatible with %n2"
 ec_storage_class_requires_function_or_variable;;"a storage class may not be specified here"
+ec_member_using_must_be_visible_in_direct_base;;"declarations designated by a class member using-declaration must be visible in the scope of a direct base class"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

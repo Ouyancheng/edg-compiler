@@ -9158,6 +9158,7 @@ or implicit) controlling the declaration.
     /* The identifier should be a qualified name, with the qualifier a base
        class of the current class. */
     declared_sym = locator_for_curr_id.specific_symbol;
+    fund_sym = fundamental_symbol_of(declared_sym);
     if (!locator_for_curr_id.is_class_member) {
       error(ec_class_qualified_name_required);
       err = TRUE;
@@ -9205,7 +9206,7 @@ or implicit) controlling the declaration.
            itself is ambiguous -- that is, the member must be either a field
            or a nonstatic member function or an overload set containing at
            least one nonstatic member function. */
-        sym = fundamental_symbol_of(declared_sym);
+        sym = fund_sym;
         if (sym->kind == (a_symbol_kind)sk_field) {
           /* A field in an ambiguous base class is ambiguous. */
           err = TRUE;
@@ -9231,6 +9232,24 @@ or implicit) controlling the declaration.
           }  /* if */
         }  /* if */
         if (err) sym_error(ec_ambiguous_name, declared_sym);
+      } else if (!bcp->direct) {
+        /* Base class members designated in a using-declaration must be
+           visible in the scope of at least one direct base class. */
+        a_base_class_ptr  direct_bcp = base_classes_of(class_type);
+        for (; direct_bcp != NULL; direct_bcp = direct_bcp->next) {
+          if (direct_bcp->direct) {
+            a_symbol_ptr  visible_sym;
+            clear_locator(&locator, &decl_pos);
+            locator.symbol_header = locator_for_curr_id.symbol_header;
+            visible_sym = class_qualified_id_lookup(&locator, direct_bcp->type,
+                                                    IDL_NO_OPTIONS);
+            if (visible_sym == fund_sym) { break; }
+          }  /* if */
+        }  /* for */
+        if (direct_bcp == NULL) {
+          error(ec_member_using_must_be_visible_in_direct_base);
+          err = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
     if (!err) {
@@ -9244,7 +9263,6 @@ or implicit) controlling the declaration.
         /* Except to introduce function names into an overload set, a
            using declaration cannot usually coexist with another declaration
            with the same name. */
-        fund_sym = fundamental_symbol_of(declared_sym);
         if (is_function_or_template_symbol(fund_sym)) {
           /* Okay. */
         } else if (is_nontype_template_param_symbol(fund_sym)) {
