@@ -2209,23 +2209,29 @@ for handling virtual bases and functions.
   /* Avoid a zero-sized structure (as in "struct {int : 0;}" for C and in
      "class {}" for C++). */
   if (class_type->size == 0) {
-#if 0
 #if MICROSOFT_EXTENSIONS_ALLOWED
     a_field_ptr  fp;
-    if (microsoft_mode &&
+    if (microsoft_mode && C_mode() &&
         (fp = class_type->variant.class_struct_union.field_list) != NULL &&
         !is_error_type(fp->type)) {
 #if CHECKING
       check_assertion_str2(fp->next == NULL && is_array_type(fp->type) &&
                            is_incomplete_type(fp->type),
                            "do_class_layout: unexpected field in zero-size",
-                           "struct (microsoft mode)");
+                           "struct (microsoft C mode)");
 #endif /* CHECKING */
-      class_type->size = 4;
-      class_type->alignment = 4;
+      /* Something like this:
+           struct S { T t[]; };           // sizeof(S) == sizeof(int)
+         where T is any type -- sizeof(S) in Microsoft C mode is 2 on x86 and
+         4 on PowerPCs.  However, we don't really understand what's going on
+         here, and we may not have reverse engineered it quite accurately.
+         In any case, it's different in C++ mode, and even in C mode this sort
+         of case is handled differently:
+           struct S2 { char c; T t[]; };  // sizeof (S2) == 1
+      */
+      class_type->size = sizeof(int);
     } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#endif /* if 0 */
     class_type->size = 1;
   }  /* if */
   if (!C_mode() &&
