@@ -96,33 +96,6 @@ Output an unsigned number as indicated by octl.
 }  /* form_unsigned_num */
 
 
-static void form_tag_kind(a_type_kind                           kind,
-                          an_il_to_str_output_control_block_ptr octl)
-/*
-Output a string that describes the tag kind for the indicated type, i.e.,
-"class" or "enum".  Do the output in the way described by octl.
-*/
-{
-  char *str;
-
-  switch (kind) {
-    case tk_enum:   str = "enum";   break;
-    case tk_class:  str = "class";  break;
-    case tk_struct: str = "struct"; break;
-    case tk_union:  str = "union";  break;
-    default:
-#if DEBUG
-      if (octl->debug_output) {
-        str = "**BAD-TAG-KIND**";
-        break;
-      }  /* if */
-#endif /* DEBUG */
-      unexpected_condition_str("form_tag_kind: bad type kind");
-  }  /* switch */
-  octl->output_str(str);
-}  /* form_tag_kind */
-
-
 void form_template_args(a_template_arg_ptr                    tap,
                         an_il_to_str_output_control_block_ptr octl)
 /*
@@ -164,14 +137,6 @@ This includes template arguments on template classes.
   a_source_correspondence *scp = (a_source_correspondence *)entry;
   char                    *name = scp->name;
 
-  if (il_header.source_language == sl_C && entry_kind == iek_type) {
-    a_type_ptr  type = (a_type_ptr)entry;
-    if (is_immediate_class_type(type) || is_immediate_enum_type(type)) {
-      /* In C, put "struct", "union", or "enum" on tags. */
-      form_tag_kind(type->kind, octl);
-      octl->output_str(" ");
-    }  /* if */
-  }  /* if */
   if (name == NULL) {
     /* For entities without names, use <unnamed>. */
     check_assertion(!octl->gen_compilable_code);
@@ -246,6 +211,56 @@ output in the way described by octl.
     form_unqualified_name(entry, kind, octl);
   }  /* if */
 }  /* form_name */
+
+
+static void form_tag_kind(a_type_kind                           kind,
+                          an_il_to_str_output_control_block_ptr octl)
+/*
+Output a string that describes the tag kind for the indicated type, i.e.,
+"class" or "enum".  Do the output in the way described by octl.
+*/
+{
+  char *str;
+
+  switch (kind) {
+    case tk_enum:   str = "enum";   break;
+    case tk_class:  str = "class";  break;
+    case tk_struct: str = "struct"; break;
+    case tk_union:  str = "union";  break;
+    default:
+#if DEBUG
+      if (octl->debug_output) {
+        str = "**BAD-TAG-KIND**";
+        break;
+      }  /* if */
+#endif /* DEBUG */
+      unexpected_condition_str("form_tag_kind: bad type kind");
+  }  /* switch */
+  octl->output_str(str);
+}  /* form_tag_kind */
+
+
+static void form_tag_reference(a_type_ptr                            type,
+                               an_il_to_str_output_control_block_ptr octl)
+/*
+Output a reference to a tag, doing output in the way described by octl.
+*/
+{
+  /* See if there is a routine to do specialized name output. */
+  if (octl->output_name != NULL) {
+    /* Use the specialized routine. */
+    octl->output_name((char *)type, iek_type);
+  } else {
+    /* Default handling. */
+    if (il_header.source_language == sl_C || !has_name(type)) {
+      /* In C, put "struct", "union", or "enum" on tags.  In C++, do it
+         only for unnamed tags. */
+      form_tag_kind(type->kind, octl);
+      octl->output_str(" ");
+    }  /* if */
+    form_name((char *)type, iek_type, octl);
+  }  /* if */
+}  /* form_tag_reference */
 
 
 char *int_kind_name(an_integer_kind kind)
@@ -437,7 +452,7 @@ by octl.  Note that derived types should be handled above this level.
 #ifdef CFE
       if (type->variant.integer.enum_type) {
         /* Enum type, which is handled specially. */
-        form_name((char *)type, iek_type, octl);
+        form_tag_reference(type, octl);
       } else
 #endif /* ifdef CFE */
       {
@@ -462,7 +477,7 @@ by octl.  Note that derived types should be handled above this level.
     case tk_class:
     case tk_struct:
     case tk_union:
-      form_name((char *)type, iek_type, octl);
+      form_tag_reference(type, octl);
       break;
     case tk_typeref:
       if (is_immediate_type_qualifier(type)) {
