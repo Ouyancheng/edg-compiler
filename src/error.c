@@ -3286,9 +3286,12 @@ and doing any required expansions, the diagnostic is written.
        done until the end of the context information is printed).  Once we
        know whether context is required, the original message is issued.
        Then we issue and context-related messages. */
-    if (diag_kind != dck_standalone && diag_kind != dck_end_list) {
+    if ((diag_kind != dck_standalone && diag_kind != dck_end_list) ||
+        (severity == es_catastrophe &&
+         !display_error_context_on_catastrophe)) {
       /* The context display processing is only required after standalone and
-         end-list messages. */
+         end-list messages.  The context can optionally be suppressed for
+         catastrophic errors. */
       write_diagnostic(error_code, error_pos, severity, diag_kind);
     } else {
       int		num_of_contexts = 0;

@@ -78,6 +78,14 @@ an abort.
 #endif /* ifndef EXIT_ON_INTERNAL_ERROR */
 
 /*
+This may be set to FALSE to suppress the error context information for
+catastrophic errors.
+*/
+#ifndef DEFAULT_DISPLAY_ERROR_CONTEXT_ON_CATASTROPHE
+#define DEFAULT_DISPLAY_ERROR_CONTEXT_ON_CATASTROPHE TRUE
+#endif /* DEFAULT_DISPLAY_ERROR_CONTEXT_ON_CATASTROPHE */
+
+/*
 Size of allocation blocks (space is requested from malloc in blocks of
 this size, and is then parceled out as needed).  Should be fairly large
 to reduce the work in remapping pointers in the non-alternate file

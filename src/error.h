@@ -143,6 +143,15 @@ EXTERN a_boolean
                         /* TRUE if diagnostic output should suppress
 			   wrapping of the error message text. */
 
+EXTERN a_boolean
+                display_error_context_on_catastrophe
+#if VAR_INITIALIZERS
+                                = DEFAULT_DISPLAY_ERROR_CONTEXT_ON_CATASTROPHE
+#endif /* VAR_INITIALIZERS */
+                                                                              ;
+                        /* TRUE if error context information should be
+			   displayed following a catastrophic error. */
+
 /*
 Error routines.
 */
