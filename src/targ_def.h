@@ -170,14 +170,15 @@ Integer types:
 #endif /* LONG_LONG_ALLOWED */
 
 /* Specify the size of the largest integer.  Note that this will constrain
-   how targ_sizeof_long or targ_sizeof_long_long is configured at runtime. */
+   how targ_sizeof_long or targ_sizeof_long_long is configured at runtime.
+   By default, a minimum largest value is supplied. */
 #if LONG_LONG_ALLOWED
-#define TARG_SIZEOF_LARGEST_INTEGER 8
+#define TARG_SIZEOF_LARGEST_INTEGER TARG_SIZE_OF_LONG_LONG
 #if TARG_SIZEOF_LARGEST_INTEGER < TARG_SIZEOF_LONG_LONG
  #error -- TARG_SIZEOF_LARGEST_INTEGER too small for TARG_SIZEOF_LONG_LONG
 #endif /* TARG_SIZEOF_LARGEST_INTEGER < TARG_SIZEOF_LONG_LONG */
 #else /* !LONG_LONG_ALLOWED */
-#define TARG_SIZEOF_LARGEST_INTEGER 4
+#define TARG_SIZEOF_LARGEST_INTEGER TARG_SIZEOF_LONG
 #if TARG_SIZEOF_LARGEST_INTEGER < TARG_SIZEOF_LONG
  #error -- TARG_SIZEOF_LARGEST_INTEGER too small for TARG_SIZEOF_LONG
 #endif /* TARG_SIZEOF_LARGEST_INTEGER < TARG_SIZEOF_LONG */
