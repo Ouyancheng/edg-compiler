@@ -3864,7 +3864,8 @@ Handle unprintable characters and necessary escapes.
     if (ch == '"' || ch == '\'' || ch == '\\') fputc('\\', f_C_output);
     fputc(ch, f_C_output);
   } else {
-    (void)fprintf(f_C_output, "\\%03o", (unsigned int)ch);
+    (void)fprintf(f_C_output, "\\%03o",
+                  (unsigned int)(ch&((1<<TARG_CHAR_BIT)-1)));
   }  /* if */
 }  /* dump_char */
 
@@ -3911,19 +3912,24 @@ Print out the constant value contained in one constant record.
   an_integer_kind  ikind;
   a_float_kind     fkind;
   a_type_ptr       con_type;
-  a_boolean        need_close_paren;
+  a_boolean        need_cast_close_paren = FALSE, need_close_paren;
 #ifdef CFE
   a_targ_ptrdiff_t offset;
 #endif /* ifdef CFE */
 
   con_type = constant->type;
-  if (constant->implicit_cast) {
-    /* If the constant is implicitly cast to another type, put out the
-       requisite cast. */
-    fputc('(', f_C_output);
-    dump_cast(con_type);
-  }  /* if */
   con_type = skip_typerefs(con_type);
+  if (constant->implicit_cast ||
+      (constant->kind == (a_constant_repr_kind)ck_integer &&
+       !(con_type->kind == (a_type_kind)tk_integer &&
+         int_kind_is_signed(con_type->variant.integer.int_kind)))) {
+    /* If the constant is implicitly cast to another type, put out the
+       requisite cast.  Also if it's an unsigned integral constant,
+       because K&R C has no "U" suffix for constants. */
+    fputc('(', f_C_output);
+    dump_cast(constant->type);
+    need_cast_close_paren = TRUE;
+  }  /* if */
   switch (constant->kind) {
     case ck_error:
       fputs("<error>", f_C_output);
@@ -4044,7 +4050,7 @@ Print out the constant value contained in one constant record.
       internal_error("dump_constant_value: bad constant kind");
 #endif /* CHECKING */
   }  /* switch */
-  if (constant->implicit_cast) {
+  if (need_cast_close_paren) {
     fputc(')', f_C_output);
   }  /* if */
 }  /* dump_constant_value */
