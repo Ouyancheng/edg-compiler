@@ -1,5 +1,100 @@
 Version 3.4
 
+4/30/04  Embedded C Extensions
+
+The front end now accepts the C language extensions suggested by ISO/IEC
+TR 18037 (also known as "Embedded C").  The extensions include three new
+facilities that can be configured independently: fixed-point types
+(configured using the macro FIXED_POINT_ALLOWED and enabled with the
+option --fixed_point), named address spaces (NAMED_ADDRESS_SPACES_ALLOWED
+and --named_address_spaces), and named-register storage classes
+(NAMED_REGISTERS_ALLOWED and --named_registers).  These extensions are
+only available in C modes at this time (and none of the aforementioned
+command-line options imply C mode).  If all three extensions are
+configured into the front end (by setting the macros FIXED_POINT_ALLOWED,
+NAMED_ADDRESS_SPACES_ALLOWED, and NAMED_REGISTERS_ALLOWED to TRUE), an
+additional command-line option --embedded_c is available: It enables all
+three extensions and implies the default ANSI C dialect (i.e., it is
+equivalent to "--c --fixed_point --named_address_spaces --named_registers").
+
+The fixed-point extensions include new basic types called _Fract (fractional
+values between -1 and 1 or -- for the unsigned variants -- between 0 and 1)
+and _Accum (which can have a larger range than _Fract types).  The types
+have signed (default) and unsigned variants, and come in three precisions:
+short, default, and long.  The types can also be modified with the new
+keyword _Sat to impose "saturating overflow behavior" (i.e., if an operation
+overflows, the computed result is the representable value closest to the
+mathematically exact result).  New literal forms are supported for the
+representation of fixed-point constants, and new STDC pragmas allow for some
+control of the behavior of fixed-point arithmetic.  For example:
+
+  _Accum acc = 0.0k;  // 'k' or 'K' suffix for _Accum literals.
+  void update(unsigned _Fract x) {
+    // Make the default behavior of _Accum types "saturating":
+  #pragma STDC ACCUM_OVERFLOW SAT
+    acc += x;  // Will saturate acc if the result is out of range.
+  }
+
+No lowering is done for fixed-point operations.  The C- and C++-generating
+back ends will render _Fract and _Accum types and assume that the consumer
+of the generate code accepts the extensions.  A back end should also be aware
+that the "usual arithmetic conversions" for binary operators do not include
+conversions to a common type if one of the operands has a fixed-point type
+and the other has a different fixed-point type or an integer type.
+For example:
+
+  void f1() {
+    short s = 1;
+    _Fract f1 = 0.5r;  // 'r' or 'R' suffix for _Fract literals.
+    _Fract f2 = f1-s;  // IL operator eok_fxsubtract with two operands of
+  }                    // different type; s and f1 are not converted.
+  
+Named address spaces are described using reserved identifiers that can appear
+as type qualifiers (i.e., in the same places as const and volatile).  For
+example:
+
+  int _EDG_NAS_A *_EDG_NAS_B bpa;  // A pointer stored in address space
+                                   // _EDG_NAS_B to an int stored in address
+                                   // space _EDG_NAS_A.
+
+The named address spaces accepted by the front end are described by the array
+named_address_spaces defined in targ_def.h.  Named address spaces can be
+nested.  The following example illustrates the resulting constraints:
+
+  void f2() {
+    int _EDG_NAS_A *pa;
+    int _EDG_NAS_B *pb;  // Assume _EDG_NAS_A "encloses" _EDG_NAS_B, then...
+    pa = pb;             // ... is valid, but ...
+    pb = pa;             // ... is invalid because an _EDG_NAS_A address may
+  }                      // not be part of address space _EDG_NAS_B.
+
+When no address space is specified, the term "generic address space" is used.
+The nesting relationships between address spaces (including whether or not an
+address space is enclosed by the generic address space) are configured through
+the array named_address_spaces (see targ_def.h).  Named address space are not
+lowered; the C- and C++-generating back ends will render them and assume that
+the consumer of the generate code accepts the extensions.
+
+Named-register storage class specifiers consist of the keyword "register"
+followed by a reserved identifier; they can appear wherever the keyword
+"extern" can appear on variable declarations in C.  For example:
+
+  register _EDG_REG_1 char x;  // A definition of a char stored in a register
+                               // described by the identifier _EDG_REG_1.
+
+The named registers recognized by the front end are configured through the
+array named_register_storage_classes defined in targ_def.h.  This configuration
+includes a size for each register: An attempt to declare a variable with a
+named-register storage class smaller than the size of the variable's type
+results in an error.  For example:
+
+  register _EDG_REG_1 long double z;  // Error if the size of _EDG_REG_1 is
+                                      // smaller than sizeof(long double).
+
+Named registers are not lowered; the C- and C++-generating back ends will
+render them and assume that the consumer of the generate code accepts the
+extensions.
+
 4/29/04  Preprocessor handling of recursive macro calls
 
 Previously, the preprocessor incorrectly handled some cases where
