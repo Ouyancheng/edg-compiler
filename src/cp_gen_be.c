@@ -4712,7 +4712,11 @@ this one is such a continuation.
             end_pp_directive();
           }  /* if */
 #endif /* ifdef GUARD_MACRO2_FOR_VA_LIST */
-          begin_pp_directive("#include <stdarg.h>");
+          if (type->is_builtin_va_list_from_cstdarg) {
+            begin_pp_directive("#include <cstdarg>");
+          } else {
+            begin_pp_directive("#include <stdarg.h>");
+          }  /* if */
           end_pp_directive();
         }  /* if */
       } else {
@@ -9947,9 +9951,11 @@ TRUE if the declaration following this one is such a continuation.
 #if GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET
     /* Emit any user-specified assembly symbol for this variable. */
     write_asm_name (rout->asm_name);
+#endif /* GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET */
+#if GNU_EXTENSIONS_ALLOWED
     /* Emit attributes associated with the routine. */
     write_routine_attributes(rout);
-#endif /* GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     /* See if there are comma-separated declarations attached to this one. */
     *another_decl_in_comma_list =
              another_declaration_in_comma_list_follows(rout_type,

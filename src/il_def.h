@@ -4740,7 +4740,11 @@ typedef struct a_type {
 			   namespaces. */
   a_bit_field	is_builtin_va_list:1;
 			/* TRUE if this type is the va_list type declared by
-			   <stdarg.h>. */
+			   <stdarg.h> or <cstdarg>, when that's treated as
+			   built-in. */
+  a_bit_field	is_builtin_va_list_from_cstdarg:1;
+			/* TRUE if this is the va_list type declared by
+			   <cstdarg>, when that's treated as built-in. */
 #ifdef GUARD_MACRO_FOR_VA_LIST
   a_bit_field	va_list_guard_macro_was_defined:1;
 			/* TRUE if the macro named by GUARD_MACRO_FOR_VA_LIST

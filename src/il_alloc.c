@@ -1488,6 +1488,7 @@ variant fields to default values.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   pte->referenced_by_namespace_placeholder_typeref = FALSE;
   pte->is_builtin_va_list = FALSE;
+  pte->is_builtin_va_list_from_cstdarg = FALSE;
 #ifdef GUARD_MACRO_FOR_VA_LIST
   pte->va_list_guard_macro_was_defined = FALSE;
 #endif /* ifdef GUARD_MACRO_FOR_VA_LIST */

@@ -1316,6 +1316,9 @@ Display the indicated type entry.
   if (ptr->is_builtin_va_list) {
     disp_boolean("is_builtin_va_list", TRUE);
   }  /* if */
+  if (ptr->is_builtin_va_list_from_cstdarg) {
+    disp_boolean("is_builtin_va_list_from_cstdarg", TRUE);
+  }  /* if */
 #ifdef GUARD_MACRO_FOR_VA_LIST
   if (ptr->va_list_guard_macro_was_defined) {
     disp_boolean("va_list_guard_macro_was_defined", TRUE);

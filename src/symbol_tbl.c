@@ -5266,6 +5266,7 @@ and global namespaces.
     va_list_typedef = alloc_type((a_type_kind)tk_typeref);
     va_list_typedef->variant.typeref.type = va_list_type;
     va_list_typedef->is_builtin_va_list = TRUE;
+    va_list_typedef->is_builtin_va_list_from_cstdarg = is_cstdarg;
     add_to_types_list(va_list_typedef, DEPTH_OF_FILE_SCOPE);
     set_source_corresp(&va_list_typedef->source_corresp, sym);
     va_list_typedef->source_corresp.decl_position = null_source_position;
@@ -5296,7 +5297,7 @@ and global namespaces.
       if (va_list_in_std_namespace) {
         /* Set the namespace information for the symbol.  Note that the
            type itself must remain in the global scope. */
-        set_namespace_membership(sym, (a_source_correspondence*)NULL,
+        set_namespace_membership(sym, &va_list_typedef->source_corresp,
                                  std_namespace);
       }  /* if */
       if (!is_cstdarg) {
