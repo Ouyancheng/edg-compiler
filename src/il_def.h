@@ -3239,15 +3239,13 @@ typedef struct a_class_type_supplement {
 			   Microsoft ABI compatibility.  An inheritance kind
 			   of ihk_none means no specific inheritance kind
 			   has been set. */
-  a_byte_boolean
-		inheritance_kind_is_explicit;
+  a_bit_field	inheritance_kind_is_explicit:1;
 			/* TRUE if the inheritance_kind field was set as the
 			   result of an explicit specification on the class
 			   declaration. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if NEAR_AND_FAR_ALLOWED
-  a_type_qualifier_set
-		qualifiers;
+  a_bit_field	qualifiers:NUM_BITS_FOR_TYPE_QUALIFIER_SET;
 			/* Qualifiers that apply to the class as a whole,
 			   as in "class __far A {}". */
 #endif /* NEAR_AND_FAR_ALLOWED */
