@@ -107,6 +107,16 @@ of another instance of the same template.  Here's an example:
   };
   int  M<B<B<B<char> > > > ::id;
 
+2/5/97  A friend declaration may not declare a partial specialization
+
+The front end incorrectly permitted a friend declaration to declare
+a partial specialization.  This has been fixed.
+
+  template <class T> struct A {};
+  struct B {
+    template <class T> friend struct A<T*> {};
+  };
+
 2/5/97  A using-declaration may not name a conversion template instance
 
 The front end failed to produce a diagnostic when a using-declaration
