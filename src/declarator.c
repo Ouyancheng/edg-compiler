@@ -1626,9 +1626,9 @@ declaration.
               }  /* while */
               if (ssep->kind == (a_scope_kind)sck_template_declaration) {
                 /* A member function declaration of a template class outside
-                   of the class declaration.  This is not allowed, except
-                   in Microsoft mode. */
-                if (microsoft_mode || sun_mode) {
+                   of the class declaration.  This is allowed in g++,
+                   Microsoft, and Sun modes. */
+                if (microsoft_mode || gpp_mode || sun_mode) {
                   /* This is a template case, so the default should be
                      cached. */
                   cache_default_arg = TRUE;

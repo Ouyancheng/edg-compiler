@@ -1,5 +1,15 @@
 Version 3.2
 
+4/14/03  GNU C++ compatibility: default arg. in member of class template
+
+g++ allows a default argument to be specified on the definition of a
+member function of a class template that appears outside of its class
+(the standard requires that such default arguments be specified
+on the declaration in the class).  This is now accepted in g++ mode.
+
+  template <class T> struct A { void f(T); };
+  template <class T> void A<T>::f(T value = T() )  { }
+
 4/14/03  Multiple preinclude search path problem
 
 When using multiple preinclude files, the incorrect include file search path
