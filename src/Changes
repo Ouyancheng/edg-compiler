@@ -1,5 +1,24 @@
 Version 2.46
 
+3/25/01  Template instantiation can cause spurious access errors
+
+In certain unusual circumstances, the access checking state was not
+correctly restored after a template instantiation, resulting in spurious
+access errors.  This has been fixed.
+
+  struct A {
+    template<class> struct B {
+      void f(int = 0);
+    };
+    class C {
+     int i;
+      void g() {
+        B<int> a;
+        i = 0;
+      }
+    };
+  };
+
 3/22/01  Treatment of using-declaration duplicating a built-in declaration
 
 Using declarations are not added to the IL when they duplicate an equivalent

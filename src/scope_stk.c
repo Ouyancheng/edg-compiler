@@ -5201,7 +5201,10 @@ extend_namespace).
   a_scope_depth	initial_depth = depth_scope_stack;
   a_boolean	is_microsoft_specialization_scope = FALSE;
   a_boolean	initial_scope_is_template_decl = FALSE;
+  a_scope_depth	saved_innermost_scope_that_affects_access;
 
+  saved_innermost_scope_that_affects_access =
+                         depth_of_innermost_scope_that_affects_access_control;
   /* Get the symbol associated with the class. */
   class_sym = (a_symbol_ptr)(class_type->source_corresp.assoc_info);
   check_assertion_str2(class_sym != NULL,
@@ -5259,9 +5262,15 @@ extend_namespace).
        reactivation scopes that may have been pushed. */
     orig_depth = reactivate_class_scope(class_type, extend_namespace);
   }  /* if */
+  {
     /* Record the scope depth prior to the reactivation so that the scopes
-       reactivated can be popped later. */
-  scope_stack[depth_scope_stack].orig_depth = orig_depth;
+     reactivated can be popped later. */
+    a_scope_stack_entry_ptr	ssep;
+    ssep = scope_stack_entry_for(depth_scope_stack);
+    ssep->orig_depth = orig_depth;
+    ssep->saved_innermost_scope_that_affects_access =
+                                     saved_innermost_scope_that_affects_access;
+  }
 }  /* push_class_and_template_reactivation_scope */
 
 
@@ -5293,6 +5302,7 @@ is called only in C++.
   a_boolean			namespace_pushed = FALSE;
   a_boolean			microsoft_specialization_scope_pushed;
   a_boolean			instantiation_scope_pushed;
+  a_scope_depth			saved_innermost_scope_that_affects_access;
 
   ssep = &scope_stack[depth_scope_stack];
   microsoft_specialization_scope_pushed =
@@ -5300,6 +5310,8 @@ is called only in C++.
   namespace_pushed = ssep->namespace_pushed;
   instantiation_scope_pushed = ssep->instantiation_scope_pushed;
   orig_depth = scope_stack[depth_scope_stack].orig_depth;
+  saved_innermost_scope_that_affects_access =
+      scope_stack[depth_scope_stack].saved_innermost_scope_that_affects_access;
   /* Pop scopes until the depth of the scope stack is equal to orig_depth,
      which is the depth before any of the class reactivation scopes were
      pushed. */
@@ -5339,6 +5351,11 @@ is called only in C++.
       }  /* if */
     }  /* if */
   }  /* if */
+  /* Restore the innermost scope that affects access.  The current value
+     could be incorrect if if the reactivation involved pushing instantiation
+     scopes. */
+  depth_of_innermost_scope_that_affects_access_control =
+                                    saved_innermost_scope_that_affects_access;
 }  /* pop_class_reactivation_scope */
 
 
