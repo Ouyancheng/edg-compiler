@@ -835,6 +835,10 @@ extern void prep_assignment_operand(an_operand        *source_operand,
                                     an_error_code     incompatible_err,
                                     a_source_position *err_pos);
 
+#if DEBUG
+extern unsigned long show_expr_space_used(void);
+#endif /* DEBUG */
+
 extern void expr_init(void);
 
 #endif /* ifndef EXPRUTIL_H */

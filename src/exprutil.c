@@ -135,6 +135,17 @@ static an_arg_match_summary_ptr
 			   been freed and are available for reuse. */
 
 
+#if DEBUG
+/*
+Counts of entries allocated, for debugging purposes.
+*/
+unsigned long	num_arg_operands_allocated,
+		num_arg_match_summaries_allocated,
+		num_candidate_functions_allocated;
+		num_xref_entries_allocated;
+#endif /* DEBUG */
+
+
 /* Declarations needed because of mutual recursion or forward references: */
 static a_boolean conversion_to_class_possible(
                                   an_operand               *source_operand,
@@ -182,6 +193,9 @@ more of the expression is scanned.
   } else {
     /* Allocate a new entry. */
     xep = (an_xref_entry_ptr)alloc_fe(sizeof(an_xref_entry));
+#if DEBUG
+    num_xref_entries_allocated++;
+#endif /* DEBUG */
   }  /* if */
   xep->kind = kind;
   xep->symbol = sym_ptr;
@@ -4260,6 +4274,9 @@ entries are used to hold arguments of function calls.
   } else {
     /* Allocate a new entry. */
     aop = (an_arg_operand_ptr)alloc_fe(sizeof(an_arg_operand));
+#if DEBUG
+    num_arg_operands_allocated++;
+#endif /* DEBUG */
   }  /* if */
   aop->next = NULL;
   clear_operand((an_operand_kind)ok_error, &aop->operand);
@@ -4331,6 +4348,9 @@ Such entries are used in resolving calls to overloaded functions.
   } else {
     /* Allocate a new entry. */
     amsp = (an_arg_match_summary_ptr)alloc_fe(sizeof(an_arg_match_summary));
+#if DEBUG
+    num_arg_match_summaries_allocated++;
+#endif /* DEBUG */
   }  /* if */
   clear_arg_match_summary(amsp);
   return amsp;
@@ -4410,6 +4430,9 @@ are used in resolving calls to overloaded functions.
   } else {
     /* Allocate a new entry. */
     cfp = (a_candidate_function_ptr)alloc_fe(sizeof(a_candidate_function));
+#if DEBUG
+    num_candidate_functions_allocated++;
+#endif /* DEBUG */
   }  /* if */
   cfp->next = NULL;
   cfp->function_symbol = NULL;
@@ -9717,6 +9740,55 @@ not.  Also normalize the expression to "!= 0" form if necessary.
 }  /* check_boolean_controlling_expr */
 
 
+#if DEBUG
+unsigned long show_expr_space_used(void)
+/*
+Display and return the amount of space used for various expression tables.
+*/
+{
+  unsigned long num, size, total, grand_total = 0;
+
+  fprintf(f_debug, "\nExpression table use:\n");
+  fprintf(f_debug, "%25s %8s %8s %8s\n", "Table", "Number", "Each", "Total");
+
+#define write_one(name, counter, type)                                \
+{ num = counter; size = sizeof(type); total = num*size;               \
+  fprintf(f_debug, "%25s %8lu %8lu %8lu\n", name, num, size, total);  \
+  grand_total += total;                                               \
+}  /* write_one */
+#define write_loss(avail_list, counter, type)                         \
+{ type          *ptr;                                                 \
+  unsigned long count = 0;                                            \
+  for (ptr = avail_list; ptr != NULL; ptr = ptr->next) count++;       \
+  if (count != counter) {                                             \
+    fprintf(f_debug, "%25s %8s %8s %8lu lost\n", "", "", "", counter-count); \
+  }  /* if */                                                         \
+}  /* write_loss */
+#define write_onel(name, avail_list, counter, type)                   \
+{ write_one(name, counter, type);                                     \
+  write_loss(avail_list, counter, type);                              \
+}  /* write_onel */
+
+  write_onel("arg operands", avail_arg_operands, num_arg_operands_allocated,
+             an_arg_operand);
+  write_onel("arg match summary", avail_arg_match_summaries,
+             num_arg_match_summaries_allocated, an_arg_match_summary);
+  write_onel("candidate function", avail_candidate_functions,
+             num_candidate_functions_allocated, a_candidate_function);
+  write_onel("xref entry", avail_xref_entries, num_xref_entries_allocated,
+             an_xref_entry);
+
+  fprintf(f_debug, "%25s %8s %8s %8lu\n", "Total", "", "", grand_total);
+
+
+  return grand_total;
+#undef write_one
+#undef write_loss
+#undef write_onel
+}  /* show_expr_space_used */
+#endif /* DEBUG */
+
+
 void expr_init(void)
 /* 
 Initialize things related to expression scanning.
@@ -9731,6 +9803,12 @@ Initialize things related to expression scanning.
   avail_arg_operands = NULL;
   avail_candidate_functions = NULL;
   avail_arg_match_summaries = NULL;
+#if DEBUG
+  num_arg_operands_allocated        = 0;
+  num_arg_match_summaries_allocated = 0;
+  num_candidate_functions_allocated = 0;
+  num_xref_entries_allocated        = 0;
+#endif /* DEBUG */
 }  /* expr_init */
 
 
