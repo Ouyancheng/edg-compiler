@@ -864,10 +864,14 @@ scope for the symbol must still be active.
   a_boolean  is_local_to_function = FALSE;
 
   sc->assoc_info = (char *)sp;
-  /* Note that the identifier name was allocated in the intermediate language
-     memory area (see find_symbol); it can therefore be used without
-     copying. */
-  sc->name = sp->header->identifier;
+  if (sp->header == unnamed_tag_symbol_header) {
+    /* Let the name pointer in the IL entry remain NULL. */
+  } else {
+    /* Note that the identifier name was allocated in the intermediate language
+       memory area (see find_symbol); it can therefore be used without
+       copying. */
+    sc->name = sp->header->identifier;
+  }  /* if */
   if (sc->decl_position.seq != 0) {
     /* The decl-position is already set, so this must be a resetting of
        the source correspondence.  Let the caller decide whether and how the
@@ -2141,6 +2145,8 @@ the symbol table, this routine is not called for them.
       /* No error.  Either the field has not yet been bound to the symbol
          (never true for anonymous union symbol promotions) or the parent
          classes correspond (also untrue for anonymous union promotions). */
+    } else if (class_sym->header == unnamed_tag_symbol_header) {
+      /* This must be a constructor for an unnamed class. */
     } else {
       /* Error: an identifier that is not a constructor and that has the
          same name as a class is being defined within the class. */
@@ -3417,16 +3423,22 @@ used in C++ mode.
        "change_class_locator_into_constructor_locator: locator not for class");
   }  /* if */
 #endif /* CHECKING */
-  extra_info = class_symbol->variant.class_struct_union.extra_info;
-  if (extra_info->constructor != NULL) {
-    /* A constructor exists already, so get the header pointer from it. */
-    hdr_ptr = extra_info->constructor->header;
+  if (locator->symbol_header == unnamed_tag_symbol_header) {
+    /* Let the symbols for an unnamed class and its constructor share the
+       same symbol header. */
+    hdr_ptr = locator->symbol_header;
   } else {
-    /* The class has no constructor yet, so create a new header. */
-    hdr_ptr = alloc_symbol_header();
-    /* The name string can be shared with the class header. */
-    hdr_ptr->identifier = locator->symbol_header->identifier;
-    hdr_ptr->identifier_length = locator->symbol_header->identifier_length;
+    extra_info = class_symbol->variant.class_struct_union.extra_info;
+    if (extra_info->constructor != NULL) {
+      /* A constructor exists already, so get the header pointer from it. */
+      hdr_ptr = extra_info->constructor->header;
+    } else {
+      /* The class has no constructor yet, so create a new header. */
+      hdr_ptr = alloc_symbol_header();
+      /* The name string can be shared with the class header. */
+      hdr_ptr->identifier = locator->symbol_header->identifier;
+      hdr_ptr->identifier_length = locator->symbol_header->identifier_length;
+    }  /* if */
   }  /* if */
   clear_locator(locator, pos);
   locator->symbol_header = hdr_ptr;
