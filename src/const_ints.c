@@ -131,6 +131,9 @@ large unsigned if is_signed is FALSE) otherwise set err to FALSE.
 #endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
 }  /* conv_integer_value_to_host_large_integer */
 
+/* Forward declaration. */
+static char *str_for_integer_value(an_integer_value	*p_value,
+				   a_boolean		is_signed);
 
 void conv_integer_value_to_float(an_integer_value		*int_value,
 				 a_boolean			is_signed,
@@ -1558,8 +1561,8 @@ The result is returned in the first operand (op_1 = op_1 % op_2).
 }  /* remainder_integer_values */
 
 
-char *str_for_integer_value(an_integer_value	*p_value,
-			    a_boolean		is_signed)
+static char *str_for_integer_value(an_integer_value	*p_value,
+				   a_boolean		is_signed)
 /*
 Return a pointer to the literal form of the integer value *p_value.
 is_signed indicates whether the value should be treated as signed.  The
