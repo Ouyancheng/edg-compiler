@@ -8886,16 +8886,17 @@ namespace scope), at the position indicated by *insert_pointer, and
 
 static void unlink_classes_with_placeholders_in_scope(a_scope_ptr scope)
 /*
-Go through the indicated scope (the file scope, a namespace scope, or a class
-scope) and look for classes that have associated instantiation or
-outside-of-parent definition placeholders.  Unlink such classes from the
-type list.  They will be reinserted (logically) at the point of the
-placeholder.
+Go through the indicated scope (the file scope, a namespace scope, a function
+or block scope, or a class scope) and look for classes that have associated
+instantiation or outside-of-parent definition placeholders.  Unlink such
+classes from the type list.  They will be reinserted (logically) at the point
+of the placeholder.
 */
 {
   a_type_ptr      type, next_type, insert_pointer;
   a_scope_depth   depth;
   a_namespace_ptr nsp;
+  a_scope_ptr     block_scope;
 
   /* See if there are any types to process. */
   type = scope->types;
@@ -8935,9 +8936,10 @@ placeholder.
         } else if (type->variant.class_struct_union.
                                       nested_class_defined_outside_of_parent) {
           /* This is a nested class that is defined outside of its parent
-             class.  It will be moved to the file-scope or a namespace-scope
-             types list at the point of its definition, later.  Here, just
-             take it (and its type-as-subobject) off the list. */
+             class.  It will be moved to a file scope, namespace scope,
+             function scope, or block scope types list at the point of its
+             definition, later.  Here, just take it (and its
+             type-as-subobject) off the list. */
 #if DEBUG
           if (debug_level >= 4) {
             (void)fprintf(f_debug, "Taking nested class out of list: ");
@@ -8990,6 +8992,12 @@ placeholder.
       unlink_classes_with_placeholders_in_scope(nsp->variant.assoc_scope);
     }  /* if */
   }  /* for */
+  /* Visit all block scopes. */
+  for (block_scope = scope->scopes;
+       block_scope != NULL;
+       block_scope = block_scope->next) {
+    unlink_classes_with_placeholders_in_scope(block_scope);
+  }  /* for */
 }  /* unlink_classes_with_placeholders_in_scope */
 
 
@@ -9013,11 +9021,14 @@ and all subscopes.
     (void)fprintf(f_debug, "\n");
   }  /* if */
 #endif /* DEBUG */
-  if (scope->kind == (a_scope_kind)sck_file) {
+  if (scope->kind == (a_scope_kind)sck_file ||
+      scope->kind == (a_scope_kind)sck_function) {
     /* At the beginning of this operation for the file scope, go through
        all classes and namespaces and unlink classes that have associated
        placeholders.  They will be linked back in (logically) at the point
-       of the placeholder. */
+       of the placeholder.  Do this also for the top scope in a function-scope
+       memory region; there are no namespaces there, but there can still
+       be nested classes defined outside their parents. */
     unlink_classes_with_placeholders_in_scope(scope);
   }  /* if */
   /* Visit all types to find all classes. */
@@ -9057,18 +9068,18 @@ and all subscopes.
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
       } else if (type->kind == (a_type_kind)tk_typeref &&
                  type->variant.typeref.is_placeholder_for_nested_class_def) {
-        /* This type is a typeref on a file-scope or namespace-scope types
-           list, and indicates the point of definition of a nested class
-           that is defined outside of its class.  Move the class onto the
-           current types list (it was removed from its class types list
-           earlier).  If the class has a type-as-subobject, it is attached
-           as the next type. */
+        /* This type is a typeref on a file scope, namespace scope, function
+           scope, or block scope types list, and indicates the point of
+           definition of a nested class that is defined outside of its class.
+           Move the class onto the current types list (it was removed from
+           its class types list earlier).  If the class has a
+           type-as-subobject, it is attached as the next type. */
         a_type_ptr nested_type = type->variant.typeref.type;
 #if DEBUG
         if (debug_level >= 4) {
           (void)fprintf(f_debug, "Nested class ");
           db_type_name(nested_type);
-          (void)fprintf(f_debug, " being moved to namespace scope\n");
+          (void)fprintf(f_debug, " being moved to point of definition\n");
         }  /* if */
 #endif /* DEBUG */
         /* Clear the nested class flag to avoid double processing. */
@@ -9080,9 +9091,11 @@ and all subscopes.
            reason. */
         nested_type->variant.class_struct_union.
                                 nested_class_defined_outside_of_parent = TRUE;
-        if (scope->kind == (a_scope_kind)sck_file) {
+        if (scope->kind == (a_scope_kind)sck_file ||
+            scope->kind == (a_scope_kind)sck_function ||
+            scope->kind == (a_scope_kind)sck_block) {
           /* For a placeholder in the file scope types list, take the
-             placeholder off the list. */
+             placeholder off the list.  Ditto for a function or block scope. */
           check_assertion(insert_pointer->next == type);
           insert_pointer->next = type->next;
         } else {
