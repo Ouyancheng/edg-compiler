@@ -1443,7 +1443,7 @@ because any exception it can handle would be caught by type_1's handler.
       if (impl_pointer_conversion(type_2, /*source_is_constant=*/FALSE,
                                   /*source_is_string_literal=*/FALSE,
                                   (a_constant_ptr)NULL, type_1,
-                                  /*check_as_operands_not_conversion=*/FALSE,
+                                  /*allow_qualifier_or_eh_mismatch=*/FALSE,
                                   /*suppress_extensions=*/TRUE,
                                   ec_no_error, &std_conv)) {
         masked = TRUE;
@@ -3536,17 +3536,16 @@ null pointer constant to a pointer type.)  If source_is_string_literal
 is TRUE, the source is a simple string literal (that's needed for the
 deprecated conversion from string literal to "char *"); the flag can
 be TRUE even when source_is_constant is FALSE, for an extension.  If
-allow_qualifier_or_eh_mismatch is TRUE, the two types are the types
-of the operands of an operation; only do the checks required in that
-case, which are fewer than the checks required for a conversion.
-suppress_extensions is TRUE if conversions that are extensions should
-not be allowed (what constitutes an extension depends on C_dialect, of
-course).  If the conversion is possible, *std_conv is filled out to
-describe the conversion.  In particular, if the conversion is suspect
-and should be flagged with a warning, the warning_suggested field is
-set to an appropriate error code; normally, it is set to ec_no_error.
-default_warning_code will be copied into warning_suggested when no
-specific message applies.
+allow_qualifier_or_eh_mismatch is TRUE, ignore cv-qualifier and exception
+specification mismatches (the two types are probably the types of the
+operands of an operation).  suppress_extensions is TRUE if conversions
+that are extensions should not be allowed (what constitutes an
+extension depends on C_dialect, of course).  If the conversion is
+possible, *std_conv is filled out to describe the conversion.  In
+particular, if the conversion is suspect and should be flagged with a
+warning, the warning_suggested field is set to an appropriate error
+code; normally, it is set to ec_no_error.  default_warning_code will
+be copied into warning_suggested when no specific message applies.
 
 Note that any type qualifiers on the types themselves (rather than the
 types pointed to) are ignored.
@@ -3938,13 +3937,13 @@ If neither is TRUE, the types are checked for an exact match.
 static a_boolean function_types_correspond(
                                    a_type_ptr rout_type_1,
                                    a_type_ptr rout_type_2,
-                                   a_boolean  check_as_operands_not_conversion)
+                                   a_boolean  allow_qualifier_or_eh_mismatch)
 /*
 Return TRUE if the two function types given are compatible if one ignores any
 difference in the underlying class of their "this" parameter types.
-If check_as_operands_not_conversion is TRUE, the two types are the types
-of the operands of an operation; if FALSE, rout_type_1 and rout_type_2
-are the destination and source types of a conversion.
+If allow_qualifier_or_eh_mismatch is TRUE, ignore cv-qualifier and exception
+specification mismatches (the two types are probably the types of the
+operands of an operation).
 */
 {
   a_boolean correspond;
@@ -3956,8 +3955,8 @@ are the destination and source types of a conversion.
                param_types_are_compatible(rout_type_1, rout_type_2,
                                     TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING) &&
                this_param_types_correspond(rout_type_1, rout_type_2,
-                                           !check_as_operands_not_conversion,
-                                           check_as_operands_not_conversion);
+                                           !allow_qualifier_or_eh_mismatch,
+                                           allow_qualifier_or_eh_mismatch);
   return correspond;
 }  /* function_types_correspond */
 
@@ -3965,16 +3964,16 @@ are the destination and source types of a conversion.
 static a_boolean member_types_correspond(
                                    a_type_ptr dest_type,
                                    a_type_ptr source_type,
-                                   a_boolean  check_as_operands_not_conversion,
+                                   a_boolean  allow_qualifier_or_eh_mismatch,
 				   a_boolean  *qualifiers_added)
 /*
 Return TRUE if the member types from two pointer-to-member types match
 allowing for a possible difference due to the associated class type.
 Specifically, this means that when comparing function types, the
 difference in the underlying class of the "this" parameter type must
-be ignored.  If check_as_operands_not_conversion is TRUE, the two types
-are the types of the operands of an operation; if FALSE, dest_type
-and source_type are the destination and source types of a conversion.
+be ignored.  If allow_qualifier_or_eh_mismatch is TRUE, ignore
+cv-qualifier and exception specification mismatches (the two types are
+probably the types of the operands of an operation).
 */
 {
   a_boolean correspond;
@@ -3992,7 +3991,7 @@ and source_type are the destination and source types of a conversion.
        when the class types are the same, because the routines may
        be from base classes. */
     correspond = function_types_correspond(dest_type, source_type,
-                                           check_as_operands_not_conversion);
+                                           allow_qualifier_or_eh_mismatch);
   }  /* if */
   return correspond;
 }  /* member_types_correspond */
@@ -4003,18 +4002,18 @@ a_boolean impl_ptr_to_member_conversion(
                          a_boolean            source_is_constant,
                          a_constant           *source_constant,
                          a_type_ptr           dest_type,
-                         a_boolean            check_as_operands_not_conversion,
+                         a_boolean            allow_qualifier_or_eh_mismatch,
                          a_std_conv_descr_ptr std_conv)
 /*
 Return TRUE if it's okay to implicitly convert something of type source_type
 (any type) to something of type dest_type (a pointer to member type).
 If source_is_constant is TRUE, the source is a constant, and source_constant
 points to the constant value.  (That's needed to check for conversions of a
-null pointer constant to a pointer to member type.)
-If check_as_operands_not_conversion is TRUE, the two types are the types
-of the operands of an operation; only do the checks required in that case,
-which are fewer than the checks required for a conversion.  If the conversion
-is possible, *std_conv is filled out to describe the conversion.
+null pointer constant to a pointer to member type.)  If
+allow_qualifier_or_eh_mismatch is TRUE, ignore cv-qualifier and
+exception specification mismatches (the two types are probably the
+types of the operands of an operation).  If the conversion is
+possible, *std_conv is filled out to describe the conversion.
 
 Note that any type qualifiers on the types themselves (rather than the
 types pointed to) are ignored.
@@ -4077,14 +4076,14 @@ pointers to members).
       /* Check the member types. */
       if (member_types_correspond(dest_type_pointed_to,
                                   source_type_pointed_to,
-                                  check_as_operands_not_conversion,
+                                  allow_qualifier_or_eh_mismatch,
                                   &qualifiers_added)) {
         std_conv->type_qualifiers_added = qualifiers_added;
         okay = TRUE;
         /* If the pointer-to-member types otherwise match, be sure, if the
            member type is a function type, that the exception specifications
            are compatible. */
-        if (okay && exceptions_enabled && !check_as_operands_not_conversion &&
+        if (okay && exceptions_enabled && !allow_qualifier_or_eh_mismatch &&
             is_function_type(dest_type_pointed_to) &&
             (exception_spec_is_less_restrictive(source_type_pointed_to,
                                                 dest_type_pointed_to) ||
@@ -4094,7 +4093,7 @@ pointers to members).
           clear_std_conv_descr(std_conv);
           std_conv->conv_failed_because_of_exception_specifications = TRUE;
         }  /* if */
-        if (okay && !check_as_operands_not_conversion) {
+        if (okay && !allow_qualifier_or_eh_mismatch) {
           /* The types pointed to must be such that the type pointed to by the
              left has all the qualifiers of the type pointed to by the right.
              It might have additional qualifiers. */
@@ -4173,7 +4172,9 @@ appropriate error code; normally, it is set to ec_no_error.
 default_warning_code will be copied into warning_suggested when no
 specific message applies.
 
-Note that any top-level type qualifiers on the types are ignored.
+Note that any top-level type qualifiers on the types are ignored, and
+when allow_qualifier_or_eh_mismatch is TRUE exception specifications
+and lower level cv-qualifiers are also ignored.
 
 See chapter 4 of the ARM (standard conversions).  Note that integral
 promotions, default argument promotions, the usual arithmetic conversions,
@@ -4426,7 +4427,7 @@ exception specifications are not checked.
     dest_type_pointed_to = pm_member_type(dest_type);
     if (member_types_correspond(dest_type_pointed_to,
                                 source_type_pointed_to,
-                                /*check_as_operands_not_conversion=*/FALSE,
+                                /*allow_qualifier_or_eh_mismatch=*/FALSE,
                                 &qualifiers_added)) {
       related_class_case = TRUE;
     }  /* if */

@@ -3387,7 +3387,7 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
                                                       is_simple_string_literal,
                                          operand_2_constant,
                                          operand_1_type,
-                                     /*check_as_operands_not_conversion=*/TRUE,
+                                       /*allow_qualifier_or_eh_mismatch=*/TRUE,
                                          suppress_extensions,
                                          ec_incompatible_operands,
                                          &std_conv)) {
@@ -3426,7 +3426,7 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
                                                       is_simple_string_literal,
                                          operand_1_constant,
                                          operand_2_type,
-                                     /*check_as_operands_not_conversion=*/TRUE,
+                                       /*allow_qualifier_or_eh_mismatch=*/TRUE,
                                          suppress_extensions,
                                          ec_incompatible_operands,
                                          &std_conv)) {
@@ -3582,7 +3582,7 @@ operator position (for errors).  Return FALSE if there is an error.
                                       operand_2_is_constant,
                                       operand_2_constant,
                                       operand_1_type,
-                                     /*check_as_operands_not_conversion=*/TRUE,
+                                      /*allow_qualifier_or_eh_mismatch=*/TRUE,
                                       &std_conv)) {
       *operation_type = operand_1_type;
       okay = TRUE;
@@ -3606,7 +3606,7 @@ operator position (for errors).  Return FALSE if there is an error.
                                       operand_1_is_constant,
                                       operand_1_constant,
                                       operand_2_type,
-                                     /*check_as_operands_not_conversion=*/TRUE,
+                                      /*allow_qualifier_or_eh_mismatch=*/TRUE,
                                       &std_conv)) {
       *operation_type = operand_2_type;
       okay = TRUE;
