@@ -1895,9 +1895,6 @@ conversions.
 
   /* Drop any qualifiers on the destination type, as appropriate. */
   new_type = rvalue_type(new_type);
-  /* Casting a node to a class type is not allowed. */
-  check_assertion_str(!is_class_struct_union_type(new_type),
-                      "cast_node: cast to class type");
   if (il_identical_types((*node)->type, new_type) &&
       /* Don't allow dropping a cast to the same type over a bit-field
          extraction node, because the node with the cast has different
@@ -1910,6 +1907,9 @@ conversions.
     /* Casting to an error type changes the node to an error node. */
     *node = error_node();
   } else {
+    /* Casting a node to a class type is not allowed. */
+    check_assertion_str(!is_class_struct_union_type(new_type),
+                        "cast_node: cast to class type");
     did_not_fold = TRUE;
     if (is_constant_node(*node)) {
       /* Copy the constant to a local copy.  Type-change the local constant
