@@ -676,7 +676,10 @@ parameter types.  Its use represents a guarantee by the programmer that,
 within the scope of the pointer declaration, the object pointed to can be
 accessed only by that pointer; since any violation of this guarantee renders
 the program undefined, the compiler may rely on it in performing
-optimizations.  
+optimizations.  Note that this macro controls whether or not the feature
+can ever be enabled, i.e., whether the back end is prepared to handle
+restrict, not whether it is enabled; compare DEFAULT_RESTRICT_ENABLED and
+restrict_enabled.
 */
 #ifndef RESTRICT_ALLOWED
 #define RESTRICT_ALLOWED FALSE
