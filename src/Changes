@@ -1,5 +1,23 @@
 Version 2.44
 
+4/26/00  Microsoft compatibility: allow a namespace alias to be used to
+         extend the aliased namespace
+
+In Microsoft mode, a namespace extension can be defined using a namespace
+alias.  For example:
+
+  namespace N1 {
+    namespace N2 {
+      int x = 42;
+    }
+  }
+  namespace NA = N1::N2;
+  namespace NA {  // Fine in Microsoft mode (cannot use "N1::N2" here)
+    int y = x;
+  }
+
+Note that this allows the extension of a namespace that is not in scope.
+
 4/24/00  Diagnose use of virtual on nested classes and enumeration types
 
 The front end now diagnoses the use of the keyword virtual when declaring

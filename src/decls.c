@@ -8172,6 +8172,15 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
       ns_sym = curr_scope_id_lookup(&locator, IDL_NO_OPTIONS);
       if (ns_sym != NULL) {
         /* A name was found in the current scope. */
+        if (microsoft_mode && !is_namespace_alias &&
+            ns_sym->kind == (a_symbol_kind)sk_namespace &&
+            ns_sym->variant.namespace_info.ptr->is_namespace_alias) {
+          /* In Microsoft mode, a namespace alias name can be used to define
+             a namespace extension for the aliased namespace. */
+          ns_sym = (a_symbol_ptr)
+             skip_namespace_aliases(ns_sym->variant.namespace_info.ptr)->
+                           variant.assoc_namespace->source_corresp.assoc_info;
+        }  /* if */
         if (ns_sym->kind != (a_symbol_kind)sk_namespace ||
             (!is_namespace_alias &&
              ns_sym->variant.namespace_info.ptr->is_namespace_alias)) {
@@ -8345,7 +8354,7 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
          declaration. */
       process_curr_construct_pragmas(ns_sym, (a_statement_ptr)NULL);
       /* An extension of the original definition of this namespace -- push
-         a scope for the scanning the namespace body. */
+         a scope for scanning the namespace body. */
       nsp = ns_sym->variant.namespace_info.ptr;
       (void)push_namespace_scope((a_scope_kind)sck_namespace_extension,
                                  skip_namespace_aliases(nsp));
