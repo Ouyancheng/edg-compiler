@@ -2401,7 +2401,10 @@ Allocate bcp (an empty base class).
            size of a class.  This is a dangerous GNU layout bug and we
            therefore do not emulate it.  By setting offset to zero, we return
            to the normal layout rules. */
-        pos_warning(ec_no_gnu_virtual_base_gap, &bcp->decl_position);
+        pos_sy2_warning(
+                    ec_no_gnu_virtual_base_gap, &bcp->decl_position,
+                    (a_symbol_ptr)bcp->type->source_corresp.assoc_info,
+                    (a_symbol_ptr)lob->class_type->source_corresp.assoc_info);
         offset = 0;
       }  /* if */
     }  /* if */
