@@ -2655,6 +2655,17 @@ user later during real instantiations.
     /* The routine that rescans the default argument ensures that we have
        reached the end of the token cache. */
   }  /* for */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL && GENERATE_SOURCE_SEQUENCE_LISTS
+  if (prototype_instantiations_in_il &&
+      def_arg_list != NULL &&
+      tssp->variant.function.func_info.declared_type != NULL) {
+    /* The IL representation for the default arguments should be added to
+       the declared type too. */
+    copy_routine_type_default_args(
+                              tssp->variant.function.routine->type,
+                              tssp->variant.function.func_info.declared_type);
+  }  /* if */
+#endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL && GENERATE_SOURCE_SEQUENCE_LISTS */
   db_exit();
 }  /* default_arg_prototype_instantiation */
 
@@ -11627,7 +11638,7 @@ caller.
        from the prototype instantiation of the enclosing class. */
     update_function_template_default_args(decl_state, sym, tssp);
     if (decl_state->is_template_friend &&
-       !decl_state->in_prototype_instantiation) {
+        !decl_state->in_prototype_instantiation) {
       /* This is a template friend declaration, add the current class to
          the list of friend classes associated with this template. */
       add_befriending_class_to_function_template(
