@@ -2401,29 +2401,66 @@ members of secondary_class refer to.
 }  /* set_master_instance_for_new_canonical_class */
 
 
-void establish_class_instantiation_corresp(a_type_ptr  type)
+static a_symbol_list_entry_ptr instantiations_list_with_type(a_type_ptr  type)
 /*
-Establish correspondences for members of a class template instantiation.
-This is much like establish_trans_unit_correspondences_for_class, but for
-instantiations in primary translation units, we must start with the type
-(if any) in a secondary translation unit whose correspondence is the given
+Return the all_instantiations list which contains the symbol for the given
 type.
 */
 {
+  a_template_symbol_supplement_ptr
+                tssp;
+  a_symbol_ptr  inst = (a_symbol_ptr)type->source_corresp.assoc_info;
+  a_symbol_ptr  templ_sym = template_symbol_for_class_symbol(inst);
+
+  templ_sym = primary_template_if_template_symbol(templ_sym);
+  tssp = template_supplement_for_symbol(templ_sym);
+  return tssp->all_instantiations;
+}  /* instantiations_list_with_type */
+
+
+void establish_class_instantiation_corresp(a_type_ptr  type)
+/*
+Establish correspondences for members of a class template instantiation.
+This routine is called when an instantiation is completed; the incomplete
+type may already have had its correspondence set (or may be the canonical
+entry).  This is much like establish_trans_unit_correspondences_for_class,
+but for instantiations in primary translation units, we must start with the
+type (if any) in a secondary translation unit whose correspondence is the
+given type.
+*/
+{
   if (in_secondary_trans_unit(type)) {
+    a_type_ptr  corresp_type = (a_type_ptr)trans_unit_corresp_pointer_of(type);
+
+    if (corresp_type != NULL && corresp_type != type &&
+        !type_has_definition(corresp_type)) {
+      /* Readjust the correspondence to point to the canonical definition.
+         If there is none, this becomes the canonical definition. */
+      a_type_ptr  canonical_type =
+                              (a_type_ptr)canonical_il_entry_of(corresp_type);
+      a_symbol_list_entry_ptr
+                  slep = instantiations_list_with_type(canonical_type);
+      for (; slep != NULL; slep = slep->next) {
+        corresp_type = type_symbol_type(slep->symbol);
+        if ((a_type_ptr)canonical_il_entry_of(corresp_type) ==
+                                                             canonical_type) {
+          if (corresp_type != type && type_has_definition(corresp_type)) {
+            /* corresp_type is the canonical definition. */
+            set_trans_unit_corresp(type, corresp_type);
+          } else {
+            /* There was no canonical definition yet; type will be the one. */
+            slep->symbol = (a_symbol_ptr)type->source_corresp.assoc_info;
+            set_trans_unit_corresp(type, canonical_type);
+          }  /* if */
+          break;
+        }  /* if */
+      }  /* for */
+    }  /* if */
     establish_trans_unit_correspondences_for_class(type);
   } else if (secondary_translation_unit_seen()) {
-    a_symbol_ptr  inst = (a_symbol_ptr)type->source_corresp.assoc_info,
-                  templ_sym;
-    a_symbol_list_entry_ptr
-                  slep;
     a_type_ptr    sec = NULL;
-    a_template_symbol_supplement_ptr
-                  tssp;
-    templ_sym = template_symbol_for_class_symbol(inst);
-    templ_sym = primary_template_if_template_symbol(templ_sym);
-    tssp = template_supplement_for_symbol(templ_sym);
-    slep = tssp->all_instantiations;
+    a_symbol_list_entry_ptr
+                  slep = instantiations_list_with_type(type);
     /* Look for an entry in a secondary translation unit that matches the
        given primary translation unit instantiation. */
     for (; slep != NULL; slep = slep->next) {
