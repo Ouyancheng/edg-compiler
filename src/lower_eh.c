@@ -776,17 +776,12 @@ indicated kind, or NULL if the type_info is not in a namespace.
 
 #endif /* IA64_ABI */
 
-static a_variable_ptr find_existing_id_object_var(char *name)
+static a_variable_ptr find_existing_variable_named(char *name)
 /*
-If there is an existing id object variable with the given name, return a
-pointer to it.  Otherwise, return NULL.
+If there is an existing file-scope variable with the given name, return a
+pointer to it.  Otherwise, return NULL.  Used to find id object variables
+and typeinfo variables with a given name.
 */
-#if !ABI_CHANGES_FOR_RTTI
-/*
-Also used, with old versions of the ABI, to find typeinfo variables with
-a given name.
-*/
-#endif /* !ABI_CHANGES_FOR_RTTI */
 {
   a_variable_ptr var;
 
@@ -795,14 +790,13 @@ a given name.
        var = var->next) {
     if (var->source_corresp.name != NULL &&
         var->source_corresp.name[0] == name[0] && /* For speed. */
-        strcmp(var->source_corresp.name, name) == 0 &&
-        var->storage_class == (a_storage_class)sc_unspecified) {
+        strcmp(var->source_corresp.name, name) == 0) {
       /* Found an existing variable. */
       break;
     }  /* if */
   }  /* for */
   return var;
-}  /* find_existing_id_object_var */
+}  /* find_existing_variable_named */
 
 #if !IA64_ABI
 
@@ -822,7 +816,7 @@ all denote the same type.
   temp_name = mangled_id_object_name(type);
   /* Find and reuse an existing id object for (a different copy of) the
      same type if there is one. */
-  id_object_var = find_existing_id_object_var(temp_name);
+  id_object_var = find_existing_variable_named(temp_name);
   if (id_object_var == NULL) {
     /* Make the variable. */
     id_object_var = make_lowered_variable(temp_name,
@@ -1277,8 +1271,10 @@ typeinfo variable in a COMDAT group.
     /* When forced to by the flag force_static, change the storage class to
        static and the linkage to internal. */
     typeinfo_var->storage_class = (a_storage_class)sc_static;
-    typeinfo_var->source_corresp.name_linkage =
+    if (has_name(typeinfo_var)) {
+      typeinfo_var->source_corresp.name_linkage =
                                              (a_name_linkage_kind)nlk_internal;
+    }  /* if */
   } else if (!is_class_type) {
     /* typeinfo variables for nonclass cases keep whatever storage class
        they already have. */
@@ -1907,6 +1903,7 @@ pointers-to-members).
   char            *mangled_name;
   a_storage_class storage_class;
   a_boolean       define_now;
+  a_boolean       force_static = FALSE;
   a_boolean       use_comdat = FALSE;
 
   /* typedefs and cv-qualified types are not allowed at this level. */
@@ -1939,38 +1936,41 @@ pointers-to-members).
       mangled_name = alloc_mangled_typeinfo_name(type);
     } else {
       /* Non-class type. */
-#if ABI_CHANGES_FOR_RTTI
-#if IA64_ABI
-      if (is_incomplete_type_for_purposes_of_rtti(type)) {
-#endif /* IA64_ABI */
-        /* typeinfo variables for non-classes are always static. */
-        storage_class = (a_storage_class)sc_static;
-        define_now = TRUE;
-        /* Static variables need not have names, and in fact we would have
-           problems with duplicate names if typeinfo variables are generated
-           for two copies of the same type within one compilation (e.g., two
-           pointer-to-member-function types). */
-        mangled_name = NULL;
-#if IA64_ABI
-      } else
-#endif /* IA64_ABI  */
-#endif /* ABI_CHANGES_FOR_RTTI */
-#if !ABI_CHANGES_FOR_RTTI || IA64_ABI
-      {
-        /* Old Cfront-like ABI implementation, or IA-64 ABI: */
-        /* typeinfo variables for non-classes are always external tentative
-           definitions (initialized to NULL/zero by default). */
-        storage_class = (a_storage_class)sc_unspecified;
+#if ABI_CHANGES_FOR_RTTI && !IA64_ABI
+      /* typeinfo variables for non-classes are always static. */
+      storage_class = (a_storage_class)sc_static;
+      force_static = TRUE;
+      define_now = TRUE;
+      /* Static variables need not have names, and in fact we would have
+         problems with duplicate names if typeinfo variables are generated
+         for two copies of the same type within one compilation (e.g., two
+         pointer-to-member-function types). */
+      mangled_name = NULL;
+#else /* !ABI_CHANGES_FOR_RTTI || IA64_ABI */
 #if !IA64_ABI
-        define_now = FALSE;
+      /* Old Cfront-like ABI implementation. */
+      /* typeinfo variables for non-classes are always external tentative
+         definitions (initialized to NULL/zero by default). */
+      storage_class = (a_storage_class)sc_unspecified;
+      define_now = FALSE;
 #else /* IA64_ABI */
-        if (!building_runtime && typeinfo_is_defined_in_runtime(type)) {
-          /* These types are always defined in the runtime library, so they
-             are not generated here. */
-          define_now = FALSE;
-          storage_class = (a_storage_class)sc_extern;
+      /* IA-64 implementation. */
+      if (!building_runtime && typeinfo_is_defined_in_runtime(type)) {
+        /* These types are always defined in the runtime library, so they
+           are not generated here. */
+        define_now = FALSE;
+        storage_class = (a_storage_class)sc_extern;
+      } else {
+        define_now = TRUE;
+        storage_class = (a_storage_class)sc_unspecified;
+        if (is_incomplete_type_for_purposes_of_rtti(type)) {
+          /* typeinfo trees that refer ultimately to incomplete types are
+             put out as static (we don't have complete type information here;
+             someone else has to supply the real definition). */
+          storage_class = (a_storage_class)sc_static;
+          force_static = TRUE;
         } else {
-          define_now = TRUE;
+          /* See whether the typeinfo should be in a COMDAT. */
           /* Types that refer to local types need not be shared, unless they
              are from a routine that may be instantiated more than once. */
           if (!is_or_contains_local_type(type)) {
@@ -1982,26 +1982,25 @@ pointers-to-members).
               use_comdat = TRUE;
             }  /* if */
           }  /* if */
-        } /* if */
-#endif /* IA64_ABI */
-        /* Determine the name for the typeinfo variable.  A name is required
-           because the variable is external. */
-        mangled_name = alloc_mangled_typeinfo_name(type);
-        /* Look for an existing typeinfo variable with this name.  This can
-           happen if typeinfo variables are generated for two copies of the
-           same type within one compilation (e.g., two pointer-to-member
-           function types), and it's important to generate only one variable
-           in those cases. */
-        typeinfo_var = find_existing_id_object_var(mangled_name);
-        if (typeinfo_var != NULL) {
-          /* Remember the variable in the type.  Note that it's okay to
-             have two types pointing to a single typeinfo variable in this
-             case, because the variable is never defined. */
-          type->typeinfo_var = typeinfo_var;
-          goto end_of_routine;
         }  /* if */
+#endif /* IA64_ABI */
       }  /* if */
-#endif /* !ABI_CHANGES_FOR_RTTI || IA64_ABI */
+      /* Determine the name for the typeinfo variable. */
+      mangled_name = alloc_mangled_typeinfo_name(type);
+      /* Look for an existing typeinfo variable with this name.  This can
+         happen if typeinfo variables are generated for two copies of the
+         same type within one compilation (e.g., two pointer-to-member
+         function types), and it's important to generate only one variable
+         in those cases. */
+      typeinfo_var = find_existing_variable_named(mangled_name);
+      if (typeinfo_var != NULL) {
+        /* Remember the variable in the type.  Note that it's okay to
+           have two types pointing to a single typeinfo variable in this
+           case, because the variable is never defined. */
+        type->typeinfo_var = typeinfo_var;
+        goto end_of_routine;
+      }  /* if */
+#endif /* ABI_CHANGES_FOR_RTTI && !IA64_ABI */
     }  /* if */
     typeinfo_var_type = make_qualified_type(
                                           make_appropriate_typeinfo_type(type),
@@ -2023,7 +2022,7 @@ pointers-to-members).
     if (define_now) {
       /* The typeinfo variable is supposed to be defined right now (for
          non-class cases). */
-      define_typeinfo_var(type, /*force_static=*/FALSE, use_comdat);
+      define_typeinfo_var(type, force_static, use_comdat);
     } else if (in_typeinfo_var_generation_phase &&
                is_immediate_class_type(type)) {
       /* If we're already in the definition generation phase, generate the
