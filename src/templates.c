@@ -5601,7 +5601,9 @@ as the current token; otherwise, it is consumed.
     /* When member function bodies are not extract above, they are done now
        that the template string for the class has been created. */
     if (member_bodies_need_extraction) {
+#if 0
       extract_member_bodies(prototype_type, tssp);
+#endif
     }  /* if */
   }
   /* If the declaration token cache is not needed, discard it. */
