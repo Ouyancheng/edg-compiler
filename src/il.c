@@ -2288,26 +2288,15 @@ a pointer to it.
 }  /* alloc_class_type_supplement */
 
 
-a_type_ptr alloc_type(a_type_kind kind)
+void set_type_kind(a_type_ptr  pte,
+                   a_type_kind kind)
 /*
-Allocate a new type entry and return a pointer to it.  Set general fields,
-set kind to the indicated value, and set the associated variant fields
+Set the kind of the type to "kind", and set the associated variant fields
 to default values.
 */
 {
-  a_type_ptr                    pte;
   a_routine_type_supplement_ptr rtsp;
 
-  db_enter(5, "alloc_type");
-  pte = (a_type_ptr)alloc_cil(sizeof(a_type));
-#if DEBUG
-  num_types_allocated++;
-#endif /* DEBUG */
-  set_default_source_corresp(&(pte->source_corresp));
-  pte->next = NULL;
-  pte->based_types = NULL;
-  pte->size = 0;
-  pte->alignment = 1;
   pte->kind = kind;
   switch (kind) {
     case tk_error:
@@ -2378,9 +2367,43 @@ to default values.
       break;
 #if CHECKING
     default:
-      internal_error("alloc_type: bad type kind");
+      internal_error("set_type_kind: bad type kind");
 #endif /* CHECKING */
   }  /* switch */
+}  /* set_type_kind */
+
+
+void clear_type(a_type_ptr  pte,
+                a_type_kind kind)
+/*
+Clear the indicated type entry, set the kind as given, and set the associated
+variant fields to default values.
+*/
+{
+  set_default_source_corresp(&(pte->source_corresp));
+  pte->next = NULL;
+  pte->based_types = NULL;
+  pte->size = 0;
+  pte->alignment = 1;
+  set_type_kind(pte, kind);
+}  /* clear_type */
+
+
+a_type_ptr alloc_type(a_type_kind kind)
+/*
+Allocate a new type entry and return a pointer to it.  Set general fields,
+set kind to the indicated value, and set the associated variant fields
+to default values.
+*/
+{
+  a_type_ptr pte;
+
+  db_enter(5, "alloc_type");
+  pte = (a_type_ptr)alloc_cil(sizeof(a_type));
+#if DEBUG
+  num_types_allocated++;
+#endif /* DEBUG */
+  clear_type(pte, kind);
   db_exit();
   return (pte);
 }  /* alloc_type */

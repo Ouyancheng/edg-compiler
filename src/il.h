@@ -75,6 +75,12 @@ extern an_overriding_virtual_function_ptr
 
 extern a_base_class_ptr alloc_base_class(void);
 
+extern void set_type_kind(a_type_ptr  pte,
+                          a_type_kind kind);
+
+extern void clear_type(a_type_ptr  pte,
+                       a_type_kind kind);
+
 extern a_type_ptr alloc_type(a_type_kind kind);
 
 extern a_type_ptr fs_type(a_type_kind kind);
