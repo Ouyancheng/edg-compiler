@@ -2479,6 +2479,55 @@ statement no new scope is required.
 }  /* dependent_statement */
 
 
+static an_expr_node_ptr start_condition_block(a_statement_ptr  sp)
+/*
+Do processing required to start a condition "block".  This involves pushing
+an sck_condition scope, allocating an enk_condition expression node, and
+scanning the variable declaration.  A pointer to the expression node is
+returned.
+*/
+{
+  an_expr_node_ptr  node;
+  a_variable_ptr    vp;
+  a_scope_ptr       scope;
+
+  db_enter(3, "start_condition_block");
+  /* Push the new scope, and bind the if, switch, for, or while statement to
+     it. */
+  scope = push_scope((a_scope_kind)sck_condition, NO_SCOPE_NUMBER,
+                     (a_type_ptr)NULL, (a_routine_ptr)NULL);
+  scope->variant.assoc_statement = sp;
+  /* Allocate an expression node indicating that this is a condition
+     declaration. */
+  node = alloc_expr_node((an_expr_node_kind)enk_condition);
+  /* Scan the variable declaration.  Unless there was an error, it will have
+     been initialized. */
+  vp = condition_declaration();
+  if (vp->init_kind == (an_init_kind)initk_dynamic) {
+    node->variant.condition->dynamic_init = vp->initializer.dynamic;
+  }  /* if */
+  /* The node points to an expression that represents the value of the
+     initialized variable. */
+  node->variant.condition->expr = var_rvalue_expr(vp);
+  db_exit();
+  /* Return the condition node. */
+  return node;
+}  /* start_condition_block */
+
+
+static void finish_condition_block(void)
+/*
+Do processing required upon completion of a condition "block".
+*/
+{
+  db_enter(3, "finish_condition_block");
+  /* Pop the sck_condition scope. */
+
+  pop_scope();
+  db_exit();
+}  /* finish_condition_block */
+
+
 static void if_statement(void)
 /*
 Scan an "if" statement (with or without else) and add it to the current
@@ -2493,6 +2542,7 @@ See also 3.6.4.1.
 {
   a_statement_ptr               sp;
   a_struct_stmt_stack_entry_ptr sssep;
+  a_boolean                     is_condition_decl = FALSE;
 
   db_enter(3, "if_statement");
 
@@ -2513,9 +2563,18 @@ See also 3.6.4.1.
   /* Check for and skip the opening parenthesis. */
   (void)required_token(tok_lparen, ec_exp_lparen);
   add_stop_token(tok_rparen);
-  /* Scan the controlling expression, and check to see that it is scalar. */
-  sp->expr = scan_boolean_controlling_expression(/*is_condition_expr=*/TRUE,
-                                                 /*repeated_in_loop=*/FALSE);
+  /* Scan the condition, which in C++ may be a condition declaration. */
+  if (!C_mode() &&
+      is_decl_not_expr(/*abstract_declarator_allowed=*/FALSE,
+                       /*real_declarator_allowed=*/TRUE,
+                       /*single_type_required=*/FALSE)) {
+    is_condition_decl = TRUE;
+    sp->expr = start_condition_block(sp);
+  } else {
+    /* Scan the controlling expression, and check to see that it is scalar. */
+    sp->expr = scan_boolean_controlling_expression(/*is_condition_expr=*/TRUE,
+                                                   /*repeated_in_loop=*/FALSE);
+  }  /* if */
   /* Check for and skip the closing parenthesis. */
   (void)required_token(tok_rparen, ec_exp_rparen);
   remove_stop_token(tok_rparen);
@@ -2535,6 +2594,8 @@ See also 3.6.4.1.
     start_stmt_clause(sssep);
     dependent_statement();
   }  /* if */
+  /* End the condition block, if necessary. */
+  if (is_condition_decl) finish_condition_block();
   /* Pop the structured statement stack. */
   pop_stmt_stack();
 
@@ -2556,6 +2617,7 @@ See also 3.6.4.2.
   a_statement_ptr                sp, body_statement;
   a_control_flow_descr_ptr       cfdp;
   a_struct_stmt_stack_entry_ptr  sssep;
+  a_boolean                      is_condition_decl = FALSE;
 
   db_enter(3, "switch_statement");
 
@@ -2591,8 +2653,17 @@ See also 3.6.4.2.
   /* Check for and skip the opening parenthesis. */
   (void)required_token(tok_lparen, ec_exp_lparen);
   add_stop_token(tok_rparen);
-  /* Scan the controlling expression and check to see that it is integral. */
-  sp->expr = scan_integer_expression();
+  /* Scan the "condition", which in C++ may be a condition declaration. */
+  if (!C_mode() &&
+      is_decl_not_expr(/*abstract_declarator_allowed=*/FALSE,
+                       /*real_declarator_allowed=*/TRUE,
+                       /*single_type_required=*/FALSE)) {
+    is_condition_decl = TRUE;
+    sp->expr = start_condition_block(sp);
+  } else {
+    /* Scan the controlling expression and check to see that it is integral. */
+    sp->expr = scan_integer_expression();
+  }  /* if */
   if (!is_error_node(sp->expr)) {
     /* The expression is integral.  Promote it (to int) if necessary. */
     if (C_dialect != C_dialect_pcc) {
@@ -2634,6 +2705,8 @@ See also 3.6.4.2.
   }  /* if */
   add_to_control_flow_descr_list(
       alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_end_of_block));
+  /* End the condition block, if necessary. */
+  if (is_condition_decl) finish_condition_block();
   /* Pop the structured statement stack. */
   pop_stmt_stack();
   /* If a label appeared in the context of the block that was just
@@ -2658,6 +2731,7 @@ See also 3.6.5.1.
 */
 {
   a_statement_ptr sp;
+  a_boolean       is_condition_decl = FALSE;
 
   db_enter(3, "while_statement");
 
@@ -2680,14 +2754,25 @@ See also 3.6.5.1.
   /* Check for and skip the opening parenthesis. */
   (void)required_token(tok_lparen, ec_exp_lparen);
   add_stop_token(tok_rparen);
-  /* Scan the controlling expression, and check to see that it is scalar. */
-  sp->expr = scan_boolean_controlling_expression(/*is_condition_expr=*/TRUE,
-                                                 /*repeated_in_loop=*/TRUE);
+  /* Scan the condition, which in C++ may be a condition declaration. */
+  if (!C_mode() &&
+      is_decl_not_expr(/*abstract_declarator_allowed=*/FALSE,
+                       /*real_declarator_allowed=*/TRUE,
+                       /*single_type_required=*/FALSE)) {
+    is_condition_decl = TRUE;
+    sp->expr = start_condition_block(sp);
+  } else {
+    /* Scan the controlling expression, and check to see that it is scalar. */
+    sp->expr = scan_boolean_controlling_expression(/*is_condition_expr=*/TRUE,
+                                                   /*repeated_in_loop=*/TRUE);
+  }  /* if */
   /* Check for and skip the closing parenthesis. */
   (void)required_token(tok_rparen, ec_exp_rparen);
   remove_stop_token(tok_rparen);
   /* Scan the dependent statement. */
   dependent_statement();
+  /* End the condition block, if necessary. */
+  if (is_condition_decl) finish_condition_block();
   /* Define the "continue" label, if it is needed. */
   define_continue_label();
   /* Pop the structured statement stack. */
@@ -3093,6 +3178,7 @@ either an expression statement or a declaration statement.
 {
   a_statement_ptr   sp;
   a_boolean         saved_flag;
+  a_boolean         is_condition_decl = FALSE;
 
   db_enter(3, "for_statement");
 
@@ -3117,11 +3203,22 @@ either an expression statement or a declaration statement.
   /* Scan the initializing expression or declaration if it is present.  It
      will be added to the correct place in the stmk_for entry. */
   for_init_statement();
-  /* Scan the controlling expression if it is present, and check to see
-     that it is scalar. */
-  if (curr_token != tok_semicolon) {
-    sp->expr = scan_boolean_controlling_expression(/*is_condition_expr=*/TRUE,
-                                                   /*repeated_in_loop=*/TRUE);
+  if (curr_token == tok_semicolon) {
+    /* Controlling expression was omitted. */
+  } else {
+    /* Scan the condition, which in C++ may be a condition declaration. */
+    if (!C_mode() &&
+        is_decl_not_expr(/*abstract_declarator_allowed=*/FALSE,
+                         /*real_declarator_allowed=*/TRUE,
+                         /*single_type_required=*/FALSE)) {
+      is_condition_decl = TRUE;
+      sp->expr = start_condition_block(sp);
+    } else {
+      /* Scan the controlling expression and check to see that it is scalar. */
+      sp->expr =
+            scan_boolean_controlling_expression(/*is_condition_expr=*/TRUE,
+                                                /*repeated_in_loop=*/TRUE);
+    }  /* if */
   }  /* if */
   (void)required_token(tok_semicolon, ec_exp_semicolon);
   remove_stop_token(tok_semicolon);
@@ -3142,6 +3239,8 @@ either an expression statement or a declaration statement.
   remove_stop_token(tok_rparen);
   /* Scan the dependent statement. */
   dependent_statement();
+  /* End the condition block, if necessary. */
+  if (is_condition_decl) finish_condition_block();
   /* Define the "continue" label, if it is needed. */
   define_continue_label();
   /* Pop the structured statement stack. */
