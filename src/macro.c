@@ -1134,6 +1134,12 @@ is the source position of the _Pragma token.
     a_source_position			id_position;
     /* Get the pragma identifier. */
     pkdp = look_up_pragma_id(&id_position);
+    if (pkdp != NULL &&
+        pkdp->binding_kind == pbk_preproc_immediate) {
+      /* Preprocessing pragmas cannot be used in _Pragma operators. */
+      pos_error(ec_invalid_pragma_operator, &id_position);
+      flush_to_newline();
+    }  /* if */
     record_pragma(pkdp, start_of_dir_position, &id_position);
   }
   rem_source_line_modif(slmp);

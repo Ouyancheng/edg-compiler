@@ -1259,6 +1259,7 @@ ec_bad_upc_shared_pointer_layout_qualifier;;"layout qualifier cannot qualify poi
 ec_bad_upc_shared_array_layout_qualifier;;"layout qualifier cannot qualify an incomplete array"
 ec_decl_hides_catch_parameter;;"declaration of %sq hides handler parameter"
 ec_nonstd_ignored_array_cast;;"nonstandard cast to array type ignored"
+ec_invalid_pragma_operator;;"this pragma cannot be used in a _Pragma operator (a #pragma directive must be used)"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

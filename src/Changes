@@ -1,5 +1,16 @@
 Version 3.1
 
+12/18/02 Preprocessing pragmas in C99 _Pragma operators
+
+The preprocessing pragmas recognized by the front end (hdrstop, no_pch,
+and once) cannot be used in C99 _Pragma operators, but instead of
+issuing a diagnostic they were either silently ignored or produced
+incorrect behavior (use of hdrstop caused a loop).  A diagnostic
+is now issued.
+
+  _Pragma("hdrstop")
+  int f() {return 1;}
+
 12/16/02 Microsoft compatibility: conversions for "<" operator and MSVC++ 7.1
 
 MSVC++ 7.1 fixed a bug we have been emulating, related to using

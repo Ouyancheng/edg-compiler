@@ -1915,6 +1915,17 @@ extern void flush_tokens_with_stop_tokens_and_warning_flag(
 				a_boolean		suppress_warning);
 extern void flush_tokens(void);
 extern void flush_to_end_of_arg_list(void);
+
+/*
+Flush to the newline at the end of the current preprocessing directive.
+End-of-source is also checked for because it can come up in some error
+cases.
+*/
+#define flush_to_newline()                                            \
+{ while (curr_token != tok_newline &&                                 \
+         curr_token != tok_end_of_source) (void)get_token();}
+
+
 extern void push_stop_token_stack(void);
 extern void pop_stop_token_stack(void);
 extern a_template_ptr scan_template_template_argument(

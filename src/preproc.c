@@ -208,16 +208,6 @@ Issue a diagnostic for a use of a nonstandard preprocessing directive.
 }  /* nonstandard_pp_directive */
 
 
-/*
-Flush to the newline at the end of the current preprocessing directive.
-End-of-source is also checked for because it can come up in some error
-cases.
-*/
-#define flush_to_newline()                                            \
-{ while (curr_token != tok_newline &&                                 \
-         curr_token != tok_end_of_source) (void)get_token();}
-
-
 static void ignore_harmless_trailing_comment(void)
 /*
 Ignore a harmless comment at the end of a preprocessing directive.
@@ -1511,7 +1501,9 @@ preprocessing directives.  When they are encountered during a
 real compilation, they should just be ignored.
 */
 {
-  while (curr_token != tok_newline) (void)get_token();
+  while (curr_token != tok_newline && curr_token != tok_end_of_source) {
+    (void)get_token();
+  }  /* while */
 }  /* hdrstop_or_no_pch_pragma */
 
 
