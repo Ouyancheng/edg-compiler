@@ -10570,10 +10570,7 @@ normal_function:
           /* The identifier is a type identifier. */
           if (C_dialect == C_dialect_cplusplus && next_token() == tok_lparen) {
             /* In C++, a functional-notation type conversion. */
-            a_type_ptr        cast_type;
-            a_source_position start_position;
-            start_position = pos_curr_token;
-            cast_type = type_symbol_type(sym_ptr);
+            a_type_ptr cast_type = type_symbol_type(sym_ptr);
             (void)get_token();
             scan_functional_notation_type_conversion(cast_type,
                                                      &start_position,
