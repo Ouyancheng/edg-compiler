@@ -9582,6 +9582,7 @@ a normal try.
                                 reference_to_implicitly_invoked_function). */
           cctor = select_copy_constructor(type_ptr,
                                           (a_type_qualifier_set)TQ_NONE,
+                                          /*source_is_rvalue=*/FALSE,
                                           &pos, type_ptr, &bitwise_copy,
                                           /*evaluated=*/TRUE);
           /* Only an implicit copy constructor (cctor == NULL) can correspond

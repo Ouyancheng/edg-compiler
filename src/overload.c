@@ -11674,6 +11674,7 @@ happen only in C++ mode.
           conversion_routine = select_copy_constructor(
                                 class_type,
                                 get_type_qualifiers(source_operand->type),
+                                is_an_rvalue(source_operand),
                                 &source_operand->position, class_type,
                                 &class_bitwise_copy,
                                 curr_expr_is_potentially_evaluated());
@@ -11854,6 +11855,7 @@ the address of the temporary.  Used only in C++ mode.
       cctor_routine = select_copy_constructor(
                                 unqual_temp_type,
                                 get_type_qualifiers(operand->type),
+                                is_an_rvalue(operand),
                                 &operand->position, unqual_temp_type,
                                 &class_bitwise_copy,
                                 curr_expr_is_potentially_evaluated());

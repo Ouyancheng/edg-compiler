@@ -4634,6 +4634,7 @@ scan_paren:
              returned TRUE. */
           rp = select_copy_constructor(tp,
                                        required_qualifiers | object_qualifiers,
+                                       /*source_is_rvalue=*/FALSE,
                                        &err_pos, object_class_type,
                                        &bitwise_copy, /*evaluated=*/TRUE);
         }  /* if */

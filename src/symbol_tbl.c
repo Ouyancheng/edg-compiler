@@ -6852,17 +6852,19 @@ expression.  *position is the source position of the reference.
 
 a_routine_ptr select_copy_constructor(
                                   a_type_ptr            class_type,
-                                  a_type_qualifier_set  qualifiers_required,
+                                  a_type_qualifier_set  required_qualifiers,
+                                  a_boolean             source_is_rvalue,
                                   a_source_position     *err_pos,
                                   a_type_ptr            object_class_type,
                                   a_boolean             *class_bitwise_copy,
                                   a_boolean             evaluated)
 /*
 Find and return a pointer to a routine representing a copy constructor for
-the class indicated by class_type.  If qualifiers_required is non-zero,
-return a copy constructor that accepts a first parameter whose type is
-compatibly qualified.  Otherwise, return what's found.  If no acceptable
-copy constructor is found, issue a diagnostic and return NULL.  If more than
+the class indicated by class_type and accepting a first parameter whose type
+is qualified as specified by required_qualifiers, and an rvalue if
+source_is_rvalue is TRUE (source_is_rvalue FALSE should be used if the
+rvalueness of the source is irrelevant).  If no acceptable copy
+constructor is found, issue a diagnostic and return NULL.  If more than
 one acceptable copy constructor is found, issue a (different) diagnostic and
 return NULL.  object_class_type points to the type of the object being
 copied; class_type may be a base class of object_class_type.  This is needed
@@ -6875,7 +6877,8 @@ within an unevaluated expression.  This routine is only used in C++ mode.
   a_routine_ptr cctor_routine = NULL;
   a_boolean     ambiguous;
 
-  cctor_sym = find_copy_constructor(class_type, qualifiers_required,
+  cctor_sym = find_copy_constructor(class_type, required_qualifiers,
+                                    source_is_rvalue,
                                     err_pos, &ambiguous, class_bitwise_copy);
   if (*class_bitwise_copy) {
     /* A bitwise copy is allowed. */
@@ -6884,7 +6887,7 @@ within an unevaluated expression.  This routine is only used in C++ mode.
     pos_ty_error(ec_ambiguous_copy_constructor, err_pos, class_type);
   } else if (cctor_sym == NULL) {
     /* No applicable copy constructor. */
-    if (qualifiers_required == TQ_CONST) {
+    if (required_qualifiers == TQ_CONST) {
       /* The common case:  missing const copy constructor. */
       pos_ty_error(ec_missing_const_copy_constructor, err_pos, class_type);
     } else {

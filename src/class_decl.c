@@ -6525,6 +6525,7 @@ function, set *ambiguous to TRUE.
         } else {
           /* Copy constructor. */
           sym = find_copy_constructor(class_type, qualifiers,
+                                      /*source_is_rvalue=*/FALSE,
                                       source_pos, ambiguous,
                                       &class_bitwise_copy);
         }  /* if */
