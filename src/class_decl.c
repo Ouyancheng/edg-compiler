@@ -7723,10 +7723,8 @@ skip_tag_scan:
       /* Use of template parameter name as a proxy tag name during a
          prototype instantiation. */
     } else {
-      srk_flags = SRK_DECLARATION;
-      if (is_friend_decl) srk_flags |= SRK_FRIEND;
-      record_symbol_declaration(srk_flags, tag_sym, &locator.source_position,
-                                (a_source_sequence_entry_ptr)NULL);
+      mark_referenced(tag_sym, &locator.source_position);
+      *declares_something = FALSE;
     }  /* if */
   } else {
     /* Using an existing type.  Fetch the type pointer from it. */
