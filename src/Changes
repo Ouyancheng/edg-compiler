@@ -1,5 +1,11 @@
 Version 2.41
 
+1/26/99   &T::x now allowed, where T is a template parameter
+
+Taking the address of a member of a class indicated by a template
+parameter, e.g., &T::x where T is a template parameter, is now
+allowed.
+
 1/26/99   Class name injection
 
 In C++ mode the name of a class is now optionally entered as a member of

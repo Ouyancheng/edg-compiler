@@ -3668,6 +3668,17 @@ operation is a pointer-to-member (see ARM 5.3).
                                         result);
           /* Change the kind in the reference entries to address-taken. */
           change_ref_kinds(operand.ref_entries_list, SRK_ADDRESS_TAKEN);
+        } else if (is_constant_operand(&operand) &&
+                   operand.variant.constant.kind ==
+                                     (a_constant_repr_kind)ck_template_param &&
+                   operand.variant.constant.variant.template_param.kind ==
+                                 (a_template_param_constant_kind)tpck_member) {
+          /* Something like &T::x, where T is a template parameter.
+             Since T::x might be a static data member or a function, taking
+             its address is okay.  The operand is not changed (for one
+             thing, if T::f is a function, &T::f is basically the same
+             thing). */
+          copy_operand(&operand, result);
         } else {
           /* "&" applied to something that is not an lvalue or a function
              designator or another permitted case. */
