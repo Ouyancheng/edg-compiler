@@ -963,7 +963,9 @@ EXTERN a_boolean
 #endif /* VAR_INITIALIZERS */
                                                                ;
 			/* Indicates whether bool is to be considered a
-                           keyword. */
+			   keyword in C++.  Also indicates that the result
+			   type of comparisons is bool.  FALSE in C99,
+			   even though there is a _Bool type. */
 
 #if USER_CONTROL_OF_STRUCT_PACKING
 EXTERN a_targ_alignment
