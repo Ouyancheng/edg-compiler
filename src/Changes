@@ -1690,7 +1690,7 @@ This abort only occurred, however, when IL lowering was not done.
 
 12/19/96 IL display program did not set f_debug
 
-The IL display program did not intialize the f_debug variable, causing an
+The IL display program did not initialize the f_debug variable, causing an
 abort if the program attempted to produce debug output.  This has been
 fixed.
 
@@ -2322,7 +2322,7 @@ additional parameters.  When a placement new is done, if there is an
 operator delete with the same parameter types (ignoring the first
 parameter), and if an exception is thrown before the initialization for
 the new has completed, the placement operator delete is called to
-deallocate the storage.  This is implemented inIL lowering by wrapping
+deallocate the storage.  This is implemented in IL lowering by wrapping
 the equivalent of a try block around the initialization.  If an
 exception is thrown, this internal try block intercepts it; the
 operator delete function is called, and the exception is then rethrown.
@@ -7893,7 +7893,7 @@ the a_name_linkage_kind enumeration.  It is no longer necessary to
 modify the code in linkage_specification in decls.c.  Also: the
 macros routine_linkages_are_compatible and routine_linkages_are_identical
 have been moved from types.c to types.h so they can be used everywhere,
-amd the il_to_str display routines now display a linkage kind in a
+and the il_to_str display routines now display a linkage kind in a
 function type (for non-compilable output) if the linkage is not compatible
 with the default linkage.
 
@@ -9017,7 +9017,7 @@ instead of "char (&)[n]".  On the other hand, if the parameter were
 "T (&)[n]", "char (&)[n]" would be deduced.  This doesn't match the
 WP precisely (in fact it's wrong according to the WP), but it makes
 sense (since references to arrays and functions are pretty unusual)
-and is exploited by one of the tests ObjectScape provides for STL.
+and is exploited by one of the tests ObjectSpace provides for STL.
 
 5/13/95  Dead expressions under conditional operators are retained
 
