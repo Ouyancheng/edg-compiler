@@ -7147,7 +7147,7 @@ initializer has previously been found to be acceptable, and
       /* Also come here when the source is a class that's wrong only
          because qualifiers are dropped.  That's an error, but it's
          better to handle it here rather than later -- if we go on
-         to the call of conv_operand_into_temp we would be looking
+         to the call of convert_operand_into_temp we would be looking
          at copy constructors, which really isn't appropriate and
          produces confusing error messages. */
       if (!dropping_qualifiers) {
