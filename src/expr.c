@@ -13495,7 +13495,8 @@ for the __PRETTY_FUNCTION__ keyword.
   octl.output_str = put_str_to_temp_text_buffer;
   octl.suppress_typedefs = TRUE;
   pos_in_temp_text_buffer = 0;
-  if (rp->source_corresp.is_class_member &&
+  if (gpp_mode &&
+      rp->source_corresp.is_class_member &&
       rp->type->variant.routine.extra_info->this_class == NULL) {
     /* A static member function: Display the "static" prefix. */
     put_str_to_temp_text_buffer("static ");
