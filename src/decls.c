@@ -4175,6 +4175,7 @@ to TRUE if we are in Microsoft mode and in a for-init block.
   a_boolean  hiding = FALSE;
 
   check_assertion(microsoft_mode);
+#if MICROSOFT_EXTENSIONS_ALLOWED
   if (!C_mode() &&
       struct_stmt_stack != NULL && depth_stmt_stack >= 0 &&
       struct_stmt_stack[depth_stmt_stack].for_init) {
@@ -4206,6 +4207,7 @@ to TRUE if we are in Microsoft mode and in a for-init block.
       }  /*if */
     }  /*if */
   }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   return hiding;
 }  /* microsoft_for_init_hiding */
 
