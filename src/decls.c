@@ -7352,7 +7352,7 @@ return a pointer to it in *symbol_ptr.
     /* Local typedefs may need to be mangled.  If two (or more) such
        variables in a function have the same name, a discriminator must be
        appended to the mangled name (this is not strictly an ABI issue, but
-       dictated by our use of a C-generating back end. */
+       dictated by our use of a C-generating back end). */
     compute_name_collision_discriminator(sym);
   }  /* if */
 #endif /* IA64_ABI && NEED_NAME_MANGLING */
