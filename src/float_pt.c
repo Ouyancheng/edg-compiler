@@ -603,7 +603,7 @@ Shift the mantissa in "mp" right by "bits".
 }  /* shift_right_mantissa */
 
 
-static check_and_denormalize_hex_fp_value(
+static void check_and_denormalize_hex_fp_value(
 			  a_mantissa_ptr	mp,
 			  long			*exponent,
 			  a_float_kind		kind,
@@ -732,7 +732,7 @@ specified by kind.
 
 #if !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
   /* When long double is mapped onto double, store this value as a double. */
-  if (kind == (a_float_kind)fk_long_double) kind = fk_double;
+  if (kind == (a_float_kind)fk_long_double) kind = (a_float_kind)fk_double;
 #endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
   fp_ptr = (an_fp_value_part*)float_value;
   if (host_little_endian) {
@@ -861,7 +861,7 @@ fit in the indicated type.
       value = hexvalue(*str);
       /* Shift the value to the appropriate position based on which nibble
          of the part is being processed. */
-      shifted_value = value << (7 - nibble_in_part) * 4;
+      shifted_value = value << ((7 - nibble_in_part) * 4);
       mantissa.parts[part] |= shifted_value;
       /* If we've filled this part, move to the next one. */
       if (++nibble_in_part == 8) {
@@ -1323,7 +1323,7 @@ Initialize static variables related to float_pt.c.
 #endif /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
   /* Make sure that an_fp_value_part is 32 bits. */
   size = sizeof(an_fp_value_part);
-  check_assertion_str(size == 4,
+  check_assertion_str(size == 4,  /*lint --e(774)*/
                       "const_ints_init: bad size for an_fp_value_part");
 }  /* const_ints_init */
 
