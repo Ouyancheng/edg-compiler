@@ -8908,6 +8908,62 @@ is the one actually associated with this reference.
 }  /* coalesce_template_function_reference */
 
 
+static a_symbol_ptr ensure_correct_nonreal_instance_kind(
+			a_symbol_ptr			sym,
+			an_identifier_options_set	options,
+			a_symbol_ptr			orig_template_sym)
+/*
+When scanning a name that comes after the "template" keyword it is
+difficult to know whether the name is intended to be a class template
+reference or a function template reference.  The name is a class
+template reference if it is part of a qualified name that was preceded
+with the "typename" keyword, or if the template argument list is followed
+by "::".  For example:
+
+  p->template g<1>();     // template is a function
+  p->template g<1>::f();  // template is a class
+
+We can't know what follows the argument list until we get there.  So,
+we initially scan the reference as an unknown class template reference.
+
+This routine converts the reference to a function if that is what is
+required.  Actually, when this is done, "orig_template_sym" is returned,
+otherwise the original "sym" is returned.
+*/
+{
+  a_class_symbol_supplement_ptr	cssp;
+  a_symbol_ptr			template_sym;
+
+  /* First make sure this is really the case we need to worry about.
+     The caller only makes a cursory check.  The check must be done
+     when "sym" refers to a nonreal class that is an instance of
+     a nonreal template.  The caller already checked that it is a
+     nonreal class. */
+  check_assertion(is_class_struct_union_symbol(sym));
+  cssp = sym->variant.class_struct_union.extra_info;
+  template_sym = cssp->class_template;
+  check_assertion(template_sym != NULL);
+  if (template_sym->variant.template_info->is_nonreal_member) {
+    /* The class is a member of a nonreal template.  Determine
+       whether we want a class or not. */
+    a_boolean	type_wanted = FALSE;
+    if ((options & GID_IS_TYPENAME) != 0) {
+      type_wanted = TRUE;
+    } else if (next_token() == tok_colon_colon) {
+      type_wanted = TRUE;
+    } else if (implicit_typename_enabled &&
+               (options & GID_IS_EXPR_CONTEXT) == 0) {
+      type_wanted = TRUE;
+    }  /* if */
+    if (!type_wanted) {
+      sym = orig_template_sym;
+      locator_for_curr_id.specific_symbol = NULL;
+    }  /* if */
+  }  /* if */
+  return sym;
+}  /* ensure_correct_nonreal_instance_kind */
+
+
 static a_symbol_ptr coalesce_template_id(
 			a_symbol_ptr			template_sym,
 			a_token_kind			next_tok,
@@ -8936,6 +8992,15 @@ the class template argument list or diagnose an invalid template reference.
   } else {
     /* A class template symbol or a potential error case. */
     result_sym = coalesce_template_class_reference(template_sym, options, err);
+    if (result_sym != NULL && is_nonreal_instance_class_symbol(result_sym)) {
+      /* We scanned this as a class template reference, but it is possible
+         that it should really be considered a function (but we could not
+         tell until we found out what token was after the template argument
+         list).  Check that we have the right kind of entity, and convert
+         to the right kind if necessary. */
+      result_sym = ensure_correct_nonreal_instance_kind(result_sym, options,
+                                                        template_sym);
+    }  /* if */
   }  /* if */
   return result_sym;
 }  /* coalesce_template_id */
