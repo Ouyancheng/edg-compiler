@@ -1208,6 +1208,13 @@ the secondary translation unit IL).
 }  /* overwrite_primary_routine */
 
 
+/*
+Change a pointer to its canonical value.
+*/
+#define change_pointer_to_canonical(ptr, ptr_type) \
+{ if ((ptr) != NULL) (ptr) = (ptr_type)canonical_il_entry_of(ptr); }
+
+
 static void finish_trans_unit_copy(a_scope_ptr scope)
 /*
 scope is a file, namespace, or class scope from the secondary file IL.  Do
@@ -1535,6 +1542,37 @@ end_of_routine_list_add:;
     /* Merge the object lifetime from "scope" into that from
        "primary_scope". */
     merge_object_lifetimes(scope, primary_scope);
+  } else {
+    /* This scope is not being merged into a counterpart in the primary
+       IL.  It was just copied over. */
+    /* For a namespace scope, update the end-of-list pointers in the
+       pointers block to match to addresses of the copies. */
+    if (scope->kind == (a_scope_kind)sck_namespace) {
+      primary_scope = (a_scope_ptr)canonical_il_entry_of(scope);
+      pointers_block = get_pointers_block_for_scope(primary_scope);
+      change_pointer_to_canonical(pointers_block->last_constant,
+                                  a_constant_ptr);
+      change_pointer_to_canonical(pointers_block->last_type,
+                                  a_type_ptr);
+      change_pointer_to_canonical(pointers_block->last_variable,
+                                  a_variable_ptr);
+      change_pointer_to_canonical(pointers_block->last_routine,
+                                  a_routine_ptr);
+      change_pointer_to_canonical(pointers_block->last_asm_entry,
+                                  an_asm_entry_ptr);
+      change_pointer_to_canonical(pointers_block->last_dynamic_init,
+                                  a_dynamic_init_ptr);
+      change_pointer_to_canonical(pointers_block->last_namespace,
+                                  a_namespace_ptr);
+      change_pointer_to_canonical(pointers_block->last_using_decl,
+                                  a_using_decl_ptr);
+      change_pointer_to_canonical(pointers_block->last_template,
+                                  a_template_ptr);
+      change_pointer_to_canonical(pointers_block->last_pragma,
+                                  a_pragma_ptr);
+      change_pointer_to_canonical(pointers_block->last_template,
+                                  a_template_ptr);
+    }  /* if */
   }  /* if */
 }  /* finish_trans_unit_copy */
 
