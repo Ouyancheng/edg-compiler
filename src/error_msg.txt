@@ -1272,6 +1272,7 @@ ec_hidden_anonymous_union_field;;"this anonymous union/struct field is hidden by
 ec_invalid_error_number;;"invalid error number"
 ec_invalid_error_tag;;"invalid error tag"
 ec_exp_error_argument;;"expected an error number or error tag"
+ec_size_affected_by_tail_padding;;"size of class is affected by tail padding"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

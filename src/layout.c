@@ -3712,9 +3712,7 @@ Reserve space at the end of the class object for virtual base classes.
 */
 {
   a_class_type_supplement_ptr	ctsp;
-#if !TARG_REUSE_TAIL_PADDING
   an_unnormalized_bit_offset	zero = 0;
-#endif /* !TARG_REUSE_TAIL_PADDING */
   
   db_enter(4, "set_virtual_base_class_offsets");
 
@@ -3772,6 +3770,17 @@ Reserve space at the end of the class object for virtual base classes.
          layout state block (since that is what will be used to track the
          layout of virtual bases). */
       lob->byte_offset = ctsp->size_without_virtual_base_classes;
+    }  /* if */
+#else /* TARG_REUSE_TAIL_PADDING */
+    if (warn_about_tail_padding_use) {
+      a_targ_size_t size = ctsp->size_without_virtual_base_classes;
+      if (do_alignment(&size, &zero,
+                       ctsp->alignment_without_virtual_base_classes)) {
+        if (size != ctsp->size_without_virtual_base_classes) {
+          pos_warning(ec_size_affected_by_tail_padding,
+                      &lob->class_type->source_corresp.decl_position);
+        }  /* if */
+      }  /* if */
     }  /* if */
 #endif /* !TARG_REUSE_TAIL_PADDING */
     /* Now see if there are any virtual base class data sections that need to
