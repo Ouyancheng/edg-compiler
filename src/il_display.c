@@ -2254,6 +2254,10 @@ Display the indicated statement.
                iek_statement);
       disp_ptr("else_statement", (char *)ptr->variant.if_stmt.else_statement,
                iek_statement);
+      if (ptr->variant.if_stmt.else_statement == NULL) {
+        disp_boolean("has_empty_else_clause",
+                     (a_boolean)ptr->has_empty_else_clause);
+      }  /* if */
       break;
     case stmk_while:
       (void)printf("stmk_while\n");

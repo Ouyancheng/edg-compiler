@@ -1818,9 +1818,10 @@ to it.  The statement kind is set as indicated.
   num_statements_allocated++;
 #endif /* DEBUG */
   clear_stmt_source_position(sp->position);
-  sp->next                  = NULL;
-  sp->has_associated_pragma = FALSE;
+  sp->next                    = NULL;
+  sp->has_associated_pragma   = FALSE;
   sp->is_initialization_guard = FALSE;
+  sp->has_empty_else_clause   = FALSE;
 #if CHECKING
   sp->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */

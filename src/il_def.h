@@ -5460,6 +5460,11 @@ typedef struct a_statement {
 			   generating thread-safe code, the "if" and the
 			   first initialization within it should be rendered
 			   as an atomic test-and-set. */
+  a_bit_field	has_empty_else_clause:1;
+			/* If this statement is an "if" and the variant field
+			   else_statement is NULL, TRUE to indicate an empty
+			   else-clause ("... else ;") rather than an omitted
+			   else-clause. */
   bitfield_to_avoid_codecenter_warnings()
   an_expr_node_ptr
                 expr;
