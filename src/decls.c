@@ -1380,7 +1380,8 @@ by id_linkage.
   if (qualifier_namespace_ptr(*locator) != NULL &&
       locator->specific_symbol != NULL) {
     other_decl = locator->specific_symbol;
-    is_namespace_member_def = TRUE;
+    reduce_projection_symbol_to_fundamental_symbol(other_decl);
+    is_namespace_member_def = !is_friend_decl;
   } else {
     if (depth_innermost_function_scope != NO_SCOPE_DEPTH ||
         (is_friend_decl &&
