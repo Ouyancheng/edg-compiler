@@ -1180,7 +1180,9 @@ typedef struct a_lookup_state {
 			   not found. */
   a_boolean	skip_curr_scope;
 			/* TRUE if the IDL_SKIP_CURR_SCOPE was specified for
-			   this lookup. */
+			   this lookup. If the current scope is a class
+			   scope, any base classes are still be searched
+			   even though the derived class is not. */
   a_boolean	skip_class_scopes;
 			/* TRUE if the IDL_SKIP_CLASS_SCOPES
 			   was specified for this lookup. */
@@ -1439,33 +1441,37 @@ lookup processing.
                                    lookup_state->required_name_space_kind && \
    is_acceptable_symbol(sym, fund_sym, *lookup_state))
 
-  prev_active_sym = NULL;
-  active_sym = symbol_list_from_locator(*locator);
-  /* Find the first symbol on the active list for this scope. */
-  while (active_sym != NULL && active_sym->decl_scope != ssep->number) {
-    prev_active_sym = active_sym;
-    active_sym = active_sym->next;
-  }  /* while */
-  for (; active_sym != NULL && active_sym->decl_scope == ssep->number;
-       prev_active_sym = active_sym, active_sym = active_sym->next) {
-    a_symbol_ptr	fund_sym = fundamental_symbol_of(active_sym);
-    if (is_acceptable_active_symbol(active_sym, fund_sym)) {
-      /* Found a symbol.  Record whether this symbol was found
-         at file scope.  If it was, we will later need to also
-         check for symbols visible as a result of using
-         directives. */
-      sym = active_sym;
-      break;
+  if (lookup_state->skip_curr_scope) {
+    /* Skip this scope.  Note that we still look for a projected symbol. */
+  } else {
+    prev_active_sym = NULL;
+    active_sym = symbol_list_from_locator(*locator);
+    /* Find the first symbol on the active list for this scope. */
+    while (active_sym != NULL && active_sym->decl_scope != ssep->number) {
+      prev_active_sym = active_sym;
+      active_sym = active_sym->next;
+    }  /* while */
+    for (; active_sym != NULL && active_sym->decl_scope == ssep->number;
+         prev_active_sym = active_sym, active_sym = active_sym->next) {
+      a_symbol_ptr	fund_sym = fundamental_symbol_of(active_sym);
+      if (is_acceptable_active_symbol(active_sym, fund_sym)) {
+        /* Found a symbol.  Record whether this symbol was found
+           at file scope.  If it was, we will later need to also
+           check for symbols visible as a result of using
+           directives. */
+        sym = active_sym;
+        break;
+      }  /* if */
+    }  /* for */
+    /* If this is a namespace scope or the file scope, also look for
+       any symbols that are visible because of using directives. */
+    if ((kind == (a_scope_kind)sck_file ||
+        kind == (a_scope_kind)sck_namespace) &&
+        ssep->using_directives_apply &&
+        !lookup_state->is_linkage_lookup &&
+        !lookup_state->is_friend_lookup) {
+      sym = do_using_directive_lookup(ssep, sym, locator, lookup_state);
     }  /* if */
-  }  /* for */
-  /* If this is a namespace scope or the file scope, also look for
-     any symbols that are visible because of using directives. */
-  if ((kind == (a_scope_kind)sck_file ||
-      kind == (a_scope_kind)sck_namespace) &&
-      ssep->using_directives_apply &&
-      !lookup_state->is_linkage_lookup &&
-      !lookup_state->is_friend_lookup) {
-    sym = do_using_directive_lookup(ssep, sym, locator, lookup_state);
   }  /* if */
   if (sym == NULL &&
       (kind == (a_scope_kind)sck_class_struct_union ||
@@ -1512,9 +1518,9 @@ that do normal id lookup processing.
       kind == (a_scope_kind)sck_class_reactivation &&
       lookup_state->skip_first_class_reactivation) {
      /* This is used to skip class reactivation scopes when
-       processing friend declarations in cfront compatibility
-       mode.  Cfront ignores the innermost class reactivation
-       scope when processing friend functions. */
+        processing friend declarations in cfront compatibility
+        mode.  Cfront ignores the innermost class reactivation
+        scope when processing friend functions. */
     lookup_state->skip_first_class_reactivation = FALSE;
     skip_scope = TRUE;
   }  /* if */
@@ -1530,50 +1536,54 @@ that do normal id lookup processing.
          looking on the inactive list as is usually the case. */
       sym = active_scope_lookup(kind, ssep, locator, lookup_state);
     } else {
-      /* Look on the inactive list for a symbol from this reactivated
-         scope. */
-      a_symbol_ptr	tag_symbol = NULL;
-      a_symbol_ptr	inactive_sym;
-      sym = NULL;
-      for (inactive_sym = inactive_symbol_list_from_locator(*locator);
-           inactive_sym != NULL;
-           inactive_sym = inactive_sym->next) {
-        if (inactive_sym->decl_scope == ssep->number) {
-          a_symbol_ptr	fund_sym = fundamental_symbol_of(inactive_sym);
-          if (is_acceptable_symbol(inactive_sym, fund_sym, *lookup_state)) {
-            /* Found a symbol. */
-            /* If this is a template parameter symbol that should not
-               be visible then continue looking for another symbol. */
-            if (inactive_sym->template_param_not_visible) continue;
-            /* If the symbol is a tag symbol and we're not required to find
-              a tag symbol, there's the possibility that there is a
-               non-type symbol in the same scope later in the list (because
-               the inactive list is not ordered in any way).  Save the
-               tag symbol and keep looking.  If nothing else turns up,
+      if (lookup_state->skip_curr_scope) {
+        /* Skip this scope.  Note that we still look for a projected symbol. */
+      } else {
+        /* Look on the inactive list for a symbol from this reactivated
+           scope. */
+        a_symbol_ptr	tag_symbol = NULL;
+        a_symbol_ptr	inactive_sym;
+        sym = NULL;
+        for (inactive_sym = inactive_symbol_list_from_locator(*locator);
+             inactive_sym != NULL;
+             inactive_sym = inactive_sym->next) {
+          if (inactive_sym->decl_scope == ssep->number) {
+            a_symbol_ptr	fund_sym = fundamental_symbol_of(inactive_sym);
+            if (is_acceptable_symbol(inactive_sym, fund_sym, *lookup_state)) {
+              /* Found a symbol. */
+              /* If this is a template parameter symbol that should not
+                 be visible then continue looking for another symbol. */
+              if (inactive_sym->template_param_not_visible) continue;
+                /* If the symbol is a tag symbol and we're not required to find
+                   a tag symbol, there's the possibility that there is a
+                   non-type symbol in the same scope later in the list (because
+                   the inactive list is not ordered in any way).  Save the
+                   tag symbol and keep looking.  If nothing else turns up,
                    use the tag symbol. */
-            if (is_tag_symbol(fund_sym) && !lookup_state->must_be_tag) {
-              tag_symbol = inactive_sym;
-            } else {
-              /* Take the symbol. */
-              sym = inactive_sym;
-              break;
+              if (is_tag_symbol(fund_sym) && !lookup_state->must_be_tag) {
+                tag_symbol = inactive_sym;
+              } else {
+                /* Take the symbol. */
+                sym = inactive_sym;
+                break;
+              }  /* if */
             }  /* if */
           }  /* if */
+        }  /* for */
+        /* We reached the end of the list.  If there is a tag symbol saved
+           within the loop, use it. */
+        if (sym == NULL && tag_symbol != NULL) {
+          sym = tag_symbol;
         }  /* if */
-      }  /* for */
-      /* We reached the end of the list.  If there is a tag symbol saved
-         within the loop, use it. */
-      if (sym == NULL && tag_symbol != NULL) {
-        sym = tag_symbol;
-      }  /* if */
-      /* If this is a namespace scope, also look for any symbols that
-         are visible because of using directives. */
-      if ((kind == (a_scope_kind)sck_namespace_extension ||
-           kind == (a_scope_kind)sck_namespace_reactivation) &&
-          ssep->using_directives_apply &&
-          !lookup_state->is_linkage_lookup &&
-          !lookup_state->is_friend_lookup) {
-        sym = do_using_directive_lookup(ssep, sym, locator, lookup_state);
+        /* If this is a namespace scope, also look for any symbols that
+           are visible because of using directives. */
+        if ((kind == (a_scope_kind)sck_namespace_extension ||
+             kind == (a_scope_kind)sck_namespace_reactivation) &&
+            ssep->using_directives_apply &&
+            !lookup_state->is_linkage_lookup &&
+            !lookup_state->is_friend_lookup) {
+          sym = do_using_directive_lookup(ssep, sym, locator, lookup_state);
+        }  /* if */
       }  /* if */
       if (sym == NULL && kind == (a_scope_kind)sck_class_reactivation) {
         /* There is no inactive symbol that is in this class. */
@@ -1775,6 +1785,7 @@ that do normal id lookup processing.
   a_symbol_ptr			sym = NULL;
   a_scope_depth			curr_depth;
   a_scope_stack_entry_ptr	ssep = NULL;
+  a_boolean			curr_scope_skipped = FALSE;
 
   /* Work out from the innermost scope on the stack, and look at each
      scope.  If the scope is a class reactivation or a template
@@ -1789,7 +1800,7 @@ that do normal id lookup processing.
 #endif /* DEBUG */
   /* Loop through the scope stack until we reach the scope indicated by
      end_depth. */
-  for (curr_depth = start_depth ;curr_depth > end_depth;
+  for (curr_depth = start_depth; curr_depth > end_depth;
        curr_depth = ssep->previous_scope) {
     a_scope_kind		kind;
     ssep = &scope_stack[curr_depth];
@@ -1808,14 +1819,13 @@ that do normal id lookup processing.
        scopes on the stack. */
     if (ssep->kind == (a_scope_kind)sck_template_declaration &&
         lookup_state->skip_template_decl_scopes) continue;
-    if (lookup_state->skip_curr_scope) {
-      /* IDL_SKIP_CURR_SCOPE is being used.  Don't accept symbols from the
-         first scope entry.  (This is used when looking up names from the
-         initializer list of a constructor declaration; the constructor
-         parameters must not be visible during this lookup.  It is also
-         used during hidden-name processing.) */
+    /* The "skip_curr_scope" flag is used to skip the initial lookup scope
+       when a hidden name lookup is done.  Reset this flag after the first
+       iteration of the loop. */
+    if (curr_scope_skipped) {
       lookup_state->skip_curr_scope = FALSE;
-      continue;
+    } else {
+      curr_scope_skipped = TRUE;
     }  /* if */
     /* Clear the flag that indicates whether a projected symbol should be
        sought. */

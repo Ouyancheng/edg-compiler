@@ -53,7 +53,10 @@ represented as a bit set:
 				   not be visible during this lookup.  It is
 				   also used during hidden-name processing to
 				   find a name in the innermost scope
-				   enclosing the current scope.) */
+				   enclosing the current scope.)  If the
+				   scope to be skipped is a class scope, only
+				   the current class is skipped -- any base
+				   classes are still searched. */
 #define IDL_DO_NOT_ADD_TO_NONREAL_CLASS 0x10
 				/* When a name is being looked up in
 				   a proxy or nonreal class, this flag
