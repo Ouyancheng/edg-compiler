@@ -5896,7 +5896,7 @@ or implicit) controlling the declaration.
         /* Look up the name in the scope of the current class. */
         clear_locator(&locator, &locator_for_curr_id.source_position);
         locator.symbol_header = locator_for_curr_id.symbol_header;
-        (void)curr_scope_id_lookup(&locator, IDL_NO_OPTIONS);
+        (void)curr_scope_id_lookup(&locator, IDL_PROJ_SYMBOL_ALLOWED);
         if (locator.specific_symbol != NULL) {
           /* Except to introduce function names into an overload set, a
              using declaration cannot usually coexist with another declaration
@@ -5951,10 +5951,10 @@ or implicit) controlling the declaration.
     /* See if the using declaration refers to a function or overload set. */
     if (is_function_symbol(fund_sym)) {
       /* Member function. */
-      if (locator.specific_symbol != NULL) {
-        /* If other_sym is non-NULL, we have to deal with overloading. */
-        other_sym = fundamental_symbol_of(locator.specific_symbol);
-      }  /* if */
+      /* If other_sym is non-NULL, there is already a function declaration by
+         this name in the current class: we will add the declared symbol or
+         symbols to an overload set of the current class. */
+      other_sym = locator.specific_symbol;
       if (fund_sym->kind == (a_symbol_kind)sk_overloaded_function) {
         /* The using-declaration specifies a base-class member function
            overload set. */
