@@ -827,6 +827,21 @@ for each parameter.
 }  /* all_templ_params_have_values */
 
 
+a_boolean function_template_is_more_specialized(
+				a_symbol_ptr 		templ_sym1,
+				a_symbol_ptr		templ_sym2)
+/*
+templ_sym1 and templ_sym2 are function template symbols.  Return TRUE if
+templ_sym1 is more specialized than templ_sym2.  This means that for
+an instance that matches both templates, templ_sym1 should be preferred
+over templ_sym2.
+*/
+{
+  a_boolean	result = FALSE;
+  return result;
+}  /* function_template_is_more_specialized */
+
+
 /* Forward declaration. */
 static a_boolean matches_template_arg_list(
 				a_template_arg_ptr	tap,

@@ -114,6 +114,11 @@ extern
 a_symbol_ptr find_matching_template_instance(a_symbol_ptr      sym,
                                              a_type_ptr        type);
 
+extern
+a_boolean function_template_is_more_specialized(
+				a_symbol_ptr 		templ_sym1,
+				a_symbol_ptr		templ_sym2);
+
 extern void record_predeclared_template_function(
                                         a_symbol_ptr         templ_sym,
                                         a_symbol_ptr         rout_sym,
