@@ -2151,6 +2151,54 @@ global variables).
 }  /* copy_unshared_constant */
 
 
+static a_constant_hash_value hash_type(a_type_ptr type)
+/*
+Return a hash value for the indicated type.  This is used in some cases
+to refine the hash value developed in hash_constant.
+*/
+{
+  a_constant_hash_value       hash_value;
+  a_class_type_supplement_ptr ctsp;
+
+  /* Only pointers to class types are particularly important here. */
+  /* Note that the address of the type or its subtypes should not be
+     used in determining the hash value (see comment in hash_constant). */
+  switch (type->kind) {
+    case tk_integer:
+      hash_value = type->variant.integer.int_kind + 53;
+      break;
+    case tk_float:
+      hash_value = type->variant.float_kind + 87;
+      break;
+    case tk_pointer:
+      hash_value = hash_type(type->variant.pointer.type) + 107;
+      break;
+    case tk_array:
+      hash_value = hash_type(type->variant.array.element_type) +
+                   type->variant.array.number_of_elements + 307;
+      break;
+    case tk_struct:
+    case tk_class:
+    case tk_union:
+      ctsp = type->variant.class_struct_union.extra_info;
+      if (ctsp != NULL && ctsp->assoc_scope != NULL) {
+        /* Use the scope number as the hash value. */
+        hash_value = ctsp->assoc_scope->number;
+      } else {
+        /* No supplement (C mode) or no definition. */
+        hash_value = (a_constant_hash_value)type->kind;
+      }  /* if */
+      break;
+    case tk_typeref:
+      hash_value = hash_type(type->variant.typeref.type) + 17;
+      break;
+    default:
+      hash_value = (a_constant_hash_value)type->kind;
+  }  /* switch */
+  return hash_value;
+}  /* hash_type */
+
+
 static a_constant_hash_value hash_constant(a_constant *cp)
 /*
 Return the hash value for the indicated constant, which gives the proper
@@ -2242,8 +2290,11 @@ hash_name:
       hash_value = (a_constant_hash_value)(200 + cp->kind);
       break;
   }  /* switch */
-  /* Work the type into the hash. */
-  hash_value += (a_constant_hash_value)cp->type;
+  if (cp->implicit_cast) {
+    /* Work the type into the hash.  This is important when you have lots of
+       NULL pointer constants for a lot of different types. */
+    hash_value += hash_type(cp->type);
+  }  /* if */
   /* Reduce the value modulo the table size. */
   hash_value %= SIZE_SHAREABLE_CONSTANTS_TABLE;
 #if DEBUG
