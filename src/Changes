@@ -1,5 +1,21 @@
 Version 3.2
 
+4/17/03  Abort in IL lowering on aggregate-initialized array of array
+
+IL lowering aborted in lower_eh.c (in cleanup_region_number) on lowering
+an array of array of class type that has a {...} form initializer
+that leaves some implicitly-initialized array members, when exception
+handling is enabled.  Now fixed.
+
+  struct CString {
+    CString();
+    ~CString();
+  };
+  int main() {
+    CString astringTypeParam[10][10] = {{CString(), CString()},
+                                        {CString(), CString()}};
+  }
+
 4/16/03  IA-64 ABI: null pointer passed to __cxa_vec_new2 runtime routine
 
 The IA-64 ABI runtime routine __cxa_vec_new2 has parameters for

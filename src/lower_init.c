@@ -5768,8 +5768,11 @@ do_assignment:;
   /* If the dynamic init entry indicates a destructor call, it requires
      processing to get the destruction done at the right time. */
   if (dip->destructor != NULL) {
-    if (static_var_init &&
-        !dip->destruction_is_for_partially_constructed_aggregate) {
+    if (dip->lifetime == NULL) {
+      /* The destruction will be handled by a runtime routine, e.g.,
+         for a partial aggregate destruction on an array initialization. */
+    } else if (static_var_init &&
+               !dip->destruction_is_for_partially_constructed_aggregate) {
       /* For static variables (local or global), generate code to record
          at runtime the need for a destruction later. */
       record_needed_destruction(dip, ipdp, eff_insert_location);
