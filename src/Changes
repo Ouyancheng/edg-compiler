@@ -1,5 +1,20 @@
 Version 2.36
 
+4/3/97    Microsoft compatibility: user-defined conversions on "?" operator
+
+In Microsoft mode, conversions to class types instead of built-in types
+are now favored for the operands of the "?" operator.  That makes cases
+like the following not ambiguous in Microsoft mode:
+
+  struct String {
+    String(char const *s);
+    operator char *();
+  };
+  String x("goodbye");
+  String f(int i) {
+    return i ? "hello" : x;
+  }
+
 4/3/97    Custom linkage kinds: whether name mangling should be done
 
 A new macro is_name_linkage_kind_subject_to_name_mangling has been

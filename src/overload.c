@@ -4752,7 +4752,8 @@ as its first operand.
            two operands (really the second and third) of arithmetic,
            pointer, pointer-to-member, or class type (the void cases
            are handled outside of this routine). */
-        operand_type_pattern = "AA;=PP;=MM;=CC";
+        /* Having the "=CC" case first is important for Microsoft mode. */
+        operand_type_pattern = "=CC;AA;=PP;=MM";
         break;
 #if CHECKING
       default:
@@ -5507,6 +5508,17 @@ can be used, it is added to the candidate_functions list.
                                          first_operand_must_be_lvalue,
                                          arg_operand_list,
                                          candidate_functions);
+      if (microsoft_mode &&
+          kind == (an_opname_kind)onk_question &&
+          *operand_type_pattern == 'C' &&
+          *candidate_functions != NULL) {
+        /* For the "?" operator in Microsoft mode, stop looking if we
+           have some viable candidates that convert to a class type.
+           This favors constructor conversions over conversion function
+           conversions.  Note that the type pattern string for "?" has
+           the class cases first. */
+        break;
+      }  /* if */
     } else {
       /* There are no corresponding types in the argument pattern. */
       try_builtin_operands_match(kind, operand_type_pattern,
