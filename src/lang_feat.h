@@ -144,7 +144,7 @@ are those of Appendix A, section 17 of K&R I:
 TRUE if code that exploits a cfront 2.1 bug that causes a global name to be
 used by a member function when a base class has an entity with the same name.
 The conditions under which this bug occurs are quite complicated.  The
-full description can be found in symbol_tbl.c in the description of
+full description can be found in lookup.c in the description of
 check_for_cfront_name_lookup_bug.  The flag
 CFRONT_2_1_OBJECT_CODE_COMPATIBILITY in targ_def.h must be TRUE when this
 feature is used.
