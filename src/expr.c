@@ -4422,6 +4422,9 @@ to scan_integer_expression with slightly different checks.
     if (output) {
       options |= TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION;
     }  /* if */
+    if (!is_object_type(result.type)) {
+      error_in_operand(ec_expression_must_have_object_type, &result);
+    }  /* if */
     do_operand_transformations(&result, options);
   }  /* if */
   if (output) {

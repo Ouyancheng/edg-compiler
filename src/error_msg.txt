@@ -1447,6 +1447,7 @@ ec_white_space_inside_splice;;"white space between backslash and newline in line
 ec_dll_interface_conflict_none_assumed;;"dllexport/dllimport conflict with %nod; dllimport/dllexport dropped"
 ec_bad_nonstd_anonymous_union_field;;"invalid member for anonymous member class -- class %t has a disallowed member function"
 ec_nonstd_reinterpret_cast;;"nonstandard reinterpret_cast"
+ec_expression_must_have_object_type;;"expression must have object type"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
