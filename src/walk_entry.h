@@ -2089,6 +2089,7 @@ after_entry_from_class:
         remap_ptr(ptr->entity.ptr, a_char_ptr,
                   (an_il_entry_kind)ptr->entity.kind);
       }
+      break;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS && ... */
     case iek_scope_orphaned_list_header:
       {
