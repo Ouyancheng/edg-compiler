@@ -2368,7 +2368,7 @@ Return TRUE if node1 and node2 are equivalent expression trees.
   if (node1->kind == node2->kind) {
     switch (node1->kind) {
       case enk_operation:
-        if (node1->variant.operation.kind == node1->variant.operation.kind) {
+        if (node1->variant.operation.kind == node2->variant.operation.kind) {
           an_expr_node_ptr   op1 = node1->variant.operation.operands;
           an_expr_node_ptr   op2 = node2->variant.operation.operands;
 
