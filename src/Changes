@@ -1,5 +1,11 @@
 Version 2.32
 
+2/26/96   Source position for class template instances
+
+The "declaration position" recorded for instances of class templates is
+now the source position of the template itself instead of the source
+position of the reference that triggered the instantiation.
+
 2/26/96   >>= and <<= operators: integral promotions not usual arithmetic
           conversions
 
