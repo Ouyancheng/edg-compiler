@@ -1,5 +1,17 @@
 Version 3.4
 
+11/11/03 GNU mode: Loss of some attributes in some configurations
+
+In configurations with GNU_X86_ATTRIBUTES_ALLOWED set to FALSE, the
+attributes "noreturn" and "const" on function declarations were lost
+if those declarations were followed by definitions without those
+attributes.  For example:
+
+  void f() __attribute__((noreturn));
+  void f() {}  // Attribute of previous declaration was discarded.
+
+This is now fixed (the attributes are retained).
+
 11/11/03 Performance improvement with large numbers of #line directives
 
 On examples with very large numbers of #line directives, the performance

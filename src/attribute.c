@@ -2086,22 +2086,22 @@ Copy any GNU type attributes in type dst to type src.
   } else {
     switch (src->kind) {
       case tk_routine:
-#if GNU_X86_ATTRIBUTES_ALLOWED
         { a_routine_type_supplement_ptr src_rtsp, dst_rtsp;
           src_rtsp = src->variant.routine.extra_info;
           dst_rtsp = dst->variant.routine.extra_info;
+#if GNU_X86_ATTRIBUTES_ALLOWED
           if (src_rtsp->calling_convention !=
                                            (a_calling_convention)cc_default &&
               dst_rtsp->calling_convention !=
                                            (a_calling_convention)cc_stdcall) {
             dst_rtsp->calling_convention = src_rtsp->calling_convention;
           }  /* if */
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED */
           dst_rtsp->does_not_return = src_rtsp->does_not_return;
           dst_rtsp->is_const = src_rtsp->is_const;
           /* Update the result since a skip_typerefs was applied to dst. */
           result = dst;
         }
-#endif /* GNU_X86_ATTRIBUTES_ALLOWED */
         break;
       default:
         /* No attributes to copy. */
