@@ -45,36 +45,36 @@ const_ints.h -- Declarations related to manipulation of target integer
 
 /* Set the integer value entry *intval to the signed value "value". */
 #define set_integer_value(intval, value)			        \
-  *(intval) = (an_integer_value)(value);
+  *(intval) = (an_integer_value)(value)
 
 
 /* Set the integer value entry *intval to the unsigned value "value". */
 #define set_unsigned_integer_value(intval, value)		        \
-  *(intval) = (an_integer_value)(value);
+  *(intval) = (an_integer_value)(value)
 
 
 /* Logical OR two integer values.  The result is returned in the first
    operand (op_1 = op_1 | op_2). */
 #define or_integer_values(op_1, op_2)					\
-  *(op_1) = *(op_1) | *(op_2);
+  *(op_1) = *(op_1) | *(op_2)
 
 
 /* Logical AND two integer values.  The result is returned in the first
    operand (op_1 = op_1 & op_2). */
 #define and_integer_values(op_1, op_2)					\
-  *(op_1) = *(op_1) & *(op_2);
+  *(op_1) = *(op_1) & *(op_2)
 
 
 /* Logical exclusive OR two integer values.  The result is returned in the
    first operand (op_1 = op_1 ^ op_2). */
 #define xor_integer_values(op_1, op_2)					\
-  *(op_1) = *(op_1) ^ *(op_2);
+  *(op_1) = *(op_1) ^ *(op_2)
 
 
 /* Create a mask in which the "bits" low order bits of the integer value
    are set to one.  bits must be at least one. */
 #define make_integer_value_mask(mask, bits)				\
-  *(mask) = (an_integer_value)(~0) >> (BITS_IN_AN_INTEGER_VALUE - (bits));
+  *(mask) = (an_integer_value)(~0) >> (BITS_IN_AN_INTEGER_VALUE - (bits))
 
 
 /* Sign extend an integer value.  The current value consists of "bits"
@@ -91,11 +91,11 @@ const_ints.h -- Declarations related to manipulation of target integer
 /* Complement an integer value.  The result is returned in the
    operand (op_1 = ~op_1). */
 #define complement_integer_value(op_1)					\
-  *(op_1) = ~*(op_1);
+  *(op_1) = ~*(op_1)
 
 /* Increment the integer value *intval.  No overflow checking is done. */
 #define incr_integer_value(intval)					\
- (*(intval))++;
+ ((*(intval))++)
 
 #else /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
 
