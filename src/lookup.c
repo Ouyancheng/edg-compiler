@@ -3400,7 +3400,7 @@ symbol is found, the first one is used but is marked as ambiguous.
         (*result_sym)->overload_set_member = TRUE;
         *result_sym = overload_sym;
         overload_sym->is_super_reference = TRUE; 
-     } else {
+      } else {
         /* The current symbol is an overload set. */
         overload_sym = *result_sym;
       }  /* if */
