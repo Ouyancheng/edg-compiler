@@ -533,6 +533,16 @@ Initialize target machine characteristics.
     internal_error(
                "target_init: BITS_IN_INT_VALUE_PART in target.h is set wrong");
   }  /* if */
+  if (BITS_IN_INT_VALUE_PART*INT_VALUE_PARTS_PER_INTEGER_VALUE !=
+#if LONG_LONG_ALLOWED
+      TARG_SIZEOF_LONG_LONG
+#else /* !LONG_LONG_ALLOWED */
+      TARG_SIZEOF_LONG
+#endif /* LONG_LONG_ALLOWED */
+                           *TARG_CHAR_BIT) {
+    internal_error(
+    "target_init: INT_VALUE_PARTS_PER_INTEGER_VALUE in target.h is set wrong");
+  }  /* if */
 #endif /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
 #endif /* CHECKING */
 #if TARG_CHAR_BIT != CHAR_BIT
@@ -562,6 +572,18 @@ Initialize target machine characteristics.
        "unsigned char". */
     plain_char_int_kind = (an_integer_kind)ik_char;
   }  /* if */
+  /* Set the element of int_kind_is_signed that corresponds to "plain"
+     char. */
+  int_kind_is_signed[(int)ik_char] = targ_has_signed_chars;
+#if CHECKING
+  /* Check that int_kind_is_signed is correctly initialized.  This
+     guards against someone changing the enumeration and forgetting to update
+     the initialization. */
+  if (int_kind_is_signed[(int)ik_last] != 111) {
+    internal_error(
+           "target_init: initialization of int_kind_is_signed is not correct");
+  }  /* if */
+#endif /* CHECKING */
   /* String literals should not be shared in pcc mode (they're writable), but
      should be ordinarily. */
   string_literals_shared = (C_dialect != C_dialect_pcc);

@@ -547,8 +547,7 @@ used to match the type "wchar_t".
   /* Combine the sign bit with all the bits below the sign bit to     \
      get the full mask. */                                            \
   centity_mask = (centity_sign_bit) | ((centity_sign_bit) - 1);       \
-  centity_is_signed = int_kind_is_signed(                             \
-                              (an_integer_kind)TARG_WCHAR_T_INT_KIND);\
+  centity_is_signed = int_kind_is_signed[(int)TARG_WCHAR_T_INT_KIND]; \
 }  /* set_centity_attributes_for_wchar_t */
 
 

@@ -654,6 +654,9 @@ enum an_integer_kind_tag {
 #endif /* ifdef FIL */
   /* These must be listed in order of increasing size (or at least
      non-decreasing size). */
+#ifdef CIL
+  /* If you change this, you should also change int_kind_is_signed below. */
+#endif /* ifdef CIL */
   ik_char,
 #ifdef CIL
                         /* Not used in pcc mode; ik_signed_char or
@@ -679,6 +682,33 @@ enum an_integer_kind_tag {
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte an_integer_kind;
+
+/* Array that indicates, for each integer kind, whether or not it is signed. */
+EXTERN a_byte_boolean
+		int_kind_is_signed[(int)ik_last+1]
+#if VAR_INITIALIZERS
+= {
+  0,		/* ik_char -- set when signedness of plain char is known. */
+  TRUE,		/* ik_signed_char */
+  FALSE,	/* ik_unsigned_char */
+  TRUE,		/* ik_short */
+  FALSE,	/* ik_unsigned_short */
+  TRUE,		/* ik_int */
+  FALSE,	/* ik_unsigned_int */
+  TRUE,		/* ik_long */
+  FALSE,	/* ik_unsigned_long */
+#if LONG_LONG_ALLOWED
+  TRUE,		/* ik_long_long */
+  FALSE,	/* ik_unsigned_long_long */
+#endif /* LONG_LONG_ALLOWED */
+#ifdef FIL
+  0,		/* ik_unsized */
+#endif /* ifdef FIL */
+  111		/* ik_last ("111" is just an unusual value used to check the
+		   correctness of the initialization order) */
+}
+#endif /* VAR_INITIALIZERS*/
+;
 
 enum a_float_kind_tag {
   /* Enumeration of the possible float kinds.  Some of these may be the

@@ -1,5 +1,10 @@
 Version 2.12
 
+11/13/92 int_kind_is_signed
+
+The function int_kind_is_signed, formerly in const_ints.c, has been
+changed to an array defined and initialized in il_def.h.
+
 11/10/92 Function template declared "inline"
 
 The inline keyword is now accepted on a function template declaration.

@@ -2067,7 +2067,7 @@ Return TRUE if the indicated field (which is is bit-field) is signed.
     internal_error("is_signed_bit_field: bit field not integer");
   }  /* if */
 #endif /* CHECKING */
-  is_signed = int_kind_is_signed(type->variant.integer.int_kind);
+  is_signed = int_kind_is_signed[(int)type->variant.integer.int_kind];
   return(is_signed);
 }  /* is_signed_bit_field */
 
@@ -3922,7 +3922,7 @@ Print out the constant value contained in one constant record.
   if (constant->implicit_cast ||
       (constant->kind == (a_constant_repr_kind)ck_integer &&
        !(con_type->kind == (a_type_kind)tk_integer &&
-         int_kind_is_signed(con_type->variant.integer.int_kind)))) {
+         int_kind_is_signed[(int)con_type->variant.integer.int_kind]))) {
     /* If the constant is implicitly cast to another type, put out the
        requisite cast.  Also if it's an unsigned integral constant,
        because K&R C has no "U" suffix for constants. */

@@ -336,7 +336,7 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
       /* Change the base type for the bit field if necessary to get the
          right signedness. */
       if (need_signed_type !=
-                int_kind_is_signed(bit_field_type->variant.integer.int_kind)) {
+          int_kind_is_signed[(int)bit_field_type->variant.integer.int_kind]) {
         /* Change to a signed or unsigned int type with the enum type
            indicated in it.  Note that this is a new and unshared type. */
         a_type_ptr new_enum_type = alloc_type((a_type_kind)tk_integer);

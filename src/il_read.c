@@ -731,6 +731,12 @@ build the in-memory version.
   fread_with_check((char *)&file_scope_pos, sizeof(file_scope_pos));
   /* Read the IL header. */
   fread_with_check((char *)&il_header, sizeof(il_header));
+#ifdef CIL
+  /* Make sure that the signedness of "plain" char is set correctly in
+     int_kind_is_signed.  Doing this here ensures that it won't be overlooked
+     in standalone utility programs. */
+  int_kind_is_signed[(int)ik_char] = il_header.plain_chars_are_signed;
+#endif /* ifdef CIL */
 #if ORPHAN_PROCESSING_NEEDED
   /* Read the orphaned_file_scope_il_entries[]. */
   fread_with_check((char *)orphaned_file_scope_il_entries,

@@ -1521,7 +1521,7 @@ of bit-fields, where the size in bits is needed in addition to the base type.
 #if LONG_LONG_ALLOWED
       /* ... or long long or unsigned long long. */
 #endif /* LONG_LONG_ALLOWED */
-      is_signed = int_kind_is_signed(ikind);
+      is_signed = int_kind_is_signed[(int)ikind];
       if (field->bit_size <= TARG_SIZEOF_INT*TARG_CHAR_BIT) {
         ikind = is_signed ? (an_integer_kind)ik_int :
                             (an_integer_kind)ik_unsigned_int;
@@ -4134,8 +4134,8 @@ in a constant expression.
                     /* Build an operand for the character from the string. */
                     char_value = string_constant->variant.string.value[offset];
                     /* Sign-extend the character if necessary. */
-                    if (int_kind_is_signed(
-                                         char_type->variant.integer.int_kind)&&
+                    if (int_kind_is_signed[
+                                   (int)char_type->variant.integer.int_kind] &&
                         (char_value & (1 << (TARG_CHAR_BIT-1))) != 0) {
                       char_value |= ~((1 << TARG_CHAR_BIT)-1);
                     }  /* if */ 

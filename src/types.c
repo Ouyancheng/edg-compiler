@@ -217,7 +217,8 @@ Return TRUE if the type is a signed integral type.
 */
 {
   tp = skip_typerefs(tp);
-  return(is_integral(tp) && int_kind_is_signed(tp->variant.integer.int_kind));
+  return (is_integral(tp) &&
+          int_kind_is_signed[(int)tp->variant.integer.int_kind]);
 }  /* is_signed_integral_type */
 
 
@@ -1267,8 +1268,8 @@ Return TRUE if the two given integer types have the same representation
   type_2 = skip_typerefs(type_2);
   same_repr = (type_1->size == type_2->size &&
                type_1->alignment == type_2->alignment &&
-               int_kind_is_signed(type_1->variant.integer.int_kind) ==
-                         int_kind_is_signed(type_2->variant.integer.int_kind));
+               int_kind_is_signed[(int)type_1->variant.integer.int_kind] ==
+                    int_kind_is_signed[(int)type_2->variant.integer.int_kind]);
   return same_repr;
 }  /* same_repr_int_types */
 #endif /* SAME_REPR_INTS_INTERCHANGEABLE_IN_IL */
