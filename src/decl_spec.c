@@ -1729,10 +1729,12 @@ to indicate whether an enumeration is actually defined.
                                      /*is_reinterpret_cast=*/FALSE,
                                      &did_not_fold,
                                      &error_position);
-              }  /* if */
-              if (strict_ansi_mode) {
-                diagnostic(strict_ansi_error_severity,
-                           ec_enum_value_out_of_int_range);
+                if (strict_ansi_mode) {
+                  warning(ec_enum_value_out_of_int_range);
+                }  /* if */
+              } else {
+                error(ec_enum_value_out_of_int_range);
+                set_error_constant(&constant);
               }  /* if */
             }  /* if */
           }  /* if */
