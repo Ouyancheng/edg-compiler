@@ -636,7 +636,8 @@ extern void set_block_scope_handler(a_handler_ptr  handler);
 extern a_statement_ptr alloc_expr_statement(an_expr_node_ptr node);
 
 #if RECORD_TEMPLATES_IN_IL
-extern void add_to_templates_list(a_template_ptr  tp);
+extern void add_to_templates_list(a_template_ptr  tp,
+                                  a_scope_depth   scope_depth);
 #endif /* RECORD_TEMPLATES_IN_IL */
 
 #if RECORD_MACROS_IN_IL

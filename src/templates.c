@@ -566,7 +566,9 @@ static a_template_ptr make_il_template_entry(a_source_position *start_pos)
 /*  
 Allocate an IL template entry.  The source position specified by start_pos
 (which should be the first tok_template keyword of the declaration) serves
-as the decl_position of the template declaration as a whole.
+as the decl_position of the template declaration as a whole.  Don't add the
+entry to the templates list of its scope: the appropriate scope is not known
+for sure yet, since this may be friend template.
 */
 {
   a_template_ptr  tp;
@@ -574,7 +576,6 @@ as the decl_position of the template declaration as a whole.
   db_enter(3, "make_il_template_entry");
   tp = alloc_template();
   tp->source_corresp.decl_position = *start_pos;
-  add_to_templates_list(tp);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (depth_scope_stack == depth_innermost_namespace_scope) {
     /* Set the source-sequence insert point for instantiations to NULL -- no
@@ -9081,9 +9082,8 @@ void complete_il_template_entry(a_tmpl_decl_state_ptr  decl_state,
                                 a_symbol_ptr           sym,
                                 a_token_cache          *p_template_body_cache)
 /*
-Finish up establishing the IL template entry.  (It has already been
-added to the templates list, its decl_position has been set, and
-its source correspondence entry, if any, has been put out.)
+Finish up establishing the IL template entry.  (Its decl_position has been
+set, and its source sequence entry, if any, has been put out.)
 */
 {
   a_boolean       err = FALSE;
@@ -9186,6 +9186,10 @@ its source correspondence entry, if any, has been put out.)
           default:;
         }  /* switch */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+        /* Add the IL template entry to the templates list of the appropriate
+           scope. */
+        add_to_templates_list(il_template_entry,
+                              decl_state->effective_decl_level);
       }  /* if */
     }  /* if */
   }  /* if */

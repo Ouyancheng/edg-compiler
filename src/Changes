@@ -1,5 +1,13 @@
 Version 2.39
 
+4/21/98   Scope with which IL template entries are associated
+
+When RECORD_TEMPLATES_IN_IL is configured to TRUE, the template entries
+used to always be added to the templates list of the file scope; this has
+been fixed, and they are now added to the templates list of the scope in
+which they are declared (which may be the file scope, a namespace scope, or
+a class scope).
+
 4/20/98   Microsoft compatibility: predeclared size_t
 
 In Microsoft compatibility mode size_t is now predeclared in the global

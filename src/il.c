@@ -11045,20 +11045,19 @@ the source sequence entry that follows the entry or entries removed.
 #if !STANDALONE_UTILITY_PROGRAM
 #if RECORD_TEMPLATES_IN_IL
 
-void add_to_templates_list(a_template_ptr  tp)
+void add_to_templates_list(a_template_ptr  tp,
+                           a_scope_depth   scope_depth)
 /*
-Add the IL template entry pointed to by tp to the list for the file scope.
+Add the IL template entry pointed to by tp to the indicated scope.
 */
 {
   a_scope_stack_entry_ptr  ssep;
   a_scope_ptr              sp;
   a_scope_pointers_block_ptr  pointers_block;
 
-  ssep = &scope_stack[DEPTH_OF_FILE_SCOPE];
-  sp = ssep->il_scope;
-#if CHECKING
-  if (sp == NULL) internal_error("add_to_templates_list: NULL IL scope");
-#endif /* CHECKING */
+  ssep = &scope_stack[scope_depth];
+  sp = ensure_il_scope_exists(ssep);
+  check_assertion_str(sp != NULL, "add_to_templates_list: NULL IL scope");
   pointers_block = assoc_pointers_block_of(ssep);
   if (sp->templates == NULL) {
     sp->templates = tp;
