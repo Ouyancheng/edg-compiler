@@ -523,6 +523,36 @@ for pp-tokens.
 }  /* cache_curr_token */
 
 
+static a_boolean is_template_reference(void)
+/*
+The current token is "<" and the previous token is an identifier.  Look
+up the identifier as a class name.  If it is a class template name,
+return TRUE, otherwise return FALSE.
+
+This routine is used by cache_token_stream and flush_tokens when
+caching (or flushing) until a matching token is found.  Template
+references must be recognized so that matching tokens within
+the template reference can be ignored.  Template references are
+more difficult to recognize that other matching token pairs
+(such as () or []) because not all less-than signs begin template
+references.
+*/
+{
+  a_boolean	result = FALSE;
+  a_symbol_ptr  sym;
+
+  /* Back up to the identifier. */
+  unget_token();
+  sym = normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
+  if (sym != NULL && sym->kind == (a_symbol_kind)sk_class_template) {
+    result = TRUE;
+  }  /* if */
+  /* Return to the token that was the current token when we were called. */
+  (void)get_token();
+  return result;
+}  /* is_template_reference */
+
+
 static void cache_token_stream_until_matching_token(a_token_cache *cache)
 /*
 Given curr_token of '(', '[', or '{', copy tokens into the token cache
@@ -533,7 +563,9 @@ of throwing tokens away it adds them to the specified token cache.)
 */
 {
   a_token_kind  closing_token;
+  a_token_kind	prev_token = tok_error;
   int           paren_count = 0, bracket_count = 0, brace_count = 0;
+  a_boolean	done = FALSE;
 
   db_enter(4, "cache_token_stream_until_matching_token");
   /* Determine the closing token that corresponds to curr_token. */
@@ -541,6 +573,7 @@ of throwing tokens away it adds them to the specified token cache.)
     case tok_lparen:    closing_token = tok_rparen;   break;
     case tok_lbracket:  closing_token = tok_rbracket; break;
     case tok_lbrace:    closing_token = tok_rbrace;   break;
+    case tok_lt:        closing_token = tok_gt;       break;
 #if CHECKING
     default:
       internal_error("cache_token_stream_until_matching_token: bad token");
@@ -552,8 +585,9 @@ of throwing tokens away it adds them to the specified token cache.)
   /* Keep looping through successive tokens until the corresponding closing
      token is found at level zero (i.e., not within a nesting of parens,
      brackets, or braces). */
-  while (curr_token != closing_token ||
-         paren_count != 0 || bracket_count != 0 || brace_count != 0) {
+  while (!done && (curr_token != closing_token ||
+                   paren_count != 0 || bracket_count != 0 ||
+		   brace_count != 0)) {
     /* Count paired tokens within the skip. */
     switch (curr_token) {
       case tok_lparen:                           paren_count++;   break;
@@ -562,12 +596,31 @@ of throwing tokens away it adds them to the specified token cache.)
       case tok_rbracket:  if (bracket_count > 0) bracket_count--; break;
       case tok_lbrace:                           brace_count++;   break;
       case tok_rbrace:    if (brace_count > 0)   brace_count--;   break;
+      case tok_gt:
+        /* A ">" is only meaningful if when it is the token we are looking
+           for. */
+        if (closing_token == tok_gt) {
+          /* A ">" only counts as the end of the parameter list if we are not
+             inside some other construct.  For example when scanning
+             "A<(1>2)>" the first ">" doesn't count. */
+          if (paren_count == 0 && bracket_count == 0 && brace_count == 0) {
+            done = TRUE;
+          }  /* if */
+        }  /* if */
+        break;
       default:;
     }  /* switch */
     /* Always stop the flush on end of source. */
     if (curr_token == tok_end_of_source) break;
+    /* Check for the start of a template parameter list. */
+    if (curr_token == tok_lt && prev_token == tok_identifier) {
+      if (is_template_reference()) {
+        cache_token_stream_until_matching_token(cache);
+      }  /* if */
+    }  /* if */
     /* None of the conditions was satisfied, so keep going. */
     cache_curr_token(cache);
+    prev_token = curr_token;
     (void)get_token();
   }  /* while */
   db_exit();
@@ -583,6 +636,7 @@ the stop tokens array.  Return immediately if end of source is reached.
 away it adds them to the specified token cache.)
 */
 {
+  a_token_kind	prev_token = tok_error;
   db_enter(4, "cache_token_stream");
   /* Loop through the tokens, beginning with the current token and stopping
      when a token in the stop token array is found.  Whenever a '(', '[', or
@@ -590,13 +644,16 @@ away it adds them to the specified token cache.)
      ')', ']', or '}' is reached. */
   while (stop_token_array[(int)curr_token] == 0) {
     if (curr_token == tok_lparen || curr_token == tok_lbracket ||
-        curr_token == tok_lbrace) {
+        curr_token == tok_lbrace ||
+        (curr_token == tok_lt && prev_token == tok_identifier &&
+         is_template_reference())) {
       cache_token_stream_until_matching_token(cache);
     }  /* if */
     /* Stop immediately when end of source is reached. */
     if (curr_token == tok_end_of_source) break;
     /* Add the current token to the cache and advance to its successor. */
     cache_curr_token(cache);
+    prev_token = curr_token;
     (void)get_token();
   }  /* while */
   /* Leave error_position associated with what is now curr_token. */
@@ -4384,11 +4441,13 @@ an opening parenthesis).  Flush to the corresponding closing token.
 */
 {
   a_token_kind      closing_token;
+  a_token_kind	    prev_token = tok_error;
   a_source_position start_pos;
   unsigned long     paren_count   = 0,
 		    bracket_count = 0,
 		    brace_count   = 0;
   unsigned long     max_lines;
+  a_boolean         done = FALSE;
 
   db_enter(3, "flush_until_matching_token");
   /* Save the current position, to see later how much we have flushed. */
@@ -4401,6 +4460,7 @@ an opening parenthesis).  Flush to the corresponding closing token.
     case tok_lparen:    closing_token = tok_rparen;   break;
     case tok_lbracket:  closing_token = tok_rbracket; break;
     case tok_lbrace:    closing_token = tok_rbrace; max_lines = 20; break;
+    case tok_lt:        closing_token = tok_gt;       break;
 #if CHECKING
     default:
       internal_error("flush_until_matching_token: bad opening token");
@@ -4408,8 +4468,8 @@ an opening parenthesis).  Flush to the corresponding closing token.
   }  /* switch */
   (void)get_token();
 
-  while (curr_token != closing_token ||
-         paren_count != 0 || bracket_count != 0 || brace_count != 0) {
+  while (!done && (curr_token != closing_token ||
+         paren_count != 0 || bracket_count != 0 || brace_count != 0)) {
     /* Count paired tokens within the skip. */
     switch (curr_token) {
       case tok_lparen:                           paren_count++;   break;
@@ -4418,6 +4478,18 @@ an opening parenthesis).  Flush to the corresponding closing token.
       case tok_rbracket:  if (bracket_count > 0) bracket_count--; break;
       case tok_lbrace:                           brace_count++;   break;
       case tok_rbrace:    if (brace_count > 0)   brace_count--;   break;
+      case tok_gt:
+        /* A ">" is only meaningful if when it is the token we are looking
+           for. */
+        if (closing_token == tok_gt) {
+          /* A ">" only counts as the end of the parameter list if we are not
+             inside some other construct.  For example when scanning
+             "A<(1>2)>" the first ">" doesn't count. */
+          if (paren_count == 0 && bracket_count == 0 && brace_count == 0) {
+            done = TRUE;
+          }  /* if */
+        }  /* if */
+        break;
       default:;
     }  /* switch */
     /* Always stop the flush on:
@@ -4427,7 +4499,14 @@ an opening parenthesis).  Flush to the corresponding closing token.
         (in_preprocessing_directive && curr_token == tok_newline)) break;
     /* If we've skipped too many lines, give up the flush. */
     if ((pos_curr_token.seq - start_pos.seq) > max_lines) break;
+    /* Check for the start of a template parameter list. */
+    if (curr_token == tok_lt && prev_token == tok_identifier) {
+      if (is_template_reference()) {
+        flush_until_matching_token();
+      }  /* if */
+    }  /* if */
     /* None of the conditions was satisfied, so keep flushing tokens. */
+    prev_token = curr_token;
     (void)get_token();
   }  /* while */
 
@@ -4443,6 +4522,7 @@ errors.
 */
 {
   a_source_position start_pos;
+  a_token_kind      prev_token = tok_error;
 
   db_enter(3, "flush_tokens");
   /* Save the current position, to see later how much we have flushed. */
@@ -4455,13 +4535,18 @@ errors.
   while (stop_token_array[(int)curr_token] == 0) {
     /* On paired tokens, skip to the corresponding closing token. */
     if (curr_token == tok_lparen || curr_token == tok_lbracket ||
-        curr_token == tok_lbrace) flush_until_matching_token();
+        curr_token == tok_lbrace ||
+        (curr_token == tok_lt && prev_token == tok_identifier && 
+         is_template_reference())) {
+      flush_until_matching_token();
+    }  /* if */
     /* Always stop the flush on:
        1)  End of source;
        2)  A newline, if in a preprocessing directive. */
     if (curr_token == tok_end_of_source ||
         (in_preprocessing_directive && curr_token == tok_newline)) break;
     /* None of the conditions was satisfied, so keep flushing tokens. */
+    prev_token = curr_token;
     (void)get_token();
   }  /* while */
   set_err_pos_to_curr_token();
