@@ -4773,26 +4773,32 @@ by the stack of entries in virtual_step_stack.
 }  /* access_to_end_of_virtual_step_stack */
 
 
+/* Declaration needed because of forward declaration. */
+static a_boolean have_access_across_derivations(a_symbol_ptr symbol,
+                                                a_symbol_ptr view_sym);
+
+
 static a_boolean have_access_across_path(
-                             a_symbol_ptr                   fund_sym,
+                             a_symbol_ptr                   sym,
                              a_type_ptr                     viewpoint_class,
                              a_derivation_step_ptr          path,
                              a_base_class_derivation_ptr    bcdp,
                              a_symbol_ptr                   proj_sym,
                              a_virtual_step_stack_entry_ptr virtual_step_stack)
 /*
-Return TRUE if the symbol fund_sym is accessible at the current location
+Return TRUE if the symbol sym is accessible at the current location
 in the source program when viewed from the class viewpoint_class.
-path is the derivation path from viewpoint_class to fund_sym;
-it is NULL if fund_sym is in viewpoint_class.  If non-NULL, it is part of
+path is the derivation path from viewpoint_class to sym;
+it is NULL if sym is in viewpoint_class.  If non-NULL, it is part of
 the path of the base class derivation bcdp.  proj_sym is the projection
 symbol from which we started this access check, or an updated one picked
 up during the recursive descent through the derivation; it is ignored if
 path == NULL, but otherwise it must be a projection symbol (although
-its fundamental symbol might not be fund_sym, for example in the overloaded
-function case).  virtual_step_stack is a pointer to a linked list that
-describes a stack of virtual steps being expanded by invocations of
-this routine above this one.
+its fundamental symbol might not be sym, i.e., in the overloaded
+function case; in that case sym might be a projection symbol as well).
+virtual_step_stack is a pointer to a linked list that describes a stack
+of virtual steps being expanded by invocations of this routine above
+this one.
 */
 {
   a_boolean             have_access = FALSE, base_class_accessible;
@@ -4812,8 +4818,9 @@ this routine above this one.
      viewpoint class. */
   if (path == NULL) {
     /* No derivation path, so the access is the access for the symbol. */
-    access = access_for_symbol(fund_sym);
+    access = access_for_symbol(sym);
   } else {
+    a_symbol_ptr fund_proj_sym;
     /* Determine the effective access in the viewpoint class. */
 #if CHECKING
     if (proj_sym == NULL) {
@@ -4823,6 +4830,9 @@ this routine above this one.
       internal_error("have_access_across_path: proj_sym not projection");
     }  /* if */
 #endif /* CHECKING */
+    /* Note that in the overloaded function case proj_sym is a projection
+       of an sk_overloaded_function symbol, not of sym. */
+    fund_proj_sym= proj_sym->variant.projection.extra_info->fundamental_symbol;
     need_to_compute_access = TRUE;
     if (proj_sym->parent.class_type == viewpoint_class) {
       /* The step we are looking at is the first one, so the effective
@@ -4835,9 +4845,6 @@ this routine above this one.
          the path in case it is an access adjustment.  It's okay not to find
          such a projection symbol since the access adjustment might not be
          at the current level. */
-      /* Note that in the overloaded function case proj_sym is a projection
-         of an sk_overloaded_function symbol, not of fund_sym. */
-      a_symbol_ptr fund_proj_sym = fundamental_symbol_of(proj_sym);
       /* Run two loops -- first over the inactive list and then (if needed)
          over the active list. */
       int iter;
@@ -4868,8 +4875,7 @@ this routine above this one.
          Otherwise, the individual functions in the overload sets can have
          distinct access settings, and the projection symbol cannot
          indicate all of them. */
-      if (proj_sym->variant.projection.extra_info->fundamental_symbol->kind ==
-                                       (a_symbol_kind)sk_overloaded_function) {
+      if (fund_proj_sym->kind == (a_symbol_kind)sk_overloaded_function) {
         if (!proj_sym->variant.projection.access_adjustment_made) {
           need_to_compute_access = TRUE;
         }  /* if */
@@ -4878,8 +4884,9 @@ this routine above this one.
     if (need_to_compute_access) {
       /* The access must be determined by looking at the derivation steps.
          This is probably a little faster than looking for the projection
-         symbol. */
-      access = access_for_symbol(fund_sym);
+         symbol (and the projection symbol might not exist and would have
+         to be created if that approach were used). */
+      access = access_for_symbol(sym);
       /* Adjust the access for any path sequences indicated in the virtual
          step stack. */
       if (virtual_step_stack != NULL) {
@@ -4925,9 +4932,19 @@ this routine above this one.
        class at each step is accessible from the original class, and we
        check for special access at each step. */
     if (path == NULL) {
-      /* We're already in the class of the fundamental symbol, so we do
-         not have access. */
-      /* have_access = FALSE;  -- already set. */
+      /* If sym is the specific symbol chosen from an overload set
+         designated by proj_sym, it might be a projection symbol itself.
+         Look down from it to its fundamental symbol, looking for access. */
+      if (sym->kind != (a_symbol_kind)sk_projection) {
+        /* Normal case. */
+        /* We're already in the class of the fundamental symbol, so we do
+           not have access. */
+        /* have_access = FALSE;  -- already set. */
+      } else {
+        proj_sym = sym;
+        sym = fundamental_symbol_of(sym);
+        have_access = have_access_across_derivations(sym, proj_sym);
+      }  /* if */
     } else {
       /* Find the base class that's first on the path.  It most cases, that's
          trivial, but for virtual base classes we have to go to the virtual
@@ -5022,7 +5039,7 @@ this routine above this one.
           }  /* while */
           /* Do a recursive call to see if the member is accessible in the
              base class. */
-          if (have_access_across_path(fund_sym, bcp->type, path_next,
+          if (have_access_across_path(sym, bcp->type, path_next,
                                       local_bcdp, proj_sym,
                                       local_virtual_step_stack)) {
             /* Yes, it is. */
@@ -5053,9 +5070,10 @@ static a_boolean have_access_across_derivations(a_symbol_ptr symbol,
 /*
 Return TRUE if the symbol "symbol" is accessible at the current location
 in the source program when viewed from the class of which view_sym is a
-member.  view_sym is either the same as the fundamental symbol of "symbol",
-or is an overloaded function symbol containing that fundamental symbol,
-or is a projection symbol for one of those.
+member.  If view_sym is an overloaded function symbol or a projection
+thereof, symbol is the specific symbol chosen from that overload set
+(and possibly a projection symbol); otherwise symbol is not a projection
+symbol, and view_sym is either the same as symbol or a projection thereof.
 */
 {
   a_boolean                   have_access = FALSE;
@@ -5064,7 +5082,6 @@ or is a projection symbol for one of those.
   a_derivation_step_ptr       preferred_path;
   a_type_ptr                  viewpoint_class;
 
-  symbol = fundamental_symbol_of(symbol);
   if (view_sym->kind == (a_symbol_kind)sk_projection) {
     /* The view symbol is a projection symbol. */
     bcp = view_sym->variant.projection.extra_info->fundamental_base_class;
@@ -5113,7 +5130,8 @@ Return TRUE if the indicated symbol is accessible from the current location
 in the source program.
 */
 {
-  a_boolean have_access = have_access_across_derivations(symbol, symbol);
+  a_symbol_ptr fund_sym = fundamental_symbol_of(symbol);
+  a_boolean    have_access = have_access_across_derivations(fund_sym, symbol);
   return have_access;
 }  /* have_access_to_symbol */
 
@@ -5436,7 +5454,8 @@ a projection symbol pointing to that sk_overloaded_function symbol.
   } else if (!overloaded_symbol->is_class_member) {
     /* Non-class-members are always accessible. */
   } else {
-    /* See if we have access to the symbol. */
+    /* See if we have access to the symbol.  Note that we do not strip
+       projection symbols from the specific symbol. */
     if (!have_access_across_derivations(locator->specific_symbol,
                                         overloaded_symbol)) {
       /* The symbol is not accessible. */
