@@ -2010,7 +2010,7 @@ translation unit.
      tree. */
   generate_virtual_destructor_bodies_for_scope(il_header.primary_scope);
   db_exit();
-}
+}  /* generate_required_virtual_destructor_bodies */
 
 
 /******************************************************************************
