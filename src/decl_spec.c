@@ -3351,9 +3351,15 @@ a block of source position information when the context is a declaration.
          disallowed by the syntax), or is a qualified name that refers to a
          nonexistent member.  In ignore_std_namespace mode, in a reference such
          as std::X, the namespace pointer is cleared, and the locator is set
-         to indicate that a file scope reference. */
+         to indicate a file scope reference. */
       if (!err) {
-        error(ec_qualified_name_required);
+        if (locator_for_curr_id.is_global_qualified_name) {
+          diagnostic(strict_ansi_discretionary_severity,
+                     ec_global_qualifier_not_allowed);
+        } else {
+          diagnostic(strict_ansi_discretionary_severity,
+                     ec_qualified_name_required);
+        }  /* if */
       }  /* if */
     } else {
       a_symbol_ptr	sym = locator_for_curr_id.specific_symbol;
