@@ -1352,6 +1352,8 @@ and return a pointer to it.
   tssp->token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
   clear_token_cache(&tssp->token_cache, /*reusable=*/TRUE);
   tssp->befriending_classes = NULL;
+  tssp->first_token_number = NO_TOKEN_SEQUENCE_NUMBER;
+  tssp->last_token_number = NO_TOKEN_SEQUENCE_NUMBER;
   switch (kind) {
     case sk_class_template:
       tssp->variant.class_template.instantiations = NULL;
@@ -1439,6 +1441,7 @@ state.
         cssp->conversion_list = NULL;
         cssp->routine_fixup_list = NULL;
         cssp->class_template = NULL;
+        cssp->template_info = NULL;
         cssp->member_decl_scope = NO_SCOPE_NUMBER;
         cssp->template_param_for_proxy_class = NULL;
         cssp->corresp_prototype_sym = NULL;

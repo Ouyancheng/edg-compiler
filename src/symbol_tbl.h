@@ -540,6 +540,8 @@ typedef struct a_namespace_list_entry {
 			/* Pointer to a namespace entry. */
 } a_namespace_list_entry;
 
+/* Forward definition. */
+typedef struct a_template_symbol_supplement *a_template_symbol_supplement_ptr;
 
 typedef struct a_class_symbol_supplement *a_class_symbol_supplement_ptr;
 typedef struct a_class_symbol_supplement {
@@ -580,6 +582,13 @@ typedef struct a_class_symbol_supplement {
                         /* Pointer to a class template symbol.  Present
                            only when this class is an instantiation of
                            a class template, NULL otherwise. */
+  a_template_symbol_supplement_ptr
+		template_info;
+			/* Pointer to associated template information when
+			   the associated class is a prototype instantiation
+			   of a class template or a nested class of a class
+			   template.  NULL for other classes including 
+			   other instantiations of the template. */
   a_scope_number
 		member_decl_scope;
 			/* Scope number of members of the class.  For
@@ -919,8 +928,6 @@ typedef struct a_template_param {
 } a_template_param;
 
 
-typedef struct a_template_symbol_supplement *a_template_symbol_supplement_ptr;
-
 typedef struct a_template_instance *a_template_instance_ptr;
 typedef struct a_template_instance {
   /* Information describing an instance of a function template or an
@@ -1080,6 +1087,19 @@ typedef struct a_template_symbol_supplement {
 			   a new entry will be added to this list for
 			   each class instantiated from the class
 			   template. */
+  a_token_sequence_number
+		first_token_number;
+			/* Token sequence number of the first token in
+			   the definition of the template (e.g., token_cache
+			   above).  This field (and last_token_number) are
+			   used to extract the definitions of member
+			   functions and nested classes from the bodies
+			   of class template definitions. */
+  a_token_sequence_number
+		last_token_number;
+			/* Token sequence number of the last token in
+			   the definition of the template.  See
+                           first_token_number above. */
   union {
     /* When symbol kind = sk_class_template: */
     struct {
