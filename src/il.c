@@ -1081,6 +1081,9 @@ Dump the contents of the indicated expression node for debug purposes.
 
 
 void db_expression(an_expr_node_ptr node)
+/*
+Dump debug information on an expression node.
+*/
 {
   fputs("*** start of expression ***\n", f_debug);
   db_expr_node(node, 0);
@@ -3157,6 +3160,9 @@ caller is responsible for sorting that out.)
          by ssep. */
       add_to_scopes_list(sp, ssep-1);
       if (!C_mode()) {
+        /* An object lifetime will have been created for this scope in
+           push scope.  Now that the scope entry exists, bind the two entries
+           to one another. */
         check_assertion(curr_object_lifetime->entity.ptr == NULL);
         bind_object_lifetime(curr_object_lifetime, (an_il_entry_kind)iek_scope,
                              (char *)sp, /*ctor_init=*/FALSE);
@@ -4906,26 +4912,30 @@ list.
 void record_end_of_lifetime_destruction(a_dynamic_init_ptr dip,
                                         a_boolean          static_lifetime)
 /*
-Add the given dynamic initialization entry to the file-scope dynamic_inits
-list.
+If the dynamic init entry pointed to by dip has a destructor associated with
+it, add the entry to the destructors list for curr_object_liftime (or, if
+the entry has static lifetime, for the file scope's object lifetime entry).
 */
 {
   an_object_lifetime_ptr  olp;
 
   db_enter(4, "record_end_of_lifetime_destruction");
   if (dip->destructor != NULL) {
-    if (static_lifetime) {
+    /* This is a destructable entity. */
+    if (static_lifetime && !in_file_scope(curr_object_lifetime)) {
+      /* The variable has static lifetime, so be sure to use the lifetime
+         of the file scope. */
       olp = scope_stack[DEPTH_OF_FILE_SCOPE].il_scope->lifetime;
     } else {
       olp = curr_object_lifetime;
     }  /* if */
+    /* Update the lifetime pointer in the dynamic init entry. */
     dip->lifetime = olp;
-    if (olp->destructions == NULL) {
-      olp->destructions = dip;
-    } else {
-      dip->next_in_destruction_list = olp->destructions;
-      olp->destructions = dip;
-    }  /* if */
+    /* Add the dynamic init entry to the front of the destructions list for
+       the lifetime.  (It's on the front because the last entry constructed
+       will be the first entry destructed.) */
+    dip->next_in_destruction_list = olp->destructions;
+    olp->destructions = dip;
 #if DEBUG
     if (debug_level >= 4) {
       db_pending_destructions(dip, (an_object_lifetime_ptr)NULL);
@@ -7124,6 +7134,8 @@ to it.
 #if DEBUG
 void db_destruction(a_dynamic_init_ptr  dip)
 /*
+Dump debug information on a dynamic init entry insofar as it represents a
+destruction.
 */
 {
   if (dip->variable != NULL) {
@@ -7137,6 +7149,8 @@ void db_destruction(a_dynamic_init_ptr  dip)
 
 void db_object_lifetime_name(an_object_lifetime_ptr olp)
 /*
+Dump the "name" of an object lifetime (really, some identifying information
+about it).
 */
 {
   if (olp->entity.kind == (a_byte_il_entry_kind)iek_scope) {
@@ -7154,6 +7168,7 @@ void db_object_lifetime_name(an_object_lifetime_ptr olp)
 
 void db_object_lifetime(an_object_lifetime_ptr  olp)
 /*
+Dump debug information about an object lifetime entry.
 */
 {
   a_dynamic_init_ptr  dip;
@@ -7162,10 +7177,12 @@ void db_object_lifetime(an_object_lifetime_ptr  olp)
     fputs("null object lifetime\n", f_debug);
   } else {
     db_object_lifetime_name(olp);
+    /* Dump the "name" of the parent. */
     if (olp->parent_lifetime != NULL) {
       fprintf(f_debug, "\n  parent_lifetime = ");
       db_object_lifetime_name(olp->parent_lifetime);
     }  /* if */
+    /* Dump the "name" of each of the children. */
     if (olp->child_lifetime != NULL) {
       an_object_lifetime_ptr  temp = olp->child_lifetime->next;
       fprintf(f_debug, "\n  child_lifetime = ");
@@ -7175,10 +7192,12 @@ void db_object_lifetime(an_object_lifetime_ptr  olp)
         db_object_lifetime_name(temp);
       }  /* for */
     }  /* if */
+    /* Dump the "name" of the next entry in the sibling list. */
     if (olp->next != NULL) {
       fprintf(f_debug, "\n  next = ");
       db_object_lifetime_name(olp->next);
     }  /* if */
+    /* Dump the destructions list. */
     dip = olp->destructions;
     if (dip != NULL) {
       fprintf(f_debug, "\n  destructions = ");
@@ -7196,6 +7215,9 @@ void db_object_lifetime(an_object_lifetime_ptr  olp)
 
 void db_object_lifetime_stack(void)
 /*
+Dump information about the object lifetime stack (i.e., start with
+curr_object_lifetime and dump the name of each entry found by following
+the parent_lifetime pointer.
 */
 {
   an_object_lifetime_ptr  olp = curr_object_lifetime;
@@ -7213,6 +7235,8 @@ void db_object_lifetime_stack(void)
 void db_pending_destructions(a_dynamic_init_ptr      dip,
                              an_object_lifetime_ptr  stop_at)
 /*
+Dump all the destructions that are active on the object lifetime stack,
+stopping when the object lifetime indicated by stop_at is reached.
 */
 {
   an_object_lifetime_ptr  olp;
@@ -7222,8 +7246,10 @@ void db_pending_destructions(a_dynamic_init_ptr      dip,
     fputs("pending destructions:\n", f_debug);
     for (; olp != NULL && olp != stop_at; olp = olp->parent_lifetime) {
       fputs("  --for lifetime associated with ", f_debug);
+      /* Dump the "name" of each object lifetime. */
       db_object_lifetime_name(olp);
       fputc(':', f_debug);
+      /* Dump the destructions associated with it. */
       if (dip == NULL) {
         fputs(" <none>", f_debug);
       } else {
@@ -7233,6 +7259,9 @@ void db_pending_destructions(a_dynamic_init_ptr      dip,
         }  /* for */
       }  /* if */
       fputc('\n', f_debug);
+      /* Note: on a parent destruction list, only those following
+         parent_destruction_sublist are active from the point of view of the
+         current stack.  Set dip to start at the right entry. */
       dip = olp->parent_destruction_sublist;
     }  /* for */
   }  /* if */
@@ -7383,15 +7412,12 @@ void push_object_lifetime(an_il_entry_kind  entity_kind,
                           char              *entity_ptr,
                           a_boolean         ctor_init)
 /*
-
-
- whose associated entity is kind/entry_ptr,
-set its parent lifetime to parent_lifetime, clear its fields to default values,
-and return a pointer to it.  An object lifetime entry represents a lifetime
-(e.g., for a temporary), which may be the same as a scope or may be some
-subscope region.
-
-
+Create a new object lifetime entry and push it onto the object lifetime
+stack by setting its parent pointer and then changing curr_object_lifetime
+to point to it.  Also, set its sibling pointer, and, if entity_ptr is
+non-NULL, bind it to the IL entity with which it is associated.  (When
+entity_ptr is NULL, the binding takes place later, when we are sure the
+entry is needed.)
 */
 {
   an_object_lifetime_ptr   olp, parent;
@@ -7492,6 +7518,8 @@ with it.  Entries associated with scopes must also have no child entries.
 
 void mark_object_lifetime_as_useless(an_object_lifetime_ptr  olp)
 /*
+An object lifetime may be rendered useless by clearing its destructions
+pointer.
 */
 {
 #if CHECKING
@@ -7509,6 +7537,9 @@ void mark_object_lifetime_as_useless(an_object_lifetime_ptr  olp)
 
 void pop_object_lifetime(void)
 /*
+Pop an object lifetime off the object lifetimes stack.  Check whether it
+needs to be kept in the IL tree.  If not, unlink it from the IL and
+return it to the appropriate available list.
 */
 {
   a_boolean               is_implicit_child = FALSE;
@@ -7598,6 +7629,8 @@ void pop_object_lifetime(void)
 
 void pop_object_lifetimes_until(an_object_lifetime_ptr  stop_at)
 /*
+Pop all entries from the object lifetimes stack up to (but not including)
+the object lifetime entry pointed to by stop_at.
 */
 {
   while (curr_object_lifetime != stop_at) {
