@@ -1,5 +1,12 @@
 Version 2.08
 
+7/11/92  Reread source lines for diagnostics.
+
+Support was added to print source lines that are not in the current logical
+source line as part of diagnostics.  To facility easy recovery of previous
+source lines, an index of file positions is built as the source file is
+orginally read (read_logical_source_line() in lexical.c).
+
 7/10/92  Functions return class objects like cfront
 
 For cfront compatibility, functions that return class objects now do
