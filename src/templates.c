@@ -226,6 +226,7 @@ to represent the template parameters.
   a_template_param_ptr template_param;
   a_template_param_ptr template_param_list = NULL;
   a_template_param_ptr end_of_template_param_list = NULL;
+  a_type_ptr           template_param_type;
 
   db_enter(3, "scan_template_param_list");
   /* Loop through the comma-separated list of template parameter
@@ -251,7 +252,9 @@ to represent the template parameters.
          preliminary scanning of the body of the class. */
       sym = enter_symbol((a_symbol_kind)sk_type, &locator_for_curr_id,
                          decl_scope_level, /*suppress_redecl_error=*/FALSE);
-      sym->variant.type = error_type();
+      template_param_type = alloc_type((a_type_kind)tk_template_param);
+      set_source_corresp(&template_param_type->source_corresp, sym);
+      sym->variant.type = template_param_type;
       /* Bypass the identifier. */
       (void)get_token();
     } else {
@@ -302,10 +305,15 @@ to represent the template parameters.
       sym->variant.constant = fs_constant((a_constant_repr_kind)ck_error);
       sym->variant.constant->type = param_type_ptr;
       set_source_corresp(&sym->variant.constant->source_corresp, sym);
+      template_param_type = NULL;
     }  /* if */
     /* Allocate a template parameter and add it to the end of the list. */
     template_param = alloc_template_param();
     template_param->param_symbol = sym;
+    /* The param_type field will be NULL for constant parameters and point to
+       a tk_template_param type for type parameters. */
+    template_param->param_type = template_param_type;
+    /* Add the template param to the end of the list. */
     if (template_param_list == NULL) {
       template_param_list = template_param;
     } else {
