@@ -2774,7 +2774,7 @@ Return a template arg entry to the available list.
     avail_template_args = tap;
     tap = next_tap;
   }  /* while */
-}  /* free_template_arg */
+}  /* free_template_arg_list */
 
 
 a_base_class_ptr alloc_base_class(void)
