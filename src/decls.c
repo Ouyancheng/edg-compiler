@@ -1877,17 +1877,18 @@ called by id_linkage.
 
     decls_at_same_scope = (other_decl->decl_scope ==
                             scope_stack[idlbp->effective_decl_level].number);
-    if ((microsoft_mode || sun_mode) &&
+    if ((microsoft_mode || sun_mode || gpp_mode) &&
         kind == (a_symbol_kind)sk_namespace_projection) {
-      /* In Microsoft mode, a member of another namespace can be redeclared
-         with an unqualified declarator if that member was made visible via
-         a using-declaration.  E.g.,
+      /* In Microsoft and Sun modes, a member of another namespace can be
+         redeclared with an unqualified declarator if that member was made
+         visible via a using-declaration.  E.g.,
            namespace N { void f(); }  using N::f; void f() {} // Fine: N::f
          We emulate this only if the entity has C name linkage or if it is
-         a variable.  */
+         a variable.  In GNU C++ mode, we also emulate this for variables. */
       a_symbol_ptr  fund_other_decl = fundamental_symbol_of(other_decl);
-      if (source_corresp_entry_for_symbol(fund_other_decl)->name_linkage ==
-                                          (a_name_linkage_kind)nlk_external ||
+      if ((!gpp_mode &&
+           source_corresp_entry_for_symbol(fund_other_decl)->name_linkage ==
+                                          (a_name_linkage_kind)nlk_external) ||
           fund_other_decl->kind == (a_symbol_kind)sk_variable) {
         kind = fund_other_decl->kind;
       }  /* if */
@@ -4672,8 +4673,8 @@ declaration.
     /* There is a previous identifier of this name in the same scope,
        to which this declaration is linked. */
     redeclaration = TRUE;
-    if (sun_mode || microsoft_mode) {
-      /* In Sun and Microsoft modes, the linked symbol may be a namespace
+    if (sun_mode || microsoft_mode || gpp_mode) {
+      /* In Sun, Microsoft, and GNU modes, the linked symbol may be a namespace
          projection (i.e., a using-declaration). */
       linked_symbol = fundamental_symbol_of(linked_symbol);
     }  /* if */

@@ -1,5 +1,18 @@
 Version 3.6
 
+2/16/05  GNU C++ compatibility: Redeclaration through using-declaration
+
+In GNU C++ mode, a variable in another namespace can be redeclared in the
+current namespace with an unqualified name that resolves to a using-
+declaration for that variable.  For example:
+
+  namespace N { int i; }
+  using N::i;
+  extern int i;  // Accepted in GNU C++ mode.
+
+Note that this does not apply to function declarations.  (See also the
+Changes entry of 6/28/00 reporting this feature in Microsoft and Sun modes.)
+
 2/15/05  Pseudo-destructor call with cv-qualified array type
 
 A spurious error was issued on a pseudo-destructor call in which the
