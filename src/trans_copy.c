@@ -2324,6 +2324,13 @@ Update the "instantiation" lists for extern inline functions, if appropriate.
         !primary_routine->source_corresp.static_used_by_instantiation) {
       if (primary_routine->on_inline_function_list) {
         /* There is already a list entry for the routine in the primary IL. */
+#if DEBUG
+        if (db_trace("trans_copy", primary_routine, iek_routine)) {
+          fprintf(f_debug,
+                  "ensure_routine_is_on_inline_list: already on list:\n");
+          db_entity_info((char *)primary_routine, iek_routine);
+        }  /* if */
+#endif /* DEBUG */
       } else {
         /* Add an entry for the routine. */
         add_to_inline_function_list(primary_routine);
