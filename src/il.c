@@ -4776,7 +4776,8 @@ if the call is of a C++ new or delete routine to allocate or free an
 array.  The arguments of the call are already attached to function_node.
 A skip_typerefs need not have been done on function_type.  Return
 a pointer to the call node.  *err_pos gives an error position for the
-case where the function return type is invalid (i.e., incomplete).
+case where the function return type is invalid (i.e., incomplete);
+an error node is returned for that case.
 */
 {
   an_expr_operator_kind         op;
@@ -4805,61 +4806,64 @@ case where the function return type is invalid (i.e., incomplete).
   /* Return type may not be incomplete (but void is okay). */
   if (is_incomplete_type(return_type) && !is_void_type(return_type)) {
     pos_error(ec_incomplete_return_type_not_allowed, err_pos);
-  }  /* if */
-  rtsp = function_type->variant.routine.extra_info;
-  /* If the function is one for which the caller must supply a place for
-     the result, allocate a temporary for that and insert it into the
-     argument list. */
-  set_routine_calling_method_flag(function_type);
-  if (rtsp->caller_provides_place_to_put_return_value) {
-    /* Allocate the temporary for the return value. */
-    temp_var = create_expr_temporary(return_type, /*force_temp_init=*/FALSE,
-                                     &temp_init_node);
-    /* Make an expression for the address of the temporary. */
-    temp_node = var_lvalue_expr(temp_var);
-    /* Put the expression into the argument list.  If there is a "this"
-       parameter, the temporary is added after it. */
-    prev_node = function_node;
-    if (rtsp->implicit_this_param_type != NULL) prev_node = prev_node->next;
-    temp_node->next = prev_node->next;
-    prev_node->next = temp_node;
-    /* The return type of the call is a pointer to the temporary. */
-    call_type = make_pointer_type(return_type);
-  } else if (is_reference_type(call_type)) {
-    /* If the function returns a reference type, make the result a pointer. */
-    call_type = return_type = make_pointer_type(type_pointed_to(call_type));
-  }  /* if */
-  if (is_ptr_to_member_type(function_node->type)) {
-    /* Call using a pointer-to-member-function. */
-    op = (an_expr_operator_kind)eok_pm_call;
-  } else if (is_virtual) {
-    /* Call of a virtual function. */
-    op = (an_expr_operator_kind)eok_virtual_call;
+    call_node = error_node();
   } else {
-    op = (an_expr_operator_kind)eok_call;
-  }  /* if */
-  /* Make an expression for the function call. */
-  call_node = make_operator_node(op, call_type, function_node);
-  if (new_or_delete_call_for_array) {
-    /* Remember that this is a new or delete call for an array. */
-    call_node->variant.operation.new_or_delete_call_for_array = TRUE;
-  }  /* if */
-  /* If a temporary was allocated to hold the returned value, add
-     a comma expression to pick up the temporary value, like
-       (f(&T, a1, a2), T)
-     Note that find_class_rvalue_var_node looks for the form
-     of the expressions generated here to do an optimization.
-  */
-  if (temp_var != NULL) {
-    temp_node = var_rvalue_expr(temp_var);
-    call_node->next = temp_node;
-    call_node = make_operator_node((an_expr_operator_kind)eok_comma,
-                                   return_type, call_node);
-    /* If the object involved requires a destructor, an enk_temp_init
-       node was created above.  Attach it above the function call to
-       request the destructor invocation. */
-    if (temp_init_node != NULL) {
-      attach_expr_under_temp_init(&call_node, temp_init_node);
+    rtsp = function_type->variant.routine.extra_info;
+    /* If the function is one for which the caller must supply a place for
+       the result, allocate a temporary for that and insert it into the
+       argument list. */
+    set_routine_calling_method_flag(function_type);
+    if (rtsp->caller_provides_place_to_put_return_value) {
+      /* Allocate the temporary for the return value. */
+      temp_var = create_expr_temporary(return_type, /*force_temp_init=*/FALSE,
+                                       &temp_init_node);
+      /* Make an expression for the address of the temporary. */
+      temp_node = var_lvalue_expr(temp_var);
+      /* Put the expression into the argument list.  If there is a "this"
+         parameter, the temporary is added after it. */
+      prev_node = function_node;
+      if (rtsp->implicit_this_param_type != NULL) prev_node = prev_node->next;
+      temp_node->next = prev_node->next;
+      prev_node->next = temp_node;
+      /* The return type of the call is a pointer to the temporary. */
+      call_type = make_pointer_type(return_type);
+    } else if (is_reference_type(call_type)) {
+      /* If the function returns a reference type, make the result a
+         pointer. */
+      call_type = return_type = make_pointer_type(type_pointed_to(call_type));
+    }  /* if */
+    if (is_ptr_to_member_type(function_node->type)) {
+      /* Call using a pointer-to-member-function. */
+      op = (an_expr_operator_kind)eok_pm_call;
+    } else if (is_virtual) {
+      /* Call of a virtual function. */
+      op = (an_expr_operator_kind)eok_virtual_call;
+    } else {
+      op = (an_expr_operator_kind)eok_call;
+    }  /* if */
+    /* Make an expression for the function call. */
+    call_node = make_operator_node(op, call_type, function_node);
+    if (new_or_delete_call_for_array) {
+      /* Remember that this is a new or delete call for an array. */
+      call_node->variant.operation.new_or_delete_call_for_array = TRUE;
+    }  /* if */
+    /* If a temporary was allocated to hold the returned value, add
+       a comma expression to pick up the temporary value, like
+         (f(&T, a1, a2), T)
+       Note that find_class_rvalue_var_node looks for the form
+       of the expressions generated here to do an optimization.
+    */
+    if (temp_var != NULL) {
+      temp_node = var_rvalue_expr(temp_var);
+      call_node->next = temp_node;
+      call_node = make_operator_node((an_expr_operator_kind)eok_comma,
+                                     return_type, call_node);
+      /* If the object involved requires a destructor, an enk_temp_init
+         node was created above.  Attach it above the function call to
+         request the destructor invocation. */
+      if (temp_init_node != NULL) {
+        attach_expr_under_temp_init(&call_node, temp_init_node);
+      }  /* if */
     }  /* if */
   }  /* if */
   return call_node;
