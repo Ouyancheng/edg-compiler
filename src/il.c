@@ -1506,8 +1506,8 @@ function scope memory region.
 */
 #define set_il_walk_flag_to_initial_value(entry_ptr, at_file_scope)   \
   ((entry_ptr)->source_corresp.il_walk_flag = (at_file_scope) ?       \
-          curr_initial_il_walk_flag_setting :                         \
-          curr_func_initial_il_walk_flag_setting)
+          curr_fs_initial_il_walk_flag_setting :                      \
+          curr_initial_il_walk_flag_setting)
 
 /*
 Similar macro based on the setting of curr_il_region_number.
@@ -1542,9 +1542,8 @@ Set the given source correspondence struct to default values.
   /* Set the IL walk flag to a default setting.  Usually, this is overridden
      almost immediately, but the value here is important when an IL constant
      entry is created somewhere other than an IL memory region (e.g., in
-     an expression operand) and then copied into an IL entry.  Except in
-     IL lowering and IL walk/write, the initial setting is the same for
-     the file scope or the function scope, so use the file scope setting. */
+     an expression operand) and then copied into an IL entry.  We use the
+     default setting; if the value matters, the caller must adjust it. */
   sc->il_walk_flag            = curr_initial_il_walk_flag_setting;
   sc->name_linkage            = (a_name_linkage_kind)nlk_none;
 }  /* set_default_source_corresp */
@@ -1684,6 +1683,20 @@ region.
   switch_back_to_original_region(region_to_switch_back_to);
   return cp;
 }  /* fs_constant */
+
+
+void copy_constant(a_constant *from,
+                   a_constant *to)
+/*
+Copy a constant entry from "from" to "to".
+*/
+{
+  a_boolean il_walk_flag = to->source_corresp.il_walk_flag;
+
+  /* Do the copy.  Preserve the il_walk_flag setting. */
+  *to = *from;
+  to->source_corresp.il_walk_flag = il_walk_flag;
+}  /* copy_constant */
 
 
 a_constant_ptr alloc_unshared_constant(a_constant *cp)
@@ -2246,7 +2259,7 @@ at file scope.
   ptp->type = type;
   /* param_type entries are in the file scope memory region, so use the
      initial il_walk_flag setting for that region. */
-  ptp->il_walk_flag = curr_initial_il_walk_flag_setting;
+  ptp->il_walk_flag = curr_fs_initial_il_walk_flag_setting;
   ptp->has_default_arg = FALSE;
   ptp->default_arg_expr = NULL;
   ptp->passed_via_copy_constructor = FALSE;
@@ -2496,8 +2509,8 @@ to default values.
 }  /* set_type_kind */
 
 
-void clear_type(a_type_ptr  pte,
-                a_type_kind kind)
+static void clear_type(a_type_ptr  pte,
+                       a_type_kind kind)
 /*
 Clear the indicated type entry, set the kind as given, and set the associated
 variant fields to default values.
@@ -2671,6 +2684,9 @@ associated variant fields to default values.
   num_types_allocated++;
 #endif /* DEBUG */
   clear_type(tp, kind);
+  /* Type entries are always in the file scope, so use the il_walk_flag
+     value for the file scope memory region. */
+  tp->source_corresp.il_walk_flag = curr_fs_initial_il_walk_flag_setting;
   db_exit();
   return tp;
 }  /* alloc_type */
@@ -3191,6 +3207,7 @@ Copy the type entry "from" to "to".
   a_type_kind                   from_kind;
   a_routine_type_supplement_ptr extra_info;
   a_type_ptr                    next_ptr;
+  a_boolean                     il_walk_flag;
 
   from_kind = from->kind;
   if (from_kind == (a_type_kind)tk_routine) {
@@ -3200,9 +3217,12 @@ Copy the type entry "from" to "to".
   }  /* if */
   /* Preserve the "next" pointer in the "to" entry. */
   next_ptr = to->next;
+  /* Preserve the IL walk flag. */
+  il_walk_flag = to->source_corresp.il_walk_flag;
   /* Copy the type entry. */
   *to = *from;
   to->next = next_ptr;
+  to->source_corresp.il_walk_flag = il_walk_flag;
   to->based_types = NULL;
   if (from_kind == (a_type_kind)tk_array) {
     /* For an array type, check for an array based on an incomplete struct
@@ -3559,6 +3579,9 @@ to it.
   num_fields_allocated++;
 #endif /* DEBUG */
   set_default_source_corresp(&(fp->source_corresp));
+  /* Field entries are always in the file scope, so use the il_walk_flag
+     value for the file scope memory region. */
+  fp->source_corresp.il_walk_flag = curr_fs_initial_il_walk_flag_setting;
   fp->next       = NULL;
   fp->type       = NULL;
   fp->bit_offset = 0;
@@ -3584,6 +3607,9 @@ to it.  The entry is allocated in the file scope memory region.
   num_routines_allocated++;
 #endif /* DEBUG */
   set_default_source_corresp(&(rp->source_corresp));
+  /* Routine entries are always in the file scope, so use the il_walk_flag
+     value for the file scope memory region. */
+  rp->source_corresp.il_walk_flag = curr_fs_initial_il_walk_flag_setting;
   rp->next                    = NULL;
   rp->type                    = NULL;
   rp->assoc_scope             = NULL_region_number;
@@ -3689,9 +3715,7 @@ to it.
   num_labels_allocated++;
 #endif /* DEBUG */
   set_default_source_corresp(&(lp->source_corresp));
-  /* Label entries are in the function scope memory region, so use the
-     initial il_walk_flag setting for that region. */
-  lp->source_corresp.il_walk_flag = curr_func_initial_il_walk_flag_setting;
+  /* il_walk_flag is set correctly by set_default_source_corresp. */
   lp->next = NULL;
   lp->variant.exec_stmt = NULL;
   lp->parent_block = NULL;
@@ -4562,7 +4586,7 @@ of the front end.
 {
   /* Variables in il.h: */
   curr_il_region_number = NULL_region_number;
-  curr_initial_il_walk_flag_setting = curr_func_initial_il_walk_flag_setting =
+  curr_initial_il_walk_flag_setting = curr_fs_initial_il_walk_flag_setting =
                                                    0;  /* Arbitrary: 0 or 1. */
   /* Variable in il_def.h: */
 #if CHECKING && DEBUG
