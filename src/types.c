@@ -5791,6 +5791,25 @@ typedefs referring to variably modified types.
   return result;
 }  /* is_variably_modified_type */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+
+a_boolean is_directly_variably_modified_type(a_type_ptr  tp)
+/*
+Return TRUE if tp is a "variably modified type" in which the variable
+array bound appears directly (rather than hidden under a typedef).
+*/
+{
+  a_type_tree_traversal_flag_set  tt_flags = (TTT_RETURN_TYPE |
+                                              TTT_STOP_AT_TYPEDEFS);
+  a_boolean                       result = FALSE;
+
+  if (vla_enabled) {
+    result = traverse_type_tree(tp, ttt_is_variably_modified_type, tt_flags);
+  }  /* if */
+  return result;
+}  /* is_directly_variably_modified_type */
+
+#if !STANDALONE_UTILITY_PROGRAM
 
 /* Type of service function called by traverse_and_modify_type_tree to return
    TRUE if the type was modified or FALSE if it was not. */
