@@ -497,6 +497,10 @@ Display a_name_reference entry.
                (a_boolean)ptr->is_global_qualified_name);
   disp_boolean("is_template_id", (a_boolean)ptr->is_template_id);
   disp_boolean("is_super_qualified", (a_boolean)ptr->is_super_qualified);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  disp_boolean("used_in_primary_declarator",
+               (a_boolean)ptr->used_in_primary_declarator);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 }  /* disp_name_reference */
 
 
@@ -4886,6 +4890,12 @@ Display the indicated source sequence secondary declaration entry.
   disp_ptr("entity", (char *)sssdp->entity.ptr,
            (an_il_entry_kind)sssdp->entity.kind);
   disp_ptr("declared_type", (char *)sssdp->declared_type, iek_type);
+#if RECORD_FORM_OF_NAME_REFERENCE
+  if (sssdp->name_reference != NULL) {
+    disp_ptr("name_reference", (char *)sssdp->name_reference,
+             iek_name_reference);
+  }  /* if */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   if (sssdp->autonomous_tag_decl) disp_boolean("autonomous_tag_decl", TRUE);
   if (sssdp->friend_decl) disp_boolean("friend_decl", TRUE);
   if (sssdp->implicit_decl) disp_boolean("implicit_decl", TRUE);
