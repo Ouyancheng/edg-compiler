@@ -1731,24 +1731,13 @@ scope is that of a class definition.
           last_param_type->next = ptp;
         }  /* if */
         last_param_type = ptp;
-        if (func_info != NULL) {
-          /* A parameter name is present.  Save it only if there is a
-             func_info entry in which to save it.  If there isn't, the
-             name is only significant for commenting purposes anyway.
-             Note that null-locator names are saved for all unnamed
-             parameters.  This is done because named and unnamed parameters
-             can be mixed in one list.  In C, such a list is really only
-             allowed when there is no body defining the function, and in
-             that case the names are not significant.  However, if the user
-             makes a mistake, having as complete a list as possible
-             minimizes the error recovery problems. */
-          if (is_error_locator(param_locator)) {
-            func_info->any_prototype_names_omitted = TRUE;
-          }  /* if */
-          add_to_param_id_list(&param_locator, param_type_ptr,
-                               &param_type_pos, param_storage_class,
-                               func_info, &last_param_id);
+        /* A parameter name is present. */
+        if (func_info != NULL && is_error_locator(param_locator)) {
+          func_info->any_prototype_names_omitted = TRUE;
         }  /* if */
+        add_to_param_id_list(&param_locator, param_type_ptr,
+                             &param_type_pos, param_storage_class,
+                             func_info, &last_param_id);
         if (curr_token == tok_assign && C_dialect == C_dialect_cplusplus) {
           /* Argument expressions are not allowed in overloaded operator
              declarations.  Issue an error, but go ahead and scan the
