@@ -246,22 +246,6 @@ typedef struct a_token_cache {
 } a_token_cache;
 
 
-/* Contains a description of an access error that has been detected
-   for which an error may need to be issued later. */
-typedef struct an_access_error_descr *an_access_error_descr_ptr;
-typedef struct an_access_error_descr {
-  an_access_error_descr_ptr
-		next;	/* Pointer to the next error description record. */
-  struct a_symbol	
-		*sym;
-			/* Symbol that the program was trying to access
-			   that should be included in the error message. */
-  a_source_position
-		position;
-			/* Position to be used when the error is issued. */
-} an_access_error_descr;
-
-
 /* These includes are placed here so that a_token_cache will be defined
    for general use before including these files. */
 #ifndef SYMBOL_TBL_H

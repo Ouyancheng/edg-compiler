@@ -73,6 +73,22 @@ declared.
 #endif /* ifndef IL_H */
 
 
+/* Contains a description of an access error that has been detected
+   for which an error may need to be issued later. */
+typedef struct an_access_error_descr *an_access_error_descr_ptr;
+typedef struct an_access_error_descr {
+  an_access_error_descr_ptr
+		next;	/* Pointer to the next error description record. */
+  struct a_symbol	
+		*sym;
+			/* Symbol that the program was trying to access
+			   that should be included in the error message. */
+  a_source_position
+		position;
+			/* Position to be used when the error is issued. */
+} an_access_error_descr;
+
+
 typedef struct a_symbol_locator {
   /* Data structure used to store information about an identifier token.
      Can be used to look up the identifier or enter it into the symbol
@@ -120,12 +136,26 @@ typedef struct a_symbol_locator {
   unsigned int  access_control_error_reported:1;
 			/* TRUE if an accessibility error has already been
 			   issued on the associated symbol. */
+  unsigned int  has_been_coalesced:1;
+			/* TRUE if the identifier has already been processed
+			   by is_generalized_identifier_start -- even if
+			   no coalescing was actually performed.  This
+			   indicates that no processing is needed should
+			   is_generalized_identifier_start be called again. */
   a_symbol_ptr	specific_symbol;
 			/* If is_qualified_name is TRUE, this points to the
 			   specific symbol for the qualified name.  Otherwise,
 			   if this pointer is non-NULL, it is the result of
 			   the most recent lookup of this identifier (e.g.,
 			   by normal_id_lookup). */
+  a_type_ptr	qualifier_class_type;
+			/* If is_qualified_name is TRUE, this points to the
+			   type specified by the qualifier, if any. */
+  an_access_error_descr_ptr
+		access_errors;
+			/* If is_qualified_name is TRUE, this points to a
+			   linked list of access errors that occurred while
+			   scanning the class qualifier. */
   union {
     /* When both is_operator_name and is_conversion_name are FALSE, both
        variants are undefined. */
