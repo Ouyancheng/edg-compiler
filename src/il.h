@@ -411,7 +411,9 @@ extern a_statement_ptr alloc_statement(a_statement_kind stmt_kind);
 
 extern a_constructor_init_ptr alloc_ctor_init(a_constructor_init_kind  kind);
 
+#if RECORD_HIDDEN_NAMES_IN_IL
 extern a_hidden_name_ptr alloc_hidden_name(void);
+#endif /* RECORD_HIDDEN_NAMES_IN_IL */
 
 extern a_pragma_ptr alloc_pragma(a_pragma_kind  kind);
 
