@@ -1304,6 +1304,7 @@ Initialize a dynamic_init entry of the kind specified.
   dip->included_in_slice = FALSE;
 #endif /* ONE_INSTANTIATION_PER_OBJECT && DO_IL_LOWERING */
   dip->is_explicit_cast = FALSE;
+  dip->is_partially_initialized_compound_literal = FALSE;
 #if CHECKING
   dip->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */

@@ -360,7 +360,7 @@ is assumed to be lowered already.
 }  /* make_runtime_rout_call */
 
 
-static void turn_statement_into_noop(a_statement_ptr statement)
+void turn_statement_into_noop(a_statement_ptr statement)
 /*
 Convert the indicated statement into a no-op.
 */
@@ -3673,7 +3673,8 @@ initialization that should be kept.  If this feature is not needed,
 constant_to_keep can be passed in as NULL.
 
 When Microsoft extensions are allowed, this routine is called in C mode to
-lower initialization for nonconstant aggregates.
+lower initialization for nonconstant aggregates.  It's also called in
+C99 mode for the same reason.
 */
 {
   an_expr_node_ptr   entity_node, source_node;
@@ -3935,7 +3936,15 @@ lower initialization for nonconstant aggregates.
       break;
     case dik_constant:
       /* Assign a constant to the entity to be initialized. */
-      lower_constant(dip->variant.constant);
+      if (C_mode()) {
+        if (c99_mode) {
+          /* When lowering C99 code, use the C99 lowering routines. */
+          lower_c99_constant(dip->variant.constant);
+        }  /* if */
+      } else {
+        /* C++ mode. */
+        lower_constant(dip->variant.constant);
+      }  /* if */
       /* If there is a whole variable of the right kind, this dynamic
          initialization can be rendered as a static initialization. */
       if (do_simple_constant_init_opt) {
@@ -3949,13 +3958,24 @@ lower initialization for nonconstant aggregates.
       /* Assign an expression to the entity to be initialized. */
       /* Lower the source expression. */
       source_node = dip->variant.expression;
-      /* It's an lvalue if the thing being initialized is a reference. */
-      expr_is_lvalue = is_reference_type(type_from_init_pos_descr(ipdp));
-      if ((options & LDIO_FULL_EXPR) && init_expr_lifetime == NULL) {
-        lower_full_expr(source_node, expr_is_lvalue, (a_statement_ptr)NULL);
+      if (C_mode()) {
+        if (c99_mode) {
+          /* When lowering C99 code, use the C99 lowering routines. */
+          if (options & LDIO_FULL_EXPR) {
+            lower_c99_full_expr(source_node);
+          } else {
+            lower_c99_expr(source_node);
+          }  /* if */
+        }  /* if */
       } else {
-        /* Normal case: not a full expression. */
-        lower_expr(source_node, expr_is_lvalue);
+        /* It's an lvalue if the thing being initialized is a reference. */
+        expr_is_lvalue = is_reference_type(type_from_init_pos_descr(ipdp));
+        if ((options & LDIO_FULL_EXPR) && init_expr_lifetime == NULL) {
+          lower_full_expr(source_node, expr_is_lvalue, (a_statement_ptr)NULL);
+        } else {
+          /* Normal case: not a full expression. */
+          lower_expr(source_node, expr_is_lvalue);
+        }  /* if */
       }  /* if */
 do_assignment:;
       check_assertion_str(!ipdp->array_element_sequence,

@@ -80,9 +80,6 @@ typedef struct an_aggregate_init_info {
                 designation_state;
                         /* Have we just collected a partial or complete
                            designation? */
-  a_boolean compound_literal;
-			/* TRUE if and only if the initializer is scanned for
-			   a compound literal construct. */
 } an_aggregate_init_info;
 
 
@@ -99,7 +96,6 @@ Initialize an entry of type an_aggregrate_init_info.
   init_info->init_end_position = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   init_info->designation_state = ds_no_designation;
-  init_info->compound_literal = FALSE;
 }  /* initialize_init_info */
 
 
@@ -1328,7 +1324,7 @@ found, context->repeat is set to a newly created ck_init_repeat constant.
 static a_boolean scan_field_init_designator(a_type_ptr   dest_type,
                                             a_field_ptr  *field)
 /*
-C language extension (C9X):
+C language extension (C99):
    typedef struct X { int a, b, c; } X;
    struct Y { X p, q, r; } y = { .p = { 12, 13, 14 }, .q.b = 42 };
 Some compilers also accept the following extended form:
@@ -1609,11 +1605,11 @@ subaggregate. The function returns a pointer to IL a_constant entity.
     a_type_ptr  required_type = context->type;
     if (!C_mode()) {
       nonconst_allowed = TRUE;
-    } else if (microsoft_mode) {
-      /* A Microsoft extension permits a nonconstant initializer in the
-         aggregate initialization of an automatic variable. */
-      nonconst_allowed = !(init_info->static_lifetime ||
-                           init_info->compound_literal);
+    } else if (c99_mode || microsoft_mode) {
+      /* A C99 feature and Microsoft extension permits a nonconstant
+         initializer in the aggregate initialization of an automatic
+         variable in C mode. */
+      nonconst_allowed = !init_info->static_lifetime;
     } else {
       nonconst_allowed = FALSE;
     }  /* if */
@@ -2118,7 +2114,7 @@ void scan_compound_literal_initializer(a_type_ptr         *type,
                                        a_boolean          is_static,
                                        a_dynamic_init_ptr *dip)
 /*
-Scan the brace-enclosed part of a C9X compound literal.  Such literals are of
+Scan the brace-enclosed part of a C99 compound literal.  Such literals are of
 the form (type){initializer} or (type){initializer,}.  The type provided in
 parentheses is passed to this function through parameter *type; if this type
 is incomplete, the complete type should be deduced from the initializer and
@@ -2126,8 +2122,8 @@ is incomplete, the complete type should be deduced from the initializer and
 the literal appears outside a function body (in which case it has static
 storage duration) or inside a function body (in which case it is automatic and
 hence is_static is passed as FALSE).  A dynamic init entry is created by this
-function and a pointer to it is returned through dip.
-The caller is responsible to ensure that the current token is a brace, and the
+function and a pointer to it is returned through dip.  The caller is
+responsible for ensuring that the current token is a brace, and the
 function get_initializer does all the hard work.
 */
 {
@@ -2137,7 +2133,6 @@ function get_initializer does all the hard work.
 
   check_assertion(C_mode() && (curr_token == tok_lbrace));
   initialize_init_info(&info, is_static);
-  info.compound_literal = TRUE;
   compound_constant = get_initializer(type, &info,
                                       (an_aggregate_init_context_ptr)NULL,
                                       &no_token_consumed,
@@ -2164,6 +2159,9 @@ function get_initializer does all the hard work.
                                        (a_constant_repr_kind)ck_dynamic_init);
       *dip = compound_constant->variant.dynamic_init;
     }  /* if */
+  }  /* if */
+  if (info.any_uninitialized_member) {
+    (*dip)->is_partially_initialized_compound_literal = TRUE;
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   /* Record the position of the closing brace. */
@@ -3005,6 +3003,8 @@ returned set to TRUE.
          IL representation for this involves a dik_nonconstant_aggregate
          dynamic init entry.  Normally, such entries only appear in unlowered
          C++ IL.  Lower it to C if configured that way. */
+      /* Note that the equivalent C99 feature is not lowered here; that's
+         done in the normal C99 lowering phase. */
       if (microsoft_mode && C_mode() &&
           init_dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
         lower_microsoft_C_mode_nonconstant_aggregate_init(vp, init_stmt);

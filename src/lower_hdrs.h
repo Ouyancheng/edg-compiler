@@ -22,6 +22,9 @@ lower_hdrs.h -- Inclusion of header files used by files involved in IL
 #if MINIMAL_INLINING
 #include "inline.h"
 #endif /* MINIMAL_INLINING */
+#if DO_C99_IL_LOWERING
+#include "lower_c99.h"
+#endif /* DO_C99_IL_LOWERING */
 #include "pch.h"
 				   
 /******************************************************************************

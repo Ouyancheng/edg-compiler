@@ -56,6 +56,8 @@ extern an_expr_node_ptr make_runtime_rout_call(char             *name,
                                                a_type_ptr       return_type,
                                                an_expr_node_ptr arg_expr_list);
 
+extern void turn_statement_into_noop(a_statement_ptr statement);
+
 extern an_expr_node_ptr zero_cast_to_void(void);
 
 extern void set_var_init_pos_descr(a_variable_ptr        var,

@@ -24,6 +24,12 @@ lower_c99.h -- Declarations related to lower_c99.c.
 #define c99_il_lowering_needed()                                             \
   (c99_mode && !suppress_il_lowering && total_errors == 0)
 
+extern void lower_c99_constant(a_constant_ptr constant);
+
+extern void lower_c99_expr(an_expr_node_ptr expr);
+
+extern void lower_c99_full_expr(an_expr_node_ptr expr);
+
 extern void lower_c99_il_memory_region(a_scope_ptr scope);
 
 extern void lower_c99_one_time_init(void);

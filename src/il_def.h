@@ -1494,6 +1494,10 @@ typedef struct a_dynamic_init {
   a_bit_field	is_explicit_cast:1;
 			/* If TRUE, the source construct that generated
 			   this initialization is an explicit cast. */
+  a_bit_field	is_partially_initialized_compound_literal:1;
+			/* If TRUE, the source construct is a compound
+			   literal (C99) and the entity was not fully
+			   initialized by the initializer. */
   bitfield_to_avoid_codecenter_warnings()
   union {
     /* When kind == dik_none or dik_zero: no variant fields. */
@@ -5559,7 +5563,7 @@ enum an_expr_node_kind_tag {
   enk_field,            /* Used in an eok_field, eok_value_field, etc.
                            operation to indicate the field. */
   enk_temp_init,	/* Initialization of a temporary within an
-			   expression.  C++ only.  Used in C for C9X
+			   expression.  C++ only.  Used in C for C99
 			   compound literals. */
   enk_new_delete,	/* C++ "new" or "delete". */
   enk_throw,		/* C++ throw expression. */
@@ -6348,7 +6352,7 @@ typedef struct an_expr_node {
                            to an eok_field or eok_value_field operation
                            (or the similar bit-field operators). */
     /* When kind == enk_temp_init: */
-    /* C++ only, but used in C for C9X compound literals. */
+    /* C++ only, but used in C for C99 compound literals. */
     struct {
       a_bit_field
 		result_is_addr:1;

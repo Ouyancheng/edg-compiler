@@ -31,22 +31,15 @@ lower_c99.c -- Routines to transform C99 IL constructs into constructs
 /* Header files used by files involved in IL lowering. */
 #include "lower_hdrs.h"
 /* Additional header files. */
-#include "lower_c99.h"
 #include "exprutil.h"
 #if MAINTAIN_NEEDED_FLAGS
 #include "il_walk.h"
 #endif /* MAINTAIN_NEEDED_FLAGS */
 
 /* Forward declarations (needed because of mutual recursion situations). */
-static void lower_c99_dynamic_init(a_dynamic_init_ptr dip);
 static void lower_c99_constant_list(a_constant_ptr constant_list);
 static void lower_c99_statement(a_statement_ptr statement);
 static void lower_c99_cast(an_expr_node_ptr expr);
-static void lower_c99_expr_full(an_expr_node_ptr  expr,
-                                a_statement_ptr   statement);
-
-/* Macro interface to lower_c99_expr_full for the normal case. */
-#define lower_c99_expr(expr) lower_c99_expr_full(expr, (a_statement_ptr)NULL)
 
 /* Pointers to lowered versions of complex types, once allocated. */
 static a_type_ptr lowered_complex_float = NULL;
@@ -895,7 +888,7 @@ allocated in file scope, the lowered structure must also be placed there.)
 }  /* lower_c99_complex_constant */
 
 
-static void lower_c99_constant(a_constant_ptr  constant)
+void lower_c99_constant(a_constant_ptr  constant)
 /*
 If the given constant contains C99-specific constructs (like _Complex values),
 replace them by a representation compatible with C89.
@@ -929,9 +922,6 @@ replace them by a representation compatible with C89.
           unexpected_condition_str("Bad c99 address const kind");
       }  /* switch */
       break;
-    case ck_dynamic_init:
-      lower_c99_dynamic_init(constant->variant.dynamic_init);
-      break;
     case ck_init_repeat:
       lower_c99_constant(constant->variant.init_repeat.constant);
       break;
@@ -945,6 +935,7 @@ replace them by a representation compatible with C89.
     case ck_string:
       /* Nothing to be done. */
       break;
+    case ck_dynamic_init:  /* Not expected here. */
     default:
       unexpected_condition_str("Invalid C99 constant");
       break;
@@ -954,7 +945,8 @@ replace them by a representation compatible with C89.
 
 static void lower_c99_constant_expr(an_expr_node_ptr  expr)
 /*
-Transform the given expression to remove certain C99-specific constructs.
+Transform the given enk_constant expression to remove certain C99-specific
+constructs.
 */
 {
   if (is_imaginary_type(expr->type)) {
@@ -983,13 +975,78 @@ Transform the given expression to remove certain C99-specific constructs.
 }  /* lower_c99_constant_expr */
 
 
-static void lower_c99_temp_init(an_expr_node_ptr  expr)
+static void lower_c99_temp_init(an_expr_node_ptr expr)
 /*
-Transform the given enk_temp_init expression to remove certain C99-specific
-constructs.
+Lower the given enk_temp_init expression.  An enk_temp_init is used
+in C99 mode to represent a compound literal.
 */
 {
-  lower_c99_dynamic_init(expr->variant.init.dynamic_init);
+  a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
+  a_variable_ptr     var;
+  a_type_ptr         temp_type;
+  a_boolean          result_is_addr;
+  an_insert_location insert_location;
+  an_init_pos_descr  ipd;
+  a_boolean          keep_dynamic_init;
+
+  /* This routine is similar to lower_temp_init. */
+  /* The compound literal is rewritten to use a temporary.  The temporary
+     is initialized to the constant part of the aggregate, and code is
+     generated for any non-constant parts. */
+  /* Determine the type of the temporary. */
+  temp_type = expr->type;
+  result_is_addr = expr->variant.init.result_is_addr;
+  if (result_is_addr) {
+    /* The value of the enk_temp_init node is the address of the
+       temporary, so drop the pointer-to to get the temporary type. */
+    temp_type = type_pointed_to(temp_type);
+  }  /* if */
+  /* Create the temporary variable.  Note that compound literals created
+     outside of functions do not use enk_temp_init so they are not
+     seen here (the front end creates an initialized static variable
+     for them). */
+  dip->variable = var = make_local_temporary(temp_type);
+  if (dip->is_partially_initialized_compound_literal) {
+    var->is_partially_initialized = TRUE;
+  }  /* if */
+  /* Change the enk_temp_init to a reference to the value or address
+     of the temporary. */
+  if (result_is_addr) {
+    set_expr_node_kind(expr, (an_expr_node_kind)enk_variable_address);
+    /* The address of the temporary escapes (or might escape) into the
+       surrounding context, so set its address_taken flag. */
+    set_variable_address_taken(var);
+  } else {
+    set_expr_node_kind(expr, (an_expr_node_kind)enk_variable);
+  }  /* if */
+  expr->variant.variable = var;
+  /* Set the insert point preceding the (modified) original expression. */
+  set_expr_insert_location(expr, &insert_location);
+  set_var_init_pos_descr(var, &ipd);
+  /* Lower the initialization. */
+  lower_dynamic_init(dip, &ipd,
+                     (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
+                     (a_constructor_init_ptr)NULL, LDIO_NONE,
+                     /*others_follow_in_aggr=*/FALSE,
+                     &insert_location,
+                     &keep_dynamic_init,
+                     (a_constant **)NULL);
+
+  if (keep_dynamic_init) {
+    /* Add an stmk_init statement for the constant part of the temporary
+       initialization. */
+    a_statement_ptr stmk_init_stmt =
+                                  alloc_statement((a_statement_kind)stmk_init);
+    stmk_init_stmt->variant.dynamic_init = dip;
+    /* Insert the stmk_init statement at the beginning of the current
+       block. */
+    check_assertion(curr_context->scope != NULL);
+    set_block_start_insert_location(curr_context->scope->assoc_block,
+                                    &insert_location);
+    insert_statement(stmk_init_stmt, &insert_location);
+    var->init_kind = (an_init_kind)initk_dynamic;
+    var->initializer.dynamic = dip;
+  }  /* if */
 }  /* lower_c99_temp_init */
 
 
@@ -1001,7 +1058,8 @@ static void lower_c99_expr_full(an_expr_node_ptr  expr,
 /*
 Transform the given expression to remove certain C99-specific constructs.
 If statement is non-NULL, expr is the expression of the expression
-statement statement.
+statement "statement".  See lower_c99_expr for an interface without the
+second parameter.
 */
 {
   an_expr_node_ptr  operand;
@@ -1047,6 +1105,15 @@ statement statement.
 }  /* lower_c99_expr_full */
 
 
+void lower_c99_expr(an_expr_node_ptr expr)
+/*
+Do C99 lowering on the indicated expression.
+*/
+{
+  lower_c99_expr_full(expr, (a_statement_ptr)NULL);
+}  /* lower_c99_expr */
+
+
 static void end_of_c99_full_expr(void)
 /*
 Do end-of-full-expression processing for C99 lowering.
@@ -1057,7 +1124,7 @@ Do end-of-full-expression processing for C99 lowering.
 }  /* end_of_c99_full_expr */
 
 
-static void lower_c99_full_expr(an_expr_node_ptr expr)
+void lower_c99_full_expr(an_expr_node_ptr expr)
 /*
 Do C99 lowering on the indicated full expression.  A full expression is
 one not contained inside another expression.
@@ -1068,25 +1135,53 @@ one not contained inside another expression.
 }  /* lower_c99_full_expr */
 
 
-static void lower_c99_dynamic_init(a_dynamic_init_ptr dip)
+static void lower_c99_stmk_init(a_statement_ptr statement)
 /*
-Do C99 lowering on the indicated dynamic initialization entry.
+Do C99 lowering on the indicated stmk_init statement.
 */
 {
+  a_dynamic_init_ptr dip = statement->variant.dynamic_init;
+
+  /* This routine is similar to lower_stmk_init. */
   switch (dip->kind) {
     case dik_constant:
+      /* A case that's valid in C89.  Lower the subtree but leave the
+         stmk_init statement. */
       lower_c99_constant(dip->variant.constant);
       break;
     case dik_expression:
-      lower_c99_expr(dip->variant.expression);
-      /* Do end-of-full-expression processing if this initialization is
-         at the top level. */
-      if (dip->variable != NULL) end_of_c99_full_expr();
+      /* A case that's valid in C89.  Lower the subtree but leave the
+         stmk_init statement. */
+      lower_c99_full_expr(dip->variant.expression);
+      break;
+    case dik_nonconstant_aggregate:
+      /* An aggregate containing some non-constant parts. */
+      /* This is not valid in C89, so convert the nonconstant parts to
+         executable code. */
+      { an_insert_location insert_location;
+        a_boolean          keep_dynamic_init;
+        an_init_pos_descr  ipd;
+        a_variable_ptr     var = dip->variable;
+
+        check_assertion(var != NULL);
+        set_insert_location(statement, &insert_location);
+        set_var_init_pos_descr(var, &ipd);
+        lower_dynamic_init(dip, &ipd,
+                           (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
+                           (a_constructor_init_ptr)NULL, LDIO_FULL_EXPR,
+                           /*others_follow_in_aggr=*/FALSE,
+                           &insert_location, &keep_dynamic_init,
+                           (a_constant **)NULL);
+        if (!keep_dynamic_init) {
+          /* Delete the stmk_init statement. */
+          turn_statement_into_noop(statement);
+        }  /* if */
+      }
       break;
     default:
-      unexpected_condition_str("lower_c99_dynamic_init: bad kind");
+      unexpected_condition_str("lower_c99_stmk_init: bad kind");
   }  /* switch */
-}  /* lower_c99_dynamic_init */
+}  /* lower_c99_stmk_init */
 
 
 static void lower_c99_constant_list(a_constant_ptr constant_list)
@@ -1143,7 +1238,6 @@ Do C99 lowering on the indicated statement.
     case stmk_goto:
     case stmk_label:
     case stmk_return:
-    case stmk_init:
     case stmk_asm:
 #if ASM_FUNCTION_ALLOWED
     case stmk_asm_func_body:
@@ -1203,6 +1297,9 @@ Do C99 lowering on the indicated statement.
       }
       lower_c99_statement(statement->variant.switch_stmt.body_statement);
       break;
+    case stmk_init:
+      lower_c99_stmk_init(statement);
+      break;
     default:
       unexpected_condition_str("lower_c99_statement: bad statement kind");
   }  /* switch */
@@ -1210,8 +1307,8 @@ Do C99 lowering on the indicated statement.
 }  /* lower_c99_statement */
 
 
-static void lower_c99_initializer(an_init_kind   init_kind,
-                                  an_initializer *initializer)
+static void lower_c99_initializer(an_init_kind    init_kind,
+                                  an_initializer  *initializer)
 /*
 Do C99 lowering for an initializer (e.g., from a variable).  init_kind
 indicates the kind of initialization, and *initializer provides the details.
@@ -1224,7 +1321,7 @@ indicates the kind of initialization, and *initializer provides the details.
       break;
     case initk_dynamic:
       /* The initializer is dynamic. */
-      lower_c99_dynamic_init(initializer->dynamic);
+      /* That's handled when the stmk_init statement comes up. */
       break;
     case initk_function_local:
       /* Local static variable inits are handled at the scope level. */
