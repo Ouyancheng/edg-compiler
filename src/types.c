@@ -1341,7 +1341,8 @@ pointers to related class types, and return TRUE if so.  If they are,
 set *baseward_cast if type_1 --> type_2 is a baseward cast, and set *bcp
 to point to the base class entry that shows the relationship.  Note that
 the member types are not compared.  Called from the macro
-related_member_pointers.
+related_member_pointers.  Note that this DOES NOT test that the underlying
+member types are the same.
 */
 {
   a_boolean  related_pointers = FALSE;
@@ -4019,6 +4020,7 @@ removed from the types.
   a_std_conv_descr impl_std_conv;
   a_base_class_ptr bcp;
   a_type_ptr       source_type_pointed_to, dest_type_pointed_to;
+  a_boolean        qualifiers_added;
 
   if (related_class_pointers(source_type, dest_type, &baseward_cast, &bcp) &&
       !baseward_cast) {
@@ -4033,9 +4035,14 @@ removed from the types.
                                      &bcp) && baseward_cast) {
     /* A pointer to member of a derived class can be cast to a pointer to
        member of a base class if no qualifiers are dropped. */
-    related_class_case = TRUE;
     source_type_pointed_to = pm_member_type(source_type);
     dest_type_pointed_to = pm_member_type(dest_type);
+    if (member_types_correspond(dest_type_pointed_to,
+                                source_type_pointed_to,
+                                /*check_as_operands_not_conversion=*/FALSE,
+                                &qualifiers_added)) {
+      related_class_case = TRUE;
+    }  /* if */
   }  /* if */
   if (related_class_case) {
     /* For pointer and pointer to member related class cases, check that
