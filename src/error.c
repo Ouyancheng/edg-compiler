@@ -1314,10 +1314,10 @@ error code.
     case ec_nested_class_anachronism:
       m = "using nested class \"%s\" (anachronism)";
       break;
-    case ec_too_many_args_for_destructor:
+    case ec_too_many_params_for_destructor:
       m = "a destructor may not have parameters";
       break;
-    case ec_bad_constructor_arg:
+    case ec_bad_constructor_param:
       m =
       "a constructor parameter may not have the type of the constructed class";
       break;
@@ -1906,6 +1906,17 @@ Report the indicated remark at the indicated position.
 {
   pos_st_remark(error_code, error_pos, (char *)NULL);
 }  /* pos_remark */
+
+
+void str_remark(an_error_code error_code,
+                char          *error_string)
+/*
+Report the indicated remark (with the indicated fill-in string) at the
+position indicated by error_position.
+*/
+{
+  pos_st_remark(error_code, &error_position, error_string);
+}  /* str_remark */
 
 
 void remark(an_error_code error_code)
