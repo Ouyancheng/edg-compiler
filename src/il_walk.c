@@ -18,15 +18,16 @@ il_walk.c -- Routines to walk the intermediate language tree.
 #include "host_envir.h"
 
 #if IL_WALK_NEEDED
+
+#if !ORPHAN_PROCESSING_NEEDED
+??=error -- ORPHAN_PROCESSING_NEEDED must be set if IL walking is needed.
+#endif /* !ORPHAN_PROCESSING_NEEDED */
+
 #include "lang_feat.h"
 #include "il_walk.h"
 #include "il.h"
 #include "error.h"
 #include "mem_manage.h"
-
-#if ALTERNATE_IL_FILE_FORMAT
-#include "il_file.h"
-#endif /* ALTERNATE_IL_FILE_FORMAT */
 
 
 static an_entry_process_function_ptr
@@ -51,14 +52,10 @@ static a_boolean
 		walking_file_scope;
 			/* TRUE if walking the file-scope IL, FALSE if
 			   walking the IL for a function scope. */
-#define NOT_SET_YET (-1)
-static int	flag_value_meaning_visited = NOT_SET_YET;
+static int	flag_value_meaning_visited;
 			/* Value to be placed in the il_walk_flag field
 			   to indicate that an entry has been visited.
-			   The value alternates between 0 and 1.  NOT_SET_YET
-			   (-1) means the value has not been set yet for the
-			   current walk. */
-
+			   The value alternates between 0 and 1. */
 typedef char	*a_char_ptr;
 			/* Useful to indicate "char *" as a type in calling
 			   remap_ptr or walk_ptr. */
@@ -79,8 +76,8 @@ pointed to.
 #define remap_ptr(ptr, ptr_type, entry_kind) \
 { if (remap_func != NULL) { \
     (ptr) = (ptr_type)remap_func((char *)(ptr), (entry_kind)); \
-  } \
-}
+  }  /* if */ \
+}  /* remap_ptr */
 
 /*
 Like remap_ptr, but used for "next" pointers in entries.  These are
@@ -128,7 +125,6 @@ processed; if not, ptr is remapped but the list is not traversed.
   }  /* if */ \
 }  /* walk_list */
 
-#if ORPHAN_PROCESSING_NEEDED
 /*
 Macro to remap an orphan IL entry pointer from an "old" value to a "new"
 value.  This macro is similar to remap_ptr, but all pointers are processed
@@ -138,8 +134,8 @@ pointed to.
 #define remap_orphan_ptr(ptr, entry_kind) \
 { if (remap_func != NULL) { \
     (ptr) = (char *)remap_func((char *)(ptr), (entry_kind)); \
-  } \
-}
+  }  /* if */ \
+}  /* remap_orphan_ptr */
 
 /*
 Process a list of identical type orphaned file scope IL entries linked
@@ -155,7 +151,6 @@ ptr_type is the type of the pointer and entry_kind is the kind of entries.
     walk_ptr((*orph_ptr), ptr_type, entry_kind) \
   }  /* for */ \
 }  /* walk_orphan_entry_list */
-#endif /* ORPHAN_PROCESSING_NEEDED */
 
 /*
 Process the source correspondence field pointed to by ptr.
@@ -477,116 +472,21 @@ and the entry pointer is to an entry in the file scope, just return
       /* If we are walking through a function scope, and the entry here is
          in the file scope, just return. */
       if (!walking_file_scope && in_file_scope(entry_ptr)) {
-#if ORPHAN_PROCESSING_NEEDED
-        /* Add non-string file scope IL entries referenced at a
+        /* Add non-string file scope IL entries referenced from a
            function scope to the orphaned IL entries lists. */
-        if (!is_string_entry_kind(entry_kind)) {
-          add_orphaned_file_scope_il_entry(entry_ptr, entry_kind);
-        }
-#endif /* ORPHAN_PROCESSING_NEEDED */
+        add_orphaned_file_scope_il_entry(entry_ptr, entry_kind);
         goto end_of_routine;
       }  /* if */
       /* See if this entry has been reached already, and if so, don't process
          it or its subtree.  This is indicated by the il_walk_flag field of the
-         source_correspondence entry, for those entries that have one.  Note
-         that only the declarative entries have potential recursion, so it's
-         only there that this trick is necessary.  For other entries, only
-         pointers "down" are visited, and that ensures that each entry is
-         only visited once.  One exception -- param_type entries are shared,
-         and they have an explicit il_walk_flag field. */
-      switch (entry_kind) {
-        case iek_constant:
-        case iek_type:
-        case iek_variable:
-#ifdef CFE
-        case iek_field:
-        case iek_asm_entry:
-#endif /* ifdef CFE */
-        case iek_routine:
-        case iek_label:
-#ifdef FFE
-        case iek_namelist_group:
-#endif /* ifdef FFE */
-          /* Entry has a source correspondence field.  Check the il_walk_flag
-             to see if the entry has already been visited.  If not, set the
-             flag and process the entry.  If this is the first entry visited,
-             the current value of the flag is complemented to give the value
-             to be used on this walk. */
-          if (flag_value_meaning_visited == NOT_SET_YET) {
-            flag_value_meaning_visited = !((a_constant_ptr)entry_ptr)->
-                                                   source_corresp.il_walk_flag;
-          } else if (((a_constant_ptr)entry_ptr)->source_corresp.il_walk_flag==
-                     flag_value_meaning_visited) {
-            /* Entry has already been visited. */
-            goto end_of_routine;
-          }  /* if */
-          /* Set the flag to indicate that this entry has been visited. */
-          ((a_constant_ptr)entry_ptr)->source_corresp.il_walk_flag =
-                                                    flag_value_meaning_visited;
-          break;
-        case iek_param_type:
-          /* param_type entry has an explicit il_walk_flag because several
-             routine types can share the same param_type list.  Code is like
-             the case above, except that we will have reached a type entry
-             before getting here, so we need not check for the NOT_SET_YET
-             case. */
-          if (((a_param_type_ptr)entry_ptr)->il_walk_flag ==
-              flag_value_meaning_visited) {
-            /* Entry has already been visited. */
-            goto end_of_routine;
-          }  /* if */
-          /* Set the flag to indicate that this entry has been visited. */
-          ((a_param_type_ptr)entry_ptr)->il_walk_flag =
-                                                    flag_value_meaning_visited;
-          break;
-        case iek_source_file:
-        case iek_routine_type_supplement:
-        case iek_based_type_list_member:
-        case iek_expr_node:
-#ifdef CFE
-        case iek_switch_clause:
-#endif /* ifdef CFE */
-        case iek_block:
-        case iek_statement:
-        case iek_scope:
-#ifdef FFE
-        case iek_internal_complex_value:
-        case iek_bound_info_entry:
-        case iek_do_loop:
-        case iek_label_list_entry:
-        case iek_io_specifier:
-        case iek_io_list_item:
-        case iek_namelist_group_member:
-        case iek_input_output_description:
-        case iek_entry_param:
-        case iek_entry_description:
-#endif /* ifdef FFE */
-#ifdef CFE
-        case iek_dynamic_init:
-        case iek_access_adjustment:
-        case iek_overriding_virtual_function:
-        case iek_derivation_step:
-        case iek_base_class:
-        case iek_class_list_entry:
-        case iek_class_type_supplement:
-        case iek_constructor_init:
-        case iek_template_arg:
-        case iek_new_delete_supplement:
-        case iek_orphaned_il_list:
-#endif /* ifdef CFE */
-          /* These entries do not have an il_walk_flag. */
-          break;
-#if CHECKING
-        case iek_id_name:
-        case iek_string_text:
-        case iek_other_text:
-          /* String entries should go to walk_string_entry. */
-        case iek_none:
-        case iek_last:
-        default:
-          internal_error("walk_entry_and_subtree: bad entry kind (1)");
-#endif /* CHECKING */
-      }  /* switch */
+         entry prefix. */
+      if (il_entry_prefix_of(entry_ptr).il_walk_flag ==
+                                                  flag_value_meaning_visited) {
+        /* Entry has already been visited. */
+        goto end_of_routine;
+      }  /* if */
+      /* Set the flag to indicate that this entry has been visited. */
+      il_entry_prefix_of(entry_ptr).il_walk_flag = flag_value_meaning_visited;
     }  /* if */
 #if DEBUG
     if (debug_level >= 5) {
@@ -1356,17 +1256,15 @@ and the entry pointer is to an entry in the file scope, just return
         }
         break;
 #endif /* ifdef CIL */
-#if ORPHAN_PROCESSING_NEEDED
       case iek_orphaned_il_list:
         {
           an_orphaned_il_list_ptr ptr = (an_orphaned_il_list_ptr)entry_ptr;
-	  remap_ptr(ptr->orphaned_types, a_type_ptr, iek_type);
-	  remap_ptr(ptr->orphaned_variables, a_variable_ptr, iek_variable);
           remap_next_ptr(ptr->next, an_orphaned_il_list_ptr,
                          iek_orphaned_il_list);
+	  walk_list(ptr->orphaned_types, a_type_ptr, iek_type);
+	  walk_list(ptr->orphaned_variables, a_variable_ptr, iek_variable);
           break;
         }
-#endif /* ORPHAN_PROCESSING_NEEDED */
 #if CHECKING
       case iek_id_name:
       case iek_string_text:
@@ -1395,10 +1293,8 @@ If entry_ptr is NULL, do nothing.  This routine should be called only for
 string entries.  This routine should be called by way of the macro
 walk_string_ptr.  Note that the entry is processed even if it is in the
 file scope and a function scope is being traversed.  This is because
-there's no way to link string entries into a scope other than by pointing
-to them in the normal way, so string entries are considered honorary
-members of the scope from which they are referenced for purposes of tree
-walking.
+string entries are considered honorary members of the scope from which
+they are referenced for purposes of tree walking.
 */
 {
   /* Ignore NULL pointers. */
@@ -1425,7 +1321,6 @@ walking.
   }  /* if */
 }  /* walk_string_entry */
 
-#if ORPHAN_PROCESSING_NEEDED
 
 /*
 Local macro to ease stepping through the orphaned_file_scopes_il_entries
@@ -1514,9 +1409,6 @@ of each kind.
   db_exit();
 }  /* walk_orphaned_file_scope_il_entries */
 
-#undef walk_orphan_list_first
-
-#endif /* ORPHAN_PROCESSING_NEEDED */
 
 void walk_file_scope_il(
              an_entry_process_function_ptr       entry_process_function,
@@ -1547,7 +1439,8 @@ That is what the remap function does.
   remap_func = remap_function;
   walk_subtree = TRUE;
   walking_file_scope = TRUE;
-  flag_value_meaning_visited = NOT_SET_YET;
+  flag_value_meaning_visited =
+                     !il_entry_prefix_of(il_header.primary_scope).il_walk_flag;
 #ifdef FFE
   array_bound_walk_index = 0;
 #endif /* ifdef FFE */
@@ -1560,8 +1453,6 @@ That is what the remap function does.
   walk_string_ptr(il_header.compiler_version, iek_other_text, 0);
   walk_string_ptr(il_header.time_of_compilation, iek_other_text, 0);
   /* region_scope_entry should not be walked. */
-
-#if ORPHAN_PROCESSING_NEEDED
   /* Walk through the orphaned_il_entry_list IL entries that are only
      referenced in "il_header". */
   walk_list(il_header.orphaned_il_list, an_orphaned_il_list_ptr,
@@ -1569,7 +1460,6 @@ That is what the remap function does.
   /* Walk through the orphaned IL entries referenced from 
      function scopes, but in the file scope memory region. */
   walk_orphaned_file_scope_il_entries();
-#endif /* ORPHAN_PROCESSING_NEEDED */
   db_exit();
 }  /* walk_file_scope_il */
 
@@ -1599,6 +1489,7 @@ can be NULL to indicate that the corresponding function is unnecessary.
                                            walking_file_scope;
   int                                 prev_flag_value_meaning_visited =
                                            flag_value_meaning_visited;
+  a_scope_ptr                         scope;
 
   db_enter(4, "walk_routine_scope_il");
   /* Save the function pointers so they don't have to be passed around. */
@@ -1608,14 +1499,14 @@ can be NULL to indicate that the corresponding function is unnecessary.
   walk_subtree = TRUE;
   /* Walking a routine scope, not the file scope. */
   walking_file_scope = FALSE;
-  flag_value_meaning_visited = NOT_SET_YET;
+  scope = il_header.region_scope_entry[region_number];
+  flag_value_meaning_visited = !il_entry_prefix_of(scope).il_walk_flag;
 #ifdef FFE
   array_bound_walk_index = 0;
 #endif /* ifdef FFE */
 
   /* Process the scope and its subtree. */
-  walk_entry_and_subtree((char *)il_header.region_scope_entry[region_number],
-                         iek_scope);
+  walk_entry_and_subtree((char *)scope, iek_scope);
 
   /* Restore the previous values of the function pointers etc. */
   entry_process_func = prev_entry_process_func;
@@ -1677,17 +1568,14 @@ Remap the pointers in il_header by running them through remap_function.
   remap_ptr(il_header.main_routine, a_routine_ptr, iek_routine);
   remap_ptr(il_header.compiler_version, a_char_ptr, iek_other_text);
   remap_ptr(il_header.time_of_compilation, a_char_ptr, iek_other_text);
-#if ORPHAN_PROCESSING_NEEDED
   remap_ptr(il_header.orphaned_il_list, an_orphaned_il_list_ptr,
             iek_orphaned_il_list);
-#endif /* ORPHAN_PROCESSING_NEEDED */
   /* region_scope_entry should not be changed; it's not a pointer into
      IL memory in the usual way.  It's changed explicitly as needed. */
 
   remap_func = prev_remap_func;
 }  /* remap_il_header_pointers. */
 
-#if ORPHAN_PROCESSING_NEEDED
 
 /*
 Macros to facilitate remapping the pointers to IL entries in the orphaned
@@ -1710,10 +1598,6 @@ them through remap_function.
   a_remap_function_ptr prev_remap_func = remap_func;
 
   remap_func = remap_function;
-#if ALTERNATE_IL_FILE_FORMAT
-  /* For the alternate IL file format, the pointer to the first IL entry
-     of each type must be updated separately, since each linked list will
-     not be walked during IL reading. */
   remap_orphan_entry_first(iek_source_file);
   remap_orphan_entry_first(iek_constant);
   remap_orphan_entry_first(iek_param_type);
@@ -1735,7 +1619,7 @@ them through remap_function.
   remap_orphan_entry_first(iek_scope);
   /* The string types iek_id_name, iek_string_text, and iek_other_text
      are not maintained on an orphan list.  String types at the file
-     scope that are reference from a function scope are written in that
+     scope that are referenced from a function scope are written in that
      function scope region. */
 #ifdef FFE
   remap_orphan_entry_first(iek_internal_complex_value);
@@ -1763,7 +1647,6 @@ them through remap_function.
   remap_orphan_entry_first(iek_template_arg);
   remap_orphan_entry_first(iek_new_delete_supplement);
 #endif /* ifdef CFE */
-#endif /* ALTERNATE_IL_FILE_FORMAT */
 
   remap_orphan_entry_last(iek_source_file);
   remap_orphan_entry_last(iek_constant);
@@ -1786,7 +1669,7 @@ them through remap_function.
   remap_orphan_entry_last(iek_scope);
   /* The string types iek_id_name, iek_string_text, and iek_other_text
      are not maintained on an orphan list.  String types at the file
-     scope that are reference from a function scope are written in that
+     scope that are referenced from a function scope are written in that
      function scope region. */
 #ifdef FFE
   remap_orphan_entry_last(iek_internal_complex_value);
@@ -1821,54 +1704,6 @@ them through remap_function.
 
 #undef remap_orphan_entry_first
 #undef remap_orphan_entry_last
-
-#endif /* ORPHAN_PROCESSING_NEEDED */
-#if !ALTERNATE_IL_FILE_FORMAT
-#if ORPHAN_PROCESSING_NEEDED
-
-void remap_orphaned_il_list_next_pointers(a_remap_function_ptr remap_function)
-/*
-The lists of local types and local static variables at function scopes or
-block scopes within a function scope must have their "next" pointers
-remapped.  The remaining pointers in all orphaned file scope IL entries 
-would have been processed in walk_orphaned_file_scope_il_entries.
-il_header.orphaned_il_list points to the first set of orphaned file scope il
-entry lists for some local block.
-*/
-{
-  an_orphaned_il_list_ptr   oil_ptr;
-  a_type_ptr                local_type;
-  a_variable_ptr            local_variable;
-  a_remap_function_ptr      prev_remap_func = remap_func;
-
-  remap_func = remap_function;
-
-  if (remap_function != NULL) {
-    for (oil_ptr = il_header.orphaned_il_list;
-         oil_ptr != NULL;
-         oil_ptr = oil_ptr->next) {
-
-      /* Process the next pointers in any types list. */
-      for (local_type = oil_ptr->orphaned_types;
-           local_type != NULL;
-           local_type = local_type->next) {
-        remap_ptr(local_type->next, a_type_ptr, iek_type);
-      }  /* for */
-      /* Process the next pointers in any variables list. */
-      for (local_variable = oil_ptr->orphaned_variables;
-           local_variable != NULL;
-           local_variable = local_variable->next) {
-        remap_ptr(local_variable->next, a_variable_ptr, iek_variable);
-      }  /* for */
-    }  /* for */
-  }  /* if */
-
-  /* Restore the previous value of the remap function pointer. */
-  remap_func = prev_remap_func;
-}  /* remap_orphaned_il_list_next_pointers */
- 
-#endif /* ORPHAN_PROCESSING_NEEDED */
-#endif /* !ALTERNATE_IL_FILE_FORMAT */
 
 char *retrieve_il_entry_kind_name(an_il_entry_kind entry_kind)
 /*
@@ -1941,10 +1776,8 @@ entry kind passed as an argument.
     case iek_new_delete_supplement:
                             s = "new-delete-supplement";   break;
 #endif /* ifdef CFE */
-#if ORPHAN_PROCESSING_NEEDED
     case iek_orphaned_il_list:
                             s = "orphaned-il-list";        break;
-#endif /* ORPHAN_PROCESSING_NEEDED */
     default:                s = "**BAD ENTRY KIND**";      break;
   }  /* switch */
   return s;
