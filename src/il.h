@@ -80,6 +80,11 @@ extern a_type_ptr make_pointer_type(a_type_ptr type_pointed_to);
 
 extern a_type_ptr make_reference_type(a_type_ptr type_pointed_to);
 
+extern a_type_ptr make_qualified_type(a_type_ptr old_type,
+                                      a_boolean  is_const,
+                                      a_boolean  is_volatile);
+extern a_type_ptr make_unqualified_type(a_type_ptr old_type);
+
 extern void switch_il_region(a_memory_region_number region_number);
 
 extern void new_il_region(void);
