@@ -338,7 +338,7 @@ of parent block, and the control flow entry itself.
     fputs("  ", f_debug);
   }  /* for */
   db_cfd(cfdp);
-}  /* db_object_lifetime_with_indentation */
+}  /* db_cfd_with_indentation */
 
 #endif /* DEBUG */
 
@@ -818,7 +818,7 @@ initializing declarations.
     check_assertion_str2(new_cfdp->variant.block.object_lifetime ==
                                       function_scope_object_lifetime,
                          "add_to_control_flow_descr_list:",
-                         "list should start with a block entry");
+                         "expected function scope object lifetime");
     /* Add this entry to the start of the list. */
     control_flow_descr_list = new_cfdp;
   } else {
@@ -856,7 +856,7 @@ initializing declarations.
           /* Go through the entries for unresolved gotos and "promote" their
              object_lifetime pointers to the parent of the object lifetime
              that is about to be popped from the object lifetime stack. */
-          olp = innermost_local_object_lifetime(olp->parent_lifetime);
+          olp = innermost_block_object_lifetime(olp->parent_lifetime);
           for (cfdp = prev_parent->next; cfdp != NULL; cfdp = cfdp->next) {
             if (cfdp->kind == (a_control_flow_descr_kind)cfdk_goto) {
               cfdp->variant.goto_statement.ptr->variant.label.lifetime = olp;
@@ -1772,8 +1772,8 @@ if the truth cannot be discovered, is FALSE.
 }  /* is_infinite_loop */
 
 
-static a_statement_ptr terminate_curr_block_object_lifetime(
-                                     a_struct_stmt_stack_entry_ptr  sssep)
+static void terminate_curr_block_object_lifetime(
+                                      a_struct_stmt_stack_entry_ptr  sssep)
 /*
 sssep represents a compound statement that either has completed or has an
 invalidated object lifetime because of the appearance of a label statement.
@@ -1793,7 +1793,7 @@ retained in the IL, bind it to an IL entity.
     /* olp is still unbound but it has a destructions list.  It will be
        retained in the IL, so it needs to be bound to an IL entry -- either a
        scope or a block. */
-    check_assertion_str2(olp == innermost_local_object_lifetime(
+    check_assertion_str2(olp == innermost_block_object_lifetime(
                                                         curr_object_lifetime),
                          "terminate_curr_block_object_lifetime:",
                          "not at top of lifetime stack");
@@ -1856,7 +1856,6 @@ retained in the IL, bind it to an IL entity.
                            (char *)block_stmt->variant.block.extra_info);
     }  /* if */
   }  /* if */
-  return NULL;
 }  /* terminate_curr_block_object_lifetime */
 
 
@@ -1880,11 +1879,11 @@ statement.
       sssep->label_invalidates_curr_block_object_lifetime) {
     /* Do any final processing required before eclipsing the previously
        active object lifetime with a new one. */
-    (void)terminate_curr_block_object_lifetime(sssep);
+    terminate_curr_block_object_lifetime(sssep);
     /* Push the object lifetime and set the struct-stmt-stack entry to point
        to it. */
     push_object_lifetime((an_il_entry_kind)iek_block, (char *)NULL,
-                         (an_object_lifetime_kind)olk_local);
+                         (an_object_lifetime_kind)olk_block);
     sssep->curr_block_object_lifetime = curr_object_lifetime;
     /* If it turns out that a destructible object is attached to this
        lifetime, it will need to be bound to a block statement.  Only then
@@ -1954,7 +1953,7 @@ a structured statement has ended.
        alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_end_of_block));
     /* This is the end of a compound statement.  Be sure the object lifetime
        is properly bound to an IL entry. */
-    (void)terminate_curr_block_object_lifetime(sssep);
+    terminate_curr_block_object_lifetime(sssep);
   }  /* if */
   /* Pop the stack. */
   depth_stmt_stack--;
@@ -2072,7 +2071,7 @@ being created to surround a dependent statement in C++.
          must also be destroyed therein. */
       block_stmt->dependent_statement = TRUE;
       push_object_lifetime(iek_block, (char *)block, 
-                           (an_object_lifetime_kind)olk_local);
+                           (an_object_lifetime_kind)olk_block);
       olp = curr_object_lifetime;
     }  /* if */
   }  /* if */
@@ -2449,7 +2448,7 @@ where handler-seq is a sequence of one or more handlers of the form
   if (!C_mode()) {
     /* Push an object lifetime. */
     push_object_lifetime(iek_try_supplement, (char *)sp->variant.try_block,
-                         (an_object_lifetime_kind)olk_local);
+                         (an_object_lifetime_kind)olk_block);
   }  /* if */
   current_routine_entry()->contains_try_block = TRUE;
 #if CHECKING
@@ -2716,7 +2715,7 @@ static an_object_lifetime_ptr innermost_keepable_lifetime(
                                             an_object_lifetime_ptr  olp)
 /*
 Starting from the object lifetime entry pointed to by olp, walk the object
-lifetime stack via parent pointers and return the first olk_local object
+lifetime stack via parent pointers and return the first olk_block object
 lifetime entry that will be retained in the IL because it has a non-NULL
 destructions pointer. If none is found before reaching the object lifetime
 for the function scope itself, return that one (even if its destructions
@@ -2724,7 +2723,7 @@ pointer is NULL).
 */
 {
   while (olp != function_scope_object_lifetime) {
-    if (olp->kind == (an_object_lifetime_kind)olk_local &&
+    if (olp->kind == (an_object_lifetime_kind)olk_block &&
         olp->destructions != NULL) break;
     olp = olp->parent_lifetime;
   }  /* while */
@@ -3060,7 +3059,7 @@ See also 3.6.6.1.
     /* Set the object lifetime.  It is a provisional setting and may be changed
        based on the lifetime of the label definition. */
     sp->variant.label.lifetime =
-                        innermost_local_object_lifetime(curr_object_lifetime);
+                        innermost_block_object_lifetime(curr_object_lifetime);
   }  /* if */
   /* If this is a forward reference to a label, record information about
      the goto to allow diagnosis of jump-over-initialization errors.  If
@@ -4019,7 +4018,7 @@ branching into it is disallowed).
     cannot_bind_to_curr_construct();
     /* Push an entry on the structured statement stack. */
     push_stmt_stack(ssk_compound, block,
-                    innermost_local_object_lifetime(curr_object_lifetime));
+                    innermost_block_object_lifetime(curr_object_lifetime));
   } else {
     /* Block nested within a function.  Link it onto the current statement
        sequence. */
