@@ -4875,17 +4875,14 @@ assignment operator.
     /* No applicable assignment operator function. */
     if (const_object_required && !volatile_object_required) {
       /* The common case:  missing const assignment operator function. */
-      pos_sy_error(ec_missing_const_assignment_operator, err_pos,
-                   (a_symbol_ptr)class_type->source_corresp.assoc_info);
+      pos_ty_error(ec_missing_const_assignment_operator, err_pos, class_type);
     } else {
       /* Unusual case: volatile or const-volatile expected. */
-      pos_sy_error(ec_no_suitable_assignment_operator, err_pos,
-                   (a_symbol_ptr)class_type->source_corresp.assoc_info);
+      pos_ty_error(ec_no_suitable_assignment_operator, err_pos, class_type);
     }  /* if */
   } else if (ambiguous) {
     /* More than one applicable assignment operator function. */
-    pos_sy_error(ec_ambiguous_assignment_operator, err_pos,
-                 (a_symbol_ptr)class_type->source_corresp.assoc_info);
+    pos_ty_error(ec_ambiguous_assignment_operator, err_pos, class_type);
   } else {
     /* Exactly one assignment operator function is best. */
     /* Check that the function is accessible and mark it referenced. */

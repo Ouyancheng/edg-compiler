@@ -1091,7 +1091,7 @@ error code.
       m = "no default constructor exists for class %t";
       break;
     case ec_not_a_field_or_base_class:
-      m = "not a nonstatic data member or base class of class %n";
+      m = "not a nonstatic data member or base class of class %t";
       break;
     case ec_indirect_nonvirtual_base_class_not_allowed:
       m = "indirect nonvirtual base class not allowed";
@@ -1291,10 +1291,10 @@ error code.
       m = "type must be an object type";
       break;
     case ec_base_class_already_initialized:
-      m = "base class %n has already been initialized";
+      m = "base class %t has already been initialized";
       break;
     case ec_base_class_init_anachronism:
-      m = "base class %n assumed (anachronism)";
+      m = "base class %t assumed (anachronism)";
       break;
     case ec_member_already_initialized:
       m = "member %n has already been initialized";
@@ -1334,13 +1334,13 @@ error code.
       m = "variable contains uninitialized reference member";
       break;
     case ec_missing_const_assignment_operator:
-      m = "class %n has no assignment operator to copy a const object";
+      m = "class %t has no assignment operator to copy a const object";
       break;
     case ec_no_suitable_assignment_operator:
-      m = "class %n has no suitable assignment operator";
+      m = "class %t has no suitable assignment operator";
       break;
     case ec_ambiguous_assignment_operator:
-      m = "ambiguous default assignment operator for class %n";
+      m = "ambiguous default assignment operator for class %t";
       break;
     case ec_const_volatile_not_allowed:
       m = "const or volatile qualifier is not allowed";

@@ -1536,12 +1536,10 @@ initialized.  These are addressed in the course of the processing.
 #endif /* CHECKING */
             init_type = bcp->type;
             if (new_cip->initializer != NULL) {
-              sym_error(ec_base_class_already_initialized,
-                        (a_symbol_ptr)init_type->source_corresp.assoc_info);
+              type_error(ec_base_class_already_initialized, init_type);
               err = TRUE;
             } else {
-              sym_warning(ec_base_class_init_anachronism,
-                          (a_symbol_ptr)init_type->source_corresp.assoc_info);
+              type_warning(ec_base_class_init_anachronism, init_type);
             }  /* if */
           }  /* if */
           /* Back up so that the left paren will be rescanned. */
@@ -1552,8 +1550,7 @@ initialized.  These are addressed in the course of the processing.
         member_or_base_sym = get_normal_id_or_qualified_name(IDL_NO_OPTIONS);
         if (member_or_base_sym == NULL) {
           /* No such name or qualified name in the symbol table. */
-          sym_error(ec_not_a_field_or_base_class,
-                    (a_symbol_ptr)class_type->source_corresp.assoc_info);
+          type_error(ec_not_a_field_or_base_class, class_type);
           init_type = error_type();
         } else if (member_or_base_sym->kind == (a_symbol_kind)sk_field &&
                    member_or_base_sym->class_of_which_a_member == class_type) {
@@ -1687,8 +1684,7 @@ initialized.  These are addressed in the course of the processing.
             } else {
               /* Not a base class of the class for which a constructor is
                  being defined. */
-              sym_error(ec_not_a_field_or_base_class,
-                        (a_symbol_ptr)class_type->source_corresp.assoc_info);
+              type_error(ec_not_a_field_or_base_class, class_type);
             }  /* if */
             init_type = error_type();
           } else {
@@ -1699,15 +1695,13 @@ initialized.  These are addressed in the course of the processing.
               if (new_cip->variant.base_class == bcp) break;
             }  /* for */
             if (new_cip->initializer != NULL) {
-              sym_error(ec_base_class_already_initialized,
-                        (a_symbol_ptr)bcp->type->source_corresp.assoc_info);
+              type_error(ec_base_class_already_initialized, bcp->type);
               err = TRUE;
             }  /* if */
           }  /* if */
         } else {
           /* Not a base class, not a field.  Issue an error. */
-          sym_error(ec_not_a_field_or_base_class,
-                    (a_symbol_ptr)class_type->source_corresp.assoc_info);
+          type_error(ec_not_a_field_or_base_class, class_type);
           init_type = error_type();
         }  /* if */
 scan_paren:
