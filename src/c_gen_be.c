@@ -1526,7 +1526,7 @@ is non-NULL, in which case that is the function scope.
         if (param_var != NULL) write_tok_str(", ");
         write_tok_str("va_alist");
       }  /* if */
-#endif /* defined(__hpux) || define(__sgi) */
+#endif /* defined(__hpux) || defined(__sgi) */
     }  /* if */
   } else {
     /* Prototyped list. */
