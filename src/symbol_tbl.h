@@ -531,7 +531,7 @@ typedef struct a_symbol_header {
   char		*identifier;
 			/* A pointer to a null-terminated string containing the
 			   name of the symbol. */
-  int		identifier_length;
+  sizeof_t	identifier_length;
 			/* The length of the identifier, not counting the
 			   final null. */
   a_symbol_ptr	symbol;
@@ -797,6 +797,8 @@ extern a_symbol_ptr find_external_symbol(a_symbol_locator *location,
                                          a_boolean        is_static,
                                          a_symbol_locator *ext_location);
 
+extern void tildize_locator(a_symbol_locator *locator);
+
 extern a_derivation_node_ptr alloc_derivation_node(void);
 
 extern an_access_specifier access_for_symbol(a_symbol_ptr sym_ptr);
@@ -909,6 +911,12 @@ extern an_extern_type_fixup_ptr alloc_etype_fixup(void);
 #define is_type_symbol(sym)                                           \
   ((sym)->kind == (a_symbol_kind)sk_type ||                           \
    (C_dialect == C_dialect_cplusplus && is_tag_symbol(sym)))
+
+/* Return TRUE if a symbol is a constructor symbol. */
+#define is_constructor_symbol(sym)                                    \
+  ((sym)->kind == (a_symbol_kind)sk_member_function &&                \
+   (sym)->variant.routine->special_kind ==                            \
+                            (a_special_function_kind)sfk_constructor) \
 
 /*
 Extract the type from a type symbol (one for which is_type_symbol is TRUE).
