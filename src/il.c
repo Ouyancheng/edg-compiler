@@ -72,6 +72,7 @@ static unsigned long
                 num_derivation_steps_allocated,
                 num_base_classes_allocated,
                 num_template_args_allocated,
+                num_template_param_type_descrs_allocated,
 		num_types_allocated,
 		num_dynamic_inits_allocated,
 		num_variables_allocated,
@@ -2355,7 +2356,7 @@ Return TRUE if node1 and node2 are equivalent expression trees.
 
   if (node1->kind == node2->kind) {
     switch (node1->kind) {
-      enk_operation:
+      case enk_operation:
         if (node1->variant.operation.kind == node1->variant.operation.kind) {
           an_expr_node_ptr   op1 = node1->variant.operation.operands;
           an_expr_node_ptr   op2 = node2->variant.operation.operands;
@@ -2379,16 +2380,16 @@ Return TRUE if node1 and node2 are equivalent expression trees.
           /* Falling though with one list incomplete means eq remains FALSE. */
         }  /* if */
         break;
-      enk_constant:
+      case enk_constant:
         eq = eq_constants(node1->variant.constant, node1->variant.constant);
         break;
-      enk_variable_address:
+      case enk_variable_address:
         eq = (node1->variant.variable == node2->variant.variable);
         break;
-      enk_routine_address:
+      case enk_routine_address:
         eq = (node1->variant.routine == node2->variant.routine);
         break;
-      enk_error:
+      case enk_error:
         /* Nonequivalence is assumed. */
         break;
 #if CHECKING
@@ -2492,11 +2493,13 @@ nonidentical.
               eq = compare_template_param_constant_expressions(
                                     cp1->variant.template_param.variant.expr,
                                     cp2->variant.template_param.variant.expr);
+              break;
             case tpck_member:
               check_assertion(cp1->source_corresp.assoc_info != NULL);
               check_assertion(cp2->source_corresp.assoc_info != NULL);
               eq = (cp1->source_corresp.assoc_info ==
                     cp2->source_corresp.assoc_info);
+              break;
 #if CHECKING
             default:
               internal_error("compare_constants: bad templ param const kind");
@@ -3051,6 +3054,24 @@ Return a list of template argument entries to the available list.
     tap = next_tap;
   }  /* while */
 }  /* free_template_arg_list */
+
+
+a_template_param_type_descr_ptr alloc_template_param_type_descr(void)
+/*
+Allocate a template parameter type description entry, initialize its fields,
+and return a pointer to it.
+*/
+{
+  a_template_param_type_descr_ptr tptdp;
+
+  tptdp = (a_template_param_type_descr_ptr)alloc_il(sizeof(a_template_param_type_descr));
+#if DEBUG
+  num_template_param_type_descrs_allocated++;
+#endif
+  tptdp->class_type = NULL;
+  tptdp->member_scope_number = NO_SCOPE_NUMBER;
+  return tptdp;
+}  /* alloc_template_param_type_descr */
 
 
 a_base_class_ptr alloc_base_class(void)
@@ -5873,6 +5894,9 @@ Display and return the amount of space used for various IL tables.
                 a_derivation_step);
   db_space_used("base class", num_base_classes_allocated, a_base_class);
   db_space_used("template args", num_template_args_allocated, a_template_arg);
+  db_space_used("templ param type descrs",
+                num_template_param_type_descrs_allocated,
+                a_template_param_type_descr);
   db_space_used("type", num_types_allocated, a_type);
   db_space_used("dynamic init", num_dynamic_inits_allocated, a_dynamic_init);
   db_space_used("variable", num_variables_allocated, a_variable);
@@ -6031,6 +6055,8 @@ of the front end.
   num_derivation_steps_allocated         = 0;
   num_base_classes_allocated             = 0;
   num_template_args_allocated            = 0;
+  num_template_param_type_descrs_allocated
+                                         = 0;
   num_types_allocated                    = 0;
   num_dynamic_inits_allocated            = 0;
   num_variables_allocated                = 0;
