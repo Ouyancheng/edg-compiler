@@ -325,7 +325,7 @@ directory name is being used, a pointer to the original name is returned.
   if (pch_dir_name == NULL) {
     result = file_name;
   } else {
-    int		name_size;
+    sizeof_t	name_size;
     /* Make sure the file name is big enough for the file name,
        directory, and any added slashes, etc. */
     name_size = strlen(file_name) + strlen(pch_dir_name) + 10;
@@ -1823,7 +1823,7 @@ directory.  Return TRUE if an applicable PCH was found.
     /* Append the PCH directory name to the file name. */
     file_name = build_pch_file_name(file_name);
     /* The open routine will also make sure that it is a regular file. */
-    if (open_pch_input_file(file_name) == NULL) continue;
+    if (!open_pch_input_file(file_name)) continue;
     pch_input_file_name = file_name;
 #if DEBUG
   if (debug_level >= 4) {
@@ -1949,7 +1949,6 @@ may be used.
 */
 {
   a_boolean			can_use_pch = TRUE;
-  a_memory_region_number	n;
   a_pch_event_ptr		last_event_from_pch;
 
   db_enter(2, "restore_precompiled_header_information");
@@ -2001,13 +2000,16 @@ may be used.
     /* Update the IL header to reflect the information in the PCH file. */
     pch_fixup_part_1();
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
-    /* We are building an IL file.  Any memory regions (other than the
-       front end and file scope) that were read from the PCH file must
-       be written to the IL file that is being created. */
-    for (n = FILE_SCOPE_REGION_NUMBER + 1;
-         n <= highest_used_region_number; ++n) {
-      done_with_memory_region(n);
-    }  /* for */
+    {
+      a_memory_region_number	n;
+      /* We are building an IL file.  Any memory regions (other than the
+         front end and file scope) that were read from the PCH file must
+         be written to the IL file that is being created. */
+      for (n = FILE_SCOPE_REGION_NUMBER + 1;
+           n <= highest_used_region_number; ++n) {
+        done_with_memory_region(n);
+      }  /* for */
+    }
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
     /* Clear the primary source file pointer, otherwise, push_input_stack
        will try to use the old source file as the parent. */

@@ -307,7 +307,7 @@ preallocated memory that has not been used.
        n < num_of_mem_alloc_history_entries; ++n) {
     (void)free(mem_alloc_history[n].addr);
 #if DEBUG
-    adjust_record_of_total_allocation((long)(-mem_alloc_history[n].size));
+    adjust_record_of_total_allocation(-(long)(mem_alloc_history[n].size));
 #endif /* DEBUG */
   }  /* for */
   /* Set the number of entries in existence to the number used so far.
