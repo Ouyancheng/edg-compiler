@@ -8651,6 +8651,8 @@ be of integral type.  See section 3.3.5 of the standard.
 #if C99_IL_EXTENSIONS_SUPPORTED
     if ((is_imaginary_type(operand_1->type) ||
          is_imaginary_type(operand_2.type)) &&
+        !(is_complex_type(operand_1->type) ||
+          is_complex_type(operand_2.type)) &&
         save_token != tok_remainder) {
       prepare_imaginary_operation(save_token, operand_1, &operand_2,
                                   &result_type, &op);
@@ -8849,8 +8851,10 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
       if (is_arithmetic_or_enum_type(operand_2.type)) {
         /* Arithmetic/enum +- arithmetic/enum. */
 #if C99_IL_EXTENSIONS_SUPPORTED
-        if (is_imaginary_type(operand_1->type) ||
-            is_imaginary_type(operand_2.type)) {
+        if ((is_imaginary_type(operand_1->type) ||
+             is_imaginary_type(operand_2.type)) &&
+            !(is_complex_type(operand_1->type) ||
+              is_complex_type(operand_2.type))) {
           /* Imaginary arithmetic need special treatment. */
           imaginary_arithmetic = TRUE;
         } else
@@ -9355,8 +9359,10 @@ Scan the "==" and "!=" operators.  See section 3.3.9 in the standard.
                                                           &second_is_constant);
         }  /* if */
 #if C99_IL_EXTENSIONS_SUPPORTED
-        if (is_imaginary_type(operand_1->type) ||
-            is_imaginary_type(operand_2.type)) {
+        if ((is_imaginary_type(operand_1->type) ||
+             is_imaginary_type(operand_2.type)) &&
+            !(is_complex_type(operand_1->type) ||
+              is_complex_type(operand_2.type))) {
           imaginary_arithmetic = TRUE;
         } else
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */

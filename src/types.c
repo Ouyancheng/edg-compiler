@@ -89,6 +89,7 @@ predicates.
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #define is_floating(tp) (is_real_floating(tp) || is_nonreal_floating(tp))
 #define is_imaginary(tp) ((tp)->kind == (a_type_kind)tk_imaginary)
+#define is_complex(tp) ((tp)->kind == (a_type_kind)tk_complex)
 /* Arithmetic types are the integral types plus the floating types; in C++
    mode enum types are not integral. */
 #define is_arithmetic_or_enum(tp) (is_integral_or_enum(tp) || is_floating(tp))
@@ -353,6 +354,16 @@ Return TRUE if the given type is an imaginary floating type.
   tp = skip_typerefs(tp);
   return(is_imaginary(tp));
 }  /* is_imaginary_type */
+
+
+a_boolean is_complex_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is an complex floating type.
+*/
+{
+  tp = skip_typerefs(tp);
+  return(is_complex(tp));
+}  /* is_complex_type */
 
 
 a_boolean is_arithmetic_or_enum_type(a_type_ptr tp)
