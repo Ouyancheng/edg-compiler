@@ -802,6 +802,8 @@ ec_static_nonstatic_with_same_param_types;;"static and nonstatic member function
 ec_no_prior_declaration;;"no prior declaration of %np"
 ec_template_id_not_allowed;;"a template-id is not allowed"
 ec_class_qualified_name_not_allowed;;"a class-qualified name is not allowed"
+ec_bad_scope_for_redeclaration;;"%n cannot be redeclared in the current scope"
+ec_qualifier_in_namespace_member_decl;;"qualified name is not allowed in namespace member declaration"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
@@ -811,3 +813,4 @@ ec_class_qualified_name_not_allowed;;"a class-qualified name is not allowed"
 # Copyright 1988-1994 Edison Design Group Inc.                   [_]          #
 #                                                                             #
 ###############################################################################
+

@@ -3719,26 +3719,11 @@ that make up the declaration and do a prototype instantiation.
     } else {
       /* Look up the identifier.  If it's a qualified name there will be an
          error down the line. */
+#if 0
+      /* For member templates, is simplify_curr_class_qualified_name needed? */
+#endif /* 0 */
       sym = coalesce_and_lookup_generalized_identifier
                                (GID_TEMPLATE_ARGS_OPTIONAL, ilm_normal, &err);
-      if (!locator_for_curr_id.is_qualified_name && sym != NULL) {
-        if (sym->decl_scope == scope_stack[depth_scope_stack].number) {
-          /* The symbol found is from the current template declaration scope.
-             This means that the name of the class is the same as one of
-             its template parameters -- this is an error. */
-          pos_error(ec_class_template_same_name_as_templ_param,
-                    &locator_for_curr_id.source_position);
-          suppress_redecl_error = TRUE;
-        }  /* if */
-        if (!is_template_friend &&
-            sym->decl_scope != scope_stack[effective_decl_level].number) {
-          /* The symbol found by the lookup is not from the scope in which
-             this template is being declared.  Discard the symbol found
-             by the lookup. */
-          sym = NULL;
-          locator_for_curr_id.specific_symbol = NULL;
-        }  /* if */
-      }  /* if */
       locator = locator_for_curr_id;
       /* Cache the identifier and advance past it so we can discriminate
          between a class template and a function template.  Clear the
@@ -3787,6 +3772,61 @@ that make up the declaration and do a prototype instantiation.
     is_definition = (curr_token == tok_colon || curr_token == tok_lbrace);
     /* If get_normal_id_or_qualified_name returned something, we may have a
        name conflict or a redefinition. */
+    if (!locator.is_qualified_name && sym != NULL) {
+      if (sym->decl_scope == scope_stack[depth_scope_stack].number) {
+        /* The symbol found is from the current template declaration scope.
+           This means that the name of the class is the same as one of
+           its template parameters -- this is an error. */
+        pos_error(ec_class_template_same_name_as_templ_param,
+                  &locator.source_position);
+        suppress_redecl_error = TRUE;
+      }  /* if */
+      if (!is_template_friend &&
+          sym->decl_scope != scope_stack[effective_decl_level].number) {
+        /* The symbol found by the lookup is not from the scope in which
+           this template is being declared.  Discard the symbol found
+           by the lookup. */
+        sym = NULL;
+        locator.specific_symbol = NULL;
+      }  /* if */
+    } else if (locator.is_qualified_name && sym != NULL) {
+#if 0
+      /* Class qualified name checks need to be added here for member
+         templates. */
+#endif /* 0 */
+      a_scope_stack_entry_ptr	ssep = &scope_stack[effective_decl_level];
+      a_namespace_ptr		nsp;
+      a_namespace_ptr		curr_nsp;
+      a_boolean			err = FALSE;
+      /* Get the namespace that is currently being defined. */
+      curr_nsp = scope_stack[depth_innermost_namespace_scope].assoc_namespace;
+      nsp = parent_namespace_for_symbol(sym);
+      if (nsp == curr_nsp) {
+        /* The namespace is the same as the one currently being defined.
+           This is an error. */
+        pos_error(ec_qualifier_in_namespace_member_decl,
+                  &locator.source_position);
+        err = TRUE;
+      } else if (!is_definition) {
+        pos_sy_error(ec_bad_scope_for_redeclaration,
+                     &locator.source_position, sym);
+        err = TRUE;
+      } else if (!namespace_is_enclosed_by_scope(sym, ssep)) {
+        /* This declaration appears within a namespace scope in which the name
+           cannot be defined -- it is a member (directly or indirectly) of a
+           namespace that is not enclosed by the current namespace scope
+           (see WP 7.3.1.4). */
+        pos_sy_error(ec_bad_scope_for_definition,
+                     &locator.source_position, sym);
+        err = TRUE;
+      }  /* if */
+      if (err) {
+        sym = NULL;
+        locator.specific_symbol = NULL;
+        suppress_redecl_error = TRUE;
+        set_to_named_error_locator(locator);
+      }  /* if */
+    }  /* if */
     if (sym != NULL) {
       if (sym->kind == (a_symbol_kind)sk_class_template) {
         tssp = sym->variant.template_info;
