@@ -1,5 +1,23 @@
 Version 2.42
 
+4/28/99  C++-generating back end: missing qualifier on references hidden
+         by base class members
+
+When a name from an outer scope was referenced within the context of a
+class and a base class contained an intervening declaration with the same
+name, the qualifier was sometimes omitted by the C++-generating back end:
+
+  struct I { };
+  struct V {
+    struct I { unsigned int* p; };
+    struct C : public ::I {         // ::I hides V::I
+      void f(V::I& x) { x.p; }
+    };
+  }; 
+
+The declaration of V::C::f in the generated C++ was incorrect -- the
+qualifier was omitted in the function parameter type.  Now fixed.
+
 4/27/99  Linux version no longer includes sys/dirent.h
 
 Newer versions of Linux no longer provide a sys/dirent.h file, so this

@@ -4253,6 +4253,9 @@ specified by tag_sym, and enter it into the symbol table.
     sym->parent.class_type = class_type;
     add_symbol_to_scope_list(sym, depth_scope_stack, &suppress_error);
     link_symbol_into_symbol_table(sym, depth_scope_stack, suppress_error);
+#if RECORD_HIDDEN_NAMES_IN_IL
+    check_for_defeatable_name_hiding(sym);
+#endif /* RECORD_HIDDEN_NAMES_IN_IL */
   }  /* if */
 }  /* enter_injected_class_name_symbol */
 

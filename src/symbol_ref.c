@@ -377,7 +377,7 @@ and hidden_by refer to the same IL entry, no hidden-name entry is produced.
                 !hnp->qualification_needed))) {
             a_source_correspondence  *scp =
                                    source_corresp_for_il_entry(entity, kind);
-            fputs("  in ", f_debug);
+            fputs("    in ", f_debug);
             db_scope(sp);
             fputs(": use", f_debug);
             if (hidden_class_or_namespace_member) {
@@ -771,7 +771,9 @@ hiding.
        hides a tag name in the same or an enclosing scope and when the current
        declaration is a tag name that is hidden by a non-tag name in the
        current scope. */
-    if (!is_tag_symbol(sym_ptr)) {
+    if (is_injected_class_symbol(sym_ptr)) {
+      /* Ignore it. */
+    } else if (!is_tag_symbol(sym_ptr)) {
       /* The current declaration is of something other than a tag name.
          If it hides a tag in the same scope or an enclosing scope, an
          elaborated type specifier can render the tag visible.  For example:
@@ -926,10 +928,24 @@ hiding.
                   IDL_SKIP_TEMPLATE_DECL_SCOPES;
         old_sym_ptr = normal_id_lookup(&locator, options);
         if (old_sym_ptr != NULL) {
-          if (old_sym_ptr->decl_scope == FILE_SCOPE_NUMBER ||
-              old_sym_ptr->is_class_member ||
-              old_sym_ptr->parent.namespace_ptr != NULL ||
-              old_sym_ptr->synthesized_namespace_projection) {
+          a_symbol_ptr  tag_sym = NULL;
+          if (is_injected_class_symbol(sym_ptr) &&
+              (is_tag_symbol(old_sym_ptr) ||
+               is_class_template_symbol(old_sym_ptr))) {
+            tag_sym =
+               (a_symbol_ptr)(skip_typerefs(type_symbol_type(sym_ptr))->
+                                                  source_corresp.assoc_info);
+          }  /* if */
+          if (tag_sym != NULL &&
+              (symbols_are_equivalent(old_sym_ptr, tag_sym) ||
+               (is_class_template_symbol(old_sym_ptr) &&
+                is_template_class_symbol(tag_sym)))) {
+            /* sym_ptr does not hide old_sym_ptr -- they represent the same
+               declaration. */
+          } else if (old_sym_ptr->decl_scope == FILE_SCOPE_NUMBER ||
+                     old_sym_ptr->is_class_member ||
+                     old_sym_ptr->parent.namespace_ptr != NULL ||
+                     old_sym_ptr->synthesized_namespace_projection) {
             /* A qualifiable name. */
             tag_hidden_by_nontag = FALSE;
             hidden_class_or_namespace_member = TRUE;
@@ -977,7 +993,7 @@ hiding.
            applying a qualifier (class-name:: or namespace-name:: or ::). */
         hidden_class_or_namespace_member = FALSE;
         tag_hidden_by_nontag = FALSE;
-        if (is_tag_symbol(sym_ptr)) {
+        if (!is_injected_class_symbol(sym_ptr) && is_tag_symbol(sym_ptr)) {
           clear_specific_symbol(locator);
           if (sym_ptr->is_class_member) {
             (void)class_qualified_id_lookup(&locator,
@@ -1133,6 +1149,92 @@ hiding.
     }  /* if */
   }  /* if */
 }  /* check_for_defeatable_name_hiding */
+
+
+void check_hiding_by_inherited_names(a_type_ptr  class_type,
+                                     a_scope_ptr sp)
+/*
+Perform hidden name checking on the members of each of the base classes of
+class_type.  If class_type is not the most derived type (i.e., if its
+IL scope is not that of the indicated IL scope), do hidden name checking on
+its own members, too.  This routine is called recursively.
+*/
+{
+  a_base_class_ptr  bcp = base_classes_of(class_type);
+  a_symbol_ptr      sym_ptr, old_sym_ptr;
+  a_symbol_locator  locator;
+  a_boolean         top_level;
+
+  top_level = (sp == class_type->variant.class_struct_union.
+                                                   extra_info->assoc_scope);
+#if DEBUG
+  if (debug_level >= 4 || db_flag_is_set("dump_hidden")) {
+    /* If this is the top-level call, identify class_type. */
+    if (bcp != NULL && top_level) {
+      fputs("Hidden name check for inherited names of ", f_debug);
+      db_type_name(class_type);
+      fputc('\n', f_debug);
+    }  /* if */
+  }  /* if */
+#endif /* DEBUG */
+  /* Loop through each of the base classes of class type and perform hidden
+     name checking on the inherited members of direct (and, if top-level,
+     virtual) base classes. */
+  for (; bcp != NULL; bcp = bcp->next) {
+    if (bcp->direct || (top_level && bcp->is_virtual)) {
+      check_hiding_by_inherited_names(bcp->type, sp);
+    }  /* if */
+  }  /* for */
+  if (sp != class_type->variant.class_struct_union.extra_info->assoc_scope) {
+    sym_ptr = symbol_supplement_for_class(class_type)->symbols;
+    for (; sym_ptr != NULL; sym_ptr = sym_ptr->next_in_scope) {
+      /* Skip constructors. */
+      if (is_constructor_symbol(sym_ptr)) continue;
+#if DEBUG
+      if (debug_level >= 4 || db_flag_is_set("dump_hidden")) {
+        if (sym_ptr->decl_position.seq) {
+          fputs("  Hidden name check: ", f_debug);
+          fprintf(f_debug, "<%s> ", symbol_kind_names[(int)sym_ptr->kind]);
+          db_symbol_name(sym_ptr);
+          fputc('\n', f_debug);
+        }  /* if */
+      }  /* if */
+#endif /* DEBUG */
+      /* Perform a lookup. */
+      clear_locator(&locator, &sym_ptr->decl_position);
+      locator.symbol_header = sym_ptr->header;
+      (void)normal_id_lookup(&locator, IDL_HIDDEN_NAME_LOOKUP);
+      old_sym_ptr = locator.specific_symbol;
+      /* If something was found, see if it is hidden by sym_ptr. */
+      if (old_sym_ptr != NULL) {
+        a_symbol_ptr  tag_sym = NULL;
+        if (is_injected_class_symbol(sym_ptr) &&
+            (is_tag_symbol(old_sym_ptr) ||
+             is_class_template_symbol(old_sym_ptr))) {
+          tag_sym =
+               (a_symbol_ptr)(skip_typerefs(type_symbol_type(sym_ptr))->
+                                                  source_corresp.assoc_info);
+        }  /* if */
+        if (tag_sym != NULL &&
+            (symbols_are_equivalent(old_sym_ptr, tag_sym) ||
+             (is_class_template_symbol(old_sym_ptr) &&
+              is_template_class_symbol(tag_sym)))) {
+          /* sym_ptr does not hide old_sym_ptr -- they represent the same
+             declaration. */
+        } else if (old_sym_ptr->decl_scope == FILE_SCOPE_NUMBER ||
+                   old_sym_ptr->is_class_member ||
+                   old_sym_ptr->parent.namespace_ptr != NULL) {
+          /* The name hiding can be defeated by using a qualifier. */
+          record_defeatable_name_hiding(
+                                  old_sym_ptr,
+                                  /*tag_hidden_by_nontag=*/FALSE,
+                                  /*hidden_class_or_namespace_member=*/TRUE,
+                                  sp, sym_ptr);
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* check_hiding_by_inherited_names */
 
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
