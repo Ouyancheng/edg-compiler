@@ -266,6 +266,9 @@ Dump a member function (a routine entry), for debug purposes.
   if (!routine_type_is_nonstatic_member_function(rp->type)) {
     fputs(" static", f_debug);
   }  /* if */
+  if (rp->is_virtual) {
+    fprintf(f_debug, " virtual (%d)", rp->virtual_function_number);
+  }  /* if */
   fputs(" member function \"", f_debug);
   db_name(&rp->source_corresp);
   fputs("\",\n    type = ", f_debug);
