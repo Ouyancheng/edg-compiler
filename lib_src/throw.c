@@ -38,6 +38,12 @@ typedef struct a_throw_stack_entry {
 		flags;
 			/* A collection of bits that specify how the
 			   additional information about the thrown object. */
+  an_access_flag_string
+		access_flags;
+			/* A null terminated character string that specifies
+			   the accessibility of the base classes.  "y" means
+			   that the base class is accessible, "m" means that
+			   it is not. */
   void*		object_address;
 			/* Pointer to the memory allocated to store
 			   the copy of the object. */
@@ -484,8 +490,9 @@ static void db_throw_stack(char* str)
 #endif /* DEBUG */
 
 
-static void set_base_class_flags(a_typeinfo_ptr	class_info,
-				 a_boolean	set_flag)
+static void set_base_class_flags(a_typeinfo_ptr	       class_info,
+				 a_boolean	       set_flag,
+				 an_access_flag_string access_flags)
 /*
 Go through all of the base classes (direct and indirect) of the class
 indicated by class_info and set the base class flags in the unique
@@ -493,8 +500,11 @@ ID.  This is used later to determine whether a catch clause refers to
 a base class of the class being thrown.  set_flag is TRUE if the flags
 are to be set and FALSE if they are to be cleared.
 
-When the flags are set this routine detects ambiguous base classes and
-sets the flags accordingly.
+The access_flags string contains one byte for each base class.  The
+byte contains either "y" (the base class is accessible) or "n" (the
+base class is not accessible).  The base class may be inaccessible
+either because of access protection or because the base class
+is ambiguous.
 */
 {
   a_base_class_spec_ptr	bcsp = class_info->base_class_entries;
@@ -508,19 +518,10 @@ sets the flags accordingly.
       /* Set the flags for this base class and then call this routine
          recursively. */
       if (set_flag) {
-        a_unique_id	old_value = *(base_typeinfo->unique_id);
-        if (old_value == BCS_NO_FLAGS) {
-          a_base_class_spec_flag_set	flags;
-          /* Mask of bits that should not be tested. */
-          flags = bcsp->flags & BCS_FLAGS;
-          /* If any of the flag bits are set, simply use the flags in the
-	     base class specifier; otherwise set the flags that indicates
-	     that this is a normal base class. */
-          new_value = flags ? flags : BCS_IS_BASE;
-        } else {
-          /* The flag is already set -- keep the current value. */
-          new_value = old_value;
-        }  /* if */
+        check_assertion(access_flags == NULL ||
+                        (*access_flags == BASE_ACCESSIBLE ||
+                         *access_flags == BASE_NOT_ACCESSIBLE));
+        new_value = access_flags != NULL && *access_flags++ == BASE_ACCESSIBLE;
       } else {
         new_value = BCS_NO_FLAGS;
       }  /* if */
@@ -528,7 +529,7 @@ sets the flags accordingly.
       if (base_typeinfo->base_class_entries != NULL) {
         /* This base class has its own bases.  Call this routine
 	   recursively. */
-        set_base_class_flags(base_typeinfo, set_flag);
+        set_base_class_flags(base_typeinfo, set_flag, access_flags);
       }  /* if */
       /* The last entry in the array will have the BCS_LAST flag set. */
       done = bcsp->flags & BCS_LAST;
@@ -757,11 +758,11 @@ entry is returned in etsp_found.
       match = TRUE;
     } else if (etsp->typeinfo->unique_id == NULL) {
       /* No unique ID -- don't check any further.  No match. */
-    } else if (*(etsp->typeinfo->unique_id) == BCS_AMBIGUOUS) {
-      /* An ambiguous base class -- no match. */
     } else if ((is_pointer(etsp->flags) == is_pointer(flags)) &&
                *(etsp->typeinfo->unique_id) != BCS_NO_FLAGS) {
-      /* A base class of the class that was thrown. */
+      /* A base class of the class that was thrown.  If the base class
+	 is ambiguous or inaccessible then the base class flag will not
+         be set. */
       match = TRUE;
       if (object_ptr != NULL && *object_ptr != NULL) {
         /* Convert the pointer from a pointer to the derived class to a pointer
@@ -1006,10 +1007,11 @@ a try block with a catch that matches the type of the object thrown.
 }  /* __throw */
 
 
-static void push_throw_stack(a_typeinfo_ptr	typeinfo,
-			     an_ETS_flag_set	flags,
-			     void*		object_address,
-			     a_boolean		is_rethrow)
+static void push_throw_stack(a_typeinfo_ptr	   typeinfo,
+			     an_ETS_flag_set	   flags,
+                             an_access_flag_string access_flags,
+			     void*		   object_address,
+			     a_boolean		   is_rethrow)
 /*
 Push an entry onto the throw stack and initialize its fields.
 */
@@ -1023,6 +1025,7 @@ Push an entry onto the throw stack and initialize its fields.
   curr_throw_stack_entry = tsep;
   tsep->typeinfo = typeinfo;
   tsep->flags = flags;
+  tsep->access_flags = access_flags;
   tsep->object_address = object_address;
   tsep->pointer_buffer = NULL;
   tsep->is_rethrow = is_rethrow;
@@ -1063,15 +1066,17 @@ Rethrow the current thrown obejct.
   }  /* if */
   push_throw_stack(curr_throw_stack_entry->typeinfo,
 		   curr_throw_stack_entry->flags,
+		   curr_throw_stack_entry->access_flags,
 		   curr_throw_stack_entry->object_address,
 		   /*is_rethrow=*/TRUE);
   __throw();
 }  /* __rethrow */
 
 
-EXTERN_C void* __throw_alloc(a_typeinfo_ptr	typeinfo,
-			     a_sizeof_t		size,
-			     an_ETS_flag_set	flags)
+EXTERN_C void* __throw_alloc(a_typeinfo_ptr	   typeinfo,
+			     a_sizeof_t		   size,
+			     an_ETS_flag_set	   flags,
+			     an_access_flag_string access_flags)
 /*
 Allocate space for the object to be thrown and save information about
 the type being thrown.
@@ -1082,12 +1087,14 @@ the type being thrown.
   if (curr_throw_stack_entry != NULL) {
     /* If a throw is already in process, reset the base class flags from the
        previous throw. */
-    set_base_class_flags(curr_throw_stack_entry->typeinfo, /*set_flag=*/FALSE);
+    set_base_class_flags(curr_throw_stack_entry->typeinfo, /*set_flag=*/FALSE,
+                         /*access_flags=*/NULL);
   }  /* if */
   object_address = (void *)eh_alloc_on_stack(size);
-  push_throw_stack(typeinfo, flags, object_address, /*is_rethrow=*/FALSE);
+  push_throw_stack(typeinfo, flags, access_flags, object_address,
+                   /*is_rethrow=*/FALSE);
   /* Set the base class flags for the thrown type. */
-  set_base_class_flags(typeinfo, /*set_flag=*/TRUE);
+  set_base_class_flags(typeinfo, /*set_flag=*/TRUE, access_flags);
   return object_address;
 }  /* __throw_alloc */
 
@@ -1111,7 +1118,8 @@ the completion of a catch clause.
     /* Unlink this entry from the throw stack. */
     curr_throw_stack_entry = tsep->next;
     /* Clear the base class flags from the previous throw. */
-    set_base_class_flags(tsep->typeinfo, /*set_flag=*/FALSE);
+    set_base_class_flags(tsep->typeinfo, /*set_flag=*/FALSE,
+                         /*access_flags=*/NULL);
     is_rethrow = tsep->is_rethrow;
     object_address = tsep->object_address;
     /* Call the destructor for the object if needed. */
@@ -1134,7 +1142,8 @@ the completion of a catch clause.
       /* Set the base class flags for the thrown type that is now on the top
          of the throw stack. */
       set_base_class_flags(curr_throw_stack_entry->typeinfo,
-                           /*set_flag=*/TRUE);
+                           /*set_flag=*/TRUE,
+                           curr_throw_stack_entry->access_flags);
     }  /* if */
   }  /* while */
 #if DEBUG
