@@ -3344,10 +3344,16 @@ you will need to modify or remove these tests.
   expected = offsetof(struct il_entry_prefix_alignment_test,
                       prefix);  /*lint !e413*/
   if (expected != HOST_IL_ENTRY_PREFIX_ALIGNMENT) {
-    fprintf(stderr, "Expected HOST_IL_ENTRY_PREFIX_ALIGNMENT is %d\n",
-            (int)HOST_IL_ENTRY_PREFIX_ALIGNMENT);
-    internal_error(
+    /* Allow the prefix alignment to be smaller than required if the
+       expected value is 1 or 2.  This is helpful because on some systems
+       the prefix has a very small alignment requirement when there
+       is no IL entry number in it. */
+    if (expected > 2) {
+      fprintf(stderr, "Expected HOST_IL_ENTRY_PREFIX_ALIGNMENT is %d\n",
+              expected);
+      internal_error(
     "check_host_alignment...: HOST_IL_ENTRY_PREFIX_ALIGNMENT set incorrectly");
+    }  /* if */
   }  /* if */
 }  /* check_host_alignment_parameters */
 #endif /* CHECKING && defined(offsetof) */
