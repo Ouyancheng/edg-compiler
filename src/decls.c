@@ -1344,6 +1344,47 @@ Check to see if any type qualifiers that are specified are meaningful.
 }  /* check_type_qualifiers */
 
 
+static void check_and_adjust_parameter_type(a_type_ptr         *type_ptr,
+                                            a_source_position  *error_pos)
+/*
+This routine is called for all function parameter declarations.  It does
+error checking and type adjustments as required.
+*/
+{
+  /* Adjust the type if necessary (for example, "array of x" becomes
+     "pointer to x"). */
+  adjust_parameter_type(type_ptr);
+  /* Disallow "void" as a parameter type. */
+  if (is_void_type(*type_ptr)) {
+    pos_error(ec_void_param_not_allowed, error_pos);
+    *type_ptr = error_type();
+  } else {
+    /* See if any type qualifiers were specified, and if they are
+       okay. */
+    check_type_qualifiers(type_ptr);
+    /* In C++ (except in cfront compatibility mode) disallow a parameter type
+       that includes a pointer or reference to an array of unspecified size
+       (WP 8.3.5 para 3). */
+    if (!C_mode() && !any_cfront_mode()) {
+      a_boolean  is_ref = FALSE;
+
+#if 0
+      /* WP 8.3.5 para 3 uses "includes" -- does this cover use in a template
+         argument?  We currently assume "yes", but it the answer turns out to
+         be "no", change the flags passed to traverse_type_tree by
+         is_or_contains_ptr_or_ref_to_unknown_bound_array. */
+#endif /* if 0 */
+      if (is_or_contains_ptr_or_ref_to_unknown_bound_array(*type_ptr,
+                                                           &is_ref)) {
+        pos_error(is_ref ? ec_param_type_ref_array_of_unknown_bound :
+                           ec_param_type_ptr_to_array_of_unknown_bound,
+                  error_pos);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* check_and_adjust_parameter_type */
+
+
 void check_operator_function_params(a_type_ptr        rout_type,
                                     a_type_ptr        class_type,
                                     a_symbol_locator  *locator)
@@ -2323,35 +2364,8 @@ scope is that of a class definition.
           /* No declarator. */
           set_to_error_locator(param_locator);
         }  /* if */
-        /* Adjust the type if necessary (for example, "array of x"
-           becomes "pointer to x"). */
-        adjust_parameter_type(&param_type_ptr);
-        /* Disallow "void" as a parameter type. */
-        if (is_void_type(param_type_ptr)) {
-          pos_error(ec_void_param_not_allowed, &param_type_pos);
-          param_type_ptr = error_type();
-        } else if (!C_mode() && !any_cfront_mode()) {
-          /* In C++ (except in cfront compatibility mode) disallow pointer or
-             reference to array of unspecified size. */
-          if (is_ptr_or_ref_type(param_type_ptr)) {
-            a_type_ptr  tp = skip_typerefs(type_pointed_to(param_type_ptr));
-            if (is_array_type(tp)) {
-              if (!tp->variant.array.is_variable_size_array &&
-                  tp->variant.array.variant.number_of_elements == 0) {
-                an_error_code  error_code;
-
-                error_code = is_reference_type(param_type_ptr) ?
-                                 ec_param_type_ref_array_of_unknown_size :
-                                 ec_param_type_ptr_to_array_of_unknown_size;
-                pos_error(error_code, &param_type_pos);
-                param_type_ptr = error_type();
-              }  /* if */
-            }  /* if */
-          }  /* if */
-        }  /* if */
-        /* See if any type qualifiers were specified, and if they are
-           okay. */
-        check_type_qualifiers(&param_type_ptr);
+        /* Check that the type is legal, and do required adjustments. */
+        check_and_adjust_parameter_type(&param_type_ptr, &param_type_pos);
         /* Standardize the storage class: unspecified becomes auto. */
         if (param_storage_class == (a_storage_class)sc_unspecified) {
           param_storage_class = (a_storage_class)sc_auto;
@@ -10610,15 +10624,15 @@ continue_with_declaration:
             param_id->source_sequence_entry = declarator_ssep;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
           }  /* if */
-          adjust_parameter_type(&local_type_ptr);
+          /* Check that the type is legal, and do required adjustments. */
+          check_and_adjust_parameter_type(&local_type_ptr, &decl_start_pos);
           is_function = top_declarator_type_is_function = FALSE;
           /* For pcc compatibility, promote float parameters to double. */
           if (C_dialect == C_dialect_pcc) {
             promote_float_to_double(local_type_ptr);
           }  /* if */
         }  /* if */
-      }  /* if */
-      if (local_storage_class != (a_storage_class)sc_typedef) {
+      } else if (local_storage_class != (a_storage_class)sc_typedef) {
         /* See if any type qualifiers were specified, and if they are okay. */
         check_type_qualifiers(&local_type_ptr);
       }  /* if */
@@ -10770,8 +10784,6 @@ continue_with_declaration:
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         a_src_seq_sublist_ptr  sublist = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-
-
         if (pid != NULL) {
           /* If the function has a non-empty old-style identifier list of
              parameters, a body should have been present. */
