@@ -32,6 +32,7 @@ il.c -- Construction of intermediate language trees.
 #include "folding.h"
 #include "lexical.h"
 #include "il_to_str.h"
+#include "pch.h"
 
 #if ALTERNATE_IL_FILE_FORMAT
 #include "il_file.h"
@@ -8470,19 +8471,13 @@ Display and return the amount of space used for various IL tables.
 #endif /* DEBUG */
 
 
-void il_init(void)
+void il_one_time_init(void)
 /*
-Initialize static variables related to the IL.  This is done as a
-subroutine (rather than relying on static initialization) so that it
-can be redone to compile more than one source file in a single invocation
-of the front end.
+Do one-time initialization of variables related to the IL. (Variables
+that need to be reinitialized with each new translation unit are handled
+in il_init.)
 */
 {
-  /* Variables in il.h: */
-  curr_il_region_number = NULL_region_number;
-#if DO_IL_LOWERING
-  initial_value_for_il_lowering_flag = 0;
-#endif /* DO_IL_LOWERING */
 #if CHECKING
 #if IL_SHOULD_BE_WRITTEN_TO_FILE && ALTERNATE_IL_FILE_FORMAT
   /* Variable in il_file.h: */
@@ -8531,20 +8526,6 @@ of the front end.
   }  /* if */
 #endif /* CHECKING */
 
-  /* Static variables in il.c: */
-  /* Depending on NULL represented as zero bits here. */
-  memzero((char *)int_types, sizeof(int_types));
-  memzero((char *)signed_int_types, sizeof(signed_int_types));
-  memzero((char *)float_types, sizeof(float_types));
-  memzero((char *)string_types, sizeof(string_types));
-  memzero((char *)wide_string_types, sizeof(wide_string_types));
-  il_error_type = il_unknown_type = il_void_type = NULL;
-  memzero((char *)shareable_constants_table,
-          sizeof(shareable_constants_table));
-#if RECORD_MACROS_IN_IL
-  last_macro = NULL;
-#endif /* RECORD_MACROS_IN_IL */
-
   /* Set the default source correspondence variable to default values. */
   def_source_corresp.assoc_info = NULL;
   def_source_corresp.name = NULL;
@@ -8577,6 +8558,139 @@ of the front end.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   def_source_corresp.source_sequence_entry = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
+  /* Save variables from il.h and il.c that are needed for precompiled
+     headers */
+  if (precompiled_header_processing_required) {
+    static a_pch_saved_variable saved_vars[] = {
+      pch_saved_var_array_elem(il_header),
+      pch_saved_var_array_elem(float_types),
+      pch_saved_var_array_elem(il_error_type),
+      pch_saved_var_array_elem(il_unknown_type),
+      pch_saved_var_array_elem(il_void_type),
+      pch_saved_var_array_elem(int_types),
+      pch_saved_var_array_elem(signed_int_types),
+      pch_saved_var_array_elem(string_types),
+      pch_saved_var_array_elem(wide_string_types),
+      pch_saved_var_array_elem(shareable_constants_table),
+      pch_saved_var_array_elem(avail_template_args),
+#if ORPHAN_PROCESSING_NEEDED
+      pch_saved_var_array_elem(orphaned_file_scope_il_entries),
+#endif /* ORPHAN_PROCESSING_NEEDED */
+#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
+      pch_saved_var_array_elem(last_scope_orphaned_list_header),
+#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
+#if RECORD_MACROS_IN_IL
+      pch_saved_var_array_elem(last_macro),
+#endif /* RECORD_MACROS_IN_IL */
+      pch_saved_var_array_terminating_elem()
+    };
+    register_pch_saved_variables(saved_vars);
+#if DEBUG
+    {
+    static a_pch_saved_variable db_saved_vars[] = {
+      pch_saved_var_array_elem(num_source_files_allocated),
+      pch_saved_var_array_elem(num_constants_allocated),
+      pch_saved_var_array_elem(num_param_types_allocated),
+      pch_saved_var_array_elem(num_routine_type_supplements_allocated),
+      pch_saved_var_array_elem(num_based_type_list_members_allocated),
+      pch_saved_var_array_elem(num_class_type_supplements_allocated),
+      pch_saved_var_array_elem(num_access_adjustments_allocated),
+      pch_saved_var_array_elem(num_class_list_entries_allocated),
+      pch_saved_var_array_elem(num_routine_list_entries_allocated),
+      pch_saved_var_array_elem(num_derivation_steps_allocated),
+      pch_saved_var_array_elem(num_base_class_derivations_allocated),
+      pch_saved_var_array_elem(num_base_classes_allocated),
+      pch_saved_var_array_elem(num_template_args_allocated),
+      pch_saved_var_array_elem(num_template_param_type_descrs_allocated),
+      pch_saved_var_array_elem(num_types_allocated),
+      pch_saved_var_array_elem(num_dynamic_inits_allocated),
+      pch_saved_var_array_elem(num_variables_allocated),
+      pch_saved_var_array_elem(num_fields_allocated),
+      pch_saved_var_array_elem(num_routines_allocated),
+      pch_saved_var_array_elem(num_exception_specifications_allocated),
+      pch_saved_var_array_elem(num_exception_specification_types_allocated),
+      pch_saved_var_array_elem(num_asm_entries_allocated),
+      pch_saved_var_array_elem(num_labels_allocated),
+      pch_saved_var_array_elem(num_expr_nodes_allocated),
+      pch_saved_var_array_elem(num_new_delete_supplements_allocated),
+      pch_saved_var_array_elem(num_throw_supplements_allocated),
+      pch_saved_var_array_elem(num_accessible_base_classes_allocated),
+      pch_saved_var_array_elem(num_switch_clauses_allocated),
+      pch_saved_var_array_elem(num_blocks_allocated),
+      pch_saved_var_array_elem(num_for_loops_allocated),
+      pch_saved_var_array_elem(num_statements_allocated),
+      pch_saved_var_array_elem(num_constructor_inits_allocated),
+      pch_saved_var_array_elem(num_pragmas_allocated),
+      pch_saved_var_array_elem(num_scopes_allocated),
+      pch_saved_var_array_elem(num_il_entry_prefixes_allocated),
+      pch_saved_var_array_elem(string_literal_text_space_allocated),
+      pch_saved_var_array_elem(num_shareable_constants),
+      pch_saved_var_array_elem(num_func_shareable_constants),
+      pch_saved_var_array_elem(num_used_shareable_constant_buckets),
+      pch_saved_var_array_elem(num_searches_for_shareable_constants),
+      pch_saved_var_array_elem(num_compares_for_shareable_constants),
+      pch_saved_var_array_elem(num_get_based_type_calls),
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      pch_saved_var_array_elem(num_source_sequence_entries_allocated),
+      pch_saved_var_array_elem(num_src_seq_secondary_decls_allocated),
+      pch_saved_var_array_elem(num_src_seq_end_of_constructs_allocated),
+      pch_saved_var_array_elem(num_src_seq_sublists_allocated),
+#if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
+      pch_saved_var_array_elem(num_comments_allocated),
+#endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if ORPHAN_PROCESSING_NEEDED
+      pch_saved_var_array_elem(num_fs_orphan_pointers_allocated),
+#endif /* ORPHAN_PROCESSING_NEEDED */
+#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
+      pch_saved_var_array_elem(num_scope_orphaned_list_headers_allocated),
+#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
+#if RECORD_HIDDEN_NAMES_IN_IL
+      pch_saved_var_array_elem(num_hidden_names_allocated),
+#endif /* RECORD_HIDDEN_NAMES_IN_IL */
+#if RECORD_TEMPLATES_IN_IL
+      pch_saved_var_array_elem(num_templates_allocated),
+#endif /* RECORD_TEMPLATES_IN_IL */
+#if RECORD_MACROS_IN_IL
+      pch_saved_var_array_elem(num_macros_allocated),
+#endif /* RECORD_MACROS_IN_IL */
+      pch_saved_var_array_terminating_elem()
+      };
+      register_pch_saved_variables(db_saved_vars);
+    }
+#endif /* if DEBUG */
+  }  /* if */
+}  /* il_one_time_init */
+
+
+void il_init(void)
+/*
+Initialize static variables related to the IL.  This is done as a
+subroutine (rather than relying on static initialization) so that it
+can be redone to compile more than one source file in a single invocation
+of the front end.
+*/
+{
+  /* Variables in il.h: */
+  curr_il_region_number = NULL_region_number;
+#if DO_IL_LOWERING
+  initial_value_for_il_lowering_flag = 0;
+#endif /* DO_IL_LOWERING */
+
+  /* Static variables in il.c: */
+  /* Depending on NULL represented as zero bits here. */
+  memzero((char *)int_types, sizeof(int_types));
+  memzero((char *)signed_int_types, sizeof(signed_int_types));
+  memzero((char *)float_types, sizeof(float_types));
+  memzero((char *)string_types, sizeof(string_types));
+  memzero((char *)wide_string_types, sizeof(wide_string_types));
+  il_error_type = il_unknown_type = il_void_type = NULL;
+  memzero((char *)shareable_constants_table,
+          sizeof(shareable_constants_table));
+#if RECORD_MACROS_IN_IL
+  last_macro = NULL;
+#endif /* RECORD_MACROS_IN_IL */
 
 #if DEBUG
   num_source_files_allocated             = 0;
