@@ -1127,8 +1127,8 @@ memory or with an IL file.
 #endif /* MAINTAIN_NEEDED_FLAGS || MINIMAL_INLINING */
                         write_memory_region(region_number);
     }  /* if */
-  }  /* if */
 #endif /* !IL_SHOULD_BE_WRITTEN_TO_FILE */
+  }  /* if */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
   if (keep_memory) {
     /* Keep the memory for the region.  Trim the region to reclaim unused
