@@ -1010,7 +1010,12 @@ specified after the point of definition of the template.
 */
 {
   a_scope_stack_entry_ptr	ssep = &scope_stack[starting_depth];
-  for (; ssep != NULL; ssep = previous_scope_of(ssep)) {
+  /* Go through the list of scopes.  When setting the flags, use the
+     list of scopes linked by the previous scope pointer.  When clearing
+     the flags, consider all scopes. */
+  for (; ssep != NULL;
+       ssep = set_value ? previous_scope_of(ssep) :
+                          (ssep == &scope_stack[0] ? NULL : ssep - 1)) {
     a_scope_depth			curr_depth = scope_depth_of(ssep);
     an_active_using_directive_ptr	audp = ssep->active_using_directives;
     /* Set the flag for any active using directives for this scope. */

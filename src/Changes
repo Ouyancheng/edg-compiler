@@ -1,5 +1,11 @@
 Version 2.46
 
+2/1/02   Extra names visible in the presence of using-directives
+
+In certain very complex cases involving namespaces and template
+instantiations, names are visible that should not be.  This could result
+in spurious ambiguity errors or improper overloading.  This is now fixed.
+
 1/31/02  Reference to bit field, with side effects, as discarded lvalue
 
 In a case where an expression statement names an lvalue and then does

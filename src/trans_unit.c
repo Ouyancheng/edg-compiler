@@ -246,6 +246,29 @@ Register a variable that is specific to a given translation unit.
   trans_unit_var_block_size += size;
 }  /* f_register_trans_unit_variable */
 
+#if EXPENSIVE_CHECKING
+
+static void check_using_directive_scope_info(a_scope_ptr	scope)
+/*
+Go through the namespace lists of the file and namespace scopes and make
+sure that the depth at which using directive applies field has been
+cleared.
+*/
+{
+  a_namespace_ptr	nsp;
+
+  for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
+    a_namespace_symbol_supplement_ptr	nssp;
+    /* Ignore namespace alias entries. */
+    if (nsp->is_namespace_alias) continue;
+    nssp = symbol_supplement_for_namespace(nsp);
+    check_assertion(nssp->scope_depth_at_which_using_directive_applies ==
+                                                               NO_SCOPE_DEPTH);
+    check_using_directive_scope_info(nsp->variant.assoc_scope);
+  }  /* for */
+}  /* check_using_directive_scope_info */
+
+#endif /* EXPENSIVE_CHECKING */
 
 static void clear_scope_stack_related_information(void)
 /*
@@ -267,6 +290,11 @@ depth_in_scope_stack field of any scopes on the scope stack.
       scope->depth_in_scope_stack = NO_SCOPE_DEPTH;
     }  /* if */
   }  /* for */
+#if EXPENSIVE_CHECKING
+  /* Make sure that the using-directive state information was cleared
+     properly. */
+  check_using_directive_scope_info(il_header.primary_scope);
+#endif /* EXPENSIVE_CHECKING */
 }  /* clear_scope_stack_related_information */
 
 
@@ -417,8 +445,8 @@ Make the translation unit specified by "tup" the current translation unit.
   if (tup != curr_translation_unit) {
     /* Only switch if the current translation unit is not the one desired. */
     save_translation_unit_state(curr_translation_unit);
-    restore_translation_unit_state(tup);
     curr_translation_unit = tup;
+    restore_translation_unit_state(tup);
   }  /* if */
 }  /* switch_translation_unit */
 
