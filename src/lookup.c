@@ -1662,7 +1662,8 @@ typedef struct a_lookup_state {
   a_boolean	force_lookup_in_dependent_bases;
 			/* TRUE if we are doing a special second lookup pass
 			   in g++ mode and should look in dependent base
-			   classes. */
+			   classes.  Also used when creating hidden name
+			   lists. */
   a_boolean	add_to_active_list;
 			/* TRUE if look_for_projected_symbol is TRUE and
 			   the resulting projection symbol (if any) should be
@@ -2946,6 +2947,8 @@ C and C++.
     lookup_state.is_linkage_lookup = (options & IDL_LINKAGE_LOOKUP) != 0;
     lookup_state.is_friend_lookup = (options & IDL_FRIEND_LOOKUP) != 0;
     lookup_state.hidden_name_lookup = (options & IDL_HIDDEN_NAME_LOOKUP) != 0;
+    lookup_state.force_lookup_in_dependent_bases =
+                                               lookup_state.hidden_name_lookup;
     lookup_state.do_not_create_proj_sym =
                                    (options & IDL_DO_NOT_CREATE_PROJ_SYM) != 0;
     lookup_state.skip_template_decl_scopes =
