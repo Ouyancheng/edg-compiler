@@ -133,6 +133,8 @@ static int gflag = FALSE;
 			/* -g option specified. */
 static int fe_only = FALSE;
 			/* Run only the front end. */
+static int multi_trans_unit_mode = FALSE;
+			/* Use multiple translation unit mode. */
 static int preprocess_only = FALSE;
 			/* Running in preprocessing mode. */
 static char	*edg_base;
@@ -1029,6 +1031,17 @@ Compile a file and generate an object file.
   add_cl_argument(&cl, str);
 #endif /* __WIN32__ */
   add_cl_argument(&cl, file_name);
+  /* In multiple translation unit mode, add the other file names to the
+     command. */
+  if (multi_trans_unit_mode) {
+     a_cl_argument_ptr	file_name_arg;
+    /* Add the remaining file names to the command (skip the first file,
+       which we have already added). */
+    for (file_name_arg = file_list.args->next; file_name_arg != NULL;
+         file_name_arg = file_name_arg->next) {
+      add_cl_argument(&cl, file_name_arg->str);
+    }  /* for */
+  }  /* if */
   status = execute_command(&cl);
   if (status == 0 && !fe_only && !preprocess_only) {
     /* Write the compilation command line into the instantiation
@@ -1260,6 +1273,10 @@ add_to_compile_options:
           make_arg_string();
           add_cl_argument(&link_command, str);
           break;
+        case 'q':
+          /* Multi-trans unit mode. */
+          multi_trans_unit_mode = TRUE;
+          break;
         case 'y':
           /* Add the specifier string as a C to object option. */
           add_cl_argument(&c_to_obj_options, argv[++optpos]);
@@ -1310,6 +1327,8 @@ int main(int argc, char *argv[])
       /* Anything else is assumed to be an object file name or library. */
       add_cl_argument(&object_file_list, file_name);
     }  /* if */
+    /* Stop after the first file in multi-trans-unit mode. */
+    if (multi_trans_unit_mode) break;
     clap = clap->next;
   }  /* while */
   if (!cflag && !any_errors && !fe_only && !preprocess_only) {
