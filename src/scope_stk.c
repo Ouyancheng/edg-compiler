@@ -1182,6 +1182,9 @@ to the declaration information for the template declaration scope being pushed.
   ssep->object_lifetime_avail_list = NULL;
   ssep->saved_curr_object_lifetime = curr_object_lifetime;
   ssep->templ_member_class_sym   = NULL;
+#if RECORD_HIDDEN_NAMES_IN_IL
+  ssep->hidden_template_name_symbols = NULL;
+#endif /* RECORD_HIDDEN_NAMES_IN_IL */
   ssep->depth_innermost_namespace_scope = depth_innermost_namespace_scope;
   ssep->num_of_extra_times_pushed = 0;;
   ssep->active_using_directives   = NULL;
@@ -3857,6 +3860,14 @@ End a name scope by popping an entry off the scope stack.
       free_active_using_directive_list(ssep->active_using_directives);
       ssep->active_using_directives = NULL;
     }  /* if */
+#if RECORD_HIDDEN_NAMES_IN_IL
+    if (kind == (a_scope_kind)sck_function) {
+      /* Hidden-template-name fixup entries contain pointers to the il scope
+         associated with the hiding of a template name; free entries that
+         are no longer needed with the popping of this function scope. */
+      free_selected_hidden_template_name_fixups();
+    }  /* if */
+#endif /* RECORD_HIDDEN_NAMES_IN_IL */
     /* Do management related to the object lifetime stack.  Don't pop the
        file scope object lifetime yet, though, because we need it in IL
        lowering; see below */

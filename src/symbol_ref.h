@@ -172,6 +172,10 @@ extern a_boolean reference_to_trivial_default_constructor(
 
 extern void check_for_defeatable_name_hiding(a_symbol_ptr  sym_ptr);
 
+extern void record_name_hiding_for_template_instance(
+                                    a_symbol_ptr                      sym_ptr,
+                                    a_template_symbol_supplement_ptr  tssp);
+
 extern void check_hidden_name_fixup_list(a_symbol_list_entry_ptr  *list);
 
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */

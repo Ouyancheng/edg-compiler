@@ -1,5 +1,21 @@
 Version 2.42
 
+4/20/99  C++-generating back end: missing qualifier on reference to
+         class template instance
+
+The C++-generating back end would sometimes fail to include a qualifier
+on a reference to a template instance when the template name itself was
+hidden by an intervening declaration.  Now fixed.  For example, "N::"
+was omitted from the base specifier declaration in the following:
+
+  namespace N {
+    template<class T> struct iterator { };
+    struct vector_bool {
+      struct iterator;
+      struct iterator : N::iterator<vector_bool> { };
+    };
+  }
+
 4/20/99  Suppressing warnings from system include files
 
 The front end now suppresses warnings from "system" include files.  A

@@ -185,6 +185,72 @@ Return TRUE if sym1 and sym2 point to the same IL entries.
 }  /* symbols_are_equivalent */
 
 
+static a_scope_ptr hidden_name_scope(void)
+/*
+Return the IL scope with which a hidden-name table entry should be associated.
+*/
+{
+  a_scope_stack_entry_ptr  ssep;
+  a_scope_ptr              sp;
+
+  /* Get pointer to current scope entry. */
+  ssep = &scope_stack[decl_scope_level];
+  if (ssep->kind == (a_scope_kind)sck_pragma) --ssep;
+  while (ssep->kind == (a_scope_kind)sck_template_declaration) {
+    --ssep;
+  }  /* while */
+  /* Create the IL scope if necessary (for block scopes). */
+  sp = ensure_il_scope_exists(ssep);
+  check_assertion_str(sp != NULL,
+                      "record_defeatable_name_hiding: NULL IL scope");
+  return sp;
+}  /* hidden_name_scope */
+
+
+static void record_hidden_template(
+                              a_symbol_ptr  hidden_sym,
+                              a_boolean     tag_hidden_by_nontag,
+                              a_boolean     hidden_class_or_namespace_member,
+                              a_scope_ptr   sp)
+/*
+A template name (indicated by hidden_sym) is hidden in the specified scope
+by another declaration.  Record the fact in a fixup list that can be
+checked later whenever a new instance of the template is generated.
+*/
+{
+  a_template_symbol_supplement_ptr  tssp;
+  a_hidden_template_name_fixup_ptr  htnfp;
+  a_symbol_list_entry_ptr           slep;
+  a_scope_stack_entry_ptr           ssep;
+
+  check_assertion(is_template_symbol(hidden_sym));
+  /* Add a fixup entry to a list in the template symbol supplement. */
+  tssp = hidden_sym->variant.template_info;
+  htnfp = alloc_hidden_template_name_fixup();
+  htnfp->scope = sp;
+  htnfp->tag_hidden_by_nontag = tag_hidden_by_nontag;
+  htnfp->hidden_class_or_namespace_member = hidden_class_or_namespace_member;
+  htnfp->next = tssp->hidden_name_fixup_list;
+  tssp->hidden_name_fixup_list = htnfp;
+  /* If this hiding occurs within the context of function definition, record
+     the template in a list in the scope stack entry for the function.  Then
+     when the function scope is popped, fixup entries associated with the
+     function scope can be removed.  (This is required because the memory
+     region to which the current IL scope entry may no longer be valid once
+     the function scope is popped.) */
+  if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+    slep = alloc_symbol_list_entry();
+    slep->symbol = hidden_sym;
+    ssep = &scope_stack[depth_innermost_function_scope];
+    /* Record the function scope in the fixup entry. */
+    htnfp->assoc_function_scope = ssep->il_scope;
+    /* Add the list entry to the front of the list. */
+    slep->next = ssep->hidden_template_name_symbols;
+    ssep->hidden_template_name_symbols = slep;
+  }  /* if */
+}  /* record_hidden_template */
+
+
 static void record_defeatable_name_hiding(
                               a_symbol_ptr  hidden_sym,
                               a_boolean     tag_hidden_by_nontag,
@@ -202,7 +268,6 @@ and hidden_by refer to the same IL entry, no hidden-name entry is produced.
 */
 {
   a_hidden_name_ptr        hnp;
-  a_scope_stack_entry_ptr  ssep;
   char                     *entity;
   an_il_entry_kind         kind;
   a_symbol_ptr             sym;
@@ -222,6 +287,7 @@ and hidden_by refer to the same IL entry, no hidden-name entry is produced.
         break;
       case sk_overloaded_function:
         /* Enter members of an overload set separately. */
+        if (sp == NULL) sp = hidden_name_scope();
         for (sym = hidden_sym->variant.overloaded_function.symbols;
              sym != NULL;
              sym = sym->next) {
@@ -245,6 +311,7 @@ and hidden_by refer to the same IL entry, no hidden-name entry is produced.
         break;
       case sk_class_template:
         /* Enter each instance of a class template. */
+        if (sp == NULL) sp = hidden_name_scope();
         for (sym = hidden_sym->variant.template_info->
                                   variant.class_template.instantiations;
              sym != NULL;
@@ -255,9 +322,14 @@ and hidden_by refer to the same IL entry, no hidden-name entry is produced.
                                           hidden_by);
           }  /* if */
         }  /* for */
+        /* Add a fixup entry for the template, so that hidden name table
+           entries can be added for instances that are created later. */
+        record_hidden_template(hidden_sym, tag_hidden_by_nontag,
+                               hidden_class_or_namespace_member, sp);
         break;
       case sk_function_template:
         /* Enter each instance of a function template. */
+        if (sp == NULL) sp = hidden_name_scope();
         for (tip = hidden_sym->variant.template_info->
                                   variant.function.instantiations;
              tip != NULL;
@@ -277,18 +349,7 @@ and hidden_by refer to the same IL entry, no hidden-name entry is produced.
         /* The normal case.  First find the entity associated with the
            symbol. */
         entity = il_entry_for_symbol(hidden_sym, &kind);
-        if (sp == NULL) {
-          /* Get pointer to current scope entry. */
-          ssep = &scope_stack[decl_scope_level];
-          if (ssep->kind == (a_scope_kind)sck_pragma) --ssep;
-          while (ssep->kind == (a_scope_kind)sck_template_declaration) {
-            --ssep;
-          }  /* while */
-          /* Create the IL scope if necessary (for block scopes). */
-          sp = ensure_il_scope_exists(ssep);
-          check_assertion_str(sp != NULL,
-                              "record_defeatable_name_hiding: NULL IL scope");
-        }  /* if */
+        if (sp == NULL) sp = hidden_name_scope();
         /* If there is already a hidden name entry for this entity in this
            scope, reuse it. */
         for (hnp = sp->hidden_names; hnp != NULL; hnp = hnp->next) {
@@ -364,6 +425,44 @@ and hidden_by refer to the same IL entry, no hidden-name entry is produced.
     }  /* switch */
   }  /* if */
 }  /* record_defeatable_name_hiding */
+
+
+void record_name_hiding_for_template_instance(
+                                    a_symbol_ptr                      sym_ptr,
+                                    a_template_symbol_supplement_ptr  tssp)
+/*
+An instance of a template has been generated.  Hidden name table entries
+may be required for it in scopes where the template name is hidden by
+another declaration.  The instance is indicated by sym_ptr; the template
+of which it is an instance is represented by the specified template symbol
+supplement.  Check the fixup list associated with the template and update
+the hidden name table for each entry on the list.
+*/
+{
+  a_hidden_template_name_fixup_ptr  htnfp;
+
+  if (tssp != NULL) {
+    htnfp = tssp->hidden_name_fixup_list;
+#if DEBUG
+    if (htnfp != NULL) {
+      if (debug_level >= 4 || db_flag_is_set("dump_hidden")) {
+        fputs("Deferred hidden name record: ", f_debug);
+        db_symbol_name(sym_ptr);
+        fputc('\n', f_debug);
+      }  /* if */
+    }  /* if */
+#endif /* DEBUG */
+    for (; htnfp != NULL; htnfp = htnfp->next) {
+      if (htnfp->scope->kind == (a_scope_kind)sck_block &&
+          htnfp->scope->depth_in_scope_stack == NO_SCOPE_DEPTH) {
+        continue;
+      }  /* if */
+      record_defeatable_name_hiding(sym_ptr, htnfp->tag_hidden_by_nontag,
+                                    htnfp->hidden_class_or_namespace_member,
+                                    htnfp->scope, (a_symbol_ptr)NULL);
+    }  /* for */
+  }  /* if */
+}  /* record_name_hiding_for_template_instance */
 
 
 static void add_to_hidden_name_fixup_list(a_symbol_ptr  sym_ptr)

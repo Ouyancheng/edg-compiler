@@ -3264,6 +3264,14 @@ prototype instantiation is considered as a potential match.
        internal) as the template itself has. */
     class_type->source_corresp.name_linkage =
                              tssp->variant.class_template.name_linkage;
+#if RECORD_HIDDEN_NAMES_IN_IL
+    if (!sym->variant.class_struct_union.extra_info->is_nonreal_class) {
+      /* If the template was hidden by an other declaration, each reference
+         to the template through an instance is also hidden.  Check the
+         fixup list and update the hidden name table as required. */
+      record_name_hiding_for_template_instance(sym, tssp);
+    }  /* if */
+#endif /* RECORD_HIDDEN_NAMES_IN_IL */
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
     if (microsoft_mode or_near_and_far_enabled()) {
       a_symbol_ptr	prototype_template_prototype_sym;
