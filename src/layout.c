@@ -742,11 +742,12 @@ there's no overflow TRUE is returned.
             /* Subtract from the number of bits available in the container
                the number that is now being allocated.  It ought not to be a
                negative value. */
-            lob->curr_container_avail_bits -=
-                                  (an_unnormalized_bit_offset)field->bit_size;
-            check_assertion_str2(lob->curr_container_avail_bits >= 0,
+            check_assertion_str2(lob->curr_container_avail_bits >=
+                                   (an_unnormalized_bit_offset)field->bit_size,
                                  "set_field_size_and_alignment:",
                                  "bad curr_container_avail_bits adjustment");
+            lob->curr_container_avail_bits -=
+                                  (an_unnormalized_bit_offset)field->bit_size;
           }  /* if */
         }  /* if */
       } else {
