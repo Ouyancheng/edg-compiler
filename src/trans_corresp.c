@@ -4346,8 +4346,12 @@ way, determine to which other IL entry this might correspond.
               record_class_template_instantiation(
                               (a_symbol_ptr)type->source_corresp.assoc_info);
             } else {
-              find_type_correspondence((a_type_ptr)scp,
-                                       (a_boolean)scp->is_class_member);
+              find_type_correspondence(type, (a_boolean)scp->is_class_member);
+            }  /* if */
+            if (trans_unit_corresp_of(type) == NULL) {
+              /* Unnamed classes sometimes don't have their correspondence
+                 cleared by find_type_correspondence.  Do it here. */
+              clear_type_correspondence(type, /*visited=*/TRUE);
             }  /* if */
           }
           break;
