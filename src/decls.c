@@ -4583,6 +4583,12 @@ Returns TRUE if there is an error in the specifiers.
           }  /* if */
           break;
         }  /* if */
+        if (locator_for_curr_id.is_operator_name ||
+            locator_for_curr_id.is_conversion_name) {
+          /* This identifier represents something like "A::operator+" or
+             "A::operator int"." */
+          goto operator_or_conversion_name;
+        }  /* if */
         /* If this is the first specifier, and this identifier is undefined,
            assume that we are dealing with a name that was supposed to be
            declared as a typedef.  Note that we do not get here on
@@ -4622,6 +4628,19 @@ Returns TRUE if there is an error in the specifiers.
         }  /* if */
         /* For non-typedef identifiers, branch to the default case. */
         goto something_unexpected;
+      case tok_operator:
+        (void)get_opname();
+operator_or_conversion_name:
+        if (locator_for_curr_id.is_conversion_name) {
+          if (basic_type != bt_none || sign != sign_none ||
+              size != size_none) {
+            error(ec_type_specifier_not_allowed);
+            err = TRUE;
+          }  /* if */
+          basic_type = bt_typedef;
+          *type_ptr = locator_for_curr_id.variant.conversion_result_type;
+        }  /* if */
+        goto exit_loop;
       case tok_compl:
         if (is_member_decl) {
           if (num_specifiers == 0) {
@@ -5057,13 +5076,14 @@ locator, and return TRUE.  If it doesn't, return FALSE.
 */
 {
   a_storage_class           storage_class;
-  a_decl_flag_set           dso_flags, do_flags;
+  a_decl_flag_set           dso_flags;
   a_type_ptr                specifiers_type, complete_type;
   a_type_ptr                bottom_derived_type = NULL;
   an_extern_linkage         dummy_linkage;
   a_source_position         type_pos;
   a_boolean                 is_conversion_operator;
 
+  db_enter(3, "scan_conversion_operator");
   if (C_dialect == C_dialect_cplusplus && is_type_start()) {
     /* It is the start of a type name. */
     is_conversion_operator = TRUE;
@@ -5086,6 +5106,7 @@ locator, and return TRUE.  If it doesn't, return FALSE.
   } else {
     is_conversion_operator = FALSE;
   }  /* if */
+  db_exit();
   return is_conversion_operator;
 }  /* scan_conversion_operator */
 
@@ -5960,7 +5981,14 @@ continue_with_declaration:
         add_stop_token(tok_lbrace);
         need_lbrace_remove_stop_token = TRUE;
       }  /* if */
-      copy_source_position(pos_curr_token, declarator_pos);
+      if (curr_token == tok_identifier &&
+          (locator_for_curr_id.is_operator_name ||
+           locator_for_curr_id.is_conversion_name)) {
+        copy_source_position(locator_for_curr_id.source_position,
+                             declarator_pos);
+      } else {
+        copy_source_position(pos_curr_token, declarator_pos);
+      }  /* if */
       declarator(DI_REAL_DECLARATOR_ALLOWED |
                    (is_scalar_type(type_ptr) ||
                     is_class_struct_union_type(type_ptr) ?
@@ -6082,7 +6110,7 @@ continue_with_declaration:
           if (C_dialect == C_dialect_cplusplus) {
             /* Issue a warning in C++, unless this is a constructor or
                destructor definition. */
-            if (!is_constructor_or_destructor) {
+            if (!is_constructor_or_destructor && !locator.is_conversion_name) {
               pos_warning(ec_missing_type_specifier, &declarator_pos);
             }  /* if */
           } else if (C_dialect != C_dialect_pcc) {
