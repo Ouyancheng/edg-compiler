@@ -1603,8 +1603,6 @@ Display the indicated routine.
 #if ASSIGNMENT_TO_THIS_ALLOWED
   if (ptr->asignment_to_this) {
     disp_boolean("assignment_to_this", (a_boolean)ptr->assignment_to_this);
-    disp_ptr("assoc_new_or_delete_routine",
-             (char *)ptr->assoc_new_or_delete_routine, iek_routine);
   }  /* if */
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
   disp_class_list("befriending_classes", ptr->befriending_classes);
@@ -2599,6 +2597,12 @@ Display the indicated class type supplement entry.
   }  /* if */
   disp_class_list("befriending_classes", ptr->befriending_classes);
   disp_ptr("assoc_scope", (char * )ptr->assoc_scope, iek_scope);
+#if ASSIGNMENT_TO_THIS_ALLOWED
+  disp_ptr("assoc_operator_new_routine",
+           (char *)ptr->assoc_operator_new_routine, iek_routine);
+  disp_ptr("assoc_operator_delete_routine",
+           (char *)ptr->assoc_operator_delete_routine, iek_routine);
+#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
 #if DO_IL_LOWERING
   /* Do not print out the IL entry members that are used only
      during IL lowering. */

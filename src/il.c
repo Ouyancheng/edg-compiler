@@ -2530,6 +2530,10 @@ a pointer to it.
   ctsp->access_adjustments                = NULL;
   ctsp->befriending_classes               = NULL;
   ctsp->assoc_scope                       = NULL;
+#if ASSIGNMENT_TO_THIS_ALLOWED
+  ctsp->assoc_operator_new_routine        = NULL;
+  ctsp->assoc_operator_delete_routine     = NULL;
+#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
 #if DO_IL_LOWERING
   ctsp->virtual_function_table_var        = NULL;
   ctsp->type_as_subobject                 = NULL;
@@ -3864,7 +3868,6 @@ to it.  The entry is allocated in the file scope memory region.
   rp->compiler_generated      = FALSE;
 #if ASSIGNMENT_TO_THIS_ALLOWED
   rp->assignment_to_this_done = FALSE;
-  rp->assoc_new_or_delete_routine = NULL;
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
   rp->befriending_classes     = NULL;
   rp->virtual_function_number = 0;

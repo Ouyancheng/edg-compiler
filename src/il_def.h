@@ -1121,6 +1121,14 @@ typedef struct a_class_type_supplement {
 			   within the scope of the class, including nested
 			   classes.  This pointer is NULL when the class
 			   has been declared but not defined. */
+#if ASSIGNMENT_TO_THIS_ALLOWED
+  a_routine_ptr	assoc_operator_new_routine,
+		assoc_operator_delete_routine;
+			/* The operator new() (or operator delete()) routine
+			   to be used for the class.  NULL until a new (or
+			   delete) is done or a constructor (or destructor)
+			   is defined. */
+#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
 #if DO_IL_LOWERING
   a_variable_ptr
 		virtual_function_table_var;
@@ -1795,12 +1803,6 @@ typedef struct a_routine {
 			/* TRUE if an assignment to "this" (an anachronism)
 			   was done in this function.  C++ member functions
 			   only. */
-  a_routine_ptr	assoc_new_or_delete_routine;
-			/* For a constructor or destructor, this points
-			   to the operator new() or operator delete() routine
-			   to be used for the associated class.  It may have
-			   to be called from within the wrapper code because
-			   assignment to "this" is allowed. */
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
   a_class_list_entry_ptr
                 befriending_classes;
