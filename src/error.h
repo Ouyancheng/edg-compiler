@@ -657,6 +657,10 @@ extern void pos_ty2_error(an_error_code     error_code,
 extern void type_error(an_error_code error_code,
                        struct a_type *type);
 #if !STANDALONE_UTILITY_PROGRAM
+extern void pos_stsy_error(an_error_code     error_code,
+                           a_source_position *error_pos,
+                           char              *error_string,
+                           struct a_symbol   *symbol);
 extern void pos_sy_error(an_error_code     error_code,
                          a_source_position *error_pos,
                          struct a_symbol   *symbol);
