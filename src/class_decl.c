@@ -362,6 +362,9 @@ typedef struct a_class_def_state {
 			/* TRUE if a property of the class (e.g., the
 			   declaration of a virtual function) disqualifies it
 			   as an "aggregate". */
+  a_bit_field   POD_ruled_out:1;
+			/* TRUE if a property of the class disqualifies it as
+			   a "POD". */
   a_bit_field	any_named_fields:1;
 			/* TRUE if any named fields are declared. */
   a_bit_field	any_nonpublic_members:1;
@@ -415,6 +418,7 @@ class being defined.
   cdsp->class_type = class_type;
   cdsp->is_first_field = TRUE;
   cdsp->class_aggregate_ruled_out = FALSE;
+  cdsp->POD_ruled_out = FALSE;
   cdsp->any_named_fields = FALSE;
   cdsp->any_nonpublic_members = FALSE;
   cdsp->any_friend_decls = FALSE;
@@ -6980,7 +6984,21 @@ specific information about the member declaration, respectively.
         if (!member_cssp->assignment_by_bitwise_copy_allowed) {
           cssp->assignment_by_bitwise_copy_allowed = FALSE;
         }  /* if */
+        /* A POD may not have a field with a type that is a non-POD class
+           (or array thereof). */
+        if (!member_cssp->is_POD) class_state->POD_ruled_out = TRUE;
       }  /* if */
+    }  /* if */
+  } else if (C_dialect == C_dialect_cplusplus && !class_state->POD_ruled_out) {
+    if (is_reference_type(member_type)) {
+      /* A POD may not have a field with a reference type. */
+      class_state->POD_ruled_out = TRUE;
+    } else {
+      /* A POD may not have a field with a type that is a pointer-to-member
+         (or array thereof). */
+      a_type_ptr  tp = member_type;
+      if (is_array_type(tp)) tp = underlying_array_element_type(tp);
+      if (is_ptr_to_member_type(tp)) class_state->POD_ruled_out = TRUE;
     }  /* if */
   }  /* if */
   /* Check for the case in which the type is or contains a routine type for
@@ -7002,6 +7020,7 @@ specific information about the member declaration, respectively.
         /* No class with private or protected nonstatic data members
            is an aggregate (WP 8.5.1). */
         class_state->class_aggregate_ruled_out = TRUE;
+        class_state->POD_ruled_out = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -7368,6 +7387,8 @@ The routine body is not generated until it is known to be needed.
     /* If the user has already defined an assignment operator, neither
        is bitwise copying allowed nor must the compiler generate one. */
     cssp->assignment_by_bitwise_copy_allowed = FALSE;
+    /* A POD cannot have a user-defined copy assignment operator. */
+    class_state->POD_ruled_out = TRUE;
   } else {
     /* Generate a copy assignment operator if bitwise copying is not allowed.
        If bitwise copying *is* allowed, generate it only if an assignment
@@ -8486,23 +8507,8 @@ member.  Determine whether a diagnostic is actually required and put it out.
         if (!any_diagnostics_issued) {
           /* This is the first field for which a diagnostic should be issued.
              Put out the "head" of the message first. */
-          if (!cssp->is_class_aggregate) {
-            /* Issue an error for a non-aggregate class, since there's no
-               other way to initialize an object of the class. */
-            pos_sy_start_error(ec_no_ctor_but_const_or_ref_member,
+          pos_sy_start_warning(ec_no_ctor_but_const_or_ref_member,
                                &tag_sym->decl_position, tag_sym);
-          } else {
-            /* Issue a warning for an aggregate class.  If an attempt is made
-               to declare an object without appropriate initialization, an
-               error will be issued.  For example:
-                 class A { const int i; };  // Just a warning
-                 A x = { 0 };               // Okay
-                 A y = x;                   // Okay
-                 A z;                       // Error will be issued
-            */
-            pos_sy_start_warning(ec_no_ctor_but_const_or_ref_member,
-                                 &tag_sym->decl_position, tag_sym);
-          }  /* if */
           /* Remember that a diagnostic has already been issued. */
           any_diagnostics_issued = TRUE;
         }  /* if */
@@ -8842,6 +8848,10 @@ following the member declaration.
           /* A class with a user-defined constructor or a virtual function
              cannot be an "aggregate" (8.5.1). */
           class_state->class_aggregate_ruled_out = TRUE;
+          class_state->POD_ruled_out = TRUE;
+        } else if (decl_info.is_destructor) {
+        /* A POD may not have a user-defined destructor, either. */
+          class_state->POD_ruled_out = TRUE;
         } else if (class_state->access != (an_access_specifier)as_public) {
           /* Strictly speaking, any nonpublic member prevents a class from
              being an aggregate -- keep track. */
@@ -9274,6 +9284,7 @@ nested classes when their definition appears outside of the class template.
       remove_stop_token(tok_lbrace);
       /* A class with base classes is not an "aggregate" (ARM 8.4.1). */
       class_state.class_aggregate_ruled_out = TRUE;
+      class_state.POD_ruled_out = TRUE;
       /* If there is a base specifier list and this is a class or struct
          declaration, it has to be definition, which means the next token
          should be a brace. */
@@ -9544,6 +9555,9 @@ next_declaration:
         /* Create compiler-generated default constructor, copy constructor,
            destructor, and assignment operator, if any is needed. */
         check_special_member_functions(class_type, &class_state);
+      }  /* if */
+      if (cssp->is_class_aggregate && !class_state.POD_ruled_out) {
+        cssp->is_POD = TRUE;
       }  /* if */
 #if ABI_COMPATIBILITY_VERSION >= 232
       /* Go though all the functions declared for this class and set the
