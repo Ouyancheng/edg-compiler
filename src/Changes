@@ -1,5 +1,21 @@
 Version 3.4
 
+10/6/03  IA-64 ABI: some alternate entry points unnamed
+
+IL lowering for the IA-64 ABI in some cases generated unnamed
+entry points for constructors and destructors when the entry
+points should have had mangled names.  The cases involved
+unnamed classes that get a name for linkage purposes.
+
+  union U { U() {} };
+  typedef struct { U u; } S;
+  void f() { S s; }  // Complete constructor for S should be _ZN1SC1Ev
+
+Such constructors and destructors would always be generated,
+and generally were quite simple (no base classes), and therefore
+they were generally inlined, so this was a less significant
+problem than it might otherwise appear.
+
 10/6/03  IA-64 ABI with --no_rtti: virtual function table problems
 
 Lowering for the IA-64 ABI did not work right when configured with

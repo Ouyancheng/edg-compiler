@@ -6593,11 +6593,13 @@ for constructors and destructors in the IA-64 ABI.  The ctor_dtor_kind
 in the routine must be set already.
 */
 {
+  a_boolean dummy;
+
   /* A constructor or destructor for an unnamed class may not have a
      name.  For example, if a local class is used to declare a variable
      ("struct { C c; } x;"), the constructor will have no name.  In this
      case, the alternate entry point does not need a name either. */
-  if (has_name(prim_routine)) {
+  if (function_name_mangling_needed(prim_routine, &dummy)) {
       char ch;
       char *name, *mangled_name;
     /* Compute the mangled name for this new entry point.  It's the same as
