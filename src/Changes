@@ -1,6 +1,24 @@
 Version 3.4
 
-9/11/03  IA-64 ABI: Abort on virtual thunk
+9/15/03  Spurious naming of unnamed enum and class types during instantiation
+
+An unnamed enum or class type can acquire a name for linkage purposes
+through a typedef declaration.  Normally, the underlying type must be
+defined as part of the typedef declaration, but the front end use to
+apply such a name during instantiation.  For example:
+
+  template<typename T> struct S {
+    typedef T NewName;
+  };
+  template<typename T> S<T>::NewName f(T p) { return p; }
+  enum { e };  // Unnamed type
+  int main() {
+    f(e);  // Used to apply the name "NewName" to the type of e, as if
+  }        // the enum declaration had been "typedef enum { e } NewName;"
+
+This is now fixed.
+
+9/11/03  IA-64 ABI: Abort on virtual call thunk
 
 In some relatively rare circumstances, the front end could trigger an
 internal error when processing a virtual call thunk for the IA-64 ABI.

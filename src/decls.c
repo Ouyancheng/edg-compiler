@@ -7496,7 +7496,13 @@ NULL.
     if (is_class_or_enum) {
       if (type_ptr->source_corresp.name == NULL) {
         /* A class/struct/union or enum type with no name. */
-        tp = type_ptr;
+        a_symbol_ptr  sym = (a_symbol_ptr)type_ptr->source_corresp.assoc_info;
+        /* Through deduction templates are sometimes instantiated with
+           unnamed enum or class types.  A typedef in such an instantiation
+           should not affect the name of the type. */
+        if (sym->decl_scope == scope_stack[decl_scope_level].number) {
+          tp = type_ptr;
+        }  /* if */
       }  /* if */
 #if ABI_COMPATIBILITY_VERSION >= 230 && CFRONT_OBJECT_CODE_COMPATIBILITY
     } else {
