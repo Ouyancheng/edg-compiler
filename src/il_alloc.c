@@ -2327,6 +2327,7 @@ fields to default values.
       node->variant.operation.implicit_step_of_explicit_cast = FALSE;
       node->variant.operation.is_reference_cast = FALSE;
       node->variant.operation.is_conversion_call = FALSE;
+      node->variant.operation.arg_dependent_lookup_suppressed_on_call = FALSE;
 #if CHECKING
       node->variant.operation.avoid_codecenter_warnings = 0;
 #endif /* CHECKING */

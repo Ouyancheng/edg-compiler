@@ -8275,6 +8275,13 @@ typedef struct an_expr_node {
 			/* TRUE for a call that does an explicit or implicit
 			   conversion, e.g., a conversion function call
 			   generated for a cast. */
+      a_bit_field
+		arg_dependent_lookup_suppressed_on_call:1;
+			/* TRUE for a call on which argument-dependent
+			   lookup was a possibility but was suppressed because
+			   the function name was not a simple name (e.g.,
+			   it was a qualified name or enclosed in
+			   parentheses). */
       bitfield_to_avoid_codecenter_warnings()
       an_expr_node_ptr  
                 operands;

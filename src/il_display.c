@@ -3368,6 +3368,9 @@ Display the indicated expression node.
       if (ptr->variant.operation.is_conversion_call) {
         disp_boolean("is_conversion_call", TRUE);
       }  /* if */
+      if (ptr->variant.operation.arg_dependent_lookup_suppressed_on_call) {
+        disp_boolean("arg_dependent_lookup_suppressed_on_call", TRUE);
+      }  /* if */
       disp_ptr("operands", (char *)ptr->variant.operation.operands,
                iek_expr_node);
       break;
