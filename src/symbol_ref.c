@@ -1293,11 +1293,7 @@ created for this entity; otherwise, it is NULL.
 #if FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS
       if (is_definition && !C_mode() &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          /* Selective overrider definitions should not be moved outside a
-             class (there is no way to write their declarator there). */
           sym_ptr->variant.routine.ptr->overridden_function == NULL &&
-          /* In-class specializations cannot be defined out-of-class. */
-          !sym_ptr->variant.routine.ptr->is_specialized &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           scope_stack[depth_scope_stack].kind ==
                                     (a_scope_kind)sck_class_struct_union &&

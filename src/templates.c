@@ -15490,11 +15490,6 @@ that follows.
       }  /* if */
     } else {
       /* The symbol is not NULL. */
-      if (rp != NULL) {
-        rp->is_specialized = TRUE;
-      } else {
-        vp->is_specialized = TRUE;
-      }  /* if */
       sym->decl_position = id_pos;
       if (is_definition) {
         srk_flags |= SRK_DEFINITION;
@@ -15546,6 +15541,7 @@ that follows.
           if (vp->declared_type == NULL) vp->declared_type = type;
         }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+        vp->is_specialized = TRUE;
         if (dso_flags & DSO_INLINE) {
           /* Inline may not be specified. */
           pos_error(ec_inline_and_nonfunction, &decl_start_pos);
@@ -15624,6 +15620,7 @@ that follows.
           }  /* if */
         }
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+        rp->is_specialized = TRUE;
         rp->is_inline = func_info.is_inline;
         if ((func_info.is_inline && !extern_inline_allowed) ||
             rp->storage_class == (a_storage_class)sc_static) {
