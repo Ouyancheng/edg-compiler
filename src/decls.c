@@ -2747,8 +2747,9 @@ assoc_routine which should not be overridden.  Obviously, both flags may
 not be TRUE.
 */
 {
-  a_type_ptr rout_type = routine_ptr->type;
-  a_type_ptr comp_type;
+  a_type_ptr        rout_type = routine_ptr->type;
+  a_type_ptr        comp_type;
+  a_param_type_ptr  rout_type_ptp, comp_type_ptp, next_rout_type_ptp;
 
 #if CHECKING
   if (!types_are_compatible(type_ptr, rout_type)) {
@@ -2787,10 +2788,28 @@ not be TRUE.
          rout_type, so we can't just do a copy_type. */
       rout_type->variant.routine.return_type =
                       comp_type->variant.routine.return_type;
-      rout_type->variant.routine.extra_info->param_type_list =
-                      comp_type->variant.routine.extra_info->param_type_list;
       rout_type->variant.routine.extra_info->prototyped =
                       comp_type->variant.routine.extra_info->prototyped;
+      /* Copy the param type entries from the composite type onto the param
+         type entries for the routine type.  This is done in case new param
+         type entries were created.  The original ones must be preseved,
+         however, since they may be pointed to by the parameter variables
+         with which they are associated. */
+      rout_type_ptp = rout_type->variant.routine.extra_info->param_type_list;
+      comp_type_ptp = comp_type->variant.routine.extra_info->param_type_list;
+      for (; rout_type_ptp != NULL; rout_type_ptp = next_rout_type_ptp,
+                                    comp_type_ptp = comp_type_ptp->next) {
+        if (rout_type_ptp == comp_type_ptp) {
+          /* Whenever the corresponding param type entries on the two lists
+             are the same entry, all subsequent ones will also be the same,
+             so we can bail out at that point. */
+          break;
+        }  /* if */
+        /* Save the original next pointer and restore it after the copy. */
+        next_rout_type_ptp = rout_type_ptp->next;
+        *rout_type_ptp = *comp_type_ptp;
+        rout_type_ptp->next = next_rout_type_ptp;
+      }  /* for */
       /* has_ellipsis need not be copied -- it will be the same in all of
          the types, since the original two types are compatible. */
       /* Likewise, the implicit_this_param_type pointers should be identical
@@ -6310,6 +6329,24 @@ explicitly specified (rather than defaulted to "int").
 #endif /* CHECKING */
     unqualified_rout_type = alloc_type((a_type_kind)tk_routine);
     copy_type(rout_type, unqualified_rout_type);
+    ptp = rout_type->variant.routine.extra_info->param_type_list;
+    if (ptp != NULL) {
+      /* Copy the param type list so that the new unshared routine type will
+         also have an unshared param type list. */
+      a_param_type_ptr  new_ptp = alloc_param_type(ptp->type);
+      *new_ptp = *ptp;
+      /* Attach the first new param type entry to the routine type
+         supplement. */
+      unqualified_rout_type->
+                   variant.routine.extra_info->param_type_list = new_ptp;
+      /* If there are addition param type entries, add them to the end of the
+         list (new_ptp will always be the current end-of-list entry). */
+      ptp = ptp->next;
+      for (; ptp != NULL; ptp = ptp->next, new_ptp = new_ptp->next) {
+        new_ptp->next = alloc_param_type(ptp->type);
+        *(new_ptp->next) = *ptp;
+      }  /* for */
+    }  /* if */
     rout_type = unqualified_rout_type;
   } else {
     unqualified_rout_type = make_unqualified_type(rout_type);
