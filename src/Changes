@@ -1,5 +1,41 @@
 Version 2.38
 
+11/14/97  Linker errors on uninstantiated virtual functions
+
+When IL lowering is done, a change made in version 2.37 to improve the
+efficiency of automatic instantiation (see entry for 6/25/97) could result
+in a linker error caused by a failure to instantiate all virtual functions
+of a template class; the problem had to do with the fact that destructor
+wrappers (like constructor wrappers) require the existence of the virtual
+function table.  Now fixed.  Here's an example where the linker complained
+that A<int>::f was never defined:
+
+  // header file xxx.h
+  template<class T> struct A {
+    ~A() { };
+    virtual void f() { };
+  };
+  struct B : public A<int> {
+    B();
+  };
+
+  // file xxx.C
+  #include "xxx.h"
+  B::B() { }               // Note that no A<int> constructor is called
+
+  // file xxx2.C
+  #include "xxx.h"
+  B b;
+  int main() { return 0; }
+
+The declaration of "b" triggers the definition of B::~B(), which calls
+(and causes the instantiation of) A<int>::~A(), which (when lowered)
+references the virtual function table for A<int>, which requires the
+address (and therefore the instantiation) of A<int>::f().  The bug was
+that A<int>::f was not marked for instantiation when A<int>::~A() was
+instantiated; normally the bug would be masked by the instantiation of a
+constructor, but in this case no A<int> constructor is needed.
+
 11/12/97  extern "C" declaration inhibits generation of PCH file
 
 When the last declaration in a header file had an explicit linkage

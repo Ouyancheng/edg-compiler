@@ -1037,11 +1037,14 @@ and for the instantiation of template functions.
     restore_struct_stmt_stack(&saved_sss_state);
   }  /* if */
   if (is_instantiation &&
-      rout_ptr->special_kind == (a_special_function_kind)sfk_constructor) {
+      (rout_ptr->special_kind == (a_special_function_kind)sfk_constructor ||
+       rout_ptr->special_kind == (a_special_function_kind)sfk_destructor)) {
     /* If the current class is a template instance, set the
        instantiation_required flag for each of its virtual functions (since
        they will be needed for the virtual function table, which may end up
-       being defined in this translation unit). */
+       being defined in this translation unit).  The constructor and
+       destructor wrapper code may be expected to reference the virtual
+       function table. */
     check_assertion(class_type != NULL);
     if (class_type->variant.class_struct_union.is_template_class) {
       set_instantiation_required_for_virtual_functions(class_type);
@@ -1641,7 +1644,8 @@ will return a pointer to the constructed object.
   /* If the current class is a template instance, set the
      instantiation_required flag for each of its virtual functions (since
      they will be needed for the virtual function table, which may end up
-     being defined in this translation unit). */
+     being defined in this translation unit).  The constructor wrapper may
+     be expected to reference the virtual function table. */
   class_type = rp->source_corresp.parent.class_type;
   if (class_type->variant.class_struct_union.is_template_class) {
     set_instantiation_required_for_virtual_functions(class_type);
@@ -1656,6 +1660,7 @@ Create the body for a default destructor.  It will return no value.
 */
 {
   a_routine_ptr rp;
+  a_type_ptr    class_type;
 
   db_enter(4, "make_default_destructor_body");
   rp = scope->variant.routine.ptr;
@@ -1666,6 +1671,15 @@ Create the body for a default destructor.  It will return no value.
   scope->assoc_block = alloc_statement((a_statement_kind)stmk_block);
   scope->assoc_block->variant.block.statements =
           alloc_statement((a_statement_kind)stmk_return);
+  /* If the current class is a template instance, set the
+     instantiation_required flag for each of its virtual functions (since
+     they will be needed for the virtual function table, which may end up
+     being defined in this translation unit).  The destructor wrapper may
+     be expected to reference the virtual function table. */
+  class_type = rp->source_corresp.parent.class_type;
+  if (class_type->variant.class_struct_union.is_template_class) {
+    set_instantiation_required_for_virtual_functions(class_type);
+  }  /* if */
   db_exit();
 }  /* make_default_destructor_body */
 
