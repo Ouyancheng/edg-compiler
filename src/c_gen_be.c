@@ -299,6 +299,24 @@ an lvalue.
 #define is_array_type(tp) \
 	(skip_typerefs(tp)->kind == (a_type_kind)tk_array)
 
+
+static a_boolean is_aggregate_or_union_type(a_type_ptr tp)
+/*
+Return TRUE if the indicated type is an aggregate or union.
+*/
+{
+  a_boolean is_aggr_or_union = FALSE;
+
+  tp = skip_typerefs(tp);
+  if (tp->kind == (a_type_kind)tk_struct ||
+      tp->kind == (a_type_kind)tk_union ||
+      tp->kind == (a_type_kind)tk_array) {
+    is_aggr_or_union = TRUE;
+  }  /* if */
+  return is_aggr_or_union;
+}  /* is_aggregate_or_union_type */
+
+
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 /* Declarations needed because of forward references: */
@@ -1337,6 +1355,31 @@ done:;
 }  /* dump_storage_class */
 
 
+static void dump_variable_storage_class(a_variable_ptr variable)
+/*
+Print the storage class of the indicated variable followed by a space.
+*/
+{
+  /* If the variable has an aggregate or union type, suppress the
+     "register" storage class so that we can take the address of the
+     variable if necessary to zero it or copy it for an eok_bassign.
+     "register" on an aggregate probably doesn't do much anyway, and
+     might even confuse the underlying C compiler. */
+  if (variable->storage_class == (a_storage_class)sc_register &&
+      is_aggregate_or_union_type(variable->type)) {
+    if (annotate) {
+      start_comment();
+      write_tok_str("register");
+      end_comment();
+      write_space();
+    }  /* if */
+  } else {
+    /* Normal case. */
+    dump_storage_class(variable->storage_class);
+  }  /* if */
+}  /* dump_variable_storage_class */
+
+
 static void dump_int_kind_name(an_integer_kind kind)
 /*
 Print the name of an integer kind.
@@ -1764,7 +1807,7 @@ is non-NULL, in which case that is the function scope.
                compatible with) the type in the param_type entry. */
             set_output_position(&param_var->source_corresp.decl_position);
             if (param_var->storage_class == (a_storage_class)sc_register) {
-              dump_storage_class(param_var->storage_class);
+              dump_variable_storage_class(param_var);
             }  /* if */
             /* Since we're generating C, even unnamed parameters in C++ get
                names. */
@@ -2923,26 +2966,36 @@ Generate an expression operation.
       goto done;
     case eok_bassign:
       /* Block assignment, generated only by IL lowering of C++ code. */
+      if (!is_aggregate_or_union_type(expr_type)) {
+        /* The copy can be done by an assignment.  (This case is here
+           for completeness; the front end doesn't actually generate any
+           of these.) */
+        dump_lvalue(operand_1);
+        write_tok_str(" = *");
+        dump_expr_with_parens(operand_2);
+      } else {
+        /* Use a block copy. */
 #if __BSD__
-      /* BSD UNIX -- use bcopy. */
-      write_tok_str("bcopy(");
-      dump_expr_with_parens(operand_2);
-      write_tok_str(",");
-      dump_expr_with_parens(operand_1);
+        /* BSD UNIX -- use bcopy. */
+        write_tok_str("bcopy((char *)");
+        dump_expr_with_parens(operand_2);
+        write_tok_str(", (char *)");
+        dump_expr_with_parens(operand_1);
 #else  /* !__BSD__ */
-      /* System V or ANSI -- use memcpy. */
-      write_tok_str("memcpy(");
-      dump_expr_with_parens(operand_1);
-      write_tok_str(",");
-      dump_expr_with_parens(operand_2);
+        /* System V or ANSI -- use memcpy. */
+        write_tok_str("memcpy((char *)");
+        dump_expr_with_parens(operand_1);
+        write_tok_str(", (char *)");
+        dump_expr_with_parens(operand_2);
 #endif /* __BSD__ */
-      /* Add the length of the move. */
-      { a_type_ptr operand_1_type = type_pointed_to(operand_1->type);
-        operand_1_type = skip_typerefs(operand_1_type);
-        write_tok_str(",");
-        write_unsigned_num((unsigned long)operand_1_type->size);
-        write_tok_str(")");
-      }
+        /* Add the length of the move. */
+        { a_type_ptr operand_1_type = type_pointed_to(operand_1->type);
+          operand_1_type = skip_typerefs(operand_1_type);
+          write_tok_str(",");
+          write_unsigned_num((unsigned long)operand_1_type->size);
+          write_tok_str(")");
+        }
+      }  /* if */
       goto done;
     case eok_subscript:
       dump_expr_with_parens(operand_1);
@@ -3993,13 +4046,12 @@ dumped only if dump_initializers is TRUE.  This routine is not used for
 parameters.
 */
 {
-  a_storage_class storage_class;
-  a_constant_ptr  init_con;
-  a_type_ptr      var_type = variable->type;
-  a_boolean       is_link;
-  char            *name;
+  a_constant_ptr init_con;
+  a_type_ptr     var_type = variable->type;
+  a_boolean      is_link;
+  char           *name;
 #if !C_GEN_BE_GENERATES_ANSI_C
-  a_boolean       forced_static;
+  a_boolean      forced_static;
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
 
   /* Determine whether or not the variable has a constant initializer.
@@ -4038,9 +4090,9 @@ parameters.
         prescan_for_addrs_of_wide_string_constants(init_con);
       }  /* if */
       set_output_position(&variable->source_corresp.decl_position);
-      storage_class = variable->storage_class;
 #if !C_GEN_BE_GENERATES_ANSI_C
-      if (init_con != NULL && storage_class == (a_storage_class)sc_static &&
+      if (init_con != NULL &&
+          variable->storage_class == (a_storage_class)sc_static &&
           !forced_static &&
           (!dump_vars_without_initializers || !dump_initializers)) {
         /* For initialized file-scope static variables, suppress the
@@ -4052,7 +4104,7 @@ parameters.
            static variables in separately-compiled modules. */
       } else {
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
-        dump_storage_class(storage_class);
+        dump_variable_storage_class(variable);
 #if !C_GEN_BE_GENERATES_ANSI_C
       }  /* if */
       if (is_void_type(var_type)) {
