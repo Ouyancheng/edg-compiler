@@ -2627,9 +2627,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
         }  /* if */
       }  /* if */
     }  /* if */
-  } else if (C_dialect == C_dialect_pcc &&
-             !check_as_operands_not_conversion &&
-             is_integral(source_type)) {
+  } else if (C_dialect == C_dialect_pcc && is_integral(source_type)) {
     /* In pcc mode, allow integer --> pointer with a warning.  The null
        pointer constant --> pointer case has been handled above and does
        not come here. */
@@ -2982,10 +2980,9 @@ See conversion_possible.
       }  /* if */
     } else if (C_dialect == C_dialect_pcc &&
                is_pointer(source_type) &&
-               is_integral(dest_type) &&
-               dest_of_ptr_cast_big_enough(source_type, dest_type)) {
-      /* In pcc mode, allow pointer --> integer if the integer is big enough.
-         Issue a warning. */
+               is_integral(dest_type)) {
+      /* In pcc mode, allow pointer --> integer (even if the integer is not
+         big enough).  Issue a warning. */
       okay = TRUE;
       *warning_suggested = default_warning_code;
     } else {

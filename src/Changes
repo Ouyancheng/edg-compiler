@@ -1,5 +1,19 @@
 Version 2.24
 
+7/6/94   K&R/pcc mode conversion between integers and pointers
+
+In K&R/pcc mode, implicit conversions are now allowed between integers
+and pointers even if the integer is smaller than the pointer, and also
+in comparisons.  A warning is issued.
+
+  main () {
+    char a;
+    char *p;
+    if (a > "  B ");  /* Okay with warning. */
+    a = "  B ";       /* Okay with warning. */
+  }
+
+
 7/5/94   Initialization of variable created to hold pointer-to-member constant
 
 For a case where a pointer-to-member-function constant is used in an
