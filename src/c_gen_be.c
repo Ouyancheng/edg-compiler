@@ -5340,7 +5340,10 @@ for the definition of the indicated routine.  scope is the associated scope.
   /* For an old-style function, declare the parameters. */
   /* Note that this does not use the "prototyped" flag, which is inaccurate
      when there is a prototyped declaration and an old-style definition. */
-  if (type->variant.routine.extra_info->old_style_params_scanned)
+  /* Note that IL lowering creates routines with prototyped FALSE but
+     old_style_params_scanned also FALSE. */
+  if (!rout->type->variant.routine.extra_info->prototyped ||
+      type->variant.routine.extra_info->old_style_params_scanned)
 #endif /* C_GEN_BE_GENERATES_ANSI_C */
   {
     dump_old_style_parameter_decls(scope);
