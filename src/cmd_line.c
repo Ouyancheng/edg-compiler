@@ -329,15 +329,6 @@ Process the arguments on the command line that invoked the compiler.
         cfront_compatibility_mode = TRUE;
         /* This option implies C++ dialect. */
         C_dialect = C_dialect_cplusplus;
-#if 0
-        /* It also implies that exception support is disabled. */
-        if (exceptions_enabled != DEFAULT_EXCEPTIONS_ENABLED) {
-          /* The -x option has already been seen.  An error will be issued
-             later if it has caused exceptions to be enabled. */
-        } else {
-          exceptions_enabled = FALSE;
-        }  /* if */
-#endif /* if 0 */
         break;
       case 'n':
         /* Run just the front end to do syntax checking; do not run the back
@@ -627,15 +618,6 @@ unknown_option:
   /* Choose the style of preprocessing. */
   pcc_preprocessing_mode = (C_dialect == C_dialect_pcc);
   if (cfront_compatibility_mode) {
-#if 0
-    /* In cfront compatibility mode support for exceptions should be
-       disabled. */
-    if (exceptions_enabled) {
-      /* Exception support must have been enabled by a command line option. */
-      command_line_error(
-               "support for exceptions cannot be enabled (-x) in cfront mode");
-    }  /* if */
-#endif /* if 0 */
 #if OLD_STYLE_PREPROCESSING_IN_CFRONT_MODE
     /* When configured that way, use old-style preprocessing for cfront
        compatibility mode. */
