@@ -4327,6 +4327,16 @@ are not already present.
   }  /* if */
   base_type_qualifiers = get_type_qualifiers(base_type);
   qualifiers_to_add = qualifiers & ~base_type_qualifiers;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (il_header.microsoft_16_mode &&
+      (qualifiers_to_add & (TQ_NEAR | TQ_FAR))) {
+    /* Don't add explicit qualifiers for memory attributes that are
+       implied anyway. */
+    a_type_qualifier_set implied_qualifier = is_far_type(base_type) ? TQ_FAR :
+                                                                      TQ_NEAR;
+    qualifiers_to_add &= ~implied_qualifier;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (qualifiers_to_add != TQ_NONE) {
     /* Some qualifiers need to be added. */
     if (base_type_qualifiers != TQ_NONE) {
