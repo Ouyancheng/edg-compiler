@@ -1982,8 +1982,9 @@ is in fact valid.
             (instantiations don't have their inline flag set until they
              are instantiated). */
          (!C_mode() && routine->is_inline != corresp_routine->is_inline &&
-          (routine_defined(routine) == routine_defined(corresp_routine)) &&
-          (routine_defined(routine) ||
+          ((routine->assoc_scope != NULL_region_number) ==
+                      (corresp_routine->assoc_scope != NULL_region_number)) &&
+          (routine->assoc_scope != NULL_region_number ||
            !routine->is_template_function || routine->is_specialized)) ||
          /* If both routines are template specialization, the explicit
             template specialization bit should be the same. */
