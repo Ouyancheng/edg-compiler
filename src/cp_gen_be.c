@@ -312,7 +312,10 @@ static void gen_dynamic_init(a_dynamic_init_ptr dip,
                              a_boolean          parenthesized_init,
                              a_boolean          force_parens);
 static void gen_ctor_initializers(a_constructor_init_ptr ctor_init);
-static void gen_statement(a_statement_ptr statement);
+static void gen_statement_full(a_statement_ptr statement,
+                               a_boolean       suppress_trailing_space);
+#define gen_statement(statement) \
+  gen_statement_full((statement), /*suppress_trailing_space=*/FALSE);
 static void gen_routine_decl(a_boolean suppress_specifiers,
                              a_boolean *another_decl_in_comma_list);
 static void gen_declaration(a_boolean for_init);
@@ -6347,7 +6350,8 @@ done_with_operation_after_parens:
     case enk_statement:
       /* GNU C statement expression, ({...}). */
       write_tok_str("(");
-      gen_statement(expr->variant.statement);
+      gen_statement_full(expr->variant.statement,
+                         /*suppress_trailing_space=*/TRUE);
       write_tok_str(")");
       break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -7512,15 +7516,16 @@ the current function.
 }  /* is_return_at_end_of_function */
 
 
-static void gen_statement(a_statement_ptr statement)
+static void gen_statement_full(a_statement_ptr statement,
+                               a_boolean       suppress_trailing_space)
 /*
-Generate code for the indicated statement.
+Generate code for the indicated statement.  Put out a space after the
+statement unless suppress_trailing_space is TRUE.
 */
 {
   a_statement_kind    kind;
   a_switch_clause_ptr scp;
   a_statement_ptr     else_stmt;
-  a_boolean           suppress_trailing_space = FALSE;
 
 #if REPRESENT_EMPTY_STATEMENTS_IN_IL
   check_assertion(statement != NULL);
@@ -7816,11 +7821,11 @@ Generate code for the indicated statement.
       /* No output. */
       break;
     default:
-      unexpected_condition_str("gen_statement: bad statement kind");
+      unexpected_condition_str("gen_statement_full: bad statement kind");
   }  /* switch */
 done:;
   if (!suppress_trailing_space) write_space();
-}  /* gen_statement */
+}  /* gen_statement_full */
 
 
 static a_boolean default_class_array_initialization(
