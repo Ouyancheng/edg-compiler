@@ -139,12 +139,15 @@ a nested construct.
 }  /* remove_matching_closing_token */
 
 
-static a_boolean operation_has_side_effects(an_expr_node_ptr node)
+static a_boolean operation_has_side_effects(an_expr_node_ptr node,
+                                            a_boolean        *suppress_warning)
 /*
-Return TRUE if the (operation) node has side effects.
+Return TRUE if the (operation) node has side effects.  Return
+*suppress_warning TRUE if a warning about the expression doing nothing
+should be suppressed.
 */
 {
-  a_boolean        has_side_effects = FALSE;
+  a_boolean        has_side_effects = FALSE, suppress = FALSE;
   an_expr_node_ptr operand;
   a_type_ptr       operand_type;
 
@@ -202,32 +205,46 @@ Return TRUE if the (operation) node has side effects.
                      is_volatile_qualified_type(type_pointed_to(operand_type));
       }  /* if */
       break;
+    case eok_vacuous_destructor_call:
+      /* A vacuous destructor call like
+           p->int::~int();
+         is an expression that intentionally does nothing, so suppress
+         the warning. */
+      suppress = TRUE;
+      break;
+    default:;
   }  /* switch */
 
   /* For the operations that do not cause side effects, check the operands for
      side effects. */
-  operand = node->variant.operation.operands;
-  while (operand != NULL && !has_side_effects) {
-    has_side_effects = node_has_side_effects(operand);
-    operand = operand->next;
-  }  /* while */
+  for (operand = node->variant.operation.operands;
+       operand != NULL && !has_side_effects;
+       operand = operand->next) {
+    a_boolean local_suppress;
+    has_side_effects = node_has_side_effects(operand, &local_suppress);
+    suppress |= local_suppress;
+  }  /* for */
 
+  *suppress_warning = suppress;
   return has_side_effects;
 }  /* operation_has_side_effects */
 
 
-a_boolean node_has_side_effects(an_expr_node_ptr node)
+a_boolean node_has_side_effects(an_expr_node_ptr node,
+                                a_boolean        *suppress_warning)
 /*
-Return TRUE if the expression node has side effects.
+Return TRUE if the expression node has side effects.  Return
+*suppress_warning TRUE if a warning about the expression doing nothing
+should be suppressed.
 */
 {
-  a_boolean has_side_effects = FALSE;
+  a_boolean has_side_effects = FALSE, suppress = FALSE;
 
   switch (node->kind) {
     case enk_error:
       /* Who knows what an error node might have done -- suppress the
          warning. */
-      has_side_effects = TRUE;
+      suppress = TRUE;
       break;
     case enk_constant:
     case enk_variable_address:
@@ -235,7 +252,7 @@ Return TRUE if the expression node has side effects.
     case enk_field:
       break;
     case enk_operation:
-      has_side_effects = operation_has_side_effects(node);
+      has_side_effects = operation_has_side_effects(node, &suppress);
       break;
     case enk_variable:
       /* Note that we test the variable's type, not the node type, because of
@@ -263,27 +280,29 @@ Return TRUE if the expression node has side effects.
 #endif /* CHECKING */
   }  /* switch */
 
+  *suppress_warning = suppress;
   return has_side_effects;
 }  /* node_has_side_effects */
 
 
 static void simplify_void_node(an_expr_node_ptr *node_ptr,
-                               a_boolean        *has_effect)
+                               a_boolean        *suppress_warning)
 /*
 The expression node pointed to by *node_ptr has been scanned as a void
 expression.  Examine it to see if it can be simplified by removing parts
 that do nothing.  Change *node_ptr to point to the simplified expression
-tree.  Return *has_effect == TRUE if the node has some side effect or if it
-is an explicit cast-to-void node, for which a warning should not be issued.
+tree.  Return *suppress_warning == TRUE if the node has some side effect or
+if it is something that has no effect but for which a warning should not
+be issued.
 */
 {
   an_expr_node_ptr node = *node_ptr;
+  a_boolean        suppress = FALSE;
 
   /* This routine could do various kinds of pruning -- in fact, it used to;
      however, in accord with the philosophy that the front end does no
      optimization, it now only removes an unnecessary top-level cast to
      void. */
-  *has_effect = FALSE;
   /* Check for an explicit cast-to-void node, remove the node, and
      suppress the warning about a node with no effect in that case.
      This is because we assume that a programmer who casts something
@@ -295,10 +314,11 @@ is an explicit cast-to-void node, for which a warning should not be issued.
     /* This is a cast to void; remove the cast node. */
     node = node->variant.operation.operands;
     /* Set the flag to suppress the warning. */
-    *has_effect = TRUE;
+    suppress = TRUE;
   }  /* while */
   /* See if the node has some effect. */
-  if (!*has_effect) *has_effect = node_has_side_effects(node);
+  if (!suppress && node_has_side_effects(node, &suppress)) suppress = TRUE;
+  *suppress_warning = suppress;
   /* Put the possibly updated pointer back into *node_ptr. */
   *node_ptr = node;
 }  /* simplify_void_node */
@@ -311,19 +331,19 @@ expression, and simplify it if possible by removing parts that do nothing.
 Issue a warning if the operand has no effect.
 */
 {
-  a_boolean has_effect;
+  a_boolean suppress_warning;
 
   if (!is_expression_operand(operand)) {
     /* An operand that is not an expression cannot have side effects.
        For error operands, assume that the original form might have had
        an effect, and suppress the warning. */
-    has_effect = is_error_operand(operand);
+    suppress_warning = is_error_operand(operand);
   } else {
     /* For an expression, traverse the tree to see if it has side effects
        and to simplify it. */
-    simplify_void_node(&operand->variant.expression, &has_effect);
+    simplify_void_node(&operand->variant.expression, &suppress_warning);
   }  /* if */
-  if (!has_effect) {
+  if (!suppress_warning) {
     /* Give a warning on an expression that has no effect. */
     pos_warning(ec_expr_has_no_effect, &operand->position);
   }  /* if */

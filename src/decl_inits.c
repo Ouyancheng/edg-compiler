@@ -842,45 +842,51 @@ ref field of a class object (or an array of same) remains uninitialized.
 }  /* get_initializer */
 
 
-static a_boolean init_con_has_side_effects(a_constant_ptr con)
+static a_boolean init_con_has_side_effects(a_constant_ptr con,
+                                           a_boolean      *suppress_warning)
 /*
 Return TRUE if the indicated constant (part of an initialization)
-has side effects.
+has side effects.  Return *suppress_warning TRUE if a warning about
+the expression doing nothing should be suppressed.
 */
 {
-  a_boolean      has_side_effects = FALSE;
+  a_boolean      has_side_effects = FALSE, suppress = FALSE;
   a_constant_ptr subcon;
 
   if (con->kind == (a_constant_repr_kind)ck_aggregate) {
     /* For aggregates, visit the enclosed constants. */
     for (subcon = con->variant.aggregate.first_constant;
-         subcon != NULL;
+         subcon != NULL && !has_side_effects;
          subcon = subcon->next) {
-      if (init_con_has_side_effects(subcon)) {
-        has_side_effects = TRUE;
-        break;
-      }  /* if */
+      a_boolean local_suppress;
+      has_side_effects = init_con_has_side_effects(subcon, &local_suppress);
+      suppress |= local_suppress;
     }  /* for */
   } else if (con->kind == (a_constant_repr_kind)ck_dynamic_init) {
     /* For dynamic init entries, check the dynamic initialization. */
-    has_side_effects =
-                      dynamic_init_has_side_effects(con->variant.dynamic_init);
+    has_side_effects = dynamic_init_has_side_effects(con->variant.dynamic_init,
+                                                     &suppress);
   } else if (con->kind == (a_constant_repr_kind)ck_init_repeat) {
     /* For a repeat, look at the repeated constant. */
     has_side_effects =
-                  init_con_has_side_effects(con->variant.init_repeat.constant);
+                   init_con_has_side_effects(con->variant.init_repeat.constant,
+                                             &suppress);
   }  /* if */
+  *suppress_warning = suppress;
   return has_side_effects;
 }  /* init_con_has_side_effects */
 
 
-a_boolean dynamic_init_has_side_effects(a_dynamic_init_ptr dip)
+a_boolean dynamic_init_has_side_effects(a_dynamic_init_ptr dip,
+                                        a_boolean          *suppress_warning)
 /*
 Return TRUE if the indicated dynamic initialization has side effects,
 i.e., it does something other than just return a value for the initialization.
+Return *suppress_warning TRUE if a warning about the expression doing nothing
+should be suppressed.
 */
 {
-  a_boolean has_side_effects = FALSE;
+  a_boolean has_side_effects = FALSE, suppress = FALSE;
 
   if (dip->destructor != NULL) {
     /* A destructor call causes side effects. */
@@ -894,7 +900,8 @@ i.e., it does something other than just return a value for the initialization.
       case dik_expression:
       case dik_call_returning_class_via_cctor:
         /* An expression might have side effects.  See if it does. */
-        has_side_effects = node_has_side_effects(dip->variant.expression);
+        has_side_effects = node_has_side_effects(dip->variant.expression,
+                                                 &suppress);
         break;
       case dik_constructor:
         /* A constructor call causes side effects. */
@@ -902,8 +909,8 @@ i.e., it does something other than just return a value for the initialization.
         break;
       case dik_nonconstant_aggregate:
         /* A non-constant aggregate must be examined recursively. */
-        has_side_effects =
-                  init_con_has_side_effects(dip->variant.constant);
+        has_side_effects = init_con_has_side_effects(dip->variant.constant,
+                                                     &suppress);
         break;
 #if CHECKING
       case dik_member_copy:
@@ -913,6 +920,7 @@ i.e., it does something other than just return a value for the initialization.
 #endif /* CHECKING */
     }  /* switch */
   }  /* if */
+  *suppress_warning = suppress;
   return has_side_effects;
 }  /* dynamic_init_has_side_effects */
 

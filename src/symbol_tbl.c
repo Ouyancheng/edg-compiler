@@ -6324,8 +6324,11 @@ NULL.
                that has side effects (such as a constructor call).  If
 	       such an initialization exists, issue a remark rather than a
 	       warning. */
+            a_boolean suppress_warning;
             if (var_ptr->init_kind == (an_init_kind)initk_dynamic &&
-                dynamic_init_has_side_effects(var_ptr->initializer.dynamic)) {
+                (dynamic_init_has_side_effects(var_ptr->initializer.dynamic,
+                                               &suppress_warning) ||
+                 suppress_warning)) {
               report_unreferenced(sym, ec_declared_but_not_referenced,
 				  es_remark);
             } else {

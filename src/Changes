@@ -1,5 +1,14 @@
 Version 2.19
 
+7/29/93  No warning that vacuous destructor call has no effect
+
+The warning about expressions that have no effect is now suppressed
+for vacuous destructor calls, e.g.,
+
+  p->int::~int();
+
+since those are explicit ways of saying "do nothing".
+
 7/29/93  C-generating back end output of gaps in structures
 
 The C-generating back end has been changed so that it outputs large

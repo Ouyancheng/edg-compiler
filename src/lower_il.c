@@ -1611,8 +1611,9 @@ routine after it has discarded the troublesome lvalue cases).
   an_expr_node_ptr expr_copy, temp_node;
   a_variable_ptr   temp;
   a_type_ptr       temp_type;
+  a_boolean        suppress_warning;
 
-  if (!node_has_side_effects(expr)) {
+  if (!node_has_side_effects(expr, &suppress_warning)) {
     /* Node has no side effects, so a straight copy will work. */
     expr_copy = copy_expr_tree(expr);
   } else {

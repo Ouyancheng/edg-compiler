@@ -25,7 +25,8 @@ expr.h -- Declarations related to expression parsing.
 #endif /* ifndef SYMBOL_TBL_H */
 
 
-extern a_boolean node_has_side_effects(an_expr_node_ptr node);
+extern a_boolean node_has_side_effects(an_expr_node_ptr node,
+                                       a_boolean        *suppress_warning);
 
 extern void check_closing_paren_after_expr_list(void);
 
