@@ -2247,6 +2247,12 @@ not.
     case iek_routine:
     case iek_asm_entry:
     case iek_label:
+#if RECORD_TEMPLATES_IN_IL
+    case iek_template:
+#endif /* RECORD_TEMPLATES_IN_IL */
+#if RECORD_MACROS_IN_IL
+    case iek_macro:
+#endif /* RECORD_MACROS_IN_IL */
       scp = &((a_constant_ptr)entity_ptr)->source_corresp;
       break;
     default:
