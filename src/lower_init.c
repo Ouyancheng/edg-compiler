@@ -1579,7 +1579,7 @@ and record_size_for_delete is TRUE.
        and 0 otherwise. */
     /* When initializing an array that is not dynamically allocated,
        dtor_routine can be non-NULL even if exceptions are disabled. */
-    check_assertion(entity_node == NULL && !record_size_for_delete);
+    check_assertion(entity_node == NULL);
     dtor_addr_node = expr_for_pointer_to_routine(exceptions_enabled ?
                                                             dtor_routine :
                                                             (a_routine *)NULL);
