@@ -1,5 +1,11 @@
 Version 2.40
 
+8/14/98   Compilation errors in decl_spec.c
+
+Several undefined-name compilation errors occurred in decl_spec.c in a
+configuration with GENERATE_SOURCE_SEQUENCE_LISTS set to FALSE and
+EXTRA_SOURCE_POSITIONS_IN_IL set to TRUE.  Now fixed.
+
 8/13/98   Abort on lowering bit-field reference in anonymous union
 
 An abort in IL lowering while processing an rvalue bit-field reference
