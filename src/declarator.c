@@ -492,24 +492,36 @@ type is legal.
              are discarded. */
           promote_float_to_double(new_type_ptr);
         }  /* if */
-        if (is_qualified_type(new_type_ptr) &&
-            !is_reference_type(new_type_ptr) &&
-            (C_mode() || !is_class_struct_union_type(new_type_ptr))) {
-          /* Except for "restrict", type qualifiers on a function return
-             type are meaningless.  In C++ mode, class rvalues can have
-             type qualifiers, so allow a function returning a qualified class
-             type. */
-          if (is_void_type(skip_typerefs(new_type_ptr))) {
-            /* Issue just a remark for "volatile void" -- gcc uses that to
-               indicate a function (like exit()) that does not return.  Also
-               just issue a remark for "const void". */
-            remark(ec_useless_type_qualifiers);
-#if RESTRICT_ALLOWED
-          } else if (get_type_qualifiers(new_type_ptr) == TQ_RESTRICT) {
-            /* Exactly one type qualifier -- "restrict".  No warning. */
-#endif /* RESTRICT_ALLOWED */
+        if (is_qualified_type(new_type_ptr)) {
+          /* Qualifier on on return type. */
+          if (!C_mode() && is_class_struct_union_type(new_type_ptr)) {
+            /* In C++ mode class rvalues can have type qualifiers, so allow
+               a function returning a qualified class type. */
           } else {
-            warning(ec_useless_type_qualifiers);
+            /* Except for "restrict", type qualifiers on a function return
+               type are meaningless. */
+            if (C_mode() && is_void_type(skip_typerefs(new_type_ptr))) {
+              if (strict_ansi_mode) {
+                /* A return type of "const void" or "volatile void" is not
+                   pormitted in strict C mode. */
+                diagnostic(strict_ansi_error_severity,
+                           ec_type_qualifier_on_void_return_type);
+              } else {
+                /* Issue just a remark for "volatile void" -- gcc uses that to
+                   indicate a function (like exit()) that does not return. */
+                diagnostic(get_type_qualifiers(new_type_ptr) == TQ_VOLATILE ?
+                                                    es_remark : es_warning,
+                           ec_useless_type_qualifier_on_return_type);
+              }  /* if */
+#if RESTRICT_ALLOWED
+            } else if (get_type_qualifiers(new_type_ptr) == TQ_RESTRICT) {
+              /* Exactly one type qualifier -- "restrict".  No warning. */
+#endif /* RESTRICT_ALLOWED */
+            } else if (is_reference_type(new_type_ptr)) {
+              /* A diagnostic will already have been issued. */
+            } else {
+              warning(ec_useless_type_qualifier_on_return_type);
+            }  /* if */
           }  /* if */
         }  /* if */
         if (err) new_type_ptr = error_type();

@@ -1,5 +1,10 @@
 Version 2.33
 
+8/16/96 Qualifier on void function return type
+
+In strict ANSI C mode an error (or warning with -a) is issued when a
+function type is declared with a const or volatile void return type.
+
 8/16/96 Option for K&R usual arithmetic conversion rules on "long"
 
 When DEFAULT_LONG_PRESERVING_RULES is TRUE, or when --long_preserving_rules
