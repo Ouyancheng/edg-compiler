@@ -2197,6 +2197,8 @@ new_direct_bcp.
               ovfp_from_new_list->overriding_function =
                                            ovfp_to_copy->overriding_function;
               ovfp_from_new_list->base_class = new_ovfp_base_class;
+              ovfp_from_new_list->return_adjustment_base_class =
+                                ovfp_to_copy->return_adjustment_base_class;
               /* If there are any other entries on the list that are
                  similarly dominated by the new override, they should be
                  removed from the list.  Otherwise spurious ambiguity errors
