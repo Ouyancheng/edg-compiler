@@ -682,7 +682,8 @@ pointer to the sublist header.
 extern void db_source_sequence_entry(a_source_sequence_entry_ptr  ssep);
 extern void db_source_sequence_list(a_source_sequence_entry_ptr  ssep);
 extern void db_ss_list_for_scope(a_scope_ptr  sp);
-extern void dump_ss(a_scope_ptr  sp);
+extern void dump_ss(a_scope_ptr  sp,
+                    char         *str);
 #endif /* DEBUG */
 
 
@@ -745,6 +746,10 @@ extern void f_add_orphaned_file_scope_il_entry(char             *entry_ptr,
 extern void add_scope_orphaned_il_lists(a_scope_ptr scope);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
+
+#if MAINTAIN_NEEDED_FLAGS
+extern void eliminate_unneeded_il_entries(a_scope_ptr scope);
+#endif /* MAINTAIN_NEEDED_FLAGS */
 
 extern a_namespace_ptr f_skip_namespace_aliases(a_namespace_ptr nsp);
 

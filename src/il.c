@@ -7590,7 +7590,8 @@ debugging purposes.
   }  /* if */
 }  /* db_ss_list_for_scope */
 
-void dump_ss(a_scope_ptr  sp)
+void dump_ss(a_scope_ptr  sp,
+             char         *str)
 /*
 Interface to db_ss_list_for_scope, to allow source sequence lists to be
 displayed independently of other debug output (e.g., if "-d dump_ss=3"
@@ -7600,7 +7601,8 @@ appears on the command-line).  This is also called from pop_scope.
   db_enter(3, "dump_ss");
   if (debug_level >= 3) {
     /* Display source sequence lists for debug purposes. */
-    if (sp != NULL && sp->source_sequence_list != NULL) {
+    if ((sp != NULL && sp->source_sequence_list != NULL) || str != NULL) {
+      if (str != NULL) fputs(str, f_debug);
       db_ss_list_for_scope(sp);
     }  /* if */
   }  /* if */
@@ -8387,6 +8389,40 @@ entry, if there is one.
   }  /* if */
 }  /* set_autonomous_tag_decl_flag */
 
+void drop_from_file_scope_source_sequence_list(
+                                     a_source_sequence_entry_ptr ssep)
+/*
+*/
+{
+  a_source_sequence_entry_ptr  last_ssep;
+
+  if (ssep != NULL) {
+    last_ssep = ssep;
+    if (ssep->entity.kind == (a_byte_il_entry_kind)iek_type &&
+        is_immediate_class_type((a_type_ptr)ssep->entity.ptr)) {
+      for (;;) {
+        if (last_ssep->entity.kind ==
+                       (a_byte_il_entry_kind)iek_src_seq_end_of_construct &&
+            ((a_src_seq_end_of_construct_ptr)last_ssep->entity.ptr)->
+                                            entity.ptr == ssep->entity.ptr) {
+          break;
+        }  /* if */
+        last_ssep = last_ssep->next;
+      }  /* for */
+    }  /* if */
+    if (ssep->prev == NULL) {
+      scope_stack[DEPTH_OF_FILE_SCOPE].il_scope->
+                                   source_sequence_list = last_ssep->next;
+    } else {
+      ssep->prev->next = last_ssep->next;
+    }  /* if */
+    if (last_ssep->next != NULL) {
+      last_ssep->next->prev = ssep->prev;
+    }  /* if */
+    ssep->prev = last_ssep->next = NULL;
+  }  /* if */
+}  /* drop_from_file_scope_source_sequence_list */
+
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if RECORD_TEMPLATES_IN_IL
 
@@ -8431,6 +8467,301 @@ Add the IL macro entry pointed to by mp to the list for the file scope.
 }  /* add_to_macros_list */
 
 #endif /* RECORD_MACROS_IN_IL */
+#if MAINTAIN_NEEDED_FLAGS
+
+void eliminate_unneeded_il_entries(a_scope_ptr scope)
+/*
+*/
+{
+  a_namespace_ptr  nsp;
+  a_variable_ptr   vp, prev_vp, next_vp;
+  a_type_ptr       tp, prev_tp, next_tp;
+  a_routine_ptr    rp, prev_rp, next_rp;
+
+  db_enter(4, "eliminate_unneeded_il_entries");
+  for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
+    if (!nsp->is_namespace_alias) {
+      /* Nested namespace scope. */
+      eliminate_unneeded_il_entries(nsp->variant.assoc_scope);
+    }  /* if */
+  }  /* for */
+  prev_vp = NULL;
+  for (vp = scope->variables; vp != NULL; vp = next_vp) {
+    next_vp = vp->next;
+    if (!vp->source_corresp.needed) {
+#if DEBUG
+      if (debug_level >= 4) {
+        fputs("Removing variable ", f_debug);
+        db_name(&vp->source_corresp);
+        fputc('\n', f_debug);
+      }  /* if */
+#endif /* DEBUG */
+      if (prev_vp == NULL) {
+        scope->variables = vp->next;
+      } else {
+        prev_vp->next = vp->next;
+      }  /* if */
+      vp->next = NULL;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      drop_from_file_scope_source_sequence_list(
+                                  vp->source_corresp.source_sequence_entry);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    } else {
+      prev_vp = vp;
+#if DEBUG
+      if (debug_level >= 4) {
+        fputs("Not removing variable ", f_debug);
+        db_name(&vp->source_corresp);
+        fputc('\n', f_debug);
+      }  /* if */
+#endif /* DEBUG */
+    }  /* if */
+  }  /* for */  
+  prev_rp = NULL;
+  for (rp = scope->routines; rp != NULL; rp = next_rp) {
+    next_rp = rp->next;
+    if (!rp->source_corresp.needed) {
+#if DEBUG
+      if (debug_level >= 4) {
+        fputs("Removing routine ", f_debug);
+        db_name(&rp->source_corresp);
+        fputc('\n', f_debug);
+      }  /* if */
+#endif /* DEBUG */
+      if (prev_rp == NULL) {
+        scope->routines = rp->next;
+      } else {
+        prev_rp->next = rp->next;
+      }  /* if */
+      rp->next = NULL;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      drop_from_file_scope_source_sequence_list(
+                                  rp->source_corresp.source_sequence_entry);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    } else {
+      prev_rp = rp;
+#if DEBUG
+      if (debug_level >= 4) {
+        fputs("Not removing routine ", f_debug);
+        db_name(&rp->source_corresp);
+        fputc('\n', f_debug);
+      }  /* if */
+#endif /* DEBUG */
+    }  /* if */
+  }  /* for */  
+  prev_tp = NULL;
+  for (tp = scope->types; tp != NULL; tp = next_tp) {
+    next_tp = tp->next;
+    if (!tp->source_corresp.needed) {
+#if DEBUG
+      if (debug_level >= 4) {
+        fputs("Removing ", f_debug);
+        db_abbreviated_type(tp);
+        fputc('\n', f_debug);
+      }  /* if */
+#endif /* DEBUG */
+      if (prev_tp == NULL) {
+        scope->types = tp->next;
+      } else {
+        prev_tp->next = tp->next;
+      }  /* if */
+      tp->next = NULL;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      drop_from_file_scope_source_sequence_list(
+                                  tp->source_corresp.source_sequence_entry);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    } else {
+      prev_tp = tp;
+#if DEBUG
+      if (debug_level >= 4) {
+        fputs("Not removing ", f_debug);
+        db_abbreviated_type(tp);
+        fputc('\n', f_debug);
+      }  /* if */
+#endif /* DEBUG */
+    }  /* if */
+  }  /* for */
+#if RECORD_HIDDEN_NAMES_IN_IL
+  {
+  a_hidden_name_ptr        hnp, prev_hnp = NULL, next_hnp;
+  a_source_correspondence  *scp;
+
+  for (hnp = scope->hidden_names; hnp != NULL; hnp = next_hnp) {
+    next_hnp = hnp->next;
+    scp = source_corresp_for_il_entry(hnp->entity.ptr, hnp->entity.kind);
+    if (scp != NULL && !scp->needed) {
+#if DEBUG
+      if (debug_level >= 4) {
+        fputs("Removing hidden name entry for ", f_debug);
+        if (hnp->entity.kind == (a_byte_il_entry_kind)iek_type) {
+          db_abbreviated_type((a_type_ptr)hnp->entity.ptr);
+        } else {
+          db_name(scp);
+        }  /* if */
+        fputc('\n', f_debug);
+      }  /* if */
+#endif /* DEBUG */
+      if (prev_hnp == NULL) {
+        scope->hidden_names = next_hnp;
+      } else {
+        prev_hnp->next = next_hnp;
+      }  /* if */
+      hnp->next = NULL;
+    } else {
+      prev_hnp = hnp;
+#if DEBUG
+      if (debug_level >= 4) {
+        fputs("Not removing hidden name entry for ", f_debug);
+        if (hnp->entity.kind == (a_byte_il_entry_kind)iek_type) {
+          db_abbreviated_type((a_type_ptr)hnp->entity.ptr);
+        } else {
+          db_name(scp);
+        }  /* if */
+        fputc('\n', f_debug);
+      }  /* if */
+#endif /* DEBUG */
+    }  /* if */
+  }  /* for */
+  }
+#endif RECORD_HIDDEN_NAMES_IN_IL
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  if (scope->kind == (a_scope_kind)sck_file) {
+    if (!source_sequence_entries_disallowed) {
+      /* Remove unneeded source-sequence entries. */
+      a_source_sequence_entry_ptr   ssep, next_ssep;
+      a_source_correspondence       *scp;
+      a_src_seq_secondary_decl_ptr  sssdp;
+
+      for (ssep = scope->source_sequence_list;
+           ssep != NULL;
+           ssep = next_ssep) {
+        next_ssep = ssep->next;
+        if (ssep->entity.kind ==
+                     (a_byte_il_entry_kind)iek_src_seq_secondary_decl) {
+          sssdp = (a_src_seq_secondary_decl_ptr)ssep->entity.ptr;
+          scp = source_corresp_for_il_entry(sssdp->entity.ptr,
+                                            sssdp->entity.kind);
+          if (!scp->needed) {
+            drop_from_file_scope_source_sequence_list(ssep);
+          }  /* if */
+        }  /* if */
+      }  /* if */
+#if DEBUG
+      if (db_active) {
+        /* Display source sequence lists for debug purposes. */
+        if (scope->source_sequence_list != NULL) {
+          dump_ss(scope, "after elimination of unneeded entries, ");
+        }  /* if */
+      }  /* if */
+#endif /* DEBUG */
+    }  /* if */
+  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if ORPHAN_PROCESSING_NEEDED
+  if (scope->kind == (a_scope_kind)sck_file) {
+    an_orphaned_il_entry_list *orphan_header;
+    /* Remove unneeded routine entries from the orphan list. */
+    orphan_header = &orphaned_file_scope_il_entries[(int)iek_routine];
+    prev_rp = NULL;
+    for (rp = (a_routine_ptr)orphan_header->first_entry;
+         rp != NULL;
+         rp = next_rp) {
+      next_rp = (a_routine_ptr)(fs_orphan_pointer_of(rp));
+      if (!rp->source_corresp.needed) {
+#if DEBUG
+        if (debug_level >= 4) {
+          fputs("Removing orphaned routine ", f_debug);
+          db_name(&rp->source_corresp);
+          fputc('\n', f_debug);
+        }  /* if */
+#endif /* DEBUG */
+        if (prev_rp == NULL) {
+          orphan_header->first_entry = (char *)next_rp;
+        } else {
+          fs_orphan_pointer_of(prev_rp) = (char *)next_rp;
+        }  /* if */
+        fs_orphan_pointer_of(rp) = NULL;
+      } else {
+        prev_rp = rp;
+#if DEBUG
+        if (debug_level >= 4) {
+          fputs("Not removing orphaned routine ", f_debug);
+          db_name(&rp->source_corresp);
+          fputc('\n', f_debug);
+        }  /* if */
+#endif /* DEBUG */
+      }  /* if */
+    }  /* for */
+    /* Remove unneeded variable entries from the orphan list. */
+    orphan_header = &orphaned_file_scope_il_entries[(int)iek_variable];
+    prev_vp = NULL;
+    for (vp = (a_variable_ptr)orphan_header->first_entry;
+         vp != NULL;
+         vp = next_vp) {
+      next_vp = (a_variable_ptr)(fs_orphan_pointer_of(vp));
+      if (!vp->source_corresp.needed) {
+#if DEBUG
+        if (debug_level >= 4) {
+          fputs("Removing orphaned variable ", f_debug);
+          db_name(&vp->source_corresp);
+          fputc('\n', f_debug);
+        }  /* if */
+#endif /* DEBUG */
+        if (prev_vp == NULL) {
+          orphan_header->first_entry = (char *)next_vp;
+        } else {
+          fs_orphan_pointer_of(prev_vp) = (char *)next_vp;
+        }  /* if */
+        fs_orphan_pointer_of(vp) = NULL;
+      } else {
+        prev_vp = vp;
+#if DEBUG
+        if (debug_level >= 4) {
+          fputs("Not removing orphaned variable ", f_debug);
+          db_name(&vp->source_corresp);
+          fputc('\n', f_debug);
+        }  /* if */
+#endif /* DEBUG */
+      }  /* if */
+    }  /* for */
+    /* Remove unneeded type entries from the orphan list. */
+    orphan_header = &orphaned_file_scope_il_entries[(int)iek_type];
+    prev_tp = NULL;
+    for (tp = (a_type_ptr)orphan_header->first_entry;
+         tp != NULL;
+         tp = next_tp) {
+      next_tp = (a_type_ptr)(fs_orphan_pointer_of(tp));
+      if (!tp->source_corresp.needed) {
+#if DEBUG
+        if (debug_level >= 4) {
+          fputs("Removing orphaned type ", f_debug);
+          db_abbreviated_type(tp);
+          fputc('\n', f_debug);
+        }  /* if */
+#endif /* DEBUG */
+        if (prev_tp == NULL) {
+          orphan_header->first_entry = (char *)next_tp;
+        } else {
+          fs_orphan_pointer_of(prev_tp) = (char *)next_tp;
+        }  /* if */
+        fs_orphan_pointer_of(tp) = NULL;
+      } else {
+        prev_tp = tp;
+#if DEBUG
+        if (debug_level >= 4) {
+          fputs("Not removing orphaned type ", f_debug);
+          db_abbreviated_type(tp);
+          fputc('\n', f_debug);
+        }  /* if */
+#endif /* DEBUG */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+#endif /* ORPHAN_PROCESSING_NEEDED */
+  db_exit();
+}  /* eliminate_unneeded_il_entries */
+
+#endif /* MAINTAIN_NEEDED_FLAGS */
 
 a_namespace_ptr f_skip_namespace_aliases(a_namespace_ptr nsp)
 /*
