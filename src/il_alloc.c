@@ -2515,7 +2515,9 @@ in il_init.)
   /* Set the default source correspondence variable to default values. */
   def_source_corresp.assoc_info = NULL;
   def_source_corresp.name = NULL;
+#if NEED_NAME_MANGLING
   def_source_corresp.unmangled_name = NULL;
+#endif /* NEED_NAME_MANGLING */
   def_source_corresp.parent.class_type = NULL;
   def_source_corresp.decl_position = null_source_position;
   /* access is set to "public" because "no access restriction" is the default
