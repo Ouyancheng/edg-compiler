@@ -641,7 +641,7 @@ there is additional processing to be done.
   a_pragma_ptr             pp;
   a_memory_region_number   region_to_switch_back_to;
   a_boolean                in_fs_memory = FALSE;
-  a_scope_depth            scope_depth = decl_scope_level;
+  a_scope_depth            scope_depth = depth_scope_stack;
   a_source_correspondence  *scp = NULL;
 
   db_enter(5, "add_pragma_to_il");
