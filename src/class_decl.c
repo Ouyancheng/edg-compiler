@@ -396,7 +396,8 @@ routine recursively for each nested class.
            (ARM 8.2.6). */
         (void)push_scope((a_scope_kind)sck_func_prototype,
                          rfp->func_info.scope_number, (a_type_ptr)NULL,
-                         (a_routine_ptr)NULL);
+                         (a_routine_ptr)NULL,
+                         (a_function_instantiation_entry_ptr)NULL);
         if (rfp->func_info.prototype_scope_symbols != NULL) {
           reactivate_prototype_scope_symbols(
                                       rfp->func_info.prototype_scope_symbols);
@@ -4647,7 +4648,8 @@ empty statement block.
   push_class_reactivation_scope(class_type);
   /* Push the scope for the new function itself. */
   scope = push_scope((a_scope_kind)sck_function, NO_SCOPE_NUMBER,
-                     (a_type_ptr)NULL, rout_ptr);
+                     (a_type_ptr)NULL, rout_ptr,
+                     (a_function_instantiation_entry_ptr)NULL);
   /* Associate the scope to the routine entry and the routine entry to its
      type entry. */
   rout_ptr->assoc_scope = curr_il_region_number;
@@ -5246,7 +5248,8 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
     /* Start a scope for the fields and other members. */
     scope_ptr = push_scope((a_scope_kind)sck_class_struct_union,
                            NO_SCOPE_NUMBER,
-                           class_type, (a_routine_ptr)NULL);
+                           class_type, (a_routine_ptr)NULL,
+                           (a_function_instantiation_entry_ptr)NULL);
     clear_layout_block(&layout_block, class_type);
     if (C_dialect == C_dialect_cplusplus) {
       /* In C++ every class, struct, and union type entry will have a non-NULL

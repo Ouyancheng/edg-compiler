@@ -1677,7 +1677,8 @@ scope is that of a class definition.
       */
       /* Push a function prototype scope for the parameters. */
       (void)push_scope((a_scope_kind)sck_func_prototype, NO_SCOPE_NUMBER,
-                       *new_type_ptr, (a_routine_ptr)NULL);
+                       *new_type_ptr, (a_routine_ptr)NULL,
+                       (a_function_instantiation_entry_ptr)NULL);
       /* Remember the scope number for later use if and when a body appears. */
       if (func_info != NULL) {
         func_info->scope_number = scope_stack[depth_scope_stack].number;
@@ -6814,7 +6815,8 @@ explicitly specified (rather than defaulted to "int").
   }  /* if */  
   /* Push the name scope for the routine body. */
   scope_ptr = push_scope((a_scope_kind)sck_function, func_info->scope_number,
-                         (a_type_ptr)NULL, routine_ptr);
+                         (a_type_ptr)NULL, routine_ptr,
+                         (a_function_instantiation_entry_ptr)NULL);
   /* Associate the scope to the routine entry and the routine entry to its
      type entry. */
   routine_ptr->assoc_scope = function_memory_region = curr_il_region_number;
@@ -7110,7 +7112,8 @@ processing of function definition.
   make_locator_for_symbol(symbol_ptr, &locator);
   /* Push the name scope for the routine body. */
   scope = push_scope((a_scope_kind)sck_function, func_info->scope_number,
-                     (a_type_ptr)NULL, rout_ptr);
+                     (a_type_ptr)NULL, rout_ptr,
+                     (a_function_instantiation_entry_ptr)NULL);
   /* Associate the scope to the routine entry and the routine entry to its
      type entry. */
   rout_ptr->assoc_scope = curr_il_region_number;

@@ -667,9 +667,11 @@ Initialize everything that has to do with the front end.
      names (like predefined macros) are entered so that they are
      not part of the file scope. */
   /* Put a pointer to the scope entry into the intermediate language header. */
-  il_header.primary_scope = push_scope((a_scope_kind)sck_file,
-                                       NO_SCOPE_NUMBER, (a_type_ptr)NULL,
-                                       (a_routine_ptr)NULL);
+  il_header.primary_scope =
+                    push_scope((a_scope_kind)sck_file,
+                               NO_SCOPE_NUMBER, (a_type_ptr)NULL,
+                               (a_routine_ptr)NULL,
+                               (a_function_instantiation_entry_ptr)NULL);
   il_header.main_routine = NULL;
   /* Put the compiler version number into the IL header. */
   il_header.compiler_version = strcpy(
