@@ -1,5 +1,19 @@
 Version 3.2
 
+4/28/03  Statement expressions in GNU C++ mode
+
+Statement expressions, i.e., ({ ... }), are now accepted in GNU C++
+mode.  Formerly, they were accepted only in GNU C mode.  To avoid
+various implementation difficulties, the following are prohibited
+in statement expressions in C++ mode: destructible entities,
+dynamically-initialized local static variables, local class
+definitions, and try/catch.  Also, branching out of a statement
+expression is not allowed, and statement expressions may not be
+used in default argument expressions.  Variable-length arrays are
+no longer allowed in statement expressions in GNU C mode (likewise
+in GNU C++ mode, but VLAs are not allowed at all in C++ mode
+anyway, at least so far).
+
 4/28/03  GNU mode: Warning instead of error on promotable va-arg types
 
 In GNU modes, the front end used to issue an error if the type passed to
