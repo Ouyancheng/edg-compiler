@@ -1528,6 +1528,17 @@ EXTERN a_boolean
 			   reactivation scopes of other template classes.
 			   This is also used in Sun mode. */
 
+EXTERN a_boolean
+		elab_type_lookup_finds_typedefs
+#if VAR_INITIALIZERS
+			= FALSE
+#endif /* VAR_INITIALIZERS */
+			       ;
+			/* TRUE if the lookup done in an elaborated type
+			   specifier should find typedef names.  In general,
+			   this is TRUE in C++ and not in C, but it is FALSE
+			   in some C++ modes. */
+
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);
 #if COMPILE_MULTIPLE_SOURCE_FILES

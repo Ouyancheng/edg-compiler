@@ -3736,10 +3736,21 @@ extern a_boolean is_proxy_member_symbol(a_symbol_ptr  sym);
    (sym)->kind == (a_symbol_kind)sk_enum_tag ||			      \
    is_injected_class_symbol(sym))
 
+/* Return TRUE if a symbol is a tag symbol, or a type symbol in C++.
+   A tag symbol is one defined as a class, struct, union, or enum (but
+   not as a typedef of one of those).  In C++ a tag lookup does find type
+   symbols even though they are not tags (and will usually result in an
+   error when found). */
+#define is_tag_or_cplusplus_type_symbol(sym)                          \
+  ((sym)->kind == (a_symbol_kind)sk_class_or_struct_tag ||            \
+   (sym)->kind == (a_symbol_kind)sk_union_tag ||                      \
+   (sym)->kind == (a_symbol_kind)sk_enum_tag ||			      \
+   (elab_type_lookup_finds_typedefs && (sym)->kind == (a_symbol_kind)sk_type))
+
 /* Return TRUE if a symbol is a tag symbol, a class template symbol,
    or a type template parameter. */
 #define is_tag_or_tag_proxy_symbol(sym)                               \
-  (is_tag_symbol(sym) ||					      \
+  (is_tag_or_cplusplus_type_symbol(sym) ||		              \
    (sym)->kind == (a_symbol_kind)sk_class_template ||		      \
    ((sym)->kind == (a_symbol_kind)sk_type && (sym)->is_template_param))
 

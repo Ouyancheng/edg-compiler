@@ -1018,6 +1018,13 @@ caution when modifying this routine.
                        tag_kind != (a_symbol_kind)sk_enum_tag &&
                        tag_sym->kind != (a_symbol_kind)sk_enum_tag) {
               /* Caller will issue the diagnostic. */
+            } else if (tag_sym->kind == (a_symbol_kind)sk_type) {
+              /* A typedef name.  Issue an error. */
+              pos_st_error(ec_typedef_in_elab_type, 
+                           &locator_for_curr_id.source_position,
+                           tag_sym->header->identifier);
+              tag_sym = NULL;
+              tag_err = TRUE;
             } else {
               pos_stsy_error(ec_tag_kind_incompatible_with_declaration,
                              &locator_for_curr_id.source_position,
@@ -1364,12 +1371,24 @@ caution when modifying this routine.
              associated with the class in its place. */
           tag_sym = (a_symbol_ptr)tag_sym->variant.type.ptr->
                                                  source_corresp.assoc_info;
-        } else if (!C_mode() && tag_sym->kind == (a_symbol_kind)sk_type) {
-          /* The tag is a template parameter type.  A diagnostic will have
-             been issued in curr_tag_symbol.  This usage is still supported
-             in the front end although the feature is no longer permitted.
-             An error will have been issued in strict mode. */
-          goto done;
+        } else if (tag_sym->kind == (a_symbol_kind)sk_type) {
+          /* A type symbol.  This can result from the use of a template
+             parameter or an elaborated type specifier (in certain modes). */
+          if (is_template_param_type_symbol(tag_sym)) {
+            /* The tag is a template parameter type.  A diagnostic will have
+               been issued in curr_tag_symbol.  This usage is still supported
+               in the front end although the feature is no longer permitted.
+               An error will have been issued in strict mode. */
+            goto done;
+          } else {
+            /* We should only get here in C++ mode. */
+            /* A typedef name.  Use the underlying type as the tag symbol. */
+            a_type_ptr	underlying_type;
+            check_assertion(!C_mode());
+            underlying_type = type_symbol_type(tag_sym);
+            underlying_type = skip_typerefs(underlying_type);
+            tag_sym = (a_symbol_ptr)underlying_type->source_corresp.assoc_info;
+          }  /* if */
         }  /* if */
       }  /* if */
       if (tag_sym == NULL && tag_kind == (a_symbol_kind)sk_enum_tag &&

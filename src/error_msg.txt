@@ -1249,6 +1249,7 @@ ec_attribute_ignored_on_class_or_enum_typedef;;"attribute ignored on typedef of 
 ec_bad_linkage_for_redefine_extname;;"%npd must have external C linkage"
 ec_declaration_hides_for_init;;"variable declaration hides declaration in for-initializer"
 ec_attribute_ignored_on_typedef;;"attribute ignored on typedef declarations"
+ec_typedef_in_elab_type;;"typedef %s may not be used in an elaborated type specifier"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -9687,6 +9687,9 @@ only if a redeclaration error is issued.
                           &locator, nsp,
                           IDL_MUST_BE_TAG | IDL_DIRECT_NAMESPACE_MEMBERS_ONLY);
   }  /* if */
+  /* Tag lookups can sometimes return typedefs.  If we got a typedef back,
+     ignore it. */
+  if (tag_sym != NULL && !is_tag_symbol(tag_sym)) tag_sym = NULL;
   if (tag_sym != NULL) {
     a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
     clear_specific_symbol(locator);

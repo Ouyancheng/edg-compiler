@@ -10397,7 +10397,10 @@ or implicit) controlling the declaration.
       tag_sym = class_qualified_id_lookup(&locator, bcp->type,
                                           IDL_MUST_BE_TAG |
                                             IDL_DIRECT_CLASS_MEMBERS_ONLY);
-      if (tag_sym != NULL && !is_class_template_symbol(tag_sym)) {
+      if (tag_sym != NULL && !is_class_template_symbol(tag_sym) &&
+          tag_sym->kind != (a_symbol_kind)sk_type) {
+        /* In some modes, "must be tag" lookups can find typedefs.  Ignore
+           such symbols. */
         create_member_using_declaration(tag_sym, tag_sym,
                                         &overload_sym, bcp, class_type,
                                         &prev_udp, access);

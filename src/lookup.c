@@ -1838,6 +1838,7 @@ lookup processing.
   a_symbol_ptr		sym = NULL;
   a_symbol_ptr		active_sym;
   a_symbol_ptr		prev_active_sym = NULL;
+  a_symbol_ptr		type_tag_symbol = NULL;
 
 /* Local macro that tests whether or not a symbol on the active list
    is acceptable.  See if the symbol is in the proper name space. */
@@ -1859,15 +1860,29 @@ lookup processing.
     for (; active_sym != NULL && active_sym->decl_scope == ssep->number;
          prev_active_sym = active_sym, active_sym = active_sym->next) {
       a_symbol_ptr	fund_sym = fundamental_symbol_of(active_sym);
-      if (is_acceptable_active_symbol(active_sym, fund_sym)) {
-        /* Found a symbol.  Record whether this symbol was found
-           at file scope.  If it was, we will later need to also
-           check for symbols visible as a result of using
-           directives. */
-        sym = active_sym;
+      /* Exit the loop if we found a type tag symbol and the new symbol
+         to check is not from the same scope. */
+      if (type_tag_symbol != NULL &&
+          type_tag_symbol->decl_scope != active_sym->decl_scope) {
         break;
       }  /* if */
+      if (is_acceptable_active_symbol(active_sym, fund_sym)) {
+        /* We found a matching symbol.  If this is a type symbol found
+           by a must-be-tag lookup, keep searching for a "real" tag in
+           the same scope. */
+        if (lookup_state->must_be_tag &&
+            fund_sym->kind == (a_symbol_kind)sk_type) {
+          type_tag_symbol = active_sym;
+        } else {
+          /* Use this symbol. */
+          sym = active_sym;
+          break;
+        }  /* if */
+      }  /* if */
     }  /* for */
+    /* If a type symbol was found and no other matching tag was present,
+       use the type symbol. */
+    if (sym == NULL && type_tag_symbol != NULL) sym = type_tag_symbol;
     /* If this is a namespace scope or the file scope, also look for
        any symbols that are visible because of using directives. */
     if ((kind == (a_scope_kind)sck_file ||
@@ -1950,39 +1965,54 @@ that do normal id lookup processing.
       } else {
         /* Look on the inactive list for a symbol from this reactivated
            scope. */
+        a_symbol_ptr	type_tag_symbol = NULL;
         a_symbol_ptr	tag_symbol = NULL;
-        a_symbol_ptr	inactive_sym;
         sym = NULL;
-        for (inactive_sym = inactive_symbol_list_from_locator(*locator);
-             inactive_sym != NULL;
-             inactive_sym = inactive_sym->next) {
-          if (inactive_sym->decl_scope == ssep->number) {
-            a_symbol_ptr	fund_sym = fundamental_symbol_of(inactive_sym);
-            if (is_acceptable_symbol(inactive_sym, fund_sym, *lookup_state)) {
+        for (sym = inactive_symbol_list_from_locator(*locator);
+             sym != NULL; sym = sym->next) {
+          if (sym->decl_scope == ssep->number) {
+            a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
+            if (is_acceptable_symbol(sym, fund_sym, *lookup_state)) {
               /* Found a symbol. */
               /* If this is a template parameter symbol that should not
                  be visible then continue looking for another symbol. */
-              if (inactive_sym->template_param_not_visible) continue;
-                /* If the symbol is a tag symbol and we're not required to find
-                   a tag symbol, there's the possibility that there is a
-                   non-type symbol in the same scope later in the list (because
-                   the inactive list is not ordered in any way).  Save the
-                   tag symbol and keep looking.  If nothing else turns up,
-                   use the tag symbol. */
-              if (is_tag_symbol(fund_sym) && !lookup_state->must_be_tag) {
-                tag_symbol = inactive_sym;
+              if (sym->template_param_not_visible) continue;
+              /* When looking for a tag symbol, both tags and typedefs may
+                 match the "acceptable" test.  The tag should be preferred
+                 over the typedef, so if we find a typedef we must keep
+                 looking.  Similarly, when not doing a "must be tag" lookup,
+                 both tags and non-tags will match the test.  A non-tag
+                 should be preferred over the tag, so if we find a tag we
+                 must keep looking. */
+              if (!lookup_state->must_be_tag) {
+                /* A normal lookup. */
+                if (is_tag_symbol(fund_sym)) {
+                  tag_symbol = sym;
+                } else {
+                  /* Take the symbol. */
+                  break;
+                }  /* if */
               } else {
-                /* Take the symbol. */
-                sym = inactive_sym;
-                break;
+                /* A tag lookup. */
+                if (sym->kind == (a_symbol_kind)sk_type) {
+                  type_tag_symbol = sym;
+                } else {
+                  /* Take the symbol. */
+                  break;
+                }  /* if */
               }  /* if */
             }  /* if */
           }  /* if */
         }  /* for */
-        /* We reached the end of the list.  If there is a tag symbol saved
-           within the loop, use it. */
-        if (sym == NULL && tag_symbol != NULL) {
-          sym = tag_symbol;
+        if (sym == NULL) {
+          /* If a type symbol was found and no other matching tag was present,
+             use the type symbol. */
+          if (type_tag_symbol != NULL) {
+            sym = type_tag_symbol;
+          } else if (tag_symbol != NULL) {
+            /* If there is a tag symbol saved within the loop, use it. */
+            sym = tag_symbol;
+          }  /* if */
         }  /* if */
         /* If this is a namespace scope, also look for any symbols that
            are visible because of using directives. */
@@ -2689,6 +2719,12 @@ C and C++.
 
   db_enter(4, "normal_id_lookup");
 
+#if DEBUG
+  if (db_flag_is_set("normal_id_lookup")) {
+    fprintf(f_debug, "Normal lookup of %s\n",
+            locator->symbol_header->identifier);
+  }  /* if */
+#endif /* DEBUG */
   sym = locator->specific_symbol;
   if (sym != NULL) {
     /* The locator is for a specific symbol, so return the symbol for it. */
@@ -2772,6 +2808,7 @@ C and C++.
     }  /* if */
     if (!use_slow_lookup) {
       /* Fast algorithm: just search the active symbol list. */
+       a_symbol_ptr		type_tag_symbol = NULL;
 #if DEBUG
       num_fast_id_lookups++;
 #endif /* DEBUG */
@@ -2779,8 +2816,29 @@ C and C++.
         /* See if the symbol is acceptable (e.g., it's a class if it
            must be one). */
         a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
-        if (is_acceptable_symbol(sym, fund_sym, lookup_state)) break;
+        /* Exit the loop if we found a type tag symbol and the new symbol
+           to check is not from the same scope. */
+        if (type_tag_symbol != NULL &&
+            type_tag_symbol->decl_scope != sym->decl_scope) {
+          sym = NULL;
+          break;
+        }  /* if */
+        if (is_acceptable_symbol(sym, fund_sym, lookup_state)) {
+          /* We found a matching symbol.  If this is a type symbol found
+             by a must-be-tag lookup, keep searching for a "real" tag in
+             the same scope. */
+          if (lookup_state.must_be_tag &&
+              fund_sym->kind == (a_symbol_kind)sk_type) {
+            type_tag_symbol = sym;
+          } else {
+            /* Use this symbol. */
+            break;
+          }  /* if */
+        }  /* if */
       }  /* for */
+      /* If a type symbol was found and no other matching tag was present,
+         use the type symbol. */
+      if (sym == NULL && type_tag_symbol != NULL) sym = type_tag_symbol;
     } else {
       /* There are inactive symbols and they may be visible, so the more
          complicated search is required. */
@@ -3024,6 +3082,20 @@ in a friend declaration.
         set_to_error_locator(*locator);
         assoc_symbol = NULL;
       }  /* if */
+    } else if (assoc_symbol->kind == (a_symbol_kind)sk_type &&
+               !is_injected_class_symbol(assoc_symbol)) {
+      if (is_friend_decl && gpp_mode && assoc_symbol->is_class_member &&
+          is_class_symbol(assoc_symbol)) {
+        /* g++ allows "class <typedef-name>" when the typedef is a class
+           member.  Only allow this if the type referred to is a class
+           type. */
+      } else {
+        /* The lookup found a typedef name.  Issue a diagnostic. */
+        pos_st_error(ec_typedef_in_elab_type, 
+                     &error_position, assoc_symbol->header->identifier);
+        set_to_error_locator(*locator);
+        assoc_symbol = NULL;
+      }  /* if */
     }  /* if */
     if (assoc_symbol == NULL) {
       /* A NULL symbol resulted from an error above. */
@@ -3111,6 +3183,7 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
 */
 {
   a_symbol_ptr sym, tag_symbol, class_symbol;
+  a_symbol_ptr type_tag_symbol;
   a_boolean    must_be_class_or_namespace
                                  = (options & IDL_MUST_BE_CLASS_OR_NAMESPACE);
   a_boolean    must_be_tag = (options & IDL_MUST_BE_TAG);
@@ -3212,6 +3285,7 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
          members for classes that are no longer active.  Or, in C,
          fields of structs/unions. */
       tag_symbol = NULL;
+      type_tag_symbol = NULL;
       for (sym = inactive_symbol_list_from_locator(*locator);
            sym != NULL;
            sym = sym->next) {
@@ -3237,19 +3311,39 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
                This should be ignored for "direct class members only"
                lookups. */
           } else {
-            /* If the symbol is a tag symbol, there's the possibility that
-               there is a non-type symbol in the same scope later in the list
-               (because the inactive list is not ordered in any way).  Save the
-               tag symbol and keep looking.  If nothing else turns up,
-               use the tag symbol. */
-            if (!is_tag_symbol(fund_sym)) goto end_lookup;
-            tag_symbol = sym;
+            /* When looking for a tag symbol, both tags and typedefs may
+               match the "acceptable" test.  The tag should be preferred
+               over the typedef, so if we find a typedef we must keep
+               looking.  Similarly, when not doing a "must be tag" lookup,
+               both tags and non-tags will match the test.  A non-tag
+               should be preferred over the tag, so if we find a tag we
+               must keep looking. */
+            if (!must_be_tag) {
+              /* A normal lookup. */
+              if (is_tag_symbol(fund_sym)) {
+                tag_symbol = sym;
+              } else {
+                /* Take the symbol. */
+                goto end_lookup;
+              }  /* if */
+            } else {
+              /* A tag lookup. */
+              if (sym->kind == (a_symbol_kind)sk_type) {
+                type_tag_symbol = sym;
+              } else {
+                /* Take the symbol. */
+                goto end_lookup;
+              }  /* if */
+            }  /* if */
           }  /* if */
         }  /* if */
       }  /* for */
-      /* We reached the end of the list.  If there is a tag symbol saved
-         within the loop, use it. */
-      if (tag_symbol != NULL) {
+      /* We reached the end of the list.  If there is a tag symbol, or
+         type tag symbol saved within the loop, use it. */
+      if (type_tag_symbol != NULL) {
+        sym = type_tag_symbol;
+        goto end_lookup;
+      } else if (tag_symbol != NULL) {
         sym = tag_symbol;
         goto end_lookup;
       }  /* if */
@@ -3267,10 +3361,18 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
          active symbols list.  This would come up when a qualified name
          is used when the qualification is not really necessary, i.e.,
          when we're inside the class mentioned in the qualifier. */
+      a_symbol_ptr	type_tag_symbol = NULL;
       for (sym = symbol_list_from_locator(*locator);
            sym != NULL;
            sym = sym->next) {
         a_symbol_ptr  fund_sym = fundamental_symbol_of(sym);
+        /* Exit the loop if we found a type tag symbol and the new symbol
+           to check is not from the same scope. */
+        if (type_tag_symbol != NULL &&
+            type_tag_symbol->decl_scope != sym->decl_scope) {
+          sym = NULL;
+          break;
+        }  /* if */
         if (is_acceptable_symbol(sym, fund_sym)) {
           if (any_nonreal_base_classes &&
               sym->kind == (a_symbol_kind)sk_projection &&
@@ -3287,11 +3389,25 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
                This should be ignored for "direct class members only"
                lookups. */
           } else {
-            /* Found an acceptable symbol. */
-            goto end_lookup;
+            /* We found a matching symbol.  If this is a type symbol found
+               by a must-be-tag lookup, keep searching for a "real" tag in
+               the same scope. */
+            if (must_be_tag &&
+                fund_sym->kind == (a_symbol_kind)sk_type) {
+              type_tag_symbol = sym;
+            } else {
+              /* Use this symbol. */
+              goto end_lookup;
+            }  /* if */
           }  /* if */
         }  /* if */
       }  /* for */
+      /* If a type symbol was found and no other matching tag was present,
+         use the type symbol. */
+      if (sym == NULL && type_tag_symbol != NULL) {
+        sym = type_tag_symbol;
+        goto end_lookup;
+      }  /* if */
       /* Look to see if the name is the name of a constructor or destructor
          for the class.  The symbols for those are not entered in the
          normal symbol table; they're pointed to from the class symbol
@@ -3838,7 +3954,8 @@ namespace_qualified_id_lookup.
 */
 {
   a_symbol_ptr	sym;
-  a_symbol_ptr	tag_symbol;
+  a_symbol_ptr	tag_symbol = NULL;
+  a_symbol_ptr	type_tag_symbol = NULL;
   a_boolean   	must_be_class_or_namespace
                                  = (options & IDL_MUST_BE_CLASS_OR_NAMESPACE);
   a_boolean    	must_be_tag = (options & IDL_MUST_BE_TAG);
@@ -3875,41 +3992,76 @@ namespace_qualified_id_lookup.
   /* First, search the list of inactive symbols.  Namespace symbols
      are moved to the inactive list after the initial definition of
      the namespace. */
-  tag_symbol = NULL;
   for (sym = inactive_symbol_list_from_locator(*locator);
        sym != NULL;
        sym = sym->next) {
     a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
     if (is_acceptable_symbol(sym, fund_sym)) {
       /* Found an acceptable symbol. */
-      /* If the symbol is a tag symbol, there's the possibility that
-         there is a non-type symbol in the same scope later in the list
-         (because the inactive list is not ordered in any way).  Save the
-         tag symbol and keep looking.  If nothing else turns up,
-         use the tag symbol. */
-      if (!is_tag_symbol(fund_sym)) goto end_lookup;
-      tag_symbol = sym;
+      /* When looking for a tag symbol, both tags and typedefs may match
+         the "acceptable" test.  The tag should be preferred over the
+         typedef, so if we find a typedef we must keep looking.  Similarly,
+         when not doing a "must be tag" lookup, both tags and non-tags
+         will match the test.  A non-tag should be preferred over the tag,
+         so if we find a tag we must keep looking. */
+      if (!must_be_tag) {
+        /* A normal lookup. */
+        if (is_tag_symbol(fund_sym)) {
+          tag_symbol = sym;
+        } else {
+          /* Take the symbol. */
+          break;
+        }  /* if */
+      } else {
+        /* A tag lookup. */
+        if (sym->kind == (a_symbol_kind)sk_type) {
+          type_tag_symbol = sym;
+        } else {
+          /* Take the symbol. */
+          break;
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* for */
-  /* We reached the end of the list.  If there is a tag symbol saved
-     within the loop, use it. */
-  if (tag_symbol != NULL) {
-    sym = tag_symbol;
-    goto end_lookup;
+  if (sym == NULL) {
+    /* If a type symbol was found and no other matching tag was present,
+       use the type symbol. */
+    if (type_tag_symbol != NULL) {
+      sym = type_tag_symbol;
+    } else if (tag_symbol != NULL) {
+      /* If there is a tag symbol saved within the loop, use it. */
+      sym = tag_symbol;
+    }  /* if */
   }  /* if */
-  /* The name was not found on the inactive symbols list.  Try the
-     active symbols list.  This would be used during the initial
-     definition of the namespace. */
-  for (sym = symbol_list_from_locator(*locator);
-       sym != NULL;
-       sym = sym->next) {
-    a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
-    if (is_acceptable_symbol(sym, fund_sym)) {
-      /* Found an acceptable symbol. */
-      goto end_lookup;
-    }  /* if */
-  }  /* for */
-end_lookup:
+  if (sym == NULL) {
+    /* The name was not found on the inactive symbols list.  Try the
+       active symbols list.  This would be used during the initial
+       definition of the namespace. */
+    a_symbol_ptr		type_tag_symbol = NULL;
+    for (sym = symbol_list_from_locator(*locator);
+         sym != NULL;
+         sym = sym->next) {
+      a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
+      /* Exit the loop if we found a type tag symbol and the new symbol
+         to check is not from the same scope. */
+      if (type_tag_symbol != NULL &&
+          type_tag_symbol->decl_scope != sym->decl_scope) {
+        break;
+      }  /* if */
+      if (is_acceptable_symbol(sym, fund_sym)) {
+        /* We found a matching symbol.  If this is a type symbol found
+           by a must-be-tag lookup, keep searching for a "real" tag in
+           the same scope. */
+        if (must_be_tag &&
+            fund_sym->kind == (a_symbol_kind)sk_type) {
+          type_tag_symbol = sym;
+        } else {
+          /* Use this symbol. */
+          break;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
   if (sym == NULL && !is_linkage_or_friend_lookup &&
       !direct_namespace_members_only) {
      /* If the symbol was not found in this namespace, look in namespaces
@@ -4028,7 +4180,7 @@ file scope.
     symbol_may_precede_qualifier(fund_sym)) && 			      \
    (!must_be_class ||				      		      \
     is_class_or_class_proxy_symbol(fund_sym)) &&      		      \
-   (!must_be_tag || is_tag_symbol(fund_sym)) &&			      \
+   (!must_be_tag || is_tag_or_cplusplus_type_symbol(fund_sym)) &&     \
    (!check_decl_seq ||						      \
     (decl_seq_number == NO_DECL_SEQUENCE_NUMBER ||	              \
      decl_seq_number >= (sym)->decl_seq)))
@@ -4041,37 +4193,82 @@ file scope.
   } else {
     /* Search for a symbol in the file scope.  First look on the active
        list. */
+    a_symbol_ptr	type_tag_symbol = NULL;
     for (sym = symbol_list_from_locator(*locator);
          sym != NULL;
          sym = sym->next) {
+      /* See if the symbol is acceptable (e.g., it's a class if it
+         must be one). */
       a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
-      if (is_acceptable_symbol(sym, fund_sym)) break;
+      /* Exit the loop if we found a type tag symbol and the new symbol
+         to check is not from the same scope. */
+      if (type_tag_symbol != NULL &&
+          type_tag_symbol->decl_scope != sym->decl_scope) {
+        sym = NULL;
+        break;
+      }  /* if */
+      if (is_acceptable_symbol(sym, fund_sym)) {
+        /* We found a matching symbol.  If this is a type symbol found
+           by a must-be-tag lookup, keep searching for a "real" tag in
+           the same scope. */
+        if (must_be_tag && fund_sym->kind == (a_symbol_kind)sk_type) {
+          type_tag_symbol = sym;
+        } else {
+          /* Use this symbol. */
+          break;
+        }  /* if */
+      }  /* if */
     }  /* for */
+    /* If a type symbol was found and no other matching tag was present,
+       use the type symbol. */
+    if (sym == NULL && type_tag_symbol != NULL) sym = type_tag_symbol;
     /* If no symbol was found, search the list of inactive symbols.  File
        scope symbols are moved to the inactive list when the file scope is
        popped at the end of the translation unit, so lookups done after
        that point need to consider the inactive list too. */
     if (sym == NULL) {
       a_symbol_ptr	tag_symbol = NULL;
+      a_symbol_ptr	type_tag_symbol = NULL;
       for (sym = inactive_symbol_list_from_locator(*locator);
            sym != NULL;
            sym = sym->next) {
         a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
         if (is_acceptable_symbol(sym, fund_sym)) {
           /* Found an acceptable symbol. */
-          /* If the symbol is a tag symbol, there's the possibility that
-             there is a non-type symbol in the same scope later in the list
-             (because the inactive list is not ordered in any way).  Save the
-             tag symbol and keep looking.  If nothing else turns up,
-            use the tag symbol. */
-          if (!is_tag_symbol(fund_sym)) break;
-          tag_symbol = sym;
+          /* When looking for a tag symbol, both tags and typedefs may match
+             the "acceptable" test.  The tag should be preferred over the
+             typedef, so if we find a typedef we must keep looking.  Similarly,
+             when not doing a "must be tag" lookup, both tags and non-tags
+             will match the test.  A non-tag should be preferred over the tag,
+             so if we find a tag we must keep looking. */
+          if (!must_be_tag) {
+            /* A normal lookup. */
+            if (is_tag_symbol(fund_sym)) {
+              tag_symbol = sym;
+            } else {
+              /* Take the symbol. */
+              break;
+            }  /* if */
+          } else {
+            /* A tag lookup. */
+            if (sym->kind == (a_symbol_kind)sk_type) {
+              type_tag_symbol = sym;
+            } else {
+              /* Take the symbol. */
+              break;
+            }  /* if */
+          }  /* if */
         }  /* if */
       }  /* for */
-      /* If no symbol was found and there is a tag symbol saved within the
-         loop, use it. */
-      if (sym == NULL && tag_symbol != NULL) {
-        sym = tag_symbol;
+      if (sym == NULL) {
+        /* If a type symbol was found and no other matching tag was present,
+           use the type symbol. */
+        if (type_tag_symbol != NULL) {
+          sym = type_tag_symbol;
+        } else if (tag_symbol != NULL) {
+          /* If there is a tag symbol saved within the loop, use it. */
+          sym = tag_symbol;
+        }  /* if */
       }  /* if */
     }  /* if */
     if (sym == NULL && !is_linkage_or_friend_lookup &&

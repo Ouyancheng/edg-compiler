@@ -1,5 +1,21 @@
 Version 3.1
 
+9/24/02  Typedefs and elaborated type specifiers
+
+The lookup rules for names used in elaborated type specifiers is different
+in C and C++ (a changed introduced in C++ by the standardization process).
+In C++ the lookup finds typedef names (resulting in an error) while in C
+the lookup ignores typedef names.  We now implement the new rules in C++
+mode.
+
+  class A {};
+  typedef A TA;
+  void f() {
+    // Old behavior: new declaration of local class TA
+    // New behavior: error - typedef in elaborated type specifier
+    class TA* p;
+  }
+
 9/24/02  GNU compatibility: Nonstandard anonymous unions
 
 When ALLOW_NONSTANDARD_ANONYMOUS_UNIONS is TRUE, the front end now allows
@@ -866,6 +882,7 @@ which it appears.  [9/12/02] Emulation of the dependent base class lookup
 done by g++.  [9/16/02] Compound literals and designated initializers.
 [9/17/02] Predefined __GNUG__ macro.  [9/24/02] Attributes following
 parenthesized initializers.  [9/24/02] Nonstandard anonymous unions.
+[9/24/02] Member typedefs are accepted in elaborated type specifiers.
 
 8/5/02   Final name mangling not done on some promoted local static
          variables

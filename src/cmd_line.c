@@ -1509,6 +1509,9 @@ by a command line option.
     /* Make template parameters visible in specialization scopes. */
     use_microsoft_specialization_scope = TRUE;
   }  /* if */
+  /* The Microsoft compiler does not find typedefs when looking up names
+     in elaborated type specifiers. */
+  elab_type_lookup_finds_typedefs = FALSE;
 }  /* set_microsoft_mode_flags */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -1755,6 +1758,7 @@ process.
     /* Turn on features implied by C99 mode. */
     set_c99_mode_flags();
   } /* if */
+  elab_type_lookup_finds_typedefs = FALSE;
 }  /* set_c_mode_flags */
 
 
@@ -1928,6 +1932,7 @@ setting is used, and to set various unmentioned settings as needed.
   end_of_line_comments_allowed = TRUE;
   /* Universal character names are allowed. */
   universal_character_names_allowed = TRUE;
+  elab_type_lookup_finds_typedefs = TRUE;
 }  /* check_and_set_cplusplus_mode_options */
 
 
