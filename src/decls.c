@@ -1948,7 +1948,11 @@ scope is that of a class definition.
         if (defines_something && C_dialect == C_dialect_cplusplus) {
           pos_error(ec_type_definition_not_allowed, &param_type_pos);
           param_type_ptr = error_type();
-        } else {
+        } else if (C_dialect == C_dialect_cplusplus &&
+                   is_or_contains_local_type(param_type_ptr)) {
+          pos_error(ec_local_type_not_allowed, &param_type_pos);
+        }  /* if */
+        if (!is_error_type(param_type_ptr)) {
           /* Mark the type as referenced.  This is important for a
              parameter declaration like "struct s {int a;} p;" --
              the structure is referenced (because it's the type of "p")
@@ -9269,6 +9273,15 @@ continue_with_declaration:
           }  /* if */
           /* Set the storage class to sc_static. */
           local_storage_class = (a_storage_class)sc_static;
+        } else if (decl_scope_level != DEPTH_OF_FILE_SCOPE) {
+          a_type_ptr  return_type = skip_typerefs(local_type_ptr)->
+                                                  variant.routine.return_type;
+          if (is_or_contains_local_type(return_type)) {
+            /* A nonmember function is declared using a local type -- that
+               such a case is an error may be inferred from the one-definition
+               rule. */
+            pos_error(ec_function_returning_local_type, &decl_start_pos);
+          }  /* if */
         }  /* if */
       }  /* if */
       /* Check for restrictions on use of the "inline" specifier. */
@@ -9436,9 +9449,17 @@ continue_with_declaration:
             }  /* if */
           }  /* if */
         }  /* if */
-        if (!is_function && C_dialect == C_dialect_cplusplus) {
-          /* Abstract class objects are prohibited (ARM 10.3). */
-          if (is_illegal_abstract_class_type(local_type_ptr)) {
+        if (!is_function) {
+          if (decl_scope_level != DEPTH_OF_FILE_SCOPE &&
+              local_storage_class == (a_storage_class)sc_extern &&
+              is_or_contains_local_type(local_type_ptr)) {
+            /* An extern variable declaration in a local scope may not
+               be declared in terms of local type. */
+            pos_error(ec_local_type_not_allowed, &decl_start_pos);
+          }  /* if */
+          if (C_dialect == C_dialect_cplusplus &&
+              is_illegal_abstract_class_type(local_type_ptr)) {
+            /* Abstract class objects are prohibited (ARM 10.3). */
             error(ec_abstract_class_object_not_allowed);
           }  /* if */
         }  /* if */
