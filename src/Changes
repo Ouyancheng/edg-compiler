@@ -1,5 +1,15 @@
 Version 2.36
 
+6/5/97    Microsoft compatibility: local type in block-extern declaration
+
+In Microsoft mode a local type is now permitted in the declaration of a
+variable or function with linkage, e.g.,
+
+  void f() {
+    struct S { ... };
+    extern S *ps;           // No error in Microsoft mode
+  }
+
 6/5/97    Microsoft compatibility: relaxed access checking for member types
 
 In Microsoft mode, derived classes are now allowed to access an
