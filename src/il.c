@@ -958,6 +958,26 @@ class_struct_union:
       comma_required = FALSE;
       while (ptp != NULL) {
 	if (comma_required) fputs(", ", f_debug);
+        if (ptp->qualifiers != TQ_NONE && remove_qualifiers_from_param_types) {
+          a_type_qualifier_set  qualifiers = ptp->qualifiers;
+          fputs("[", f_debug);
+          if (qualifiers & TQ_CONST) {
+            fputs("const", f_debug);
+            qualifiers &= ~TQ_CONST;
+            if (qualifiers != TQ_NONE) fputs(" ", f_debug);
+          }  /* if */
+          if (qualifiers & TQ_VOLATILE) {
+            fputs("volatile", f_debug);
+#if RESTRICT_ALLOWED
+            qualifiers &= ~TQ_VOLATILE;
+            if (qualifiers != TQ_NONE) fputs(" ", f_debug);
+          }  /* if */
+          if (qualifiers & TQ_RESTRICT) {
+            fputs("restrict", f_debug);
+#endif /* RESTRICT_ALLOWED */
+          }  /* if */
+          fputs("] ", f_debug);
+        }  /* if */
         db_abbreviated_type(ptp->type);
         if (ptp->has_default_arg) {
           an_expr_node_ptr expr = ptp->default_arg_expr;
