@@ -4584,11 +4584,12 @@ issue a diagnostic complaining about skipping over an initialization.
             tp = vp->type;
             if (is_array_type(tp)) tp = underlying_array_element_type(tp);
             tp = skip_typerefs(tp);
-            if (is_class_struct_union_type(tp) &&
-                symbol_supplement_for_class(tp)->destructor != NULL) {
+            if (is_class_struct_union_type(tp)) {
               severity = es_error;
             } else if (strict_ansi_mode) {
               severity = strict_ansi_error_severity;
+            } else {
+              severity = es_warning;
             }  /* if */
           }  /* if */
         }  /* if */

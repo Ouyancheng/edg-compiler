@@ -1,5 +1,14 @@
 Version 3.5
 
+5/18/04  Error on goto over declaration of class variable without destructor
+
+A transfer of control past the declaration of a class variable and
+into somewhere in its lifetime is an error.  Formerly, however,
+if the class had no destructor and the mode was non-strict mode,
+no diagnostic was issued.  An error is now issued.  In a related
+change, a warning is now issued for the similar case of skipping
+over the initialization of a non-class variable in non-strict mode.
+
 5/17/04  Embedded C: Spurious error on integer to fixed-point conversion
 
 Compile-time conversion of an integer zero to a fixed-point type resulted
