@@ -3043,7 +3043,16 @@ Display the indicated asm entry.
 {
   disp_source_corresp(&ptr->source_corresp);
   disp_ptr("next", (char *)ptr->next, iek_asm_entry);
-  disp_ptr("asm_string", (char *)ptr->asm_string, iek_constant);
+  disp_boolean("is_asm_func_body", (a_boolean)ptr->is_asm_func_body);
+  if (ptr->is_asm_func_body) {
+    disp_unsigned_long("asm_func_body.length",
+                       ptr->variant.asm_func_body.length);
+    disp_string_ptr("asm_func_body.value", ptr->variant.asm_func_body.value,
+                    iek_string_text,
+                    (sizeof_t)ptr->variant.asm_func_body.length);
+  } else {
+    disp_ptr("asm_string", (char *)ptr->asm_string, iek_constant);
+  }  /* if */
 }  /* disp_asm_entry */
 
 #endif /* CFE */

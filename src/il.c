@@ -5907,7 +5907,7 @@ for the file scope if at_file_scope is TRUE.
 }  /* add_to_routines_list */
 
 
-an_asm_entry_ptr alloc_asm_entry(void)
+an_asm_entry_ptr alloc_asm_entry(a_boolean  is_asm_func_body)
 /*
 Allocate an asm entry, clear it to default values, and return a pointer
 to it.
@@ -5916,15 +5916,20 @@ to it.
   an_asm_entry_ptr ap;
 
   db_enter(5, "alloc_asm_entry");
-
   ap = (an_asm_entry_ptr)alloc_cil(sizeof(an_asm_entry));
 #if DEBUG
   num_asm_entries_allocated++;
 #endif /* DEBUG */
   set_default_source_corresp(ap->source_corresp);
   ap->next = NULL;
-  ap->asm_string = NULL;
-
+  if (is_asm_func_body) {
+    ap->is_asm_func_body = TRUE;
+    ap->variant.asm_func_body.length = 0;
+    ap->variant.asm_func_body.value = NULL;
+  } else {
+    ap->is_asm_func_body = FALSE;
+    ap->variant.asm_string = NULL;
+  }  /* if */
   db_exit();
   return ap;
 }  /* alloc_asm_entry */

@@ -3682,13 +3682,34 @@ typedef struct an_asm_entry {
 			/* Pointer to the next asm entry declared in the same
 			   scope, NULL if this asm entry is the last in the
 			   scope. */
-  a_constant_ptr
+  a_byte_boolean
+		is_asm_func_body;
+			/* TRUE if this represents the body of an asm
+			   function (only if ASM_FUNCTION_ALLOWED is TRUE). */
+  union {
+    /* When is_asm_function_body is FALSE. */
+    a_constant_ptr
 		asm_string;
-			/* Constant containing a string representing either
-			   an asm statement argument (an uninterpreted
-			   assembly-language line) or the uninterpreted body
-			   of an asm function (only if ASM_FUNCTION_ALLOWED
-			   is TRUE). */
+			/* Constant containing a string representing an asm
+			   definition argument (an uninterpreted line of
+			   assembly language). */
+    /* When is_asm_function_body is TRUE. */
+    struct {
+      a_targ_size_t
+		length;
+			/* Length of the string in bytes.  Includes a
+			   trailing NULL. */
+      char	*value;
+			/* The bytes of the string that represents the body
+			   of an asm function (zero or more uninterpreted
+			   lines of assembly language).  Note: this is a
+			   literal copy from the source program, with all
+			   whitespace, no translation of unprintable
+			   characters, etc.  It is NULL terminated, but it
+			   may have other NULL characters, so the length
+			   field should be used. */
+    } asm_func_body;
+  } variant;
 } an_asm_entry;
 
 

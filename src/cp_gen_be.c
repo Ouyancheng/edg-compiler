@@ -5157,13 +5157,16 @@ one associated with the asm.
 {
   an_asm_entry_ptr asm_entry = ss_entry_ptr(curr_source_sequence_entry,
                                             an_asm_entry_ptr);
+
+  check_assertion_str(!asm_entry->is_asm_func_body,
+                      "gen_asm_decl: not an asm declaration");
   /* Advance past the source sequence entry for the variable. */
   adv_curr_source_sequence_entry();
   /* Position the output file to the declaration position. */
   set_decl_position(&asm_entry->source_corresp,
                     (a_src_seq_secondary_decl_ptr)NULL);
   write_tok_str("asm(");
-  gen_constant(asm_entry->asm_string, /*need_parens=*/FALSE);
+  gen_constant(asm_entry->variant.asm_string, /*need_parens=*/FALSE);
   write_tok_ch(')');
   write_tok_ch(';');
   write_space();

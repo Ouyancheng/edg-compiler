@@ -1381,7 +1381,12 @@ the file scope, do not process it (but record an orphan in the latter case).
       {
         an_asm_entry_ptr ptr = (an_asm_entry_ptr)entry_ptr;
         remap_next_ptr(ptr->next, an_asm_entry_ptr, iek_asm_entry);
-        walk_ptr(ptr->asm_string, a_constant_ptr, iek_constant);
+        if (ptr->is_asm_func_body) {
+          walk_string_ptr(ptr->variant.asm_func_body.value, iek_string_text,
+                          ptr->variant.asm_func_body.length);
+        } else {
+          walk_ptr(ptr->variant.asm_string, a_constant_ptr, iek_constant);
+        }  /* if */
       }
       break;
     case iek_template_arg:
