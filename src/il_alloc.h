@@ -30,7 +30,7 @@ extern a_source_file_ptr alloc_source_file(void);
 
 #if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
 extern a_per_instantiation_needed_flags_entry_ptr
-           alloc_per_instantiation_needed_flags_entry(a_boolean in_file_scope);
+           alloc_per_instantiation_needed_flags_entry(a_boolean at_file_scope);
 #endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
 
 extern void set_template_param_constant_kind(

@@ -330,16 +330,16 @@ Allocate a source file entry, initialize it, and return a pointer to it.
 #if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
 
 a_per_instantiation_needed_flags_entry_ptr
-            alloc_per_instantiation_needed_flags_entry(a_boolean in_file_scope)
+            alloc_per_instantiation_needed_flags_entry(a_boolean at_file_scope)
 /*
 Allocate a per-instantiation needed flags entry, clear it to default values,
 and return a pointer to it.  The entry is allocated in the file scope memory
-region if in_file_scope is TRUE.
+region if at_file_scope is TRUE.
 */
 {
   a_per_instantiation_needed_flags_entry_ptr pinfep;
 
-  if (in_file_scope) {
+  if (at_file_scope) {
     pinfep = (a_per_instantiation_needed_flags_entry_ptr)
                      alloc_il(sizeof(a_per_instantiation_needed_flags_entry));
   } else {
