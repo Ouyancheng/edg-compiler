@@ -1,5 +1,14 @@
 Version 2.29
 
+4/3/95   IL lowering: conditional flag initialization for expressions
+         tested in loops
+
+If the expression tested in a loop requires conditional flags to
+control destruction of temporaries created within the expression, the
+conditional flags are now initialized at the beginning of the expression,
+rather than at the beginning of the scope.  When initialized at the
+beginning of the scope, they weren't reset each time around the loop.
+
 4/3/95   Changes for VMS and Open VMS
 
 The VMS specific code has been updated to be compatible with the
