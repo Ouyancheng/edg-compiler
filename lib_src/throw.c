@@ -524,6 +524,7 @@ is ambiguous.
   /* Get the actual derived class pointer.  If no pointer was provided,
      use NULL. */
   ptr = p_ptr == NULL ? NULL : *p_ptr;
+  *p_new_ptr = NULL;
   if (bcsp != NULL) {
     /* A base class list is present. */
     a_boolean	done = FALSE;
