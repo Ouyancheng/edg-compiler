@@ -2227,6 +2227,24 @@ unit correspondence pointer if one is found.
 }  /* find_template_correspondence */
 
 
+static a_boolean is_main_function(a_routine_ptr  routine)
+/*
+Return TRUE if and only if the given entry describes a global scope "main"
+routine.
+*/
+{
+  a_boolean                    result = FALSE;
+  a_source_correspondence_ptr  scp = &routine->source_corresp;
+  a_symbol_ptr                 sym = (a_symbol_ptr)scp->assoc_info;
+
+  if (sym != NULL &&
+      !scp->is_class_member && scp->parent.namespace_ptr == NULL) {
+    result = (strcmp(sym->header->identifier, "main") == 0);
+  }  /* if */
+  return result;
+}  /* is_main_function */
+
+
 static void find_routine_correspondence(a_routine_ptr  routine)
 /*
 Look for the given routine in another translation unit and set the
@@ -2263,7 +2281,9 @@ translation unit correspondence pointer if one is found.
                     /* Skip this symbol. */
                   } else if (param_types_are_compatible(sym_type,
                                                         routine->type,
-                                                        TCF_REDECLARATION)) {
+                                                        TCF_REDECLARATION) ||
+                             (is_main_function(routine) &&
+                              is_main_function(corresp_routine))) {
                     /* Record the correspondence. */
                     record_trans_unit_corresp(routine,
                                               sub_sym->variant.routine.ptr);
