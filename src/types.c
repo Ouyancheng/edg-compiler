@@ -1867,7 +1867,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
          left has all the qualifiers of the type pointed to by the right.
          It might have additional qualifiers.  ANSI C 3.3.16.1 (assignment);
          ARM 4.6 (pointer conversions: qualifiers cannot be dropped
-         implicitly). */
+         implicitly), 5.17 (assignment), 8.4 (initializers). */
       if (fewer_qualifiers(dest_type_pointed_to, source_type_pointed_to)) {
         okay = FALSE;
       }  /* if */
@@ -1985,16 +1985,21 @@ be ignored.
 }  /* member_types_correspond */
 
 
-a_boolean impl_ptr_to_member_conversion(a_type_ptr    source_type,
-                                        a_boolean     source_is_constant,
-                                        a_constant    *source_constant,
-                                        a_type_ptr    dest_type)
+a_boolean impl_ptr_to_member_conversion(
+                                   a_type_ptr source_type,
+                                   a_boolean  source_is_constant,
+                                   a_constant *source_constant,
+                                   a_type_ptr dest_type,
+                                   a_boolean  check_as_operands_not_conversion)
 /*
 Return TRUE if it's okay to implicitly convert something of type source_type
 (any type) to something of type dest_type (a pointer to member type).
 If source_is_constant is TRUE, the source is a constant, and source_constant
 points to the constant value.  (That's needed to check for conversions of a
 null pointer constant to a pointer to member type.)
+If check_as_operands_not_conversion is TRUE, the two types are the types
+of the operands of an operation; only do the checks required in that case,
+which are fewer than the checks required for a conversion.
 
 Note that any type qualifiers on the types themselves (rather than the
 types pointed to) are ignored.
@@ -2004,6 +2009,7 @@ pointers to members).
 */
 {
   a_boolean  okay = FALSE;
+  a_type_ptr dest_type_pointed_to, source_type_pointed_to;
 
   db_enter(5, "impl_ptr_to_member_conversion");
 #if DEBUG
@@ -2022,13 +2028,25 @@ pointers to members).
        to are the same (ignoring the difference in "this" parameter types)
        and the classes involved are the same or the destination class is an
        unambiguous derived (sic) class of the source class.  See ARM 4.8. */
+    source_type_pointed_to = pm_member_type(source_type);
+    dest_type_pointed_to = pm_member_type(dest_type);
     if (is_same_class_or_base_class_thereof(pm_class_type(dest_type),
                                             pm_class_type(source_type)) &&
-        member_types_correspond(pm_member_type(dest_type),
-                                pm_member_type(source_type))) {
+        member_types_correspond(skip_typerefs(dest_type_pointed_to),
+                                skip_typerefs(source_type_pointed_to))) {
       /* We leave the ambiguity and accessibility check to be done when
          the cast is done. */
       okay = TRUE;
+    }  /* if */
+    if (okay && !check_as_operands_not_conversion) {
+      /* The types pointed to must be such that the type pointed to by the
+         left has all the qualifiers of the type pointed to by the right.
+         It might have additional qualifiers.  This is not mentioned in
+         the ARM, but it makes sense by analogy with pointer types
+         (ARM 4.6, 5.17, 8.4). */
+      if (fewer_qualifiers(dest_type_pointed_to, source_type_pointed_to)) {
+        okay = FALSE;
+      }  /* if */
     }  /* if */
   } else if (source_is_constant &&
              is_null_pointer_constant(source_constant)) {
@@ -2165,7 +2183,8 @@ See conversion_possible.
     /* Conversion to a C++ pointer-to-member type. */
     okay = impl_ptr_to_member_conversion(source_type,
                                          source_is_constant, source_constant,
-                                         dest_type);
+                                         dest_type,
+                                   /*check_as_operands_not_conversion=*/FALSE);
   } else if (is_error(dest_type)) {
     /* Anything can be converted to an error type. */
     okay = TRUE;
