@@ -4636,18 +4636,11 @@ well as C++ mode.
       okay = TRUE;
     } else {
       /* Pointer to function --> pointer to object/incomplete, or pointer
-         to object/incomplete --> pointer to function.  Allowed in C++ if
-         the destination is big enough.  Allowed as an extension in C. */
-      if (dest_of_ptr_cast_big_enough(source_type, dest_type)) {
-        if (C_dialect != C_dialect_cplusplus) {
-          /* C mode. */
-          if (!suppress_extensions) {
-            okay = TRUE;
-          }  /* if */
-        } else {
-          /* C++ mode. */
-          okay = TRUE;
-        }  /* if */
+         to object/incomplete --> pointer to function.  Allowed as an
+         extension in C and C++ if the destination is big enough. */
+      if (!suppress_extensions &&
+          dest_of_ptr_cast_big_enough(source_type, dest_type)) {
+        okay = TRUE;
       }  /* if */
     }  /* if */
   } else if (is_ptr_to_member(source_type) &&

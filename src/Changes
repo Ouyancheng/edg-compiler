@@ -1,5 +1,13 @@
 Version 2.44
 
+5/30/00  reinterpret_cast between pointer-to-function and pointer-to-object
+         not allowed
+
+A reinterpret_cast between a pointer-to-function type and a pointer-to-object
+type is no longer allowed in strict C++ mode.  It continues to be allowed
+in other modes so long as the destination type is at least as large as
+the source type.
+
 5/30/00  Abort in final_type_name_mangling on mangling of local type name
 
 An abort in final_type_name_mangling has been corrected, on mangling
