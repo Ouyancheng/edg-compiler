@@ -5121,6 +5121,7 @@ instantiations are recorded in the IL.
   if (locator->is_class_member) {
     a_type_ptr  parent_type = locator->parent.class_type;
     if (is_template_param_type(parent_type)) {
+      parent_type = skip_typerefs(parent_type);
       parent_type = proxy_class_for_template_param(parent_type);
     }  /* if */
     set_class_membership(sym, &rp->source_corresp, parent_type);
