@@ -1930,19 +1930,24 @@ scope is that of a class definition.
         while (ssep->kind == (a_scope_kind)sck_class_reactivation) {
           --ssep;
         }  /* if */
-        /* In C++ mode a default argument may be declared with the parameter
-           unless the function is a user-defined overloaded operator (except
-           operator()(), as an extension) or a user-defined conversion.  Note
-           that locator may be NULL (e.g., with abstract declarators). */
-        /* operator new() can also take default arguments in the second and
-           successive arguments -- this is implied by ARM 13.4, which excludes
-           operator new() from the restrictions that are listed for
-           overloaded operators in general.  We don't set the flag till after
-           the first parameter has been seen, however; see below. */
-        if (locator != NULL && !locator->is_conversion_name &&
-            (!locator->is_operator_name ||
-             locator->variant.opname == (an_opname_kind)onk_function_call)) {
-          default_arg_expr_allowed = TRUE;
+        if (ssep->kind == (a_scope_kind)sck_pragma) {
+          /* Disallow default arguments in function declarations within a
+             pragma. */
+        } else {
+          /* In C++ mode a default argument may be declared with the parameter
+             unless the function is a user-defined overloaded operator (except
+             operator()(), as an extension) or a user-defined conversion.  Note
+             that locator may be NULL (e.g., with abstract declarators). */
+          /* operator new() can also take default arguments in the second and
+             successive arguments -- this is implied by ARM 13.4, which
+             excludes operator new() from the restrictions that are listed for
+             overloaded operators in general.  We don't set the flag till after
+             the first parameter has been seen, however; see below. */
+          if (locator != NULL && !locator->is_conversion_name &&
+              (!locator->is_operator_name ||
+               locator->variant.opname == (an_opname_kind)onk_function_call)) {
+            default_arg_expr_allowed = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
       /* Push a function prototype scope for the parameters. */
