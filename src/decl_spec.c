@@ -1750,6 +1750,12 @@ the template.
           set_to_named_error_locator(locator);
           error_tag_sym = tag_sym;
           tag_sym = NULL;
+        } else if (type_symbol_type(tag_sym) == type_of_type_info) {
+          /* Error -- tag-kind mismatch in type_info. */
+          pos_sy_error(ec_union_nonunion_mismatch, &decl_start_pos, tag_sym);
+          set_to_named_error_locator(locator);
+          error_tag_sym = tag_sym;
+          tag_sym = NULL;
 #if CHECKING
         } else {
           /* Mixing union and nonunion declarations is allowed in cfront
