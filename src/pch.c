@@ -39,16 +39,6 @@ static sizeof_t	pch_id_string_length;
 			/* The actual length of the PCH id string (including
                            the trailing null character). */
 
-static a_void_ptr
-		pch_memory_block;
-			/* The block of memory reserved for precompiled
-			   header processing. */
-
-static sizeof_t
-		pch_mem_allocated;
-			/* The amount of pch_memory_block that has been
-			   allocated. */
-
 static a_pch_event_ptr
 		pch_event_list_head;
 			/* List of precompiled header events for the
@@ -329,55 +319,6 @@ associated with this compiler version.
 }  /* initialize_pch_id_string */
 
 
-static void alloc_pch_memory_block(void)
-/*
-Allocate the block of memory reserved for precompiled header processing.
-This memory must be allocated before any of the memory region memory
-is allocated.  A fixed size block is reserved so that we can ensure
-that precompiled header processing will use a fixed amount of memory thus
-allowing us to reload the memory region information from the precompiled
-header file into the same range of addresses used when the precompiled
-header was generated.
-*/
-{
-  pch_memory_block = (a_void_ptr)alloc_general(MEM_ALLOCATED_FOR_PCH_ANALYSIS);
-  pch_mem_allocated = 0;
-}  /* alloc_pch_memory_block */
-
-
-static a_void_ptr alloc_pch_memory(sizeof_t size)
-/*
-Allocate "size" bytes of memory in the PCH memory area and return
-a pointer to the allocated memory.  If there is not sufficient
-memory in the PCH memory area, allocate the memory from general
-memory and indicate that precompiled header processing cannot be
-done for this file.  This is done instead of simply returning a
-NULL pointer so that the callers of this routine do not have to
-worry about the prospect of running out of memory.
-*/
-{
-  a_void_ptr	ptr;
-
-  /* Round up the size if necessary to preserve alignment.  Note that
-     aside from keeping the data correctly aligned, this also keeps the
-     next available address properly aligned. */
-  do_host_alignment(size);
-  if (size > (MEM_ALLOCATED_FOR_PCH_ANALYSIS - pch_mem_allocated)) {
-    /* Not enough memory left in the PCH memory block, use general
-       memory. */
-    ptr = (a_void_ptr)alloc_general(size);
-    /* Indicate that we can't generate/use precompiled header information
-       because we exhausted the PCH memory block. */
-    abandon_pch_processing();
-  } else {
-    /* Allocate "size" bytes from the PCH memory block. */
-    ptr = ((char *)pch_memory_block) + pch_mem_allocated;
-    pch_mem_allocated += size;
-  }  /* if */
-  return ptr;
-}  /* alloc_pch_memory */
-
-
 static a_pch_event_ptr alloc_pch_event(a_pch_event_kind kind)
 /*
 Allocate and initialize a precompiled header event record.
@@ -386,13 +327,7 @@ Allocate and initialize a precompiled header event record.
   a_pch_event_ptr pep;
 
   /* Allocate a new entry. */
-  if (kind == pchek_command_line) {
-    /* Command line events are reused for multiple source files so
-       must be allocated in general memory. */
-    pep = (a_pch_event_ptr)alloc_general(sizeof(a_pch_event));
-  } else {
-    pep = (a_pch_event_ptr)alloc_pch_memory(sizeof(a_pch_event));
-  }  /* if */
+  pep = (a_pch_event_ptr)alloc_general(sizeof(a_pch_event));
 #if DEBUG
   num_pch_events_allocated++;
 #endif /* DEBUG */
@@ -433,8 +368,8 @@ file.
     pep->variant.ppd_kind = ppd_kind;
   }  /* if */
   if (value != NULL) {
-    /* Copy the value string into PCH memory. */
-    pep->value = (char *)alloc_pch_memory((sizeof_t)(strlen(value) + 1));
+    /* Copy the value string. */
+    pep->value = (char *)alloc_general((sizeof_t)(strlen(value) + 1));
     (void)strcpy(pep->value, value);
   }  /* if */
   pep->position = *position;
@@ -991,7 +926,12 @@ restore the memory regions.
        with those done in the original compilation.  Perform the
        remaining allocations needed to read in the memory regions. */
     for (; n < new_num_entries; ++n) {
+#if USE_MMAP_FOR_MEMORY_REGIONS
       (void)alloc_new_mem_block(new_alloc_hist[n].size);
+#else /* !USE_MMAP_FOR_MEMORY_REGIONS */
+      (void)malloc_with_check(new_alloc_hist[n].size,
+                              new_alloc_hist[n].is_mem_block);
+#endif /* !USE_MMAP_FOR_MEMORY_REGIONS */
       if (!equivalent_mem_alloc_history(mem_alloc_history[n],
                                        new_alloc_hist[n])) {
         successful = FALSE;
@@ -1119,7 +1059,6 @@ file.  See write_a_memory_region for more information.
 */
 {
   a_mem_block_header_ptr	mbhp = mem_region_table[number];
-  sizeof_t			offset;
 
 #if DEBUG
   if (debug_level >= 4) {
@@ -1309,6 +1248,7 @@ write out the precompiled header file.
 #define PCH_DECL_SEQ_THRESHOLD 1
 
   db_enter(2, "generate_precompiled_header");
+  check_assertion(header_stop_position_pending);
   if (cannot_create_pch_file) {
     /* Some condition was encountered that makes creation of a precompiled
        header impossible. */
@@ -1922,7 +1862,6 @@ Initialize variables used by the precompiled header routines.
     pch_one_time_init();
     one_time_init_done = TRUE;
   }  /* if */
-  alloc_pch_memory_block();
   initialize_pch_id_string();
   cannot_do_pch_processing = FALSE;
   cannot_create_pch_file = FALSE;

@@ -73,28 +73,7 @@ concatenation).
 #define HOST_ALLOCATION_INCREMENT 65536
 #endif /* __MSDOS__ */
 #endif /* ifndef HOST_ALLOCATION_INCREMENT */
-
-/*
-The routines that determine whether an existing precompiled header may be
-used must preallocate a certain amount of memory in order to ensure that
-the memory allocated for the memory regions can be allocated in the space
-expected by the precompiled header.
-*/
-#ifndef MEM_ALLOCATED_FOR_PCH_ANALYSIS
-#if __MSDOS__
-#define MEM_ALLOCATED_FOR_PCH_ANALYSIS 16384
-#else /* !__MSDOS__ */
-#define MEM_ALLOCATED_FOR_PCH_ANALYSIS 262144  /* 256 * 1024 */
-#endif /* __MSDOS__ */
-#endif /* ifndef MEM_ALLOCATED_FOR_PCH_ANALYSIS */
-
-/*
-Precompiled header file suffix.
-*/
-#ifndef PCH_FILE_SUFFIX
-#define PCH_FILE_SUFFIX ".pch"
-#endif /* ifndef PCH_FILE_SUFFIX */
-
+				   
 /*
 The number of include files that may be opened at any given time.
 After include nesting gets this deep, the same file will be re-opened
@@ -708,6 +687,15 @@ precompiled header processing.
 #endif /* SUPPORT_PRECOMPILED_HEADERS */
 
 /*
+Precompiled header file suffix.
+*/
+#if SUPPORT_PRECOMPILED_HEADERS
+#ifndef PCH_FILE_SUFFIX
+#define PCH_FILE_SUFFIX ".pch"
+#endif /* ifndef PCH_FILE_SUFFIX */
+#endif /* SUPPORT_PRECOMPILED_HEADERS */
+
+/*
 USE_MMAP_FOR_MEMORY_REGIONS is TRUE if memory mapping available for use
 in allocating memory regions.  By default, it is assumed to be available
 on systems other than MS-DOS.  When compiling a standalone utility
@@ -742,6 +730,56 @@ specified.  FIXED_ADDRESS_FOR_MMAP is used to provide the address.
             USE_FIXED_ADDRESS_FOR_MMAP is set.
 #endif /* USE_FIXED_ADDRESS_FOR_MMAP */
 #endif /* ifndef FIXED_ADDRESS_FOR_MMAP */
+
+/*
+When using precompiled headers, the front end must be able to
+be able to allocate IL memory regions at the same address that
+was used in the compilation that generated the precompiled header file.
+This may be accomplished either by using memory mapped memory for the
+memory regions, or by allocating a fixed size memory block that is
+used for all non-memory region allocations until such time that
+the precompiled header has been written and/or read, or until we
+decide that no precompiled header can be used.
+
+This flag is TRUE if the fixed size memory block (called initialization
+memory) should be used.
+*/
+#ifndef USE_INITIALIZATION_MEMORY
+#if USE_MMAP_FOR_MEMORY_REGIONS || !SUPPORT_PRECOMPILED_HEADERS
+#define USE_INITIALIZATION_MEMORY FALSE
+#else /* !(USE_MMAP_FOR_MEMORY_REGIONS || !SUPPORT_PRECOMPILED_HEADERS) */
+#define USE_INITIALIZATION_MEMORY TRUE
+#endif/* USE_MMAP_FOR_MEMORY_REGIONS || !SUPPORT_PRECOMPILED_HEADERS */
+#endif /* ifndef USE_INITIALIZATION_MEMORY */
+
+#if SUPPORT_PRECOMPILED_HEADERS
+#if USE_MMAP_FOR_MEMORY_REGIONS == USE_INITIALIZATION_MEMORY
+  #error -- When SUPPORT_PRECOMPILED_HEADERS is TRUE, either \
+            USE_MMAP_FOR_MEMORY_REGIONS or USE_INITIALIZATION_MEMORY \
+	    must be TRUE.  Both may not be TRUE.
+#endif /* USE_MMAP_FOR_MEMORY_REGIONS == USE_INITIALIZATION_MEMORY */
+#endif /* SUPPORT_PRECOMPILED_HEADERS */
+
+/*
+When using precompiled headers, it must be possible to duplicate the memory
+allocation done by the process that created the precompiled header.  This
+may be accomplished either by allocating the IL memory blocks in separate
+memory allocated by memory mapping, or by using a special block of
+"initialization" that will be used for all memory allocations that
+precede the allocation of the actual memory blocks that could be part
+of a precompiled header.  This parameter specifies the size of the
+initialization memory block to be used.
+*/
+#if USE_INITIALIZATION_MEMORY
+#ifndef INITIALIZATION_MEMORY_SIZE
+#if __MSDOS__
+#define INITIALIZATION_MEMORY_SIZE 16384
+#else /* !__MSDOS__ */
+#define INITIALIZATION_MEMORY_SIZE 262144  /* 256 * 1024 */
+#endif /* __MSDOS__ */
+#endif /* ifndef INITIALIZATION_MEMORY_SIZE */
+#endif /* USE_INITIALIZATION_MEMORY */
+
 
 /*
 The flags HOSTID and HOSTID2 can be set to host id numbers if the
