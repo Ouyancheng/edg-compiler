@@ -742,8 +742,9 @@ type is legal.
 
 
 static an_exception_specification_ptr scan_exception_specification(
-                        a_func_info_block_ptr          func_info,
-                        a_boolean                      exception_spec_allowed)
+                                  a_func_info_block  *func_info,
+                                  a_boolean          exception_spec_allowed,
+                                  a_boolean          is_top_level_declarator)
 /*
 Scan a throw specification, which may be empty or take either of two forms:
 
@@ -850,14 +851,35 @@ specification is handled later (see check_exception_specification).
       if (exceptions_enabled && !is_error_type(estp->type)) {
         /* Check the type to be sure it's not an incomplete type or a pointer
            to an incomplete type. */
-        a_type_ptr  tp = estp->type;
+        a_type_ptr         tp = estp->type;
+        an_error_severity  severity;
 
         /* Force instantiation of template class. */
         complete_type_is_needed(tp);
+        /* Issue a diagnostic if an incomplete type is indicated in the
+           exception specification.  According to the standard, this is always
+           an error, but it really only makes a difference on a function
+           definition.  We don't know at this point whether a top-level
+           declarator belongs to a function definition or not, so we defer
+           issuing the diagnostic in that case. */
+        if (ignoring_exception_spec) {
+          severity = es_remark;
+        } else if (is_top_level_declarator && !is_void_type(tp)) {
+          severity = es_none;
+        } else {
+          severity = strict_ansi_mode ? strict_ansi_discretionary_severity :
+                                        es_warning;
+        }  /* if */
         if (is_incomplete_type(tp)) {
           /* An exception specification type must be complete. */
-          pos_diagnostic(ignoring_exception_spec ? es_warning : es_error,
-                         ec_incomplete_type_not_allowed, &type_pos);
+          if (severity == es_none) {
+            defer_exception_spec_error(func_info,
+                                       ec_incomplete_type_not_allowed,
+                                       &type_pos);
+          } else {
+            pos_diagnostic(severity, ec_incomplete_type_not_allowed,
+                           &type_pos);
+          }  /* if */                                       
         } else if (is_ptr_or_ref_type(tp)) {
           tp = type_pointed_to(tp);
           if (is_void_type(tp)) {
@@ -868,8 +890,14 @@ specification is handled later (see check_exception_specification).
             if (is_incomplete_type(tp)) {
               /* An exception specification type cannot be a pointer or
                  reference to incomplete type. */
-              pos_diagnostic(ignoring_exception_spec ? es_warning : es_error,
-                             ec_ptr_or_ref_to_incomplete_type, &type_pos);
+              if (severity == es_none) {
+                defer_exception_spec_error(func_info,
+                                           ec_ptr_or_ref_to_incomplete_type,
+                                           &type_pos);
+              } else {
+                pos_diagnostic(severity, ec_ptr_or_ref_to_incomplete_type,
+                               &type_pos);
+              }  /* if */
             }  /* if */
           }  /* if */
         }  /* if */
@@ -1070,6 +1098,7 @@ issue an error if a default argument expression is encountered.
   a_func_info_block       local_func_info_block;
   a_boolean               restrict_qualified = FALSE;
   a_token_cache		  decl_token_cache;
+  a_boolean               is_top_level_declarator = TRUE;
 
   db_enter(3, "function_declarator");
   copy_source_position(pos_curr_token, start_pos);
@@ -1085,6 +1114,7 @@ issue an error if a default argument expression is encountered.
   if (func_info == NULL) {
     clear_func_info(&local_func_info_block);
     func_info = &local_func_info_block;
+    is_top_level_declarator = FALSE;
   }  /* if */
   last_param_id = NULL;
   *new_type_ptr = alloc_type((a_type_kind)tk_routine);
@@ -1197,7 +1227,7 @@ issue an error if a default argument expression is encountered.
     /* Remember the scope number for later use if and when a body appears. */
     func_info->scope_number = scope_stack[depth_scope_stack].number;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-    if (func_info != &local_func_info_block) {
+    if (is_top_level_declarator) {
       ss_entry_start_prev = init_param_source_sequence_sublist();
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -1304,7 +1334,7 @@ issue an error if a default argument expression is encountered.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         /* Make adjustments on the param source sequence entry before it is
            bound to the param_id entry. */
-        if (func_info == &local_func_info_block ||
+        if (!is_top_level_declarator ||
             scope_stack[depth_scope_stack].in_prototype_instantiation) {
           /* If a parameter id was specified in a non-top-level function
              declarator, a source sequence entry created for it is useless.
@@ -1613,7 +1643,7 @@ issue an error if a default argument expression is encountered.
     }  /* if */
     /* Save the list of symbols for the prototype scope (usually NULL, but
        can have symbols for named types declared within the prototype). */
-    if (func_info != &local_func_info_block) {
+    if (is_top_level_declarator) {
       /* Note that a pointer to the current entry of scope_stack is not saved
          from earlier in this routine because scope_stack might have been
          reallocated in the interim. */
@@ -1636,7 +1666,7 @@ issue an error if a default argument expression is encountered.
     pop_scope();
   } else if (any_params) {
     /* Old-style list of identifiers. */
-    if (func_info == &local_func_info_block) {
+    if (!is_top_level_declarator) {
       /* This type of parameter list is not valid in abstract declarators
          and non-top-level function declarators. */
       error(ec_param_id_list_needs_function_def);
@@ -1816,15 +1846,17 @@ issue an error if a default argument expression is encountered.
 #if 0
     /* Should a diagnostic be issued if a throw specification appears other
        than on a top-level declaration? */
-    if (curr_token == tok_throw && func_info == &local_func_info_block) {
+    if (curr_token == tok_throw && !is_top_level_declarator) {
       /* Error?  Warning? */
     }  /* if */
 #endif /* if 0 */
     extra_info->exception_specification =
-                        scan_exception_specification(func_info,
-                                                     !disallow_exception_spec);
+                       scan_exception_specification(func_info,
+                                                    !disallow_exception_spec,
+                                                    is_top_level_declarator);
+
   }  /* if */
-  if (func_info == &local_func_info_block) {
+  if (!is_top_level_declarator) {
     done_with_func_info(local_func_info_block);
   }  /* if */
   copy_source_position(start_pos, error_position);
