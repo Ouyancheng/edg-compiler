@@ -10055,6 +10055,9 @@ continue_with_declaration:
         if (inline_specified) {
           error(ec_inline_and_nonfunction);
         }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+        set_autonomous_tag_decl_flag(type_ptr, defines_something);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       }  /* if */
     }  /* if */
   } else if (dangling_type_specifier) {
