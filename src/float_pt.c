@@ -555,7 +555,7 @@ Fetch the value from float_value (of kind kind) and return it.
 
   if (kind == (a_float_kind)fk_float) {
     float	float_temp;
-    /* Convert from float to double. */
+    /* Convert from float to a_host_fp_value. */
     /* Use memcpy to copy the value since float_value might not be correctly
        aligned. */
     (void)memcpy((char *)&float_temp, (char *)float_value, sizeof(float));
@@ -563,7 +563,7 @@ Fetch the value from float_value (of kind kind) and return it.
 #if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
   } else if (kind == (a_float_kind)fk_double) {
     double	double_temp;
-    /* Convert from double to long double. */
+    /* Convert from double to a_host_fp_value. */
     /* Use memcpy to copy the value since float_value might not be correctly
        aligned. */
     (void)memcpy((char *)&double_temp, (char *)float_value, sizeof(double));
