@@ -1562,11 +1562,11 @@ preceded by a "-".
   }  /* for */
   /* Print the first part. The first part includes the sign and is
      not padded with zeros. */
-  sprintf(buffer, "%s%lu", sign_string, parts[i]);
+  sprintf(buffer, "%s%ld", sign_string, parts[i]);
   for (++i ; i < INT_VALUE_PARTS_PER_INTEGER_VALUE; ++i) {
     /* Print subsequent parts.  These do not include the sign and
        are padded on the right with zeros. */
-    sprintf(&buffer[strlen(buffer)], "%0*lu", digits_in_max_power_of_10,
+    sprintf(&buffer[strlen(buffer)], "%0*ld", digits_in_max_power_of_10,
             parts[i]);
   }  /* for */
 #endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
@@ -1712,7 +1712,7 @@ a single printf command in the caller.
   sprintf(&buffer[bufpos][0], "0x");
   for (i = 0; i < INT_VALUE_PARTS_PER_INTEGER_VALUE; ++i) {
     sprintf(&buffer[bufpos][strlen(&buffer[bufpos][0])], "%04x",
-            value->part[i]);
+            (unsigned int)(value->part[i]));
   }  /* for */
 #endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
   if (++bufpos == 5) bufpos = 0;

@@ -4639,7 +4639,7 @@ return_from_token_scan:
                      token_names[(int)ctoken]);
     if (start_of_curr_token != NULL) {
       /* Print token string if valid. */
-      fprintf(f_debug, ", \"%.*s\"", len_of_curr_token,
+      fprintf(f_debug, ", \"%.*s\"", (int)len_of_curr_token,
                                      start_of_curr_token);
     }  /* if */
     /* Dump constants only if they have been converted. */

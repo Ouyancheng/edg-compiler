@@ -1300,9 +1300,9 @@ Dump a linked list of derivation steps, for debug purposes.
       fprintf(f_debug, "==>%s", dsp->base_class->is_virtual ? "[v]" : "");
       db_type_name(dsp->base_class->type);
       if (show_offset) {
-        fprintf(f_debug, "@%ld", dsp->base_class->offset);
+        fprintf(f_debug, "@%lu", dsp->base_class->offset);
         if (dsp->base_class->is_virtual) {
-          fprintf(f_debug, "(ptr @%ld)", dsp->base_class->pointer_offset);
+          fprintf(f_debug, "(ptr @%lu)", dsp->base_class->pointer_offset);
         }  /* if */
       }  /* if */
     }  /* for */
@@ -1339,14 +1339,14 @@ Dump a base class entry, for debug purposes.
   db_type_name(bcp->type);
   if (bcp->derived_class != NULL) {
     fputc('"', f_debug);
-    fprintf(f_debug, " (%lu/%u)",
+    fprintf(f_debug, " (%lu/%d)",
             bcp->decl_position.seq, bcp->decl_position.column);
     fputs(", base class of \"", f_debug);
     db_type_name(bcp->derived_class);
   }  /* if */
   fputs("\": ", f_debug);
   if (show_offset) {
-    fprintf(f_debug, "size = %ld, offset = %ld",
+    fprintf(f_debug, "size = %lu, offset = %lu",
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
                      bcp->complete_subobject ?
                        bcp->type->size :
@@ -1366,7 +1366,7 @@ Dump a base class entry, for debug purposes.
     if (comma_needed) fputs(", ", f_debug);
     fputs("virtual", f_debug);
     if (show_offset) {
-      fprintf(f_debug, " (ptr offset = %ld", bcp->pointer_offset);
+      fprintf(f_debug, " (ptr offset = %lu", bcp->pointer_offset);
       if (bcp->pointer_base_class != NULL) {
         fputs(", in ", f_debug);
         db_type_name(bcp->pointer_base_class->type);

@@ -1929,7 +1929,7 @@ end_all_args_scan:;
      further modified by source line modifications. */
 #if DEBUG
   if (debug_level >= 4) {
-    fprintf(f_debug, "Expansion length is %d\n", repl_text_len);
+    fprintf(f_debug, "Expansion length is %u\n", (unsigned int)repl_text_len);
   }  /* if */
 #endif /* DEBUG */
   /* Make enough room in macro_buffer for the expansion and the following
@@ -2225,7 +2225,7 @@ quote_process:
 #if DEBUG
         if (debug_level >= 3) {
           fprintf(f_debug, "mdefn_get_token:       cpp quote , \"%.*s\"\n",
-                           len_of_curr_token, start_of_curr_token);
+                           (int)len_of_curr_token, start_of_curr_token);
         }  /* if */
 #endif /* DEBUG */
       } else if (*curr_char_loc == '/' && *(curr_char_loc+1) == '*') {
@@ -2238,7 +2238,7 @@ quote_process:
 #if DEBUG
         if (debug_level >= 3) {
           fprintf(f_debug, "mdefn_get_token:       slash     , \"%.*s\"\n",
-                           len_of_curr_token, start_of_curr_token);
+                           (int)len_of_curr_token, start_of_curr_token);
         }  /* if */
 #endif /* DEBUG */
       } else if (*curr_char_loc == 'L' &&
@@ -2253,7 +2253,7 @@ quote_process:
 #if DEBUG
         if (debug_level >= 3) {
           fprintf(f_debug, "mdefn_get_token:       identifier, \"%.*s\"\n",
-                           len_of_curr_token, start_of_curr_token);
+                           (int)len_of_curr_token, start_of_curr_token);
         }  /* if */
 #endif /* DEBUG */
       } else {
@@ -2287,7 +2287,7 @@ quote_process:
 #if DEBUG
     if (debug_level >= 3) {
       if (curr_token == tok_identifier) {
-        fprintf(f_debug, "*param_num = %d\n", *param_num);
+        fprintf(f_debug, "*param_num = %d\n", (int)(*param_num));
       }  /* if */
     }  /* if */
 #endif /* DEBUG */
@@ -2478,7 +2478,7 @@ Scan and process a #define directive.
 #if DEBUG
             if (debug_level >= 3) {
               fprintf(f_debug, "macro parameter %d: %s\n",
-                               param_num, pp->name);
+                               (int)param_num, pp->name);
             }  /* if */
 #endif /* DEBUG */
             (void)get_token();
@@ -2672,7 +2672,7 @@ Scan and process a #define directive.
         fprintf(f_debug, "function-like, parameter list:\n");
         for (pp = param_list, param_num = 1; pp != NULL;
              pp = pp->next, param_num++) {
-          fprintf (f_debug, "  (%d) %s\n", param_num, pp->name);
+          fprintf (f_debug, "  (%d) %s\n", (int)param_num, pp->name);
         }  /* for */
       }  /* if */
       fprintf(f_debug, "replacement text:\n");

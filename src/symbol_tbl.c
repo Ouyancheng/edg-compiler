@@ -503,7 +503,7 @@ and indentation is the indentation desired.
     col += strlen(buffer);
   }  /* if */
 
-  (void)sprintf(buffer, "(%lu/%u)", sym->decl_position.seq,
+  (void)sprintf(buffer, "(%lu/%d)", sym->decl_position.seq,
 		sym->decl_position.column);
   put_separator("", strlen(buffer));
   fputs(buffer, f_debug);

@@ -3112,7 +3112,7 @@ redundant file names in a diagnostic.*/
         internal_error("form_bound: buffer size too small");
       }  /* if */
 #endif /* CHECKING */
-      (void)sprintf(buffer, "%ld", (unsigned long)line_number);
+      (void)sprintf(buffer, "%lu", (unsigned long)line_number);
       add_string_to_segment(&buffer[0], seg_ptr);
       /* Add the file name if needed. */
       if (strcmp(file_name, diag_file_name) != 0 &&
