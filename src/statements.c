@@ -2785,10 +2785,10 @@ See also 3.6.5.1.
   remove_stop_token(tok_rparen);
   /* Scan the dependent statement. */
   dependent_statement();
-  /* End the condition block, if necessary. */
-  if (is_condition_decl) finish_condition_block();
   /* Define the "continue" label, if it is needed. */
   define_continue_label();
+  /* End the condition block, if necessary. */
+  if (is_condition_decl) finish_condition_block();
   /* Pop the structured statement stack. */
   pop_stmt_stack();
   /* If a label appeared in the context of the block that was just
@@ -3251,10 +3251,10 @@ either an expression statement or a declaration statement.
   remove_stop_token(tok_rparen);
   /* Scan the dependent statement. */
   dependent_statement();
-  /* End the condition block, if necessary. */
-  if (is_condition_decl) finish_condition_block();
   /* Define the "continue" label, if it is needed. */
   define_continue_label();
+  /* End the condition block, if necessary. */
+  if (is_condition_decl) finish_condition_block();
   /* Pop the structured statement stack. */
   pop_stmt_stack();
   /* If a label appeared in the context of the block that was just
