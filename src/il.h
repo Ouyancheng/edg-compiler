@@ -59,7 +59,7 @@ EXTERN a_boolean
 /*
 List of all IL entry kinds:
 */
-/* If you change this, also change sizeof_il_entry below. */
+/* If you change this, also change sizeof_il_entry in il_walk.h. */
 typedef enum /*an_il_entry_kind*/ {
   iek_none,		/* Skip zero value; it's used as a marker. */
   iek_source_file,	/* a_source_file */
@@ -114,6 +114,9 @@ typedef enum /*an_il_entry_kind*/ {
 			/* a_class_type_supplement */
   iek_constructor_init, /* a_constructor_init */
 #endif /* ifdef CIL */
+#if ORPHAN_PROCESSING_NEEDED
+  iek_orphaned_il_list, /* an_orphaned_il_list */
+#endif /* ORPHAN_PROCESSING_NEEDED */
   iek_last		/* Marks the end of the list. */
 } an_il_entry_kind;
 
@@ -137,14 +140,6 @@ EXTERN an_orphaned_il_entry_list
 		orphaned_file_scope_il_entries[(int)iek_last];
 			/* Array of orphaned IL entry lists containing
 			   individual orphaned file scope IL entries. */
-EXTERN an_orphaned_il_entry_list
-		orphaned_file_scope_il_lists[(int)iek_last];
-			/* Array of orphaned file scope IL entry lists
-			   where each member of this list is the head of
-			   another list of IL entries chained together by
-			   their "next" pointer.  At present the only
-			   expected elements of this array are for "iek_type"
-			   and "iek_varaible" IL entries. */
 #endif /* ORPHAN_PROCESSING_NEEDED */
 
 /*
@@ -461,8 +456,8 @@ IL entry at ptr.
 extern void add_orphaned_file_scope_il_entry(char             *entry_ptr,
                                              an_il_entry_kind entry_kind);
 
-extern void add_orphaned_file_scope_il_list(char             *entry_ptr,
-                                            an_il_entry_kind entry_kind);
+extern void add_orphaned_file_scope_il_list(a_type_ptr     types,
+                                            a_variable_ptr variables);
 #endif /* ORPHAN_PROCESSING_NEEDED */
 
 extern void il_init(void);
