@@ -1182,7 +1182,7 @@ common_cfront_mode_settings:
         /* Set error limit (numbers of errors at which to give up on
            compilation). */
         error_limit = scan_opt_arg_number(opt_arg);
-        if (signed_error_limit == 0) {
+        if (error_limit == 0) {
           str_command_line_error(ec_cl_invalid_error_limit, opt_arg);
         }  /* if */
         break;
