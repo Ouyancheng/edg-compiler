@@ -106,8 +106,12 @@ inline function bodies (i.e., there is no equivalent of the
 controls extern inline function definitions).
 
 The new mechanism is enabled by setting the INSTANTIATE_EXTERN_INLINE
-configuration flag to TRUE.  No changes to the prelinker are needed
-to support this feature.
+configuration flag to TRUE.  When the new mechanism is used, the back
+end must check the new "suppress_inline_body" flag in the routine entry.
+The body of the function must not be emitted if this flag is set.
+Failure to check this flag will result in multiple definitions when the
+program is linked.  No changes to the prelinker are needed to support
+this feature.
 
 1/19/00  C++-generating back end: constant expression output, lvalues
 
