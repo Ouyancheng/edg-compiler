@@ -1,5 +1,20 @@
 Version 2.22
 
+1/4/94   Definition of compiler-generated virtual destructor
+
+A bug has been fixed in handling the definitions of compiler-generated
+virtual destructors of local classes and nested classes -- the bodies of
+such functions were not generated under certain circumstances.  For
+example, a linker error might occur in a case like this:
+
+  struct A {
+    virtual ~A() { }
+  };
+  struct B {
+    struct N : public A { };
+  };
+  B::N *pbn = new B::N;
+
 1/4/94   Mangled name for virtual function table for ambiguous base class
 
 The mangled name for the virtual function table for a direct nonvirtual
