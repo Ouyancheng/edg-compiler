@@ -7200,9 +7200,9 @@ specific version of the template.
       /* This is the sort of scope for which a new object lifetime is
          pushed. */
       push_object_lifetime((an_il_entry_kind)iek_scope, (char *)sp,
-                           (kind == (a_scope_kind)sck_file) ?
-                             (an_object_lifetime_kind)olk_global_static :
-                             (an_object_lifetime_kind)olk_local);
+                           (an_object_lifetime_kind)(
+                                (kind == (a_scope_kind)sck_file) ?
+                                   olk_global_static : olk_local));
       ssep->curr_scope_object_lifetime = curr_object_lifetime;
     }  /* if */
   }  /* if */      
