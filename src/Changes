@@ -363,9 +363,19 @@ new type now notes the source position of the original declaration.
 
 Top-level qualifiers are removed from function parameter types (see changes
 of 1/16/95 and 1/20/95) only if ABI_COMPATIBILITY_VERSION is greater than
-or equal to 229.  In earlier ABI versions, the qualifiers are retained.
-in all modes (not just cfront mode).  Note that this is a change from
-2.28, but is compatible with the behavior of versions prior to 2.28.
+or equal to 229.  In versions before 2.28, the qualifiers were retained
+in all modes.  In 2.28, to implement a change in the language definition,
+the qualifiers were dropped, but not in cfront mode.  This introduced an
+unfortunate name mangling incompatibility in the default mode, and it made
+cfront mode and the default mode link-incompatible in some cases.
+We've now integrated this change with the ABI_COMPATIBILITY_VERSION
+mechanism, and we've made cfront mode work the same as the default mode.
+Note that if you set ABI_COMPATIBILITY_VERSION to 228, you get the
+behavior we think in retrospect we should have provided in 2.28, not what
+the actual 2.28 provided.  Also note that if you set ABI_COMPATIBILITY_VERSION
+to 229 or greater, and use cfront mode, the generated code is not link-
+compatible with the real cfront; however, that's true for other reasons
+too (e.g., extra virtual function tables for RTTI).
 
 5/11/95  Non-null test on pointer on call of user-written operator delete
 
