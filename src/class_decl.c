@@ -3548,17 +3548,25 @@ static void decl_member_constant(a_symbol_locator    *locator,
                                  an_access_specifier access)
 /*
 Do processing for a member constant, including scanning the initializer
-constant and entering the name in the symbol table.  This construct is
-not supported in the ARM.  The syntax we allow is:
+constant and entering the name in the symbol table.  member_type is
+guaranteed to be a const-qualified scalar type.  This construct is an
+extension.  Such a declaration is of the form:
 
-  "const" integral-type    member-name "=" constant-expression
-                       opt
+  decl-specifiers declarator = constant-expression ;
 
-where the type specifier includes no storage class.  When integral-type
-is omitted, the type defaults to "int".  Note that "complex" declarators
-(involving the declarations of array, pointer, reference, and
-pointer-to-member objects) are ipso facto not allowed, since they are
-inconsistent with the restriction to integral type.
+where the decl-specifiers have no explicit storage class and "const" but
+no other qualifier, and where the resulting type is a scalar type -- e.g.,
+
+  class A {
+    const int i = 10;              // member constant
+    const float f = 1.0;           // member constant
+    char * const s = "abc";        // member constant
+    A * const pa = (A *)0;         // member constant
+    // Added for comparison:
+    const int j;                   // nonstatic data member
+    static const int k;            // static data member
+    static const int l = 10;       // static data member, syntax error
+  };
 */
 {
   a_symbol_ptr     sym;
