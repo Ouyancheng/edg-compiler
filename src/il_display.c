@@ -555,6 +555,9 @@ Display the indicated source correspondence entry.
     disp_boolean("  static_used_by_instantiation", TRUE);
   }  /* if */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+  if (scp->copied_from_secondary_trans_unit) {
+    disp_boolean("  copied_from_secondary_trans_unit", TRUE);
+  }  /* if */
 #if RECORD_SCOPE_DEPTH_IN_IL
   disp_long("  scope_depth", (long)scp->scope_depth);
 #endif /* RECORD_SCOPE_DEPTH_IN_IL */

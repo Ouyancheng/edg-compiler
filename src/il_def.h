@@ -1089,6 +1089,12 @@ typedef struct a_source_correspondence {
 			   walk the subtree if it can still change, i.e., while
 			   the containing function is still being processed. */
 #endif /* MAINTAIN_NEEDED_FLAGS */
+  a_bit_field	copied_from_secondary_trans_unit:1;
+			/* TRUE if this entity was copied from the IL of a
+			   secondary translation unit into the primary
+			   translation unit IL.  That might mean that its
+			   name conflicts with the name of another entity
+			   in the IL. */
 #endif /* ifdef CIL */
 #if RECORD_SCOPE_DEPTH_IN_IL
   a_scope_depth	scope_depth;
