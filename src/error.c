@@ -370,7 +370,7 @@ error code.
       m = "missing closing quote";
       break;
     case ec_nested_comment:
-      m = "nested comment not allowed";
+      m = "nested comment is not allowed";
       break;
     case ec_bad_use_of_sharp:
       m = "\"#\" not expected here";
@@ -457,7 +457,7 @@ error code.
       m = "the #endif for this directive is missing";
       break;
     case ec_pp_else_already_appeared:
-      m = "directive not allowed -- an #else has already appeared";
+      m = "directive is not allowed -- an #else has already appeared";
       break;
     case ec_divide_by_zero:
       m = "division by zero";
@@ -520,7 +520,7 @@ error code.
       m = "this operator is not allowed in a preprocessing expression";
       break;
     case ec_bad_constant_function_call:
-      m = "function call not allowed in a constant expression";
+      m = "function call is not allowed in a constant expression";
       break;
     case ec_bad_integral_operator:
       m = "this operator is not allowed in an integral constant expression";
@@ -1234,7 +1234,7 @@ error code.
       m = "%sq is not a nonstatic data member or base class of class %t";
       break;
     case ec_indirect_nonvirtual_base_class_not_allowed:
-      m = "indirect nonvirtual base class not allowed";
+      m = "indirect nonvirtual base class is not allowed";
       break;
     case ec_bad_union_field:
       m = "invalid union member -- class %t has a disallowed member function";
@@ -1271,7 +1271,7 @@ error code.
       m = "no instance of %n matches the argument list";
       break;
     case ec_type_def_not_allowed_in_func_type_decl:
-      m = "type definition not allowed in function return type declaration";
+      m = "type definition is not allowed in function return type declaration";
       break;
     case ec_default_arg_not_at_end:
       m = "default argument not at end of parameter list";
@@ -1446,10 +1446,10 @@ error code.
       m = "\"overload\" no longer allowed (anachronism)";
       break;
     case ec_anon_union_member_access:
-      m = "invalid anonymous union -- nonpublic member not allowed";
+      m = "invalid anonymous union -- nonpublic member is not allowed";
       break;
     case ec_anon_union_member_function:
-      m = "invalid anonymous union -- member function not allowed";
+      m = "invalid anonymous union -- member function is not allowed";
       break;
     case ec_anon_union_storage_class:
       m = "global anonymous union must be declared static";
@@ -1546,7 +1546,7 @@ error code.
       m = "single-argument function used for postfix %sq (anachronism)";
       break;
     case ec_bad_access_adjustment_with_overloading:
-      m = "access adjustment not allowed -- mixed accessibility for %n";
+      m = "access adjustment is not allowed -- mixed accessibility for %n";
       break;
     case ec_missing_user_defined_assignment_for_copy:
       m = "implicit generation of %nf is not allowed";
@@ -1661,7 +1661,7 @@ error code.
       m = "const qualifier dropped in initializing reference to non-const";
       break;
     case ec_enum_not_allowed:
-      m = "\"enum\" declaration not allowed";
+      m = "\"enum\" declaration is not allowed";
       break;
     case ec_qualifier_dropped_in_ref_init:
       m = "initial value of reference has excess const/volatile qualifiers";
@@ -1754,7 +1754,7 @@ error code.
       m = "%simplicit definition of %nf %p";
       break;
     case ec_template_not_allowed:
-      m = "\"template\" not allowed";
+      m = "\"template\" is not allowed";
       break;
     case ec_not_a_class_template:
       m = "%t is not a class template";
