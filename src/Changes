@@ -833,6 +833,35 @@ Such specializations must be declared in each translation unit in
 which the function or class is used, before its first use in that
 translation unit.
 
+5/17/96 Default argument on function template redeclaration
+
+A diagnostic is now issued when a default argument appears on a function
+template redeclaration -- e.g.,
+
+  template <class T> void f(T, T);
+  template <class T> void f(T, T=0);     // Error or warning is now issued
+
+When a reference to the template appears between the initial declaration
+and the redeclaration, an error is always issued.  In strict mode (-A) an
+error is also issued.  Otherwise, it is accepted as an extension, and a
+warning is issued.
+
+This change also fixes an internal error in IL-lowering that occurred when
+a instance of the template was generated before the redeclaration was
+encountered -- for instance:
+
+  template <class T> void f(T*, T);
+  void g() {
+    int i = 5;
+    f(&i, i);
+  }
+  template <class T> void f(T*, T=5) { }  // Error is now issued, internal
+                                          //   error is avoided
+  main() {
+    int i = 10;
+    f(&i);
+  }
+
 5/17/96 New specialization syntax
 
 The Working Paper requires that a new syntax be used to declare
