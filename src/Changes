@@ -1,6 +1,17 @@
 Version 2.42
 
-6/19/99  Abort on use of a template parameter in a pointer-to-member type
+6/10/99  Repeated diagnostics for certain kinds of aggregate initialization
+
+The front-end occasionally went into a loop generating the same error
+message until the limit on the number of diagnostics was reached. The
+following example is such a case:
+
+  struct A { int i; } a; 
+  A aa[] = {{ a }}; // Too many braces
+
+This is now fixed.
+
+6/9/99   Abort on use of a template parameter in a pointer-to-member type
 
 The front end did not correctly handle pointer-to-member types in which
 the class type is actually a template parameter type.  This could result
