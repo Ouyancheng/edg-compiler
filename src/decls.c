@@ -2893,7 +2893,9 @@ new declaration are given by *linkage and *storage_class.  Issue a diagnostic
          This is clearly an error in C++ (ARM 7.1.1, 7.1.2), but because of
          prevailing practice we only issue a warning.  The same is done in
          C mode, partly because it is common practice in pcc. */
-      pos_warning(ec_linkage_conflict, position);
+      pos_diagnostic((strict_ansi_mode ?
+                           strict_ansi_error_severity : es_warning),
+                     ec_linkage_conflict, position);
     }  /* if */
     /* If either declaration has unspecified storage class (i.e., it's an
        external definition), that takes precedence, and the entity should
