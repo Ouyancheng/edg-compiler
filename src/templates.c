@@ -89,6 +89,15 @@ static char	*line_type_names[tilt_last+1] = {
   /* tilt_last */			NULL
 };
 
+/*
+Macro that is TRUE if the instantiation request and/or template information
+files should be generated.  This is not done when doing preprocessing
+only or when the back end is suppressed.
+*/
+#define generate_template_files()					\
+  (!do_preprocessing_only && !suppress_back_end)
+
+
 #define INSTANCE_LOOKUP_TABLE_SIZE 127
 			/* The number of buckets in the instance lookup table.
 			   This number should be prime. */
@@ -556,6 +565,8 @@ Open the template information file.
 
   check_assertion_str2(use_template_info_file, "open_template_info_file:",
                       "use_template_info_file is FALSE");
+  check_assertion_str2(generate_template_files(), "open_template_info_file:",
+                      "generate_template_files() is FALSE");
   /* Generate a name for the template information file if one was not
      specified. */
   if (template_info_file_name == NULL) {
@@ -11346,21 +11357,26 @@ otherwise they are removed.
 */
 {
   /* Create or remove the instantiation request file if necessary. */
-  if (!do_preprocessing_only &&
-      total_errors == 0 && !suppress_back_end) {
-    /* When only doing preprocessing we cannot determine whether or not the
-       instantiation request file is needed.  We also don't update
-       the instantiation file if there were errors, or if running the
-       front end only.  By not calling this routine we keep the old version
-       if one was present and don't create one if one did not already exist. */
-    create_or_remove_instantiation_request_file();
+  if (generate_template_files()) {
+    /* The instantiation request file is not affected when doing
+       preprocessing only, or not running the back end.  By not calling
+       this routine we keep the old version if one was present and don't
+       create one if one did not already exist.  This preserves the
+       instantiation list if, for example, there were errors during the
+       compilation. */
+    if (total_errors == 0) {
+      create_or_remove_instantiation_request_file();
+    }  /* if */
+    /* The template information file, if being used, is closed or removed
+       even in the presence of errors, but not if doing preprocessing only
+       or suppressing the back end. */
     if (use_template_info_file) {
       close_or_remove_template_info_file();
     }  /* if */
   }  /* if */
   check_assertion_str2(f_template_info == NULL,
                        "wrapup_auto_instantiation_information:",
-                       "tempate info file not closed");
+                       "template info file not closed");
 }  /* wrapup_auto_instantiation_information */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
@@ -11739,7 +11755,8 @@ and "do not instantiate" flags are set here.
       a_source_correspondence	*scp;
       scp = is_static_data_member ?
                 &variable->source_corresp : &routine->source_corresp;
-      if (instantiation_flags_in_template_info_file) {
+      if (instantiation_flags_in_template_info_file &&
+          generate_template_files()) {
         /* The flags are to be placed in the template information file. */
         write_instantiation_flags_to_template_info_file(scp, tip,
                                                         can_instantiate);
@@ -11758,7 +11775,7 @@ and "do not instantiate" flags are set here.
        by checking whether an instantiation needed bit number was assigned
        to the entity.  If a file was generated, write the name of the
        generated file to the template information file. */
-    if (one_instantiation_per_object) {
+    if (one_instantiation_per_object && generate_template_files()) {
       a_boolean		instantiation_file_generated;
       instantiation_file_generated = is_static_data_member
                                    ? variable->instantiation_needed_bit_number
@@ -11947,7 +11964,8 @@ specific definition that made it unnecessary.
        tip = tip->next_in_instantiation_list) {
     check_if_entity_should_be_automatically_instantiated(tip);
   }  /* for */
-  if (any_instantiations_required && use_template_info_file) {
+  if (any_instantiations_required && use_template_info_file &&
+      generate_template_files()) {
     /* Make sure the template information file has been created. */
     if (f_template_info == NULL) open_template_info_file();
   }  /* if */
