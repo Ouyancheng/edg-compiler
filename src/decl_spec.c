@@ -354,7 +354,8 @@ caution when modifying this routine.
         /* Don't prejudice subsequent lookups. */
         clear_specific_symbol(locator_for_curr_id);
       }  /* if */
-    } else {
+    }  /* if */
+    if (tag_sym == NULL && !tag_err) {
       /* See if this is an explicit declaration of class type_info, which was
          already "predeclared".  If it is, reuse the original symbol. */
       a_symbol_ptr  type_info_sym;
@@ -369,10 +370,8 @@ caution when modifying this routine.
           decl_scope_level == (DEPTH_OF_FILE_SCOPE + 1) &&
           strcmp(scope_stack[decl_scope_level].il_scope->variant.
                    assoc_namespace->source_corresp.name, "std") == 0
-
 #else /* !RUNTIME_USES_NAMESPACES */
           (decl_scope_level == DEPTH_OF_FILE_SCOPE)
-
 #endif RUNTIME_USES_NAMESPACES
                                                    ) {
         /* The identifier is indeed "type_info".  Check for the pragma that
@@ -395,8 +394,14 @@ caution when modifying this routine.
 #if ABI_CHANGES_FOR_RTTI
           /* Run-time support for RTTI declares type_info, so consider the
              name to be reserved. */
-          pos_error(ec_conflicts_with_implicitly_declared_type_info,
-                    &locator_for_curr_id.source_position);
+          pos_st_error(ec_conflicts_with_predeclared_type_info,
+                       &locator_for_curr_id.source_position,
+#if RUNTIME_USES_NAMESPACES
+                       "std::type_info"
+#else /* !RUNTIME_USES_NAMESPACES */
+                       "type_info"
+#endif RUNTIME_USES_NAMESPACES
+                                  );
           tag_sym = type_info_sym;
 #endif /* ABI_CHANGES_FOR_RTTI */
 #endif /* BACK_END_IS_CP_GEN_BE */
