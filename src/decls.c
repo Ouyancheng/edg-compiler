@@ -3704,7 +3704,8 @@ cross-reference output describing this declaration.
   idlb.storage_class = storage_class;
   set_linkage_environment(&idlb, decl_scope_level);
   if (!C_mode() && locator->specific_symbol != NULL &&
-      qualifier_namespace_ptr(*locator) != NULL) {
+      (qualifier_namespace_ptr(*locator) != NULL ||
+       locator->is_file_scope_qualified_name)) {
     /* This identifier is a namespace-qualified name that was previously
        declared.  Be sure this is a valid scope in which to define it
        (7.3.1.4). */

@@ -1,5 +1,17 @@
 Version 2.43
 
+8/23/99  Assertion failure when defining a file-scope variable in a namespace
+
+The front end used to abort its processing when encountering the definition
+of a file scope variable in a namespace.  For example,
+
+  extern int i;
+  namespace N {
+    int ::i;  // Used to abort; now a graceful error.
+  }
+
+This is now fixed.
+
 8/21/99  C-generating back end, Microsoft compatibility, __declspec(dllexport)
 
 The C-generating back end has been changed so that the Microsoft
