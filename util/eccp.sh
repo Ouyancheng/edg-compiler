@@ -40,6 +40,10 @@ EDG_DECODE=${EDG_DECODE_PATH-$EDG_BASE/lib/edg_decode}
 #
 MUNCH=${EDG_MUNCH_PATH-$EDG_BASE/lib/edg_munch}
 #
+# Options to be passed to the nm command when using munch
+#
+EDG_MUNCH_NM_OPTIONS=${EDG_MUNCH_NM_OPTIONS-""}
+#
 # "edg_prelink" executable
 #
 EDG_PRELINK=${EDG_PRELINK_PATH-$EDG_BASE/lib/edg_prelink}
@@ -712,7 +716,7 @@ then
 #            3. Re-link with object of C file
 #
           tmpfile=$TMPDIR/$$edgm
-          nm $executable | $MUNCH >$tmpfile.c
+          nm $EDG_MUNCH_NM_OPTIONS $executable | $MUNCH >$tmpfile.c
           (cd $TMPDIR; $cc_command -c $tmpfile.c)
           status=$?
           if [ $status -ne 0 ] ; then
