@@ -1685,7 +1685,7 @@ end of the buffer.
                                    new_size);
       /* Since first_quote and second_quote, if non-NULL, point into the
          segment that's being replaced, they have to be modified to point
-         into the new chunck of memory. */
+         into the new chunk of memory. */
       if (seg_ptr->first_quote != NULL) {
         seg_ptr->first_quote =
                   new_buffer + (seg_ptr->first_quote - seg_ptr->segment);
