@@ -11963,7 +11963,7 @@ Add "length" characters of "string" to the text buffer pointed to "buf".
   new_size = buffer->size + length;
   ensure_text_buffer_space(buffer, new_size);
   /* Copy the characters into the buffer. */
-  memcpy(&buffer->buffer[buffer->size], string, length);
+  memcpy(&buffer->buffer[buffer->size], string, size_t_arg(length));
   buffer->size = new_size;
 }  /* add_to_text_buffer */
 
