@@ -128,7 +128,7 @@ Do required initialization for host-dependent things.
     if (bool) {
       unexpected_condition_str2
                        ("host_init: AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG",
-                        "in target.h is set wrong");
+                        "in targ_def.h is set wrong");
     }  /* if */
   }
 #endif /* CHECKING */

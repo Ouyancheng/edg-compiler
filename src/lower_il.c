@@ -967,7 +967,7 @@ compatibility we do too.)
     if (mptr_type->size != targ_sizeof_ptr_to_member_function ||
         mptr_type->alignment != targ_alignof_ptr_to_member_function) {
       internal_error(
- "make_mptr_type: target.h config of pointer-to-member-function is incorrect");
+ "make_mptr_type: target config of pointer-to-member-function is incorrect");
     }  /* if */
 #endif /* CHECKING */
   }  /* if */
@@ -3912,7 +3912,7 @@ Do IL lowering of the indicated type and everything under it.
           if (new_type->size != targ_sizeof_ptr_to_data_member ||
               new_type->alignment != targ_alignof_ptr_to_data_member) {
             internal_error(
-         "lower_type: target.h config of pointer-to-data-member is incorrect");
+           "lower_type: target config of pointer-to-data-member is incorrect");
           }  /* if */
 #endif /* CHECKING */
         }  /* if */
