@@ -3275,8 +3275,9 @@ included in the search.
       if (prototype_type != NULL) {
         a_class_type_supplement_ptr  prototype_ctsp;
         an_extended_decl_info_block  extended_decl_info;
-        a_source_position            pos = class_template_sym->decl_position;
+        a_source_position            pos;
 
+        pos = class_template_sym->decl_position;
         clear_extended_decl_info_block(extended_decl_info);
         prototype_ctsp = prototype_type->variant.class_struct_union.extra_info;
 #if MICROSOFT_EXTENSIONS_ALLOWED

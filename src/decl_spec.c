@@ -4034,8 +4034,9 @@ Returns TRUE if there is an error in the specifiers.
           } else {
             /* There were no errors; update decl_modifiers to reflect
                this specifier. */
-            a_decl_modifiers_block  new_modifiers =
-                                            extended_decl_info.decl_modifiers;
+            a_decl_modifiers_block  new_modifiers;
+
+            new_modifiers = extended_decl_info.decl_modifiers;
             decl_modifiers->flags |= new_modifiers.flags;
             /* Check __declspec(property(...)) specifications. */
             if (new_modifiers.get_property_name != NULL) {
