@@ -3526,7 +3526,8 @@ __throw, and __rethrow, used in throwing exceptions.  NULL until allocated.
 static a_routine_ptr
 		throw_setup_routine,
 		throw_routine,
-		rethrow_routine;
+		rethrow_routine,
+		internal_rethrow_routine;
 
 
 static an_expr_node_ptr make_rethrow_call(void)
@@ -3540,6 +3541,22 @@ Make an expression that does a rethrow, and return a pointer to it.
   return rethrow_node;
 } /* make_rethrow_call */
 
+#if ABI_COMPATIBILITY_VERSION >= 235
+
+static an_expr_node_ptr make_internal_rethrow_call(void)
+/*
+Make an expression that calls the internal-rethrow routine, and return a
+pointer to it.
+*/
+{
+  an_expr_node_ptr rethrow_node =
+                 make_runtime_rout_call("__internal_rethrow",
+                                        &internal_rethrow_routine,
+                                        void_type(), (an_expr_node_ptr)NULL);
+  return rethrow_node;
+} /* make_internal_rethrow_call */
+
+#endif /* ABI_COMPATIBILITY_VERSION >= 235 */
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
 
 an_expr_node_ptr make_internal_try_expr(an_expr_node_ptr try_expr,
@@ -3569,8 +3586,13 @@ is not passed through).
      does a setjmp call and compares it to zero. */
   initialize_eh_stack_entry_for_try(try_frame, (a_variable_ptr)NULL,
                                     &insert_location, &compare_node);
+#if ABI_COMPATIBILITY_VERSION >= 235
+  /* Make an internal rethrow. */
+  rethrow_node = make_internal_rethrow_call();
+#else /* ABI_COMPATIBILITY_VERSION < 235 */
   /* Make a rethrow. */
   rethrow_node = make_rethrow_call();
+#endif /* ABI_COMPATIBILITY_VERSION >= 235 */
   /* Make (catch-expr, rethrow). */
   catch_plus_rethrow = make_comma_node(catch_expr, rethrow_node);
   /* Add a zero constant cast to void after the rethrow to give the
@@ -4070,6 +4092,7 @@ with each new translation unit are handled in eh_lower_init.)
       pch_saved_var_array_elem(throw_setup_routine),
       pch_saved_var_array_elem(throw_routine),
       pch_saved_var_array_elem(rethrow_routine),
+      pch_saved_var_array_elem(internal_rethrow_routine),
       pch_saved_var_array_elem(jmp_buf_type),
       pch_saved_var_array_elem(exception_type_spec_type),
       pch_saved_var_array_elem(eh_stack_entry_type),
@@ -4134,6 +4157,7 @@ invocation of the front end.
   throw_setup_routine = NULL;
   throw_routine = NULL;
   rethrow_routine = NULL;
+  internal_rethrow_routine = NULL;
   jmp_buf_type = NULL;
   exception_type_spec_type = NULL;
   eh_stack_entry_type = NULL;
