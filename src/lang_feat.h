@@ -1164,6 +1164,25 @@ or when Microsoft extensions (including Microsoft asms) are allowed.
 #define ASM_SUPPORT_NEEDED FALSE
 #endif /* ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 
+/*
+Check that no mutually exclusive dialect emulations are simultaneously
+enabled.
+*/
+#if DEFAULT_MICROSOFT_MODE
+#ifdef DEFAULT_DIALECT_SET
+ #error -- CANNOT SET MULTIPLE EXCLUSIVE DIALECTS AS DEFAULTS
+#else /* !defined(DEFAULT_DIALECT_SET) */
+#define DEFAULT_DIALECT_SET TRUE
+#endif /* ifdef DEFAULT_DIALECT_SET */
+#endif /* DEFAULT_MICROSOFT_MODE */
+#if DEFAULT_SUN_MODE
+#ifdef DEFAULT_DIALECT_SET
+ #error -- CANNOT SET MULTIPLE EXCLUSIVE DIALECTS AS DEFAULTS
+#else /* !defined(DEFAULT_DIALECT_SET) */
+#define DEFAULT_DIALECT_SET TRUE
+#endif /* ifdef DEFAULT_DIALECT_SET */
+#endif /* DEFAULT_SUN_MODE */
+
 #endif /* ifndef LANG_FEAT_H */
 
 /******************************************************************************
