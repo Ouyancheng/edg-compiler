@@ -6744,7 +6744,7 @@ specific information about the member declaration, respectively.
   /* Set the parent class in the field and (unless member_sym is NULL) in the
      symbol. */
   set_class_membership(member_sym, &field->source_corresp, class_type);
-  if (decl_info->is_member_template && !member_sym->is_error) {
+  if (decl_info->is_member_template && locator->symbol_header != NULL) {
     pos_sy_error(ec_bad_member_template_sym, &locator->source_position,
                  member_sym);
   }  /* if */
