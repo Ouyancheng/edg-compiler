@@ -44,7 +44,6 @@ Clear an output control block to default values.
   octl->debug_output              = FALSE;
 #endif /* DEBUG */
   octl->force_qualified_name      = FALSE;
-  octl->gen_vla_array_as_unknown_bound_array = FALSE;
   octl->gen_vla_array_as_asterisk_bound_array = FALSE;
 }  /* clear_il_to_str_output_control_block */
 
@@ -1092,10 +1091,8 @@ the way described by octl.
   octl->output_str("[");
   if (type->variant.array.is_vla) {
     /* Variable-length array. */
-    if (octl->gen_vla_array_as_unknown_bound_array) {
-      /* Put out the VLA dimension as "[]". */
-    } else if (!type->variant.array.has_assoc_vla_dimension ||
-               octl->gen_vla_array_as_asterisk_bound_array) {
+    if (!type->variant.array.has_assoc_vla_dimension ||
+        octl->gen_vla_array_as_asterisk_bound_array) {
       /* Array[*] case. */
       octl->output_str("*");
     } else {
@@ -2292,6 +2289,7 @@ confusion.  Do the output in the way described by octl.
   a_type_ptr           con_type = NULL, orig_type;
   a_boolean            need_cast_close_paren = FALSE, is_enum;
   a_constant_ptr       equiv_constant;
+  a_boolean            suppress_cast_on_integer_constant = FALSE;
 
   orig_type = constant->type;
   /* Watch out for constants (like ck_init_repeat) that have no type. */
@@ -2315,11 +2313,35 @@ confusion.  Do the output in the way described by octl.
       /* Don't do this here for address constants or pointer-to-member
          constants (they're handled in the subroutines). */
     } else {
-      /* If the constant is implicitly cast to another type, ... */
-      if (constant->implicit_cast ||
-          (constant->kind == (a_constant_repr_kind)ck_template_param &&
-           constant->variant.template_param.kind ==
-                                  (a_template_param_constant_kind)tpck_cast)) {
+      /* If the constant is implicitly cast to another type, prefix the
+         constant with an explicit cast. */
+      a_boolean need_cast = FALSE;
+      if (constant->implicit_cast) {
+        need_cast = TRUE;
+        if (C_mode() && is_directly_variably_modified_type(orig_type)) {
+          /* Casts to directly variably-modified types must be suppressed.
+             That's possible because they are folded into the constant only
+             if they are implicit.  However, we must still deal with the
+             fact that the constant may have been explicitly cast to some other
+             pointer type before it was cast to the variably-modified type. */
+          check_assertion(is_pointer_type(orig_type));
+          need_cast = FALSE;
+          /* For null pointer constants, the extra cast to "void *" is
+             not necessary. */
+          if (constant->kind != (a_constant_repr_kind)ck_integer ||
+              cmplit_integer_constant(constant, 0L) != 0) {
+            output_optional_open_paren(&need_parens, &need_cast_close_paren,
+                                       octl);
+            octl->output_str("(void *)");
+            suppress_cast_on_integer_constant = TRUE;
+          }  /* if */
+        }  /* if */
+      } else if (constant->kind == (a_constant_repr_kind)ck_template_param &&
+                 constant->variant.template_param.kind ==
+                                  (a_template_param_constant_kind)tpck_cast) {
+        need_cast = TRUE;
+      }  /* if */
+      if (need_cast) {
         /* ... then prefix the constant with an explicit cast. */
         output_optional_open_paren(&need_parens, &need_cast_close_paren, octl);
         form_cast(orig_type, octl);
@@ -2376,8 +2398,8 @@ confusion.  Do the output in the way described by octl.
         output_optional_close_paren(need_char_cast_close_paren, octl);
       } else {
         /* A normal integer constant. */
-        form_integer_constant(constant, /*suppress_cast=*/FALSE, need_parens,
-                              octl);
+        form_integer_constant(constant, suppress_cast_on_integer_constant,
+                              need_parens, octl);
       }  /* if */
       break;
     case ck_string:

@@ -108,11 +108,6 @@ typedef struct an_il_to_str_output_control_block {
 			   name because of the context (used, e.g., for
 			   pointers-to-members). */
   a_byte_boolean
-	gen_vla_array_as_unknown_bound_array;
-			/* TRUE if the bounds for variable-length arrays should
-			   be put out as "[]".  This is needed to suppress
-			   VLAs in casts. */
-  a_byte_boolean
 	gen_vla_array_as_asterisk_bound_array;
 			/* TRUE if the bounds for variable-length arrays should
 			   be put out as "[*]".  This is needed to suppress

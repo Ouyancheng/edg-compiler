@@ -1200,14 +1200,7 @@ Output the indicated constant.
   } else
 #endif /* C_GEN_BE_GENERATES_ANSI_C */
   {
-    /* Put out variable-length array (VLA) bounds as unknown bounds in
-       casts. */
-    a_boolean saved_gen_vla_array_as_unknown_bound_array =
-                                     octl.gen_vla_array_as_unknown_bound_array;
-    octl.gen_vla_array_as_unknown_bound_array = TRUE;
     form_constant(constant, /*need_parens=*/TRUE, &octl);
-    octl.gen_vla_array_as_unknown_bound_array =
-                                    saved_gen_vla_array_as_unknown_bound_array;
   }  /* if */
 }  /* dump_constant */
 
@@ -2402,15 +2395,8 @@ Generate a cast to the indicated type.
   } else
 #endif /* C_GEN_BE_GENERATES_ANSI_C */
   {
-    a_boolean saved_gen_vla_array_as_unknown_bound_array =
-                                     octl.gen_vla_array_as_unknown_bound_array;
     m_write_tok_ch('(');
-    /* Put out variable-length array (VLA) bounds as unknown bounds in
-       casts. */
-    octl.gen_vla_array_as_unknown_bound_array = TRUE;
     dump_type(type, /*add_pointer_to=*/FALSE);
-    octl.gen_vla_array_as_unknown_bound_array =
-                                    saved_gen_vla_array_as_unknown_bound_array;
     m_write_tok_ch(')');
   }  /* if */
 }  /* dump_cast */
@@ -2421,18 +2407,10 @@ static void dump_cast_to_pointer_to(a_type_ptr type)
 Generate a cast to pointer-to the indicated type.
 */
 {
-  a_boolean saved_gen_vla_array_as_unknown_bound_array =
-                                     octl.gen_vla_array_as_unknown_bound_array;
-
   /* Can't use dump_cast because we don't have the pointer type and
      we can't call make_pointer_type in the "back end". */
   write_tok_ch('(');
-  /* Put out variable-length array (VLA) bounds as unknown bounds in
-     casts. */
-  octl.gen_vla_array_as_unknown_bound_array = TRUE;
   dump_type(type, /*add_pointer_to=*/TRUE);
-  octl.gen_vla_array_as_unknown_bound_array =
-                                    saved_gen_vla_array_as_unknown_bound_array;
   write_tok_ch(')');
 }  /* dump_cast_to_pointer_to */
 
@@ -3005,7 +2983,25 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           dump_boolean_controlling_expression(operand_1);
           goto done_with_unary_operation;
         case eok_cast:
-          dump_cast(expr->type);
+          /* It is tempting to try to suppress all compiler-generated casts
+             here.  But bear in mind the following problem cases:
+               -- When IL lowering is done, some cases that are marked as
+                  compiler-generated in C++ are not implicit conversions in
+                  C (e.g., derived-to-base pointer conversions).
+               -- The underlying C compiler may not accept exactly the same
+                  set of implicit conversions (e.g., in pcc mode this front
+                  end allows various implicit conversions that are
+                  dubious.  Also, pcc seems to have some difficulty with
+                  implicit conversions from "void *" in some cases.)
+          */
+          if (expr->variant.operation.compiler_generated &&
+              il_header.source_language == sl_C &&
+              is_pointer_type(expr->type) &&
+              is_directly_variably_modified_type(expr->type)) {
+            /* Do not put out an implicit cast to a variably-modified type. */
+          } else {
+            dump_cast(expr->type);
+          }  /* if */
           if (operand_1->kind == (an_expr_node_kind)enk_variable_address &&
               is_array_type(operand_1->variant.variable->type)) {
             /* A cast of the address of an array.  Optimize this case: the
