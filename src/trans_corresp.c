@@ -2622,9 +2622,7 @@ is in fact valid.
     }  /* if */
     if (!match) {
       /* The templates don't seem to match, so don't try to verify the
-         instantiations.  However, make sure no false correspondences
-         remain. */
-      clear_instantation_correspondences(templ, /*visited=*/TRUE);
+         instantiations. */
     } else if (is_class_template_symbol(templ_sym)) {
       /* A class template. Verify the instantiations (if any). */
       a_type_ptr  proto = prototype_template_of(templ_sym)
