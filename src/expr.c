@@ -1298,6 +1298,11 @@ Syntax:
     if (is_undefined_symbol_operand(operand)) {
       /* The function designator is an undefined symbol. */
       a_symbol_ptr func_sym = operand->variant.symbol;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      /* Save the end position for later restoration. */
+      a_source_position end_function_position;
+      end_function_position = operand->end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       /* In C++, it's an error, but not yet if argument-dependent lookup
          is enabled -- in that case, a function might be found in an
          argument-dependent class or namespace, and no error is issued. */
@@ -1323,6 +1328,9 @@ Syntax:
                                          &func_sym->decl_position,
                                          operand->ref_entries_list,
                                          operand);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        operand->end_position = end_function_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         conv_function_designator_to_ptr_to_function(operand,
                                                     /*allow_ctor=*/FALSE);
         routine = func_sym->variant.routine.ptr;

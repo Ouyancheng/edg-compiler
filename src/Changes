@@ -1,5 +1,13 @@
 Version 2.45
 
+11/2/00  End position on function reference on implicit function
+         declaration in C mode
+
+When EXTRA_SOURCE_POSITIONS_IN_IL is TRUE, the end position on the
+IL expression node for a function in a call was not set when the function
+is implicitly declared by the call (this is possible only in C mode).
+The end position is now set correctly.
+
 11/2/00  Abort in type_pointed_to when doing prototype instantiation
          of dependent call of member function using qualified name
 
