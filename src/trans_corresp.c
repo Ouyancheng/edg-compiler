@@ -518,8 +518,15 @@ Otherwise, type's correspondence should be set to *record.
       trans_unit_corresp_pointer_of(type) = (char*)type;
     }  /* if */
   } else {
-    check_assertion(in_secondary_trans_unit(type));
-    trans_unit_corresp_pointer_of(type) = (char*)*record;
+    if (in_secondary_trans_unit(type)) {
+      trans_unit_corresp_pointer_of(type) = (char*)*record;
+    } else {
+      /* Sometimes we switch back to the primary translation unit (e.g.,
+         to perform IL lowering) and create there a builtin type that was
+         already created in a secondary translation unit. */
+      checked_trans_unit_corresp_pointer_of(*record) = (char*)type;
+      *record = type;
+    }  /* if */
   }  /* if */
 }  /* set_builtin_type_corresp */
 
