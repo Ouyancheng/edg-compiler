@@ -3104,6 +3104,13 @@ typedef struct a_type {
 			   file scope types list.  Used for template classes
 			   that are instantiated in the midst of a class
 			   definition. */
+      unsigned int
+		is_placeholder_for_namespace_type:1;
+			/* TRUE if the typeref appears on the file-scope
+			   types list to indicate the declaration sequence
+			   position of the type to which it refers, which is
+			   on the types list of a namespace scope.  Used for
+			   user-defined types that are namespace members. */
       bitfield_to_avoid_codecenter_warnings()
     } typeref;
     /* When kind == tk_ptr_to_member: */

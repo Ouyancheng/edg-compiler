@@ -1016,6 +1016,8 @@ do_struct_union:
 #endif /* DO_IL_LOWERING */
       if (ptr->variant.typeref.is_placeholder_for_file_scope_type) {
         disp_boolean("is_placeholder_for_file_scope_type", TRUE);
+      } else if (ptr->variant.typeref.is_placeholder_for_namespace_type) {
+        disp_boolean("is_placeholder_for_namespace_type", TRUE);
       } else if (ptr->variant.typeref.qualifiers != TQ_NONE) {
         a_boolean  space_needed = FALSE;
         disp_name("qualifiers");
