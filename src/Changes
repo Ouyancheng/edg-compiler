@@ -1,5 +1,11 @@
 Version 2.46
 
+4/2/01   Extraneous deallocation points for variable length arrays (VLAs)
+
+The front end used to generate VLA object deallocation points at the end of
+many statement blocks that followed (but didn't contain the definition of a 
+VLA object.  This is now fixed.  (See also Change entry of 9/8/00.)
+
 3/30/01  Malformed float constants accepted in Microsoft mode
 
 The MSVC++ compiler accepts floating-point constants like .1.234.
