@@ -246,38 +246,6 @@ a constant that appears on the constant list of an enum type.
 }  /* is_enum_constant */
 
 
-/*
-Macro to extract the kind from a source sequence entry or secondary
-declaration entry.
-*/
-#define ss_entry_kind(ssep) ((an_il_entry_kind)(ssep)->entity.kind)
-
-
-/*
-Macro to extract the pointer from a source sequence entry or secondary
-declaration entry.  It is cast to the indicated pointer type.
-*/
-#define ss_entry_ptr(ssep, type) ((type)(ssep)->entity.ptr)
-
-
-/*
-Return TRUE if the indicated source sequence entry is a proxy for
-a file-scope declaration, i.e., it has kind iek_source_sequence_entry.
-*/
-#define ss_is_proxy(ssep) (ss_entry_kind(ssep) == iek_source_sequence_entry)
-
-/*
-ssep points to a function-scope source sequence entry of type
-iek_source_sequence_entry.  Such an entry is a proxy for an entry on the
-file-scope source sequence list, i.e., it indicates the point on the
-function-scope source sequence list where the file-scope declaration occurs.
-Fetch and return a pointer to the corresponding file-scope source sequence
-entry.
-*/
-#define ss_assoc_with_proxy(ssep) \
-  ss_entry_ptr((ssep), a_source_sequence_entry_ptr)
-
-
 static void adv_to_signif_file_scope_source_sequence_entry(void)
 /*
 If the current entry on the file-scope source sequence list is not
