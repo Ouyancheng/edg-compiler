@@ -740,7 +740,7 @@ types separated by commas (when single_type_required is FALSE).
       if (may_be_decl && is_cast(flags)) {
         /* If we are in a cast context, look at what follows the right
            parenthesis to see if it is something that could follow a cast.
-           This is to prevent (A()) from being interpretted as an invalid
+           This is to prevent (A()) from being interpreted as an invalid
            cast. */
         cache_curr_token(&token_cache);
         (void)get_token();
