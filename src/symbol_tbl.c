@@ -2109,7 +2109,7 @@ this is not allowed, an error will be issued by the caller.
              scope_stack[scope_depth].kind ==
                                  (a_scope_kind)sck_template_instantiation) {
     /* This must be a template friend declaration during prototype
-       instantiation.  The symbol in injected into the template instantiation
+       instantiation.  The symbol is injected into the template instantiation
        scope, and overloading is not performed at this point.  Let the two
        symbols coexist. */
     err = FALSE;
