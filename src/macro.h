@@ -49,6 +49,8 @@ extern void proc_define(void);
 extern unsigned long show_macro_space_used(void);
 #endif /* DEBUG */
 
+extern void macro_proc_init(void);
+
 #endif /* MACRO_H */
 
 /******************************************************************************
