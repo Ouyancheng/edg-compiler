@@ -10081,6 +10081,12 @@ parameter entry for the parameter.
   templ_ptr = alloc_template();
   set_source_corresp(&templ_ptr->source_corresp, sym);
   templ_ptr->kind = (a_template_kind)templk_template_template_param;
+  if (!is_named) {
+    /* Reset the name in the source correspondence entry.  An unnamed
+       parameter is represented by NULL, not "<unnamed>" as indicated
+       by the symbol header. */
+    templ_ptr->source_corresp.name = NULL;
+  }  /* if */
   /* The templates associated with template parameters and nonreal classes
      have a template_info pointer that points back to the front end
      information. */
