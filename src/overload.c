@@ -732,6 +732,7 @@ built-in operators.  The start_error or equivalent has already been done.
       } else {
         /* Normal case. */
         err_code = ec_ambiguous_function_add_on;
+        reduce_projection_symbol_to_fundamental_symbol(function_sym);
       }  /* if */
       sym_add_diag_info(err_code, function_sym);
     } else {
