@@ -4363,10 +4363,27 @@ this selection.
     m_write_tok_ch('.');
   }  /* if */
   if (il_header.source_language == sl_Cplusplus) {
+    a_class_type_supplement_ptr  ctsp;
     /* Use a qualified name if the class in which we want to name the member
-       is not the class indicated by the pointer. */
+       is not the class indicated by the pointer.  A namespace qualifier may
+       also be needed if we're emitting a reference to a field of a namespace
+       scope anonymous union. */
     selection_class = skip_typerefs(selection_class);
-    if (selection_class != naming_class) {
+    ctsp = selection_class->variant.class_struct_union.extra_info;
+    if (selection_class->variant.class_struct_union.originally_unnamed &&
+        ctsp != NULL &&
+        ctsp->anonymous_union_kind == (an_anonymous_union_kind)auk_variable) {
+      /* This is a field of a namespace-scope anonymous union.  If the
+         enclosing scope is not the global namespace, a qualifier may need
+         to be emitted. */
+      a_namespace_ptr  nsp =
+                         selection_class->source_corresp.parent.namespace_ptr;
+      if (nsp != NULL &&
+          !scope_is_in_name_context_stack(nsp->variant.assoc_scope)) {
+        gen_namespace_qualifier(nsp, GN_BOUND_MEMBER,
+                                /*need_closing_parens=*/FALSE);
+      }  /* if */
+    } else if (selection_class != naming_class) {
       /* Push a name context so that the qualifier will be properly
          qualified. */
       push_class_name_context(selection_class);

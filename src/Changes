@@ -1,5 +1,18 @@
 Version 2.46
 
+7/10/01  C++-generating back end: missing namespace qualifier on member of
+         anonymous union
+
+The C++-generating back end never emitted a namespace qualifier when emitting
+a reference to a member of a namespace-scope anonymous union.  For example:
+
+  namespace N {
+    static union { int i; };
+  }
+  int r = N::i;  // Used to be mistakenly rendered as "int r = (j);"
+
+This is now fixed.
+
 7/9/01   Internal error during instantiation of template static data member
 
 Under certain unusual circumstances, an internal error can occur in
