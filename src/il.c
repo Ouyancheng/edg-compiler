@@ -5494,7 +5494,7 @@ static a_param_type_ptr copy_param_type_list(
 /*
 Copy the param-type list pointed to by ptp and return a pointer to the new
 list.  If copy_default_args is TRUE, copy any default argument expressions
-into the the new param types.  If it is FALSE, the default_arg_expr field
+into the new param types.  If it is FALSE, the default_arg_expr field
 in the new param type will be NULL.
 */
 {
@@ -10096,6 +10096,165 @@ partial instantiation of the entity specified by the indicated entity.
           scope_stack[depth_scope_stack].source_sequence_entries_disallowed;
   }  /* if */
 }  /* add_source_sequence_entry_for_partial_instantiation */
+
+
+void fixup_source_sequence_lists_for_instantiated_nested_classes(
+                                                    a_type_ptr parent_class)
+/*
+parent_class points to a template class that has just been instantiated.
+The instantiation scope is still on the stack but is about to be popped.
+If parent_class has any nested classes, their instantiations would normally
+be deferred till the point at which they are first referenced in a way that
+forces instantiation.  However, if there was a reference within the parent
+class definition, then the source sequence entries to represent the nested
+class need to be moved from outside (and in front of) parent_class (the
+point to which they would "float up") and inserted into list that
+represents the body of parent_class.  This is the function of this routine.
+*/
+{
+  a_type_ptr                   tp;
+  a_scope_ptr                  fs_scope;
+  a_source_sequence_entry_ptr  secondary_decl, first, last;
+  a_source_sequence_entry_ptr  *avail_list_ptr;
+
+  check_assertion(depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&
+                  scope_stack[depth_innermost_instantiation_scope].
+                                              assoc_type == parent_class &&
+                  parent_class->variant.class_struct_union.is_template_class);
+  if (parent_class->source_corresp.source_sequence_entry) {
+    fs_scope = scope_stack[DEPTH_OF_FILE_SCOPE].il_scope;
+    /* Traverse the types list of parent_class looking for nested classes
+       that have been defined.  Usually, that means they have have been
+       instantiated during the scanning of parent_class. */
+    for (tp = parent_class->
+                variant.class_struct_union.extra_info->assoc_scope->types;
+         tp != NULL;
+         tp = tp->next) {
+      if (!is_immediate_class_type(tp) ||
+          !tp->variant.class_struct_union.is_template_class ||
+          tp->variant.class_struct_union.extra_info->assoc_scope == NULL) {
+        /* Not a template class or else not yet defined. */
+        continue;
+      }  /* if */
+      /* Look for a secondary-declaration entry that represents the point at
+         which the nested class was declared. */
+      secondary_decl = last_matching_source_sequence_entry((char *)tp);
+      if (secondary_decl != NULL &&
+          ss_entry_kind(secondary_decl) ==
+                             (an_il_entry_kind)iek_src_seq_secondary_decl) {
+        /* Now locate the first and last entries of the source-sequence list
+           that corresponds to the definition of the nested class. */
+        first = tp->source_corresp.source_sequence_entry;
+        for (last = first->next; ; last = last->next) {
+          check_assertion(last != NULL);
+          if (ss_entry_kind(last) ==
+                      (an_il_entry_kind)iek_src_seq_end_of_construct &&
+              ss_entry_ptr(last, a_src_seq_end_of_construct_ptr)->
+                                             entity.ptr == (char *)tp) {
+            check_assertion(last->next != NULL);
+            /* Found -- stop looping. */
+            break;
+          }  /* if */
+        }  /* for */
+        /* Remove the source-sequence entries (first through last inclusive)
+           from the file-scope source sequence list. */
+        if (first->prev == NULL) {
+          check_assertion(fs_scope->source_sequence_list == first);
+          fs_scope->source_sequence_list = last->next;
+          last->next->prev = NULL;
+        } else {
+          first->prev->next = last->next;
+          last->next->prev = first->prev;
+        }  /* if */
+        /* Now insert first-through-last in the spot where the secondary-decl
+           entry was. */
+        check_assertion(secondary_decl->prev != NULL);
+        secondary_decl->prev->next = first;
+        first->prev = secondary_decl->prev;
+        if (secondary_decl->next == NULL) {
+          check_assertion(scope_stack[DEPTH_OF_FILE_SCOPE].
+                           last_source_sequence_entry == secondary_decl);
+          scope_stack[DEPTH_OF_FILE_SCOPE].
+                           last_source_sequence_entry = last;
+        } else {
+          secondary_decl->next->prev = last;
+        }  /* if */
+        last->next = secondary_decl->next;
+        /* The secondary-decl entry has been removed from the list; it can
+           be returned to the available list. */
+        avail_list_ptr =
+               &scope_stack[DEPTH_OF_FILE_SCOPE].source_sequence_avail_list;
+        secondary_decl->next = *avail_list_ptr;
+        *avail_list_ptr = secondary_decl;
+        secondary_decl->prev = NULL;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* fixup_source_sequence_lists_for_instantiated_nested_classes */
+
+
+void remove_redundant_source_sequence_entry_for_specialization(
+                                         a_source_sequence_entry_ptr  ssep)
+/*
+When a secondary-declaration entry representing a "partial" instantiation   
+of an entity immediately precedes the primary source-sequence entry that
+represents its full instantiation, the former is superfluous and can be
+removed.  ssep points to a primary source-sequence entry -- e.g., the start
+of a list of entries representing the body of a template class.  If this
+routine finds a redundant secondary-decl entry, it removes it.
+*/
+{
+  a_source_sequence_entry_ptr  prev, *avail_list_ptr;
+
+  if (ssep != NULL) {
+#if CHECKING
+    check_assertion(!scope_stack[DEPTH_OF_FILE_SCOPE].
+                                     source_sequence_entries_disallowed);
+    switch (ss_entry_kind(ssep)) {
+      case iek_type:
+        {
+        a_type_ptr tp = (a_type_ptr)ssep->entity.ptr;
+        check_assertion(is_immediate_class_type(tp) &&
+                        tp->variant.class_struct_union.is_template_class);
+        }
+        break;
+      case iek_routine:
+      /* Removal of entries for partial instantiation of functions is not
+         yet implemented. */
+      default:
+        unexpected_condition();
+    }
+#endif /* CHECKING */
+    /* Examine the source-sequence entry immediately preceding the
+       entry that was specified. */
+    prev = ssep->prev;
+    if (prev != NULL &&
+        ss_entry_kind(prev) == (an_il_entry_kind)iek_src_seq_secondary_decl) {
+      /* It is a secondary-decl source sequence entry. */
+      a_src_seq_secondary_decl_ptr  sssdp = ss_entry_ptr(prev,
+                                                a_src_seq_secondary_decl_ptr);
+      if (sssdp->entity.ptr == ssep->entity.ptr) {
+        /* It also refers to the same entity.  Link around it. */
+        if (prev->prev == NULL) {
+          a_scope_ptr  fs_scope = scope_stack[DEPTH_OF_FILE_SCOPE].il_scope;
+          check_assertion(fs_scope->source_sequence_list == ssep->prev);
+          fs_scope->source_sequence_list = ssep;
+          ssep->prev = NULL;
+        } else {
+          prev->prev->next = ssep;
+          ssep->prev = prev->prev;
+        }  /* if */
+        /* The secondary-decl entry has been removed from the list; it can
+           be returned to the available list. */
+        avail_list_ptr =
+               &scope_stack[DEPTH_OF_FILE_SCOPE].source_sequence_avail_list;
+        prev->next = *avail_list_ptr;
+        *avail_list_ptr = prev;
+        prev->prev = NULL;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* remove_redundant_source_sequence_entry_for_specialization */
 
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 

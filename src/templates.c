@@ -1632,14 +1632,28 @@ might not be able to if the template itself has not yet been defined.
                     /*is_template_instantiation=*/TRUE);
       pending_class_definitions--;
       set_instantiation_required_for_template_class_members(class_type);
+      /* Process any pragmas that are to be bound to this instance. */
+      process_curr_construct_pragmas(instance_sym, (a_statement_ptr)NULL);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
+#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
       /* A template instantiation is considered to always be "autonomous",
          even if its instantiation happens to be triggered by a reference
          in the declaration of another entity. */
       set_autonomous_tag_decl_flag(class_type, /*is_definition=*/TRUE);
+      /* If this instantiation triggered the instantiations of nested classes,
+         the source-sequence lists for those classes were floated up to the
+         precede the list for the current class.  Those lists need to be
+         moved into the list for the current class. */
+      fixup_source_sequence_lists_for_instantiated_nested_classes(class_type);
+      /* It often happens that a partial instantiation immediately precedes
+         the full instantiation.  If that's the case, remove the source
+         sequence secondary entry that was put out for the partial
+         instantiation. */
+      remove_redundant_source_sequence_entry_for_specialization(
+                           class_type->source_corresp.source_sequence_entry);
+#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-      /* Process any pragmas that are to be bound to this instance. */
-      process_curr_construct_pragmas(instance_sym, (a_statement_ptr)NULL);
+      /* Pop the template instantiation scope. */
       pop_template_instantiation_scope();
       /* In the normal case the current token should be end_of_source,
          which was inserted to mark the end of the cached token stream.

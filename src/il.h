@@ -918,6 +918,12 @@ extern void add_end_of_construct_source_sequence_entry(
 extern void add_source_sequence_entry_for_partial_instantiation(
                                                     char               *ptr,
                                                     an_il_entry_kind   kind);
+
+extern void fixup_source_sequence_lists_for_instantiated_nested_classes(
+                                                    a_type_ptr parent_class);
+
+extern void remove_redundant_source_sequence_entry_for_specialization(
+                                          a_source_sequence_entry_ptr  ssep);
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 
 extern void remove_from_source_sequence_list(
