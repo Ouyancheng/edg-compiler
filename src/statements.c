@@ -1138,7 +1138,9 @@ start of a sequence of declarations.
   a_statement_ptr                sp = NULL;
   a_source_sequence_entry_ptr    prev_ssep;
 
-  if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH) {
+  if (!source_sequence_entries_disallowed) {
+    /* We are in a context in which source sequence entries are being
+       generated. */
     sssep = &struct_stmt_stack[depth_stmt_stack];
     sp = sssep->curr_decl_statement;
     if (sp == NULL) {
@@ -3610,7 +3612,8 @@ branching into it is disallowed).
                            pos_curr_token);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* Add a source sequence entry marking the end of the block. */
-  add_end_of_block_source_sequence_entry(block);
+  add_end_of_construct_source_sequence_entry(
+                           (char *)block, (a_byte_il_entry_kind)iek_statement);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Check for the closing "}".  Note that for a function, the "}" is left
      for the caller (function_definition) to handle. */
