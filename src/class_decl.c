@@ -5858,7 +5858,7 @@ declaration of the function, and again overloading is a possibility.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 #if FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS
-        } else if (has_name(class_type)) {
+        } else if (class_type_can_be_named_in_namespace_scope(class_type)) {
           /* The primary source sequence entry will be deferred until the
              class definition has been completed; a secondary-decl entry
              will be put out here.  (That is not possible with unnamed
@@ -7213,7 +7213,7 @@ is set to NULL by this function.
 #if MICROSOFT_EXTENSIONS_ALLOWED
           overridden_function == NULL &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-          has_name(class_type)) {
+          class_type_can_be_named_in_namespace_scope(class_type)) {
         func_info->is_movable_member_or_friend_def = TRUE;
       }  /* if */
 #endif /* FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS */

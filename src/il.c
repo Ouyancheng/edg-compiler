@@ -8067,6 +8067,34 @@ unchanged.
   return tp;
 }  /* routine_type_without_default_args */
 
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+#if FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS
+
+a_boolean class_type_can_be_named_in_namespace_scope(a_type_ptr  type)
+/*
+Return true if the given class type and all its enclosing class types have a
+name.
+*/
+{
+  a_boolean  result;
+
+  check_assertion(is_class_struct_union_type(type));
+  type = skip_typerefs(type);
+  result = has_name(type);
+  if (result) {
+    while (type->source_corresp.is_class_member) {
+      type = skip_typerefs(type->source_corresp.parent.class_type);
+      if (!has_name(type)) {
+        result = FALSE;
+        break;
+      }  /* if */
+    }  /* while */
+  }  /* if */
+  return result;
+}  /* class_type_can_be_named_in_namespace_scope */
+
+#endif /* FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS */
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 a_template_arg_ptr copy_template_arg_list(a_template_arg_ptr orig_list)

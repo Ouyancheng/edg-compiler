@@ -1305,7 +1305,8 @@ created for this entity; otherwise, it is NULL.
           scope_stack[depth_scope_stack].kind ==
                                     (a_scope_kind)sck_class_struct_union &&
           !scope_stack[depth_scope_stack].inside_local_class &&
-          has_name(scope_stack[depth_scope_stack].assoc_type)) {
+          class_type_can_be_named_in_namespace_scope(
+                                 scope_stack[depth_scope_stack].assoc_type)) {
         /* This is a member or friend function definition inside the
            definition of a nonlocal class.  When template instantiations are
            put out in the source sequence list, it is necessary to move the

@@ -1,5 +1,25 @@
 Version 3.4
 
+3/2/04   C++-generating back end: Unmovable members
+
+When FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS is TRUE, the
+front end may move in-class member and friend function definition out of
+a class.  For some members this is not feasible because the member cannot
+be named outside the class.  Previously, the front end incorrectly handled
+the case of a member of a named class nested in an unnamed class.  That in
+turn resulted in incorrect code rendered by the C++-generating back end.
+For example:
+
+  struct S {
+    struct {         // Unnamed struct.
+      struct N {
+        void f() {}  // Definition was moved outside S.  The C++-generating
+      } n;           // back end invented a name for the enclosing unnamed
+    } u;             // struct.
+  };
+
+This is now fixed.
+
 3/1/04   GNU C mode: __typeof__ ignores top-level const/volatile
 
 In GNU C mode (but not in GNU C++ mode) the front end now ignores top-level
