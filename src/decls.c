@@ -7117,7 +7117,8 @@ Returns TRUE if there is an error in the specifiers.
                                  (is_inline ? 1 : 0)) {
               /* Issue a diagnostic if the storage class is not the first
                  specifier (except for "inline" or "friend"). */
-              remark(ec_storage_class_not_first);
+              diagnostic(strict_ansi_mode ? es_warning : es_remark,
+                         ec_storage_class_not_first);
             }  /* if */
           }  /* if */
           switch (curr_token) {

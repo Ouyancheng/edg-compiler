@@ -2,10 +2,11 @@ Version 2.23
 
 3/28/94  Storage-class-not-first diagnostic
 
-A remark is now issued (instead of a warning) when the storage class
-specifier is not first among the declaration specifiers, e.g.,
+Except in strict ANSI mode a remark is now issued (instead of a warning)
+when the storage class specifier is not first among the declaration
+specifiers, e.g.,
 
-  int static i;              // Now a remark
+  int static i;              // Now a remark unless in strict ANSI mode
 
 3/28/94  Void function parameter type
 
