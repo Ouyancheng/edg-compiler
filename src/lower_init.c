@@ -6918,7 +6918,7 @@ code to cause the generated initialization routine to be called at startup.
     check_assertion_str(file_scope->dynamic_inits == NULL,
                     "lower_file_scope_dynamic_inits: not all entries lowered");
     if (file_scope->lifetime != NULL) {
-      /* Restore any redidual destructions left after lowering. */
+      /* Restore any residual destructions left after lowering. */
       check_assertion_str(file_scope->lifetime->destructions == NULL,
                        "lower_file_scope_dynamic_inits: non-NULL destrs list");
       file_scope->lifetime->destructions = residual_destrs;
