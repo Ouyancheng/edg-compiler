@@ -901,7 +901,7 @@ Display the indicated source correspondence entry.
   disp_long("  scope_depth", (long)scp->scope_depth);
 #endif /* RECORD_SCOPE_DEPTH_IN_IL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  if (scp->name != NULL || scp->source_sequence_entry != NULL) {
+  if (scp->source_sequence_entry != NULL) {
     disp_ptr("  source_sequence_entry", (char *)scp->source_sequence_entry,
              iek_source_sequence_entry);
   }  /* if */
@@ -2222,8 +2222,10 @@ Display the indicated statement.
     disp_boolean("dependent_statement", (a_boolean)ptr->dependent_statement);
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  disp_ptr("source_sequence_entry", (char *)ptr->source_sequence_entry,
-           iek_source_sequence_entry);
+  if (ptr->source_sequence_entry != NULL) {
+    disp_ptr("source_sequence_entry", (char *)ptr->source_sequence_entry,
+             iek_source_sequence_entry);
+  }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   disp_name("kind");
   switch (ptr->kind) {
@@ -2981,9 +2983,9 @@ Display the indicated asm entry.
   disp_ptr("asm_string", (char *)ptr->asm_string, iek_constant);
 }  /* disp_asm_entry */
 
-
 #endif /* CFE */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
+
 static void disp_source_sequence_entry(a_source_sequence_entry_ptr ssep)
 /*
 */
@@ -3007,8 +3009,8 @@ static void disp_src_seq_secondary_decl(a_src_seq_secondary_decl_ptr sssdp)
            (an_il_entry_kind)sssdp->entity.kind);
 }  /* disp_src_seq_secondary_decl */
 
-
 #if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
+
 static void disp_comment(a_comment_ptr cp)
 /*
 */
@@ -3037,7 +3039,6 @@ Display the indicated an_orphaned_il_list entry.
            iek_variable);
   disp_ptr("next", (char *)ptr->next, iek_orphaned_il_list);
 }  /* disp_orphaned_il_list */
-
 
 #endif /* ORPHAN_PROCESSING_NEEDED */
 
