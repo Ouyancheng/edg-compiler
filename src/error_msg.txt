@@ -930,6 +930,7 @@ ec_new_cast_in_embedded_cplusplus;;"Embedded C++ does not support the new cast s
 ec_using_decl_in_embedded_cplusplus;;"Embedded C++ does not support using-declarations"
 ec_mutable_in_embedded_cplusplus;;"Embedded C++ does not support \"mutable\""
 ec_multiple_inheritance_in_embedded_cplusplus;;"Embedded C++ does not support multiple or virtual inheritance"
+ec_cl_invalid_microsoft_version;;"invalid Microsoft version number: "
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
