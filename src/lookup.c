@@ -2604,10 +2604,14 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
                                     add_to_active_list, insert_sym, &sym,
                                     /*can_create_nonreal=*/TRUE);
         if (sym == NULL && locator->is_conversion_name &&
-            cssp->conversion_template_list != NULL) {
+            cssp->conversion_template_list != NULL &&
+            (options & IDL_USING_DECLARATION) == 0) {
           /* We still haven't found a symbol, we are looking for a conversion
              function,  and this class has conversion function templates.
-             See if any of the templates match the type desired. */
+             See if any of the templates match the type desired.  This
+             lookup is suppressed for member using-declarations because
+             it should not be possible for a derived class to name a template
+	     instance in a using-declaration. */
           sym = lookup_conversion_template_instance(
                          locator, class_type, cssp->conversion_template_list);
         }  /* if */

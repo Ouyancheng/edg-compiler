@@ -1,5 +1,17 @@
 Version 2.35
 
+2/5/97  A using-declaration may not name a conversion template instance
+
+The front end failed to produce a diagnostic when a using-declaration
+named a conversion template instance.  This has been fixed.
+
+  struct A {
+    template <class T> operator T();
+  };
+  struct B : public A {
+    using A::operator int*;
+  };
+
 2/4/97  Abort on use of invalid conversion operator
 
 An abort could occur when calling a template conversion operator using an

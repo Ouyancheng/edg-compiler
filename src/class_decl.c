@@ -7734,7 +7734,7 @@ or implicit) controlling the declaration.
      indicated by class_type). */
   (void)coalesce_and_lookup_generalized_identifier(
                               GID_DTOR_RECOGNIZED | GID_TEMPLATE_ARGS_OPTIONAL,
-                              ilm_normal, &err);
+                              ilm_using_declaration, &err);
   if (!err) {
     decl_pos = locator_for_curr_id.source_position;
     /* The identifier should be a qualified name, with the qualifier a base

@@ -118,6 +118,12 @@ represented as a bit set:
 				   a new symbol (i.e., projection symbol) will
 				   not be created unless it is for a
 				   template. */
+#define IDL_USING_DECLARATION	0x20000
+				/* Indicates that the name being looked up
+				   is the name in a using-declaration.
+				   For member using-declarations this
+				   suppresses the special conversion template
+				   lookup. */
 #define IDL_NO_OPTIONS 0	/* No special lookup options. */
 
 /*
