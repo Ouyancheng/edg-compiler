@@ -5701,15 +5701,19 @@ non-NULL return *con_value == NULL.
     }  /* if */
   }  /* if */
   if (con_expr_value != NULL) {
-    /* The rvalue has a constant value; this must be a const variable. */
-    check_assertion_str(node->kind == (an_expr_node_kind)enk_variable_address,
-                        "conv_lvalue_expr_to_rvalue: unexpected expression");
     *constant_case = TRUE;
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
-    /* Record the variable expression in the constant (making sure it is
-       recorded as an rvalue). */
+    /* Record the expression in the constant (making sure it is recorded as an
+       rvalue).  Usually we end up here with an expression that just refers to
+       a const variable, but sometimes an actual operation is involved; e.g.
+       the ?: operation in
+         void f() { int const a = 1, b = 2, c = a ? b : b; }
+       For the latter case, the rvalue conversion was already performed on the
+       underlying operands. */
     con_expr_value = alloc_unshared_constant(con_expr_value);
-    con_expr_value->expr = var_rvalue_expr(node->variant.variable);
+    con_expr_value->expr =
+                      node->kind == (an_expr_node_kind)enk_variable_address ?
+                               var_rvalue_expr(node->variant.variable) : node;
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
     if (con_value != NULL) {
       /* The caller wants the constant instead of an expression node for
