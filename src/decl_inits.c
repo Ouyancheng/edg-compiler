@@ -264,9 +264,19 @@ If there is an error, issue an error and return an error constant.
          known if it was incomplete. */
       *type_ptr = local_type;
     }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    curr_construct_end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITI0NS_IN_IL */
     /* Bypass the string and the right paren, if appropriate. */
     (void)get_token();
-    if (paren_flag) (void)required_token(tok_rparen, ec_exp_rparen);
+    if (paren_flag) {
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      if (curr_token == tok_rparen) {
+        curr_construct_end_position = pos_curr_token;
+      }  /* if */
+#endif /* EXTRA_SOURCE_POSITI0NS_IN_IL */
+      (void)required_token(tok_rparen, ec_exp_rparen);
+    }  /* if */
   }  /* if */
   return is_string_init;
 }  /* check_for_string_constant_initializer */
@@ -1267,6 +1277,9 @@ this function points to a tree that includes a dynamic-init entry.
                                        /*force_object_lifetime=*/FALSE,
                                        /*is_copy_initialization=*/TRUE,
                                        local_type, &dip);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    init_info->init_end_position = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     if (init_con == NULL) {
       /* Returning NULL means a nonconstant expression was scanned, and so
          a dynamic init entry was allocated and returned.  Create a dynamic
@@ -1884,6 +1897,11 @@ returned set to TRUE.
                                            /*force_object_lifetime=*/FALSE,
                                            &pos, /*fill_in_dtor=*/TRUE,
                                            &init_dip);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      if (decl_pos_block != NULL) {
+        decl_pos_block->var_init_range.end = curr_construct_end_position;
+      }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       /* If no dynamic init entry was created, there must have been an
          error. */
       if (init_dip == NULL) init_err = TRUE;
@@ -1928,9 +1946,15 @@ returned set to TRUE.
       /* In ordinary C a struct or union variable may be initialized by an
          object of the same type as long as dynamic initialization is
          otherwise allowed. */
-      if (!scan_class_initializer_expression(vp_type,
-                                             /*fill_in_dtor=*/TRUE,
-                                             &init_dip)) {
+      if (scan_class_initializer_expression(vp_type,
+                                            /*fill_in_dtor=*/TRUE,
+                                            &init_dip)) {
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        if (decl_pos_block != NULL) {
+          decl_pos_block->var_init_range.end = curr_construct_end_position;
+        }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      } else {
         /* No appropriate constructor was found.  Abort the initialization. */
         init_err = TRUE;
       }  /* if */
@@ -1966,15 +1990,6 @@ returned set to TRUE.
        permitted as the initializer. */
     check_for_opening_brace(&brace_flag);
     nonconstant_allowed = (!C_mode() || !static_lifetime);
-#if 0
-#else /* if !0 */
-/* Temporary!  But it works sometimes. */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    if (decl_pos_block != NULL) {
-      decl_pos_block->var_init_range.end = end_pos_curr_token;
-    }  /* if */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-#endif /* if 0 */
     /* Scan the initializer.  Either a constant pointer is returned or else
        a dynamic init entry representing an expression. */
     init_con =
@@ -1993,12 +2008,8 @@ returned set to TRUE.
     if (decl_pos_block != NULL) {
       if (brace_flag) {
         decl_pos_block->var_init_range.end = pos_curr_token;
-      } else if (init_con == NULL) {
-        check_assertion(init_dip != NULL);
-        if (init_dip->kind == (a_dynamic_init_kind)dik_expression) {
-          decl_pos_block->var_init_range.end =
-                         init_dip->variant.expression->expr_range.end;
-        }  /* if */
+      } else {
+        decl_pos_block->var_init_range.end = curr_construct_end_position;
       }  /* if */
     }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
