@@ -727,9 +727,6 @@ The syntax is:
     if (paren_flag) {
       /* Error has already been reported.  Scan the arguments, but don't
          do anything else. */
-#if CHECKING
-    internal_error("initializer: constructors not yet implemented");
-#endif /* CHECKING */
       scan_constructor_args(&arg_list);
       err = TRUE;
     } else {
@@ -751,7 +748,7 @@ The syntax is:
         }  /* if */
       } else {
 #if CHECKING
-        if (cp->kind == (a_constant_repr_kind)ck_error) {
+        if (cp->kind != (a_constant_repr_kind)ck_error) {
           internal_error("initializer: unexpected constant kind");
         }  /* if */
 #endif /* CHECKING */
