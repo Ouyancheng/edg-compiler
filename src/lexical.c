@@ -505,7 +505,7 @@ for pp-tokens.
              curr_token == tok_ptr_to_member) {
     /* Class qualifier or pointer to member -- save the current class
        qualifier structure. */
-    ctp->extra_info_kind = teik_class_qualifier;
+    ctp->extra_info_kind = (a_token_extra_info_kind)teik_class_qualifier;
     ctp->variant.class_qualifier = curr_class_qualifier;
   } else {
     /* No extra information needed for this token. */
@@ -4859,7 +4859,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
     } else {  /* else executed when !is_type_param */
       a_type_ptr  constant_type = sym->variant.constant->type;
 #if CHECKING
-      if (sym->kind != sk_constant) {
+      if (sym->kind != (a_symbol_kind)sk_constant) {
         internal_error("coalesce_template_class_reference: constant expected");
       }  /* if */
 #endif /* CHECKING */
@@ -5344,7 +5344,7 @@ otherwise it will be set FALSE.
       }  /* if */
     }  /* if */
     /* Get the token following the qualifier. */
-    get_token();
+    (void)get_token();
   }  /* if */
   set_err_pos_to_curr_token();
   /* Process the identifier after the optional qualifier.  Coalesce

@@ -508,7 +508,7 @@ and indentation is the indentation desired.
           fprintf(f_debug, "\n");
           col = 0;
         }  /* for */
-        if (sym->kind == sk_class_template) {
+        if (sym->kind == (a_symbol_kind)sk_class_template) {
           inst_sym = tssp->variant.class.instantiations;
           while (inst_sym != NULL) {
             fprintf(f_debug, "%*sinstantiation:\n", indentation, "");
@@ -952,7 +952,7 @@ state.
         tssp->parameters = NULL;
         tssp->innermost_instantiation_scope = NO_SCOPE_DEPTH;
         tssp->declaration_scope = NO_SCOPE_NUMBER;
-        if (sym_kind == sk_class_template) {
+        if (sym_kind == (a_symbol_kind)sk_class_template) {
           tssp->variant.class.instantiations = NULL;
           tssp->variant.class.type_kind      = (a_type_kind)tk_error;
           tssp->variant.class.member_function_templates = NULL;

@@ -546,7 +546,7 @@ not specifically allow this syntax, but it is supported by cfront.
         curr_class_qualifier.has_global_qualifier == FALSE) {
       is_member_id = TRUE;
       /* Skip to the token after the qualifier (the identifier). */
-      get_token();
+      (void)get_token();
       /* Accepting qualified member names is an extension so issue a
          diagnostic in strict ANSI mode. */
       if (strict_ansi_mode) {
