@@ -5092,8 +5092,8 @@ C-style casts and C++ functional-notation type conversions.
           if (warning_suggested != ec_no_error) {
             pos_warning(warning_suggested, start_position);
           }  /* if */
-          /* In pcc or SVR4 C mode, some lvalues cast to same-sized types
-             remain lvalues (e.g., int to unsigned). */
+          /* In pcc, SVR4 C, or Microsoft mode, some lvalues cast to
+             same-sized types remain lvalues (e.g., int to unsigned). */
           if ((C_dialect == C_dialect_pcc || SVR4_C_mode
 #if MICROSOFT_EXTENSIONS_ALLOWED
                                        || microsoft_mode
