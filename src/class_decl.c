@@ -4591,6 +4591,9 @@ the Microsoft COM base class IUnknown.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/ /* type_ptr only used when Microsoft extensions are enabled. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static void scan_inheritance_kind(a_type_ptr           type_ptr,
                                   a_boolean            *is_virtual,
                                   an_access_specifier  *access,
