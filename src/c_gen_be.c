@@ -5167,7 +5167,7 @@ Generate C from the intermediate language.
         write_str(module_init_id);
         write_tok_str("();}");
         end_output_line();
-        write_tok_str("static struct __linkl {\n");
+        write_tok_str("static struct __linkl {");
         write_tok_str(
                      "struct __linkl *next; void (*ctor)(); void (*dtor)();}");
         write_tok_str("__link = {0, ");
