@@ -186,7 +186,7 @@ context).
 }  /* insert_expr_statement */
 
 
-static a_statement_ptr insert_assignment_statement(
+a_statement_ptr insert_assignment_statement(
                                         an_expr_node_ptr       lvalue_expr,
                                         an_expr_operator_kind  op,
                                         an_expr_node_ptr       rvalue_expr,

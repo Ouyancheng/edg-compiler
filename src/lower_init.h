@@ -52,6 +52,12 @@ extern an_expr_node_ptr make_runtime_rout_call(char             *name,
                                                a_type_ptr       return_type,
                                                an_expr_node_ptr arg_expr_list);
 
+extern a_statement_ptr insert_assignment_statement(
+                                       an_expr_node_ptr       lvalue_expr,
+                                       an_expr_operator_kind  op,
+                                       an_expr_node_ptr       rvalue_expr,
+                                       an_insert_location_ptr insert_location);
+
 extern a_statement_ptr insert_var_assignment_statement(
                                        a_variable_ptr         lvalue_var,
                                        an_expr_operator_kind  op,
