@@ -44,7 +44,7 @@ static a_boolean conversion_to_class_possible(
                                   a_candidate_function_ptr *ambiguity_list);
 
 
-static clear_conv_descr(a_conv_descr_ptr conv)
+static void clear_conv_descr(a_conv_descr_ptr conv)
 /*
 Clear a conversion description.
 */
