@@ -888,12 +888,11 @@ initializations of static data members of templates.  Such guard code is
 necessary if template instantiation resolution is done by instantiating
 everything and then having the (specially-modified) linker discard
 duplicate copies of instantiated routines.  Static data members are
-a particular problem: because the initialization/destruction code is
-generated in startup/termination routines, and is undifferentiated
-from other code in those routines, a flag is needed to indicate that
-initialization or destruction has already been done.  After any one
-instance of the code does initialization or destruction, all other
-instances will do nothing.
+a particular problem: because the initialization code is generated
+in startup routines, and is undifferentiated from other code in
+those routines, a flag is needed to indicate that initialization
+has already been done.  After any one instance of the code does
+initialization, all other instances will do nothing.
 */
 #ifndef TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
 #define TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE FALSE
