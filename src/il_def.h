@@ -6657,7 +6657,7 @@ typedef struct a_hidden_name {
 			   defeated by using global qualification. */
   a_bit_field	elaborated_type_specifier_needed:1;
 			/* TRUE if entity identifies a tagged type but its
-			   name redeclared by nontype declaration in the
+			   name is redeclared by a nontype declaration in the
 			   current scope, so that the hiding can be defeated
 			   by using an elaborated type specifier. */
   bitfield_to_avoid_codecenter_warnings()
