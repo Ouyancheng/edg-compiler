@@ -1754,12 +1754,10 @@ is non-NULL, in which case that is the function scope.
             if (param_var->storage_class == (a_storage_class)sc_register) {
               dump_storage_class(param_var->storage_class);
             }  /* if */
-            /* Watch out for unnamed parameters in C++. */
+            /* Since we're generating C, even unnamed parameters in C++ get
+               names. */
             dump_general_declaration_using_type(param_var->type,
-                                                (has_name(param_var) ||
-                                                 param_var->is_this_parameter)?
-                                                   &param_var->source_corresp :
-                                                   NULL,
+                                                &param_var->source_corresp,
                                                 param_var, NO_TEMP);
             param_var = param_var->next;
           } else
