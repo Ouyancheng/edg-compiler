@@ -1163,10 +1163,15 @@ may have extra operand at end).
     some_error_in_curr_directive = TRUE;
     goto return_point;
   }  /* if */
-  /* For the cpp-output form, ignore the third operand if it is present
-     (it is "1" for entry into an include file, "2" for the first directive
-     after exit from an include file, and missing otherwise). */
-  if (cpp_output_form && curr_token == tok_digit_sequence) (void)get_token();
+  /* For the cpp-output form, ignore the trailing flag operands if they are
+     present.  Multiple flags separated by spaces may be present.  The
+     flag values are "1" for entry into an include file, "2" for the first
+     directive after exit from an include file, "3" for text from a system
+     include, and "4" for text that should be treated as inside an extern
+     "C" block (but, as mentioned above, the values are ignored). */
+  if (cpp_output_form) {
+    while (curr_token == tok_digit_sequence) (void)get_token();
+  }  /* if */
   /* If there was an error in the line number, do not update the position
      information. */
   if (bad_line_number) goto return_point;
