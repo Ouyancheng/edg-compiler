@@ -6333,6 +6333,13 @@ Scan the body of a class definition, including the base classes list.
             if (C_dialect != C_dialect_cplusplus) {
               error(ec_function_type_not_allowed);
               local_type = error_type();
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+              if (declarator_ssep != NULL) {
+                a_src_seq_sublist_ptr  sublist = NULL;
+                remove_from_source_sequence_list(declarator_ssep, &sublist);
+              }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+              discard_curr_construct_pragmas();
             } else {
               /* Member or friend function. */
               a_boolean      suppress_pure_specifier_error = FALSE;
