@@ -493,6 +493,11 @@ do
 	 --old_line_commands | \
 	 --microsoft | \
 	 --no_microsoft | \
+	 --microsoft_16 | \
+	 --far_data_pointers | \
+	 --near_data_pointers | \
+	 --far_code_pointers | \
+	 --near_code_pointers | \
 	 --long_lifetime_temps | \
 	 --short_lifetime_temps | \
          --wchar_t_keyword | \
@@ -515,6 +520,8 @@ do
          --no_bool | \
          --array_new_and_delete | \
          --no_array_new_and_delete | \
+         --namespaces | \
+         --no_namespaces | \
          --force_vtbl)
       feoptions=$feoptions" $1"
 #     Options that require additional processing
