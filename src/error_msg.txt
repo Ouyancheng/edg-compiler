@@ -919,6 +919,7 @@ ec_exp_gt_not_shift_right;;"space required between adjacent \">\" delimiters of 
 ec_bad_multibyte_char_locale;;"could not set locale %sq to allow processing of multibyte characters"
 ec_bad_multibyte_char;;"invalid multibyte character sequence"
 ec_bad_type_from_instantiation;;"template instantiation resulted in unexpected function type of %t1 (the meaning of a name may have changed since the template declaration -- the type of the template is %t2)"
+ec_guiding_decl_ambiguity;;"ambiguous guiding declaration -- more than one function template %no matches type %t"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
