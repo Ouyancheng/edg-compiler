@@ -4595,7 +4595,11 @@ Do IL lowering of the indicated variable and everything under it.
          one is not allowed to, so change "register" to "auto". */
       variable->storage_class = (a_storage_class)sc_auto;
     } else if (variable->storage_class == (a_storage_class)sc_unspecified &&
-               variable->init_kind == (an_init_kind)initk_none) {
+               variable->init_kind == (an_init_kind)initk_none
+#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE
+               && !variable->promoted_local_static
+#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE */
+                                                  ) {
       /* In C++, there are no tentative definitions.  Use initk_zero to
          indicate that this variable is "really" defined. */
       variable->init_kind = (an_init_kind)initk_zero;
@@ -8207,8 +8211,7 @@ Lower an stmk_return statement.
     make_block = FALSE;
     lower_dynamic_init(dip, &ipd,
                        (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
-                       (a_constructor_init_ptr)NULL,
-                       /*is_full_expr=*/TRUE, /*is_throw_expr=*/FALSE,
+                       (a_constructor_init_ptr)NULL, LDIO_FULL_EXPR,
                        (a_variable_ptr *)NULL,
                        &insert_location, (a_boolean *)NULL);
   }  /* if */
@@ -8468,8 +8471,7 @@ handled).
     set_var_init_pos_descr(csp->dynamic_init->variable, &ipd);
     lower_dynamic_init(csp->dynamic_init, &ipd,
                        (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
-                       (a_constructor_init_ptr)NULL,
-                       /*is_full_expr=*/TRUE, /*is_throw_expr=*/FALSE,
+                       (a_constructor_init_ptr)NULL, LDIO_FULL_EXPR,
                        (a_variable_ptr *)NULL,
                        &insert_location, (a_boolean *)NULL);
     /* Lower the value expression. */
@@ -9615,6 +9617,7 @@ scope that is part of the indicated routine) to the file scope.
       }  /* if */
 #endif /* LOWER_EXTERN_INLINE */
       add_to_variables_list(variable, DEPTH_OF_FILE_SCOPE);
+      variable->promoted_local_static = TRUE;
       /* If the variable has an associated local-static-variable-init
          entry, transfer any initialization to the variable itself. */
       if (variable->init_kind == (an_init_kind)initk_function_local) {
@@ -9654,6 +9657,15 @@ scope that is part of the indicated routine) to the file scope.
             unexpected_condition_str(
          "promote_static_variables_out_of_function: bad static var init_kind");
         }  /* switch */
+#if LOWER_EXTERN_INLINE
+      } else if (variable->init_kind == (an_init_kind)initk_static &&
+                 variable->storage_class == (a_storage_class)sc_unspecified) {
+        /* A static variable of an extern inline function initialized to a
+           constant.  Rewrite the initialization as executable code so that
+           the variable can be a tentative definition shared among
+           compilations (that is, it cannot be statically initialized). */
+        lower_constant_init_of_static_in_extern_inline(variable, scope);
+#endif /* LOWER_EXTERN_INLINE */
       }  /* if */
     }  /* for */
     /* Clear the variables list now that all variables have been promoted. */

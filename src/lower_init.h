@@ -77,13 +77,33 @@ extern void init_conditional_flag_var(
                              a_destructible_entity_descr_ptr dedp,
                              an_insert_location              *insert_location);
 
+extern void lower_constant_init_of_static_in_extern_inline(
+                                                    a_variable_ptr variable,
+                                                    a_scope_ptr    scope);
+
+/*
+Options for calls of lower_dynamic_init:
+*/
+typedef int a_lower_dynamic_init_options_set;
+#define LDIO_NONE 0		/* No options. */
+#define LDIO_FULL_EXPR 0x1	/* The initialization being lowered is
+				   a full expression. */
+#define LDIO_THROW 0x2		/* The initialization being lowered is
+				   the top-level initialization for a throw. */
+#if LOWER_EXTERN_INLINE
+#define LDIO_EXTERN_INLINE_LOCAL_STATIC 0x4
+				/* The variable being initialized is a local
+				   static promoted out of an extern inline
+				   function. */
+#endif /* LOWER_EXTERN_INLINE */
+
 extern void lower_dynamic_init(a_dynamic_init_ptr     dip,
                                an_init_pos_descr_ptr  ipdp,
                                an_expr_node_ptr       implied_arg_list,
                                an_expr_node_ptr       end_implied_arg_list,
                                a_constructor_init_ptr ctor_init,
-                               a_boolean              is_full_expr,
-                               a_boolean              is_throw_expr,
+                               a_lower_dynamic_init_options_set
+                                                      options,
                                a_variable_ptr         *partial_aggr_cond_var,
                                an_insert_location_ptr insert_location,
                                a_boolean              *keep_dynamic_init);

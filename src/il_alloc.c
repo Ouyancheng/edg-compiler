@@ -1196,6 +1196,7 @@ to it.
 #endif /* MINIMAL INLINING */
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE
   vp->promoted_local_static_init  = FALSE;
+  vp->promoted_local_static       = FALSE;
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE */
 #endif /* DO_IL_LOWERING */
 #if DECL_MODIFIERS_IN_USE

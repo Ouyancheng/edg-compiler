@@ -3761,8 +3761,11 @@ typedef struct a_variable {
   a_bit_field	promoted_local_static_init:1;
 			/* TRUE if this variable is a local static variable
 			   with an attached a_local_static_initialization
-			   entry, which has been promoted out of its
+			   entry that has been promoted out of its
 			   function. */
+  a_bit_field	promoted_local_static:1;
+			/* TRUE if this variable is a local static variable
+			   that has been promoted out of its function. */
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE */
 #endif /* DO_IL_LOWERING */
 #if DECL_MODIFIERS_IN_USE

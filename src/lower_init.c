@@ -2310,9 +2310,7 @@ of partial_aggr_cond_var.
     /* Normal initialization. */
     lower_dynamic_init(con_ptr->variant.dynamic_init, ipdp,
                        (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
-                       ctor_init, /*is_full_expr=*/TRUE,
-                       /*is_throw_expr=*/FALSE,
-                       partial_aggr_cond_var,
+                       ctor_init, LDIO_FULL_EXPR, partial_aggr_cond_var,
                        insert_location, (a_boolean *)NULL);
   }  /* if */
   /* Overwrite the constant with a harmless constant of the right kind.
@@ -3277,8 +3275,8 @@ void lower_dynamic_init(a_dynamic_init_ptr     dip,
                         an_expr_node_ptr       implied_arg_list,
                         an_expr_node_ptr       end_implied_arg_list,
                         a_constructor_init_ptr ctor_init,
-                        a_boolean              is_full_expr,
-                        a_boolean              is_throw_expr,
+                        a_lower_dynamic_init_options_set
+                                               options,
                         a_variable_ptr         *partial_aggr_cond_var,
                         an_insert_location_ptr insert_location,
                         a_boolean              *keep_dynamic_init)
@@ -3298,10 +3296,14 @@ If the dynamic initialization is part of a constructor initializer,
 ctor_init points to the constructor-init entry.
 
 If the dynamic initialization is a full expression (e.g., in an
-stmk_init), is_full_expr is TRUE.
+stmk_init), (options & LDIO_FULL_EXPR) is set.
 
 If the dynamic initialization is the top-level one for a throw,
-is_throw_expr is TRUE.
+(options & LDIO_THROW) is set.
+
+if the dynamic initialization is for a local static variable promoted
+out of an extern inline function, (options & LDIO_EXTERN_INLINE_LOCAL_STATIC)
+is set.
 
 *partial_aggr_cond_var will be set to point to the conditional flag variable
 that controls cleanup for a partially-initialized aggregate, when one is
@@ -3381,6 +3383,11 @@ in this routine must be FALSE in that case.
           variable may already have been promoted out. */
        || variable->promoted_local_static_init
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE */
+#if LOWER_EXTERN_INLINE
+       /* See if this is a local static variable promoted out of an
+          extern inline function. */
+       || (options & LDIO_EXTERN_INLINE_LOCAL_STATIC)
+#endif /* LOWER_EXTERN_INLINE */
                                               )) {
     /* The variable is a local static. */
     /* Add a first-time flag and a test. */
@@ -3391,6 +3398,10 @@ in this routine must be FALSE in that case.
     if (variable->init_kind == (an_init_kind)initk_function_local) {
       lsvip = find_local_static_variable_init(variable, curr_context->scope);
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE
+#if LOWER_EXTERN_INLINE
+    } else if (options & LDIO_EXTERN_INLINE_LOCAL_STATIC) {
+     /* Don't look for the local static variable initialization entry. */
+#endif /* LOWER_EXTERN_INLINE */
     } else {
       /* When local static variables are promoted, the local static variable
          initialization entries are saved on a list. */
@@ -3568,7 +3579,14 @@ in this routine must be FALSE in that case.
       /* Don't allow this optimization if the caller doesn't permit the
          option of keeping the dynamic init entry, e.g., in a condition
          declaration. */
-      if (variable != NULL && (static_var_init || keep_dynamic_init != NULL)) {
+      if (variable != NULL && (static_var_init || keep_dynamic_init != NULL)
+#if LOWER_EXTERN_INLINE
+        /* Also don't do it for a local static variable promoted out of an
+           extern inline function, since we want that to be a tentative
+           definition (i.e., uninitialized). */
+          && !(options & LDIO_EXTERN_INLINE_LOCAL_STATIC)
+#endif /* LOWER_EXTERN_INLINE */
+                                                         ) {
         simple_constant_init = TRUE;
         simple_constant = dip->variant.constant;
         break;
@@ -3581,7 +3599,7 @@ in this routine must be FALSE in that case.
       source_node = dip->variant.expression;
       /* It's an lvalue if the thing being initialized is a reference. */
       expr_is_lvalue = is_reference_type(type_from_init_pos_descr(ipdp));
-      if (is_full_expr && init_expr_lifetime == NULL) {
+      if ((options & LDIO_FULL_EXPR) && init_expr_lifetime == NULL) {
         lower_full_expr(source_node, expr_is_lvalue, (a_statement_ptr)NULL);
       } else {
         /* Normal case: not a full expression. */
@@ -3653,7 +3671,7 @@ do_assignment:;
         /* Lower any added arguments. */
         lower_arg_expr_list(dip->variant.constructor.args, ctor_routine_type,
                             param);
-        if (exceptions_enabled && is_throw_expr &&
+        if (exceptions_enabled && (options & LDIO_THROW) &&
             dip->variant.constructor.is_implicit_copy_for_copy_initialization){
           /* This is the top-level copy of a throw, and it does the implied
              copy constructor call to copy the object to the runtime.  This is
@@ -3803,7 +3821,11 @@ do_assignment:;
          are aggregates: if the initialization was partial, we have to be
          sure the rest of the aggregate is initialized to zero.
          So we change the initialization kind to initialization to zero. */
-      if ((static_var_init && !variable->source_corresp.is_local_to_function)||
+      if ((static_var_init && !variable->source_corresp.is_local_to_function
+#if LOWER_EXTERN_INLINE
+           && !(options & LDIO_EXTERN_INLINE_LOCAL_STATIC)
+#endif /* LOWER_EXTERN_INLINE */
+                                                          ) ||
           variable->is_partially_initialized) {
         variable->init_kind = (an_init_kind)initk_zero;
       } else {
@@ -3829,6 +3851,46 @@ do_assignment:;
   }  /* if */
 }  /* lower_dynamic_init */
 
+#if LOWER_EXTERN_INLINE
+
+void lower_constant_init_of_static_in_extern_inline(a_variable_ptr variable,
+                                                    a_scope_ptr    scope)
+/*
+The given variable is a local static variable of an extern inline function
+that is initialized to a constant.  Rewrite its initialization as 
+executable code so that the variable (already promoted to the file scope
+and made external) can be a tentative definition (i.e., uninitialized).
+*/
+{
+  an_insert_location insert_location;
+  an_init_pos_descr  ipd;
+  a_dynamic_init     dyn_init;
+
+  check_assertion(variable->storage_class == (a_storage_class)sc_unspecified &&
+                  variable->init_kind == (an_init_kind)initk_static &&
+                  is_integral_type(variable->type));
+  /* The WP [stmt.dcl] paragraph 3 says "A local object with static
+     storage duration initialized with an integral constant-
+     expression is initialized before its block is first entered."
+     So we move the initialization to the start of the block in which
+     the variable is declared. */
+  set_block_start_insert_location(scope->assoc_block, &insert_location);
+  set_var_init_pos_descr(variable, &ipd);
+  /* Make up a fake dynamic initialization entry and lower it. */
+  clear_dynamic_init(&dyn_init, (a_dynamic_init_kind)dik_constant);
+  dyn_init.variable = variable;
+  dyn_init.variant.constant = variable->initializer.constant;
+  variable->init_kind = (an_init_kind)initk_dynamic;
+  variable->initializer.dynamic = &dyn_init;
+  lower_dynamic_init(&dyn_init, &ipd,
+                     (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
+                     (a_constructor_init_ptr)NULL,
+                     LDIO_FULL_EXPR | LDIO_EXTERN_INLINE_LOCAL_STATIC,
+                     (a_variable_ptr *)NULL,
+                     &insert_location, (a_boolean *)NULL);
+}  /* lower_constant_init_of_static_in_extern_inline */
+
+#endif /* LOWER_EXTERN_INLINE */
 
 static void lower_destructor_dynamic_init(
                                    a_dynamic_init_ptr     dip,
@@ -4319,8 +4381,8 @@ The subtree of the node has not yet been lowered.
       /* Generate code for the initialization. */
       lower_dynamic_init(dip, &ipd,
                          (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
-                         (a_constructor_init_ptr)NULL, /*is_full_expr=*/FALSE,
-                         /*is_throw_expr=*/FALSE, (a_variable_ptr *)NULL,
+                         (a_constructor_init_ptr)NULL, LDIO_NONE,
+                         (a_variable_ptr *)NULL,
                          &insert_location, (a_boolean *)NULL);
       /* Now that the entity is initialized, turn off the freeing on
          exception. */
@@ -4571,8 +4633,8 @@ Do IL lowering of an enk_temp_init expression node.
   set_expr_insert_location(expr, &insert_location);
   lower_dynamic_init(dip, &ipd,
                      (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
-                     (a_constructor_init_ptr)NULL, /*is_full_expr=*/FALSE,
-                     /*is_throw_expr=*/FALSE, (a_variable_ptr *)NULL,
+                     (a_constructor_init_ptr)NULL, LDIO_NONE,
+                     (a_variable_ptr *)NULL,
                      &insert_location, (a_boolean *)NULL);
   /* Optimization -- if the initialization is done by a constructor,
      and the enk_temp_init returns the address of the temporary,
@@ -4771,8 +4833,8 @@ Generate code for a stmk_init (dynamic initialization) statement.
     }  /* if */
     lower_dynamic_init(dip, &ipd,
                        (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
-                       (a_constructor_init_ptr)NULL, /*is_full_expr=*/TRUE,
-                       /*is_throw_expr=*/FALSE, &partial_aggr_cond_var,
+                       (a_constructor_init_ptr)NULL, LDIO_FULL_EXPR,
+                       &partial_aggr_cond_var,
                        &insert_location, &keep_dynamic_init);
     if (!keep_dynamic_init) {
       /* Delete the stmk_init statement. */
@@ -4821,8 +4883,8 @@ init_stmt is the stmk_init statement.
     set_insert_location(init_stmt, &insert_location);
     lower_dynamic_init(vp->initializer.dynamic, &ipd,
                        (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
-                       (a_constructor_init_ptr)NULL, /*is_full_expr=*/TRUE,
-                       /*is_throw_expr=*/FALSE, (a_variable_ptr *)NULL,
+                       (a_constructor_init_ptr)NULL, LDIO_FULL_EXPR,
+                       (a_variable_ptr *)NULL,
                        &insert_location, &keep_dynamic_init);
     if (!keep_dynamic_init) {
       /* Delete the stmk_init statement. */
@@ -4964,8 +5026,7 @@ created are inserted at *insert_location, and *insert_location is updated.
   /* Generate the code to do the initialization. */
   lower_dynamic_init(dip, &ipd,
                      implied_arg_list, end_implied_arg_list, ctor_init,
-                     /*is_full_expr=*/TRUE, /*is_throw_expr=*/FALSE,
-                     (a_variable_ptr *)NULL,
+                     LDIO_FULL_EXPR, (a_variable_ptr *)NULL,
                      insert_location, (a_boolean *)NULL);
 }  /* lower_ctor_init */
 
@@ -6033,8 +6094,8 @@ Do lowering on the file-scope dynamic initializations list.
       set_var_init_pos_descr(dip->variable, &ipd);
       lower_dynamic_init(dip, &ipd,
                          (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
-                         (a_constructor_init_ptr)NULL, /*is_full_expr=*/TRUE,
-                         /*is_throw_expr=*/FALSE, &partial_aggr_cond_var,
+                         (a_constructor_init_ptr)NULL, LDIO_FULL_EXPR,
+                         &partial_aggr_cond_var,
                          eff_insert_location, (a_boolean *)NULL);
     }  /* for */
     if (exceptions_enabled) {
