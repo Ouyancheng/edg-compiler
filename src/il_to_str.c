@@ -184,6 +184,27 @@ The output includes template arguments on template classes.
 }  /* form_unqualified_name */
 
 
+void form_namespace_qualifier(a_namespace_ptr                       nsp,
+                              an_il_to_str_output_control_block_ptr octl)
+/*
+Output a namespace qualifier (e.g., "N::") that identifies the indicated
+namespace.  Do the output in the way described by octl.  Note that the
+output_name routine in the control block (if there is one) will not be used
+to output any part of the the name.  Called only for C++.
+*/
+{
+  a_source_correspondence  *scp = &nsp->source_corresp;
+
+  if (!nsp->is_namespace_alias && scp->parent.namespace_ptr != NULL) {
+    /* Use recursion to handle nested namespaces. */
+    form_namespace_qualifier(scp->parent.namespace_ptr, octl);
+  }  /* if */
+  /* Do the last level. */
+  form_unqualified_name(scp, iek_namespace, octl);
+  octl->output_str("::");
+}  /* form_namespace_qualifier */
+
+
 void form_class_qualifier(a_type_ptr                            class_type,
                           an_il_to_str_output_control_block_ptr octl)
 /*
@@ -193,16 +214,22 @@ the output_name routine in the control block (if there is one) will not
 be used to output any part of the name.  Called only for C++.
 */
 {
+  a_source_correspondence  *scp = &class_type->source_corresp;
+
   /* Ignore anonymous union levels. */
-  for (; class_type->variant.class_struct_union.extra_info->
-                    anonymous_union_kind == (an_anonymous_union_kind)auk_field;
-       class_type = class_type->source_corresp.parent.class_type) {}
-  if (class_type->source_corresp.is_class_member) {
+  while (class_type->variant.class_struct_union.extra_info->
+                 anonymous_union_kind == (an_anonymous_union_kind)auk_field) {
+    class_type = scp->parent.class_type;
+    scp = &class_type->source_corresp;
+  }  /* while */
+  if (scp->is_class_member) {
     /* Use recursion to handle multiple levels of nesting. */
-    form_class_qualifier(class_type->source_corresp.parent.class_type, octl);
+    form_class_qualifier(scp->parent.class_type, octl);
+  } else if (scp->parent.namespace_ptr != NULL) {
+    form_namespace_qualifier(scp->parent.namespace_ptr, octl);
   }  /* if */
   /* Do the last level. */
-  form_unqualified_name(&class_type->source_corresp, iek_type, octl);
+  form_unqualified_name(scp, iek_type, octl);
   octl->output_str("::");
 }  /* form_class_qualifier */
 
@@ -226,10 +253,14 @@ output in the way described by octl.
     /* This code isn't suitable for generating compilable output. */
     check_assertion_str(!octl->gen_compilable_code,
                         "form_name: doesn't handle compilable output");
-    /* If the name is a member of a class in C++, output the class
+    /* If the name is a member of a class or namespace in C++, output the
        qualifier. */
-    if (il_header.source_language == sl_Cplusplus && scp->is_class_member) {
-      form_class_qualifier(scp->parent.class_type, octl);
+    if (il_header.source_language == sl_Cplusplus) {
+      if (scp->is_class_member) {
+        form_class_qualifier(scp->parent.class_type, octl);
+      } else if (scp->parent.namespace_ptr != NULL) {
+        form_namespace_qualifier(scp->parent.namespace_ptr, octl);
+      }  /* if */
     }  /* if */
     /* Output the base name. */
     form_unqualified_name(scp, kind, octl);

@@ -107,6 +107,10 @@ extern void clear_il_to_str_output_control_block(
 extern void form_template_args(a_template_arg_ptr                    tap,
                                an_il_to_str_output_control_block_ptr octl);
 
+extern void form_namespace_qualifier(
+                               a_namespace_ptr                       nsp,
+                               an_il_to_str_output_control_block_ptr octl);
+
 extern void form_class_qualifier(
                           a_type_ptr                            class_type,
                           an_il_to_str_output_control_block_ptr octl);
