@@ -2566,7 +2566,7 @@ It is assumed that the caller will surround the output with parentheses.
       write_tok_ch('(');
       dump_cast_to_pointer_to(unqual_underlying_type);
     }  /* if */
-    dump_expression(operand_1);
+    dump_expr(operand_1, mutable_case);
     if (mutable_case) write_tok_ch(')');
     write_tok_str("->");
   } else {
