@@ -451,7 +451,7 @@ sets the flags accordingly.
         if (old_value == BCS_NO_FLAGS) {
           a_base_class_spec_flag_set	flags;
           /* Mask of bits that should not be tested. */
-          flags = bcsp->flags & ~BCS_FLAGS;
+          flags = bcsp->flags & BCS_FLAGS;
           /* If any of the flag bits are set, simply use the flags in the
 	     base class specifier; otherwise set the flags that indicates
 	     that this is a normal base class. */
