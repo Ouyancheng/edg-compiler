@@ -244,7 +244,8 @@ point to that storage.
     allocation->block = NULL;
   } else {
     /* Parcel out a normal block for smaller VLAs. */
-    if (NORMAL_BLOCK_SIZE - curr_vla_pool->normal_offset < n_bytes - 1) {
+    if (curr_vla_pool->normal_block == NULL ||
+        NORMAL_BLOCK_SIZE - curr_vla_pool->normal_offset < n_bytes - 1) {
       /* The currently active normal block does not have sufficient storage
          for the new VLA variable: Allocate a new block or reuse the spare
          if one is available. */
