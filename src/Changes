@@ -1,5 +1,12 @@
 Version 2.46
 
+2/1/01   Spurious conversion errors in some configurations
+
+When INTEGER_VALUE_REPR_IS_A_HOST_INTEGER was configured FALSE the front end
+could sometimes issue an error when converting a very large integer constant
+to a floating point value, even though in fact it could represent the very
+large value internally.  This is now fixed.
+
 1/31/01  Missing default member functions in prototype instantiations
 
 The front end used to omit the generation of default member functions in

@@ -337,7 +337,6 @@ in *new_constant, with type as indicated therein.  Return *err_code and
   if (int_constant_is_signed(old_constant)) {
     /* The source is a signed integer value. */
     old_value = value_of_integer_constant(old_constant, &err);
-    accum_err |= err;
     if (!err) {
       fp_host_large_integer_to_float(float_kind, old_value, float_value, &err);
     }  /* if */
@@ -345,7 +344,6 @@ in *new_constant, with type as indicated therein.  Return *err_code and
     /* The source is an unsigned integer value. */
     unsigned_old_value = unsigned_value_of_integer_constant(old_constant,
                                                             &err);
-    accum_err |= err;
     if (!err) {
       fp_host_large_unsigned_to_float(float_kind, unsigned_old_value, 
                                       float_value, &err);
@@ -359,6 +357,7 @@ in *new_constant, with type as indicated therein.  Return *err_code and
     fp_string_to_float(float_kind, str, float_value, &err);
   }  /* if */
 #endif /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+  accum_err |= err;
 #if C99_IL_EXTENSIONS_SUPPORTED
 conversion_done:;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
