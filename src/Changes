@@ -1,5 +1,15 @@
 Version 2.44
 
+12/13/99 Extra position information for switch cases
+
+When EXTRA_SOURCE_POSITIONS_IN_IL is TRUE, the front end now maintains for
+each switch clause a list of IL entries (type a_switch_case_entry) describing
+the positions of the "case" and "default" keywords and the positions of the
+associated colons.  For nondefault cases, a pointer to the constant label is
+also recorded.  Unlike the list of constants in a_switch clause, these entries
+are maintained in source order and useless "case" labels appearing in a
+default clause are also recorded.
+
 12/13/99 On Windows, when using a PCH file, open with read access only
 
 The routine used on Windows to open a precompiled header file has

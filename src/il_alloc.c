@@ -69,6 +69,9 @@ static unsigned long
 		num_eh_prologue_supplements_allocated,
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
 		num_switch_clauses_allocated,
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+		num_switch_case_entries_allocated,
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 		num_handlers_allocated,
 		num_try_supplements_allocated,
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -1903,6 +1906,9 @@ to it.
 #endif /* DEBUG */
   scp->next                 = NULL;
   scp->constant_list        = NULL;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  scp->case_positions       = NULL;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   scp->statements           = NULL;
   scp->implied_break_at_end = FALSE;
   clear_stmt_source_position(scp->break_position);
@@ -1912,6 +1918,29 @@ to it.
   clear_stmt_source_position(scp->default_position);
   return scp;
 }  /* alloc_switch_clause */
+
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+
+a_switch_case_entry_ptr alloc_switch_case_entry(void)
+/*
+Allocate a storage to describe the position of switch cases, clear it to
+default values, and return a pointer to it.
+*/
+{
+  a_switch_case_entry_ptr  info;
+
+  info = (a_switch_case_entry_ptr)alloc_cil(sizeof(a_switch_clause));
+  info->next = NULL;
+  info->constant = NULL;
+  clear_stmt_source_position(info->keyword_position)
+  clear_stmt_source_position(info->colon_position)
+#if DEBUG
+  num_switch_case_entries_allocated++;
+#endif /* DEBUG */
+  return info;
+}  /* alloc_switch_case_entry */
+
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
 #if !ABI_CHANGES_FOR_RTTI
 
@@ -2783,6 +2812,10 @@ Display and return the amount of space used for various IL tables.
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
   db_space_used("switch clause",
                 num_switch_clauses_allocated, a_switch_clause);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  db_space_used("switch case entry",
+                num_switch_case_entries_allocated, a_switch_case_entry);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   db_space_used("handler", num_handlers_allocated, a_handler);
   db_space_used("try supplement", num_try_supplements_allocated,
                 a_try_supplement);
@@ -2974,6 +3007,9 @@ in il_init.)
       pch_saved_var_array_elem(num_source_files_allocated),
       pch_saved_var_array_elem(num_statements_allocated),
       pch_saved_var_array_elem(num_switch_clauses_allocated),
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      pch_saved_var_array_elem(num_switch_case_entries_allocated),
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       pch_saved_var_array_elem(num_template_args_allocated),
       pch_saved_var_array_elem(num_template_param_type_supplements_allocated),
       pch_saved_var_array_elem(num_throw_supplements_allocated),
@@ -3070,6 +3106,9 @@ of the front end.
   num_eh_prologue_supplements_allocated  = 0;
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
   num_switch_clauses_allocated           = 0;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  num_switch_case_entries_allocated      = 0;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   num_handlers_allocated                 = 0;
   num_try_supplements_allocated          = 0;
 #if MICROSOFT_EXTENSIONS_ALLOWED

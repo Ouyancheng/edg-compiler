@@ -4443,9 +4443,43 @@ See also 3.6.6.4.
   db_exit();
 }  /* return_statement */
 
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+
+static void record_switch_case_entry(a_switch_clause_ptr  clause,
+                                     a_constant_ptr       constant,
+                                     a_source_position    *keyword_position,
+                                     a_source_position    *colon_position)
+/*
+Record the details of a switch case entry in a switch clause.  constant is the
+constant selected by the case (NULL for the default case).  keyword_position
+is the position of the "case" or "default" position, and colon_position is the
+position of the colon.
+*/
+{
+  a_switch_case_entry_ptr  pos_info = alloc_switch_case_entry();
+
+  pos_info->constant = constant;
+  pos_info->keyword_position = *keyword_position;
+  pos_info->colon_position = *colon_position;
+  if (clause->case_positions == NULL) {
+    /* First (perhaps only) case in this clause. */
+    clause->case_positions = pos_info;
+  } else {
+    /* Append at the end of the list. */
+    a_switch_case_entry_ptr  last = clause->case_positions;
+    while (last->next != NULL) { last = last->next; }
+    last->next = pos_info;
+  }  /* if */
+}  /* record_switch_case_entry */
+
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
 static void add_switch_clause(a_struct_stmt_stack_entry_ptr sssep,
                               a_constant_ptr                constant_ptr,
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+                              a_source_position             *keyword_position,
+                              a_source_position             *colon_position,
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
                               a_source_position             *label_position)
 /*
 Begin a clause of the switch statement associated with the structured
@@ -4695,6 +4729,13 @@ label_position indicates the source position of the label.
       sssep->last_const_in_last_switch_clause = constant_ptr;
     }  /* if */
   }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  /* Record extra info about the position of the case and default labels.
+     Unlike the constants themselves, this information is recorded in the
+     order of source positions. */
+  record_switch_case_entry(scp, constant_ptr,
+                           keyword_position, colon_position);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   if (can_add_to_curr_clause) {
     /* For the case where the value could be added to the current clause, we
        have nothing further to do. */
@@ -4822,6 +4863,9 @@ Scan a case label definition.  The syntax is:
   a_constant                    constant;
   a_constant_ptr                constant_ptr = NULL;
   a_source_position             label_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position             case_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   db_enter(4, "case_label");
 
@@ -4839,6 +4883,9 @@ Scan a case label definition.  The syntax is:
 #if CHECKING
   if (curr_token != tok_case) internal_error("case_label: expected case");
 #endif /* CHECKING */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  case_position = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   (void)get_token();
   constant_ptr = NULL;
   label_position = pos_curr_token;
@@ -4871,7 +4918,11 @@ Scan a case label definition.  The syntax is:
   if (sssep != NULL) {
     if (constant_ptr != NULL) {
       /* Add the proper switch clause. */
-      add_switch_clause(sssep, constant_ptr, &label_position);
+      add_switch_clause(sssep, constant_ptr,
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+                        &case_position, &pos_curr_token,
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+                        &label_position);
     } else {
       /* Make code reachable if the switch is reachable for the error case. */
       start_stmt_clause(sssep);
@@ -4905,20 +4956,7 @@ Scan a default case label definition.  The syntax is:
   db_enter(4, "default_label");
 
   wrapup_decl_statement();
-  /* See if we are within a switch body by looking at the entries in
-     the structured statement stack. */
-  sssep = find_enclosing_struct_stmt(/*find_switch=*/TRUE,
-                                     /*find_loop=*/FALSE);
-  if (sssep != NULL) {
-    /* Found the proper enclosing switch statement. */
-    sssep->switch_has_default_clause = TRUE;
-    label_position = pos_curr_token;
-    add_switch_clause(sssep, (a_constant_ptr)NULL, &label_position);
-  }  else {
-    /* We are not inside a switch statement. */
-    error(ec_default_label_must_be_in_switch);
-    set_reachable(curr_reachability);
-  }  /* if */
+  label_position = pos_curr_token;
   /* Ignore the initial "default". */
 #if CHECKING
   if (curr_token != tok_default) {
@@ -4929,6 +4967,23 @@ Scan a default case label definition.  The syntax is:
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  /* See if we are within a switch body by looking at the entries in
+     the structured statement stack. */
+  sssep = find_enclosing_struct_stmt(/*find_switch=*/TRUE,
+                                     /*find_loop=*/FALSE);
+  if (sssep != NULL) {
+    /* Found the proper enclosing switch statement. */
+    sssep->switch_has_default_clause = TRUE;
+    add_switch_clause(sssep, (a_constant_ptr)NULL,
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+                      &label_position, &pos_curr_token,
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+                      &label_position);
+  }  else {
+    /* We are not inside a switch statement. */
+    error(ec_default_label_must_be_in_switch);
+    set_reachable(curr_reachability);
+  }  /* if */
   /* Check for and ignore the final colon. */
   (void)required_token(tok_colon, ec_exp_colon);
   db_exit();

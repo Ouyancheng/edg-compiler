@@ -444,6 +444,7 @@ typedef enum /*an_il_entry_kind*/ {
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   iek_decl_position_supplement,
 			/* a_decl_position_supplement */
+  iek_switch_case_entry,
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   iek_last		/* Marks the end of the list. */
 } an_il_entry_kind;
@@ -558,6 +559,7 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
 /* iek_decl_position_supplement */	"decl-position-supplement",
+/* iek_switch_case_entry */		"switch-case-entry",
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 /* iek_last */				"last"
 } /* il_entry_kind_names */
@@ -6217,6 +6219,27 @@ enum a_statement_kind_tag {
 typedef a_byte  a_statement_kind;
 
 #ifdef CIL
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+typedef struct a_switch_case_entry *a_switch_case_entry_ptr;
+typedef struct a_switch_case_entry {
+  /* Description of the positions of the "case" and "default" keyword(s) and
+     corresponding colon tokens in a switch statement. */
+  a_switch_case_entry_ptr
+		next;
+			/* Next case in this clause (NULL if none). */
+  a_constant_ptr
+		constant;
+			/* The case label constant with which the positions
+			   are associated (NULL for the default case). */
+  a_source_position
+		keyword_position;
+			/* The position of the "case" or "default" keyword. */
+  a_source_position
+		colon_position;
+			/* The position of the colon. */
+} a_switch_case_entry;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+
 typedef struct a_switch_clause *a_switch_clause_ptr;
 typedef struct a_switch_clause {
   /* Description of one clause of a switch statement.  This is allocated
@@ -6234,6 +6257,14 @@ typedef struct a_switch_clause {
 			   default clause.  The source positions in the
 			   constants indicate the source positions of the
 			   corresponding case labels. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_switch_case_entry_ptr
+		case_positions;
+			/* Extra information recording the position of the
+			   "case" keywords and the colons for each constant
+			   in constant_list (but in source position order).
+			   The "default" case is also recorded. */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_statement_ptr
 		statements;
 			/* The dependent statement sequence.  If

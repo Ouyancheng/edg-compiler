@@ -1221,9 +1221,23 @@ do_set_proper_definition_needed_flag:
         a_switch_clause_ptr ptr = (a_switch_clause_ptr)entry_ptr;
         remap_next_ptr(ptr->next, a_switch_clause_ptr, iek_switch_clause);
         walk_list(ptr->constant_list, a_constant_ptr, iek_constant);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        walk_list(ptr->case_positions, a_switch_case_entry_ptr,
+                  iek_switch_case_entry);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         walk_list(ptr->statements, a_statement_ptr, iek_statement);
       }
       break;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    case iek_switch_case_entry:
+      {
+        a_switch_case_entry_ptr ptr = (a_switch_case_entry_ptr)entry_ptr;
+        remap_next_ptr(ptr->next, a_switch_case_entry_ptr,
+                       iek_switch_case_entry);
+        walk_ptr(ptr->constant, a_constant_ptr, iek_constant);
+      }
+      break;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     case iek_handler:
       {
         a_handler_ptr ptr = (a_handler_ptr)entry_ptr;
