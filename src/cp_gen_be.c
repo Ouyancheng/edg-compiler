@@ -1871,11 +1871,13 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
     } else if (scp->parent.namespace_ptr != NULL) {
       /* The entity is a member of a namespace. */
       a_namespace_ptr nsp = scp->parent.namespace_ptr;
-      if (!force_qualified_name && !scp->qualification_needed &&
+      if (!force_qualified_name &&
+          (!scp->qualification_needed || (options & GN_DECLARATION)) &&
           (scp->visible_as_unqualified_name ||
            scope_is_in_name_context_stack(nsp->variant.assoc_scope))) {
         /* A qualified name is not needed, because we're inside a name context
-           for the namespace and the name is not hidden. */
+           for the namespace and the name is either not hidden or that of the
+           declarator itself. */
       } else if (msvc_is_generated_code_target &&
                  (options & GN_BOUND_MEMBER) && (options & GN_QUALIFIER)) {
         /* Microsoft compilers do not accept namespace qualifiers after a
