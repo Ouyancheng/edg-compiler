@@ -1188,7 +1188,7 @@ are allocated in declaration order).
           if (class_type->kind == (a_type_kind)tk_union &&
               (lob->byte_offset > max_byte_offset ||
                (lob->byte_offset == max_byte_offset &&
-                lob->bit_offset > max_byte_offset))) {
+                lob->bit_offset > max_bit_offset))) {
             max_byte_offset = lob->byte_offset;
             max_bit_offset = lob->bit_offset;
           }  /* if */
