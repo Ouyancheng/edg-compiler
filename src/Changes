@@ -1,5 +1,10 @@
 Version 2.39
 
+1/25/98   More temporaries reused in IL lowering
+
+Temporaries needed for enk_temp_init nodes are now allocated as
+reusable temporaries when possible.  (See Changes entry of 12/30/97.)
+
 1/23/98   Internal error on static generated function in one-instantiation-
           per-object mode
 

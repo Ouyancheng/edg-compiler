@@ -5102,10 +5102,17 @@ Do IL lowering of an enk_temp_init expression node.
     temp_type = type_pointed_to(temp_type);
   }  /* if */
   /* Create a temporary variable.  Make it static if necessary. */
-  dip->variable = make_temporary_in_scope(temp_type,
-                                          (a_scope_ptr)NULL,
-                                          (a_boolean)
+  if (!expr->variant.init.static_temp && !long_lifetime_temps &&
+      dip->has_temporary_lifetime) {
+    /* Simple case; a temporary that lasts until the end of the full
+       expression will do. */
+    dip->variable = make_local_temporary(temp_type);
+  } else {
+    dip->variable = make_temporary_in_scope(temp_type,
+                                            (a_scope_ptr)NULL,
+                                            (a_boolean)
                                                expr->variant.init.static_temp);
+  }  /* if */
   /* Change the enk_temp_init to a reference to the value or address
      of the temporary. */
   if (result_is_addr) {
