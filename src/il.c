@@ -8084,6 +8084,7 @@ of compiler-generated function (e.g., a constructor).
        a non-NULL routine_fixup pointer is created for such functions. */
     if (instance_ptr != NULL && instance_ptr->routine_fixup != NULL) {
       microsoft_friend_function_fixup(instance_ptr->routine_fixup);
+      instance_ptr = NULL;
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* If the function is an instance of a function template, mark it
