@@ -3579,7 +3579,13 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
   /* Get the type pointed to and drop type qualifiers and typedefs. */
   dest_type_pointed_to = type_pointed_to(dest_type);
   unqual_dest_type_pointed_to = skip_typerefs(dest_type_pointed_to);
-  if (source_is_constant && is_null_pointer_constant(source_constant)) {
+  if (is_template_param_type(source_type)) {
+    /* A template parameter type might be a pointer type.
+       This has to be tested before the template null pointer case because
+       we don't want the pointer_normalization_needed flag set. */
+    okay = TRUE;
+  } else if (source_is_constant &&
+             is_or_might_be_null_pointer_constant(source_constant)) {
     /* A null pointer constant may be converted to a pointer to any type.
        ANSI C 3.3.9 (equality operators); ANSI C 3.3.15 (?: operator);
        ANSI C 3.3.16.1 (assignment); ARM 4.6 (pointer conversions).
@@ -3819,12 +3825,6 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
         std_conv->type_qualifiers_added = TRUE;
       }  /* if */
     }  /* if */
-  } else if (source_is_constant &&
-             source_constant->kind==(a_constant_repr_kind)ck_template_param) {
-    /* A template parameter constant might be a null pointer constant,
-       or it might be an address constant.  Either way, it might be
-       convertible to the destination pointer type. */
-    okay = TRUE;
   } else if ((C_dialect == C_dialect_pcc || SVR4_C_mode ||
              (C_mode() && microsoft_mode)) &&
 	     is_integral_or_enum(source_type) && !suppress_extensions) {
@@ -4095,16 +4095,16 @@ pointers to members).
         std_conv->type_qualifiers_added = qualifiers_added;
       }  /* if */
     }  /* if */
-  } else if (source_is_constant && is_null_pointer_constant(source_constant)) {
+  } else if (is_template_param_type(source_type)) {
+    /* A template parameter type might be a pointer-to-member type.
+       This has to be tested before the template null pointer case because
+       we don't want the pointer_normalization_needed flag set. */
+    okay = TRUE;
+  } else if (source_is_constant &&
+             is_or_might_be_null_pointer_constant(source_constant)) {
     /* 0 --> pointer-to-member. */
     okay = TRUE;
     std_conv->pointer_normalization_needed = TRUE;
-  } else if (source_is_constant &&
-             source_constant->kind==(a_constant_repr_kind)ck_template_param) {
-    /* A template parameter constant might be a null pointer constant,
-       or it might be a pointer-to-member constant.  Either way, it might be
-       convertible to the destination type. */
-    okay = TRUE;
   } else if (is_error(source_type)) {
     /* Error --> pointer to member is always allowed. */
     okay = TRUE;
