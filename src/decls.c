@@ -1914,6 +1914,7 @@ scope is that of a class definition.
       a_storage_class    dummy_storage_class;
       a_type_ptr         dummy_type_ptr;
       a_source_position  qualifier_pos;
+      a_boolean          qualifier_err = FALSE;
 
       copy_source_position(pos_curr_token, qualifier_pos);
       (void)decl_specifiers(DSI_COLLECT_TYPE_QUALIFIERS, &dso_flags,
@@ -1926,7 +1927,7 @@ scope is that of a class definition.
           (locator->variant.opname == (an_opname_kind)onk_new ||
            locator->variant.opname == (an_opname_kind)onk_delete)) {
         /* Operator new and delete can never be qualified. */
-        pos_error(ec_function_qualifier_not_allowed, &qualifier_pos);
+        qualifier_err = TRUE;
       } else if (member_function_parent_type == NULL ||
                  (!is_nonstatic_member_function &&
                   scope_stack[decl_scope_level].kind ==
@@ -1934,17 +1935,20 @@ scope is that of a class definition.
         /* It is illegal to specify "const" or "volatile" on any function
            other than a nonstatic member function (ARM 8.2.5).  We just
            issue a warning since it is harmless. */
-        pos_warning(ec_function_qualifier_not_allowed, &qualifier_pos);
+        qualifier_err = TRUE;
       } else if (is_constructor || is_destructor) {
         /* A qualifier appearing on a constructor or destructor is not
            allowed (ARM 9.3.1). */
-        pos_error(ec_function_qualifier_not_allowed, &qualifier_pos);
+        qualifier_err = TRUE;
         this_param_type = member_function_parent_type;
       } else {
         this_param_type =
                       make_qualified_type(member_function_parent_type,
 		                          dso_flags & DSO_CONST_QUALIFIED,
 		                          dso_flags & DSO_VOLATILE_QUALIFIED);
+      }  /* if */
+      if (qualifier_err) {
+        pos_error(ec_function_qualifier_not_allowed, &qualifier_pos);
       }  /* if */
     } else if (is_nonstatic_member_function) {
       /* This is a nonstatic member function declared within the definition
