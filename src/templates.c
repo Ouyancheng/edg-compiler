@@ -7232,12 +7232,12 @@ that follows.
   a_symbol_ptr		        sym;
   a_func_info_block             func_info;
   a_symbol_reference_kind       srk_flags = SRK_DECLARATION;
-  a_boolean                     is_definition;
   a_source_position             decl_start_pos, id_pos;
   a_boolean                     has_parenthesized_initializer;
   a_source_correspondence       *scp;
   a_routine_ptr                 rp;
   a_variable_ptr                vp;
+  a_boolean			is_definition;
 
   db_enter(3, "full_specialization");
   decl_start_pos = pos_curr_token;
@@ -7272,20 +7272,21 @@ that follows.
     if (!is_template_instance_class_symbol(sym)) {
       /* Not a template instance. */
       sym_error(ec_entity_cannot_be_specialized, sym);
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-    } else if (dso_flags & (DSO_DEFINES_SOMETHING | DSO_DECLARES_SOMETHING)) {
-      /* The specialization should be marked as an autonomous declaration. */
-      is_definition = ((dso_flags & DSO_DEFINES_SOMETHING) != 0);
-      set_autonomous_tag_decl_flag(type, is_definition);
+    } else {
       /* Make sure that this declaration has the correct number of
          "template <>" clauses. */
       check_template_nesting_depth(sym, &decl_start_pos, decl_state);
-      if (is_definition) {
-        type->variant.class_struct_union.is_specialized = TRUE;
-      } else {
-        (void)set_src_seq_secondary_decl_type((char *)type, type,
-                                              /*new_style_spec=*/TRUE);
-      }  /* if */
+      type->variant.class_struct_union.is_specialized = TRUE;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      { a_boolean	is_definition;
+        /* The specialization should be marked as an autonomous declaration. */
+        is_definition = ((dso_flags & DSO_DEFINES_SOMETHING) != 0);
+        set_autonomous_tag_decl_flag(type, is_definition);
+        if (!is_definition) {
+          (void)set_src_seq_secondary_decl_type((char *)type, type,
+                                                /*new_style_spec=*/TRUE);
+        }  /* if */
+      }
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     }  /* if */
   } else {
