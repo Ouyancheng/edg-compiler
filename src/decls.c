@@ -12491,8 +12491,10 @@ continue_with_declaration:
       set_err_pos_to_curr_token();
       if (has_initializer) {
         /* If the variable had already been declared previously, old_type
-           would be set. */
+           would be set, except for a static data member of a class.  The
+           is_class_member test is used to identify static data members. */
         a_boolean  decl_invisible_to_initializer =
+                      !symbol_ptr->is_class_member &&
                       ((microsoft_bugs || (gpp_mode && gnu_version < 30400)) &&
                        has_parenthesized_initializer && old_type == NULL);
         /* Advance past the "=". */
