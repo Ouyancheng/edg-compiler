@@ -922,6 +922,7 @@ extern void push_template_instantiation_scope(
 extern void pop_template_instantiation_scope(void);
 
 extern void finish_function_body_processing(a_scope_ptr scope,
+                                            a_boolean   after_copy,
                                             a_boolean   discard_function_body);
 /* End a name scope. */
 extern void pop_scope(void);

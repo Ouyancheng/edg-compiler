@@ -4341,43 +4341,52 @@ discarded right after they have been generated.
 
 
 void finish_function_body_processing(a_scope_ptr scope,
-                                     a_boolean   discard_function_body)
+                                     a_boolean   after_copy,
+                                     a_boolean   will_discard_function_body)
 /*
 Do final processing on the body of the function with the indicated scope.
 This includes IL lowering if appropriate.  This routine is called
-immediately after the body is scanned for functions in a primary
-translation unit, and after the body is copied over to the primary IL
-for functions in a secondary translation unit.  If discard_function_body
-is TRUE, the function body is thrown away.
+immediately after the body is scanned (after_copy == FALSE) and also
+after the body is copied over to the primary IL for functions in a
+secondary translation unit (after_copy == TRUE).  That is, for
+functions in a secondary translation unit it is called twice.
+If will_discard_function_body is TRUE, the function body will be
+thrown away by the caller.
 */
 {
   a_routine_ptr routine = scope->variant.routine.ptr;
 
+  /* Do not do lowering and related processing of functions in secondary
+     translation units until they are copied to the primary IL. */
+  if (is_primary_translation_unit || after_copy) {
 #if DO_IL_LOWERING
-  if (!discard_function_body &&
-      !scope_stack[depth_scope_stack].in_prototype_instantiation) {
-    /* Do IL lowering (change the C++ IL into C IL). */
+    if (!will_discard_function_body &&
+        !scope_stack[depth_scope_stack].in_prototype_instantiation) {
+      /* Do IL lowering (change the C++ IL into C IL). */
     lower_il_memory_region(routine->assoc_scope);
-  }  /* if */
-  if (il_lowering_needed()) {
-    /* If we're not supposed to pass object lifetime information to the
-       back end, unlink all object lifetimes from the IL tree. */
-    clean_up_all_object_lifetimes(scope);
-  }  /* if */
+    }  /* if */
+    if (il_lowering_needed()) {
+      /* If we're not supposed to pass object lifetime information to the
+         back end, unlink all object lifetimes from the IL tree. */
+      clean_up_all_object_lifetimes(scope);
+    }  /* if */
 #endif /* DO_IL_LOWERING */
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
-  if (!discard_function_body) {
-    /* If a function or block scope has local types or static variables,
-       make a special entry to record those orphan lists on the il_header
-       scope_orphaned_list_headers list so they can be found when
-       processing the file scope memory region.  Note that processing
-       for block scopes is done at the end of the function scope to give
-       IL lowering a chance to add variables and types in block scopes. */
-    add_scope_orphaned_il_lists(scope);
-  }  /* if */
+    if (!will_discard_function_body) {
+      /* If a function or block scope has local types or static variables,
+         make a special entry to record those orphan lists on the il_header
+         scope_orphaned_list_headers list so they can be found when
+         processing the file scope memory region.  Note that processing
+         for block scopes is done at the end of the function scope to give
+         IL lowering a chance to add variables and types in block scopes. */
+      add_scope_orphaned_il_lists(scope);
+    }  /* if */
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
-  /* Clear out the shareable constants table for the function scope. */
-  empty_func_shareable_constants_table();
+  }  /* if */
+  if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+    /* Clear out the shareable constants table for the function scope. */
+    empty_func_shareable_constants_table();
+  }  /* if */
 #if MAINTAIN_NEEDED_FLAGS
   { a_boolean is_needed = FALSE;
     /* Walk subtrees of local types and variables that have already been
@@ -4406,11 +4415,7 @@ is TRUE, the function body is thrown away.
     }  /* if */
   }
 #endif /* MAINTAIN_NEEDED_FLAGS */
-  if (discard_function_body) {
-    /* This is a function whose body should be discarded (e.g., a
-       trivial default constructor).  Discard it now. */
-    clear_function_body(scope);
-  } else {
+  if (!will_discard_function_body) {
     /* The definition of the function is complete, so set the defined flag.
        Note: this allows sweeping the routine definition, and (except for
        inline functions) writing out of the body of the function, so it's
@@ -4679,17 +4684,10 @@ End a name scope by popping an entry off the scope stack.
     check_assertion(kind == (a_scope_kind)sck_function);
     /* See whether this is a function whose body should be discarded. */
     discard_function_body = function_body_should_be_discarded(curr_routine);
-    /* Don't do lowering and similar processing now for functions in
-       secondary translation units. */
-    if (is_primary_translation_unit) {
-      /* Do final processing on the function body.  That includes
-         IL lowering if appropriate. */
-      finish_function_body_processing(il_scope, discard_function_body);
-    }  /* if */
-    /* Clear out the shareable constants table for the function scope.
-       When finish_function_body_processing was called, this may actually be
-       a second (harmless) clearing. */
-    empty_func_shareable_constants_table();
+    /* Do final processing on the function body.  That includes
+       IL lowering if appropriate. */
+    finish_function_body_processing(il_scope, /*after_copy=*/FALSE,
+                                    discard_function_body);
   }  /* if */
 
   /* The IL scope, if any, is no longer on the stack.  This must occur
@@ -4699,7 +4697,11 @@ End a name scope by popping an entry off the scope stack.
     il_scope->depth_in_scope_stack = NO_SCOPE_DEPTH;
   }  /* if */
   if (!old_region_still_needed) {
-    if (!discard_function_body) {
+    if (discard_function_body) {
+      /* This is a function whose body should be discarded (e.g., a
+         trivial default constructor).  Discard it now. */
+      clear_function_body(il_scope);
+    } else {
       /* Write the memory region and free it as appropriate. */
       check_for_done_with_memory_region(old_memory_region_number);
     }  /* if */

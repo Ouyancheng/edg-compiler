@@ -1020,7 +1020,8 @@ which includes IL lowering if appropriate.
   check_assertion(!in_secondary_trans_unit(rout) &&
                   rout->assoc_scope != NULL_region_number);
   scope = il_header.region_scope_entry[rout->assoc_scope];
-  finish_function_body_processing(scope, /*discard_function_body=*/FALSE);
+  finish_function_body_processing(scope, /*after_copy=*/TRUE,
+                                  /*discard_function_body=*/FALSE);
 }  /* wrap_up_moved_function */
 
 
