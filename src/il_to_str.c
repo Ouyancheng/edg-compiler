@@ -2047,7 +2047,7 @@ precedence confusion.  Do the output in the way described by octl.
     need_char_star_cast = TRUE;
     if (!form_lvalue) {
       a_targ_ptrdiff_t size = f_skip_typerefs(achieved_type)->size;
-      if ((offset % size) == 0) {
+      if (size != 0 && (offset % size) == 0) {
         need_char_star_cast = FALSE;
         offset /= size;
       }  /* if */
