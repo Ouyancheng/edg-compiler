@@ -1210,6 +1210,12 @@ error code.
     case ec_const_volatile_not_allowed:
       m = "const or volatile qualifier is not allowed";
       break;
+    case ec_missing_typedef_name:
+      m = "declaration requires a typedef name";
+      break;
+    case ec_missing_object_name:
+      m = "declaration requires an object name";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
