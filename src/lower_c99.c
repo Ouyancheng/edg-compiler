@@ -159,7 +159,7 @@ static an_expr_node_ptr make_prototyped_runtime_call(
                                                a_type_ptr       param2_type,
                                                an_expr_node_ptr arg_expr_list)
 /*
-Create a call node with arguments given by arg_expr_list to a runtime routine.
+Create a call node to a runtime routine with arguments given by arg_expr_list.
 The called routine is *routine and is created with the given name and types if
 *routine is NULL (*routine is updated to point to the new routine).  Parameters
 can be left out by passing NULL parameter types (e.g., a non-NULL param1_type
@@ -472,7 +472,8 @@ called routine (op@) are rout_name and xop_routine, respectively.
   xop_call = add_c99_lowered_cast_if_necessary(xop_call, expr->type);
   lhs->next = xop_call;
   assignment =  make_operator_node(which_binary_operator(
-                                                       tok_assign, lhs->type),
+                                                   tok_assign, 
+                                                   type_pointed_to(lhs->type)),
                                    lhs->type, lhs);
   if (lhs_for_init != NULL) {
     /* Add a comma expression to force the initialization of the temporary
