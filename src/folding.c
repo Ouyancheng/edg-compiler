@@ -2704,7 +2704,7 @@ union(s).
     /* Yes, the field is a member of an anonymous union.  Add the offset
        for the anonymous union.  Note that fields of anonymous union
        variables would not come here. */
-    offset += field_byte_offset(ctsp->anonymous_union.field);
+    offset += field_byte_offset(ctsp->anonymous_union_field);
   }  /* if */
   return offset;
 }  /* field_byte_offset */
