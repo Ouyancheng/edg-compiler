@@ -588,9 +588,8 @@ the mangled names of template classes.
     str_length = mangled_function_name(routine,
                                        /*suppress_param_encoding=*/TRUE,
                                        (char *)NULL);
-  } else {
-    check_assertion_str(abkind == (an_address_base_kind)abk_uuidof,
-                        "mangled_encoding_for_address_constant: bad abkind");
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (abkind == (an_address_base_kind)abk_uuidof) {
     /* Microsoft __uuidof. */
     /* The uuid string attached to the associated type has the format
          hhhhhhhh-hhhh-hhhh-hhhh-hhhhhhhhhhhh
@@ -601,6 +600,10 @@ the mangled names of template classes.
        point here. */
 #define UUID_STR "__UUID"
     str_length = 32 + sizeof(UUID_STR)-1;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  } else {
+    unexpected_condition_str(
+                          "mangled_encoding_for_address_constant: bad abkind");
   }  /* if */
   digits = digits_to_represent((unsigned long)str_length);
   literal_length = digits + str_length;
@@ -621,12 +624,11 @@ the mangled names of template classes.
                                   /*suppress_param_encoding=*/TRUE,
                                   store_at);
       store_at += str_length;
-    } else {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (abkind == (an_address_base_kind)abk_uuidof) {
       a_type_ptr uuid_type;
       char       *uuid_str;
 
-      check_assertion_str(abkind == (an_address_base_kind)abk_uuidof,
-                          "mangled_encoding_for_address_constant: bad abkind");
       /* Microsoft __uuidof. */
       uuid_type = con->variant.address.variant.type;
       (void)strcpy(store_at, UUID_STR);
@@ -641,6 +643,10 @@ the mangled names of template classes.
         if (*uuid_str != '-') *store_at++ = *uuid_str;
       }  /* for */
 #undef UUID_STR
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    } else {
+      unexpected_condition_str(
+                          "mangled_encoding_for_address_constant: bad abkind");
     }  /* if */
   }  /* if */
   return literal_length;
