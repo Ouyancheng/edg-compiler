@@ -508,7 +508,8 @@ FALSE, respectively).
     /* Expected an identifier.  If the token is an integer, give a warning
        rather than an error because UNIX code includes things like #ifdef 3b5,
        which is treated as undefined. */
-    if (isdigit(*start_of_curr_token)) {
+    if ((!strict_ansi_mode || strict_ansi_error_severity != es_error) &&
+        isdigit((unsigned char)*start_of_curr_token)) {
       warning(ec_exp_identifier);
       condition = FALSE;
       flush_to_newline();

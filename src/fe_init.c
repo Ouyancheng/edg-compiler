@@ -296,7 +296,7 @@ a symbol locator in *locator.
   locator->source_position.column = SP_COL_CMD_LINE;
   if (id_len < 1) {
     /* Zero-length identifier is invalid. */
-  } else if (isdigit(*id_start)) {
+  } else if (isdigit((unsigned char)*id_start)) {
     /* The first character of an identifier cannot be a digit. */
   } else {
     for (i = 0; i < id_len; i++) {
