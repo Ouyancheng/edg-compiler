@@ -4512,7 +4512,7 @@ thrown away by the caller.
        translation unit, before copying of IL from the secondary
        to the primary.  The second sweep is required to get the needed
        flags right in the final IL in the primary translation unit.
-       It is done by the call of remark_definition_needed above. */
+       It is done by the call of remark_routine_definition_needed above. */
     if (!after_copy) {
       set_routine_defined(routine);
     }  /* if */
