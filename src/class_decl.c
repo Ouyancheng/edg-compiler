@@ -670,8 +670,7 @@ static void copy_virtual_function_override_list(
                                  a_base_class_ptr                   base_class)
 /*
 Copy the list of overriding virtual functions from base class and add the
-new list to new_base_class.  base_class and new_base_class are assumed to
-refer to the same class type entry.
+new list to base_class.
 */
 {
   an_overriding_virtual_function_ptr  ovfp, new_ovfp;
@@ -683,15 +682,6 @@ refer to the same class type entry.
     new_ovfp = alloc_overriding_virtual_function();
     new_ovfp->primary_function = ovfp->primary_function;
     new_ovfp->overriding_function = ovfp->overriding_function;
-#if 0
-    /* The base_class field should indicate the base class in which the
-       overriding function was declared.  When the the original has no
-       base_class pointer, it means the the overriding function was a
-       function declared in that class rather than inherited.  The field
-       may not be left NULL in the copy. */
-    new_ovfp->base_class = (ovfp->base_class == NULL) ?
-                                  base_class : ovfp->base_class;
-#endif /* if 0 */
     new_ovfp->base_class = base_class;
 #if DEBUG
     if (debug_level >= 4) {
