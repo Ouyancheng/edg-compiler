@@ -1,10 +1,19 @@
 Version 2.17
 
+5/11/93 Type qualifier applied to reference type
+
+A warning is issued now when a reference type is qualified.
+
 5/11/93 il_entry_kind_names array
 
 Two different pieces of code that converted an IL entry kind into a
 string describing the kind have been replaced by an array il_entry_kind_names
 in il.h.
+
+5/10/93 Pure virtual function allowed in local class
+
+We now allow a pure virtual function in a local class; we used to issue
+an error, based on a (probably) too strict reading of ARM 9.8.
 
 5/10/93 Types in conversion compatibility messages
 
@@ -17,6 +26,17 @@ now indicate the source and destination types.
 The result of a cast to a reference type is now considered to have come
 from a reference and is subject to reference conversions when used as
 an operand of the "?" operator.
+
+5/7/93  Type declarations in anonymous unions
+
+Types defined in anonymous unions are now "promoted" to the same scope as
+members are.
+
+5/7/93  New routine scan_function_body
+
+Common processing done in function_definition, inline_function_definition,
+and instantiate_template_function is now handled by a new routine,
+scan_function_body.
 
 5/7/93  il_read uses normal mem_manage allocation routines
 
@@ -41,7 +61,6 @@ now considered in evaluating the template function.
     int i = f(1, p);  // Picks non-template function
   }
 
-
 5/6/93  Fix to conversion subsequence checking in overload resolution
 
   void f(int);
@@ -51,12 +70,16 @@ now considered in evaluating the template function.
     f(i);  // Now diagnosed as ambiguous
   }
 
-
 5/5/93  Incorrect argument transfer method used for template functions
 
 Under certain circumstances a template function or member function of
 a template class could be generated based on an incorrect
 argument transfer method flag.  This has been corrected.
+
+5/4/93  Error on pure specifier
+
+A pure specifier may only appear as the token sequence "= 0".  We now
+issue an error on cases like "= 00".
 
 5/4/93  Calls of virtual functions from constructors and destructors
 
