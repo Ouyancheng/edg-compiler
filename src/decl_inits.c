@@ -272,24 +272,26 @@ that routine.  This routine ignores a closing brace if that is appropriate.
 }  /* check_for_matching_closing_brace */
 
 
-static void add_destructor_to_dynamic_init(a_dynamic_init_ptr  dip,
-                                           a_type_ptr          class_type,
-                                           a_source_position   *pos)
+void add_dtor_for_partially_constructed_aggregate(a_routine_ptr     dtor_rp,
+                                                  a_dynamic_init_ptr dip,
+                                                  a_type_ptr        class_type,
+                                                  a_source_position *pos)
 /*
 This routine should really be called, "add destructor to dynamic init for
-member of partially constructed aggregate".  dip is a dynamic-init entry
+member of partially constructed aggregate".  dtor_rp is the destructor
+routine; if it is NULL, it will be looked up.  dip is a dynamic-init entry
 created for the initialization of a field or array element.  class_type is
 the type of the member.  *pos is the source position in case there's an error
 looking up the destructor.
 */
 {
-  a_routine_ptr  dtor_rp;
-
   if (dip->destructor == NULL) {
-    class_type = skip_typerefs(class_type);
-    dtor_rp = select_destructor(class_type, class_type, pos,
-                                /*honor_virtual=*/FALSE, /*evaluated=*/TRUE,
-                                /*suppress_access_check=*/FALSE);
+    if (dtor_rp == NULL) {
+      class_type = skip_typerefs(class_type);
+      dtor_rp = select_destructor(class_type, class_type, pos,
+                                  /*honor_virtual=*/FALSE, /*evaluated=*/TRUE,
+                                  /*suppress_access_check=*/FALSE);
+    }  /* if */
     if (dtor_rp != NULL) {
       dip->destructor = dtor_rp;
       dip->destruction_is_for_partially_constructed_aggregate = TRUE;
@@ -304,7 +306,7 @@ looking up the destructor.
                                          /*block_lifetime=*/FALSE);
     }  /* if */
   }  /* if */
-}  /* add_destructor_to_dynamic_init */
+}  /* add_dtor_for_partially_constructed_aggregate */
 
 #if 0
 static void check_for_uninitialized_const_or_ref_member(
@@ -494,7 +496,9 @@ routine is called in C++ mode only.
           /* If appropriate, add a destructor pointer to the dynamic init
              entry.  This is for the case in which an exception is thrown by
              the constructor before the entire array has been initialized. */
-          add_destructor_to_dynamic_init(dip, element_type, &pos_curr_token);
+          add_dtor_for_partially_constructed_aggregate((a_routine_ptr)NULL,
+                                                       dip, element_type,
+                                                       &pos_curr_token);
         }  /* if */
       }  /* if */
       /* Now create the constant entry that will point to the new dynamic
@@ -606,7 +610,9 @@ routine is called in C++ mode only.
           /* If appropriate, add a destructor pointer to the dynamic init
              entry.  This is for the case in which an exception is thrown by
              the constructor before the entire array has been initialized. */
-          add_destructor_to_dynamic_init(dip, tp, &pos_curr_token);
+          add_dtor_for_partially_constructed_aggregate((a_routine_ptr)NULL,
+                                                       dip, tp,
+                                                       &pos_curr_token);
         }  /* if */
       }  /* if */
       if (array_type != NULL) {
@@ -851,7 +857,9 @@ class.
         /* If appropriate, add a destructor pointer to the dynamic init entry.
            This is for the case in which an exception is thrown by the
            constructor before the entire array has been initialized. */
-        add_destructor_to_dynamic_init(dip, local_type, &pos_curr_token);
+        add_dtor_for_partially_constructed_aggregate((a_routine_ptr)NULL, dip,
+                                                     local_type,
+                                                     &pos_curr_token);
       }  /* if */
     }  /* if */
   } else if (is_aggregate_or_union_type(local_type) ||
@@ -1034,7 +1042,9 @@ class.
             symbol_supplement_for_class(member_type)->destructor != NULL) {
           dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
           dip->variant.constant = member_con;
-          add_destructor_to_dynamic_init(dip, member_type, &pos_curr_token);
+          add_dtor_for_partially_constructed_aggregate((a_routine_ptr)NULL,
+                                                       dip, member_type,
+                                                       &pos_curr_token);
           member_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
           member_con->type = member_type;
           member_con->variant.dynamic_init = dip;
@@ -2190,12 +2200,8 @@ the default constructor (if one exists) is called.
               /* Set up the representation to deal with the possibility of
                  an exception being thrown before the entire construction of
                  the array is complete. */
-              orig_init_dip->destructor = dtor;
-              orig_init_dip->
-                    destruction_is_for_partially_constructed_aggregate = TRUE;
-              record_end_of_lifetime_destruction(orig_init_dip,
-                                                 /*static_lifetime=*/FALSE,
-                                                 /*block_lifetime=*/FALSE);
+              add_dtor_for_partially_constructed_aggregate(dtor, orig_init_dip,
+                                                          tp, &pos_curr_token);
             }  /* if */
           }  /* if */
         } else {
