@@ -3806,109 +3806,7 @@ precedence confusion and need_parens is TRUE.
     an_expr_operator_kind op = node->variant.operation.kind;
     an_expr_node_ptr      operand_1 = node->variant.operation.operands;
     an_expr_node_ptr      operand_2 = operand_1->next;
-    if (op == (an_expr_operator_kind)eok_padd_subsc) {
-      /* The expression is a pointer addition.  It can be rewritten as
-         a subscripting operation (i.e., *(a+b) becomes a[b]). */
-      if (need_parens) write_tok_ch('(');
-      gen_expr_with_parens(operand_1);
-      write_tok_ch('[');
-      gen_expression(operand_2);
-      write_tok_ch(']');
-      if (need_parens) write_tok_ch(')');
-      processed = TRUE;
-    } else if (op == (an_expr_operator_kind)eok_field ||
-               op == (an_expr_operator_kind)eok_bit_field) {
-      /* The expression is a field selection, which has an implicit "&"
-         in front of it (in C terms).  Adding the indirection removes 
-         the "&". */
-      if (need_parens) write_tok_ch('(');
-      gen_simple_field_selection(operand_1, operand_2);
-      if (need_parens) write_tok_ch(')');
-      processed = TRUE;
-    } else if (op == (an_expr_operator_kind)eok_pm_field) {
-      /* The expression is a "->*", which has an implicit "&"
-         in front of it (in C++ terms).  Adding the indirection removes 
-         the "&". */
-      if (need_parens) write_tok_ch('(');
-      gen_pm_simple_field_selection(operand_1, operand_2);
-      if (need_parens) write_tok_ch(')');
-      processed = TRUE;
-    } else if (op == (an_expr_operator_kind)eok_lvalue_from_struct_rvalue) {
-      /* Used in C mode to allow subscripting of an rvalue array.  The
-         operand expression is put out as an rvalue, and the underlying
-         C compiler will presumably do the right thing. */
-      gen_expr(operand_1, need_parens);
-      processed = TRUE;
-    } else if (op == (an_expr_operator_kind)eok_lvalue_cast) {
-      /* Lvalue cast. */
-      if (need_parens) write_tok_ch('(');
-      gen_cast(type_pointed_to(node->type));
-      gen_lvalue(operand_1);
-      if (need_parens) write_tok_ch(')');
-      processed = TRUE;
-    } else if (op == (an_expr_operator_kind)eok_cast ||
-               op == (an_expr_operator_kind)eok_base_class_cast ||
-               op == (an_expr_operator_kind)eok_derived_class_cast) {
-      /* Cast. */
-      if (node->variant.operation.compiler_generated) {
-        /* Implicit cast.  Remove to avoid problems with casting address
-           of enk_temp_init to some related type. */
-        if (is_array_decay_cast(node)) {
-          /* A cast that does array-to-pointer decay.  The cast can be removed,
-             but an extra indirection has to be applied to the underlying
-             lvalue.  That is, "(int *[3])&x" becomes "x", not "&x". */
-          if (need_parens) write_tok_ch('(');
-          write_tok_ch('*');
-          gen_lvalue(operand_1);
-          if (need_parens) write_tok_ch(')');
-          processed = TRUE;
-        } else {
-          /* Normal cast. */
-          gen_lvalue_full(operand_1, need_parens);
-          processed = TRUE;
-        }  /* if */
-      } else {
-        /* Explicit cast.  In C++, handle as a reference cast.  In C, leave
-           to be done in the general way. */
-        if (!C_mode()) {
-          /* Only use the reference cast form if the underlying type is
-             a class.  It may be necessary in that case, to avoid putting
-             a "&" in front of a class object that has operator&
-             overloaded.  For other cases, it's not necessary, it might
-             prod weak areas in compilers, and it's in fact wrong for
-             cases where the original source casts a "void *" pointer
-             to another pointer type and then dereferences it. */
-          a_type_ptr source_type;
-          /* Incorporate any implicit steps attached to the explicit cast. */
-          while (is_operation_node(operand_1) &&
-                 operand_1->variant.operation.implicit_step_of_explicit_cast) {
-            operand_1 = operand_1->variant.operation.operands;
-          }  /* while */
-          source_type = operand_1->type;
-          if (is_pointer_type(source_type) &&
-              is_class_struct_union_type(type_pointed_to(source_type))) {
-            a_type_ptr dest_type = node->type;
-            if (dest_type->kind == (a_type_kind)tk_typeref &&
-                typeref_is_typedef(dest_type)) {
-              /* The destination type is a typedef for a pointer type, so the
-                 cast must have been to that type rather than the reference
-                 type. */
-            } else {
-              /* Generate a cast to a reference type. */
-              a_type type_copy;
-              dest_type = skip_typerefs(dest_type);
-              check_assertion(dest_type->kind == (a_type_kind)tk_pointer);
-              type_copy = *dest_type;
-              type_copy.variant.pointer.is_reference = TRUE;
-              if (need_parens) write_tok_ch('(');
-              gen_full_cast(&type_copy, operand_1, /*is_lvalue=*/TRUE, op);
-              if (need_parens) write_tok_ch(')');
-              processed = TRUE;
-            }  /* if */
-          }  /* if */
-        }  /* if */
-      }  /* if */
-    } else if (node->variant.operation.returns_lvalue_instead_of_usual_rvalue){
+    if (node->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
       /* An operation that returns an lvalue, e.g., an lvalue-returning
          assignment. */
       if (op == (an_expr_operator_kind)eok_question) {
@@ -3938,6 +3836,149 @@ precedence confusion and need_parens is TRUE.
         node->variant.operation.returns_lvalue_instead_of_usual_rvalue = TRUE;
         processed = TRUE;
       }  /* if */
+    } else {
+      switch (op) {
+        case eok_padd_subsc:
+          /* The expression is a pointer addition.  It can be rewritten as
+             a subscripting operation (i.e., *(a+b) becomes a[b]). */
+          if (need_parens) write_tok_ch('(');
+          gen_expr_with_parens(operand_1);
+          write_tok_ch('[');
+          gen_expression(operand_2);
+          write_tok_ch(']');
+          if (need_parens) write_tok_ch(')');
+          processed = TRUE;
+          break;
+        case eok_field:
+        case eok_bit_field:
+          /* The expression is a field selection, which has an implicit "&"
+             in front of it (in C terms).  Adding the indirection removes 
+             the "&". */
+          if (need_parens) write_tok_ch('(');
+          gen_simple_field_selection(operand_1, operand_2);
+          if (need_parens) write_tok_ch(')');
+          processed = TRUE;
+          break;
+        case eok_pm_field:
+          /* The expression is a "->*", which has an implicit "&"
+             in front of it (in C++ terms).  Adding the indirection removes 
+             the "&". */
+          if (need_parens) write_tok_ch('(');
+          gen_pm_simple_field_selection(operand_1, operand_2);
+          if (need_parens) write_tok_ch(')');
+          processed = TRUE;
+          break;
+        case eok_lvalue_from_struct_rvalue:
+          /* Used in C mode to allow subscripting of an rvalue array.  The
+             operand expression is put out as an rvalue, and the underlying
+             C compiler will presumably do the right thing. */
+          gen_expr(operand_1, need_parens);
+          processed = TRUE;
+          break;
+        case eok_lvalue_cast:
+          /* Lvalue cast. */
+          if (need_parens) write_tok_ch('(');
+          gen_cast(type_pointed_to(node->type));
+          gen_lvalue(operand_1);
+          if (need_parens) write_tok_ch(')');
+          processed = TRUE;
+          break;
+        case eok_cast:
+        case eok_base_class_cast:
+        case eok_derived_class_cast:
+          /* Cast. */
+          if (node->variant.operation.compiler_generated) {
+            /* Implicit cast.  Remove to avoid problems with casting address
+               of enk_temp_init to some related type. */
+            if (is_array_decay_cast(node)) {
+              /* A cast that does array-to-pointer decay.  The cast can be
+                 removed, but an extra indirection has to be applied to the
+                 underlying lvalue.  That is, "(int *[3])&x" becomes "x",
+                 not "&x". */
+              if (need_parens) write_tok_ch('(');
+              write_tok_ch('*');
+              gen_lvalue(operand_1);
+              if (need_parens) write_tok_ch(')');
+              processed = TRUE;
+            } else {
+              /* Normal cast. */
+              gen_lvalue_full(operand_1, need_parens);
+              processed = TRUE;
+            }  /* if */
+          } else {
+            /* Explicit cast.  In C++, handle as a reference cast.  In C,
+               leave to be done in the general way. */
+            if (!C_mode()) {
+              /* Only use the reference cast form if the underlying type is
+                 a class.  It may be necessary in that case, to avoid putting
+                 a "&" in front of a class object that has operator&
+                 overloaded.  For other cases, it's not necessary, it might
+                 prod weak areas in compilers, and it's in fact wrong for
+                 cases where the original source casts a "void *" pointer
+                 to another pointer type and then dereferences it. */
+              a_type_ptr source_type;
+              /* Incorporate any implicit steps attached to the explicit
+                 cast. */
+              while (is_operation_node(operand_1) &&
+                     operand_1->variant.operation.
+                                              implicit_step_of_explicit_cast) {
+                operand_1 = operand_1->variant.operation.operands;
+              }  /* while */
+              source_type = operand_1->type;
+              if (is_pointer_type(source_type) &&
+                  is_class_struct_union_type(type_pointed_to(source_type))) {
+                a_type_ptr dest_type = node->type;
+                if (dest_type->kind == (a_type_kind)tk_typeref &&
+                    typeref_is_typedef(dest_type)) {
+                  /* The destination type is a typedef for a pointer type,
+                     so the cast must have been to that type rather than
+                     the reference type. */
+                } else {
+                  /* Generate a cast to a reference type. */
+                  a_type type_copy;
+                  dest_type = skip_typerefs(dest_type);
+                  check_assertion(dest_type->kind == (a_type_kind)tk_pointer);
+                  type_copy = *dest_type;
+                  type_copy.variant.pointer.is_reference = TRUE;
+                  if (need_parens) write_tok_ch('(');
+                  gen_full_cast(&type_copy, operand_1, /*is_lvalue=*/TRUE, op);
+                  if (need_parens) write_tok_ch(')');
+                  processed = TRUE;
+                }  /* if */
+              }  /* if */
+            }  /* if */
+          }  /* if */
+          break;
+        case eok_points_to_static:
+          /* Static member selection, p->m. */
+          if (need_parens) write_tok_ch('(');
+          gen_expr_with_parens(operand_1);
+          write_tok_str("->");
+          gen_lvalue(operand_2);
+          if (need_parens) write_tok_ch(')');
+          processed = TRUE;
+          break;
+        case eok_lvalue_dot_static:
+          /* Static member selection, lvalue.m. */
+          if (need_parens) write_tok_ch('(');
+          gen_lvalue(operand_1);
+          write_tok_str(".");
+          gen_lvalue(operand_2);
+          if (need_parens) write_tok_ch(')');
+          processed = TRUE;
+          break;
+        case eok_rvalue_dot_static:
+          /* Static member selection, rvalue.m. */
+          if (need_parens) write_tok_ch('(');
+          gen_expr_with_parens(operand_1);
+          write_tok_str(".");
+          gen_lvalue(operand_2);
+          if (need_parens) write_tok_ch(')');
+          processed = TRUE;
+          break;
+        default:
+          break;
+      }  /* switch */
     }  /* if */
   } else if (kind == (an_expr_node_kind)enk_constant &&
              node->variant.constant->kind == (a_constant_repr_kind)ck_address){
@@ -4695,6 +4736,24 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           write_tok_ch('(');
           gen_pm_simple_field_selection(operand_1, operand_2);
           write_tok_ch(')');
+          goto done_with_operation;
+        case eok_points_to_static:
+          /* Static member selection, p->m. */
+          gen_expr_with_parens(operand_1);
+          write_tok_str("->");
+          gen_expr_with_parens(operand_2);
+          goto done_with_operation;
+        case eok_lvalue_dot_static:
+          /* Static member selection, lvalue.m. */
+          gen_lvalue(operand_1);
+          write_tok_str(".");
+          gen_expr_with_parens(operand_2);
+          goto done_with_operation;
+        case eok_rvalue_dot_static:
+          /* Static member selection, rvalue.m. */
+          gen_expr_with_parens(operand_1);
+          write_tok_str(".");
+          gen_expr_with_parens(operand_2);
           goto done_with_operation;
         case eok_shiftl:
           opstr = "<<";

@@ -3663,7 +3663,7 @@ TRUE if the selector is a pointer, and FALSE if it is a class.
     /* Determine the operator to use. */
     if (*is_arrow_operator) {
       op = (an_expr_operator_kind)eok_points_to_static;
-    } else if (is_an_lvalue(operand)) {
+    } else if (is_an_lvalue(bound_function_selector)) {
       op = (an_expr_operator_kind)eok_lvalue_dot_static;
     } else {
       op = (an_expr_operator_kind)eok_rvalue_dot_static;
