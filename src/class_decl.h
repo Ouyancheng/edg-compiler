@@ -18,10 +18,10 @@ class_decl.h -- Declarations related to class_decl.c (having to do with
 #ifndef CLASS_DECL_H
 #define CLASS_DECL_H 1
 
-/* The pointer to a_delayed_scan_fixup is declared here even though the struct
+/* The pointer to a_routine_fixup is declared here even though the struct
    itself is defined in class_decl.c.  This allows the pointer to be made
    available to symbol_tbl.h without creating recursive reference problems. */
-typedef struct a_delayed_scan_fixup *a_delayed_scan_fixup_ptr;
+typedef struct a_routine_fixup *a_routine_fixup_ptr;
 
 #ifndef IL_H
 #include "il.h"
