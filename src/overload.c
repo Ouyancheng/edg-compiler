@@ -2253,24 +2253,11 @@ that are marked "explicit" are ignored.
       } else {
         /* Both the actual argument and formal parameter are available.
            See how well they match. */
-        if (function_template_case && 
-            routine->special_kind == (a_special_function_kind)sfk_constructor&&
-            param->type == routine->source_corresp.parent.class_type) {
-          /* The routine is a member template constructor, and it's
-             threatening to become a copy constructor that copies its
-             own type by value, which is not allowed.  Avoid looking for
-             a copy constructor here, since that would cause a recursion
-             loop.  If this routine is selected, an error will be issued
-             on the attempt to instantiate the function. */
-          arg_match->match_level = aml_exact;
-          arg_match->conversion.class_identity_or_bitwise_copy = TRUE;
-        } else {
-          determine_arg_match_level(&arg_operand->operand, (a_type_ptr)NULL,
-                                    param->type,
-                                    /*try_user_conversions=*/
+        determine_arg_match_level(&arg_operand->operand, (a_type_ptr)NULL,
+                                  param->type,
+                                  /*try_user_conversions=*/
                                                   !effects_copy_initialization,
-                                    arg_match);
-        }  /* if */
+                                  arg_match);
         /* If no match is possible, go on to the next function. */
         if (arg_match->match_level == aml_none) goto reject_function;
       }  /* if */

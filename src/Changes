@@ -1,5 +1,18 @@
 Version 2.42
 
+3/16/99  Abort in find_base_class_of eliminated
+
+An abort in find_base_class_of has been eliminated.  This abort came
+up when a template constructor whose first parameter is the same type
+as the class was called with a non-class first argument. 
+
+  struct A {
+    template<class T> A ( A , T ) { } 
+  };
+  void g() {
+    A a(0.0, 0.0);
+  }
+
 3/16/99  Missing diagnostic on redeclared template parameter in member template
 
 The front end failed to issue a diagnostic in certain cases when a member
