@@ -1771,9 +1771,9 @@ added to the orphaned_file_scope_il_entries array.
     /* At least one of the IL pointers is not NULL; create an_orphaned_il_list
        entry in the file scope region. */
     oil_ptr = (an_orphaned_il_list_ptr)alloc_il(sizeof(an_orphaned_il_list));
-#if DEBUG
+#if DEBUG && !STANDALONE_UTILITY_PROGRAM
     num_orphaned_il_lists_allocated++;
-#endif /* DEBUG */
+#endif /* DEBUG  && !STANDALONE_UTILITY_PROGRAM */
     oil_ptr->orphaned_types = types;
     oil_ptr->orphaned_variables = variables;
     oil_ptr->next = il_header.orphaned_il_list;
