@@ -905,6 +905,7 @@ process_option()
     --trans_unit_test_mode)
 #     Special option for testing multiple translation unit processing
       trans_unit_test_mode=1
+      feoptions=$feoptions" $curr_arg"
       ;;
     --old_ii_format)
 #     Use the old .ii file format that does not include the current directory
