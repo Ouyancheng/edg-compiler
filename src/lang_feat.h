@@ -338,7 +338,9 @@ even when that alignment is less than the alignment dictated by the member's
 type.
 */
 #ifndef USER_CONTROL_OF_STRUCT_PACKING
-#define USER_CONTROL_OF_STRUCT_PACKING MICROSOFT_EXTENSIONS_ALLOWED
+/* This will be dependent on MICROSOFT_EXTENSIONS_ALLOWED once the push/pop
+   option of #pragma pack is implemented. */
+#define USER_CONTROL_OF_STRUCT_PACKING FALSE
 #endif /* ifndef USER_CONTROL_OF_STRUCT_PACKING */
 
 /*
