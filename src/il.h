@@ -258,6 +258,8 @@ extern a_constant_ptr alloc_shareable_constant(a_constant *cp);
 typedef struct a_scope_stack_entry a_scope_stack_entry_dummy_typedef;
 extern a_scope_ptr ensure_il_scope_exists(struct a_scope_stack_entry *ssep);
 
+extern a_type_ptr assoc_class_type(a_scope_ptr  sp);
+
 extern void add_to_scopes_list(a_scope_ptr                scope_ptr,
                                struct a_scope_stack_entry *ssep);
 
