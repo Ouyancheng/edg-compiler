@@ -16039,7 +16039,6 @@ Assign a master instance entry for the template instance "tip".
   }  /* if */
   mip = canonical_tip->master_instance;
   if (mip == NULL) {
-    check_assertion(canonical_sym == sym);
     /* There is no previous master instance.  Create one. */
     mip = alloc_master_instance();
     /* The master instance points back to one of the translation unit
@@ -16057,6 +16056,7 @@ Assign a master instance entry for the template instance "tip".
       }  /* if */
       master_instantiations_tail = mip;
     }  /* if */
+    canonical_tip->master_instance = mip;
   }  /* if */
   /* Save a pointer to the master instance in the template instance. */
   tip->master_instance = mip;
