@@ -1791,7 +1791,7 @@ this leads to undefined behavior when executed.)
 
 #else /* !UPC_EXTENSIONS_ALLOWED */
 
-#define check_for_return_in_upc_forall()  /* Nothing */
+#define check_for_return_in_upc_forall(stmt_pos)  /* Nothing */
 
 #endif /* UPC_EXTENSIONS_ALLOWED */
 
