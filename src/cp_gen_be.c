@@ -7032,19 +7032,6 @@ declaration following this one is such a continuation.
            !var->source_corresp.is_local_to_function)) {
         storage_class = (a_storage_class)sc_extern;
       }  /* if */
-      if (storage_class == (a_storage_class)sc_extern &&
-          innermost_function_scope != NULL) {
-        /* Extern within a function.  Clear the qualification_needed flag
-           in the entity to suppress leading "::" on references. */
-        if (var->source_corresp.qualification_needed) {
-          /* Allocate a fixup entry to get the flag switched back later. */
-          a_tagged_pointer entity;
-          entity.kind = (a_byte_il_entry_kind)iek_variable;
-          entity.ptr = (char *)var;
-          alloc_hidden_name_fixup(entity);
-          var->source_corresp.qualification_needed = FALSE;
-        }  /* if */
-      }  /* if */
     }  /* if */
   }  /* if */
   if (!suppress_specifiers) {
@@ -7569,19 +7556,6 @@ TRUE if the declaration following this one is such a continuation.
           (storage_class == (a_storage_class)sc_static &&
            decl_within_function)) {
         storage_class = (a_storage_class)sc_extern;
-      }  /* if */
-      if (storage_class == (a_storage_class)sc_extern &&
-          decl_within_function) {
-        /* Extern within a function.  Clear the qualification_needed flag in
-           the entity to suppress leading "::" on references. */
-        if (rout->source_corresp.qualification_needed) {
-          /* Allocate a fixup entry to get the flag switched back later. */
-          a_tagged_pointer entity;
-          entity.kind = (a_byte_il_entry_kind)iek_routine;
-          entity.ptr = (char *)rout;
-          alloc_hidden_name_fixup(entity);
-          rout->source_corresp.qualification_needed = FALSE;
-        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */

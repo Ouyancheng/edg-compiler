@@ -1,5 +1,21 @@
 Version 2.43
 
+12/1/99  Hidden name table, C++-generating back end: better name output
+
+Several improvements have been made in the name generation in the
+C++-generating back end.  These were motivated largely by the need
+to get around bugs in MSVC++, but the generated names are now better
+in certain cases in all modes in that they look more like the names
+that a human programmer would write.
+
+  (1)  "this->" on a member function call is suppressed if possible.
+  (2)  The hidden name table and C++-generating back end are now
+       aware of injected class names and handle them better.
+       The same mechanism is used for block extern declarations.
+  (3)  Some Microsoft-mode special processing has been removed because
+       it is subsumed by this new processing (see Changes entries of
+       7/10/97, 8/25/97, 5/21/99).
+
 12/1/99  Microsoft compatibility: spurious error on injected class name in
          constructor initializer
 
