@@ -1,5 +1,22 @@
 Version 3.4
 
+3/1/04   GNU C mode: __typeof__ ignores top-level const/volatile
+
+In GNU C mode (but not in GNU C++ mode) the front end now ignores top-level
+const and volatile qualifiers when processing a typeof operator whose
+argument is an expression.  However, if the expression is a simple variable
+ the qualifiers are not ignored. For example:
+
+  void f(int const *p) {
+    int const x;
+    __typeof__(int const) v1;  // Argument is a type; not an expression:
+                               // v1 has type int const.
+    __typeof__(*p) v2;         // Argument is a nontrivial expression:
+                               // v2 has type int.
+    __typeof__(x) v3;          // Argument expression is a simple variable:
+                               // v3 has type int const.
+  }
+
 3/1/04   Spurious remark concerning destructor in dependent base class
 
 When "remark" diagnostics are enabled, the front end issued a remark
@@ -29,15 +46,6 @@ not allow such casts.  They now get an error.
   }
 
 This problem was introduced in version 3.2.
-
-2/26/04  GNU C mode: __typeof__ ignores top-level const/volatile
-
-In GNU C mode (but not in GNU C++ mode) the front end now ignores top-level
-const and volatile qualifiers when processing a typeof operator.  For example:
-
-  void f() {
-    __typeof__(int const) i;  // Missing initializer error in GNU C++ mode;
-  }                           // i has type int in GNU C mode.
 
 2/26/04  C++-generating back end: Abort on GNU statement expressions
 

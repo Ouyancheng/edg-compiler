@@ -3752,15 +3752,15 @@ operation is a pointer-to-member (see ARM 5.3).
           operand.position = start_position;
           conv_sym_for_member_operand_to_ptr_to_member(&operand);
           copy_operand(&operand, result);
-        } else if (c99_mode &&
+        } else if ((c99_mode || gcc_mode) &&
                    is_an_rvalue(&operand) &&
                    is_expression_operand(&operand) &&
                    (expr = operand.variant.expression,
                     is_operation_node(expr)) &&
                    expr->variant.operation.kind ==
                                          (an_expr_operator_kind)eok_indirect) {
-          /* In C99 (see C99 standard section 6.5.3.2), a "&" and 
-             a "*" operator cancel out, e.g., "&*x" is just "x".  This
+          /* In C99 (see C99 standard section 6.5.3.2) and GNU C modes, a "&"
+             and a "*" operator cancel out, e.g., "&*x" is just "x".  This
              is significant when x is a pointer to void. */
           expr = expr->variant.operation.operands;
           make_expression_operand(expr, expr->type, result);
@@ -4722,22 +4722,10 @@ implement <stdarg.h>, a standard feature.
          explicit alignment, use it.  (GNU C++ versions prior to 3.1
          ignore the explicit alignment; we emulate the more recent
          versions.) */
-      if (is_an_lvalue(&operand)) {
-        if (is_expression_operand(&operand) &&
-            is_variable_address_node(operand.variant.expression) &&
-            operand.variant.expression->variant.variable->alignment != 0) {
-          alignment = operand.variant.expression->variant.variable->alignment;
-        } else if (is_constant_operand(&operand) && 
-                   operand.variant.constant.kind ==
-                                        (a_constant_repr_kind)ck_address &&
-                   operand.variant.constant.variant.address.kind ==
-                                      (an_address_base_kind)abk_variable &&
-                   operand.variant.constant.variant.address.offset == 0 &&
-                   operand.variant.constant.variant.address.
-                                           variant.variable->alignment != 0) {
-          alignment = operand.variant.constant.variant.address.
-                                                variant.variable->alignment;
-        }  /* if */
+      a_variable_ptr  var;
+      if (operand_is_lvalue_for_variable(&operand, &var) &&
+          var->alignment != 0) {
+        alignment = var->alignment;
       }  /* if */
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
@@ -4855,12 +4843,16 @@ The parentheses are required, unlike for sizeof.
     scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
     force_complete_type_if_a_variable(&operand);
     result = operand.type;
+    if (gcc_mode) {
+      a_variable_ptr  var;
+      if (!operand_is_lvalue_for_variable(&operand, &var)) {
+        /* In GNU C mode (but not in GNU C++ mode) top-level cv-qualifiers are
+           ignored if the argument of typeof is an expression more complex
+           than a simple variable. */
+        result = make_unqualified_type(result);
+      }  /* if */
+    }  /* if */
     is_type = FALSE;
-  }  /* if */
-  if (gcc_mode) {
-    /* In GNU C mode (but not in GNU C++ mode) top-level cv-qualifiers are
-       ignored. */
-    result = skip_typerefs(result);
   }  /* if */
   if (is_error_type(result)) {
     /* We'll just return the error type. */

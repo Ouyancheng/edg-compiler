@@ -901,6 +901,11 @@ extern void add_reference_indirection(an_operand *result);
 
 extern a_boolean variable_has_constant_address(a_variable_ptr variable);
 
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+extern a_boolean operand_is_lvalue_for_variable(an_operand      *operand,
+                                                a_variable_ptr  *var);
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+
 extern void make_lvalue_variable_operand(a_variable_ptr  variable,
                                          an_operand      *result,
                                          a_ref_entry_ptr rep,

@@ -6525,6 +6525,34 @@ variable does not.
   return const_addr;
 }  /* variable_has_constant_address */
 
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+
+a_boolean operand_is_lvalue_for_variable(an_operand      *operand,
+                                         a_variable_ptr  *var)
+/*
+If the given operand represents an lvalue for a variable, return TRUE and
+make *var point to the IL entry for that variable.  Otherwise, return FALSE.
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (is_an_lvalue(operand)) {
+    if (is_constant_operand(operand) &&
+        con_is_exact_addr_of_variable(&operand->variant.constant, var)) {
+      /* A variable with an exact address (i.e., with static storage
+         duration). */
+      result = TRUE;
+    } else if (is_expression_operand(operand) &&
+               is_variable_address_node(operand->variant.expression)) {
+      /* A variable whose address cannot be expressed as a constant. */
+      result = TRUE;
+      *var = operand->variant.expression->variant.variable;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* operand_is_lvalue_for_variable */
+
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if !RECORD_CONSTANT_EXPRESSIONS_IN_IL
 /*ARGSUSED*/  /* <-- record_expr is not used in that case. */
