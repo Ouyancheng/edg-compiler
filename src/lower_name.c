@@ -1022,7 +1022,8 @@ like the names of base class pointers.  Place the mangled name at
 {
   sizeof_t mangled_name_length;
 
-  if (type->source_corresp.is_class_member &&
+  if ((type->source_corresp.is_class_member ||
+       type->source_corresp.parent.namespace_ptr != NULL) &&
       type->source_corresp.name != NULL &&
       !type->source_corresp.name_has_been_mangled
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
@@ -1858,7 +1859,8 @@ thereunder.
       do_type_list_other_name_mangling(ctsp->promoted_local_types);
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
     } else if (is_immediate_enum_type(type) &&
-               type->source_corresp.is_class_member) {
+               (type->source_corresp.is_class_member ||
+                type->source_corresp.parent.namespace_ptr != NULL)) {
       /* Mangle the names of member enum constants. */
       a_constant_ptr enum_con;
       for (enum_con = type->variant.integer.enum_info.constant_list;
