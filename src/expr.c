@@ -7745,9 +7745,12 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
-  } else if (is_template_param_type(type_cast_to)) {
+  } else if (!curr_expr_kind_is_const() &&
+             is_template_param_type(type_cast_to)) {
     /* A cast to an unknown type in a prototype instantiation.  This is
-       handled specially because it may have more than one argument. */
+       handled specially because it may have more than one argument.
+       In a constant expression, a cast to a class type is not allowed,
+       so go on to the normal cast code. */
     an_expr_node_ptr   temp_init_node;
     a_dynamic_init_ptr dip;
     scan_dependent_parenthesized_initializer(&dip);
