@@ -1,5 +1,40 @@
 Version 2.16
 
+4/15/93  Diagnostics on noninitialization of const/ref members
+
+The severity and form of diagnostics issued in connection with the
+noninitialization of const and ref members has been modified.
+
+(1) An error is now issued (instead of a warning) on a nonaggregate
+    class with const or ref members and no user-defined constructor.
+    For example:
+
+      class A {
+      private:            // "private" member ==> not an aggregate
+        const int i;
+      };                  // Error (used to be a warning)
+
+(2) An error is now issued (instead of a warning) when an object of
+    an aggregate class with const or ref members is declared with
+    implicit initialization.  For example:
+
+      class A {
+        const int i;
+      };                  // Warning (as before)
+      A a1 = { 0 };       // Okay (as before)
+      A a2 = a1;          // Okay (as before)
+      A a3;               // Error (used to be a warning)
+
+(3)  An error is now issued (instead of a warning) when a the ctor-
+     initializer list in a constructor definition for a class with
+     const or ref members fails to specify initialization for all the
+     const or ref members in the class.  For example:
+
+     class A {
+       const int i;
+       A() { }            // Error (used to be a warning)
+     };
+
 4/14/93  Routine calling method flag for template functions
 
 This flag may have been set incorrectly under certain circumstances
@@ -179,7 +214,7 @@ The following is now accepted:
   const int &r = a.i;
 
 A temporary is generated.  Formerly, this gave an error (cannot take the
-address of a bit field).  This new behavior is not santioned by the ARM,
+address of a bit field).  This new behavior is not specified by the ARM,
 but it makes sense, and cfront does it that way.
 
 4/6/93  Diagnostic on storage class with class/enum declaration
@@ -579,7 +614,7 @@ moved into the prefix.  This gets rid of the need for code to handle
 several messy problems in initializing the il_walk_flag correctly.
 (3)  There is a new separate walk flag for IL lowering in the prefix.
 (4)  There is a file_scope flag in the prefix that in_file_scope now uses.
-(This is much more efficient, and was the pricipal motivation for this
+(This is much more efficient, and was the principal motivation for this
 change.)
 (5)  The next-orphan pointer preceding file-scope IL entries is now
 allocated *before* the entry prefix.
@@ -745,7 +780,7 @@ example,
 
 2/25/93  Bug in sizeof applied to overloaded function or operator
 
-If sizeof was aplied to an expression involving an overloaded function
+If sizeof was applied to an expression involving an overloaded function
 or operator, the sizeof was determined on the basis of an unset variable
 and was therefore probably wrong.  Also, the intermediate language
 created included an error type, which might be the visible symptom of
@@ -1016,14 +1051,14 @@ described there.
 
 A corollary is that an undefined instance of a class template may not
 appear in the template definition, since it cannot in principle be
-instantated until after the template definition is completed, unless a
+instantiated until after the template definition is completed, unless a
 user definition is provided.  For example:
 
   template <class T> class A;
   class A<int> { /* ... */ };
   template <class T> class A {
     A<int> ai;                   // Okay -- A<int> is already defined
-    A<double> di;                // Eror -- A<double> is incomplete
+    A<double> di;                // Error -- A<double> is incomplete
   };
 
 2/22/93  Fixed bug in cfront transitional nested type handling
@@ -1553,7 +1588,7 @@ Version 2.13, January 22, 1993
 
 An empty initializer list ("{}") can be used in C++ for aggregate
 initialization.  A warning or error is issued in strict ANSI mode.  Note
-that this change partially supersedes the previous change descibed
+that this change partially supersedes the previous change described
 in the entry for 1/15/93.
 
 1/21/93 "called" flag in routine entries
@@ -2128,7 +2163,7 @@ result the following is legal overloading of f:
   int f(x) char x; { return x; }  // f is overloaded
 
 But another consequence is that the following legal C code, in which f is
-simply reclared, is interpreted in C++ as requiring overloading:
+simply redeclared, is interpreted in C++ as requiring overloading:
 
   int f(int);
   int f(x) char x { return x; }   // f is redeclared in C, overloaded in C++
@@ -2363,7 +2398,7 @@ This is now fixed.
 11/20/92 Template definitions of member functions of class templates
 
 Support has beed added for out-of-line definitions of member functions
-of class templates; both template definitions and specific defintions
+of class templates; both template definitions and specific definitions
 are allowed.  For example:
 
   template <class T> class A {
@@ -2722,7 +2757,7 @@ with the definition of a function whose type is given by a typedef, e.g.,
   FF g { return 0; }            // Error
 
 The error was diagnosed properly, but an internal error occurred further
-down the line.  In addition, we discovered that the analagous error was
+down the line.  In addition, we discovered that the analogous error was
 not being diagnosed for member functions with inline definitions, e.g.,
 
   typedef int FF(int);
