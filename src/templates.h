@@ -383,7 +383,8 @@ extern a_boolean equiv_templates_given_supplement(
 
 extern void prescan_function_template_default_arg_expr(
 					a_param_type_ptr  ptp,
-					a_scope_depth	  assoc_scope_depth);
+					a_scope_depth	  assoc_scope_depth,
+					unsigned long	  param_number);
 
 extern void instantiate_default_argument(a_symbol_ptr		rout_sym,
 					 a_param_type_ptr	param);

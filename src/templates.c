@@ -11416,13 +11416,15 @@ present, the nesting depth "0" is used.
 
 void prescan_function_template_default_arg_expr(
 					a_param_type_ptr  ptp,
-					a_scope_depth	  assoc_scope_depth)
+					a_scope_depth	  assoc_scope_depth,
+					unsigned long	  param_number)
 /*
 Scan a default argument expression and add it to the list of arguments
 pointed to by the template symbol supplement.  "ptp" can be NULL if
 the tokens should be scanned and discarded.  assoc_scope_depth is the
 depth of the template declaration or instantiation scope associated with
-the declaration that this default argument is associated with.
+the declaration that this default argument is associated with.  param_number
+specifies the position of the parameter in the parameter list.
 */
 {
   a_def_arg_expr_fixup_ptr	*list;
@@ -11459,7 +11461,7 @@ the declaration that this default argument is associated with.
     list = &curr_default_args;
     prescan_default_function_arg_expr(ptp, list, decl_cache,
                                       /*is_function_template=*/TRUE,
-				      /*is_friend_decl=*/FALSE);
+				      /*is_friend_decl=*/FALSE, param_number);
   }  /* if */
   /* Indicate that this default argument is a template default argument
      whose expression has not yet been evaluated. */
@@ -13393,6 +13395,52 @@ decl_state.
 }  /* copy_def_args_and_update_decl_info */
 
 
+static void merge_default_arg_info(a_template_symbol_supplement_ptr	tssp)
+/*
+Merge the list of default arguments specified by "curr_default_args"
+with the list from "tssp" (if one exists).  Normally, a given parameter
+can only have a single default argument, but in g++ mode redeclarations
+are allowed (and ignored).  This can also occur in error cases.
+*/
+{
+  a_def_arg_expr_fixup_ptr	new_args = curr_default_args;
+  a_def_arg_expr_fixup_ptr	old_args =
+                                      tssp->variant.function.def_arg_expr_list;
+  a_def_arg_expr_fixup_ptr	new_list = NULL;
+  a_def_arg_expr_fixup_ptr	new_tail = NULL;
+
+  while (new_args != NULL || old_args != NULL) {
+    a_def_arg_expr_fixup_ptr	arg_to_add = NULL;
+    if (new_args == NULL) {
+      /* The new list is empty.  Just add the entry from the old list. */
+      arg_to_add = old_args;
+      old_args = old_args->next;
+    } else if (old_args == NULL) {
+      /* The old list is empty.  Just add the entry from the new list. */
+      arg_to_add = new_args;
+      new_args = new_args->next;
+    } else if (new_args->param_number < old_args->param_number) {
+      /* The new entry should come before the old entry. */
+      arg_to_add = new_args;
+      new_args = new_args->next;
+    } else {
+      /* The old entry number is <= the new entry number.  Add the old
+         entry.  Discard the new entry if it is a redeclared default. */
+      if (new_args->param_number == old_args->param_number) {
+        new_args = new_args->next;
+      }  /* if */
+      arg_to_add = old_args;
+      old_args = old_args->next;
+    }  /* if */
+    if (new_list == NULL) new_list = arg_to_add;
+    if (new_tail != NULL) new_tail->next = arg_to_add;
+    new_tail = arg_to_add;
+    arg_to_add->next = NULL;
+  }  /* while */
+  tssp->variant.function.def_arg_expr_list = new_list;
+}  /* merge_default_arg_info */
+
+
 static void update_function_template_default_args(
 			a_tmpl_decl_state_ptr			decl_state,
 			a_symbol_ptr				template_sym,
@@ -13429,19 +13477,9 @@ instantiation.
                                decl_state,
                                proto_tssp->variant.function.def_arg_expr_list);
   }  /* if */
-  /* Link the default argument list from the template supplement
-     onto the end of the list of current default arguments.  The
-     list in the supplement must be for arguments that follow the
-     new list (otherwise it would be an error).  Find the end
-     of the current list and link the existing list to the end. */
-  daefp = curr_default_args;
-  if (daefp != NULL) {
-    while (daefp->next != NULL) {
-      daefp = daefp->next;
-    }  /* if */
-    daefp->next = tssp->variant.function.def_arg_expr_list;
-    tssp->variant.function.def_arg_expr_list = curr_default_args;
-  } /* if */
+  /* Merge the default argument list from the template supplement
+     with the list of current default arguments. */
+  merge_default_arg_info(tssp);
   if (proto_sym == NULL) {
     /* We are using the newly specified default arguments.  Do a prototype
        instantiation of the new defaults.  For declarations within classes

@@ -1308,6 +1308,7 @@ declaration.
     /* Remember the scope number for later use if and when a body appears. */
     func_info->scope_number = scope_stack[depth_scope_stack].number;
     if (any_params) {
+      unsigned long	param_number = 0;
       last_param_type = NULL;
       do {
         a_type_qualifier_set qualifiers = TQ_NONE;
@@ -1326,6 +1327,8 @@ declaration.
           (void)get_token();
           dsi_flags |= DSI_MARKED_AS_GNU_EXTENSION;
         }  /* if */
+        /* Count the number of parameters encountered. */
+        param_number++;
         add_stop_token(tok_comma);
         copy_source_position(pos_curr_token, param_type_pos);
         clear_decl_pos_block(&local_decl_pos_block);
@@ -1671,11 +1674,13 @@ declaration.
                  function. */
               prescan_member_function_default_arg_expr(ptp_for_scan,
 						       is_friend_decl,
+                                                       param_number,
                                                        &decl_token_cache);
             } else {
               /* Scan the default arguments for a function template. */
               prescan_function_template_default_arg_expr(ptp_for_scan,
-                                                         def_arg_scope_depth);
+                                                         def_arg_scope_depth,
+                                                         param_number);
             }  /* if */
           } else {
             /* Not a case in which the default argument should be

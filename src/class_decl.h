@@ -45,6 +45,7 @@ extern void check_for_conflicts_with_using_decls(
 extern
 void prescan_member_function_default_arg_expr(a_param_type_ptr  ptp,
 					      a_boolean		is_friend,
+					      unsigned long	param_number,
 					      a_token_cache_ptr decl_cache);
 
 extern a_symbol_ptr class_member_template_declaration(

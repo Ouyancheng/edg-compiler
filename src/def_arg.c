@@ -74,6 +74,7 @@ entry and initialize it.
   daefp->next = NULL;
   daefp->param_type = NULL;
   clear_template_cache(&daefp->cache, /*reusable=*/FALSE);
+  daefp->param_number = 0;
 
   return daefp;
 }  /* alloc_def_arg_expr_fixup */
@@ -196,14 +197,16 @@ void prescan_default_function_arg_expr(
 		        a_def_arg_expr_fixup_ptr	*list,
                         a_token_cache_ptr		src_cache,
 			a_boolean			is_function_template,
-			a_boolean			is_friend_decl)
+			a_boolean			is_friend_decl,
+			unsigned long			param_number)
 /*
 Place the tokens for a default argument expression into a token cache, to
 await actual processing at a later point.  Link the default argument
 entry onto the list provided by the caller.  src_cache points to
 a token cache containing the entire template declaration, of which
-this default argument is a part.  If list or ptp is NULL, scan the default
-argument expression but discard the token cache.
+this default argument is a part.  param_number specifies the position of
+the parameter in the parameter list.  If list or ptp is NULL, scan the
+default argument expression but discard the token cache.
 */
 {
   a_def_arg_expr_fixup_ptr  new_daefp, daefp;
@@ -223,6 +226,7 @@ argument expression but discard the token cache.
     new_daefp = alloc_def_arg_expr_fixup();
     new_daefp->param_type = ptp;
     new_daefp->cache.tokens = token_cache;
+    new_daefp->param_number = param_number;
     /* Add the entry to the end of the list of default arg expr fixup entries
        for the current routine fixup. */
     if (*list == NULL) {

@@ -53,6 +53,9 @@ typedef struct a_def_arg_expr_fixup {
 			/* A pointer to the param type entry in which the
 			   expression node is to be stored once its tokens
 			   have been scanned. */
+  unsigned long	param_number;
+			/* The position of associated parameter in the
+			   parameter list. */
 } a_def_arg_expr_fixup;
 
 extern
@@ -68,7 +71,8 @@ void prescan_default_function_arg_expr(
 		        a_def_arg_expr_fixup_ptr	*list,
                         a_token_cache_ptr		src_cache,
 			a_boolean			is_function_template,
-			a_boolean			is_friend_decl);
+			a_boolean			is_friend_decl,
+			unsigned long			param_number);
 
 extern void delayed_scan_of_default_arg_expr
 				(a_param_type_ptr param_type_entry,

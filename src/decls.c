@@ -3323,7 +3323,8 @@ merging of the default arguments occurs in composite_type.
     }  /* if */
   }  /* for */
   if (redecl_error) {
-    error(ec_default_arg_already_defined);
+    diagnostic((an_error_severity)(gpp_mode ? es_warning : es_error),
+               ec_default_arg_already_defined);
   }  /* if */
   if (not_at_end_of_list_error) {
     error(ec_default_arg_not_at_end);
