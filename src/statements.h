@@ -52,7 +52,8 @@ control past an initialization.
 */
 enum a_control_flow_descr_kind_tag {
   cfdk_block,		/* Start of a block. */
-  cfdk_init,		/* Refers to an stmk_init statement. */
+  cfdk_init,		/* Refers to an stmk_init or stmk_set_vla_size
+			   statement. */
   cfdk_goto,		/* Refers to an stmk_goto statement. */
   cfdk_label,		/* Refers to an stmk_label statement. */
   cfdk_case_label,	/* Case label in switch statement. */
@@ -153,7 +154,8 @@ typedef struct a_control_flow_descr {
     /* When kind == cfdk_init: */
     a_statement_ptr
 		init_statement;
-			/* A pointer to an stmk_init statement. */
+			/* A pointer to an stmk_init or stmk_set_vla_size
+			   statement. */
     /* When kind == cfdk_goto: */
     struct {
       a_statement_ptr

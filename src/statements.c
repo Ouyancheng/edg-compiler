@@ -184,8 +184,8 @@ Routine to display an entry of type a_control_flow_descr, for debugging
 purposes.
 */
 {
-  a_dynamic_init_ptr  dip;
-  a_label_ptr         label;
+  a_statement_ptr  sp;
+  a_label_ptr      label;
 
   switch (cfdp->kind) {
     case cfdk_block:
@@ -243,12 +243,23 @@ purposes.
               cfdp->source_pos.seq);
       break;
     case cfdk_init:
-      fprintf(f_debug, "initialization");
-      dip = cfdp->variant.init_statement->variant.dynamic_init;
-      if (dip != NULL && dip->variable != NULL) {
-        fputs(" of \"", f_debug);
-        db_name(&dip->variable->source_corresp);
-        fputc('"', f_debug);
+      sp = cfdp->variant.init_statement;
+      if (sp->kind == (a_statement_kind)stmk_init) {
+        a_dynamic_init_ptr  dip = sp->variant.dynamic_init;
+        fprintf(f_debug, "initialization");
+        if (dip != NULL && dip->variable != NULL) {
+          fputs(" of \"", f_debug);
+          db_name(&dip->variable->source_corresp);
+          fputc('"', f_debug);
+        }  /* if */
+      } else {
+        a_vla_dimension_ptr  vdp = sp->variant.vla_dimension;
+        fprintf(f_debug, "VLA declaration");
+        if (vdp != NULL) {
+          fputs(": \"", f_debug);
+          db_type(vdp->type);
+          fputc('"', f_debug);
+        }  /* if */
       }  /* if */
       fprintf(f_debug, " (#%lu, line %lu)", cfdp->id_number,
               cfdp->source_pos.seq);
@@ -695,6 +706,7 @@ is found, a diagnostic is issued (an error in C++, a warning otherwise), and
   a_boolean                 done;
   an_error_severity         severity;
   a_type_ptr                tp;
+  a_statement_ptr           sp;
 
 
   db_enter(4, "report_switch_past_init");
@@ -777,24 +789,35 @@ is found, a diagnostic is issued (an error in C++, a warning otherwise), and
         done = TRUE;
         break;
       case cfdk_init:
-        /* An initialization.  Issue a diagnostic for automatic variables;
+        /* An initialization or (when support for VLAs is enabled) a VLA
+           declaration.  Issue a diagnostic for automatic variables;
            initializations for which a diagnostic should not be issued will
            not be found, since we stop searching the block once its last case
            label has been seen. */
-        vp = cfdp->variant.init_statement->variant.dynamic_init->variable;
-        if (!has_static_storage_duration(vp->storage_class)) {
-          severity = es_warning;
-          if (!C_mode() && !cfront_2_1_mode) {
-            tp = vp->type;
-            if (is_array_type(tp)) tp = underlying_array_element_type(tp);
-            tp = skip_typerefs(tp);
-            if (is_class_struct_union_type(tp) &&
-                symbol_supplement_for_class(tp)->destructor != NULL) {
-              severity = es_error;
-            } else if (strict_ansi_mode) {
-              severity = strict_ansi_error_severity;
+        sp = cfdp->variant.init_statement;
+        severity = es_none;
+        if (sp->kind == (a_statement_kind)stmk_init) {
+          vp = sp->variant.dynamic_init->variable;
+          if (!has_static_storage_duration(vp->storage_class)) {
+            severity = es_warning;
+            if (!C_mode() && !cfront_2_1_mode) {
+              tp = vp->type;
+              if (is_array_type(tp)) tp = underlying_array_element_type(tp);
+              tp = skip_typerefs(tp);
+              if (is_class_struct_union_type(tp) &&
+                  symbol_supplement_for_class(tp)->destructor != NULL) {
+                severity = es_error;
+              } else if (strict_ansi_mode) {
+                severity = strict_ansi_error_severity;
+              }  /* if */
             }  /* if */
           }  /* if */
+        } else {
+          /* Must be a stmk_set_vla_size statement. */
+          vp = NULL;
+          severity = es_error;
+        }  /* if */
+        if (severity != es_none) {
           if (severity != *prev_severity) {
             if (*prev_severity != es_none) end_error();
             /* This is the first initializing declaration seen.  Issue the
@@ -811,10 +834,17 @@ is found, a diagnostic is issued (an error in C++, a warning otherwise), and
                                  &parent->source_pos);
             *prev_severity = severity;
           }  /* if */
-          /* Issue the diagnostic addendum that identifies this particular
-             variable. */
-          sym_add_diag_info(ec_name_at_decl_position,
-                            (a_symbol_ptr)vp->source_corresp.assoc_info);
+          if (vp != NULL) {
+            /* Issue the diagnostic addendum that identifies this particular
+               variable. */
+            sym_add_diag_info(ec_name_at_decl_position,
+                              (a_symbol_ptr)vp->source_corresp.assoc_info);
+          } else {	
+            /* Diagnostic addendum that identifies the VLA declaration. */
+            a_source_position  pos;
+            set_position_from_stmt_source_position(pos, sp->position);
+            add_diag_info_with_pos_insert(ec_vla_at_decl_pos, &pos);
+          }  /* if */
         }  /* if */
         /* Fall through. */
       default:
@@ -1449,11 +1479,12 @@ the current statement sequence.
       kind == (a_statement_kind)stmk_return) {
     set_unreachable(curr_reachability);
   }  /* if */
-  if (kind == (a_statement_kind)stmk_init) {
-    /* An stmk_init statement is being added to the IL.  Add an entry to
-       the control_flow_descr_list to point to it.  This will constitute part
-       of the information used to diagnose transfers of control over
-       initializing declarations. */
+  if (kind == (a_statement_kind)stmk_init ||
+      kind == (a_statement_kind)stmk_set_vla_size) {
+    /* An stmk_init or stmk_set_vla_size statement is being added to the IL.
+       Add an entry to the control_flow_descr_list to point to it.  This will
+       constitute part of the information used to diagnose transfers of
+       control over initializing declarations. */
     cfdp = alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_init);
     cfdp->variant.init_statement = sp;
     add_to_control_flow_descr_list(cfdp);
@@ -3508,24 +3539,38 @@ issue a diagnostic complaining about skipping over an initialization.
 #endif /* CHECKING */
 #endif /* DEBUG */
     if (cfdp->kind == (a_control_flow_descr_kind)cfdk_init) {
-      an_error_severity  severity = es_warning;
+      an_error_severity  severity = es_none;
       a_type_ptr         tp;
+      a_statement_ptr    sp;
 
-      vp = cfdp->variant.init_statement->variant.dynamic_init->variable;
-      /* We only issue a diagnostic for jumping over an initialization of
-         an automatic variable (see [stmt.decl], para 3). */
-      if (!has_static_storage_duration(vp->storage_class)) {
-        if (!C_mode()) {
-          tp = vp->type;
-          if (is_array_type(tp)) tp = underlying_array_element_type(tp);
-          tp = skip_typerefs(tp);
-          if (is_class_struct_union_type(tp) &&
-              symbol_supplement_for_class(tp)->destructor != NULL) {
-            severity = es_error;
-          } else if (strict_ansi_mode) {
-            severity = strict_ansi_error_severity;
+      sp = cfdp->variant.init_statement;
+      if (sp->kind == (a_statement_kind)stmk_init) {
+        vp = cfdp->variant.init_statement->variant.dynamic_init->variable;
+        /* We only issue a diagnostic for jumping over an initialization of
+           an automatic variable (see [stmt.decl], para 3). */
+        if (!has_static_storage_duration(vp->storage_class)) {
+          if (C_mode()) {
+            /* Just a warning in C mode. */
+            severity = es_warning;
+          } else {
+            /* C++ mode. */
+            tp = vp->type;
+            if (is_array_type(tp)) tp = underlying_array_element_type(tp);
+            tp = skip_typerefs(tp);
+            if (is_class_struct_union_type(tp) &&
+                symbol_supplement_for_class(tp)->destructor != NULL) {
+              severity = es_error;
+            } else if (strict_ansi_mode) {
+              severity = strict_ansi_error_severity;
+            }  /* if */
           }  /* if */
         }  /* if */
+      } else {
+        /* Must be a stmk_set_vla_size statement. */
+        vp = NULL;
+        severity = es_error;
+      }  /* if */
+      if (severity != es_none) {
         if (severity != *prev_severity) {
           if (*prev_severity != es_none) end_error();
           /* This is the first initializing declaration seen.  Issue the
@@ -3534,10 +3579,17 @@ issue a diagnostic complaining about skipping over an initialization.
                                error_pos);
           *prev_severity = severity;
         }  /* if */
-        /* Issue the diagnostic addendum that identifies this particular
-           variable. */
-        sym_add_diag_info(ec_name_at_decl_position,
-                          (a_symbol_ptr)vp->source_corresp.assoc_info);
+        if (vp != NULL) {
+          /* Issue the diagnostic addendum that identifies this particular
+             variable. */
+          sym_add_diag_info(ec_name_at_decl_position,
+                            (a_symbol_ptr)vp->source_corresp.assoc_info);
+        } else {
+          /* Diagnostic addendum that identifies the VLA declaration. */
+          a_source_position  pos;
+          set_position_from_stmt_source_position(pos, sp->position);
+          add_diag_info_with_pos_insert(ec_vla_at_decl_pos, &pos);
+        }  /* if */
       }  /* if */
     }  /* if */
     if (cfdp == end_cfdp) break;
@@ -3554,6 +3606,7 @@ issue a diagnostic complaining about skipping over an initialization.
   }  /* for */
   db_exit();
 }  /* report_goto_past_init */
+
 
 static an_object_lifetime_ptr innermost_keepable_lifetime(
                                             an_object_lifetime_ptr  olp)
