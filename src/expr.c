@@ -3711,21 +3711,27 @@ This is the C++ syntax.  C++ type-id is the same as C type-name.
   an_operand        operand;
   an_expr_node_ptr  expr = NULL, typeid_node;
   a_type_ptr        typeid_type;
+  a_boolean         err = FALSE;
 
   db_enter(4, "scan_typeid_operator");
+  /* Save the position of the typeid keyword. */
+  start_position = pos_curr_token;
 #if CHECKING
   if (curr_expr_kind_is(ek_pp)) {
     /* Typeid not possible for preprocessing expressions. */
     internal_error("scan_typeid_operator: in preprocessing expr");
   }  /* if */
 #endif /* CHECKING */
+  if (curr_expr_kind_is_const()) {
+    /* typeid is not allowed in constant expressions. */
+    pos_error(ec_bad_constant_operator, &start_position);
+    err = TRUE;
+  }  /* if */
   /* typeid is valid only after the type_info type has been defined in a
      header file. */
-  if (is_incomplete_type(type_of_type_info)) {
+  if (!err && is_incomplete_type(type_of_type_info)) {
     warning(ec_typeid_needs_typeinfo);
   }  /* if */
-  /* Save the position of the typeid keyword. */
-  start_position = pos_curr_token;
   /* Advance past typeid. */
   (void)get_token();
   /* Check for and pass over the left parenthesis. */
@@ -3769,21 +3775,25 @@ This is the C++ syntax.  C++ type-id is the same as C type-name.
   /* The type must be complete or void. */
   if (is_incomplete_type(typeid_type) && !is_void_type(typeid_type)) {
     error(ec_incomplete_type_not_allowed);
-    if (expr != NULL) expr = error_node();
+    err = TRUE;
   }  /* if */
   /* Check for and pass over the right parenthesis. */
   (void)required_token(tok_rparen, ec_exp_rparen);
   remove_matching_stop_token(tok_rparen);
-  /* Create a typeid expression node. */
-  typeid_node = alloc_expr_node((an_expr_node_kind)enk_typeid);
-  typeid_node->variant.typeid_info.expr = expr;
-  typeid_node->variant.typeid_info.type = typeid_type;
-  typeid_node->implicit_reference_indirection = TRUE;
-  /* The result is a reference to type_info, which means a pointer to
-     type_info as an lvalue address. */
-  typeid_node->type = make_pointer_type(type_of_type_info);
-  make_expression_operand(typeid_node, type_of_type_info, result);
-  result->state = (an_operand_state)os_lvalue;
+  if (err) {
+    make_error_operand(result);
+  } else {
+    /* Create a typeid expression node. */
+    typeid_node = alloc_expr_node((an_expr_node_kind)enk_typeid);
+    typeid_node->variant.typeid_info.expr = expr;
+    typeid_node->variant.typeid_info.type = typeid_type;
+    typeid_node->implicit_reference_indirection = TRUE;
+    /* The result is a reference to type_info, which means a pointer to
+       type_info as an lvalue address. */
+    typeid_node->type = make_pointer_type(type_of_type_info);
+    make_expression_operand(typeid_node, type_of_type_info, result);
+    result->state = (an_operand_state)os_lvalue;
+  }  /* if */
   /* Set the error position to the starting position. */
   error_position = start_position;
   result->position = start_position;
@@ -3841,43 +3851,50 @@ Syntax:
   an_expr_node_ptr  expr;
 
   db_enter(4, "scan_dynamic_cast_operator");
+  /* Save the position of the dynamic_cast keyword. */
+  start_position = pos_curr_token;
 #if CHECKING
   if (curr_expr_kind_is(ek_pp)) {
     /* dynamic_cast not possible for preprocessing expressions. */
     internal_error("scan_dynamic_cast_operator: in preprocessing expr");
   }  /* if */
 #endif /* CHECKING */
-  /* Save the position of the dynamic_cast keyword. */
-  start_position = pos_curr_token;
+  if (curr_expr_kind_is_const()) {
+    /* dynamic_cast is not allowed in constant expressions. */
+    pos_error(ec_bad_constant_operator, &start_position);
+    err = TRUE;
+  }  /* if */
   /* Advance past dynamic_cast. */
   (void)get_token();
   /* Scan "< type-id > ( expression )". */
   scan_new_style_cast(&cast_type, &type_position, &operand);
-  /* The type cast to must be a pointer or reference to a complete class type,
-     or void*. */
-  cast_type_okay = FALSE;
-  if (is_ptr_or_ref_type(cast_type)) {
-    reference_case = is_reference_type(cast_type);
-    underlying_cast_type = type_pointed_to(cast_type);
-    if (is_complete_class_struct_union_type(underlying_cast_type)) {
-      /* Casting to a pointer to a complete class type is okay. */
-      cast_type_okay = TRUE;
-    } else if (!reference_case && is_void_type(underlying_cast_type)) {
-      /* Casting to void * is okay. */
-      cast_type_okay = TRUE;
-    }  /* if */
-  } else {
-    /* cast_type is not a pointer or reference type; error. */
+  if (!err) {
+    /* The type cast to must be a pointer or reference to a complete class
+       type, or void*. */
     cast_type_okay = FALSE;
-  }  /* if */
-  if (!cast_type_okay) {
-    /* Bad dynamic cast type. */
-    err = TRUE;
-    if (!is_error_type(cast_type)) {
-      pos_error(ec_bad_dynamic_cast_type, &type_position);
+    if (is_ptr_or_ref_type(cast_type)) {
+      reference_case = is_reference_type(cast_type);
+      underlying_cast_type = type_pointed_to(cast_type);
+      if (is_complete_class_struct_union_type(underlying_cast_type)) {
+        /* Casting to a pointer to a complete class type is okay. */
+        cast_type_okay = TRUE;
+      } else if (!reference_case && is_void_type(underlying_cast_type)) {
+        /* Casting to void * is okay. */
+        cast_type_okay = TRUE;
+      }  /* if */
+    } else {
+      /* cast_type is not a pointer or reference type; error. */
+      cast_type_okay = FALSE;
     }  /* if */
-  } else {
-    /* The type cast to is okay. */
+    if (!cast_type_okay) {
+      /* Bad dynamic cast type. */
+      err = TRUE;
+      if (!is_error_type(cast_type)) {
+        pos_error(ec_bad_dynamic_cast_type, &type_position);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (!err) {
     /* Check the type of the operand. */
     operand_type = operand.type;
     operand_type_okay = FALSE;
