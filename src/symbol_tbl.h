@@ -2120,6 +2120,7 @@ extern a_symbol_ptr add_symbol_to_overload_list(a_symbol_ptr    new_sym,
 
 extern a_symbol_ptr enter_overloaded_symbol(a_symbol_kind    sym_kind,
                                             a_symbol_locator *location,
+                                            a_boolean        is_constructor,
                                             a_symbol_ptr     old_sym_ptr,
                                             a_symbol_ptr     *overload_sym);
 

@@ -4208,10 +4208,12 @@ Return NULL if none is found.
 }  /* find_direct_member_function */
 
 
-static a_symbol_ptr symbol_for_member_function(a_symbol_locator  *locator,
-                                               a_type_ptr        type,
-                                               a_type_ptr        class_type,
-                                               a_symbol_ptr      *overload_sym)
+static a_symbol_ptr symbol_for_member_function(
+                                         a_symbol_locator       *locator,
+                                         a_type_ptr             type,
+                                         a_type_ptr             class_type,
+                                         a_member_decl_info_ptr decl_info,
+                                         a_symbol_ptr           *overload_sym)
 /*
 Return a pointer to an sk_member_function symbol to represent a function
 of a given type.  If this is a redeclaration, the existing symbol is
@@ -4274,9 +4276,11 @@ function symbols.
         pos_error(error_code, &locator->source_position);
         suppress_redecl_error = TRUE;
       } else {
+        a_boolean  is_ctor = decl_info->is_constructor;
+
         /* Enter this symbol as an instance of overloading. */
         new_sym = enter_overloaded_symbol((a_symbol_kind)sk_member_function,
-                                          locator, sym, overload_sym);
+                                          locator, is_ctor, sym, overload_sym);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -4918,7 +4922,7 @@ declared member functions.
 #endif /* if 0 */
   /* Look for a prior declaration or function overloading. */
   sym = symbol_for_member_function(locator, member_type, class_type,
-                                   &overload_sym);
+                                   decl_info, &overload_sym);
   if (sym->variant.routine.ptr != NULL) {
     /* symbol_for_member_function has returned a symbol that has already been
        declared.  Issue an error to redeclare a member function. */
@@ -5267,8 +5271,11 @@ in-class member function declarations.)
                              effective_decl_level,
                              /*suppress_redecl_error=*/FALSE);
   } else {
+    a_boolean  is_ctor = decl_info->is_constructor;
+
+    /* Enter this symbol as an instance of overloading. */
     sym = enter_overloaded_symbol((a_symbol_kind)sk_function_template,
-                                  locator, sym, &overload_sym);
+                                  locator, is_ctor, sym, &overload_sym);
   }  /* if */
   rtn = make_routine(member_type, (a_storage_class)sc_unspecified,
                      NO_SCOPE_DEPTH);

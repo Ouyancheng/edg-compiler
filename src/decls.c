@@ -3942,6 +3942,7 @@ on for use in generating cross-reference output describing this declaration.
       /* Overloaded function.  Create the new symbol, which will be on the
          list of functions connected to an sk_overloaded symbol. */
       sym = enter_overloaded_symbol((a_symbol_kind)sk_routine, locator,
+                                    /*is_constructor=*/FALSE,
                                     homonym_symbol, &overload_symbol);
     }  /* if */
 skip_overloading:;
@@ -4488,8 +4489,8 @@ is not a template declaration scope.
            may or may not be a function template.  In any case, create a new
            symbol and add it to an overload list. */
         sym = enter_overloaded_symbol((a_symbol_kind)sk_function_template,
-                                      locator, homonym_symbol,
-                                      &overload_symbol);
+                                      locator, /*is_constructor=*/FALSE,
+                                      homonym_symbol, &overload_symbol);
       } else {
         /* No overloading.  Simply create a new symbol. */
         sym = enter_local_symbol((a_symbol_kind)sk_function_template, locator,
