@@ -8011,83 +8011,6 @@ Flush tokens in an argument list.
 }  /* flush_to_end_of_arg_list */
 
 
-static a_template_arg_ptr scan_unknown_template_arg_list(a_boolean is_nonreal)
-/*
-Scan a template argument list associated with an unknown template
-parameter list.  This is done when scanning the template arguments
-for an explicitly specified function template argument list, when
-the specific template whose arguments are being scanned may not be
-known yet.  is_nonreal is FALSE to indicate that an explicit function
-template argument list is being scanned.
-
-When is_nonreal is TRUE, the argument list being scanned is associated with
-a template that is a member of a proxy or nonreal class.  This occurs as a 
-result of constructs like T::A<int>.  In such cases there is no template
-parameter list to use as a basis for the template arguments that are scanned.
-
-For each argument, determine whether it is a type or nontype.  This is
-done using the disambiguation routines.
-*/
-{
-  a_template_arg_ptr              arg_ptr;
-  a_template_arg_ptr              arg_list = NULL;
-  a_template_arg_ptr              last_arg = NULL;
-  a_boolean                       is_type_param;
-  a_templ_arg_kind		  arg_kind;
-  a_type_ptr                      argument_type;
-  a_constant_ptr                  constant;
-
-  do {
-    /* If the current token is a ">" then exit the loop.  This should only be
-       possible on the first iteration if we have an empty argument list.
-       If it occurs elsewhere, we must have a comma followed by the closing
-       ">" of the template argument list. */
-    if (curr_token == tok_gt) {
-      if (arg_list != NULL) {
-        error(ec_expected_template_arg);
-      }  /* if */
-      break;
-    }  /* if */
-    add_stop_token(tok_comma);
-    /* Determine the kind of template argument. */
-    is_type_param = is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
-                                     DFS_SINGLE_TYPE_REQUIRED |
-                                     DFS_IS_TEMPLATE_ARGUMENT);
-    arg_kind = is_type_param ? (a_templ_arg_kind)tak_type
-                             : (a_templ_arg_kind)tak_nontype;
-    arg_ptr = alloc_template_arg(arg_kind);
-    /* When is_nonreal is FALSE, we are scanning an explicit function
-       template argument list. */
-    arg_ptr->explicitly_specified = !is_nonreal;
-    if (is_type_param) {
-      type_name(&argument_type);
-      arg_ptr->variant.type = argument_type;
-    } else {  /* else executed when !is_type_param */
-      if (is_nonreal) {
-        /* Scan a constant.  We can't know the type, so use the special
-           type of an unknown template parameter constant. */
-        constant = fs_constant((a_constant_repr_kind)ck_error);
-        scan_template_argument_constant_expression(
-                               type_of_unknown_templ_param_constant, constant);
-        arg_ptr->variant.constant = constant;
-      } else {
-        /* Scan the expression, but retain it in the form of an operand so
-           that the necessary conversions can be done later when the parameter
-           type is known. */
-        arg_ptr->constant_is_an_arg_operand = TRUE;
-        arg_ptr->variant.arg_operand = scan_nontype_template_argument();
-      }  /* if */
-    }  /* if */
-    /* Link this entry on to the argument list. */
-    if (arg_list == NULL) arg_list = arg_ptr;
-    if (last_arg != NULL) last_arg->next = arg_ptr;
-    last_arg = arg_ptr;
-    remove_stop_token(tok_comma);
-  } while (loop_token(tok_comma));
-  return arg_list;
-}  /* scan_unknown_template_arg_list */
-
-
 a_template_ptr scan_template_template_argument(
 				a_template_ptr		param_template,
 				a_source_position	*err_pos)
@@ -8127,7 +8050,7 @@ err_pos is the position to be used to report any errors.
     any_errors = TRUE;
     syntax_error(ec_exp_identifier);
   }  /* if */
-  if (!any_errors) {
+  if (!any_errors && param_template != NULL) {
     /* Make sure this argument is compatible with the template template
        parameter. */
     a_template_symbol_supplement_ptr	tssp1;
@@ -8162,6 +8085,101 @@ err_pos is the position to be used to report any errors.
 }  /* scan_template_template_argument */
 
 
+static a_template_arg_ptr scan_unknown_template_arg_list(a_boolean is_nonreal)
+/*
+Scan a template argument list associated with an unknown template
+parameter list.  This is done when scanning the template arguments
+for an explicitly specified function template argument list, when
+the specific template whose arguments are being scanned may not be
+known yet.  is_nonreal is FALSE to indicate that an explicit function
+template argument list is being scanned.
+
+When is_nonreal is TRUE, the argument list being scanned is associated with
+a template that is a member of a proxy or nonreal class.  This occurs as a 
+result of constructs like T::A<int>.  In such cases there is no template
+parameter list to use as a basis for the template arguments that are scanned.
+
+For each argument, determine whether it is a type or nontype.  This is
+done using the disambiguation routines.
+*/
+{
+  a_template_arg_ptr              arg_ptr;
+  a_template_arg_ptr              arg_list = NULL;
+  a_template_arg_ptr              last_arg = NULL;
+  a_boolean                       is_type_param;
+  a_templ_arg_kind		  arg_kind;
+  a_type_ptr                      argument_type;
+  a_constant_ptr                  constant;
+  a_symbol_ptr			  sym;
+
+  do {
+    /* If the current token is a ">" then exit the loop.  This should only be
+       possible on the first iteration if we have an empty argument list.
+       If it occurs elsewhere, we must have a comma followed by the closing
+       ">" of the template argument list. */
+    if (curr_token == tok_gt) {
+      if (arg_list != NULL) {
+        error(ec_expected_template_arg);
+      }  /* if */
+      break;
+    }  /* if */
+    add_stop_token(tok_comma);
+    sym = NULL;
+    /* Determine the kind of template argument. */
+    if (is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL)) {
+      a_boolean	err;
+      sym = coalesce_and_lookup_generalized_identifier(
+                                 GID_TEMPLATE_ARGS_OPTIONAL, ilm_normal, &err);
+    }  /* if */
+    if (sym != NULL && is_class_template_symbol(sym)) {
+      arg_kind = tak_template;
+    } else {
+      is_type_param = is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
+                                       DFS_SINGLE_TYPE_REQUIRED |
+                                       DFS_IS_TEMPLATE_ARGUMENT);
+      arg_kind = is_type_param ? (a_templ_arg_kind)tak_type
+                               : (a_templ_arg_kind)tak_nontype;
+    }  /* if */
+    arg_ptr = alloc_template_arg(arg_kind);
+    /* When is_nonreal is FALSE, we are scanning an explicit function
+       template argument list. */
+    arg_ptr->explicitly_specified = !is_nonreal;
+    if (is_type_templ_arg(arg_ptr)) {
+      type_name(&argument_type);
+      arg_ptr->variant.type = argument_type;
+    } else if (is_nontype_templ_arg(arg_ptr)) {
+      if (is_nonreal) {
+        /* Scan a constant.  We can't know the type, so use the special
+           type of an unknown template parameter constant. */
+        constant = fs_constant((a_constant_repr_kind)ck_error);
+        scan_template_argument_constant_expression(
+                               type_of_unknown_templ_param_constant, constant);
+        arg_ptr->variant.constant = constant;
+      } else {
+        /* Scan the expression, but retain it in the form of an operand so
+           that the necessary conversions can be done later when the parameter
+           type is known. */
+        arg_ptr->constant_is_an_arg_operand = TRUE;
+        arg_ptr->variant.arg_operand = scan_nontype_template_argument();
+      }  /* if */
+    } else {
+      /* A template template argument. */
+      a_template_ptr	templ_ptr;
+      check_assertion(is_template_templ_arg(arg_ptr));
+      templ_ptr = scan_template_template_argument((a_template_ptr)NULL,
+                                                   &error_position);
+      arg_ptr->variant.templ = templ_ptr;
+    }  /* if */
+    /* Link this entry on to the argument list. */
+    if (arg_list == NULL) arg_list = arg_ptr;
+    if (last_arg != NULL) last_arg->next = arg_ptr;
+    last_arg = arg_ptr;
+    remove_stop_token(tok_comma);
+  } while (loop_token(tok_comma));
+  return arg_list;
+}  /* scan_unknown_template_arg_list */
+
+
 static
 a_template_arg_ptr scan_template_argument_list(a_symbol_ptr	template_sym,
 					       a_boolean        *any_errors)
@@ -8189,6 +8207,9 @@ this routine.  Its value is unchanged if no errors are detected.
 
   decl_info = template_sym->variant.template_info->cache.decl_info;
   param_ptr = decl_info->parameters;
+  /* Indicate that this is an error case if the template has any empty
+     parameter list. */
+  if (param_ptr == NULL) *any_errors = TRUE;
   do {
     a_source_position  arg_pos;
     /* If the current token is a ">" then exit the loop.  This should only be
