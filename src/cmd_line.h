@@ -185,6 +185,7 @@ typedef enum /*an_option_kind*/ {
   optk_extended_variadic_macros,
   optk_include_file_suffixes,
   optk_compound_literals,
+  optk_base_assign_op_is_default,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -1040,10 +1041,8 @@ EXTERN a_boolean
 			/* TRUE if, in default mode, an assignment operator
 			   for class A with parameter of type "B", "B&", or
 			   "const B&" should be viewed as a copy assignment
-			   operator when B is a base class of A. (Whatever its
-			   initial value, this variable will always be FALSE
-			   in strict-ANSI and Microsoft-compatibility modes
-			   and always TRUE in cfront-compatibility mode.) */
+			   operator when B is a base class of A.  FALSE is
+			   the standard-conforming setting. */
 
 EXTERN a_boolean
 		guiding_decls_allowed

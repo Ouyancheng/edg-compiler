@@ -1,5 +1,29 @@
 Version 2.43
 
+10/13/99 operator= that takes base class no longer taken as default operator=
+
+The default value for DEFAULT_ALLOW_COPY_ASSIGNMENT_OP_WITH_BASE_CLASS_PARAM
+has been changed to FALSE, which is what the standard requires.  Formerly,
+it had a default value of TRUE, which allowed an operator= function
+whose parameter is a reference to a base class to serve as the default
+copy assignment operator for a class (thus suppressing the generation
+of the default operator=).
+
+  struct B { };
+  struct D : public B {
+    void operator=(const B&);
+  };
+  int main () {
+    D d;
+    d = d;  // Formerly called operator=(const B&), now calls generated
+            // operator=(const D&)
+  }
+
+The behavior is unchanged in strict mode and Microsoft mode (where a
+value of FALSE was used), and cfront mode (where a value of TRUE
+was used).  The new command-line options --base_assign_op_is_default
+and --no_base_assign_op_is_default can be used to override the default.
+
 10/13/99 Stricter error on "void" exception specification
 
 By default, the front end used to issue an error on incomplete types in

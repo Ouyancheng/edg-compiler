@@ -828,6 +828,14 @@ Initialize the option information table.
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
 #endif /* COMPOUND_LITERAL_ENABLING_POSSIBLE */
+  add_option_description(optk_base_assign_op_is_default,
+                         "base_assign_op_is_default",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_base_assign_op_is_default,
+                         "no_base_assign_op_is_default",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -1231,7 +1239,9 @@ by a command line option.
     if (!option_kind_used[(int)optk_extern_inline]) {
       extern_inline_allowed = TRUE;
     }  /* if */
-    allow_copy_assignment_op_with_base_class_param = FALSE;
+    if (!option_kind_used[(int)optk_base_assign_op_is_default]) {
+      allow_copy_assignment_op_with_base_class_param = FALSE;
+    }  /* if */
     if (!option_kind_used[(int)optk_old_for_init]) {
       /* As of MSVC++ 6.0, this feature is still not implemented. */
       use_nonstandard_for_init_scope = TRUE;
@@ -2111,6 +2121,12 @@ enable_microsoft_mode:
         /* Compound literals should or should not be accepted. */
         compound_literals_allowed = opt_value;
         break;
+      case optk_base_assign_op_is_default:
+        /* A copy assignment operator that takes a base class as input should
+           or should not be considered to be the default copy assignment
+           operator for a class. */
+        allow_copy_assignment_op_with_base_class_param = opt_value;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -2410,7 +2426,6 @@ enable_microsoft_mode:
       }  /* if */
     } else {
       /* Set optional features to standard settings for strict C++ mode. */
-      allow_copy_assignment_op_with_base_class_param = FALSE;
       ptr_to_unknown_bound_array_allowed_in_param_type = FALSE;
       single_ref_qual_ovl_res_tiebreaker = FALSE;
       floating_point_template_parameters_allowed = FALSE;
@@ -2543,6 +2558,9 @@ enable_microsoft_mode:
         /* If late tiebreaker was not explicitly set by a command line
            option, force it off. */
         do_late_ovl_res_tiebreaker = FALSE;
+      }  /* if */
+      if (!option_kind_used[(int)optk_base_assign_op_is_default]) {
+        allow_copy_assignment_op_with_base_class_param = FALSE;
       }  /* if */
     }  /* if */
     if (!(option_kind_used[(int)optk_extended_variadic_macros])) {
