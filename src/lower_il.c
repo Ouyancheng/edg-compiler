@@ -1587,17 +1587,12 @@ any better if we did know it was a complete object).
   if (pointer_bcp != NULL) {
     /* The pointer to the virtual base class is allocated in a base class.
        Cast down to the proper base class. */
-    check_assertion(!pointer_bcp->derivation->base_class->is_virtual);
+    check_assertion(!any_virtual_steps_in_derivation(pointer_bcp));
     node = make_base_class_lvalue(node, pointer_bcp,
                                   /*complete_object=*/FALSE);
     /* The following line does not use pointer_bcp->type because the type here
        could be either that type or the corresponding type-as-subobject. */
     pointer_class_type = f_skip_typerefs(type_pointed_to(node->type));
-#if CHECKING
-    if (pointer_bcp->is_virtual) {
-      internal_error("make_vbptr_field_lvalue: pointer_base_class is virtual");
-    }  /* if */
-#endif /* CHECKING */
     pointer_offset -= pointer_bcp->offset;
   }  /* if */
   /* Generate the field selection in the original class or the base class
@@ -1650,17 +1645,11 @@ any better if we did know it was a complete object).
   if (vptr_bcp != NULL) {
     /* The pointer to the virtual function table is allocated in a base
        class.  Cast down to the proper base class. */
-    check_assertion(!vptr_bcp->derivation->base_class->is_virtual);
+    check_assertion(!any_virtual_steps_in_derivation(vptr_bcp));
     node = make_base_class_lvalue(node, vptr_bcp, /*complete_object=*/FALSE);
     /* The following line does not use vptr_bcp->type because the type here
        could be either that type or the corresponding type-as-subobject. */
     vptr_class_type = f_skip_typerefs(type_pointed_to(node->type));
-#if CHECKING
-    if (vptr_bcp->is_virtual) {
-      internal_error(
-        "make_vptr_field_lvalue: virtual_function_info_base_class is virtual");
-    }  /* if */
-#endif /* CHECKING */
     vptr_offset -= vptr_bcp->offset;
   }  /* if */
   /* Generate the field selection in the original class or the base class
@@ -1779,56 +1768,63 @@ pointer to the new node.
   }  /* if */
 #endif /* CHECKING */
   prelower_class_type(class_type);
-  step_class_type = class_type;
-  dsp = bcp->derivation;
-  /* See if there are any virtual steps in the derivation of the base class.
-     If so, the first step is to a virtual base class (the front end
-     standardizes the derivation steps up to the last virtual step into
-     an initial "leap" to the virtual base class). */
-  step_bcp = dsp->base_class;
-  if (step_bcp->is_virtual) {
-    /* Generate code for the hop to the virtual base class. */
-    node = make_vbase_class_lvalue(node, step_bcp, complete_object);
-    step_class_type = step_bcp->type;
-    /* The non-virtual steps start after the virtual step. */
-    dsp = dsp->next;
-  }  /* if */
-  /* Now any initial virtual hop has been done.  dsp indicates the
-     remaining derivation steps, or is NULL if all were handled by
-     the virtual hop.  step_class_type is the unqualified class type
-     we've gotten to so far. */
-  /* Put out a field selection for each step in the derivation. */
-  /* Two class type variables are needed because the fields for the base
-     classes may have the type of the base class as a subobject or the type
-     of the base class itself (that's what node_class_type will contain)
-     and the base class entries have the type of the base class itself
-     (that's what step_class_type will contain). */
-  for (; dsp != NULL; dsp = dsp->next) {
-    /* The base class entry pointed to by dsp->base_class is the base
-       class entry relative to the original class type.  Find the base
-       class entry for this step relative to the intermediate class we
-       have gotten to. */
-    step_bcp = derivation_bcp = dsp->base_class;
-    /* For the first step the information is already correct. */
-    if (dsp != bcp->derivation) {
-      step_bcp = find_direct_base_class_of(step_class_type, step_bcp->type);
-      check_assertion(step_bcp != NULL);
+  if (bcp->is_virtual) {
+    /* The base class is a virtual base class.  Generate the code
+       to get to it. */
+    node = make_vbase_class_lvalue(node, bcp, complete_object);
+  } else {
+    /* The base class is not a virtual base class (so it has only one
+       derivation). */
+    step_class_type = class_type;
+    dsp = bcp->derivation->path;
+    /* See if there are any virtual steps in the derivation of the base class.
+       If so, the first step is to a virtual base class (the front end
+       standardizes the derivation steps up to the last virtual step into
+       an initial "leap" to the virtual base class). */
+    step_bcp = dsp->base_class;
+    if (step_bcp->is_virtual) {
+      /* Generate code for the hop to the virtual base class. */
+      node = make_vbase_class_lvalue(node, step_bcp, complete_object);
+      step_class_type = step_bcp->type;
+      /* The non-virtual steps start after the virtual step. */
+      dsp = dsp->next;
     }  /* if */
-    node_class_type = type_pointed_to(node->type);
-    node_class_type = skip_typerefs(node_class_type);
+    /* Now any initial virtual hop has been done.  dsp indicates the
+       remaining derivation steps.  step_class_type is the unqualified
+       class type we've gotten to so far. */
+    /* Put out a field selection for each step in the derivation. */
+    /* Two class type variables are needed because the fields for the base
+       classes may have the type of the base class as a subobject or the type
+       of the base class itself (that's what node_class_type will contain)
+       and the base class entries have the type of the base class itself
+       (that's what step_class_type will contain). */
+    for (; dsp != NULL; dsp = dsp->next) {
+      /* The base class entry pointed to by dsp->base_class is the base
+         class entry relative to the original class type.  Find the base
+         class entry for this step relative to the intermediate class we
+         have gotten to. */
+      step_bcp = derivation_bcp = dsp->base_class;
+      /* For the first step the information is already correct. */
+      if (dsp != bcp->derivation->path) {
+        step_bcp = find_direct_base_class_of(step_class_type, step_bcp->type);
+        check_assertion(step_bcp != NULL);
+      }  /* if */
+      node_class_type = type_pointed_to(node->type);
+      node_class_type = skip_typerefs(node_class_type);
 #if CHECKING
-    if (node_class_type != step_class_type &&
-        node_class_type != step_class_type->variant.class_struct_union.
+      if (node_class_type != step_class_type &&
+          node_class_type != step_class_type->variant.class_struct_union.
                                                extra_info->type_as_subobject) {
-      internal_error("make_base_class_lvalue: node has wrong type");
-    }  /* if */
+        internal_error("make_base_class_lvalue: node has wrong type");
+      }  /* if */
 #endif /* CHECKING */
-    /* Create a field selection to select the next non-virtual base class. */
-    node = field_lvalue_selection_expr(node,
-                                       field_at_offset(node_class_type,
-                                                       step_bcp->offset));
-    step_class_type = derivation_bcp->type;
-  }  /* for */
+      /* Create a field selection to select the next non-virtual base class. */
+      node = field_lvalue_selection_expr(node,
+                                         field_at_offset(node_class_type,
+                                                         step_bcp->offset));
+      step_class_type = derivation_bcp->type;
+    }  /* for */
+  }  /* if */
   return node;
 }  /* make_base_class_lvalue */
 
@@ -3081,14 +3077,14 @@ whether or not to put out the virtual function table.
        and (part of) a virtual function table with a base class. */
 #if CHECKING
     if (sharing_bcp->offset != 0 ||
-        sharing_bcp->derivation->base_class->is_virtual) {
+        any_virtual_steps_in_derivation(sharing_bcp)) {
       internal_error("fill_virtual_function_table: bad vtbl sharing");
     }  /* if */
 #endif /* CHECKING */
     /* Fill the part of the table that is shared with the immediate base
        class that is on the path to the base class that contains the shared
        pointer. */
-    imm_bcp = sharing_bcp->derivation->base_class;
+    imm_bcp = sharing_bcp->derivation->path->base_class;
     if (bcp != NULL) {
       /* When doing this processing for a base class, we have to find the
          corresponding base class under class_type.  The base class we
