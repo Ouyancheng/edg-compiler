@@ -4999,7 +4999,7 @@ routine assumes the class type is as complete as it will ever get.
           /* Non-virtual base class. */
           if (bcp->direct && !bcp->is_optimized_empty_base) {
             /* For a direct non-virtual base class, put out space for an object
-               of the base class, except if it an empty base that was not
+               of the base class, except if it is an empty base that was not
                allocated its own space (i.e., it shares its offset with
                another subobject). */
             add_base_class_dummy_field(bcp->type, "__b_",
