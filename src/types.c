@@ -2230,8 +2230,6 @@ is returned.
       /* Clear the source correspondence (it refers to something not at file
          scope, if it refers to anything at all). */
       set_default_source_corresp(&new_type->source_corresp);
-      /* Clear the pointer to the array of types based on this type, if any. */
-      new_type->based_type_array = NULL;
       /* Copy the substructure of the type, if any. */
       switch(kind) {
         case tk_error:
