@@ -2652,6 +2652,58 @@ An assertion has failed.  Abort the compilation.
   internal_error(buffer);
 }  /* assertion_failed */
 
+
+/*
+Structure to record a pending assertion.  If necessary, the recorded entities
+will be passed to assertion_failed at a later time.
+*/
+static struct {
+  char *filename;
+  int  line_number;
+  char *string1;
+  char *string2;
+} expected_error_record = { NULL, 0, NULL, NULL };
+
+  
+void record_expected_error(char *filename,
+                           int  line_number,
+                           char *string1,
+                           char *string2)
+/*
+Record a pending assertion.  This routine may be called in a situation that
+is expected to be the result of processing invalid source code but where a
+diagnostic has not yet been issued.  The location (and associated message)
+of that situation is recorded and then later checked by check_expected_error.
+Only the first instance of such a situation is recorded; subsequent calls
+have no effect.
+*/
+{
+  check_assertion(filename != NULL);
+  if (expected_error_record.filename == NULL) {
+    /* No expected error has been recorded yet. */
+    expected_error_record.filename = filename;
+    expected_error_record.line_number = line_number;
+    expected_error_record.string1 = string1;
+    expected_error_record.string2 = string2;
+  }  /* if */
+}  /* record_expected_error */
+
+
+void check_expected_errors()
+/*
+If expected_error was called, check that errors have been issued.  Otherwise,
+abort the compilation with the information recorded in the first call to
+expected_error.
+*/
+{
+  if (expected_error_record.filename != NULL && total_errors == 0) {
+    assertion_failed(expected_error_record.filename,
+                     expected_error_record.line_number,
+                     expected_error_record.string1,
+                     expected_error_record.string2);
+  }  /* if */
+}  /* check_expected_errors */
+
 #endif /* CHECKING */
 
 

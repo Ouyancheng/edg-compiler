@@ -11844,8 +11844,8 @@ template entry for the class template definition; otherwise it is NULL. */
       } else {
         /* This can only occur in strange error situations, such as:
              template<template <class X> class T> struct S struct T<int> {};
-           Check that an error has indeed be issued. */
-        check_assertion(total_errors != 0);
+           Check that an error has been or will be issued. */
+        expect_error();
       }  /* if */
     }  /* if */
     class_state.is_template_instantiation = is_template_instantiation;

@@ -148,6 +148,13 @@ extern DOES_NOT_RETURN assertion_failed(char *filename,
 					char *string1,
 					char *string2);
 
+extern void record_expected_error(char *filename,
+                                  int  line_number,
+                                  char *string1,
+                                  char *string2);
+
+extern void check_expected_errors(void);
+
 /* Macro to test an assertion and generate an internal error if
    the condition is not TRUE.  The macro expands to nothing when checking
    code is not being used. */
@@ -155,6 +162,19 @@ extern DOES_NOT_RETURN assertion_failed(char *filename,
   if (/*lint --e(774)*/!(test)) {					\
     assertion_failed(__FILE__, __LINE__,				\
                      (char *)NULL, (char *)NULL);			\
+  }
+/* Macro to test an assertion or ensure that errors will be issued before
+   a back end is invoked (more specifically: when check_expected_errors is
+   called). */
+#define check_assertion_or_expect_error(test)                                \
+  if (/*lint --e(774)*/!(test) && total_errors == 0) {                       \
+    record_expected_error(__FILE__, __LINE__, (char *)NULL, (char *)NULL);   \
+  }
+/* Same as check_assertion_or_expect_error, but only check for errors (no
+   other condition). */
+#define expect_error()                                                       \
+  if (total_errors == 0) {                                                   \
+    record_expected_error(__FILE__, __LINE__, (char *)NULL, (char *)NULL);   \
   }
 /* Macro that generates an assertion failed internal error.  Intended to
    be used in the else clause of an if statement or the default case of a
@@ -177,6 +197,8 @@ extern DOES_NOT_RETURN assertion_failed(char *filename,
 #define check_assertion(test) /* Nothing */
 #define check_assertion_str(test, string) /* Nothing */
 #define check_assertion_str2(test, string1, string2) /* Nothing */
+#define check_assertion_or_expect_error(test) /* Nothing */
+#define expect_error() /* Nothing */
 #define unexpected_condition()    /* Nothing */
 #define unexpected_condition_str(string)    /* Nothing */
 #define unexpected_condition_str2(string1, string2)    /* Nothing */
