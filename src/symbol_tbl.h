@@ -982,8 +982,6 @@ typedef enum /*a_symbol_reference_kind*/ {
   srk_reference		/* All other kinds of references. */
 } a_symbol_reference_kind;
 
-extern char *name_of_symbol(a_symbol_ptr  sym);
-
 extern a_symbol_ptr find_symbol(char             *identifier,
 			        sizeof_t         identifier_length,
 				a_symbol_locator *location);
