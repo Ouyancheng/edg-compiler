@@ -188,7 +188,7 @@ length of the name.
   /* Now look for a nonblank. */
   while (*pos == ' ') pos++;
 
-  /* Skip passed extra underscore at the start of every symbol if an
+  /* Skip past extra underscore at the start of every symbol if an
      underscore is present.  */
   if (skip_underscore_prefix && *pos == '_') pos++;
 
