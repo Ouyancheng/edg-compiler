@@ -2239,10 +2239,11 @@ code that makes it possible to suppress subsequent re-inclusions.
   a_symbol_locator	locator;
 
 
-  if (!ifhp->suppress_subsequent_include) {
+  if (ifhp->pragma_once) {
+    result = TRUE;
+  } else if (!ifhp->suppress_subsequent_include) {
     /* No need to check further. */
   } else if (ifhp->pragma_once) {
-    result = TRUE;
   } else if (ifhp->ifdef_guard || ifhp->ifndef_guard) {  
     /* See whether the controlling macro is currently defined. */
     locator = cleared_locator;

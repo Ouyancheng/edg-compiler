@@ -1,5 +1,10 @@
 Version 2.31
 
+12/21/95  #pragma once bug with open include files
+
+The #pragma once directive was incorrectly only taking effect once an
+include file was closed.  This has been corrected.
+
 12/21/95  C-generating back end: Avoiding &"string" when generating ANSI/ISO C
 
 Some ANSI/ISO C compilers do not like the construct &"string", perhaps
