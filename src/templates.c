@@ -3836,27 +3836,19 @@ and the class instantiation will detect the runaway case.
        linkage. */
     var_ptr->storage_class = (a_storage_class)sc_static;
     var_ptr->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
-  }  /* if */
-  /* If the storage class is sc_extern, reset it to sc_unspecified (since the
-     variable is being defined).  If it is sc_static (e.g., for a static
-     data member), leave it alone. */
-  if (var_ptr->storage_class == (a_storage_class)sc_extern) {
-    var_ptr->storage_class = (a_storage_class)sc_unspecified;
-#if ONE_INSTANTIATION_PER_OBJECT
-    set_variable_instantiation_needed_bit_number(var_ptr);
-#endif /* ONE_INSTANTIATION_PER_OBJECT */
-#if CHECKING
+  } else {
+    /* In other modes, the static data member should have external linkage.
+       Change it storage class from sc_extern to sc_unspecified. */
+    check_assertion_str(var_ptr->storage_class == (a_storage_class)sc_extern,
+                        "define_template_static_data_member: bad linkage");
     check_assertion_str2(var_ptr->source_corresp.name_linkage ==
                                   (a_name_linkage_kind)nlk_cplusplus_external,
                          "define_template_static_data_member:",
                          "bad name linkage");
-  } else {
-    check_assertion_str2(var_ptr->source_corresp.name_linkage ==
-                                  (a_name_linkage_kind)nlk_internal &&
-                          var_ptr->storage_class == (a_storage_class)sc_static,
-                         "define_template_static_data_member:",
-                         "bad storage class or name linkage");
-#endif /* CHECKING */
+    var_ptr->storage_class = (a_storage_class)sc_unspecified;
+#if ONE_INSTANTIATION_PER_OBJECT
+    set_variable_instantiation_needed_bit_number(var_ptr);
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
   }  /* if */
   /* Push a template instantiation scope.  The real values of the template
      arguments will be associated with the template parameter names. */
