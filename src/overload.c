@@ -3409,14 +3409,17 @@ routine is called only in C++ mode.
   candidate_functions = NULL;
   sym_is_undefined = (overloaded_function_symbol->kind ==
                                                   (a_symbol_kind)sk_undefined);
-  if (do_arg_dep_lookup && !sym_is_undefined &&
-      (overloaded_function_symbol->is_class_member ||
-       is_local_symbol(overloaded_function_symbol))) {
+  if (do_arg_dep_lookup && !sym_is_undefined) {
     /* If the function found is a block extern or a member function, suppress
        argument-dependent lookup.  The member function part of that is
        in the standard.  The block extern part is not, but was strongly
        supported as a change at the Nov. 98 standards committee meeting. */
-    do_arg_dep_lookup = FALSE;
+    if (overloaded_function_symbol->is_class_member) {
+      do_arg_dep_lookup = FALSE;
+    } else if (!strict_ansi_mode &&
+               is_local_symbol(overloaded_function_symbol)) {
+      do_arg_dep_lookup = FALSE;
+    }  /* if */
   }  /* if */
   if (!do_arg_dep_lookup) {
     /* No argument-dependent lookup.  Use only the function symbol provided. */
@@ -6281,11 +6284,13 @@ functions could still apply).
             /* Ignore error symbols and like. */
             normal_sym = NULL;
           }  /* if */
-          /* If the symbol found is a block extern, skip the argument-dependent
-             processing.  This is not in the standard, but at the Nov. 98
-             standards committee meeting there was strong sentiment for
-             altering the rule to do it this way. */
-          if (normal_sym == NULL || !is_local_symbol(normal_sym)) {
+          if (!strict_ansi_mode && normal_sym != NULL &&
+              is_local_symbol(normal_sym)) {
+            /* If the symbol found is a block extern, skip the
+               argument-dependent processing.  This is not in the standard,
+               but at the Nov. 98 standards committee meeting there was
+               strong sentiment for altering the rule to do it this way. */
+          } else {
             /* Build a list of the argument types, to be used to do
                argument-dependent lookup below. */
             add_to_arg_dependent_lookup_list(operand_1->type, &type_list);
