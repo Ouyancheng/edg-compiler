@@ -1,5 +1,22 @@
 Version 2.27
 
+10/31/94 Qualifiers on type of lvalue-returning assignments
+
+The IL for lvalue-returning assignments and prefix ++/-- now includes
+the proper type qualifiers on the result type.
+
+10/31/94 Qualifiers on type of ++x in C mode
+
+If x is qualified (e.g., volatile int), ++x in C mode now has the qualifiers
+dropped as it should.
+
+10/31/94 Type qualifiers on rewrite of lvalue-returning assingment in IL
+         lowering
+
+When IL lowering rewrites an lvalue-returning assignment, it now drops any
+type qualifiers that were on the type of the assignment node to make it
+legal C IL.
+
 10/31/94 Bug in call of overloaded function with incomplete class parameter
 
 An internal error is no longer issued for the following; an error indicating
