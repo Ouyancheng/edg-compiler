@@ -1,5 +1,21 @@
 Version 3.2
 
+4/18/03  Spurious ambiguity on use of conversion function
+
+A spurious ambiguity error could result if a conversion function was inherited
+by more than one path.  This has been fixed.
+
+  struct A {
+    operator void *() const { return 0; }
+  };
+  class B : virtual public A {};
+  class C : virtual public A {};
+  class D : public C, public B {};
+  int main() {
+    D x;
+    if (x == 0) return 1;
+  }
+
 4/18/03  Improved code for virtual base class access in constructor and
          destructor wrappers, IA-64 ABI
 

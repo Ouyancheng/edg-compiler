@@ -9982,19 +9982,27 @@ class_type.  Set *updated if a projection symbol is created.
       slep = is_template_list ? cssp->conversion_template_list :
                                 cssp->conversion_list;
       for (; slep != NULL; slep = slep->next) {
-        if (slep->symbol->kind == (a_symbol_kind)sk_projection &&
-            !slep->symbol->variant.projection.is_using_decl) {
-          /* This is another inherited conversion function.  If it converts
-             to another type, it certainly should not mask the conversion
-             function that we are now processing.  If it converts to the same
-             type, we have a potential ambiguity: by also projecting the
-             one we are now processing, we will detect such an ambiguity
-             downstream. */
-        } else if (slep->symbol->header == bcslep->symbol->header) {
-          /* A conversion list entry from the current class already represents
-             a conversion to the type specified by the conversion defined in
-             the base class.  Ignore it. */
-          break;
+        if (slep->symbol->header == bcslep->symbol->header) {
+          /* A conversion to the same type.  If this is from the current class
+             (i.e., it is not a projection symbol) we should ignore the one
+             from the base class.  If the entry on the current class list
+             is a projection to the same routine as the symbol from
+             the base class, it can also be ignored. */
+          if (slep->symbol->kind != (a_symbol_kind)sk_projection) {
+            /* The symbol is from the current class.  Ignore the base
+               symbol. */
+            break;
+          } else if (!slep->symbol->variant.projection.is_using_decl) {
+            /* A projection symbol, but not from a using-declaration.  Ignore
+               this entry if it refers to the same function as one already
+               on the list. */
+            a_symbol_ptr	fund_curr_sym =
+                                           fundamental_symbol_of(slep->symbol);
+            a_symbol_ptr	fund_base_sym =
+                                         fundamental_symbol_of(bcslep->symbol);
+            if (same_entities(fund_curr_sym->variant.routine.ptr,
+                              fund_base_sym->variant.routine.ptr)) break;
+          }  /* if */
         } else if (is_template_list) {
           a_type_ptr  tp1, tp2;
           sym = fundamental_symbol_of(slep->symbol);
