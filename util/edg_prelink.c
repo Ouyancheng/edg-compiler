@@ -3197,6 +3197,9 @@ the entries to the instantiation request file.
       while (pl_read_input_line(f_temp)) {
         fputs(pl_input_line, f_request);
         fputs("\n", f_request);
+        /* Make a record of this assignment for the purpose of detecting
+           a loop caused by some sort of data structure problem. */
+        record_assignment(pl_input_line);
         if (verbose) {
           fprintf(f_informational, pl_error_text(pl_ec_adopted_by_file),
                   message_prefix, pl_decoded_name(pl_input_line),
