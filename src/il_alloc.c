@@ -1490,6 +1490,10 @@ to it.  The entry is allocated in the file scope memory region.
   rp->keep_definition_in_il       = FALSE;
 #endif /* MAINTAIN_NEEDED_FLAGS */
   rp->expl_template_arg_list_used = FALSE;
+#if BACK_END_IS_CP_GEN_BE
+  rp->surrounding_name_linkage_state
+                                  = (a_name_linkage_kind)nlk_none;
+#endif /* BACK_END_IS_CP_GEN_BE */
 #if CHECKING
   rp->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */

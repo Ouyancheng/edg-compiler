@@ -4939,6 +4939,13 @@ typedef struct a_routine {
   a_bit_field	expl_template_arg_list_used:1;
 			/* TRUE if an explicit template argument list was ever
 			   used in naming this (template) function. */
+#if BACK_END_IS_CP_GEN_BE
+  a_bit_field	surrounding_name_linkage_state:NUM_BITS_FOR_NAME_LINKAGE;
+			/* Name linkage in effect when this routine was
+			   defined.  Used by the C++-generating back end to
+			   reconstruct name linkage blocks when appropriate
+			   (e.g., extern "C" { static int f() { ... } }). */
+#endif /* BACK_END_IS_CP_GEN_BE */
   bitfield_to_avoid_codecenter_warnings()
 #if DECL_MODIFIERS_IN_USE
   a_decl_modifier
