@@ -1,11 +1,11 @@
 Version 2.37
 
 9/29/97   Microsoft compatibility: incorrect diagnostic on branch past
-          dynamically initialized automatic aggregate variable
+          nonconstant initialization of automatic aggregate variable
 
-In Microsoft C mode, a branch over a dynamically initialized automatic
-aggregate variable would sometimes evoke an incorrect diagnostic (an error,
-with an inappropriate message).  Now fixed.
+In Microsoft C mode, branching past the declaration of an automatic
+aggregate variable with a nonconstant initializer would sometimes evoke an
+incorrect diagnostic (an error, with an inappropriate message).  Now fixed.
 
   void f(int i) {
     if (i) goto L2;       // Warning is now issued in Microsoft C mode
