@@ -1,5 +1,18 @@
 Version 2.46
-  
+
+1/15/01  Incorrect lowering of cast between real and imaginary types
+
+In C99, the conversion of a real expression to an imaginary type (or vice
+versa) results in a zero value.  However, the C99 complex lowering routines
+used to just change the type of the converted converted expression (if it was
+not a constant).
+
+  _Imaginary double id = 1.2 * __I__;
+  double rd = id;  // Should be zero, but used to be lowered as if
+                   // id were real with value 1.2.
+
+This is now fixed.
+
 1/15/01  Missing diagnostic and possible abort on wrong number of template<>
          constructs
 

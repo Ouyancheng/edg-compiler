@@ -734,10 +734,14 @@ Transform the given complex cast expression into a function call
                            src->type, (a_type_ptr)NULL, src);
       cast_call = add_cast_if_necessary(cast_call, dst_type);
       overwrite_node(expr, cast_call);
+    } else if (is_real_floating_type(src_type)) {
+      /* A real value converted to an imaginary type is always zero. */
+      set_expr_node_kind(expr, (an_expr_node_kind)enk_constant);
+      expr->variant.constant = fs_constant((a_constant_repr_kind)ck_float);
+      make_zero_of_proper_type(float_type(dst_type->variant.float_kind),
+                               expr->variant.constant);
     } else {
-      /* Nothing to be done (imaginary->imaginary becomes real->real once the
-         imaginary types have been lowered, and real->imaginary becomes
-         real->real once the imaginary types have been lowered). */
+      /* Nothing to be done (imaginary->imaginary). */
     }  /* if */
   } else {
     if (is_complex_type(src_type)) {
@@ -765,10 +769,13 @@ Transform the given complex cast expression into a function call
                            src->type, (a_type_ptr)NULL, src);
       cast_call = add_cast_if_necessary(cast_call, dst_type);
       overwrite_node(expr, cast_call);
+    } else if (is_imaginary_type(src_type)) {
+      /* An imaginary value converted to a real type is always zero. */
+      set_expr_node_kind(expr, (an_expr_node_kind)enk_constant);
+      expr->variant.constant = fs_constant((a_constant_repr_kind)ck_float);
+      make_zero_of_proper_type(dst_type, expr->variant.constant);
     } else {
-      /* Nothing to be done (imaginary->real becomes real->real once the
-         imaginary types have been lowered, and real->real is already
-         correct). */
+      /* Nothing to be done (real->real). */
     }  /* if */
   }  /* if */
 }  /* lower_c99_complex_cast */
