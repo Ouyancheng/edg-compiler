@@ -1,5 +1,11 @@
 Version 2.31
 
+1/16/96   Address of register variable allowed in C mode
+
+The address of a register variable may now be taken in C mode (except
+in strict error mode).  A warning is issued.  Formerly, this was
+only permitted in SVR4 C mode.
+
 1/16/96   ANSI preprocessing operators accepted in PCC preprocessing mode
 
 The ANSI preprocessing operators for stringizing and token pasting are
