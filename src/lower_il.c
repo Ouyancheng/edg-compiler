@@ -10648,6 +10648,7 @@ it is left alone.  expr is being used as an lvalue if is_lvalue is TRUE.
       an_expr_node_ptr gchild3, newop1, newop2;
       an_expr_node_ptr c2_init = NULL;
       a_type_ptr       expr_type = expr->type;
+      a_boolean        orig_expr_result_is_not_used = expr->result_is_not_used;
       if (child_op == (an_expr_operator_kind)eok_question) {
         /* Lvalue "?" rewrite.  Change
              ((g1 ? g2 : g3) = c2)
@@ -10670,14 +10671,10 @@ it is left alone.  expr is being used as an lvalue if is_lvalue is TRUE.
         }  /* if */
         /* Build (g2 = c2). */
         newop1 = copy_node(expr);
-        /* newop1->result_is_not_used is FALSE, which is right, regardless
-           of whether the result of the "?" is used, because the "?" does
-           not have void type (it's an lvalue, so it has a pointer type). */
         newop1->variant.operation.operands = gchild2;
         gchild2->next = child2;
         /* Build (g3 = c2) using a copy of c2. */
         newop2 = copy_node(expr);
-        /* Likewise, newop2->result_is_not_used is properly FALSE. */
         newop2->variant.operation.operands = gchild3;
         gchild3->next = (child2 != NULL) ?
                                  copy_expr_tree(child2, CE_NO_OPTIONS) :
@@ -10700,7 +10697,6 @@ it is left alone.  expr is being used as an lvalue if is_lvalue is TRUE.
            for unary operations. */
         /* Build (g2 = c2). */
         newop1 = copy_node(expr);
-        /* newop1->result_is_not_used is properly FALSE; see comment above. */
         newop1->variant.operation.operands = gchild2;
         gchild2->next = child2;
         newop2 = NULL;
@@ -10731,6 +10727,12 @@ it is left alone.  expr is being used as an lvalue if is_lvalue is TRUE.
       /* Restore the original expression type.  This matters when the
          operation above the "?" or "," is a cast. */
       expr->type = expr_type;
+      if (orig_expr_result_is_not_used) {
+        /* Record that the expression is not used.  This does something
+           only in rare cases (e.g., a void cast above an lvalue
+           assignment). */
+        set_expr_result_not_used(expr);
+      }  /* if */
     } else if (expr->variant.operation.returns_lvalue_instead_of_usual_rvalue&&
                (op != (an_expr_operator_kind)eok_question &&
                 op != (an_expr_operator_kind)eok_comma)) {
