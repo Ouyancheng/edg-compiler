@@ -523,6 +523,18 @@ as needed.
     } else {
       /* The flag is not set, so set it and keep walking. */
       scp->needed = TRUE;
+      if (entry_kind == iek_routine) {
+        /* The entry is a routine.  If it has a definition, walk it now.
+           Note that walking the routine and its subtree will not
+           automatically walk the body. */
+        a_routine_ptr rout = (a_routine_ptr)entry_ptr;
+        if (rout->defined) {
+          a_scope_ptr scope = il_header.region_scope_entry[rout->assoc_scope];
+          check_assertion_str(scope != NULL,
+              "prune_needed_flag_il_walk: needed routine scope not in memory");
+          walk_tree_and_set_needed((char *)scope, iek_scope);
+        }  /* if */
+      }  /* if */
       /* If this is an entry that might be redeclared or redefined later,
          do not walk its subtree now. */
       if (should_not_walk_subtree(entry_ptr, entry_kind)) prune = TRUE;
@@ -550,30 +562,28 @@ Routine called during the "needed" flag IL walk, to process an entry after
 its subtree has been walked.
 */
 {
-  /* After we've processed the subtree of a function with a definition,
-     we can dispose of the IL for the function. */
-  if (entry_kind == iek_routine) {
-    a_routine_ptr rout = (a_routine_ptr)entry_ptr;
-    /* Note that we test the "defined" flag (and not assoc_scope !=
-       NULL_region_number) so we won't be fooled if we're in the middle of
-       processing the routine definition. */
-    if (rout->defined) {
-      /* The routine has a (completed) definition. */
-      a_memory_region_number scope_region_number = rout->assoc_scope;
-      a_scope_ptr scope = il_header.region_scope_entry[rout->assoc_scope];
-      if (scope->depth_in_scope_stack != NO_SCOPE_DEPTH) {
+  /* After we've processed a function scope, we can dispose of the IL for
+     the function. */
+  if (entry_kind == iek_scope) {
+    a_scope_ptr scope = (a_scope_ptr)entry_ptr;
+    if (scope->kind == (a_scope_kind)sck_function) {
+      /* This is a function scope. */
+      /* The IL for the function will not be changing any more, so walk
+         it to note what needs to be kept in the IL (specifically, what
+         in the file scope memory region needs to be kept in the IL). */
+      mark_to_keep_in_il((char *)scope, iek_scope);
+      /* Decide on disposing of the memory region. */
+      if (scope->depth_in_scope_stack != NO_SCOPE_DEPTH ||
+          innermost_function_scope == scope) {
         /* This function's scope is still on the scope stack, so do nothing
            now.  check_for_done_with_memory_region will be called when the
-           scope is popped off the stack. */
+           scope is popped off the stack.  The innermost_function_scope
+           test is needed for generated routines in IL lowering, since they're
+           not on the scope stack. */
       } else {
-        /* This is a previously-defined function that has just been
-           identified as needed. */
-        /* The IL will not be changing any more, so walk it to note what
-           needs to be kept in the IL (specifically, what in the file scope
-           memory region needs to be kept in the IL). */
-        mark_to_keep_in_il((char *)scope, iek_scope);
         /* We may be able to dispose of the memory region now. */
-        check_for_done_with_memory_region(scope_region_number);
+        a_routine_ptr rout = scope->variant.routine.ptr;
+        check_for_done_with_memory_region(rout->assoc_scope);
       }  /* if */
     }  /* if */
   }  /* if */

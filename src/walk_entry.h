@@ -669,15 +669,6 @@ the file scope, do not process it (but record an orphan in the latter case).
 #ifdef CFE
         walk_list_not_needed(ptr->befriending_classes, a_class_list_entry_ptr,
                              iek_class_list_entry);
-#if NEEDED_FLAG_WALK
-        /* If the routine has a definition, walk it. */
-        if (ptr->assoc_scope != NULL_region_number) {
-          a_scope_ptr scope = il_header.region_scope_entry[ptr->assoc_scope];
-          check_assertion_str(scope != NULL,
-               "walk_tree_and_set_needed: needed routine scope not in memory");
-          walk_ptr(scope, a_scope_ptr, iek_scope);
-        }  /* if */
-#endif /* NEEDED_FLAG_WALK */
 #endif /* ifdef CFE */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         walk_ptr(ptr->declared_type, a_type_ptr, iek_type);
