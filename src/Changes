@@ -11,7 +11,7 @@ appears on the types list of the file scope.)  For example:
   void f(p) struct x *p; { }
   void g(struct y *p) { }
 
-In C mode the types x and y now appear on types list of the prototype
+In C mode the types x and y now appear on the types lists of the prototype
 scope entries for f and g, respectively.  (In C++ mode there is no change
 from previous behavior: both x and y appear on the types list of the file
 scope.)
