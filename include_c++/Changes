@@ -1,4 +1,4 @@
-Version 2.46
+Version 3.0
 
 11/1/01  exception and stdexcept headers updated
 
@@ -7,6 +7,7 @@ in the standard.  In particular, the exception class was defined in
 stdexcept instead of exception.  The headers we provide are not complete
 (because we don't, in general, supply library components) but to the
 extent that we do provide them, they now conform to the standard.
+
 -------------------------------------------------------------------------------
 Version 2.45, December 26, 2000
 
