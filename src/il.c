@@ -9696,7 +9696,7 @@ returns the successor of ssep.
         }  /* if */
       }  /* if */
       break;
-    default:
+    default:;
       /* Leave tag_type NULL. */
   }  /* switch */
   if (tag_type != NULL) {
