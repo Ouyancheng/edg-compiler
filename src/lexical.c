@@ -5381,7 +5381,7 @@ This routine may only be called in C++ mode.
   a_boolean     	is_qualified_name = FALSE;
   a_boolean             is_ptr_to_member = FALSE;
   a_boolean		is_identifier = FALSE;
-  a_symbol_ptr		class_symbol;
+  a_symbol_ptr		class_symbol = NULL;
   a_source_position	start_position;
   a_source_position	orig_error_position;
   a_token_kind		next_tok;
@@ -5782,9 +5782,10 @@ This routine may only be called in C++ mode.
 	   we have a typedef name.  For a type name like "int" it will
 	   already have been set. */
         dtor_class_type = class_type;
-        if (is_global_qualified_name || class_symbol == NULL) {
+        if (is_global_qualified_name) {
 	  class_type = NULL;
-	} else if ((cowam = class_symbol->class_of_which_a_member) != NULL) {
+	} else if (class_symbol != NULL &&
+                   (cowam = class_symbol->class_of_which_a_member) != NULL) {
           type_sym = class_qualified_id_lookup(&locator_for_curr_id, cowam,
                                                IDL_NO_OPTIONS);
 	} else {
@@ -5796,6 +5797,9 @@ This routine may only be called in C++ mode.
 	  /* If the symbol found is a type, get the type pointed to. */
 	  dtor_type = type_symbol_type(type_sym);
           dtor_type = skip_typerefs(dtor_type);
+          /* This will eventually result in the locator qualifier class type
+	     being set to the type of the vacuous destructor. */
+          class_type = dtor_type;
 	}  /* if */
       } else {
 	/* A type keyword (e.g. int, long, etc.). Get the type
