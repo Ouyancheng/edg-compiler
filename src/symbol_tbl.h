@@ -945,12 +945,13 @@ extern a_symbol_ptr find_symbol(char             *identifier,
 			        sizeof_t         identifier_length,
 				a_symbol_locator *location);
 
-extern a_symbol_ptr find_projected_symbol(a_type_ptr        class_ptr,
-                                          a_symbol_locator  *locator,
-                                          a_boolean         must_be_tag,
-                                          a_boolean         must_be_type_name,
-                                          a_boolean         add_to_active_list,
-                                          a_symbol_ptr      insert_sym);
+extern a_boolean find_projected_symbol(a_type_ptr        class_ptr,
+                                       a_symbol_locator  *locator,
+                                       a_boolean         must_be_tag,
+                                       a_boolean         must_be_type_name,
+                                       a_boolean         add_to_active_list,
+                                       a_symbol_ptr      insert_sym,
+                                       a_symbol_ptr      *projected_symbol);
 
 extern void make_locator_for_symbol(a_symbol_ptr     sym_ptr,
                                     a_symbol_locator *location);

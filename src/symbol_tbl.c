@@ -2573,12 +2573,13 @@ through back to the caller.
 }  /* find_progenitor_symbol */
 
 
-a_symbol_ptr find_projected_symbol(a_type_ptr        class_ptr,
-                                   a_symbol_locator  *locator,
-                                   a_boolean         must_be_tag,
-                                   a_boolean         must_be_type_name,
-                                   a_boolean         add_to_active_list,
-                                   a_symbol_ptr      insert_sym)
+a_boolean find_projected_symbol(a_type_ptr        class_ptr,
+                                a_symbol_locator  *locator,
+                                a_boolean         must_be_tag,
+                                a_boolean         must_be_type_name,
+                                a_boolean         add_to_active_list,
+                                a_symbol_ptr      insert_sym,
+                                a_symbol_ptr      *projected_symbol)
 /*
 Given class_ptr, which identifies a class (or struct or union) type, search
 its base classes for a symbol that projects the name specified in *locator
@@ -2594,9 +2595,9 @@ it is added to the end of the scope entry symbol list for the class.
 */
 {
   a_derivation_step_ptr        path = NULL;
-  a_symbol_ptr                 new_sym, progenitor_sym;
+  a_symbol_ptr                 progenitor_sym, new_sym = NULL;
   an_access_specifier          access;
-  a_boolean                    ambiguous = FALSE;
+  a_boolean                    ambiguous = FALSE, found;
   a_scope_stack_entry_ptr      ssep;
 
   db_enter(4, "find_projected_symbol");
@@ -2610,64 +2611,69 @@ it is added to the end of the scope entry symbol list for the class.
   progenitor_sym = find_progenitor_symbol(class_ptr, locator, must_be_tag,
                                           &path, &access, &ambiguous);
   if (progenitor_sym == NULL) {
-    /* Indicate that no symbol was found by returning a NULL pointer. */
-    new_sym = NULL;
-  } else if (must_be_type_name && !is_type_symbol(progenitor_sym)) {
-    /* The symbol found is not a type name symbol, so do not create a
-       projection for it. */
-    new_sym = NULL;
+    /* Indicate that no symbol was found and return a NULL pointer. */
+    found = FALSE;
   } else {
-    /* Create a new symbol based on the symbol returned. */
-    new_sym = make_projection_symbol(progenitor_sym, class_ptr,
-                                     path, ambiguous);
-    new_sym->variant.projection.access = access;
-    free_derivation_step(path);
-    /* Add the symbol to the symbol table. */
-    if (add_to_active_list) {
-      /* Insert the symbol into the active list. */
-      if (insert_sym == NULL) {
-        /* Insert at head of list. */
-        new_sym->next = locator->symbol_header->symbol;
-        locator->symbol_header->symbol = new_sym;
-      } else {
-        /* Insert following insert_sym. */
-        new_sym->next = insert_sym->next;
-        insert_sym->next = new_sym;
-      }  /* if */
-      /* Add the symbol to the scope symbol list, so that it will be moved
-         to the inactive list when the scope is popped. */
-      for (ssep = &scope_stack[depth_scope_stack];
-           new_sym->decl_scope != ssep->number;
-           ssep--) {
-#if CHECKING
-        if (ssep == &scope_stack[0]) {
-#if DEBUG
-          if (debug_level > 0) {
-            fprintf(f_debug, "symbol name = %s\n",
-                              new_sym->header->identifier);
-          }  /* if */
-#endif /* DEBUG */
-          internal_error("find_projected_symbol: bad scope");
-        }  /* if */
-#endif /* CHECKING */
-      }  /* for */
-      if (ssep->symbols != NULL) {
-        ssep->last_symbol->next_in_scope = new_sym;
-      } else {
-        ssep->symbols = new_sym;
-      }  /* if */
-      ssep->last_symbol = new_sym;
+    /* A symbol was found. */
+    found = TRUE;
+    if (must_be_type_name && !is_type_symbol(progenitor_sym)) {
+      /* The symbol found is not a type name symbol, so do not create a
+         projection for it. */
     } else {
-      /* Add it to the inactive list.  It can go at the beginning. */
-      new_sym->next = locator->symbol_header->inactive_symbols;
-      locator->symbol_header->inactive_symbols = new_sym;
-    }  /* if */
+      /* Create a new symbol based on the symbol returned. */
+      new_sym = make_projection_symbol(progenitor_sym, class_ptr,
+                                       path, ambiguous);
+      new_sym->variant.projection.access = access;
+      free_derivation_step(path);
+      /* Add the symbol to the symbol table. */
+      if (add_to_active_list) {
+        /* Insert the symbol into the active list. */
+        if (insert_sym == NULL) {
+          /* Insert at head of list. */
+          new_sym->next = locator->symbol_header->symbol;
+          locator->symbol_header->symbol = new_sym;
+        } else {
+          /* Insert following insert_sym. */
+          new_sym->next = insert_sym->next;
+          insert_sym->next = new_sym;
+        }  /* if */
+        /* Add the symbol to the scope symbol list, so that it will be moved
+           to the inactive list when the scope is popped. */
+        for (ssep = &scope_stack[depth_scope_stack];
+             new_sym->decl_scope != ssep->number;
+             ssep--) {
+#if CHECKING
+          if (ssep == &scope_stack[0]) {
 #if DEBUG
-    if (debug_level >= 4) db_symbol(new_sym, "symbol created: ", 2);
+            if (debug_level > 0) {
+              fprintf(f_debug, "symbol name = %s\n",
+                                new_sym->header->identifier);
+            }  /* if */
 #endif /* DEBUG */
+            internal_error("find_projected_symbol: bad scope");
+          }  /* if */
+#endif /* CHECKING */
+        }  /* for */
+        if (ssep->symbols != NULL) {
+          ssep->last_symbol->next_in_scope = new_sym;
+        } else {
+          ssep->symbols = new_sym;
+        }  /* if */
+        ssep->last_symbol = new_sym;
+      } else {
+        /* Add it to the inactive list.  It can go at the beginning. */
+        new_sym->next = locator->symbol_header->inactive_symbols;
+        locator->symbol_header->inactive_symbols = new_sym;
+      }  /* if */
+#if DEBUG
+      if (debug_level >= 4) db_symbol(new_sym, "symbol created: ", 2);
+#endif /* DEBUG */
+    }  /* if */
   }  /* if */
+  *projected_symbol = new_sym;
+
   db_exit();
-  return new_sym;
+  return found;
 }  /* find_projected_symbol */
 
 
@@ -2838,14 +2844,20 @@ C and C++.
         if (look_for_projected_symbol) {
           must_be_type_name = 
                     (options & IDL_DO_NOT_MAKE_PROJECTION_IF_NOT_TYPE_NAME);
-          sym = find_projected_symbol(ssep->assoc_type, locator, must_be_tag,
-                                      must_be_type_name, add_to_active_list,
-                                      insert_sym);
-          if (sym != NULL) {
-            /* A projection symbol was created.  It must still satisfy the
-               constraints for this lookup. */
-            if (is_acceptable_symbol(sym)) goto end_lookup;
-            sym = NULL;
+          if (find_projected_symbol(ssep->assoc_type, locator, must_be_tag,
+                                    must_be_type_name, add_to_active_list,
+                                    insert_sym, &sym)) {
+            if (sym == NULL) {
+              /* A symbol was found in a base class, but it was not returned
+                 (presumably because must_be_type_name was not satisfied).
+                 Don't continue looking. */
+              goto end_lookup;
+            } else {
+              /* A projection symbol was created.  It must still satisfy the
+                 constraints for this lookup. */
+              if (is_acceptable_symbol(sym)) goto end_lookup;
+              sym = NULL;
+            }  /* if */
           }  /* if */
         }  /* if */
         /* End the loop when we reach the bottom of the scope stack. */
@@ -3025,9 +3037,9 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
                                                  class_type,
                                                  &add_to_active_list,
                                                  &insert_sym);
-      sym = find_projected_symbol(class_type, locator, /*must_be_tag=*/FALSE,
+      (void)find_projected_symbol(class_type, locator, /*must_be_tag=*/FALSE,
                                   /*must_be_type_name=*/FALSE,
-                                  add_to_active_list, insert_sym);
+                                  add_to_active_list, insert_sym, &sym);
     }  /* if */
 end_lookup:
     locator->specific_symbol = sym;

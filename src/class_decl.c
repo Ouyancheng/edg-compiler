@@ -4512,11 +4512,10 @@ destination type is not yet on the current class's conversion list.
              list entry. */
           make_locator_for_symbol(bcclep->symbol, &loc);
           loc.specific_symbol = NULL;
-          clep->symbol = find_projected_symbol(class_type, &loc,
-                                               /*must_be_tag=*/FALSE,
-                                               /*must_be_type_name=*/FALSE,
-                                               /*add_to_active_list=*/TRUE,
-                                               (a_symbol_ptr)NULL);
+          (void)find_projected_symbol(class_type, &loc, /*must_be_tag=*/FALSE,
+                                      /*must_be_type_name=*/FALSE,
+                                      /*add_to_active_list=*/TRUE,
+                                      (a_symbol_ptr)NULL, &clep->symbol);
 #if CHECKING
           if (clep->symbol == NULL) {
             internal_error(
