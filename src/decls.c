@@ -3752,9 +3752,9 @@ on for use in generating cross-reference output describing this declaration.
           } else {
             /* It must be that this function has a body as a result of a
                prior instantiation. */
-            check_assertion_str(routine_ptr->is_inline && routine_ptr->called,
-                                "decl_routine: template function specific"
-                                "decl -- already has a definition");
+            check_assertion_str2(routine_ptr->is_inline && routine_ptr->called,
+                                 "decl_routine: template function specific",
+                                 "decl -- already has a definition");
               /* An inline function template has been declared, an instance
                  of it has been referenced and therefore instantiated on
                  the fly, and now a specializing declaration appears.
