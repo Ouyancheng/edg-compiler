@@ -160,6 +160,12 @@ itself forces a specialization to be inline.
   void A<char*>::h() { }
   inline void A<float*>::h() { }
 
+10/17/95  Namespace handling in walk_declarative_entities_in_scope
+
+walk_declarative_entities_in_scope (an optional routine used by some to
+sweep the declarative information in order to generate symbolic debugging
+information) has been enhanced to deal with namespaces.
+
 10/16/95  Template member functions given incorrect linkage
 
 A template member function defined as inline outside of the
