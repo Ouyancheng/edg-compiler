@@ -1,5 +1,10 @@
 Version 2.23
 
+4/12/94  Source position in cross reference entry
+
+The cross reference source position on a qualified name appearing as a
+type in a declaration has been corrected.
+
 4/12/94  Name mangling for entities promoted out of functions
 
 The names of types and local static variables promoted out of functions
