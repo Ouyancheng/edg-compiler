@@ -1,4 +1,6 @@
-Version 2.39
+Version 2.39, August 10, 1998
+
+8/9/98    IL version number changed to 2.31
 
 8/8/98    C++-generating back end: template instantiations triggered by
           base specifiers
