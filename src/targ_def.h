@@ -1422,6 +1422,15 @@ template parameters that are not part of the signature of the function
 template.
 */
 #ifndef DEFAULT_DISTINCT_TEMPLATE_SIGNATURES
+
+/* This configuration flag was renamed.  If there is no definition for
+   the new name, but there is one for the old name, use the value specified
+   for the old name. */
+#ifdef DEFAULT_DISTINCT_MANGLING_FOR_TEMPLATES
+#define DEFAULT_DISTINCT_TEMPLATE_SIGNATURES \
+        DEFAULT_DISTINCT_MANGLING_FOR_TEMPLATES
+#else /* ifndef DEFAULT_DISTINCT_MANGLING_FOR_TEMPLATES */
+
 /* This feature CAN be turned on when CFRONT_OBJECT_CODE_COMPATIBILITY is on,
    but that produces a cfront-like ABI rather than a cfront-compatible ABI. */
 #if ABI_COMPATIBILITY_VERSION < 232 || CFRONT_OBJECT_CODE_COMPATIBILITY
@@ -1429,6 +1438,8 @@ template.
 #else /* !(ABI_COMPATIBILITY_VERSION < 232 || ...) */
 #define DEFAULT_DISTINCT_TEMPLATE_SIGNATURES TRUE
 #endif /* ABI_COMPATIBILITY_VERSION < 232 || ... */
+
+#endif /* ifdef DEFAULT_DISTINCT_MANGLING_FOR_TEMPLATES */
 #endif /* ifndef DEFAULT_DISTINCT_TEMPLATE_SIGNATURES */
 
 /*
