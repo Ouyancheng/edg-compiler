@@ -14483,6 +14483,11 @@ is instantiated in every translation unit that uses it.
        promote the local statics in case the implementation technique is
        to replicate the body of the primary function. */
     multiple_copies = TRUE;
+  } else if (rout->next != NULL &&
+             rout->next->overriding_function_for_covariant_return_type==rout) {
+    /* Also, if the routine has a thunk the thunk might be implemented by
+       replicating the function body. */
+    multiple_copies = TRUE;
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
   }  /* if */
   return multiple_copies;
@@ -15170,6 +15175,11 @@ Do IL lowering of the indicated scope and everything under it.
       } /* if */
     }  /* if */
 #endif /* DEBUG */
+    if (routine->source_corresp.is_class_member) {
+      /* Member function.  Make sure that the class it is a member of has
+         been pre-lowered. */
+      prelower_class_type(routine->source_corresp.parent.class_type);
+    }  /* if */
     routine_type = routine->type;
     routine_type = skip_typerefs(routine_type);
     rtsp = routine_type->variant.routine.extra_info;
@@ -15230,6 +15240,32 @@ Do IL lowering of the indicated scope and everything under it.
         param_var->type = make_pointer_type(param_var->type);
       }  /* if */
     }  /* for */
+#if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+    if (routine->
+#if IA64_ABI
+                 is_virtual
+#else /* !IA64_ABI */
+                 covariant_return_virtual_override
+#endif /* !IA64_ABI */
+                                                  ) {
+      /* This routine is an overriding virtual function with a covariant
+         return type, or an IA-64 ABI thunk.  Generate declarations for
+         the entry/wrapper functions used in the virtual function
+         table. */
+      /* Note that this must be done before the promote-local-entities
+         code so that routine_might_exist_in_multiple_copies can know
+         whether any thunks are needed. */
+#if IA64_ABI
+      if (routine->special_kind == (a_special_function_kind)sfk_destructor &&
+          routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_none) {
+        /* Create all the alternate entry points for a destructor so we
+           can add thunks if necessary. */
+        create_alternate_entry_points(routine, /*define_now=*/FALSE);
+      }  /* if */
+#endif /* IA64_ABI */
+      add_covariant_return_type_entry_routines(routine);
+    }  /* if */
+#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
   }  /* if */
   lower_constant_list(scope->constants);
   if (lowering_file_scope) {
@@ -15302,9 +15338,6 @@ Do IL lowering of the indicated scope and everything under it.
        of assoc_block below. */
     lower_scope_list(scope->scopes);
     if (routine->source_corresp.is_class_member) {
-      /* Member function.  Make sure that the class it is a member of has
-         been pre-lowered. */
-      prelower_class_type(routine->source_corresp.parent.class_type);
       /* Add implicit parameters to constructors and destructors. */
       if (routine->special_kind == (a_special_function_kind)sfk_constructor) {
         add_constructor_params(scope);
@@ -15368,21 +15401,6 @@ Do IL lowering of the indicated scope and everything under it.
       create_alternate_entry_points(routine, /*define_now=*/TRUE);
     }  /* if */
 #endif /* IA64_ABI */
-#if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
-    if (routine->
-#if IA64_ABI
-                 is_virtual
-#else /* !IA64_ABI */
-                 covariant_return_virtual_override
-#endif /* !IA64_ABI */
-                                                  ) {
-      /* This routine is an overriding virtual function with a covariant
-         return type.  Generate declarations for the entry/wrapper functions
-         used to call this routine when a base class return type is
-         needed. */
-      add_covariant_return_type_entry_routines(scope->variant.routine.ptr);
-    }  /* if */
-#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
   }  /* if */
   if (scope_kind != (a_scope_kind)sck_file) pop_context();
   innermost_function_scope = saved_innermost_function_scope;
