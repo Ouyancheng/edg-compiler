@@ -2811,7 +2811,10 @@ field cannot be passed as a constant.
        do it in all cases. */
     anon_parent_sym = field_sym;
     while ((anon_parent_sym =
-            anon_parent_sym->variant.field.anonymous_parent_object) != NULL) {
+            anon_parent_sym->variant.field.anonymous_parent_object) != NULL &&
+           /* Ignore the last step it it's for a top-level (variable)
+              anonymous union. */
+           anon_parent_sym->kind != (a_symbol_kind)sk_variable) {
       check_assertion(anon_parent_sym->kind == (a_symbol_kind)sk_field);
       /* ... add the offset of the anonymous union, ... */
       set_unsigned_integer_value(&field_offset,
