@@ -1,5 +1,23 @@
 Version 3.5
 
+5/19/04  static inline duplicated with ONE_INSTANTIATION_PER_OBJECT
+
+In ONE_INSTANTIATION_PER_OBJECT mode, static inline functions are
+made external in a compilation containing instantiations so that
+the separate object files for the instantiations can all refer
+to one copy of the static function.  This was handled incorrectly
+in the C-generating back end when LOWER_EXTERN_INLINE is TRUE and
+IA64_ABI is FALSE: each instantiation object file contained a
+definition of the external function, instead of an external
+reference to the function, which could cause link-time "duplicate
+definition" error.  Now fixed.
+
+This directly affects only those using the C-generating back end,
+but anyone who copied the logic in the C-generating back end
+that decides whether to put out a definition (in particular,
+a test using the macro treat_as_static_inline) might have
+copied the logic error and might want to revise that code.
+
 5/18/04  Error on goto over declaration of class variable without destructor
 
 A transfer of control past the declaration of a class variable and

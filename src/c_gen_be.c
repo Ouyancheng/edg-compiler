@@ -7947,16 +7947,13 @@ if this routine has a body (dump nothing if it has no body).
   }  /* if */
 #if ONE_INSTANTIATION_PER_OBJECT
   if (has_defn && needed_flag_bit_number != 0 &&
-#if DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES
-      !rout->source_corresp.duplicate_static_in_instantiation_slices &&
-#endif /* DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES */
-      !treat_as_static_inline(rout)) {
+      rout->storage_class != (a_storage_class)sc_static) {
     /* We're generating separate files for each instantiation, so do not
        put instantiation definitions into the primary output file, or
        primary-file routine definitions into the instantiation files.
-       (Exceptions are inline functions and certain static routines that
-       are explicitly marked to be put into every slice that references
-       them.) */
+       (Exceptions are extern inline functions lowered to static and
+       certain static routines that are explicitly marked to be put
+       into every slice that references them.) */
     if (rout->instantiation_needed_bit_number != 0) {
       /* This routine is an instantiation and goes out only it its own
          file. */
