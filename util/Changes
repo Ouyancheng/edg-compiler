@@ -1,5 +1,14 @@
 Version 2.21
 
+12/16/93 Change in name of prelinker options
+
+The nm format option for Solaris has been changed from SVR4 to Solaris
+because we learned that the Solaris format is actually different from
+the standard SVR4 format.
+
+The M88K option has been renamed to SVR4 because it more closely matches
+the standard SVR4 nm output.
+
 12/14/93 Command line information in .ii file in preprocessing mode
 
 The eccp script no longer updates the command line information in the .ii

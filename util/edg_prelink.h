@@ -48,7 +48,7 @@ extern FILE* popen(char *command, char *mode);
 
 /* Command to be used to produce a namelist of an object file. */
 static char		default_nm_command[] = "/bin/nm -og";
-static char		SVR4_nm_command[] = "/bin/nm -pxR";
+static char		solaris_nm_command[] = "/bin/nm -pxR";
 static char		SGI_nm_command[] = "/bin/nm -Bopg";
 static char		CLIX_nm_command[] = "/bin/nm -pxre";
 static char		alternate_nm_command[] = "/bin/nm -pxr";

@@ -229,11 +229,11 @@ static a_boolean		limit_recursion = TRUE;
 typedef enum /* an_nm_format_kind */ {
 	nmfk_default,
 		/* SunOS 4.1. */
-	nmfk_SVR4,
-		/* SVR4 - Solaris 2. */
+	nmfk_solaris,
+		/* Solaris 2. */
 	nmfk_SGI,
 		/* Silicon Graphics. */
-	nmfk_M88K,
+	nmfk_SVR4,
 		/* Motorola 88K SVR4. */
         nmfk_HPUX,
 		/* HP/UX. */
@@ -517,16 +517,13 @@ Issue an invalid input error and exit.
 }  /* pl_invalid_input */
 
 
-static a_boolean pl_scan_SVR4_nm_line(char	**name1,
-				      char	**name2,
-				      char	*type,
-				      char	**symbol_name)
+static a_boolean pl_scan_solaris_nm_line(char	**name1,
+				         char	**name2,
+				         char	*type,
+				         char	**symbol_name)
 /*
 Read the output of the nm command.  This routine is written to accept
-the output of the nm command on SVR4 using the -p -x and -R options.
-This routine was designed to accept the input from Solaris 2.x.  If this
-format differs from the standard SVR4 format then this routine may not
-work correctly for systems other than Solaris.
+the output of the nm command on Solaris using the -p -x and -R options.
 
 The nm output is expected to look like:
 
@@ -602,7 +599,7 @@ processed further.
     if (!isalpha(*type)) pl_invalid_input();
     /* Look for blank after type. */
     if (*pos++ != ' ') pl_invalid_input();
-    /* Note that the SVR4 format is not expected to contain
+    /* Note that the Solaris format is not expected to contain
        extra leading underscores. */
     rest_of_line = pos;
     pos = strchr(rest_of_line, ':');
@@ -624,7 +621,7 @@ processed further.
     *symbol_name = rest_of_line;
   }  /* if */
   return result;
-}  /* pl_scan_SVR4_nm_line */
+}  /* pl_scan_solaris_nm_line */
 
 
 static a_boolean pl_scan_alternate_nm_line(char	**name1,
@@ -664,7 +661,7 @@ t2.o:               0000000000 U  __ct__10A__pt__2_iFv
 .../lib/libC.a:      0000000200 T  __nw__FUiPv
 .../lib/libC.a:      0000000216 T  __cgi__placenew_c_Fri_Sep_10_14_43_20_1993_
 
-For M88K the nm output is expected to look like:
+For SVR4 the nm output is expected to look like:
 
 s.o:
 
@@ -986,10 +983,10 @@ or defined in that object file.
     }  /* if */
 #endif /* DEBUG */
 
-    if (nm_format == nmfk_SVR4) {
-      process_line = pl_scan_SVR4_nm_line(&name1, &name2, &type,
-                                          &symbol_name);
-    } else if (nm_format == nmfk_M88K ||
+    if (nm_format == nmfk_solaris) {
+      process_line = pl_scan_solaris_nm_line(&name1, &name2, &type,
+                                             &symbol_name);
+    } else if (nm_format == nmfk_SVR4 ||
                nm_format == nmfk_HPUX ||
                nm_format == nmfk_CLIX) {
       process_line = pl_scan_alternate_nm_line(&name1, &name2, &type,
@@ -1895,14 +1892,14 @@ int main(int argc, char *argv[])
         break;
       case 'f':
         /* Specifies the nm line format to be expected. */
-        if (strcmp(optarg, "SVR4") == 0) {
-          nm_format = nmfk_SVR4;
+        if (strcmp(optarg, "solaris") == 0) {
+          nm_format = nmfk_solaris;
         } else if (strcmp(optarg, "SGI") == 0) {
           nm_format = nmfk_SGI;
           ignore_invalid_nm_output = TRUE;
           skip_underscore_prefix = FALSE;
-        } else if (strcmp(optarg, "M88K") == 0) {
-          nm_format = nmfk_M88K;
+        } else if (strcmp(optarg, "SVR4") == 0) {
+          nm_format = nmfk_SVR4;
         } else if (strcmp(optarg, "HPUX") == 0) {
           nm_format = nmfk_HPUX;
         } else if (strcmp(optarg, "CLIX") == 0) {
@@ -1948,13 +1945,13 @@ int main(int argc, char *argv[])
   /* Determine the nm command to be used. */
   if (nm_command != NULL) {
     /* A command was specified on the command line. */
-  } else if (nm_format == nmfk_SVR4) {
-    nm_command = SVR4_nm_command;
+  } else if (nm_format == nmfk_solaris) {
+    nm_command = solaris_nm_command;
   } else if (nm_format == nmfk_SGI) {
     nm_command = SGI_nm_command;
   } else if (nm_format == nmfk_CLIX) {
     nm_command = CLIX_nm_command;
-  } else if (nm_format == nmfk_M88K ||
+  } else if (nm_format == nmfk_SVR4 ||
              nm_format == nmfk_HPUX) {
     nm_command = alternate_nm_command;
   } else {
