@@ -21,6 +21,8 @@ expr.h -- Declarations related to expression parsing.
 #include "il.h"
 #endif /* ifndef IL_H */
 
+extern a_boolean node_has_side_effects(an_expr_node_ptr node);
+
 extern an_expr_node_ptr scan_expression(a_boolean *err);
 
 extern an_expr_node_ptr scan_void_expression(a_boolean *err);
