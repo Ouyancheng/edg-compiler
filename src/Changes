@@ -267,7 +267,7 @@ abort in define_scope_class_typeinfo_vars.  Now fixed.
 In Microsoft bugs mode, multiple brace-enclosed initializers may be provided
 for scalar variables.  The extraneous expressions must also be enclosed in
 braces.  The rules that determine which value is preserved are somewhat arcane
-but they match the bahavior of the Microsoft compilers.  For example, the
+but they match the behavior of the Microsoft compilers.  For example, the
 following is accepted and prints "f(0)123".
 
   extern "C" int printf(char const*, ...);
