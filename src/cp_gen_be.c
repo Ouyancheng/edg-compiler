@@ -1613,7 +1613,7 @@ initialized is not a reference.
   } else if (type != NULL && is_reference_type(type)) {
     /* Initializing a reference.  The constant must be displayed with one
        level of indirection removed. */
-    form_reference_init_constant(constant, /*need_parens=*/TRUE, &octl);
+    form_lvalue_address_constant(constant, /*need_parens=*/TRUE, &octl);
   } else if (il_header.source_language == sl_C &&
              is_implicitly_cast_integral_constant(constant)) {
     /* An integral constant that can be implicitly converted to another
@@ -3287,6 +3287,12 @@ precedence confusion.
         processed = TRUE;
       }  /* if */
     }  /* if */
+  } else if (kind == (an_expr_node_kind)enk_constant &&
+             node->variant.constant->kind == (a_constant_repr_kind)ck_address){
+    /* Using an address constant as the lvalue address. */
+    form_lvalue_address_constant(node->variant.constant, /*need_parens=*/TRUE,
+                                 &octl);
+    processed = TRUE;
   } else if (kind == (an_expr_node_kind)enk_temp_init &&
              node->variant.init.result_is_addr) {
     /* A temporary initialization with the address of the temporary used as
