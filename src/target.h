@@ -191,6 +191,14 @@ typedef struct an_internal_float_value {
   a_byte bytes[TARG_SIZEOF_LONG_DOUBLE];
 } an_internal_float_value;
 
+/*
+C++ pointer-to-member type.
+*/
+#define TARG_SIZEOF_PTR_TO_DATA_MEMBER TARG_SIZEOF_SHORT
+#define TARG_ALIGNOF_PTR_TO_DATA_MEMBER TARG_ALIGNOF_SHORT
+#define TARG_SIZEOF_PTR_TO_MEMBER_FUNCTION 4
+#define TARG_ALIGNOF_PTR_TO_MEMBER_FUNCTION 2
+
 /* 
 In C++ classes with virtual functions provide a special mechanism for
 dynamic function binding.  Typically, this is a virtual function table,
