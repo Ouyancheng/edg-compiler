@@ -6590,7 +6590,8 @@ expression case (a GNU C extension) is characterized by operand_2 being NULL.
       /* do_folding = FALSE; -- already set. */
 #if ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS
     } else if (gnu_mode &&
-               ((is_expression_operand(operand_2) &&
+               ((operand_2 != NULL && 
+                 is_expression_operand(operand_2) &&
                  has_statement_expression(operand_2->variant.expression)) ||
                 (is_expression_operand(operand_3) &&
                  has_statement_expression(operand_3->variant.expression)))) {
@@ -6602,8 +6603,9 @@ expression case (a GNU C extension) is characterized by operand_2 being NULL.
                is_constant_operand(operand_3)) {
       /* Fold if the second and third operands are constants. */
       do_folding = TRUE;
-    } else if (((operand_2->ruled_out_expr_kinds |
-                 operand_3->ruled_out_expr_kinds) & ROEK_CONSTANT) == 0) {
+    } else if ((operand_2 == NULL ||
+                !(operand_2->ruled_out_expr_kinds & ROEK_CONSTANT)) &&
+               !(operand_3->ruled_out_expr_kinds & ROEK_CONSTANT)) {
       /* Fold if all the operands have the form of a constant expression.
          This deals with cases like 0 ? 1 : 1/0, in which the last operand
          would not be in constant form because it couldn't be folded. */
