@@ -11634,7 +11634,7 @@ functions have been removed from the IL.
         ssep = ssep->next;
         for (; ssep != NULL; ssep = ssep->next) {
           check_assertion(ssep != NULL);
-          kind = ssep->entity.kind;
+          kind = (an_il_entry_kind)ssep->entity.kind;
           if (kind == (an_il_entry_kind)iek_src_seq_end_of_construct) {
             if (ss_entry_ptr(ssep, a_src_seq_end_of_construct_ptr)->
                                            entity.ptr == (char *)class_type) {
@@ -11644,7 +11644,8 @@ functions have been removed from the IL.
             }  /* if */
           } else if (kind == (an_il_entry_kind)iek_src_seq_secondary_decl) {
             sssdp = ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
-            if (sssdp->entity.kind == (an_il_entry_kind)iek_routine &&
+            if ((an_il_entry_kind)sssdp->entity.kind ==
+                                               (an_il_entry_kind)iek_routine &&
                 sssdp->declared_type != NULL) {
               eliminate_default_arg_object_lifetimes(sssdp->declared_type);
             }  /* if */
