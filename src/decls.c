@@ -2958,6 +2958,25 @@ namespace-extension scope.
         *linkage = idl_external;
       }  /* if */
       *effective_decl_level = depth_scope_stack;
+      if (!is_friend_decl &&
+          linked_symbol->kind == (a_symbol_kind)sk_routine &&
+          linked_symbol->variant.routine.instance_ptr != NULL) {
+        /* This is an out-of-scope definition of a namespace template
+           function.  Be sure there is a prior declaration -- i.e., that
+           this was not just instantiated by a reference or as a result of
+           this very declaration (i.e., in the call to find_linked_symbol):
+             namespace N {
+               template <class T> void f(T);
+               void f(int);
+             }
+             void N::f(int) { ... }          // Okay
+             void N::f(double) { ... }       // Error
+        */
+        if (!linked_symbol->variant.routine.instance_ptr->specific_decl) {
+          pos_sy_error(ec_no_prior_declaration, &locator->source_position,
+                       linked_symbol);
+        }  /* if */
+      }  /* if */
     } else {
       /* The lookup failed.  Issue the right error. */
       a_symbol_ptr  sym = locator->specific_symbol;
@@ -2971,7 +2990,8 @@ namespace-extension scope.
         for (temp = overload_sym->variant.overloaded_function.symbols;
              temp != NULL;
              temp = temp->next) {
-          if (temp->kind == (a_symbol_kind)sk_routine) {
+          if (temp->kind == (a_symbol_kind)sk_routine ||
+              temp->kind == (a_symbol_kind)sk_function_template) {
             if (sym == NULL) {
               /* This is the first symbol in the overload set that is not
                  a projection symbol. */
@@ -6301,7 +6321,7 @@ block.
              is this:
                namespace UNIQUE { }
                using namespace UNIQUE;
-               namespace UNINQUE { ... }
+               namespace UNIQUE { ... }
              This enables this sort of code to work:
                namespace {
                  int i;
