@@ -95,6 +95,9 @@ typedef enum /*an_option_kind*/ {
   optk_diag_warning,
   optk_diag_error,
   optk_display_error_number,
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
+  optk_gen_c_file_name,
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -295,6 +298,10 @@ Initialize the option information table.
                          /*value=*/TRUE, /*arg_required=*/TRUE);
   add_option_description(optk_display_error_number, "display_error_number",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE);
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
+  add_option_description(optk_gen_c_file_name, "gen_c_file_name",
+                         '\0', /*value=*/TRUE, /*arg_required=*/TRUE);
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
 }  /* initialize_option_descriptions */
 
 
@@ -970,6 +977,12 @@ Process the arguments on the command line that invoked the compiler.
         check_assertion(opt_value == TRUE);
         display_error_number = TRUE;
         break;
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
+      case optk_gen_c_file_name:
+        /* The name to be used for the generated C file. */
+        gen_c_file_name = optarg;
+        break;
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
       default:
         /* It should not be possible to get here. */
         unexpected_condition();

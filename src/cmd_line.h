@@ -288,6 +288,14 @@ EXTERN a_boolean
 		           error number. */
 
 
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
+EXTERN char	*gen_c_file_name /* = NULL */;
+			/* Points to a string specifying the name of the
+			   generated C file to be created.  The front end
+			   will generate a name if this string is NULL. */
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+
+
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);
 #if COMPILE_MULTIPLE_SOURCE_FILES

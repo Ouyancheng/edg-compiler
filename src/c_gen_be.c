@@ -39,6 +39,7 @@ instead of K&R C.
 
 #include "target.h"
 #include "c_gen_be.h"
+#include "cmd_line.h"
 #include "debug.h"
 #include "error.h"
 #include "mem_manage.h"
@@ -5568,8 +5569,15 @@ Generate C from the intermediate language.
     /* Primary source file is stdin, so use stdout here. */
     f_C_output = stdout;
   } else {
-    C_output_file_name = derived_name(primary_source_file_name,
-                                      GEN_C_FILE_SUFFIX);
+    /* If the generated C file name was specified on the command line,
+       use that value.  Otherwise, generate a file name based on the
+       source file name. */
+    if (gen_c_file_name != NULL) {
+      C_output_file_name = gen_c_file_name;
+    } else {
+      C_output_file_name = derived_name(primary_source_file_name,
+                                        GEN_C_FILE_SUFFIX);
+    }  /* if */
     f_C_output = open_output_file(C_output_file_name, /*binary_file=*/FALSE,
                                   /*update_mode=*/FALSE,
                                   &cannot_open, &bad_name);

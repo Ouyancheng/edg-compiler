@@ -1,5 +1,11 @@
 Version 2.25
 
+8/5/94   Specifying the name of the generated C file
+
+A new command line option (--gen_c_file_name) has been added that
+enables the driver to provide the file name to be used when
+creating a generated C file.
+
 8/2/94   Freeing of IL memory when multiple source files are compiled
 
 When COMPILE_MULTIPLE_SOURCE_FILES is enabled, and no IL file is
