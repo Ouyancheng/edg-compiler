@@ -3507,6 +3507,35 @@ of the function, and again overloading is a possibility.
 }  /* decl_friend_function */
 
 
+#if 0
+#else
+/* Remove this code when support for overloaded operator delete is added. */
+static a_boolean is_operator_delete_symbol(a_symbol_ptr  sym)
+/*
+Return TRUE is sym is a symbol for an operator delete() function.
+*/
+{
+  a_routine_ptr  rp;
+  a_boolean      is_operator_delete;
+
+  if (sym->kind == (a_symbol_kind)sk_overloaded_function ||
+      sym->kind == (a_symbol_kind)sk_projection) {
+    is_operator_delete = FALSE;
+  } else {
+    if (sym->kind == (a_symbol_kind)sk_function_template) {
+      rp = sym->variant.template_info->variant.function.routine;
+    } else {
+      rp = sym->variant.routine.ptr;
+    }  /* if */
+    is_operator_delete = (rp->special_kind ==
+                                   (a_special_function_kind)sfk_operator &&
+                          is_delete_operator(rp->opname_kind));
+  }  /* if */
+  return is_operator_delete;
+}  /* is_operator_delete_symbol */
+#endif /* if 0 */
+
+
 static a_symbol_ptr symbol_for_member_function(a_symbol_locator  *locator,
                                                a_type_ptr        type,
                                                a_symbol_ptr      *overload_sym)
@@ -3578,6 +3607,16 @@ function symbols.
          name.  The routine overload_distinguishable returns TRUE if the
          routine types are candidates for overloading; if it returns FALSE
          it also returns the error code for a diagnostic explaining why. */
+#if 0
+#else
+/* Remove this code when support for overloaded operator delete is added.
+   Don't forget to mark the error code as REMOVED in error_msg.txt. */
+      if (is_operator_delete_symbol(sym)) {
+        /* Overloading is not allowed for operator delete() (ARM 12.5). */
+        pos_error(ec_delete_already_declared, &locator->source_position);
+        suppress_redecl_error = TRUE;
+      } else
+#endif /* if 0 */
       /* template_case is FALSE in the following call because although member
          functions of class templates have template types in their parameters,
          they are not called using the template overload resolution

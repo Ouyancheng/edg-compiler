@@ -579,7 +579,11 @@ new fields are set properly.
       if (is_reference_type(tp)) tp = type_pointed_to(tp);
       if (is_class_struct_union_type(tp)) any_class_type_params = TRUE;
     }  /* if */
-    if (is_new_operator(opname) || is_delete_operator(opname) ||
+    if (is_new_operator(opname) ||
+#if 0
+/* Restore this code when support for overloaded operator delete is added. */
+        is_delete_operator(opname) ||
+#endif /* if 0 */
         opname == (an_opname_kind)onk_function_call) {
       /* Function call and new must have one or more arguments. */
       if (param_count == 0) {
@@ -603,6 +607,8 @@ new fields are set properly.
               error_code = ec_bad_arg_type_for_operator_new;
               ptp->type = error_type();
             }  /* if */
+#if 0
+/* Restore this code when support for overloaded operator delete is added. */
           } else {
             /* operator delete or operator delete[]. */
             if (!is_void_star_type(tp)) {
@@ -629,6 +635,7 @@ new fields are set properly.
                member delete was allowed exactly two (and the second had to
                be size_t).  This restriction is no longer imposed, given the
                rules on matching delete to new in WP 5.3.4 para 18-19. */
+#endif /* if 0 */
           }  /* if */
         }  /* if */
       }  /* if */
@@ -673,6 +680,64 @@ new fields are set properly.
           err = TRUE;
         }  /* if */
       }  /* if */
+#if 0
+#else
+/* Remove this code when support for overloaded operator delete is added.
+   Don't forget to mark the error code as REMOVED in error_msg.txt. */
+    } else if (is_delete_operator(opname)) {
+      ptp = rout_type->variant.routine.extra_info->param_type_list;
+      if (param_count == 0) {
+        error_code = ec_too_few_args_for_operator;
+      } else {
+        tp = ptp->type;
+        /* Check for "void *". */
+        if (!is_void_star_type(tp)) {
+          /* Error. */
+          if (is_error_type(tp) && is_or_contains_template_param(tp)) {
+            /* No diagnostic here. */
+          } else {
+            an_error_severity  severity;
+            if (cfront_2_1_mode && is_pointer_type(tp) &&
+                is_void_type(type_pointed_to(tp))) {
+              /* In cfront 2.1 "const void *" is allowed.   Issue a warning
+                 and ignore the qualifier on the type. */
+              severity = es_warning;
+              ptp->type = make_pointer_type(void_type());
+            } else {
+              /* Error case. */
+              severity = es_error;
+              ptp->type = error_type();
+              err = TRUE;
+            }  /* if */
+            pos_diagnostic(severity, ec_bad_first_arg_type_for_operator_delete,
+                           &locator->source_position);
+          }  /* if */
+        }  /* if */
+        ptp = ptp->next;
+        if (ptp != NULL) {
+          /* There is a second argument.  This is permitted for class operator
+             delete() but not for global operator delete() (ARM 12.5). */
+          if (class_type == NULL) {
+            error_code = ec_too_many_args_for_operator;
+          } else {
+            /* The second argument must be of type size_t (ARM 12.5). */
+            tp = ptp->type;
+            if (!is_error_type(tp) && !is_or_contains_template_param(tp)) {
+              if (!is_integral_type(tp) ||
+                  skip_typerefs(tp)->variant.integer.int_kind !=
+                                                      targ_size_t_int_kind) {
+                pos_error(ec_bad_second_arg_type_for_operator_delete,
+                          &locator->source_position);
+                ptp->type = error_type();
+                err = TRUE;
+              }  /* if */
+            }  /* if */
+            /* More than two arguments are not allowed. */
+            if (ptp->next != NULL) error_code = ec_too_many_args_for_operator;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+#endif /* if 0 */
     } else {
       /* Binary operator must have exactly two arguments. */
       if (param_count > 2) {
@@ -3677,6 +3742,23 @@ on for use in generating cross-reference output describing this declaration.
          parameters list. */
       check_default_args(type_ptr);
     }  /* if */
+#if 0
+#else
+/* Remove this code when support for overloaded operator delete is added.
+   Don't forget to mark the error code as REMOVED in error_msg.txt. */
+    if (homonym_symbol != NULL &&
+        homonym_symbol->kind != (a_symbol_kind)sk_overloaded_function &&
+        homonym_symbol->kind != (a_symbol_kind)sk_function_template) {
+      a_routine_ptr  rp = homonym_symbol->variant.routine.ptr;
+      if (rp->special_kind == (a_special_function_kind)sfk_operator &&
+          is_delete_operator(rp->opname_kind)) {
+        /* Overloading is not allowed for operator delete() (ARM 12.5). */
+        pos_error(ec_delete_already_declared, &locator->source_position);
+        redecl_error_already_issued = TRUE;
+        goto skip_overloading;
+      }  /* if */
+    }  /* if */
+#endif /* if 0 */
     if (homonym_symbol != NULL &&
         homonym_symbol->kind != (a_symbol_kind)sk_function_template) {
       /* homonym_symbol is a previously declared routine symbol with the
@@ -4224,6 +4306,17 @@ class template.
            prohibited.  At least one C++ test suite expects an error. */
         pos_error(ec_template_operator_new, &locator->source_position);
         set_to_error_locator(*locator);
+#if 0
+#else
+/* Remove this code when support for overloaded operator delete is added.
+   Don't forget to mark the error code as REMOVED in error_msg.txt. */
+      } else if (is_delete_operator(locator->variant.opname)) {
+        /* A template definition of operator delete is not allowed.  This
+           is inferred from the ARM prohibition against overloading
+           operator delete. */
+        pos_error(ec_template_operator_delete, &locator->source_position);
+        set_to_error_locator(*locator);
+#endif /* if 0 */
       }  /* if */
     }  /* if */
   }  /* if */
