@@ -3685,7 +3685,9 @@ NULL.
            a long-standing C convention.  In unnamed namespaces, however, a
            warning is issued for unused declarations, and an error for missing
            definitions that were referenced. */
-        if (is_member_of_unnamed_namespace(&var_ptr->source_corresp)) {
+        if (is_member_of_unnamed_namespace(&var_ptr->source_corresp) &&
+            var_ptr->source_corresp.name_linkage !=
+                                         (a_name_linkage_kind)nlk_external) {
           if (sym->referenced) {
             pos_sy_error(ec_never_defined, &sym->decl_position, sym);
           } else {
@@ -4041,7 +4043,9 @@ NULL.
         /* Referenced function.  We check the IL referenced flag because
            a reference in, say, a sizeof operation doesn't count. */
         if ((rout_ptr->storage_class == (a_storage_class)sc_static ||
-             is_member_of_unnamed_namespace(&rout_ptr->source_corresp)) &&
+             (is_member_of_unnamed_namespace(&rout_ptr->source_corresp) &&
+              rout_ptr->source_corresp.name_linkage !=
+                                         (a_name_linkage_kind)nlk_external)) &&
              !routine_defined(rout_ptr)) {
           if (C_dialect == C_dialect_pcc) {
             /* In pcc mode, just change the routine to extern. */

@@ -1,5 +1,18 @@
 Version 3.4
 
+1/30/04  Extern "C" declarations in unnamed namespaces
+
+A spurious "referenced but not defined" error was issued if an extern "C"
+function or variable in an unnamed namespace was referenced but not
+defined.  Such an error should not be emitted because the entity could
+be defined in another translation unit.
+
+  namespace {
+    extern "C" int f();
+    static int static_func() { return f(); }
+  }
+  extern "C" int g() { return static_func(); }
+
 1/30/04  GNU mode: "long" and typedefs
 
 In GNU modes the "long" specifier can now be combined with a typedef type
