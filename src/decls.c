@@ -1560,7 +1560,7 @@ called by id_linkage.
           /* Generate a partial instantiation of the matching instance. */
           sym = matching_template_function(best_sym, type,
                                            locator->template_arg_list,
-					   locator->is_template_id,
+					   (a_boolean)locator->is_template_id,
                                            /*is_decl_context=*/TRUE);
           other_decl = best_sym;
           match = sym;
