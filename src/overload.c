@@ -4718,7 +4718,7 @@ lookup should be suppressed.
     } else {
       suppress = TRUE;
     }  /* if */
-  } else if (gpp_mode && is_local_symbol(sym)) {
+  } else if (gpp_mode && gnu_version < 30400 && is_local_symbol(sym)) {
     /* g++ 3.2/3.3 suppress the argument-dependent lookup for a
        using-declaration. */
     suppress = TRUE;
