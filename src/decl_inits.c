@@ -987,7 +987,7 @@ static a_boolean process_whole_object_init(
                                    an_aggregate_init_info_ptr  init_info,
                                    an_aggregate_init_context   *context,
                                    a_type_ptr                  *dest_type_ptr,
-                                   a_constant_ptr              *initializer,
+                                   a_constant_ptr              *init_constant,
                                    a_boolean                   *brace_flag)
 /*
 Process the initializer of a aggregate sub-item that requires initialization
@@ -996,7 +996,7 @@ the state of the processing of the complete initializer and the current
 subaggregate initializer is kept in *init_info and *context respectively.
 The type of the current subaggregate is pointed to by *dest_type_ptr, and
 may be be set to an error type. If whole object initialization indeed applies,
-*initializer is set to the (possibly dynamic) constant that was scanned.
+*init_constant is set to the (possibly dynamic) constant that was scanned.
 Either way, *brace_flag is set to true if a brace was seen.
 */
 {
@@ -1030,9 +1030,9 @@ Either way, *brace_flag is set to true if a brace was seen.
       levels_down = context->pending_init_levels;
       if (levels_down == 0) {
         /* This is the level at which the initializer is to be applied. */
-        *initializer = context->pending_init_con;
-        if ((*initializer)->kind == (a_constant_repr_kind)ck_dynamic_init) {
-          dip = (*initializer)->variant.dynamic_init;
+        *init_constant = context->pending_init_con;
+        if ((*init_constant)->kind == (a_constant_repr_kind)ck_dynamic_init) {
+          dip = (*init_constant)->variant.dynamic_init;
         } else {
           is_constant = TRUE;
         }  /* if */
@@ -1045,18 +1045,18 @@ Either way, *brace_flag is set to true if a brace was seen.
     } else {
       if (is_constant) {
         /* A constant initializer was found. */
-        *initializer = alloc_unshared_constant(&constant);
+        *init_constant = alloc_unshared_constant(&constant);
       } else {
         /* A dynamic initialization. */
         check_assertion(dip != NULL);
-        *initializer = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
-        (*initializer)->variant.dynamic_init = dip;
+        *init_constant = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
+        (*init_constant)->variant.dynamic_init = dip;
       }  /* if */
     }  /* if */
     if (!err) {
       if (levels_down == 0) {
         /* The initialization applies at the current level. */
-        (*initializer)->type = dest_type;
+        (*init_constant)->type = dest_type;
         if (!is_constant) {
           context->any_dynamic_initialization = TRUE;
           if (exceptions_enabled) {
@@ -1074,12 +1074,12 @@ Either way, *brace_flag is set to true if a brace was seen.
         /* Whole object initialization will not be done at this level after
            all.  (This will only occur for aggregate classes.) */
         confirmed = FALSE;
-        if (*initializer != NULL) {
+        if (*init_constant != NULL) {
           /* The initialization applies one or more levels down.  Remember
              what was "prescanned". */
-          context->pending_init_con = *initializer;
+          context->pending_init_con = *init_constant;
           context->pending_init_levels = levels_down;
-          *initializer = NULL;
+          *init_constant = NULL;
         }  /* if */
       }  /* if */
     }  /* if */
@@ -1355,7 +1355,7 @@ returned, else FALSE.
                      locator_for_curr_id.symbol_header->identifier,
                      (a_symbol_ptr)dest_type->source_corresp.assoc_info);
     } else
-    if (member_sym->kind != sk_field) {
+    if (member_sym->kind != (a_symbol_kind)sk_field) {
       found_field_designator = FALSE;
       *field = NULL;
       internal_error("field intialization designator: non-field member");
@@ -1446,7 +1446,8 @@ initializer.
   if (init_info->designation_state != ds_complete_designation &&
       scan_array_element_init_designator(dest_type, context,
                                          curr_array_element)) {
-    a_constant_ptr designator = alloc_constant(ck_designator);
+    a_constant_ptr designator =
+                         alloc_constant((a_constant_repr_kind)ck_designator);
 
     designator->variant.designator.array_element = *curr_array_element;
     /* Append the designator to the list of constants for the current
@@ -1489,7 +1490,8 @@ error NULL is returned.
   if (init_info->designation_state != ds_complete_designation &&
       scan_field_init_designator(dest_type, &designated_field)) {
     /* We found a valid field designator: */
-    a_constant_ptr designator = alloc_constant(ck_designator);
+    a_constant_ptr designator =
+                         alloc_constant((a_constant_repr_kind)ck_designator);
 
     designator->variant.designator.field = designated_field;
     *field = designated_field;
@@ -1651,7 +1653,7 @@ this function points to a tree that includes a dynamic-init entry.
         if (member_type == NULL) {
           /* Switch to an error type to take this and all following
              initializers without error. */
-          kind = tk_error;
+          kind = (a_constant_repr_kind)tk_error;
           member_type = error_type();
           any_more_members = TRUE;
         }  /* if */
