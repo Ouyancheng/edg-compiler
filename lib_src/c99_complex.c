@@ -331,6 +331,18 @@ Adjust precision of complex value.
 }  /* __c99_cdouble_to_cfloat */
 
 
+EXTERN_C _Complex_long_double __c99_cdouble_to_clong_double(_Complex_double z)
+/*
+Adjust precision of complex value.
+*/
+{
+  _Complex_long_double r;
+  r._Vals[0] = (long double)z._Vals[0];
+  r._Vals[1] = (long double)z._Vals[1];
+  return r;
+}  /* __c99_cdouble_to_clong_double */
+
+
 EXTERN_C _Complex_float __c99_clong_double_to_cfloat(_Complex_long_double z)
 /*
 Adjust precision of complex value.
@@ -349,8 +361,8 @@ Adjust precision of complex value.
 */
 {
   _Complex_double r;
-  r._Vals[0] = (long double)z._Vals[0];
-  r._Vals[1] = (long double)z._Vals[1];
+  r._Vals[0] = (double)z._Vals[0];
+  r._Vals[1] = (double)z._Vals[1];
   return r;
 }  /* __c99_long_cdouble_to_cdouble */
 
