@@ -219,7 +219,7 @@ an integer cast to a pointer type.
     /* If the value changed, a warning is in order. */
     if (cmp_integer_constants(new_constant, old_constant) != 0 &&
         /* In some modes (e.g., Microsoft C mode), it is possible to
-           implicitly convert a pointer to an integer tpe, so the old
+           implicitly convert a pointer to an integer type, so the old
            constant could be something like (void *)1.  Avoid the
            checking in such cases. */
         !is_pointer_type(old_constant->type)) {
