@@ -1914,10 +1914,16 @@ parentheses are not needed.
         }  /* for */
         /* Watch out for classes with no fields. */
         if (field == NULL) break;
-        /* Put out the field selection. */
-        if (gen_output) {
-          /* Skip the selection if it's an anonymous union field. */
-          if (has_name(field)) {
+        if (!has_name(field)) {
+          /* An anonymous union field.  Usually, the field selection for such
+             a field is just omitted.  In the C-generating back end, however,
+             references to anonymous union fields can't be omitted, so give
+             up. */
+          if (octl->c_generating_back_end) break;
+        } else {
+          /* Normal field (not anonymous union field). */
+          /* Put out the field selection. */
+          if (gen_output) {
             octl->output_str(".");
             form_unqualified_name(&field->source_corresp, iek_field, octl);
           }  /* if */
