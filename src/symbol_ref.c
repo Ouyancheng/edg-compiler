@@ -1234,7 +1234,7 @@ created for this entity; otherwise, it is NULL.
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
     }  /* if */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-    if (update_src_seq_list) {
+    if (update_src_seq_list) {      /*lint !e774*/
       if (is_definition) {
         /* If this is a primary declaration (or a tentative definition that
            is the first definition of the variable), erase the previous
