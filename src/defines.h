@@ -20,6 +20,7 @@ the release should contain no defines.
 */
 
 #define ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS 1
+#define IDENT_PRAGMA 1
 
 #ifdef CP_GEN_BE_VERSION
 /*
@@ -143,7 +144,6 @@ Flags to be set when using the KAI inliner.
 #define TARG_WCHAR_T_INT_KIND ((an_integer_kind)ik_long)
 #define TARG_SIZEOF_WCHAR_T TARG_SIZEOF_LONG
 #define USER_CONTROL_OF_STRUCT_PACKING 1
-#define IDENT_PRAGMA 1
 #ifndef SVR4_TRAP_NULL_POINTER_REFERENCES
 #define SVR4_TRAP_NULL_POINTER_REFERENCES 1
 #endif /* ifndef SVR4_TRAP_NULL_POINTER_REFERENCES */
