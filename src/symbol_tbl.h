@@ -363,7 +363,8 @@ typedef struct a_symbol_header {
 			/* A pointer to a null-terminated string containing the
 			   name of the symbol. */
   int		identifier_length;
-			/* The length of the identifier. */
+			/* The length of the identifier, not counting the
+			   final null. */
   a_symbol_ptr	symbol;
 			/* This is the pointer to a symbol table entry.  This
 			   is actually a list of all symbols with the same
@@ -481,7 +482,15 @@ typedef enum /*a_scope_kind*/ {
 			   that point whether or not a body will follow). */
   sck_block,		/* Block scope, for blocks other than the topmost
 			   in a function. */
-  sck_struct_or_union	/* Pseudo-scope for fields of a struct or union. */
+  sck_class_struct_union,
+			/* In C, pseudo-scope for fields of a struct or
+			   union; in C++, real scope for members of a
+			   class/struct/union. */
+  sck_class_reactivation
+			/* In C++, reactivation of a class scope, making
+			   the class members visible without qualification.
+			   This is used, for example, when processing a
+			   member function definition. */
 } a_scope_kind;
 
 typedef struct a_scope_stack_entry *a_scope_stack_entry_ptr;
@@ -528,14 +537,20 @@ typedef struct a_scope_stack_entry {
 			   the function type whose prototype scope this is. */
   an_array_type_fixup_ptr
 		array_type_fixup_list;
-			/* List of array types to be fixed up. */
+			/* List of array types to be fixed up at the end of
+			   the scope.  Used with arrays of incomplete
+			   struct/union types (an extension). */
   an_extern_type_fixup_ptr
 		extern_type_fixup_list;
 			/* List of types of variables and routines to be
-			   reset at the end of the scope. */
+			   reset at the end of the scope.  Used when
+			   inner- and outer-scope declarations of entities
+			   with linkage have compatible but not identical
+			   types, and the outer-scope type must be restored
+			   at the end of the inner scope. */
 
   /* The following pointers are the end pointers for the lists begun
-     in the current il scope entry.  They are needed only while the scope
+     in the current IL scope entry.  They are needed only while the scope
      is active (to add entries to the ends of lists), and are therefore
      here instead of in the a_scope entry to save space. */
   a_variable_ptr
@@ -596,6 +611,11 @@ EXTERN a_scope_depth
 			   are for struct/union fields; decl_scope_level
 			   would then contain the real scope level rather than
 			   the struct/union pseudo-scope level. */
+EXTERN a_scope_depth
+		num_current_class_reactivations;
+			/* Current count of sck_class_reactivation entries
+			   in scope_stack.  When non-zero, name lookup is
+			   more complicated. */
 EXTERN a_scope_number
 		next_scope_number;
 			/* Next scope number to be assigned.  These are
@@ -643,6 +663,10 @@ extern a_symbol_ptr find_external_symbol(a_symbol_locator *location,
                                          a_boolean        is_static,
                                          a_symbol_locator *ext_location);
 
+extern a_symbol_ptr scope_qualified_id_lookup(a_symbol_locator *locator,
+                                              a_scope_number   scope_number,
+                                              a_boolean        must_be_class);
+
 /* Begin a name scope. */
 extern a_scope_ptr push_scope(a_scope_kind   kind,
 			      a_scope_number scope_number_for_function);
@@ -683,6 +707,9 @@ extern an_extern_type_fixup_ptr alloc_etype_fixup(void);
 
 /* Test a locator to see if it is an error locator. */
 #define is_error_locator(loc) ((loc).symbol_header == NULL)
+
+/* Retrieve a pointer to the symbol list from a locator. */
+#define symbol_list_from_locator(loc) ((loc).symbol_header->symbol)
 
 /* Retrieve a pointer to the inactive symbol list from a locator. */
 #define inactive_symbol_list_from_locator(loc)                        \
