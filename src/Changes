@@ -1,5 +1,15 @@
 Version 2.25
 
+8/9/94   Old-style parameter lists in C++
+
+In C++ mode, when anachronism support is turned off, a function parameter
+list is now always parsed as a prototyped list, never as an old-style
+param list.  This affects how errors are reported -- e.g., if S has
+not yet been declared:
+
+  void f(S);      // Error is now issued for undefined name "S" rather than
+                  //   for using an old-style param declaration.
+
 8/9/94   Automatic instantiation bug
 
 A bug has been fixed that could cause the automatic instantiation
