@@ -25,13 +25,24 @@ This is the version for Linux.
 #define TARG_WCHAR_T_INT_KIND ((an_integer_kind)ik_long)
 #define TARG_SIZEOF_WCHAR_T TARG_SIZEOF_LONG
 #define MAKE_ALL_FUNCTIONS_UNPROTOTYPED 0
-#define LONG_LONG_ALLOWED 1
 #define DESIGNATED_INITIALIZER_ENABLING_POSSIBLE 1
 #ifndef RUNTIME_USES_NAMESPACES
 #define RUNTIME_USES_NAMESPACES 1
 #endif /* ifndef RUNTIME_USES_NAMESPACES */
-
 #define BUILTIN_VA_LIST_OVERRIDE_TYPE "__gnuc_va_list"
+
+#define LONG_LONG_ALLOWED 1
+#define INTEGER_VALUE_REPR_IS_A_HOST_INTEGER 1
+#define TYPE_FOR_AN_INTEGER_VALUE unsigned long long
+#define TYPE_FOR_A_SIGNED_INTEGER_VALUE long long
+#define PRINTF_FORMAT_FOR_SIGNED_INTEGER_VALUE   "%lld"
+#define PRINTF_FORMAT_FOR_UNSIGNED_INTEGER_VALUE "%llu"
+#define PRINTF_FORMAT_FOR_HEX_INTEGER_VALUE      "%llx"
+#define MAX_INTEGER_VALUE 9223372036854775807LL
+#define MIN_INTEGER_VALUE (-MAX_INTEGER_VALUE-1)
+#define MAX_UNSIGNED_INTEGER_VALUE 18446744073709551615ULL
+#define HOST_ALIGNMENT_REQUIRED 8
+
 
 /******************************************************************************
 *                                                             \  ___  /       *
