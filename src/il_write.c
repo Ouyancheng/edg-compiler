@@ -582,8 +582,12 @@ its length.
      We can't just change the copy. */
   if (!is_string_entry) {
     (void)memcpy(entry_copy, entry_ptr, size_t_arg(entry_length));
-    remap_pointers_in_il_entry(entry_ptr, entry_kind,
-                               remap_ptr_to_entry_number);
+    /* walk_remap_func is set to point to the remap routine to be called,
+       but it must be restored to NULL for the overall tree walk that is
+       going on around this call. */
+    walk_remap_func = remap_ptr_to_entry_number;
+    remap_pointers_in_il_entry(entry_ptr, entry_kind);
+    walk_remap_func = NULL;
   }  /* if */
   /* Write the entry kind. */
   byte_entry_kind = (int)entry_kind;
@@ -827,7 +831,8 @@ Write the indicated memory region to the file f_il_output.
 #if ALTERNATE_IL_FILE_FORMAT
       /* In the alternate form, the pointers in the header must be remapped to
          entry numbers. */
-      remap_il_header_pointers(remap_ptr_to_entry_number);
+      walk_remap_func = remap_ptr_to_entry_number;
+      remap_il_header_pointers();
 #endif /* ALTERNATE_IL_FILE_FORMAT */
       /* The region_scope_entry pointer must be reconstructed on the other
          end.  Clear it to NULL to avoid confusion. */
@@ -843,11 +848,8 @@ Write the indicated memory region to the file f_il_output.
                    sizeof(orphaned_file_scope_il_entries));
       /* The pointers in the orphaned IL entry table must be remapped to
          entry numbers. */
-      remap_first_ptr_of_orphaned_file_scope_entry_array(
-                                                    remap_ptr_to_entry_number);
-      remap_last_ptr_of_orphaned_file_scope_entry_array(
-                                                    remap_ptr_to_entry_number);
-
+      remap_first_ptr_of_orphaned_file_scope_entry_array();
+      remap_last_ptr_of_orphaned_file_scope_entry_array();
 #endif /* ALTERNATE_IL_FILE_FORMAT */
       /* Copy the orphaned_file_scope_il_entries array to the file. */
       (void)fwrite((char *)orphaned_file_scope_il_entries,
