@@ -11667,10 +11667,12 @@ eliminated, if appropriate.
   a_variable_ptr   vp, prev_vp, next_vp;
   a_type_ptr       tp, prev_tp, next_tp;
   a_routine_ptr    rp, prev_rp, next_rp;
-  a_boolean        in_scope_stack = (scope->depth_in_scope_stack !=
-                                     NO_SCOPE_DEPTH);
+  a_scope_pointers_block_ptr
+                   pointers_block;
 
   db_enter(3, "eliminate_unneeded_il_entries");
+  pointers_block = get_pointers_block_for_scope(scope);
+  check_assertion(pointers_block != NULL);
   /* In C++ process the entities on lists belonging to namespaces defined
      within the current scope. */
   for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
@@ -11718,11 +11720,7 @@ eliminated, if appropriate.
       prev_vp = vp;
     }  /* if */
   }  /* for */
-  if (in_scope_stack) {
-    /* The scope is on the scope stack, so update the "last" pointer. */
-    assoc_pointers_block_of(&scope_stack[scope->depth_in_scope_stack])->
-                                                       last_variable = prev_vp;
-  }  /* if */
+  pointers_block->last_variable = prev_vp;
   prev_tp = NULL;
   for (tp = scope->types; tp != NULL; tp = next_tp) {
     next_tp = tp->next;
@@ -11770,11 +11768,7 @@ eliminated, if appropriate.
       prev_tp = tp;
     }  /* if */
   }  /* for */
-  if (in_scope_stack) {
-    /* The scope is on the scope stack, so update the "last" pointer. */
-    assoc_pointers_block_of(&scope_stack[scope->depth_in_scope_stack])->
-                                                           last_type = prev_tp;
-  }  /* if */
+  pointers_block->last_type = prev_tp;
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
   if (scope->kind == (a_scope_kind)sck_file) {
     eliminate_unneeded_scope_orphaned_list_entries();
@@ -11863,11 +11857,7 @@ eliminated, if appropriate.
       prev_rp = rp;
     }  /* if */
   }  /* for */
-  if (in_scope_stack) {
-    /* The scope is on the scope stack, so update the "last" pointer. */
-    assoc_pointers_block_of(&scope_stack[scope->depth_in_scope_stack])->
-                                                        last_routine = prev_rp;
-  }  /* if */
+  pointers_block->last_routine = prev_rp;
   if (il_header.main_routine != NULL &&
       !il_entry_prefix_of(il_header.main_routine).keep_in_il) {
     /* The routine entry itself will already have been removed from the IL,
