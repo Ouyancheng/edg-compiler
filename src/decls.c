@@ -7157,6 +7157,7 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
   a_boolean                   bad_scope_for_namespace_def = FALSE;
   a_source_sequence_entry_ptr namespace_ssep = NULL;
 
+  db_enter(3, "namespace_declaration");
   /* Save the source position of the declaration. */
   namespace_pos = pos_curr_token;
   /* A namespace declaration is outside the "Embedded C++" subset. */
@@ -7166,6 +7167,11 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
   /* Bypass "namespace". */
   (void)get_token();
 #if GENERATE_SOURCE_SEQUENCE_LISTS
+#if DEBUG
+  if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
+    fputs("namespace_declaration: adding empty ss entry\n", f_debug);
+  }  /* if */
+#endif /* DEBUG */
   namespace_ssep = add_empty_source_sequence_entry();
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (curr_token == tok_lbrace) {
@@ -7464,6 +7470,7 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
     remove_from_source_sequence_list(namespace_ssep);
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  db_exit();
 }  /* namespace_declaration */
 
 
@@ -8382,6 +8389,32 @@ continue_with_declaration:
       declarator_pos = error_position;
       is_function = (declared_storage_class != (a_storage_class)sc_typedef &&
                      is_function_type(local_type_ptr));
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      if (is_old_style_param_decl &&
+          func_info.prototype_scope_ss_list != NULL) {
+        /* Move the source sequence list that had been entered into the
+           function prototype scope to the current scope. */
+        a_source_sequence_entry_ptr  head, tail;
+
+        /* Identify the head and tail of the list that is pointed to from
+           func info block. */
+        head = func_info.prototype_scope_ss_list;
+        for (tail = head;; tail = tail->next) {
+          if (tail->next == NULL) break;
+        }  /* for */
+#if DEBUG
+        if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
+          fputs("declaration: moving ss list from func info to curr scope\n",
+                f_debug);
+        }  /* if */
+#endif /* DEBUG */
+        /* Append the list to the list for the current scope. */
+        insert_src_seq_list(head, tail, &scope_stack[depth_scope_stack],
+                            (a_source_sequence_entry_ptr)NULL);
+        /* Just to be neat. */
+        func_info.prototype_scope_ss_list = NULL;
+      }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       is_main_function = FALSE;
       if (is_function && !is_error_locator(locator) &&
           locator.symbol_header->identifier != NULL &&
