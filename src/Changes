@@ -1,5 +1,12 @@
 Version 2.34
 
+12/13/96 Partial specialization of class templates
+
+The mangled names for partial specializations use a new "__ps__"
+prefix that introduces the first of two template argument lists
+used on the partial specialization.  The name demangler has been
+updated to recognize those as well.
+
 12/12/96 Initialization of local static variables
 
 In accord with a recent change to the Working Paper, initialization of

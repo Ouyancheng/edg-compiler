@@ -1057,13 +1057,16 @@ If the indicated member variable is unnamed, give it a name.
 
 static sizeof_t mangled_template_arguments(
                                           a_template_arg_ptr template_arg_list,
+                                          a_boolean          partial_spec,
                                           a_boolean          old_form,
                                           char               *store_at)
 /*
 Determine the mangled form of the template arguments given by
 template_arg_list.  Place the output at *store_at if store_at != NULL,
-and (always) return the length of the output.  If old_form is TRUE, use
-the old form of length specification in the mangling for lengths of literals.
+and (always) return the length of the output.  If partial_spec is TRUE,
+this argument list is the first one on a partial specialization.
+If old_form is TRUE, use the old form of length specification in the
+mangling for lengths of literals.
 */
 {
   sizeof_t           mangled_name_length, digits, arg_length, total_arg_length;
@@ -1073,18 +1076,21 @@ the old form of length specification in the mangling for lengths of literals.
   int                pass;
 
   /* The mangled form of template arguments is something like
-       __pt__3_ii
+       __tm__3_ii
                ^^--- Two template arguments of type int.
              ^------ Total length of template argument list string,
                      including the underscore.
          ^^--------- Fixed string, indicates "parameterized type".
-     When distinct_mangling_for_templates is TRUE, "__tm__" is used instead
-     of "__pt__".
+     When distinct_mangling_for_templates is FALSE, "__pt__" is used instead
+     of "__tm__".  For the first argument list of a partial specialization,
+     "__ps__" is used.
   */
-  if (distinct_mangling_for_templates) {
-    str = "__tm__";
-  } else {
+  if (!distinct_mangling_for_templates) {
     str = "__pt__";
+  } else if (partial_spec) {
+    str = "__ps__";
+  } else {
+    str = "__tm__";
   }  /* if */
   mangled_name_length = strlen(str);
   if (store_at != NULL) {
@@ -1214,6 +1220,34 @@ and an indication of that fact should be put out.
     store_at += mangled_name_length;
   }  /* if */
   if (!previously_mangled_version_used) {
+    /* See if template arguments are needed.  For partial specializations,
+       there are two argument lists. */
+    a_template_arg_ptr template_args = ctsp->template_arg_list;
+    if (distinct_mangling_for_templates &&
+        ctsp->partial_spec_template_arg_list != NULL) {
+      /* A partial specialization.  The first list is the argument list
+         from the prototype instantiation of the partial specialization.
+           template <class T> struct A { ... };
+           template <class T> struct A<T *> { ... };
+                                       ^^^this argument list
+      */
+      a_symbol_ptr proto_sym =
+                      symbol_supplement_for_class(type)->corresp_prototype_sym;
+      a_type_ptr   proto_type = proto_sym->variant.class_struct_union.type;
+      a_class_type_supplement_ptr
+                   proto_ctsp =
+                             proto_type->variant.class_struct_union.extra_info;
+      section_length = mangled_template_arguments(proto_ctsp->
+                                                             template_arg_list,
+                                                  /*partial_spec=*/TRUE,
+                                                  /*old_form=*/FALSE,
+                                                  store_at);
+      mangled_name_length += section_length;
+      if (store_at != NULL) store_at += section_length;
+      /* The second argument list is the deduced argument values for the
+         template parameter list of the partial specialization. */
+      template_args = ctsp->partial_spec_template_arg_list;
+    }  /* if */
     if (show_template_specialization) {
       /* Put out an indication of the fact the template from which this
          class is generated is specialized. */
@@ -1221,12 +1255,13 @@ and an indication of that fact should be put out.
       mangled_name_length += section_length;
       if (store_at != NULL) store_at += section_length;
     }  /* if */
-    if (ctsp->template_arg_list != NULL) {
+    if (template_args != NULL) {
       /* A template class.  Add information on template arguments. */
       /* old_form=TRUE forces use of the cfront-compatible mangling convention
          for lengths on literals, which though ambiguous is okay here because
          the class cannot be followed by an "_". */
-      section_length = mangled_template_arguments(ctsp->template_arg_list,
+      section_length = mangled_template_arguments(template_args,
+                                                  /*partial_spec=*/FALSE,
                                                   /*old_form=*/TRUE,
                                                   store_at);
       mangled_name_length += section_length;
@@ -2241,6 +2276,7 @@ types; just put out the base encoded name.
     if (routine->template_arg_list != NULL) {
       /* Put out the template arguments. */
       section_length = mangled_template_arguments(routine->template_arg_list,
+                                                  /*partial_spec=*/FALSE,
                                                   /*old_form=*/FALSE,
                                                   store_at);
       mangled_name_length += section_length;
