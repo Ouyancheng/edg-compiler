@@ -1,5 +1,16 @@
 Version 3.1
 
+9/25/02  Incomplete lowering of pointers to members
+
+In cases where an aggregate containing a pointer to member is
+initialized with an initializer that is partly constant but
+contains an expression for the pointer to member term, the
+lowered IL still contained a pointer to member type.  Now fixed.
+
+  struct TF { int a; void (TF::*pmf)(); };
+  void (TF::*gf())();
+  void f() { TF t = { 0, gf() }; }
+
 9/25/02  Microsoft C++ compatibility: 0(x) treated as call, ignored
 
 In Microsoft C++ mode, a call expression where the "function" is a

@@ -623,6 +623,8 @@ extern void finish_class_type(a_type_ptr class_type);
 
 extern void add_to_front_of_file_scope_types_list(a_type_ptr type);
 
+extern a_type_ptr make_mptr_type(void);
+
 extern a_type_ptr make_vtbl_entry_type(void);
 
 #if IA64_ABI

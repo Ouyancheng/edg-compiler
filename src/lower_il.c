@@ -1088,7 +1088,7 @@ static a_field_ptr
 #endif /* !IA64_ABI */
 		mptr_f_field;
 
-static a_type_ptr make_mptr_type(void)
+a_type_ptr make_mptr_type(void)
 /*
 Make the struct type used in pointers to member functions if it has not been
 made already, and return a pointer to it.  Its definition is

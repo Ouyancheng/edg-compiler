@@ -3220,6 +3220,12 @@ will be changed to an aggregate constant for the constant parts and
        It's just a place-holder that gets overwritten by the dynamic
        initialization. */
     desired_type = ipdp->modifiers->type;
+    /* For pointers to members, switch to the implementation type. */
+    if (is_or_was_ptr_to_data_member_type(desired_type)) {
+      desired_type = integer_type(targ_ptr_to_data_member_int_kind);
+    } else if (is_or_was_ptr_to_member_function_type(desired_type)) {
+      desired_type = make_mptr_type();
+    }  /* if */
     if (is_aggregate_or_union_type(desired_type)
 #if DO_C99_IL_LOWERING
         || is_complex_type(desired_type)
