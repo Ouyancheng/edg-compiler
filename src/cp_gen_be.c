@@ -2500,8 +2500,9 @@ a definition.
         /* Parentheses are not needed when the return type is void. */
         may_need_parens = FALSE;
       }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      if (msvc_is_generated_code_target && rout->pure_virtual) {
+      if (microsoft_mode &&
+          microsoft_dialect_is_generated_code_target &&
+          rout->pure_virtual) {
         /* The Microsoft dialect allows base class pure virtual functions to
            be defined in derived classes.  We need to allow qualification in
            such cases to avoid ambiguities, for example:
@@ -2512,15 +2513,20 @@ a definition.
                  void B1::f() { }  // <--- must be qualified
                  void B2::f() { }  // <--- must be qualified
                };
-        */
+
+           On the other hand, if the target is not a Microsoft dialect, we
+           might be able to get away with generating a regular override (i.e.,
+           no qualification) if the result is not ambiguous.  We thus check
+           for both microsoft_mode and
+           microsoft_dialect_is_generated_code_target to decide whether to
+           allow qualification in this case. */
 
         if (!class_is_in_name_context_stack(scp->parent.class_type,
                                             /*include_base_classes=*/FALSE)) {
-          /* Only allow qualification in a derived class. */
+          /* Avoid qualification inside the virtual function's class. */
           options |= GN_PURE_VIRTUAL_FUNCTION;
         }
       }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
     if (may_need_parens) {
       options |= GN_PARENS_IF_GLOBAL_QUALIFIER;
