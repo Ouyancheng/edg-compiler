@@ -1,8 +1,56 @@
 Version 2.20
 
+10/25/93 Disambiguating expressions and declarations
+
+A bug has been fixed so that the following is now parsed correctly:
+
+  new (int (*[10])())
+
+10/25/93 Spurious error on undefined static function
+
+An error is no longer issued on the following:
+
+  static int f();
+  int i = sizeof(f());      // Only reference to f() in translation unit
+
+In other words, a diagnostic is required only when an undefined static
+function is actually called or has its address taken.
+
+10/24/93 Check for declaring a function "inline" after calling it
+
+We now issue an error if a function is defined as inline after it is
+called.  This used to be done only for member functions, but now it
+is also done for nonmember functions, e.g.,
+
+  int f();
+  int g() { return f(); }
+  inline int f() { /* ... */ }     // Now an error
+
+for template functions, e.g.,
+
+  template <class T> int f(T);
+  int g() { return f(0); }
+  template <class T> inline void f(T) { /* ... */ }       // Now an error
+
+and member functions of template classes, e.g.,
+
+  template <class T> class A { public: static int f(); };
+  int g() { return A<int>::f(); };
+  template <class T> inline int A<T>::f() { /* ... */ }   // Now an error
+
+10/24/93 Diagnostic severity on superfluous semicolon in class definition
+
+It is now a warning by default and an error only in strict ANSI mode if a
+superfluous semicolon appears in a class definition (other than after a
+function body, where it is ignored) -- e.g.,
+
+  class A {
+    int i;;           // No longer an error (except in strict ANSI mode)
+  };
+
 10/24/93 IL Lowering type promotion reworked
 
-The algorithm for promoting memembers out of classes in IL lowering
+The algorithm for promoting members out of classes in IL lowering
 has been reworked.  Formerly, in some very obscure cases involving
 templates, the types on the types lists would be in an order that
 would not work right when generating order-dependent output, e.g.,
@@ -20,8 +68,18 @@ Formerly, the types came out in the order D, B, C, A.  Now they come out
 in the order B, D, C, A.  That is, they are in source order if one
 considers the position of class definitions to be the closing brace.
 
-One tricky aspect of this processing depends on a new flag added to the
-IL, i.e., is_placeholder_for_file_scope_type.
+One tricky aspect of this processing depends on the new flags added to
+a_type.
+
+10/24/93 IL CHANGE -- new flag in a_type for placeholder typerefs
+
+A placeholder typeref is an entry that appears on the types list of a
+non-local class scope and that points to a class type; the latter always
+represents an instantiation of a class template and is on the types list
+of the file scope.  The placeholder typeref is marked by a new flag in the
+type, is_placeholder_for_file_scope_type; and the template class it points
+to is marked by referenced_by_placeholder_typeref.  This information is
+used in IL lowering type promotion.
 
 10/22/93 Bug in overload resolution fixed
 
@@ -57,6 +115,20 @@ and may improve compilation speed slightly.  Note that, as ever, this
 is not an upper limit on the maximum depth of include file nesting.
 The definition of this value has also been moved from lexical.c to
 host_envir.h.
+
+10/20/93 Fixed confusing error on static data members
+
+A confusing error message resulted when the definition of the static data
+data member looked like a function declaration.  For instance,
+
+  struct S {
+    static int a;
+  };
+  int S::a(int);       // Better message is now issued
+
+10/19/93 Exception specification on main()
+
+An diagnostic is issued if an exception specification appears on main().
 
 10/19/93 Explicit destructor calls using template parameters
 
