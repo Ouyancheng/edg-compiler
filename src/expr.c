@@ -8518,7 +8518,7 @@ merely transformed to something to which the cast may apply.
       operand->bound_function = FALSE;
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (microsoft_mode &&
+  } else if (microsoft_bugs && microsoft_version < 1300 &&
              is_ptr_to_member_type(type_cast_to) &&
              is_function_type(pm_member_type(type_cast_to)) &&
              is_pointer_type(operand->type) &&

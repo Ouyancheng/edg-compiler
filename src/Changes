@@ -1,5 +1,21 @@
 Version 3.4
 
+2/24/04  Microsoft compatibility: bound function no longer converted to
+         pointer to member
+
+The Microsoft mode bug that bound functions are implicitly converted
+to pointers to members was fixed in MSVC++ 7.0 and is therefore
+no longer emulated for microsoft_version >= 1300.
+
+  struct A {
+    void f(int) {}
+  } a;
+  typedef void (A::*PMF)(int);
+  int main() {
+    PMF pm = (PMF)a.f;  // Error in MSVC++ 7.0 and 7.1
+    pm = a.f;           // Error in MSVC++ 7.0 and 7.1
+  }
+
 2/24/04  Internal error on invalid exported template directory
 
 An internal error would result if an invalid directory was specified
