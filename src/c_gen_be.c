@@ -11,7 +11,7 @@
 
 c_gen_be.c -- C-generating back end for testing.
 
-Compile with STANDALONE_UTILITY_PROGRAM defined and BACK_END_IS_C_GEN_BE
+Compile with STANDALONE_C_GEN_BE defined and BACK_END_IS_C_GEN_BE
 defined as 1 to get a main program back end.  Otherwise, a version to be
 called in the same program as the front end is produced (if needed).
 
@@ -20,7 +20,7 @@ supposed to handle every conceivable extreme case, and it's not intended
 for production use.
 */
 
-#ifdef STANDALONE_UTILITY_PROGRAM
+#ifdef STANDALONE_C_GEN_BE
 /* For the main-program version, get global variables defined. */
 #define EXTERN /*empty*/
 #define VAR_INITIALIZERS 1
@@ -30,7 +30,7 @@ for production use.
    in the standalone program version of c_gen_be. */
 ??=error -- BACK_END_IS_C_GEN_BE should be defined as 1 (on the command line)
 #endif /* !BACK_END_IS_C_GEN_BE */
-#endif /* ifdef STANDALONE_UTILITY_PROGRAM */
+#endif /* ifdef STANDALONE_C_GEN_BE */
 
 #include "basics.h"
 #include "host_envir.h"
@@ -57,19 +57,19 @@ is TRUE (by default, it is set when db_active is TRUE).
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
 #include "il_file.h"
 #include "il_read.h"
-#if !STANDALONE_UTILITY_PROGRAM
+#if !STANDALONE_C_GEN_BE
 #include "il_write.h"
-#endif /* !STANDALONE_UTILITY_PROGRAM */
+#endif /* !STANDALONE_C_GEN_BE */
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 
-#if STANDALONE_UTILITY_PROGRAM
+#if STANDALONE_C_GEN_BE
 /* Include files needed only to define storage for global variables
    in the main program. */
 #include "lexical.h"
 #include "cmd_line.h"
 #include "il_walk.h"
 #include "expr.h"
-#endif /* STANDALONE_UTILITY_PROGRAM */
+#endif /* STANDALONE_C_GEN_BE */
 
 
 /* CAREFUL: These variables must be initialized by assignments at the
@@ -8916,7 +8916,7 @@ Generate old-style (K&R/pcc) C from the intermediate language.
 }  /* c_gen_be */
 
 
-#if STANDALONE_UTILITY_PROGRAM
+#if STANDALONE_C_GEN_BE
 main(int argc, char *argv[])
 /*
 Simple "back end" for use in place of a real back end for testing.  This
@@ -8978,7 +8978,7 @@ from the primary source file name in the IL information.
   /*NOTREACHED*/
 }  /* main */
 
-#else /* !STANDALONE_UTILITY_PROGRAM */
+#else /* !STANDALONE_C_GEN_BE */
 
 void back_end(void)
 /*
@@ -9001,7 +9001,7 @@ version is for use as a subroutine called in the same program as the front end.
   c_gen_be();
   free_memory_region(FILE_SCOPE_REGION_NUMBER);
 }  /* back_end */
-#endif /* (else of) STANDALONE_UTILITY_PROGRAM */
+#endif /* (else of) STANDALONE_C_GEN_BE */
 
 #endif /* BACK_END_IS_C_GEN_BE */
 
