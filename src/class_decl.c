@@ -1079,6 +1079,68 @@ entry appears on a linked list pointed to from base_class.
 }  /* record_virtual_function_override */
 
 
+static a_boolean return_types_are_override_compatible(
+                                        a_type_ptr  type_of_overriding_routine,
+                                        a_type_ptr  type_of_overridden_routine)
+/*
+It is an error for the return type of an overriding virtual function to
+differ from the return type of the function that is overridden -- unless
+they are both pointers or both references to class types where the class
+associated with the overriding function is publicly derived from the
+other class (WP 10.2, but not in the ARM).  This routine does the checking
+required.
+*/
+{
+  a_type_ptr             tp1, tp2;
+  a_boolean              compatible;
+
+  db_enter(4, "return_types_are_override_compatible");
+  tp1 = type_of_overriding_routine->variant.routine.return_type;
+  tp2 = type_of_overridden_routine->variant.routine.return_type;
+  if (types_are_compatible(tp1, tp2)) {
+    /* The types are "simply" compatible.  No further checking is required. */
+    compatible = TRUE;
+#if 0
+/* IL lowering is not ready for the rest of this routine yet. */
+  } else {
+    /* They're not "simply" compatible.  Do the other checking. */
+    a_base_class_ptr       bcp;
+    a_derivation_step_ptr  dsp;
+
+    compatible = FALSE;
+    if ((is_reference_type(tp1) && is_reference_type(tp2)) ||
+        (is_pointer_type(tp1) && is_pointer_type(tp2))) {
+      /* Both types are references or both are pointers. */
+      tp1 = type_pointed_to(tp1);
+      tp2 = type_pointed_to(tp2);
+      if (is_class_struct_union_type(tp1) && is_class_struct_union_type(tp2)) {
+        /* The types referenced/pointed to are both classes.  See if the
+           class associated with the the overridden function is a base class
+           of the class associated with the overriding function. */
+        bcp = find_base_class_of(tp1, tp2);
+        if (bcp != NULL) {
+          /* One is a base class of the other.  Just be sure it's a publicly
+             accessible base class by checking the access on the base class
+             at each step of the derivation. */
+          for (dsp = bcp->derivation; dsp != NULL; dsp = dsp->next) {
+            if (dsp->base_class->access != (an_access_specifier)as_public) {
+              /* At least on step in the derivation is inaccessible, so the
+                 conditions for "override compatibility" are not satisfied. */
+              goto done;
+            }  /* if */
+          }  /* for */
+          compatible = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+done:;
+#endif /* if 0 */
+  }  /* if */
+  db_exit();
+  return compatible;      
+}  /* return_types_are_override_compatible */
+
+
 static a_boolean check_for_virtual_function(a_boolean        virtual_specified,
                                             a_symbol_ptr     rout_sym,
                                             a_type_ptr       class_type,
@@ -1175,8 +1237,7 @@ routine entry and return TRUE; otherwise return FALSE.
                                            /*allow_error_type=*/TRUE) &&
                 this_param_types_correspond(rout->type, rp->type)) {
               /* Now compare the return types. */
-              if (types_are_compatible(rout->type->variant.routine.return_type,
-                                      rp->type->variant.routine.return_type)) {
+              if (return_types_are_override_compatible(rout->type, rp->type)) {
                 /* Match */
                 is_virtual = TRUE;
                 /* Record the virtual function override in the base class
