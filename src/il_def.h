@@ -6397,6 +6397,17 @@ enum a_builtin_function_kind_tag {
   bfk_islessequal,              /* "__builtin_islessequal" */
   bfk_islessgreater,            /* "__builtin_islessgreater" */
   bfk_isunordered,              /* "__builtin_isunordered" */
+  bfk_exp,                      /* "__builtin_exp" */
+  bfk_huge_val,                 /* "__builtin_huge_val" */
+  bfk_huge_valf,                /* "__builtin_huge_valf" */
+  bfk_huge_vall,                /* "__builtin_huge_vall" */
+  bfk_nan,                      /* "__builtin_nan" */
+  bfk_nanf,                     /* "__builtin_nanf" */
+  bfk_nanl,                     /* "__builtin_nanl" */
+  bfk_nans,                     /* "__builtin_nans" */
+  bfk_nansf,                    /* "__builtin_nansf" */
+  bfk_nansl,                    /* "__builtin_nansl" */
+  bfk_prefetch,                 /* "__builtin_prefetch" */
   bfk_last
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -6500,6 +6511,17 @@ EXTERN char *builtin_function_kind_names[(int)bfk_last + 1]
   /* bfk_islessequal */              "__builtin_islessequal",
   /* bfk_islessgreater */            "__builtin_islessgreater",
   /* bfk_isunordered */              "__builtin_isunordered",
+  /* bfk_exp */                      "__builtin_exp",
+  /* bfk_huge_val */                 "__builtin_huge_val",
+  /* bfk_huge_valf */                "__builtin_huge_valf",
+  /* bfk_huge_vall */                "__builtin_huge_vall",
+  /* bfk_nan */                      "__builtin_nan",
+  /* bfk_nanf */                     "__builtin_nanf",
+  /* bfk_nanl */                     "__builtin_nanl",
+  /* bfk_nans */                     "__builtin_nans",
+  /* bfk_nansf */                    "__builtin_nansf",
+  /* bfk_nansl */                    "__builtin_nansl",
+  /* bfk_prefetch */                 "__builtin_prefetch",
   /* bfk_last */                     "last" /* used to check that 
                                                initialization is right. */
 }
