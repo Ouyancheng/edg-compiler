@@ -1338,7 +1338,10 @@ considered; otherwise, they are ignored.
         for (elt = 0; elt < num_array_elts; ++elt) {
           field_offset = field->offset + elt * field_type->size;
 #if IA64_ABI
+          /* Check if we can discard the field (or an element thereof) from
+             consideration based of positions alone. */
           if (field_offset > offset) break;
+          if (offset >= field_offset + field_type->size) continue;
 #else /* !IA64_ABI */
           if (field_offset != 0) break;
 #endif /* !IA64_ABI */
