@@ -2566,6 +2566,48 @@ and "routine" is the routine to which the entity is local.
 }  /* add_local_name_suffix */
 
 #endif /* !IA64_ABI */
+#if IA64_ABI
+
+static void add_discriminator_if_necessary(a_source_correspondence  *scp,
+                                           a_mangling_control_block *mctl)
+/*
+The entity (of kind entry_kind) whose source correspondence entry is
+scp is local to the function "routine".  Add a discriminator to the
+mangled name if necessary.  A discriminator is a number used in the
+IA-64 ABI to distinguish function-local entities with the same name.
+*/
+{
+  a_discriminator discriminator = 0;
+  a_symbol_ptr  sym = (a_symbol_ptr)scp->assoc_info;
+
+  if (scp->is_local_to_function && sym != NULL) {
+    if (sym->kind == (a_symbol_kind)sk_constant &&
+        is_enum_constant(sym->variant.constant)) {
+      /* This is an enumerator constant.  The constant itself never appears
+         to ABI consumers (only its value as a template argument), but for
+         the purpose of generating C code, we do need to ensure uniqueness.
+         To that end, use the discriminator of the enum type. */
+      a_type_ptr  enum_type = skip_typerefs(sym->variant.constant->type);
+      check_assertion(is_immediate_enum_type(enum_type));
+      sym = (a_symbol_ptr)enum_type->source_corresp.assoc_info;
+    }  /* if */
+    if (sym->kind == (a_symbol_kind)sk_variable) {
+      discriminator = sym->variant.variable.discriminator;
+    } else if (is_class_struct_union_symbol(sym) &&
+               sym->variant.class_struct_union.extra_info != NULL) {
+      discriminator = sym->variant.class_struct_union.extra_info
+                         ->discriminator;
+    } else if (sym->kind == (a_symbol_kind)sk_enum_tag) {
+      discriminator = sym->variant.enumeration.discriminator;
+    }  /* if */
+    if (discriminator > 0) {
+      add_to_mangled_name('_', mctl);
+      add_number_to_mangled_name((unsigned long)(discriminator - 1), mctl);
+    }  /* if */
+  }  /* if */
+}  /* add_discriminator_if_necessary */
+
+#endif /* IA64_ABI */
 
 #if IA64_ABI
 /*ARGSUSED*/ /* <-- show_partial_spec_args, show_template_specialization,
@@ -2724,6 +2766,8 @@ should be put out.
       add_local_name_suffix(ssp->local_class_number, ssp->enclosing_routine,
                             mctl);
     }  /* if */
+#else /* IA64 */
+    add_discriminator_if_necessary(&type->source_corresp, mctl);
 #endif /* !IA64_ABI */
   }  /* if */
 }  /* mangled_full_class_name */
@@ -2738,48 +2782,6 @@ should be put out).
 #define mangled_basic_class_name(type, mctl)                          \
   mangled_full_class_name((type), FALSE, FALSE, FALSE, FALSE, (mctl))
 
-#if IA64_ABI
-
-static void add_discriminator_if_necessary(a_source_correspondence  *scp,
-                                           a_mangling_control_block *mctl)
-/*
-The entity (of kind entry_kind) whose source correspondence entry is
-scp is local to the function "routine".  Add a discriminator to the
-mangled name if necessary.  A discriminator is a number used in the
-IA-64 ABI to distinguish function-local entities with the same name.
-*/
-{
-  a_discriminator discriminator = 0;
-  a_symbol_ptr  sym = (a_symbol_ptr)scp->assoc_info;
-
-  if (scp->is_local_to_function && sym != NULL) {
-    if (sym->kind == (a_symbol_kind)sk_constant &&
-        is_enum_constant(sym->variant.constant)) {
-      /* This is an enumerator constant.  The constant itself never appears
-         to ABI consumers (only its value as a template argument), but for
-         the purpose of generating C code, we do need to ensure uniqueness.
-         To that end, use the discriminator of the enum type. */
-      a_type_ptr  enum_type = skip_typerefs(sym->variant.constant->type);
-      check_assertion(is_immediate_enum_type(enum_type));
-      sym = (a_symbol_ptr)enum_type->source_corresp.assoc_info;
-    }  /* if */
-    if (sym->kind == (a_symbol_kind)sk_variable) {
-      discriminator = sym->variant.variable.discriminator;
-    } else if (is_class_struct_union_symbol(sym) &&
-               sym->variant.class_struct_union.extra_info != NULL) {
-      discriminator = sym->variant.class_struct_union.extra_info
-                         ->discriminator;
-    } else if (sym->kind == (a_symbol_kind)sk_enum_tag) {
-      discriminator = sym->variant.enumeration.discriminator;
-    }  /* if */
-    if (discriminator > 0) {
-      add_to_mangled_name('_', mctl);
-      add_number_to_mangled_name((unsigned long)(discriminator - 1), mctl);
-    }  /* if */
-  }  /* if */
-}  /* add_discriminator_if_necessary */
-
-#endif /* IA64_ABI */
 
 static void mangled_class_encoding(
                          a_type_ptr               type,
@@ -2868,8 +2870,6 @@ that fact should be put out.
                               mctl);
 #if !IA64_ABI
       fill_in_length(&length_reservation, mctl);
-#else /* IA64_ABI */
-      add_discriminator_if_necessary(&type->source_corresp, mctl);
 #endif /* !IA64_ABI */
     }  /* if */
   }  /* if */
