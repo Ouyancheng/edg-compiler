@@ -2831,6 +2831,22 @@ without it.
 }  /* member_function_redecl_sym */
 
 
+static a_boolean is_within_unreal_instantiation(a_type_ptr  class_type)
+/*
+Return TRUE if class_type is itself a "prototype instantiation" of a
+class template or is nested within such a class.
+*/
+{
+  a_class_symbol_supplement_ptr  cssp;
+
+  while (class_type->source_corresp.class_of_which_a_member != NULL) {
+    class_type = class_type->source_corresp.class_of_which_a_member;
+  }  /* while */
+  cssp = symbol_supplement_for_class(class_type);
+  return (cssp->class_template != NULL && !cssp->is_real_instantiation);
+}  /* is_within_unreal_instantiation */
+
+
 static a_symbol_ptr decl_friend_function(a_symbol_locator    *locator,
                                          a_type_ptr          class_type,
                                          a_type_ptr          function_type,
@@ -2853,6 +2869,11 @@ of the function, and again overloading is a possibility.
   a_storage_class         storage_class;
 
   db_enter(3, "decl_friend_function");
+  if (!is_error_locator(*locator)) {
+    if (is_within_unreal_instantiation(class_type)) {
+      set_to_error_locator(*locator);
+    }  /* if */
+  }  /* if */
   if (!is_error_locator(*locator)) {
     is_function_def_with_body = (curr_token == tok_lbrace);
     sym = locator->specific_symbol;
@@ -4646,42 +4667,49 @@ empty statement block.
                 "define_special_member_function: expected ctor, dtor, or =");
   }  /* if */
 #endif /* CHECKING */
-  /* Push a class symbol reactivation scope, to make class member names
-     visible for processing the function definition. */
-  push_class_reactivation_scope(class_type);
-  /* Push the scope for the new function itself. */
-  scope = push_scope((a_scope_kind)sck_function, NO_SCOPE_NUMBER,
-                     (a_type_ptr)NULL, rout_ptr,
-                     (a_function_instantiation_entry_ptr)NULL);
-  /* Associate the scope to the routine entry and the routine entry to its
-     type entry. */
-  rout_ptr->assoc_scope = curr_il_region_number;
-  rtsp->assoc_routine = rout_ptr;
-  scope->variant.routine.this_param_variable =
-                make_param_variable(rtsp->implicit_this_param_type,
-                                    (a_storage_class)sc_auto);
-  /* Enter the constructor and destructor initializers, to record possible
-     implicit initializers. */
-  if (rout_ptr->special_kind == (a_special_function_kind)sfk_constructor) {
-    scope->variant.routine.constructor_inits =
-                          ctor_initializer(rout_ptr, /*user_defined=*/FALSE);
-    (void)make_default_constructor_body(scope);
-  } else if (rout_ptr->special_kind ==
-                                (a_special_function_kind)sfk_destructor) {
-    scope->variant.routine.constructor_inits = dtor_initializer(rout_ptr);
-    (void)make_default_destructor_body(scope);
+  if (is_within_unreal_instantiation(class_type)) {
+    /* Don't bother generating the definition for a member of an unreal
+       instantiation of a template class. */
   } else {
-    /* Assignment operator case. */
-    (void)make_default_assignment_body(scope, err_pos);
+    /* Push a class symbol reactivation scope, to make class member names
+       visible for processing the function definition. */
+    push_class_reactivation_scope(class_type);
+    /* Push the scope for the new function itself. */
+    scope = push_scope((a_scope_kind)sck_function, NO_SCOPE_NUMBER,
+                       (a_type_ptr)NULL, rout_ptr,
+                       (a_function_instantiation_entry_ptr)NULL);
+    /* Associate the scope to the routine entry and the routine entry to its
+       type entry. */
+    rout_ptr->assoc_scope = curr_il_region_number;
+    rtsp->assoc_routine = rout_ptr;
+    scope->variant.routine.this_param_variable =
+                  make_param_variable(rtsp->implicit_this_param_type,
+                                      (a_storage_class)sc_auto);
+    /* Enter the constructor and destructor initializers, to record possible
+       implicit initializers. */
+    if (rout_ptr->special_kind == (a_special_function_kind)sfk_constructor) {
+      scope->variant.routine.constructor_inits =
+                            ctor_initializer(rout_ptr, /*user_defined=*/FALSE);
+      (void)make_default_constructor_body(scope);
+    } else if (rout_ptr->special_kind ==
+                                  (a_special_function_kind)sfk_destructor) {
+      scope->variant.routine.constructor_inits = dtor_initializer(rout_ptr);
+      (void)make_default_destructor_body(scope);
+    } else {
+      /* Assignment operator case. */
+      (void)make_default_assignment_body(scope, err_pos);
+    }  /* if */
+    /* End of statement block is unreachable because of the return
+       statement. */
+    scope->assoc_block->
+                   variant.block.extra_info->end_of_block_reachable = FALSE;
+    /* Terminate the function scope. */
+    pop_scope();
+    /* Terminate the class reactivation scope. */
+    pop_class_reactivation_scope();
+    /* Mark the symbol for this routine "defined". */
+    ((a_symbol_ptr)rout_ptr->source_corresp.assoc_info)->defined = TRUE;
   }  /* if */
-  /* End of statement block is unreachable because of the return statement. */
-  scope->assoc_block->variant.block.extra_info->end_of_block_reachable = FALSE;
-  /* Terminate the function scope. */
-  pop_scope();
-  /* Terminate the class reactivation scope. */
-  pop_class_reactivation_scope();
-  /* Mark the symbol for this routine "defined". */
-  ((a_symbol_ptr)rout_ptr->source_corresp.assoc_info)->defined = TRUE;
   db_exit();
 }  /* define_special_member_function */
 
@@ -5177,7 +5205,9 @@ done:
 
 a_boolean scan_class_definition(a_type_ptr    class_type,
                                 a_scope_depth effective_decl_level,
-                                a_boolean     is_local_class)
+                                a_boolean     is_local_class,
+                                a_boolean     is_prototype_instantiation)
+
 /*
 */
 {
@@ -5201,7 +5231,8 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
   a_layout_block          layout_block;
   a_boolean               is_template_instantiation;
 
-  is_template_instantiation = (scope_stack[depth_scope_stack].kind ==
+  is_template_instantiation = is_prototype_instantiation ||
+                              (scope_stack[depth_scope_stack].kind ==
                                      (a_scope_kind)sck_template_instantiation);
   tag_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
   cssp = tag_sym->variant.class_struct_union.extra_info;
@@ -5910,6 +5941,9 @@ next_declaration:
            int f(struct f p) {struct f{int a;};  ... }
          we may assume the type entry has already been entered on the types
          list. */
+    } else if (is_prototype_instantiation) {
+      /* The type entries created for a class template are not added to the
+         types list. */
     } else {
       /* Add the class type to the list for the current scope.  Note that
          incomplete structs/unions are not added to the type list (this code
@@ -6017,7 +6051,7 @@ next_declaration:
     remove_stop_token(tok_rbrace);
     /* Check for and ignore the closing brace. */
     (void)required_token(tok_rbrace, ec_exp_rbrace);
-    if (C_dialect == C_dialect_cplusplus) {
+    if (C_dialect == C_dialect_cplusplus && !is_prototype_instantiation) {
       /* Rescan tokens that were cached (inline function definitions, default
          arguments). */
       if (tag_sym->class_of_which_a_member == NULL) {
@@ -6275,7 +6309,8 @@ skip_tag_scan:
   }  /* if */
   if (is_class_definition) {
     if (scan_class_definition(class_type, effective_decl_level,
-                              is_local_class)) {
+                              is_local_class,
+                              /*is_prototype_instantiation=*/FALSE)) {
       *defines_something = TRUE;
       /* If this is the resolution of a previously incomplete tag, and there
          is a list of array types to be resolved, look to see if any of them
