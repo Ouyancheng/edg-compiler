@@ -7625,6 +7625,15 @@ converted to an rvalue.
     /* Re-fetch the variable type, because cv-qualifiers might have been
        dropped in converting it to an rvalue. */
     node_type = node->variant.variable->type;
+    if (is_reference_type(node_type)) {
+      /* Can't turn this back into an lvalue; this comes up for something like
+           int &r = i;
+           (unsigned int)&r = 1;
+         in g++ mode.  &r is an rvalue and there is no corresponding
+         lvalue for it, at least not one we want to make accessible to
+         the user. */
+      possible = FALSE;
+    }  /* if */
     if (!see_if_possible) {
       node->kind = (an_expr_node_kind)enk_variable_address;
       set_variable_address_taken(node->variant.variable);

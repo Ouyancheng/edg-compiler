@@ -1,5 +1,19 @@
 Version 3.2
 
+4/3/03   GNU C++ compatibility: cast on address-of-reference is not lvalue
+
+In g++ mode, the front end aborted while processing a use of
+a cast of the address of a reference variable to a pointer type
+as an lvalue (e.g., in an assignment).  The abort was in
+prep_conversion_operand ("dest_type is reference").  Now fixed (by
+making this case an error, as g++ does).
+
+  int main() {
+    int i = 1;
+    const volatile int &ri = i;
+    (int *)(&ri) = &i;  // Aborted in g++ mode, now an error
+  }
+
 4/3/03   IA-64 ABI: incorrect IL for string literals in aggregate initializer
 
 In the IA-64 ABI, IL lowering replaces string literals in inline
