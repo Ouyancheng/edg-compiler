@@ -1915,8 +1915,8 @@ number of parameters.
       internal_error(
            "function_template_matches_operand_list: missing default arg expr");
     }  /* if */
-  }  /* if */
 #endif /* CHECKING */
+  }  /* if */
   /* The function template matches the operand list. */
   matches = TRUE;
   *template_arg_list = templ_arg_list;
