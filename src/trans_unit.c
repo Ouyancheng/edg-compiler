@@ -253,7 +253,9 @@ pointed to by the translation unit entry.
   tup->il_header.nontag_types_used_in_exception_or_rtti =
                               il_header.nontag_types_used_in_exception_or_rtti;
   /* Reset the depth_in_scope stack field of any scopes on the scope stack. */
-  clear_scope_stack_related_information();
+  if (depth_scope_stack != NO_SCOPE_DEPTH) {
+    clear_scope_stack_related_information();
+  }  /* if */
 }  /* save_translation_unit_state */
 
 
@@ -288,7 +290,9 @@ pointed to by the translation unit entry.
                          tup->il_header.nontag_types_used_in_exception_or_rtti;
   /* Restore the depth_in_scope stack field of any scopes on the scope
      stack. */
-  set_scope_stack_related_information();
+  if (depth_scope_stack != NO_SCOPE_DEPTH) {
+    set_scope_stack_related_information();
+  }  /* if */
 }  /* restore_translation_unit_state */
 
 
