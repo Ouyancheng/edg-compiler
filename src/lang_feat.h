@@ -422,7 +422,7 @@ The value of the __GNUC_MINOR__ macro in gcc mode.
 
 /*
 The value of the __VERSION__ macro in gcc mode.  Note that an extra
-set of quotes are needed as this is the actual macro replacement string
+set of quotes is needed as this is the actual macro replacement string
 to be used.
 */
 #ifndef GCC_VERSION_STRING
