@@ -1140,6 +1140,33 @@ qualification.
 }  /* is_immediate_type_qualifier */
 
 
+static a_boolean is_not_yet_defined_typedef(a_type_ptr type)
+/*
+Return TRUE if the indicated type is a typedef for which the type has
+not yet been put out.  For such a typedef, the underlying type is used.
+This comes up for cases like
+
+  struct A { int i; };
+  extern struct A f();
+  typedef struct A TA;
+  TA f() {}
+
+When the initial declaration of f is put out, the typedef in the return type
+must be suppressed.
+*/
+{
+  a_boolean not_def_typedef = FALSE;
+
+  if (type->kind == (a_type_kind)tk_typeref &&
+      type->source_corresp.name != NULL &&
+      !is_immediate_type_qualifier(type)) {
+    /* This is a typedef.  See if it has been defined. */
+    if (!type->definition_put_out) not_def_typedef = TRUE;
+  }  /* if */  
+  return not_def_typedef;
+}  /* is_not_yet_defined_typedef */
+
+
 static void gen_type_qualifier(a_type_ptr type)
 /*
 Print the type qualifier for the top type of the given type (i.e., just
@@ -1168,6 +1195,7 @@ Output the definition of the indicated typedef.
 */
 {
   /* set_output_position has already been called for the type. */
+  type->definition_put_out = TRUE;
   write_str("typedef ");
   gen_type(type->variant.typeref.type, &type->source_corresp);
 }  /* gen_typedef_definition */
@@ -1467,11 +1495,12 @@ Output a type specifier.
            underlying type. */
         gen_type_qualifier(type);
         write_str(" ");
-	gen_type_specifier(type->variant.typeref.type);
-      } else if (type->source_corresp.name == NULL) {
-	/* This is an internally generated typeref, so just output the
-	   underlying type. */
-	gen_type_specifier(type->variant.typeref.type);
+        gen_type_specifier(type->variant.typeref.type);
+      } else if (type->source_corresp.name == NULL ||
+                 is_not_yet_defined_typedef(type)) {
+        /* This is an internally generated typeref, or a typedef that has
+           not been defined yet, so just output the underlying type. */
+        gen_type_specifier(type->variant.typeref.type);
       } else {
         /* A typedef; output its name. */
         gen_type_reference(type);
@@ -1481,6 +1510,27 @@ Output a type specifier.
       unexpected_condition_str("gen_type_specifier: bad type kind");
   }  /* switch */
 }  /* gen_type_specifier */
+
+
+static void gen_pointer_type_qualifiers(a_type_ptr qual_type,
+                                        a_type_ptr type)
+/*
+Generate type qualifiers, if any, to follow a pointer "*", reference "&",
+or pointer-to-member "name::*".  qual_type is the full pointer type,
+and type is the unqualified version of that type (e.g., the tk_pointer
+entry).
+*/
+{
+  for (; qual_type != type; qual_type = qual_type->variant.typeref.type) {
+    if (is_not_yet_defined_typedef(type)) {
+      /* Skip a step for a not-yet-defined typedef. */
+    } else {
+      /* Put out a type qualifier. */
+      gen_type_qualifier(qual_type);
+      write_str(" ");
+    }  /* if */
+  }  /* for */
+}  /* gen_pointer_type_qualifier */
 
 
 static void gen_type_first_part(a_type_ptr type,
@@ -1497,9 +1547,11 @@ is not empty, because it contains a name or a derived type).
   a_type_kind kind;
   a_type_ptr  qual_type;
 
-  /* Remove type qualifiers but not typedefs. */
+  /* Remove type qualifiers but not typedefs.  Do remove typedefs that are
+     forward references. */
   qual_type = type;
-  while (is_immediate_type_qualifier(type)) type = type->variant.typeref.type;
+  while (is_immediate_type_qualifier(type) ||
+         is_not_yet_defined_typedef(type)) type = type->variant.typeref.type;
   kind = type->kind;
   if (kind == (a_type_kind)tk_pointer) {
     /* Pointer or reference type. */
@@ -1513,11 +1565,8 @@ is not empty, because it contains a name or a derived type).
       write_str("*");
     }  /* if */
     /* Output the type qualifiers on the pointer, if any. */
-    for (; qual_type != type; qual_type = qual_type->variant.typeref.type) {
-      gen_type_qualifier(qual_type);
-      write_str(" ");
-    }  /* for */
-    if (need_paren) write_str("(");;
+    gen_pointer_type_qualifiers(qual_type, type);
+    if (need_paren) write_str("(");
   } else if (kind == (a_type_kind)tk_ptr_to_member) {
     /* Pointer-to-member type. */
     gen_type_first_part(type->variant.ptr_to_member.type,
@@ -1527,11 +1576,8 @@ is not empty, because it contains a name or a derived type).
     gen_type_name(type->variant.ptr_to_member.class_of_which_a_member);
     write_str("::*");
     /* Output the type qualifiers on the pointer, if any. */
-    for (; qual_type != type; qual_type = qual_type->variant.typeref.type) {
-      gen_type_qualifier(qual_type);
-      write_str(" ");
-    }  /* for */
-    if (need_paren) write_str("(");;
+    gen_pointer_type_qualifiers(qual_type, type);
+    if (need_paren) write_str("(");
   } else if (kind == (a_type_kind)tk_routine) {
     /* Function type. */
     /* A qualifier on a function type shouldn't be possible without a
@@ -1541,7 +1587,7 @@ is not empty, because it contains a name or a derived type).
     gen_type_first_part(type->variant.routine.return_type,
                         /*need_paren=*/TRUE,
                         /*need_trailing_space=*/TRUE);
-    if (need_paren) write_str("(");;
+    if (need_paren) write_str("(");
   } else if (kind == (a_type_kind)tk_array) {
     /* Array type. */
     /* A qualifier on an array type shouldn't be possible, period. */
@@ -1550,7 +1596,7 @@ is not empty, because it contains a name or a derived type).
     gen_type_first_part(type->variant.array.element_type,
                         /*need_paren=*/TRUE,
                         /*need_trailing_space=*/TRUE);
-    if (need_paren) write_str("(");;
+    if (need_paren) write_str("(");
   } else {
     /* No declarator part to process.  Handle the specifier type. */
 #if 0
@@ -1675,8 +1721,10 @@ out first if anything is generated.
 {
   a_type_kind kind;
 
-  /* Drop type qualifiers but not typedefs. */
-  while (is_immediate_type_qualifier(type)) type = type->variant.typeref.type;
+  /* Remove type qualifiers but not typedefs.  Do remove typedefs that are
+     forward references. */
+  while (is_immediate_type_qualifier(type) ||
+         is_not_yet_defined_typedef(type)) type = type->variant.typeref.type;
   kind = type->kind;
   if (kind == (a_type_kind)tk_pointer) {
     /* Pointer or reference type. */
