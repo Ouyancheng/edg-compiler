@@ -1,5 +1,24 @@
 Version 2.44
 
+3/8/00   Pointer-to-member argument deduction problem
+
+A bug was introduced in version 2.43 that caused template argument deduction
+to succeed for certain pointer-to-member cases where it should fail
+because the function qualifiers do not match.  This resulted in ambiguous
+deductions, which in turn resulted in spurious errors.  This has been fixed.
+
+  struct A {
+    void f() const;
+    void f();
+  };
+
+  template<class T, class R> void g(R (T::*f)() const);
+
+  int main()
+  {
+    g(&A::f);
+  }
+
 3/7/00   Microsoft 7.0 compatibility: array new and non-array operator new
 
 In MSVC++ 7.0, the processing for array new operators is slightly

@@ -4728,9 +4728,10 @@ points to the template parameter list.
                 }  /* if */
               } else {
                 /* They both have this class types, make sure the
-                   types match. */
-                tp =  type->variant.routine.extra_info->this_class;
-                ttp =  templ_type->variant.routine.extra_info->this_class;
+                   types match.  Construct an implicit this type so that
+                   the qualifiers will be processed too. */
+                tp =  implicit_this_param_type_of(type);
+                ttp =  implicit_this_param_type_of(templ_type);
                 match = matches_template_type(tp, ttp, templ_arg_list,
                                               templ_param_list,
                                               new_flags);
