@@ -7364,6 +7364,21 @@ Dump debug information about an object lifetime entry.
       for (; dip != NULL; dip = dip->next_in_destruction_list) {
         fputs("\n                 ", f_debug);
         db_destruction(dip);
+      }  /* for */
+    }  /* if */
+    if (olp->entity.kind == (a_byte_il_entry_kind)iek_scope) {
+      a_scope_ptr  sp = (a_scope_ptr)olp->entity.ptr;
+      if (sp->kind == (a_scope_kind)sck_function &&
+          sp->variant.routine.lifetime_of_constructor_inits != NULL) {
+        fputs("\n  ctor init destructions = ", f_debug);
+        dip = sp->variant.routine.lifetime_of_constructor_inits->
+                                                             destructions;
+        db_destruction(dip);
+        dip = dip->next_in_destruction_list;
+        for (; dip != NULL; dip = dip->next_in_destruction_list) {
+          fputs("\n                           ", f_debug);
+          db_destruction(dip);
+        }  /* for */
       }  /* if */
     }  /* if */
     fputc('\n', f_debug);
@@ -7415,6 +7430,19 @@ stopping when the object lifetime indicated by stop_at is reached.
           fputs("\n      ", f_debug);
           db_destruction(dip);
         }  /* for */
+      }  /* if */
+      if (olp->entity.kind == (a_byte_il_entry_kind)iek_scope) {
+        a_scope_ptr  sp = (a_scope_ptr)olp->entity.ptr;
+        if (sp->kind == (a_scope_kind)sck_function &&
+            sp->variant.routine.lifetime_of_constructor_inits != NULL) {
+          fputs("\n  --for constructor inits:", f_debug);
+          dip = sp->variant.routine.lifetime_of_constructor_inits->
+                                                             destructions;
+          for (; dip != NULL; dip = dip->next_in_destruction_list) {
+            fputs("\n      ", f_debug);
+            db_destruction(dip);
+          }  /* for */
+        }  /* if */
       }  /* if */
       fputc('\n', f_debug);
       /* Note: on a parent destruction list, only those following
@@ -7800,7 +7828,8 @@ return it to the appropriate available list.
   curr_object_lifetime = olp->parent_lifetime;
   /* Do additional processing connected with whether the entry remains in
      the IL or should be removed. */
-  if (olp->entity.kind == (a_byte_il_entry_kind)iek_scope &&
+  if (olp->kind == (an_object_lifetime_kind)olk_local &&
+      olp->entity.kind == (a_byte_il_entry_kind)iek_scope &&
       ((a_scope_ptr)olp->entity.ptr)->kind == (a_scope_kind)sck_function) {
     /* This is an object lifetime for a function scope; its parent pointer
        is the file scope lifetime entry, but it's an "implicit" child of the
@@ -7822,7 +7851,7 @@ return it to the appropriate available list.
       check_assertion(olp->child_lifetime == NULL);
     } else {
       check_assertion(parent->child_lifetime == olp);
-      /* Loop through all the children of olp move them up to the parent's
+      /* Loop through all the children of olp and move them up to the parent's
          child list -- i.e., promote the children to siblings. */
       end_of_child_list = NULL;
       for (child = olp->child_lifetime; child != NULL; child = child->next) {
@@ -7851,6 +7880,18 @@ return it to the appropriate available list.
     }  /* if */
     /* Return the entry to its available list. */
     (void)free_object_lifetime(olp);
+  } else if (olp->kind == (an_object_lifetime_kind)olk_constructor_init) {
+    /* A constructor init lifetime remain unbound while it is on the
+       object lifetime stack; it's only bound when the constructor init
+       processing is complete. */
+    bind_object_lifetime(olp, (an_il_entry_kind)iek_scope,
+                         (char *)scope_stack[depth_scope_stack].il_scope);
+#if DEBUG
+    if (debug_level >= 3) {
+      fputs("binding constructor init lifetime to: ", f_debug);
+      db_object_lifetime(curr_object_lifetime);
+    }  /* if */
+#endif /* DEBUG */
   } else {
     /* Be sure an object lifetime that is being left in the IL has been
        bound to some other IL entity. */
