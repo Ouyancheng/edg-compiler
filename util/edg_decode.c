@@ -67,6 +67,9 @@ static unsigned long
 /*
 Declarations needed because of forward references:
 */
+static char *demangle_name(char          *ptr,
+                           unsigned long nchars,
+                           char          *mclass);
 static char *demangle_type(char *ptr);
 static char *demangle_type_name(char      *ptr,
                                 a_boolean base_name_only);
@@ -137,6 +140,21 @@ Return TRUE if the identifier (at id) begins with the string str.
 }  /* start_of_id_is */
 
 
+static char *advance_past_underscore(char *p)
+/*
+An underscore is expected at *p.  If it's there, advance past it.  If
+not, call bad_mangled_name.  In either case, return the updated value of p.
+*/
+{
+  if (*p == '_') {
+    p++;
+  } else {
+    bad_mangled_name();
+  }  /* if */
+  return p;
+}  /* advance_past_underscore */
+
+
 static char *get_number(char          *p,
                         unsigned long *num)
 /*
@@ -155,6 +173,7 @@ Return a pointer to the character position following the number.
     if (n > input_id_len) {
       /* Bad number. */
       bad_mangled_name();
+      n = input_id_len;
       goto end_of_routine;
     }  /* if */
     p++;
@@ -185,6 +204,27 @@ end_of_routine:
 }  /* get_single_digit_number */
 
 
+static char *get_number_with_optional_underscore(char          *p,
+                                                 unsigned long *num)
+/*
+Accumulate a number starting at position p and return its value in *num.
+If the number has more than one digit, it is followed by an underscore.
+Return a pointer to the character position following the number.
+*/
+{
+  /* Interpret "multi-digit" as "2-digit" because it's ambiguous otherwise. */
+  if (isdigit(p[0]) && isdigit(p[1]) && p[2] == '_') {
+    /* Multi-digit number followed by underscore. */
+    p = get_number(p, num);
+    p = advance_past_underscore(p);
+  } else {
+    /* Single-digit number not followed by underscore. */
+    p = get_single_digit_number(p, num);
+  }  /* if */
+  return p;
+}  /* get_number_with_optional_underscore */
+
+
 static a_boolean is_immediate_type_qualifier(char *p)
 /*
 Return TRUE if the encoding pointed to is one that indicates type
@@ -201,21 +241,6 @@ qualification.
 }  /* is_immediate_type_qualifier */
 
 
-static char *advance_past_underscore(char *p)
-/*
-An underscore is expected at *p.  If it's there, advance past it.  If
-not, call bad_mangled_name.  In either case, return the updated value of p.
-*/
-{
-  if (*p == '_') {
-    p++;
-  } else {
-    bad_mangled_name();
-  }  /* if */
-  return p;
-}  /* advance_past_underscore */
-
-
 static char *demangle_nontype_template_argument(char *ptr)
 /*
 Demangle the nontype template class argument beginning at ptr and output the
@@ -223,7 +248,8 @@ demangled form.  Return a pointer to the character position following what was
 demangled.
 */
 {
-  char *p = ptr;
+  char          *p = ptr, *type, *index;
+  unsigned long nchars;
 
   /* A constant template argument has a form like
        XCiL15   <-- integer constant 5
@@ -235,8 +261,153 @@ demangled.
        ^------- X indicates beginning of constant argument.
      ptr is pointing to the initial "X".
   */
+  /* Advance past the "X". */
   p++;
-  bad_mangled_name();  /* Unimplemented. */
+  /* The type follows the "X". */
+  type = p;
+  /* Advance past the type. */
+  suppress_id_output++;
+  p = demangle_type(p);
+  suppress_id_output--;
+  /* The next thing has one of the following forms:
+       3abc        Address of "abc"
+       L211        Literal constant; length ("2") followed by the characters of
+                   the constant ("11")
+       LM0_L2n1_1j Pointer-to-member-function constant; the three parts
+                   correspond to the triplet of values in the __mptr
+                   data structure.
+  */
+  if (isdigit(*p)) {
+    /* A name preceded by its length, e.g., "3abc".  Put out "&name". */
+    p = get_number(p, &nchars);
+    write_id_ch('&');
+    /* Process the name. */
+    p = demangle_name(p, nchars, (char *)NULL);
+  } else if (*p == 'L') {
+    if (p[1] != 'M') {
+      /* Normal literal constant.  Form is something like
+           L3n12     encoding for -12
+             ^^^---- Characters of constant.  Some characters get remapped:
+                       n --> -
+                       p --> +
+                       d --> .
+            ^------- Length of constant.
+         Output is
+          (type)constant
+         That is, the literal constant preceded by a cast to the right type.
+      */
+      p++;
+      write_id_ch('(');
+      /* Start at type+1 to avoid the "C" for const. */
+      (void)demangle_type(type+1);
+      write_id_ch(')');
+      /* Get the length of the constant. */
+      p = get_number_with_optional_underscore(p, &nchars);
+      /* Process the characters of the literal constant. */
+      for (; nchars > 0; nchars--, p++) {
+        /* Remap characters where necessary. */
+        char ch = *p;
+        switch (ch) {
+          case '\0':
+          case '_':
+            /* Ran off end of string. */
+            bad_mangled_name();
+            goto end_of_routine;
+          case 'p':
+            ch = '+';
+            break;
+          case 'n':
+            ch = '-';
+            break;
+          case 'd':
+            ch = '.';
+            break;
+        }  /* switch */
+        write_id_ch(ch);
+      }  /* for */
+    } else {
+      /* Pointer-to-member-function.  The form of the constant is
+           LM0_L2n1_1j  Non-virtual function
+           LM0_L11_0    Virtual function
+           LM0_L10_0    Null pointer
+         The three parts match the three components of the __mptr structure:
+         (delta, index, function or offset).  The index is -1 for a non-virtual
+         function, 0 for a null pointer, and greater than 0 for a virtual
+         function.  The index is represented like an integer constant (see
+         above).  For virtual functions, the last component is always "0"
+         even if the offset is not zero. */
+      /* Advance past the "LM". */
+      p += 2;
+      /* Advance over the first component, ignoring it. */
+      while (isdigit(*p)) p++;
+      p = advance_past_underscore(p);
+      /* The index component should be next. */
+      if (*p != 'L') {
+        bad_mangled_name();
+        goto end_of_routine;
+      }  /* if */
+      p++;
+      /* Get the index length. */
+      /* Note that get_number_with_optional_underscore is not used because
+         this is an ambiguous situation: an underscore follows the index
+         value, and there's no way to tell if it's the multi-digit
+         indicator for the length or the separator between fields. */
+      p = get_single_digit_number(p, &nchars);
+      /* Remember the start of the index. */
+      index = p;
+      /* Skip the rest of the index. */
+      while (isdigit(*p) || (*p == 'n')) p++;
+      p = advance_past_underscore(p);
+      /* If the index number starts with 'n', this is a non-virtual
+         function. */
+      if (*index == 'n') {
+        /* Non-virtual function. */
+        /* The third component is a name preceded by its length, e.g.,
+           "1f".  Put out "&A::f", where "A" is the class type retrieved
+           from the type. */
+        write_id_ch('&');
+        /* Start at type+2 to skip the "C" for const and the "M" for
+           pointer-to-member. */
+        (void)demangle_type(type+2);
+        write_id_str("::");
+        /* Scan the length of the name. */
+        p = get_number(p, &nchars);
+        /* Demangle the name. */
+        p = demangle_name(p, nchars, (char *)NULL);
+      } else {
+        /* Not a non-virtual function.  The encoding for the third component
+           should be simply "0". */
+        if (*p != '0') {
+          bad_mangled_name();
+          goto end_of_routine;
+        }  /* if */
+        p++;
+        if (nchars == 1 && *index == '0') {
+          /* Null pointer constant.  Output "(type)0", that is, a zero cast
+             to the pointer-to-member type. */
+          write_id_ch('(');
+          (void)demangle_type(type);
+          write_id_str(")0");
+        } else {
+          /* Virtual function.  This case can't really be demangled properly,
+             because the mangled name doesn't have enough information.
+             Output "&A::virtual-function-n". */
+          write_id_ch('&');
+          /* Start at type+2 to skip the "C" for const and the "M" for
+             pointer-to-member. */
+          (void)demangle_type(type+2);
+          write_id_str("::");
+          write_id_str("virtual-function-");
+          /* Write the index number. */
+          for (; nchars > 0; nchars--, index++) write_id_ch(*index);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  } else {
+    /* The constant starts with something unexpected. */
+    bad_mangled_name();
+  }  /* if */
+end_of_routine:
   return p;
 }  /* demangle_nontype_template_argument */
 
@@ -260,10 +431,6 @@ demangled.
   write_id_ch('<');
   /* Scan the size. */
   p = get_number(p, &nchars);
-  if (nchars > input_id_len) {
-    bad_mangled_name();
-    goto end_of_routine;
-  }  /* if */
   arg_base = p;
   p = advance_past_underscore(p);
   /* Loop to process the arguments. */
@@ -286,7 +453,6 @@ demangled.
     write_id_str(", ");
   }  /* for */
   write_id_ch('>');
-end_of_routine:
   return p;
 }  /* demangle_template_arguments */
 
@@ -557,10 +723,6 @@ do not put out any nested type qualifiers, e.g., put out "A::x" as simply "x".
           ^----------------Number of levels of qualification.
     */
     p = get_number(p+1, &nquals);
-    if (nquals > input_id_len) {
-      bad_mangled_name();
-      goto end_of_routine;
-    }  /* if */
     p = advance_past_underscore(p);
     /* Handle each level of qualification. */
     for (; nquals > 0; nquals--) {
@@ -580,7 +742,6 @@ do not put out any nested type qualifiers, e.g., put out "A::x" as simply "x".
     /* Write the type name. */
     p = demangle_name(p, nchars, (char *)NULL);
   }  /* if */
-end_of_routine:
   return p;
 }  /* demangle_type_name */
 
@@ -903,8 +1064,6 @@ the character position following what was demangled.
                                  /*need_trailing_space=*/FALSE);
   /* Generate the declarator part of the type. */
   p = demangle_type_second_part(ptr, /*need_paren=*/FALSE);
-  /* Make sure we make some progress on errors to avoid loops. */
-  if (err_in_id && p == ptr && *p != '\0') p++;
   return p;
 }  /* demangle_type */
 
