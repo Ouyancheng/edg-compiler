@@ -1222,6 +1222,12 @@ and the entry pointer is to an entry in the file scope, just return
           a_base_class_ptr ptr = (a_base_class_ptr)entry_ptr;
           remap_next_ptr(ptr->next, a_base_class_ptr, iek_base_class);
           remap_ptr(ptr->type, a_type_ptr, iek_type);
+#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+          remap_ptr(ptr->data_section_base_class, a_base_class_ptr,
+                    iek_base_class);
+#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
+          remap_ptr(ptr->pointer_base_class, a_base_class_ptr,
+                    iek_base_class);
           walk_list(ptr->derivation, a_derivation_step_ptr,
                     iek_derivation_step);
           walk_list(ptr->overriding_virtual_functions,
