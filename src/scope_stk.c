@@ -3808,7 +3808,7 @@ End a name scope by popping an entry off the scope stack.
       set_active_using_list_scope_depths(depth_scope_stack,
                                          /*set_value=*/FALSE);
       if (depth_scope_stack != DEPTH_OF_FILE_SCOPE) {
-        set_active_using_list_scope_depths(depth_scope_stack-1,
+        set_active_using_list_scope_depths(ssep->previous_scope,
                                            /*set_value=*/TRUE);
       }  /* if */
     }  /* if */

@@ -1,5 +1,26 @@
 Version 2.39
 
+4/23/98   using-directive state not maintained properly in certain cases
+
+Under certain circumstances, the using-directive state is not maintained
+properly when a template declared in a namespace is defined later
+outside of the namespace.  This can result in spurious lookup errors.
+This has been fixed.
+
+  namespace std {
+    template <class T> struct B { };
+    template <class T, class T2 =  B<T> > struct A { };
+  }  
+
+  namespace my_namespace {
+    using namespace std;
+    template<class T> A<T> g(A<T>&);    
+    template<class T> A<T> f(A<T>&);
+  }
+
+  template<class T> std::A<T> my_namespace::f(A<T>& v) {return v;}
+  template<class T> std::A<T> my_namespace::g(A<T>& v) {return v;}
+
 4/22/98   Access inconsistency on redeclaration of member type
 
 It is a violation of the standard to declare a nested class (or other
