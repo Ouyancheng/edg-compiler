@@ -1819,6 +1819,7 @@ or defined in that object file.
     if (type != 'B' &&
         type != 'D' &&
         type != 'R' &&
+        type != 'S' &&
         type != 'T' &&
         type != 'U' &&
         type != 'V' &&
@@ -1834,6 +1835,7 @@ or defined in that object file.
         case 'B':  /* BSS symbol */
         case 'D':  /* data symbol */
         case 'R':  /* read-only data symbol */
+        case 'S':  /* Uninitialized small object. */
         case 'T':  /* text symbol */
         case 'V':  /* Weak definition */
         case 'W':  /* Weak definition */
