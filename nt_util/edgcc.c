@@ -140,6 +140,8 @@ static int preprocess_only = FALSE;
 static char	*edg_base;
 			/* Where the EDG bin, lib, and include directories
                            reside. */
+static char	*cpfe_command;
+			/* Name of the front end executable. */
 static char	*edg_bin;
 			/* $EDG_BASE/bin. */
 static char	*edg_lib;
@@ -849,6 +851,9 @@ Startup initialization.
      bin and lib directories. */
   edg_base = getenv("EDG_BASE");
   if (edg_base == NULL) edg_base = DEFAULT_EDG_BASE;
+  /* Get the name of the front end executable. */
+  cpfe_command = getenv("EDG_CPFE");
+  if (cpfe_command == NULL) cpfe_command = CPFE_COMMAND;
   /* Build $EDG_BASE/bin. */
   sprintf(string_buffer, "%s%sbin", edg_base, PATH_DELIMITER);
   edg_bin = copy_of_string(string_buffer);
@@ -1013,7 +1018,7 @@ Compile a file and generate an object file.
 #endif /* __WIN32__ */
 
   init_command_line(&cl);
-  add_cl_argument(&cl, CPFE_COMMAND);
+  add_cl_argument(&cl, cpfe_command);
   /* Append any options extracted from the edgcc command line. */
   append_command_line(&cl, &compile_options);
 #if __WIN32__
