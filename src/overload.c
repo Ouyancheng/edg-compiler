@@ -2346,8 +2346,8 @@ FALSE otherwise.
     visible = FALSE;
     goto end_of_function;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (is_overloaded_operator &&
-             microsoft_mode && microsoft_version >= 1310 &&
+  } else if (microsoft_mode && microsoft_version >= 1310 &&
+             is_overloaded_operator && !from_arg_dep_lookup &&
              function_symbol->is_microsoft_invisible_operator) {
     /* As of MSVC++ 7.1, certain operators defined as friends are
        not visible.  This is an approximation to eliminating friend
