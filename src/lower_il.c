@@ -3183,6 +3183,12 @@ virtual function table.
   delta_con->next = i_con;
   i_con->next = func_con;
   entry_aggr->variant.aggregate.last_constant = func_con;
+#if DEBUG
+  if (debug_level >= 4 || db_flag_is_set("vtbl")) {
+    db_constant(entry_aggr);
+    fprintf(f_debug, "\n");
+  }  /* if */
+#endif /* DEBUG */
 }  /* add_vtbl_entry_init */
 
 
@@ -3427,6 +3433,17 @@ virtual function table.
   /* Do not put out the initial value if the class should not be defined
      in this compilation. */
   if (definition_needed) {
+#if DEBUG
+    if (debug_level >= 4 || db_flag_is_set("vtbl")) {
+      fprintf(f_debug, "\nVirtual function table for ");
+      if (bcp == NULL) {
+        db_abbreviated_type(class_type);
+        fprintf(f_debug, "\n");
+      } else {
+        db_base_class(bcp, /*show_offset=*/FALSE);
+      }  /* if */
+    }  /* if */
+#endif /* DEBUG */
     switch_to_file_scope_region(&region_to_switch_back_to);
     /* Start the initialization by creating a ck_aggregate constant and
        making it the initial value of the variable. */
@@ -3712,6 +3729,12 @@ added_to_list:;
     subobject_type->size = ctsp->size_without_virtual_base_classes;
     subobject_type->alignment = ctsp->alignment_without_virtual_base_classes;
     /* add_to_types_list is not called on purpose.  See above. */
+    subobject_type->variant.class_struct_union.any_virtual_functions =
+                  class_type->variant.class_struct_union.any_virtual_functions;
+    subobject_type->variant.class_struct_union.
+      any_virtual_functions_including_in_base_classes =
+                             class_type->variant.class_struct_union.
+                               any_virtual_functions_including_in_base_classes;
     subobject_ctsp->virtual_function_info_offset =
                                             ctsp->virtual_function_info_offset;
     /* Preserve the information on sharing of virtual function table pointers.
@@ -3721,14 +3744,11 @@ added_to_list:;
        only during IL lowering. */
     subobject_ctsp->virtual_function_info_base_class =
                                         ctsp->virtual_function_info_base_class;
-#if 0
-    /* Following would perhaps be dangerous; class would not get virtual
-       function table variables set (Could it share the main class vars?
-       Does it need any?). */
     /* The subobject type has no virtual base classes and is therefore its
-       own type as subobject. */
+       own type as subobject.  This prevents prelowering from being done on
+       the class type, and therefore prevents generation of virtual function
+       tables. */
     subobject_ctsp->type_as_subobject = subobject_type;
-#endif /* 0 */
   }  /* if */
   ctsp->type_as_subobject = subobject_type;
 }  /* make_subobject_class_type */
