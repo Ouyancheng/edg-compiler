@@ -4740,7 +4740,8 @@ be delayed until the end of the compilation.
     delay_lowering = TRUE;
   } else if (!C_mode() && export_template_allowed &&
              routine->storage_class == (a_storage_class)sc_static &&
-             (scope->variables != NULL || scope->scopes != NULL)) {
+             (scope->variables != NULL || scope->types != NULL ||
+              scope->scopes != NULL)) {
     /* When exported templates are allowed, a static function might be
        externalized because it might be referenced by a template.
        If it has local static variables, they might have to be
