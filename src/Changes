@@ -2,7 +2,7 @@ Version 2.29
 
 4/7/95   Declaring static data members as member constants
 
-A static data member declaration inside the class definition may now
+A static data member declaration inside its class definition may now
 specify an initializer if the member has const integral type (see 9.5.2).
 
 4/7/95   IL CHANGE:  defined flag in a_variable.
