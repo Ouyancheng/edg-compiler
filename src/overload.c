@@ -2790,6 +2790,9 @@ was detected and reported.
     internal_error("overloaded_function_catch_up: bad function_symbol");
   }  /* if */
 #endif /* CHECKING */
+  /* The address of the function is not really taken if the current expression
+     is not evaluated. */
+  if (!curr_expr_is_potentially_evaluated()) address_taken = FALSE;
   /* Check ambiguity and access. */
   if (fundamental_symbol_of(overloaded_function_symbol)->kind ==
                                        (a_symbol_kind)sk_overloaded_function) {
