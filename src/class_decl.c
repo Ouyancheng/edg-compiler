@@ -3678,6 +3678,7 @@ static void decl_static_data_member(a_symbol_locator *locator,
                                     a_type_ptr       class_type,
                                     a_type_ptr       member_type,
                                     an_access_specifier access,
+                                    a_boolean        is_anonymous_union,
                                     a_boolean        is_nonreal_class,
                                     a_symbol_ptr     corresp_prototype_tag_sym)
 /*
@@ -3712,6 +3713,11 @@ table.
      data members will also be changed. */
   var->source_corresp.name_linkage = class_type->source_corresp.name_linkage;
   var->source_corresp.access = access;
+  if (is_anonymous_union) {
+    /* A static data members is not allowed to be an anonymous union.  An error
+       will have been issued already, but promote the fields anyway. */
+    check_anonymous_union_symbols(class_type, (a_field_ptr)NULL, var);
+  }  /* if */
   /* Special processing for static data members of template classes. */
   if (corresp_prototype_tag_sym != NULL || is_nonreal_class) {
     /* A nonnull instance_ptr marks this static data member as a member of
@@ -3873,21 +3879,24 @@ of assoc_field_object and assoc_var_object is defined.
   a_symbol_ptr                   sym, next_sym, mf_sym;
   a_class_symbol_supplement_ptr  cssp;
   a_class_type_supplement_ptr    ctsp;
-  an_access_specifier            access;
+  an_access_specifier            access, assoc_object_access;
   a_boolean                      access_error_already_issued = FALSE;
   a_boolean                      member_function_error_already_issued = FALSE;
   a_boolean                      is_overloaded;
   a_type_ptr                     object_type;
 
   db_enter(4, "check_anonymous_union_symbols");
-  object_type = (class_type == NULL) ? assoc_var_object->type :
-                                       assoc_field_object->type;
-  ctsp = object_type->variant.class_struct_union.extra_info;
-  if (class_type == NULL) {
+  if (assoc_var_object != NULL) {
+    object_type = assoc_var_object->type;
+    ctsp = object_type->variant.class_struct_union.extra_info;
     ctsp->anonymous_union_kind = (an_anonymous_union_kind)auk_variable;
+    assoc_object_access = assoc_var_object->source_corresp.access;
   } else {
+    object_type = assoc_field_object->type;
+    ctsp = object_type->variant.class_struct_union.extra_info;
     ctsp->anonymous_union_kind = (an_anonymous_union_kind)auk_field;
     ctsp->anonymous_union_field = assoc_field_object;
+    assoc_object_access = assoc_field_object->source_corresp.access;
   }  /* if */
   /* The symbols list for the anonymous union will be eliminated.  Its
      field symbols are promoted to the scope of the containing class. */
@@ -3915,14 +3924,11 @@ of assoc_field_object and assoc_var_object is defined.
       /* The fields of an anonymous union within a class take on the access
          specifier of the anonymous union itself; the fields of a variable
          anonymous union should be (i.e., should remain) public. */
-      sym->variant.field.ptr->source_corresp.access =
-                                (assoc_field_object == NULL) ?
-                                   (an_access_specifier)as_public :
-                                   assoc_field_object->source_corresp.access;
+      sym->variant.field.ptr->source_corresp.access = assoc_object_access;
       remove_from_inactive_symbols_list(sym);
       reenter_symbol(sym, decl_scope_level, /*suppress_error=*/FALSE);
-      /* Update the IL. */
-      if (class_type == NULL) {
+      if (assoc_var_object != NULL) {
+        /* Update the IL. */
         sym->variant.field.anonymous_union_variable = assoc_var_object;
       }  /* if */
     } else if (is_member_function_symbol(sym)) {
@@ -6392,7 +6398,8 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
                 local_type = error_type();
               }  /* if */
               decl_static_data_member(&locator, class_type, local_type,
-                                      access, is_nonreal_instantiation,
+                                      access, is_anonymous_union,
+                                      is_nonreal_instantiation,
                                       corresp_prototype_tag_sym);
             } else {
               /* Non-static data member (= field). */
