@@ -153,9 +153,6 @@ It's a static entity that may be referenced from exported templates.
     rout = (a_routine_ptr)scp;
     rout->storage_class = (a_storage_class)sc_unspecified;
   }  /* if */
-#if MAINTAIN_NEEDED_FLAGS
-  mark_as_needed((char *)scp, kind);
-#endif /* MAINTAIN_NEEDED_FLAGS */
   /* Add a trans_unit_corresp entry (an entity with external linkage should
      have one). */
   tucp = alloc_trans_unit_corresp();
@@ -163,18 +160,9 @@ It's a static entity that may be referenced from exported templates.
   tucp->canonical = (char *)scp;
   if (!in_secondary_trans_unit(scp)) tucp->primary = (char *)scp;
   scp->trans_unit_corresp = tucp;
-#if ONE_INSTANTIATION_PER_OBJECT
-  if (one_instantiation_per_object) {
-    /* Assign a slice number for one-instantiation-per-object mode if there
-       isn't one already. */
-    unsigned long *bit_number = is_variable ?
-                                     &(var->instantiation_needed_bit_number) :
-                                     &(rout->instantiation_needed_bit_number);
-    if (*bit_number == 0) {
-      *bit_number = assign_instantiation_needed_bit_number();
-    }  /* if */
-  }  /* if */
-#endif /* ONE_INSTANTIATION_PER_OBJECT */
+#if MAINTAIN_NEEDED_FLAGS
+  mark_as_needed((char *)scp, kind);
+#endif /* MAINTAIN_NEEDED_FLAGS */
 }  /* externalize_entity_for_exported_templates */
 
 
