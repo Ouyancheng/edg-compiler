@@ -1509,7 +1509,7 @@ since the start of the compilation.  The value is converted to milliseconds.
   double	temp;
   struct tms	buffer;
 
-  if (times(&buffer) == 0) {
+  if (times(&buffer) != -1) {
     cpu_time = buffer.tms_utime + buffer.tms_stime +
                buffer.tms_cutime + buffer.tms_cstime;
     /* times() returns a value in unspecified units.  CLOCK_FREQUENCY should
