@@ -8600,10 +8600,10 @@ bad_start_of_primary:
 }  /* scan_expr_full */
 
 
-an_expr_node_ptr scan_switch_expression(void)
+an_expr_node_ptr scan_integer_expression(void)
 /*
-Scan an integral selector expression for a switch statement, and return
-a pointer to the expression tree.
+Scan an integral expression, e.g., the selector expression for a switch
+statement, and return a pointer to the expression tree.
 */
 {
   an_expr_node_ptr    expression;
@@ -8611,7 +8611,7 @@ a pointer to the expression tree.
   a_boolean           processed = FALSE;
   an_expr_stack_entry expr_stack_entry;
 
-  db_enter(3, "scan_switch_expression");
+  db_enter(3, "scan_integer_expression");
 
   check_assertion(expr_stack == NULL); /* Check this is a full expression. */
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
@@ -8644,7 +8644,7 @@ a pointer to the expression tree.
   db_exit();
 
   return expression;
-}  /* scan_switch_expression */
+}  /* scan_integer_expression */
 
 
 an_expr_node_ptr scan_void_expression(a_boolean repeated_in_loop)
