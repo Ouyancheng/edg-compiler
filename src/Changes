@@ -46,6 +46,17 @@ the compiler to be configured to handle a zero-width bit field using
 either a predetermined alignment (as required in cfront compatibility
 mode) or the alignment of the integral type specified in the declaration.
 
+9/9/92  Changed names of runtime routines
+
+The following runtime routine names were changed for cfront compatibility:
+
+  _vec_new       to __vec_new
+  _vec_delete    to __vec_delete
+
+Also changed, for consistency:
+
+  _vec_cctor     to __vec_cctor
+
 9/9/92  __ALIGNOF__ enhanced
 
 __ALIGNOF__ can now take an argument that is an expression; the
