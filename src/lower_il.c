@@ -2531,6 +2531,169 @@ alone.
 }  /* give_unnamed_class_a_name */
 
 
+static sizeof_t literal_representation(a_constant_ptr con,
+                                       char           *store_at)
+/*
+Place the literal form of the constant con at *store_at if store_at != NULL,
+and (always) return the length of the literal representation.  This is
+used to encode constants as part of the mangled names of template classes.
+*/
+{
+  sizeof_t      literal_length, digits;
+  unsigned long int_value;
+
+  switch (con->kind) {
+    case ck_integer:
+      literal_length = 0;
+      if (is_signed_integral_type(con->type) &&
+          con->variant.integer_value < 0) {
+        /* Negative integer. */
+        literal_length++;
+        if (store_at != NULL) *store_at++ = 'n';
+        /* Negate the value in a way that avoids overflow on the smallest
+           integer on two's complement machines. */
+        int_value = (unsigned long)(-(con->variant.integer_value+1))+1;
+      } else {
+        /* Nonnegative integer. */
+        int_value = con->variant.integer_value;
+      }  /* if */
+      digits = digits_to_represent(int_value);
+      literal_length += digits;
+      if (store_at != NULL) {
+        (void)sprintf(store_at, "%lu", int_value);
+        store_at += digits;
+      }  /* if */
+      break;
+#if CHECKING
+    default:
+      internal_error("literal_representation: bad constant kind");
+#endif /* CHECKING */
+  }  /* switch */
+  return literal_length;
+}  /* literal_representation */
+
+
+static sizeof_t mangled_basic_class_name(a_type_ptr type,
+                                         char       *store_at)
+/*
+Determine the mangled form of the basic name of the class "type".  This is
+not the version that contains a leading count of the number of characters
+in the name; here, the name is usually just the original name, but is
+different if the class is a template class.  Place the mangled name at
+*store_at if store_at != NULL, and (always) return the length of the name.
+*/
+{
+  sizeof_t           mangled_name_length, digits, arg_length, total_arg_length;
+  sizeof_t           literal_length, type_length;
+  char               *name;
+  a_template_arg_ptr template_arg_list =
+                            type->variant.class_struct_union.extra_info->
+                                                             template_arg_list;
+  a_template_arg_ptr tap;
+  a_constant_ptr     con;
+  int                pass;
+
+  /* Always start with the name of the class, which applies even in the
+     template class case. */
+  name = type->source_corresp.name;
+  mangled_name_length = strlen(name);
+  if (store_at != NULL) {
+    (void)memcpy(store_at, name, (int)mangled_name_length);
+    store_at += mangled_name_length;
+  }  /* if */
+  if (template_arg_list != NULL) {
+    /* A template class.  The mangled form of the name is something like
+         abc__pt__4_ii
+                    ^^--- Two template arguments of type int.
+                  ^------ Total length of template argument list string,
+                          including the underscore.
+              ^^--------- Fixed string, indicates "parameterized type".
+         ^^^------------- The name of the class template.
+    */
+#define PT_STR "__pt__"
+    mangled_name_length += sizeof(PT_STR) - 1;
+    if (store_at != NULL) {
+      (void)strcpy(store_at, PT_STR);
+      store_at += sizeof(PT_STR) - 1;
+    }  /* if */
+#undef PT_STR
+    /* Run through the template argument list, determining the representation
+       for each argument.  The first time through, determine the size;
+       the second, put out the string. */
+    for (pass = 1; ; pass++) {
+      total_arg_length = 0;
+      for (tap = template_arg_list; tap != NULL; tap = tap->next) {
+        if (tap->is_type) {
+          /* Type argument. */
+          if (pass == 1) {
+            arg_length = mangled_type_name(tap->variant.type, (char *)NULL);
+          } else {
+            type_length = mangled_type_name(tap->variant.type, store_at);
+            mangled_name_length += type_length;
+            store_at += type_length;
+          }  /* if */
+        } else {
+          /* Constant argument.  Representation is something like
+               XCiL15   <-- integer constant 5
+                    ^-- Literal constant representation
+                   ^--- Length of literal constant
+                  ^---- L indicates literal constant; c indicates address
+                        of variable, etc.
+                ^^----- Type of template argument, with "const" added
+               ^------- X indicates beginning of constant argument.
+          */
+          con = tap->variant.constant;
+          if (pass == 1) {
+            arg_length = 2; /* "XC" */
+            arg_length += mangled_type_name(con->type, (char *)NULL);
+            arg_length += 1; /* "L" */
+          } else {
+            mangled_name_length += 2;
+            *store_at++ = 'X';
+            *store_at++ = 'C';
+            type_length = mangled_type_name(con->type, store_at);
+            mangled_name_length += type_length;
+            store_at += type_length;
+            mangled_name_length++;
+            *store_at++ = 'L';
+          }  /* if */
+          literal_length = literal_representation(con, (char *)NULL);
+          digits = digits_to_represent((unsigned long)literal_length);
+          if (pass == 1) {
+            arg_length += digits + literal_length;
+          } else {
+            (void)sprintf(store_at, "%lu", (unsigned long)literal_length);
+            mangled_name_length += digits;
+            store_at += digits;
+            (void)literal_representation(con, store_at);
+            mangled_name_length += literal_length;
+            store_at += literal_length;
+          }  /* if */
+        }  /* if */
+        if (pass == 1) total_arg_length += arg_length;
+      }  /* for */
+      /* After the second pass, quit the loop. */
+      if (pass == 2) break;
+      /* First pass: */
+      /* Put out the length of the entire argument section, and the "_". */
+      total_arg_length++;  /* "_" */
+      digits = digits_to_represent((unsigned long)total_arg_length);
+      mangled_name_length += 1 + digits;
+      if (store_at != NULL) {
+        (void)sprintf(store_at, "%lu_", (unsigned long)total_arg_length);
+        store_at += digits + 1;
+      }  /* if */
+      if (store_at == NULL) {
+        /* If we are not storing, we do not need to do the second pass. */
+        mangled_name_length += total_arg_length - 1;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return mangled_name_length;
+}  /* mangled_basic_class_name */
+
+
 static sizeof_t mangled_qualified_name(a_type_ptr    type,
                                        unsigned long nesting_level,
                                        char          *store_at)
@@ -2555,9 +2718,11 @@ to process the initial parts of the qualified names.
          ABCDEFGHIJK --> 11ABCDEFGHIJK
      The ARM (7.2.1c) also gives a syntax for encoding qualified class names,
      like "outer::inner", using a "Q" description:
-       Q25outer5inner
-         ^-----^-----mangled class names, outer to inner
-        ^----count of levels of qualification (single digit)
+       Q2_5outer5inner
+          ^-----^-----mangled class names, outer to inner
+        ^----count of levels of qualification
+     Note that the ARM description does not include the underscore, which
+     is necessary if you allow more than 9 levels of nesting.
   */
   mangled_name_length = 0;
   parent_class = type->source_corresp.class_of_which_a_member;
@@ -2584,35 +2749,45 @@ to process the initial parts of the qualified names.
       }  /* if */
     }
     if (nesting_level > 1) {
-      /* More than one level of nesting, so put out the "Qn". */
-#if 0
-      /* Note that we're ignoring what happens when the nesting level
-         is > 9. */
-#endif
+      /* More than one level of nesting, so put out the "Qn_". */
       digits = digits_to_represent(nesting_level);
-      mangled_name_length += 1 + digits;
+      mangled_name_length += 2 + digits;
       if (store_at != NULL) {
-        /* Actually store the "Qn". */
-        (void)sprintf(store_at, "Q%lu", nesting_level);
-        store_at += 1 + digits;
+        /* Actually store the "Qn_". */
+        (void)sprintf(store_at, "Q%lu_", nesting_level);
+        store_at += 2 + digits;
       }  /* if */
     }  /* if */
   }  /* if */
-  /* Put the innermost class name onto the name. */
-  if (type->source_corresp.name == NULL) {
-    /* Unnamed class.  Make up a name. */
+  /* Put the innermost type name onto the name. */
+  /* The name is preceded by a count of the number of characters in
+     the name. */
+  if (is_immediate_class_type(type)) {
+    /* Class name. */
+    /* If the class is unnamed, give it a name. */
     give_unnamed_class_a_name(type);
-  }  /* if */
-  name = type->source_corresp.name;
-  name_length = strlen(name);
-  digits = digits_to_represent((unsigned long)name_length);
-  mangled_name_length += name_length + digits;
-  if (store_at != NULL) {
-    /* Actually store the name. */
-    (void)sprintf(store_at, "%lu", (unsigned long)name_length);
-    store_at += digits;
-    (void)memcpy(store_at, name, (int)name_length);
-    store_at += name_length;
+    name_length = mangled_basic_class_name(type, (char *)NULL);
+    digits = digits_to_represent((unsigned long)name_length);
+    mangled_name_length += name_length + digits;
+    if (store_at != NULL) {
+      /* Actually store the name. */
+      (void)sprintf(store_at, "%lu", (unsigned long)name_length);
+      store_at += digits;
+      store_at += mangled_basic_class_name(type, store_at);
+    }  /* if */
+  } else {
+    /* Not a class name (typedef or enum). */
+    name = type->source_corresp.name;
+    name_length = strlen(name);
+    digits = digits_to_represent((unsigned long)name_length);
+    mangled_name_length += name_length + digits;
+    if (store_at != NULL) {
+      /* Actually store the name. */
+      (void)sprintf(store_at, "%lu", (unsigned long)name_length);
+      store_at += digits;
+      (void)memcpy(store_at, name, (int)name_length);
+      store_at += name_length;
+    }  /* if */
   }  /* if */
   return mangled_name_length;
 }  /* mangled_qualified_name */
@@ -3175,16 +3350,35 @@ Mangle the name of the indicated class, if necessary.
 
   error_position = class_type->source_corresp.decl_position;
   give_unnamed_class_a_name(class_type);
-  /* Nested class names must be mangled (because they exist in a scope
-     that does not exist in the generated C code). */
   if (class_type->source_corresp.class_of_which_a_member != NULL) {
-    /* Mangle the class name. */
+    /* Nested class names must be mangled (because they exist in a scope
+       that does not exist in the generated C code).  The mangled form
+       is something like
+         __Q2_1A1B
+       The "Q2_1A1B" part is the normal representation for a mangled
+       name, and the prefix makes it unique (i.e., makes it distinct
+       from all user identifiers). */
     /* Determine how long the mangled name is. */
-    mangled_name_length = mangled_type_name(class_type, (char *)NULL);
+    mangled_name_length = mangled_type_name(class_type, (char *)NULL) +
+                          2;  /* "__" */
     /* Allocate space for the mangled name and build it.  The old name is
        just thrown away. */
     mangled_name = alloc_il(mangled_name_length + 1);
-    (void)mangled_type_name(class_type, mangled_name);
+    mangled_name[0] = '_';
+    mangled_name[1] = '_';
+    (void)mangled_type_name(class_type, mangled_name + 2);
+    mangled_name[mangled_name_length] = '\0';
+    class_type->source_corresp.name = mangled_name;
+  } else if (class_type->variant.class_struct_union.extra_info->
+                                     template_arg_list != NULL) {
+    /* Template class names must be mangled because otherwise all instances
+       of the same class template have the same name. */
+    /* Determine how long the mangled name is. */
+    mangled_name_length = mangled_basic_class_name(class_type, (char *)NULL);
+    /* Allocate space for the mangled name and build it.  The old name is
+       just thrown away. */
+    mangled_name = alloc_il(mangled_name_length + 1);
+    (void)mangled_basic_class_name(class_type, mangled_name);
     mangled_name[mangled_name_length] = '\0';
     class_type->source_corresp.name = mangled_name;
   }  /* if */
@@ -3193,7 +3387,8 @@ Mangle the name of the indicated class, if necessary.
 
 static void do_scope_name_mangling(a_scope_ptr scope)
 /*
-Do any required name mangling of members of the indicated scope.
+Do any required name mangling of members of the indicated scope and all
+sub-scopes in the same memory region.
 */
 {
   a_routine_ptr  routine;
@@ -3249,8 +3444,8 @@ the mangled name at *store_at if store_at != NULL, and (always) return
 the length of the name.
 */
 {
-  sizeof_t mangled_name_length, name_length;
-  char     *name;
+  sizeof_t   mangled_name_length, name_length;
+  a_type_ptr class_type;
 
   mangled_name_length = 0;
   /* The name must be put out backwards, so use recursion to get to the
@@ -3266,13 +3461,10 @@ the length of the name.
     }  /* if */
   }  /* if */
   /* Put out the name on the first derivation step. */
-  name = dsp->base_class->type->source_corresp.name;
-  name_length = strlen(name);
+  class_type = dsp->base_class->type;
+  name_length = mangled_basic_class_name(class_type, store_at);
   mangled_name_length += name_length;
-  if (store_at != NULL) {
-    (void)memcpy(store_at, name, (int)name_length);
-    store_at += name_length;
-  }  /* if */
+  if (store_at != NULL) store_at += name_length;
   return mangled_name_length;
 }  /* mangled_derivation_name */
 
