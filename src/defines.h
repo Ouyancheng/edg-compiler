@@ -144,7 +144,7 @@ Flags to be set when using the KAI inliner.
 
 #else /* !defined(_WIN32) */
 
-#ifdef __LINUX__
+#ifdef __linux__
 
 /* Linux version. */
 
@@ -164,7 +164,7 @@ Flags to be set when using the KAI inliner.
 #endif /* ifndef RUNTIME_USES_NAMESPACES */
 
 
-#else /* ifndef __LINUX__ */
+#else /* ifndef __linux__ */
 
 /* Options for UnixWare test version. */
 #define __ANSIC__ 1
@@ -200,7 +200,7 @@ Flags to be set when using the KAI inliner.
 #endif /* ifndef RUNTIME_USES_NAMESPACES */
 #define EXPENSIVE_CHECKING 1
 
-#endif /* ifdef __LINUX__ */
+#endif /* ifdef __linux__ */
 #endif /* defined(_WIN32) */
 #endif /* defined(sun) */
 

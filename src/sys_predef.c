@@ -26,7 +26,7 @@ sys_predef.c -- System dependent predefined macros and assertions.
 #include "macro.h"
 #include "sys_predef.h"
 
-#ifdef __LINUX__
+#ifdef __linux__
 static void enter_linux_predefined_macros(void)
 /*
 Enter the macros that are needed when running the front end on
@@ -56,7 +56,7 @@ Linux using the gcc/g++ header files.
                            /*ref_suppresses_pch_file=*/FALSE);
 #endif /* ifdef __i486__ */
 }  /* enter_linux_predefined_macros */
-#endif /* ifdef __LINUX */
+#endif /* ifdef __linux */
 
 
 void enter_system_specific_predefined_macros_and_assertions(void)
@@ -80,9 +80,9 @@ Define system-specific predefined macros and builtin #assert predicates
   enter_assert_predicate("sparc ", "machine");
 #endif /* ifdef sparc */
 #endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */
-#ifdef __LINUX__
+#ifdef __linux__
   enter_linux_predefined_macros();
-#endif /* ifdef __LINUX__ */
+#endif /* ifdef __linux__ */
 }  /* enter_system_specific_predefined_macros_and_assertions */
 
 

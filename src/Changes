@@ -1,5 +1,10 @@
 Version 2.31
 
+10/12/95 Configuration flag for Linux changed from __LINUX__ to __linux__
+
+The configuration flag used to indicate that the front end is being
+compiled on Linux has been changed to __linux__, which is automatically
+set by the version of gcc that comes with Linux.
 -------------------------------------------------------------------------------
 Version 2.30, October 10, 1995
 
