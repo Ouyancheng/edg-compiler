@@ -838,7 +838,7 @@ is about to be terminated.  That means the lifetime associated with it (along
 with indirectly associated block-after-label lifetimes) will be popped from
 the object lifetime stack.  If any goto or label statement points to an object
 lifetime entry that is useless (that will not be retained in the IL), then
-the pointer must be "promoted" to refer to a liftime that is still on the
+the pointer must be "promoted" to refer to a lifetime that is still on the
 stack.  (Successive poppings of the structured statement stack may result in
 successive promotions of the lifetime associated with an inner-block label or
 goto.)  Here's an example:
@@ -857,7 +857,7 @@ in it, the lifetime for the goto statement is promoted to that of block scope
 the label are promoted to the lifetime of the function scope.
 */
 {
-  an_object_lifetime_ptr  block_olp, olp, promote_from = NULL, promote_to;
+  an_object_lifetime_ptr  block_olp, promote_from = NULL, promote_to;
   a_boolean               keep_block_object_lifetime;
 
   db_enter(4, "fixup_curr_block_labels_and_gotos");
