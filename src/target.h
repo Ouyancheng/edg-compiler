@@ -939,6 +939,8 @@ EXTERN a_boolean
                                                                              ;
 			/* TRUE if code is being generated for the Microsoft
 			   MSVC++ compiler. */
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+#if BACK_END_IS_CP_GEN_BE
 EXTERN a_boolean
 		msvc_target_version_number
 #if VAR_INITIALIZERS
@@ -946,7 +948,7 @@ EXTERN a_boolean
 #endif /* VAR_INITIALIZERS */
                                                                       ;
 			/* The version of MSVC++ being targetted. */
-#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+#endif /* BACK_END_IS_CP_GEN_BE */
 
 
 /* Aside from occasional references in targ_def.h, the following values
