@@ -3710,7 +3710,7 @@ a pointer to it in *symbol_ptr.
 */
 {
   a_type_ptr    tp;
-  a_symbol_ptr  sym = NULL, member_sym;
+  a_symbol_ptr  sym = NULL;
   a_boolean     suppress_redecl_error = FALSE;
   a_boolean     saved_referenced_flag;
 
@@ -3798,14 +3798,11 @@ a pointer to it in *symbol_ptr.
         set_source_corresp(&(type_ptr->source_corresp), sym);
         type_ptr->source_corresp.referenced = saved_referenced_flag;
         suppress_redecl_error = TRUE;
-        /* Be sure there are no name conflicts between the retroactively
-           assigned class name and its members, as per the restrictions in
-           ARM 9.2. */
-        for (member_sym = sym->variant.class_struct_union.extra_info->symbols;
-             member_sym != NULL;
-              member_sym = member_sym->next_in_scope) {
-          (void)check_class_and_member_name_conflict(type_ptr, member_sym);
-        }  /* for */
+        /* Note that we do not look for conflicts between the class's new
+           name and the names of its members.  This is an area where the
+           wording of the ARM (7.1.3) has been clarified and/or amended by
+           the X3J16 working paper, and so the restrictions specified in
+           ARM 9.2 do not apply. */
       }  /* if */
     }  /* if */
   }  /* if */
