@@ -889,7 +889,7 @@ nested classes.
           }  /* if */
         }
         if (!force_instantiation_of_virtual_functions || flag_value) {
-          /* If called a second type to force instantiation of virtual
+          /* If called a second time to force instantiation of virtual
              functions, only do the set_instance_required call if we are
              actually setting the flag. */
           set_instance_required(sym, flag_value, options);
