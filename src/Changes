@@ -1,5 +1,18 @@
 Version 2.41
 
+2/5/99    Allow typedef and using-declaration to same typedef in a scope
+
+In default mode, a using-declaration that refers to a typedef of a
+given type is permitted to coexist with a typedef of that type or
+another using-declaration that refers to that type.  An error is still
+issued in strict mode.
+
+  typedef unsigned int size_t;
+  namespace std {
+    typedef unsigned int size_t;
+  }
+  using std::size_t;
+
 2/2/99    Source sequence lists: internal error when class template
           instantiation is triggered by namespace member function
 

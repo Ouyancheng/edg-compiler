@@ -2396,6 +2396,30 @@ them up one level.
 }  /* remove_anonymous_union_member_from_inactive_symbols_list */
 
 
+static a_boolean is_using_decl_to_same_type(a_symbol_ptr	sym1,
+					    a_symbol_ptr	sym2)
+/*
+Returns TRUE if sym1 and sym2 refer to the same type after removing any
+namespace projection symbols.
+*/
+{
+  a_boolean	result = FALSE;
+
+  if (sym1->kind == (a_symbol_kind)sk_namespace_projection ||
+      sym2->kind == (a_symbol_kind)sk_namespace_projection) {
+    sym1 = fundamental_symbol_of(sym1);
+    sym2 = fundamental_symbol_of(sym2);
+    if (sym1->kind == (a_symbol_kind)sk_type &&
+        sym2->kind == (a_symbol_kind)sk_type) {
+      if (identical_types(sym1->variant.type.ptr, sym2->variant.type.ptr)) {
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_using_decl_to_same_type */
+
+
 static
 a_boolean symbols_may_coexist_in_curr_scope(a_symbol_ptr  old_sym,
                                             a_symbol_ptr  new_sym,
@@ -2515,6 +2539,13 @@ this is not allowed, an error will be issued by the caller.
         }  /* if */
       }  /* if */
     }  /* if */
+  } else if (!C_mode() && !strict_ansi_mode &&
+             is_using_decl_to_same_type(new_sym, old_sym)) {
+    /* At least one of the symbols is a namespace projection that points
+       to the same type as the other symbol.  Enter the new symbol.  The
+       insert point is not changed, so the newly entered symbol will be
+       used. */
+    err = FALSE;
   }  /* if */
   return !err;
 }  /* symbols_may_coexist_in_curr_scope */
