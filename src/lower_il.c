@@ -6651,12 +6651,35 @@ Generate any cleanup actions required preceding the indicated goto statement.
   /* Do nothing if there are no lifetimes involved. */
   if (common_lifetime != NULL) {
     an_object_lifetime_ptr outer_lifetime = curr_object_lifetime;
+#if CHECKING
+    if (curr_object_lifetime == NULL) {
+#if DEBUG
+      fprintf(f_debug, "common_lifetime:\n");
+      db_object_lifetime(common_lifetime);
+#endif /* DEBUG */
+      unexpected_condition_str2("gen_goto_cleanup_actions: ",
+                       "curr_object_lifetime is NULL, common_lifetime is not");
+    }  /* if */
+#endif /* CHECKING */
     if (outer_lifetime != common_lifetime) {
       /* Some lifetimes are being exited. */
       /* Find the last lifetime in the cleanup chain rising from the goto that
          should be terminated, i.e., the one right before common_lifetime. */
-      for (; outer_lifetime->parent_lifetime != common_lifetime;
-           outer_lifetime = outer_lifetime->parent_lifetime) {}
+      while (outer_lifetime->parent_lifetime != common_lifetime) {
+        outer_lifetime = outer_lifetime->parent_lifetime;
+#if CHECKING
+        if (outer_lifetime == NULL) {
+#if DEBUG
+          fprintf(f_debug, "common_lifetime:\n");
+          db_object_lifetime(common_lifetime);
+          db_object_lifetime_stack();
+#endif /* DEBUG */
+          unexpected_condition_str2(
+                                "gen_goto_cleanup_actions: common lifetime ",
+                                "not found in curr lifetime parents");
+        }  /* if */
+#endif /* CHECKING */
+      }  /* while */
       /* See if any cleanup actions are required on leaving the indicated
          lifetimes. */
       if (any_cleanup_actions(outer_lifetime)) {
