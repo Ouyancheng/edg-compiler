@@ -1,5 +1,25 @@
 Version 3.6
 
+11/10/04  C++-generating back end: typedefs in template arguments
+
+When generating the name of a template instance, the C++-generating back end
+put out the template argument list that was used when the template was
+instantiated, including typedefs.  As a result, a template-id in the source
+like X<int> might become X<Y<...>::_Type> in the generated code, if X<int>
+were originally instantiated with Y<...>::_Type (as a typedef for "int") as
+the template argument.  Template argument lists are now generated using the
+underlying types of typedefs rather than typedef names except when the
+underlying type is not accessible in the context in which the template-id
+occurs.  For example:
+
+  struct S {
+    typedef int I;
+  };
+  template<typename T> struct X { };
+
+  X<S::I> x1;    // Previously generated as X<S::I>, now as X<int>
+  X<int> x2;     // Previously generated as X<S::I>, now as X<int>
+
 11/9/04  C++-generating back end: Sun compatibility
 
 In order to avoid syntactic ambiguity, the C++-generating back end never
