@@ -4148,7 +4148,7 @@ by "#pragma define_type_info".
     class type_info { ... };      // Error -- not recognized as predeclared
   }                               //   type_info because #pragma is missing
 
-This corrects an bug whereby IL lowering created two classes with the same
+This corrects a bug whereby IL lowering created two classes with the same
 name.
 
 2/14/96   Defining predeclared class type_info in the wrong namespace
@@ -15107,7 +15107,7 @@ Working Paper, agreed to at the Boston meeting.  For example:
 
 11/16/93 Abort while processing invalid instantiation pragma
 
-An bug has been fixed that can cause an abort when scanning an
+A bug has been fixed that can cause an abort when scanning an
 instantiation pragma containing a declaration that names a
 function but is not a function declarator.
 
