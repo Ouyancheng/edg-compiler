@@ -66,7 +66,9 @@ Flags to be set when using the KAI inliner.
 #define USE_INIT_SECTION_IN_GENERATED_C 1
 #else /* !defined(SOLARIS) */
 /* SunOS version. */
+#ifndef C_GENERATES_ANSI_C
 #define C_GEN_BE_GENERATES_ANSI_C 0
+#endif /* ifndef C_GENERATES_ANSI_C */
 #endif /* ifdef SOLARIS */
 
 #ifdef OPTIMIZED_VERSION
