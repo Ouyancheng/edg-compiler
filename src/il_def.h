@@ -190,16 +190,6 @@ typedef struct a_source_correspondence {
 error -- DEPTH_OF_FILE_SCOPE is not defined correctly.
 #endif /* DEPTH_OF_FILE_SCOPE != 0 */
 #endif /* ifndef DEPTH_OF_FILE_SCOPE */
-#ifdef FIL
-#ifndef DEPTH_OF_FUNCTION_SCOPE
-/* symbol_tbl.h also defines this.  Make sure only one definition is done. */
-#define DEPTH_OF_FUNCTION_SCOPE 1
-#else /* defined(DEPTH_OF_FILE_SCOPE) */
-#if DEPTH_OF_FUNCTION_SCOPE != 1
-error -- DEPTH_OF_FUNCTION_SCOPE is not defined correctly.
-#endif /* DEPTH_OF_FUNCTION_SCOPE != 1 */
-#endif /* ifndef DEPTH_OF_FUNCTION_SCOPE */
-#endif /* ifdef FIL */
 #define MAX_IL_SCOPE_DEPTH ((1 << BIT_FIELD_SCOPE_DEPTH_SIZE) - 1 - 2)
 #define IL_NO_SCOPE (MAX_IL_SCOPE_DEPTH+2)
                         /* Used for cases where no scope applies. */

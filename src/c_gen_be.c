@@ -494,7 +494,7 @@ the next call of this routine.
 #ifdef FFE
     }  /* if */
   } else if (curr_statement_function != NULL &&
-             scope_depth == DEPTH_OF_FUNCTION_SCOPE+1) {
+             scope_depth == DEPTH_OF_FILE_SCOPE+2) {
     /* Parameters of statement functions have the statement function name
        added as a prefix. */
     (void)sprintf(name_buffer, "_%s_%s",
@@ -2753,7 +2753,7 @@ Return TRUE if the indicated node is the address of a statement function.
     called_rout = NULL;
   }  /* if */
   return (called_rout != NULL &&
-          called_rout->source_corresp.scope_depth == DEPTH_OF_FUNCTION_SCOPE);
+          called_rout->source_corresp.scope_depth != DEPTH_OF_FILE_SCOPE);
 }  /* is_stmt_func_ref */
 
 #endif /* ifdef FFE */
