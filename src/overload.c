@@ -2091,6 +2091,10 @@ that are marked "explicit" are ignored.
        freed. */
     local_template_arg_list = NULL;
     arg_match_list = end_arg_match_list = NULL;
+    /* Ignore friend functions that aren't visible.  Note that this
+       test is done on the projection symbol, if any, and not on the
+       underlying fundamental symbol. */
+    if (proj_function_symbol->is_invisible) goto reject_function;
     /* Remove namespace projections, if any. */
     function_symbol = fundamental_symbol_of(proj_function_symbol);
     function_template_case = (function_symbol->kind ==
@@ -6159,21 +6163,38 @@ functions could still apply).
         }  /* if */
         /* Find any non-member function for the operator. */
         if (!must_be_member_function) {
+          a_symbol_ptr            normal_sym;
+          a_symbol_header_ptr     sym_header;
+          a_symbol_locator        locator;
+          a_type_list_entry_ptr   type_list = NULL;
           a_symbol_list_entry_ptr symbol_list, slep;
           /* If the second operand has a template class type, try to
              instantiate it to expose any friend functions it declares. */
           if (!unary_operator && is_class_struct_union_type(operand_2->type)) {
             instantiate_template_class(operand_2->type);
           }  /* if */
-          /* Get the list of applicable symbols and loop through it.
-             If the operand types are classes that are members of namespaces
-             those namespaces are searched for the operator function (WP
-             [over.match.oper]). */
-          symbol_list = nonmember_operator_function_lookup(kind,
-                                                           operand_1->type,
-                                                           unary_operator ?
-                                                             (a_type_ptr)NULL :
-                                                             operand_2->type);
+          /* Do the normal id lookup on the operator name, e.g., for "+"
+             look up "operator +".  Ignore member functions, which were
+             covered above. */
+          make_opname_locator(kind, &locator, operator_position);
+          sym_header = locator.symbol_header;
+          normal_sym = normal_id_lookup(&locator, IDL_SKIP_CLASS_SCOPES);
+          /* If the symbol found is a block extern, skip the argument-dependent
+             processing.  This is not in the standard, but at the Nov. 98
+             standards committee meeting there was strong sentiment for
+             altering the rule to do it this way. */
+          if (normal_sym == NULL || !is_local_symbol(normal_sym)) {
+            /* Build a list of the argument types, to be used to do
+               argument-dependent lookup below. */
+            add_to_arg_dependent_lookup_list(operand_1->type, &type_list);
+            if (!unary_operator) {
+              add_to_arg_dependent_lookup_list(operand_2->type, &type_list);
+            }  /* if */
+          }  /* if */
+          /* Do argument-dependent lookup, producing a list of symbols to
+             be considered as candidate functions. */
+          symbol_list = argument_dependent_lookup(normal_sym, sym_header,
+                                                  &type_list);
           for (slep = symbol_list; slep != NULL; slep = slep->next) {
             nonmember_functions_symbol = slep->symbol;
             if (is_ambiguous_by_inheritance(nonmember_functions_symbol)) {
