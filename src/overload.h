@@ -183,7 +183,8 @@ typedef struct a_candidate_function {
 			   if this is the last entry. */
   a_symbol_ptr	function_symbol;
 			/* Pointer to the symbol for the function.  NULL if
-			   the "function" is a built-in operator. */
+			   the "function" is a built-in operator.  Can be a
+			   projection symbol. */
   a_byte_boolean
 		is_function_template;
 			/* TRUE if function_symbol is a function template. */

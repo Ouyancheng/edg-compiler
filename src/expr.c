@@ -4328,6 +4328,7 @@ specification allow a variable-sized array as the top type.
   an_operand        sizeof_operand;
   a_boolean         use_global_new = FALSE;
   a_symbol_ptr      operator_new_symbol, function_symbol, ctor_sym;
+  a_symbol_ptr      proj_function_symbol;
   a_routine_ptr     ctor_routine;
   a_boolean         needs_initialization, trapped_left_paren;
   an_expr_node_ptr  arg_expr_list, init_arg_expr_list, init_val_node;
@@ -4555,7 +4556,7 @@ specification allow a variable-sized array as the top type.
     /* Select the proper "new" function if there are several.  Note that
        this call does not adjust the argument types or build the function
        call, since we may yet fold the call into a constructor call. */
-    function_symbol = select_overloaded_function(
+    proj_function_symbol = select_overloaded_function(
                                               operator_new_symbol,
                                               /*have_selector=*/FALSE,
                                               (an_operand *)NULL,
@@ -4564,6 +4565,11 @@ specification allow a variable-sized array as the top type.
                                               ec_ambiguous_overloaded_function,
                                               &new_position,
                                               &arg_match_list);
+    if (proj_function_symbol != NULL) {
+      function_symbol = fundamental_symbol_of(proj_function_symbol);
+    } else {
+      function_symbol = NULL;
+    }  /* if */
     /* We check later for function_symbol != NULL.  We don't set err
        here for that case because it shouldn't affect the scanning of
        the initial value. */
@@ -4611,7 +4617,7 @@ specification allow a variable-sized array as the top type.
     }  /* if */
 #endif /* NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE */
     /* Mark the "new" routine as referenced, check access to it. */
-    overloaded_function_catch_up(function_symbol,
+    overloaded_function_catch_up(proj_function_symbol,
                                  operator_new_symbol,
                                  /*is_qualified_name=*/FALSE,
                                  &new_position,
@@ -4621,7 +4627,7 @@ specification allow a variable-sized array as the top type.
                                  &access_error_reported);
     /* Adjust the argument types, issue any warnings, and free
        arg_operand_list and arg_match_list. */
-    adjust_overloaded_function_call_arguments(function_symbol,
+    adjust_overloaded_function_call_arguments(proj_function_symbol,
                                               /*have_selector=*/FALSE,
                                               (an_operand *)NULL,
                                               arg_operand_list,

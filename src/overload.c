@@ -276,7 +276,7 @@ param_type.
 */
 {
   a_boolean    can_be_arg = FALSE;
-  a_symbol_ptr sym = operand->variant.symbol;
+  a_symbol_ptr sym = operand->variant.symbol, proj_sym;
   a_type_ptr   matching_arg_type = NULL;
 
   reduce_projection_symbol_to_fundamental_symbol(sym);
@@ -288,9 +288,11 @@ param_type.
     a_template_symbol_supplement_ptr	tssp;
     check_assertion(sym->kind == (a_symbol_kind)sk_overloaded_function);
     tssp = template_supplement_for_symbol(templ_sym);
-    for (sym = sym->variant.overloaded_function.symbols;
-         sym != NULL;
-         sym = sym->next) {
+    for (proj_sym = sym->variant.overloaded_function.symbols;
+         proj_sym != NULL;
+         proj_sym = proj_sym->next) {
+      /* Remove projections for namespaces, if any. */
+      sym = fundamental_symbol_of(proj_sym);
       if (sym->kind == (a_symbol_kind)sk_function_template) {
         /* There's no way to match up a function template as an argument to a
            function template, so ignore this symbol. */
@@ -1474,7 +1476,7 @@ argument matches.
 */
 {
   a_boolean                overloaded_function_case;
-  a_symbol_ptr             function_symbol;
+  a_symbol_ptr             function_symbol, proj_function_symbol;
   a_type_ptr               routine_type;
   a_routine_type_supplement_ptr
                            rtsp;
@@ -1496,12 +1498,14 @@ argument matches.
                                         (a_symbol_kind)sk_overloaded_function);
   if (overloaded_function_case) {
     /* Overloaded functions. */
-    function_symbol =
+    proj_function_symbol =
                overloaded_function_symbol->variant.overloaded_function.symbols;
   } else {
     /* Non-overloaded function. */
-    function_symbol = overloaded_function_symbol;
+    proj_function_symbol = overloaded_function_symbol;
   }  /* if */
+  /* Remove namespace projections, if any. */
+  function_symbol = fundamental_symbol_of(proj_function_symbol);
   /* If we have no selector, see if any one of the functions requires one.
      If so, we will look to see if an implicit "this->" can be generated.
      Don't do this for the conversion case (the "this" parameter of the
@@ -1539,16 +1543,19 @@ argument matches.
   }  /* if */
   /* Look at each instance of the overloaded function and see whether or
      not it can match the actual arguments, and if so, how well. */
-  for (; function_symbol != NULL;
-       function_symbol = overloaded_function_case ? function_symbol->next :
-                                                    NULL) {
+  for (; proj_function_symbol != NULL;
+       proj_function_symbol = overloaded_function_case ? 
+                                                   proj_function_symbol->next :
+                                                   NULL) {
 #if DEBUG
     if (debug_level >= 4) {
-      db_symbol(function_symbol, "try_overloaded_function_match: considering ",
-                2); 
+      db_symbol(proj_function_symbol,
+                "try_overloaded_function_match: considering ", 2); 
     }  /* if */
     narg = 0;
 #endif /* DEBUG */
+    /* Remove namespace projections, if any. */
+    function_symbol = fundamental_symbol_of(proj_function_symbol);
     function_template_case = (function_symbol->kind ==
                                           (a_symbol_kind)sk_function_template);
     if (function_template_case) {
@@ -1724,13 +1731,13 @@ argument matches.
        list. */
     if (function_template_case) {
       /* The symbol is a function template. */
-      add_function_template_to_candidate_functions_list(function_symbol,
+      add_function_template_to_candidate_functions_list(proj_function_symbol,
                                                         arg_match_list,
                                                         arg_operand_list,
                                                         candidate_functions);
     } else {
       /* The symbol is a normal function. */
-      add_function_to_candidate_functions_list(function_symbol,
+      add_function_to_candidate_functions_list(proj_function_symbol,
                                                arg_match_list,
                                                candidate_functions);
       if (user_conversion_case) {
@@ -2059,6 +2066,8 @@ evaluated (but not checked to see if the match is good enough).
 
   db_enter(4, "function_template_matches_operand_list");
   templ_sym = cfp->function_symbol;
+  /* Remove projections for namespace/member templates. */
+  templ_sym = fundamental_symbol_of(templ_sym);
   tssp = template_supplement_for_symbol(templ_sym);
 #if CHECKING
   if (templ_sym->kind != (a_symbol_kind)sk_function_template) {
@@ -2411,8 +2420,11 @@ the former has additional type qualifiers.
   a_symbol_ptr sym2 = cfp2->function_symbol;
 
   if (sym1 != NULL && sym2 != NULL) {
-    a_type_ptr type1 = routine_symbol_type(sym1);
-    a_type_ptr type2 = routine_symbol_type(sym2);
+    a_type_ptr type1, type2;
+    sym1 = fundamental_symbol_of(sym1);
+    sym2 = fundamental_symbol_of(sym2);
+    type1 = routine_symbol_type(sym1);
+    type2 = routine_symbol_type(sym2);
     type1 = type1->variant.routine.return_type;
     type2 = type2->variant.routine.return_type;
     type1 = skip_typerefs(type1);
@@ -3458,7 +3470,7 @@ static void make_resolved_overloaded_function_operand(
 Overload resolution has been done, and it has been decided that, of the
 functions in overloaded_function_symbol (which may be a projection symbol
 and/or just a simple function), function_symbol is the specific function to
-be called (and not a projection symbol).  Create a function designator
+be called (also possibly a projection symbol).  Create a function designator
 operand for the function in *function_operand.  The function was named with
 a qualified name if is_qualified_name is TRUE.  The reference has an
 associated selector object if *have_selector is TRUE; in that case,
@@ -3468,9 +3480,10 @@ bound_function_selector must point at an operand that can be filled in
 if an implicit selector is generated (*have_selector is set to TRUE for that
 case).  call_position gives the source position of the call.
 */
-{                                 
-  a_boolean  access_error_reported;
-  a_type_ptr routine_type;
+{
+  a_symbol_ptr base_function_symbol = fundamental_symbol_of(function_symbol);
+  a_boolean    access_error_reported;
+  a_type_ptr   routine_type;
 
   /* Do whatever would have been done to the function had we known
      originally which specific function was intended. */
@@ -3483,7 +3496,7 @@ case).  call_position gives the source position of the call.
                                function_operand,
                                &access_error_reported);
   /* Check whether or not a selector is needed. */
-  routine_type = routine_symbol_type(function_symbol);
+  routine_type = routine_symbol_type(base_function_symbol);
   if (routine_type_is_nonstatic_member_function(routine_type)) {
     /* The function needs a selector. */
     if (!*have_selector) {
@@ -3634,14 +3647,15 @@ void adjust_overloaded_function_call_arguments(
 /*
 Overload resolution has been done, and it has been decided that the function
 identified by function_symbol is the specific function to be called for
-the argument list given by arg_operand_list.  If have_selector is TRUE,
-there is also a selector object, given by bound_function_selector (or,
-as a special case, bound_function_selector can be NULL for a constructor
-case; we have a selector, but we don't know what it is).  Adjust the
-selector object and arguments to the proper types, issue any warnings
-detected on those arguments during the overload resolution process, and
-return a list of argument expressions in *arg_expr_list.  arg_match_list
-gives the argument match summaries for the selector object and the
+the argument list given by arg_operand_list.  function_symbol can be a
+projection symbol.  If have_selector is TRUE, there is also a selector
+object, given by bound_function_selector (or, as a special case,
+bound_function_selector can be NULL for a constructor case; we have a
+selector, but we don't know what it is).  Adjust the selector object
+and arguments to the proper types, issue any warnings detected on
+those arguments during the overload resolution process, and return a
+list of argument expressions in *arg_expr_list.  arg_match_list gives
+the argument match summaries for the selector object and the
 arguments.  arg_operand_list and arg_match_list are freed.
 function_symbol can be NULL to indicate that the overload resolution
 failed; in that case, this routine does nothing except for freeing the
@@ -3659,6 +3673,7 @@ overloaded operator cases.
   /* If there was an error, skip the processing except for freeing the
      lists. */
   if (function_symbol != NULL) {
+    function_symbol = fundamental_symbol_of(function_symbol);
     routine_type = routine_symbol_type(function_symbol);
     arg_match = arg_match_list;
     if (have_selector) {
@@ -3754,14 +3769,14 @@ function applies, and err_ambiguous is the error code to use when more
 than one function applies.  If there is no error, an operand for the
 function is built in *function_operand, an expression-form argument
 list is built and returned in *arg_expr_list (with the arguments cast
-to the proper types), and the symbol selected is returned.
-function_position is the position of the function name or equivalent
-in the call, usually the same as call_position.  This routine is
-called only in C++ mode.
+to the proper types), and the symbol selected is returned.  (The
+symbol returned is never a projection symbol.)  function_position is
+the position of the function name or equivalent in the call, usually
+the same as call_position.  This routine is called only in C++ mode.
 */
 {
   an_arg_match_summary_ptr arg_match_list;
-  a_symbol_ptr             function_symbol;
+  a_symbol_ptr             function_symbol, base_function_symbol = NULL;
 
   db_enter(4, "select_and_prepare_to_call_overloaded_function");
   /* Select the best function out of the overload set. */
@@ -3776,6 +3791,7 @@ called only in C++ mode.
   *arg_expr_list = NULL;
   if (function_symbol != NULL) {
     /* There was no error, i.e., a best function was chosen. */
+    base_function_symbol = fundamental_symbol_of(function_symbol);
     /* Do the things that would have been done to the symbol but weren't
        because the specific symbol was not known, and build an operand
        for the function. */
@@ -3798,7 +3814,7 @@ called only in C++ mode.
                                             arg_match_list,
                                             arg_expr_list);
   db_exit();
-  return function_symbol;
+  return base_function_symbol;
 }  /* select_and_prepare_to_call_overloaded_function */
 
 
@@ -5004,7 +5020,7 @@ functions could still apply).
   an_expr_node_ptr         arg_expr_list, end_arg_expr_list;
   a_symbol_ptr             nonmember_functions_symbol;
   a_symbol_ptr             member_functions_symbol;
-  a_symbol_ptr             function_symbol;
+  a_symbol_ptr             function_symbol, proj_function_symbol;
   a_boolean                operand_1_is_class;
   an_operand               function_operand;
   a_candidate_function_ptr candidate_functions;
@@ -5177,9 +5193,9 @@ functions could still apply).
           arg_operand_list_not_used = TRUE;
         } else {
           /* Exactly one function applies and is best. */
-          function_symbol = candidate_functions->function_symbol;
+          proj_function_symbol = candidate_functions->function_symbol;
           arg_match = candidate_functions->arg_matches;
-          if (function_symbol == NULL) {
+          if (proj_function_symbol == NULL) {
             a_boolean op_1_inside_conditional = FALSE,
                       op_2_inside_conditional = FALSE;
             /* A built-in operator was selected. */
@@ -5216,11 +5232,12 @@ functions could still apply).
             /* An operator function was selected. */
 #if DEBUG
             if (debug_level >= 4) {
-              db_symbol(function_symbol,
+              db_symbol(proj_function_symbol,
                         "check_for_operator_overloading: selected ", 2);
             }  /* if */
 #endif /* DEBUG */
             *processed = TRUE;
+            function_symbol = fundamental_symbol_of(proj_function_symbol);
             routine_type = routine_symbol_type(function_symbol);
             arg_operand = arg_operand_list;
             bound_function_selector = NULL;
@@ -5269,7 +5286,7 @@ functions could still apply).
                operand for the function. */
             have_selector = member_is_best_match;
             make_resolved_overloaded_function_operand(
-                                                 function_symbol,
+                                                 proj_function_symbol,
                                                  member_is_best_match ?
                                                     member_functions_symbol :
                                                     nonmember_functions_symbol,
