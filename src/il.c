@@ -2523,6 +2523,7 @@ to it.
   rp->type                = NULL;
   rp->assoc_scope         = NULL_region_number;
   rp->storage_class       = (a_storage_class)sc_unspecified;
+  rp->special_kind        = (a_special_function_kind)sfk_none;
   rp->is_inline           = FALSE;
   rp->is_virtual          = FALSE;
   rp->befriending_classes = NULL;

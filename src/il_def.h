@@ -1292,7 +1292,43 @@ EXTERN char     *db_intr_func_code_names[(int)ifc_last + 1]
 #endif /* ifdef FFE */
 #endif /* DEBUG */
 #endif /* ifdef FIL */
+#ifdef CIL
 
+/*
+An enumeration of C++ special function kinds.  These may be user written
+or compiler generated functions for which special rules may apply.  (See
+ARM chapter 12.)
+*/
+enum a_special_function_kind_tag {
+  sfk_none,		/* Not a special function. */
+  sfk_constructor,	/* A constructor. */
+  sfk_destructor,	/* A destructor. */
+  sfk_conversion,	/* A conversion operator function. */
+  sfk_new,		/* An operator new function. */
+  sfk_delete,		/* An operator delete function. */
+  sfk_operator,		/* Any other operator function. */
+  sfk_last		/* Must be last. */
+};
+/* Define as "a_byte" to explicitly control storage size. */
+typedef a_byte a_special_function_kind;
+
+#if DEBUG
+#ifdef CFE
+/*
+Table of names corresponding to special function kinds, for debug purposes.
+*/
+EXTERN char     *db_special_function_kinds[(int)sfk_last + 1]
+#if VAR_INITIALIZERS
+= {
+   "none", "constructor", "destructor", "conversion",
+   "new", "delete", "operator",
+   "last" /* used to check that initialization is right. */
+}
+#endif /* VAR_INITIALIZERS */
+;
+#endif /* ifdef CFE */
+#endif /* DEBUG */
+#endif /* ifdef CIL */
 
 /*
 Data structures related to routines:
@@ -1338,6 +1374,13 @@ typedef struct a_routine {
                 storage_class;
                         /* Storage class. */
 #ifdef CIL
+  a_special_function_kind
+		special_kind;
+			/* An enumerator indicating the special member function
+			   kind of which this routine is an instance (e.g.,
+			   constructor, destructor); sfk_none when it is an
+			   ordinary member function or not a member function
+			   at all. */
   unsigned int	is_inline:1;
 			/* TRUE for functions declared with an inline
 			   specification (C++ only). */
