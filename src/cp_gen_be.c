@@ -1740,6 +1740,23 @@ a class template.
 }  /* type_is_prototype_instantiation */
 
 
+static void gen_template_arguments(a_source_correspondence *scp,
+                                   an_il_entry_kind        entry_kind)
+/*
+Output the template arguments of the entity associated with scp.
+*/
+{
+  a_boolean          insert_space;
+  a_template_arg_ptr tap = template_arguments_for_name(scp, entry_kind,
+                                                         &insert_space);
+  if (tap != NULL) {
+    if (insert_space) write_space();
+    /* Put out the template argument list, e.g., "<int, float>". */
+    form_template_args(tap, &octl);
+  }  /* if */
+}  /* gen_template_arguments */
+
+
 static void gen_unqualified_name(a_source_correspondence *scp,
                                  an_il_entry_kind        entry_kind)
 /*
@@ -1752,14 +1769,7 @@ entity is a template class, add the template arguments.
   /* The bare name is the unqualified name without the template arguments: */
   gen_bare_name(scp, entry_kind);
   if (il_header.source_language == sl_Cplusplus) {
-    a_boolean          insert_space;
-    a_template_arg_ptr tap = template_arguments_for_name(scp, entry_kind,
-                                                         &insert_space);
-    if (tap != NULL) {
-      if (insert_space) write_space();
-      /* Put out the template argument list, e.g., "<int, float>". */
-      form_template_args(tap, &octl);
-    }  /* if */
+    gen_template_arguments(scp, entry_kind);
   }  /* if */
 }  /* gen_unqualified_name */
 
@@ -2086,7 +2096,9 @@ a definition.
 }  /* gen_decl_name */
 
 
-static void gen_friend_function_decl_name(a_source_correspondence *scp)
+static void gen_friend_function_decl_name(
+                                   a_source_correspondence *scp,
+                                   a_boolean               omit_template_args)
 /*
 Output a routine name that is the declarator name in a friend function
 declaration.
@@ -2107,10 +2119,17 @@ declaration.
          class N::A::B { friend void f(); };
        with A and B class types and N a namespace, f is a member of N but it
        may not have been declared explicitly in N so that N::f is invalid.
+       Template arguments are omitted if the friend declaration is also a
+       definition.
        */
-    gen_unqualified_name(scp, iek_routine);
+    gen_bare_name(scp, iek_routine);
+    if (!omit_template_args) {
+      gen_template_arguments(scp, iek_routine);
+    }  /* if */
   } else {
-    gen_name(scp, iek_routine, GN_NO_OPTIONS, (a_boolean *)NULL);
+    gen_name(scp, iek_routine,
+             omit_template_args ? GN_NO_TEMPLATE_ARGS : GN_NO_OPTIONS,
+             (a_boolean *)NULL);
   }  /* if */
 }  /* gen_friend_function_decl_name */
 
@@ -3059,9 +3078,9 @@ use an unqualified name when naming the entity in the declarator.
     }  /* if */
     /* Write the name. */
     if (options & GDO_FUNCTION_FRIEND_DECL) {
-      /* Friend declaration.  The rules for using qualified names are
-         different than for ordinary declarations. */
-      gen_friend_function_decl_name(scp);
+      /* Friend declaration (using typedef type).  The rules for using
+         qualified names are different than for ordinary declarations. */
+      gen_friend_function_decl_name(scp, /*omit_template_args=*/TRUE);
     } else {
       gen_decl_name(scp, entry_kind, force_unqualified_name);
     }  /* if */
@@ -8488,7 +8507,7 @@ list for the function definition.
     if (friend_decl) {
       /* Friend declaration.  The rules for using qualified names are
          different than for ordinary declarations. */
-      gen_friend_function_decl_name(&rout->source_corresp);
+      gen_friend_function_decl_name(&rout->source_corresp, is_definition);
     } else {
       gen_decl_name(&rout->source_corresp, iek_routine,
                     force_unqualified_name);
@@ -8592,9 +8611,10 @@ TRUE if the declaration following this one is such a continuation.
          declarations, including explicit specializations.  However, C++
          compilers typically do not accept them on old-style specialization
          declarations.  Hence, if we will issue an explicit template
-         argument list, we should also issue the "template<>" prefix.  */
+         argument list, we should also issue the "template<>" prefix
+         (except in friend declarations, where that syntax is invalid). */
       is_specialization = !rout->specialized_with_old_syntax ||
-                          rout->expl_template_arg_list_used;
+                          (rout->expl_template_arg_list_used && !friend_decl);
     } else if (rout->is_template_function &&
                !rout->is_prototype_instantiation) {
       /* A generated instance.  Use the "template<>" prefix if appropriate. */
