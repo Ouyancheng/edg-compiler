@@ -6404,18 +6404,23 @@ be embedded in other mangled names.
       }  /* if */
 #if ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
     } else if (scp->name == NULL) {
-      /* This should be a variable created to represent a string literal
-         (see rewrite_address_of_string_as_address_of_variable). */
+      /* This is probably a variable created to represent a string literal
+         (see rewrite_address_of_string_as_address_of_variable), but we
+         have to rule out variables generated for __FUNCTION__ and the like. */
       an_init_kind       init_kind;
       an_initializer_ptr initializer;
       a_constant_ptr     string_con;
-      is_string = TRUE;
       get_variable_initializer(var, scope, &init_kind, &initializer);
-      check_assertion(init_kind == (an_init_kind)initk_static);
-      string_con = initializer->constant;
-      check_assertion(string_con->kind == (a_constant_repr_kind)ck_string);
-      sequence_number = string_con->variant.string.sequence_number;
-      check_assertion(sequence_number != 0);
+      if (init_kind == (an_init_kind)initk_static) {
+        string_con = initializer->constant;
+        if (string_con->kind == (a_constant_repr_kind)ck_string) {
+          sequence_number = string_con->variant.string.sequence_number;
+          if (sequence_number != 0) {
+            /* Yes, this is a variable for a string literal. */
+            is_string = TRUE;
+          }  /* if */
+        }  /* if */
+      }  /* if */
 #endif /* ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
     }  /* if */
   }  /* if */
