@@ -4437,6 +4437,16 @@ in C++ mode.  See ARM 13.
       distinguishable = TRUE;
       goto distinguishable_determined;
     }  /* if */
+    /* If linkage specifications on the routine types are not compatible,
+       the types are distinguishable.  (This only happens when name-linkages
+       other than "C" and "C++" are supported by an implementation, and
+       only then when routines can be overloaded based on name-linkage.) */
+    if (!routine_linkages_are_compatible(
+                         old_extra_info->routine_name_linkage,
+                         new_extra_info->routine_name_linkage)) {
+      distinguishable = TRUE;
+      goto distinguishable_determined;
+    }  /* if */
     /* If one type has an ellipsis and the other does not, the types are
        distinguishable. */
     if (old_extra_info->has_ellipsis != new_extra_info->has_ellipsis) {
