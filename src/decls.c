@@ -9968,11 +9968,11 @@ of local variables (and types, etc.) of functions and in blocks.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_boolean                    first_declarator = TRUE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#if GNU_EXTENSIONS_ALLOWED
   an_attribute_ptr             prefix_attributes = NULL;
+  char                         *asm_name = NULL;
+#if GNU_EXTENSIONS_ALLOWED
   an_attribute_ptr             *last_prefix_attribute;
   an_attribute_ptr             attributes = NULL;
-  char                         *asm_name;
   a_source_position            asm_start_pos;
 #endif /* GNU_EXTENSIONS_ALLOWED */
   a_boolean                    access_checks_deferred = FALSE;
@@ -10185,13 +10185,8 @@ continue_with_declaration:
   }  /* if */
   /* Scan the specifiers. */
   err = decl_specifiers(dsi_flags, &dso_flags, &declared_storage_class,
-                        &type_ptr, &qualifiers, 
-#if GNU_EXTENSIONS_ALLOWED
-			&prefix_attributes,
-#else /* !GNU_EXTENSIONS_ALLOWED */
-			(an_attribute_ptr *)NULL,
-#endif /* !GNU_EXTENSIONS_ALLOWED */
-			&decl_modifiers, &decl_pos_block);
+                        &type_ptr, &qualifiers, &prefix_attributes,
+                        &decl_modifiers, &decl_pos_block);
 #if GNU_EXTENSIONS_ALLOWED
   /* Find the last prefix_attribute. */
   last_prefix_attribute = &prefix_attributes;
@@ -10541,12 +10536,7 @@ continue_with_declaration:
           }  /* if */
           /* Check that the type is legal, and do required adjustments. */
           check_and_adjust_parameter_type(&local_type_ptr, &decl_start_pos,
-#if GNU_EXTENSIONS_ALLOWED
-                                          prefix_attributes
-#else /* !GNU_EXTENSIONS_ALLOWED */
-                                          (an_attribute_ptr)NULL
-#endif /* GNU_EXTENSIONS_ALLOWED */
-                                          );
+                                          prefix_attributes);
           is_function = top_declarator_type_is_function = FALSE;
           /* For pcc compatibility, promote float parameters to double. */
           if (C_dialect == C_dialect_pcc) {
@@ -10902,12 +10892,8 @@ continue_with_declaration:
       } else if (local_storage_class == (a_storage_class)sc_typedef) {
         /* A typedef declaration. */
         decl_typedef(&locator, local_type_ptr, (a_type_ptr)NULL,
-#if GNU_EXTENSIONS_ALLOWED
-		     prefix_attributes, 
-#else /* !GNU_EXTENSIONS_ALLOWED */
-		     (an_attribute_ptr)NULL,
-#endif /* !GNU_EXTENSIONS_ALLOWED */
-		     &symbol_ptr, declarator_ssep, &decl_pos_block);
+                     prefix_attributes, &symbol_ptr, declarator_ssep,
+                     &decl_pos_block);
       } else if (is_static_data_member) {
         /* A static data member definition. */
         define_static_data_member(&locator, local_storage_class,
@@ -10953,12 +10939,7 @@ continue_with_declaration:
         }  /* if */          
         decl_routine(&locator, local_storage_class, local_type_ptr,
                      &func_info, declarator_ssep, SRK_DECLARATION,
-                     &local_decl_modifiers, 
-#if GNU_EXTENSIONS_ALLOWED
-                     prefix_attributes, asm_name,
-#else /* !GNU_EXTENSIONS_ALLOWED */
-                     (an_attribute_ptr)NULL, (char*)NULL,
-#endif /* !GNU_EXTENSIONS_ALLOWED */
+                     &local_decl_modifiers, prefix_attributes, asm_name,
                      &symbol_ptr, &linkage, &old_type, &ext_sym,
                      &decl_pos_block);
       } else {
@@ -11062,13 +11043,8 @@ continue_with_declaration:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         decl_variable(&locator, local_storage_class, local_type_ptr,
                       declarator_ssep, srk_flags, &local_decl_modifiers,
-#if GNU_EXTENSIONS_ALLOWED
-                      prefix_attributes, asm_name,
-#else /* !GNU_EXTENSIONS_ALLOWED */
-                      (an_attribute_ptr)NULL, (char*)NULL,
-#endif /* !GNU_EXTENSIONS_ALLOWED */
-                      &symbol_ptr, &linkage, &old_type, &ext_sym,
-                      &decl_pos_block);
+                      prefix_attributes, asm_name, &symbol_ptr, &linkage,
+                      &old_type, &ext_sym, &decl_pos_block);
         var_ptr = symbol_ptr->variant.variable.ptr;
         /* Fetch the type of the symbol again, since it might have been
            changed when reconciled with the original declaration. */
