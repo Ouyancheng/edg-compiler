@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2003 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -2351,14 +2351,16 @@ setting the offset field in the latter.
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
       }  /* if */
 #if IA64_ABI
-      if (bcp->offset_is_set) {
+      if (!bcp->offset_is_set) {
+        /* Nothing to do. */
+      } else
 #endif /* IA64_ABI */
+      /* Do not insert code here. */
+      {
         /* Make a recursive call to apply this processing to the next level of
            base classes. */
         set_base_class_offsets(bcp);
-#if IA64_ABI
       }  /* if */
-#endif /* IA64_ABI */
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
     } else if (ref_bcp->is_virtual) {
       /* Virtual indirect base class. */
@@ -4350,6 +4352,6 @@ of the front end.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2003 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
