@@ -2042,8 +2042,11 @@ setting is used, and to set various unmentioned settings as needed.
       !microsoft_mode && !strict_ansi_mode) {
     /* If the Sun linker scope option was not set on the command line, set
        its value now based on the configuration macros. */
-    sun_linker_scope_allowed = DEFAULT_SUN_LINKER_SCOPE_ALLOWED &&
-                               DEFAULT_SUN_COMPATIBILITY;
+#if DEFAULT_SUN_LINKER_SCOPE_ALLOWED && DEFAULT_SUN_COMPATIBILITY
+    sun_linker_scope_allowed = TRUE;
+#else /* !(DEFAULT_SUN_LINKER_SCOPE_ALLOWED && DEFAULT_SUN_COMPATIBILITY) */
+    sun_linker_scope_allowed = FALSE;
+#endif /* DEFAULT_SUN_LINKER_SCOPE_ALLOWED && DEFAULT_SUN_COMPATIBILITY */
   }  /* if */
 #endif /* SUN_EXTENSIONS_ALLOWED */
   set_c_mode_flags();
