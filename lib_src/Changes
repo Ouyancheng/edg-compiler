@@ -1,6 +1,11 @@
 Version 3.3, July 31, 2003
 
-No changes.
+6/17/03  Function type of constructor pointers in the runtime
+
+The types used to represent constructors in the runtime have been updated
+to reflect that constructors return a pointer to the object constructed when
+using the Cfront-like ABI.  Previously they had been declared as returning
+void.
 
 -------------------------------------------------------------------------------
 Version 3.2, May 12, 2003
