@@ -507,6 +507,8 @@ Return the underlying element type of the given array type.
   a_type_ptr tp = array_type;
   do {
     tp = array_element_type(tp);
+    /* Array-of-NULL is possible while the type is still being constructed. */
+    if (tp == NULL) break;
   } while (is_array_type(tp));
   return tp;
 }  /* underlying_array_element_type */
