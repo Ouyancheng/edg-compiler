@@ -151,15 +151,6 @@ static void prep_conversion_operand(an_operand         *source_operand,
                                     an_error_code      incompatible_err,
                                     a_source_position  *err_pos);
 
-static void overloaded_function_catch_up(
-                                 a_symbol_ptr       function_symbol,
-                                 a_symbol_ptr       overloaded_function_symbol,
-                                 a_boolean          is_qualified_name,
-                                 a_source_position  *call_position,
-                                 an_operand         *operand,
-                                 a_boolean          *access_error_reported,
-                                 an_expression_kind expression_kind);
-
 
 static an_xref_entry_ptr alloc_xref_entry(a_symbol_reference_kind kind,
                                           an_expression_kind   expression_kind,
@@ -1377,6 +1368,7 @@ except for casts to ambiguous or inaccessible base classes.
                                          overloaded_function_symbol,
                                          (a_boolean)operand->is_qualified_name,
                                          &operand->position,
+                                         /*elided_reference=*/FALSE,
                                          (an_operand *)NULL,
                                          &access_error_reported,
                                          expression_kind);
@@ -1393,6 +1385,7 @@ except for casts to ambiguous or inaccessible base classes.
                                          overloaded_function_symbol,
                                          (a_boolean)operand->is_qualified_name,
                                          &orig_operand.position,
+                                         /*elided_reference=*/FALSE,
                                          operand,
                                          &access_error_reported,
                                          expression_kind);
@@ -3033,14 +3026,18 @@ force the definition now.
 }  /* force_definition_of_compiler_generated_routine */
 
 
-static void mark_routine_referenced(a_routine_ptr     routine,
-                                    a_source_position *position)
+void mark_routine_referenced(a_routine_ptr     routine,
+                             a_source_position *position)
 /*
 Mark the indicated routine as actually referenced.  "Actually" means
 as opposed to referenced in a virtual function call that may call some
-other virtual function.
+other virtual function.  This forces instantiation if the function
+is a template function.
 */
 {
+  a_symbol_ptr                       assoc_sym;
+  a_function_instantiation_entry_ptr instance_ptr;
+
   /* Set the referenced flag.  This is only necessary for virtual
      functions referenced by qualified name.  For non-virtual functions,
      the normal reference-processing routines have already set the IL
@@ -3058,6 +3055,15 @@ other virtual function.
   /* If the routine is compiler-generated and its definition has not
      yet been put out, force the definition now. */
   force_definition_of_compiler_generated_routine(routine, position);
+  /* If the function is an instance of a function template, mark it
+     as requiring an instantiation. */
+  assoc_sym = (a_symbol_ptr)routine->source_corresp.assoc_info;
+  if (assoc_sym != NULL) {
+    instance_ptr = assoc_sym->variant.routine.instance_ptr;
+    if (instance_ptr != NULL) {
+      update_instantiation_required_flag(instance_ptr, TRUE);
+    }  /* if */
+  }  /* if */
 }  /* mark_routine_referenced */
 
 
@@ -3127,8 +3133,6 @@ information is not being maintained.
 */
 {
   a_routine_ptr routine;
-  a_function_instantiation_entry_ptr
-                instance_ptr;
 
 #if CHECKING
   if (routine_sym->kind != (a_symbol_kind)sk_routine &&
@@ -3160,12 +3164,6 @@ information is not being maintained.
   if (!result->virtual_function) {
     mark_routine_referenced(routine, position);
   }  /* if */
-  /* If the function is an instance of a function template, mark it
-     as requiring an instantiation. */
-  instance_ptr = routine_sym->variant.routine.instance_ptr;
-  if (instance_ptr != NULL) {
-    update_instantiation_required_flag(instance_ptr, TRUE);
-  }  /* if */
 }  /* make_function_designator_operand */
 
 
@@ -3188,21 +3186,18 @@ operand, and set the operand type to the type of the field.
 }  /* make_field_operand */
 
 
-void make_function_call(an_expr_node_ptr  function_node,
-                        a_type_ptr        function_type,
-                        a_boolean         is_virtual,
-                        a_boolean         new_or_delete_call_for_array,
-                        a_source_position *call_pos,
-                        an_operand        *result)
+static void make_function_call(an_expr_node_ptr  function_node,
+                               a_type_ptr        function_type,
+                               a_boolean         is_virtual,
+                               a_source_position *call_pos,
+                               an_operand        *result)
 /*
 Make an operand for a call of the function indicated by function_node, whose
 type is function_type, and which is virtual if is_virtual is TRUE or
 a pointer-to-member-function call if the type of function_node is
-pointer-to-member-function.  new_or_delete_call_for_array is TRUE
-if the call is of a C++ new or delete routine to allocate or free an
-array.  The arguments of the call are already attached to function_node.
-A skip_typerefs need not have been done on function_type.
-*call_pos gives the source position of the call.
+pointer-to-member-function.  The arguments of the call are already
+attached to function_node.  A skip_typerefs need not have been done
+on function_type.  *call_pos gives the source position of the call.
 */
 {
   an_expr_node_ptr call_node;
@@ -3210,7 +3205,7 @@ A skip_typerefs need not have been done on function_type.
 
   /* Make the function call expression node. */
   call_node = func_call_expr(function_node, function_type, is_virtual,
-                             new_or_delete_call_for_array, call_pos);
+                             call_pos);
   /* Make an operand for the overall call (etc.). */
   make_expression_operand(call_node, call_node->type, result);
   result->position = *call_pos;
@@ -3269,7 +3264,6 @@ in *result.
     /* Make the call node. */
     make_function_call(function_node, function_type,
                        (a_boolean)function_operand->virtual_function, 
-                       /*new_or_delete_call_for_array=*/FALSE,
                        &function_operand->position, result);
   }  /* if */
   result->position = function_operand->position;
@@ -3820,7 +3814,7 @@ new_type will be the original type and the assignments will not change
 anything.
 
 This routine *must* recognize the expression forms generated for
-rvalue classes, specifically those generated by make_function_call and
+rvalue classes, specifically those generated by func_call_expr and
 make_constructor_dynamic_init.  The general form is some number of
 enk_temp_init nodes, some number of comma nodes, and an enk_variable
 node at the bottom.
@@ -4429,7 +4423,7 @@ entries are used to hold arguments of function calls.
 }  /* alloc_arg_operand */
 
 
-static void free_arg_operand_list(an_arg_operand_ptr aop)
+void free_arg_operand_list(an_arg_operand_ptr aop)
 /*
 Free the list of argument operands pointed to by aop.
 */
@@ -4487,7 +4481,7 @@ Such entries are used in resolving calls to overloaded functions.
 }  /* alloc_arg_match_summary */
 
 
-static void free_arg_match_summary_list(an_arg_match_summary_ptr amsp)
+void free_arg_match_summary_list(an_arg_match_summary_ptr amsp)
 /*
 Free the list of argument match summary entries pointed to by amsp.
 */
@@ -6490,11 +6484,12 @@ Bind the operand for a function to an associated selector object.
 }  /* bind_member_function_operand_to_selector */
 
 
-static void overloaded_function_catch_up(
+void overloaded_function_catch_up(
                                  a_symbol_ptr       function_symbol,
                                  a_symbol_ptr       overloaded_function_symbol,
                                  a_boolean          is_qualified_name,
                                  a_source_position  *call_position,
+                                 a_boolean          elided_reference,
                                  an_operand         *operand,
                                  a_boolean          *access_error_reported,
                                  an_expression_kind expression_kind)
@@ -6520,6 +6515,8 @@ Access control and ambiguity checking are always done, even if the
 overloaded_function_symbol is a non-overloaded function.  expression_kind
 indicates the kind of the current expression.  operand can be NULL
 if it is not necessary to generate the function designator operand.
+elided_reference is TRUE if the routine was referenced in the program
+but the reference is being elided in the intermediate language.
 On return, *access_error_reported is TRUE if an access control checking
 error was detected.
 */
@@ -6565,16 +6562,31 @@ error was detected.
       operand->position = *call_position;
     }  /* if */
   } else {
-    /* Record that the function was referenced, for cross-reference (etc.)
-       purposes. */
-    xep = xref_entry(function_symbol, call_position, expression_kind);
-    /* Do not make the function designator operand if it is not wanted. */
-    if (operand != NULL) {
-      /* Make an operand for the function. */
-      make_function_designator_operand(function_symbol, is_qualified_name,
-                                       call_position, xep, operand);
-      /* Convert the operand to a function pointer. */
-      conv_function_designator_to_ptr_to_function(operand, expression_kind);
+    if (elided_reference ||
+        expression_kind == (an_expression_kind)ek_not_evaluated) {
+      /* The reference to the routine was elided or is not being evaluated.
+         Mark the symbol as referenced, but not the IL entry. */
+      mark_symbol_referenced(srk_reference, function_symbol, call_position);
+    } else {
+      /* The routine is actually called. */
+      if (operand == NULL) {
+        /* We don't want an operand, presumably because the function is
+           being used in some unusual way and the caller will build the
+           operand.  Mark the function as referenced.  Note that we are
+           ignoring whether or not the function is virtual; we are assuming
+           that the reference is to exactly that function. */
+        mark_routine_referenced(function_symbol->variant.routine.ptr,
+                                call_position);
+      } else {
+        /* Normal case: build an operand for the function. */
+        /* Record that the function was referenced, for cross-reference (etc.)
+           purposes. */
+        xep = xref_entry(function_symbol, call_position, expression_kind);
+        make_function_designator_operand(function_symbol, is_qualified_name,
+                                         call_position, xep, operand);
+        /* Convert the operand to a function pointer. */
+        conv_function_designator_to_ptr_to_function(operand, expression_kind);
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* overloaded_function_catch_up */
@@ -6676,7 +6688,7 @@ overloaded_function_catch_up.
 }  /* check_protected_member_access_catch_up */
 
 
-void make_resolved_overloaded_function_operand(
+static void make_resolved_overloaded_function_operand(
                                  a_symbol_ptr       function_symbol,
                                  a_symbol_ptr       overloaded_function_symbol,
                                  a_boolean          have_selector,
@@ -6706,6 +6718,7 @@ expression_kind indicates the kind of the current expression.
                                overloaded_function_symbol,
                                is_qualified_name,
                                call_position,
+                               /*elided_reference=*/FALSE,
                                function_operand,
                                &access_error_reported,
                                expression_kind);
@@ -8707,7 +8720,6 @@ an rvalue.
     /* Make an operand for the call. */
     make_function_call(rout_node, conversion_routine->type,
                        (a_boolean)conversion_routine->is_virtual,
-                       /*new_or_delete_call_for_array=*/FALSE,
                        &orig_operand.position, operand);
     /* A standard conversion may be required after a conversion function. */
     do_std_conversion = (dest_type != NULL &&
@@ -9411,7 +9423,6 @@ the value from a function.
           result_value_pointer_node->next = arg_expr_list;
           make_function_call(rout_node, conversion_routine->type,
                              /*is_virtual=*/FALSE,
-                             /*new_or_delete_call_for_array=*/FALSE,
                              &orig_operand.position, source_operand);
         }  /* if */
       }  /* if */
