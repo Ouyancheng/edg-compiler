@@ -4090,9 +4090,20 @@ a pointer over a reference type or creating an array of references.
         tp = copy_type_with_substitution(tp, templ_arg_list, depth,
                                          source_pos, options, copy_error);
         if (type->variant.pointer.is_reference) {
-          new_type = make_reference_type(tp);
+          if (!is_reference_type(tp) && !is_void_type(tp)) {
+            new_type = make_reference_type(tp);
+          } else {
+            /* An reference to reference or reference to void would be
+               invalid. */
+            *copy_error = TRUE;
+          }  /* if */
         } else {
-          new_type = make_pointer_type(tp);
+          if (!is_reference_type(tp)) {
+            new_type = make_pointer_type(tp);
+          } else {
+            /* A pointer to reference would be invalid. */
+            *copy_error = TRUE;
+          }  /* if */
         }  /* if */
         break;
       case tk_typeref:
@@ -4114,7 +4125,22 @@ a pointer over a reference type or creating an array of references.
                           type->variant.ptr_to_member.class_of_which_a_member,
                           templ_arg_list, depth, source_pos, options,
                           copy_error);
-        new_type = ptr_to_member_type(tp, tp2);
+        if (tp == type->variant.ptr_to_member.type &&
+            tp2 == type->variant.ptr_to_member.class_of_which_a_member) {
+          /* There was no change -- use the original type. */
+          new_type = type;
+        } else {
+          /* Construct a new type.  The new class of which a member type must
+             be a class type or a template parameter type. */
+          if (!is_class_struct_union_type(tp2) &&
+              !is_template_param_type(tp2)) {
+            /* The new type would be invalid. */
+            *copy_error = TRUE;
+            new_type = NULL;
+          } else {
+            new_type = ptr_to_member_type(tp, tp2);
+          }  /* if */
+        }  /* if */
         break;
       case tk_routine:
         /* We can reuse "type" as long as we can reuse the return type and all
@@ -4201,6 +4227,11 @@ make_new_type:
                                              depth, source_pos, options,
                                              copy_error);
           }  /* if */
+          if (tp != ptp->type) {
+            /* The type is not the one originally pointed to.  Adjust
+               the parameter type, if needed. */
+            adjust_parameter_type(&tp, /*restrict_qualified=*/FALSE);
+          }  /* if */
           /* Allocate the param type entry and copy default arg info. */
           new_ptp = alloc_param_type(tp);
           if (ptp->has_default_arg) {
@@ -4213,10 +4244,8 @@ make_new_type:
             prev_ptp->next = new_ptp;
           }  /* if */
           prev_ptp = new_ptp;
-        }  /* if */
+        }  /* for */
         set_routine_calling_method_flag(new_type, &null_source_position);
-        /* A brand new type has been created -- add it to the file scope types
-           list. */
         break;
       case tk_array:
         /* Make an array type based on "type", making substitutions as
@@ -4229,11 +4258,18 @@ make_new_type:
           /* Reuse the current type. */
           new_type = type;
         } else {
-          /* Create a new array type. */
-          tp2 = alloc_type((a_type_kind)tk_array);
-          *tp2 = *type;
-          tp2->variant.array.element_type = tp;
-          new_type = tp2;
+          if (!is_function_type(tp) &&
+              !is_void_type(tp) && !is_reference_type(tp)) {
+            /* Create a new array type. */
+            tp2 = alloc_type((a_type_kind)tk_array);
+            *tp2 = *type;
+            tp2->variant.array.element_type = tp;
+            new_type = tp2;
+          } else {
+            /* The element type is invalid. */
+            *copy_error = TRUE;
+            new_type = NULL;
+          }  /* if */
         }  /* if */
         break;
       case tk_class:
@@ -8517,10 +8553,8 @@ done here.
         param_used =  template_param_used_in_type(
                             param_sym, rout_type->variant.routine.return_type);
       } else {
-        /* Make sure that all template parameters are used by
-           function parameter types.  If an error occurs set the
-           cannot_be_called flag to prevent an instantiation from
-           being attempted with an incomplete set of template arguments. */
+        /* Determine whether all template parameters are used by
+           function parameter types. */
         param_used = template_param_appears_in_param_list(param_sym,
                                                           rout_type);
       }  /* if */
