@@ -1427,8 +1427,8 @@ execute the preprocessor directive.
   /* Identify the keyword and go to the right processing routine. */
   dir_kind = identify_dir_keyword();
   if (next_event_resumes_compilation) {
-     /* We are done skipping the file prefix when making use of a PCH. */
-     pch_fixup_part_2();
+    /* We are done skipping the file prefix when making use of a PCH. */
+    pch_fixup_part_2();
   }  /* if */
   /* See if this directive marks the header stop position.  If so,
      after processing the directive, we need to call
