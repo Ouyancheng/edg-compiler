@@ -1214,6 +1214,9 @@ Display the indicated variable.
   if (ptr->is_member_constant) {
     disp_boolean("is_member_constant", TRUE);
   }  /* if */
+  if (ptr->superseded_external) {
+    disp_boolean("superseded_external", TRUE);
+  }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (ptr->decl_modifiers & DM_DLLIMPORT) {
     disp_boolean("dllimport", TRUE);
@@ -1534,6 +1537,9 @@ Display the indicated routine.
   }  /* if */
   if (ptr->contains_try_block) {
     disp_boolean("contains_try_block", TRUE);
+  }  /* if */
+  if (ptr->superseded_external) {
+    disp_boolean("superseded_external", TRUE);
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (ptr->defined_in_friend_decl) {

@@ -3326,6 +3326,12 @@ typedef struct a_variable {
 			   (9.5.2).  (It is referred to as a "member constant"
 			   in part because it can be used in constant
 			   expressions elsewhere in the class definition.) */
+  unsigned int	superseded_external:1;
+			/* TRUE (in SVR4 C mode only) if the current variable
+			   was created to represent a block extern declaration
+			   whose type is incompatible with that of another
+			   file-scope variable with the same name, where the
+			   latter is treated as the "official" variable. */
 #if DO_IL_LOWERING
   unsigned int  initialization_rewritten_as_assignment:1;
 			/* TRUE if IL lowering has rewritten some part of
@@ -3716,6 +3722,12 @@ typedef struct a_routine {
 			   at least one "try" block.  This may affect
 			   optimization relating to local variables of the
 			   routine. */
+  unsigned int	superseded_external:1;
+			/* TRUE (in SVR4 C mode only) if the current routine
+			   was created to represent a block extern declaration
+			   whose type is incompatible with that of another
+			   file-scope routine with the same name, where the
+			   latter is treated as the "official" routine. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   unsigned int	defined_in_friend_decl:1;
 			/* TRUE when the routine definition appears in a

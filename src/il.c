@@ -5577,6 +5577,7 @@ to it.
   vp->is_partially_initialized    = FALSE;
   vp->is_anonymous_parent_object  = FALSE;
   vp->is_member_constant          = FALSE;
+  vp->superseded_external         = FALSE;
 #if DO_IL_LOWERING
   vp->initialization_rewritten_as_assignment = FALSE;
 #if MINIMAL_INLINING
@@ -5934,6 +5935,7 @@ to it.  The entry is allocated in the file scope memory region.
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   rp->specific_def            = FALSE;
   rp->contains_try_block      = FALSE;
+  rp->superseded_external     = FALSE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   rp->defined_in_friend_decl  = FALSE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
