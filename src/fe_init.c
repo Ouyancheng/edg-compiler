@@ -629,6 +629,9 @@ Initialize everything that has to do with the front end.
      entered after assert_predicates has been cleared. */
   preproc_init();
   target_init();
+#if DO_IL_LOWERING
+  il_lower_init();
+#endif /* DO_IL_LOWERING */
 
   /* Push the file scope for the symbol table.  This is done after
      names (like predefined macros) are entered so that they are
