@@ -29,8 +29,6 @@ symbol_tbl.c - Symbol table management routines.
 #if DO_IL_LOWERING
 #include "lower_il.h"
 #endif /* DO_IL_LOWERING */
-/* exprutil.h is needed to get an_expr_stack_entry for the scope stack. */
-#include "exprutil.h"
 #ifdef GUARD_MACRO_FOR_VA_LIST
 /* macro.h is needed for enter_predef_macro. */
 #include "macro.h"
@@ -214,7 +212,7 @@ is done according to the output control block octl.
 
 
 #if DEBUG
-#define DEBUG_LINE_LENGTH ((unsigned int)79)
+#define DEBUG_LINE_LENGTH 79
 /* Macros used within db_symbol, referencing local variables defined
    in that routine. */
 /* put_separator appends the separator to the current line, along with a
@@ -235,9 +233,10 @@ is done according to the output control block octl.
 /* put_string puts out a comma separator and then writes out str.  col is
    updated. */
 #define put_string(str)						\
-{ put_separator(",", strlen(str));				\
-  fputs((str), f_debug);					\
-  col += strlen((str));						\
+{ char *local_str = (str);					\
+  put_separator(",", strlen(local_str));			\
+  fputs((local_str), f_debug);					\
+  col += strlen((local_str));					\
 }  /* put_string */
 
 
@@ -299,6 +298,7 @@ from db_symbol.
     case as_protected:    s = "protected";    break;
     case as_private:      s = "private";      break;
     case as_inaccessible: s = "inaccessible"; break;
+    default:              s = "<bad access>"; break;
   }  /* switch */
   (void)sprintf(buffer, "%s", s);
   return buffer;
@@ -564,7 +564,7 @@ and indentation is the indentation desired.
           put_string("last field is zero-array");
         }  /* if */
         if (cssp->member_decl_scope != NO_SCOPE_NUMBER) {
-          sprintf(buffer, "member_decl_scope %0ld\n", cssp->member_decl_scope);
+          sprintf(buffer, "member_decl_scope %ld\n", cssp->member_decl_scope);
         }  /* if */
         if (cssp->template_param_for_proxy_class != NULL) {
           if (debug_level >= 4) put_string("has ptr for proxy");
@@ -817,12 +817,12 @@ do_variable:
               fprintf(f_debug, "%*sparameter type: ", indentation + 4, "");
               /* Display the proxy class type if one exists. */
               if (tplep->variant.type != NULL) {
-                a_type_ptr type = tplep->variant.type;
-                db_type(type);
-                if (type->variant.template_param.extra_info != NULL) {
+                a_type_ptr ptype = tplep->variant.type;
+                db_type(ptype);
+                if (ptype->variant.template_param.extra_info != NULL) {
                   a_type_ptr  class_type;
                   class_type =
-                          type->variant.template_param.extra_info->class_type;
+                          ptype->variant.template_param.extra_info->class_type;
                   if (class_type != NULL) {
                     fprintf(f_debug, "\n%*sproxy class: ",
                             indentation + 6, "");
@@ -904,9 +904,9 @@ do_variable:
             if (tip->instance_sym == NULL) {
               fputs(": NULL instance sym\n", f_debug);
             } else {
-              a_routine_ptr rp = tip->instance_sym->variant.routine.ptr;
+              a_routine_ptr inst_rp = tip->instance_sym->variant.routine.ptr;
               if (tip->instantiation_required || tip->is_guiding_decl ||
-                  rp->is_specialized) {
+                  inst_rp->is_specialized) {
                 char* comma = "";
                 fputs(" (", f_debug);
                 if (tip->instantiation_required) {
@@ -917,9 +917,10 @@ do_variable:
                   fprintf(f_debug, "%sguiding decl", comma);
                   comma = ", ";
                 }  /* if */
-                if (rp->is_specialized) {
+                if (inst_rp->is_specialized) {
                   fprintf(f_debug, "%s%sspecialization", comma,
-                          rp->specialized_with_old_syntax ? "old-style " : "");
+                          inst_rp->specialized_with_old_syntax ?
+                                                            "old-style " : "");
                 }  /* if */
                 fputc(')', f_debug);
               }  /* if */
@@ -1402,20 +1403,20 @@ caller may have to set it directly.
      has 9 or fewer characters, take the entire identifier. */
   ptr = identifier;
   if (length > 9) {
-    hash_value = (unsigned int)*ptr++;
-    hash_value = (hash_value * HASH_FACTOR) + (unsigned int)*ptr++;
-    hash_value = (hash_value * HASH_FACTOR) + (unsigned int)*ptr;
+    hash_value = (unsigned char)*ptr++;
+    hash_value = (hash_value * HASH_FACTOR) + (unsigned char)*ptr++;
+    hash_value = (hash_value * HASH_FACTOR) + (unsigned char)*ptr;
     ptr = identifier + (length >> 1) - 1;
-    hash_value = (hash_value * HASH_FACTOR) + (unsigned int)*ptr++;
-    hash_value = (hash_value * HASH_FACTOR) + (unsigned int)*ptr++;
-    hash_value = (hash_value * HASH_FACTOR) + (unsigned int)*ptr;
+    hash_value = (hash_value * HASH_FACTOR) + (unsigned char)*ptr++;
+    hash_value = (hash_value * HASH_FACTOR) + (unsigned char)*ptr++;
+    hash_value = (hash_value * HASH_FACTOR) + (unsigned char)*ptr;
     ptr = identifier + length - 3;
-    hash_value = (hash_value * HASH_FACTOR) + (unsigned int)*ptr++;
-    hash_value = (hash_value * HASH_FACTOR) + (unsigned int)*ptr++;
-    hash_value = (hash_value * HASH_FACTOR) + (unsigned int)*ptr;
+    hash_value = (hash_value * HASH_FACTOR) + (unsigned char)*ptr++;
+    hash_value = (hash_value * HASH_FACTOR) + (unsigned char)*ptr++;
+    hash_value = (hash_value * HASH_FACTOR) + (unsigned char)*ptr;
   } else {
     for (a = 0; a < length; a++) {
-      hash_value = (hash_value * HASH_FACTOR) + (unsigned int)*ptr++;
+      hash_value = (hash_value * HASH_FACTOR) + (unsigned char)*ptr++;
     }  /* for */
   }  /* if */
 
@@ -3509,8 +3510,8 @@ is none, create a new one.
   a_conversion_header_ptr  conv_hdr;
   a_conversion_header_ptr  prev_conv_hdr;
   a_symbol_header_ptr      sym_hdr;
-  char                     *type_name;
-  sizeof_t                 type_name_length;
+  char                     *name;
+  sizeof_t                 name_length;
 #define OPERATOR_LEN 9 /* Length of "operator " */
 
   /* Search the conversion header list for an entry of the required type.
@@ -3541,11 +3542,11 @@ is none, create a new one.
     conv_hdr->type = type;
     conv_hdr->symbol_header = sym_hdr = alloc_symbol_header();
     /* Conversion symbols have the name "operator <type-name>". */
-    type_name = format_type_string(type, &type_name_length);
-    sym_hdr->identifier_length = (sizeof_t)OPERATOR_LEN + type_name_length;
+    name = format_type_string(type, &name_length);
+    sym_hdr->identifier_length = (sizeof_t)OPERATOR_LEN + name_length;
     sym_hdr->identifier = alloc_il(sym_hdr->identifier_length + 1);
     (void)memcpy(sym_hdr->identifier, "operator ", OPERATOR_LEN);
-    (void)strcpy((sym_hdr->identifier + OPERATOR_LEN), type_name);
+    (void)strcpy((sym_hdr->identifier + OPERATOR_LEN), name);
 #if DEBUG
     symbol_name_string_space += sym_hdr->identifier_length;
 #endif /* DEBUG */
@@ -3918,7 +3919,7 @@ as "namespace std" is never declared).
   /* Push a scope to be sure a scope entry is recorded in the new
      namespace; then pop it off the stack again. */
   (void)push_namespace_scope((a_scope_kind)sck_namespace, nsp);
-  (void)pop_scope();
+  pop_scope();
 }  /* make_symbol_for_namespace_std */
 
 
@@ -5921,7 +5922,8 @@ this one.
   } else if (access != (an_access_specifier)as_inaccessible &&
              (determined_member_access = TRUE,
               have_member_access =
-                              have_member_access_privilege(viewpoint_class))) {
+                              have_member_access_privilege(viewpoint_class),
+              have_member_access)) {
     /* The member is not inaccessible (i.e., there is some access to it),
        and we have member access privilege to the class, so we have access
        to the member. */
@@ -5929,7 +5931,8 @@ this one.
   } else if (access == (an_access_specifier)as_protected &&
              (determined_protected_member_access = TRUE,
               have_protected_member_access =
-                    have_protected_member_access_privilege(viewpoint_class))) {
+                    have_protected_member_access_privilege(viewpoint_class),
+              have_protected_member_access)) {
     /* The member is protected, and we have member access to a derived
        class of the viewpoint class, so we have access to the member.
        Note that this is more generous than the access allowed by ARM 11.5;
@@ -6336,7 +6339,7 @@ access.
     an_access_error_descr_ptr	new_head = NULL;
     an_access_error_descr_ptr	new_tail = NULL;
     an_access_error_descr_ptr	next_aedp;
-    a_boolean			remove = TRUE;
+    a_boolean			remove_from_list = TRUE;
     if (aedp != NULL) {
       for (; aedp != NULL; aedp = next_aedp) {
         next_aedp = aedp->next;
@@ -6345,13 +6348,13 @@ access.
           /* The access check still failed. */
           if (ssep->defer_access_checks) {
             /* Keep the entry on the list. */
-            remove = FALSE;
+            remove_from_list = FALSE;
           } else {
             issue_access_error(fundamental_symbol_of(aedp->sym),
                                &aedp->position);
           }  /* if */
         }  /* if */
-        if (remove) {
+        if (remove_from_list) {
           free_access_error_descr(aedp);
         } else {
           /* If we are keeping the entry, add it to the new list. */
@@ -6780,16 +6783,6 @@ next_derivation:;
   }  /* for */
   return accessible;
 }  /* is_accessible_virtual_base_class */
-
-
-/* Declaration needed because of mutual recursion: */
-a_symbol_ptr find_progenitor_symbol(a_type_ptr               class_ptr,
-                                    a_symbol_locator         *locator,
-                                    an_id_lookup_options_set options,
-                                    a_derivation_step_ptr    *path,
-                                    an_access_specifier      *access,
-                                    a_boolean                *ambiguous,
-                                    a_boolean                *any_using_decl);
 
 
 static a_symbol_ptr symbol_projected_from_base_class(
@@ -8718,15 +8711,17 @@ of the front end.
   num_conversion_headers_allocated             = 0;
   symbol_name_string_space                     = 0;
   num_class_symbol_supplements_allocated       = 0;
-  num_namespace_symbol_supplements_allocated   = 0;
   num_template_symbol_supplements_allocated    = 0;
+  num_namespace_symbol_supplements_allocated   = 0;
   num_template_params_allocated                = 0;
   num_param_ids_allocated                      = 0;
   num_dependent_type_fixups_allocated          = 0;
   num_template_instances_allocated             = 0;
-  num_namespace_list_entries_allocated         = 0;
   num_symbol_list_entries_allocated            = 0;
   num_substituted_type_list_entries_allocated  = 0;
+  num_template_cache_segments_allocated        = 0;
+  num_template_decl_info_allocated             = 0;
+  num_namespace_list_entries_allocated         = 0;
   num_extern_symbol_descrs_allocated           = 0;
   num_vla_fixups_allocated                     = 0;
   num_extern_type_fixups_allocated             = 0;
@@ -8734,9 +8729,9 @@ of the front end.
   num_used_symbol_buckets                      = 0;
   num_searches_for_symbols                     = 0;
   num_compares_for_symbols                     = 0;
+  num_access_error_descrs_allocated            = 0;
   num_fast_id_lookups                          = 0;
   num_slow_id_lookups                          = 0;
-  num_access_error_descrs_allocated            = 0;
   num_active_using_directives_allocated        = 0;
 #endif /* DEBUG */
 }  /* symbol_tbl_init */
