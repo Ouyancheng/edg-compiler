@@ -435,6 +435,20 @@ a set of configuration flags.
 #endif /* ifndef MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
+if_microsoft_extensions expands to "text" when building with
+MICROSOFT_EXTENSIONS_ALLOWED or to nothing otherwise.
+if_microsoft_extensions_else expands to "then_text" when building with
+MICROSOFT_EXTENSIONS_ALLOWED or to "else_text" otherwise.
+*/
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define if_microsoft_extensions(text) text
+#define if_microsoft_extensions_else(then_text, else_text) then_text
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#define if_microsoft_extensions(text) /* nothing */
+#define if_microsoft_extensions_else(then_text, else_text) else_text
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+/*
 Flag that is TRUE to enable Microsoft mode as the default mode.  This
 is the default value used to initialize microsoft_mode.  This may
 be modified by a command line option.

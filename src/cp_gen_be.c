@@ -1904,7 +1904,8 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
       /* Use a qualified name in some cases to avoid a cfront bug.  See
          gen_initializer. */
       if (curr_name_context->invisible_to_cfront) force_qualified_name = TRUE;
-      if (!force_qualified_name && 
+      if (!force_qualified_name &&
+          if_microsoft_extensions(!scp->member_of_unknown_super &&)
           (!scp->qualification_needed ||
            (options & GN_DECLARATION) ||
            (scp->partially_hidden_by_microsoft_injected_class_name &&
@@ -1932,9 +1933,20 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
             write_tok_str("typename ");
           }  /* if */
         }  /* if */
-        gen_class_qualifier(class_type,
-                            options & GN_PARENS_IF_GLOBAL_QUALIFIER,
-                            need_closing_paren);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (scp->member_of_unknown_super) {
+          /* The name was originally referenced using the Microsoft __super
+             keyword.  Use it for this reference. */
+          write_tok_str("__super");
+          write_tok_str("::");
+        } else {
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          gen_class_qualifier(class_type,
+                              options & GN_PARENS_IF_GLOBAL_QUALIFIER,
+                              need_closing_paren);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         used_qualified_name = TRUE;
       }  /* if */
       if (used_qualified_name || curr_name_context->field_selection_context) {

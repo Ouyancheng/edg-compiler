@@ -2501,6 +2501,9 @@ state.
         cssp->dependent_type_fixup_list = NULL;
         cssp->operator_lookup_namespaces = NULL;
         cssp->friend_functions = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        cssp->super_lookup_symbols = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         cssp->has_nontrivial_default_constructor = FALSE;
         cssp->has_user_declared_default_constructor = FALSE;
         cssp->has_copy_constructor = FALSE;
@@ -3828,6 +3831,8 @@ the options being used for the lookup.
   sym_ptr->tentative_type_lookup = (options & IDL_TENTATIVE_TYPE_LOOKUP) != 0;
   sym_ptr->must_be_class_lookup = (options & IDL_MUST_BE_CLASS) != 0;
   sym_ptr->must_be_namespace_lookup = (options & IDL_MUST_BE_NAMESPACE) != 0;
+  sym_ptr->instantiation_context_lookup =
+                                    (options & IDL_INSTANTIATION_CONTEXT) != 0;
   return sym_ptr;
 }  /* enter_synthesized_projection_symbol */
 
@@ -7430,6 +7435,14 @@ symbol, and view_sym is either the same as symbol or a projection thereof.
   a_derivation_step_ptr       preferred_path;
   a_type_ptr                  viewpoint_class;
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (view_sym->is_super_reference) {
+    /* When a symbol is access via a Microsoft super, ignore the projection
+       symbol and treat it as a reference to the underlying symbol. */
+    symbol = fundamental_symbol_of(symbol);
+    view_sym = symbol;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (view_sym->kind == (a_symbol_kind)sk_projection) {
     /* The view symbol is a projection symbol. */
     bcp = view_sym->variant.projection.extra_info->fundamental_base_class;
@@ -10591,6 +10604,7 @@ are handled in symbol_tbl_init.)
   cleared_locator.do_not_clear_specific_symbol    = FALSE;
   cleared_locator.is_template_id                  = FALSE;
   cleared_locator.is_unknown_template_reference   = FALSE;
+  cleared_locator.is_super_qualified              = FALSE;
   cleared_locator.is_class_member                 = FALSE;
   cleared_locator.specific_symbol                 = NULL;
   cleared_locator.parent.class_type               = NULL;
@@ -10630,6 +10644,9 @@ are handled in symbol_tbl_init.)
   cleared_symbol.is_invisible                      = FALSE;
   cleared_symbol.is_unknown_function               = FALSE;
   cleared_symbol.is_nonreal_member                 = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  cleared_symbol.is_super_reference                = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if CHECKING
   /* Not needed right now -- at byte boundary.
   cleared_symbol.avoid_codecenter_warnings         = FALSE;

@@ -13171,6 +13171,9 @@ see expr.h).
       /* Fall through to next case ("::" is the start of a qualified name). */
     case tok_identifier:
     case tok_operator:               /* Start of "operator+" and the like. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_super:                  /* Microsoft __super qualifier. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* Watch out for something like "S::*". */
       if (!is_expr_qualified_name_start()) {
         goto bad_start_of_primary;

@@ -472,6 +472,12 @@ as the class type, and use as a base class.
     type->size = 1;
     type->alignment = 1;
     set_source_corresp(&(type->source_corresp), sym);
+    type->source_corresp.member_of_unknown_base =
+                       templ_param_type->source_corresp.member_of_unknown_base;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    type->source_corresp.member_of_unknown_super =
+                      templ_param_type->source_corresp.member_of_unknown_super;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     sym->variant.class_struct_union.type = type;
     if (templ_param_type->source_corresp.is_class_member) {
       set_class_membership(sym, &type->source_corresp,
@@ -673,7 +679,10 @@ and the lookup options "options".
     a_source_correspondence	*scp;
     scp = source_corresp_entry_for_symbol(sym);
     if (scp->member_of_unknown_base ==
-                               ((options & IDL_MEMBER_OF_UNKNOWN_BASE) != 0)) {
+                               ((options & IDL_MEMBER_OF_UNKNOWN_BASE) != 0)
+      if_microsoft_extensions(
+        && scp->member_of_unknown_super ==
+                             ((options & IDL_MEMBER_OF_UNKNOWN_SUPER) != 0))) {
       result = TRUE;
     }  /* if */
   }  /* if */
@@ -795,6 +804,10 @@ routine.
   if (scp != NULL) {
     set_source_corresp_with_scope_depth(scp, sym, depth);
     scp->member_of_unknown_base = (options & IDL_MEMBER_OF_UNKNOWN_BASE) != 0;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    scp->member_of_unknown_super =
+                                 (options & IDL_MEMBER_OF_UNKNOWN_SUPER) != 0;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   set_class_membership(sym, scp, class_type);
 #if DEBUG
@@ -3321,6 +3334,246 @@ end_lookup:
 }  /* class_qualified_id_lookup */
 
 
+static void add_symbol_to_super_set(a_symbol_locator    *locator,
+				    a_symbol_ptr	new_sym,
+				    a_symbol_ptr	*result_sym,
+				    a_type_ptr          class_type,
+				    a_base_class_ptr	base_class)
+/*
+Add "new_sym" to the set of symbols specified by "result_sym".  When
+called for the first symbol, result_sym is set to a projection symbol
+that points to the symbol.  For subsequent symbols (assuming they
+are functions), result_sym is replaced with an overload set symbol
+that points to the list of function symbols.  If more than one non-function
+symbol is found, the first one is used but is marked as ambiguous.
+"base_class" is the base class in which new_sym was found.
+*/
+{
+  a_boolean	is_function;
+  a_symbol_ptr  fund_result_sym = NULL;
+
+  /* The symbol provided is expected to be a fundamental symbol. */
+  check_assertion(new_sym->kind != (a_symbol_kind)sk_projection);
+  is_function = is_function_or_template_symbol(new_sym);
+  /* Check the accessibility of the symbol. */
+  if (*result_sym != NULL) {
+    fund_result_sym = fundamental_symbol_of(*result_sym);
+  }  /* if */
+  if (*result_sym != NULL && (*result_sym)->ambiguous) {
+    /* We already detected an ambiguity. */
+  } else if (*result_sym != NULL && 
+             (!is_function_or_template_symbol(fund_result_sym) ||
+              !is_function)) {
+    /* A combination of function and non-function symbols or two non-function
+       symbols.  Mark the result symbol as ambiguous. */
+    (*result_sym)->ambiguous = TRUE;
+  } else {
+    /* Add the symbol to the set.  Start by creating a projection symbol
+       that points to new_sym. */
+    a_symbol_ptr	new_proj;
+    new_proj = make_projection_symbol(new_sym, class_type, base_class,
+                                     (a_derivation_step_ptr)NULL,
+                                     /*ambiguous=*/FALSE);
+    /* Note that projection symbols for using-declarations have the
+       source position of the using-declaration itself, whereas
+       other projection symbols take on the source position of the
+       fundamental symbol. */
+    new_proj->decl_position = locator->source_position;
+    set_decl_sequence_number(new_proj);
+    new_proj->is_super_reference = TRUE;
+    if (*result_sym == NULL) {
+      /* This is the first symbol in the set. */
+      *result_sym = new_proj;
+    } else {
+      a_symbol_ptr	overload_sym;
+      /* Add to an existing symbol. */
+      if ((*result_sym)->kind == (a_symbol_kind)sk_projection) {
+        /* The current symbol is not an overload set.  Create one now. */
+        overload_sym = alloc_symbol((a_symbol_kind)sk_overloaded_function,
+                                     (*result_sym)->header,
+                                     &((*result_sym)->decl_position));
+        overload_sym->decl_scope = (*result_sym)->decl_scope;
+        overload_sym->decl_seq = (*result_sym)->decl_seq;
+        set_class_membership(overload_sym, (a_source_correspondence *)NULL,
+                             (*result_sym)->parent.class_type);
+        overload_sym->variant.overloaded_function.symbols = *result_sym;
+        (*result_sym)->overload_set_member = TRUE;
+        *result_sym = overload_sym;
+        overload_sym->is_super_reference = TRUE; 
+     } else {
+        /* The current symbol is an overload set. */
+        overload_sym = *result_sym;
+      }  /* if */
+      /* Add the new symbol to the overload list. */
+      new_proj->next = overload_sym->variant.overloaded_function.symbols;
+      overload_sym->variant.overloaded_function.symbols = new_proj;
+      new_proj->overload_set_member = TRUE;
+    }  /* if */
+  }  /* if */
+}  /* add_symbol_to_super_set */
+
+
+a_type_ptr get_super_class_type(void)
+/*
+Determine whether we are within a class or class reactivation scope.  If
+so, return the associated class type.
+*/
+{
+  a_scope_stack_entry_ptr	ssep;
+  a_type_ptr			class_type = NULL;
+
+  for (ssep = scope_stack_entry_for(depth_scope_stack);
+       ssep != NULL; ssep = previous_scope_of(ssep)) {
+    if (ssep->kind == (a_scope_kind)sck_class_struct_union ||
+        ssep->kind == (a_scope_kind)sck_class_reactivation) {
+      class_type = ssep->assoc_type;
+    }  /* if */
+  }  /* for */
+  return class_type;
+}  /* get_super_class_type */
+
+
+static a_symbol_ptr find_super_lookup_symbol(
+				a_symbol_ptr			symbol_list,
+				a_symbol_header_ptr		sym_header,
+				an_id_lookup_options_set	options)
+/*
+Look through symbol_list for a previously created __super lookup symbol
+that matches the lookup criteria specified by options and sym_header.
+*/
+{
+  a_symbol_ptr	sym;
+
+  for (sym = symbol_list; sym != NULL; sym = sym->next) {
+    a_boolean		must_be_class_or_namespace
+                             = (options & IDL_MUST_BE_CLASS_OR_NAMESPACE) != 0;
+    a_boolean		must_be_tag = (options & IDL_MUST_BE_TAG) != 0;
+    a_boolean		must_be_class = (options & IDL_MUST_BE_CLASS) != 0;
+    a_boolean		tentative_type_lookup
+                                  = (options & IDL_TENTATIVE_TYPE_LOOKUP) != 0;
+    if (sym->header == sym_header &&
+        (a_boolean)sym->must_be_class_or_namespace_lookup ==
+                                               must_be_class_or_namespace &&
+        (a_boolean)sym->tentative_type_lookup == tentative_type_lookup &&
+        (a_boolean)sym->must_be_class_lookup == must_be_class &&
+        (a_boolean)sym->must_be_tag_lookup == must_be_tag) {
+       break;
+    }  /* if */
+  }  /* for */
+  return sym;
+}  /* find_super_lookup_symbol */
+
+
+static void save_super_lookup_symbol(
+				a_symbol_ptr			sym,
+				a_class_symbol_supplement_ptr	cssp,
+				an_id_lookup_options_set	options)
+/*
+Save "sym" on the list of reusable super lookup symbols of "cssp".  "options"
+is the set of lookup options used to produce "sym".
+*/
+{
+  /* Set the flags in the symbol to reflect the lookup options used. */
+  sym->must_be_class_or_namespace_lookup =
+                               (options & IDL_MUST_BE_CLASS_OR_NAMESPACE) != 0;
+  sym->must_be_tag_lookup = (options & IDL_MUST_BE_TAG) != 0;
+  sym->tentative_type_lookup = (options & IDL_TENTATIVE_TYPE_LOOKUP) != 0;
+  sym->must_be_class_lookup = (options & IDL_MUST_BE_CLASS) != 0;
+  /* Add it to the list of super lookups. */
+  sym->next = cssp->super_lookup_symbols;
+  cssp->super_lookup_symbols = sym;
+}  /* save_super_lookup_symbol */
+
+
+a_symbol_ptr super_qualified_id_lookup(
+				a_symbol_locator		*locator,
+				an_id_lookup_options_set	options)
+/*
+This routines implements the lookup of a name that follows the
+Microsoft __super keyword.
+*/
+{
+  a_type_ptr                    class_type;
+  a_symbol_ptr                  result_sym = NULL;
+  a_boolean			reused_symbol = FALSE;
+  a_class_type_supplement_ptr   ctsp;
+  a_class_symbol_supplement_ptr cssp;
+  a_base_class_ptr              bcp;
+
+  /* Get the type of the current class on the scope stack, if any. */
+  class_type = get_super_class_type();
+  if (class_type != NULL) {
+    /* If this is a template, make sure it is instantiated. */
+    complete_class_type_is_needed(class_type);
+    /* Go through its base classes and look for members that match
+       the lookup. */
+    ctsp = class_type->variant.class_struct_union.extra_info;
+    cssp = symbol_supplement_for_class(class_type);
+    if (is_reusable_super_lookup(options)) {
+      /* Look for a previously created super lookup symbol that matches the
+         lookup options being used. */
+      result_sym = find_super_lookup_symbol(cssp->super_lookup_symbols,
+                                            locator->symbol_header, options);
+    }  /* if */
+    if (result_sym != NULL) {
+      /* We are reusing a previously created symbol. */
+      reused_symbol = TRUE;
+    } else if (cssp->any_nonreal_base_classes) {
+      /* There are nonreal base classes so we can't guarantee that we will
+         get the right result by doing the lookup now. */
+      result_sym = create_proxy_or_nonreal_class_member(
+                                         class_type,
+                                         options | IDL_MEMBER_OF_UNKNOWN_SUPER,
+                                         locator);
+    } else {
+      /* A class with only real base classes. */
+      for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
+        a_symbol_ptr	base_sym;
+        /* Only consider direct base classes. */
+        if (!bcp->direct) continue;
+        /* Clear the specific symbol so that it does not influence the lookup
+           below. */
+        clear_specific_symbol(*locator);
+        base_sym = class_qualified_id_lookup(locator, bcp->type, options);
+        if (base_sym != NULL) {
+          a_boolean is_list;
+          /* If the base class symbol is an overloaded function, process
+             each of the overload set members. */
+          is_list = (base_sym->kind == (a_symbol_kind)sk_overloaded_function);
+          if (is_list) {
+            base_sym = base_sym->variant.overloaded_function.symbols;
+          }  /* if */
+          for (; base_sym != NULL;
+                 base_sym = (is_list ? base_sym->next : NULL)) {
+            add_symbol_to_super_set(locator, base_sym, &result_sym,
+                                    class_type, bcp);
+          }  /* for */
+        }  /* if */
+      }  /* for */
+    }  /* if */
+    /* If we ended up with an overload set, set the mixed static/nonstatic
+       flag. */
+    if (result_sym != NULL &&
+        result_sym->kind == (a_symbol_kind)sk_overloaded_function) {
+      set_mixed_static_nonstatic_flag(result_sym);
+    }  /* if */
+    locator->specific_symbol = result_sym;
+    if (result_sym != NULL && !reused_symbol &&
+        is_reusable_super_lookup(options)) {
+      /* Save this symbol for possible reuse later. */
+      save_super_lookup_symbol(result_sym, cssp, options);
+    }  /* if */
+    /* If the symbol is a projection symbol, reduce it to the fundamental
+       symbol.  The specific_symbol in the locator stays pointing to the
+       projection symbol. */
+    if (result_sym != NULL) {
+      reduce_projection_symbol_to_fundamental_symbol(result_sym);
+    }  /* if */
+  }  /* if */
+  return result_sym;
+}  /* super_qualified_id_lookup */
+
+
 a_symbol_ptr enum_qualified_id_lookup(a_symbol_locator		*locator,
 				      a_type_ptr		enum_type)
 /*
@@ -3506,7 +3759,6 @@ as follows:
   sym = *synth_sym;
   return sym;
 }  /* qualified_using_directive_lookup */
-
 
 
 static

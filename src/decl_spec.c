@@ -5505,6 +5505,7 @@ process_class_specifier:
                    caller. */
                 goto exit_loop;
               } else if ((microsoft_bugs || any_cfront_mode()) &&
+                         !is_error_locator(locator_for_curr_id) &&
                          implicit_int_member_with_name_of_type()) {
                 /* Microsoft and Cfront will accept:
                      struct X; struct Y { X(); }; */

@@ -163,6 +163,11 @@ represented as a bit set:
 #define IDL_IS_FIELD_SELECTION_OPERAND 0x1000000
 				/* Specifies that the name being scanned is the
 				   operand following a "." or "->" operator. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define IDL_MEMBER_OF_UNKNOWN_SUPER 0x2000000
+				/* We are looking up a name in a base class
+				   using the Microsoft __super directive. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #define IDL_NO_OPTIONS 0	/* No special lookup options. */
 
 /*
@@ -180,6 +185,23 @@ reused later.
 		IDL_IS_EXPR_CONTEXT |					\
                 IDL_DO_NOT_ADD_TO_NONREAL_CLASS)) == 0)
 
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+/*
+Returns TRUE if the specified set of lookup options represents a lookup
+whose result can be saved as on the list of super lookup symbols and
+reused later.
+*/
+#define is_reusable_super_lookup(options)				\
+  ((options & ~(IDL_MUST_BE_TAG |					\
+                IDL_MUST_BE_CLASS_OR_NAMESPACE |			\
+                IDL_MUST_BE_CLASS |					\
+                IDL_TENTATIVE_TYPE_LOOKUP |				\
+		IDL_IS_EXPR_CONTEXT |					\
+                IDL_DO_NOT_ADD_TO_NONREAL_CLASS)) == 0)
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /* Return the declaration sequence number to be used for lookups. */
 #define get_effective_decl_seq()					\
@@ -214,6 +236,12 @@ extern a_symbol_ptr class_qualified_id_lookup(
                                          a_symbol_locator         *locator,
                                          a_type_ptr               class_type,
                                          an_id_lookup_options_set options);
+
+extern a_type_ptr get_super_class_type(void);
+
+extern a_symbol_ptr super_qualified_id_lookup(
+				a_symbol_locator		*locator,
+				an_id_lookup_options_set	options);
 
 extern
 a_symbol_ptr namespace_qualified_id_lookup(a_symbol_locator         *locator,

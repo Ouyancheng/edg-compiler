@@ -5010,10 +5010,17 @@ gives the source position of the member name reference.
       if (projection_member_sym->kind == (a_symbol_kind)sk_projection) {
         bcp = projection_member_sym->variant.projection.extra_info->
                                                         fundamental_base_class;
+        /* Normally, when a projection symbol is used it means the name was
+           specified as a simple name.  This is not the case for a projection
+           symbol created for a Microsoft __super lookup. */
         base_class_cast_operand(operand_1, bcp, is_arrow_operator,
                                 /*check_cast_access=*/FALSE,
                                 /*is_implicit_cast=*/TRUE,
-                                /*implicit_in_naming=*/TRUE,
+                                /*implicit_in_naming=*/
+                                    if_microsoft_extensions_else(
+                                       !projection_member_sym->
+                                                           is_super_reference,
+                                       TRUE),
                                 /*is_object_pointer=*/TRUE);
         class_struct_union_type = bcp->type;
       }  /* if */
@@ -5059,10 +5066,16 @@ gives the source position of the member name reference.
              member. */
           bcp = member_sym->variant.projection.extra_info->
                                                         fundamental_base_class;
+          /* Normally, when a projection symbol is used it means the name was
+             specified as a simple name.  This is not the case for a projection
+             symbol created for a Microsoft __super lookup. */
           base_class_cast_operand(operand_1, bcp, is_arrow_operator,
                                   /*check_cast_access=*/FALSE,
                                   /*is_implicit_cast=*/TRUE,
-                                  /*implicit_in_naming=*/TRUE,
+                                  /*implicit_in_naming=*/
+                                    if_microsoft_extensions_else(
+                                       !member_sym->is_super_reference,
+                                       TRUE),
                                   /*is_object_pointer=*/TRUE);
         }  /* if */
       }  /* if */

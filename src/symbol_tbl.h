@@ -191,6 +191,10 @@ typedef struct a_symbol_locator {
 			/* TRUE if this is a reference to a nonreal template
 			   that was uncoalesced by ensure_correct_nonreal-
 			   instance_kind. */
+  a_bit_field	is_super_qualified:1;
+			/* TRUE if the "identifier" is a C++ qualified-name
+			   in which the qualifier is the Microsoft __super
+			   keyword. */
   a_symbol_ptr	specific_symbol;
 			/* If is_qualified_name is TRUE, this points to the
 			   specific symbol for the qualified name.  Otherwise,
@@ -767,6 +771,13 @@ typedef struct a_class_symbol_supplement {
 			   point to sk_namespace_projection symbols).  This
 			   list is used to assist with namespace and class
 			   directed lookup. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_symbol_ptr	super_lookup_symbols;
+			/* A list of symbols created when doing a Microsoft
+			   __super lookup.  This list is consulted for
+			   subsequent lookups so that the symbols may be
+			   reused. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_bit_field	has_nontrivial_default_constructor:1;
 			/* TRUE if a default constructor has been explicitly
 			   declared or a nontrivial default constructor has
@@ -2245,6 +2256,13 @@ typedef struct a_symbol {
   a_bit_field	is_nonreal_member:1;
 			/* TRUE if this symbol represents a member of a
 			   nonreal class. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_bit_field
+		is_super_reference:1;
+			/* TRUE for projection and overloaded function
+			   symbols used to represent a Microsoft __super
+			   lookup. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* bitfield_to_avoid_codecenter_warnings() -- at byte boundary right now. */
   union {
     /* When kind == sk_undefined, no variant fields. */

@@ -1161,6 +1161,15 @@ typedef struct a_source_correspondence {
 			   front end assigns a member to the first dependent
 			   base) or the name could come from a base class
 			   of the dependent base. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_bit_field	member_of_unknown_super:1;
+			/* When a reference to the Microsoft __super keyword
+			   is made in a class template with dependent base
+			   classes the entity cannot be looked up during the
+			   prototype instantiation.  This flag is TRUE for
+			   entities created to represent members of an
+			   unknown super class. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS
   a_bit_field	marked_as_gnu_extension:1;
 			/* TRUE if the primary declaration was preceded by the

@@ -70,6 +70,8 @@ extern a_boolean scan_class_definition(
 
 extern void process_deferred_class_fixups_and_instantiations(void);
 
+extern void set_mixed_static_nonstatic_flag(a_symbol_ptr  overload_sym);
+
 extern
 void add_routine_fixup_for_specialization(a_type_ptr		class_type,
 					  a_symbol_ptr		symbol,

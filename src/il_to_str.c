@@ -1109,7 +1109,14 @@ by octl.
             scp_kind = iek_template_parameter;
           }  /* if */
         }  /* if */
-        form_name(scp, scp_kind, octl);
+        if (scp->member_of_unknown_base) {
+          /* We're pretending that we found the member in a dependent
+             base class.  That means the original form of reference
+             was unqualified. */
+          form_unqualified_name(scp, scp_kind, octl);
+        } else {
+          form_name(scp, (an_il_entry_kind)scp_kind, octl);
+        }  /* if */
       }
       break;
 #endif /* ifdef CFE */
