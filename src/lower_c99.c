@@ -204,7 +204,7 @@ as follows:
 	_D3 = 4*n
 followed by the following updates to count the total number of elements at
 each level:
-        _D3 *= 5,
+	_D3 *= 5,
 	_D2 *= 3*_D3,
 	_D1 *= _D2  // _D1 now holds the total number of elements in *p
 Arranging the computations in this way provides the quantity needed to compute
@@ -2075,14 +2075,14 @@ Lower the expression in a VLA dimension entry.
   an_expr_node_ptr  expr = vdp->dimension_expr;
 
   if (expr != NULL) {
-    lower_c99_full_expr(vdp->dimension_expr);
+    lower_c99_full_expr(expr);
 #if MINIMAL_INLINING
     /* Catch constant nonpositive sizes introduced by inlining. */
     if (is_constant_node(expr)) {
       a_constant_ptr con = expr->variant.constant;
       if (con->kind == (a_constant_repr_kind)ck_integer &&
-	  sign_of_integer_constant(con) <= 0) {
-	pos_error(ec_array_size_must_be_positive, &vdp->position);
+          sign_of_integer_constant(con) <= 0) {
+        pos_error(ec_array_size_must_be_positive, &vdp->position);
       }  /* if */
     }  /* if */
 #endif /* MINIMAL_INLINING */
@@ -2257,9 +2257,7 @@ well).
                                             void_type(), void_star_type(),
                                             (a_type_ptr)NULL, arg);
   /* The result of the statement expression is not used. */
-  if (stmt->expr != NULL) {
-    set_expr_result_not_used(stmt->expr);
-  }  /* if */
+  set_expr_result_not_used(stmt->expr);
 }  /* lower_vla_dealloc */
 
 #endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
