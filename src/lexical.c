@@ -4886,7 +4886,7 @@ Allocate an access error description entry.  Reuse a freed entry if possible.
 }  /* alloc_access_error_descr */
 	
 
-static void do_not_issue_qualifier_access_errors(void)
+void do_not_issue_qualifier_access_errors(void)
 /*
 Free the access error description entries pointed to by curr_class_qualifier
 and clear the pointer in curr_class_qualifier.  Put them on the available
