@@ -54,7 +54,7 @@ less than 1300).  This warning has now been restored.  For example,
 
 In GNU C++ mode the front end now accepts in-class initializers for static
 data members of a const floating-point type (normally only const integer and
-enumeration types allow for in-class initializers).  For example:
+enumeration types are allowed for in-class initializers).  For example:
 
   struct S {
     static double const F = 3.2;  // Now accepted in GNU C++ mode.
