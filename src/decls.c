@@ -2153,14 +2153,14 @@ issued a similar error).  Return FALSE if there is some error.
 
 
 static a_symbol_ptr create_external_symbol_for_linked_entity(
-                                a_symbol_locator   *locator,
-                                a_boolean          is_function,
-                                a_type_ptr         type_ptr,
-                                an_id_linkage_kind linkage,
-                                a_boolean          redeclaration,
-                                a_boolean          suppress_incompatible_error,
-                                a_variable_ptr     *variable_ptr,
-                                a_routine_ptr      *routine_ptr)
+                              a_symbol_locator     *locator,
+                              a_boolean            is_function,
+                              a_type_ptr           type_ptr,
+                              a_name_linkage_kind  name_linkage,
+                              a_boolean            redeclaration,
+                              a_boolean            suppress_incompatible_error,
+                              a_variable_ptr       *variable_ptr,
+                              a_routine_ptr        *routine_ptr)
 /*
 Find or create an external symbol entry for a variable or routine being
 declared.  *locator gives the symbol locator for the identifier;
@@ -2193,7 +2193,7 @@ created; the caller must set it.
                                (a_symbol_kind)sk_extern_variable;
   /* Look up the external name of the identifier (i.e., the name after
      any truncation, etc.). */
-  ext_sym = find_external_symbol(locator, linkage,
+  ext_sym = find_external_symbol(locator, name_linkage,
                                  is_function ? type_ptr : NULL,
                                  &ext_locator);
   if (ext_sym != NULL) {
@@ -2572,6 +2572,7 @@ otherwise, set *ext_sym to NULL.
   a_source_correspondence
                     *source_corresp_ptr;
   a_scope_depth     effective_decl_level;
+  a_boolean         is_main_function = FALSE;
 
   db_enter(3, "decl_var_or_routine");
 #if CHECKING
@@ -2750,6 +2751,11 @@ otherwise, set *ext_sym to NULL.
     mark_declared(sym, &locator->source_position,
                   /*save_as_decl_position=*/is_function_def_with_body);
   }  /* if */
+  if (is_function && storage_class == (a_storage_class)sc_unspecified &&
+      (strcmp(locator->symbol_header->identifier, "main") == 0)) {
+    is_main_function = TRUE;
+    /* This is "main", which is always given "C" linkage. */
+  }  /* if */
   if (C_dialect == C_dialect_cplusplus) {
     if (!is_function && decl_scope_level == DEPTH_OF_FILE_SCOPE &&
         storage_class == (a_storage_class)sc_unspecified &&
@@ -2778,9 +2784,20 @@ otherwise, set *ext_sym to NULL.
        keeps track of the full composite type behind the scenes.
        If we do not already have an IL entry, and the external symbol entry
        points to one, get a pointer to it and use it. */
+    /* Determine the name linkage that should be used in looking up an
+       existing external symbol entry. */
+    a_name_linkage_kind  name_linkage;
+
+    if (linkage == idl_internal) {
+      name_linkage = (a_name_linkage_kind)nlk_internal;
+    } else if (C_dialect != C_dialect_cplusplus || is_main_function) {
+      name_linkage = (a_name_linkage_kind)nlk_external;
+    } else {
+      name_linkage = def_external_linkage.kind;
+    }  /* if */
     *ext_sym = create_external_symbol_for_linked_entity(
                                                  locator, is_function,
-                                                 type_ptr, linkage,
+                                                 type_ptr, name_linkage,
                                                  redeclaration,
                                                  linked_redecl_error,
                                                  &variable_ptr, &routine_ptr);
@@ -2920,14 +2937,8 @@ otherwise, set *ext_sym to NULL.
     /* Indicate in the IL entry that the name is externally visible by
        assigning the external linkage kind that is the default for the current
        context. */
-    if (C_dialect != C_dialect_cplusplus) {
-      source_corresp_ptr->name_linkage = (a_name_linkage_kind)nlk_external;
-      sym->explicit_linkage_specifier = FALSE;
-    } else if (is_function &&
-               storage_class == (a_storage_class)sc_unspecified &&
-               routine_ptr->source_corresp.name != NULL &&
-               strcmp(routine_ptr->source_corresp.name, "main") == 0) {
-      /* This is "main", which is always given "C" linkage. */
+    if (C_dialect != C_dialect_cplusplus || is_main_function) {
+      /* Note that "main" is always given "C" linkage. */
       source_corresp_ptr->name_linkage = (a_name_linkage_kind)nlk_external;
       sym->explicit_linkage_specifier = FALSE;
     } else if (source_corresp_ptr->name_linkage ==
