@@ -256,7 +256,7 @@ a_type_ptr form_declared_type(a_type_ptr             type_ptr,
 /*
 If type_ptr is a function type, return a copy of type_ptr that incorporates
 the parameter types as actually declared in the source program; that is,
-preserve the parameter type before any adjustments is done (e.g.,
+preserve the parameter type as it was before any adjustment was done (e.g.,
 array-to-pointer decay).
 */
 {
@@ -276,7 +276,8 @@ array-to-pointer decay).
     declared_type = copy_routine_type_with_param_types(type_ptr);
     fixup_needed = FALSE;
     param_id = func_info->param_id_list;
-    ptp = declared_type->variant.routine.extra_info->param_type_list;
+    ptp = skip_typerefs(declared_type)->
+                            variant.routine.extra_info->param_type_list;
     if (param_id != NULL && ptp != NULL) {
       /* There is no need to create a new routine type entry if none of the
          parameter types underwent adjustment. */
