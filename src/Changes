@@ -1,14 +1,35 @@
 Version 2.07
 
+6/30/92  Type compatibility
+
+A new macro has been added, types_are_strictly_compatible, and the
+interface to f_types_are_compatible modified, to provide a mode in type
+compatibility checking where an error type is compatible with no other
+type, even another error type.  This was required to be sure the
+following case is handled correctly:
+
+  class A { A(A); A(int); };
+
+An error is issued on the first constructor declaration; if type int
+were compatible with error type, then the second declaration would be
+treated as an attempt to redeclare existing function A::A rather than as
+the declaration of a new instance of overloaded function A::A.
+
 6/29/92  Check for conversions on first operand of "?" operator.
 
-User-defined conversions are now checked for on the first operand
-of the "?" operator.
+User-defined conversions are now checked for on the first operand of the
+"?" operator.
+
+6/26/92  Class with no constructor but const or reference members
+
+A warning is now issued when a class is declared with nonstatic data
+members of const-qualified or reference type but no user-defined
+constructor.
 
 6/26/92  Compiler-generated functions created on explicit references
 
-Compiler-generated functions (operator= and destructor) are now
-created when invoked explicitly, not just when invoked implicitly.
+Compiler-generated functions (operator= and destructor) are now created
+when invoked explicitly, not just when invoked implicitly.
 
 6/25/92  Error now issued for reference to local variable in default
          argument expression.
@@ -53,19 +74,19 @@ In the following case:
   static void f();
   void f() { /* ... */ }
 
-the function is now marked as internally linked with a storage class of
+the function is now marked as internally linked with a storage class of 
 "static".  Before, it was given external linkage and "unspecified"
 storage class.
 
 6/19/92  Support for "asm declarations".
 
-"asm" is now treated as a keyword, even in C mode.  An asm "declaration"
-(at file scope) and an asm "statement" (at function or block scope) are
-scanned by asm_declaration, a new function.  Some new IL support has
-been added: entries of type an_asm_entry are created and placed on a
-list pointed to from the current scope, and the asm entry points to the
-asm string; statements of kind stmk_asm now point to an asm entry rather
-than directly to an asm string.
+"asm" is now treated as a keyword (both in C++ and non-ANSI C mode).  An
+asm "declaration" (at file scope) and an asm "statement" (at function or
+block scope) are scanned by asm_declaration, a new function.  Some new
+IL support has been added: entries of type an_asm_entry are created and
+placed on a list pointed to from the current scope, and the asm entry
+points to the asm string; statements of kind stmk_asm now point to an
+asm entry rather than directly to an asm string.
 
 6/17/92  Recognition of new keywords -- temporary.
 
