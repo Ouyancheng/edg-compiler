@@ -2810,7 +2810,6 @@ to represent the template parameters.
 */
 {
   a_symbol_ptr         sym;
-  a_source_position    param_pos;
   a_template_param_ptr template_param;
   a_template_param_ptr template_param_list = NULL;
   a_template_param_ptr end_of_template_param_list = NULL;
@@ -2838,7 +2837,6 @@ to represent the template parameters.
     a_constant_ptr default_arg_constant;
 
     ++template_param_list_pos;
-    copy_source_position(pos_curr_token, param_pos);
     /* Cache the tokens that comprise the template parameter declaration.
        If the parameter depends on other template parameters this cache
        will be saved and rescanned to scan template argument lists. */
