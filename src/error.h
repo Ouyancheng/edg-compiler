@@ -327,7 +327,8 @@ typedef enum /*an_error_code*/ {
   ec_bad_destructor_decl,
   ec_id_has_same_name_as_class,
   ec_unary_colon_colon_in_declarator,
-  ec_name_not_found_in_file_scope
+  ec_name_not_found_in_file_scope,
+  ec_qualified_name_not_allowed
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 

@@ -916,6 +916,9 @@ error code.
     case ec_name_not_found_in_file_scope:
       m = "no such name declared in the file scope";
       break;
+    case ec_qualified_name_not_allowed:
+      m = "qualified name is not allowed";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
