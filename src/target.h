@@ -26,7 +26,7 @@ target.h -- Definition of target machine characteristics.
 #endif /* ifndef LANG_FEAT_H */
 
 /*
-Flag that is TRUE if object code compatibility with AT&T's cfront is
+Flag that is TRUE if object code compatibility with USL's cfront is
 required.  The main issue is class layout and specifically how the data
 sections for virtual base classes are put out.  Other issues include
 when virtual tables are generated.  The default behavior
@@ -39,15 +39,19 @@ of cfront compatibility that is desired.  When testing these flags for
 behavior that did not change between 2.1 and 3.0 the general flag should
 be used.
 */
+#ifndef CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
 #define CFRONT_2_1_OBJECT_CODE_COMPATIBILITY TRUE
+#endif /* ifndef CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
+#ifndef CFRONT_3_0_OBJECT_CODE_COMPATIBILITY
 #define CFRONT_3_0_OBJECT_CODE_COMPATIBILITY FALSE
+#endif /* ifndef CFRONT_3_0_OBJECT_CODE_COMPATIBILITY */
 #define CFRONT_OBJECT_CODE_COMPATIBILITY \
                            (CFRONT_2_1_OBJECT_CODE_COMPATIBILITY ||   \
                             CFRONT_3_0_OBJECT_CODE_COMPATIBILITY)
 
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY && \
     CFRONT_3_0_OBJECT_CODE_COMPATIBILITY
-??=error -- must select either 2.1 compatibility or 3.0 compatibility
+??=error -- Must select either 2.1 compatibility or 3.0 compatibility.
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY ... */
 
 /* The code that implements the cfront name lookup bug makes use of the
