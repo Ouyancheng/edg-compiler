@@ -36,12 +36,13 @@ provided it was previously declared with C linkage.  For example:
 
 The hidden name table processing used to assume that injected base class names
 are always visible as unqualified names.  However, it is possible for a
-derived class to have the same unqualified name as one of it base classes;
-the unqualified name then refers to the derived class.  For example:
+member of a derived class to have the same unqualified name as one of the base
+classes; the unqualified name then refers to the derived class.  For example:
 
   struct A { struct N {}; };
   struct B {
-    struct N: A::N {  // "N" refers to B::N, not A::N despite name injection
+    struct M: A::N {
+      int N;        // "N" refers to B::M::N, not A::N despite name injection
       void f() { A::N *p = 0; }
     };
   };
