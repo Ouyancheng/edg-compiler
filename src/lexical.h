@@ -47,7 +47,8 @@ typedef enum /*a_token_kind*/ {
   tok_header_name,
   tok_pp_number,
   tok_digit_sequence,
-  tok_cpp_quote,       
+  tok_cpp_quote,
+  tok_class_qualifier,	/* C++ only */
   /* Operators (standard, 3.1.5; sizeof appears with keywords): */
   tok_lbracket          /* [ */,    tok_rbracket           /* ] */,
   tok_lparen            /* ( */,    tok_rparen             /* ) */,
@@ -120,7 +121,7 @@ EXTERN char	*token_names[(int)tok_last+1]
 #if VAR_INITIALIZERS
 = {"identifier", "float constant", "int constant", "char constant",
    "string literal", "end of source", "newline", "header name",
-   "pp number", "digit sequence", "cpp quote",
+   "pp number", "digit sequence", "cpp quote", "class qualifier",
    "[", "]", "(", ")", ".", "->", "++", "--", "&", "*", "+", "-",
    "~", "!", "/", "%", "<<", ">>", "<", ">", "<=", ">=", "==",
    "!=", "^", "|", "&&", "||", "?", ":", "=", "*=", "/=", "%=",
@@ -210,6 +211,7 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_pp_number */
    (an_opname_kind)onk_none,          /* tok_digit_sequence */
    (an_opname_kind)onk_none,          /* tok_cpp_quote */
+   (an_opname_kind)onk_none,          /* tok_class_qualifier */
    (an_opname_kind)onk_subscript,     /* operator[] starts with tok_lbrace */
    (an_opname_kind)onk_none,          /* tok_rbrace */
    (an_opname_kind)onk_function_call, /* operator() starts with tok_lparen */
