@@ -237,6 +237,7 @@ this case and add it to the list for the current scope.
         if (sp == NULL) {
           /* Get pointer to current scope entry. */
           ssep = &scope_stack[decl_scope_level];
+          if (ssep->kind == (a_scope_kind)sck_pragma) --ssep;
           /* Create the IL scope if necessary (for block scopes). */
           sp = ensure_il_scope_exists(ssep);
           check_assertion_str(sp != NULL,
@@ -602,9 +603,11 @@ hiding.
       }  /* for */
     } else {
       /* Not a file scope declaration, and the symbol does not itself belong
-         to the file scope, either (e.g., not a friend declaration). */
+         to the file scope, either (e.g., not a friend declaration).  This is
+         a "linkage lookup" because names introduced into the file scope by
+         using declarations are to be ignored. */
       clear_specific_symbol(locator);
-      old_sym_ptr = file_scope_id_lookup(&locator, IDL_NO_OPTIONS);
+      old_sym_ptr = file_scope_id_lookup(&locator, IDL_LINKAGE_LOOKUP);
       if (old_sym_ptr != NULL) {
         /* A global name is hidden inside another scope by a declaration
            in that scope. The hiding can be defeated by applying the ::
