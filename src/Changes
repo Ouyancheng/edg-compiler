@@ -6,7 +6,7 @@ The linkage specification in effect at the point of a function type
 declaration is now recorded in the routine type supplement (field
 routine_name_linkage).  The front end makes this information available to
 the back end in case, for example, different linkages imply different
-calling conventions.  This can be necessary to have this information in the
+calling conventions.  It can be necessary to have this information in the
 routine type if a call is made through a function pointer or
 pointer-to-member.
 
