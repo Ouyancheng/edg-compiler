@@ -906,7 +906,7 @@ be TRUE to indicate an alternate syntax (ARM 8.4):
   } else if (symbol_ptr->kind != (a_symbol_kind)sk_variable &&
              symbol_ptr->kind != (a_symbol_kind)sk_static_data_member) {
     /* Not a variable (for example, might be a typedef). */
-    pos_error(ec_cannot_initialize, source_pos);
+    pos_sy_error(ec_cannot_initialize, source_pos, symbol_ptr);
     err = TRUE;
   } else {
     vp = symbol_ptr->variant.variable;
@@ -916,12 +916,12 @@ be TRUE to indicate an alternate syntax (ARM 8.4):
         linkage != idl_none) {
       /* Block scope variable with internal or external linkage --
          not allowed to be initialized.  (3.5.7 Constraints) */
-      pos_error(ec_cannot_initialize, source_pos);
+      pos_sy_error(ec_cannot_initialize, source_pos, symbol_ptr);
       err = TRUE;
     } else if (vp->init_kind != (an_init_kind)initk_none) {
       /* Variable already initialized (presumably, it is being declared
          again, and we have the variable from the earlier declaration). */
-      pos_error(ec_already_initialized, source_pos);
+      pos_sy_error(ec_already_initialized, source_pos, symbol_ptr);
       err = TRUE;
     } else {
       /* Only object types and incomplete arrays are allowed to be
@@ -936,7 +936,7 @@ be TRUE to indicate an alternate syntax (ARM 8.4):
         /* Reference type -- okay. */
       } else {
         /* An object of this type cannot be initialized. */
-        pos_error(ec_cannot_initialize, source_pos);
+        pos_sy_error(ec_cannot_initialize, source_pos, symbol_ptr);
         err = TRUE;
         /* Use an error type to avoid additional errors. */
         vp_type = NULL;
@@ -1565,7 +1565,7 @@ initialized.  These are addressed in the course of the processing.
           /* The syntax does not provide for the initialization of arrays --
              except character strings. */
           if (is_array_type(init_type) && !is_string_type(init_type)) {
-            error(ec_cannot_initialize);
+            sym_error(ec_cannot_initialize, member_or_base_sym);
             init_type = error_type();
             goto scan_paren;
           }  /* if */
