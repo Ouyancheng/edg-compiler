@@ -2789,9 +2789,7 @@ typedef struct a_statement {
     a_dynamic_init_ptr
 		dynamic_init;
 			/* The description of the dynamic initialization to be
-			   performed; the object to be initialized (variable,
-			   array element, or field) is identified by the expr
-			   field. */
+			   performed. */
     /* When kind == stmk_asm: */
     a_constant_ptr
                 asm_string;
