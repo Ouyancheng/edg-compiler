@@ -9013,18 +9013,23 @@ the last statement.
 }  /* reset_cleanup_state_at_transfer_of_control */
 
 
-static void lower_switch_clause_list(a_switch_clause_ptr    clause_list,
-                                     an_object_lifetime_ptr switch_lifetime)
+static void lower_switch_clause_list(
+                                    a_switch_clause_ptr    clause_list,
+                                    a_statement_ptr        between_clause_list,
+                                    an_object_lifetime_ptr switch_lifetime)
 /*
 Do IL lowering of the indicated switch clause list and everything under it.
 If the switch statement has an associated lifetime, switch_lifetime points to
-it; otherwise, switch_lifetime is NULL.
+it; otherwise, switch_lifetime is NULL.  between_clause_list, if non-NULL,
+points to some segments on the body statement list that originally appeared
+between clauses of the switch.  They are processed at the proper points.
 */
 {
   a_switch_clause_ptr    clause;
   a_statement_ptr        clause_statements, last_statement;
   an_insert_location     insert_location;
   an_object_lifetime_ptr lifetime;
+  a_boolean              advance_to_next_lifetime = FALSE;
   a_dynamic_init_ptr     saved_curr_cleanup_state =
                                               curr_context->curr_cleanup_state;
 
@@ -9071,7 +9076,7 @@ it; otherwise, switch_lifetime is NULL.
       }  /* if */
 #endif /* GENERATE_EH_TABLES */
       begin_switch_clause_object_lifetime(lifetime);
-      lifetime = label_successor_lifetime(lifetime, /*switch_clause=*/TRUE);
+      advance_to_next_lifetime = TRUE;
     }  /* if */
     lower_statement_list(clause_statements, &last_statement);
     if (switch_lifetime != NULL) {
@@ -9107,9 +9112,78 @@ it; otherwise, switch_lifetime is NULL.
 #endif /* INDICATE_CLEANUP_STATE_IN_UNREACHABLE_CODE */
         }  /* if */
       }  /* if */
+      if (advance_to_next_lifetime) {
+        while (between_clause_list != NULL) {
+          /* Check whether the statements at the front of the between-clause
+             list fall after this clause. */
+          a_statement_ptr prev_stmt;
+          a_statement_ptr stmt = between_clause_list;
+          check_assertion(stmt->kind == (a_statement_kind)stmk_label);
+          if (stmt->variant.label.lifetime != lifetime) break;
+          /* Yes, this label and code should be processed here. */
+          /* Process code up to the next label, leave the rest on the
+             list for later processing (possibly immediately). */
+          for (;;) {
+            prev_stmt = between_clause_list;
+            between_clause_list = between_clause_list->next;
+            if (between_clause_list == NULL) break;
+            if (between_clause_list->kind == (a_statement_kind)stmk_label) {
+              /* Break the current list before this next label. */
+              prev_stmt->next = NULL;
+              break;
+            }  /* if */
+          }  /* for */
+          lower_statement_list(stmt, &last_statement);
+          /* Reattach the segment processed to the whole statement list. */
+          prev_stmt->next = between_clause_list;
+        }  /* while */
+        lifetime = label_successor_lifetime(lifetime, /*switch_clause=*/TRUE);
+        advance_to_next_lifetime = FALSE;
+      }  /* if */
     }  /* if */
   }  /* for */
+  check_assertion_str(between_clause_list == NULL,
+           "lower_switch_clause_list: not all between-clause stmts processed");
 }  /* lower_switch_clause_list */
+
+
+static void find_label_between_switch_clauses(
+                                          a_statement_ptr statement_list,
+                                          a_statement_ptr *between_clause_list,
+                                          a_statement_ptr *prev_stmt)
+/*
+statement_list is the list of statements in the body statement of a switch
+clause.  Look for segments on that list that correspond to code that was
+between switch clauses in the source program.  Such segments begin with
+a label whose object lifetime places it inside the switch clauses.
+Set *between_clause_list to point to the first of such segments if
+one is found, or to NULL otherwise.  Set *prev_stmt to the statement
+preceding *between_clause_list, or to NULL if it is the first statement on
+the list or *between_clause_list is returned NULL.
+*/
+{
+  a_statement_ptr stmt;
+
+  *between_clause_list = NULL;
+  /* Look for labels on the statement list, and look at those to see whether
+     they indicate they are inside an object lifetime associated with
+     a switch clause. */
+  for (*prev_stmt = NULL, stmt = statement_list;
+       stmt != NULL;
+       *prev_stmt = stmt, stmt = stmt->next) {
+    if (stmt->kind == (a_statement_kind)stmk_label) {
+      an_object_lifetime_ptr lifetime = stmt->variant.label.lifetime;
+      if (lifetime != NULL) {
+        if (lifetime->kind == (an_object_lifetime_kind)olk_block_after_label &&
+            lifetime->entity.kind == (a_byte_il_entry_kind)iek_switch_clause) {
+          /* This label appears between switch clauses. */
+          *between_clause_list = stmt;
+          break;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* for */
+}  /* find_label_between_switch_clauses */
 
 
 void turn_statement_into_block(a_statement_ptr        statement,
@@ -9860,6 +9934,7 @@ Lower the dependent statement of the indicated "switch" statement.
   a_statement_ptr body_statement =
                                  statement->variant.switch_stmt.body_statement;
   a_statement_ptr statement_list, last_statement;
+  a_statement_ptr between_clause_list = NULL, prev_stmt = NULL;
   a_context       context;
   a_boolean       context_pushed, new_lifetime;
   a_dynamic_init_ptr
@@ -9876,10 +9951,36 @@ Lower the dependent statement of the indicated "switch" statement.
     push_block_statement_context(body_statement, &context,
                                  &context_pushed, &new_lifetime,
                                  &saved_curr_cleanup_state);
+    if (new_lifetime) {
+      /* Look for labels in the body statement list that actually appeared
+         between switch clauses, and save them off to the side. */
+      find_label_between_switch_clauses(statement_list, &between_clause_list,
+                                        &prev_stmt);
+      if (between_clause_list != NULL) {
+        /* Take the segments that appeared between switch clauses off the
+           statement list temporarily. */
+        if (prev_stmt == NULL) {
+          statement_list = NULL;
+        } else {
+          prev_stmt->next = NULL;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    /* lower the statements in the body statement block. */
     lower_statement_list(statement_list, &last_statement);
+    /* Put the between_clause_list back on the end of the statement_list if
+       it was taken off above. */
+    if (between_clause_list != NULL) {
+      if (prev_stmt == NULL) {
+        statement_list = between_clause_list;
+      } else {
+        prev_stmt->next = between_clause_list;
+      }  /* if */
+    }  /* if */
     curr_cleanup_state_after_body = curr_context->curr_cleanup_state;
     curr_context->curr_cleanup_state = saved_curr_cleanup_state;
     lower_switch_clause_list(statement->variant.switch_stmt.clause_list,
+                             between_clause_list,
                              new_lifetime ? curr_context->lifetime :
                                             (an_object_lifetime_ptr)NULL);
     curr_context->curr_cleanup_state = curr_cleanup_state_after_body;
@@ -9891,6 +9992,7 @@ Lower the dependent statement of the indicated "switch" statement.
        other than a block statement. */
     lower_statement(body_statement);
     lower_switch_clause_list(statement->variant.switch_stmt.clause_list,
+                             (a_statement_ptr)NULL,
                              (an_object_lifetime_ptr)NULL);
   }  /* if */
 }  /* lower_switch_dependent_statement */

@@ -1,5 +1,28 @@
 Version 2.43
 
+9/8/99   Abort in gen_goto_cleanup_actions: labels, object lifetimes, and
+         switch statements
+
+An abort in gen_goto_cleanup_actions has been eliminated.  The abort
+occurred when a case label was preceded by a label and there was a previous
+switch clause with a destructible entry.
+
+  struct X {~X();};
+  class A {
+    void f();
+    void g(X);
+  };
+  void A::f() {
+    X x;
+    switch (1) {
+      case 2: 
+        g(x);
+        break;
+  L:  case 1:  // Abort on processing this
+        break;
+    }
+  }
+
 9/8/99   Access check on friend function nominations
 
 If a friend function declaration nominates a member function, that member

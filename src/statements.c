@@ -3723,17 +3723,17 @@ static an_object_lifetime_ptr innermost_keepable_lifetime(
                                             an_object_lifetime_ptr  olp)
 /*
 Starting from the object lifetime entry pointed to by olp, walk the object
-lifetime stack via parent pointers and return the first olk_block object
-lifetime entry that will be retained in the IL because it has a non-NULL
-destructions pointer. If none is found before reaching the object lifetime
-for the function scope itself, return that one (even if its destructions
-pointer is NULL).
+lifetime stack via parent pointers and return the first olk_block or
+olk_block_after_label object lifetime entry that will be retained in the
+IL because it has a non-NULL destructions pointer.  If none is found before
+reaching the object lifetime for the function scope itself, return that
+one (even if its destructions pointer is NULL).
 */
 {
   while (olp != function_scope_object_lifetime) {
-    if (olp->kind == (an_object_lifetime_kind)olk_block ||
-        ((olp->kind == (an_object_lifetime_kind)olk_block_after_label) &&
-         !is_useless_object_lifetime(olp))) {
+    if ((olp->kind == (an_object_lifetime_kind)olk_block ||
+         olp->kind == (an_object_lifetime_kind)olk_block_after_label) &&
+         !is_useless_object_lifetime(olp)) {
       break;
     }  /* if */
     olp = olp->parent_lifetime;
@@ -4750,13 +4750,13 @@ label_position indicates the source position of the label.
            which may be different from the current object lifetime when
            label_directly_in_switch is FALSE. */
         check_assertion_str2(label_directly_in_switch ?
-                               ((sssep)->curr_block_object_lifetime ==
+                               (sssep->curr_block_object_lifetime ==
                                                     curr_object_lifetime) :
-                               ((sssep)->curr_block_object_lifetime != NULL),
+                               (sssep->curr_block_object_lifetime != NULL),
                              "add_switch_clause: bad lifetime in struct",
                              "stmt stack entry for switch statement");
         goto_stmt->variant.label.lifetime =
-                                     (sssep)->curr_block_object_lifetime;
+                innermost_keepable_lifetime(sssep->curr_block_object_lifetime);
         /* Create a control flow entry for this goto statement.  Note that it
            isn't needed in C mode, since it's only used for tracking and
            promoting object lifetimes. */
