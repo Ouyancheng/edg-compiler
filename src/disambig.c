@@ -351,11 +351,11 @@ attribute list.  It simply requires that the parentheses be properly nested
     }  /* if */
     /* We should now be at the closing "))" of the attribute. */
     if (curr_token == tok_rparen) {
-      if (state != NULL) cache_curr_token(&state->cache);
+      cache_curr_token(&state->cache);
       get_token_and_coalesce_if_identifier(flags);
     }  /* if */
     if (curr_token == tok_rparen) {
-      if (state != NULL) cache_curr_token(&state->cache);
+      cache_curr_token(&state->cache);
       get_token_and_coalesce_if_identifier(flags);
     }  /* if */
   }  /* if */
