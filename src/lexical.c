@@ -6755,7 +6755,8 @@ The token can be a normal or wide string literal.
       /* GNU C and C++ versions prior to 3.3 permit a string literal to extend
          over multiple lines.  We also accept it for later versions as an
          extension. */
-      && (!gnu_mode || curr_command_line_macro_def != NULL ||
+      && (!(gnu_mode && gnu_version < 30300) ||
+          curr_command_line_macro_def != NULL ||
           !scan_multiline_string(&num_chars, is_wide))
 #endif  /* GNU_EXTENSIONS_ALLOWED */
                                                       ) {
