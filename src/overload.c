@@ -6633,7 +6633,7 @@ or NULL otherwise (e.g., for a call through a pointer to function).
     arg_block->fmt_arg = extra_info->fmt_arg;
     if (extra_info->this_class != NULL) {
       /* For nonstatic member functions, the "this" parameter is number one.
-         Since the corresponding argument is not counted, we must compensate
+         Since the corresponding argument is not counted, we must adjust
          the numbering of the format argument here. */
       --arg_block->fmt_arg;
     }  /* if */
