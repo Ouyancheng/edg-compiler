@@ -147,7 +147,7 @@ In Microsoft compatibility mode the following declaration is accepted:
 
 However, a warning is issued because (as with the Microsoft compiler)
 decl-modifiers preceding a linkage specification are ignored.  In other
-words, the above declarations is *not* equivalent to
+words, the above declaration is not equivalent to:
 
   extern "C" __declspec(dllimport) void f();
 
@@ -158,11 +158,11 @@ in a qualified name.  We now duplicate this behavior in Microsoft mode.
 As with the Microsoft compiler, only member enumerations are permitted.
 
   struct A {
-    enum E {e1};
-    int f(){ return E::e1;}  // Accepted by Microsoft compiler
+    enum E { e1 };
+    int f() { return E::e1; }  // Accepted by Microsoft compiler
   };
-  enum F {f1};
-  int f(){ return F::f1;}  // Not accepted by Microsoft compiler
+  enum F { f1 };
+  int f() { return F::f1; }    // Not accepted by Microsoft compiler
 
 
 1/21/97 struct with no named field in C mode
@@ -202,8 +202,8 @@ cfront and Microsoft modes.  First, cases involving an empty class:
   struct B : A { };
   const B b;                         // Okay in cfront and Microsoft modes
 
-Second, cases involving new expressions with no initializer (superfluous
-in Microsoft mode, since MSVC++ disallows new expressions involving const
+Second, cases involving new-expressions with no initializer (superfluous
+in Microsoft mode, since MSVC++ disallows new-expressions involving const
 and volatile):
 
   struct A { virtual void f(); int i; };
@@ -483,8 +483,8 @@ already provided.)
 1/9/97  Abort when a partial specialization nontype argument is deduced
         from an array bound
 
-The front end would abort when a nontype argument of a partial specialization
-was deduced only from an array bound.  This has been fixed.
+The front end would abort when a nontype argument of a partial
+specialization was deduced only from an array bound.  This has been fixed.
 
   template <class T> struct A {};
   template <class T, int N> struct A<T[N]> {
@@ -514,19 +514,18 @@ Now fixed.
 
 1/8/97  Template parameters in elaborated type specifiers
 
-X3J16/WG21 has reaffirmed their previous decision that template
-parameters are not permitted in elaborated type specifiers in any
-circumstances, including declarations such as "friend class T".
-Consequently, the diagnostic for such use has been promoted from a
-remark to a warning in default mode, and to an error in strict
-mode (-A).
+X3J16/WG21 has reaffirmed their previous decision that template parameters
+are not permitted in elaborated type specifiers in any circumstances,
+including declarations such as "friend class T".  Consequently, the
+diagnostic for such use has been promoted from a remark to a warning in
+default mode, and to an error in strict mode (-A).
 
 1/8/97   Internal error on IL lowering of covariant return types
 
-In cases where an overriding virtual function had a return type that
-is covariant with the functions it overrides in some base classes
-and not in others, IL lowering aborted in
-add_covariant_return_type_entry_routines.  Now fixed.
+In cases where an overriding virtual function had a return type that is
+covariant with the functions it overrides in some base classes and not in
+others, IL lowering aborted in add_covariant_return_type_entry_routines.
+Now fixed.
 
 1/8/97   Partial lowering of EH: cleanup state at switch clauses
 
@@ -579,10 +578,10 @@ also been fixed.
 
 1/7/97   Spurious access errors in template class instantiations
 
-If a primary class template was declared using the class keyword and a partial
-specialization was declared using the struct keyword, the members of the
-partial specialization were incorrectly considered to be private.  This
-has been fixed.
+If a primary class template was declared using the class keyword and a
+partial specialization was declared using the struct keyword, the members
+of the partial specialization were incorrectly considered to be private.
+This has been fixed.
 
   template <class T> class A;
   template <class T> struct A<T*> {
@@ -603,13 +602,13 @@ Microsoft __asm block appeared in a member function of a class template.
 
 1/6/97   Checking for volatile-qualified left operand of bitwise assignment
 
-In strict mode and Microsoft mode, for a class for which no operator=
-is declared, and for which the default generated operator= does
-bitwise assignment, an error is now issued on an attempt to assign
-to a left operand of cv-qualified type.  const-qualification was
-always checked for, so from a practical point of view this change
-affects assignments to volatile-qualified operands and to operands
-qualified with nonstandard type qualifiers.
+In strict mode and Microsoft mode, for a class for which no operator=()
+is declared, and for which the default generated operator= does bitwise
+assignment, an error is now issued on an attempt to assign to a left
+operand of cv-qualified type.  const-qualification was always checked for,
+so from a practical point of view this change affects assignments to
+volatile-qualified operands and to operands qualified with nonstandard
+type qualifiers.
 
 1/6/97   Deduction of template conversion function with cv-qualified result
 
@@ -670,7 +669,8 @@ This abort only occurred, however, when IL lowering was not done.
 12/19/96 IL display program did not set f_debug
 
 The IL display program did not intialize the f_debug variable, causing an
-abort if the program attempted to produce debug output.  This has been fixed.
+abort if the program attempted to produce debug output.  This has been
+fixed.
 
 -------------------------------------------------------------------------------
 Version 2.34, December 18, 1996
