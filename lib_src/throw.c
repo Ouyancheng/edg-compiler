@@ -426,6 +426,32 @@ Print the contents of a region description entry.
   fprintf(__f_debug, "  handle=%d\n", ehrdp->handle);
   fprintf(__f_debug, "  prev region=%d\n", ehrdp->index_of_previous_region);
 } /* db_eh_region_descr */
+
+
+static void db_throw_stack_entry(a_throw_stack_entry_ptr tsep)
+{
+  fprintf(__f_debug, "typinfo=%p ", (void*)tsep->typeinfo);
+  fprintf(__f_debug, "is_pointer=%0d ", tsep->is_pointer);
+  fprintf(__f_debug, "object_address=%p ", (void*)tsep->object_address);
+  fprintf(__f_debug, "is_rethrow=%0d ", tsep->is_rethrow);
+  fprintf(__f_debug, "discard_entry=%0d ", tsep->discard_entry);
+  fprintf(__f_debug, "in_handler=%0d ", tsep->in_handler);
+}  /* db_throw_stack_entry */
+
+
+static void db_throw_stack(char* str)
+{
+  a_throw_stack_entry_ptr	tsep = curr_throw_stack_entry;
+  int				count = 0;
+
+  fprintf(__f_debug, "Throw stack %s:\n", str);
+  while (tsep != NULL) {
+    fprintf(__f_debug, "  Entry %0d: ", count++);
+    db_throw_stack_entry(tsep);
+    fprintf(__f_debug, "\n");
+    tsep = tsep->next;
+  }  /* while */
+}  /* db_throw_stack */
 #endif /* DEBUG */
 
 
@@ -748,6 +774,9 @@ a try block with a catch that matches the type of the object thrown.
   an_exception_type_specification_ptr
 				etsp_found;
 
+  /* Reset the discard flag so that we know that this throw stack entry
+     is in use. */
+  curr_throw_stack_entry->discard_entry = FALSE;
   /* Get the information about the current thrown object from the
      throw stack. */
   thrown_typeinfo = curr_throw_stack_entry->typeinfo;
@@ -948,7 +977,11 @@ Push an entry onto the throw stack and initialize its fields.
   tsep->is_pointer = is_pointer;
   tsep->object_address = object_address;
   tsep->is_rethrow = is_rethrow;
-  tsep->discard_entry = FALSE;
+  /* The discard entry flag is initially set to TRUE for throws in case a
+     throw occurs between the time that __throw_alloc is called and when
+     __throw is called.  This could be caused by a throw from the copy
+     constructor for example. */
+  tsep->discard_entry = !is_rethrow;
   tsep->in_handler = FALSE;
 }  /* push_throw_stack */
 
@@ -1038,6 +1071,11 @@ the completion of a catch clause.
                            /*set_flag=*/TRUE);
     }  /* if */
   }  /* while */
+#if DEBUG
+  if (__debug_level >= 3) {
+    db_throw_stack("at end of free_thrown_object");
+  }  /* if */
+#endif /* DEBUG */
 }  /* __free_thrown_object */
 
 #endif /* EXCEPTION_HANDLING */
