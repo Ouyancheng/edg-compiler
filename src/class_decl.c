@@ -470,6 +470,8 @@ typedef struct a_member_decl_info {
 			   enum in a member function return type (used to
 			   avoid issuing multiple errors when there is more
 			   than one declarator). */
+  a_bit_field	is_member_template:1;
+			/* TRUE if the declaration is of a member template. */
   a_source_sequence_entry_ptr
 		declarator_ssep;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -503,6 +505,7 @@ static void initialize_member_decl_info(a_member_decl_info_ptr mdip,
   mdip->is_anonymous_union = FALSE;
   mdip->is_nonstd_anonymous_union = FALSE;
   mdip->return_type_def_err = FALSE;
+  mdip->is_member_template = FALSE;
   mdip->declarator_ssep = NULL;
   mdip->member_sym = NULL;
 }  /* initialize_member_decl_info */
@@ -6529,8 +6532,13 @@ specific information about the member declaration, respectively.
   a_boolean                      unnamed_field = decl_info->is_unnamed_field;
 
   db_enter(3, "decl_nonstatic_data_member");
-  /* Do error checking on the type. */
-  check_field_type(locator, &member_type, class_state, decl_info);
+  if (decl_info->is_member_template) {
+    /* Error -- suppress incomplete-type errors, etc.. */
+    member_type = error_type();
+  } else {
+    /* Do error checking on the type. */
+    check_field_type(locator, &member_type, class_state, decl_info);
+  }  /* if */
   /* Set the flag to record that at least one named field was encountered. */
   if (!decl_info->is_unnamed_field) class_state->any_named_fields = TRUE;
   if (!C_mode() && class_type->kind == (a_type_kind)tk_union) {
@@ -7920,6 +7928,13 @@ moreover, several fields of *decl_info may be updated by this routine.
       /* A case like "int;" is explicitly disallowed by language in ARM 9.2. */
       pos_error(ec_useless_decl, err_pos);
     }  /* if */
+    if (decl_info->is_member_template &&
+        (dso_flags & DSO_DEFINES_SOMETHING)) {
+      /* Put the tag symbol into decl_info.  It will be used later in a
+         diagnostic. */
+      decl_info->member_sym = (a_symbol_ptr)(skip_typerefs(member_type))->
+                                                   source_corresp.assoc_info;
+    }  /* if */
   } else {
     /* C mode. */
     if (C_dialect == C_dialect_pcc) {
@@ -7939,8 +7954,7 @@ moreover, several fields of *decl_info may be updated by this routine.
     }  /* if */
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  if ((dso_flags & (DSO_DECLARES_SOMETHING |
-                               DSO_DEFINES_SOMETHING)) ||
+  if ((dso_flags & (DSO_DECLARES_SOMETHING | DSO_DEFINES_SOMETHING)) ||
       (decl_info->is_anonymous_union &&
        member_type->kind != (a_type_kind)tk_typeref)) {
     /* This is a free-standing declaration of a class, struct, union, or
@@ -8224,7 +8238,10 @@ following the member declaration.
                   DSI_IS_MEMBER_DECLARATION | DSI_INLINE_ALLOWED |
                   DSI_EMPTY_DECL_SPECIFIERS_ALLOWED |
                   DSI_VACUOUS_TAG_DECL_ALLOWED);
-    if (is_member_template) dsi_flags |= DSI_IS_TEMPLATE_DECLARATION;
+    if (is_member_template) {
+      dsi_flags |= DSI_IS_TEMPLATE_DECLARATION;
+      decl_info.is_member_template = TRUE;
+    }  /* if */
   }  /* if */
   /* First scan the declaration specifiers.  In C++ the specifiers may be
      omitted, e.g., for a function member with implicit type. */
@@ -8232,13 +8249,16 @@ following the member declaration.
   (void)decl_specifiers(dsi_flags, &dso_flags, &decl_info.storage_class,
                         &member_type, &qualifiers, &decl_info.decl_modifiers);
   decl_info.dso_flags = dso_flags;
-  if ((dso_flags & DSO_DEFINES_SOMETHING) && !is_error_type(member_type)) {
+  if (C_dialect == C_dialect_cplusplus &&
+      (dso_flags & DSO_DEFINES_SOMETHING) && !is_error_type(member_type)) {
 #if CHECKING
-    if (C_dialect == C_dialect_cplusplus) {
-      /* Should be a nested class, struct, union, or enum definition.  Be
-         sure the parent class was marked correctly. */
-      a_type_ptr    tp = skip_typerefs(member_type);
-      a_symbol_ptr  sym = (a_symbol_ptr)(tp->source_corresp.assoc_info);
+    /* Should be a nested class, struct, union, or enum definition.  Be
+       sure the parent class was marked correctly. */
+    a_symbol_ptr  sym;
+    check_assertion(is_immediate_class_type(member_type) ||
+                    is_immediate_enum_type(member_type));
+    sym = (a_symbol_ptr)(member_type->source_corresp.assoc_info);
+    if (!sym->is_error) {
       check_assertion_str2(sym->is_class_member &&
                            sym->parent.class_type == class_type,
                            "scan_class_definition:",
@@ -8286,8 +8306,10 @@ following the member declaration.
     } else {
       cannot_bind_to_curr_construct();
       /* Bypass the semicolon and skip to the next declaration. */
-      (void)get_token();
-      *skip_semicolon_check = TRUE;
+      if (!is_member_template) {
+        (void)get_token();
+        *skip_semicolon_check = TRUE;
+      }  /* if */
       goto next_declaration;
     }  /* if */
   }  /* if */
@@ -8777,12 +8799,14 @@ template) definition.  class_type is the parent type, which may be a nonreal
 class (prototype instantiation of a class template).
 */
 {
-  a_class_def_state *class_state_ptr;
-  a_boolean         skip_semicolon_check;
-  a_scope_depth     scope_level;
-  a_symbol_ptr      sym;
+  a_class_def_state  *class_state_ptr;
+  a_boolean          skip_semicolon_check;
+  a_scope_depth      scope_level;
+  a_symbol_ptr       sym;
+  a_source_position  decl_start_pos;
 
   db_enter(3, "class_member_template_declaration");
+  decl_start_pos = pos_curr_token;
   /* Get the class definition state, which is pointed to from the scope-stack
      entry. */
   scope_level = class_type->variant.class_struct_union.extra_info->
@@ -8792,6 +8816,12 @@ class (prototype instantiation of a class template).
   sym = class_member_declaration(class_type, class_state_ptr,
                                  /*is_member_template=*/TRUE,
                                  &skip_semicolon_check);
+  if (sym == NULL) {
+    pos_error(ec_bad_member_template_decl, &decl_start_pos);
+  } else if (sym->kind != (a_symbol_kind)sk_function_template) {
+    pos_sy_error(ec_bad_member_template_sym, &sym->decl_position, sym);
+    sym = NULL;
+  }  /* if */
   db_exit();
   return sym;
 }  /* class_member_template_declaration */
@@ -9098,7 +9128,7 @@ next_declaration:
          list.  However, it should be moved to the end of the list (unless
          it's already there), since its location in the types list should
          record where it was defined, not where it was initially declared.
-         move_end_of_types_list also takes care of the placeholder typerefs
+         move_to_end_of_types_list also takes care of the placeholder typerefs
          associated with this class. */
       move_to_end_of_types_list(class_type, effective_decl_level);
       if (!is_template_instantiation &&
