@@ -1,5 +1,15 @@
 Version 3.5
 
+9/27/04  Expression traversal routines and RECORD_CONSTANT_EXPRESSIONS_IN_IL
+
+The expression traversal routines (traverse_expr et al.) now have an
+additional flag process_expressions_for_constants which is present
+when RECORD_CONSTANT_EXPRESSIONS_IN_IL is TRUE.  The flag indicates
+that, for constants generated from a constant expression, the
+original expression should be traversed instead of the resulting
+constant.  For source-analysis applications, this yields a
+traversal closer to the original source form.
+
 9/27/04  g++ mode: error on typeof of overloaded function name
 
 An error is now issued on a use of typeof applied to an overloaded
