@@ -1,5 +1,11 @@
 Version 2.46
 
+11/7/01  Use of _AIX to detect use of AIX
+
+The front end uses the __AIX__ macro as an indication that the front end
+is being built under AIX.  The __AIX__ flag is now automatically set if the
+_AIX macro is defined (as is the case for certain AIX compilers).
+
 11/5/01  Change in template conversion lookup
 
 A bug in the lookup of instances of conversion templates would cause the

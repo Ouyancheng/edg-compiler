@@ -75,6 +75,15 @@ Argument strings for fopen.
 #endif /* __TURBOC__ */
 #endif /* __MICROSOFT_OS__ */
 
+/*
+Define __AIX__ if _AIX is defined.
+*/
+#ifdef _AIX
+#ifndef __AIX__
+#define __AIX__ 1
+#endif /* ifndef __AIX__ */
+#endif /* ifdef _AIX */
+
 /* ANSI signal handlers return void. Older UNIX signal handlers in general,
 and SVID compliant signal handlers in particular, return int. */
 #ifdef __ANSIC__
