@@ -40,12 +40,25 @@ Enhanced to support C++ by J. Stephen Adamczyk and R. Michael Anderson,
 #include "cp_gen_be.h"
 #endif /* BACK_END_IS_CP_GEN_BE */
 
+/*
+The Kuck & Associates inliner is written in C++ and provides its own
+main program.  It then calls the EDG main program using the name edg_main.
+*/
 
+#if !USING_KAI_INLINER
 int main(int argc, char *argv[])
+#else /* USING_KAI_INLINER */
+int edg_main(int argc, char *argv[])
+#endif /* !USING_KAI_INLINER */
 {
   an_error_severity most_severe_diagnostic = es_none, diagnostic_level;
   a_timer	    start_time;
   a_timer	    fe_start_time;
+  a_timer	    fe_end_time;
+#if USING_KAI_INLINER
+  a_timer	    opt_start_time;
+  a_timer	    opt_end_time;
+#endif /* USING_KAI_INLINER */
   a_timer	    be_start_time;
   a_timer	    be_end_time;
   a_timer	    end_time;
@@ -86,14 +99,28 @@ int main(int argc, char *argv[])
     fe_wrapup();
     if (display_compilation_time) {
       /* Get the back end starting time. */
-      get_timer(&be_start_time);
+      get_timer(&fe_end_time);
       /* Display the amount of time used by the front end. */
-      display_time_used("Front end time", &fe_start_time, &be_start_time);
+      display_time_used("Front end time", &fe_start_time, &fe_end_time);
     }  /* if */
 
 #if BACK_END_SHOULD_BE_CALLED
     /* Run the back end if required, if there are no errors. */
     if (total_errors == 0 && !suppress_back_end) {
+#if USING_KAI_INLINER
+      /* Call the Kuck & Associates inliner (if being used).  It is
+         not part of the source code provided by EDG. */
+      extern void DoKfrontPasses();
+      if (display_compilation_time) get_timer(&opt_start_time);
+      DoKfrontPasses();
+      if (display_compilation_time) {
+        /* Get the back end start time. */
+        get_timer(&opt_end_time);
+        /* Display the amount of time used by the optimizer. */
+        display_time_used("Optimizer time", &opt_start_time, &opt_end_time);
+      } 
+#endif /* USING_KAI_INLINER */
+      if (display_compilation_time) get_timer(&be_start_time);
       back_end();
       if (display_compilation_time) {
         /* Get the back end ending time. */
