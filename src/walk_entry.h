@@ -357,9 +357,9 @@ pointers.
 #endif /* NEED_NAME_MANGLING */
 #if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
 #define walk_per_instantiation_needed_flags(ptr) \
-  walk_string_ptr((ptr).per_instantiation_needed_flags, \
-                  iek_string_text, \
-                  il_header.per_instantiation_needed_flags_vector_byte_length)
+  walk_list((ptr).per_instantiation_needed_flags, \
+            a_per_instantiation_needed_flags_entry_ptr, \
+            iek_per_instantiation_needed_flags_entry)
 #else /* !MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
 #define walk_per_instantiation_needed_flags(ptr) /* Nothing */
 #endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
@@ -2317,6 +2317,18 @@ after_entry_from_class:
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS && */
       }
       break;
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+    case iek_per_instantiation_needed_flags_entry:
+      {
+#if !DO_SUBTREE_WALK
+        a_per_instantiation_needed_flags_entry_ptr ptr =
+                         (a_per_instantiation_needed_flags_entry_ptr)entry_ptr;
+        remap_next_ptr(ptr->next, a_per_instantiation_needed_flags_entry_ptr,
+                       iek_per_instantiation_needed_flags_entry);
+#endif /* !DO_SUBTREE_WALK */
+      }
+      break;
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
     case iek_id_name:
     case iek_string_text:
     case iek_other_text:
@@ -2478,6 +2490,7 @@ of each kind.
      nor for its subordinate entries like iek_src_seq_secondary_decl,
      iek_src_seq_end_of_construct, and iek_comment, since such entries will
      never appear on an orphan list.  Ditto for iek_src_seq_sublist. */
+  /* Likewise iek_per_instantiation_needed_flags_entry. */
 }  /* walk_orphaned_file_scope_il_entries */
 
 #endif /* ifdef WALK_ORPHANED_ENTRY_ROUTINE_NAME */

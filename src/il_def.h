@@ -434,6 +434,10 @@ typedef enum /*an_il_entry_kind*/ {
 #if RECORD_MACROS_IN_IL
   iek_macro,		/* a_macro */
 #endif /* RECORD_MACROS_IN_IL */
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+  iek_per_instantiation_needed_flags_entry,
+			/* a_per_instantiation_needed_flags_entry */
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
   iek_last		/* Marks the end of the list. */
 } an_il_entry_kind;
 
@@ -806,6 +810,33 @@ typedef union a_parent_class_or_namespace {
 			   NULL. */
 } a_parent_class_or_namespace;
 
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+
+/*
+Entry used to represent a segment of the bit vector of "needed" flags
+for individual instantiations.  A list of these represents the entire bit
+vector.  Each instantiation is assigned a bit number in the vector
+(see the field instantiation_needed_bit_number) and all entities referenced
+from that instantiation will have the associated bit of the bit vector
+set to 1.
+*/
+#define BYTES_PER_INSTANTIATION_NEEDED_FLAG_ENTRY 12
+typedef struct a_per_instantiation_needed_flags_entry
+              *a_per_instantiation_needed_flags_entry_ptr;
+typedef struct a_per_instantiation_needed_flags_entry {
+  a_per_instantiation_needed_flags_entry_ptr
+		next;
+			/* Pointer to the next entry on the list, or NULL
+			   if this is the last entry. */
+  a_byte	bytes[BYTES_PER_INSTANTIATION_NEEDED_FLAG_ENTRY];
+			/* Part of the bit vector.  The least-significant
+			   bit of bytes[0] is the first bit; the most-
+			   significant bit of bytes[0] is the CHAR_BIT-th bit;
+			   the least-significant bit of bytes[1] is the
+			   CHAR_BIT+1-th bit; etc. */
+} a_per_instantiation_needed_flags_entry;
+
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
 
 #endif /* ifdef CIL */
 
@@ -939,18 +970,13 @@ typedef struct a_source_correspondence {
 			   function bodies. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
-  char		*per_instantiation_needed_flags;
-			/* A bit vector, of length specified by the il_header
-			   per_instantiation_needed_flags_vector_byte_length
-			   field.  Bit N indicates whether the entity of
+  a_per_instantiation_needed_flags_entry_ptr
+		per_instantiation_needed_flags;
+			/* A list of entries defining a bit vector.
+			   Bit N of the vector indicates whether the entity of
 			   which this is the source correspondence field is
 			   needed in the instantiation assigned number N.
-			   Bits are numbered from 1.  Bit 1 is the
-			   least-significant bit of the first byte; bit
-			   CHAR_BIT if the most-significant character of
-			   that same byte; bit CHAR_BIT+1 is the
-			   least-significant bit of the second byte; etc.
-			   NULL if not needed. */
+			   Bits are numbered from 1.  NULL if not needed. */
 #endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
 } a_source_correspondence;
 
@@ -4150,7 +4176,7 @@ typedef struct a_variable {
 #if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
   unsigned long	instantiation_needed_bit_number;
 			/* When a separate "needed" flag is maintained for
-			   each instantiation, this is the bit number
+			   each instantiation, this is the "needed" bit number
 			   associated with this (static data member) variable.
 			   0 if there is no associated bit. */
 #endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
@@ -4670,7 +4696,7 @@ typedef struct a_routine {
 #if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
   unsigned long	instantiation_needed_bit_number;
 			/* When a separate "needed" flag is maintained for
-			   each instantiation, this is the bit number
+			   each instantiation, this is the "needed" bit number
 			   associated with this function.  0 if there is no
 			   associated bit. */
 #endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
@@ -7297,11 +7323,7 @@ EXTERN struct il_header_tag {
 			   desired; corresponds to global variable
 			   microsoft_version. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
-  sizeof_t	per_instantiation_needed_flags_vector_byte_length;
-			/* Length in bytes of the bit vectors attached to
-			   source correspondence entries to indicate entities
-			   needed by instantiations. */
+#if ONE_INSTANTIATION_PER_OBJECT
   char		*instantiation_file_list_name;
 			/* When each instantiation is placed in its own object
 			   file, a file containing a list of the files that
@@ -7311,7 +7333,7 @@ EXTERN struct il_header_tag {
 			/* When each instantiation is placed in its own object
 			   file, this specifies the directory in which the
 			   files should be created. */
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
 } il_header;
 
 

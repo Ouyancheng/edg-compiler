@@ -472,24 +472,24 @@ Display the indicated source correspondence entry.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
   if (scp->per_instantiation_needed_flags != NULL) {
-    char          *ptr = scp->per_instantiation_needed_flags;
-    sizeof_t      byte_count =
-                   il_header.per_instantiation_needed_flags_vector_byte_length;
-    unsigned long bit_number = 0;
+    a_per_instantiation_needed_flags_entry_ptr pinfep;
+
     disp_name("  per_instantiation_needed_flags");
-    while (byte_count-- > 0) {
-      a_byte curr_byte = (a_byte)(*ptr++);
-      int    i;
-      for (i = 0; i < CHAR_BIT; i++) {
-        bit_number++;
-        if (bit_number != 1 && (bit_number-1) % 50 == 0) {
-          /* Put out a position label every 50 bits. */
-          (void)printf("\n%*c%6d ", Label_indent - 7, ' ', bit_number);
-        }  /* if */
-        (void)printf("%c", ((curr_byte >> i)&1) ? '1' : '0');
+    for (pinfep = scp->per_instantiation_needed_flags;
+         pinfep != NULL;
+         pinfep = pinfep->next) {
+      int nbyte;
+      for (nbyte = 0;
+           nbyte < BYTES_PER_INSTANTIATION_NEEDED_FLAG_ENTRY;
+           nbyte++) {
+        a_byte curr_byte = pinfep->bytes[nbyte];
+        int    nbit;
+        for (nbit = 0; nbit < CHAR_BIT; nbit++) {
+          (void)printf("%c", ((curr_byte >> nbit)&1) ? '1' : '0');
+        }  /* for */
       }  /* for */
-    }  /* while */
-    (void)printf("\n");
+      (void)printf("\n");
+    }  /* for */
   }  /* if */
 #endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
 }  /* disp_source_corresp */
@@ -3982,18 +3982,6 @@ Display the IL for the file scope in human-readable form.
 #if RECORD_MACROS_IN_IL
   disp_ptr("macros", (char *)il_header.macros, iek_macro);
 #endif /* RECORD_MACROS_IN_IL */
-#if ONE_INSTANTIATION_PER_OBJECT
-  if (il_header.instantiation_file_list_name != NULL) {
-    disp_string_ptr("instantiation file list",
-                    il_header.instantiation_file_list_name,
-                    iek_other_text, (sizeof_t)0);
-  }  /* if */
-  if (il_header.instantiation_dir_name != NULL) {
-    disp_string_ptr("instantiation directory",
-                    il_header.instantiation_dir_name,
-                    iek_other_text, (sizeof_t)0);
-  }  /* if */
-#endif /* ONE_INSTANTIATION_PER_OBJECT */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   disp_boolean("microsoft_mode",
                (a_boolean)il_header.microsoft_mode);
@@ -4005,6 +3993,18 @@ Display the IL for the file scope in human-readable form.
                (a_boolean)il_header.far_code_pointers);
   disp_long("microsoft_version", (a_boolean)il_header.microsoft_version);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if ONE_INSTANTIATION_PER_OBJECT
+  if (il_header.instantiation_file_list_name != NULL) {
+    disp_string_ptr("instantiation_file_list_name",
+                    il_header.instantiation_file_list_name,
+                    iek_other_text, (sizeof_t)0);
+  }  /* if */
+  if (il_header.instantiation_dir_name != NULL) {
+    disp_string_ptr("instantiation_dir_name",
+                    il_header.instantiation_dir_name,
+                    iek_other_text, (sizeof_t)0);
+  }  /* if */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
 
   walk_file_scope_il(disp_entry, (a_string_entry_process_function_ptr)NULL,
                      (a_remap_function_ptr)NULL);

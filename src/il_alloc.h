@@ -28,6 +28,11 @@ a_scope_orphaned_list_header_ptr alloc_scope_orphaned_list_header(
 
 extern a_source_file_ptr alloc_source_file(void);
 
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+extern a_per_instantiation_needed_flags_entry_ptr
+                              alloc_per_instantiation_needed_flags_entry(void);
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+
 extern void set_template_param_constant_kind(
                                       a_constant                     *cp,
                                       a_template_param_constant_kind kind);

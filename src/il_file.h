@@ -151,6 +151,9 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
 #if RECORD_MACROS_IN_IL
   sizeof(a_macro),
 #endif /* RECORD_MACROS_IN_IL */
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+  sizeof(a_per_instantiation_needed_flags_entry),
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
   IEK_LAST_CHECK_SIZE /* iek_last */
 }
 #endif /* VAR_INITIALIZERS */

@@ -117,6 +117,10 @@ static unsigned long
 static unsigned long
 		num_macros_allocated;
 #endif /* RECORD_MACROS_IN_IL */
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+static unsigned long
+		num_per_instantiation_needed_flags_entries_allocated;
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
 #if ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 static unsigned long
 		asm_function_body_space_allocated;
@@ -323,6 +327,28 @@ Allocate a source file entry, initialize it, and return a pointer to it.
   return sfp;
 }  /* alloc_source_file */
 
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+
+a_per_instantiation_needed_flags_entry_ptr
+                               alloc_per_instantiation_needed_flags_entry(void)
+/*
+Allocate a per-instantiation needed flags entry, clear it to default values,
+and return a pointer to it.
+*/
+{
+  a_per_instantiation_needed_flags_entry_ptr pinfep;
+
+  pinfep = (a_per_instantiation_needed_flags_entry_ptr)
+                      alloc_il(sizeof(a_per_instantiation_needed_flags_entry));
+#if DEBUG
+  num_per_instantiation_needed_flags_entries_allocated++;
+#endif /* DEBUG */
+  pinfep->next = NULL;
+  memzero(&pinfep->bytes, sizeof(pinfep->bytes));
+  return pinfep;
+}  /* alloc_per_instantiation_needed_flags_entry */
+
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
 
 void set_template_param_constant_kind(a_constant                     *cp,
                                       a_template_param_constant_kind kind)
@@ -2665,6 +2691,11 @@ Display and return the amount of space used for various IL tables.
 #if RECORD_MACROS_IN_IL
   db_space_used("macros", num_macros_allocated, a_macro);
 #endif /* RECORD_MACROS_IN_IL */
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+  db_space_used("per instantiation needed flags entries",
+                num_per_instantiation_needed_flags_entries_allocated,
+                a_per_instantiation_needed_flags_entry);
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
   db_space_used("orphaned list headers",
                 num_scope_orphaned_list_headers_allocated,
@@ -2825,6 +2856,10 @@ in il_init.)
 #if RECORD_MACROS_IN_IL
       pch_saved_var_array_elem(num_macros_allocated),
 #endif /* RECORD_MACROS_IN_IL */
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+      pch_saved_var_array_elem(
+                         num_per_instantiation_needed_flags_entries_allocated),
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
 #if ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
       pch_saved_var_array_elem(asm_function_body_space_allocated),
 #endif /* ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
@@ -2928,6 +2963,9 @@ of the front end.
 #if RECORD_MACROS_IN_IL
   num_macros_allocated                   = 0;
 #endif /* RECORD_MACROS_IN_IL */
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+  num_per_instantiation_needed_flags_entries_allocated = 0;
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
 #if ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   asm_function_body_space_allocated      = 0;
 #endif /* ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
