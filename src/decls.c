@@ -1387,24 +1387,6 @@ Clear the fields of a function information block to default values.
 }  /* clear_func_info */
 
 
-void scan_default_arg_expr(a_param_type_ptr ptp)
-/*
-Scan a default argument expression on a formal parameter declaration, change
-its type as required by the type of the formal parameter, and attach the
-expression node to the param type entry.  If an error is detected in the
-expression scan, an error node is assigned.  If ptp is NULL (as the result of
-a prior error) just do the scan.
-*/
-{
-  an_expr_node_ptr  expr;
-
-  expr = scan_required_type_expression(ptp != NULL ? ptp->type : error_type(),
-                                       /*allow_top_level_comma=*/FALSE,
-                                       ec_bad_default_arg_type);
-  if (ptp != NULL) ptp->default_arg_expr = expr;
-}  /* scan_default_arg_expr */
-
-
 static a_boolean is_prototyped_parameter_list_start(void)
 /*
 Return TRUE if the current token is the start of a prototyped parameter list,
