@@ -1,5 +1,20 @@
 Version 2.38
 
+12/12/97  Bug in lookup of "p->f<..."
+
+When the name in a class member access is both a member name and the name of
+a global template, version 2.37 was incorrectly using the global template.
+This has been fixed.
+
+  template <class T> void f(T);
+  struct A {
+    static int f;
+  };
+  int main() {
+    A a;
+    return a.f < 1;
+  }
+
 12/11/97  Ordering problem in generated C code, local class with template
           base
 

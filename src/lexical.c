@@ -8382,13 +8382,30 @@ Set the specific symbol to the associated nonfundamental symbol.
   a_symbol_ptr	result_sym;
   a_symbol_ptr	specific_symbol;
 
-  if (normal_sym != NULL && class_sym != NULL) {
-    /* When the identifier is followed by a "<", ignore nontemplates.
-       Only do this when both symbols are passed in. */
-    if (normal_sym != NULL && might_be_template &&
-        !is_template_symbol(normal_sym)) normal_sym = NULL;
-    if (class_sym != NULL && might_be_template &&
-        !is_template_symbol(class_sym)) class_sym = NULL;
+  /* This implements the special handling in 3.4.5 (basic.lookup.classref)
+     of possible template names in class member access expressions
+     (e.g., "p->f<...").  If the name is found in the class, the class
+     symbol should be used unless it is a class template, in which case
+     the normal symbol can also be considered if it is also a class
+     template. */
+  if (normal_sym != NULL && class_sym != NULL && might_be_template) {
+    if (is_template_symbol(class_sym)) {
+      /* When the identifier is followed by a "<", and the name is found
+         as a template in the class, ignore the other symbol unless it is a
+         class template. */
+      if (normal_sym != NULL && !is_class_template_symbol(normal_sym)) {
+        normal_sym = NULL;
+      }  /* if */
+    } else if (is_constructor_symbol(class_sym)) {
+      /* The class symbol is the constructor.  Ignore this for purposes of
+         this lookup, because the constructor cannot be referenced by name
+         in this context. */
+      class_sym = NULL;
+    } else {
+      /* The name is a member of the class that is not a template.  Use that
+         name and ignore the normal lookup name. */
+      normal_sym = NULL;
+    }  /* if */
   }  /* if */
   if (normal_sym != NULL && class_sym != NULL) {
     /* There are two symbols -- see if they are equivalent.  If the
