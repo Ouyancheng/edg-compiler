@@ -1559,8 +1559,10 @@ extern void add_to_front_of_include_search_path(char *dir_name);
 /* Change the directory name in the primary include file search path entry. */
 extern void change_primary_include_search_dir(char *dir_name);
 /* Manage include search path when source input file is pushed or popped. */
-extern void push_primary_include_search_dir(char *dir_name);
-extern void pop_primary_include_search_dir(char *dir_name);
+extern void push_primary_include_search_dir(char	*dir_name,
+                                            a_boolean	system_include_dir);
+extern void pop_primary_include_search_dir(char	*dir_name,
+                                           a_boolean	system_include_dir);
 
 extern void add_to_template_search_path(char		*dir_name);
 

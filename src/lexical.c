@@ -3678,7 +3678,8 @@ the search path that was used to find this file.
        searched first.  Note that this is not done for the primary source
        file.  The include search entry for the primary source file is
        managed by the routines in cmd_line.c. */
-    push_primary_include_search_dir(curr_ise->dir_name);
+    push_primary_include_search_dir(curr_ise->dir_name,
+                                    curr_ise->dir_entry->system_include_dir);
   }  /* if */
   if (C_dialect != C_dialect_pcc) {
     /* If not in pcc mode, keep the base of the preprocessing if stack
@@ -3795,7 +3796,8 @@ at the next level down.
       /* When a top-level implicitly included source file is popped,
          reset the primary include search directory to the directory of
          the primary source file. */
-      pop_primary_include_search_dir(dir_name_of_primary_source_file);
+      pop_primary_include_search_dir(dir_name_of_primary_source_file,
+                                     /*system_include_dir=*/FALSE);
     }  /* if */
   } else {
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
@@ -3844,10 +3846,18 @@ at the next level down.
     if (f_raw_listing != NULL) {
       gen_rlisting_line_info('2');
     }  /* if */
-    /* Modify the search rules for #include directives found within this
-       source file, so that the directory containing the current include
-       file will be searched first. */
-    pop_primary_include_search_dir(curr_ise->dir_name);
+    {
+      /* Modify the search rules for #include directives found within this
+         source file, so that the directory containing the current include
+         file will be searched first.  Determine whether the previous
+         directory should be considered a system include directory. */
+      a_boolean	prev_is_system_include_dir = FALSE;
+      if (curr_ise->dir_entry != NULL) {
+        prev_is_system_include_dir = curr_ise->dir_entry->system_include_dir;
+      }  /* if */
+      pop_primary_include_search_dir(curr_ise->dir_name,
+                                     prev_is_system_include_dir);
+    }
     if (C_dialect != C_dialect_pcc) {
       /* If not in pcc mode, keep the base of the preprocessing if stack
          up to date.  Each file's #ifs are kept separate; an #if must

@@ -1,5 +1,13 @@
 Version 2.46
 
+11/17/01 Setting of "system_include_dir" for primary include search directory
+
+In most configurations, the include search path is updated to include the
+directory containing the current include file.  The "system_include_dir"
+flag for the primary include search directory is now set based on the
+value of the flag for the directory in which the current include file
+was found.
+
 11/16/01 Microsoft compatibility: abort caused by lookup emulation bug
 
 In Microsoft mode, an abort could occur when a template name is used

@@ -481,12 +481,14 @@ general memory.
 }  /* change_primary_include_search_dir */
 
 
-void push_primary_include_search_dir(char *dir_name)
+void push_primary_include_search_dir(char	*dir_name,
+                                     a_boolean	system_include_dir)
 /*
 dir_name is the directory of a source file that has just been pushed onto
 the input stack.  Adjust the include search path as appropriate, e.g.,
 by adding the directory to the front of the search path.  dir_name must
-be allocated in general memory.
+be allocated in general memory.  system_include_dir is TRUE if the updated
+entry should be considered a system include directory.
 
 Note that it is not specified within the ANSI C standard or the ARM what the
 search rules should be for nested includes.  By default, the search for
@@ -508,15 +510,18 @@ stack_referenced_include_directories to TRUE.
          list of directory name entries) is simply replaced by dir_name. */
       change_primary_include_search_dir(dir_name);
     }  /* if */
+    incl_search_path->system_include_dir = system_include_dir;
   }  /* if */
 }  /* push_primary_include_search_dir */
 
 
-void pop_primary_include_search_dir(char *dir_name)
+void pop_primary_include_search_dir(char	*dir_name,
+                                    a_boolean	system_include_dir)
 /*
 The directory name in the primary include file search path should revert to
 "dir_name", as the result of popping an include file from the source
-input stack.
+input stack.  system_include_dir is TRUE if the original entry should be
+considered a system include directory.
 */
 {
   /* The "-I-" option disables these changes. */
@@ -537,6 +542,7 @@ input stack.
          list of directory name entries) is simply replaced by dir_name. */
       change_primary_include_search_dir(dir_name);
     }  /* if */
+    incl_search_path->system_include_dir = system_include_dir;
   }  /* if */
 }  /* pop_primary_include_search_dir */
 
