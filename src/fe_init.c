@@ -338,9 +338,11 @@ Initialize things related to preprocessing.
   (void)enter_predef_macro(date_of_translation, "__DATE__");
   (void)enter_predef_macro(time_of_translation, "__TIME__");
 
-  /* __STDC__ is defined as 1 if we are compiling the ANSI C dialect,
+  /* __STDC__ is defined as 1 if we are compiling the ANSI C dialect
+     or if we are compiling C++ (ARM 16.10: "Whether __STDC__ is defined
+     and, if so, what its value is are implementation dependent."),
      left undefined otherwise. */
-  if (C_dialect == C_dialect_ANSI) {
+  if (C_dialect == C_dialect_ANSI || C_dialect == C_dialect_cplusplus) {
     (void)enter_predef_macro("1", "__STDC__");
   }  /* if */
   /* __cplusplus is defined as 1 if we are compiling C++, left undefined
