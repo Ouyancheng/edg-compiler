@@ -4012,9 +4012,7 @@ pointers to members).
 */
 {
   a_boolean  okay = FALSE;
-  a_type_ptr dest_type_pointed_to, source_type_pointed_to;
-  a_boolean  qualifiers_added;
-
+ 
   db_enter(5, "impl_ptr_to_member_conversion");
 #if DEBUG
   if (debug_level >= 5) {
@@ -4035,70 +4033,79 @@ pointers to members).
     /* Pointer-to-member --> pointer-to-member.  Allowed if the types pointed
        to are the same (ignoring the difference in "this" parameter types)
        and the classes involved are the same or the destination class is an
-       unambiguous derived (sic) class of the source class.  See ARM 4.8. */
-    source_type_pointed_to = pm_member_type(source_type);
-    dest_type_pointed_to = pm_member_type(dest_type);
-    if (member_types_correspond(dest_type_pointed_to,
-                                source_type_pointed_to,
-                                check_as_operands_not_conversion,
-				&qualifiers_added)) {
-      a_type_ptr       source_class_type = pm_class_type(source_type);
-      a_type_ptr       dest_class_type = pm_class_type(dest_type);
-      a_base_class_ptr bcp;
+       unambiguous derived (sic) class of the source class. */
+    a_boolean        classes_okay = FALSE;
+    a_type_ptr       source_class_type = pm_class_type(source_type);
+    a_type_ptr       dest_class_type = pm_class_type(dest_type);
+    a_base_class_ptr bcp;
 
-      std_conv->type_qualifiers_added = qualifiers_added;
-      /* The types pointed to are the same.  Check the classes. */
-      if (identical_types(source_class_type, dest_class_type)) {
-        /* Same class, okay. */
+    /* Check the classes. */
+    if (identical_types(source_class_type, dest_class_type)) {
+      /* Same class, okay. */
+      classes_okay = TRUE;
+      std_conv->nontrivial_conversion = FALSE;
+    } else if ((bcp = find_base_class_of(dest_class_type,
+                                         source_class_type)) != NULL) {
+      /* Derived class, okay. */
+      /* We leave the ambiguity and accessibility check to be done when
+         the cast is done. */
+      classes_okay = TRUE;
+      std_conv->cast_base_class = bcp;
+      std_conv->reversed_cast = TRUE;
+    } else if (source_class_type->variant.class_struct_union.is_nonreal_class||
+               dest_class_type->variant.class_struct_union.is_nonreal_class) {
+      /* Template-dependent types.  Assume that they match. */
+      classes_okay = TRUE;
+    }  /* if */
+    if (classes_okay) {
+      a_type_ptr source_type_pointed_to = pm_member_type(source_type);
+      a_type_ptr dest_type_pointed_to = pm_member_type(dest_type);
+      a_boolean  qualifiers_added;
+
+      /* Check the member types. */
+      if (member_types_correspond(dest_type_pointed_to,
+                                  source_type_pointed_to,
+                                  check_as_operands_not_conversion,
+                                  &qualifiers_added)) {
+        std_conv->type_qualifiers_added = qualifiers_added;
         okay = TRUE;
-        std_conv->nontrivial_conversion = FALSE;
-      } else if ((bcp = find_base_class_of(dest_class_type,
-                                           source_class_type)) != NULL) {
-        /* Derived class, okay. */
-        /* We leave the ambiguity and accessibility check to be done when
-           the cast is done. */
-        okay = TRUE;
-        std_conv->cast_base_class = bcp;
-        std_conv->reversed_cast = TRUE;
-      }  /* if */
-      /* If the pointer-to-member types otherwise match, be sure, if the
-         member type is a function type, that the exception specifications
-         are compatible. */
-      if (okay && exceptions_enabled && !check_as_operands_not_conversion &&
-          is_function_type(dest_type_pointed_to) &&
-          (exception_spec_is_less_restrictive(source_type_pointed_to,
-                                                      dest_type_pointed_to) ||
-           !same_exception_spec_on_return_and_param_type(
-                             source_type_pointed_to, dest_type_pointed_to))) {
-        okay = FALSE;
-        clear_std_conv_descr(std_conv);
-        std_conv->conv_failed_because_of_exception_specifications = TRUE;
-      }  /* if */
-      if (okay && !check_as_operands_not_conversion) {
-        /* The types pointed to must be such that the type pointed to by the
-           left has all the qualifiers of the type pointed to by the right.
-           It might have additional qualifiers.  This is not mentioned in
-           the ARM, but it makes sense by analogy with pointer types
-           (ARM 4.6, 5.17, 8.4). */
-        a_type_qualifier_set dest_type_qualifiers =
+        /* If the pointer-to-member types otherwise match, be sure, if the
+           member type is a function type, that the exception specifications
+           are compatible. */
+        if (okay && exceptions_enabled && !check_as_operands_not_conversion &&
+            is_function_type(dest_type_pointed_to) &&
+            (exception_spec_is_less_restrictive(source_type_pointed_to,
+                                                dest_type_pointed_to) ||
+             !same_exception_spec_on_return_and_param_type(
+                              source_type_pointed_to, dest_type_pointed_to))) {
+          okay = FALSE;
+          clear_std_conv_descr(std_conv);
+          std_conv->conv_failed_because_of_exception_specifications = TRUE;
+        }  /* if */
+        if (okay && !check_as_operands_not_conversion) {
+          /* The types pointed to must be such that the type pointed to by the
+             left has all the qualifiers of the type pointed to by the right.
+             It might have additional qualifiers. */
+          a_type_qualifier_set dest_type_qualifiers =
                                      get_type_qualifiers(dest_type_pointed_to);
-        a_type_qualifier_set source_type_qualifiers =
+          a_type_qualifier_set source_type_qualifiers =
                                    get_type_qualifiers(source_type_pointed_to);
-        if (dest_type_qualifiers == source_type_qualifiers) {
-          /* The qualifiers are the same. */
-        } else if (qualification_conversion_possible
+          if (dest_type_qualifiers == source_type_qualifiers) {
+            /* The qualifiers are the same. */
+          } else if (qualification_conversion_possible
                                 (source_type_pointed_to, dest_type_pointed_to,
 		                 &qualifiers_added,
                                  /*ignore_underlying_type=*/FALSE)) {
-          /* This is an allowed qualification conversion. */
-          std_conv->type_qualifiers_added = qualifiers_added;
+            /* This is an allowed qualification conversion. */
+            std_conv->type_qualifiers_added = qualifiers_added;
+          }  /* if */
         }  /* if */
+      } else if (is_template_dependent_context() &&
+                 (is_or_contains_template_param(source_type_pointed_to) ||
+                  is_or_contains_template_param(dest_type_pointed_to))) {
+        /* Conversion to or from a template-dependent type is allowed. */
+        okay = TRUE;
       }  /* if */
-    } else if (is_template_dependent_context() &&
-               (is_or_contains_template_param(source_type) ||
-                is_or_contains_template_param(dest_type))) {
-      /* Conversion to or from a template-dependent type is allowed. */
-      okay = TRUE;
     }  /* if */
   } else if (is_template_param_type(source_type)) {
     /* A template parameter type might be a pointer-to-member type.
