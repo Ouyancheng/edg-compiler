@@ -2469,41 +2469,24 @@ a mistake.  Both these warnings should perhaps be remarks.
   /* Loop through the registry of overrides. */
   for (; orep != NULL; orep = next_orep) {
     if (orep->override_count < orep->virtual_function_count) {
-      a_boolean     overrides_in_another_base = FALSE;
-      a_symbol_ptr  overridden_sym = orep->overridden_sym;
-      /* Report possible "failed overrides".  It is possible that a
-         declaration in the derived class does not override the complete
-         overload set in one base, while it does so in another base.
-         In that case, do not warn against a missing override. */
-      an_override_registry_entry_ptr  other_orep = first_orep;
-
-      for (; other_orep != NULL; other_orep = other_orep->next) {
-        if (other_orep != orep &&
-            other_orep->overridden_sym->header == overridden_sym->header &&
-            other_orep->override_count != 0) {
-          overrides_in_another_base = TRUE;
-          break;
-        }  /* if */
-      }  /* for */
-      if (!overrides_in_another_base) {
-        for (slep = orep->override_failures; slep != NULL; slep = slep->next) {
-          pos_sy2_warning(ec_nonoverriding_function_decl,
-                          &slep->symbol->decl_position,
-                          slep->symbol, overridden_sym);
-        }  /* for */
-        if (orep->override_failures) {
-          /* No need to issue any more diagnostics on this name. */
-          remove_name_from_override_registry(orep);
-          goto done;
-        }  /* if */
-      }  /* if */
       if (orep->virtual_function_count > 1 && orep->override_count > 0) {
         /* Issue a diagnostic on partial override of an overloaded
            virtual function. */
         pos_sy2_warning(ec_partial_override, &tag_sym->decl_position,
-                        overridden_sym, tag_sym);
+                        orep->overridden_sym, tag_sym);
         /* No need to issue any more diagnostics on this name. */
         remove_name_from_override_registry(orep);
+      } else {
+        /* Report on hidden virtual functions. */
+        for (slep = orep->override_failures; slep != NULL; slep = slep->next) {
+          pos_sy2_warning(ec_virtual_function_decl_hidden,
+                          &slep->symbol->decl_position,
+                          slep->symbol, orep->overridden_sym);
+        }  /* for */
+        if (orep->override_failures) {
+          /* No need to issue any more diagnostics on this name. */
+          remove_name_from_override_registry(orep);
+        }  /* if */
       }  /* if */
     } else {
       check_assertion(orep->override_count == orep->virtual_function_count ||
@@ -2512,7 +2495,6 @@ a mistake.  Both these warnings should perhaps be remarks.
          declarations of the same name. */
     }  /* if */
     /* Return the entry to the available list and advance. */
-done:;
     next_orep = orep->next;
     free_override_registry_entry(orep);
   }  /* for */

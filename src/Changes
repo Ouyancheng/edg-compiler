@@ -47,25 +47,30 @@ ptrdiff_t, the following defines should also be used:
 #define TARG_SIZE_T_INT_KIND ((an_integer_kind)ik_unsigned_long_long)
 #define TARG_PTRDIFF_T_INT_KIND ((an_integer_kind)ik_long_long)
 
-9/23/99  Partial overriding of virtual functions in multiple inheritance cases
+9/23/99  Partial overriding and hiding of virtual functions
 
-The front end used to always issue a warning when a virtual function in a
-base class was hidden but not overridden by a member function (with the same
-name) in a derived class.  This warning is now inhibited if the hiding
-function overrides a virtual function declaration in another base.
+Minor changes have been made to the diagnosis (warning) of virtual function
+declarations in base classes hidden by declarations in a derived class.
+As before, the front end warns about an overloaded set in a base class being
+only partially overridden in a derived class.  However, if such a warning is
+emitted, no other warning regarding symbol hiding is issued for that name:
 
-  struct B1 {
-    virtual void f(int);
+  struct B {
+    virtual void f();
+    virtual void f(char);
   };
-  struct B2 {
+  struct D: B {
+    virtual void f(char);
     virtual void f(double);
   };
-  struct D: public B1, public B2 {
-    virtual void f(double);
-  };
 
-The front end no longer issues a warning about a mismatch between D::f and
-B1::f.
+In the above example only a warning is issued about B::f being partially
+overridden; previously, the front end also warned that D::f(double) does not
+match B::f.
+When all of the declarations of a virtual function with a given name in a base
+class are hidden by a declaration in the derived class, this is now reported
+as a case of name hiding; previously, this was reported as a failure to match
+a virtual function declaration in the derived class.
 
 9/22/99  Diagnostic on nonstandard subtraction of pointers
 
