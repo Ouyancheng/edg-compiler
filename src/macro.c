@@ -3994,6 +3994,10 @@ the options passed (each element in the list points to the string following
 the "-D").
 */
 {
+  a_boolean  save_expand_macros = expand_macros;
+
+  /* Don't expand macro while preprocessing: */
+  expand_macros = FALSE;
   in_preprocessing_directive = TRUE;
   for (; du_ptr != NULL; du_ptr = du_ptr->next) {
     sizeof_t  du_len, line_length;
@@ -4042,6 +4046,7 @@ the "-D").
     curr_command_line_macro_def = NULL;
   }  /* while */
   in_preprocessing_directive = FALSE;
+  expand_macros = save_expand_macros;
 }  /* process_command_line_macro_definitions */
 
 
