@@ -7318,7 +7318,8 @@ check_start_of_pp_directive:
 	  } else {
 	    ctoken = tok_sharp;
 	  } /* if */
-	} else if (!any_tokens_gotten_from_curr_source_line) {
+        } else if (!any_tokens_gotten_from_curr_source_line &&
+                   macro_depth == 0) {
 	  /* A sharp that is the first thing on a line -- This is a
 	     preprocessing directive. */
 	  if (!currently_in_pp_if_skip) {
@@ -7344,6 +7345,12 @@ check_start_of_pp_directive:
 	} else {
 	  /* "#" outside of a preprocessing directive, and not at the
              start of a line; don't know what it means. */
+          if (!any_tokens_gotten_from_curr_source_line) {
+            /* Preprocessing directives are not recognized within macro
+               expansions. */
+            warning_at_line_pos(ec_no_pp_dir_in_macro_call,
+                                start_of_curr_token);
+          }  /* if */
 	  err_code_for_error_token = ec_bad_use_of_sharp;
 	  if (!fetch_pp_tokens) {
 	    error_at_line_pos(err_code_for_error_token, start_of_curr_token);
