@@ -2085,10 +2085,14 @@ do_tag_name:
       form_type_specifier(type, seg_ptr);
 typeref_done:
       break;
-      /* Note that certain type kinds are handled by form_type_first_part
-         and form_type_second_part and shouldn't get here. */
+    case tk_template_param:
+      /* Just put out the template parameter's name. */
+      add_string_to_segment(type->source_corresp.name, seg_ptr);
+      break;
 #if CHECKING
     default:
+      /* Note that certain type kinds are handled by form_type_first_part
+         and form_type_second_part and shouldn't get here. */
       internal_error("form_type_specifier: bad type specifier kind");
 #endif /* CHECKING */
   }  /* switch */
