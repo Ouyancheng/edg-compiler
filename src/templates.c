@@ -10922,16 +10922,15 @@ present, the nesting depth "0" is used.
   a_template_nesting_depth	curr_depth = 0;
   a_scope_stack_entry_ptr	ssep = &scope_stack[depth_scope_stack];
 
-  /* Note that we don't have to check for nested instantiation scopes
-     because only active instantiation scopes will be on the linked
-     list of previous scopes that are examined.  Microsoft specialization
-     scopes are ignored because they represent specializations and not
-     actual instantiations. */
+  /* Count the instantiation scopes up to and including the first non-nested
+     instantiation scope.  Microsoft specialization scopes are ignored because
+     they represent specializations and not actual instantiations. */
   for (; ssep != NULL; ssep = previous_scope_of(ssep)) {
     if (ssep->kind == (a_scope_kind)sck_template_instantiation) {
       if (!ssep->microsoft_specialization_instantiation_scope) {
         curr_depth++;
       }  /* if */
+      if (!ssep->nested_instantiation) break;
     }  /* if */
   }  /* for */
   return curr_depth;

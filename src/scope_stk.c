@@ -189,6 +189,25 @@ Dump the entire scope stack (for debugging).
   }  /* if */
 }  /* db_scope_stack */
 
+
+void db_top_of_scope_stack(int entries)
+/*
+Dump the top "entries" of the scope stack (for debugging).
+*/
+{
+  if (depth_scope_stack == NO_SCOPE_DEPTH) {
+    fputs("Scope stack is empty.\n", f_debug);
+  } else {
+    a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
+
+    for (; ssep != NULL;
+         ssep = ssep->kind == (a_scope_kind)sck_file ? NULL : ssep - 1) {
+      db_scope_stack_entry(ssep);
+      if (--entries == 0) break;
+    }  /* for */
+  }  /* if */
+}  /* db_top_of_scope_stack */
+
 #if EXTRA_SOURCE_POSITIONS_IN_IL
 
 static void db_source_range(a_source_range  *range)

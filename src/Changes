@@ -1,5 +1,14 @@
 Version 2.46
 
+11/15/01 Incorrect template parameter nesting depths
+
+Under certain unusual circumstances the nesting depth assigned to the
+template parameters of a member template may be incorrect.  This could
+result in various kinds of incorrect behavior.  In the (large) test
+case that demonstrated this problem, it resulted in a spurious
+ambiguity error on the call of a conversion template.  This has been
+fixed.
+
 11/14/01 Raw listing output problem with comment inside macro call
 
 The raw listing output line produced for a // comment inside a
