@@ -2026,6 +2026,11 @@ the function.
                         /*is_inline=*/FALSE, &sym,
                         &linkage, &old_type, &ext_sym);
     sym->variant.routine->compiler_generated = TRUE;
+    /* However the name linkage was set by decl_var_or_routine, override it
+       to assure that C++ name linkage is used. */
+    sym->variant.routine->source_corresp.name_linkage =
+                               (a_name_linkage_kind)nlk_cplusplus_external;
+    sym->explicit_linkage_specifier = FALSE;
   }  /* if */
 
   db_exit();
