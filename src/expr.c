@@ -14663,7 +14663,7 @@ this routine is called only when microsoft_mode is TRUE.
                  variable->storage_class != (a_storage_class)sc_unspecified) {
         /* Local variables cannot be used in the __based specifier. */
         if (!is_error_type(variable->type)) {
-          pos_error(ec_based_var_must_have_linkage, &operand.position);
+          pos_error(ec_based_var_cannot_be_local, &operand.position);
         }  /* if */
         variable = NULL;
       }  /* if */
