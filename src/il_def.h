@@ -2849,8 +2849,7 @@ typedef a_byte a_upc_access_method;
 #endif /* UPC_EXTENSIONS_ALLOWED */
  
 
-/* Entry used on parameter type lists for functions.  Note that these
-   can be shared between multiple routine definitions. */
+/* Entry used on parameter type lists for functions. */
 typedef struct a_param_type *a_param_type_ptr;
 typedef struct a_param_type {
   a_param_type_ptr
