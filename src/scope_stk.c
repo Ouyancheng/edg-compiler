@@ -4425,7 +4425,9 @@ thrown away by the caller.
 */
 {
   a_routine_ptr routine = scope->variant.routine.ptr;
+#if MAINTAIN_NEEDED_FLAGS
   a_boolean     lowering_done = FALSE;
+#endif /* MAINTAIN_NEEDED_FLAGS */
 
   db_enter(1, "finish_function_body_processing");
 #if DEBUG
@@ -4445,7 +4447,9 @@ thrown away by the caller.
         !scope_stack[depth_scope_stack].in_prototype_instantiation) {
       /* Do IL lowering (change the C++ IL into C IL). */
       lower_il_memory_region(routine->assoc_scope);
+#if MAINTAIN_NEEDED_FLAGS
       lowering_done = TRUE;
+#endif /* MAINTAIN_NEEDED_FLAGS */
     }  /* if */
     if (il_lowering_needed()) {
       /* If we're not supposed to pass object lifetime information to the

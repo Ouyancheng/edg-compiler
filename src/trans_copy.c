@@ -2101,6 +2101,9 @@ secondary translation unit IL and therefore will not be copied.
 }  /* copy_secondary_trans_unit_IL_to_primary */
 
 
+#if !MAINTAIN_NEEDED_FLAGS
+/*ARGSUSED*/  /* <-- "kind" is not used in that case. */
+#endif /* !MAINTAIN_NEEDED_FLAGS */
 static a_boolean mark_secondary_termination_test(char             *ptr,
                                                  an_il_entry_kind kind)
 /*
