@@ -2597,11 +2597,11 @@ should be put out.
     template_args = ctsp->template_arg_list;
 #if IA64_ABI
     if (template_args != NULL) {
-      a_template_ptr tmpl = instantiated_template(type);
+      a_template_ptr tmpl = class_template_of(type);
       a_boolean      is_substitution;
       check_assertion(tmpl != NULL);
       /* Create a substitution entry for the template.  */
-      is_substitution = add_substitution(tmpl,
+      is_substitution = add_substitution((char *)tmpl,
                                          (an_il_entry_kind)iek_template,
                                          mctl);
       /* If there was an already an entry for this substitution, then this
