@@ -305,7 +305,13 @@ The code is inserted at *insert_location, and *insert_location is updated.
         param_is_constructor_this = TRUE;
         if (is_non_null) param_is_unmodified = TRUE;
       }  /* if */
-      if (param_is_unmodified && arg_is_constant) {
+      if (param_is_unmodified && arg_is_constant &&
+          /* We don't have the mechanism to handle class-valued
+             variables, because their addresses can get taken implicitly
+             when field selections are done.  We would have to support
+             remapping an enk_variable_address to some expression, which
+             we don't do currently.  Avoid that case. */
+          !is_class_struct_union_type(param_var->type)) {
         /* The argument is constant-valued and the parameter is unmodified.
            The parameter gets remapped to a constant-valued expression. */
         vrip->kind = vrk_constant_expr;
