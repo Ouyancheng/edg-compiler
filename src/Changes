@@ -652,6 +652,9 @@ have the same behavior.  This matters in cases like
      f(q+1);  // calls f(int)
   }
 
+(5/1/97: this processing has been put under control of the new
+Microsoft bugs mode.)
+
 4/21/97   Microsoft compatibility: bool, explicit, and typename are now
           supported by the Microsoft compiler
 
