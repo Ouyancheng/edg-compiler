@@ -5001,7 +5001,8 @@ id_scan:
           dollar_in_id_diagnostic_issued = TRUE;
         }  /* if */
       } else {
-        /* Dollar signs are not allowed, so use the normal (faster) loop. */
+        /* Dollar signs are not allowed, or the diagnostic has been issued
+           already, so use the normal (faster) loop. */
         /* Accumulate characters of the identifier after the first. */
         while (is_id_char[(ch = *(++curr_char_loc))-CHAR_MIN]) {}
       }  /* if */
