@@ -954,7 +954,7 @@ step on the derivation list serves to confirm the match.
              that bcp is nonvirtual, so we don't need to worry about multiple
              paths in looking for its immediate predecessor. */
           step = bcp->derivation->path;
-          for (; step->next->base_class != bcp; step = step->next);
+          for (; step->next->base_class != bcp; step = step->next) {}
           if (step->base_class->type == base_class->derived_class) {
             /* If bcp is ambiguous use the disambiguator to determine whether
                we have a match.  It that will be the immediate predecessor of
@@ -986,7 +986,7 @@ step on the derivation list serves to confirm the match.
                that bcp is nonvirtual, so we don't need to worry about multiple
                paths in looking for its immediate predecessor. */
             step = bcp->derivation->path;
-            for (; step->next->base_class != bcp; step = step->next);
+            for (; step->next->base_class != bcp; step = step->next) {}
             if (step->base_class == disambiguator) {
               new_base_class = bcp;
               goto done;

@@ -5317,7 +5317,7 @@ qualified reference either to A::i or to C::i will pick up A::i).
         /* Do the same for the base class associated with the candidate for
            dominated declaration.  dominated_bcp is the base class in which
            sym2 was declared. */
-        for (step = path_to_sym2; step->next != NULL; step = step->next);
+        for (step = path_to_sym2; step->next != NULL; step = step->next) {}
         dominated_bcp = corresponding_base_class(step->base_class, class_type,
                                                  (a_base_class_ptr)NULL);
         if (sym2->kind == (a_symbol_kind)sk_projection) {
