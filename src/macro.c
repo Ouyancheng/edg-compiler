@@ -475,6 +475,7 @@ Clear a macro definition entry to default values.
   mdp->object_like                         = TRUE;
   mdp->try_to_scan_and_save_constant_value = FALSE;
   mdp->is_manifest_constant                = FALSE;
+  mdp->cannot_be_redefined                 = FALSE;
   mdp->param_list                          = NULL;
   mdp->repl_text                           = NULL;
   mdp->constant_token_kind                 = tok_error;
@@ -2410,8 +2411,7 @@ Scan and process a #define directive.
     get_symbol_of_kind((a_symbol_kind)sk_macro, assoc_symbol);
     if (assoc_symbol == NULL) {
       /* No such macro, so #define can be done. */
-    } else if (assoc_symbol->decl_position.seq    == 0 &&
-               assoc_symbol->decl_position.column == SP_COL_UNKNOWN) {
+    } else if (assoc_symbol->variant.macro_def->cannot_be_redefined) {
       /* The macro is predefined, and therefore cannot be redefined. */
       error(ec_cannot_redef_predef_macro);
       set_to_error_locator(locator_for_curr_id);

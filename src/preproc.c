@@ -573,8 +573,7 @@ Scan and process an #undef directive.
     get_symbol_of_kind((a_symbol_kind)sk_macro, assoc_symbol);
     if (assoc_symbol == NULL) {
       /* No such macro, so #undef is ignored. */
-    } else if (assoc_symbol->decl_position.seq    == 0 &&
-               assoc_symbol->decl_position.column == SP_COL_UNKNOWN) {
+    } else if (assoc_symbol->variant.macro_def->cannot_be_redefined) {
       /* The macro is predefined. */
       error(ec_cannot_undef_predef_macro);
     } else {

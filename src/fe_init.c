@@ -59,6 +59,7 @@ in the include files will become external definitions for the symbols.
 #include "preproc.h"
 #include "statements.h"
 #include "symbol_tbl.h"
+#include "sys_predef.h"
 #include "target.h"
 #include "templates.h"
 #include "trans_lims.h"
@@ -266,10 +267,13 @@ Install the keywords in the symbol table.
 }  /* keyword_init */
 
 
-static char *make_repl_text(char *repl_text)
+static char *make_repl_text(char     *repl_text,
+                            sizeof_t *repl_text_length)
 /*
 Make a replacement text string for a macro, corresponding to the raw text
 given by repl_text.  repl_text == NULL implies an empty replacement string.
+The length of the repl_text string is returned in *repl_text_length if
+repl_text_length is not NULL.
 */
 {
   char     *repl_text_copy, *rtp;
@@ -294,16 +298,21 @@ given by repl_text.  repl_text == NULL implies an empty replacement string.
   }  /* if */
   /* Put the terminating null on the string. */
   *rtp = (char)rt_null;
+  /* Return the length of the repl_text_string including the encoded
+     information in the "overhead" area. */
+  if (repl_text_length != NULL) *repl_text_length = repl_text_len + overhead;
   return(repl_text_copy);
 }  /* make_repl_text */
 
 
-static a_symbol_ptr enter_predef_macro(char *repl_text,
-			               char *macro_name)
+a_symbol_ptr enter_predef_macro(char      *repl_text,
+	                        char      *macro_name,
+			        a_boolean cannot_be_redefined)
 /*
 Enter a predefined macro.  macro_name is the name, repl_text the replacement
-text string (or NULL for a special macro).  Return a pointer to the symbol
-entry.
+text string (or NULL for a special macro).  cannot_be_redefined is TRUE
+if this is a predefined macro that cannot be redefined.  A pointer to the
+symbol entry is returned.
 */
 {
   register a_symbol_ptr    sym_ptr;
@@ -313,8 +322,10 @@ entry.
                               (a_symbol_kind)sk_macro, NO_SCOPE_DEPTH);
   sym_ptr->variant.macro_def = mdp = alloc_macro_def();
   mdp->object_like = TRUE;
+  mdp->cannot_be_redefined = cannot_be_redefined;
   mdp->param_list  = NULL;
-  mdp->repl_text   = (repl_text != NULL) ? make_repl_text(repl_text) : NULL;
+  mdp->repl_text   = (repl_text != NULL) ?
+                          make_repl_text(repl_text, (sizeof_t)NULL) : NULL;
   return(sym_ptr);
 }  /* enter_predef_macro */
 
@@ -414,8 +425,10 @@ Initialize things related to preprocessing.
   (void)memcpy(&time_of_translation[1], &curr_date_time[11], 8);
   time_of_translation[10] = '\0';
 
-  (void)enter_predef_macro(date_of_translation, "__DATE__");
-  (void)enter_predef_macro(time_of_translation, "__TIME__");
+  (void)enter_predef_macro(date_of_translation, "__DATE__",
+                           /*cannot_be_redefined=*/TRUE);
+  (void)enter_predef_macro(time_of_translation, "__TIME__",
+                           /*cannot_be_redefined=*/TRUE);
 
   /* __STDC__ is defined as 1 if we are compiling the ANSI C dialect
      or if we are compiling C++ (ARM 16.10: "Whether __STDC__ is defined
@@ -428,14 +441,15 @@ Initialize things related to preprocessing.
       && !cfront_compatibility_mode
 #endif /* OLD_STYLE_PREPROCESSING_IN_CFRONT_MODE */
                                                                       ) {
-    (void)enter_predef_macro("1", "__STDC__");
+    (void)enter_predef_macro("1", "__STDC__", /*cannot_be_redefined=*/TRUE);
   }  /* if */
   /* __cplusplus is defined as 1 if we are compiling C++, left undefined
      otherwise.  For compatibility, c_plusplus is also defined. */
   if (C_dialect == C_dialect_cplusplus) {
-    (void)enter_predef_macro("1", "__cplusplus");
+    (void)enter_predef_macro("1", "__cplusplus", /*cannot_be_redefined=*/TRUE);
     if (!strict_ansi_mode) {
-      (void)enter_predef_macro("1", "c_plusplus");
+      (void)enter_predef_macro("1", "c_plusplus",
+                              /*cannot_be_redefined=*/TRUE);
     }  /* if */
   }  /* if */
 
@@ -443,20 +457,14 @@ Initialize things related to preprocessing.
      in terms of a simple replacement string).  Therefore, they are entered
      with a NULL replacement text, and code on the expansion end handles
      them. */
-  line_macro_symbol    = enter_predef_macro((char *)NULL, "__LINE__");
-  file_macro_symbol    = enter_predef_macro((char *)NULL, "__FILE__");
-  defined_macro_symbol = enter_predef_macro((char *)NULL, "defined");
-#if ATT_PREPROCESSING_EXTENSIONS_ALLOWED
-  /* Define predefined #assert predicates: */
-  /* CAREFUL:  The value string must have an extra blank at the end. */
-  /* For example:
-  enter_assert_predicate("m68k ", "machine");
-  */
-#ifdef sparc
-  enter_assert_predicate("sparc ", "machine");
-#endif /* ifdef sparc */
-#endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */
-
+  line_macro_symbol    = enter_predef_macro((char *)NULL, "__LINE__",
+                                            /*cannot_be_redefined=*/TRUE);
+  file_macro_symbol    = enter_predef_macro((char *)NULL, "__FILE__",
+                                            /*cannot_be_redefined=*/TRUE);
+  defined_macro_symbol = enter_predef_macro((char *)NULL, "defined",
+                                            /*cannot_be_redefined=*/TRUE);
+  /* Enter system specific macros and assertions. */
+  enter_system_specific_predefined_macros_and_assertions();
   /* Now process command-line defines of symbols (-D). */  
   du_ptr = defs_from_cmd_line;
   while (du_ptr != NULL) {
@@ -482,7 +490,8 @@ Initialize things related to preprocessing.
       err = TRUE;
     } else {
       /* Make the definition text for the macro. */
-      new_repl_text = make_repl_text(value_start);
+      sizeof_t	repl_text_len;
+      new_repl_text = make_repl_text(value_start, &repl_text_len);
       /* Create the symbol if necessary. */
       if (assoc_symbol == NULL) {
         assoc_symbol = enter_symbol((a_symbol_kind)sk_macro, &locator,
@@ -492,15 +501,15 @@ Initialize things related to preprocessing.
       } else {
         /* There's a previous definition of the macro.  If it's predefined,
            the new definition must match the old. */
-        if (assoc_symbol->decl_position.seq    == 0 &&
-            assoc_symbol->decl_position.column == SP_COL_UNKNOWN) {
-          /* Macro is predefined. */
-          /* If the macro has repl_text == NULL, it's defined by code in
-             macro.c (e.g., __LINE__) and can't be redefined.  Otherwise,
-             check that the old definition matches the new. */
+        if (assoc_symbol->variant.macro_def->cannot_be_redefined) {
+          /* A predefined macro that cannot be redefined. */
+          err = TRUE;
+        } else {
+          /* Redefinition of an already defined macro.  The value must
+             match the previous definition. */
           old_repl_text = assoc_symbol->variant.macro_def->repl_text;
           if (old_repl_text == NULL ||
-              strcmp(old_repl_text, new_repl_text) != 0) {
+              smemcmp(old_repl_text, new_repl_text, repl_text_len) != 0) {
             err = TRUE;
             /* Note that this is a catastrophic error, so it doesn't matter
                whether or not we change the definition of the macro in the
@@ -540,8 +549,7 @@ Initialize things related to preprocessing.
       err = TRUE;
     } else {
       if (assoc_symbol != NULL) {
-        if (assoc_symbol->decl_position.seq    == 0 &&
-            assoc_symbol->decl_position.column == SP_COL_UNKNOWN) {
+        if (assoc_symbol->variant.macro_def->cannot_be_redefined) {
           /* The macro is predefined; one is not allowed to undefine it. */
           err = TRUE;
         } else {
@@ -667,7 +675,8 @@ Initialize target machine characteristics.
     /* Target has signed characters. */
     /* Enter macro used to modify the definition of CHAR_MIN and CHAR_MAX in
        the included limits.h. */
-    (void)enter_predef_macro("1", "__SIGNED_CHARS__");
+    (void)enter_predef_macro("1", "__SIGNED_CHARS__",
+                             /*cannot_be_redefined=*/FALSE);
   }  /* if */
   if (C_dialect == C_dialect_pcc) {
     /* In pcc mode, a "plain" char is the same as either "signed char"
