@@ -1,5 +1,11 @@
 Version 2.28
 
+2/24/95  #pragma weak
+
+Support for #pragma weak has been added (when PRAGMA_WEAK_ALLOWED is set).
+This is minimal support: the name specified is not looked up, and the
+text of the pragma is simply passed on to the back end.
+
 2/24/95  Linkage specification as a function type attribute
 
 The linkage specification in effect at the point of a function type
