@@ -1899,7 +1899,8 @@ Format the name of the symbol pointed to by "sym" in the message segment
 described by "seg_ptr".
 */
 {
-  a_type_ptr        type = NULL;
+  a_type_ptr	type = NULL;
+  a_routine_ptr	routine = NULL;	
 
   add_string_to_segment("\"", seg_ptr);
   switch (sym->kind) {
@@ -1926,6 +1927,9 @@ simple_symbol_name:
         form_type_first_part(type, /*need_parens=*/FALSE, seg_ptr);
         add_string_to_segment(" ", seg_ptr);
       }  /* if */
+      if (sym->class_of_which_a_member != NULL) {
+        form_class_name(sym->class_of_which_a_member, seg_ptr);
+      }  /* if */
       add_string_to_segment(sym->header->identifier, seg_ptr);
       if (seg_ptr->variant.symbol.full_type && type != NULL) {
         form_type_second_part(type, /*need_parens=*/FALSE, seg_ptr);
@@ -1944,10 +1948,12 @@ simple_symbol_name:
 
     case sk_routine:
       type = routine_symbol_type(sym);
+      routine = sym->variant.routine;
       goto function_name;
 
     case sk_extern_routine:
       type = sym->variant.extern_symbol_descr->type;
+      routine = sym->variant.extern_symbol_descr->variant.routine;
       goto function_name;
 
     case sk_overloaded_function:
@@ -1962,16 +1968,25 @@ simple_symbol_name:
 
     case sk_member_function:
       type = routine_symbol_type(sym);
+      routine = sym->variant.routine;
 function_name:
       if (seg_ptr->variant.symbol.full_type && 
           type != NULL &&
           ! is_constructor_symbol(sym) &&
-          ! is_destructor_symbol(sym)) {
+          ! is_destructor_symbol(sym) &&
+          routine->special_kind != (a_special_function_kind)sfk_conversion) {
         form_type_first_part(type, /*need_parens=*/FALSE, seg_ptr);
         add_string_to_segment(" ", seg_ptr);
       }  /* if */
       form_class_name(sym->class_of_which_a_member, seg_ptr);
-      add_string_to_segment(sym->header->identifier, seg_ptr);
+      if (routine->special_kind == (a_special_function_kind)sfk_conversion) {
+        /* This is a conversion function; form the name as "operator type". */
+        add_string_to_segment("operator ", seg_ptr);
+        form_type_first_part(type, /*need_parens=*/FALSE, seg_ptr);
+      }  else {
+        /* Use the name in the header. */
+        add_string_to_segment(sym->header->identifier, seg_ptr);
+      }  /* if */
       if (type != NULL &&
           (seg_ptr->variant.symbol.full_type ||
            is_overloaded_function(sym)) ) {
