@@ -7561,6 +7561,14 @@ End a name scope by popping an entry off the scope stack.
       generate_required_virtual_destructor_bodies(il_scope->types);
     }  /* if */
   }  /* if */
+  if (ssep->curr_construct_pragmas != NULL && total_errors != 0) {
+    /* There should be no items remaining on the list.  If any errors
+       occurred, the list items may be a result of the errors.  Discard
+       the items on the list.  If no errors have been issued, an internal
+       error will be issued below. */
+    free_pending_pragma_list(ssep->curr_construct_pragmas);
+    ssep->curr_construct_pragmas = NULL;
+  }  /* if */
   /* There should be no entries left on the curr_construct_pragmas list when
      the scope stack is popped. */
   check_assertion_str2(ssep->curr_construct_pragmas == NULL,
@@ -7644,6 +7652,13 @@ End a name scope by popping an entry off the scope stack.
     } else {
       empty_func_shareable_constants_table();
     }  /* if */
+  }  /* if */
+  /* The IL scope, if any, is no longer on the stack.  This must occur
+     after IL lowering and before done_with_memory_region. */
+  if (il_scope != NULL) {
+    il_scope->depth_in_scope_stack = NO_SCOPE_DEPTH;
+  }  /* if */
+  if (!old_region_still_needed) {
     done_with_memory_region(old_memory_region_number);
   }  /* if */
   /* For any entities on the extern_type_fixup_list, restore the type of the
@@ -7710,10 +7725,6 @@ End a name scope by popping an entry off the scope stack.
     /* If the new memory region is not the same as the old, activate it. */
     if (new_memory_region_number != old_memory_region_number) {
       switch_il_region(new_memory_region_number);
-    }  /* if */
-    /* The IL scope, if any, is no longer on the stack. */
-    if (il_scope != NULL) {
-      il_scope->depth_in_scope_stack = NO_SCOPE_DEPTH;
     }  /* if */
     /* Restore state variables. */
     inside_local_class = scope_stack[depth_scope_stack].inside_local_class;
