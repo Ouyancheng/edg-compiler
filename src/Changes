@@ -1,5 +1,31 @@
 Version 2.46
 
+7/9/01   Conflicts between using-declarations and function declarations
+
+The front end used to issue an error when a function in namespace scope had
+the same name and type as a function imported by using-declaration in that
+scope.  Now the same error is issued even when the function types only differ
+in their return types.  For example:
+
+  namespace N {
+    void f();
+  }
+  int f();
+  using N::f;  // Used to be accepted; now an error (except in Microsoft mode)
+
+Furthermore, in Microsoft mode, a diagnostic is issued only if the using-
+declaration precedes the function declaration and if the two have different
+return types.  For example:
+
+  namespace N {
+    void f();
+    void g();
+  }
+  using N::f();
+  int f();  // Used to be accepted; now an error in all modes
+  using N::g();
+  void g(); // Used to be accepted; now only accepted in Microsoft mode
+
 7/6/01   Exceptions enabled by default in C++-generating back end versions
 
 The value of DEFAULT_EXCEPTIONS_ENABLED, which controls whether
