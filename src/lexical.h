@@ -1267,13 +1267,25 @@ extern a_symbol_ptr coalesce_and_lookup_generalized_identifier
 #define QUALIFIED_NAME_START_CASE tok_identifier:	\
                              case tok_colon_colon
 
+/*
+Return TRUE if the indicated token is a type qualifier.  This is
+straightforward for const and volatile, but restrict and __unaligned are
+valid only with certain configurations.
+*/
 #if RESTRICT_ALLOWED
-#define is_type_qualifier_token(tok)                                   \
-  ((tok) == tok_const || (tok) == tok_volatile || (tok) == tok_restrict)
+#define or_is_restrict_token(tok) || (tok) == tok_restrict
 #else /* !RESTRICT_ALLOWED */
-#define is_type_qualifier_token(tok)                                   \
-  ((tok) == tok_const || (tok) == tok_volatile)
+#define or_is_restrict_token(tok)  /* Nothing */
 #endif /* RESTRICT_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define or_is_unaligned_token(tok) || (tok) == tok_unaligned
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#define or_is_unaligned_token(tok)  /* Nothing */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#define is_type_qualifier_token(tok)                                   \
+  ((tok) == tok_const || (tok) == tok_volatile                         \
+   or_is_restrict_token(tok) or_is_unaligned_token(tok))
+
 
 /* Push a file onto the input stack. */
 extern void open_file_and_push_input_stack
