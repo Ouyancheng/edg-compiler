@@ -3657,10 +3657,24 @@ NULL.
            intentionally.  Declaring something of this type would
            be an error; declaring something a pointer to this type
            would be allowed. */
-        /* Add it now to the scope's type list.  It was not added
+        /* Add it now to the current scope's type list.  It was not added
            previously because no actual definition appeared. */
-        add_to_types_list(sym->variant.type, /*at_file_scope=*/FALSE,
+        a_type_ptr  tp = sym->variant.type;
+        add_to_types_list(tp, decl_scope_level,
                           /*in_old_style_param_decl_list=*/FALSE);
+        if (!is_immediate_class_type(tp)) {
+          /* If this is a reference-to-class type, we want to add both types
+             to the appropriate scope list.  The referenced type will be at
+             at file scope. */
+#if CHECKING
+          if (tp->kind != (a_type_kind)tk_typeref ||
+              !tp->variant.typeref.is_function_scope_tag) {
+            internal_error("end_of_scope_symbol_check: expected tag typeref");
+          }  /* if */
+#endif /* CHECKING */
+          add_to_types_list(tp->variant.typeref.type, DEPTH_OF_FILE_SCOPE,
+                            /*in_old_style_param_decl_list=*/FALSE);
+        }  /* if */
       }  /* if */
       break;
     case sk_label:

@@ -3323,8 +3323,7 @@ a pointer to it in *symbol_ptr.
   sym->variant.type = tp = alloc_type((a_type_kind)tk_typeref);
   tp->variant.typeref.type = type_ptr;
   set_source_corresp(&(tp->source_corresp), sym);
-  add_to_types_list(tp, /*at_file_scope=*/FALSE,
-                    in_old_style_param_decl_list);
+  add_to_types_list(tp, decl_scope_level, in_old_style_param_decl_list);
 
 return_point:
   /* Return the type name symbol to the caller. */
@@ -4334,8 +4333,6 @@ to indicate whether an enumeration is actually defined.
         switch_back_to_original_region(region_to_switch_back_to);
         tp->variant.typeref.type = enum_type;
         tp->variant.typeref.is_function_scope_tag = TRUE;
-        add_to_types_list(tp, /*at_file_scope=*/FALSE,
-                          in_old_style_param_decl_list);
         set_source_corresp(&(tp->source_corresp), tag_sym);
         tag_sym->variant.type = tp;
       } else {
@@ -4545,7 +4542,11 @@ to indicate whether an enumeration is actually defined.
        again. */
     if (!prototype_tag_resolution) {
       add_to_types_list(enum_type, /*at_file_scope=*/TRUE,
-                        in_old_style_param_decl_list);
+                        /*in_old_style_param_decl_list=*/FALSE);
+      if (tag_sym != NULL && tag_sym->variant.type != enum_type) {
+        add_to_types_list(tag_sym->variant.type, effective_decl_level,
+                          in_old_style_param_decl_list);
+      }  /* if */
     }  /* if */
     /* Switch back from the file scope memory region to whatever region
        was current upon entry. */
@@ -5867,7 +5868,7 @@ list and not linked into the file scope types list.
     }  /* if */
     /* The parameter type is not on the file scope or prototype scope types
        lists, so add it to the file scope types list. */
-    add_to_types_list(param_type, /*at_file_scope=*/TRUE,
+    add_to_types_list(param_type, DEPTH_OF_FILE_SCOPE,
                       /*in_old_style_param_decl_list=*/FALSE);
 done_with_param_type:;
   }  /* for */

@@ -2491,9 +2491,9 @@ scope.  For block scopes, create the scope now if necessary.
 }  /* ensure_il_scope_exists */
 
 
-void add_to_types_list(a_type_ptr type_ptr,
-                       a_boolean  at_file_scope,
-                       a_boolean  in_old_style_param_decl_list)
+void add_to_types_list(a_type_ptr     type_ptr,
+                       a_scope_depth  scope_level,
+                       a_boolean      in_old_style_param_decl_list)
 /*
 Add the given type to the types list for the current scope, or at file scope
 if at_file_scope is TRUE, or in a prototype scope if
@@ -2507,7 +2507,7 @@ in_old_style_param_decl_list is TRUE.
   a_type_ptr              *last_type_ptr_ptr;
 
   /* Get a pointer to the current or file scope entry. */
-  ssep = &scope_stack[at_file_scope ? DEPTH_OF_FILE_SCOPE : decl_scope_level];
+  ssep = &scope_stack[scope_level];
   /* Create the IL scope if necessary (for block scopes). */
   sp = ensure_il_scope_exists(ssep);
   last_type_ptr_ptr = &ssep->last_type;
@@ -2546,12 +2546,7 @@ in_old_style_param_decl_list is TRUE.
 #if CHECKING
     if (routine_type == NULL) {
       internal_error("add_to_types_list: NULL routine type");
-    }  /* if */
-#endif /* CHECKING */
-    /* In C++, there can be type qualifiers above the tk_routine entry. */
-    routine_type = skip_typerefs(routine_type);
-#if CHECKING
-    if (routine_type->kind != (a_type_kind)tk_routine) {
+    } else if (routine_type->kind != (a_type_kind)tk_routine) {
       internal_error("add_to_types_list: bad routine type");
     }  /* if */
 #endif /* CHECKING */
@@ -2617,7 +2612,7 @@ put onto the file-scope types list.
 
   switch_to_file_scope_region(&region_to_switch_back_to);
   pte = alloc_type(kind);
-  add_to_types_list(pte, /*at_file_scope=*/TRUE,
+  add_to_types_list(pte, DEPTH_OF_FILE_SCOPE,
                     /*in_old_style_param_decl_list=*/FALSE);
   switch_back_to_original_region(region_to_switch_back_to);
   return pte;

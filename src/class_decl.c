@@ -5328,8 +5328,6 @@ class/struct/union is actually defined.
         tp->variant.typeref.type = class_type;
         tp->variant.typeref.is_function_scope_tag = TRUE;
         set_source_corresp(&(tp->source_corresp), tag_sym);
-        add_to_types_list(tp, /*at_file_scope=*/FALSE,
-                          in_old_style_param_decl_list);
         /* The tag symbol will point to the typeref type, which is in the
            the current scope, rather than to the class type.  This assures
            that the IL will reflect more closely the original source when
@@ -5907,8 +5905,12 @@ next_declaration:
          incomplete structs/unions are not added to the type list (this code
          is bypassed) because the actual definition has not yet appeared.  See
          pop_scope; they get added at the end of the scope. */
-      add_to_types_list(class_type, /*at_file_scope=*/TRUE,
-                        in_old_style_param_decl_list);
+      add_to_types_list(class_type, DEPTH_OF_FILE_SCOPE,
+                        /*in_old_style_param_decl_list=*/FALSE);
+      if (tag_sym->variant.type != class_type) {
+        add_to_types_list(tag_sym->variant.type, effective_decl_level,
+                          in_old_style_param_decl_list);
+      }  /* if */
     }  /* if */
     /* Save a pointer to the list of member symbols in the tag symbol.  Note
        that there may be symbols even if there there were no declarations,

@@ -26,6 +26,9 @@ il.h -- Declarations related to the intermediate language.
    front end tables. */
 #include "il_def.h"
 
+#ifndef SYMBOL_TBL_H
+#include "symbol_tbl.h"
+#endif /* ifndef SYMBOL_TBL_H */
 
 /* Current memory region number for IL information. */
 EXTERN a_memory_region_number
@@ -85,9 +88,9 @@ extern a_type_ptr alloc_type(a_type_kind kind);
 
 extern a_type_ptr fs_type(a_type_kind kind);
 
-extern void add_to_types_list(a_type_ptr type_ptr,
-                              a_boolean  at_file_scope,
-                              a_boolean  in_old_style_param_decl_list);
+extern void add_to_types_list(a_type_ptr     type_ptr,
+                              a_scope_depth  scope_level,
+                              a_boolean      in_old_style_param_decl_list);
 
 extern a_type_ptr integer_type(an_integer_kind kind);
 
