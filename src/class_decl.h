@@ -31,11 +31,6 @@ class_decl.h -- Declarations related to class_decl.c (having to do with
 
 extern void prescan_member_function_default_arg_expr(a_param_type_ptr  ptp);
 
-#if CFRONT_OBJECT_CODE_COMPATIBILITY
-extern void fixup_embedded_virtual_base_classes(a_base_class_ptr base_class,
-                                                a_type_ptr       class_type);
-#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
-
 extern a_boolean scan_class_definition(
                                    a_type_ptr     class_type,
                                    a_scope_depth  effective_decl_level,
