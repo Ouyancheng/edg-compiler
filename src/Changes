@@ -36,7 +36,10 @@ where C is the class containing a.
 
 7/13/04  Embedded C: folding of shift operations
 
-Fixed-point shifts of constant values are now folded at compile-time.
+Fixed-point shifts of constant values are now folded at compile-time.  As
+part of this change, the following new expression operators have been
+added (IL CHANGE): eok_fxshiftl, eok_fxshiftr, eok_fxshiftl_assign, and
+eok_fxshiftr_assign.
 
 7/12/04  GNU compatibility: Distinguish GNU asm syntax from standard asm syntax
 
