@@ -1081,7 +1081,56 @@ and return a pointer to it in *arg_summary_list.
   *p_argument_list = argument_head;
   db_exit();
 }  /* scan_call_arguments */
-    
+
+
+void check_closing_paren_after_expr_list(void)
+/*
+Check for the required closing parenthesis after an expression list, and
+pass over it if it is found.  This is similar to required_token, but it
+does some special error-recovery processing to handle additional
+unexpected expressions more gracefully.
+*/
+{
+  unsigned char save_comma_stop_token_count;
+
+  /* Remove comma from the stop tokens set. */
+  save_comma_stop_token_count = stop_token_array[(int)tok_comma];
+  stop_token_array[(int)tok_comma] = 0;
+  (void)required_token(tok_rparen, ec_exp_rparen);
+  /* Restore comma as a stop token (if it was one). */
+  stop_token_array[(int)tok_comma] = save_comma_stop_token_count;
+}  /* check_closing_paren_after_expr_list */
+
+
+static an_expr_node_ptr scan_parenthesized_initializer_expression(
+                                            a_type_ptr         dest_type,
+                                            an_error_code      err_code,
+                                            an_expression_kind expression_kind)
+/*
+Scan a single expression in parentheses as an initializer value, and convert
+it to dest_type if necessary.  The current token is the token after the
+opening left parenthesis.  On return, the curren token is the token following
+the closing parenthesis.  If the conversion cannot be done, issue the
+error err_code.
+*/
+{
+  an_expr_node_ptr expr;
+  an_operand       result;
+
+  add_stop_token(tok_rparen);
+  /* Since the syntax has an expression-list even in the single-expression
+     case, a top-level comma is not allowed. */
+  scan_expr(&result, PREC_LOWEST, expression_kind,
+            EOPT_DISALLOW_COMMA_OPERATOR);
+  /* Convert to the required type. */
+  prep_initializer_operand(&result, dest_type, expression_kind, err_code);
+   /* Check for the required closing parenthesis. */
+  check_closing_paren_after_expr_list();
+  remove_stop_token(tok_rparen);
+  expr = make_node_from_operand(&result);
+  return expr;
+}  /* scan_parenthesized_initializer_expression */
+
 
 void scan_ctor_arguments(a_symbol_ptr     constructor_sym,
                          an_expr_node_ptr *arg_expr_list,
@@ -1095,7 +1144,8 @@ is not known.)  Scan the arguments and the closing parenthesis, and return
 the argument list in *arg_expr_list and a pointer to the proper constructor
 routine in *conversion_routine.  If the proper constructor cannot be
 determined, return NULL.  This routine may be called only in C++ mode.
-It's used for paren-enclosed initializers, as in
+It's used for paren-enclosed initializers for classes that have
+constructors, as in
 
   class A {...};
   A x(1, 2, 3);
@@ -3175,7 +3225,7 @@ specification allow a variable-sized array as the top type.
   a_source_position placement_position;
   a_type_ptr        new_type, base_new_type, element_type, ptr_new_type;
   an_expr_node_ptr  new_array_dimension, sizeof_node, function_node;
-  an_operand        sizeof_operand, function_operand, init_operand;
+  an_operand        sizeof_operand, function_operand;
   a_boolean         use_global_new = FALSE;
   a_symbol_ptr      operator_new_symbol, ctor_sym;
   a_routine_ptr     new_routine, ctor_routine;
@@ -3447,20 +3497,17 @@ specification allow a variable-sized array as the top type.
         error(ec_initializer_not_allowed_on_array_new);
         ptr_new_type = new_type = base_new_type = error_type();
       }  /* if */
-      add_stop_token(tok_rparen);
       if (curr_token != tok_rparen) {
         /* The new-initializer is not empty.  Scan it. */
-        scan_expr(&init_operand, PREC_LOWEST, expression_kind,
-                  EOPT_NO_OPTIONS);
-        /* Convert to the required type. */
-        prep_initializer_operand(&init_operand, new_type,
-                                 (an_expression_kind)ek_normal,
-                                  ec_bad_initializer_type);
-        init_val_node = make_node_from_operand(&init_operand);
+        init_val_node = scan_parenthesized_initializer_expression(
+                                                      new_type,
+                                                      expression_kind,
+                                                      ec_bad_initializer_type);
         needs_initialization = TRUE;
+      } else {
+        /* The initializer is empty, i.e., "()". */
+        (void)get_token();
       }  /* if */
-      (void)required_token(tok_rparen, ec_exp_rparen);
-      remove_stop_token(tok_rparen);
     }  /* if */
   }  /* if */
   if (needs_initialization && !is_error_type(new_type)) {
@@ -3781,6 +3828,7 @@ for both C-style casts and C++ functional-notation type conversions.
     /* Casting to a qualified type, though valid, is pointless. */
     if (is_qualified_type(type_cast_to)) {
       warning(ec_cast_to_qualified_type);
+      *p_type_cast_to = type_cast_to = make_unqualified_type(type_cast_to);
     }  /* if */
     /* Determine whether of not the cast is to a pointer-to-function type
        (this is needed in C++ to allow the anachronism of casting a bound
@@ -4285,7 +4333,9 @@ expression_kind indicates the kind of the current expression.
     if (curr_token == tok_rparen) {
       make_integer_constant_operand(result, 0L);
     } else {
-      cast_options = EOPT_OPERAND_OF_CAST;
+      /* Since the expression in parentheses is syntactically an
+         expression list, a top-level comma is not allolwed. */
+      cast_options = EOPT_OPERAND_OF_CAST | EOPT_DISALLOW_COMMA_OPERATOR;
       if (cast_to_func_ptr) {
         /* In C++, allow a bound function as the operand of a cast to a
            normal function pointer. */
@@ -4299,7 +4349,7 @@ expression_kind indicates the kind of the current expression.
             cast_to_reference, int_to_ptr_case, cast_to_func_ptr,
             expression_kind, &start_position);
     /* Check for the closing parenthesis. */
-    (void)required_token(tok_rparen, ec_exp_rparen);
+    check_closing_paren_after_expr_list();
     remove_stop_token(tok_rparen);
   }  /* if */
   /* Set the error position to the starting position. */

@@ -27,6 +27,8 @@ expr.h -- Declarations related to expression parsing.
 
 extern a_boolean node_has_side_effects(an_expr_node_ptr node);
 
+extern void check_closing_paren_after_expr_list(void);
+
 extern void scan_ctor_arguments(a_symbol_ptr     constructor_sym,
                                 an_expr_node_ptr *arg_expr_list,
                                 a_routine_ptr    *conversion_routine);
