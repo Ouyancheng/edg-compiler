@@ -11707,7 +11707,6 @@ cleared.
 #if DEBUG
           if (debug_level >= 4 ||
               db_trace("dump_elim", friend_class, iek_type)) {
-            fputs("  ", f_debug);
             db_type_name(friend_class);
             fputs(" no longer befriended by ", f_debug);
             db_type_name(class_type);
@@ -11759,7 +11758,7 @@ cleared.
 #if DEBUG
           if (debug_level >= 4 ||
               db_trace("dump_elim", friend_rout, iek_routine)) {
-            fputs("  Routine ", f_debug);
+            fputs("Routine ", f_debug);
             db_name_full(&friend_rout->source_corresp, iek_routine);
             fputs(" no longer befriended by ", f_debug);
             db_type_name(class_type);
