@@ -53,13 +53,14 @@ EXTERN unsigned long
 		num_compressible_string_pos_allocated;
 #endif /* DEBUG */
 
-#if TEMPLATE_LOOKUP_NEEDED || MICROSOFT_EXTENSIONS_ALLOWED
+#if TEMPLATE_LOOKUP_NEEDED || MICROSOFT_EXTENSIONS_ALLOWED || MODULE_ID_NEEDED
 extern char *get_mangled_function_name(a_routine_ptr routine);
-#endif /* TEMPLATE_LOOKUP_NEEDED || MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* TEMPLATE_LOOKUP_NEEDED || MICROSOFT_EXTENSIONS_ALLOWED ||
+          MODULE_ID_NEEDED */
 
-#if TEMPLATE_LOOKUP_NEEDED
+#if TEMPLATE_LOOKUP_NEEDED || MODULE_ID_NEEDED
 extern char *get_mangled_member_variable_name(a_variable_ptr variable);
-#endif /* TEMPLATE_LOOKUP_NEEDED */
+#endif /* TEMPLATE_LOOKUP_NEEDED || MODULE_ID_NEEDED */
 
 extern a_boolean function_name_mangling_needed(
                                        a_routine_ptr routine,
