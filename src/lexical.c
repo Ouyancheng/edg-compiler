@@ -3692,12 +3692,11 @@ the full line.
 /*
 Test a character to see if it is an end-of-file character.
 */
-#if !READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS || __WIN32__
+#if !READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS
 #define is_eof_char(ch) ((ch) == EOF)
 #else /* READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS */
 /* On MS-DOS when reading source files in binary mode, a control-Z
-   acts as an EOF.  Note that control-Z does not act as an EOF under
-   Windows NT or Windows 95. */
+   acts as an EOF. */
 #define is_eof_char(ch) ((ch) == EOF || (ch) == CONTROL_Z)
 #endif /* !READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS */
 
