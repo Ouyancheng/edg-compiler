@@ -1332,6 +1332,9 @@ do_set_proper_definition_needed_flag:
             remap_ptr(ptr->variant.vla_variable, a_variable_ptr,
                       iek_variable);
             break;
+          case stmk_vla_typedef:
+            remap_ptr(ptr->variant.vla_typedef, a_type_ptr, iek_type);
+            break;
 #endif /* ifdef CFE */
 #ifdef FFE
           case stmk_fentry:

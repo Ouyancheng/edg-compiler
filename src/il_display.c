@@ -2468,6 +2468,10 @@ do_label:
       disp_ptr("vla_variable", (char *)ptr->variant.vla_variable,
                iek_variable);
       break;
+    case stmk_vla_typedef:
+      (void)printf("stmk_vla_typedef\n");
+      disp_ptr("vla_typedef", (char *)ptr->variant.vla_typedef, iek_type);
+      break;
 #endif /* ifdef CFE */
 #ifdef FFE
     case stmk_fentry:

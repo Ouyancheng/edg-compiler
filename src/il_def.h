@@ -3594,6 +3594,10 @@ typedef struct a_type {
 			   was omitted from this typeref because it is the
 			   default.  Used only in 16-bit Microsoft mode. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      a_bit_field
+		has_variably_modified_type:1;
+			/* The type referred to is a variably modified type,
+			   i.e., is or contains a VLA type. */
       bitfield_to_avoid_codecenter_warnings()
     } typeref;
     /* When kind == tk_ptr_to_member: */
@@ -5575,6 +5579,8 @@ enum a_statement_kind_tag {
 			   (Note: there is no corresponding deallocation
 			   statement.  See the vla_requires_deallocation
 			   field in a_variable.) */
+  stmk_vla_typedef,	/* Identify where a local typedef that refers to a
+			   variably modified type should be put out. */
 #endif /* ifdef CIL */
 #ifdef FIL
   stmk_fentry,		/* Code label for an ENTRY. */
@@ -6239,6 +6245,10 @@ typedef struct a_statement {
                 vla_variable;
                         /* Pointer to variable having VLA type which is
                            allocated memory at this point. */
+    /* When kind == stmk_vla_typedef: */
+    a_type_ptr	vla_typedef;
+			/* Pointer to a typedef type that refers (directly or
+			   indirectly) to a variably modified type. */
 #endif /* ifdef CIL */
 #ifdef FIL
     /* When kind == stmk_fentry: */

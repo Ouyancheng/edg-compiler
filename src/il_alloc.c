@@ -951,6 +951,7 @@ to default values.
 #if MICROSOFT_EXTENSIONS_ALLOWED
       pte->variant.typeref.explicit_memory_attribute_made_implicit = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      pte->variant.typeref.has_variably_modified_type = FALSE;
 #if CHECKING
       pte->variant.typeref.avoid_codecenter_warnings = 0;
 #endif /* CHECKING */
@@ -1913,6 +1914,9 @@ fields to default values.
       break;
     case stmk_alloc_vla_variable:
       sp->variant.vla_variable = NULL;
+      break;
+    case stmk_vla_typedef:
+      sp->variant.vla_typedef = NULL;
       break;
 #if CHECKING
     default:
