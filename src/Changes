@@ -1,5 +1,11 @@
 Version 3.2
 
+2/24/03  Internal error in IL lowering of exception handling
+
+An internal error ("region table generated but empty lifetime on func",
+in lower_eh.c) was generated while lowering a generated routine
+in exception handling.  Now fixed.
+
 2/20/03  GNU C mode: Nonempty class types marked as empty
 
 In GNU C mode, a nonempty class type sometimes had its is_empty_class
