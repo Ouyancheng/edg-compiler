@@ -796,7 +796,7 @@ class_struct_union:
         fprintf(f_debug, "} : size = %lu, alignment = %d",
                 tp->size, tp->alignment);
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
-        fprintf(f_debug, ", semivisible=%s",
+        fprintf(f_debug, ", semivisible = %s",
                 tp->use_cfront_transitional_nested_type_name_mangling ?
                 "TRUE" : "FALSE");
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
