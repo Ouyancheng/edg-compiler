@@ -1,5 +1,13 @@
 Version 2.37
 
+10/16/97  C++-generating back end: asm-statements in Microsoft mode
+
+The form in which asm-statements are put out by the C++-generating back end
+in Microsoft-compatibility mode has been changed to omit the parentheses
+and quotation marks:
+
+  __asm xxx ;           // instead of __asm("xxx");
+
 10/16/97  Option to suppress zeroing of variables
 
 IL lowering adds zero-initialization to defined C++ variables so that
