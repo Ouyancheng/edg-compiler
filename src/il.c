@@ -8524,12 +8524,19 @@ static a_source_sequence_entry_ptr remove_tag_def_from_src_seq_list(
         ssep = ssep->next;
         for (;;) {
           if (ss_entry_kind(ssep) ==
-                   (an_il_entry_kind)iek_src_seq_end_of_construct &&
-              ss_entry_ptr(ssep, a_src_seq_end_of_construct_ptr)->
+                   (an_il_entry_kind)iek_src_seq_end_of_construct) {
+#if 0
+/* Temporary special casing for end-of-construct for a nested struct/enum
+   because the keep-in-il flag isn't being set properly. */
+#endif /* if 0 */
+            if (ss_entry_ptr(ssep, a_src_seq_end_of_construct_ptr)->
                                                 entity.ptr == (char *)tp) {
-            prev_ssep = ssep;
-            prev_link_addr = &ssep->next;
-            break;
+              prev_ssep = ssep;
+              prev_link_addr = &ssep->next;
+              break;
+            } else {
+              ssep = ssep->next;
+            }  /* if */
           } else if (il_entry_prefix_of(ssep->entity.ptr).keep_in_il) {
             ssep = ssep->next;
           } else {
